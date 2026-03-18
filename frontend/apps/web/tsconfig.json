@@ -1,0 +1,36 @@
+{
+  "extends": "@workspace/typescript-config/nextjs.json", // base nextjs config
+  "compilerOptions": {
+    "baseUrl": "src",
+    "paths": {
+      "@/lib/*": ["lib/*"],
+      "@/app/*": ["app/*"],
+      "@/actions/*": ["actions/*"],
+      "@/components/*": ["components/*"],
+      "@/hooks/*": ["hooks/*"],
+      "@/client/*": ["client/*"],
+      "@/schemas/*": ["schemas/*"],
+      "@/utils/*": ["utils/*"],
+      "@/constants/*": ["constants/*"],
+      "@/config/*": ["config/*"],
+
+      "@/types/*": ["types/*"],
+
+      "@/assets/*": ["assets/*"],
+      "@/styles/*": ["styles/*"],
+    },
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": [
+    "next-env.d.ts",
+    "next.config.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}

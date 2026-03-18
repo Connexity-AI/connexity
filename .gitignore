@@ -1,0 +1,24 @@
+# Must use any depth for monorepo
+
+# Node.js
+**/node_modules/
+**/.next/
+**/.turbo/
+**/dist/
+
+# Python
+**/.venv/
+**/.ruff_cache/
+**/.mypy_cache/
+**/__pycache__/
+**/.pytest_cache/
+
+# Env vars
+**/.env
+**/.env*.local
+
+# Tests
+**/test-results/
+**/playwright-report/
+**/blob-report/
+**/playwright/.cache/

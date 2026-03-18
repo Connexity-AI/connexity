@@ -1,0 +1,38 @@
+@layer base {
+  :root {
+
+    /* Todo: group them based on light, dark themes */
+
+    /* Backgrounds, Primary, Secondary */
+    --var-color-white: theme('colors.white');
+    --var-color-slate-50: theme('colors.slate.50');
+    --var-color-slate-100: theme('colors.slate.100');
+    --var-color-slate-800: theme('colors.slate.800');
+    --var-color-slate-900: theme('colors.slate.900');
+
+    /* Content / Foregrounds, Ring */
+    --var-color-slate-400: theme('colors.slate.400');
+    --var-color-slate-500: theme('colors.slate.500');
+    --var-color-slate-600: theme('colors.slate.600');
+
+    /* Borders / Dividers */
+    --var-color-slate-200: theme('colors.slate.200');
+
+    /* Destructive actions */
+    --var-color-red-500: theme('colors.red.500');
+    --var-color-red-600: theme('colors.red.600');
+    --var-color-red-700: theme('colors.red.700');
+
+    /* Chart colors */
+    --var-color-orange-500: theme('colors.orange.500');
+    --var-color-lime-500: theme('colors.lime.500');
+    --var-color-green-500: theme('colors.green.500');
+    --var-color-sky-500: theme('colors.sky.500');
+    --var-color-indigo-700: theme('colors.indigo.700');
+
+    /* Accent colors */
+    --var-color-teal-400: theme('colors.teal.400');
+    --var-color-violet-600: theme('colors.violet.600');
+    --var-color-purple-500: theme('colors.purple.500');
+  }
+}

@@ -1,0 +1,33 @@
+# python-generated files
+__pycache__
+app.egg-info
+*.pyc
+.mypy_cache
+
+# tests
+.coverage
+htmlcov
+.cache
+
+# virtual environments
+.venv
+
+# environment variables
+.env*
+
+# data - database, logs, cache
+
+# ignore database
+!data/database
+data/database/*
+!data/database/.gitkeep
+
+# ignore cache
+!data/cache
+data/cache/*
+!data/cache/.gitkeep
+
+# ignore app logs
+!data/logs
+data/logs/*
+!data/logs/.gitkeep

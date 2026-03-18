@@ -1,0 +1,61 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Env vars
+**/.env
+**/.env*.local
+
+# Testing
+coverage
+
+# Turbo
+.turbo
+
+
+# Build Outputs
+.next/
+out/
+build
+dist
+
+
+# Debug
+npm-debug.log*
+
+# Misc
+.DS_Store
+*.pem
+
+# repeat Tiangolo
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+dist-ssr
+*.local
+openapi.json
+openapi-ts-*.log
+
+# Editor directories and files
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

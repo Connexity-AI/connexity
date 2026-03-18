@@ -1,0 +1,29 @@
+{
+  "name": "connexity-evals",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "standalone": "turbo run standalone --filter web",
+    "lint": "turbo lint",
+    "upg": "find . -name package.json -not -path '*/node_modules/*' -not -path '*/.next/*' -execdir pnpm up --latest \\;",
+    "clean": "rm -f pnpm-lock.yaml && find . -type d -name node_modules -prune -exec rm -rf '{}' +",
+    "find-nm": "find . -type d -name 'node_modules' ! -path '*/node_modules/*/node_modules'",
+    "format": "prettier --write \"**/*.{js,ts,tsx,md,json}\"",
+    "docker:build:x86": "docker buildx build -f ./Dockerfile -t connexity-evals-frontend --platform linux/amd64 ."
+  },
+  "devDependencies": {
+    "@ianvs/prettier-plugin-sort-imports": "^4.7.0",
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "prettier": "^3.7.4",
+    "turbo": "^2.7.3",
+    "typescript": "5.9.3"
+  },
+  "packageManager": "pnpm@10.17.0",
+  "engines": {
+    "node": ">=24.7.0",
+    "pnpm": ">=10.17.0"
+  }
+}

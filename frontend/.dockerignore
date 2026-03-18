@@ -1,0 +1,18 @@
+# Frontend image, frontend/.dockerignore
+
+# Monorepo
+
+# Node.js
+**/node_modules/
+**/.next/
+**/.turbo/
+**/dist/
+
+# Ignore all env files, env vars are passed into container explicitly
+**/.env*
+
+# Tests
+**/test-results/
+**/playwright-report/
+**/blob-report/
+**/playwright/.cache/

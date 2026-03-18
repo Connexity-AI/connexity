@@ -1,0 +1,19 @@
+# Node.js
+**/node_modules/
+**/.next/
+**/.turbo/
+**/dist/
+**/package-lock.json
+**/package-lock.yaml
+**/public
+
+# Ignore backend, ruff formats there
+# Includes all Python
+backend/
+
+# Docs
+docs/
+**/CHANGELOG.md
+
+# Other
+**/openapi.json

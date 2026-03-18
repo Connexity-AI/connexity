@@ -1,0 +1,85 @@
+name: connexity-evals
+
+# development environment
+
+services:
+
+  # Todo: improve frontend and test it
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: connexity-evals-frontend
+    restart: unless-stopped
+    ports:
+      - 3000:3000
+    depends_on:
+      - backend
+    networks:
+      - default
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: connexity-evals-backend
+    restart: unless-stopped
+    # don't mount alembic as volume
+    ports:
+      - 8000:8000
+    env_file:
+      - .env
+    depends_on:
+      - database
+    networks:
+      - default
+
+  database:
+    image: postgres:17.5-alpine3.22
+    container_name: connexity-evals-database
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    # postgres user 999:999 must own the volume
+    # ok in dev, python watch will complain
+    user: '${MY_UID}:${MY_GID}'
+    ports:
+      - '${POSTGRES_PORT}:5432'
+    env_file:
+      - .env
+    environment:
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
+      - POSTGRES_USER=${POSTGRES_USER?Variable not set}
+      - POSTGRES_DB=${POSTGRES_DB?Variable not set}
+    volumes:
+      - ./backend/data/database:/var/lib/postgresql/data # !without /pgdata
+    networks:
+      - default
+
+  adminer:
+    image: adminer:5.4.0-standalone
+    container_name: connexity-evals-adminer
+    restart: unless-stopped
+    depends_on:
+      - database
+    environment:
+      - ADMINER_DESIGN=nicu
+    # no networks, no ports
+    network_mode: host
+    # change default port
+    command: php -S 0.0.0.0:8083 -t /var/www/html
+    #
+    # must use database:5432, 5433:5432 mapping does not apply
+    # ports:
+    #   - 8080:8080
+    # networks:
+    #   - default
+
+networks:
+  default:
+    driver: bridge

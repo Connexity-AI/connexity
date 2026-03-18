@@ -1,0 +1,51 @@
+name: Deploy Docker backend
+
+on:
+  workflow_run:
+    workflows:
+      - 'Build and push Docker backend'
+    types:
+      - completed
+
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME_WITH_TAG: ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}-backend:latest
+
+jobs:
+  deploy:
+    name: Deploy image from Dockerhub to remote host with ssh
+    runs-on: ubuntu-latest
+    # only on build workflow success
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Deploy latest image
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USERNAME }}
+          key: ${{ secrets.REMOTE_KEY_ED25519 }}
+          port: ${{ secrets.REMOTE_PORT }}
+          # don't stop on errors
+          script_stop: false
+          # Todo: handle database migrations and seed
+          script: |
+            cd /home/ubuntu/traefik-proxy/apps/connexity-evals
+
+            # Docker login for private image
+            echo "${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin"
+
+            echo "Old image tag: $(docker inspect --format '{{ index .RepoTags 0 }}' ${{ env.IMAGE_NAME_WITH_TAG }})"
+            echo "Old image hash: $(docker inspect --format '{{ index .RepoDigests 0 }}' ${{ env.IMAGE_NAME_WITH_TAG }})"
+
+            docker compose down
+            docker image rm ${{ env.IMAGE_NAME_WITH_TAG }} || true
+
+            docker compose up -d
+
+            echo "New image tag: $(docker inspect --format '{{ index .RepoTags 0 }}' ${{ env.IMAGE_NAME_WITH_TAG }})"
+            echo "New image hash: $(docker inspect --format '{{ index .RepoDigests 0 }}' ${{ env.IMAGE_NAME_WITH_TAG }})"
+
+            # remove dangling images, optional
+            # docker image prune -af

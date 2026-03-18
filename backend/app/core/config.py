@@ -1,0 +1,179 @@
+import warnings
+from typing import Annotated, Any, Literal
+
+from pydantic import (
+    AnyUrl,
+    BeforeValidator,
+    EmailStr,
+    HttpUrl,
+    PostgresDsn,
+    computed_field,
+    model_validator,
+)
+from pydantic_core import MultiHostUrl
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing_extensions import Self
+
+DEFAULT_SECRET_VALUE: str = "changethis"
+
+
+def parse_cors(v: Any) -> list[str] | str:
+    if isinstance(v, str) and not v.startswith("["):
+        return [i.strip() for i in v.split(",")]
+    elif isinstance(v, list | str):
+        return v
+    raise ValueError(v)
+
+
+class Settings(BaseSettings):
+    # Load .env file
+    model_config = SettingsConfigDict(
+        # Use top level .env file (one level above ./backend/)
+        env_file="../.env",
+        env_ignore_empty=True,
+        extra="ignore",
+    )
+
+    # ------- Required variables -------
+
+    # Note: SITE_URL and database are actually REQUIRED variables but made optional
+    # Note: to display dev friendly message in root route for deployments without env vars set
+
+    # Frontend url
+    SITE_URL: str | None = None  # truly required
+
+    # DATABASE_URL | POSTGRES_* # truly required
+
+    DATABASE_URL: PostgresDsn | None = None
+
+    # Local / Docker fallback
+    POSTGRES_SERVER: str | None = None
+    POSTGRES_PORT: int = 5432
+    POSTGRES_USER: str | None = None
+    POSTGRES_PASSWORD: str | None = None
+    POSTGRES_DB: str | None = None
+
+    # ------- Optional variables -------
+
+    # Secrets
+    JWT_SECRET_KEY: str = DEFAULT_SECRET_VALUE
+    SESSION_SECRET_KEY: str = DEFAULT_SECRET_VALUE
+
+    GITHUB_CLIENT_ID: str = DEFAULT_SECRET_VALUE
+    GITHUB_CLIENT_SECRET: str = DEFAULT_SECRET_VALUE
+
+    # Secrets with defaults
+    FIRST_SUPERUSER: EmailStr = "admin@example.com"
+    FIRST_SUPERUSER_PASSWORD: str = "password"
+
+    ENVIRONMENT: Literal["local", "staging", "production"] = "local"
+
+    API_V1_STR: str = "/api/v1"
+    AUTH_COOKIE: str = "auth_cookie"
+    # Cookie expiration and JWT expiration match
+    # 24 hours * 7 days = 168 hours
+    ACCESS_TOKEN_EXPIRE_HOURS: int = 24 * 7
+
+    BACKEND_CORS_ORIGINS: Annotated[
+        list[AnyUrl] | str, BeforeValidator(parse_cors)
+    ] = []
+
+    PROJECT_NAME: str = "connexity-evals"
+    SENTRY_DSN: HttpUrl | None = None
+
+    EMAIL_TEST_USER: EmailStr = "test@example.com"
+
+    SMTP_TLS: bool = True
+    SMTP_SSL: bool = False
+    SMTP_PORT: int = 587
+    SMTP_HOST: str | None = None
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: str | None = None
+    EMAILS_FROM_EMAIL: EmailStr | None = None
+    EMAILS_FROM_NAME: EmailStr | None = None
+
+    EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 48
+
+    # ------- Computed properties -------
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def all_cors_origins(self) -> list[str]:
+        return [str(origin).rstrip("/") for origin in self.BACKEND_CORS_ORIGINS] + [
+            self.SITE_URL
+        ]
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
+        # 1. Default None, no exception, SQLite in-memory placeholder
+        connection = None
+
+        # 2. DATABASE_URL (e.g. Neon)
+        if self.DATABASE_URL:
+            database_url = str(self.DATABASE_URL)
+            # Force SQLAlchemy to use psycopg v3 (Neon provides postgresql:// by default)
+            if database_url.startswith("postgresql://"):
+                database_url = database_url.replace(
+                    "postgresql://", "postgresql+psycopg://"
+                )
+            connection = database_url
+
+        postgres_vars = [
+            self.POSTGRES_SERVER,
+            self.POSTGRES_USER,
+            self.POSTGRES_PASSWORD,
+            self.POSTGRES_DB,
+        ]
+
+        # 3. POSTGRES_* (local development, Docker)
+        if not connection and all(postgres_vars):
+            connection = MultiHostUrl.build(
+                scheme="postgresql+psycopg",
+                username=self.POSTGRES_USER,
+                password=self.POSTGRES_PASSWORD,
+                host=self.POSTGRES_SERVER,
+                port=self.POSTGRES_PORT,
+                path=self.POSTGRES_DB,
+            )
+
+        return connection
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def emails_enabled(self) -> bool:
+        return bool(self.SMTP_HOST and self.EMAILS_FROM_EMAIL)
+
+    # ------- Validators -------
+
+    @model_validator(mode="after")
+    def _set_default_emails_from(self) -> Self:
+        if not self.EMAILS_FROM_NAME:
+            self.EMAILS_FROM_NAME = self.PROJECT_NAME
+        return self
+
+    # Must run at end
+    @model_validator(mode="after")
+    def _enforce_non_default_secrets(self) -> Self:
+        # required vars
+        self._check_default_secret("JWT_SECRET_KEY", self.JWT_SECRET_KEY)
+        self._check_default_secret("SESSION_SECRET_KEY", self.SESSION_SECRET_KEY)
+        # conditional required vars
+        if self.POSTGRES_PASSWORD:
+            self._check_default_secret("POSTGRES_PASSWORD", self.POSTGRES_PASSWORD)
+
+        return self
+
+    # ------- Utilities -------
+
+    def _check_default_secret(self, var_name: str, value: str | None) -> None:
+        if value == DEFAULT_SECRET_VALUE:
+            message = (
+                f"The value of {var_name} is {DEFAULT_SECRET_VALUE}, "
+                "for security, please change it, at least for deployments."
+            )
+            # prevent exceptions for deployments without secrets set
+            warnings.warn(message, stacklevel=1)
+
+
+settings = Settings()  # type: ignore

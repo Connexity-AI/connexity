@@ -1,0 +1,25 @@
+# Backend image, backend/.dockerignore
+
+# Not monorepo
+
+# Python
+.venv/
+__pycache__/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+app.egg-info
+*.pyc
+
+# Tests
+.coverage
+htmlcov
+
+# Env vars
+.env*
+
+# ignore database
+!data/database
+data/database/*
+!data/database/.gitkeep
+
