@@ -23,10 +23,14 @@ dependencies = [
     "pyjwt<3.0.0,>=2.8.0",
     "authlib>=1.6.0",
     "itsdangerous>=2.2.0",
+    "click>=8.1.7",
 ]
 
-[tool.uv]
-dev-dependencies = [
+[project.scripts]
+cli = "cli.main:app"
+
+[dependency-groups]
+dev = [
     "pytest<8.0.0,>=7.4.3",
     "mypy<2.0.0,>=1.8.0",
     "ruff<1.0.0,>=0.2.2",
@@ -35,6 +39,9 @@ dev-dependencies = [
     "coverage<8.0.0,>=7.4.3",
 ]
 
+[tool.hatch.build.targets.wheel]
+packages = ["app", "cli"]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -42,6 +49,7 @@ build-backend = "hatchling.build"
 [tool.mypy]
 strict = true
 exclude = ["venv", ".venv", "alembic"]
+packages = ["app", "cli"]
 
 [tool.ruff]
 target-version = "py310"

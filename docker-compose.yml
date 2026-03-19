@@ -29,6 +29,10 @@ services:
       - 8000:8000
     env_file:
       - .env
+    environment:
+      # Override: inside Docker network, DB is at service name, not localhost
+      - POSTGRES_SERVER=database
+      - POSTGRES_PORT=5432
     depends_on:
       - database
     networks:
@@ -46,7 +50,7 @@ services:
       timeout: 10s
     # postgres user 999:999 must own the volume
     # ok in dev, python watch will complain
-    user: '${MY_UID}:${MY_GID}'
+    # user: '${MY_UID}:${MY_GID}'  # Linux only, not needed on Windows/macOS
     ports:
       - '${POSTGRES_PORT}:5432'
     env_file:
@@ -69,16 +73,11 @@ services:
       - database
     environment:
       - ADMINER_DESIGN=nicu
-    # no networks, no ports
-    network_mode: host
-    # change default port
-    command: php -S 0.0.0.0:8083 -t /var/www/html
-    #
-    # must use database:5432, 5433:5432 mapping does not apply
-    # ports:
-    #   - 8080:8080
-    # networks:
-    #   - default
+      - ADMINER_DEFAULT_SERVER=database
+    ports:
+      - 8083:8080
+    networks:
+      - default
 
 networks:
   default:
