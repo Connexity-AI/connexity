@@ -107,6 +107,7 @@ def test_reset_password(client: TestClient, db: Session) -> None:
     assert r.json() == {"message": "Password updated successfully"}
 
     db.refresh(user)
+    assert user.hashed_password is not None
     assert verify_password(new_password, user.hashed_password)
 
 

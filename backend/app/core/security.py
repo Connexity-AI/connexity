@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import jwt
-from authlib.integrations.starlette_client import OAuth
+from authlib.integrations.starlette_client import OAuth  # type: ignore[import-untyped]
 from passlib.context import CryptContext
 
 from app.core.config import settings

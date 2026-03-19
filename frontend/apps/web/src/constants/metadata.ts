@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const METADATA: Metadata = {
-  title: 'Full Stack FastAPI Project',
-  description: 'A modern full-stack web application built with FastAPI and Next.js',
+  title: 'Connexity Evals',
+  description: 'Connexity Evals',
   icons: {
     icon: '/assets/images/favicon.png',
     shortcut: '/assets/images/favicon.png',

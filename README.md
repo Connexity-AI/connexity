@@ -53,6 +53,17 @@ make docker-up
 | Backend  | http://localhost:8000/docs |
 | Adminer  | http://localhost:8083   |
 
+## Seed Credentials
+
+`make db-seed` wipes the database and creates one superuser:
+
+| Field    | Value                |
+| -------- | -------------------- |
+| Email    | admin@example.com    |
+| Password | password             |
+
+These come from `FIRST_SUPERUSER` / `FIRST_SUPERUSER_PASSWORD` in your `.env`.
+
 ## All Commands
 
 Run `make help` to see all available targets.

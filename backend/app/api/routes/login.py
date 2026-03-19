@@ -150,14 +150,16 @@ def logout() -> JSONResponse:
     """
     Delete the HTTP-only cookie during logout
     """
-    return security.delete_auth_cookie()
+    response = JSONResponse(content={"message": "Logged out"})
+    response.delete_cookie(settings.AUTH_COOKIE)
+    return response
 
 
 # ------------------------ GitHub OAuth ---------------------------
 
 
 @router.get("/login/github")
-async def login_github(request: Request):
+async def login_github(request: Request) -> Any:
     """
     Redirect to GitHub login page
     Must initiate OAuth flow from backend

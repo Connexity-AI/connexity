@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 
 import { Home, Settings } from 'lucide-react';
@@ -20,8 +19,6 @@ import { ROUTES } from '@/constants/routes';
 
 import type { UserPublic } from '@/client/types.gen';
 import type { FC } from 'react';
-
-import fastApiLogo from '@/assets/images/fastapi-logo.svg';
 
 const { DASHBOARD, SETTINGS } = ROUTES;
 
@@ -47,13 +44,7 @@ const Sidebar: FC<Props> = async ({ currentUser }) => {
     <UISidebar className="border-r bg-white dark:bg-slate-900">
       <SidebarHeader className="p-6">
         <Link href={DASHBOARD} className="flex items-center space-x-3">
-          <Image
-            src={fastApiLogo}
-            alt="FastAPI Logo"
-            width={500}
-            height={500}
-            className="w-40 h-8 object-contain"
-          />
+          <span className="text-xl font-bold">Connexity Evals</span>
         </Link>
       </SidebarHeader>
 

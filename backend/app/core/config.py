@@ -99,17 +99,15 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def all_cors_origins(self) -> list[str]:
-        return [str(origin).rstrip("/") for origin in self.BACKEND_CORS_ORIGINS] + [
-            self.SITE_URL
-        ]
+        origins = [str(origin).rstrip("/") for origin in self.BACKEND_CORS_ORIGINS]
+        if self.SITE_URL:
+            origins.append(self.SITE_URL)
+        return origins
 
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
-        # 1. Default None, no exception, SQLite in-memory placeholder
-        connection = None
-
-        # 2. DATABASE_URL (e.g. Neon)
+    def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn | None:
+        # 1. DATABASE_URL (e.g. Neon)
         if self.DATABASE_URL:
             database_url = str(self.DATABASE_URL)
             # Force SQLAlchemy to use psycopg v3 (Neon provides postgresql:// by default)
@@ -117,18 +115,18 @@ class Settings(BaseSettings):
                 database_url = database_url.replace(
                     "postgresql://", "postgresql+psycopg://"
                 )
-            connection = database_url
+            return PostgresDsn(database_url)
 
-        postgres_vars = [
-            self.POSTGRES_SERVER,
-            self.POSTGRES_USER,
-            self.POSTGRES_PASSWORD,
-            self.POSTGRES_DB,
-        ]
-
-        # 3. POSTGRES_* (local development, Docker)
-        if not connection and all(postgres_vars):
-            connection = MultiHostUrl.build(
+        # 2. POSTGRES_* (local development, Docker)
+        if all(
+            [
+                self.POSTGRES_SERVER,
+                self.POSTGRES_USER,
+                self.POSTGRES_PASSWORD,
+                self.POSTGRES_DB,
+            ]
+        ):
+            return MultiHostUrl.build(
                 scheme="postgresql+psycopg",
                 username=self.POSTGRES_USER,
                 password=self.POSTGRES_PASSWORD,
@@ -137,7 +135,7 @@ class Settings(BaseSettings):
                 path=self.POSTGRES_DB,
             )
 
-        return connection
+        return None
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -176,4 +174,4 @@ class Settings(BaseSettings):
             warnings.warn(message, stacklevel=1)
 
 
-settings = Settings()  # type: ignore
+settings = Settings()

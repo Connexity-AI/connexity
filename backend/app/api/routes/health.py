@@ -13,7 +13,7 @@ DOCS_URL = "https://github.com/space-step/connexity-evals/blob/main/README.md"
 
 
 @router.get("/", response_model=Message)
-def health():
+def health() -> Message:
     required_vars = {
         "SITE_URL": settings.SITE_URL,
         "DATABASE_URL": settings.DATABASE_URL,

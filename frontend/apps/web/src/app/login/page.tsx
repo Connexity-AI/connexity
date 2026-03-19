@@ -10,12 +10,7 @@ const LoginPage: FC = () => (
     {/* Card */}
     <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 backdrop-blur-sm dark:bg-slate-900/80">
       <CardHeader className="flex-row items-center justify-center mb-6">
-        <div className="w-12 h-12 bg-teal-600 rounded-full flex items-center justify-center mb-0">
-          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-            <div className="w-4 h-4 bg-teal-600 rounded-full"></div>
-          </div>
-        </div>
-        <span className="ml-3 text-2xl font-bold text-teal-600">FastAPI</span>
+        <span className="text-2xl font-bold">Sign In</span>
       </CardHeader>
       <CardContent className="space-y-8">
         <ButtonGithubLogin />

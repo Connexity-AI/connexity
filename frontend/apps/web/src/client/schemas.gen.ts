@@ -75,119 +75,6 @@ export const HTTPValidationErrorSchema = {
   title: 'HTTPValidationError',
 } as const;
 
-export const ItemCreateSchema = {
-  properties: {
-    title: {
-      type: 'string',
-      maxLength: 255,
-      minLength: 1,
-      title: 'Title',
-    },
-    description: {
-      anyOf: [
-        {
-          type: 'string',
-          maxLength: 255,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Description',
-    },
-  },
-  type: 'object',
-  required: ['title'],
-  title: 'ItemCreate',
-} as const;
-
-export const ItemPublicSchema = {
-  properties: {
-    title: {
-      type: 'string',
-      maxLength: 255,
-      minLength: 1,
-      title: 'Title',
-    },
-    description: {
-      anyOf: [
-        {
-          type: 'string',
-          maxLength: 255,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Description',
-    },
-    id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Id',
-    },
-    owner_id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Owner Id',
-    },
-  },
-  type: 'object',
-  required: ['title', 'id', 'owner_id'],
-  title: 'ItemPublic',
-} as const;
-
-export const ItemUpdateSchema = {
-  properties: {
-    title: {
-      anyOf: [
-        {
-          type: 'string',
-          maxLength: 255,
-          minLength: 1,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Title',
-    },
-    description: {
-      anyOf: [
-        {
-          type: 'string',
-          maxLength: 255,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Description',
-    },
-  },
-  type: 'object',
-  title: 'ItemUpdate',
-} as const;
-
-export const ItemsPublicSchema = {
-  properties: {
-    data: {
-      items: {
-        $ref: '#/components/schemas/ItemPublic',
-      },
-      type: 'array',
-      title: 'Data',
-    },
-    count: {
-      type: 'integer',
-      title: 'Count',
-    },
-  },
-  type: 'object',
-  required: ['data', 'count'],
-  title: 'ItemsPublic',
-} as const;
-
 export const MessageSchema = {
   properties: {
     message: {
@@ -216,31 +103,6 @@ export const NewPasswordSchema = {
   type: 'object',
   required: ['token', 'new_password'],
   title: 'NewPassword',
-} as const;
-
-export const PrivateUserCreateSchema = {
-  properties: {
-    email: {
-      type: 'string',
-      title: 'Email',
-    },
-    password: {
-      type: 'string',
-      title: 'Password',
-    },
-    full_name: {
-      type: 'string',
-      title: 'Full Name',
-    },
-    is_verified: {
-      type: 'boolean',
-      title: 'Is Verified',
-      default: false,
-    },
-  },
-  type: 'object',
-  required: ['email', 'password', 'full_name'],
-  title: 'PrivateUserCreate',
 } as const;
 
 export const TokenSchema = {
@@ -277,64 +139,6 @@ export const UpdatePasswordSchema = {
   type: 'object',
   required: ['current_password', 'new_password'],
   title: 'UpdatePassword',
-} as const;
-
-export const UserCreateSchema = {
-  properties: {
-    email: {
-      type: 'string',
-      maxLength: 255,
-      format: 'email',
-      title: 'Email',
-    },
-    provider: {
-      $ref: '#/components/schemas/AuthProvider',
-      default: 'email',
-    },
-    oauth_id: {
-      anyOf: [
-        {
-          type: 'string',
-          maxLength: 255,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Oauth Id',
-    },
-    is_active: {
-      type: 'boolean',
-      title: 'Is Active',
-      default: true,
-    },
-    is_superuser: {
-      type: 'boolean',
-      title: 'Is Superuser',
-      default: false,
-    },
-    full_name: {
-      anyOf: [
-        {
-          type: 'string',
-          maxLength: 255,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Full Name',
-    },
-    password: {
-      type: 'string',
-      maxLength: 40,
-      minLength: 6,
-      title: 'Password',
-    },
-  },
-  type: 'object',
-  required: ['email', 'password'],
-  title: 'UserCreate',
 } as const;
 
 export const UserPublicSchema = {
@@ -426,77 +230,6 @@ export const UserRegisterSchema = {
   title: 'UserRegister',
 } as const;
 
-export const UserUpdateSchema = {
-  properties: {
-    email: {
-      anyOf: [
-        {
-          type: 'string',
-          maxLength: 255,
-          format: 'email',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Email',
-    },
-    provider: {
-      $ref: '#/components/schemas/AuthProvider',
-      default: 'email',
-    },
-    oauth_id: {
-      anyOf: [
-        {
-          type: 'string',
-          maxLength: 255,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Oauth Id',
-    },
-    is_active: {
-      type: 'boolean',
-      title: 'Is Active',
-      default: true,
-    },
-    is_superuser: {
-      type: 'boolean',
-      title: 'Is Superuser',
-      default: false,
-    },
-    full_name: {
-      anyOf: [
-        {
-          type: 'string',
-          maxLength: 255,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Full Name',
-    },
-    password: {
-      anyOf: [
-        {
-          type: 'string',
-          maxLength: 40,
-          minLength: 6,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Password',
-    },
-  },
-  type: 'object',
-  title: 'UserUpdate',
-} as const;
-
 export const UserUpdateMeSchema = {
   properties: {
     full_name: {
@@ -527,25 +260,6 @@ export const UserUpdateMeSchema = {
   },
   type: 'object',
   title: 'UserUpdateMe',
-} as const;
-
-export const UsersPublicSchema = {
-  properties: {
-    data: {
-      items: {
-        $ref: '#/components/schemas/UserPublic',
-      },
-      type: 'array',
-      title: 'Data',
-    },
-    count: {
-      type: 'integer',
-      title: 'Count',
-    },
-  },
-  type: 'object',
-  required: ['data', 'count'],
-  title: 'UsersPublic',
 } as const;
 
 export const ValidationErrorSchema = {

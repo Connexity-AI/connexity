@@ -16,9 +16,6 @@ else:
 # otherwise, SQLModel might fail to initialize relationships properly
 # for more details: https://github.com/fastapi/full-stack-fastapi-template/issues/28
 
-USERS_COUNT = 10
-
-
 def init_db(session: Session) -> None:
     # Tables should be created with Alembic migrations
     # But if you don't want to use migrations, create
@@ -31,26 +28,15 @@ def init_db(session: Session) -> None:
     # Wipe everything
     truncate_all_tables(session)
 
-    # Create N users: superuser at i=0, regular users at i=1..9
-    for i in range(0, USERS_COUNT):
-        if i == 0:
-            email = settings.FIRST_SUPERUSER
-            password = settings.FIRST_SUPERUSER_PASSWORD
-            is_super = True
-            full_name = "Admin Name"
-        else:
-            email = f"user{i}@example.com"
-            password = settings.FIRST_SUPERUSER_PASSWORD
-            is_super = False
-            full_name = f"User{i} Name"
-
-        user_in = UserCreate(
-            email=email,
-            password=password,
-            is_superuser=is_super,
-            full_name=full_name,
-        )
-        crud.create_user(session=session, user_create=user_in)
+    # Seed one superuser
+    # Credentials come from .env — defaults: admin@example.com / password
+    user_in = UserCreate(
+        email=settings.FIRST_SUPERUSER,
+        password=settings.FIRST_SUPERUSER_PASSWORD,
+        is_superuser=True,
+        full_name="Admin",
+    )
+    crud.create_user(session=session, user_create=user_in)
 
     session.commit()
 
@@ -63,5 +49,5 @@ def truncate_all_tables(session: Session) -> None:
         f'"{table.name}"' for table in SQLModel.metadata.sorted_tables
     )
 
-    session.exec(text(f"TRUNCATE TABLE {table_names} RESTART IDENTITY CASCADE;"))
+    session.execute(text(f"TRUNCATE TABLE {table_names} RESTART IDENTITY CASCADE;"))
     session.commit()

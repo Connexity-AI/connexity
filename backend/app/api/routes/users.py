@@ -65,7 +65,9 @@ def update_password_me(
     """
     Update own password.
     """
-    if not verify_password(body.current_password, current_user.hashed_password):
+    if not current_user.hashed_password or not verify_password(
+        body.current_password, current_user.hashed_password
+    ):
         raise HTTPException(status_code=400, detail="Incorrect password")
     if body.current_password == body.new_password:
         raise HTTPException(
