@@ -18,7 +18,7 @@ WORKDIR /app
 
 RUN pnpm add -g turbo
 COPY . .
-RUN turbo prune web --docker
+RUN turbo prune connexity-evals --docker
 
 # Add lockfile and package.json's of isolated subworkspace
 FROM base AS installer
