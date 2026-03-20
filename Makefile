@@ -18,6 +18,8 @@ help: ## Show available targets
 # ──────────────────────────────────────────────
 
 install: ## Install Python and frontend dependencies
+	@test -f .env || (cp .env.example .env && echo "Created .env from .env.example")
+	@test -f frontend/apps/web/.env || (cp frontend/apps/web/.env.example frontend/apps/web/.env && echo "Created frontend .env from .env.example")
 	cd backend && uv venv && uv sync
 	cd frontend && pnpm install
 
@@ -60,8 +62,10 @@ cli: ## Run the CLI (usage: make cli ARGS="hello")
 # Code quality
 # ──────────────────────────────────────────────
 
-lint: ## Run ruff + mypy on backend
+lint: ## Run linting and type-checking (backend + frontend)
 	cd backend && uv run bash scripts/lint.sh
+	cd frontend && pnpm lint
+	cd frontend && pnpm turbo typecheck
 
 format: ## Format backend code with ruff
 	cd backend && uv run bash scripts/format.sh
