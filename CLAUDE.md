@@ -84,4 +84,4 @@ IMPORTANT: All frontend code in `frontend/` MUST follow these conventions.
 - `pnpm` (not npm/yarn) for frontend package management. The lockfile is `pnpm-lock.yaml`.
 - `uv` (not pip) for backend dependency management. The lockfile is `uv.lock`.
 - Backend must be running (or venv activated) for `generate-client.sh` to extract the OpenAPI schema.
-- Alembic migrations are in `backend/alembic/versions/`. After model changes: generate migration, review it, then run `prestart.sh`.
+- Alembic migrations are in `backend/app/alembic/versions/`. After model changes: generate migration, review it, then run `prestart.sh`.
