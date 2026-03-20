@@ -6,6 +6,8 @@ from app.core.config import settings
 from app.models import (
     AgentCreate,
     Difficulty,
+    ExpectedToolCall,
+    Persona,
     RunCreate,
     RunStatus,
     RunUpdate,
@@ -14,7 +16,6 @@ from app.models import (
     ScenarioResultUpdate,
     ScenarioSetCreate,
     ScenarioStatus,
-    SimulationMode,
     UserCreate,
 )
 
@@ -87,10 +88,24 @@ def _seed_eval_data(session: Session) -> None:
             difficulty=Difficulty.NORMAL,
             tags=["billing", "refund", "happy-path"],
             status=ScenarioStatus.ACTIVE,
-            simulation_mode=SimulationMode.LLM_DRIVEN,
-            user_persona="Polite customer, purchased 5 days ago",
-            user_goal="Get a full refund on recent purchase",
+            persona=Persona(
+                type="polite-customer",
+                description="Polite customer who purchased 5 days ago",
+                instructions="Be cooperative but insistent on getting a full refund. Provide order number when asked.",
+            ),
+            initial_message="Hi, I'd like to request a refund for my recent order.",
+            user_context={
+                "order_id": "ORD-12345",
+                "purchase_date": "2026-03-15",
+                "amount": 49.99,
+            },
             max_turns=10,
+            expected_outcomes={"refund_initiated": True, "customer_satisfied": True},
+            expected_tool_calls=[
+                ExpectedToolCall(
+                    tool="lookup_order", expected_params={"order_id": "ORD-12345"}
+                ),
+            ],
         ),
     )
     s_escalation = crud.create_scenario(
@@ -101,10 +116,22 @@ def _seed_eval_data(session: Session) -> None:
             difficulty=Difficulty.HARD,
             tags=["billing", "escalation", "edge-case"],
             status=ScenarioStatus.ACTIVE,
-            simulation_mode=SimulationMode.LLM_DRIVEN,
-            user_persona="Frustrated customer, 3 prior contacts",
-            user_goal="Speak to a supervisor and get compensation",
+            persona=Persona(
+                type="frustrated-customer",
+                description="Frustrated customer with 3 prior contacts, increasingly angry",
+                instructions="Express frustration. Demand to speak to a supervisor. If not transferred within 3 turns, threaten to cancel account.",
+            ),
+            initial_message="I've called three times already and nobody has fixed my issue!",
+            user_context={
+                "account_id": "ACC-67890",
+                "prior_contacts": 3,
+                "issue": "billing overcharge",
+            },
             max_turns=15,
+            expected_outcomes={
+                "escalated_to_supervisor": True,
+                "compensation_offered": True,
+            },
         ),
     )
     s_product = crud.create_scenario(
@@ -115,10 +142,18 @@ def _seed_eval_data(session: Session) -> None:
             difficulty=Difficulty.NORMAL,
             tags=["sales", "product-info"],
             status=ScenarioStatus.ACTIVE,
-            simulation_mode=SimulationMode.LLM_DRIVEN,
-            user_persona="Budget-conscious shopper",
-            user_goal="Decide between Plan A and Plan B",
+            persona=Persona(
+                type="budget-shopper",
+                description="Budget-conscious shopper comparing two subscription plans",
+                instructions="Ask detailed questions about pricing, features, and limitations. Push back on upselling.",
+            ),
+            initial_message="Can you help me compare Plan A and Plan B?",
+            user_context={"budget": 50, "team_size": 5},
             max_turns=10,
+            expected_outcomes={
+                "comparison_provided": True,
+                "recommendation_given": True,
+            },
         ),
     )
     crud.create_scenario(

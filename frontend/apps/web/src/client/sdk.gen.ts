@@ -3,6 +3,21 @@ import { client } from './client.gen';
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import type {
+  AgentsCreateAgentData,
+  AgentsCreateAgentErrors,
+  AgentsCreateAgentResponses,
+  AgentsDeleteAgentData,
+  AgentsDeleteAgentErrors,
+  AgentsDeleteAgentResponses,
+  AgentsGetAgentData,
+  AgentsGetAgentErrors,
+  AgentsGetAgentResponses,
+  AgentsListAgentsData,
+  AgentsListAgentsErrors,
+  AgentsListAgentsResponses,
+  AgentsUpdateAgentData,
+  AgentsUpdateAgentErrors,
+  AgentsUpdateAgentResponses,
   HealthHealthData,
   HealthHealthResponses,
   LoginAuthGithubCallbackData,
@@ -25,6 +40,78 @@ import type {
   LoginResetPasswordResponses,
   LoginTestTokenData,
   LoginTestTokenResponses,
+  RunsCreateRunData,
+  RunsCreateRunErrors,
+  RunsCreateRunResponses,
+  RunsDeleteRunData,
+  RunsDeleteRunErrors,
+  RunsDeleteRunResponses,
+  RunsGetRunData,
+  RunsGetRunErrors,
+  RunsGetRunResponses,
+  RunsListRunsData,
+  RunsListRunsErrors,
+  RunsListRunsResponses,
+  RunsUpdateRunData,
+  RunsUpdateRunErrors,
+  RunsUpdateRunResponses,
+  ScenarioResultsCreateScenarioResultData,
+  ScenarioResultsCreateScenarioResultErrors,
+  ScenarioResultsCreateScenarioResultResponses,
+  ScenarioResultsDeleteScenarioResultData,
+  ScenarioResultsDeleteScenarioResultErrors,
+  ScenarioResultsDeleteScenarioResultResponses,
+  ScenarioResultsGetScenarioResultData,
+  ScenarioResultsGetScenarioResultErrors,
+  ScenarioResultsGetScenarioResultResponses,
+  ScenarioResultsListScenarioResultsData,
+  ScenarioResultsListScenarioResultsErrors,
+  ScenarioResultsListScenarioResultsResponses,
+  ScenarioResultsUpdateScenarioResultData,
+  ScenarioResultsUpdateScenarioResultErrors,
+  ScenarioResultsUpdateScenarioResultResponses,
+  ScenariosCreateScenarioData,
+  ScenariosCreateScenarioErrors,
+  ScenariosCreateScenarioResponses,
+  ScenariosDeleteScenarioData,
+  ScenariosDeleteScenarioErrors,
+  ScenariosDeleteScenarioResponses,
+  ScenarioSetsAddScenariosToSetData,
+  ScenarioSetsAddScenariosToSetErrors,
+  ScenarioSetsAddScenariosToSetResponses,
+  ScenarioSetsCreateScenarioSetData,
+  ScenarioSetsCreateScenarioSetErrors,
+  ScenarioSetsCreateScenarioSetResponses,
+  ScenarioSetsDeleteScenarioSetData,
+  ScenarioSetsDeleteScenarioSetErrors,
+  ScenarioSetsDeleteScenarioSetResponses,
+  ScenarioSetsGetScenarioSetData,
+  ScenarioSetsGetScenarioSetErrors,
+  ScenarioSetsGetScenarioSetResponses,
+  ScenarioSetsListScenarioSetsData,
+  ScenarioSetsListScenarioSetsErrors,
+  ScenarioSetsListScenarioSetsResponses,
+  ScenarioSetsListScenariosInSetData,
+  ScenarioSetsListScenariosInSetErrors,
+  ScenarioSetsListScenariosInSetResponses,
+  ScenarioSetsRemoveScenarioFromSetData,
+  ScenarioSetsRemoveScenarioFromSetErrors,
+  ScenarioSetsRemoveScenarioFromSetResponses,
+  ScenarioSetsReplaceScenariosInSetData,
+  ScenarioSetsReplaceScenariosInSetErrors,
+  ScenarioSetsReplaceScenariosInSetResponses,
+  ScenarioSetsUpdateScenarioSetData,
+  ScenarioSetsUpdateScenarioSetErrors,
+  ScenarioSetsUpdateScenarioSetResponses,
+  ScenariosGetScenarioData,
+  ScenariosGetScenarioErrors,
+  ScenariosGetScenarioResponses,
+  ScenariosListScenariosData,
+  ScenariosListScenariosErrors,
+  ScenariosListScenariosResponses,
+  ScenariosUpdateScenarioData,
+  ScenariosUpdateScenarioErrors,
+  ScenariosUpdateScenarioResponses,
   UsersDeleteUserMeData,
   UsersDeleteUserMeResponses,
   UsersReadUserMeData,
@@ -345,6 +432,725 @@ export class UsersService {
         },
       ],
       url: '/api/v1/users/me/password',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+}
+
+export class AgentsService {
+  /**
+   * List Agents
+   */
+  public static listAgents<ThrowOnError extends boolean = false>(
+    options?: Options<AgentsListAgentsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      AgentsListAgentsResponses,
+      AgentsListAgentsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/agents/',
+      ...options,
+    });
+  }
+
+  /**
+   * Create Agent
+   */
+  public static createAgent<ThrowOnError extends boolean = false>(
+    options: Options<AgentsCreateAgentData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      AgentsCreateAgentResponses,
+      AgentsCreateAgentErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/agents/',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Delete Agent
+   */
+  public static deleteAgent<ThrowOnError extends boolean = false>(
+    options: Options<AgentsDeleteAgentData, ThrowOnError>
+  ) {
+    return (options.client ?? client).delete<
+      AgentsDeleteAgentResponses,
+      AgentsDeleteAgentErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/agents/{agent_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Agent
+   */
+  public static getAgent<ThrowOnError extends boolean = false>(
+    options: Options<AgentsGetAgentData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      AgentsGetAgentResponses,
+      AgentsGetAgentErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/agents/{agent_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Update Agent
+   */
+  public static updateAgent<ThrowOnError extends boolean = false>(
+    options: Options<AgentsUpdateAgentData, ThrowOnError>
+  ) {
+    return (options.client ?? client).patch<
+      AgentsUpdateAgentResponses,
+      AgentsUpdateAgentErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/agents/{agent_id}',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+}
+
+export class ScenariosService {
+  /**
+   * List Scenarios
+   */
+  public static listScenarios<ThrowOnError extends boolean = false>(
+    options?: Options<ScenariosListScenariosData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      ScenariosListScenariosResponses,
+      ScenariosListScenariosErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenarios/',
+      ...options,
+    });
+  }
+
+  /**
+   * Create Scenario
+   */
+  public static createScenario<ThrowOnError extends boolean = false>(
+    options: Options<ScenariosCreateScenarioData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      ScenariosCreateScenarioResponses,
+      ScenariosCreateScenarioErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenarios/',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Delete Scenario
+   */
+  public static deleteScenario<ThrowOnError extends boolean = false>(
+    options: Options<ScenariosDeleteScenarioData, ThrowOnError>
+  ) {
+    return (options.client ?? client).delete<
+      ScenariosDeleteScenarioResponses,
+      ScenariosDeleteScenarioErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenarios/{scenario_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Scenario
+   */
+  public static getScenario<ThrowOnError extends boolean = false>(
+    options: Options<ScenariosGetScenarioData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      ScenariosGetScenarioResponses,
+      ScenariosGetScenarioErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenarios/{scenario_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Update Scenario
+   */
+  public static updateScenario<ThrowOnError extends boolean = false>(
+    options: Options<ScenariosUpdateScenarioData, ThrowOnError>
+  ) {
+    return (options.client ?? client).patch<
+      ScenariosUpdateScenarioResponses,
+      ScenariosUpdateScenarioErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenarios/{scenario_id}',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+}
+
+export class ScenarioSetsService {
+  /**
+   * List Scenario Sets
+   */
+  public static scenarioSetsListScenarioSets<ThrowOnError extends boolean = false>(
+    options?: Options<ScenarioSetsListScenarioSetsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      ScenarioSetsListScenarioSetsResponses,
+      ScenarioSetsListScenarioSetsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenario-sets/',
+      ...options,
+    });
+  }
+
+  /**
+   * Create Scenario Set
+   */
+  public static scenarioSetsCreateScenarioSet<ThrowOnError extends boolean = false>(
+    options: Options<ScenarioSetsCreateScenarioSetData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      ScenarioSetsCreateScenarioSetResponses,
+      ScenarioSetsCreateScenarioSetErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenario-sets/',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Delete Scenario Set
+   */
+  public static scenarioSetsDeleteScenarioSet<ThrowOnError extends boolean = false>(
+    options: Options<ScenarioSetsDeleteScenarioSetData, ThrowOnError>
+  ) {
+    return (options.client ?? client).delete<
+      ScenarioSetsDeleteScenarioSetResponses,
+      ScenarioSetsDeleteScenarioSetErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenario-sets/{scenario_set_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Scenario Set
+   */
+  public static scenarioSetsGetScenarioSet<ThrowOnError extends boolean = false>(
+    options: Options<ScenarioSetsGetScenarioSetData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      ScenarioSetsGetScenarioSetResponses,
+      ScenarioSetsGetScenarioSetErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenario-sets/{scenario_set_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Update Scenario Set
+   */
+  public static scenarioSetsUpdateScenarioSet<ThrowOnError extends boolean = false>(
+    options: Options<ScenarioSetsUpdateScenarioSetData, ThrowOnError>
+  ) {
+    return (options.client ?? client).patch<
+      ScenarioSetsUpdateScenarioSetResponses,
+      ScenarioSetsUpdateScenarioSetErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenario-sets/{scenario_set_id}',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * List Scenarios In Set
+   */
+  public static scenarioSetsListScenariosInSet<ThrowOnError extends boolean = false>(
+    options: Options<ScenarioSetsListScenariosInSetData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      ScenarioSetsListScenariosInSetResponses,
+      ScenarioSetsListScenariosInSetErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenario-sets/{scenario_set_id}/scenarios',
+      ...options,
+    });
+  }
+
+  /**
+   * Add Scenarios To Set
+   */
+  public static scenarioSetsAddScenariosToSet<ThrowOnError extends boolean = false>(
+    options: Options<ScenarioSetsAddScenariosToSetData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      ScenarioSetsAddScenariosToSetResponses,
+      ScenarioSetsAddScenariosToSetErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenario-sets/{scenario_set_id}/scenarios',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Replace Scenarios In Set
+   */
+  public static scenarioSetsReplaceScenariosInSet<ThrowOnError extends boolean = false>(
+    options: Options<ScenarioSetsReplaceScenariosInSetData, ThrowOnError>
+  ) {
+    return (options.client ?? client).put<
+      ScenarioSetsReplaceScenariosInSetResponses,
+      ScenarioSetsReplaceScenariosInSetErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenario-sets/{scenario_set_id}/scenarios',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Remove Scenario From Set
+   */
+  public static scenarioSetsRemoveScenarioFromSet<ThrowOnError extends boolean = false>(
+    options: Options<ScenarioSetsRemoveScenarioFromSetData, ThrowOnError>
+  ) {
+    return (options.client ?? client).delete<
+      ScenarioSetsRemoveScenarioFromSetResponses,
+      ScenarioSetsRemoveScenarioFromSetErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenario-sets/{scenario_set_id}/scenarios/{scenario_id}',
+      ...options,
+    });
+  }
+}
+
+export class RunsService {
+  /**
+   * List Runs
+   */
+  public static listRuns<ThrowOnError extends boolean = false>(
+    options?: Options<RunsListRunsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<RunsListRunsResponses, RunsListRunsErrors, ThrowOnError>(
+      {
+        security: [
+          {
+            in: 'cookie',
+            name: 'auth_cookie',
+            type: 'apiKey',
+          },
+        ],
+        url: '/api/v1/runs/',
+        ...options,
+      }
+    );
+  }
+
+  /**
+   * Create Run
+   */
+  public static createRun<ThrowOnError extends boolean = false>(
+    options: Options<RunsCreateRunData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      RunsCreateRunResponses,
+      RunsCreateRunErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/runs/',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Delete Run
+   */
+  public static deleteRun<ThrowOnError extends boolean = false>(
+    options: Options<RunsDeleteRunData, ThrowOnError>
+  ) {
+    return (options.client ?? client).delete<
+      RunsDeleteRunResponses,
+      RunsDeleteRunErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/runs/{run_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Run
+   */
+  public static getRun<ThrowOnError extends boolean = false>(
+    options: Options<RunsGetRunData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<RunsGetRunResponses, RunsGetRunErrors, ThrowOnError>({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/runs/{run_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Update Run
+   */
+  public static updateRun<ThrowOnError extends boolean = false>(
+    options: Options<RunsUpdateRunData, ThrowOnError>
+  ) {
+    return (options.client ?? client).patch<
+      RunsUpdateRunResponses,
+      RunsUpdateRunErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/runs/{run_id}',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+}
+
+export class ScenarioResultsService {
+  /**
+   * List Scenario Results
+   */
+  public static scenarioResultsListScenarioResults<ThrowOnError extends boolean = false>(
+    options?: Options<ScenarioResultsListScenarioResultsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      ScenarioResultsListScenarioResultsResponses,
+      ScenarioResultsListScenarioResultsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenario-results/',
+      ...options,
+    });
+  }
+
+  /**
+   * Create Scenario Result
+   */
+  public static scenarioResultsCreateScenarioResult<ThrowOnError extends boolean = false>(
+    options: Options<ScenarioResultsCreateScenarioResultData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      ScenarioResultsCreateScenarioResultResponses,
+      ScenarioResultsCreateScenarioResultErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenario-results/',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Delete Scenario Result
+   */
+  public static scenarioResultsDeleteScenarioResult<ThrowOnError extends boolean = false>(
+    options: Options<ScenarioResultsDeleteScenarioResultData, ThrowOnError>
+  ) {
+    return (options.client ?? client).delete<
+      ScenarioResultsDeleteScenarioResultResponses,
+      ScenarioResultsDeleteScenarioResultErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenario-results/{result_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Scenario Result
+   */
+  public static scenarioResultsGetScenarioResult<ThrowOnError extends boolean = false>(
+    options: Options<ScenarioResultsGetScenarioResultData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      ScenarioResultsGetScenarioResultResponses,
+      ScenarioResultsGetScenarioResultErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenario-results/{result_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Update Scenario Result
+   */
+  public static scenarioResultsUpdateScenarioResult<ThrowOnError extends boolean = false>(
+    options: Options<ScenarioResultsUpdateScenarioResultData, ThrowOnError>
+  ) {
+    return (options.client ?? client).patch<
+      ScenarioResultsUpdateScenarioResultResponses,
+      ScenarioResultsUpdateScenarioResultErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenario-results/{result_id}',
       ...options,
       headers: {
         'Content-Type': 'application/json',

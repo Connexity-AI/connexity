@@ -1,0 +1,21 @@
+{
+  "name": "Minimal Scenario — No Context",
+  "description": "Edge case: user arrives with no context, no specific persona, and no turn limit. Tests agent's ability to handle ambiguous requests.",
+  "difficulty": "normal",
+  "tags": ["edge-case", "minimal"],
+  "status": "active",
+  "persona": {
+    "type": "vague-user",
+    "description": "A user who provides very little information and gives short, unhelpful responses.",
+    "instructions": "Be vague and non-committal. Answer questions with 'I don't know' or 'maybe'. Do not volunteer information unless directly asked specific questions. End the conversation after 5 exchanges by saying 'never mind, I'll figure it out myself'."
+  },
+  "initial_message": "I need help.",
+  "user_context": null,
+  "max_turns": null,
+  "expected_outcomes": {
+    "asked_clarifying_questions": true,
+    "did_not_hallucinate_context": true,
+    "remained_patient": true
+  },
+  "expected_tool_calls": null
+}

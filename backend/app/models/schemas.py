@@ -11,21 +11,20 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from app.models.enums import ErrorCategory, SimulationMode, TurnRole
+from app.models.enums import ErrorCategory, TurnRole
 
 # ── Scenario nested types ──────────────────────────────────────────
 
 
-class ScriptedStep(BaseModel):
-    user_message: str
-    expected_agent_behavior: str | None = None
-    max_response_time_ms: int | None = None
+class Persona(BaseModel):
+    type: str
+    description: str
+    instructions: str
 
 
-class ExpectedOutcome(BaseModel):
-    criterion: str
-    weight: float = 1.0
-    evaluation_hint: str | None = None
+class ExpectedToolCall(BaseModel):
+    tool: str
+    expected_params: dict[str, Any] | None = None
 
 
 # ── Run nested types ───────────────────────────────────────────────
@@ -38,7 +37,6 @@ class RunConfig(BaseModel):
     simulator_provider: str | None = None
     concurrency: int = 5
     timeout_per_scenario_ms: int = 120_000
-    simulation_mode_override: SimulationMode | None = None
 
 
 # ── Conversation nested types ──────────────────────────────────────
