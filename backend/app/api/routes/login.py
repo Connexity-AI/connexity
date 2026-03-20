@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
 from urllib.parse import urlencode
 
@@ -52,7 +52,7 @@ def login_access_token(
     access_token = security.create_access_token(user.id, expires_delta)
 
     # Absolute expiration Unix time (UTC)
-    expires_at = datetime.now(timezone.utc) + expires_delta
+    expires_at = datetime.now(UTC) + expires_delta
     expires_timestamp = int(expires_at.timestamp())
 
     token = Token(
@@ -205,7 +205,7 @@ async def auth_github_callback(
     access_token = security.create_access_token(user.id, expires_delta)
 
     # Absolute expiration timestamp (UTC)
-    expires_at = datetime.now(timezone.utc) + expires_delta
+    expires_at = datetime.now(UTC) + expires_delta
     expires_timestamp = int(expires_at.timestamp())
 
     # Build redirect URL to Next.js cookie-setter

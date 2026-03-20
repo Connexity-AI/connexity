@@ -1,172 +1,5 @@
 # connexity-evals
 
-## Stack
-
-- Next.js v16, React Server Components
-- React Hook Form and server actions for forms
-- HttpOnly cookie auth (enables SSR)
-- Hey API with client-next for auto-generated typed API client
-- Suspense and error boundaries
-- Turborepo monorepo, TailwindCSS v4, ShadcnUI (new-york style)
-- Validated env vars with Zod (both backend Pydantic and frontend Zod)
-- Simple local dev environment, simplified Docker production
-- FastAPI backend with SQLModel (SQLAlchemy + Pydantic), Alembic migrations
-
-## Project Structure
-
-```
-backend/                        # FastAPI Python backend
-  app/
-    api/routes/                 # API route handlers
-    core/config.py              # Settings (Pydantic BaseSettings)
-    models.py                   # SQLModel models (DB + API schemas in one file)
-    crud.py                     # Database operations
-frontend/                       # Turborepo monorepo
-  apps/web/                     # Next.js app
-    src/
-      app/                      # App Router pages and layouts
-      actions/                  # Server actions (form submissions)
-      client/                   # AUTO-GENERATED — never edit manually
-      components/               # React components (server + client)
-      config/                   # Runtime env config
-      constants/                # Routes, events, auth constants
-      hooks/                    # Custom React hooks
-      lib/hey-api.ts            # API client runtime config (fetch strategies)
-      schemas/                  # Zod schemas (forms, env config)
-      types/                    # Shared TypeScript types
-      utils/                    # Utility functions
-    openapi-ts.config.ts        # Hey API codegen config
-  packages/ui/                  # Shared UI components (ShadcnUI + Radix)
-scripts/
-  generate-client.sh            # Regenerates frontend API client from backend OpenAPI
-```
-
-## Type-Safe End-to-End Contract
-
-The type chain flows: **SQLModel → FastAPI → OpenAPI schema → Hey API codegen → TypeScript SDK → Server Components**
-
-### 1. Define models in backend
-
-`backend/app/models.py` uses SQLModel which is both SQLAlchemy ORM and Pydantic:
-- `User(UserBase, table=True)` — DB table model
-- `UserCreate`, `UserUpdate` — request body schemas
-- `UserPublic` — response schema (excludes sensitive fields like hashed_password)
-- `UsersPublic` — paginated wrapper `{ data: list[UserPublic], count: int }`
-
-### 2. Define routes with response_model
-
-Routes in `backend/app/api/routes/` use `response_model=` to control serialization:
-```python
-@router.get("/me", response_model=UserPublic)
-def read_user_me(current_user: CurrentUser) -> Any:
-    return current_user
-```
-
-### 3. Regenerate the frontend client
-
-After ANY backend API change (new route, changed model, changed response):
-```bash
-bash scripts/generate-client.sh
-```
-This extracts `openapi.json` from FastAPI and runs `@hey-api/openapi-ts` to generate:
-- `src/client/types.gen.ts` — all TypeScript types matching backend models
-- `src/client/schemas.gen.ts` — JSON schemas for validation
-- `src/client/sdk.gen.ts` — service classes (`UsersService`, `ItemsService`, etc.)
-- `src/client/client.gen.ts` — HTTP client setup
-
-### 4. Use generated SDK in frontend
-
-```typescript
-const result = await UsersService.readUserMe();
-const user = result.data; // Type: UserPublic | undefined
-```
-
-### Rules
-
-- **NEVER edit files in `src/client/`** — they are regenerated and changes will be lost
-- **ALWAYS run `bash scripts/generate-client.sh`** after modifying backend routes or models
-- Backend `response_model` controls what gets exposed to the frontend — never return raw DB models without a public schema
-- The `openapi-ts.config.ts` strips method prefixes (e.g. `itemsCreateItem` → `createItem`)
-
-## Authentication
-
-### Cookie-based JWT auth
-
-- Backend issues JWT tokens, frontend stores them as HttpOnly cookies
-- Cookie name: `auth_cookie` (constant `AUTH_COOKIE`)
-- Token expiry: 7 days (168 hours), stored as Unix timestamp in seconds
-- Cookie settings: `httpOnly: true`, `secure: true` (prod), `sameSite: 'lax'`, `path: '/'`
-
-### Two fetch strategies in `src/lib/hey-api.ts`
-
-- **Server-side** (`serverFetch`): reads cookies from `next/headers` and forwards them to the backend
-- **Client-side** (`clientFetch`): proxies requests through `/api/client-proxy/[...path]` Next.js route handler (browser cannot read httpOnly cookies directly)
-
-The SDK automatically picks the right strategy based on `isServer()`.
-
-### Auth check in layouts
-
-Dashboard layout is an async server component that calls `UsersService.readUserMe()`. Redirects to `/login/` if unauthenticated.
-
-## Frontend Patterns
-
-### Server Components (default)
-
-- Use `async` server components for data fetching — no `useEffect`/`useState` for server data
-- Wrap each async component in `<ErrorBoundarySuspense fallback={<Skeleton />}>`
-- This enables parallel streaming — components load independently
-
-### Client Components (`'use client'`)
-
-- Forms, theme toggle, interactive elements, anything using hooks
-- Dialogs use custom event system (`window.dispatchEvent(new CustomEvent(...))`) defined in `src/constants/events.ts`
-
-### Server Actions (`src/actions/`)
-
-Pattern for form submissions:
-```typescript
-'use server';
-export const createItemAction = async (
-  _prevState: ApiResult,
-  formData: FormData
-): Promise<ApiResult> => {
-  const body = Object.fromEntries(formData) as ItemCreate;
-  const apiResponse = await ItemsService.createItem({ body });
-  const { response: _, ...result } = apiResponse; // strip Response object
-  revalidatePath(ITEMS);
-  return result;
-};
-```
-
-### Forms (React Hook Form + Server Actions)
-
-1. Define Zod schema in `src/schemas/forms.ts`
-2. Use `useForm()` with `zodResolver` for client-side validation
-3. Use `useActionState(serverAction, initialState)` for server action integration
-4. On submit: validate with RHF first, then call server action via `startTransition`
-5. Handle success/error from `ApiResult` discriminated union
-
-### API Result Type
-
-```typescript
-type ApiResult<TData, TError> =
-  | { data: TData; error: undefined }
-  | { data: undefined; error: TError };
-```
-Use `isSuccessApiResult()` / `isErrorApiResult()` type guards.
-
-## Environment Variables
-
-### Backend (`.env` from `.env.example`)
-
-Key variables: `SITE_URL`, `DATABASE_URL` or `POSTGRES_*`, `JWT_SECRET_KEY`, `SESSION_SECRET_KEY`, `ENVIRONMENT` (local/staging/production)
-
-### Frontend (`frontend/apps/web/.env` from `.env.example`)
-
-Key variables: `API_URL` (backend URL, no trailing slash), `SITE_URL` (frontend URL, no trailing slash)
-
-Both validated at runtime — backend with Pydantic `BaseSettings`, frontend with Zod via `@next-public-env`.
-
 ## Commands
 
 ```bash
@@ -176,14 +9,79 @@ uvicorn app.main:app --reload
 
 # Database
 docker compose up -d database adminer
-cd backend && bash scripts/prestart.sh  # migrations + seed
+cd backend && bash scripts/prestart.sh  # runs Alembic migrations + seed
 
 # Frontend
 cd frontend && pnpm install && pnpm dev
 
-# Regenerate API client (requires backend venv activated)
+# Regenerate API client (requires backend running or venv activated)
 bash scripts/generate-client.sh
 
-# Generate new migration after model changes
+# New migration after model changes
 cd backend && alembic revision --autogenerate -m "description"
+
+# Typecheck frontend
+cd frontend && pnpm typecheck
+
+# Lint
+cd backend && ruff check . && ruff format --check .
+cd frontend && pnpm lint
 ```
+
+## Critical Rules
+
+- **NEVER edit files in `frontend/apps/web/src/client/`** — auto-generated by Hey API. Changes will be silently overwritten.
+- **ALWAYS run `bash scripts/generate-client.sh`** after ANY backend route or model change.
+- Backend `response_model=` controls what gets exposed to frontend — never return raw DB models (table=True) directly.
+- The `openapi-ts.config.ts` strips method prefixes (e.g. `itemsCreateItem` → `createItem`).
+- Environment variables are validated at runtime — backend via Pydantic `BaseSettings`, frontend via Zod (`@next-public-env`). Add new env vars to both `.env.example` and the validation schema.
+
+## Architecture Decisions
+
+- **Auth**: HttpOnly cookie JWT (`auth_cookie`). Server-side uses `serverFetch` (reads cookies from `next/headers`), client-side proxies through `/api/client-proxy/[...path]`. Do not introduce a separate auth mechanism.
+- **Type chain**: SQLModel → FastAPI → OpenAPI → Hey API codegen → TypeScript SDK. Do not break this chain by hand-writing types that should come from codegen.
+- **Server Components by default**: Use `async` server components for data fetching. Only add `'use client'` for interactivity (forms, hooks, event handlers).
+- **Dialogs**: Use custom event system via `window.dispatchEvent(new CustomEvent(...))` defined in `src/constants/events.ts`. Do not use state-lifting for dialog open/close.
+
+## Python Code Style
+
+IMPORTANT: All Python code in `backend/` MUST follow these conventions.
+
+- **Python 3.12+**. Use modern syntax: `type` aliases, `X | Y` unions (not `Union[X, Y]` or `Optional[X]`).
+- **Type hints on all function signatures** — parameters and return types. Use `-> None` explicitly.
+- **Pydantic/SQLModel models** for all data structures crossing API boundaries. No raw dicts for request/response bodies.
+- **No `Any` type** unless interfacing with an untyped external library. Prefer narrowing the type.
+- **f-strings** for string formatting. No `.format()` or `%` formatting.
+- **Snake_case** for functions, methods, variables, modules. **PascalCase** for classes.
+- **Imports**: stdlib first, then third-party, then local. Use absolute imports (`from app.models import ...`), not relative.
+- **No wildcard imports** (`from module import *`).
+- **Docstrings**: Only on public API functions/classes with non-obvious behavior. Use Google style (Args/Returns/Raises sections). Skip docstrings on trivial CRUD, private helpers, and models.
+- **Error handling**: Raise `HTTPException` in route handlers. Use specific exception types, not bare `except Exception`. Never silently swallow exceptions.
+- **Database operations**: All DB logic goes in `crud.py`, not in route handlers. Route handlers orchestrate, CRUD functions query.
+- **Async**: Use `async def` for route handlers that do I/O. Use `def` (sync) for CPU-bound or simple operations — FastAPI handles threading.
+- **Dependencies**: Use FastAPI `Depends()` for shared logic (auth, DB sessions). Do not instantiate sessions manually in routes.
+- **Formatter/linter**: `ruff` — format and lint must pass before commit.
+
+## TypeScript / React Code Style
+
+IMPORTANT: All frontend code in `frontend/` MUST follow these conventions.
+
+- **TypeScript strict mode**. No `any` — use `unknown` and narrow, or use the generated types from `src/client/`.
+- **Functional components only**. No class components.
+- **Named exports** (not default exports) for components and utilities.
+- **Destructure props** in function signature: `function UserCard({ name, email }: UserCardProps)`.
+- **Colocation**: Keep component-specific types, constants, and helpers in the same file unless shared.
+- **Server actions** for form submissions (in `src/actions/`). Follow the `ApiResult` pattern — strip the `Response` object before returning.
+- **Zod schemas** in `src/schemas/` for form validation. React Hook Form with `zodResolver`.
+- **Wrap async server components** in `<ErrorBoundarySuspense fallback={<Skeleton />}>` for parallel streaming.
+- **No barrel files** (`index.ts` re-exports). Import directly from the source file.
+- **Tailwind v4** for styling. Use `cn()` utility for conditional classes. No CSS modules or styled-components.
+- **ShadcnUI** (new-york style) from `packages/ui/`. Check existing components before creating new ones.
+
+## Common Gotchas
+
+- The client proxy at `/api/client-proxy/[...path]` is required for client-side API calls because the browser cannot access HttpOnly cookies. Do not bypass it.
+- `pnpm` (not npm/yarn) for frontend package management. The lockfile is `pnpm-lock.yaml`.
+- `uv` (not pip) for backend dependency management. The lockfile is `uv.lock`.
+- Backend must be running (or venv activated) for `generate-client.sh` to extract the OpenAPI schema.
+- Alembic migrations are in `backend/alembic/versions/`. After model changes: generate migration, review it, then run `prestart.sh`.

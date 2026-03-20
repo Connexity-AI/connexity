@@ -3,6 +3,6 @@
 set -e
 set -x
 
-mypy app
-ruff check app
-ruff format app --check
+mypy app cli
+ruff check app cli scripts
+ruff format app cli scripts --check
