@@ -13,7 +13,7 @@ from app.models import (
 
 
 def create_scenario(*, session: Session, scenario_in: ScenarioCreate) -> Scenario:
-    db_obj = Scenario.model_validate(scenario_in)
+    db_obj = Scenario.model_validate(scenario_in.model_dump())
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)

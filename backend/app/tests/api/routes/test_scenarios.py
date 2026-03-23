@@ -110,3 +110,57 @@ def test_delete_scenario(
         cookies=superuser_auth_cookies,
     )
     assert r.status_code == 200
+
+
+def test_create_scenario_with_full_schema(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    data = {
+        "name": "Full Schema Route Test",
+        "persona": {
+            "type": "polite-customer",
+            "description": "A polite customer",
+            "instructions": "Be cooperative.",
+        },
+        "initial_message": "Hello, I need help.",
+        "user_context": {"order_id": "ORD-99999"},
+        "max_turns": 10,
+        "expected_outcomes": {"issue_resolved": True},
+        "expected_tool_calls": [
+            {"tool": "lookup_order", "expected_params": {"order_id": "ORD-99999"}},
+        ],
+    }
+    r = client.post(
+        f"{settings.API_V1_STR}/scenarios/",
+        json=data,
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    result = r.json()
+    assert result["persona"]["type"] == "polite-customer"
+    assert result["user_context"]["order_id"] == "ORD-99999"
+    assert result["expected_outcomes"]["issue_resolved"] is True
+    assert result["expected_tool_calls"][0]["tool"] == "lookup_order"
+    assert result["max_turns"] == 10
+
+
+def test_update_scenario_with_new_fields(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    scenario = create_test_scenario(db)
+    r = client.patch(
+        f"{settings.API_V1_STR}/scenarios/{scenario.id}",
+        json={
+            "persona": {
+                "type": "angry-customer",
+                "description": "An angry customer",
+                "instructions": "Express frustration.",
+            },
+            "expected_outcomes": {"escalated": True},
+        },
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    result = r.json()
+    assert result["persona"]["type"] == "angry-customer"
+    assert result["expected_outcomes"]["escalated"] is True

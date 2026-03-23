@@ -8,7 +8,6 @@ from app.models.enums import (
     ErrorCategory,
     RunStatus,
     ScenarioStatus,
-    SimulationMode,
 )
 from app.models.run import Run, RunCreate
 from app.models.scenario import Scenario, ScenarioCreate
@@ -52,8 +51,7 @@ def test_scenario_create_minimal():
     scenario = ScenarioCreate(name="Test Scenario")
     assert scenario.difficulty == Difficulty.NORMAL
     assert scenario.status == ScenarioStatus.ACTIVE
-    assert scenario.simulation_mode == SimulationMode.LLM_DRIVEN
-    assert scenario.max_turns == 100
+    assert scenario.max_turns is None
 
 
 def test_scenario_create_with_tags():

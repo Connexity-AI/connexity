@@ -1,0 +1,37 @@
+{
+  "name": "Refund Request — Valid",
+  "description": "Customer requests refund within 30-day window. Tests happy-path refund flow with tool usage.",
+  "difficulty": "normal",
+  "tags": ["billing", "refund", "happy-path"],
+  "status": "active",
+  "persona": {
+    "type": "polite-customer",
+    "description": "Polite customer who made a purchase 5 days ago and wants a full refund.",
+    "instructions": "Be cooperative and patient. Provide your order number (ORD-12345) when asked. Accept the refund confirmation gracefully. Do not ask for anything beyond the refund."
+  },
+  "initial_message": "Hi, I'd like to request a refund for my recent order please.",
+  "user_context": {
+    "order_id": "ORD-12345",
+    "purchase_date": "2026-03-15",
+    "amount": 49.99,
+    "product": "Wireless Mouse Pro",
+    "payment_method": "credit_card"
+  },
+  "max_turns": 10,
+  "expected_outcomes": {
+    "refund_initiated": true,
+    "correct_amount": 49.99,
+    "customer_satisfied": true,
+    "conversation_tone": "professional"
+  },
+  "expected_tool_calls": [
+    {
+      "tool": "lookup_order",
+      "expected_params": { "order_id": "ORD-12345" }
+    },
+    {
+      "tool": "process_refund",
+      "expected_params": { "order_id": "ORD-12345", "amount": 49.99 }
+    }
+  ]
+}

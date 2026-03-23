@@ -5,6 +5,236 @@ export type ClientOptions = {
 };
 
 /**
+ * AgentCreate
+ */
+export type AgentCreate = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Description
+   */
+  description?: string | null;
+  /**
+   * Endpoint Url
+   */
+  endpoint_url: string;
+  /**
+   * Agent Metadata
+   */
+  agent_metadata?: {
+    [key: string]: unknown;
+  } | null;
+};
+
+/**
+ * AgentPublic
+ */
+export type AgentPublic = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Description
+   */
+  description?: string | null;
+  /**
+   * Endpoint Url
+   */
+  endpoint_url: string;
+  /**
+   * Agent Metadata
+   */
+  agent_metadata?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Updated At
+   */
+  updated_at: string;
+};
+
+/**
+ * AgentUpdate
+ */
+export type AgentUpdate = {
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Description
+   */
+  description?: string | null;
+  /**
+   * Endpoint Url
+   */
+  endpoint_url?: string | null;
+  /**
+   * Agent Metadata
+   */
+  agent_metadata?: {
+    [key: string]: unknown;
+  } | null;
+};
+
+/**
+ * AgentsPublic
+ */
+export type AgentsPublic = {
+  /**
+   * Data
+   */
+  data: Array<AgentPublic>;
+  /**
+   * Count
+   */
+  count: number;
+};
+
+/**
+ * AggregateMetrics
+ */
+export type AggregateMetricsInput = {
+  /**
+   * Total Scenarios
+   */
+  total_scenarios: number;
+  /**
+   * Passed Count
+   */
+  passed_count: number;
+  /**
+   * Failed Count
+   */
+  failed_count: number;
+  /**
+   * Error Count
+   */
+  error_count: number;
+  /**
+   * Pass Rate
+   */
+  pass_rate: number;
+  /**
+   * Latency P50 Ms
+   */
+  latency_p50_ms?: number | null;
+  /**
+   * Latency P95 Ms
+   */
+  latency_p95_ms?: number | null;
+  /**
+   * Latency Max Ms
+   */
+  latency_max_ms?: number | null;
+  /**
+   * Latency Avg Ms
+   */
+  latency_avg_ms?: number | null;
+  /**
+   * Total Agent Token Usage
+   */
+  total_agent_token_usage?: {
+    [key: string]: number;
+  } | null;
+  /**
+   * Total Platform Token Usage
+   */
+  total_platform_token_usage?: {
+    [key: string]: number;
+  } | null;
+  /**
+   * Total Estimated Cost Usd
+   */
+  total_estimated_cost_usd?: number | null;
+  /**
+   * Error Category Distribution
+   */
+  error_category_distribution?: Array<ErrorCategoryCount>;
+  /**
+   * Avg Overall Score
+   */
+  avg_overall_score?: number | null;
+};
+
+/**
+ * AggregateMetrics
+ */
+export type AggregateMetricsOutput = {
+  /**
+   * Total Scenarios
+   */
+  total_scenarios: number;
+  /**
+   * Passed Count
+   */
+  passed_count: number;
+  /**
+   * Failed Count
+   */
+  failed_count: number;
+  /**
+   * Error Count
+   */
+  error_count: number;
+  /**
+   * Pass Rate
+   */
+  pass_rate: number;
+  /**
+   * Latency P50 Ms
+   */
+  latency_p50_ms?: number | null;
+  /**
+   * Latency P95 Ms
+   */
+  latency_p95_ms?: number | null;
+  /**
+   * Latency Max Ms
+   */
+  latency_max_ms?: number | null;
+  /**
+   * Latency Avg Ms
+   */
+  latency_avg_ms?: number | null;
+  /**
+   * Total Agent Token Usage
+   */
+  total_agent_token_usage?: {
+    [key: string]: number;
+  } | null;
+  /**
+   * Total Platform Token Usage
+   */
+  total_platform_token_usage?: {
+    [key: string]: number;
+  } | null;
+  /**
+   * Total Estimated Cost Usd
+   */
+  total_estimated_cost_usd?: number | null;
+  /**
+   * Error Category Distribution
+   */
+  error_category_distribution?: Array<ErrorCategoryCount>;
+  /**
+   * Avg Overall Score
+   */
+  avg_overall_score?: number | null;
+};
+
+/**
  * AuthProvider
  */
 export const AuthProvider = { EMAIL: 'email', GITHUB: 'github' } as const;
@@ -45,6 +275,106 @@ export type BodyLoginLoginAccessToken = {
 };
 
 /**
+ * ConversationTurn
+ */
+export type ConversationTurn = {
+  /**
+   * Index
+   */
+  index: number;
+  role: TurnRole;
+  /**
+   * Content
+   */
+  content: string;
+  /**
+   * Tool Calls
+   */
+  tool_calls?: Array<ToolCall> | null;
+  /**
+   * Latency Ms
+   */
+  latency_ms?: number | null;
+  /**
+   * Token Count
+   */
+  token_count?: number | null;
+  /**
+   * Timestamp
+   */
+  timestamp: string;
+};
+
+/**
+ * CriterionScore
+ */
+export type CriterionScore = {
+  /**
+   * Criterion
+   */
+  criterion: string;
+  /**
+   * Score
+   */
+  score: number;
+  /**
+   * Label
+   */
+  label: string;
+  /**
+   * Weight
+   */
+  weight?: number;
+  /**
+   * Justification
+   */
+  justification: string;
+};
+
+/**
+ * Difficulty
+ */
+export const Difficulty = { NORMAL: 'normal', HARD: 'hard' } as const;
+
+/**
+ * Difficulty
+ */
+export type Difficulty = (typeof Difficulty)[keyof typeof Difficulty];
+
+/**
+ * ErrorCategory
+ */
+export const ErrorCategory = {
+  NONE: 'none',
+  OFF_TOPIC: 'off_topic',
+  HALLUCINATION: 'hallucination',
+  REFUSAL: 'refusal',
+  TOOL_MISUSE: 'tool_misuse',
+  SAFETY_VIOLATION: 'safety_violation',
+  PROMPT_VIOLATION: 'prompt_violation',
+  INCOMPLETE: 'incomplete',
+  LATENCY_TIMEOUT: 'latency_timeout',
+  AGENT_ERROR: 'agent_error',
+  OTHER: 'other',
+} as const;
+
+/**
+ * ErrorCategory
+ */
+export type ErrorCategory = (typeof ErrorCategory)[keyof typeof ErrorCategory];
+
+/**
+ * ErrorCategoryCount
+ */
+export type ErrorCategoryCount = {
+  category: ErrorCategory;
+  /**
+   * Count
+   */
+  count: number;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -52,6 +382,51 @@ export type HttpValidationError = {
    * Detail
    */
   detail?: Array<ValidationError>;
+};
+
+/**
+ * JudgeVerdict
+ */
+export type JudgeVerdict = {
+  /**
+   * Passed
+   */
+  passed: boolean;
+  /**
+   * Overall Score
+   */
+  overall_score: number;
+  /**
+   * Criterion Scores
+   */
+  criterion_scores: Array<CriterionScore>;
+  error_category?: ErrorCategory;
+  /**
+   * Summary
+   */
+  summary: string;
+  /**
+   * Raw Judge Output
+   */
+  raw_judge_output?: string | null;
+  /**
+   * Judge Model
+   */
+  judge_model: string;
+  /**
+   * Judge Provider
+   */
+  judge_provider: string;
+  /**
+   * Judge Latency Ms
+   */
+  judge_latency_ms?: number | null;
+  /**
+   * Judge Token Usage
+   */
+  judge_token_usage?: {
+    [key: string]: number;
+  } | null;
 };
 
 /**
@@ -79,6 +454,672 @@ export type NewPassword = {
 };
 
 /**
+ * RunConfig
+ */
+export type RunConfig = {
+  /**
+   * Judge Model
+   */
+  judge_model?: string | null;
+  /**
+   * Judge Provider
+   */
+  judge_provider?: string | null;
+  /**
+   * Simulator Model
+   */
+  simulator_model?: string | null;
+  /**
+   * Simulator Provider
+   */
+  simulator_provider?: string | null;
+  /**
+   * Concurrency
+   */
+  concurrency?: number;
+  /**
+   * Timeout Per Scenario Ms
+   */
+  timeout_per_scenario_ms?: number;
+};
+
+/**
+ * RunCreate
+ */
+export type RunCreate = {
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Endpoint Url
+   */
+  agent_endpoint_url: string;
+  /**
+   * Agent System Prompt
+   */
+  agent_system_prompt?: string | null;
+  /**
+   * Agent Tools
+   */
+  agent_tools?: Array<{
+    [key: string]: unknown;
+  }> | null;
+  /**
+   * Prompt Version
+   */
+  prompt_version?: string | null;
+  /**
+   * Prompt Snapshot
+   */
+  prompt_snapshot?: string | null;
+  /**
+   * Tools Snapshot
+   */
+  tools_snapshot?: Array<{
+    [key: string]: unknown;
+  }> | null;
+  /**
+   * Tools Snapshot Hash
+   */
+  tools_snapshot_hash?: string | null;
+  /**
+   * Scenario Set Id
+   */
+  scenario_set_id: string;
+  /**
+   * Scenario Set Version
+   */
+  scenario_set_version?: number;
+  config?: RunConfig | null;
+  /**
+   * Is Baseline
+   */
+  is_baseline?: boolean;
+};
+
+/**
+ * RunPublic
+ */
+export type RunPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string | null;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Endpoint Url
+   */
+  agent_endpoint_url: string;
+  /**
+   * Agent System Prompt
+   */
+  agent_system_prompt: string | null;
+  /**
+   * Scenario Set Id
+   */
+  scenario_set_id: string;
+  /**
+   * Scenario Set Version
+   */
+  scenario_set_version: number;
+  config?: RunConfig | null;
+  status: RunStatus;
+  /**
+   * Is Baseline
+   */
+  is_baseline: boolean;
+  aggregate_metrics?: AggregateMetricsOutput | null;
+  /**
+   * Started At
+   */
+  started_at: string | null;
+  /**
+   * Completed At
+   */
+  completed_at: string | null;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Updated At
+   */
+  updated_at: string;
+};
+
+/**
+ * RunStatus
+ */
+export const RunStatus = {
+  PENDING: 'pending',
+  RUNNING: 'running',
+  COMPLETED: 'completed',
+  FAILED: 'failed',
+  CANCELLED: 'cancelled',
+} as const;
+
+/**
+ * RunStatus
+ */
+export type RunStatus = (typeof RunStatus)[keyof typeof RunStatus];
+
+/**
+ * RunUpdate
+ */
+export type RunUpdate = {
+  /**
+   * Name
+   */
+  name?: string | null;
+  status?: RunStatus | null;
+  /**
+   * Is Baseline
+   */
+  is_baseline?: boolean | null;
+  aggregate_metrics?: AggregateMetricsInput | null;
+  /**
+   * Started At
+   */
+  started_at?: string | null;
+  /**
+   * Completed At
+   */
+  completed_at?: string | null;
+};
+
+/**
+ * RunsPublic
+ */
+export type RunsPublic = {
+  /**
+   * Data
+   */
+  data: Array<RunPublic>;
+  /**
+   * Count
+   */
+  count: number;
+};
+
+/**
+ * ScenarioCreate
+ */
+export type ScenarioCreate = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Description
+   */
+  description?: string | null;
+  difficulty?: Difficulty;
+  /**
+   * Tags
+   */
+  tags?: Array<string>;
+  status?: ScenarioStatus;
+  /**
+   * Persona
+   */
+  persona?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Initial Message
+   */
+  initial_message?: string | null;
+  /**
+   * User Context
+   */
+  user_context?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Max Turns
+   */
+  max_turns?: number | null;
+  /**
+   * Expected Outcomes
+   */
+  expected_outcomes?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Expected Tool Calls
+   */
+  expected_tool_calls?: Array<{
+    [key: string]: unknown;
+  }> | null;
+  /**
+   * Evaluation Criteria Override
+   */
+  evaluation_criteria_override?: string | null;
+};
+
+/**
+ * ScenarioPublic
+ */
+export type ScenarioPublic = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Description
+   */
+  description?: string | null;
+  difficulty?: Difficulty;
+  /**
+   * Tags
+   */
+  tags?: Array<string>;
+  status?: ScenarioStatus;
+  /**
+   * Persona
+   */
+  persona?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Initial Message
+   */
+  initial_message?: string | null;
+  /**
+   * User Context
+   */
+  user_context?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Max Turns
+   */
+  max_turns?: number | null;
+  /**
+   * Expected Outcomes
+   */
+  expected_outcomes?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Expected Tool Calls
+   */
+  expected_tool_calls?: Array<{
+    [key: string]: unknown;
+  }> | null;
+  /**
+   * Evaluation Criteria Override
+   */
+  evaluation_criteria_override?: string | null;
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Updated At
+   */
+  updated_at: string;
+};
+
+/**
+ * ScenarioResultCreate
+ */
+export type ScenarioResultCreate = {
+  /**
+   * Run Id
+   */
+  run_id: string;
+  /**
+   * Scenario Id
+   */
+  scenario_id: string;
+};
+
+/**
+ * ScenarioResultPublic
+ */
+export type ScenarioResultPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Run Id
+   */
+  run_id: string;
+  /**
+   * Scenario Id
+   */
+  scenario_id: string;
+  /**
+   * Transcript
+   */
+  transcript?: Array<ConversationTurn> | null;
+  /**
+   * Turn Count
+   */
+  turn_count: number | null;
+  verdict?: JudgeVerdict | null;
+  /**
+   * Total Latency Ms
+   */
+  total_latency_ms: number | null;
+  /**
+   * Agent Latency P50 Ms
+   */
+  agent_latency_p50_ms: number | null;
+  /**
+   * Agent Latency P95 Ms
+   */
+  agent_latency_p95_ms: number | null;
+  /**
+   * Agent Latency Max Ms
+   */
+  agent_latency_max_ms: number | null;
+  /**
+   * Estimated Cost Usd
+   */
+  estimated_cost_usd: number | null;
+  /**
+   * Passed
+   */
+  passed: boolean | null;
+  error_category: ErrorCategory;
+  /**
+   * Error Message
+   */
+  error_message: string | null;
+  /**
+   * Started At
+   */
+  started_at: string | null;
+  /**
+   * Completed At
+   */
+  completed_at: string | null;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Updated At
+   */
+  updated_at: string;
+};
+
+/**
+ * ScenarioResultUpdate
+ */
+export type ScenarioResultUpdate = {
+  /**
+   * Transcript
+   */
+  transcript?: Array<ConversationTurn> | null;
+  /**
+   * Turn Count
+   */
+  turn_count?: number | null;
+  verdict?: JudgeVerdict | null;
+  /**
+   * Total Latency Ms
+   */
+  total_latency_ms?: number | null;
+  /**
+   * Agent Latency P50 Ms
+   */
+  agent_latency_p50_ms?: number | null;
+  /**
+   * Agent Latency P95 Ms
+   */
+  agent_latency_p95_ms?: number | null;
+  /**
+   * Agent Latency Max Ms
+   */
+  agent_latency_max_ms?: number | null;
+  /**
+   * Agent Token Usage
+   */
+  agent_token_usage?: {
+    [key: string]: number;
+  } | null;
+  /**
+   * Platform Token Usage
+   */
+  platform_token_usage?: {
+    [key: string]: number;
+  } | null;
+  /**
+   * Estimated Cost Usd
+   */
+  estimated_cost_usd?: number | null;
+  /**
+   * Passed
+   */
+  passed?: boolean | null;
+  error_category?: ErrorCategory | null;
+  /**
+   * Error Message
+   */
+  error_message?: string | null;
+  /**
+   * Started At
+   */
+  started_at?: string | null;
+  /**
+   * Completed At
+   */
+  completed_at?: string | null;
+};
+
+/**
+ * ScenarioResultsPublic
+ */
+export type ScenarioResultsPublic = {
+  /**
+   * Data
+   */
+  data: Array<ScenarioResultPublic>;
+  /**
+   * Count
+   */
+  count: number;
+};
+
+/**
+ * ScenarioSetCreate
+ */
+export type ScenarioSetCreate = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Description
+   */
+  description?: string | null;
+  /**
+   * Version
+   */
+  version?: number;
+  /**
+   * Scenario Ids
+   */
+  scenario_ids?: Array<string> | null;
+};
+
+/**
+ * ScenarioSetMembersUpdate
+ */
+export type ScenarioSetMembersUpdate = {
+  /**
+   * Scenario Ids
+   */
+  scenario_ids: Array<string>;
+};
+
+/**
+ * ScenarioSetPublic
+ */
+export type ScenarioSetPublic = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Description
+   */
+  description?: string | null;
+  /**
+   * Version
+   */
+  version?: number;
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Updated At
+   */
+  updated_at: string;
+};
+
+/**
+ * ScenarioSetUpdate
+ */
+export type ScenarioSetUpdate = {
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Description
+   */
+  description?: string | null;
+  /**
+   * Version
+   */
+  version?: number | null;
+};
+
+/**
+ * ScenarioSetsPublic
+ */
+export type ScenarioSetsPublic = {
+  /**
+   * Data
+   */
+  data: Array<ScenarioSetPublic>;
+  /**
+   * Count
+   */
+  count: number;
+};
+
+/**
+ * ScenarioStatus
+ */
+export const ScenarioStatus = {
+  DRAFT: 'draft',
+  ACTIVE: 'active',
+  ARCHIVED: 'archived',
+} as const;
+
+/**
+ * ScenarioStatus
+ */
+export type ScenarioStatus = (typeof ScenarioStatus)[keyof typeof ScenarioStatus];
+
+/**
+ * ScenarioUpdate
+ */
+export type ScenarioUpdate = {
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Description
+   */
+  description?: string | null;
+  difficulty?: Difficulty | null;
+  /**
+   * Tags
+   */
+  tags?: Array<string> | null;
+  status?: ScenarioStatus | null;
+  /**
+   * Persona
+   */
+  persona?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Initial Message
+   */
+  initial_message?: string | null;
+  /**
+   * User Context
+   */
+  user_context?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Max Turns
+   */
+  max_turns?: number | null;
+  /**
+   * Expected Outcomes
+   */
+  expected_outcomes?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Expected Tool Calls
+   */
+  expected_tool_calls?: Array<{
+    [key: string]: unknown;
+  }> | null;
+  /**
+   * Evaluation Criteria Override
+   */
+  evaluation_criteria_override?: string | null;
+};
+
+/**
+ * ScenariosPublic
+ */
+export type ScenariosPublic = {
+  /**
+   * Data
+   */
+  data: Array<ScenarioPublic>;
+  /**
+   * Count
+   */
+  count: number;
+};
+
+/**
  * Token
  */
 export type Token = {
@@ -91,6 +1132,40 @@ export type Token = {
    */
   expires: number;
 };
+
+/**
+ * ToolCall
+ */
+export type ToolCall = {
+  /**
+   * Tool Name
+   */
+  tool_name: string;
+  /**
+   * Tool Input
+   */
+  tool_input: {
+    [key: string]: unknown;
+  };
+  /**
+   * Tool Result
+   */
+  tool_result?: unknown | null;
+};
+
+/**
+ * TurnRole
+ */
+export const TurnRole = {
+  USER: 'user',
+  AGENT: 'agent',
+  SYSTEM: 'system',
+} as const;
+
+/**
+ * TurnRole
+ */
+export type TurnRole = (typeof TurnRole)[keyof typeof TurnRole];
 
 /**
  * UpdatePassword
@@ -491,3 +1566,949 @@ export type UsersUpdatePasswordMeResponses = {
 
 export type UsersUpdatePasswordMeResponse =
   UsersUpdatePasswordMeResponses[keyof UsersUpdatePasswordMeResponses];
+
+export type AgentsListAgentsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Skip
+     */
+    skip?: number;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/agents/';
+};
+
+export type AgentsListAgentsErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type AgentsListAgentsError = AgentsListAgentsErrors[keyof AgentsListAgentsErrors];
+
+export type AgentsListAgentsResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentsPublic;
+};
+
+export type AgentsListAgentsResponse = AgentsListAgentsResponses[keyof AgentsListAgentsResponses];
+
+export type AgentsCreateAgentData = {
+  body: AgentCreate;
+  path?: never;
+  query?: never;
+  url: '/api/v1/agents/';
+};
+
+export type AgentsCreateAgentErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type AgentsCreateAgentError = AgentsCreateAgentErrors[keyof AgentsCreateAgentErrors];
+
+export type AgentsCreateAgentResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentPublic;
+};
+
+export type AgentsCreateAgentResponse =
+  AgentsCreateAgentResponses[keyof AgentsCreateAgentResponses];
+
+export type AgentsDeleteAgentData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}';
+};
+
+export type AgentsDeleteAgentErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type AgentsDeleteAgentError = AgentsDeleteAgentErrors[keyof AgentsDeleteAgentErrors];
+
+export type AgentsDeleteAgentResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message;
+};
+
+export type AgentsDeleteAgentResponse =
+  AgentsDeleteAgentResponses[keyof AgentsDeleteAgentResponses];
+
+export type AgentsGetAgentData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}';
+};
+
+export type AgentsGetAgentErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type AgentsGetAgentError = AgentsGetAgentErrors[keyof AgentsGetAgentErrors];
+
+export type AgentsGetAgentResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentPublic;
+};
+
+export type AgentsGetAgentResponse = AgentsGetAgentResponses[keyof AgentsGetAgentResponses];
+
+export type AgentsUpdateAgentData = {
+  body: AgentUpdate;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}';
+};
+
+export type AgentsUpdateAgentErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type AgentsUpdateAgentError = AgentsUpdateAgentErrors[keyof AgentsUpdateAgentErrors];
+
+export type AgentsUpdateAgentResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentPublic;
+};
+
+export type AgentsUpdateAgentResponse =
+  AgentsUpdateAgentResponses[keyof AgentsUpdateAgentResponses];
+
+export type ScenariosListScenariosData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Skip
+     */
+    skip?: number;
+    /**
+     * Limit
+     */
+    limit?: number;
+    /**
+     * Tag
+     */
+    tag?: string | null;
+    /**
+     * Difficulty
+     */
+    difficulty?: Difficulty | null;
+    /**
+     * Status
+     */
+    status?: ScenarioStatus | null;
+  };
+  url: '/api/v1/scenarios/';
+};
+
+export type ScenariosListScenariosErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ScenariosListScenariosError =
+  ScenariosListScenariosErrors[keyof ScenariosListScenariosErrors];
+
+export type ScenariosListScenariosResponses = {
+  /**
+   * Successful Response
+   */
+  200: ScenariosPublic;
+};
+
+export type ScenariosListScenariosResponse =
+  ScenariosListScenariosResponses[keyof ScenariosListScenariosResponses];
+
+export type ScenariosCreateScenarioData = {
+  body: ScenarioCreate;
+  path?: never;
+  query?: never;
+  url: '/api/v1/scenarios/';
+};
+
+export type ScenariosCreateScenarioErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ScenariosCreateScenarioError =
+  ScenariosCreateScenarioErrors[keyof ScenariosCreateScenarioErrors];
+
+export type ScenariosCreateScenarioResponses = {
+  /**
+   * Successful Response
+   */
+  200: ScenarioPublic;
+};
+
+export type ScenariosCreateScenarioResponse =
+  ScenariosCreateScenarioResponses[keyof ScenariosCreateScenarioResponses];
+
+export type ScenariosDeleteScenarioData = {
+  body?: never;
+  path: {
+    /**
+     * Scenario Id
+     */
+    scenario_id: string;
+  };
+  query?: never;
+  url: '/api/v1/scenarios/{scenario_id}';
+};
+
+export type ScenariosDeleteScenarioErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ScenariosDeleteScenarioError =
+  ScenariosDeleteScenarioErrors[keyof ScenariosDeleteScenarioErrors];
+
+export type ScenariosDeleteScenarioResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message;
+};
+
+export type ScenariosDeleteScenarioResponse =
+  ScenariosDeleteScenarioResponses[keyof ScenariosDeleteScenarioResponses];
+
+export type ScenariosGetScenarioData = {
+  body?: never;
+  path: {
+    /**
+     * Scenario Id
+     */
+    scenario_id: string;
+  };
+  query?: never;
+  url: '/api/v1/scenarios/{scenario_id}';
+};
+
+export type ScenariosGetScenarioErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ScenariosGetScenarioError =
+  ScenariosGetScenarioErrors[keyof ScenariosGetScenarioErrors];
+
+export type ScenariosGetScenarioResponses = {
+  /**
+   * Successful Response
+   */
+  200: ScenarioPublic;
+};
+
+export type ScenariosGetScenarioResponse =
+  ScenariosGetScenarioResponses[keyof ScenariosGetScenarioResponses];
+
+export type ScenariosUpdateScenarioData = {
+  body: ScenarioUpdate;
+  path: {
+    /**
+     * Scenario Id
+     */
+    scenario_id: string;
+  };
+  query?: never;
+  url: '/api/v1/scenarios/{scenario_id}';
+};
+
+export type ScenariosUpdateScenarioErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ScenariosUpdateScenarioError =
+  ScenariosUpdateScenarioErrors[keyof ScenariosUpdateScenarioErrors];
+
+export type ScenariosUpdateScenarioResponses = {
+  /**
+   * Successful Response
+   */
+  200: ScenarioPublic;
+};
+
+export type ScenariosUpdateScenarioResponse =
+  ScenariosUpdateScenarioResponses[keyof ScenariosUpdateScenarioResponses];
+
+export type ScenarioSetsListScenarioSetsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Skip
+     */
+    skip?: number;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/scenario-sets/';
+};
+
+export type ScenarioSetsListScenarioSetsErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ScenarioSetsListScenarioSetsError =
+  ScenarioSetsListScenarioSetsErrors[keyof ScenarioSetsListScenarioSetsErrors];
+
+export type ScenarioSetsListScenarioSetsResponses = {
+  /**
+   * Successful Response
+   */
+  200: ScenarioSetsPublic;
+};
+
+export type ScenarioSetsListScenarioSetsResponse =
+  ScenarioSetsListScenarioSetsResponses[keyof ScenarioSetsListScenarioSetsResponses];
+
+export type ScenarioSetsCreateScenarioSetData = {
+  body: ScenarioSetCreate;
+  path?: never;
+  query?: never;
+  url: '/api/v1/scenario-sets/';
+};
+
+export type ScenarioSetsCreateScenarioSetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ScenarioSetsCreateScenarioSetError =
+  ScenarioSetsCreateScenarioSetErrors[keyof ScenarioSetsCreateScenarioSetErrors];
+
+export type ScenarioSetsCreateScenarioSetResponses = {
+  /**
+   * Successful Response
+   */
+  200: ScenarioSetPublic;
+};
+
+export type ScenarioSetsCreateScenarioSetResponse =
+  ScenarioSetsCreateScenarioSetResponses[keyof ScenarioSetsCreateScenarioSetResponses];
+
+export type ScenarioSetsDeleteScenarioSetData = {
+  body?: never;
+  path: {
+    /**
+     * Scenario Set Id
+     */
+    scenario_set_id: string;
+  };
+  query?: never;
+  url: '/api/v1/scenario-sets/{scenario_set_id}';
+};
+
+export type ScenarioSetsDeleteScenarioSetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ScenarioSetsDeleteScenarioSetError =
+  ScenarioSetsDeleteScenarioSetErrors[keyof ScenarioSetsDeleteScenarioSetErrors];
+
+export type ScenarioSetsDeleteScenarioSetResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message;
+};
+
+export type ScenarioSetsDeleteScenarioSetResponse =
+  ScenarioSetsDeleteScenarioSetResponses[keyof ScenarioSetsDeleteScenarioSetResponses];
+
+export type ScenarioSetsGetScenarioSetData = {
+  body?: never;
+  path: {
+    /**
+     * Scenario Set Id
+     */
+    scenario_set_id: string;
+  };
+  query?: never;
+  url: '/api/v1/scenario-sets/{scenario_set_id}';
+};
+
+export type ScenarioSetsGetScenarioSetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ScenarioSetsGetScenarioSetError =
+  ScenarioSetsGetScenarioSetErrors[keyof ScenarioSetsGetScenarioSetErrors];
+
+export type ScenarioSetsGetScenarioSetResponses = {
+  /**
+   * Successful Response
+   */
+  200: ScenarioSetPublic;
+};
+
+export type ScenarioSetsGetScenarioSetResponse =
+  ScenarioSetsGetScenarioSetResponses[keyof ScenarioSetsGetScenarioSetResponses];
+
+export type ScenarioSetsUpdateScenarioSetData = {
+  body: ScenarioSetUpdate;
+  path: {
+    /**
+     * Scenario Set Id
+     */
+    scenario_set_id: string;
+  };
+  query?: never;
+  url: '/api/v1/scenario-sets/{scenario_set_id}';
+};
+
+export type ScenarioSetsUpdateScenarioSetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ScenarioSetsUpdateScenarioSetError =
+  ScenarioSetsUpdateScenarioSetErrors[keyof ScenarioSetsUpdateScenarioSetErrors];
+
+export type ScenarioSetsUpdateScenarioSetResponses = {
+  /**
+   * Successful Response
+   */
+  200: ScenarioSetPublic;
+};
+
+export type ScenarioSetsUpdateScenarioSetResponse =
+  ScenarioSetsUpdateScenarioSetResponses[keyof ScenarioSetsUpdateScenarioSetResponses];
+
+export type ScenarioSetsListScenariosInSetData = {
+  body?: never;
+  path: {
+    /**
+     * Scenario Set Id
+     */
+    scenario_set_id: string;
+  };
+  query?: never;
+  url: '/api/v1/scenario-sets/{scenario_set_id}/scenarios';
+};
+
+export type ScenarioSetsListScenariosInSetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ScenarioSetsListScenariosInSetError =
+  ScenarioSetsListScenariosInSetErrors[keyof ScenarioSetsListScenariosInSetErrors];
+
+export type ScenarioSetsListScenariosInSetResponses = {
+  /**
+   * Successful Response
+   */
+  200: ScenariosPublic;
+};
+
+export type ScenarioSetsListScenariosInSetResponse =
+  ScenarioSetsListScenariosInSetResponses[keyof ScenarioSetsListScenariosInSetResponses];
+
+export type ScenarioSetsAddScenariosToSetData = {
+  body: ScenarioSetMembersUpdate;
+  path: {
+    /**
+     * Scenario Set Id
+     */
+    scenario_set_id: string;
+  };
+  query?: never;
+  url: '/api/v1/scenario-sets/{scenario_set_id}/scenarios';
+};
+
+export type ScenarioSetsAddScenariosToSetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ScenarioSetsAddScenariosToSetError =
+  ScenarioSetsAddScenariosToSetErrors[keyof ScenarioSetsAddScenariosToSetErrors];
+
+export type ScenarioSetsAddScenariosToSetResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message;
+};
+
+export type ScenarioSetsAddScenariosToSetResponse =
+  ScenarioSetsAddScenariosToSetResponses[keyof ScenarioSetsAddScenariosToSetResponses];
+
+export type ScenarioSetsReplaceScenariosInSetData = {
+  body: ScenarioSetMembersUpdate;
+  path: {
+    /**
+     * Scenario Set Id
+     */
+    scenario_set_id: string;
+  };
+  query?: never;
+  url: '/api/v1/scenario-sets/{scenario_set_id}/scenarios';
+};
+
+export type ScenarioSetsReplaceScenariosInSetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ScenarioSetsReplaceScenariosInSetError =
+  ScenarioSetsReplaceScenariosInSetErrors[keyof ScenarioSetsReplaceScenariosInSetErrors];
+
+export type ScenarioSetsReplaceScenariosInSetResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message;
+};
+
+export type ScenarioSetsReplaceScenariosInSetResponse =
+  ScenarioSetsReplaceScenariosInSetResponses[keyof ScenarioSetsReplaceScenariosInSetResponses];
+
+export type ScenarioSetsRemoveScenarioFromSetData = {
+  body?: never;
+  path: {
+    /**
+     * Scenario Set Id
+     */
+    scenario_set_id: string;
+    /**
+     * Scenario Id
+     */
+    scenario_id: string;
+  };
+  query?: never;
+  url: '/api/v1/scenario-sets/{scenario_set_id}/scenarios/{scenario_id}';
+};
+
+export type ScenarioSetsRemoveScenarioFromSetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ScenarioSetsRemoveScenarioFromSetError =
+  ScenarioSetsRemoveScenarioFromSetErrors[keyof ScenarioSetsRemoveScenarioFromSetErrors];
+
+export type ScenarioSetsRemoveScenarioFromSetResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message;
+};
+
+export type ScenarioSetsRemoveScenarioFromSetResponse =
+  ScenarioSetsRemoveScenarioFromSetResponses[keyof ScenarioSetsRemoveScenarioFromSetResponses];
+
+export type RunsListRunsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Skip
+     */
+    skip?: number;
+    /**
+     * Limit
+     */
+    limit?: number;
+    /**
+     * Agent Id
+     */
+    agent_id?: string | null;
+    /**
+     * Status
+     */
+    status?: RunStatus | null;
+    /**
+     * Created After
+     */
+    created_after?: string | null;
+    /**
+     * Created Before
+     */
+    created_before?: string | null;
+  };
+  url: '/api/v1/runs/';
+};
+
+export type RunsListRunsErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type RunsListRunsError = RunsListRunsErrors[keyof RunsListRunsErrors];
+
+export type RunsListRunsResponses = {
+  /**
+   * Successful Response
+   */
+  200: RunsPublic;
+};
+
+export type RunsListRunsResponse = RunsListRunsResponses[keyof RunsListRunsResponses];
+
+export type RunsCreateRunData = {
+  body: RunCreate;
+  path?: never;
+  query?: never;
+  url: '/api/v1/runs/';
+};
+
+export type RunsCreateRunErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type RunsCreateRunError = RunsCreateRunErrors[keyof RunsCreateRunErrors];
+
+export type RunsCreateRunResponses = {
+  /**
+   * Successful Response
+   */
+  200: RunPublic;
+};
+
+export type RunsCreateRunResponse = RunsCreateRunResponses[keyof RunsCreateRunResponses];
+
+export type RunsDeleteRunData = {
+  body?: never;
+  path: {
+    /**
+     * Run Id
+     */
+    run_id: string;
+  };
+  query?: never;
+  url: '/api/v1/runs/{run_id}';
+};
+
+export type RunsDeleteRunErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type RunsDeleteRunError = RunsDeleteRunErrors[keyof RunsDeleteRunErrors];
+
+export type RunsDeleteRunResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message;
+};
+
+export type RunsDeleteRunResponse = RunsDeleteRunResponses[keyof RunsDeleteRunResponses];
+
+export type RunsGetRunData = {
+  body?: never;
+  path: {
+    /**
+     * Run Id
+     */
+    run_id: string;
+  };
+  query?: never;
+  url: '/api/v1/runs/{run_id}';
+};
+
+export type RunsGetRunErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type RunsGetRunError = RunsGetRunErrors[keyof RunsGetRunErrors];
+
+export type RunsGetRunResponses = {
+  /**
+   * Successful Response
+   */
+  200: RunPublic;
+};
+
+export type RunsGetRunResponse = RunsGetRunResponses[keyof RunsGetRunResponses];
+
+export type RunsUpdateRunData = {
+  body: RunUpdate;
+  path: {
+    /**
+     * Run Id
+     */
+    run_id: string;
+  };
+  query?: never;
+  url: '/api/v1/runs/{run_id}';
+};
+
+export type RunsUpdateRunErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type RunsUpdateRunError = RunsUpdateRunErrors[keyof RunsUpdateRunErrors];
+
+export type RunsUpdateRunResponses = {
+  /**
+   * Successful Response
+   */
+  200: RunPublic;
+};
+
+export type RunsUpdateRunResponse = RunsUpdateRunResponses[keyof RunsUpdateRunResponses];
+
+export type ScenarioResultsListScenarioResultsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Skip
+     */
+    skip?: number;
+    /**
+     * Limit
+     */
+    limit?: number;
+    /**
+     * Run Id
+     */
+    run_id?: string | null;
+    /**
+     * Scenario Id
+     */
+    scenario_id?: string | null;
+  };
+  url: '/api/v1/scenario-results/';
+};
+
+export type ScenarioResultsListScenarioResultsErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ScenarioResultsListScenarioResultsError =
+  ScenarioResultsListScenarioResultsErrors[keyof ScenarioResultsListScenarioResultsErrors];
+
+export type ScenarioResultsListScenarioResultsResponses = {
+  /**
+   * Successful Response
+   */
+  200: ScenarioResultsPublic;
+};
+
+export type ScenarioResultsListScenarioResultsResponse =
+  ScenarioResultsListScenarioResultsResponses[keyof ScenarioResultsListScenarioResultsResponses];
+
+export type ScenarioResultsCreateScenarioResultData = {
+  body: ScenarioResultCreate;
+  path?: never;
+  query?: never;
+  url: '/api/v1/scenario-results/';
+};
+
+export type ScenarioResultsCreateScenarioResultErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ScenarioResultsCreateScenarioResultError =
+  ScenarioResultsCreateScenarioResultErrors[keyof ScenarioResultsCreateScenarioResultErrors];
+
+export type ScenarioResultsCreateScenarioResultResponses = {
+  /**
+   * Successful Response
+   */
+  200: ScenarioResultPublic;
+};
+
+export type ScenarioResultsCreateScenarioResultResponse =
+  ScenarioResultsCreateScenarioResultResponses[keyof ScenarioResultsCreateScenarioResultResponses];
+
+export type ScenarioResultsDeleteScenarioResultData = {
+  body?: never;
+  path: {
+    /**
+     * Result Id
+     */
+    result_id: string;
+  };
+  query?: never;
+  url: '/api/v1/scenario-results/{result_id}';
+};
+
+export type ScenarioResultsDeleteScenarioResultErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ScenarioResultsDeleteScenarioResultError =
+  ScenarioResultsDeleteScenarioResultErrors[keyof ScenarioResultsDeleteScenarioResultErrors];
+
+export type ScenarioResultsDeleteScenarioResultResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message;
+};
+
+export type ScenarioResultsDeleteScenarioResultResponse =
+  ScenarioResultsDeleteScenarioResultResponses[keyof ScenarioResultsDeleteScenarioResultResponses];
+
+export type ScenarioResultsGetScenarioResultData = {
+  body?: never;
+  path: {
+    /**
+     * Result Id
+     */
+    result_id: string;
+  };
+  query?: never;
+  url: '/api/v1/scenario-results/{result_id}';
+};
+
+export type ScenarioResultsGetScenarioResultErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ScenarioResultsGetScenarioResultError =
+  ScenarioResultsGetScenarioResultErrors[keyof ScenarioResultsGetScenarioResultErrors];
+
+export type ScenarioResultsGetScenarioResultResponses = {
+  /**
+   * Successful Response
+   */
+  200: ScenarioResultPublic;
+};
+
+export type ScenarioResultsGetScenarioResultResponse =
+  ScenarioResultsGetScenarioResultResponses[keyof ScenarioResultsGetScenarioResultResponses];
+
+export type ScenarioResultsUpdateScenarioResultData = {
+  body: ScenarioResultUpdate;
+  path: {
+    /**
+     * Result Id
+     */
+    result_id: string;
+  };
+  query?: never;
+  url: '/api/v1/scenario-results/{result_id}';
+};
+
+export type ScenarioResultsUpdateScenarioResultErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ScenarioResultsUpdateScenarioResultError =
+  ScenarioResultsUpdateScenarioResultErrors[keyof ScenarioResultsUpdateScenarioResultErrors];
+
+export type ScenarioResultsUpdateScenarioResultResponses = {
+  /**
+   * Successful Response
+   */
+  200: ScenarioResultPublic;
+};
+
+export type ScenarioResultsUpdateScenarioResultResponse =
+  ScenarioResultsUpdateScenarioResultResponses[keyof ScenarioResultsUpdateScenarioResultResponses];

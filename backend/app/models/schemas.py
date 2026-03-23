@@ -11,31 +11,22 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from app.models.enums import ErrorCategory, SimulationMode, TurnRole
+from app.models.enums import ErrorCategory, TurnRole
 
 # ── Scenario nested types ──────────────────────────────────────────
 
 
-class ScriptedStep(BaseModel):
-    user_message: str = Field(description="The scripted user message to send")
-    expected_agent_behavior: str | None = Field(
-        default=None,
-        description="Description of expected agent behavior for this step",
-    )
-    max_response_time_ms: int | None = Field(
-        default=None,
-        description="Maximum allowed agent response time in milliseconds",
-    )
+class Persona(BaseModel):
+    type: str = Field(description="Short persona archetype label")
+    description: str = Field(description="Detailed persona description")
+    instructions: str = Field(description="Behavioral directives for the LLM simulator")
 
 
-class ExpectedOutcome(BaseModel):
-    criterion: str = Field(description="Descriptive label for the success criterion")
-    weight: float = Field(
-        default=1.0, description="Relative weight for scoring (default 1.0)"
-    )
-    evaluation_hint: str | None = Field(
+class ExpectedToolCall(BaseModel):
+    tool: str = Field(description="Tool/function name the agent should invoke")
+    expected_params: dict[str, Any] | None = Field(
         default=None,
-        description="Hint for the judge on how to evaluate this criterion",
+        description="Key parameters the judge verifies; null = any params acceptable",
     )
 
 
@@ -59,10 +50,6 @@ class RunConfig(BaseModel):
     timeout_per_scenario_ms: int = Field(
         default=120_000,
         description="Timeout per scenario in milliseconds before forced stop",
-    )
-    simulation_mode_override: SimulationMode | None = Field(
-        default=None,
-        description="Override the simulation mode defined on individual scenarios",
     )
 
 

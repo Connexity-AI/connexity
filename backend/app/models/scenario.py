@@ -1,13 +1,14 @@
 import uuid
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+from pydantic import BaseModel, field_validator
 from sqlalchemy import Column, Index, Text, text
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
-from app.models.enums import Difficulty, ScenarioStatus, SimulationMode
-from app.models.schemas import ExpectedOutcome, ScriptedStep
+from app.models.enums import Difficulty, ScenarioStatus
+from app.models.schemas import ExpectedToolCall, Persona
 
 if TYPE_CHECKING:
     from app.models.scenario_result import ScenarioResult
@@ -15,6 +16,13 @@ if TYPE_CHECKING:
 
 
 class ScenarioBase(SQLModel):
+    """Base fields shared by ORM and API schemas.
+
+    JSONB columns use raw dict/list types for SQLAlchemy compatibility.
+    API-facing schemas (ScenarioCreate, ScenarioPublic, ScenarioUpdate)
+    override persona and expected_tool_calls with typed Pydantic models.
+    """
+
     name: str = Field(max_length=255, description="Human-readable short name")
     description: str | None = Field(
         default=None, description="What this scenario tests (for humans)"
@@ -34,42 +42,54 @@ class ScenarioBase(SQLModel):
         index=True,
         description="Lifecycle status — only active scenarios run by default",
     )
-    simulation_mode: SimulationMode = Field(
-        default=SimulationMode.LLM_DRIVEN,
-        description="How the user side of the conversation is driven",
-    )
-    scripted_steps: list[ScriptedStep] | None = Field(
+    persona: dict[str, Any] | None = Field(
         default=None,
-        sa_column=Column("scripted_steps", JSONB, nullable=True),
-        description="Ordered steps for scripted simulation mode",
-    )
-    user_persona: str | None = Field(
-        default=None,
-        description="Persona description for the simulated user",
-    )
-    user_goal: str | None = Field(
-        default=None,
-        description="High-level goal the simulated user is trying to achieve",
+        sa_column=Column("persona", JSONB, nullable=True),
+        description="Structured persona for the LLM simulator (type, description, instructions)",
     )
     initial_message: str | None = Field(
         default=None,
         description="First message the simulated user sends to the agent",
     )
-    max_turns: int = Field(
-        default=100,
-        description="Maximum conversation turns before the scenario is stopped",
+    user_context: dict[str, Any] | None = Field(
+        default=None,
+        sa_column=Column("user_context", JSONB, nullable=True),
+        description="Free-form domain knowledge JSON-dumped into simulator prompt",
     )
-    expected_outcomes: list[ExpectedOutcome] = Field(
-        default_factory=list,
-        sa_column=Column(
-            "expected_outcomes", JSONB, nullable=False, server_default="[]"
-        ),
-        description="Success criteria the judge evaluates against",
+    max_turns: int | None = Field(
+        default=None,
+        description="Max conversation turns; null = no cap",
+    )
+    expected_outcomes: dict[str, Any] | None = Field(
+        default=None,
+        sa_column=Column("expected_outcomes", JSONB, nullable=True),
+        description="Free-form success criteria the judge evaluates against",
+    )
+    expected_tool_calls: list[dict[str, Any]] | None = Field(
+        default=None,
+        sa_column=Column("expected_tool_calls", JSONB, nullable=True),
+        description="Tool call expectations for judge evaluation",
     )
     evaluation_criteria_override: str | None = Field(
         default=None,
         description="Custom judge prompt section that overrides default criteria",
     )
+
+    @field_validator("persona", mode="before")
+    @classmethod
+    def _serialize_persona(cls, v: Any) -> dict[str, Any] | None:
+        if isinstance(v, BaseModel):
+            return v.model_dump()
+        return v
+
+    @field_validator("expected_tool_calls", mode="before")
+    @classmethod
+    def _serialize_expected_tool_calls(cls, v: Any) -> list[dict[str, Any]] | None:
+        if isinstance(v, list):
+            return [
+                item.model_dump() if isinstance(item, BaseModel) else item for item in v
+            ]
+        return v
 
 
 class Scenario(ScenarioBase, table=True):
@@ -102,7 +122,8 @@ class Scenario(ScenarioBase, table=True):
 
 
 class ScenarioCreate(ScenarioBase):
-    pass
+    persona: Persona | None = None  # type: ignore[assignment]
+    expected_tool_calls: list[ExpectedToolCall] | None = None  # type: ignore[assignment]
 
 
 class ScenarioUpdate(SQLModel):
@@ -120,31 +141,18 @@ class ScenarioUpdate(SQLModel):
         default=None,
         description="Lifecycle status — only active scenarios run by default",
     )
-    simulation_mode: SimulationMode | None = Field(
-        default=None,
-        description="How the user side of the conversation is driven",
-    )
-    scripted_steps: list[ScriptedStep] | None = Field(
-        default=None, description="Ordered steps for scripted simulation mode"
-    )
-    user_persona: str | None = Field(
-        default=None, description="Persona description for the simulated user"
-    )
-    user_goal: str | None = Field(
-        default=None,
-        description="High-level goal the simulated user is trying to achieve",
-    )
+    persona: Persona | None = None
     initial_message: str | None = Field(
         default=None,
         description="First message the simulated user sends to the agent",
     )
+    user_context: dict[str, Any] | None = None
     max_turns: int | None = Field(
         default=None,
-        description="Maximum conversation turns before the scenario is stopped",
+        description="Max conversation turns; null = no cap",
     )
-    expected_outcomes: list[ExpectedOutcome] | None = Field(
-        default=None, description="Success criteria the judge evaluates against"
-    )
+    expected_outcomes: dict[str, Any] | None = None
+    expected_tool_calls: list[ExpectedToolCall] | None = None
     evaluation_criteria_override: str | None = Field(
         default=None,
         description="Custom judge prompt section that overrides default criteria",
@@ -155,6 +163,8 @@ class ScenarioPublic(ScenarioBase):
     id: uuid.UUID = Field(description="Unique scenario identifier")
     created_at: datetime = Field(description="When the scenario was created")
     updated_at: datetime = Field(description="When the scenario was last updated")
+    persona: Persona | None = None  # type: ignore[assignment]
+    expected_tool_calls: list[ExpectedToolCall] | None = None  # type: ignore[assignment]
 
 
 class ScenariosPublic(SQLModel):
