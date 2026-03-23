@@ -18,6 +18,9 @@ from app.models.agent import (  # noqa: F401
     AgentUpdate,
 )
 
+# ── Common ─────────────────────────────────────────────────────────
+from app.models.common import ConfigPublic, ErrorResponse  # noqa: F401
+
 # ── Enums ──────────────────────────────────────────────────────────
 from app.models.enums import (  # noqa: F401
     Difficulty,
