@@ -80,7 +80,7 @@ Defines which tools the agent should call during the scenario.
 | `max_turns` | Runner | Caps conversation length; `null` = unlimited |
 | `expected_outcomes` | Judge | Free-form criteria the judge evaluates against |
 | `expected_tool_calls` | Judge | Verifies correct tool usage and parameters |
-| `evaluation_criteria_override` | Judge | Replaces default judge criteria for this scenario |
+| `evaluation_criteria_override` | Judge | Replaces default judge criteria for this scenario. When set, the judge uses this text instead of the platform's default scoring rubric |
 
 ---
 

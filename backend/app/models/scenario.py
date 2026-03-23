@@ -8,6 +8,7 @@ from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
 from app.models.enums import Difficulty, ScenarioStatus
+from app.models.schemas import ExpectedToolCall, Persona
 
 if TYPE_CHECKING:
     from app.models.scenario_result import ScenarioResult
@@ -15,6 +16,13 @@ if TYPE_CHECKING:
 
 
 class ScenarioBase(SQLModel):
+    """Base fields shared by ORM and API schemas.
+
+    JSONB columns use raw dict/list types for SQLAlchemy compatibility.
+    API-facing schemas (ScenarioCreate, ScenarioPublic, ScenarioUpdate)
+    override persona and expected_tool_calls with typed Pydantic models.
+    """
+
     name: str = Field(max_length=255)
     description: str | None = Field(default=None)
     difficulty: Difficulty = Field(default=Difficulty.NORMAL, index=True)
@@ -80,7 +88,8 @@ class Scenario(ScenarioBase, table=True):
 
 
 class ScenarioCreate(ScenarioBase):
-    pass
+    persona: Persona | None = None  # type: ignore[assignment]
+    expected_tool_calls: list[ExpectedToolCall] | None = None  # type: ignore[assignment]
 
 
 class ScenarioUpdate(SQLModel):
@@ -89,12 +98,12 @@ class ScenarioUpdate(SQLModel):
     difficulty: Difficulty | None = None
     tags: list[str] | None = None
     status: ScenarioStatus | None = None
-    persona: dict[str, Any] | None = None
+    persona: Persona | None = None
     initial_message: str | None = None
     user_context: dict[str, Any] | None = None
     max_turns: int | None = None
     expected_outcomes: dict[str, Any] | None = None
-    expected_tool_calls: list[dict[str, Any]] | None = None
+    expected_tool_calls: list[ExpectedToolCall] | None = None
     evaluation_criteria_override: str | None = None
 
 
@@ -102,6 +111,8 @@ class ScenarioPublic(ScenarioBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    persona: Persona | None = None  # type: ignore[assignment]
+    expected_tool_calls: list[ExpectedToolCall] | None = None  # type: ignore[assignment]
 
 
 class ScenariosPublic(SQLModel):
