@@ -1,5 +1,6 @@
 import uuid
 from datetime import UTC, datetime
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, field_validator
@@ -170,3 +171,30 @@ class ScenarioPublic(ScenarioBase):
 class ScenariosPublic(SQLModel):
     data: list[ScenarioPublic] = Field(description="List of scenarios")
     count: int = Field(description="Total number of scenarios matching the query")
+
+
+class OnConflict(StrEnum):
+    SKIP = "skip"
+    OVERWRITE = "overwrite"
+
+
+class ScenarioImportItem(ScenarioCreate):
+    """Scenario payload for import — optional id enables round-trip and conflict detection."""
+
+    id: uuid.UUID | None = None
+
+
+class ScenarioImportResult(SQLModel):
+    created: int
+    skipped: int
+    overwritten: int
+    total: int
+    errors: list[str] = Field(
+        default_factory=list, description="Per-item error messages"
+    )
+
+
+class ScenariosExport(SQLModel):
+    exported_at: datetime
+    count: int
+    scenarios: list[ScenarioPublic]

@@ -42,10 +42,14 @@ from app.models.run import (  # noqa: F401
 
 # ── Scenario ───────────────────────────────────────────────────────
 from app.models.scenario import (  # noqa: F401
+    OnConflict,
     Scenario,
     ScenarioBase,
     ScenarioCreate,
+    ScenarioImportItem,
+    ScenarioImportResult,
     ScenarioPublic,
+    ScenariosExport,
     ScenariosPublic,
     ScenarioUpdate,
 )

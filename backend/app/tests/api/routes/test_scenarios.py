@@ -240,3 +240,222 @@ def test_update_scenario_with_new_fields(
     result = r.json()
     assert result["persona"]["type"] == "angry-customer"
     assert result["expected_outcomes"]["escalated"] is True
+
+
+# ── Export / Import ───────────────────────────────────────────────
+
+
+def test_export_scenarios(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    create_test_scenario(db, tags=["export-test"])
+    r = client.get(
+        f"{settings.API_V1_STR}/scenarios/export",
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert "exported_at" in data
+    assert data["count"] >= 1
+    assert len(data["scenarios"]) == data["count"]
+    assert (
+        r.headers["content-disposition"]
+        == 'attachment; filename="scenarios-export.json"'
+    )
+
+
+def test_export_scenarios_with_filters(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    tag = f"export-filter-{uuid.uuid4().hex[:6]}"
+    create_test_scenario(db, tags=[tag], difficulty="hard")
+    create_test_scenario(db, tags=["other-tag"], difficulty="normal")
+    r = client.get(
+        f"{settings.API_V1_STR}/scenarios/export",
+        params={"tag": tag},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["count"] >= 1
+    assert all(tag in s["tags"] for s in data["scenarios"])
+
+
+def test_import_scenarios_create_new(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    payload = [
+        {"name": "Import New 1", "tags": ["import-test"]},
+        {"name": "Import New 2", "tags": ["import-test"]},
+    ]
+    r = client.post(
+        f"{settings.API_V1_STR}/scenarios/import",
+        json=payload,
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    result = r.json()
+    assert result["created"] == 2
+    assert result["skipped"] == 0
+    assert result["overwritten"] == 0
+    assert result["total"] == 2
+    assert result["errors"] == []
+
+
+def test_import_scenarios_round_trip(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    tag = f"roundtrip-{uuid.uuid4().hex[:6]}"
+    create_test_scenario(
+        db,
+        name="Round Trip Scenario",
+        tags=[tag],
+        persona={"type": "tester", "description": "A tester", "instructions": "Test."},
+        user_context={"key": "value"},
+        expected_tool_calls=[{"tool": "test_tool", "expected_params": {"a": 1}}],
+    )
+
+    # Export
+    r = client.get(
+        f"{settings.API_V1_STR}/scenarios/export",
+        params={"tag": tag},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    exported = r.json()
+    assert exported["count"] == 1
+    original = exported["scenarios"][0]
+
+    # Import with overwrite (same ids)
+    r = client.post(
+        f"{settings.API_V1_STR}/scenarios/import",
+        params={"on_conflict": "overwrite"},
+        json=exported["scenarios"],
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    result = r.json()
+    assert result["overwritten"] == 1
+
+    # Fetch and compare
+    r = client.get(
+        f"{settings.API_V1_STR}/scenarios/{original['id']}",
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    reimported = r.json()
+    for field in (
+        "name",
+        "tags",
+        "difficulty",
+        "persona",
+        "user_context",
+        "expected_tool_calls",
+    ):
+        assert reimported[field] == original[field], f"Mismatch on {field}"
+
+
+def test_import_scenarios_skip_conflict(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    scenario = create_test_scenario(db, name="Original Name")
+    payload = [
+        {
+            "id": str(scenario.id),
+            "name": "Should Be Skipped",
+            "tags": ["skip-test"],
+        }
+    ]
+    r = client.post(
+        f"{settings.API_V1_STR}/scenarios/import",
+        json=payload,
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    result = r.json()
+    assert result["skipped"] == 1
+    assert result["created"] == 0
+
+    # Verify original unchanged
+    r = client.get(
+        f"{settings.API_V1_STR}/scenarios/{scenario.id}",
+        cookies=superuser_auth_cookies,
+    )
+    assert r.json()["name"] == "Original Name"
+
+
+def test_import_scenarios_overwrite_conflict(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    scenario = create_test_scenario(
+        db,
+        name="Before Overwrite",
+        persona={"type": "original", "description": "Keep me", "instructions": "Stay."},
+        user_context={"preserved": True},
+    )
+    payload = [
+        {
+            "id": str(scenario.id),
+            "name": "After Overwrite",
+            "tags": ["overwrite-test"],
+        }
+    ]
+    r = client.post(
+        f"{settings.API_V1_STR}/scenarios/import",
+        params={"on_conflict": "overwrite"},
+        json=payload,
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    result = r.json()
+    assert result["overwritten"] == 1
+    assert result["errors"] == []
+
+    # Verify updated field changed, unset fields preserved
+    r = client.get(
+        f"{settings.API_V1_STR}/scenarios/{scenario.id}",
+        cookies=superuser_auth_cookies,
+    )
+    updated = r.json()
+    assert updated["name"] == "After Overwrite"
+    assert updated["persona"]["type"] == "original"
+    assert updated["user_context"]["preserved"] is True
+
+
+def test_import_scenarios_mixed(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    existing = create_test_scenario(db, name="Existing")
+    payload = [
+        {"id": str(existing.id), "name": "Skip Me"},
+        {"name": "Brand New"},
+    ]
+    r = client.post(
+        f"{settings.API_V1_STR}/scenarios/import",
+        json=payload,
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    result = r.json()
+    assert result["skipped"] == 1
+    assert result["created"] == 1
+    assert result["total"] == 2
+
+
+def test_import_scenarios_empty_list(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    r = client.post(
+        f"{settings.API_V1_STR}/scenarios/import",
+        json=[],
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 400
+
+
+def test_import_scenarios_unauthenticated(client: TestClient) -> None:
+    r = client.post(
+        f"{settings.API_V1_STR}/scenarios/import",
+        json=[{"name": "No Auth"}],
+    )
+    assert r.status_code in (401, 403)

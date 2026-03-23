@@ -15,8 +15,10 @@ from app.crud.run import (  # noqa: F401
     update_run,
 )
 from app.crud.scenario import (  # noqa: F401
+    bulk_import_scenarios,
     create_scenario,
     delete_scenario,
+    export_scenarios,
     get_scenario,
     list_scenarios,
     update_scenario,

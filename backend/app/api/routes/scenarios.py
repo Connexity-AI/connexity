@@ -1,15 +1,21 @@
 import uuid
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import JSONResponse
 
 from app import crud
 from app.api.deps import SessionDep, get_current_user
 from app.models import (
     Difficulty,
     Message,
+    OnConflict,
     Scenario,
     ScenarioCreate,
+    ScenarioImportItem,
+    ScenarioImportResult,
     ScenarioPublic,
+    ScenariosExport,
     ScenariosPublic,
     ScenarioStatus,
     ScenarioUpdate,
@@ -56,6 +62,42 @@ def list_scenarios(
         sort_order=sort_order,
     )
     return ScenariosPublic(data=items, count=count)  # type: ignore[arg-type]
+
+
+@router.get("/export", response_model=ScenariosExport)
+def export_scenarios(
+    session: SessionDep,
+    tag: str | None = None,
+    difficulty: Difficulty | None = None,
+    status: ScenarioStatus | None = None,
+) -> JSONResponse:
+    items = crud.export_scenarios(
+        session=session, tag=tag, difficulty=difficulty, status=status
+    )
+    export_data = ScenariosExport(
+        exported_at=datetime.now(UTC),
+        count=len(items),
+        scenarios=items,  # type: ignore[arg-type]
+    )
+    return JSONResponse(
+        content=export_data.model_dump(mode="json"),
+        headers={"Content-Disposition": 'attachment; filename="scenarios-export.json"'},
+    )
+
+
+@router.post("/import", response_model=ScenarioImportResult)
+def import_scenarios(
+    session: SessionDep,
+    scenarios_in: list[ScenarioImportItem],
+    on_conflict: OnConflict = Query(default=OnConflict.SKIP),
+) -> ScenarioImportResult:
+    if not scenarios_in:
+        raise HTTPException(status_code=400, detail="Empty scenario list")
+    if len(scenarios_in) > 1000:
+        raise HTTPException(status_code=400, detail="Maximum 1000 scenarios per import")
+    return crud.bulk_import_scenarios(
+        session=session, scenarios_in=scenarios_in, on_conflict=on_conflict
+    )
 
 
 @router.get("/{scenario_id}", response_model=ScenarioPublic)

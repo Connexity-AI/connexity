@@ -5,8 +5,11 @@ from sqlmodel import Session, col, select
 
 from app.models import (
     Difficulty,
+    OnConflict,
     Scenario,
     ScenarioCreate,
+    ScenarioImportItem,
+    ScenarioImportResult,
     ScenarioStatus,
     ScenarioUpdate,
 )
@@ -82,3 +85,85 @@ def update_scenario(
 def delete_scenario(*, session: Session, db_scenario: Scenario) -> None:
     session.delete(db_scenario)
     session.commit()
+
+
+EXPORT_MAX_ROWS = 5000
+
+
+def export_scenarios(
+    *,
+    session: Session,
+    tag: str | None = None,
+    difficulty: Difficulty | None = None,
+    status: ScenarioStatus | None = None,
+) -> list[Scenario]:
+    """Export scenarios matching optional filters (capped at EXPORT_MAX_ROWS)."""
+    statement = select(Scenario)
+
+    if tag is not None:
+        statement = statement.where(col(Scenario.tags).any(tag))
+    if difficulty is not None:
+        statement = statement.where(Scenario.difficulty == difficulty)
+    if status is not None:
+        statement = statement.where(Scenario.status == status)
+
+    statement = statement.limit(EXPORT_MAX_ROWS)
+    return list(session.exec(statement).all())
+
+
+def bulk_import_scenarios(
+    *,
+    session: Session,
+    scenarios_in: list[ScenarioImportItem],
+    on_conflict: OnConflict,
+) -> ScenarioImportResult:
+    """Import scenarios in bulk. Handles ID conflicts via on_conflict strategy."""
+    created = 0
+    skipped = 0
+    overwritten = 0
+    errors: list[str] = []
+
+    # Batch-fetch existing scenarios for items that provide an id
+    incoming_ids = [item.id for item in scenarios_in if item.id is not None]
+    existing: dict[uuid.UUID, Scenario] = {}
+    if incoming_ids:
+        rows = session.exec(
+            select(Scenario).where(col(Scenario.id).in_(incoming_ids))
+        ).all()
+        existing = {row.id: row for row in rows}
+
+    for idx, item in enumerate(scenarios_in):
+        try:
+            data = item.model_dump(exclude_unset=True, exclude={"id"})
+
+            if item.id is None:
+                db_obj = Scenario.model_validate(data)
+                session.add(db_obj)
+                created += 1
+            elif item.id in existing:
+                if on_conflict == OnConflict.SKIP:
+                    skipped += 1
+                else:
+                    existing[item.id].sqlmodel_update(data)
+                    session.add(existing[item.id])
+                    overwritten += 1
+            else:
+                db_obj = Scenario.model_validate({**data, "id": item.id})
+                session.add(db_obj)
+                created += 1
+        except Exception as exc:
+            label = item.name if item.name else f"index {idx}"
+            errors.append(f"Item '{label}': {exc}")
+
+    if errors and created == 0 and overwritten == 0:
+        session.rollback()
+    else:
+        session.commit()
+
+    return ScenarioImportResult(
+        created=created,
+        skipped=skipped,
+        overwritten=overwritten,
+        total=len(scenarios_in),
+        errors=errors,
+    )
