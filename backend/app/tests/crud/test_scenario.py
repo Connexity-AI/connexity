@@ -97,6 +97,47 @@ def test_delete_scenario(db: Session) -> None:
     assert fetched is None
 
 
+def test_list_scenarios_search_by_name(db: Session) -> None:
+    create_test_scenario(db, name="Unique Refund Zeta Scenario")
+    items, count = crud.list_scenarios(session=db, search="Refund Zeta")
+    assert count >= 1
+    assert any("Refund Zeta" in s.name for s in items)
+
+
+def test_list_scenarios_search_by_description(db: Session) -> None:
+    create_test_scenario(
+        db, name="Search Desc Test", description="Handles xylophone edge cases"
+    )
+    items, count = crud.list_scenarios(session=db, search="xylophone")
+    assert count >= 1
+    assert any("xylophone" in (s.description or "") for s in items)
+
+
+def test_list_scenarios_search_case_insensitive(db: Session) -> None:
+    create_test_scenario(db, name="CaseSensitivity Check Alpha")
+    items, count = crud.list_scenarios(session=db, search="casesensitivity check")
+    assert count >= 1
+
+
+def test_list_scenarios_sort_by_name_asc(db: Session) -> None:
+    create_test_scenario(db, name="AAA Sort First")
+    create_test_scenario(db, name="ZZZ Sort Last")
+    items, _ = crud.list_scenarios(session=db, sort_by="name", sort_order="asc")
+    names = [s.name for s in items]
+    assert names == sorted(names)
+
+
+def test_list_scenarios_sort_by_name_desc(db: Session) -> None:
+    items, _ = crud.list_scenarios(session=db, sort_by="name", sort_order="desc")
+    names = [s.name for s in items]
+    assert names == sorted(names, reverse=True)
+
+
+def test_list_scenarios_sort_invalid_field_falls_back(db: Session) -> None:
+    items, count = crud.list_scenarios(session=db, sort_by="nonexistent")
+    assert count >= 0  # no error, falls back to created_at
+
+
 def test_create_scenario_with_full_schema(db: Session) -> None:
     scenario_in = ScenarioCreate(
         name="Full Schema Scenario",

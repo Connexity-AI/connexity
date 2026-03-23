@@ -32,6 +32,9 @@ def list_scenarios(
     tag: str | None = None,
     difficulty: Difficulty | None = None,
     status: ScenarioStatus | None = None,
+    search: str | None = None,
+    sort_by: str = "created_at",
+    sort_order: str = "desc",
 ) -> tuple[list[Scenario], int]:
     statement = select(Scenario)
     count_statement = select(func.count()).select_from(Scenario)
@@ -45,6 +48,20 @@ def list_scenarios(
     if status is not None:
         statement = statement.where(Scenario.status == status)
         count_statement = count_statement.where(Scenario.status == status)
+    if search is not None:
+        pattern = f"%{search}%"
+        search_filter = col(Scenario.name).ilike(pattern) | col(
+            Scenario.description
+        ).ilike(pattern)
+        statement = statement.where(search_filter)
+        count_statement = count_statement.where(search_filter)
+
+    allowed_sort_fields = {"created_at", "updated_at", "name", "difficulty", "status"}
+    if sort_by not in allowed_sort_fields:
+        sort_by = "created_at"
+    sort_column = getattr(Scenario, sort_by)
+    order = sort_column.desc() if sort_order == "desc" else sort_column.asc()
+    statement = statement.order_by(order)
 
     count = session.exec(count_statement).one()
     items = list(session.exec(statement.offset(skip).limit(limit)).all())
