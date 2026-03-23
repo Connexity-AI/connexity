@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import Column, text
@@ -11,11 +11,17 @@ if TYPE_CHECKING:
 
 
 class AgentBase(SQLModel):
-    name: str = Field(max_length=255)
-    description: str | None = Field(default=None)
-    endpoint_url: str = Field(max_length=2048)
+    name: str = Field(max_length=255, description="Human-readable agent name")
+    description: str | None = Field(
+        default=None, description="What this agent does and its purpose"
+    )
+    endpoint_url: str = Field(
+        max_length=2048, description="URL of the agent's API endpoint"
+    )
     agent_metadata: dict[str, Any] | None = Field(
-        default=None, sa_column=Column("metadata", JSONB, nullable=True)
+        default=None,
+        sa_column=Column("metadata", JSONB, nullable=True),
+        description="Arbitrary key-value metadata about the agent",
     )
 
 
@@ -24,16 +30,22 @@ class Agent(AgentBase, table=True):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"server_default": text("now()")},
     )
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
-        sa_column_kwargs={"server_default": text("now()"), "onupdate": datetime.now},
+        default_factory=lambda: datetime.now(UTC),
+        sa_column_kwargs={
+            "server_default": text("now()"),
+            "onupdate": lambda: datetime.now(UTC),
+        },
     )
 
     # Relationships
-    runs: list["Run"] = Relationship(back_populates="agent")
+    runs: list["Run"] = Relationship(
+        back_populates="agent",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
 
 
 class AgentCreate(AgentBase):
@@ -41,18 +53,26 @@ class AgentCreate(AgentBase):
 
 
 class AgentUpdate(SQLModel):
-    name: str | None = Field(default=None, max_length=255)
-    description: str | None = None
-    endpoint_url: str | None = Field(default=None, max_length=2048)
-    agent_metadata: dict[str, Any] | None = None
+    name: str | None = Field(
+        default=None, max_length=255, description="Human-readable agent name"
+    )
+    description: str | None = Field(
+        default=None, description="What this agent does and its purpose"
+    )
+    endpoint_url: str | None = Field(
+        default=None, max_length=2048, description="URL of the agent's API endpoint"
+    )
+    agent_metadata: dict[str, Any] | None = Field(
+        default=None, description="Arbitrary key-value metadata about the agent"
+    )
 
 
 class AgentPublic(AgentBase):
-    id: uuid.UUID
-    created_at: datetime
-    updated_at: datetime
+    id: uuid.UUID = Field(description="Unique agent identifier")
+    created_at: datetime = Field(description="When the agent was created")
+    updated_at: datetime = Field(description="When the agent was last updated")
 
 
 class AgentsPublic(SQLModel):
-    data: list[AgentPublic]
-    count: int
+    data: list[AgentPublic] = Field(description="List of agents")
+    count: int = Field(description="Total number of agents matching the query")

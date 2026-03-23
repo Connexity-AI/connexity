@@ -1,1 +1,65 @@
 Generic single-database configuration.
+
+# Migration Workflow
+
+## Prerequisites
+
+- PostgreSQL running: `make db`
+- Backend venv set up: `cd backend && uv venv && uv sync`
+- `.env` configured with valid `POSTGRES_SERVER`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
+
+## Common Operations
+
+### Apply all migrations to latest
+
+```bash
+make db-upgrade
+# or directly:
+cd backend && alembic upgrade head
+```
+
+### Generate a new migration after model changes
+
+1. Edit your SQLModel models in `app/models/`.
+2. Generate the migration:
+   ```bash
+   make db-migrate MSG="add foo column to bar table"
+   # or directly:
+   cd backend && alembic revision --autogenerate -m "add foo column to bar table"
+   ```
+3. **Review the generated file** in `app/alembic/versions/` — autogenerate is not perfect. Check for:
+   - Missing or incorrect column types
+   - Dropped columns/tables you didn't intend to remove
+   - Enum types that need explicit creation/dropping
+4. Apply the migration: `make db-upgrade`
+
+### Downgrade
+
+```bash
+# Downgrade by one revision
+make db-downgrade
+
+# Downgrade to a specific revision
+make db-downgrade REV=52186b4ceb64
+
+# Downgrade all the way (drops all tables)
+make db-downgrade REV=base
+```
+
+### Check current revision
+
+```bash
+cd backend && alembic current
+```
+
+### View migration history
+
+```bash
+cd backend && alembic history --verbose
+```
+
+## How It Works
+
+- `env.py` imports `app.models.SQLModel` to pick up all table metadata for autogeneration.
+- `DATABASE_URL` is read from Pydantic `settings.SQLALCHEMY_DATABASE_URI` (not from `alembic.ini`).
+- `scripts/prestart.sh` runs `alembic upgrade head` + seeds initial data — used by `make db-seed` and Docker entrypoint.

@@ -15,15 +15,15 @@ DOCS_URL = "https://github.com/space-step/connexity-evals/blob/main/README.md"
 @router.get("/", response_model=Message)
 def health() -> Message:
     required_vars = {
-        "SITE_URL": settings.SITE_URL,
-        "DATABASE_URL": settings.DATABASE_URL,
-        "JWT_SECRET_KEY": settings.JWT_SECRET_KEY,
-        "SESSION_SECRET_KEY": settings.SESSION_SECRET_KEY,
+        "SITE_URL": bool(settings.SITE_URL),
+        "DATABASE_URL": bool(settings.DATABASE_URL),
+        "JWT_SECRET_KEY": bool(settings.JWT_SECRET_KEY),
+        "SESSION_SECRET_KEY": bool(settings.SESSION_SECRET_KEY),
     }
 
     message = "All required environment variables are set."
 
-    missing_vars = [name for name, value in required_vars.items() if not value]
+    missing_vars = [name for name, is_set in required_vars.items() if not is_set]
 
     if missing_vars:
         message = (

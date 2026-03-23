@@ -53,7 +53,7 @@ def test_scenario_create_minimal():
     assert scenario.difficulty == Difficulty.NORMAL
     assert scenario.status == ScenarioStatus.ACTIVE
     assert scenario.simulation_mode == SimulationMode.LLM_DRIVEN
-    assert scenario.max_turns == 20
+    assert scenario.max_turns == 100
 
 
 def test_scenario_create_with_tags():

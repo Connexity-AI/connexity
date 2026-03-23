@@ -1,6 +1,6 @@
 """Pydantic round-trip serialization tests for all JSONB nested models."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.models.enums import ErrorCategory, SimulationMode, TurnRole
 from app.models.schemas import (
@@ -88,7 +88,7 @@ def test_conversation_turn_minimal():
         index=0,
         role=TurnRole.USER,
         content="Hello",
-        timestamp=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        timestamp=datetime(2026, 1, 1, tzinfo=UTC),
     )
     restored = _round_trip(ConversationTurn, turn)
     assert restored.tool_calls is None
@@ -110,7 +110,7 @@ def test_conversation_turn_with_tool_calls():
         ],
         latency_ms=250,
         token_count=150,
-        timestamp=datetime(2026, 1, 1, 0, 0, 1, tzinfo=timezone.utc),
+        timestamp=datetime(2026, 1, 1, 0, 0, 1, tzinfo=UTC),
     )
     restored = _round_trip(ConversationTurn, turn)
     assert len(restored.tool_calls) == 2
@@ -125,7 +125,7 @@ def test_conversation_turn_enum_serialization():
             index=0,
             role=role,
             content="test",
-            timestamp=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            timestamp=datetime(2026, 1, 1, tzinfo=UTC),
         )
         data = turn.model_dump()
         assert data["role"] == role.value
