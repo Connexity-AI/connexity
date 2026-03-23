@@ -1,7 +1,7 @@
 # connexity-evals Makefile
 # Two modes: local (no Docker for app, just DB) and docker (everything in Docker)
 
-.PHONY: help install dev dashboard db db-seed db-stop \
+.PHONY: help install dev dashboard db db-seed db-upgrade db-migrate db-stop \
         docker-up docker-down docker-logs \
         cli lint format test generate-client
 
@@ -34,6 +34,12 @@ db: ## Start Postgres + Adminer in Docker
 
 db-seed: ## Run migrations and seed data
 	cd backend && uv run bash scripts/prestart.sh
+
+db-upgrade: ## Run Alembic migrations to head
+	cd backend && uv run alembic upgrade head
+
+db-migrate: ## Generate a new Alembic migration (usage: make db-migrate MSG="description")
+	cd backend && uv run alembic revision --autogenerate -m "$(MSG)"
 
 db-stop: ## Stop Postgres + Adminer
 	docker compose down database adminer

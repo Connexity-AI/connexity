@@ -26,15 +26,34 @@ def get_superuser_auth_cookies(client: TestClient) -> dict[str, str]:
     return extract_cookies(r)
 
 
+def extract_token_as_cookie(
+    response: "httpx._models.Response",
+) -> dict[str, str]:
+    """Extract access_token from JSON body and return it as an auth cookie dict."""
+    data = response.json()
+    token = data.get("access_token")
+    if not token:
+        raise AssertionError("access_token not found in response body")
+    return {settings.AUTH_COOKIE: token}
+
+
 def extract_cookies(
     response: JSONResponse | httpx._models.Response | Response,
 ) -> dict[str, str]:
     cookie_prefix = f"{settings.AUTH_COOKIE}="
     if isinstance(response, httpx._models.Response):
-        # Handle httpx Response
+        # Try Set-Cookie header first
         cookie_value = response.cookies.get(settings.AUTH_COOKIE)
         if cookie_value:
             return {settings.AUTH_COOKIE: cookie_value}
+        # Fallback: extract access_token from JSON body
+        try:
+            data = response.json()
+            token = data.get("access_token")
+            if token:
+                return {settings.AUTH_COOKIE: token}
+        except Exception:
+            pass
     else:
         # Handle Starlette Response
         cookie_header = response.headers.get("Set-Cookie")

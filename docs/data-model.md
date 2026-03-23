@@ -28,13 +28,12 @@ erDiagram
         enum difficulty
         text_array tags
         enum status
-        enum simulation_mode
-        jsonb scripted_steps
-        string user_persona
-        string user_goal
+        jsonb persona
         string initial_message
+        jsonb user_context
         int max_turns
         jsonb expected_outcomes
+        jsonb expected_tool_calls
         string evaluation_criteria_override
         timestamp created_at
         timestamp updated_at
@@ -108,7 +107,6 @@ erDiagram
 |------|--------|
 | `Difficulty` | `normal`, `hard` |
 | `ScenarioStatus` | `draft`, `active`, `archived` |
-| `SimulationMode` | `scripted`, `llm_driven` |
 | `RunStatus` | `pending`, `running`, `completed`, `failed`, `cancelled` |
 | `ErrorCategory` | `none`, `off_topic`, `hallucination`, `refusal`, `tool_misuse`, `safety_violation`, `prompt_violation`, `incomplete`, `latency_timeout`, `agent_error`, `other` |
 | `TurnRole` | `user`, `agent`, `system` |
@@ -127,7 +125,6 @@ These are stored inside JSONB columns, not as separate tables.
 | `simulator_provider` | `str \| None` | `None` |
 | `concurrency` | `int` | `5` |
 | `timeout_per_scenario_ms` | `int` | `120000` |
-| `simulation_mode_override` | `SimulationMode \| None` | `None` |
 
 ### ConversationTurn (stored in `scenario_results.transcript`)
 
@@ -193,21 +190,24 @@ These are stored inside JSONB columns, not as separate tables.
 | `error_category_distribution` | `list[ErrorCategoryCount]` | `[]` |
 | `avg_overall_score` | `float \| None` | `None` |
 
-### ScriptedStep (stored in `scenarios.scripted_steps`)
+### Persona (stored in `scenarios.persona`)
 
 | Field | Type |
 |-------|------|
-| `user_message` | `str` |
-| `expected_agent_behavior` | `str \| None` |
-| `max_response_time_ms` | `int \| None` |
+| `type` | `str` |
+| `description` | `str` |
+| `instructions` | `str` |
 
-### ExpectedOutcome (stored in `scenarios.expected_outcomes`)
+### ExpectedToolCall (stored in `scenarios.expected_tool_calls`)
 
 | Field | Type | Default |
 |-------|------|---------|
-| `criterion` | `str` | — |
-| `weight` | `float` | `1.0` |
-| `evaluation_hint` | `str \| None` | `None` |
+| `tool` | `str` | — |
+| `expected_params` | `dict[str, Any] \| None` | `None` |
+
+### expected_outcomes (stored in `scenarios.expected_outcomes`)
+
+Free-form `dict[str, Any]`. Keys are descriptive labels (e.g. `"refund_initiated"`), values are expected state (bool, string, etc.). The judge interprets these semantically.
 
 ## Indexes
 

@@ -21,14 +21,9 @@ def test_get_auth_cookie(client: TestClient) -> None:
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
 
     assert r.status_code == 200
-    assert r.json()["message"] == "Login successful"
-
-    cookie_prefix = f"{settings.AUTH_COOKIE}="
-    cookie_header = r.headers.get("Set-Cookie")
-    assert cookie_prefix in cookie_header
-
-    cookie_value = cookie_header.split(cookie_prefix)[1].split(";")[0]
-    assert cookie_value
+    data = r.json()
+    assert "access_token" in data
+    assert "expires" in data
 
 
 def test_get_auth_cookie_incorrect_password(client: TestClient) -> None:

@@ -2,16 +2,16 @@
 
 from datetime import UTC, datetime
 
-from app.models.enums import ErrorCategory, SimulationMode, TurnRole
+from app.models.enums import ErrorCategory, TurnRole
 from app.models.schemas import (
     AggregateMetrics,
     ConversationTurn,
     CriterionScore,
     ErrorCategoryCount,
-    ExpectedOutcome,
+    ExpectedToolCall,
     JudgeVerdict,
+    Persona,
     RunConfig,
-    ScriptedStep,
     ToolCall,
 )
 
@@ -24,42 +24,40 @@ def _round_trip(model_class, instance):
     return restored
 
 
-# ── ScriptedStep ───────────────────────────────────────────────────
+# ── Persona ────────────────────────────────────────────────────────
 
 
-def test_scripted_step_minimal():
-    step = ScriptedStep(user_message="Hello")
-    restored = _round_trip(ScriptedStep, step)
-    assert restored.expected_agent_behavior is None
-    assert restored.max_response_time_ms is None
-
-
-def test_scripted_step_full():
-    step = ScriptedStep(
-        user_message="What is my balance?",
-        expected_agent_behavior="Should look up account balance",
-        max_response_time_ms=5000,
+def test_persona_round_trip():
+    persona = Persona(
+        type="polite-customer",
+        description="A polite customer requesting help",
+        instructions="Be cooperative and provide order number when asked.",
     )
-    _round_trip(ScriptedStep, step)
-
-
-# ── ExpectedOutcome ────────────────────────────────────────────────
-
-
-def test_expected_outcome_defaults():
-    outcome = ExpectedOutcome(criterion="accuracy")
-    restored = _round_trip(ExpectedOutcome, outcome)
-    assert restored.weight == 1.0
-    assert restored.evaluation_hint is None
-
-
-def test_expected_outcome_full():
-    outcome = ExpectedOutcome(
-        criterion="tool_use",
-        weight=2.0,
-        evaluation_hint="Agent should use the search tool",
+    restored = _round_trip(Persona, persona)
+    assert restored.type == "polite-customer"
+    assert restored.description == "A polite customer requesting help"
+    assert (
+        restored.instructions == "Be cooperative and provide order number when asked."
     )
-    _round_trip(ExpectedOutcome, outcome)
+
+
+# ── ExpectedToolCall ──────────────────────────────────────────────
+
+
+def test_expected_tool_call_minimal():
+    tc = ExpectedToolCall(tool="lookup_order")
+    restored = _round_trip(ExpectedToolCall, tc)
+    assert restored.tool == "lookup_order"
+    assert restored.expected_params is None
+
+
+def test_expected_tool_call_with_params():
+    tc = ExpectedToolCall(
+        tool="lookup_order",
+        expected_params={"order_id": "ORD-12345"},
+    )
+    restored = _round_trip(ExpectedToolCall, tc)
+    assert restored.expected_params["order_id"] == "ORD-12345"
 
 
 # ── ToolCall ───────────────────────────────────────────────────────
@@ -224,7 +222,6 @@ def test_run_config_defaults():
     assert restored.concurrency == 5
     assert restored.timeout_per_scenario_ms == 120_000
     assert restored.judge_model is None
-    assert restored.simulation_mode_override is None
 
 
 def test_run_config_full():
@@ -235,10 +232,9 @@ def test_run_config_full():
         simulator_provider="openai",
         concurrency=10,
         timeout_per_scenario_ms=60_000,
-        simulation_mode_override=SimulationMode.SCRIPTED,
     )
     restored = _round_trip(RunConfig, config)
-    assert restored.simulation_mode_override == SimulationMode.SCRIPTED
+    assert restored.concurrency == 10
 
 
 # ── ErrorCategoryCount ─────────────────────────────────────────────

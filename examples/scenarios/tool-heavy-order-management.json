@@ -1,0 +1,48 @@
+{
+  "name": "Complex Order Management — Multiple Tools",
+  "description": "Customer needs to modify an existing order: change shipping address, apply a discount code, and add an item. Tests multi-tool orchestration.",
+  "difficulty": "hard",
+  "tags": ["tool-use", "order-management", "multi-step"],
+  "status": "active",
+  "persona": {
+    "type": "demanding-customer",
+    "description": "Organized customer who knows exactly what they want and expects efficient service.",
+    "instructions": "Request three changes in your first message: (1) change shipping address, (2) apply discount code SAVE20, (3) add 'USB-C Cable' to the order. If the agent asks you to confirm, confirm. If the agent says something can't be done, ask why and push back once before accepting."
+  },
+  "initial_message": "I need to make some changes to order ORD-55555. I need to update the shipping address to 742 Evergreen Terrace, Springfield, IL 62704. Also, please apply discount code SAVE20, and add a USB-C Cable to the order.",
+  "user_context": {
+    "order_id": "ORD-55555",
+    "current_address": "123 Main St, Chicago, IL 60601",
+    "new_address": "742 Evergreen Terrace, Springfield, IL 62704",
+    "discount_code": "SAVE20",
+    "add_item": "USB-C Cable",
+    "order_total": 129.99,
+    "order_status": "processing"
+  },
+  "max_turns": 15,
+  "expected_outcomes": {
+    "address_updated": true,
+    "discount_applied": true,
+    "item_added": true,
+    "order_total_recalculated": true,
+    "confirmation_provided": true
+  },
+  "expected_tool_calls": [
+    {
+      "tool": "lookup_order",
+      "expected_params": { "order_id": "ORD-55555" }
+    },
+    {
+      "tool": "update_shipping_address",
+      "expected_params": { "order_id": "ORD-55555", "address": "742 Evergreen Terrace, Springfield, IL 62704" }
+    },
+    {
+      "tool": "apply_discount",
+      "expected_params": { "order_id": "ORD-55555", "code": "SAVE20" }
+    },
+    {
+      "tool": "add_order_item",
+      "expected_params": { "order_id": "ORD-55555", "item_name": "USB-C Cable" }
+    }
+  ]
+}

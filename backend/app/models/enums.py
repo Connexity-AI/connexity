@@ -12,11 +12,6 @@ class ScenarioStatus(StrEnum):
     ARCHIVED = "archived"
 
 
-class SimulationMode(StrEnum):
-    SCRIPTED = "scripted"
-    LLM_DRIVEN = "llm_driven"
-
-
 class RunStatus(StrEnum):
     PENDING = "pending"
     RUNNING = "running"

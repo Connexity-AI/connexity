@@ -97,3 +97,7 @@ class ScenarioSetPublic(ScenarioSetBase):
 class ScenarioSetsPublic(SQLModel):
     data: list[ScenarioSetPublic] = Field(description="List of scenario sets")
     count: int = Field(description="Total number of sets matching the query")
+
+
+class ScenarioSetMembersUpdate(SQLModel):
+    scenario_ids: list[uuid.UUID]
