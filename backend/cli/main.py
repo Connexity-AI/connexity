@@ -114,9 +114,11 @@ def generate(
         from sqlmodel import Session
 
         from app.core.db import engine
-        from app.crud.scenario import create_scenario
+        from app.models.scenario import Scenario
 
         with Session(engine) as session:
             for sc in generated:
-                create_scenario(session=session, scenario_in=sc)
+                db_obj = Scenario.model_validate(sc.model_dump())
+                session.add(db_obj)
+            session.commit()
         click.echo(f"Persisted {len(generated)} draft scenarios to database")

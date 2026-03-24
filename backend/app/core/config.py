@@ -104,6 +104,7 @@ class Settings(BaseSettings):
 
     # Generator-specific
     GENERATOR_MAX_TOKENS: int = 16_000
+    GENERATOR_TEMPERATURE: float = 0.9
 
     # ------- Computed properties -------
 

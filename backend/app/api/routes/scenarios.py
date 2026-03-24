@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
+from litellm.exceptions import APIError
 
 from app import crud
 from app.api.deps import SessionDep, get_current_user
@@ -114,7 +115,7 @@ async def generate_scenarios_endpoint(
         raise HTTPException(status_code=502, detail="LLM returned invalid JSON")
     except ValueError as e:
         raise HTTPException(status_code=502, detail=f"Generation failed: {e}")
-    except Exception as e:
+    except APIError as e:
         raise HTTPException(status_code=502, detail=f"LLM call failed: {e}")
 
     persisted: list[ScenarioPublic] = []
