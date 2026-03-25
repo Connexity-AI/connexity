@@ -253,7 +253,7 @@ async def run_scenario(
                 transcript.append(
                     build_conversation_turn(
                         index=len(transcript),
-                        role=TurnRole.SYSTEM,
+                        role=TurnRole.ASSISTANT,
                         content=f"[platform: scenario timeout after {timeout_ms}ms]",
                         latency_ms=None,
                     )
@@ -282,7 +282,7 @@ async def run_scenario(
                 transcript.append(
                     build_conversation_turn(
                         index=len(transcript),
-                        role=TurnRole.SYSTEM,
+                        role=TurnRole.ASSISTANT,
                         content=f"[agent_error] {e!s}",
                         latency_ms=None,
                     )
