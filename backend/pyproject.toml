@@ -80,5 +80,5 @@ ignore = [
 ]
 
 [tool.ruff.lint.pyupgrade]
-# Preserve types, even if a file imports `from __future__ import annotations`.
+# Avoid rewrites that assume annotations are never needed at runtime (e.g. Pydantic).
 keep-runtime-typing = true
