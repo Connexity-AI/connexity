@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 from app.models.scenario import ScenarioPublic
 
@@ -14,8 +14,6 @@ class ToolDefinition(BaseModel):
 class GenerateRequest(BaseModel):
     """Input for scenario generation."""
 
-    model_config = ConfigDict(protected_namespaces=())
-
     agent_prompt: str
     tools: list[ToolDefinition] = []
     count: int = Field(default=10, ge=1, le=50)
@@ -27,8 +25,6 @@ class GenerateRequest(BaseModel):
 
 class GenerateResult(BaseModel):
     """Output from scenario generation."""
-
-    model_config = ConfigDict(protected_namespaces=())
 
     scenarios: list[ScenarioPublic]
     count: int
