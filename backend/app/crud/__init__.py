@@ -37,6 +37,7 @@ from app.crud.scenario_set import (  # noqa: F401
     create_scenario_set,
     delete_scenario_set,
     get_scenario_set,
+    get_scenarios_for_set,
     list_scenario_sets,
     list_scenarios_in_set,
     remove_scenario_from_set,

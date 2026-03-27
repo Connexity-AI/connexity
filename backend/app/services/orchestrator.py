@@ -1,7 +1,10 @@
 """Partial run orchestration: agent HTTP calls, message mapping, scenario loop."""
 
+import asyncio
 import logging
+import statistics
 import time
+import uuid
 from datetime import UTC, datetime
 from typing import Any
 
@@ -14,9 +17,11 @@ from app.models.agent_contract import (
     AgentResponse,
     ChatMessage,
 )
-from app.models.enums import SimulatorMode, TurnRole
+from app.models.enums import ErrorCategory, SimulatorMode, TurnRole
 from app.models.scenario import Scenario
+from app.models.scenario_result import ScenarioResult
 from app.models.schemas import (
+    AggregateMetrics,
     ConversationTurn,
     JudgeVerdict,
     Persona,
@@ -187,6 +192,8 @@ async def run_scenario(
     scenario: Scenario,
     agent_endpoint_url: str,
     config: RunConfig,
+    *,
+    cancel_event: asyncio.Event | None = None,
 ) -> list[ConversationTurn]:
     """Execute one scenario: initial user message, then agent / simulator turns.
 
@@ -246,6 +253,18 @@ async def run_scenario(
 
     async with httpx.AsyncClient() as client:
         while True:
+            if cancel_event is not None and cancel_event.is_set():
+                logger.warning("Scenario %s stopped: run cancelled", scenario.id)
+                transcript.append(
+                    build_conversation_turn(
+                        index=len(transcript),
+                        role=TurnRole.ASSISTANT,
+                        content="[platform: run cancelled]",
+                        latency_ms=None,
+                    )
+                )
+                break
+
             elapsed_ms = int((time.perf_counter() - started) * 1000)
             if elapsed_ms >= timeout_ms:
                 logger.warning(
@@ -328,6 +347,7 @@ async def run_scenario_with_evaluation(
     *,
     agent_system_prompt: str | None = None,
     agent_tools: list[dict[str, Any]] | None = None,
+    cancel_event: asyncio.Event | None = None,
 ) -> tuple[list[ConversationTurn], JudgeVerdict | None]:
     """Run simulation then judge the transcript; returns ``(transcript, verdict)``.
 
@@ -337,6 +357,7 @@ async def run_scenario_with_evaluation(
         scenario,
         agent_endpoint_url,
         config,
+        cancel_event=cancel_event,
     )
     if not transcript:
         return transcript, None
@@ -351,3 +372,333 @@ async def run_scenario_with_evaluation(
         )
     )
     return transcript, verdict
+
+
+def compute_aggregate_metrics(
+    results: list[ScenarioResult],
+) -> AggregateMetrics:
+    from app.models.schemas import ErrorCategoryCount
+
+    total = len(results)
+    if total == 0:
+        return AggregateMetrics(
+            total_scenarios=0,
+            passed_count=0,
+            failed_count=0,
+            error_count=0,
+            pass_rate=0.0,
+        )
+
+    passed = sum(1 for r in results if r.passed is True)
+    failed = sum(
+        1
+        for r in results
+        if r.passed is False and r.error_category == ErrorCategory.NONE
+    )
+    errors = sum(1 for r in results if r.error_category != ErrorCategory.NONE)
+
+    latencies = [
+        r.agent_latency_p50_ms for r in results if r.agent_latency_p50_ms is not None
+    ]
+
+    cat_counts = {}
+    for r in results:
+        if r.error_category != ErrorCategory.NONE:
+            cat_counts[r.error_category] = cat_counts.get(r.error_category, 0) + 1
+
+    dist = [ErrorCategoryCount(category=k, count=v) for k, v in cat_counts.items()]
+
+    scores = [
+        r.verdict.get("overall_score")
+        for r in results
+        if r.verdict and r.verdict.get("overall_score") is not None
+    ]
+
+    return AggregateMetrics(
+        total_scenarios=total,
+        passed_count=passed,
+        failed_count=failed,
+        error_count=errors,
+        pass_rate=passed / total if total > 0 else 0.0,
+        latency_p50_ms=statistics.median(latencies) if latencies else None,
+        latency_p95_ms=statistics.quantiles(latencies, n=20)[18]
+        if len(latencies) >= 20
+        else None,
+        latency_max_ms=max(latencies) if latencies else None,
+        latency_avg_ms=statistics.mean(latencies) if latencies else None,
+        error_category_distribution=dist,
+        avg_overall_score=statistics.mean(scores) if scores else None,
+    )
+
+
+async def _execute_single_scenario(
+    run_id: uuid.UUID,
+    scenario: Scenario,
+    agent_endpoint_url: str,
+    config: RunConfig,
+    agent_system_prompt: str | None,
+    agent_tools: list[dict[str, Any]] | None,
+    semaphore: asyncio.Semaphore,
+    cancel_event: asyncio.Event,
+) -> ScenarioResult:
+    from sqlmodel import Session
+
+    from app import crud
+    from app.core.db import engine
+    from app.models import ScenarioResultCreate, ScenarioResultUpdate
+    from app.models.schemas import ScenarioProgressData
+    from app.services.run_manager import run_manager
+
+    with Session(engine) as session:
+        result = crud.create_scenario_result(
+            session=session,
+            result_in=ScenarioResultCreate(
+                run_id=run_id,
+                scenario_id=scenario.id,
+            ),
+        )
+        result_id = result.id
+
+    async with semaphore:
+        if cancel_event.is_set():
+            return result
+
+        run_manager.emit(
+            run_id,
+            "scenario_started",
+            {"scenario_id": str(scenario.id), "scenario_name": scenario.name},
+        )
+
+        started_at = datetime.now(UTC)
+        try:
+            transcript, verdict = await run_scenario_with_evaluation(
+                scenario=scenario,
+                agent_endpoint_url=agent_endpoint_url,
+                config=config,
+                agent_system_prompt=agent_system_prompt,
+                agent_tools=agent_tools,
+                cancel_event=cancel_event,
+            )
+            completed_at = datetime.now(UTC)
+
+            # Calculate metrics
+            turn_count = len(transcript)
+            total_latency_ms = int((completed_at - started_at).total_seconds() * 1000)
+
+            agent_latencies = [
+                t.latency_ms
+                for t in transcript
+                if t.role == TurnRole.ASSISTANT and t.latency_ms is not None
+            ]
+            p50 = int(statistics.median(agent_latencies)) if agent_latencies else None
+            p95 = (
+                int(statistics.quantiles(agent_latencies, n=20)[18])
+                if len(agent_latencies) >= 20
+                else (max(agent_latencies) if agent_latencies else None)
+            )
+            max_lat = max(agent_latencies) if agent_latencies else None
+
+            update_data = ScenarioResultUpdate(
+                transcript=transcript,
+                turn_count=turn_count,
+                verdict=verdict,
+                total_latency_ms=total_latency_ms,
+                agent_latency_p50_ms=p50,
+                agent_latency_p95_ms=p95,
+                agent_latency_max_ms=max_lat,
+                passed=verdict.passed if verdict else False,
+                error_category=verdict.error_category
+                if verdict
+                else ErrorCategory.NONE,
+                started_at=started_at,
+                completed_at=completed_at,
+            )
+
+        except Exception as e:
+            logger.exception("Scenario %s failed unexpectedly", scenario.id)
+            completed_at = datetime.now(UTC)
+            update_data = ScenarioResultUpdate(
+                passed=False,
+                error_category=ErrorCategory.OTHER,
+                error_message=str(e),
+                started_at=started_at,
+                completed_at=completed_at,
+            )
+
+        # Persist
+        try:
+            def _update_db():
+                with Session(engine) as session:
+                    db_result = crud.get_scenario_result(
+                        session=session, result_id=result_id
+                    )
+                    if db_result:
+                        return crud.update_scenario_result(
+                            session=session,
+                            db_result=db_result,
+                            result_in=update_data,
+                        )
+                    return None
+
+            updated_result = await asyncio.to_thread(_update_db)
+        except Exception:
+            logger.exception(
+                "Failed to persist result for scenario %s in run %s",
+                scenario.id,
+                run_id,
+            )
+            updated_result = None
+
+        # Update progress
+        try:
+            progress = run_manager.get_progress(run_id)
+            if progress and updated_result:
+                progress.completed_count += 1
+                if updated_result.passed:
+                    progress.passed_count += 1
+                elif updated_result.error_category != ErrorCategory.NONE:
+                    progress.error_count += 1
+                else:
+                    progress.failed_count += 1
+
+                run_manager.emit(
+                    run_id,
+                    "scenario_completed",
+                    ScenarioProgressData(
+                        run_id=run_id,
+                        scenario_id=scenario.id,
+                        scenario_name=scenario.name,
+                        completed_count=progress.completed_count,
+                        total_count=progress.total_scenarios,
+                        passed=updated_result.passed,
+                        overall_score=updated_result.verdict.get("overall_score")
+                        if updated_result.verdict
+                        else None,
+                        error_message=updated_result.error_message,
+                    ).model_dump(mode="json"),
+                )
+        except Exception:
+            logger.exception(
+                "Failed to emit progress for scenario %s in run %s",
+                scenario.id,
+                run_id,
+            )
+
+        return updated_result or result
+
+
+async def execute_run(run_id: uuid.UUID) -> None:
+    """Top-level orchestration: load run + scenarios, execute concurrently, persist results."""
+    from sqlmodel import Session
+
+    from app import crud
+    from app.core.db import engine
+    from app.models import RunUpdate
+    from app.models.enums import RunStatus
+    from app.services.run_manager import run_manager
+
+    state = run_manager.register(run_id)
+
+    try:
+        with Session(engine) as session:
+            run = crud.get_run(session=session, run_id=run_id)
+            if not run or run.status not in (
+                RunStatus.PENDING,
+                RunStatus.FAILED,
+                RunStatus.CANCELLED,
+            ):
+                logger.error("Run %s not found or not in executable state", run_id)
+                return
+
+            crud.update_run(
+                session=session,
+                db_run=run,
+                run_in=RunUpdate(
+                    status=RunStatus.RUNNING, started_at=datetime.now(UTC)
+                ),
+            )
+
+            scenarios = crud.get_scenarios_for_set(
+                session=session, scenario_set_id=run.scenario_set_id
+            )
+
+            config = RunConfig.model_validate(run.config) if run.config else RunConfig()
+            agent_endpoint_url = run.agent_endpoint_url
+            agent_system_prompt = run.agent_system_prompt
+            agent_tools = run.agent_tools
+
+        state.progress.total_scenarios = len(scenarios)
+        run_manager.emit(
+            run_id,
+            "run_started",
+            {"run_id": str(run_id), "total_scenarios": len(scenarios)},
+        )
+
+        semaphore = asyncio.Semaphore(config.concurrency)
+        tasks = [
+            _execute_single_scenario(
+                run_id=run_id,
+                scenario=scenario,
+                agent_endpoint_url=agent_endpoint_url,
+                config=config,
+                agent_system_prompt=agent_system_prompt,
+                agent_tools=agent_tools,
+                semaphore=semaphore,
+                cancel_event=state.cancel_event,
+            )
+            for scenario in scenarios
+        ]
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        valid_results: list[ScenarioResult] = []
+        for i, r in enumerate(results):
+            if isinstance(r, Exception):
+                logger.exception(
+                    "Scenario task %d failed for run %s: %s",
+                    i,
+                    run_id,
+                    r,
+                    exc_info=r,
+                )
+            else:
+                valid_results.append(r)
+
+        aggregate_metrics = compute_aggregate_metrics(valid_results)
+
+        with Session(engine) as session:
+            db_run = crud.get_run(session=session, run_id=run_id)
+            if db_run:
+                final_status = (
+                    RunStatus.CANCELLED
+                    if state.cancel_event.is_set()
+                    else RunStatus.COMPLETED
+                )
+                crud.update_run(
+                    session=session,
+                    db_run=db_run,
+                    run_in=RunUpdate(
+                        status=final_status,
+                        completed_at=datetime.now(UTC),
+                        aggregate_metrics=aggregate_metrics,
+                    ),
+                )
+
+        event_name = "run_cancelled" if state.cancel_event.is_set() else "run_completed"
+        run_manager.emit(run_id, event_name, {"run_id": str(run_id)})
+
+    except Exception as e:
+        logger.exception("Run %s failed unexpectedly", run_id)
+        with Session(engine) as session:
+            db_run = crud.get_run(session=session, run_id=run_id)
+            if db_run:
+                crud.update_run(
+                    session=session,
+                    db_run=db_run,
+                    run_in=RunUpdate(
+                        status=RunStatus.FAILED, completed_at=datetime.now(UTC)
+                    ),
+                )
+        run_manager.emit(run_id, "run_failed", {"run_id": str(run_id), "error": str(e)})
+    finally:
+        run_manager.unregister(run_id)

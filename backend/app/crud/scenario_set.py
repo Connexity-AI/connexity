@@ -11,6 +11,7 @@ from app.models import (
     ScenarioSetMember,
     ScenarioSetUpdate,
 )
+from app.models.enums import ScenarioStatus
 
 
 def validate_scenario_ids(
@@ -226,3 +227,20 @@ def list_scenarios_in_set(
         ).all()
     )
     return items, count
+
+
+def get_scenarios_for_set(
+    *, session: Session, scenario_set_id: uuid.UUID
+) -> list[Scenario]:
+    """Get all active scenarios for a set, ordered by position."""
+
+    statement = (
+        select(Scenario)
+        .join(ScenarioSetMember, Scenario.id == ScenarioSetMember.scenario_id)
+        .where(
+            ScenarioSetMember.scenario_set_id == scenario_set_id,
+            Scenario.status == ScenarioStatus.ACTIVE,
+        )
+        .order_by(ScenarioSetMember.position)
+    )
+    return list(session.exec(statement).all())

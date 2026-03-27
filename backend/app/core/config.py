@@ -103,7 +103,7 @@ class Settings(BaseSettings):
     LLM_RETRY_MAX_WAIT_SECONDS: float = 60.0
 
     # Judge-specific
-    JUDGE_TEMPERATURE: float = 0.0
+    JUDGE_TEMPERATURE: float = 0.2
     JUDGE_MAX_TOKENS: int = 4096
 
     # Generator-specific

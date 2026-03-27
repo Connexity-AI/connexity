@@ -54,11 +54,13 @@ def update_scenario_result(
     result_in: ScenarioResultUpdate,
 ) -> ScenarioResult:
     update_data = result_in.model_dump(exclude_unset=True)
-    # Pydantic models → dict for JSONB columns
+    # Pydantic models → JSON-safe dicts for JSONB columns (datetime → ISO string)
     if "transcript" in update_data and result_in.transcript is not None:
-        update_data["transcript"] = [t.model_dump() for t in result_in.transcript]
+        update_data["transcript"] = [
+            t.model_dump(mode="json") for t in result_in.transcript
+        ]
     if "verdict" in update_data and result_in.verdict is not None:
-        update_data["verdict"] = result_in.verdict.model_dump()
+        update_data["verdict"] = result_in.verdict.model_dump(mode="json")
     db_result.sqlmodel_update(update_data)
     session.add(db_result)
     session.commit()
