@@ -20,7 +20,7 @@
     "customer_since": "2024-01-15",
     "lifetime_value": 3600.00
   },
-  "max_turns": 20,
+  "max_turns": 10,
   "expected_outcomes": {
     "acknowledged_prior_contacts": true,
     "empathy_expressed": true,

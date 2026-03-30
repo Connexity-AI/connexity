@@ -17,7 +17,7 @@
     "product": "Wireless Mouse Pro",
     "payment_method": "credit_card"
   },
-  "max_turns": 10,
+  "max_turns": 3,
   "expected_outcomes": {
     "refund_initiated": true,
     "correct_amount": 49.99,

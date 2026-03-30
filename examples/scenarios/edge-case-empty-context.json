@@ -11,7 +11,7 @@
   },
   "initial_message": "I need help.",
   "user_context": null,
-  "max_turns": null,
+  "max_turns": 5,
   "expected_outcomes": {
     "asked_clarifying_questions": true,
     "did_not_hallucinate_context": true,

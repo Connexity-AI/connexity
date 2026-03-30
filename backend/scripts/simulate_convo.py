@@ -13,14 +13,14 @@ Setup and run (two terminals from repo root)::
     # Terminal A — mock agent (needs LLM credentials)
     uv run python ../examples/mock_agent/main.py
 
-    # Terminal B — simulation (scripted user lines; no user LLM)
+    # Terminal B — simulation (default: LLM user from scenario persona; needs platform LLM keys)
     uv run python scripts/simulate_convo.py \\
         --agent-url http://127.0.0.1:8001/agent/respond \\
         --scenario ../examples/scenarios/normal-refund-request.json
 
-LLM user simulator (needs ``LITELLM_*`` / provider keys as for the rest of the app)::
+Fixed replay lines instead of an LLM user (no simulator LLM calls)::
 
-    uv run python scripts/simulate_convo.py --agent-url ... --scenario ... --llm-user
+    uv run python scripts/simulate_convo.py --agent-url ... --scenario ... --scripted
 """
 
 import argparse
@@ -38,7 +38,11 @@ from app.models.schemas import (
     RunConfig,
     SimulatorConfig,
 )
-from app.services.orchestrator import run_scenario, run_scenario_with_evaluation
+from app.services.orchestrator import (
+    ScenarioRunResult,
+    run_scenario,
+    run_scenario_with_evaluation,
+)
 
 
 def _load_scenario(path: Path) -> Scenario:
@@ -67,18 +71,18 @@ async def _run(args: argparse.Namespace) -> int:
     scenario_path = Path(args.scenario).resolve()
     scenario = _load_scenario(scenario_path)
 
-    if args.llm_user:
+    if args.scripted:
+        scripted = [s.strip() for s in args.scripted_user.split("|") if s.strip()]
+        simulator = SimulatorConfig(
+            mode=SimulatorMode.SCRIPTED,
+            scripted_messages=scripted,
+        )
+    else:
         simulator = SimulatorConfig(
             mode=SimulatorMode.LLM,
             model=args.simulator_model,
             provider=args.simulator_provider,
             temperature=args.simulator_temperature,
-        )
-    else:
-        scripted = [s.strip() for s in args.scripted_user.split("|") if s.strip()]
-        simulator = SimulatorConfig(
-            mode=SimulatorMode.SCRIPTED,
-            scripted_messages=scripted,
         )
 
     run_cfg = RunConfig(
@@ -111,9 +115,31 @@ async def _run(args: argparse.Namespace) -> int:
     print(f"Scenario: {scenario.name} ({scenario_path})")
     print(f"Turns: {len(transcript)}")
     _print_transcript(transcript)
+    _print_run_tracking(run_out, verdict)
     if verdict is not None:
         _print_verdict(verdict)
     return 0
+
+
+def _print_run_tracking(
+    run_out: ScenarioRunResult, verdict: JudgeVerdict | None
+) -> None:
+    print("\n--- Token & cost (same fields persisted on scenario_result) ---")
+    print(f"  Agent tokens:      {json.dumps(run_out.agent_token_usage)}")
+    print(f"  Platform tokens:   {json.dumps(run_out.platform_token_usage)}")
+    print(f"  Agent cost USD:    {run_out.agent_cost_usd:.6f}")
+    print(f"  Platform cost USD: {run_out.platform_cost_usd:.6f}")
+    total = run_out.agent_cost_usd + run_out.platform_cost_usd
+    if verdict is not None:
+        if verdict.judge_token_usage:
+            print(f"  Judge tokens:      {json.dumps(verdict.judge_token_usage)}")
+        if verdict.judge_latency_ms is not None:
+            print(f"  Judge latency ms:  {verdict.judge_latency_ms}")
+        if verdict.judge_cost_usd is not None:
+            print(f"  Judge cost USD:    {verdict.judge_cost_usd:.6f}")
+            total += verdict.judge_cost_usd
+    print(f"  Scenario total USD: {total:.6f}")
+    print()
 
 
 def _print_verdict(verdict: JudgeVerdict) -> None:
@@ -152,19 +178,22 @@ def main() -> None:
         help="Per-scenario timeout for agent HTTP calls",
     )
     parser.add_argument(
-        "--llm-user",
+        "--scripted",
         action="store_true",
-        help="Use LLM user simulator instead of scripted lines",
+        help=(
+            "Replay fixed user lines from --scripted-user after initial_message "
+            "(no LLM user simulator)"
+        ),
     )
     parser.add_argument(
         "--scripted-user",
         default="My order number is ORD-12345.|Yes, a full refund to the original card please.|That's perfect, thank you!",
-        help="Scripted user replies after the first message, separated by |",
+        help="With --scripted: user replies after the first message, separated by |",
     )
     parser.add_argument(
         "--simulator-model",
         default=None,
-        help="Simulator LLM model (LLM user mode; becomes RunConfig.simulator.model)",
+        help="Simulator LLM model (default user mode; RunConfig.simulator.model)",
     )
     parser.add_argument(
         "--simulator-provider",
@@ -175,7 +204,7 @@ def main() -> None:
         "--simulator-temperature",
         type=float,
         default=None,
-        help="Simulator temperature (LLM user mode)",
+        help="Simulator temperature (default LLM user mode)",
     )
     parser.add_argument(
         "--judge",

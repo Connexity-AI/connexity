@@ -12,19 +12,20 @@ The script will:
   - Create scenarios from examples/scenarios/ and bundle them into a ScenarioSet
   - Create a Run with auto_execute=true
   - Subscribe to GET /runs/{run_id}/stream and print every SSE event live
-  - Fetch + print the final Run (with aggregate metrics) once the stream closes
+  - Fetch + print the final Run (aggregate metrics including token/cost totals)
+  - List GET /scenario-results/?run_id= for per-scenario token usage and estimated_cost_usd
 
 Usage::
 
-    # From repo root (needs httpx + httpx-sse):
-    pip install httpx httpx-sse  # one-time
-    python scripts/test_run_sse.py
+    cd backend && uv run python scripts/test_run_sse.py
 
     # Options:
-    python scripts/test_run_sse.py --backend http://localhost:8000 \\
+    uv run python scripts/test_run_sse.py --backend http://localhost:8000 \\
         --agent-url http://localhost:8001/agent/respond \\
-        --scenarios examples/scenarios/normal-refund-request.json
+        --scenarios ../examples/scenarios/normal-refund-request.json
 """
+
+from __future__ import annotations
 
 import argparse
 import json
@@ -35,7 +36,8 @@ from pathlib import Path
 import httpx
 import httpx_sse
 
-SCENARIOS_DIR = Path(__file__).resolve().parent.parent / "examples" / "scenarios"
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+SCENARIOS_DIR = _REPO_ROOT / "examples" / "scenarios"
 
 DEFAULT_BACKEND = "http://localhost:8000"
 DEFAULT_AGENT_URL = "http://localhost:8001/agent/respond"
@@ -158,7 +160,12 @@ def stream_events(client: httpx.Client, base: str, run_id: str) -> None:
                 print(f"         data:  {json.dumps(data, indent=2)}")
             print()
 
-            if sse.event in ("stream_closed", "run_completed", "run_cancelled", "run_failed"):
+            if sse.event in (
+                "stream_closed",
+                "run_completed",
+                "run_cancelled",
+                "run_failed",
+            ):
                 break
 
     print(f"[stream] Received {event_count} event(s) total\n")
@@ -180,7 +187,7 @@ def fetch_final_run(client: httpx.Client, base: str, run_id: str) -> None:
 
     metrics = run.get("aggregate_metrics")
     if metrics:
-        print(f"\n  --- Aggregate Metrics ---")
+        print("\n  --- Aggregate Metrics ---")
         print(f"  Total scenarios:  {metrics['total_scenarios']}")
         print(f"  Passed:           {metrics['passed_count']}")
         print(f"  Failed:           {metrics['failed_count']}")
@@ -194,12 +201,63 @@ def fetch_final_run(client: httpx.Client, base: str, run_id: str) -> None:
             print(f"  Latency p50:      {metrics['latency_p50_ms']:.0f} ms")
         if metrics.get("latency_p95_ms") is not None:
             print(f"  Latency p95:      {metrics['latency_p95_ms']:.0f} ms")
+        tagent = metrics.get("total_agent_token_usage")
+        if tagent:
+            print(f"  Agent tokens:     {json.dumps(tagent)}")
+        tplat = metrics.get("total_platform_token_usage")
+        if tplat:
+            print(f"  Platform tokens:  {json.dumps(tplat)}")
         if metrics.get("total_estimated_cost_usd") is not None:
-            print(f"  Est. cost:        ${metrics['total_estimated_cost_usd']:.4f}")
+            print(f"  Est. cost (run):  ${metrics['total_estimated_cost_usd']:.4f}")
     else:
         print("\n  (no aggregate metrics)")
 
     print()
+
+
+def fetch_scenario_results(client: httpx.Client, base: str, run_id: str) -> None:
+    r = client.get(
+        _api(base, "/scenario-results/"),
+        params={"run_id": run_id, "limit": 1000},
+    )
+    r.raise_for_status()
+    payload = r.json()
+    items: list[dict[str, object]] = payload.get("data") or []
+
+    print(f"{'=' * 60}")
+    print("PER-SCENARIO RESULTS (token / cost tracking)")
+    print(f"{'=' * 60}\n")
+
+    if not items:
+        print("  (no scenario results)\n")
+        return
+
+    for row in items:
+        sid = row.get("scenario_id")
+        lat = row.get("total_latency_ms")
+        cost = row.get("estimated_cost_usd")
+        agent_u = row.get("agent_token_usage")
+        plat_u = row.get("platform_token_usage")
+        print(f"  Scenario {sid}")
+        if lat is not None:
+            print(f"    total_latency_ms:   {lat}")
+        if cost is not None:
+            print(f"    estimated_cost_usd: {float(cost):.6f}")
+        if agent_u:
+            print(f"    agent_token_usage:    {json.dumps(agent_u)}")
+        if plat_u:
+            print(f"    platform_token_usage: {json.dumps(plat_u)}")
+        verdict = row.get("verdict")
+        if isinstance(verdict, dict):
+            jtu = verdict.get("judge_token_usage")
+            jcost = verdict.get("judge_cost_usd")
+            if jtu:
+                print(f"    judge_token_usage:    {json.dumps(jtu)}")
+            if jcost is not None:
+                print(f"    judge_cost_usd:       {float(jcost):.6f}")
+        print()
+
+    print(f"  ({len(items)} row(s))\n")
 
 
 def main() -> int:
@@ -231,6 +289,11 @@ def main() -> int:
         nargs="*",
         help="Scenario JSON file paths (default: all files in examples/scenarios/)",
     )
+    parser.add_argument(
+        "--skip-scenario-details",
+        action="store_true",
+        help="Do not fetch GET /scenario-results for per-scenario token/cost rows",
+    )
     args = parser.parse_args()
 
     if args.scenarios:
@@ -258,6 +321,8 @@ def main() -> int:
         time.sleep(0.5)
         stream_events(client, args.backend, run_id)
         fetch_final_run(client, args.backend, run_id)
+        if not args.skip_scenario_details:
+            fetch_scenario_results(client, args.backend, run_id)
 
     return 0
 
@@ -269,5 +334,8 @@ if __name__ == "__main__":
         print("\n[interrupted]")
         raise SystemExit(130) from None
     except httpx.HTTPStatusError as exc:
-        print(f"\n[error] HTTP {exc.response.status_code}: {exc.response.text}", file=sys.stderr)
+        print(
+            f"\n[error] HTTP {exc.response.status_code}: {exc.response.text}",
+            file=sys.stderr,
+        )
         raise SystemExit(1) from None

@@ -2,6 +2,7 @@
 
 import argparse
 import asyncio
+import json
 import os
 import sys
 
@@ -24,6 +25,15 @@ async def _run(*, model: str) -> int:
         LLMCallConfig(model=model, max_tokens=32, temperature=0),
     )
     print(resp.model_dump_json(indent=2))
+    print("\n--- LLM call tracking ---")
+    print(f"  latency_ms:        {resp.latency_ms}")
+    print(f"  usage:             {json.dumps(resp.usage)}")
+    if resp.response_cost_usd is not None:
+        print(f"  response_cost_usd: {resp.response_cost_usd:.6f}")
+    else:
+        print(
+            "  response_cost_usd: (none — LiteLLM may not set _hidden_params.response_cost)"
+        )
     return 0
 
 

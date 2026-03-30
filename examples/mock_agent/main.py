@@ -78,7 +78,10 @@ TOOLS = [
                 "type": "object",
                 "properties": {
                     "order_id": {"type": "string"},
-                    "amount": {"type": "number", "description": "Refund amount in major currency units"},
+                    "amount": {
+                        "type": "number",
+                        "description": "Refund amount in major currency units",
+                    },
                 },
                 "required": ["order_id", "amount"],
             },
@@ -93,7 +96,10 @@ TOOLS = [
                 "type": "object",
                 "properties": {
                     "order_id": {"type": "string"},
-                    "address": {"type": "string", "description": "Full shipping address"},
+                    "address": {
+                        "type": "string",
+                        "description": "Full shipping address",
+                    },
                 },
                 "required": ["order_id", "address"],
             },
@@ -123,7 +129,10 @@ TOOLS = [
                 "type": "object",
                 "properties": {
                     "order_id": {"type": "string"},
-                    "item_name": {"type": "string", "description": "Product name to add"},
+                    "item_name": {
+                        "type": "string",
+                        "description": "Product name to add",
+                    },
                 },
                 "required": ["order_id", "item_name"],
             },
@@ -165,8 +174,14 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "account_id": {"type": "string", "description": "Optional account context"},
-                    "reason": {"type": "string", "description": "Short reason for escalation"},
+                    "account_id": {
+                        "type": "string",
+                        "description": "Optional account context",
+                    },
+                    "reason": {
+                        "type": "string",
+                        "description": "Short reason for escalation",
+                    },
                 },
                 "required": [],
             },
@@ -250,10 +265,16 @@ def lookup_order(order_id: str, **_extra: Any) -> dict[str, Any]:
             "shipping_address": "123 Main St, Chicago, IL 60601",
             "items": [{"name": "Primary item", "qty": 1}],
         }
-    return {"order_id": oid, "status": "not_found", "detail": "No mock record for this order id"}
+    return {
+        "order_id": oid,
+        "status": "not_found",
+        "detail": "No mock record for this order id",
+    }
 
 
-def process_refund(order_id: str, amount: float | int | str, **_extra: Any) -> dict[str, Any]:
+def process_refund(
+    order_id: str, amount: float | int | str, **_extra: Any
+) -> dict[str, Any]:
     try:
         amt = float(amount)
     except (TypeError, ValueError):
@@ -267,7 +288,9 @@ def process_refund(order_id: str, amount: float | int | str, **_extra: Any) -> d
     }
 
 
-def update_shipping_address(order_id: str, address: str, **_extra: Any) -> dict[str, Any]:
+def update_shipping_address(
+    order_id: str, address: str, **_extra: Any
+) -> dict[str, Any]:
     return {
         "order_id": order_id.strip().upper(),
         "address": address.strip(),
@@ -314,9 +337,24 @@ def get_billing_history(account_id: str, **_extra: Any) -> dict[str, Any]:
         return {
             "account_id": aid,
             "charges": [
-                {"period": "2025-12", "billed": 99.0, "plan_expected": 49.0, "variance": 50.0},
-                {"period": "2026-01", "billed": 99.0, "plan_expected": 49.0, "variance": 50.0},
-                {"period": "2026-02", "billed": 99.0, "plan_expected": 49.0, "variance": 50.0},
+                {
+                    "period": "2025-12",
+                    "billed": 99.0,
+                    "plan_expected": 49.0,
+                    "variance": 50.0,
+                },
+                {
+                    "period": "2026-01",
+                    "billed": 99.0,
+                    "plan_expected": 49.0,
+                    "variance": 50.0,
+                },
+                {
+                    "period": "2026-02",
+                    "billed": 99.0,
+                    "plan_expected": 49.0,
+                    "variance": 50.0,
+                },
             ],
             "total_overcharge": 150.0,
             "summary": "Three consecutive months show $50 overcharge vs plan",
@@ -373,7 +411,10 @@ def _build_litellm_messages(messages: list[ChatMessage]) -> list[dict]:
                 {
                     "id": tc.id,
                     "type": tc.type,
-                    "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                    "function": {
+                        "name": tc.function.name,
+                        "arguments": tc.function.arguments,
+                    },
                 }
                 for tc in m.tool_calls
             ]
@@ -392,13 +433,17 @@ def _parse_tool_calls(raw_calls: list) -> list[ToolCall] | None:
     for rc in raw_calls:
         fn = rc.function if hasattr(rc, "function") else rc.get("function", {})
         name = fn.name if hasattr(fn, "name") else fn.get("name", "")
-        arguments = fn.arguments if hasattr(fn, "arguments") else fn.get("arguments", "{}")
+        arguments = (
+            fn.arguments if hasattr(fn, "arguments") else fn.get("arguments", "{}")
+        )
         result.append(
             ToolCall(
                 id=rc.id if hasattr(rc, "id") else rc.get("id", ""),
                 function=ToolFn(
                     name=name,
-                    arguments=arguments if isinstance(arguments, str) else json.dumps(arguments),
+                    arguments=arguments
+                    if isinstance(arguments, str)
+                    else json.dumps(arguments),
                 ),
             )
         )
@@ -483,7 +528,9 @@ async def respond(body: AgentRequest) -> AgentResponse:
         for tc in choice.tool_calls:
             fn = tc.function if hasattr(tc, "function") else tc.get("function", {})
             name = fn.name if hasattr(fn, "name") else fn.get("name", "")
-            raw_args = fn.arguments if hasattr(fn, "arguments") else fn.get("arguments", "{}")
+            raw_args = (
+                fn.arguments if hasattr(fn, "arguments") else fn.get("arguments", "{}")
+            )
             args_str = raw_args if isinstance(raw_args, str) else json.dumps(raw_args)
             tid = tc.id if hasattr(tc, "id") else tc.get("id", "")
             result_str = _run_tool(name, args_str)

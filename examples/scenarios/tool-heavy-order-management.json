@@ -19,7 +19,7 @@
     "order_total": 129.99,
     "order_status": "processing"
   },
-  "max_turns": 15,
+  "max_turns": 6,
   "expected_outcomes": {
     "address_updated": true,
     "discount_applied": true,
