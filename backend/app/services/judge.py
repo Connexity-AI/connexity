@@ -292,8 +292,71 @@ def _derive_error_category(
     return definition.failure_error_category
 
 
+def _build_summary(
+    metric_scores: list[MetricScore],
+    *,
+    passed: bool,
+    overall_score: float,
+    critical_failure: bool,
+) -> str:
+    """Build a concise human-readable summary from the scored metrics."""
+    status = "PASSED" if passed else "FAILED"
+    parts: list[str] = [f"{status} ({overall_score:.1f}/100)."]
+
+    if critical_failure:
+        parts.append("Critical failure detected on an execution-tier metric.")
+
+    # Highlight lowest and highest scoring non-binary metrics
+    scored = [ms for ms in metric_scores if not ms.is_binary]
+    if scored:
+        lowest = min(scored, key=lambda ms: ms.score)
+        highest = max(scored, key=lambda ms: ms.score)
+        if lowest.score < 3:
+            parts.append(f"Weakest: {lowest.metric} ({lowest.score}/5).")
+        if highest.score >= 4 and highest.metric != lowest.metric:
+            parts.append(f"Strongest: {highest.metric} ({highest.score}/5).")
+
+    # Note any failed binary metrics
+    failed_binary = [ms for ms in metric_scores if ms.is_binary and ms.score == 0]
+    for fb in failed_binary:
+        parts.append(f"{fb.metric}: FAIL.")
+
+    return " ".join(parts)
+
+
+def _error_verdict(
+    *,
+    raw_output: str | None,
+    judge_model: str,
+    judge_provider: str,
+    judge_latency_ms: int | None,
+    judge_token_usage: dict[str, int] | None,
+    error_message: str,
+) -> JudgeVerdict:
+    """Construct a failed verdict when judge evaluation cannot complete."""
+    return JudgeVerdict(
+        passed=False,
+        overall_score=0.0,
+        critical_failure=False,
+        metric_scores=[],
+        error_category=ErrorCategory.OTHER,
+        summary=f"Judge evaluation failed: {error_message}",
+        raw_judge_output=raw_output,
+        judge_model=judge_model,
+        judge_provider=judge_provider,
+        judge_latency_ms=judge_latency_ms,
+        judge_token_usage=judge_token_usage,
+    )
+
+
 async def evaluate_transcript(inp: JudgeInput) -> JudgeVerdict:
-    """Run the judge LLM on a completed transcript; return a structured verdict."""
+    """Run the judge LLM on a completed transcript; return a structured verdict.
+
+    Returns a failed :class:`JudgeVerdict` (instead of raising) when the LLM
+    call fails or returns unparseable output, so callers always receive a
+    verdict they can persist.  Only raises :class:`ValueError` for truly
+    invalid inputs (e.g. empty transcript) that indicate a programming error.
+    """
     if not inp.transcript:
         msg = "Cannot evaluate an empty transcript"
         raise ValueError(msg)
@@ -320,14 +383,41 @@ async def evaluate_transcript(inp: JudgeInput) -> JudgeVerdict:
         LLMMessage(role="user", content=user_prompt),
     ]
 
-    response = await call_llm(messages, config=llm_cfg, app_settings=settings)
+    judge_provider = (
+        (judge_cfg.provider if judge_cfg else None)
+        or settings.LLM_DEFAULT_PROVIDER
+        or "openai"
+    )
+
+    # --- LLM call with graceful error handling ---
+    try:
+        response = await call_llm(messages, config=llm_cfg, app_settings=settings)
+    except Exception:
+        logger.exception("Judge LLM call failed")
+        return _error_verdict(
+            raw_output=None,
+            judge_model=llm_cfg.model or settings.LLM_DEFAULT_MODEL or "unknown",
+            judge_provider=judge_provider,
+            judge_latency_ms=None,
+            judge_token_usage=None,
+            error_message="LLM call failed",
+        )
+
     raw = (response.content or "").strip()
+    token_usage = dict(response.usage) if response.usage else None
+
     try:
         payload: dict[str, Any] = json.loads(raw)
-    except json.JSONDecodeError as e:
+    except json.JSONDecodeError:
         logger.exception("Judge returned non-JSON: %s", raw[:500])
-        msg = "Judge model did not return valid JSON"
-        raise ValueError(msg) from e
+        return _error_verdict(
+            raw_output=raw,
+            judge_model=response.model,
+            judge_provider=judge_provider,
+            judge_latency_ms=response.latency_ms,
+            judge_token_usage=token_usage,
+            error_message="Judge model did not return valid JSON",
+        )
 
     effective_judge = judge_cfg or JudgeConfig()
     pass_threshold = effective_judge.pass_threshold
@@ -336,57 +426,70 @@ async def evaluate_transcript(inp: JudgeInput) -> JudgeVerdict:
     metric_scores: list[MetricScore] = []
     overall_accum = 0.0
 
-    for m, weight in resolved:
-        block = payload.get(m.name)
-        if not isinstance(block, dict):
-            msg = f"Judge output missing or invalid block for metric {m.name}"
-            raise ValueError(msg)
+    try:
+        for m, weight in resolved:
+            block = payload.get(m.name)
+            if not isinstance(block, dict):
+                msg = f"Judge output missing or invalid block for metric {m.name}"
+                raise ValueError(msg)
 
-        if m.score_type == ScoreType.BINARY:
-            passed_flag = block.get("passed")
-            justification = block.get("justification")
-            if not isinstance(passed_flag, bool) or not isinstance(justification, str):
-                msg = f"Invalid binary payload for metric {m.name}"
-                raise ValueError(msg)
-            score_int = 5 if passed_flag else 0
-            label = "pass" if passed_flag else "fail"
-            metric_scores.append(
-                MetricScore(
-                    metric=m.name,
-                    score=score_int,
-                    label=label,
-                    weight=weight,
-                    justification=justification,
-                    is_binary=True,
-                    tier=m.tier.value,
+            if m.score_type == ScoreType.BINARY:
+                passed_flag = block.get("passed")
+                justification = block.get("justification")
+                if not isinstance(passed_flag, bool) or not isinstance(
+                    justification, str
+                ):
+                    msg = f"Invalid binary payload for metric {m.name}"
+                    raise ValueError(msg)
+                score_int = 5 if passed_flag else 0
+                label = "pass" if passed_flag else "fail"
+                metric_scores.append(
+                    MetricScore(
+                        metric=m.name,
+                        score=score_int,
+                        label=label,
+                        weight=weight,
+                        justification=justification,
+                        is_binary=True,
+                        tier=m.tier.value,
+                    )
                 )
-            )
-            overall_accum += (score_int / 5.0) * weight
-        else:
-            raw_score = block.get("score")
-            justification = block.get("justification")
-            if not isinstance(justification, str):
-                msg = f"Invalid justification for metric {m.name}"
-                raise ValueError(msg)
-            try:
-                score_int = int(raw_score)
-            except (TypeError, ValueError) as e:
-                msg = f"Invalid score for metric {m.name}"
-                raise ValueError(msg) from e
-            score_int = max(0, min(5, score_int))
-            label = SCORED_LABELS.get(score_int, "acceptable")
-            metric_scores.append(
-                MetricScore(
-                    metric=m.name,
-                    score=score_int,
-                    label=label,
-                    weight=weight,
-                    justification=justification,
-                    is_binary=False,
-                    tier=m.tier.value,
+                overall_accum += (score_int / 5.0) * weight
+            else:
+                raw_score = block.get("score")
+                justification = block.get("justification")
+                if not isinstance(justification, str):
+                    msg = f"Invalid justification for metric {m.name}"
+                    raise ValueError(msg)
+                try:
+                    score_int = int(raw_score)
+                except (TypeError, ValueError) as e:
+                    msg = f"Invalid score for metric {m.name}"
+                    raise ValueError(msg) from e
+                score_int = max(0, min(5, score_int))
+                label = SCORED_LABELS.get(score_int, "acceptable")
+                metric_scores.append(
+                    MetricScore(
+                        metric=m.name,
+                        score=score_int,
+                        label=label,
+                        weight=weight,
+                        justification=justification,
+                        is_binary=False,
+                        tier=m.tier.value,
+                    )
                 )
-            )
-            overall_accum += (score_int / 5.0) * weight
+                overall_accum += (score_int / 5.0) * weight
+    except ValueError as e:
+        logger.exception("Failed to parse judge output")
+        return _error_verdict(
+            raw_output=raw,
+            judge_model=response.model,
+            judge_provider=judge_provider,
+            judge_latency_ms=response.latency_ms,
+            judge_token_usage=token_usage,
+            error_message=str(e),
+        )
 
     overall_score = round(overall_accum * 100.0, 2)
     critical = _critical_failure(metric_scores, critical_threshold)
@@ -397,10 +500,11 @@ async def evaluate_transcript(inp: JudgeInput) -> JudgeVerdict:
     )
     passed = tentative_pass
 
-    judge_provider = (
-        (judge_cfg.provider if judge_cfg else None)
-        or settings.LLM_DEFAULT_PROVIDER
-        or "openai"
+    summary = _build_summary(
+        metric_scores,
+        passed=passed,
+        overall_score=overall_score,
+        critical_failure=critical,
     )
 
     return JudgeVerdict(
@@ -409,10 +513,10 @@ async def evaluate_transcript(inp: JudgeInput) -> JudgeVerdict:
         critical_failure=critical,
         metric_scores=metric_scores,
         error_category=error_cat,
-        summary=None,
+        summary=summary,
         raw_judge_output=raw,
         judge_model=response.model,
         judge_provider=judge_provider,
         judge_latency_ms=response.latency_ms,
-        judge_token_usage=dict(response.usage) if response.usage else None,
+        judge_token_usage=token_usage,
     )
