@@ -21,12 +21,16 @@ class RunProgress(BaseModel):
     error_count: int = 0
 
 
+SSE_KEEPALIVE_SECONDS = 15
+
+
 class RunState:
     def __init__(self, run_id: uuid.UUID) -> None:
         self.run_id = run_id
         self.cancel_event = asyncio.Event()
         self.subscribers: list[asyncio.Queue[RunEvent]] = []
         self.progress = RunProgress()
+        self.progress_lock = asyncio.Lock()
         self.event_log: list[RunEvent] = []
         self.task: asyncio.Task[Any] | None = None
 
@@ -52,6 +56,9 @@ class RunManager:
 
     def is_active(self, run_id: uuid.UUID) -> bool:
         return run_id in self._runs
+
+    def get_state(self, run_id: uuid.UUID) -> RunState | None:
+        return self._runs.get(run_id)
 
     def get_progress(self, run_id: uuid.UUID) -> RunProgress | None:
         state = self._runs.get(run_id)
@@ -92,7 +99,13 @@ class RunManager:
                 yield event
 
             while True:
-                event = await queue.get()
+                try:
+                    event = await asyncio.wait_for(
+                        queue.get(), timeout=SSE_KEEPALIVE_SECONDS
+                    )
+                except TimeoutError:
+                    yield RunEvent(event="keepalive", data={})
+                    continue
                 yield event
                 if event.event == "stream_closed":
                     break

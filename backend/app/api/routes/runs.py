@@ -25,8 +25,6 @@ SSE_HEADERS = {
     "X-Accel-Buffering": "no",
     "Connection": "keep-alive",
 }
-SSE_KEEPALIVE_SECONDS = 15
-
 router = APIRouter(
     prefix="/runs", tags=["runs"], dependencies=[Depends(get_current_user)]
 )

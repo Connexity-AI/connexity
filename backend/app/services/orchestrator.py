@@ -526,7 +526,9 @@ async def _execute_single_scenario(
             )
 
         # Persist
+        db_persist_failed = False
         try:
+
             def _update_db():
                 with Session(engine) as session:
                     db_result = crud.get_scenario_result(
@@ -547,36 +549,72 @@ async def _execute_single_scenario(
                 scenario.id,
                 run_id,
             )
-            updated_result = None
+            db_persist_failed = True
+            # Record the persistence failure on the result so it's visible
+            try:
 
-        # Update progress
-        try:
-            progress = run_manager.get_progress(run_id)
-            if progress and updated_result:
-                progress.completed_count += 1
-                if updated_result.passed:
-                    progress.passed_count += 1
-                elif updated_result.error_category != ErrorCategory.NONE:
-                    progress.error_count += 1
-                else:
-                    progress.failed_count += 1
+                def _mark_db_error():
+                    with Session(engine) as session:
+                        db_result = crud.get_scenario_result(
+                            session=session, result_id=result_id
+                        )
+                        if db_result:
+                            return crud.update_scenario_result(
+                                session=session,
+                                db_result=db_result,
+                                result_in=ScenarioResultUpdate(
+                                    passed=False,
+                                    error_category=ErrorCategory.OTHER,
+                                    error_message="DB persistence failed for scenario result",
+                                    started_at=started_at,
+                                    completed_at=datetime.now(UTC),
+                                ),
+                            )
+                        return None
 
-                run_manager.emit(
+                updated_result = await asyncio.to_thread(_mark_db_error)
+            except Exception:
+                logger.exception(
+                    "Failed to mark DB error for scenario %s in run %s",
+                    scenario.id,
                     run_id,
-                    "scenario_completed",
-                    ScenarioProgressData(
-                        run_id=run_id,
-                        scenario_id=scenario.id,
-                        scenario_name=scenario.name,
-                        completed_count=progress.completed_count,
-                        total_count=progress.total_scenarios,
-                        passed=updated_result.passed,
-                        overall_score=updated_result.verdict.get("overall_score")
-                        if updated_result.verdict
-                        else None,
-                        error_message=updated_result.error_message,
-                    ).model_dump(mode="json"),
                 )
+                updated_result = None
+
+        # Update progress (under lock to prevent race conditions)
+        try:
+            state = run_manager.get_state(run_id)
+            if state:
+                async with state.progress_lock:
+                    progress = state.progress
+                    progress.completed_count += 1
+                    if updated_result is None or db_persist_failed:
+                        progress.error_count += 1
+                    elif updated_result.passed:
+                        progress.passed_count += 1
+                    elif updated_result.error_category != ErrorCategory.NONE:
+                        progress.error_count += 1
+                    else:
+                        progress.failed_count += 1
+
+                    run_manager.emit(
+                        run_id,
+                        "scenario_completed",
+                        ScenarioProgressData(
+                            run_id=run_id,
+                            scenario_id=scenario.id,
+                            scenario_name=scenario.name,
+                            completed_count=progress.completed_count,
+                            total_count=progress.total_scenarios,
+                            passed=updated_result.passed if updated_result else False,
+                            overall_score=updated_result.verdict.get("overall_score")
+                            if updated_result and updated_result.verdict
+                            else None,
+                            error_message=updated_result.error_message
+                            if updated_result
+                            else "DB persistence failed",
+                        ).model_dump(mode="json"),
+                    )
         except Exception:
             logger.exception(
                 "Failed to emit progress for scenario %s in run %s",
