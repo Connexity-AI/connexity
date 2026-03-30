@@ -69,6 +69,10 @@ class LLMCallConfig(BaseModel):
     temperature: float | None = None
     max_tokens: int | None = None
     timeout_seconds: float | None = None
+    response_format: dict[str, object] | None = Field(
+        default=None,
+        description="Provider-native structured output (e.g. OpenAI json_schema)",
+    )
     extra: dict[str, LLMExtraValue] = Field(default_factory=dict)
 
 
@@ -180,6 +184,7 @@ async def _acompletion_once(
     temperature: float | None,
     max_tokens: int | None,
     timeout: float | None,
+    response_format: dict[str, object] | None,
     extra: dict[str, LLMExtraValue],
 ) -> object:
     kwargs: dict[str, object] = {
@@ -192,6 +197,8 @@ async def _acompletion_once(
         kwargs["max_tokens"] = max_tokens
     if timeout is not None:
         kwargs["timeout"] = timeout
+    if response_format is not None:
+        kwargs["response_format"] = response_format
     for k, v in extra.items():
         if v is not None:
             kwargs[k] = v
@@ -212,6 +219,7 @@ async def call_llm(
     temperature = c.temperature
     max_tokens = c.max_tokens
     timeout = c.timeout_seconds
+    response_format = c.response_format
     extra = dict(c.extra)
 
     message_dicts = [{"role": m.role, "content": m.content} for m in messages]
@@ -235,6 +243,7 @@ async def call_llm(
                 temperature=temperature,
                 max_tokens=max_tokens,
                 timeout=timeout,
+                response_format=response_format,
                 extra=extra,
             )
             latency_ms = int((time.perf_counter() - started) * 1000)

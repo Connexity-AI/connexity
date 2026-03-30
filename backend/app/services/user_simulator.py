@@ -1,44 +1,12 @@
 """LLM- and scripted-mode user simulator for eval conversations."""
 
 import json
-from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-from app.models.schemas import Persona
+from app.models.enums import SimulatorMode
+from app.models.schemas import Persona, SimulatorConfig
 from app.services.llm import LLMCallConfig, LLMMessage, call_llm
-
-
-class SimulatorMode(StrEnum):
-    LLM = "llm"
-    SCRIPTED = "scripted"
-
-
-class SimulatorConfig(BaseModel):
-    """Configuration for :class:`UserSimulator`."""
-
-    mode: SimulatorMode = Field(
-        default=SimulatorMode.LLM,
-        description="llm: generate via LLM; scripted: replay fixed messages",
-    )
-    scripted_messages: list[str] = Field(
-        default_factory=list,
-        description="User lines after initial_message, in order (scripted mode only)",
-    )
-    model: str | None = Field(
-        default=None,
-        description="Simulator LLM model override",
-    )
-    provider: str | None = Field(
-        default=None,
-        description="Simulator LLM provider override",
-    )
-    temperature: float | None = Field(
-        default=None,
-        ge=0.0,
-        le=2.0,
-        description="Sampling temperature for simulator LLM",
-    )
 
 
 class SimulatorResult(BaseModel):

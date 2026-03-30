@@ -119,12 +119,30 @@ These are stored inside JSONB columns, not as separate tables.
 
 | Field | Type | Default |
 |-------|------|---------|
-| `judge_model` | `str \| None` | `None` |
-| `judge_provider` | `str \| None` | `None` |
-| `simulator_model` | `str \| None` | `None` |
-| `simulator_provider` | `str \| None` | `None` |
 | `concurrency` | `int` | `5` |
 | `timeout_per_scenario_ms` | `int` | `120000` |
+| `judge` | `JudgeConfig \| None` | `None` |
+| `simulator` | `SimulatorConfig \| None` | `None` |
+
+### JudgeConfig (nested in `RunConfig.judge`)
+
+| Field | Type | Default |
+|-------|------|---------|
+| `metrics` | `list[MetricSelection] \| None` | `None` |
+| `pass_threshold` | `float` | `75.0` |
+| `critical_failure_threshold` | `int` | `1` |
+| `model` | `str \| None` | `None` |
+| `provider` | `str \| None` | `None` |
+
+### SimulatorConfig (nested in `RunConfig.simulator`)
+
+| Field | Type | Default |
+|-------|------|---------|
+| `mode` | `SimulatorMode` | `llm` |
+| `scripted_messages` | `list[str]` | `[]` |
+| `model` | `str \| None` | `None` |
+| `provider` | `str \| None` | `None` |
+| `temperature` | `float \| None` | `None` |
 
 ### ConversationTurn (stored in `scenario_results.transcript`)
 

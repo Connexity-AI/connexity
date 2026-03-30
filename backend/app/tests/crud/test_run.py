@@ -31,10 +31,10 @@ def test_create_run(db: Session) -> None:
 
 
 def test_create_run_with_config(db: Session) -> None:
-    from app.models import RunCreate
+    from app.models import JudgeConfig, RunCreate
 
     agent, scenario_set = _setup_run(db)
-    config = RunConfig(judge_model="claude-3-5-sonnet", concurrency=3)
+    config = RunConfig(judge=JudgeConfig(model="claude-3-5-sonnet"), concurrency=3)
     run_in = RunCreate(
         agent_id=agent.id,
         agent_endpoint_url="http://localhost:8080/agent",
@@ -43,7 +43,7 @@ def test_create_run_with_config(db: Session) -> None:
     )
     run = crud.create_run(session=db, run_in=run_in)
     assert run.config is not None
-    assert run.config["judge_model"] == "claude-3-5-sonnet"
+    assert run.config["judge"]["model"] == "claude-3-5-sonnet"
     assert run.config["concurrency"] == 3
 
 

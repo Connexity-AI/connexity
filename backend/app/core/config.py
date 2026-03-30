@@ -102,6 +102,10 @@ class Settings(BaseSettings):
     LLM_RETRY_MIN_WAIT_SECONDS: float = 1.0
     LLM_RETRY_MAX_WAIT_SECONDS: float = 60.0
 
+    # Judge-specific
+    JUDGE_TEMPERATURE: float = 0.0
+    JUDGE_MAX_TOKENS: int = 4096
+
     # Generator-specific
     GENERATOR_MAX_TOKENS: int = 16_000
     GENERATOR_TEMPERATURE: float = 0.9

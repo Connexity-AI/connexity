@@ -29,11 +29,16 @@ import json
 import uuid
 from pathlib import Path
 
-from app.models.enums import TurnRole
+from app.models.enums import SimulatorMode, TurnRole
 from app.models.scenario import Scenario
-from app.models.schemas import ConversationTurn, RunConfig
-from app.services.orchestrator import run_scenario
-from app.services.user_simulator import SimulatorConfig, SimulatorMode
+from app.models.schemas import (
+    ConversationTurn,
+    JudgeConfig,
+    JudgeVerdict,
+    RunConfig,
+    SimulatorConfig,
+)
+from app.services.orchestrator import run_scenario, run_scenario_with_evaluation
 
 
 def _load_scenario(path: Path) -> Scenario:
@@ -62,14 +67,8 @@ async def _run(args: argparse.Namespace) -> int:
     scenario_path = Path(args.scenario).resolve()
     scenario = _load_scenario(scenario_path)
 
-    run_cfg = RunConfig(
-        timeout_per_scenario_ms=args.timeout_ms,
-        simulator_model=args.simulator_model,
-        simulator_provider=args.simulator_provider,
-    )
-
     if args.llm_user:
-        sim_cfg = SimulatorConfig(
+        simulator = SimulatorConfig(
             mode=SimulatorMode.LLM,
             model=args.simulator_model,
             provider=args.simulator_provider,
@@ -77,22 +76,58 @@ async def _run(args: argparse.Namespace) -> int:
         )
     else:
         scripted = [s.strip() for s in args.scripted_user.split("|") if s.strip()]
-        sim_cfg = SimulatorConfig(
+        simulator = SimulatorConfig(
             mode=SimulatorMode.SCRIPTED,
             scripted_messages=scripted,
         )
 
-    transcript = await run_scenario(
-        scenario,
-        args.agent_url,
-        run_cfg,
-        simulator_config=sim_cfg,
+    run_cfg = RunConfig(
+        timeout_per_scenario_ms=args.timeout_ms,
+        judge=JudgeConfig(
+            model=args.judge_model,
+            provider=args.judge_provider,
+        ),
+        simulator=simulator,
     )
+
+    if args.judge:
+        transcript, verdict = await run_scenario_with_evaluation(
+            scenario,
+            args.agent_url,
+            run_cfg,
+            agent_system_prompt=None,
+            agent_tools=None,
+        )
+    else:
+        transcript = await run_scenario(
+            scenario,
+            args.agent_url,
+            run_cfg,
+        )
+        verdict = None
 
     print(f"Scenario: {scenario.name} ({scenario_path})")
     print(f"Turns: {len(transcript)}")
     _print_transcript(transcript)
+    if verdict is not None:
+        _print_verdict(verdict)
     return 0
+
+
+def _print_verdict(verdict: JudgeVerdict) -> None:
+    print("\n--- Judge verdict ---")
+    print(f"Passed: {verdict.passed}")
+    print(f"Overall score: {verdict.overall_score}")
+    print(f"Critical failure: {verdict.critical_failure}")
+    print(f"Error category: {verdict.error_category.value}")
+    for ms in verdict.metric_scores:
+        kind = "binary" if ms.is_binary else "scored"
+        j = ms.justification
+        print(
+            f"  - {ms.metric} ({kind}): {ms.score} ({ms.label}) "
+            f"weight={ms.weight:.4f} — {j}"
+        )
+    print()
 
 
 def main() -> None:
@@ -127,7 +162,7 @@ def main() -> None:
     parser.add_argument(
         "--simulator-model",
         default=None,
-        help="Simulator LLM model (LLM user mode; also passed in RunConfig)",
+        help="Simulator LLM model (LLM user mode; becomes RunConfig.simulator.model)",
     )
     parser.add_argument(
         "--simulator-provider",
@@ -139,6 +174,21 @@ def main() -> None:
         type=float,
         default=None,
         help="Simulator temperature (LLM user mode)",
+    )
+    parser.add_argument(
+        "--judge",
+        action="store_true",
+        help="Run LLM judge after simulation (needs LLM credentials; uses RunConfig judge_model/provider)",
+    )
+    parser.add_argument(
+        "--judge-model",
+        default=None,
+        help="Judge model override (passed into RunConfig.judge_model)",
+    )
+    parser.add_argument(
+        "--judge-provider",
+        default=None,
+        help="Judge provider override (passed into RunConfig.judge_provider)",
     )
     args = parser.parse_args()
     try:

@@ -36,6 +36,7 @@ from app.models.enums import (  # noqa: F401
     ErrorCategory,
     RunStatus,
     ScenarioStatus,
+    SimulatorMode,
     TurnRole,
 )
 
@@ -89,12 +90,15 @@ from app.models.scenario_set import (  # noqa: F401
 from app.models.schemas import (  # noqa: F401
     AggregateMetrics,
     ConversationTurn,
-    CriterionScore,
     ErrorCategoryCount,
     ExpectedToolCall,
+    JudgeConfig,
     JudgeVerdict,
+    MetricScore,
+    MetricSelection,
     Persona,
     RunConfig,
+    SimulatorConfig,
     ToolCall,
     ToolCallFunction,
 )

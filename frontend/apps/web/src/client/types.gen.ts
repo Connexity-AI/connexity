@@ -335,6 +335,24 @@ export const AuthProvider = { EMAIL: 'email', GITHUB: 'github' } as const;
 export type AuthProvider = (typeof AuthProvider)[keyof typeof AuthProvider];
 
 /**
+ * AvailableMetricsPublic
+ */
+export type AvailableMetricsPublic = {
+  /**
+   * Data
+   *
+   * Registered judge metrics
+   */
+  data: Array<MetricDefinition>;
+  /**
+   * Count
+   *
+   * Number of metrics
+   */
+  count: number;
+};
+
+/**
  * Body_login-login_access_token
  */
 export type BodyLoginLoginAccessToken = {
@@ -491,42 +509,6 @@ export type ConversationTurnOutput = {
 };
 
 /**
- * CriterionScore
- */
-export type CriterionScore = {
-  /**
-   * Criterion
-   *
-   * Name of the evaluated criterion
-   */
-  criterion: string;
-  /**
-   * Score
-   *
-   * Score from 1.0 to 5.0
-   */
-  score: number;
-  /**
-   * Label
-   *
-   * Human-readable label (fail, poor, acceptable, good, excellent)
-   */
-  label: string;
-  /**
-   * Weight
-   *
-   * Relative weight of this criterion
-   */
-  weight?: number;
-  /**
-   * Justification
-   *
-   * Judge's reasoning for the assigned score
-   */
-  justification: string;
-};
-
-/**
  * Difficulty
  */
 export const Difficulty = { NORMAL: 'normal', HARD: 'hard' } as const;
@@ -613,6 +595,104 @@ export type ExpectedToolCall = {
 };
 
 /**
+ * GenerateRequest
+ *
+ * Input for scenario generation.
+ */
+export type GenerateRequest = {
+  /**
+   * Agent Prompt
+   */
+  agent_prompt: string;
+  /**
+   * Tools
+   */
+  tools?: Array<ToolDefinition>;
+  /**
+   * Count
+   */
+  count?: number;
+  /**
+   * Focus Tags
+   */
+  focus_tags?: Array<string>;
+  /**
+   * Model
+   */
+  model?: string | null;
+  /**
+   * Temperature
+   */
+  temperature?: number | null;
+  /**
+   * Persist
+   */
+  persist?: boolean;
+};
+
+/**
+ * GenerateResult
+ *
+ * Output from scenario generation.
+ */
+export type GenerateResult = {
+  /**
+   * Scenarios
+   */
+  scenarios: Array<ScenarioPublic>;
+  /**
+   * Count
+   */
+  count: number;
+  /**
+   * Model Used
+   */
+  model_used: string;
+  /**
+   * Generation Time Ms
+   */
+  generation_time_ms: number;
+};
+
+/**
+ * JudgeConfig
+ *
+ * Judge behavior and LLM overrides.
+ */
+export type JudgeConfig = {
+  /**
+   * Metrics
+   *
+   * Selected metrics; null = platform default scored metric set
+   */
+  metrics?: Array<MetricSelection> | null;
+  /**
+   * Pass Threshold
+   *
+   * Minimum overall score (0-100) to pass
+   */
+  pass_threshold?: number;
+  /**
+   * Critical Failure Threshold
+   *
+   * Execution-tier scored metric at or below this value triggers critical failure
+   */
+  critical_failure_threshold?: number;
+  /**
+   * Model
+   *
+   * Judge LLM model override
+   */
+  model?: string | null;
+  /**
+   * Provider
+   *
+   * Judge LLM provider override
+   */
+  provider?: string | null;
+};
+
+/**
  * JudgeVerdict
  */
 export type JudgeVerdict = {
@@ -625,25 +705,31 @@ export type JudgeVerdict = {
   /**
    * Overall Score
    *
-   * Weighted overall score across all criteria
+   * Weighted overall score across all criteria (0-100)
    */
   overall_score: number;
   /**
-   * Criterion Scores
+   * Critical Failure
    *
-   * Per-criterion score breakdown
+   * True if an execution-tier scored metric is at or below the critical threshold
    */
-  criterion_scores: Array<CriterionScore>;
+  critical_failure?: boolean;
   /**
-   * Classified error category if failed
+   * Metric Scores
+   *
+   * Per-metric score breakdown
+   */
+  metric_scores: Array<MetricScore>;
+  /**
+   * Derived from the lowest-scoring metric when failed
    */
   error_category?: ErrorCategory;
   /**
    * Summary
    *
-   * Judge's overall reasoning summary
+   * Optional summary; not produced by the judge LLM in the current pipeline
    */
-  summary: string;
+  summary?: string | null;
   /**
    * Raw Judge Output
    *
@@ -687,6 +773,141 @@ export type Message = {
    */
   message: string;
 };
+
+/**
+ * MetricDefinition
+ */
+export type MetricDefinition = {
+  /**
+   * Name
+   *
+   * Stable metric id (snake_case)
+   */
+  name: string;
+  /**
+   * Display Name
+   *
+   * Human-readable name
+   */
+  display_name: string;
+  /**
+   * Description
+   *
+   * What this metric measures
+   */
+  description: string;
+  /**
+   * What To Fix
+   *
+   * What to fix when the score is low
+   */
+  what_to_fix: string;
+  tier: MetricTier;
+  /**
+   * Default Weight
+   *
+   * Default weight before renormalization (0 for opt-in-only metrics)
+   */
+  default_weight: number;
+  score_type: ScoreType;
+  /**
+   * Rubric
+   *
+   * Rubric and examples for the judge prompt
+   */
+  rubric: string;
+  /**
+   * ErrorCategory when this metric is the lowest scorer on failure
+   */
+  failure_error_category: ErrorCategory;
+  /**
+   * Include In Defaults
+   *
+   * If False, metric is omitted unless explicitly selected
+   */
+  include_in_defaults?: boolean;
+};
+
+/**
+ * MetricScore
+ */
+export type MetricScore = {
+  /**
+   * Metric
+   *
+   * Metric id from the registry (snake_case)
+   */
+  metric: string;
+  /**
+   * Score
+   *
+   * 0-5 for scored metrics; 0 or 5 for binary (fail/pass)
+   */
+  score: number;
+  /**
+   * Label
+   *
+   * Scored: critical_fail, fail, poor, acceptable, good, excellent. Binary: pass or fail
+   */
+  label: string;
+  /**
+   * Weight
+   *
+   * Relative weight of this metric
+   */
+  weight?: number;
+  /**
+   * Justification
+   *
+   * Judge's reasoning for the assigned score
+   */
+  justification: string;
+  /**
+   * Is Binary
+   *
+   * True if this metric uses pass/fail instead of 0-5
+   */
+  is_binary?: boolean;
+  /**
+   * Tier
+   *
+   * Metric tier: execution, knowledge, process, delivery
+   */
+  tier?: string | null;
+};
+
+/**
+ * MetricSelection
+ */
+export type MetricSelection = {
+  /**
+   * Metric
+   *
+   * Metric id from the platform registry (snake_case)
+   */
+  metric: string;
+  /**
+   * Weight
+   *
+   * Override weight before renormalization; None = metric default
+   */
+  weight?: number | null;
+};
+
+/**
+ * MetricTier
+ */
+export const MetricTier = {
+  EXECUTION: 'execution',
+  KNOWLEDGE: 'knowledge',
+  PROCESS: 'process',
+  DELIVERY: 'delivery',
+} as const;
+
+/**
+ * MetricTier
+ */
+export type MetricTier = (typeof MetricTier)[keyof typeof MetricTier];
 
 /**
  * NewPassword
@@ -739,31 +960,7 @@ export type Persona = {
 /**
  * RunConfig
  */
-export type RunConfig = {
-  /**
-   * Judge Model
-   *
-   * Model ID for the judge LLM
-   */
-  judge_model?: string | null;
-  /**
-   * Judge Provider
-   *
-   * Provider for the judge LLM (e.g. anthropic, openai)
-   */
-  judge_provider?: string | null;
-  /**
-   * Simulator Model
-   *
-   * Model ID for the user simulator LLM
-   */
-  simulator_model?: string | null;
-  /**
-   * Simulator Provider
-   *
-   * Provider for the simulator LLM
-   */
-  simulator_provider?: string | null;
+export type RunConfigInput = {
   /**
    * Concurrency
    *
@@ -776,6 +973,40 @@ export type RunConfig = {
    * Timeout per scenario in milliseconds before forced stop
    */
   timeout_per_scenario_ms?: number;
+  /**
+   * Judge metric selection, weights, pass threshold, and model overrides
+   */
+  judge?: JudgeConfig | null;
+  /**
+   * User simulator: LLM vs scripted replay, model/provider overrides, temperature. Omitted fields use app LLM defaults.
+   */
+  simulator?: SimulatorConfig | null;
+};
+
+/**
+ * RunConfig
+ */
+export type RunConfigOutput = {
+  /**
+   * Concurrency
+   *
+   * Max parallel scenario executions
+   */
+  concurrency?: number;
+  /**
+   * Timeout Per Scenario Ms
+   *
+   * Timeout per scenario in milliseconds before forced stop
+   */
+  timeout_per_scenario_ms?: number;
+  /**
+   * Judge metric selection, weights, pass threshold, and model overrides
+   */
+  judge?: JudgeConfig | null;
+  /**
+   * User simulator: LLM vs scripted replay, model/provider overrides, temperature. Omitted fields use app LLM defaults.
+   */
+  simulator?: SimulatorConfig | null;
 };
 
 /**
@@ -855,7 +1086,7 @@ export type RunCreate = {
   /**
    * Run configuration (judge model, concurrency, timeouts, etc.)
    */
-  config?: RunConfig | null;
+  config?: RunConfigInput | null;
   /**
    * Is Baseline
    *
@@ -913,7 +1144,7 @@ export type RunPublic = {
   /**
    * Run configuration (judge model, concurrency, timeouts, etc.)
    */
-  config?: RunConfig | null;
+  config?: RunConfigOutput | null;
   /**
    * Current execution status of the run
    */
@@ -1566,12 +1797,6 @@ export type ScenarioSetCreate = {
    */
   description?: string | null;
   /**
-   * Version
-   *
-   * Monotonically increasing version for snapshot tracking
-   */
-  version?: number;
-  /**
    * Scenario Ids
    *
    * Scenarios to include in the set on creation
@@ -1618,6 +1843,10 @@ export type ScenarioSetPublic = {
    */
   id: string;
   /**
+   * Scenario Count
+   */
+  scenario_count?: number;
+  /**
    * Created At
    *
    * When the set was created
@@ -1647,12 +1876,6 @@ export type ScenarioSetUpdate = {
    * What this scenario set covers
    */
   description?: string | null;
-  /**
-   * Version
-   *
-   * Monotonically increasing version for snapshot tracking
-   */
-  version?: number | null;
 };
 
 /**
@@ -1791,6 +2014,62 @@ export type ScenariosPublic = {
 };
 
 /**
+ * ScoreType
+ */
+export const ScoreType = { SCORED: 'scored', BINARY: 'binary' } as const;
+
+/**
+ * ScoreType
+ */
+export type ScoreType = (typeof ScoreType)[keyof typeof ScoreType];
+
+/**
+ * SimulatorConfig
+ *
+ * User simulator behavior (LLM persona vs scripted replay) and LLM overrides.
+ */
+export type SimulatorConfig = {
+  /**
+   * llm: generate via LLM; scripted: replay fixed messages
+   */
+  mode?: SimulatorMode;
+  /**
+   * Scripted Messages
+   *
+   * User lines after initial_message, in order (scripted mode only)
+   */
+  scripted_messages?: Array<string>;
+  /**
+   * Model
+   *
+   * Simulator LLM model override
+   */
+  model?: string | null;
+  /**
+   * Provider
+   *
+   * Simulator LLM provider override
+   */
+  provider?: string | null;
+  /**
+   * Temperature
+   *
+   * Sampling temperature for simulator LLM
+   */
+  temperature?: number | null;
+};
+
+/**
+ * SimulatorMode
+ */
+export const SimulatorMode = { LLM: 'llm', SCRIPTED: 'scripted' } as const;
+
+/**
+ * SimulatorMode
+ */
+export type SimulatorMode = (typeof SimulatorMode)[keyof typeof SimulatorMode];
+
+/**
  * Token
  */
 export type Token = {
@@ -1848,6 +2127,28 @@ export type ToolCallFunction = {
    * JSON-encoded arguments string (OpenAI chat completions convention)
    */
   arguments: string;
+};
+
+/**
+ * ToolDefinition
+ *
+ * A single tool/function definition the agent has access to.
+ */
+export type ToolDefinition = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Description
+   */
+  description: string;
+  /**
+   * Parameters
+   */
+  parameters?: {
+    [key: string]: unknown;
+  } | null;
 };
 
 /**
@@ -3147,6 +3448,57 @@ export type ScenariosImportScenariosResponses = {
 export type ScenariosImportScenariosResponse =
   ScenariosImportScenariosResponses[keyof ScenariosImportScenariosResponses];
 
+export type ScenariosGenerateScenariosEndpointData = {
+  body: GenerateRequest;
+  path?: never;
+  query?: never;
+  url: '/api/v1/scenarios/generate';
+};
+
+export type ScenariosGenerateScenariosEndpointErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ScenariosGenerateScenariosEndpointError =
+  ScenariosGenerateScenariosEndpointErrors[keyof ScenariosGenerateScenariosEndpointErrors];
+
+export type ScenariosGenerateScenariosEndpointResponses = {
+  /**
+   * Successful Response
+   */
+  200: GenerateResult;
+};
+
+export type ScenariosGenerateScenariosEndpointResponse =
+  ScenariosGenerateScenariosEndpointResponses[keyof ScenariosGenerateScenariosEndpointResponses];
+
 export type ScenariosDeleteScenarioData = {
   body?: never;
   path: {
@@ -3602,7 +3954,16 @@ export type ScenarioSetsListScenariosInSetData = {
      */
     scenario_set_id: string;
   };
-  query?: never;
+  query?: {
+    /**
+     * Skip
+     */
+    skip?: number;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
   url: '/api/v1/scenario-sets/{scenario_set_id}/scenarios';
 };
 
@@ -3700,7 +4061,7 @@ export type ScenarioSetsAddScenariosToSetResponses = {
   /**
    * Successful Response
    */
-  200: Message;
+  200: ScenarioSetPublic;
 };
 
 export type ScenarioSetsAddScenariosToSetResponse =
@@ -3756,7 +4117,7 @@ export type ScenarioSetsReplaceScenariosInSetResponses = {
   /**
    * Successful Response
    */
-  200: Message;
+  200: ScenarioSetPublic;
 };
 
 export type ScenarioSetsReplaceScenariosInSetResponse =
@@ -3816,7 +4177,7 @@ export type ScenarioSetsRemoveScenarioFromSetResponses = {
   /**
    * Successful Response
    */
-  200: Message;
+  200: ScenarioSetPublic;
 };
 
 export type ScenarioSetsRemoveScenarioFromSetResponse =
@@ -4442,3 +4803,54 @@ export type ConfigGetConfigResponses = {
 };
 
 export type ConfigGetConfigResponse = ConfigGetConfigResponses[keyof ConfigGetConfigResponses];
+
+export type ConfigGetAvailableMetricsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/config/available-metrics';
+};
+
+export type ConfigGetAvailableMetricsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ConfigGetAvailableMetricsError =
+  ConfigGetAvailableMetricsErrors[keyof ConfigGetAvailableMetricsErrors];
+
+export type ConfigGetAvailableMetricsResponses = {
+  /**
+   * Successful Response
+   */
+  200: AvailableMetricsPublic;
+};
+
+export type ConfigGetAvailableMetricsResponse =
+  ConfigGetAvailableMetricsResponses[keyof ConfigGetAvailableMetricsResponses];

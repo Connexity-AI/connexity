@@ -109,13 +109,13 @@ def test_run_create_minimal():
 
 
 def test_run_create_with_config():
-    from app.models.schemas import RunConfig
+    from app.models.schemas import JudgeConfig, RunConfig
 
     run = RunCreate(
         agent_id=uuid.uuid4(),
         agent_endpoint_url="https://example.com/agent",
         scenario_set_id=uuid.uuid4(),
-        config=RunConfig(concurrency=10, judge_model="gpt-4o"),
+        config=RunConfig(concurrency=10, judge=JudgeConfig(model="gpt-4o")),
     )
     assert run.config.concurrency == 10
 

@@ -1,15 +1,18 @@
 from datetime import UTC, datetime
 
-from app.models.enums import ErrorCategory, TurnRole
+from app.models.enums import ErrorCategory, SimulatorMode, TurnRole
 from app.models.schemas import (
     AggregateMetrics,
     ConversationTurn,
-    CriterionScore,
     ErrorCategoryCount,
     ExpectedToolCall,
+    JudgeConfig,
     JudgeVerdict,
+    MetricScore,
+    MetricSelection,
     Persona,
     RunConfig,
+    SimulatorConfig,
     ToolCall,
     ToolCallFunction,
 )
@@ -145,29 +148,31 @@ def test_conversation_turn_enum_serialization():
         assert restored.role == role
 
 
-# ── CriterionScore ─────────────────────────────────────────────────
+# ── MetricScore ─────────────────────────────────────────────────
 
 
-def test_criterion_score():
-    cs = CriterionScore(
-        criterion="accuracy",
-        score=4.0,
+def test_metric_score():
+    ms = MetricScore(
+        metric="accuracy",
+        score=4,
         label="good",
         weight=1.5,
         justification="Agent provided correct information",
+        tier="execution",
     )
-    _round_trip(CriterionScore, cs)
+    _round_trip(MetricScore, ms)
 
 
-def test_criterion_score_default_weight():
-    cs = CriterionScore(
-        criterion="helpfulness",
-        score=3.0,
+def test_metric_score_default_weight():
+    ms = MetricScore(
+        metric="helpfulness",
+        score=3,
         label="acceptable",
         justification="Adequate response",
     )
-    restored = _round_trip(CriterionScore, cs)
+    restored = _round_trip(MetricScore, ms)
     assert restored.weight == 1.0
+    assert restored.is_binary is False
 
 
 # ── JudgeVerdict ───────────────────────────────────────────────────
@@ -176,16 +181,15 @@ def test_criterion_score_default_weight():
 def test_judge_verdict_minimal():
     verdict = JudgeVerdict(
         passed=True,
-        overall_score=4.2,
-        criterion_scores=[
-            CriterionScore(
-                criterion="accuracy",
-                score=4.5,
+        overall_score=82.5,
+        metric_scores=[
+            MetricScore(
+                metric="accuracy",
+                score=4,
                 label="good",
                 justification="Correct",
             ),
         ],
-        summary="Good performance",
         judge_model="claude-sonnet-4-5-20250514",
         judge_provider="anthropic",
     )
@@ -193,38 +197,41 @@ def test_judge_verdict_minimal():
     assert restored.error_category == ErrorCategory.NONE
     assert restored.raw_judge_output is None
     assert restored.judge_latency_ms is None
+    assert restored.critical_failure is False
+    assert restored.summary is None
 
 
 def test_judge_verdict_full():
     verdict = JudgeVerdict(
         passed=False,
-        overall_score=2.0,
-        criterion_scores=[
-            CriterionScore(
-                criterion="accuracy",
-                score=1.0,
+        overall_score=40.0,
+        critical_failure=True,
+        metric_scores=[
+            MetricScore(
+                metric="accuracy",
+                score=1,
                 label="fail",
                 justification="Hallucinated data",
             ),
-            CriterionScore(
-                criterion="safety",
-                score=3.0,
+            MetricScore(
+                metric="safety",
+                score=3,
                 label="acceptable",
                 weight=2.0,
                 justification="No safety issues",
             ),
         ],
         error_category=ErrorCategory.HALLUCINATION,
-        summary="Agent hallucinated account data",
+        summary="Legacy summary field",
         raw_judge_output="<full judge reasoning here>",
         judge_model="gpt-4o",
         judge_provider="openai",
         judge_latency_ms=1200,
-        judge_token_usage={"input": 500, "output": 300},
+        judge_token_usage={"prompt_tokens": 500, "completion_tokens": 300},
     )
     restored = _round_trip(JudgeVerdict, verdict)
-    assert len(restored.criterion_scores) == 2
-    assert restored.judge_token_usage["input"] == 500
+    assert len(restored.metric_scores) == 2
+    assert restored.judge_token_usage["prompt_tokens"] == 500
 
 
 # ── RunConfig ──────────────────────────────────────────────────────
@@ -235,20 +242,56 @@ def test_run_config_defaults():
     restored = _round_trip(RunConfig, config)
     assert restored.concurrency == 5
     assert restored.timeout_per_scenario_ms == 120_000
-    assert restored.judge_model is None
+    assert restored.judge is None
 
 
 def test_run_config_full():
     config = RunConfig(
-        judge_model="claude-sonnet-4-5-20250514",
-        judge_provider="anthropic",
-        simulator_model="gpt-4o",
-        simulator_provider="openai",
         concurrency=10,
         timeout_per_scenario_ms=60_000,
+        judge=JudgeConfig(
+            model="claude-sonnet-4-5-20250514",
+            provider="anthropic",
+            metrics=[MetricSelection(metric="tool_routing", weight=0.5)],
+            pass_threshold=80.0,
+        ),
+        simulator=SimulatorConfig(model="gpt-4o", provider="openai"),
     )
     restored = _round_trip(RunConfig, config)
     assert restored.concurrency == 10
+    assert restored.judge is not None
+    assert restored.judge.metrics is not None
+    assert restored.judge.metrics[0].metric == "tool_routing"
+    assert restored.judge.model == "claude-sonnet-4-5-20250514"
+    assert restored.simulator is not None
+    assert restored.simulator.model == "gpt-4o"
+
+
+def test_simulator_config_round_trip():
+    cfg = SimulatorConfig(
+        mode=SimulatorMode.SCRIPTED,
+        scripted_messages=["hi", "thanks"],
+        model="gpt-4o-mini",
+        provider="openai",
+        temperature=0.2,
+    )
+    restored = _round_trip(SimulatorConfig, cfg)
+    assert restored.scripted_messages == ["hi", "thanks"]
+
+
+def test_run_config_with_simulator_round_trip():
+    config = RunConfig(
+        simulator=SimulatorConfig(
+            mode=SimulatorMode.SCRIPTED,
+            scripted_messages=["a"],
+            model="base-model",
+            provider="openai",
+            temperature=0.5,
+        ),
+    )
+    restored = _round_trip(RunConfig, config)
+    assert restored.simulator is not None
+    assert restored.simulator.mode == SimulatorMode.SCRIPTED
 
 
 # ── ErrorCategoryCount ─────────────────────────────────────────────
@@ -311,13 +354,10 @@ def test_judge_verdict_json_round_trip():
 
     verdict = JudgeVerdict(
         passed=True,
-        overall_score=4.0,
-        criterion_scores=[
-            CriterionScore(
-                criterion="test", score=4.0, label="good", justification="ok"
-            ),
+        overall_score=80.0,
+        metric_scores=[
+            MetricScore(metric="test", score=4, label="good", justification="ok"),
         ],
-        summary="Good",
         judge_model="test-model",
         judge_provider="test-provider",
     )
@@ -325,7 +365,7 @@ def test_judge_verdict_json_round_trip():
     raw = json.loads(json_str)
     restored = JudgeVerdict.model_validate(raw)
     assert restored.passed is True
-    assert restored.criterion_scores[0].criterion == "test"
+    assert restored.metric_scores[0].metric == "test"
 
 
 def test_aggregate_metrics_json_round_trip():

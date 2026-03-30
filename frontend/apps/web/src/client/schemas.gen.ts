@@ -476,6 +476,27 @@ export const AuthProviderSchema = {
   title: 'AuthProvider',
 } as const;
 
+export const AvailableMetricsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/MetricDefinition',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Registered judge metrics',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+      description: 'Number of metrics',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'AvailableMetricsPublic',
+} as const;
+
 export const Body_login_login_access_tokenSchema = {
   properties: {
     grant_type: {
@@ -728,40 +749,6 @@ export const ConversationTurn_OutputSchema = {
   title: 'ConversationTurn',
 } as const;
 
-export const CriterionScoreSchema = {
-  properties: {
-    criterion: {
-      type: 'string',
-      title: 'Criterion',
-      description: 'Name of the evaluated criterion',
-    },
-    score: {
-      type: 'number',
-      title: 'Score',
-      description: 'Score from 1.0 to 5.0',
-    },
-    label: {
-      type: 'string',
-      title: 'Label',
-      description: 'Human-readable label (fail, poor, acceptable, good, excellent)',
-    },
-    weight: {
-      type: 'number',
-      title: 'Weight',
-      description: 'Relative weight of this criterion',
-      default: 1,
-    },
-    justification: {
-      type: 'string',
-      title: 'Justification',
-      description: "Judge's reasoning for the assigned score",
-    },
-  },
-  type: 'object',
-  required: ['criterion', 'score', 'label', 'justification'],
-  title: 'CriterionScore',
-} as const;
-
 export const DifficultySchema = {
   type: 'string',
   enum: ['normal', 'hard'],
@@ -848,6 +835,162 @@ export const ExpectedToolCallSchema = {
   title: 'ExpectedToolCall',
 } as const;
 
+export const GenerateRequestSchema = {
+  properties: {
+    agent_prompt: {
+      type: 'string',
+      title: 'Agent Prompt',
+    },
+    tools: {
+      items: {
+        $ref: '#/components/schemas/ToolDefinition',
+      },
+      type: 'array',
+      title: 'Tools',
+      default: [],
+    },
+    count: {
+      type: 'integer',
+      maximum: 50,
+      minimum: 1,
+      title: 'Count',
+      default: 10,
+    },
+    focus_tags: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Focus Tags',
+      default: [],
+    },
+    model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Model',
+    },
+    temperature: {
+      anyOf: [
+        {
+          type: 'number',
+          maximum: 2,
+          minimum: 0,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Temperature',
+    },
+    persist: {
+      type: 'boolean',
+      title: 'Persist',
+      default: true,
+    },
+  },
+  type: 'object',
+  required: ['agent_prompt'],
+  title: 'GenerateRequest',
+  description: 'Input for scenario generation.',
+} as const;
+
+export const GenerateResultSchema = {
+  properties: {
+    scenarios: {
+      items: {
+        $ref: '#/components/schemas/ScenarioPublic',
+      },
+      type: 'array',
+      title: 'Scenarios',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+    },
+    model_used: {
+      type: 'string',
+      title: 'Model Used',
+    },
+    generation_time_ms: {
+      type: 'integer',
+      title: 'Generation Time Ms',
+    },
+  },
+  type: 'object',
+  required: ['scenarios', 'count', 'model_used', 'generation_time_ms'],
+  title: 'GenerateResult',
+  description: 'Output from scenario generation.',
+} as const;
+
+export const JudgeConfigSchema = {
+  properties: {
+    metrics: {
+      anyOf: [
+        {
+          items: {
+            $ref: '#/components/schemas/MetricSelection',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Metrics',
+      description: 'Selected metrics; null = platform default scored metric set',
+    },
+    pass_threshold: {
+      type: 'number',
+      maximum: 100,
+      minimum: 0,
+      title: 'Pass Threshold',
+      description: 'Minimum overall score (0-100) to pass',
+      default: 75,
+    },
+    critical_failure_threshold: {
+      type: 'integer',
+      maximum: 5,
+      minimum: 0,
+      title: 'Critical Failure Threshold',
+      description: 'Execution-tier scored metric at or below this value triggers critical failure',
+      default: 1,
+    },
+    model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Model',
+      description: 'Judge LLM model override',
+    },
+    provider: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Provider',
+      description: 'Judge LLM provider override',
+    },
+  },
+  type: 'object',
+  title: 'JudgeConfig',
+  description: 'Judge behavior and LLM overrides.',
+} as const;
+
 export const JudgeVerdictSchema = {
   properties: {
     passed: {
@@ -858,25 +1001,38 @@ export const JudgeVerdictSchema = {
     overall_score: {
       type: 'number',
       title: 'Overall Score',
-      description: 'Weighted overall score across all criteria',
+      description: 'Weighted overall score across all criteria (0-100)',
     },
-    criterion_scores: {
+    critical_failure: {
+      type: 'boolean',
+      title: 'Critical Failure',
+      description: 'True if an execution-tier scored metric is at or below the critical threshold',
+      default: false,
+    },
+    metric_scores: {
       items: {
-        $ref: '#/components/schemas/CriterionScore',
+        $ref: '#/components/schemas/MetricScore',
       },
       type: 'array',
-      title: 'Criterion Scores',
-      description: 'Per-criterion score breakdown',
+      title: 'Metric Scores',
+      description: 'Per-metric score breakdown',
     },
     error_category: {
       $ref: '#/components/schemas/ErrorCategory',
-      description: 'Classified error category if failed',
+      description: 'Derived from the lowest-scoring metric when failed',
       default: 'none',
     },
     summary: {
-      type: 'string',
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Summary',
-      description: "Judge's overall reasoning summary",
+      description: 'Optional summary; not produced by the judge LLM in the current pipeline',
     },
     raw_judge_output: {
       anyOf: [
@@ -929,14 +1085,7 @@ export const JudgeVerdictSchema = {
     },
   },
   type: 'object',
-  required: [
-    'passed',
-    'overall_score',
-    'criterion_scores',
-    'summary',
-    'judge_model',
-    'judge_provider',
-  ],
+  required: ['passed', 'overall_score', 'metric_scores', 'judge_model', 'judge_provider'],
   title: 'JudgeVerdict',
 } as const;
 
@@ -950,6 +1099,155 @@ export const MessageSchema = {
   type: 'object',
   required: ['message'],
   title: 'Message',
+} as const;
+
+export const MetricDefinitionSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      title: 'Name',
+      description: 'Stable metric id (snake_case)',
+    },
+    display_name: {
+      type: 'string',
+      title: 'Display Name',
+      description: 'Human-readable name',
+    },
+    description: {
+      type: 'string',
+      title: 'Description',
+      description: 'What this metric measures',
+    },
+    what_to_fix: {
+      type: 'string',
+      title: 'What To Fix',
+      description: 'What to fix when the score is low',
+    },
+    tier: {
+      $ref: '#/components/schemas/MetricTier',
+    },
+    default_weight: {
+      type: 'number',
+      minimum: 0,
+      title: 'Default Weight',
+      description: 'Default weight before renormalization (0 for opt-in-only metrics)',
+    },
+    score_type: {
+      $ref: '#/components/schemas/ScoreType',
+    },
+    rubric: {
+      type: 'string',
+      title: 'Rubric',
+      description: 'Rubric and examples for the judge prompt',
+    },
+    failure_error_category: {
+      $ref: '#/components/schemas/ErrorCategory',
+      description: 'ErrorCategory when this metric is the lowest scorer on failure',
+    },
+    include_in_defaults: {
+      type: 'boolean',
+      title: 'Include In Defaults',
+      description: 'If False, metric is omitted unless explicitly selected',
+      default: true,
+    },
+  },
+  type: 'object',
+  required: [
+    'name',
+    'display_name',
+    'description',
+    'what_to_fix',
+    'tier',
+    'default_weight',
+    'score_type',
+    'rubric',
+    'failure_error_category',
+  ],
+  title: 'MetricDefinition',
+} as const;
+
+export const MetricScoreSchema = {
+  properties: {
+    metric: {
+      type: 'string',
+      title: 'Metric',
+      description: 'Metric id from the registry (snake_case)',
+    },
+    score: {
+      type: 'integer',
+      title: 'Score',
+      description: '0-5 for scored metrics; 0 or 5 for binary (fail/pass)',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+      description:
+        'Scored: critical_fail, fail, poor, acceptable, good, excellent. Binary: pass or fail',
+    },
+    weight: {
+      type: 'number',
+      title: 'Weight',
+      description: 'Relative weight of this metric',
+      default: 1,
+    },
+    justification: {
+      type: 'string',
+      title: 'Justification',
+      description: "Judge's reasoning for the assigned score",
+    },
+    is_binary: {
+      type: 'boolean',
+      title: 'Is Binary',
+      description: 'True if this metric uses pass/fail instead of 0-5',
+      default: false,
+    },
+    tier: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Tier',
+      description: 'Metric tier: execution, knowledge, process, delivery',
+    },
+  },
+  type: 'object',
+  required: ['metric', 'score', 'label', 'justification'],
+  title: 'MetricScore',
+} as const;
+
+export const MetricSelectionSchema = {
+  properties: {
+    metric: {
+      type: 'string',
+      title: 'Metric',
+      description: 'Metric id from the platform registry (snake_case)',
+    },
+    weight: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Weight',
+      description: 'Override weight before renormalization; None = metric default',
+    },
+  },
+  type: 'object',
+  required: ['metric'],
+  title: 'MetricSelection',
+} as const;
+
+export const MetricTierSchema = {
+  type: 'string',
+  enum: ['execution', 'knowledge', 'process', 'delivery'],
+  title: 'MetricTier',
 } as const;
 
 export const NewPasswordSchema = {
@@ -999,56 +1297,8 @@ export const PersonaSchema = {
   title: 'Persona',
 } as const;
 
-export const RunConfigSchema = {
+export const RunConfig_InputSchema = {
   properties: {
-    judge_model: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Judge Model',
-      description: 'Model ID for the judge LLM',
-    },
-    judge_provider: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Judge Provider',
-      description: 'Provider for the judge LLM (e.g. anthropic, openai)',
-    },
-    simulator_model: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Simulator Model',
-      description: 'Model ID for the user simulator LLM',
-    },
-    simulator_provider: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Simulator Provider',
-      description: 'Provider for the simulator LLM',
-    },
     concurrency: {
       type: 'integer',
       title: 'Concurrency',
@@ -1060,6 +1310,71 @@ export const RunConfigSchema = {
       title: 'Timeout Per Scenario Ms',
       description: 'Timeout per scenario in milliseconds before forced stop',
       default: 120000,
+    },
+    judge: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/JudgeConfig',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Judge metric selection, weights, pass threshold, and model overrides',
+    },
+    simulator: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SimulatorConfig',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description:
+        'User simulator: LLM vs scripted replay, model/provider overrides, temperature. Omitted fields use app LLM defaults.',
+    },
+  },
+  type: 'object',
+  title: 'RunConfig',
+} as const;
+
+export const RunConfig_OutputSchema = {
+  properties: {
+    concurrency: {
+      type: 'integer',
+      title: 'Concurrency',
+      description: 'Max parallel scenario executions',
+      default: 5,
+    },
+    timeout_per_scenario_ms: {
+      type: 'integer',
+      title: 'Timeout Per Scenario Ms',
+      description: 'Timeout per scenario in milliseconds before forced stop',
+      default: 120000,
+    },
+    judge: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/JudgeConfig',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Judge metric selection, weights, pass threshold, and model overrides',
+    },
+    simulator: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SimulatorConfig',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description:
+        'User simulator: LLM vs scripted replay, model/provider overrides, temperature. Omitted fields use app LLM defaults.',
     },
   },
   type: 'object',
@@ -1184,7 +1499,7 @@ export const RunCreateSchema = {
     config: {
       anyOf: [
         {
-          $ref: '#/components/schemas/RunConfig',
+          $ref: '#/components/schemas/RunConfig-Input',
         },
         {
           type: 'null',
@@ -1261,7 +1576,7 @@ export const RunPublicSchema = {
     config: {
       anyOf: [
         {
-          $ref: '#/components/schemas/RunConfig',
+          $ref: '#/components/schemas/RunConfig-Output',
         },
         {
           type: 'null',
@@ -2395,12 +2710,6 @@ export const ScenarioSetCreateSchema = {
       title: 'Description',
       description: 'What this scenario set covers',
     },
-    version: {
-      type: 'integer',
-      title: 'Version',
-      description: 'Monotonically increasing version for snapshot tracking',
-      default: 1,
-    },
     scenario_ids: {
       anyOf: [
         {
@@ -2471,6 +2780,11 @@ export const ScenarioSetPublicSchema = {
       title: 'Id',
       description: 'Unique scenario set identifier',
     },
+    scenario_count: {
+      type: 'integer',
+      title: 'Scenario Count',
+      default: 0,
+    },
     created_at: {
       type: 'string',
       format: 'date-time',
@@ -2514,18 +2828,6 @@ export const ScenarioSetUpdateSchema = {
       ],
       title: 'Description',
       description: 'What this scenario set covers',
-    },
-    version: {
-      anyOf: [
-        {
-          type: 'integer',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Version',
-      description: 'Monotonically increasing version for snapshot tracking',
     },
   },
   type: 'object',
@@ -2754,6 +3056,77 @@ export const ScenariosPublicSchema = {
   title: 'ScenariosPublic',
 } as const;
 
+export const ScoreTypeSchema = {
+  type: 'string',
+  enum: ['scored', 'binary'],
+  title: 'ScoreType',
+} as const;
+
+export const SimulatorConfigSchema = {
+  properties: {
+    mode: {
+      $ref: '#/components/schemas/SimulatorMode',
+      description: 'llm: generate via LLM; scripted: replay fixed messages',
+      default: 'llm',
+    },
+    scripted_messages: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Scripted Messages',
+      description: 'User lines after initial_message, in order (scripted mode only)',
+    },
+    model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Model',
+      description: 'Simulator LLM model override',
+    },
+    provider: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Provider',
+      description: 'Simulator LLM provider override',
+    },
+    temperature: {
+      anyOf: [
+        {
+          type: 'number',
+          maximum: 2,
+          minimum: 0,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Temperature',
+      description: 'Sampling temperature for simulator LLM',
+    },
+  },
+  type: 'object',
+  title: 'SimulatorConfig',
+  description: 'User simulator behavior (LLM persona vs scripted replay) and LLM overrides.',
+} as const;
+
+export const SimulatorModeSchema = {
+  type: 'string',
+  enum: ['llm', 'scripted'],
+  title: 'SimulatorMode',
+} as const;
+
 export const TokenSchema = {
   properties: {
     access_token: {
@@ -2821,6 +3194,34 @@ export const ToolCallFunctionSchema = {
   type: 'object',
   required: ['name', 'arguments'],
   title: 'ToolCallFunction',
+} as const;
+
+export const ToolDefinitionSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    description: {
+      type: 'string',
+      title: 'Description',
+    },
+    parameters: {
+      anyOf: [
+        {
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Parameters',
+    },
+  },
+  type: 'object',
+  required: ['name', 'description'],
+  title: 'ToolDefinition',
+  description: 'A single tool/function definition the agent has access to.',
 } as const;
 
 export const TurnRoleSchema = {

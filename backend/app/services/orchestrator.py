@@ -3,6 +3,7 @@
 import logging
 import time
 from datetime import UTC, datetime
+from typing import Any
 
 import httpx
 from pydantic import ValidationError
@@ -13,11 +14,19 @@ from app.models.agent_contract import (
     AgentResponse,
     ChatMessage,
 )
-from app.models.enums import TurnRole
+from app.models.enums import SimulatorMode, TurnRole
 from app.models.scenario import Scenario
-from app.models.schemas import ConversationTurn, Persona, RunConfig, ToolCall
+from app.models.schemas import (
+    ConversationTurn,
+    JudgeVerdict,
+    Persona,
+    RunConfig,
+    SimulatorConfig,
+    ToolCall,
+)
+from app.services.judge import JudgeInput, evaluate_transcript
 from app.services.llm import LLMMessage
-from app.services.user_simulator import SimulatorConfig, SimulatorMode, UserSimulator
+from app.services.user_simulator import UserSimulator
 
 logger = logging.getLogger(__name__)
 
@@ -178,8 +187,6 @@ async def run_scenario(
     scenario: Scenario,
     agent_endpoint_url: str,
     config: RunConfig,
-    *,
-    simulator_config: SimulatorConfig | None = None,
 ) -> list[ConversationTurn]:
     """Execute one scenario: initial user message, then agent / simulator turns.
 
@@ -190,11 +197,7 @@ async def run_scenario(
     Stops when ``scenario.max_turns`` agent rounds are done, scripted lines are
     exhausted, timeout is hit, or the agent call fails.
     """
-    sim_cfg = simulator_config or SimulatorConfig(
-        mode=SimulatorMode.LLM,
-        model=config.simulator_model,
-        provider=config.simulator_provider,
-    )
+    sim_cfg = config.simulator or SimulatorConfig()
     persona = _persona_from_scenario(scenario)
     initial = scenario.initial_message or ""
     simulator = UserSimulator(
@@ -316,3 +319,35 @@ async def run_scenario(
                 break
 
     return transcript
+
+
+async def run_scenario_with_evaluation(
+    scenario: Scenario,
+    agent_endpoint_url: str,
+    config: RunConfig,
+    *,
+    agent_system_prompt: str | None = None,
+    agent_tools: list[dict[str, Any]] | None = None,
+) -> tuple[list[ConversationTurn], JudgeVerdict | None]:
+    """Run simulation then judge the transcript; returns ``(transcript, verdict)``.
+
+    If the transcript is empty, ``verdict`` is ``None``.
+    """
+    transcript = await run_scenario(
+        scenario,
+        agent_endpoint_url,
+        config,
+    )
+    if not transcript:
+        return transcript, None
+
+    verdict = await evaluate_transcript(
+        JudgeInput(
+            transcript=transcript,
+            scenario=scenario,
+            agent_system_prompt=agent_system_prompt,
+            agent_tools=agent_tools,
+            judge_config=config.judge,
+        )
+    )
+    return transcript, verdict

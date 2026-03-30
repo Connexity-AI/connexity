@@ -1,7 +1,9 @@
 """Pure Pydantic v2 models for JSONB nested entities.
 
 These are NOT database tables — they serialize into JSONB columns
-on the ORM table models (Run, ScenarioResult, Scenario).
+on the ORM table models (Run, ScenarioResult, Scenario). Run execution
+helpers (:class:`RunConfig`, :class:`SimulatorConfig`, :class:`JudgeConfig`)
+live here so API and services share one definition.
 """
 
 from datetime import datetime
@@ -9,7 +11,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from app.models.enums import ErrorCategory, TurnRole
+from app.models.enums import ErrorCategory, SimulatorMode, TurnRole
 
 # ── Scenario nested types ──────────────────────────────────────────
 
@@ -31,23 +33,86 @@ class ExpectedToolCall(BaseModel):
 # ── Run nested types ───────────────────────────────────────────────
 
 
+class MetricSelection(BaseModel):
+    metric: str = Field(description="Metric id from the platform registry (snake_case)")
+    weight: float | None = Field(
+        default=None,
+        description="Override weight before renormalization; None = metric default",
+    )
+
+
+class JudgeConfig(BaseModel):
+    """Judge behavior and LLM overrides."""
+
+    metrics: list[MetricSelection] | None = Field(
+        default=None,
+        description="Selected metrics; null = platform default scored metric set",
+    )
+    pass_threshold: float = Field(
+        default=75.0,
+        ge=0.0,
+        le=100.0,
+        description="Minimum overall score (0-100) to pass",
+    )
+    critical_failure_threshold: int = Field(
+        default=1,
+        ge=0,
+        le=5,
+        description="Execution-tier scored metric at or below this value triggers critical failure",
+    )
+    model: str | None = Field(
+        default=None,
+        description="Judge LLM model override",
+    )
+    provider: str | None = Field(
+        default=None,
+        description="Judge LLM provider override",
+    )
+
+
+class SimulatorConfig(BaseModel):
+    """User simulator behavior (LLM persona vs scripted replay) and LLM overrides."""
+
+    mode: SimulatorMode = Field(
+        default=SimulatorMode.LLM,
+        description="llm: generate via LLM; scripted: replay fixed messages",
+    )
+    scripted_messages: list[str] = Field(
+        default_factory=list,
+        description="User lines after initial_message, in order (scripted mode only)",
+    )
+    model: str | None = Field(
+        default=None,
+        description="Simulator LLM model override",
+    )
+    provider: str | None = Field(
+        default=None,
+        description="Simulator LLM provider override",
+    )
+    temperature: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=2.0,
+        description="Sampling temperature for simulator LLM",
+    )
+
+
 class RunConfig(BaseModel):
-    judge_model: str | None = Field(
-        default=None, description="Model ID for the judge LLM"
-    )
-    judge_provider: str | None = Field(
-        default=None, description="Provider for the judge LLM (e.g. anthropic, openai)"
-    )
-    simulator_model: str | None = Field(
-        default=None, description="Model ID for the user simulator LLM"
-    )
-    simulator_provider: str | None = Field(
-        default=None, description="Provider for the simulator LLM"
-    )
     concurrency: int = Field(default=5, description="Max parallel scenario executions")
     timeout_per_scenario_ms: int = Field(
         default=120_000,
         description="Timeout per scenario in milliseconds before forced stop",
+    )
+    judge: JudgeConfig | None = Field(
+        default=None,
+        description="Judge metric selection, weights, pass threshold, and model overrides",
+    )
+    simulator: SimulatorConfig | None = Field(
+        default=None,
+        description=(
+            "User simulator: LLM vs scripted replay, model/provider overrides, temperature. "
+            "Omitted fields use app LLM defaults."
+        ),
     )
 
 
@@ -103,29 +168,47 @@ class ConversationTurn(BaseModel):
 # ── Judge nested types ─────────────────────────────────────────────
 
 
-class CriterionScore(BaseModel):
-    criterion: str = Field(description="Name of the evaluated criterion")
-    score: float = Field(description="Score from 1.0 to 5.0")
-    label: str = Field(
-        description="Human-readable label (fail, poor, acceptable, good, excellent)"
+class MetricScore(BaseModel):
+    metric: str = Field(description="Metric id from the registry (snake_case)")
+    score: int = Field(
+        description="0-5 for scored metrics; 0 or 5 for binary (fail/pass)"
     )
-    weight: float = Field(default=1.0, description="Relative weight of this criterion")
+    label: str = Field(
+        description=(
+            "Scored: critical_fail, fail, poor, acceptable, good, excellent. "
+            "Binary: pass or fail"
+        )
+    )
+    weight: float = Field(default=1.0, description="Relative weight of this metric")
     justification: str = Field(description="Judge's reasoning for the assigned score")
+    is_binary: bool = Field(
+        default=False,
+        description="True if this metric uses pass/fail instead of 0-5",
+    )
+    tier: str | None = Field(
+        default=None,
+        description="Metric tier: execution, knowledge, process, delivery",
+    )
 
 
 class JudgeVerdict(BaseModel):
     passed: bool = Field(description="Whether the scenario passed overall")
     overall_score: float = Field(
-        description="Weighted overall score across all criteria"
+        description="Weighted overall score across all criteria (0-100)"
     )
-    criterion_scores: list[CriterionScore] = Field(
-        description="Per-criterion score breakdown"
+    critical_failure: bool = Field(
+        default=False,
+        description="True if an execution-tier scored metric is at or below the critical threshold",
     )
+    metric_scores: list[MetricScore] = Field(description="Per-metric score breakdown")
     error_category: ErrorCategory = Field(
         default=ErrorCategory.NONE,
-        description="Classified error category if failed",
+        description="Derived from the lowest-scoring metric when failed",
     )
-    summary: str = Field(description="Judge's overall reasoning summary")
+    summary: str | None = Field(
+        default=None,
+        description="Optional summary; not produced by the judge LLM in the current pipeline",
+    )
     raw_judge_output: str | None = Field(
         default=None, description="Raw unprocessed judge LLM output"
     )

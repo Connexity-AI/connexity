@@ -20,6 +20,11 @@ class RunStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
+class SimulatorMode(StrEnum):
+    LLM = "llm"
+    SCRIPTED = "scripted"
+
+
 class ErrorCategory(StrEnum):
     NONE = "none"
     OFF_TOPIC = "off_topic"

@@ -2,14 +2,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.models.schemas import Persona
+from app.models.enums import SimulatorMode
+from app.models.schemas import Persona, SimulatorConfig
 from app.services.llm import LLMMessage, LLMResponse
-from app.services.user_simulator import (
-    SimulatorConfig,
-    SimulatorMode,
-    UserSimulator,
-    _build_system_prompt,
-)
+from app.services.user_simulator import UserSimulator, _build_system_prompt
 
 
 def _persona() -> Persona:

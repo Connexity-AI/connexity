@@ -18,6 +18,9 @@ import type {
   AgentsUpdateAgentData,
   AgentsUpdateAgentErrors,
   AgentsUpdateAgentResponses,
+  ConfigGetAvailableMetricsData,
+  ConfigGetAvailableMetricsErrors,
+  ConfigGetAvailableMetricsResponses,
   ConfigGetConfigData,
   ConfigGetConfigErrors,
   ConfigGetConfigResponses,
@@ -113,6 +116,9 @@ import type {
   ScenariosExportScenariosData,
   ScenariosExportScenariosErrors,
   ScenariosExportScenariosResponses,
+  ScenariosGenerateScenariosEndpointData,
+  ScenariosGenerateScenariosEndpointErrors,
+  ScenariosGenerateScenariosEndpointResponses,
   ScenariosGetScenarioData,
   ScenariosGetScenarioErrors,
   ScenariosGetScenarioResponses,
@@ -698,6 +704,33 @@ export class ScenariosService {
   }
 
   /**
+   * Generate Scenarios Endpoint
+   */
+  public static generateScenariosEndpoint<ThrowOnError extends boolean = false>(
+    options: Options<ScenariosGenerateScenariosEndpointData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      ScenariosGenerateScenariosEndpointResponses,
+      ScenariosGenerateScenariosEndpointErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenarios/generate',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
    * Delete Scenario
    */
   public static deleteScenario<ThrowOnError extends boolean = false>(
@@ -1260,6 +1293,29 @@ export class ConfigService {
         },
       ],
       url: '/api/v1/config/',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Available Metrics
+   */
+  public static getAvailableMetrics<ThrowOnError extends boolean = false>(
+    options?: Options<ConfigGetAvailableMetricsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      ConfigGetAvailableMetricsResponses,
+      ConfigGetAvailableMetricsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/config/available-metrics',
       ...options,
     });
   }
