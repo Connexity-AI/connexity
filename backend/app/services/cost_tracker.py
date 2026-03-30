@@ -104,6 +104,9 @@ def estimate_agent_cost(
 ) -> float | None:
     """Estimate USD cost for an agent call via ``litellm.completion_cost()``.
 
+    LiteLLM expects a completion-shaped object with ``usage``; it no longer accepts
+    raw ``prompt_tokens`` / ``completion_tokens`` keyword arguments.
+
     Returns ``None`` when the model is unknown to litellm's pricing database.
     """
     if not model:
@@ -113,12 +116,20 @@ def estimate_agent_cost(
         return None
     if provider and provider.strip() and "/" not in model_id:
         model_id = f"{provider.strip()}/{model_id}"
+    completion_response = {
+        "model": model_id,
+        "usage": {
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": prompt_tokens + completion_tokens,
+        },
+    }
     try:
         return float(
             litellm.completion_cost(
+                completion_response=completion_response,
                 model=model_id,
-                prompt_tokens=prompt_tokens,
-                completion_tokens=completion_tokens,
+                call_type="acompletion",
             )
         )
     except Exception:
