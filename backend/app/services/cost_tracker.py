@@ -99,13 +99,14 @@ def estimate_agent_cost(
     *,
     model: str | None,
     provider: str | None,
-    prompt_tokens: int,
-    completion_tokens: int,
+    usage: dict[str, int | bool],
 ) -> float | None:
     """Estimate USD cost for an agent call via ``litellm.completion_cost()``.
 
     LiteLLM expects a completion-shaped object with ``usage``; it no longer accepts
-    raw ``prompt_tokens`` / ``completion_tokens`` keyword arguments.
+    raw ``prompt_tokens`` / ``completion_tokens`` keyword arguments.  Cache token
+    fields (``cache_creation_input_tokens``, ``cache_read_input_tokens``) are
+    forwarded when present so LiteLLM can apply reduced cache pricing.
 
     Returns ``None`` when the model is unknown to litellm's pricing database.
     """
@@ -116,13 +117,24 @@ def estimate_agent_cost(
         return None
     if provider and provider.strip() and "/" not in model_id:
         model_id = f"{provider.strip()}/{model_id}"
+    prompt_tokens = int(usage.get("prompt_tokens", 0))
+    completion_tokens = int(usage.get("completion_tokens", 0))
+    usage_payload: dict[str, int] = {
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "total_tokens": prompt_tokens + completion_tokens,
+    }
+    for cache_key in (
+        "cache_creation_input_tokens",
+        "cache_read_input_tokens",
+        "cached_prompt_tokens",
+    ):
+        val = usage.get(cache_key)
+        if val is not None and not isinstance(val, bool):
+            usage_payload[cache_key] = int(val)
     completion_response = {
         "model": model_id,
-        "usage": {
-            "prompt_tokens": prompt_tokens,
-            "completion_tokens": completion_tokens,
-            "total_tokens": prompt_tokens + completion_tokens,
-        },
+        "usage": usage_payload,
     }
     try:
         return float(

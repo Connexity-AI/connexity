@@ -16,6 +16,8 @@ def _make_result(
     verdict: dict | None = None,
     agent_token_usage: dict[str, int | bool] | None = None,
     platform_token_usage: dict[str, int] | None = None,
+    agent_cost_usd: float | None = None,
+    platform_cost_usd: float | None = None,
     estimated_cost_usd: float | None = None,
 ) -> ScenarioResult:
     return ScenarioResult(
@@ -28,6 +30,8 @@ def _make_result(
         verdict=verdict,
         agent_token_usage=agent_token_usage,
         platform_token_usage=platform_token_usage,
+        agent_cost_usd=agent_cost_usd,
+        platform_cost_usd=platform_cost_usd,
         estimated_cost_usd=estimated_cost_usd,
     )
 
@@ -162,3 +166,26 @@ def test_token_and_cost_aggregation() -> None:
         "completion_tokens": 30,
     }
     assert metrics.total_estimated_cost_usd == pytest.approx(0.03)
+    assert metrics.total_agent_cost_usd is None
+    assert metrics.total_platform_cost_usd is None
+
+
+def test_cost_breakdown_aggregation() -> None:
+    results = [
+        _make_result(
+            passed=True,
+            agent_cost_usd=0.005,
+            platform_cost_usd=0.003,
+            estimated_cost_usd=0.008,
+        ),
+        _make_result(
+            passed=True,
+            agent_cost_usd=0.010,
+            platform_cost_usd=0.002,
+            estimated_cost_usd=0.012,
+        ),
+    ]
+    metrics = compute_aggregate_metrics(results)
+    assert metrics.total_agent_cost_usd == pytest.approx(0.015)
+    assert metrics.total_platform_cost_usd == pytest.approx(0.005)
+    assert metrics.total_estimated_cost_usd == pytest.approx(0.020)

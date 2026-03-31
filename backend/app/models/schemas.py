@@ -261,6 +261,13 @@ class AggregateMetrics(BaseModel):
         default=None,
         description="Summed token usage from the platform (simulator + judge)",
     )
+    total_agent_cost_usd: float | None = Field(
+        default=None, description="Total estimated agent cost in USD for the entire run"
+    )
+    total_platform_cost_usd: float | None = Field(
+        default=None,
+        description="Total estimated platform cost in USD (simulator + judge) for the entire run",
+    )
     total_estimated_cost_usd: float | None = Field(
         default=None, description="Total estimated cost in USD for the entire run"
     )

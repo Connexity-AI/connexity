@@ -374,15 +374,12 @@ async def run_scenario(
                 acc.add_agent_usage(estimated)
                 reported = estimated
 
-            prompt_tok = int(reported.get("prompt_tokens", 0))
-            completion_tok = int(reported.get("completion_tokens", 0))
-            if prompt_tok or completion_tok:
+            if reported.get("prompt_tokens") or reported.get("completion_tokens"):
                 acc.add_agent_cost(
                     estimate_agent_cost(
                         model=response.model,
                         provider=response.provider,
-                        prompt_tokens=prompt_tok,
-                        completion_tokens=completion_tok,
+                        usage=reported,
                     )
                 )
 
@@ -500,6 +497,10 @@ def compute_aggregate_metrics(
     if not total_platform:
         total_platform = None
 
+    agent_costs = [r.agent_cost_usd for r in results if r.agent_cost_usd is not None]
+    platform_costs = [
+        r.platform_cost_usd for r in results if r.platform_cost_usd is not None
+    ]
     cost_values = [
         r.estimated_cost_usd for r in results if r.estimated_cost_usd is not None
     ]
@@ -519,6 +520,8 @@ def compute_aggregate_metrics(
         latency_avg_ms=statistics.mean(latencies) if latencies else None,
         total_agent_token_usage=total_agent,
         total_platform_token_usage=total_platform,
+        total_agent_cost_usd=sum(agent_costs) if agent_costs else None,
+        total_platform_cost_usd=sum(platform_costs) if platform_costs else None,
         total_estimated_cost_usd=total_cost_usd,
         avg_overall_score=statistics.mean(scores) if scores else None,
     )
@@ -597,6 +600,13 @@ async def _execute_single_scenario(
                 verdict.judge_token_usage if verdict else None,
             )
             judge_cost = (verdict.judge_cost_usd or 0.0) if verdict else 0.0
+            if verdict and verdict.judge_cost_usd is None:
+                logger.warning(
+                    "Judge cost unavailable for scenario %s — LiteLLM may lack "
+                    "pricing for model %s; judge cost excluded from totals",
+                    scenario.id,
+                    verdict.judge_model,
+                )
             platform_cost = run_out.platform_cost_usd + judge_cost
             agent_cost = run_out.agent_cost_usd
             total_cost = agent_cost + platform_cost
@@ -613,9 +623,12 @@ async def _execute_single_scenario(
                 agent_latency_p50_ms=p50,
                 agent_latency_p95_ms=p95,
                 agent_latency_max_ms=max_lat,
+                agent_latency_per_turn_ms=agent_latencies or None,
                 agent_token_usage=agent_usage_out,
                 platform_token_usage=platform_usage_out,
-                estimated_cost_usd=total_cost,
+                agent_cost_usd=agent_cost or None,
+                platform_cost_usd=platform_cost or None,
+                estimated_cost_usd=total_cost or None,
                 passed=verdict.passed if verdict else False,
                 started_at=started_at,
                 completed_at=completed_at,
