@@ -605,6 +605,249 @@ export const ConversationTurn_OutputSchema = {
   title: 'ConversationTurn',
 } as const;
 
+export const CustomMetricCreateSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Name',
+      description: 'Unique slug per owner (snake_case)',
+    },
+    display_name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Display Name',
+    },
+    description: {
+      type: 'string',
+      title: 'Description',
+    },
+    tier: {
+      $ref: '#/components/schemas/MetricTier',
+    },
+    default_weight: {
+      type: 'number',
+      minimum: 0,
+      title: 'Default Weight',
+    },
+    score_type: {
+      $ref: '#/components/schemas/ScoreType',
+    },
+    rubric: {
+      type: 'string',
+      title: 'Rubric',
+    },
+    include_in_defaults: {
+      type: 'boolean',
+      title: 'Include In Defaults',
+      default: false,
+    },
+  },
+  type: 'object',
+  required: [
+    'name',
+    'display_name',
+    'description',
+    'tier',
+    'default_weight',
+    'score_type',
+    'rubric',
+  ],
+  title: 'CustomMetricCreate',
+} as const;
+
+export const CustomMetricPublicSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Name',
+      description: 'Unique slug per owner (snake_case)',
+    },
+    display_name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Display Name',
+    },
+    description: {
+      type: 'string',
+      title: 'Description',
+    },
+    tier: {
+      $ref: '#/components/schemas/MetricTier',
+    },
+    default_weight: {
+      type: 'number',
+      minimum: 0,
+      title: 'Default Weight',
+    },
+    score_type: {
+      $ref: '#/components/schemas/ScoreType',
+    },
+    rubric: {
+      type: 'string',
+      title: 'Rubric',
+    },
+    include_in_defaults: {
+      type: 'boolean',
+      title: 'Include In Defaults',
+      default: false,
+    },
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    created_by: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Created By',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+    },
+    updated_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Updated At',
+    },
+  },
+  type: 'object',
+  required: [
+    'name',
+    'display_name',
+    'description',
+    'tier',
+    'default_weight',
+    'score_type',
+    'rubric',
+    'id',
+    'created_by',
+    'created_at',
+    'updated_at',
+  ],
+  title: 'CustomMetricPublic',
+} as const;
+
+export const CustomMetricUpdateSchema = {
+  properties: {
+    name: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Name',
+    },
+    display_name: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Display Name',
+    },
+    description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Description',
+    },
+    tier: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/MetricTier',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    default_weight: {
+      anyOf: [
+        {
+          type: 'number',
+          minimum: 0,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Default Weight',
+    },
+    score_type: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/ScoreType',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    rubric: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Rubric',
+    },
+    include_in_defaults: {
+      anyOf: [
+        {
+          type: 'boolean',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Include In Defaults',
+    },
+  },
+  type: 'object',
+  title: 'CustomMetricUpdate',
+} as const;
+
+export const CustomMetricsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/CustomMetricPublic',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'List of custom metrics',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+      description: 'Total number of custom metrics for the user',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'CustomMetricsPublic',
+} as const;
+
 export const DifficultySchema = {
   type: 'string',
   enum: ['normal', 'hard'],
@@ -967,6 +1210,107 @@ export const MetricDefinitionSchema = {
     'rubric',
   ],
   title: 'MetricDefinition',
+} as const;
+
+export const MetricGenerateRequestSchema = {
+  properties: {
+    description: {
+      type: 'string',
+      minLength: 1,
+      title: 'Description',
+      description: 'What the metric should measure (natural language)',
+    },
+    score_type: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/ScoreType',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Force scored (0-5) or binary; omit to let the model choose',
+    },
+    tier: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/MetricTier',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Force tier; omit to let the model choose',
+    },
+    model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Model',
+      description: 'LLM model override',
+    },
+  },
+  type: 'object',
+  required: ['description'],
+  title: 'MetricGenerateRequest',
+} as const;
+
+export const MetricGenerateResultSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    display_name: {
+      type: 'string',
+      title: 'Display Name',
+    },
+    description: {
+      type: 'string',
+      title: 'Description',
+    },
+    tier: {
+      $ref: '#/components/schemas/MetricTier',
+    },
+    default_weight: {
+      type: 'number',
+      minimum: 0,
+      title: 'Default Weight',
+    },
+    score_type: {
+      $ref: '#/components/schemas/ScoreType',
+    },
+    rubric: {
+      type: 'string',
+      title: 'Rubric',
+    },
+    model_used: {
+      type: 'string',
+      title: 'Model Used',
+    },
+    generation_time_ms: {
+      type: 'integer',
+      title: 'Generation Time Ms',
+    },
+  },
+  type: 'object',
+  required: [
+    'name',
+    'display_name',
+    'description',
+    'tier',
+    'default_weight',
+    'score_type',
+    'rubric',
+    'model_used',
+    'generation_time_ms',
+  ],
+  title: 'MetricGenerateResult',
 } as const;
 
 export const MetricScoreSchema = {
@@ -1349,6 +1693,19 @@ export const RunPublicSchema = {
       format: 'uuid',
       title: 'Id',
       description: 'Unique run identifier',
+    },
+    created_by: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Created By',
+      description: 'User who created the run; used to resolve custom judge metrics',
     },
     name: {
       anyOf: [

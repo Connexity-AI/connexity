@@ -4,23 +4,18 @@ The default set is eight scored metrics. Opt-in-only metrics are included only
 when listed in :class:`~app.models.schemas.JudgeConfig`.
 """
 
-from enum import StrEnum
+import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 
 from pydantic import BaseModel, Field
+from sqlmodel import Session
 
+from app.core.db import engine
+from app.crud.custom_metrics import get_custom_metric_by_name_and_owner
+from app.models.custom_metric import CustomMetric
+from app.models.enums import MetricTier, ScoreType
 from app.models.schemas import JudgeConfig, MetricSelection
-
-
-class ScoreType(StrEnum):
-    SCORED = "scored"
-    BINARY = "binary"
-
-
-class MetricTier(StrEnum):
-    EXECUTION = "execution"
-    KNOWLEDGE = "knowledge"
-    PROCESS = "process"
-    DELIVERY = "delivery"
 
 
 class MetricDefinition(BaseModel):
@@ -275,6 +270,29 @@ def get_metrics_for_api() -> list[MetricDefinition]:
     return list(METRIC_REGISTRY.values())
 
 
+def custom_metric_row_to_definition(row: CustomMetric) -> MetricDefinition:
+    """Map a persisted custom metric row to the shared :class:`MetricDefinition` shape."""
+    return MetricDefinition(
+        name=row.name,
+        display_name=row.display_name,
+        description=row.description,
+        tier=row.tier,
+        default_weight=row.default_weight,
+        score_type=row.score_type,
+        rubric=row.rubric,
+        include_in_defaults=row.include_in_defaults,
+    )
+
+
+@contextmanager
+def _session_scope(session: Session | None) -> Iterator[Session]:
+    if session is not None:
+        yield session
+    else:
+        with Session(engine) as owned:
+            yield owned
+
+
 def _normalize_weights(
     pairs: list[tuple[MetricDefinition, float]],
 ) -> list[tuple[MetricDefinition, float]]:
@@ -287,8 +305,15 @@ def _normalize_weights(
 
 def resolve_metrics(
     judge_config: JudgeConfig | None,
+    *,
+    session: Session | None = None,
+    owner_id: uuid.UUID | None = None,
 ) -> list[tuple[MetricDefinition, float]]:
-    """Resolve selected metrics and weights; weights renormalized to sum to 1.0."""
+    """Resolve selected metrics and weights; weights renormalized to sum to 1.0.
+
+    Unknown metric ids fall back to :class:`~app.models.custom_metric.CustomMetric`
+    rows for ``owner_id`` when provided (optionally reusing ``session``).
+    """
     if judge_config is None or judge_config.metrics is None:
         defaults = get_default_metrics()
         pairs = [(m, m.default_weight) for m in defaults]
@@ -302,10 +327,20 @@ def resolve_metrics(
 
     pairs: list[tuple[MetricDefinition, float]] = []
     for sel in selections:
-        if sel.metric not in METRIC_REGISTRY:
-            msg = f"Unknown metric: {sel.metric}"
-            raise ValueError(msg)
-        definition = METRIC_REGISTRY[sel.metric]
+        if sel.metric in METRIC_REGISTRY:
+            definition = METRIC_REGISTRY[sel.metric]
+        else:
+            if owner_id is None:
+                msg = f"Unknown metric: {sel.metric}"
+                raise ValueError(msg)
+            with _session_scope(session) as db_session:
+                row = get_custom_metric_by_name_and_owner(
+                    session=db_session, name=sel.metric, owner_id=owner_id
+                )
+            if row is None:
+                msg = f"Unknown metric: {sel.metric}"
+                raise ValueError(msg)
+            definition = custom_metric_row_to_definition(row)
         if sel.metric == "task_completion" and sel.weight is None:
             msg = "task_completion requires an explicit weight when selected"
             raise ValueError(msg)

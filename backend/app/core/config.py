@@ -5,6 +5,7 @@ from pydantic import (
     AnyUrl,
     BeforeValidator,
     EmailStr,
+    Field,
     HttpUrl,
     PostgresDsn,
     computed_field,
@@ -109,6 +110,8 @@ class Settings(BaseSettings):
     # Generator-specific
     GENERATOR_MAX_TOKENS: int = 16_000
     GENERATOR_TEMPERATURE: float = 0.9
+    # Default weight for AI-generated custom metrics (not chosen by the LLM)
+    GENERATOR_CUSTOM_METRIC_DEFAULT_WEIGHT: float = Field(default=0.15, ge=0.0)
 
     # ------- Computed properties -------
 

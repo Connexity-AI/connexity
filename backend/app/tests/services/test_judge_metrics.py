@@ -50,3 +50,11 @@ def test_build_judge_response_format_keys() -> None:
     schema = js["schema"]
     props = schema["properties"]
     assert set(props.keys()) == {"task_completion", "tool_routing"}
+
+
+def test_resolve_metrics_unknown_without_owner_raises() -> None:
+    cfg = JudgeConfig(
+        metrics=[MetricSelection(metric="not_a_real_metric_xyz", weight=1.0)]
+    )
+    with pytest.raises(ValueError, match="Unknown metric"):
+        resolve_metrics(cfg)

@@ -24,6 +24,24 @@ import type {
   ConfigGetConfigData,
   ConfigGetConfigErrors,
   ConfigGetConfigResponses,
+  CustomMetricsCreateCustomMetricData,
+  CustomMetricsCreateCustomMetricErrors,
+  CustomMetricsCreateCustomMetricResponses,
+  CustomMetricsDeleteCustomMetricData,
+  CustomMetricsDeleteCustomMetricErrors,
+  CustomMetricsDeleteCustomMetricResponses,
+  CustomMetricsGenerateCustomMetricPreviewData,
+  CustomMetricsGenerateCustomMetricPreviewErrors,
+  CustomMetricsGenerateCustomMetricPreviewResponses,
+  CustomMetricsGetCustomMetricData,
+  CustomMetricsGetCustomMetricErrors,
+  CustomMetricsGetCustomMetricResponses,
+  CustomMetricsListCustomMetricsData,
+  CustomMetricsListCustomMetricsErrors,
+  CustomMetricsListCustomMetricsResponses,
+  CustomMetricsUpdateCustomMetricData,
+  CustomMetricsUpdateCustomMetricErrors,
+  CustomMetricsUpdateCustomMetricResponses,
   HealthHealthData,
   HealthHealthResponses,
   LoginAuthGithubCallbackData,
@@ -233,6 +251,7 @@ export class LoginService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/login/test-token',
       ...options,
@@ -295,6 +314,7 @@ export class LoginService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/password-recovery-html-content/{email}',
       ...options,
@@ -316,6 +336,7 @@ export class LoginService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/logout',
       ...options,
@@ -396,6 +417,7 @@ export class UsersService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/users/me',
       ...options,
@@ -421,6 +443,7 @@ export class UsersService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/users/me',
       ...options,
@@ -446,6 +469,7 @@ export class UsersService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/users/me',
       ...options,
@@ -475,6 +499,7 @@ export class UsersService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/users/me/password',
       ...options,
@@ -504,6 +529,7 @@ export class AgentsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/agents/',
       ...options,
@@ -527,6 +553,7 @@ export class AgentsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/agents/',
       ...options,
@@ -554,6 +581,7 @@ export class AgentsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/agents/{agent_id}',
       ...options,
@@ -577,6 +605,7 @@ export class AgentsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/agents/{agent_id}',
       ...options,
@@ -600,6 +629,7 @@ export class AgentsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/agents/{agent_id}',
       ...options,
@@ -629,6 +659,7 @@ export class ScenariosService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenarios/',
       ...options,
@@ -652,6 +683,7 @@ export class ScenariosService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenarios/',
       ...options,
@@ -679,6 +711,7 @@ export class ScenariosService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenarios/export',
       ...options,
@@ -702,6 +735,7 @@ export class ScenariosService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenarios/import',
       ...options,
@@ -729,6 +763,7 @@ export class ScenariosService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenarios/generate',
       ...options,
@@ -756,6 +791,7 @@ export class ScenariosService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenarios/{scenario_id}',
       ...options,
@@ -779,6 +815,7 @@ export class ScenariosService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenarios/{scenario_id}',
       ...options,
@@ -802,8 +839,169 @@ export class ScenariosService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenarios/{scenario_id}',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+}
+
+export class CustomMetricsService {
+  /**
+   * List Custom Metrics
+   */
+  public static customMetricsListCustomMetrics<ThrowOnError extends boolean = false>(
+    options?: Options<CustomMetricsListCustomMetricsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      CustomMetricsListCustomMetricsResponses,
+      CustomMetricsListCustomMetricsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/custom-metrics/',
+      ...options,
+    });
+  }
+
+  /**
+   * Create Custom Metric
+   */
+  public static customMetricsCreateCustomMetric<ThrowOnError extends boolean = false>(
+    options: Options<CustomMetricsCreateCustomMetricData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      CustomMetricsCreateCustomMetricResponses,
+      CustomMetricsCreateCustomMetricErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/custom-metrics/',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Generate Custom Metric Preview
+   *
+   * Generate a metric definition preview via LLM (not saved).
+   */
+  public static customMetricsGenerateCustomMetricPreview<ThrowOnError extends boolean = false>(
+    options: Options<CustomMetricsGenerateCustomMetricPreviewData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      CustomMetricsGenerateCustomMetricPreviewResponses,
+      CustomMetricsGenerateCustomMetricPreviewErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/custom-metrics/generate',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Delete Custom Metric
+   */
+  public static customMetricsDeleteCustomMetric<ThrowOnError extends boolean = false>(
+    options: Options<CustomMetricsDeleteCustomMetricData, ThrowOnError>
+  ) {
+    return (options.client ?? client).delete<
+      CustomMetricsDeleteCustomMetricResponses,
+      CustomMetricsDeleteCustomMetricErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/custom-metrics/{metric_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Custom Metric
+   */
+  public static customMetricsGetCustomMetric<ThrowOnError extends boolean = false>(
+    options: Options<CustomMetricsGetCustomMetricData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      CustomMetricsGetCustomMetricResponses,
+      CustomMetricsGetCustomMetricErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/custom-metrics/{metric_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Update Custom Metric
+   */
+  public static customMetricsUpdateCustomMetric<ThrowOnError extends boolean = false>(
+    options: Options<CustomMetricsUpdateCustomMetricData, ThrowOnError>
+  ) {
+    return (options.client ?? client).put<
+      CustomMetricsUpdateCustomMetricResponses,
+      CustomMetricsUpdateCustomMetricErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/custom-metrics/{metric_id}',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -831,6 +1029,7 @@ export class ScenarioSetsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenario-sets/',
       ...options,
@@ -854,6 +1053,7 @@ export class ScenarioSetsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenario-sets/',
       ...options,
@@ -881,6 +1081,7 @@ export class ScenarioSetsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenario-sets/{scenario_set_id}',
       ...options,
@@ -904,6 +1105,7 @@ export class ScenarioSetsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenario-sets/{scenario_set_id}',
       ...options,
@@ -927,6 +1129,7 @@ export class ScenarioSetsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenario-sets/{scenario_set_id}',
       ...options,
@@ -954,6 +1157,7 @@ export class ScenarioSetsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenario-sets/{scenario_set_id}/scenarios',
       ...options,
@@ -977,6 +1181,7 @@ export class ScenarioSetsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenario-sets/{scenario_set_id}/scenarios',
       ...options,
@@ -1004,6 +1209,7 @@ export class ScenarioSetsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenario-sets/{scenario_set_id}/scenarios',
       ...options,
@@ -1031,6 +1237,7 @@ export class ScenarioSetsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenario-sets/{scenario_set_id}/scenarios/{scenario_id}',
       ...options,
@@ -1053,6 +1260,7 @@ export class RunsService {
             name: 'auth_cookie',
             type: 'apiKey',
           },
+          { scheme: 'bearer', type: 'http' },
         ],
         url: '/api/v1/runs/',
         ...options,
@@ -1077,6 +1285,7 @@ export class RunsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/runs/',
       ...options,
@@ -1104,6 +1313,7 @@ export class RunsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/runs/{run_id}',
       ...options,
@@ -1123,6 +1333,7 @@ export class RunsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/runs/{run_id}',
       ...options,
@@ -1146,6 +1357,7 @@ export class RunsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/runs/{run_id}',
       ...options,
@@ -1173,6 +1385,7 @@ export class RunsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/runs/{run_id}/execute',
       ...options,
@@ -1196,6 +1409,7 @@ export class RunsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/runs/{run_id}/cancel',
       ...options,
@@ -1221,6 +1435,7 @@ export class RunsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/runs/{run_id}/stream',
       ...options,
@@ -1246,6 +1461,7 @@ export class ScenarioResultsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenario-results/',
       ...options,
@@ -1269,6 +1485,7 @@ export class ScenarioResultsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenario-results/',
       ...options,
@@ -1296,6 +1513,7 @@ export class ScenarioResultsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenario-results/{result_id}',
       ...options,
@@ -1319,6 +1537,7 @@ export class ScenarioResultsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenario-results/{result_id}',
       ...options,
@@ -1342,6 +1561,7 @@ export class ScenarioResultsService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/scenario-results/{result_id}',
       ...options,
@@ -1371,6 +1591,7 @@ export class ConfigService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/config/',
       ...options,
@@ -1394,6 +1615,7 @@ export class ConfigService {
           name: 'auth_cookie',
           type: 'apiKey',
         },
+        { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/config/available-metrics',
       ...options,

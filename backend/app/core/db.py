@@ -1,5 +1,5 @@
 from sqlalchemy import text
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel, col, create_engine, select
 
 from app import crud
 from app.core.config import settings
@@ -16,6 +16,7 @@ from app.models import (
     ScenarioResultUpdate,
     ScenarioSetCreate,
     ScenarioStatus,
+    User,
     UserCreate,
 )
 
@@ -59,6 +60,9 @@ def init_db(session: Session) -> None:
 
 def _seed_eval_data(session: Session) -> None:
     """Seed eval-domain entities for dev/testing."""
+    admin = session.exec(select(User).where(col(User.is_superuser).is_(True))).first()
+    owner_id = admin.id if admin else None
+
     # Agents
     agent_cs = crud.create_agent(
         session=session,
@@ -204,6 +208,7 @@ def _seed_eval_data(session: Session) -> None:
             agent_endpoint_url=agent_cs.endpoint_url,
             scenario_set_id=billing_set.id,
         ),
+        created_by=owner_id,
     )
     crud.update_run(
         session=session,
@@ -219,6 +224,7 @@ def _seed_eval_data(session: Session) -> None:
             agent_endpoint_url=agent_sales.endpoint_url,
             scenario_set_id=sales_set.id,
         ),
+        created_by=owner_id,
     )
 
     run_failed = crud.create_run(
@@ -229,6 +235,7 @@ def _seed_eval_data(session: Session) -> None:
             agent_endpoint_url=agent_cs.endpoint_url,
             scenario_set_id=billing_set.id,
         ),
+        created_by=owner_id,
     )
     crud.update_run(
         session=session,

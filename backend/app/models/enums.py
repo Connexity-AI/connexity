@@ -30,3 +30,15 @@ class TurnRole(StrEnum):
     ASSISTANT = "assistant"
     SYSTEM = "system"
     TOOL = "tool"
+
+
+class ScoreType(StrEnum):
+    SCORED = "scored"
+    BINARY = "binary"
+
+
+class MetricTier(StrEnum):
+    EXECUTION = "execution"
+    KNOWLEDGE = "knowledge"
+    PROCESS = "process"
+    DELIVERY = "delivery"

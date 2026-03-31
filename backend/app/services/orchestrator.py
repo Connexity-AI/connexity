@@ -429,6 +429,7 @@ async def run_scenario_with_evaluation(
     agent_system_prompt: str | None = None,
     agent_tools: list[dict[str, Any]] | None = None,
     cancel_event: asyncio.Event | None = None,
+    metrics_owner_id: uuid.UUID | None = None,
 ) -> tuple[ScenarioRunResult, JudgeVerdict | None]:
     """Run simulation then judge the transcript.
 
@@ -453,6 +454,7 @@ async def run_scenario_with_evaluation(
             agent_system_prompt=agent_system_prompt,
             agent_tools=agent_tools,
             judge_config=config.judge,
+            metrics_owner_id=metrics_owner_id,
         )
     )
     return run_out, verdict
@@ -536,6 +538,7 @@ async def _execute_single_scenario(
     agent_tools: list[dict[str, Any]] | None,
     semaphore: asyncio.Semaphore,
     cancel_event: asyncio.Event,
+    metrics_owner_id: uuid.UUID | None = None,
 ) -> ScenarioResult:
     from sqlmodel import Session
 
@@ -574,6 +577,7 @@ async def _execute_single_scenario(
                 agent_system_prompt=agent_system_prompt,
                 agent_tools=agent_tools,
                 cancel_event=cancel_event,
+                metrics_owner_id=metrics_owner_id,
             )
             transcript = run_out.transcript
             completed_at = datetime.now(UTC)
@@ -782,6 +786,7 @@ async def execute_run(run_id: uuid.UUID) -> None:
             agent_endpoint_url = run.agent_endpoint_url
             agent_system_prompt = run.agent_system_prompt
             agent_tools = run.agent_tools
+            metrics_owner_id = run.created_by
 
         state.progress.total_scenarios = len(scenarios)
         run_manager.emit(
@@ -801,6 +806,7 @@ async def execute_run(run_id: uuid.UUID) -> None:
                 agent_tools=agent_tools,
                 semaphore=semaphore,
                 cancel_event=state.cancel_event,
+                metrics_owner_id=metrics_owner_id,
             )
             for scenario in scenarios
         ]

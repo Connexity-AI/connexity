@@ -409,6 +409,140 @@ export type ConversationTurnOutput = {
 };
 
 /**
+ * CustomMetricCreate
+ */
+export type CustomMetricCreate = {
+  /**
+   * Name
+   *
+   * Unique slug per owner (snake_case)
+   */
+  name: string;
+  /**
+   * Display Name
+   */
+  display_name: string;
+  /**
+   * Description
+   */
+  description: string;
+  tier: MetricTier;
+  /**
+   * Default Weight
+   */
+  default_weight: number;
+  score_type: ScoreType;
+  /**
+   * Rubric
+   */
+  rubric: string;
+  /**
+   * Include In Defaults
+   */
+  include_in_defaults?: boolean;
+};
+
+/**
+ * CustomMetricPublic
+ */
+export type CustomMetricPublic = {
+  /**
+   * Name
+   *
+   * Unique slug per owner (snake_case)
+   */
+  name: string;
+  /**
+   * Display Name
+   */
+  display_name: string;
+  /**
+   * Description
+   */
+  description: string;
+  tier: MetricTier;
+  /**
+   * Default Weight
+   */
+  default_weight: number;
+  score_type: ScoreType;
+  /**
+   * Rubric
+   */
+  rubric: string;
+  /**
+   * Include In Defaults
+   */
+  include_in_defaults?: boolean;
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Created By
+   */
+  created_by: string;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Updated At
+   */
+  updated_at: string;
+};
+
+/**
+ * CustomMetricUpdate
+ */
+export type CustomMetricUpdate = {
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Display Name
+   */
+  display_name?: string | null;
+  /**
+   * Description
+   */
+  description?: string | null;
+  tier?: MetricTier | null;
+  /**
+   * Default Weight
+   */
+  default_weight?: number | null;
+  score_type?: ScoreType | null;
+  /**
+   * Rubric
+   */
+  rubric?: string | null;
+  /**
+   * Include In Defaults
+   */
+  include_in_defaults?: boolean | null;
+};
+
+/**
+ * CustomMetricsPublic
+ */
+export type CustomMetricsPublic = {
+  /**
+   * Data
+   *
+   * List of custom metrics
+   */
+  data: Array<CustomMetricPublic>;
+  /**
+   * Count
+   *
+   * Total number of custom metrics for the user
+   */
+  count: number;
+};
+
+/**
  * Difficulty
  */
 export const Difficulty = { NORMAL: 'normal', HARD: 'hard' } as const;
@@ -668,6 +802,68 @@ export type MetricDefinition = {
    * If False, metric is omitted unless explicitly selected
    */
   include_in_defaults?: boolean;
+};
+
+/**
+ * MetricGenerateRequest
+ */
+export type MetricGenerateRequest = {
+  /**
+   * Description
+   *
+   * What the metric should measure (natural language)
+   */
+  description: string;
+  /**
+   * Force scored (0-5) or binary; omit to let the model choose
+   */
+  score_type?: ScoreType | null;
+  /**
+   * Force tier; omit to let the model choose
+   */
+  tier?: MetricTier | null;
+  /**
+   * Model
+   *
+   * LLM model override
+   */
+  model?: string | null;
+};
+
+/**
+ * MetricGenerateResult
+ */
+export type MetricGenerateResult = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Display Name
+   */
+  display_name: string;
+  /**
+   * Description
+   */
+  description: string;
+  tier: MetricTier;
+  /**
+   * Default Weight
+   */
+  default_weight: number;
+  score_type: ScoreType;
+  /**
+   * Rubric
+   */
+  rubric: string;
+  /**
+   * Model Used
+   */
+  model_used: string;
+  /**
+   * Generation Time Ms
+   */
+  generation_time_ms: number;
 };
 
 /**
@@ -959,6 +1155,12 @@ export type RunPublic = {
    * Unique run identifier
    */
   id: string;
+  /**
+   * Created By
+   *
+   * User who created the run; used to resolve custom judge metrics
+   */
+  created_by?: string | null;
   /**
    * Name
    *
@@ -3512,6 +3714,336 @@ export type ScenariosUpdateScenarioResponses = {
 
 export type ScenariosUpdateScenarioResponse =
   ScenariosUpdateScenarioResponses[keyof ScenariosUpdateScenarioResponses];
+
+export type CustomMetricsListCustomMetricsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Skip
+     */
+    skip?: number;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/custom-metrics/';
+};
+
+export type CustomMetricsListCustomMetricsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CustomMetricsListCustomMetricsError =
+  CustomMetricsListCustomMetricsErrors[keyof CustomMetricsListCustomMetricsErrors];
+
+export type CustomMetricsListCustomMetricsResponses = {
+  /**
+   * Successful Response
+   */
+  200: CustomMetricsPublic;
+};
+
+export type CustomMetricsListCustomMetricsResponse =
+  CustomMetricsListCustomMetricsResponses[keyof CustomMetricsListCustomMetricsResponses];
+
+export type CustomMetricsCreateCustomMetricData = {
+  body: CustomMetricCreate;
+  path?: never;
+  query?: never;
+  url: '/api/v1/custom-metrics/';
+};
+
+export type CustomMetricsCreateCustomMetricErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CustomMetricsCreateCustomMetricError =
+  CustomMetricsCreateCustomMetricErrors[keyof CustomMetricsCreateCustomMetricErrors];
+
+export type CustomMetricsCreateCustomMetricResponses = {
+  /**
+   * Successful Response
+   */
+  200: CustomMetricPublic;
+};
+
+export type CustomMetricsCreateCustomMetricResponse =
+  CustomMetricsCreateCustomMetricResponses[keyof CustomMetricsCreateCustomMetricResponses];
+
+export type CustomMetricsGenerateCustomMetricPreviewData = {
+  body: MetricGenerateRequest;
+  path?: never;
+  query?: never;
+  url: '/api/v1/custom-metrics/generate';
+};
+
+export type CustomMetricsGenerateCustomMetricPreviewErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CustomMetricsGenerateCustomMetricPreviewError =
+  CustomMetricsGenerateCustomMetricPreviewErrors[keyof CustomMetricsGenerateCustomMetricPreviewErrors];
+
+export type CustomMetricsGenerateCustomMetricPreviewResponses = {
+  /**
+   * Successful Response
+   */
+  200: MetricGenerateResult;
+};
+
+export type CustomMetricsGenerateCustomMetricPreviewResponse =
+  CustomMetricsGenerateCustomMetricPreviewResponses[keyof CustomMetricsGenerateCustomMetricPreviewResponses];
+
+export type CustomMetricsDeleteCustomMetricData = {
+  body?: never;
+  path: {
+    /**
+     * Metric Id
+     */
+    metric_id: string;
+  };
+  query?: never;
+  url: '/api/v1/custom-metrics/{metric_id}';
+};
+
+export type CustomMetricsDeleteCustomMetricErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CustomMetricsDeleteCustomMetricError =
+  CustomMetricsDeleteCustomMetricErrors[keyof CustomMetricsDeleteCustomMetricErrors];
+
+export type CustomMetricsDeleteCustomMetricResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message;
+};
+
+export type CustomMetricsDeleteCustomMetricResponse =
+  CustomMetricsDeleteCustomMetricResponses[keyof CustomMetricsDeleteCustomMetricResponses];
+
+export type CustomMetricsGetCustomMetricData = {
+  body?: never;
+  path: {
+    /**
+     * Metric Id
+     */
+    metric_id: string;
+  };
+  query?: never;
+  url: '/api/v1/custom-metrics/{metric_id}';
+};
+
+export type CustomMetricsGetCustomMetricErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CustomMetricsGetCustomMetricError =
+  CustomMetricsGetCustomMetricErrors[keyof CustomMetricsGetCustomMetricErrors];
+
+export type CustomMetricsGetCustomMetricResponses = {
+  /**
+   * Successful Response
+   */
+  200: CustomMetricPublic;
+};
+
+export type CustomMetricsGetCustomMetricResponse =
+  CustomMetricsGetCustomMetricResponses[keyof CustomMetricsGetCustomMetricResponses];
+
+export type CustomMetricsUpdateCustomMetricData = {
+  body: CustomMetricUpdate;
+  path: {
+    /**
+     * Metric Id
+     */
+    metric_id: string;
+  };
+  query?: never;
+  url: '/api/v1/custom-metrics/{metric_id}';
+};
+
+export type CustomMetricsUpdateCustomMetricErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CustomMetricsUpdateCustomMetricError =
+  CustomMetricsUpdateCustomMetricErrors[keyof CustomMetricsUpdateCustomMetricErrors];
+
+export type CustomMetricsUpdateCustomMetricResponses = {
+  /**
+   * Successful Response
+   */
+  200: CustomMetricPublic;
+};
+
+export type CustomMetricsUpdateCustomMetricResponse =
+  CustomMetricsUpdateCustomMetricResponses[keyof CustomMetricsUpdateCustomMetricResponses];
 
 export type ScenarioSetsListScenarioSetsData = {
   body?: never;

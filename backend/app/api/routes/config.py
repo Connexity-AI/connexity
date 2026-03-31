@@ -1,10 +1,15 @@
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
-from app.api.deps import get_current_user
+from app import crud
+from app.api.deps import CurrentUser, SessionDep, get_current_user
 from app.core.config import settings
 from app.models import ConfigPublic
-from app.services.judge_metrics import MetricDefinition, get_metrics_for_api
+from app.services.judge_metrics import (
+    MetricDefinition,
+    custom_metric_row_to_definition,
+    get_metrics_for_api,
+)
 
 router = APIRouter(
     prefix="/config",
@@ -29,6 +34,17 @@ def get_config(request: Request) -> ConfigPublic:
 
 
 @router.get("/available-metrics", response_model=AvailableMetricsPublic)
-def get_available_metrics() -> AvailableMetricsPublic:
-    metrics = get_metrics_for_api()
-    return AvailableMetricsPublic(data=metrics, count=len(metrics))
+def get_available_metrics(
+    session: SessionDep,
+    current_user: CurrentUser,
+) -> AvailableMetricsPublic:
+    builtin = get_metrics_for_api()
+    custom_rows, _ = crud.list_custom_metrics(
+        session=session,
+        owner_id=current_user.id,
+        skip=0,
+        limit=10_000,
+    )
+    custom_defs = [custom_metric_row_to_definition(r) for r in custom_rows]
+    merged = [*builtin, *custom_defs]
+    return AvailableMetricsPublic(data=merged, count=len(merged))

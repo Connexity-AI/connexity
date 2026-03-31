@@ -7,6 +7,14 @@ from app.crud.agent import (  # noqa: F401
     list_agents,
     update_agent,
 )
+from app.crud.custom_metrics import (  # noqa: F401
+    create_custom_metric,
+    delete_custom_metric,
+    get_custom_metric,
+    get_custom_metric_by_name_and_owner,
+    list_custom_metrics,
+    update_custom_metric,
+)
 from app.crud.run import (  # noqa: F401
     create_run,
     delete_run,

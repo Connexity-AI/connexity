@@ -30,11 +30,23 @@ from app.models.agent_contract import (  # noqa: F401
 # ── Common ─────────────────────────────────────────────────────────
 from app.models.common import ConfigPublic, ErrorResponse  # noqa: F401
 
+# ── Custom metric ──────────────────────────────────────────────────
+from app.models.custom_metric import (  # noqa: F401
+    CustomMetric,
+    CustomMetricBase,
+    CustomMetricCreate,
+    CustomMetricPublic,
+    CustomMetricsPublic,
+    CustomMetricUpdate,
+)
+
 # ── Enums ──────────────────────────────────────────────────────────
 from app.models.enums import (  # noqa: F401
     Difficulty,
+    MetricTier,
     RunStatus,
     ScenarioStatus,
+    ScoreType,
     SimulatorMode,
     TurnRole,
 )

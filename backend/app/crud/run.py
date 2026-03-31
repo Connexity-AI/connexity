@@ -7,11 +7,18 @@ from sqlmodel import Session, col, select
 from app.models import Run, RunCreate, RunStatus, RunUpdate
 
 
-def create_run(*, session: Session, run_in: RunCreate) -> Run:
+def create_run(
+    *,
+    session: Session,
+    run_in: RunCreate,
+    created_by: uuid.UUID | None = None,
+) -> Run:
     run_data = run_in.model_dump()
     # RunConfig (Pydantic) → dict for JSONB column
     if run_in.config is not None:
         run_data["config"] = run_in.config.model_dump()
+    if created_by is not None:
+        run_data["created_by"] = created_by
     db_obj = Run.model_validate(run_data)
     session.add(db_obj)
     session.commit()

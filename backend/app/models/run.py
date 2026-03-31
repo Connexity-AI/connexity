@@ -103,6 +103,12 @@ class Run(RunBase, table=True):
     __tablename__ = "run"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_by: uuid.UUID | None = Field(
+        default=None,
+        foreign_key="user.id",
+        index=True,
+        description="User who created the run; used to resolve custom judge metrics",
+    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"server_default": text("now()")},
@@ -192,6 +198,10 @@ class RunUpdate(SQLModel):
 
 class RunPublic(SQLModel):
     id: uuid.UUID = Field(description="Unique run identifier")
+    created_by: uuid.UUID | None = Field(
+        default=None,
+        description="User who created the run; used to resolve custom judge metrics",
+    )
     name: str | None = Field(description="Optional human-readable run label")
     agent_id: uuid.UUID = Field(description="FK to the agent being evaluated")
     agent_endpoint_url: str = Field(

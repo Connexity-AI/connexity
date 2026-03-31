@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 
 from app import crud
-from app.api.deps import SessionDep, get_current_user
+from app.api.deps import CurrentUser, SessionDep, get_current_user
 from app.models import (
     Message,
     Run,
@@ -33,12 +33,13 @@ router = APIRouter(
 @router.post("/", response_model=RunPublic)
 async def create_run(
     session: SessionDep,
+    current_user: CurrentUser,
     run_in: RunCreate,
     auto_execute: bool = Query(
         default=False, description="Immediately start execution"
     ),
 ) -> Run:
-    run = crud.create_run(session=session, run_in=run_in)
+    run = crud.create_run(session=session, run_in=run_in, created_by=current_user.id)
     if auto_execute:
         asyncio.create_task(execute_run(run.id))
     return run
