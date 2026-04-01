@@ -8,9 +8,8 @@ Create Date: 2026-04-01 12:00:00.000000
 
 import sqlalchemy as sa
 import sqlmodel.sql.sqltypes
-from sqlalchemy.dialects import postgresql
-
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 revision = "c2a8b7f1d4e3"
 down_revision = "f1e2d3c4b5a6"
@@ -89,8 +88,28 @@ def upgrade() -> None:
         nullable=True,
     )
 
+    # Rename "simulator" → "user_simulator" inside existing JSONB config values
+    op.execute(
+        sa.text("""
+            UPDATE run
+            SET config = (config - 'simulator')
+                         || jsonb_build_object('user_simulator', config->'simulator')
+            WHERE config ? 'simulator'
+        """)
+    )
+
 
 def downgrade() -> None:
+    # Reverse: rename "user_simulator" → "simulator" inside JSONB config
+    op.execute(
+        sa.text("""
+            UPDATE run
+            SET config = (config - 'user_simulator')
+                         || jsonb_build_object('simulator', config->'user_simulator')
+            WHERE config ? 'user_simulator'
+        """)
+    )
+
     op.alter_column(
         "run",
         "agent_endpoint_url",

@@ -104,7 +104,7 @@ class AgentSimulatorConfig(BaseModel):
 
     model: str | None = Field(
         default=None,
-        description="Override agent agent_model for this run",
+        description="Override agent_model for this run",
     )
     provider: str | None = Field(
         default=None,
