@@ -7,6 +7,7 @@ from sqlmodel import Session
 from app import crud
 from app.core.config import settings
 from app.models import RunStatus, RunUpdate
+from app.models.enums import AgentMode
 from app.tests.utils.eval import (
     create_test_agent,
     create_test_run,
@@ -43,6 +44,64 @@ def test_create_run(
     result = r.json()
     assert result["agent_id"] == str(agent.id)
     assert result["status"] == "pending"
+
+
+def test_create_run_agent_not_found(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    scenario = create_test_scenario(db)
+    scenario_set = create_test_scenario_set(db, scenario_ids=[scenario.id])
+    data = {
+        "agent_id": str(uuid.uuid4()),
+        "agent_endpoint_url": "http://localhost:8080/agent",
+        "scenario_set_id": str(scenario_set.id),
+    }
+    r = client.post(
+        f"{settings.API_V1_STR}/runs/",
+        json=data,
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 404
+
+
+def test_create_run_platform_agent_without_endpoint_url(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    scenario = create_test_scenario(db)
+    scenario_set = create_test_scenario_set(db, scenario_ids=[scenario.id])
+    agent_r = client.post(
+        f"{settings.API_V1_STR}/agents/",
+        json={
+            "name": "Platform run agent",
+            "mode": AgentMode.PLATFORM.value,
+            "system_prompt": "You are helpful.",
+            "agent_model": "gpt-4o-mini",
+            "agent_provider": "openai",
+        },
+        cookies=superuser_auth_cookies,
+    )
+    assert agent_r.status_code == 200
+    agent_id = agent_r.json()["id"]
+
+    data = {
+        "agent_id": agent_id,
+        "scenario_set_id": str(scenario_set.id),
+        "config": {
+            "agent_simulator": {"model": "gpt-4o", "temperature": 0.2},
+        },
+    }
+    r = client.post(
+        f"{settings.API_V1_STR}/runs/",
+        json=data,
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["agent_mode"] == AgentMode.PLATFORM.value
+    assert body["agent_model"] == "gpt-4o"
+    assert body["agent_provider"] == "openai"
+    assert body["agent_endpoint_url"] is None
+    assert body["agent_system_prompt"] == "You are helpful."
 
 
 def test_list_runs(

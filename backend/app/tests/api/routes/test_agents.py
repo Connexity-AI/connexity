@@ -20,6 +20,7 @@ def test_create_agent(
     result = r.json()
     assert result["name"] == "Route Agent"
     assert result["endpoint_url"] == "http://example.com/agent"
+    assert result["mode"] == "endpoint"
     assert "id" in result
 
 
@@ -87,6 +88,103 @@ def test_delete_agent(
         cookies=superuser_auth_cookies,
     )
     assert r2.status_code == 404
+
+
+def test_create_platform_agent(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    data = {
+        "name": "Platform Agent",
+        "mode": "platform",
+        "system_prompt": "You are a helpful assistant.",
+        "agent_model": "gpt-4o-mini",
+        "agent_provider": "openai",
+    }
+    r = client.post(
+        f"{settings.API_V1_STR}/agents/",
+        json=data,
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    result = r.json()
+    assert result["mode"] == "platform"
+    assert result["system_prompt"] == "You are a helpful assistant."
+    assert result["agent_model"] == "gpt-4o-mini"
+    assert result["endpoint_url"] is None
+
+
+def test_create_platform_agent_missing_system_prompt(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    data = {
+        "name": "Bad Platform Agent",
+        "mode": "platform",
+        "agent_model": "gpt-4o-mini",
+    }
+    r = client.post(
+        f"{settings.API_V1_STR}/agents/",
+        json=data,
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 422
+
+
+def test_create_platform_agent_missing_model(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    data = {
+        "name": "Bad Platform Agent",
+        "mode": "platform",
+        "system_prompt": "You are helpful.",
+    }
+    r = client.post(
+        f"{settings.API_V1_STR}/agents/",
+        json=data,
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 422
+
+
+def test_create_endpoint_agent_missing_url(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    data = {"name": "Bad Endpoint Agent", "mode": "endpoint"}
+    r = client.post(
+        f"{settings.API_V1_STR}/agents/",
+        json=data,
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 422
+
+
+def test_update_agent_switch_to_platform(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = create_test_agent(db)
+    r = client.patch(
+        f"{settings.API_V1_STR}/agents/{agent.id}",
+        json={
+            "mode": "platform",
+            "system_prompt": "Be concise.",
+            "agent_model": "gpt-4o",
+        },
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    assert r.json()["mode"] == "platform"
+
+
+def test_update_agent_invalid_mode_transition(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    """Switching to platform without system_prompt should fail."""
+    agent = create_test_agent(db)
+    r = client.patch(
+        f"{settings.API_V1_STR}/agents/{agent.id}",
+        json={"mode": "platform"},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 422
 
 
 def test_create_agent_unauthenticated(client: TestClient) -> None:

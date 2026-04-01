@@ -50,7 +50,10 @@ def update_agent(
     agent = crud.get_agent(session=session, agent_id=agent_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
-    return crud.update_agent(session=session, db_agent=agent, agent_in=agent_in)
+    try:
+        return crud.update_agent(session=session, db_agent=agent, agent_in=agent_in)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @router.delete("/{agent_id}", response_model=Message)

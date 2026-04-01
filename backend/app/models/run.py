@@ -25,9 +25,10 @@ class RunBase(SQLModel):
         index=True,
         description="FK to the agent being evaluated",
     )
-    agent_endpoint_url: str = Field(
+    agent_endpoint_url: str | None = Field(
+        default=None,
         max_length=2048,
-        description="Agent endpoint URL snapshot captured at run start",
+        description="Agent endpoint URL snapshot (required for endpoint-mode agents)",
     )
     agent_system_prompt: str | None = Field(
         default=None,
@@ -38,14 +39,20 @@ class RunBase(SQLModel):
         sa_column=Column("agent_tools", JSONB, nullable=True),
         description="Agent tool definitions snapshot captured at run start",
     )
-    prompt_version: str | None = Field(
+    agent_mode: str | None = Field(
         default=None,
-        max_length=100,
-        description="Semantic version tag of the prompt used",
+        max_length=32,
+        description="Agent mode snapshot: endpoint or platform",
     )
-    prompt_snapshot: str | None = Field(
+    agent_model: str | None = Field(
         default=None,
-        description="Full text of the system prompt at run time",
+        max_length=255,
+        description="Effective LLM model for platform agent simulator for this run",
+    )
+    agent_provider: str | None = Field(
+        default=None,
+        max_length=64,
+        description="Effective LLM provider for platform agent simulator for this run",
     )
     tools_snapshot: list[dict[str, Any]] | None = Field(
         default=None,
@@ -136,8 +143,9 @@ class RunCreate(SQLModel):
         default=None, description="Optional human-readable run label"
     )
     agent_id: uuid.UUID = Field(description="FK to the agent being evaluated")
-    agent_endpoint_url: str = Field(
-        description="Agent endpoint URL snapshot captured at run start"
+    agent_endpoint_url: str | None = Field(
+        default=None,
+        description="Agent endpoint URL snapshot captured at run start",
     )
     agent_system_prompt: str | None = Field(
         default=None,
@@ -147,11 +155,17 @@ class RunCreate(SQLModel):
         default=None,
         description="Agent tool definitions snapshot captured at run start",
     )
-    prompt_version: str | None = Field(
-        default=None, description="Semantic version tag of the prompt used"
+    agent_mode: str | None = Field(
+        default=None,
+        description="Agent mode snapshot: endpoint or platform",
     )
-    prompt_snapshot: str | None = Field(
-        default=None, description="Full text of the system prompt at run time"
+    agent_model: str | None = Field(
+        default=None,
+        description="Effective LLM model for platform agent simulator for this run",
+    )
+    agent_provider: str | None = Field(
+        default=None,
+        description="Effective LLM provider for platform agent simulator for this run",
     )
     tools_snapshot: list[dict[str, Any]] | None = Field(
         default=None, description="Full tool schema array at run time"
@@ -204,11 +218,25 @@ class RunPublic(SQLModel):
     )
     name: str | None = Field(description="Optional human-readable run label")
     agent_id: uuid.UUID = Field(description="FK to the agent being evaluated")
-    agent_endpoint_url: str = Field(
-        description="Agent endpoint URL snapshot captured at run start"
+    agent_endpoint_url: str | None = Field(
+        default=None,
+        description="Agent endpoint URL snapshot captured at run start",
     )
     agent_system_prompt: str | None = Field(
-        description="Agent system prompt snapshot captured at run start"
+        default=None,
+        description="Agent system prompt snapshot captured at run start",
+    )
+    agent_mode: str | None = Field(
+        default=None,
+        description="Agent mode snapshot: endpoint or platform",
+    )
+    agent_model: str | None = Field(
+        default=None,
+        description="Effective LLM model for platform agent simulator for this run",
+    )
+    agent_provider: str | None = Field(
+        default=None,
+        description="Effective LLM provider for platform agent simulator for this run",
     )
     scenario_set_id: uuid.UUID = Field(
         description="FK to the scenario set executed in this run"

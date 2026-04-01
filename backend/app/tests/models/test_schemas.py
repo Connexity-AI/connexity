@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 from app.models.enums import SimulatorMode, TurnRole
 from app.models.schemas import (
+    AgentSimulatorConfig,
     AggregateMetrics,
     ConversationTurn,
     ExpectedToolCall,
@@ -11,9 +12,9 @@ from app.models.schemas import (
     MetricSelection,
     Persona,
     RunConfig,
-    SimulatorConfig,
     ToolCall,
     ToolCallFunction,
+    UserSimulatorConfig,
 )
 
 
@@ -252,7 +253,8 @@ def test_run_config_full():
             metrics=[MetricSelection(metric="tool_routing", weight=0.5)],
             pass_threshold=80.0,
         ),
-        simulator=SimulatorConfig(model="gpt-4o", provider="openai"),
+        user_simulator=UserSimulatorConfig(model="gpt-4o", provider="openai"),
+        agent_simulator=AgentSimulatorConfig(model="gpt-4o-mini", temperature=0.1),
     )
     restored = _round_trip(RunConfig, config)
     assert restored.concurrency == 10
@@ -260,25 +262,27 @@ def test_run_config_full():
     assert restored.judge.metrics is not None
     assert restored.judge.metrics[0].metric == "tool_routing"
     assert restored.judge.model == "claude-sonnet-4-5-20250514"
-    assert restored.simulator is not None
-    assert restored.simulator.model == "gpt-4o"
+    assert restored.user_simulator is not None
+    assert restored.user_simulator.model == "gpt-4o"
+    assert restored.agent_simulator is not None
+    assert restored.agent_simulator.model == "gpt-4o-mini"
 
 
-def test_simulator_config_round_trip():
-    cfg = SimulatorConfig(
+def test_user_simulator_config_round_trip():
+    cfg = UserSimulatorConfig(
         mode=SimulatorMode.SCRIPTED,
         scripted_messages=["hi", "thanks"],
         model="gpt-4o-mini",
         provider="openai",
         temperature=0.2,
     )
-    restored = _round_trip(SimulatorConfig, cfg)
+    restored = _round_trip(UserSimulatorConfig, cfg)
     assert restored.scripted_messages == ["hi", "thanks"]
 
 
-def test_run_config_with_simulator_round_trip():
+def test_run_config_with_user_simulator_round_trip():
     config = RunConfig(
-        simulator=SimulatorConfig(
+        user_simulator=UserSimulatorConfig(
             mode=SimulatorMode.SCRIPTED,
             scripted_messages=["a"],
             model="base-model",
@@ -287,8 +291,8 @@ def test_run_config_with_simulator_round_trip():
         ),
     )
     restored = _round_trip(RunConfig, config)
-    assert restored.simulator is not None
-    assert restored.simulator.mode == SimulatorMode.SCRIPTED
+    assert restored.user_simulator is not None
+    assert restored.user_simulator.mode == SimulatorMode.SCRIPTED
 
 
 # ── AggregateMetrics ───────────────────────────────────────────────

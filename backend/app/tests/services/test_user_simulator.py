@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from app.models.enums import SimulatorMode
-from app.models.schemas import Persona, SimulatorConfig
+from app.models.schemas import Persona, UserSimulatorConfig
 from app.services.llm import LLMMessage, LLMResponse
 from app.services.user_simulator import UserSimulator, _build_system_prompt
 
@@ -22,7 +22,7 @@ def test_get_initial_message() -> None:
         initial_message="Do you ship to Canada?",
         user_context=None,
         expected_outcomes=None,
-        config=SimulatorConfig(mode=SimulatorMode.LLM),
+        config=UserSimulatorConfig(mode=SimulatorMode.LLM),
     )
     assert sim.get_initial_message() == "Do you ship to Canada?"
 
@@ -40,7 +40,7 @@ async def test_llm_mode_generates_message() -> None:
         initial_message="Hi",
         user_context=None,
         expected_outcomes=None,
-        config=SimulatorConfig(mode=SimulatorMode.LLM, model="gpt-4o-mini"),
+        config=UserSimulatorConfig(mode=SimulatorMode.LLM, model="gpt-4o-mini"),
     )
     with patch(
         "app.services.user_simulator.call_llm",
@@ -70,7 +70,7 @@ async def test_llm_mode_prepends_system_prompt() -> None:
         initial_message="x",
         user_context=None,
         expected_outcomes=None,
-        config=SimulatorConfig(mode=SimulatorMode.LLM, model="gpt-4o-mini"),
+        config=UserSimulatorConfig(mode=SimulatorMode.LLM, model="gpt-4o-mini"),
     )
     with patch(
         "app.services.user_simulator.call_llm",
@@ -94,7 +94,7 @@ async def test_llm_mode_system_prompt_contains_persona() -> None:
         initial_message="x",
         user_context=None,
         expected_outcomes=None,
-        config=SimulatorConfig(mode=SimulatorMode.LLM, model="gpt-4o-mini"),
+        config=UserSimulatorConfig(mode=SimulatorMode.LLM, model="gpt-4o-mini"),
     )
     with patch(
         "app.services.user_simulator.call_llm",
@@ -119,7 +119,7 @@ async def test_llm_mode_system_prompt_contains_context() -> None:
         initial_message="x",
         user_context=ctx,
         expected_outcomes=outcomes,
-        config=SimulatorConfig(mode=SimulatorMode.LLM, model="gpt-4o-mini"),
+        config=UserSimulatorConfig(mode=SimulatorMode.LLM, model="gpt-4o-mini"),
     )
     with patch(
         "app.services.user_simulator.call_llm",
@@ -140,7 +140,7 @@ async def test_scripted_mode_returns_messages_in_order() -> None:
         initial_message="First",
         user_context=None,
         expected_outcomes=None,
-        config=SimulatorConfig(
+        config=UserSimulatorConfig(
             mode=SimulatorMode.SCRIPTED,
             scripted_messages=["Second", "Third"],
         ),
@@ -160,7 +160,7 @@ async def test_scripted_mode_is_exhausted() -> None:
         initial_message="x",
         user_context=None,
         expected_outcomes=None,
-        config=SimulatorConfig(
+        config=UserSimulatorConfig(
             mode=SimulatorMode.SCRIPTED,
             scripted_messages=["only"],
         ),
@@ -172,15 +172,18 @@ async def test_scripted_mode_is_exhausted() -> None:
 
 @pytest.mark.asyncio
 async def test_scripted_mode_raises_when_exhausted() -> None:
+    # Empty scripted list is invalid for UserSimulatorConfig validation; use
+    # model_construct to simulate an already-exhausted scripted buffer.
+    bad_config = UserSimulatorConfig.model_construct(
+        mode=SimulatorMode.SCRIPTED,
+        scripted_messages=[],
+    )
     sim = UserSimulator(
         persona=_persona(),
         initial_message="x",
         user_context=None,
         expected_outcomes=None,
-        config=SimulatorConfig(
-            mode=SimulatorMode.SCRIPTED,
-            scripted_messages=[],
-        ),
+        config=bad_config,
     )
     assert sim.is_exhausted
     with pytest.raises(RuntimeError, match="No more scripted"):

@@ -7,7 +7,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import app as app_pkg
-from app.models.enums import RunStatus, ScenarioStatus, TurnRole
+from app.models.enums import AgentMode, RunStatus, ScenarioStatus, TurnRole
 from app.models.run import Run
 from app.models.scenario import Scenario
 from app.models.scenario_result import ScenarioResult
@@ -158,6 +158,9 @@ class TestExecuteSingleScenario:
                 scenario=scenario,
                 agent_endpoint_url="http://localhost:8080/agent",
                 config=RunConfig(),
+                agent_mode=AgentMode.ENDPOINT,
+                agent_model=None,
+                agent_provider=None,
                 agent_system_prompt=None,
                 agent_tools=None,
                 semaphore=asyncio.Semaphore(5),
@@ -194,6 +197,9 @@ class TestExecuteSingleScenario:
                 scenario=scenario,
                 agent_endpoint_url="http://localhost:8080/agent",
                 config=RunConfig(),
+                agent_mode=AgentMode.ENDPOINT,
+                agent_model=None,
+                agent_provider=None,
                 agent_system_prompt=None,
                 agent_tools=None,
                 semaphore=asyncio.Semaphore(5),
@@ -232,6 +238,9 @@ class TestExecuteSingleScenario:
                 scenario=scenario,
                 agent_endpoint_url="http://localhost:8080/agent",
                 config=RunConfig(),
+                agent_mode=AgentMode.ENDPOINT,
+                agent_model=None,
+                agent_provider=None,
                 agent_system_prompt=None,
                 agent_tools=None,
                 semaphore=asyncio.Semaphore(5),

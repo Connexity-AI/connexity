@@ -4,6 +4,7 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.models import Agent, AgentCreate, AgentUpdate
+from app.models.agent import validate_agent_mode_requirements
 
 
 def create_agent(*, session: Session, agent_in: AgentCreate) -> Agent:
@@ -29,6 +30,12 @@ def list_agents(
 def update_agent(*, session: Session, db_agent: Agent, agent_in: AgentUpdate) -> Agent:
     update_data = agent_in.model_dump(exclude_unset=True)
     db_agent.sqlmodel_update(update_data)
+    validate_agent_mode_requirements(
+        mode=db_agent.mode,
+        endpoint_url=db_agent.endpoint_url,
+        system_prompt=db_agent.system_prompt,
+        agent_model=db_agent.agent_model,
+    )
     session.add(db_agent)
     session.commit()
     session.refresh(db_agent)

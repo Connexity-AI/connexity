@@ -42,6 +42,7 @@ from app.models.custom_metric import (  # noqa: F401
 
 # ── Enums ──────────────────────────────────────────────────────────
 from app.models.enums import (  # noqa: F401
+    AgentMode,
     Difficulty,
     MetricTier,
     RunStatus,
@@ -99,6 +100,7 @@ from app.models.scenario_set import (  # noqa: F401
 
 # ── JSONB nested schemas (pure Pydantic) ───────────────────────────
 from app.models.schemas import (  # noqa: F401
+    AgentSimulatorConfig,
     AggregateMetrics,
     ConversationTurn,
     ExpectedToolCall,
@@ -108,9 +110,9 @@ from app.models.schemas import (  # noqa: F401
     MetricSelection,
     Persona,
     RunConfig,
-    SimulatorConfig,
     ToolCall,
     ToolCallFunction,
+    UserSimulatorConfig,
 )
 
 # ── Existing user models ──────────────────────────────────────────

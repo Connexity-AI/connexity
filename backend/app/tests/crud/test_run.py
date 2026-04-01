@@ -3,8 +3,9 @@ from datetime import UTC, datetime
 from sqlmodel import Session
 
 from app import crud
-from app.models import RunStatus, RunUpdate
-from app.models.schemas import RunConfig
+from app.models import AgentCreate, RunCreate, RunStatus, RunUpdate
+from app.models.enums import AgentMode
+from app.models.schemas import AgentSimulatorConfig, JudgeConfig, RunConfig
 from app.tests.utils.eval import (
     create_test_agent,
     create_test_run,
@@ -21,6 +22,77 @@ def _setup_run(db: Session) -> tuple:
     return agent, scenario_set
 
 
+def test_enrich_run_create_fills_endpoint_snapshot(db: Session) -> None:
+    agent, scenario_set = _setup_run(db)
+    run_in = RunCreate(
+        agent_id=agent.id,
+        scenario_set_id=scenario_set.id,
+    )
+    enriched = crud.enrich_run_create_from_agent(run_in=run_in, agent=agent)
+    assert enriched.agent_endpoint_url == "http://localhost:8080/agent"
+    assert enriched.agent_mode == AgentMode.ENDPOINT.value
+
+
+def test_enrich_run_create_platform_agent(db: Session) -> None:
+    agent_in = AgentCreate(
+        name="platform-agent",
+        mode=AgentMode.PLATFORM,
+        system_prompt="Be concise.",
+        agent_model="gpt-4o-mini",
+        agent_provider="openai",
+    )
+    agent = crud.create_agent(session=db, agent_in=agent_in)
+    scenario_set = create_test_scenario_set(db)
+    run_in = RunCreate(agent_id=agent.id, scenario_set_id=scenario_set.id)
+    enriched = crud.enrich_run_create_from_agent(run_in=run_in, agent=agent)
+    assert enriched.agent_mode == AgentMode.PLATFORM.value
+    assert enriched.agent_model == "gpt-4o-mini"
+    assert enriched.agent_provider == "openai"
+    assert enriched.agent_system_prompt == "Be concise."
+
+
+def test_enrich_run_create_platform_agent_simulator_model_override(db: Session) -> None:
+    agent_in = AgentCreate(
+        name="platform-agent-override",
+        mode=AgentMode.PLATFORM,
+        system_prompt="Be concise.",
+        agent_model="gpt-4o-mini",
+        agent_provider="openai",
+    )
+    agent = crud.create_agent(session=db, agent_in=agent_in)
+    scenario_set = create_test_scenario_set(db)
+    run_in = RunCreate(
+        agent_id=agent.id,
+        scenario_set_id=scenario_set.id,
+        config=RunConfig(agent_simulator=AgentSimulatorConfig(model="gpt-4o")),
+    )
+    enriched = crud.enrich_run_create_from_agent(run_in=run_in, agent=agent)
+    assert enriched.agent_model == "gpt-4o"
+    assert enriched.agent_provider == "openai"
+
+
+def test_enrich_run_create_platform_agent_simulator_provider_override(db: Session) -> None:
+    agent_in = AgentCreate(
+        name="platform-agent-prov-override",
+        mode=AgentMode.PLATFORM,
+        system_prompt="Hi",
+        agent_model="claude-3-5-haiku-20241022",
+        agent_provider="openai",
+    )
+    agent = crud.create_agent(session=db, agent_in=agent_in)
+    scenario_set = create_test_scenario_set(db)
+    run_in = RunCreate(
+        agent_id=agent.id,
+        scenario_set_id=scenario_set.id,
+        config=RunConfig(
+            agent_simulator=AgentSimulatorConfig(provider="anthropic"),
+        ),
+    )
+    enriched = crud.enrich_run_create_from_agent(run_in=run_in, agent=agent)
+    assert enriched.agent_model == "claude-3-5-haiku-20241022"
+    assert enriched.agent_provider == "anthropic"
+
+
 def test_create_run(db: Session) -> None:
     agent, scenario_set = _setup_run(db)
     run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
@@ -31,8 +103,6 @@ def test_create_run(db: Session) -> None:
 
 
 def test_create_run_with_config(db: Session) -> None:
-    from app.models import JudgeConfig, RunCreate
-
     agent, scenario_set = _setup_run(db)
     config = RunConfig(judge=JudgeConfig(model="claude-3-5-sonnet"), concurrency=3)
     run_in = RunCreate(

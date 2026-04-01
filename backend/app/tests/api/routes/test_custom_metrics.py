@@ -100,11 +100,14 @@ def test_create_duplicate_name_same_user(
 ) -> None:
     name = f"dup_{uuid.uuid4().hex[:10]}"
     body = _create_body(name=name)
-    assert client.post(
-        f"{settings.API_V1_STR}/custom-metrics/",
-        json=body,
-        cookies=superuser_auth_cookies,
-    ).status_code == 200
+    assert (
+        client.post(
+            f"{settings.API_V1_STR}/custom-metrics/",
+            json=body,
+            cookies=superuser_auth_cookies,
+        ).status_code
+        == 200
+    )
     r2 = client.post(
         f"{settings.API_V1_STR}/custom-metrics/",
         json=body,

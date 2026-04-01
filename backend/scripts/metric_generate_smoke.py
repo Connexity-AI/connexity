@@ -31,8 +31,6 @@ HTTP (backend on 8000) — generates via API, then **saves** ``POST /custom-metr
         --no-persist -d "Quick rubric preview"
 """
 
-from __future__ import annotations
-
 import argparse
 import asyncio
 import json

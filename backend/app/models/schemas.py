@@ -2,7 +2,7 @@
 
 These are NOT database tables — they serialize into JSONB columns
 on the ORM table models (Run, ScenarioResult, Scenario). Run execution
-helpers (:class:`RunConfig`, :class:`SimulatorConfig`, :class:`JudgeConfig`)
+helpers (:class:`RunConfig`, :class:`UserSimulatorConfig`, :class:`JudgeConfig`)
 live here so API and services share one definition.
 """
 
@@ -65,7 +65,7 @@ class JudgeConfig(BaseModel):
     )
 
 
-class SimulatorConfig(BaseModel):
+class UserSimulatorConfig(BaseModel):
     """User simulator behavior (LLM persona vs scripted replay) and LLM overrides."""
 
     mode: SimulatorMode = Field(
@@ -92,11 +92,35 @@ class SimulatorConfig(BaseModel):
     )
 
     @model_validator(mode="after")
-    def scripted_mode_requires_messages(self) -> "SimulatorConfig":
+    def scripted_mode_requires_messages(self) -> "UserSimulatorConfig":
         if self.mode == SimulatorMode.SCRIPTED and not self.scripted_messages:
             msg = "scripted_messages must be non-empty when mode is 'scripted'"
             raise ValueError(msg)
         return self
+
+
+class AgentSimulatorConfig(BaseModel):
+    """Agent simulator LLM overrides (only used when agent mode is platform)."""
+
+    model: str | None = Field(
+        default=None,
+        description="Override agent_model for this run",
+    )
+    provider: str | None = Field(
+        default=None,
+        description="Override agent agent_provider for this run",
+    )
+    temperature: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=2.0,
+        description="Sampling temperature for agent simulator LLM",
+    )
+    max_tokens: int | None = Field(
+        default=None,
+        ge=1,
+        description="Max completion tokens for agent simulator LLM",
+    )
 
 
 class RunConfig(BaseModel):
@@ -109,11 +133,17 @@ class RunConfig(BaseModel):
         default=None,
         description="Judge metric selection, weights, pass threshold, and model overrides",
     )
-    simulator: SimulatorConfig | None = Field(
+    user_simulator: UserSimulatorConfig | None = Field(
         default=None,
         description=(
             "User simulator: LLM vs scripted replay, model/provider overrides, temperature. "
             "Omitted fields use app LLM defaults."
+        ),
+    )
+    agent_simulator: AgentSimulatorConfig | None = Field(
+        default=None,
+        description=(
+            "Agent simulator LLM overrides. Only applies when the agent mode is platform."
         ),
     )
 

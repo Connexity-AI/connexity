@@ -5,6 +5,7 @@ import logging
 import statistics
 import time
 import uuid
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -20,7 +21,7 @@ from app.models.agent_contract import (
     ChatMessage,
     TokenUsage,
 )
-from app.models.enums import SimulatorMode, TurnRole
+from app.models.enums import AgentMode, SimulatorMode, TurnRole
 from app.models.scenario import Scenario
 from app.models.scenario_result import ScenarioResult
 from app.models.schemas import (
@@ -29,9 +30,10 @@ from app.models.schemas import (
     JudgeVerdict,
     Persona,
     RunConfig,
-    SimulatorConfig,
     ToolCall,
+    UserSimulatorConfig,
 )
+from app.services.agent_simulator import AgentSimulator
 from app.services.cost_tracker import (
     ScenarioTokenAccumulator,
     estimate_agent_cost,
@@ -44,6 +46,16 @@ from app.services.llm import LLMMessage
 from app.services.user_simulator import UserSimulator
 
 logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def _agent_http_client(agent_mode: AgentMode):
+    """HTTP client only for endpoint-mode agents."""
+    if agent_mode == AgentMode.ENDPOINT:
+        async with httpx.AsyncClient() as client:
+            yield client
+    else:
+        yield None
 
 
 @dataclass(frozen=True)
@@ -225,9 +237,12 @@ async def call_agent(
 
 async def run_scenario(
     scenario: Scenario,
-    agent_endpoint_url: str,
+    agent_endpoint_url: str | None,
     config: RunConfig,
     *,
+    agent_mode: AgentMode = AgentMode.ENDPOINT,
+    agent_model: str | None = None,
+    agent_provider: str | None = None,
     agent_system_prompt: str | None = None,
     agent_tools: list[dict[str, Any]] | None = None,
     cancel_event: asyncio.Event | None = None,
@@ -241,7 +256,7 @@ async def run_scenario(
     Stops when ``scenario.max_turns`` agent rounds are done, scripted lines are
     exhausted, timeout is hit, or the agent call fails.
     """
-    sim_cfg = config.simulator or SimulatorConfig()
+    sim_cfg = config.user_simulator or UserSimulatorConfig()
     persona = _persona_from_scenario(scenario)
     initial = scenario.initial_message or ""
     simulator = UserSimulator(
@@ -251,6 +266,22 @@ async def run_scenario(
         expected_outcomes=scenario.expected_outcomes,
         config=sim_cfg,
     )
+
+    agent_simulator: AgentSimulator | None = None
+    if agent_mode == AgentMode.PLATFORM:
+        model_id = (agent_model or "").strip()
+        if not model_id:
+            logger.error(
+                "Platform agent mode requires agent_model on the run snapshot; scenario %s",
+                scenario.id,
+            )
+        agent_simulator = AgentSimulator(
+            system_prompt=agent_system_prompt or "",
+            tools=agent_tools,
+            agent_model=model_id or (settings.LLM_DEFAULT_MODEL or "gpt-4o"),
+            agent_provider=agent_provider,
+            config=config.agent_simulator,
+        )
 
     acc = ScenarioTokenAccumulator()
     transcript: list[ConversationTurn] = []
@@ -298,7 +329,7 @@ async def run_scenario(
     started = time.perf_counter()
     timeout_ms = config.timeout_per_scenario_ms
 
-    async with httpx.AsyncClient() as client:
+    async with _agent_http_client(agent_mode) as client:
         while True:
             if cancel_event is not None and cancel_event.is_set():
                 logger.warning("Scenario %s stopped: run cancelled", scenario.id)
@@ -338,52 +369,104 @@ async def run_scenario(
                 turn_index=len(transcript),
             )
             remaining_ms = max(1, timeout_ms - elapsed_ms)
-            try:
-                response, round_latency = await call_agent(
-                    agent_endpoint_url,
-                    agent_messages,
-                    timeout_ms=remaining_ms,
-                    metadata=meta,
-                    client=client,
-                )
-            except AgentCallError as e:
-                logger.warning("Agent call failed for scenario %s: %s", scenario.id, e)
-                transcript.append(
-                    build_conversation_turn(
-                        index=len(transcript),
-                        role=TurnRole.ASSISTANT,
-                        content=f"[agent_error] {e!s}",
-                        latency_ms=None,
+            if agent_mode == AgentMode.PLATFORM:
+                assert agent_simulator is not None
+                try:
+                    plat = await agent_simulator.generate_response(agent_messages)
+                except Exception as e:
+                    logger.warning(
+                        "Platform agent simulator failed for scenario %s: %s",
+                        scenario.id,
+                        e,
                     )
-                )
-                break
+                    transcript.append(
+                        build_conversation_turn(
+                            index=len(transcript),
+                            role=TurnRole.ASSISTANT,
+                            content=f"[agent_error] {e!s}",
+                            latency_ms=None,
+                        )
+                    )
+                    break
 
-            agent_rounds += 1
-            reported = _reported_agent_usage(response.usage)
-            if reported is not None:
-                acc.add_agent_usage(reported)
+                agent_rounds += 1
+                usage_map = plat.token_usage
+                if usage_map:
+                    acc.add_agent_usage(usage_map)
+                if plat.cost_usd is not None:
+                    acc.add_agent_cost(plat.cost_usd)
+                response = AgentResponse(
+                    messages=plat.messages,
+                    model=plat.model,
+                    provider=plat.provider,
+                    usage=TokenUsage(
+                        prompt_tokens=usage_map.get("prompt_tokens"),
+                        completion_tokens=usage_map.get("completion_tokens"),
+                        total_tokens=usage_map.get("total_tokens"),
+                    ),
+                )
+                _append_agent_response(transcript, response, plat.latency_ms)
             else:
-                estimated = estimate_agent_tokens(
-                    prompt_messages=agent_messages,
-                    response_messages=response.messages,
-                    agent_system_prompt=agent_system_prompt,
-                    agent_tools=agent_tools,
-                    model=response.model,
-                    fallback_model=settings.LLM_DEFAULT_MODEL,
-                )
-                acc.add_agent_usage(estimated)
-                reported = estimated
-
-            if reported.get("prompt_tokens") or reported.get("completion_tokens"):
-                acc.add_agent_cost(
-                    estimate_agent_cost(
-                        model=response.model,
-                        provider=response.provider,
-                        usage=reported,
+                if not agent_endpoint_url:
+                    logger.error("Endpoint mode missing agent_endpoint_url")
+                    transcript.append(
+                        build_conversation_turn(
+                            index=len(transcript),
+                            role=TurnRole.ASSISTANT,
+                            content="[agent_error] missing agent endpoint URL",
+                            latency_ms=None,
+                        )
                     )
-                )
+                    break
+                assert client is not None
+                try:
+                    response, round_latency = await call_agent(
+                        agent_endpoint_url,
+                        agent_messages,
+                        timeout_ms=remaining_ms,
+                        metadata=meta,
+                        client=client,
+                    )
+                except AgentCallError as e:
+                    logger.warning(
+                        "Agent call failed for scenario %s: %s", scenario.id, e
+                    )
+                    transcript.append(
+                        build_conversation_turn(
+                            index=len(transcript),
+                            role=TurnRole.ASSISTANT,
+                            content=f"[agent_error] {e!s}",
+                            latency_ms=None,
+                        )
+                    )
+                    break
 
-            _append_agent_response(transcript, response, round_latency)
+                agent_rounds += 1
+                reported = _reported_agent_usage(response.usage)
+                if reported is not None:
+                    acc.add_agent_usage(reported)
+                else:
+                    estimated = estimate_agent_tokens(
+                        prompt_messages=agent_messages,
+                        response_messages=response.messages,
+                        agent_system_prompt=agent_system_prompt,
+                        agent_tools=agent_tools,
+                        model=response.model,
+                        fallback_model=settings.LLM_DEFAULT_MODEL,
+                    )
+                    acc.add_agent_usage(estimated)
+                    reported = estimated
+
+                if reported.get("prompt_tokens") or reported.get("completion_tokens"):
+                    acc.add_agent_cost(
+                        estimate_agent_cost(
+                            model=response.model,
+                            provider=response.provider,
+                            usage=reported,
+                        )
+                    )
+
+                _append_agent_response(transcript, response, round_latency)
 
             if sim_cfg.mode == SimulatorMode.SCRIPTED and simulator.is_exhausted:
                 break
@@ -423,9 +506,12 @@ async def run_scenario(
 
 async def run_scenario_with_evaluation(
     scenario: Scenario,
-    agent_endpoint_url: str,
+    agent_endpoint_url: str | None,
     config: RunConfig,
     *,
+    agent_mode: AgentMode = AgentMode.ENDPOINT,
+    agent_model: str | None = None,
+    agent_provider: str | None = None,
     agent_system_prompt: str | None = None,
     agent_tools: list[dict[str, Any]] | None = None,
     cancel_event: asyncio.Event | None = None,
@@ -440,6 +526,9 @@ async def run_scenario_with_evaluation(
         scenario,
         agent_endpoint_url,
         config,
+        agent_mode=agent_mode,
+        agent_model=agent_model,
+        agent_provider=agent_provider,
         agent_system_prompt=agent_system_prompt,
         agent_tools=agent_tools,
         cancel_event=cancel_event,
@@ -529,11 +618,23 @@ def compute_aggregate_metrics(
     )
 
 
+def _parse_run_agent_mode(raw: str | None) -> AgentMode:
+    if not raw:
+        return AgentMode.ENDPOINT
+    try:
+        return AgentMode(raw)
+    except ValueError:
+        return AgentMode.ENDPOINT
+
+
 async def _execute_single_scenario(
     run_id: uuid.UUID,
     scenario: Scenario,
-    agent_endpoint_url: str,
+    agent_endpoint_url: str | None,
     config: RunConfig,
+    agent_mode: AgentMode,
+    agent_model: str | None,
+    agent_provider: str | None,
     agent_system_prompt: str | None,
     agent_tools: list[dict[str, Any]] | None,
     semaphore: asyncio.Semaphore,
@@ -574,6 +675,9 @@ async def _execute_single_scenario(
                 scenario=scenario,
                 agent_endpoint_url=agent_endpoint_url,
                 config=config,
+                agent_mode=agent_mode,
+                agent_model=agent_model,
+                agent_provider=agent_provider,
                 agent_system_prompt=agent_system_prompt,
                 agent_tools=agent_tools,
                 cancel_event=cancel_event,
@@ -786,6 +890,9 @@ async def execute_run(run_id: uuid.UUID) -> None:
             agent_endpoint_url = run.agent_endpoint_url
             agent_system_prompt = run.agent_system_prompt
             agent_tools = run.agent_tools
+            agent_mode = _parse_run_agent_mode(run.agent_mode)
+            agent_model = run.agent_model
+            agent_provider = run.agent_provider
             metrics_owner_id = run.created_by
 
         state.progress.total_scenarios = len(scenarios)
@@ -802,6 +909,9 @@ async def execute_run(run_id: uuid.UUID) -> None:
                 scenario=scenario,
                 agent_endpoint_url=agent_endpoint_url,
                 config=config,
+                agent_mode=agent_mode,
+                agent_model=agent_model,
+                agent_provider=agent_provider,
                 agent_system_prompt=agent_system_prompt,
                 agent_tools=agent_tools,
                 semaphore=semaphore,
