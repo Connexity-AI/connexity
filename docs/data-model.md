@@ -15,7 +15,12 @@ erDiagram
         uuid id PK
         string name
         string description
+        enum mode
         string endpoint_url
+        text system_prompt
+        jsonb tools
+        string agent_model
+        string agent_provider
         jsonb metadata
         timestamp created_at
         timestamp updated_at
@@ -61,8 +66,9 @@ erDiagram
         string agent_endpoint_url
         text agent_system_prompt
         jsonb agent_tools
-        string prompt_version
-        text prompt_snapshot
+        string agent_mode
+        string agent_model
+        string agent_provider
         jsonb tools_snapshot
         string tools_snapshot_hash
         uuid scenario_set_id FK
@@ -108,6 +114,7 @@ erDiagram
 | `ScenarioStatus` | `draft`, `active`, `archived` |
 | `RunStatus` | `pending`, `running`, `completed`, `failed`, `cancelled` |
 | `TurnRole` | `user`, `assistant`, `system`, `tool` |
+| `AgentMode` | `endpoint`, `platform` |
 
 ## JSONB Nested Entities
 
@@ -120,7 +127,8 @@ These are stored inside JSONB columns, not as separate tables.
 | `concurrency` | `int` | `5` |
 | `timeout_per_scenario_ms` | `int` | `120000` |
 | `judge` | `JudgeConfig \| None` | `None` |
-| `simulator` | `SimulatorConfig \| None` | `None` |
+| `user_simulator` | `UserSimulatorConfig \| None` | `None` |
+| `agent_simulator` | `AgentSimulatorConfig \| None` | `None` |
 
 ### JudgeConfig (nested in `RunConfig.judge`)
 
@@ -131,7 +139,7 @@ These are stored inside JSONB columns, not as separate tables.
 | `model` | `str \| None` | `None` |
 | `provider` | `str \| None` | `None` |
 
-### SimulatorConfig (nested in `RunConfig.simulator`)
+### UserSimulatorConfig (nested in `RunConfig.user_simulator`)
 
 | Field | Type | Default |
 |-------|------|---------|
@@ -140,6 +148,15 @@ These are stored inside JSONB columns, not as separate tables.
 | `model` | `str \| None` | `None` |
 | `provider` | `str \| None` | `None` |
 | `temperature` | `float \| None` | `None` |
+
+### AgentSimulatorConfig (nested in `RunConfig.agent_simulator`)
+
+| Field | Type | Default |
+|-------|------|---------|
+| `model` | `str \| None` | `None` |
+| `provider` | `str \| None` | `None` |
+| `temperature` | `float \| None` | `None` |
+| `max_tokens` | `int \| None` | `None` |
 
 ### ConversationTurn (stored in `scenario_results.transcript`)
 

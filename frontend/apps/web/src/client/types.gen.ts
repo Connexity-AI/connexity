@@ -21,11 +21,41 @@ export type AgentCreate = {
    */
   description?: string | null;
   /**
+   * endpoint: HTTP agent; platform: LLM simulated on the platform
+   */
+  mode?: AgentMode;
+  /**
    * Endpoint Url
    *
-   * URL of the agent's API endpoint
+   * URL of the agent's API endpoint (required when mode=endpoint)
    */
-  endpoint_url: string;
+  endpoint_url?: string | null;
+  /**
+   * System Prompt
+   *
+   * System prompt for platform agent simulator (required when mode=platform)
+   */
+  system_prompt?: string | null;
+  /**
+   * Tools
+   *
+   * OpenAI-format tool definitions for platform agent simulator
+   */
+  tools?: Array<{
+    [key: string]: unknown;
+  }> | null;
+  /**
+   * Agent Model
+   *
+   * LLM model for platform agent simulator (required when mode=platform)
+   */
+  agent_model?: string | null;
+  /**
+   * Agent Provider
+   *
+   * LLM provider for platform agent simulator (e.g. openai, anthropic)
+   */
+  agent_provider?: string | null;
   /**
    * Agent Metadata
    *
@@ -35,6 +65,16 @@ export type AgentCreate = {
     [key: string]: unknown;
   } | null;
 };
+
+/**
+ * AgentMode
+ */
+export const AgentMode = { ENDPOINT: 'endpoint', PLATFORM: 'platform' } as const;
+
+/**
+ * AgentMode
+ */
+export type AgentMode = (typeof AgentMode)[keyof typeof AgentMode];
 
 /**
  * AgentPublic
@@ -53,11 +93,41 @@ export type AgentPublic = {
    */
   description?: string | null;
   /**
+   * endpoint: HTTP agent; platform: LLM simulated on the platform
+   */
+  mode?: AgentMode;
+  /**
    * Endpoint Url
    *
-   * URL of the agent's API endpoint
+   * URL of the agent's API endpoint (required when mode=endpoint)
    */
-  endpoint_url: string;
+  endpoint_url?: string | null;
+  /**
+   * System Prompt
+   *
+   * System prompt for platform agent simulator (required when mode=platform)
+   */
+  system_prompt?: string | null;
+  /**
+   * Tools
+   *
+   * OpenAI-format tool definitions for platform agent simulator
+   */
+  tools?: Array<{
+    [key: string]: unknown;
+  }> | null;
+  /**
+   * Agent Model
+   *
+   * LLM model for platform agent simulator (required when mode=platform)
+   */
+  agent_model?: string | null;
+  /**
+   * Agent Provider
+   *
+   * LLM provider for platform agent simulator (e.g. openai, anthropic)
+   */
+  agent_provider?: string | null;
   /**
    * Agent Metadata
    *
@@ -87,6 +157,38 @@ export type AgentPublic = {
 };
 
 /**
+ * AgentSimulatorConfig
+ *
+ * Agent simulator LLM overrides (only used when agent mode is platform).
+ */
+export type AgentSimulatorConfig = {
+  /**
+   * Model
+   *
+   * Override agent agent_model for this run
+   */
+  model?: string | null;
+  /**
+   * Provider
+   *
+   * Override agent agent_provider for this run
+   */
+  provider?: string | null;
+  /**
+   * Temperature
+   *
+   * Sampling temperature for agent simulator LLM
+   */
+  temperature?: number | null;
+  /**
+   * Max Tokens
+   *
+   * Max completion tokens for agent simulator LLM
+   */
+  max_tokens?: number | null;
+};
+
+/**
  * AgentUpdate
  */
 export type AgentUpdate = {
@@ -103,11 +205,41 @@ export type AgentUpdate = {
    */
   description?: string | null;
   /**
+   * endpoint: HTTP agent; platform: LLM simulated on the platform
+   */
+  mode?: AgentMode | null;
+  /**
    * Endpoint Url
    *
    * URL of the agent's API endpoint
    */
   endpoint_url?: string | null;
+  /**
+   * System Prompt
+   *
+   * System prompt for platform agent simulator
+   */
+  system_prompt?: string | null;
+  /**
+   * Tools
+   *
+   * OpenAI-format tool definitions for platform agent simulator
+   */
+  tools?: Array<{
+    [key: string]: unknown;
+  }> | null;
+  /**
+   * Agent Model
+   *
+   * LLM model for platform agent simulator
+   */
+  agent_model?: string | null;
+  /**
+   * Agent Provider
+   *
+   * LLM provider for platform agent simulator
+   */
+  agent_provider?: string | null;
   /**
    * Agent Metadata
    *
@@ -210,6 +342,18 @@ export type AggregateMetrics = {
   total_platform_token_usage?: {
     [key: string]: number;
   } | null;
+  /**
+   * Total Agent Cost Usd
+   *
+   * Total estimated agent cost in USD for the entire run
+   */
+  total_agent_cost_usd?: number | null;
+  /**
+   * Total Platform Cost Usd
+   *
+   * Total estimated platform cost in USD (simulator + judge) for the entire run
+   */
+  total_platform_cost_usd?: number | null;
   /**
    * Total Estimated Cost Usd
    *
@@ -1030,7 +1174,11 @@ export type RunConfigInput = {
   /**
    * User simulator: LLM vs scripted replay, model/provider overrides, temperature. Omitted fields use app LLM defaults.
    */
-  simulator?: SimulatorConfig | null;
+  user_simulator?: UserSimulatorConfig | null;
+  /**
+   * Agent simulator LLM overrides. Only applies when the agent mode is platform.
+   */
+  agent_simulator?: AgentSimulatorConfig | null;
 };
 
 /**
@@ -1056,7 +1204,11 @@ export type RunConfigOutput = {
   /**
    * User simulator: LLM vs scripted replay, model/provider overrides, temperature. Omitted fields use app LLM defaults.
    */
-  simulator?: SimulatorConfig | null;
+  user_simulator?: UserSimulatorConfig | null;
+  /**
+   * Agent simulator LLM overrides. Only applies when the agent mode is platform.
+   */
+  agent_simulator?: AgentSimulatorConfig | null;
 };
 
 /**
@@ -1080,7 +1232,7 @@ export type RunCreate = {
    *
    * Agent endpoint URL snapshot captured at run start
    */
-  agent_endpoint_url: string;
+  agent_endpoint_url?: string | null;
   /**
    * Agent System Prompt
    *
@@ -1096,17 +1248,23 @@ export type RunCreate = {
     [key: string]: unknown;
   }> | null;
   /**
-   * Prompt Version
+   * Agent Mode
    *
-   * Semantic version tag of the prompt used
+   * Agent mode snapshot: endpoint or platform
    */
-  prompt_version?: string | null;
+  agent_mode?: string | null;
   /**
-   * Prompt Snapshot
+   * Agent Model
    *
-   * Full text of the system prompt at run time
+   * Effective LLM model for platform agent simulator for this run
    */
-  prompt_snapshot?: string | null;
+  agent_model?: string | null;
+  /**
+   * Agent Provider
+   *
+   * Effective LLM provider for platform agent simulator for this run
+   */
+  agent_provider?: string | null;
   /**
    * Tools Snapshot
    *
@@ -1178,13 +1336,31 @@ export type RunPublic = {
    *
    * Agent endpoint URL snapshot captured at run start
    */
-  agent_endpoint_url: string;
+  agent_endpoint_url?: string | null;
   /**
    * Agent System Prompt
    *
    * Agent system prompt snapshot captured at run start
    */
-  agent_system_prompt: string | null;
+  agent_system_prompt?: string | null;
+  /**
+   * Agent Mode
+   *
+   * Agent mode snapshot: endpoint or platform
+   */
+  agent_mode?: string | null;
+  /**
+   * Agent Model
+   *
+   * Effective LLM model for platform agent simulator for this run
+   */
+  agent_model?: string | null;
+  /**
+   * Agent Provider
+   *
+   * Effective LLM provider for platform agent simulator for this run
+   */
+  agent_provider?: string | null;
   /**
    * Scenario Set Id
    *
@@ -1659,6 +1835,12 @@ export type ScenarioResultPublic = {
    */
   agent_latency_max_ms: number | null;
   /**
+   * Agent Latency Per Turn Ms
+   *
+   * Per-turn agent response latencies in milliseconds
+   */
+  agent_latency_per_turn_ms?: Array<number> | null;
+  /**
    * Agent Token Usage
    *
    * Token usage from the agent; may include estimated=true
@@ -1674,6 +1856,18 @@ export type ScenarioResultPublic = {
   platform_token_usage?: {
     [key: string]: number;
   } | null;
+  /**
+   * Agent Cost Usd
+   *
+   * Estimated agent cost in USD for this scenario
+   */
+  agent_cost_usd?: number | null;
+  /**
+   * Platform Cost Usd
+   *
+   * Estimated platform cost in USD (simulator + judge) for this scenario
+   */
+  platform_cost_usd?: number | null;
   /**
    * Estimated Cost Usd
    *
@@ -1763,6 +1957,12 @@ export type ScenarioResultUpdate = {
    */
   agent_latency_max_ms?: number | null;
   /**
+   * Agent Latency Per Turn Ms
+   *
+   * Per-turn agent response latencies in milliseconds
+   */
+  agent_latency_per_turn_ms?: Array<number> | null;
+  /**
    * Agent Token Usage
    *
    * Token usage from the agent; may include estimated=true
@@ -1778,6 +1978,18 @@ export type ScenarioResultUpdate = {
   platform_token_usage?: {
     [key: string]: number;
   } | null;
+  /**
+   * Agent Cost Usd
+   *
+   * Estimated agent cost in USD for this scenario
+   */
+  agent_cost_usd?: number | null;
+  /**
+   * Platform Cost Usd
+   *
+   * Estimated platform cost in USD (simulator + judge) for this scenario
+   */
+  platform_cost_usd?: number | null;
   /**
    * Estimated Cost Usd
    *
@@ -2072,42 +2284,6 @@ export const ScoreType = { SCORED: 'scored', BINARY: 'binary' } as const;
 export type ScoreType = (typeof ScoreType)[keyof typeof ScoreType];
 
 /**
- * SimulatorConfig
- *
- * User simulator behavior (LLM persona vs scripted replay) and LLM overrides.
- */
-export type SimulatorConfig = {
-  /**
-   * llm: generate via LLM; scripted: replay fixed messages
-   */
-  mode?: SimulatorMode;
-  /**
-   * Scripted Messages
-   *
-   * User lines after initial_message, in order (scripted mode only)
-   */
-  scripted_messages?: Array<string>;
-  /**
-   * Model
-   *
-   * Simulator LLM model override
-   */
-  model?: string | null;
-  /**
-   * Provider
-   *
-   * Simulator LLM provider override
-   */
-  provider?: string | null;
-  /**
-   * Temperature
-   *
-   * Sampling temperature for simulator LLM
-   */
-  temperature?: number | null;
-};
-
-/**
  * SimulatorMode
  */
 export const SimulatorMode = { LLM: 'llm', SCRIPTED: 'scripted' } as const;
@@ -2275,6 +2451,42 @@ export type UserRegister = {
    * Full Name
    */
   full_name?: string | null;
+};
+
+/**
+ * UserSimulatorConfig
+ *
+ * User simulator behavior (LLM persona vs scripted replay) and LLM overrides.
+ */
+export type UserSimulatorConfig = {
+  /**
+   * llm: generate via LLM; scripted: replay fixed messages
+   */
+  mode?: SimulatorMode;
+  /**
+   * Scripted Messages
+   *
+   * User lines after initial_message, in order (scripted mode only)
+   */
+  scripted_messages?: Array<string>;
+  /**
+   * Model
+   *
+   * Simulator LLM model override
+   */
+  model?: string | null;
+  /**
+   * Provider
+   *
+   * Simulator LLM provider override
+   */
+  provider?: string | null;
+  /**
+   * Temperature
+   *
+   * Sampling temperature for simulator LLM
+   */
+  temperature?: number | null;
 };
 
 /**

@@ -5,7 +5,7 @@ import json
 from pydantic import BaseModel, Field
 
 from app.models.enums import SimulatorMode
-from app.models.schemas import Persona, SimulatorConfig
+from app.models.schemas import Persona, UserSimulatorConfig
 from app.services.llm import LLMCallConfig, LLMMessage, call_llm
 
 
@@ -81,7 +81,7 @@ class UserSimulator:
         initial_message: str,
         user_context: dict[str, object] | None,
         expected_outcomes: dict[str, object] | None,
-        config: SimulatorConfig,
+        config: UserSimulatorConfig,
     ) -> None:
         self._persona = persona
         self._initial_message = initial_message

@@ -20,11 +20,76 @@ export const AgentCreateSchema = {
       title: 'Description',
       description: 'What this agent does and its purpose',
     },
+    mode: {
+      $ref: '#/components/schemas/AgentMode',
+      description: 'endpoint: HTTP agent; platform: LLM simulated on the platform',
+      default: 'endpoint',
+    },
     endpoint_url: {
-      type: 'string',
-      maxLength: 2048,
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 2048,
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Endpoint Url',
-      description: "URL of the agent's API endpoint",
+      description: "URL of the agent's API endpoint (required when mode=endpoint)",
+    },
+    system_prompt: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'System Prompt',
+      description: 'System prompt for platform agent simulator (required when mode=platform)',
+    },
+    tools: {
+      anyOf: [
+        {
+          items: {
+            type: 'object',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Tools',
+      description: 'OpenAI-format tool definitions for platform agent simulator',
+    },
+    agent_model: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Model',
+      description: 'LLM model for platform agent simulator (required when mode=platform)',
+    },
+    agent_provider: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 64,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Provider',
+      description: 'LLM provider for platform agent simulator (e.g. openai, anthropic)',
     },
     agent_metadata: {
       anyOf: [
@@ -40,8 +105,14 @@ export const AgentCreateSchema = {
     },
   },
   type: 'object',
-  required: ['name', 'endpoint_url'],
+  required: ['name'],
   title: 'AgentCreate',
+} as const;
+
+export const AgentModeSchema = {
+  type: 'string',
+  enum: ['endpoint', 'platform'],
+  title: 'AgentMode',
 } as const;
 
 export const AgentPublicSchema = {
@@ -64,11 +135,76 @@ export const AgentPublicSchema = {
       title: 'Description',
       description: 'What this agent does and its purpose',
     },
+    mode: {
+      $ref: '#/components/schemas/AgentMode',
+      description: 'endpoint: HTTP agent; platform: LLM simulated on the platform',
+      default: 'endpoint',
+    },
     endpoint_url: {
-      type: 'string',
-      maxLength: 2048,
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 2048,
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Endpoint Url',
-      description: "URL of the agent's API endpoint",
+      description: "URL of the agent's API endpoint (required when mode=endpoint)",
+    },
+    system_prompt: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'System Prompt',
+      description: 'System prompt for platform agent simulator (required when mode=platform)',
+    },
+    tools: {
+      anyOf: [
+        {
+          items: {
+            type: 'object',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Tools',
+      description: 'OpenAI-format tool definitions for platform agent simulator',
+    },
+    agent_model: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Model',
+      description: 'LLM model for platform agent simulator (required when mode=platform)',
+    },
+    agent_provider: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 64,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Provider',
+      description: 'LLM provider for platform agent simulator (e.g. openai, anthropic)',
     },
     agent_metadata: {
       anyOf: [
@@ -102,8 +238,67 @@ export const AgentPublicSchema = {
     },
   },
   type: 'object',
-  required: ['name', 'endpoint_url', 'id', 'created_at', 'updated_at'],
+  required: ['name', 'id', 'created_at', 'updated_at'],
   title: 'AgentPublic',
+} as const;
+
+export const AgentSimulatorConfigSchema = {
+  properties: {
+    model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Model',
+      description: 'Override agent agent_model for this run',
+    },
+    provider: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Provider',
+      description: 'Override agent agent_provider for this run',
+    },
+    temperature: {
+      anyOf: [
+        {
+          type: 'number',
+          maximum: 2,
+          minimum: 0,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Temperature',
+      description: 'Sampling temperature for agent simulator LLM',
+    },
+    max_tokens: {
+      anyOf: [
+        {
+          type: 'integer',
+          minimum: 1,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Max Tokens',
+      description: 'Max completion tokens for agent simulator LLM',
+    },
+  },
+  type: 'object',
+  title: 'AgentSimulatorConfig',
+  description: 'Agent simulator LLM overrides (only used when agent mode is platform).',
 } as const;
 
 export const AgentUpdateSchema = {
@@ -133,6 +328,17 @@ export const AgentUpdateSchema = {
       title: 'Description',
       description: 'What this agent does and its purpose',
     },
+    mode: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/AgentMode',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'endpoint: HTTP agent; platform: LLM simulated on the platform',
+    },
     endpoint_url: {
       anyOf: [
         {
@@ -145,6 +351,59 @@ export const AgentUpdateSchema = {
       ],
       title: 'Endpoint Url',
       description: "URL of the agent's API endpoint",
+    },
+    system_prompt: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'System Prompt',
+      description: 'System prompt for platform agent simulator',
+    },
+    tools: {
+      anyOf: [
+        {
+          items: {
+            type: 'object',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Tools',
+      description: 'OpenAI-format tool definitions for platform agent simulator',
+    },
+    agent_model: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Model',
+      description: 'LLM model for platform agent simulator',
+    },
+    agent_provider: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 64,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Provider',
+      description: 'LLM provider for platform agent simulator',
     },
     agent_metadata: {
       anyOf: [
@@ -295,6 +554,30 @@ export const AggregateMetricsSchema = {
       ],
       title: 'Total Platform Token Usage',
       description: 'Summed token usage from the platform (simulator + judge)',
+    },
+    total_agent_cost_usd: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Total Agent Cost Usd',
+      description: 'Total estimated agent cost in USD for the entire run',
+    },
+    total_platform_cost_usd: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Total Platform Cost Usd',
+      description: 'Total estimated platform cost in USD (simulator + judge) for the entire run',
     },
     total_estimated_cost_usd: {
       anyOf: [
@@ -1489,10 +1772,10 @@ export const RunConfig_InputSchema = {
       ],
       description: 'Judge metric selection, weights, pass threshold, and model overrides',
     },
-    simulator: {
+    user_simulator: {
       anyOf: [
         {
-          $ref: '#/components/schemas/SimulatorConfig',
+          $ref: '#/components/schemas/UserSimulatorConfig',
         },
         {
           type: 'null',
@@ -1500,6 +1783,17 @@ export const RunConfig_InputSchema = {
       ],
       description:
         'User simulator: LLM vs scripted replay, model/provider overrides, temperature. Omitted fields use app LLM defaults.',
+    },
+    agent_simulator: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/AgentSimulatorConfig',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Agent simulator LLM overrides. Only applies when the agent mode is platform.',
     },
   },
   type: 'object',
@@ -1531,10 +1825,10 @@ export const RunConfig_OutputSchema = {
       ],
       description: 'Judge metric selection, weights, pass threshold, and model overrides',
     },
-    simulator: {
+    user_simulator: {
       anyOf: [
         {
-          $ref: '#/components/schemas/SimulatorConfig',
+          $ref: '#/components/schemas/UserSimulatorConfig',
         },
         {
           type: 'null',
@@ -1542,6 +1836,17 @@ export const RunConfig_OutputSchema = {
       ],
       description:
         'User simulator: LLM vs scripted replay, model/provider overrides, temperature. Omitted fields use app LLM defaults.',
+    },
+    agent_simulator: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/AgentSimulatorConfig',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Agent simulator LLM overrides. Only applies when the agent mode is platform.',
     },
   },
   type: 'object',
@@ -1569,7 +1874,14 @@ export const RunCreateSchema = {
       description: 'FK to the agent being evaluated',
     },
     agent_endpoint_url: {
-      type: 'string',
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Agent Endpoint Url',
       description: 'Agent endpoint URL snapshot captured at run start',
     },
@@ -1600,7 +1912,7 @@ export const RunCreateSchema = {
       title: 'Agent Tools',
       description: 'Agent tool definitions snapshot captured at run start',
     },
-    prompt_version: {
+    agent_mode: {
       anyOf: [
         {
           type: 'string',
@@ -1609,10 +1921,10 @@ export const RunCreateSchema = {
           type: 'null',
         },
       ],
-      title: 'Prompt Version',
-      description: 'Semantic version tag of the prompt used',
+      title: 'Agent Mode',
+      description: 'Agent mode snapshot: endpoint or platform',
     },
-    prompt_snapshot: {
+    agent_model: {
       anyOf: [
         {
           type: 'string',
@@ -1621,8 +1933,20 @@ export const RunCreateSchema = {
           type: 'null',
         },
       ],
-      title: 'Prompt Snapshot',
-      description: 'Full text of the system prompt at run time',
+      title: 'Agent Model',
+      description: 'Effective LLM model for platform agent simulator for this run',
+    },
+    agent_provider: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Provider',
+      description: 'Effective LLM provider for platform agent simulator for this run',
     },
     tools_snapshot: {
       anyOf: [
@@ -1682,7 +2006,7 @@ export const RunCreateSchema = {
     },
   },
   type: 'object',
-  required: ['agent_id', 'agent_endpoint_url', 'scenario_set_id'],
+  required: ['agent_id', 'scenario_set_id'],
   title: 'RunCreate',
 } as const;
 
@@ -1726,7 +2050,14 @@ export const RunPublicSchema = {
       description: 'FK to the agent being evaluated',
     },
     agent_endpoint_url: {
-      type: 'string',
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Agent Endpoint Url',
       description: 'Agent endpoint URL snapshot captured at run start',
     },
@@ -1741,6 +2072,42 @@ export const RunPublicSchema = {
       ],
       title: 'Agent System Prompt',
       description: 'Agent system prompt snapshot captured at run start',
+    },
+    agent_mode: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Mode',
+      description: 'Agent mode snapshot: endpoint or platform',
+    },
+    agent_model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Model',
+      description: 'Effective LLM model for platform agent simulator for this run',
+    },
+    agent_provider: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Provider',
+      description: 'Effective LLM provider for platform agent simulator for this run',
     },
     scenario_set_id: {
       type: 'string',
@@ -1828,8 +2195,6 @@ export const RunPublicSchema = {
     'id',
     'name',
     'agent_id',
-    'agent_endpoint_url',
-    'agent_system_prompt',
     'scenario_set_id',
     'scenario_set_version',
     'status',
@@ -2522,6 +2887,21 @@ export const ScenarioResultPublicSchema = {
       title: 'Agent Latency Max Ms',
       description: 'Maximum agent response latency in milliseconds',
     },
+    agent_latency_per_turn_ms: {
+      anyOf: [
+        {
+          items: {
+            type: 'integer',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Latency Per Turn Ms',
+      description: 'Per-turn agent response latencies in milliseconds',
+    },
     agent_token_usage: {
       anyOf: [
         {
@@ -2558,6 +2938,30 @@ export const ScenarioResultPublicSchema = {
       ],
       title: 'Platform Token Usage',
       description: 'Token usage from the eval platform (simulator + judge)',
+    },
+    agent_cost_usd: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Cost Usd',
+      description: 'Estimated agent cost in USD for this scenario',
+    },
+    platform_cost_usd: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Cost Usd',
+      description: 'Estimated platform cost in USD (simulator + judge) for this scenario',
     },
     estimated_cost_usd: {
       anyOf: [
@@ -2743,6 +3147,21 @@ export const ScenarioResultUpdateSchema = {
       title: 'Agent Latency Max Ms',
       description: 'Maximum agent response latency in milliseconds',
     },
+    agent_latency_per_turn_ms: {
+      anyOf: [
+        {
+          items: {
+            type: 'integer',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Latency Per Turn Ms',
+      description: 'Per-turn agent response latencies in milliseconds',
+    },
     agent_token_usage: {
       anyOf: [
         {
@@ -2779,6 +3198,30 @@ export const ScenarioResultUpdateSchema = {
       ],
       title: 'Platform Token Usage',
       description: 'Token usage from the eval platform (simulator + judge)',
+    },
+    agent_cost_usd: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Cost Usd',
+      description: 'Estimated agent cost in USD for this scenario',
+    },
+    platform_cost_usd: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Cost Usd',
+      description: 'Estimated platform cost in USD (simulator + judge) for this scenario',
     },
     estimated_cost_usd: {
       anyOf: [
@@ -3240,65 +3683,6 @@ export const ScoreTypeSchema = {
   title: 'ScoreType',
 } as const;
 
-export const SimulatorConfigSchema = {
-  properties: {
-    mode: {
-      $ref: '#/components/schemas/SimulatorMode',
-      description: 'llm: generate via LLM; scripted: replay fixed messages',
-      default: 'llm',
-    },
-    scripted_messages: {
-      items: {
-        type: 'string',
-      },
-      type: 'array',
-      title: 'Scripted Messages',
-      description: 'User lines after initial_message, in order (scripted mode only)',
-    },
-    model: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Model',
-      description: 'Simulator LLM model override',
-    },
-    provider: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Provider',
-      description: 'Simulator LLM provider override',
-    },
-    temperature: {
-      anyOf: [
-        {
-          type: 'number',
-          maximum: 2,
-          minimum: 0,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Temperature',
-      description: 'Sampling temperature for simulator LLM',
-    },
-  },
-  type: 'object',
-  title: 'SimulatorConfig',
-  description: 'User simulator behavior (LLM persona vs scripted replay) and LLM overrides.',
-} as const;
-
 export const SimulatorModeSchema = {
   type: 'string',
   enum: ['llm', 'scripted'],
@@ -3515,6 +3899,65 @@ export const UserRegisterSchema = {
   type: 'object',
   required: ['email', 'password'],
   title: 'UserRegister',
+} as const;
+
+export const UserSimulatorConfigSchema = {
+  properties: {
+    mode: {
+      $ref: '#/components/schemas/SimulatorMode',
+      description: 'llm: generate via LLM; scripted: replay fixed messages',
+      default: 'llm',
+    },
+    scripted_messages: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Scripted Messages',
+      description: 'User lines after initial_message, in order (scripted mode only)',
+    },
+    model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Model',
+      description: 'Simulator LLM model override',
+    },
+    provider: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Provider',
+      description: 'Simulator LLM provider override',
+    },
+    temperature: {
+      anyOf: [
+        {
+          type: 'number',
+          maximum: 2,
+          minimum: 0,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Temperature',
+      description: 'Sampling temperature for simulator LLM',
+    },
+  },
+  type: 'object',
+  title: 'UserSimulatorConfig',
+  description: 'User simulator behavior (LLM persona vs scripted replay) and LLM overrides.',
 } as const;
 
 export const UserUpdateMeSchema = {

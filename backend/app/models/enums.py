@@ -20,6 +20,11 @@ class RunStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
+class AgentMode(StrEnum):
+    ENDPOINT = "endpoint"
+    PLATFORM = "platform"
+
+
 class SimulatorMode(StrEnum):
     LLM = "llm"
     SCRIPTED = "scripted"

@@ -18,6 +18,7 @@ from app.crud.custom_metrics import (  # noqa: F401
 from app.crud.run import (  # noqa: F401
     create_run,
     delete_run,
+    enrich_run_create_from_agent,
     get_run,
     list_runs,
     update_run,

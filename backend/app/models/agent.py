@@ -2,27 +2,88 @@ import uuid
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
+from pydantic import ConfigDict, model_validator
 from sqlalchemy import Column, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
+
+from app.models.enums import AgentMode
 
 if TYPE_CHECKING:
     from app.models.run import Run
 
 
+def validate_agent_mode_requirements(
+    *,
+    mode: AgentMode,
+    endpoint_url: str | None,
+    system_prompt: str | None,
+    agent_model: str | None,
+) -> None:
+    """Raise ValueError if mode-specific required fields are missing."""
+    if mode == AgentMode.ENDPOINT:
+        if not endpoint_url or not endpoint_url.strip():
+            msg = "endpoint_url is required when mode is 'endpoint'"
+            raise ValueError(msg)
+    elif mode == AgentMode.PLATFORM:
+        if not system_prompt or not system_prompt.strip():
+            msg = "system_prompt is required when mode is 'platform'"
+            raise ValueError(msg)
+        if not agent_model or not agent_model.strip():
+            msg = "agent_model is required when mode is 'platform'"
+            raise ValueError(msg)
+
+
 class AgentBase(SQLModel):
+    model_config = ConfigDict(use_enum_values=True)
+
     name: str = Field(max_length=255, description="Human-readable agent name")
     description: str | None = Field(
         default=None, description="What this agent does and its purpose"
     )
-    endpoint_url: str = Field(
-        max_length=2048, description="URL of the agent's API endpoint"
+    mode: AgentMode = Field(
+        default=AgentMode.ENDPOINT,
+        description="endpoint: HTTP agent; platform: LLM simulated on the platform",
+    )
+    endpoint_url: str | None = Field(
+        default=None,
+        max_length=2048,
+        description="URL of the agent's API endpoint (required when mode=endpoint)",
+    )
+    system_prompt: str | None = Field(
+        default=None,
+        description="System prompt for platform agent simulator (required when mode=platform)",
+    )
+    tools: list[dict[str, Any]] | None = Field(
+        default=None,
+        sa_column=Column("tools", JSONB, nullable=True),
+        description="OpenAI-format tool definitions for platform agent simulator",
+    )
+    agent_model: str | None = Field(
+        default=None,
+        max_length=255,
+        description="LLM model for platform agent simulator (required when mode=platform)",
+    )
+    agent_provider: str | None = Field(
+        default=None,
+        max_length=64,
+        description="LLM provider for platform agent simulator (e.g. openai, anthropic)",
     )
     agent_metadata: dict[str, Any] | None = Field(
         default=None,
         sa_column=Column("metadata", JSONB, nullable=True),
         description="Arbitrary key-value metadata about the agent",
     )
+
+    @model_validator(mode="after")
+    def validate_mode_fields(self) -> "AgentBase":
+        validate_agent_mode_requirements(
+            mode=self.mode,
+            endpoint_url=self.endpoint_url,
+            system_prompt=self.system_prompt,
+            agent_model=self.agent_model,
+        )
+        return self
 
 
 class Agent(AgentBase, table=True):
@@ -59,8 +120,30 @@ class AgentUpdate(SQLModel):
     description: str | None = Field(
         default=None, description="What this agent does and its purpose"
     )
+    mode: AgentMode | None = Field(
+        default=None,
+        description="endpoint: HTTP agent; platform: LLM simulated on the platform",
+    )
     endpoint_url: str | None = Field(
         default=None, max_length=2048, description="URL of the agent's API endpoint"
+    )
+    system_prompt: str | None = Field(
+        default=None,
+        description="System prompt for platform agent simulator",
+    )
+    tools: list[dict[str, Any]] | None = Field(
+        default=None,
+        description="OpenAI-format tool definitions for platform agent simulator",
+    )
+    agent_model: str | None = Field(
+        default=None,
+        max_length=255,
+        description="LLM model for platform agent simulator",
+    )
+    agent_provider: str | None = Field(
+        default=None,
+        max_length=64,
+        description="LLM provider for platform agent simulator",
     )
     agent_metadata: dict[str, Any] | None = Field(
         default=None, description="Arbitrary key-value metadata about the agent"

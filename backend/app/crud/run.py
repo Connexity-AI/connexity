@@ -4,7 +4,49 @@ from datetime import datetime
 from sqlalchemy import func
 from sqlmodel import Session, col, select
 
-from app.models import Run, RunCreate, RunStatus, RunUpdate
+from app.models import Agent, Run, RunCreate, RunStatus, RunUpdate
+from app.models.enums import AgentMode
+from app.models.schemas import RunConfig
+
+
+def enrich_run_create_from_agent(*, run_in: RunCreate, agent: Agent) -> RunCreate:
+    """Fill run snapshot fields from the agent and validate endpoint mode."""
+    data = run_in.model_dump()
+    cfg = run_in.config or RunConfig()
+    asim = cfg.agent_simulator
+
+    if not data.get("agent_endpoint_url") and agent.endpoint_url:
+        data["agent_endpoint_url"] = agent.endpoint_url
+
+    if data.get("agent_mode") is None:
+        data["agent_mode"] = agent.mode.value
+
+    if agent.mode == AgentMode.PLATFORM:
+        if data.get("agent_system_prompt") is None:
+            data["agent_system_prompt"] = agent.system_prompt
+        if data.get("agent_tools") is None:
+            data["agent_tools"] = agent.tools
+        eff_model = (asim.model if asim and asim.model else None) or agent.agent_model
+        eff_prov = (
+            asim.provider if asim and asim.provider else None
+        ) or agent.agent_provider
+        if data.get("agent_model") is None:
+            data["agent_model"] = eff_model
+        if data.get("agent_provider") is None:
+            data["agent_provider"] = eff_prov
+        if not data.get("agent_system_prompt"):
+            msg = "agent system_prompt is required for platform-mode agents"
+            raise ValueError(msg)
+        if not data.get("agent_model"):
+            msg = "agent_model is required for platform-mode agents (set on agent or in run config agent_simulator.model)"
+            raise ValueError(msg)
+    elif agent.mode == AgentMode.ENDPOINT:
+        ep = data.get("agent_endpoint_url")
+        if not ep or not str(ep).strip():
+            msg = "agent_endpoint_url is required when the agent is in endpoint mode"
+            raise ValueError(msg)
+
+    return RunCreate.model_validate(data)
 
 
 def create_run(

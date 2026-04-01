@@ -39,6 +39,13 @@ async def create_run(
         default=False, description="Immediately start execution"
     ),
 ) -> Run:
+    agent = crud.get_agent(session=session, agent_id=run_in.agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    try:
+        run_in = crud.enrich_run_create_from_agent(run_in=run_in, agent=agent)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
     run = crud.create_run(session=session, run_in=run_in, created_by=current_user.id)
     if auto_execute:
         asyncio.create_task(execute_run(run.id))

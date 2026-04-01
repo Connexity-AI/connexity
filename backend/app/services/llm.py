@@ -16,7 +16,7 @@ If the effective ``model`` is missing after merging defaults, raises
 
 import logging
 import time
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 
 import litellm
 from litellm.exceptions import (
@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 
 LLMExtraValue = str | int | float | bool | None
 
-LLMRole = Literal["system", "user", "assistant"]
+LLMRole = Literal["system", "user", "assistant", "tool"]
 
 
 class LLMSettingsView(Protocol):
@@ -58,7 +58,10 @@ class LLMSettingsView(Protocol):
 
 class LLMMessage(BaseModel):
     role: LLMRole
-    content: str
+    content: str | None = None
+    tool_calls: list[dict[str, Any]] | None = None
+    tool_call_id: str | None = None
+    name: str | None = None
 
 
 class LLMCallConfig(BaseModel):
@@ -73,6 +76,10 @@ class LLMCallConfig(BaseModel):
         default=None,
         description="Provider-native structured output (e.g. OpenAI json_schema)",
     )
+    tools: list[dict[str, Any]] | None = Field(
+        default=None,
+        description="OpenAI-format tool/function definitions for function calling",
+    )
     extra: dict[str, LLMExtraValue] = Field(default_factory=dict)
 
 
@@ -84,6 +91,10 @@ class LLMResponse(BaseModel):
     response_cost_usd: float | None = Field(
         default=None,
         description="LiteLLM-computed USD cost from _hidden_params.response_cost",
+    )
+    tool_calls: list[dict[str, Any]] | None = Field(
+        default=None,
+        description="Tool calls from the assistant message (OpenAI-compatible dicts)",
     )
 
 
@@ -196,6 +207,37 @@ def _response_cost_usd_from_litellm(response: object) -> float | None:
         return None
 
 
+def _normalize_tool_calls(raw: object) -> list[dict[str, Any]] | None:
+    """Convert provider tool_calls to JSON-serializable dicts."""
+    if raw is None:
+        return None
+    if not isinstance(raw, list) or not raw:
+        return None
+    out: list[dict[str, Any]] = []
+    for tc in raw:
+        if isinstance(tc, dict):
+            out.append(tc)
+            continue
+        dumped = getattr(tc, "model_dump", None)
+        if callable(dumped):
+            out.append(dumped(mode="json"))
+            continue
+        fn = getattr(tc, "function", None)
+        fn_name = getattr(fn, "name", None) if fn is not None else None
+        fn_args = getattr(fn, "arguments", None) if fn is not None else None
+        if fn_name is not None:
+            out.append(
+                {
+                    "id": getattr(tc, "id", "") or "",
+                    "type": getattr(tc, "type", None) or "function",
+                    "function": {"name": fn_name, "arguments": fn_args or "{}"},
+                }
+            )
+        else:
+            out.append({"raw": repr(tc)})
+    return out or None
+
+
 def _content_from_response(response: object) -> str:
     choices = getattr(response, "choices", None)
     if not choices:
@@ -210,10 +252,41 @@ def _content_from_response(response: object) -> str:
     return ""
 
 
+def _tool_calls_from_response(response: object) -> list[dict[str, Any]] | None:
+    choices = getattr(response, "choices", None)
+    if not choices:
+        return None
+    first = choices[0]
+    message = getattr(first, "message", None)
+    if message is None:
+        return None
+    raw = getattr(message, "tool_calls", None)
+    return _normalize_tool_calls(raw)
+
+
+def _llm_message_to_litellm_dict(m: LLMMessage) -> dict[str, Any]:
+    """Serialize :class:`LLMMessage` for ``litellm.acompletion``."""
+    d: dict[str, Any] = {"role": m.role}
+    if m.tool_calls is not None:
+        d["tool_calls"] = m.tool_calls
+    if m.tool_call_id is not None:
+        d["tool_call_id"] = m.tool_call_id
+    if m.name is not None:
+        d["name"] = m.name
+    if m.content is not None:
+        d["content"] = m.content
+    elif m.role == "assistant" and m.tool_calls:
+        d["content"] = None
+    else:
+        d["content"] = ""
+    return d
+
+
 async def _acompletion_once(
     *,
     model: str,
-    message_dicts: list[dict[str, str]],
+    message_dicts: list[dict[str, Any]],
+    tools: list[dict[str, Any]] | None,
     temperature: float | None,
     max_tokens: int | None,
     timeout: float | None,
@@ -232,6 +305,8 @@ async def _acompletion_once(
         kwargs["timeout"] = timeout
     if response_format is not None:
         kwargs["response_format"] = response_format
+    if tools is not None:
+        kwargs["tools"] = tools
     for k, v in extra.items():
         if v is not None:
             kwargs[k] = v
@@ -254,8 +329,9 @@ async def call_llm(
     timeout = c.timeout_seconds
     response_format = c.response_format
     extra = dict(c.extra)
+    tools = c.tools
 
-    message_dicts = [{"role": m.role, "content": m.content} for m in messages]
+    message_dicts = [_llm_message_to_litellm_dict(m) for m in messages]
 
     async for attempt in AsyncRetrying(
         stop=stop_after_attempt(app_settings.LLM_RETRY_MAX_ATTEMPTS),
@@ -273,6 +349,7 @@ async def call_llm(
             response = await _acompletion_once(
                 model=resolved_model,
                 message_dicts=message_dicts,
+                tools=tools,
                 temperature=temperature,
                 max_tokens=max_tokens,
                 timeout=timeout,
@@ -283,12 +360,14 @@ async def call_llm(
             usage_obj = getattr(response, "usage", None)
             usage = _usage_to_dict(usage_obj) if usage_obj is not None else {}
             response_model = getattr(response, "model", None) or resolved_model
+            tool_calls = _tool_calls_from_response(response)
             return LLMResponse(
                 content=_content_from_response(response),
                 model=str(response_model),
                 usage=usage,
                 latency_ms=latency_ms,
                 response_cost_usd=_response_cost_usd_from_litellm(response),
+                tool_calls=tool_calls,
             )
 
     raise AssertionError("unreachable")  # pragma: no cover
