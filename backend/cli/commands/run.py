@@ -46,12 +46,11 @@ def _resolve_scenario_set(client: ApiClient, ref: str) -> dict[str, Any]:
     )
 
 
-def _resolve_agent(client: ApiClient, ref: str) -> tuple[str, str]:
-    """Return (agent_id, endpoint_url)."""
+def _resolve_agent(client: ApiClient, ref: str) -> dict[str, Any]:
+    """Return the full agent dict from the API."""
     uid = _try_uuid(ref)
     if uid:
-        agent = client.get_agent(uid)
-        return str(agent["id"]), str(agent["endpoint_url"])
+        return client.get_agent(uid)
 
     ref_stripped = ref.strip()
     if ref_stripped.lower().startswith(("http://", "https://")):
@@ -61,7 +60,7 @@ def _resolve_agent(client: ApiClient, ref: str) -> tuple[str, str]:
             if not isinstance(a, dict):
                 continue
             if str(a.get("endpoint_url", "")).rstrip("/") == ref_stripped.rstrip("/"):
-                return str(a["id"]), str(a["endpoint_url"])
+                return a
         raise click.ClickException(
             f"No agent registered with endpoint_url matching {ref_stripped!r}. "
             "Create an agent in the UI/API first, or pass an agent UUID."
@@ -76,8 +75,7 @@ def _resolve_agent(client: ApiClient, ref: str) -> tuple[str, str]:
         if isinstance(a, dict) and str(a.get("name", "")).casefold() == ref_l
     ]
     if len(matches) == 1:
-        a = matches[0]
-        return str(a["id"]), str(a["endpoint_url"])
+        return matches[0]
     if not matches:
         raise click.ClickException(
             f"No agent found with name {ref!r}. Use a UUID, exact name, or agent URL."
@@ -154,14 +152,17 @@ def run_command(
 
     with open_client(ctx) as client:
         scenario_set = _resolve_scenario_set(client, scenario_ref)
-        agent_id, endpoint_url = _resolve_agent(client, agent_ref)
+        agent = _resolve_agent(client, agent_ref)
+        agent_id = str(agent["id"])
 
         body: dict[str, Any] = {
             "agent_id": agent_id,
-            "agent_endpoint_url": endpoint_url,
             "scenario_set_id": str(scenario_set["id"]),
             "scenario_set_version": int(scenario_set.get("version", 1)),
         }
+        endpoint_url = agent.get("endpoint_url")
+        if endpoint_url:
+            body["agent_endpoint_url"] = endpoint_url
         if run_name:
             body["name"] = run_name
 
