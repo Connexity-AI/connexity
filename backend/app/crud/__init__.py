@@ -19,8 +19,10 @@ from app.crud.run import (  # noqa: F401
     create_run,
     delete_run,
     enrich_run_create_from_agent,
+    get_baseline_run,
     get_run,
     list_runs,
+    set_baseline,
     update_run,
 )
 from app.crud.scenario import (  # noqa: F401

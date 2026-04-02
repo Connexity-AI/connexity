@@ -125,6 +125,13 @@ def _resolve_agent(client: ApiClient, ref: str) -> dict[str, Any]:
     help="Stream SSE progress from GET /runs/{id}/stream",
 )
 @click.option(
+    "--set-baseline",
+    "set_baseline",
+    is_flag=True,
+    default=False,
+    help="Mark this run as baseline after completion",
+)
+@click.option(
     "--output",
     "output_override",
     type=click.Choice(["json", "table"]),
@@ -140,6 +147,7 @@ def run_command(
     timeout: float,
     poll_interval: float,
     stream: bool,
+    set_baseline: bool,
     output_override: str | None,
 ) -> None:
     """Trigger an eval run and wait until it finishes."""
@@ -203,12 +211,17 @@ def run_command(
             output.progress("Timed out waiting for run to finish.")
             sys.exit(2)
 
+        final = str(run.get("status", "")).lower()
+
+        if set_baseline and final == "completed":
+            output.progress("Marking run as baseline...")
+            run = client.update_run(run_id, {"is_baseline": True})
+
         if fmt == "json":
             output.emit(run, output_format="json")
         else:
             click.echo(output.format_run_detail(run))
 
-        final = str(run.get("status", "")).lower()
         if final == "completed":
             ctx.exit(0)
         if final in ("failed", "cancelled"):

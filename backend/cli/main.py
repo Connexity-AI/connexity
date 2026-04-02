@@ -5,6 +5,7 @@ import os
 import click
 
 from cli.api_client import DEFAULT_BASE_URL
+from cli.commands.baseline import baseline_group
 from cli.commands.compare import compare_command
 from cli.commands.results import results_group
 from cli.commands.run import run_command
@@ -49,6 +50,7 @@ def app(
     }
 
 
+app.add_command(baseline_group)
 app.add_command(compare_command)
 app.add_command(run_command)
 app.add_command(results_group)

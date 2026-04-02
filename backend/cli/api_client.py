@@ -69,8 +69,19 @@ class ApiClient:
         r = self._client.get(f"runs/{run_id}")
         return self._json_dict(r)
 
+    def update_run(self, run_id: str, body: dict[str, Any]) -> dict[str, Any]:
+        r = self._client.patch(f"runs/{run_id}", json=body)
+        return self._json_dict(r)
+
     def list_runs(self, params: dict[str, Any] | None = None) -> dict[str, Any]:
         r = self._client.get("runs/", params=params or {})
+        return self._json_dict(r)
+
+    def get_baseline_run(self, agent_id: str, scenario_set_id: str) -> dict[str, Any]:
+        r = self._client.get(
+            "runs/baseline",
+            params={"agent_id": agent_id, "scenario_set_id": scenario_set_id},
+        )
         return self._json_dict(r)
 
     def list_scenarios(self, params: dict[str, Any] | None = None) -> dict[str, Any]:

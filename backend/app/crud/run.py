@@ -119,6 +119,57 @@ def update_run(*, session: Session, db_run: Run, run_in: RunUpdate) -> Run:
     return db_run
 
 
+def set_baseline(*, session: Session, db_run: Run) -> Run:
+    """Mark *db_run* as the baseline for its (agent_id, scenario_set_id) pair.
+
+    Any other run that was previously the baseline for the same pair is cleared.
+
+    Raises:
+        ValueError: If the run's status is not ``completed``.
+    """
+    if db_run.status != RunStatus.COMPLETED:
+        raise ValueError(
+            f"Only completed runs can be marked as baseline (status={db_run.status})"
+        )
+
+    # Clear existing baselines for the same scope
+    statement = select(Run).where(
+        Run.agent_id == db_run.agent_id,
+        Run.scenario_set_id == db_run.scenario_set_id,
+        Run.is_baseline == True,  # noqa: E712
+        Run.id != db_run.id,
+    )
+    for old in session.exec(statement).all():
+        old.is_baseline = False
+        session.add(old)
+
+    db_run.is_baseline = True
+    session.add(db_run)
+    session.commit()
+    session.refresh(db_run)
+    return db_run
+
+
+def get_baseline_run(
+    *,
+    session: Session,
+    agent_id: uuid.UUID,
+    scenario_set_id: uuid.UUID,
+) -> Run | None:
+    """Return the current baseline run for the given (agent, scenario_set) pair."""
+    statement = (
+        select(Run)
+        .where(
+            Run.agent_id == agent_id,
+            Run.scenario_set_id == scenario_set_id,
+            Run.is_baseline == True,  # noqa: E712
+        )
+        .order_by(col(Run.created_at).desc())
+        .limit(1)
+    )
+    return session.exec(statement).first()
+
+
 def delete_run(*, session: Session, db_run: Run) -> None:
     session.delete(db_run)
     session.commit()

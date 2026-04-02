@@ -205,6 +205,24 @@ async def compare_suggestions_endpoint(
     )
 
 
+@router.get("/baseline", response_model=RunPublic)
+def get_baseline_run(
+    session: SessionDep,
+    agent_id: uuid.UUID = Query(description="UUID of the agent"),
+    scenario_set_id: uuid.UUID = Query(description="UUID of the scenario set"),
+) -> Run:
+    """Resolve the current baseline run for an (agent, scenario_set) pair."""
+    run = crud.get_baseline_run(
+        session=session, agent_id=agent_id, scenario_set_id=scenario_set_id
+    )
+    if not run:
+        raise HTTPException(
+            status_code=404,
+            detail="No baseline run found for this agent + scenario set",
+        )
+    return run
+
+
 @router.get("/{run_id}", response_model=RunPublic)
 def get_run(session: SessionDep, run_id: uuid.UUID) -> Run:
     run = crud.get_run(session=session, run_id=run_id)
@@ -222,6 +240,12 @@ def update_run(
     run = crud.get_run(session=session, run_id=run_id)
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
+    # If marking as baseline, validate + enforce before persisting
+    if run_in.is_baseline is True:
+        try:
+            run = crud.set_baseline(session=session, db_run=run)
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc))
     return crud.update_run(session=session, db_run=run, run_in=run_in)
 
 

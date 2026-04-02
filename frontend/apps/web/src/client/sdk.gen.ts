@@ -86,6 +86,9 @@ import type {
   RunsExecuteRunEndpointData,
   RunsExecuteRunEndpointErrors,
   RunsExecuteRunEndpointResponses,
+  RunsGetBaselineRunData,
+  RunsGetBaselineRunErrors,
+  RunsGetBaselineRunResponses,
   RunsGetRunData,
   RunsGetRunErrors,
   RunsGetRunResponses,
@@ -1356,6 +1359,32 @@ export class RunsService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+    });
+  }
+
+  /**
+   * Get Baseline Run
+   *
+   * Resolve the current baseline run for an (agent, scenario_set) pair.
+   */
+  public static getBaselineRun<ThrowOnError extends boolean = false>(
+    options: Options<RunsGetBaselineRunData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      RunsGetBaselineRunResponses,
+      RunsGetBaselineRunErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/runs/baseline',
+      ...options,
     });
   }
 

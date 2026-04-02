@@ -5554,6 +5554,69 @@ export type RunsCompareSuggestionsEndpointResponses = {
 export type RunsCompareSuggestionsEndpointResponse =
   RunsCompareSuggestionsEndpointResponses[keyof RunsCompareSuggestionsEndpointResponses];
 
+export type RunsGetBaselineRunData = {
+  body?: never;
+  path?: never;
+  query: {
+    /**
+     * Agent Id
+     *
+     * UUID of the agent
+     */
+    agent_id: string;
+    /**
+     * Scenario Set Id
+     *
+     * UUID of the scenario set
+     */
+    scenario_set_id: string;
+  };
+  url: '/api/v1/runs/baseline';
+};
+
+export type RunsGetBaselineRunErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type RunsGetBaselineRunError = RunsGetBaselineRunErrors[keyof RunsGetBaselineRunErrors];
+
+export type RunsGetBaselineRunResponses = {
+  /**
+   * Successful Response
+   */
+  200: RunPublic;
+};
+
+export type RunsGetBaselineRunResponse =
+  RunsGetBaselineRunResponses[keyof RunsGetBaselineRunResponses];
+
 export type RunsDeleteRunData = {
   body?: never;
   path: {
