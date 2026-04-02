@@ -33,16 +33,21 @@ from app.models.common import ConfigPublic, ErrorResponse  # noqa: F401
 # ── Comparison / diff schemas (pure Pydantic) ────────────────────
 from app.models.comparison import (  # noqa: F401
     AggregateComparison,
+    CauseAnalysisItem,
     FieldChange,
+    ImprovementSuggestion,
+    ImprovementSuggestions,
     MetricAggregateDelta,
     MetricDelta,
     PromptDiff,
+    RegressionAnalysis,
     RegressionThresholds,
     RegressionVerdict,
     RunComparison,
     RunConfigDiff,
     ScenarioComparison,
     ScenarioSetDiff,
+    SuggestionsRequest,
     ToolDiff,
 )
 

@@ -17,7 +17,16 @@ from app.models import (
     RunStatus,
     RunUpdate,
 )
-from app.models.comparison import RegressionThresholds, RunComparison
+from app.models.comparison import (
+    ImprovementSuggestions,
+    RegressionThresholds,
+    RunComparison,
+    SuggestionsRequest,
+)
+from app.services.analysis import (
+    compute_improvement_suggestions,
+    compute_regression_analysis_with_prompts,
+)
 from app.services.comparison import compare_runs
 from app.services.orchestrator import execute_run
 from app.services.run_manager import run_manager
@@ -77,7 +86,7 @@ def list_runs(
 
 
 @router.get("/compare", response_model=RunComparison)
-def compare_runs_endpoint(
+async def compare_runs_endpoint(
     session: SessionDep,
     baseline_run_id: uuid.UUID = Query(description="UUID of the baseline run"),
     candidate_run_id: uuid.UUID = Query(description="UUID of the candidate run"),
@@ -89,6 +98,10 @@ def compare_runs_endpoint(
     ),
     max_latency_increase_pct: float | None = Query(
         default=None, description="Override max latency increase fraction (0.2 = 20%)"
+    ),
+    include_analysis: bool = Query(
+        default=False,
+        description="Include AI regression analysis (requires LLM call, adds latency)",
     ),
 ) -> RunComparison:
     baseline = crud.get_run(session=session, run_id=baseline_run_id)
@@ -123,8 +136,72 @@ def compare_runs_endpoint(
     if overrides:
         thresholds = RegressionThresholds(**overrides)
 
-    return compare_runs(
+    comparison = compare_runs(
         session=session, baseline=baseline, candidate=candidate, thresholds=thresholds
+    )
+
+    if include_analysis:
+        analysis = await compute_regression_analysis_with_prompts(
+            comparison=comparison,
+            config_diff=comparison.config_diff,
+            baseline_prompt=baseline.agent_system_prompt,
+            candidate_prompt=candidate.agent_system_prompt,
+        )
+        comparison.regression_analysis = analysis
+
+    return comparison
+
+
+@router.post("/compare/suggestions", response_model=ImprovementSuggestions)
+async def compare_suggestions_endpoint(
+    session: SessionDep,
+    body: SuggestionsRequest,
+) -> ImprovementSuggestions:
+    """Generate AI-powered improvement suggestions for a comparison.
+
+    Requires a prior comparison with regression analysis. More expensive
+    than the analysis — only called on-demand.
+    """
+    baseline = crud.get_run(session=session, run_id=body.baseline_run_id)
+    if not baseline:
+        raise HTTPException(status_code=404, detail="Baseline run not found")
+    candidate = crud.get_run(session=session, run_id=body.candidate_run_id)
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate run not found")
+
+    if baseline.status != RunStatus.COMPLETED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Baseline run is not completed (status: {baseline.status})",
+        )
+    if candidate.status != RunStatus.COMPLETED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Candidate run is not completed (status: {candidate.status})",
+        )
+
+    # Compute the comparison and analysis first
+    comparison = compare_runs(session=session, baseline=baseline, candidate=candidate)
+
+    analysis = await compute_regression_analysis_with_prompts(
+        comparison=comparison,
+        config_diff=comparison.config_diff,
+        baseline_prompt=baseline.agent_system_prompt,
+        candidate_prompt=candidate.agent_system_prompt,
+    )
+
+    if analysis is None:
+        return ImprovementSuggestions(
+            suggestions=[],
+            summary="No significant metric shifts detected — no suggestions needed.",
+            model="n/a",
+            cost_usd=None,
+        )
+
+    return await compute_improvement_suggestions(
+        comparison=comparison,
+        analysis=analysis,
+        candidate_run=candidate,
     )
 
 

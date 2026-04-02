@@ -107,6 +107,12 @@ class Settings(BaseSettings):
     JUDGE_TEMPERATURE: float = 0.2
     JUDGE_MAX_TOKENS: int = 4096
 
+    # Analysis-specific (CS-29)
+    ANALYSIS_MODEL: str | None = None
+    ANALYSIS_PROVIDER: str | None = None
+    ANALYSIS_TEMPERATURE: float = 0.2
+    ANALYSIS_MAX_TOKENS: int = 4096
+
     # Generator-specific
     GENERATOR_MAX_TOKENS: int = 16_000
     GENERATOR_TEMPERATURE: float = 0.9

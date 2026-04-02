@@ -157,3 +157,60 @@ class RunComparison(BaseModel):
     config_diff: RunConfigDiff
     verdict: RegressionVerdict
     warnings: list[str]
+    regression_analysis: "RegressionAnalysis | None" = None
+
+
+# ── CS-29: AI-powered regression analysis ──────────────────────────
+
+
+class CauseAnalysisItem(BaseModel):
+    metric: str
+    direction: Literal["regressed", "improved"]
+    likely_cause: str
+    confidence: Literal["high", "medium", "low"]
+    reasoning: str
+
+
+class RegressionAnalysis(BaseModel):
+    model_config = {"protected_namespaces": ()}
+
+    analysis: list[CauseAnalysisItem]
+    infrastructure_notes: list[str]
+    summary: str
+    prompt_semantic_summary: str | None = None
+    analysis_model: str
+    analysis_cost_usd: float | None = None
+
+
+class SuggestionsRequest(BaseModel):
+    baseline_run_id: uuid.UUID
+    candidate_run_id: uuid.UUID
+
+
+class ImprovementSuggestion(BaseModel):
+    target: Literal[
+        "system_prompt",
+        "tool_definition",
+        "model_selection",
+        "scenario_design",
+        "other",
+    ]
+    title: str
+    description: str
+    current_value: str | None = None
+    suggested_value: str | None = None
+    expected_metric_impact: list[str]
+    priority: Literal["high", "medium", "low"]
+
+
+class ImprovementSuggestions(BaseModel):
+    model_config = {"protected_namespaces": ()}
+
+    suggestions: list[ImprovementSuggestion]
+    summary: str
+    model: str
+    cost_usd: float | None = None
+
+
+# Resolve forward reference for RunComparison.regression_analysis
+RunComparison.model_rebuild()
