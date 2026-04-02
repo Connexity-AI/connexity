@@ -4,6 +4,7 @@ import sys
 from typing import Any
 
 import click
+import httpx
 
 from cli import output
 from cli.api_client import ApiClient
@@ -178,42 +179,57 @@ def compare_command(
     max_latency_increase_pct: float | None,
     output_override: str | None,
 ) -> None:
-    """Compare two runs and exit 0 (pass) or 1 (regression)."""
+    """Compare two runs and exit 0 (pass), 1 (regression), or 2 (error)."""
     if not baseline_id and not against_baseline:
-        raise click.ClickException(
-            "Provide --baseline <run-id> or use --against-baseline."
+        click.echo(
+            "Error: Provide --baseline <run-id> or use --against-baseline.", err=True
         )
+        sys.exit(2)
     if baseline_id and against_baseline:
-        raise click.ClickException(
-            "--baseline and --against-baseline are mutually exclusive."
+        click.echo(
+            "Error: --baseline and --against-baseline are mutually exclusive.", err=True
         )
+        sys.exit(2)
 
     fmt = get_output_format(ctx, output_override)
 
-    with open_client(ctx) as client:
-        # Resolve baseline
-        if against_baseline:
-            output.progress("Resolving baseline run for candidate's agent...")
-            candidate_run = client.get_run(candidate_id)
-            baseline_run = _resolve_baseline_for_candidate(client, candidate_run)
-            resolved_baseline_id = str(baseline_run["id"])
-            output.progress(f"Using baseline run: {resolved_baseline_id}")
-        else:
-            resolved_baseline_id = baseline_id  # type: ignore[assignment]
+    try:
+        with open_client(ctx) as client:
+            # Resolve baseline
+            if against_baseline:
+                output.progress("Resolving baseline run for candidate's agent...")
+                candidate_run = client.get_run(candidate_id)
+                baseline_run = _resolve_baseline_for_candidate(client, candidate_run)
+                resolved_baseline_id = str(baseline_run["id"])
+                output.progress(f"Using baseline run: {resolved_baseline_id}")
+            else:
+                resolved_baseline_id = baseline_id  # type: ignore[assignment]
 
-        # Build API params
-        params: dict[str, str | float] = {
-            "baseline_run_id": resolved_baseline_id,
-            "candidate_run_id": candidate_id,
-        }
-        if max_pass_rate_drop is not None:
-            params["max_pass_rate_drop"] = max_pass_rate_drop
-        if max_avg_score_drop is not None:
-            params["max_avg_score_drop"] = max_avg_score_drop
-        if max_latency_increase_pct is not None:
-            params["max_latency_increase_pct"] = max_latency_increase_pct
+            # Build API params
+            params: dict[str, str | float] = {
+                "baseline_run_id": resolved_baseline_id,
+                "candidate_run_id": candidate_id,
+            }
+            if max_pass_rate_drop is not None:
+                params["max_pass_rate_drop"] = max_pass_rate_drop
+            if max_avg_score_drop is not None:
+                params["max_avg_score_drop"] = max_avg_score_drop
+            if max_latency_increase_pct is not None:
+                params["max_latency_increase_pct"] = max_latency_increase_pct
 
-        comparison = client.compare_runs(params)
+            comparison = client.compare_runs(params)
+    except click.ClickException as exc:
+        click.echo(f"Error: {exc.format_message()}", err=True)
+        sys.exit(2)
+    except httpx.HTTPStatusError as exc:
+        click.echo(
+            f"Error: API returned {exc.response.status_code}: {exc.response.text}",
+            err=True,
+        )
+        sys.exit(2)
+    except httpx.HTTPError as exc:
+        click.echo(f"Error: {exc}", err=True)
+        sys.exit(2)
 
     if fmt == "json":
         output.emit(comparison, output_format="json")
