@@ -1,0 +1,132 @@
+"""Pydantic models for config diff (CS-47) and run-to-run comparison (CS-27)."""
+
+import uuid
+from typing import Literal
+
+from pydantic import BaseModel, Field
+
+from app.models.schemas import AggregateMetrics
+
+# ── CS-47: Config diff schemas ───────────────────────────────────
+
+
+class FieldChange(BaseModel):
+    field: str
+    old_value: str | int | float | bool | dict | list | None = None
+    new_value: str | int | float | bool | dict | list | None = None
+
+
+class ToolDiff(BaseModel):
+    added: list[str] = Field(default_factory=list, description="Added tool names")
+    removed: list[str] = Field(default_factory=list, description="Removed tool names")
+    modified: list[FieldChange] = Field(
+        default_factory=list, description="Per-tool deepdiff summary"
+    )
+
+
+class PromptDiff(BaseModel):
+    changed: bool
+    unified_diff: str | None = None  # raw unified diff (truncated if huge)
+    change_ratio: float = Field(
+        description="0.0 = identical, 1.0 = completely different"
+    )
+    added_line_count: int = 0
+    removed_line_count: int = 0
+    semantic_summary: str | None = None  # populated by future LLM call (CS-29)
+
+
+class ScenarioSetDiff(BaseModel):
+    same_set: bool
+    version_changed: bool
+    added_scenario_ids: list[uuid.UUID] = Field(default_factory=list)
+    removed_scenario_ids: list[uuid.UUID] = Field(default_factory=list)
+    common_scenario_ids: list[uuid.UUID] = Field(default_factory=list)
+
+
+class RunConfigDiff(BaseModel):
+    """Structured diff of snapshotted run configuration between two runs."""
+
+    model_config = {"protected_namespaces": ()}
+
+    prompt_diff: PromptDiff | None = None
+    tool_diff: ToolDiff | None = None
+    model_changed: FieldChange | None = None
+    provider_changed: FieldChange | None = None
+    judge_model_changed: FieldChange | None = None
+    judge_provider_changed: FieldChange | None = None
+    config_changes: list[FieldChange] = Field(default_factory=list)
+    scenario_set_diff: ScenarioSetDiff
+
+
+# ── CS-27: Per-metric delta ──────────────────────────────────────
+
+
+class MetricDelta(BaseModel):
+    metric: str
+    is_binary: bool
+    baseline_score: int | None = None
+    candidate_score: int | None = None
+    delta: int | None = None  # None for binary metrics
+    baseline_label: str | None = None
+    candidate_label: str | None = None
+    status: Literal["regression", "improvement", "unchanged"]
+
+
+# ── CS-27: Per-scenario comparison ───────────────────────────────
+
+
+class ScenarioComparison(BaseModel):
+    scenario_id: uuid.UUID
+    scenario_name: str
+    status: Literal["regression", "improvement", "unchanged", "error"]
+    baseline_passed: bool | None = None
+    candidate_passed: bool | None = None
+    baseline_score: float | None = None  # overall_score from JudgeVerdict (0-100)
+    candidate_score: float | None = None
+    score_delta: float | None = None  # candidate - baseline
+    metric_deltas: list[MetricDelta]
+    baseline_latency_ms: int | None = None
+    candidate_latency_ms: int | None = None
+    latency_delta_ms: int | None = None
+
+
+# ── CS-27: Suite-level aggregate deltas ──────────────────────────
+
+
+class MetricAggregateDelta(BaseModel):
+    metric: str
+    is_binary: bool
+    baseline_avg: float | None = None
+    candidate_avg: float | None = None
+    delta: float | None = None
+
+
+class AggregateComparison(BaseModel):
+    baseline_metrics: AggregateMetrics
+    candidate_metrics: AggregateMetrics
+    pass_rate_delta: float
+    avg_score_delta: float | None = None
+    latency_avg_delta_ms: float | None = None
+    latency_p95_delta_ms: float | None = None
+    cost_delta_usd: float | None = None
+    total_regressions: int
+    total_improvements: int
+    total_unchanged: int
+    total_errors: int
+    per_metric_aggregate_deltas: list[MetricAggregateDelta]
+
+
+# ── CS-27: Top-level response ────────────────────────────────────
+
+
+class RunComparison(BaseModel):
+    baseline_run_id: uuid.UUID
+    candidate_run_id: uuid.UUID
+    baseline_run_name: str | None = None
+    candidate_run_name: str | None = None
+    aggregate: AggregateComparison
+    scenario_comparisons: list[ScenarioComparison]
+    baseline_only_scenarios: list[uuid.UUID]
+    candidate_only_scenarios: list[uuid.UUID]
+    config_diff: RunConfigDiff
+    warnings: list[str]
