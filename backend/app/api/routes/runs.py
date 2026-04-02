@@ -17,6 +17,8 @@ from app.models import (
     RunStatus,
     RunUpdate,
 )
+from app.models.comparison import RunComparison
+from app.services.comparison import compare_runs
 from app.services.orchestrator import execute_run
 from app.services.run_manager import run_manager
 
@@ -72,6 +74,33 @@ def list_runs(
         created_before=created_before,
     )
     return RunsPublic(data=items, count=count)  # type: ignore[arg-type]
+
+
+@router.get("/compare", response_model=RunComparison)
+def compare_runs_endpoint(
+    session: SessionDep,
+    baseline_run_id: uuid.UUID = Query(description="UUID of the baseline run"),
+    candidate_run_id: uuid.UUID = Query(description="UUID of the candidate run"),
+) -> RunComparison:
+    baseline = crud.get_run(session=session, run_id=baseline_run_id)
+    if not baseline:
+        raise HTTPException(status_code=404, detail="Baseline run not found")
+    candidate = crud.get_run(session=session, run_id=candidate_run_id)
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate run not found")
+
+    if baseline.status != RunStatus.COMPLETED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Baseline run is not completed (status: {baseline.status})",
+        )
+    if candidate.status != RunStatus.COMPLETED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Candidate run is not completed (status: {candidate.status})",
+        )
+
+    return compare_runs(session=session, baseline=baseline, candidate=candidate)
 
 
 @router.get("/{run_id}", response_model=RunPublic)

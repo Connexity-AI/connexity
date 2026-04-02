@@ -71,6 +71,9 @@ import type {
   RunsCancelRunEndpointData,
   RunsCancelRunEndpointErrors,
   RunsCancelRunEndpointResponses,
+  RunsCompareRunsEndpointData,
+  RunsCompareRunsEndpointErrors,
+  RunsCompareRunsEndpointResponses,
   RunsCreateRunData,
   RunsCreateRunErrors,
   RunsCreateRunResponses,
@@ -1293,6 +1296,30 @@ export class RunsService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+    });
+  }
+
+  /**
+   * Compare Runs Endpoint
+   */
+  public static compareRunsEndpoint<ThrowOnError extends boolean = false>(
+    options: Options<RunsCompareRunsEndpointData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      RunsCompareRunsEndpointResponses,
+      RunsCompareRunsEndpointErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/runs/compare',
+      ...options,
     });
   }
 

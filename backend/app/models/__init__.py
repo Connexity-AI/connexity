@@ -30,6 +30,20 @@ from app.models.agent_contract import (  # noqa: F401
 # ── Common ─────────────────────────────────────────────────────────
 from app.models.common import ConfigPublic, ErrorResponse  # noqa: F401
 
+# ── Comparison / diff schemas (pure Pydantic) ────────────────────
+from app.models.comparison import (  # noqa: F401
+    AggregateComparison,
+    FieldChange,
+    MetricAggregateDelta,
+    MetricDelta,
+    PromptDiff,
+    RunComparison,
+    RunConfigDiff,
+    ScenarioComparison,
+    ScenarioSetDiff,
+    ToolDiff,
+)
+
 # ── Custom metric ──────────────────────────────────────────────────
 from app.models.custom_metric import (  # noqa: F401
     CustomMetric,

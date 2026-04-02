@@ -165,7 +165,7 @@ export type AgentSimulatorConfig = {
   /**
    * Model
    *
-   * Override agent agent_model for this run
+   * Override agent_model for this run
    */
   model?: string | null;
   /**
@@ -266,6 +266,54 @@ export type AgentsPublic = {
    * Total number of agents matching the query
    */
   count: number;
+};
+
+/**
+ * AggregateComparison
+ */
+export type AggregateComparison = {
+  baseline_metrics: AggregateMetrics;
+  candidate_metrics: AggregateMetrics;
+  /**
+   * Pass Rate Delta
+   */
+  pass_rate_delta: number;
+  /**
+   * Avg Score Delta
+   */
+  avg_score_delta?: number | null;
+  /**
+   * Latency Avg Delta Ms
+   */
+  latency_avg_delta_ms?: number | null;
+  /**
+   * Latency P95 Delta Ms
+   */
+  latency_p95_delta_ms?: number | null;
+  /**
+   * Cost Delta Usd
+   */
+  cost_delta_usd?: number | null;
+  /**
+   * Total Regressions
+   */
+  total_regressions: number;
+  /**
+   * Total Improvements
+   */
+  total_improvements: number;
+  /**
+   * Total Unchanged
+   */
+  total_unchanged: number;
+  /**
+   * Total Errors
+   */
+  total_errors: number;
+  /**
+   * Per Metric Aggregate Deltas
+   */
+  per_metric_aggregate_deltas: Array<MetricAggregateDelta>;
 };
 
 /**
@@ -735,6 +783,42 @@ export type ExpectedToolCall = {
 };
 
 /**
+ * FieldChange
+ */
+export type FieldChange = {
+  /**
+   * Field
+   */
+  field: string;
+  /**
+   * Old Value
+   */
+  old_value?:
+    | string
+    | number
+    | number
+    | boolean
+    | {
+        [key: string]: unknown;
+      }
+    | Array<unknown>
+    | null;
+  /**
+   * New Value
+   */
+  new_value?:
+    | string
+    | number
+    | number
+    | boolean
+    | {
+        [key: string]: unknown;
+      }
+    | Array<unknown>
+    | null;
+};
+
+/**
  * GenerateRequest
  *
  * Input for scenario generation.
@@ -905,6 +989,32 @@ export type Message = {
 };
 
 /**
+ * MetricAggregateDelta
+ */
+export type MetricAggregateDelta = {
+  /**
+   * Metric
+   */
+  metric: string;
+  /**
+   * Is Binary
+   */
+  is_binary: boolean;
+  /**
+   * Baseline Avg
+   */
+  baseline_avg?: number | null;
+  /**
+   * Candidate Avg
+   */
+  candidate_avg?: number | null;
+  /**
+   * Delta
+   */
+  delta?: number | null;
+};
+
+/**
  * MetricDefinition
  */
 export type MetricDefinition = {
@@ -946,6 +1056,44 @@ export type MetricDefinition = {
    * If False, metric is omitted unless explicitly selected
    */
   include_in_defaults?: boolean;
+};
+
+/**
+ * MetricDelta
+ */
+export type MetricDelta = {
+  /**
+   * Metric
+   */
+  metric: string;
+  /**
+   * Is Binary
+   */
+  is_binary: boolean;
+  /**
+   * Baseline Score
+   */
+  baseline_score?: number | null;
+  /**
+   * Candidate Score
+   */
+  candidate_score?: number | null;
+  /**
+   * Delta
+   */
+  delta?: number | null;
+  /**
+   * Baseline Label
+   */
+  baseline_label?: string | null;
+  /**
+   * Candidate Label
+   */
+  candidate_label?: string | null;
+  /**
+   * Status
+   */
+  status: 'regression' | 'improvement' | 'unchanged';
 };
 
 /**
@@ -1152,6 +1300,78 @@ export type Persona = {
 };
 
 /**
+ * PromptDiff
+ */
+export type PromptDiff = {
+  /**
+   * Changed
+   */
+  changed: boolean;
+  /**
+   * Unified Diff
+   */
+  unified_diff?: string | null;
+  /**
+   * Change Ratio
+   *
+   * 0.0 = identical, 1.0 = completely different
+   */
+  change_ratio: number;
+  /**
+   * Added Line Count
+   */
+  added_line_count?: number;
+  /**
+   * Removed Line Count
+   */
+  removed_line_count?: number;
+  /**
+   * Semantic Summary
+   */
+  semantic_summary?: string | null;
+};
+
+/**
+ * RunComparison
+ */
+export type RunComparison = {
+  /**
+   * Baseline Run Id
+   */
+  baseline_run_id: string;
+  /**
+   * Candidate Run Id
+   */
+  candidate_run_id: string;
+  /**
+   * Baseline Run Name
+   */
+  baseline_run_name?: string | null;
+  /**
+   * Candidate Run Name
+   */
+  candidate_run_name?: string | null;
+  aggregate: AggregateComparison;
+  /**
+   * Scenario Comparisons
+   */
+  scenario_comparisons: Array<ScenarioComparison>;
+  /**
+   * Baseline Only Scenarios
+   */
+  baseline_only_scenarios: Array<string>;
+  /**
+   * Candidate Only Scenarios
+   */
+  candidate_only_scenarios: Array<string>;
+  config_diff: RunConfigDiff;
+  /**
+   * Warnings
+   */
+  warnings: Array<string>;
+};
+
+/**
  * RunConfig
  */
 export type RunConfigInput = {
@@ -1209,6 +1429,25 @@ export type RunConfigOutput = {
    * Agent simulator LLM overrides. Only applies when the agent mode is platform.
    */
   agent_simulator?: AgentSimulatorConfig | null;
+};
+
+/**
+ * RunConfigDiff
+ *
+ * Structured diff of snapshotted run configuration between two runs.
+ */
+export type RunConfigDiff = {
+  prompt_diff?: PromptDiff | null;
+  tool_diff?: ToolDiff | null;
+  model_changed?: FieldChange | null;
+  provider_changed?: FieldChange | null;
+  judge_model_changed?: FieldChange | null;
+  judge_provider_changed?: FieldChange | null;
+  /**
+   * Config Changes
+   */
+  config_changes?: Array<FieldChange>;
+  scenario_set_diff: ScenarioSetDiff;
 };
 
 /**
@@ -1487,6 +1726,60 @@ export type RunsPublic = {
    * Total number of runs matching the query
    */
   count: number;
+};
+
+/**
+ * ScenarioComparison
+ */
+export type ScenarioComparison = {
+  /**
+   * Scenario Id
+   */
+  scenario_id: string;
+  /**
+   * Scenario Name
+   */
+  scenario_name: string;
+  /**
+   * Status
+   */
+  status: 'regression' | 'improvement' | 'unchanged' | 'error';
+  /**
+   * Baseline Passed
+   */
+  baseline_passed?: boolean | null;
+  /**
+   * Candidate Passed
+   */
+  candidate_passed?: boolean | null;
+  /**
+   * Baseline Score
+   */
+  baseline_score?: number | null;
+  /**
+   * Candidate Score
+   */
+  candidate_score?: number | null;
+  /**
+   * Score Delta
+   */
+  score_delta?: number | null;
+  /**
+   * Metric Deltas
+   */
+  metric_deltas: Array<MetricDelta>;
+  /**
+   * Baseline Latency Ms
+   */
+  baseline_latency_ms?: number | null;
+  /**
+   * Candidate Latency Ms
+   */
+  candidate_latency_ms?: number | null;
+  /**
+   * Latency Delta Ms
+   */
+  latency_delta_ms?: number | null;
 };
 
 /**
@@ -2065,6 +2358,32 @@ export type ScenarioSetCreate = {
 };
 
 /**
+ * ScenarioSetDiff
+ */
+export type ScenarioSetDiff = {
+  /**
+   * Same Set
+   */
+  same_set: boolean;
+  /**
+   * Version Changed
+   */
+  version_changed: boolean;
+  /**
+   * Added Scenario Ids
+   */
+  added_scenario_ids?: Array<string>;
+  /**
+   * Removed Scenario Ids
+   */
+  removed_scenario_ids?: Array<string>;
+  /**
+   * Common Scenario Ids
+   */
+  common_scenario_ids?: Array<string>;
+};
+
+/**
  * ScenarioSetMembersUpdate
  */
 export type ScenarioSetMembersUpdate = {
@@ -2373,6 +2692,30 @@ export type ToolDefinition = {
   parameters?: {
     [key: string]: unknown;
   } | null;
+};
+
+/**
+ * ToolDiff
+ */
+export type ToolDiff = {
+  /**
+   * Added
+   *
+   * Added tool names
+   */
+  added?: Array<string>;
+  /**
+   * Removed
+   *
+   * Removed tool names
+   */
+  removed?: Array<string>;
+  /**
+   * Modified
+   *
+   * Per-tool deepdiff summary
+   */
+  modified?: Array<FieldChange>;
 };
 
 /**
@@ -4902,6 +5245,70 @@ export type RunsCreateRunResponses = {
 };
 
 export type RunsCreateRunResponse = RunsCreateRunResponses[keyof RunsCreateRunResponses];
+
+export type RunsCompareRunsEndpointData = {
+  body?: never;
+  path?: never;
+  query: {
+    /**
+     * Baseline Run Id
+     *
+     * UUID of the baseline run
+     */
+    baseline_run_id: string;
+    /**
+     * Candidate Run Id
+     *
+     * UUID of the candidate run
+     */
+    candidate_run_id: string;
+  };
+  url: '/api/v1/runs/compare';
+};
+
+export type RunsCompareRunsEndpointErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type RunsCompareRunsEndpointError =
+  RunsCompareRunsEndpointErrors[keyof RunsCompareRunsEndpointErrors];
+
+export type RunsCompareRunsEndpointResponses = {
+  /**
+   * Successful Response
+   */
+  200: RunComparison;
+};
+
+export type RunsCompareRunsEndpointResponse =
+  RunsCompareRunsEndpointResponses[keyof RunsCompareRunsEndpointResponses];
 
 export type RunsDeleteRunData = {
   body?: never;

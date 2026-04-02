@@ -254,7 +254,7 @@ export const AgentSimulatorConfigSchema = {
         },
       ],
       title: 'Model',
-      description: 'Override agent agent_model for this run',
+      description: 'Override agent_model for this run',
     },
     provider: {
       anyOf: [
@@ -441,6 +441,100 @@ export const AgentsPublicSchema = {
   type: 'object',
   required: ['data', 'count'],
   title: 'AgentsPublic',
+} as const;
+
+export const AggregateComparisonSchema = {
+  properties: {
+    baseline_metrics: {
+      $ref: '#/components/schemas/AggregateMetrics',
+    },
+    candidate_metrics: {
+      $ref: '#/components/schemas/AggregateMetrics',
+    },
+    pass_rate_delta: {
+      type: 'number',
+      title: 'Pass Rate Delta',
+    },
+    avg_score_delta: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Avg Score Delta',
+    },
+    latency_avg_delta_ms: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Latency Avg Delta Ms',
+    },
+    latency_p95_delta_ms: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Latency P95 Delta Ms',
+    },
+    cost_delta_usd: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Cost Delta Usd',
+    },
+    total_regressions: {
+      type: 'integer',
+      title: 'Total Regressions',
+    },
+    total_improvements: {
+      type: 'integer',
+      title: 'Total Improvements',
+    },
+    total_unchanged: {
+      type: 'integer',
+      title: 'Total Unchanged',
+    },
+    total_errors: {
+      type: 'integer',
+      title: 'Total Errors',
+    },
+    per_metric_aggregate_deltas: {
+      items: {
+        $ref: '#/components/schemas/MetricAggregateDelta',
+      },
+      type: 'array',
+      title: 'Per Metric Aggregate Deltas',
+    },
+  },
+  type: 'object',
+  required: [
+    'baseline_metrics',
+    'candidate_metrics',
+    'pass_rate_delta',
+    'total_regressions',
+    'total_improvements',
+    'total_unchanged',
+    'total_errors',
+    'per_metric_aggregate_deltas',
+  ],
+  title: 'AggregateComparison',
 } as const;
 
 export const AggregateMetricsSchema = {
@@ -1182,6 +1276,72 @@ export const ExpectedToolCallSchema = {
   title: 'ExpectedToolCall',
 } as const;
 
+export const FieldChangeSchema = {
+  properties: {
+    field: {
+      type: 'string',
+      title: 'Field',
+    },
+    old_value: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'integer',
+        },
+        {
+          type: 'number',
+        },
+        {
+          type: 'boolean',
+        },
+        {
+          type: 'object',
+        },
+        {
+          items: {},
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Old Value',
+    },
+    new_value: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'integer',
+        },
+        {
+          type: 'number',
+        },
+        {
+          type: 'boolean',
+        },
+        {
+          type: 'object',
+        },
+        {
+          items: {},
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'New Value',
+    },
+  },
+  type: 'object',
+  required: ['field'],
+  title: 'FieldChange',
+} as const;
+
 export const GenerateRequestSchema = {
   properties: {
     agent_prompt: {
@@ -1441,6 +1601,55 @@ export const MessageSchema = {
   title: 'Message',
 } as const;
 
+export const MetricAggregateDeltaSchema = {
+  properties: {
+    metric: {
+      type: 'string',
+      title: 'Metric',
+    },
+    is_binary: {
+      type: 'boolean',
+      title: 'Is Binary',
+    },
+    baseline_avg: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Baseline Avg',
+    },
+    candidate_avg: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Candidate Avg',
+    },
+    delta: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Delta',
+    },
+  },
+  type: 'object',
+  required: ['metric', 'is_binary'],
+  title: 'MetricAggregateDelta',
+} as const;
+
 export const MetricDefinitionSchema = {
   properties: {
     name: {
@@ -1493,6 +1702,82 @@ export const MetricDefinitionSchema = {
     'rubric',
   ],
   title: 'MetricDefinition',
+} as const;
+
+export const MetricDeltaSchema = {
+  properties: {
+    metric: {
+      type: 'string',
+      title: 'Metric',
+    },
+    is_binary: {
+      type: 'boolean',
+      title: 'Is Binary',
+    },
+    baseline_score: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Baseline Score',
+    },
+    candidate_score: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Candidate Score',
+    },
+    delta: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Delta',
+    },
+    baseline_label: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Baseline Label',
+    },
+    candidate_label: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Candidate Label',
+    },
+    status: {
+      type: 'string',
+      enum: ['regression', 'improvement', 'unchanged'],
+      title: 'Status',
+    },
+  },
+  type: 'object',
+  required: ['metric', 'is_binary', 'status'],
+  title: 'MetricDelta',
 } as const;
 
 export const MetricGenerateRequestSchema = {
@@ -1747,6 +2032,140 @@ export const PersonaSchema = {
   title: 'Persona',
 } as const;
 
+export const PromptDiffSchema = {
+  properties: {
+    changed: {
+      type: 'boolean',
+      title: 'Changed',
+    },
+    unified_diff: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Unified Diff',
+    },
+    change_ratio: {
+      type: 'number',
+      title: 'Change Ratio',
+      description: '0.0 = identical, 1.0 = completely different',
+    },
+    added_line_count: {
+      type: 'integer',
+      title: 'Added Line Count',
+      default: 0,
+    },
+    removed_line_count: {
+      type: 'integer',
+      title: 'Removed Line Count',
+      default: 0,
+    },
+    semantic_summary: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Semantic Summary',
+    },
+  },
+  type: 'object',
+  required: ['changed', 'change_ratio'],
+  title: 'PromptDiff',
+} as const;
+
+export const RunComparisonSchema = {
+  properties: {
+    baseline_run_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Baseline Run Id',
+    },
+    candidate_run_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Candidate Run Id',
+    },
+    baseline_run_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Baseline Run Name',
+    },
+    candidate_run_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Candidate Run Name',
+    },
+    aggregate: {
+      $ref: '#/components/schemas/AggregateComparison',
+    },
+    scenario_comparisons: {
+      items: {
+        $ref: '#/components/schemas/ScenarioComparison',
+      },
+      type: 'array',
+      title: 'Scenario Comparisons',
+    },
+    baseline_only_scenarios: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      title: 'Baseline Only Scenarios',
+    },
+    candidate_only_scenarios: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      title: 'Candidate Only Scenarios',
+    },
+    config_diff: {
+      $ref: '#/components/schemas/RunConfigDiff',
+    },
+    warnings: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Warnings',
+    },
+  },
+  type: 'object',
+  required: [
+    'baseline_run_id',
+    'candidate_run_id',
+    'aggregate',
+    'scenario_comparisons',
+    'baseline_only_scenarios',
+    'candidate_only_scenarios',
+    'config_diff',
+    'warnings',
+  ],
+  title: 'RunComparison',
+} as const;
+
 export const RunConfig_InputSchema = {
   properties: {
     concurrency: {
@@ -1851,6 +2270,85 @@ export const RunConfig_OutputSchema = {
   },
   type: 'object',
   title: 'RunConfig',
+} as const;
+
+export const RunConfigDiffSchema = {
+  properties: {
+    prompt_diff: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/PromptDiff',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    tool_diff: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/ToolDiff',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    model_changed: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/FieldChange',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    provider_changed: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/FieldChange',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    judge_model_changed: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/FieldChange',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    judge_provider_changed: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/FieldChange',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    config_changes: {
+      items: {
+        $ref: '#/components/schemas/FieldChange',
+      },
+      type: 'array',
+      title: 'Config Changes',
+    },
+    scenario_set_diff: {
+      $ref: '#/components/schemas/ScenarioSetDiff',
+    },
+  },
+  type: 'object',
+  required: ['scenario_set_diff'],
+  title: 'RunConfigDiff',
+  description: 'Structured diff of snapshotted run configuration between two runs.',
 } as const;
 
 export const RunCreateSchema = {
@@ -2311,6 +2809,123 @@ export const RunsPublicSchema = {
   type: 'object',
   required: ['data', 'count'],
   title: 'RunsPublic',
+} as const;
+
+export const ScenarioComparisonSchema = {
+  properties: {
+    scenario_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Scenario Id',
+    },
+    scenario_name: {
+      type: 'string',
+      title: 'Scenario Name',
+    },
+    status: {
+      type: 'string',
+      enum: ['regression', 'improvement', 'unchanged', 'error'],
+      title: 'Status',
+    },
+    baseline_passed: {
+      anyOf: [
+        {
+          type: 'boolean',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Baseline Passed',
+    },
+    candidate_passed: {
+      anyOf: [
+        {
+          type: 'boolean',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Candidate Passed',
+    },
+    baseline_score: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Baseline Score',
+    },
+    candidate_score: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Candidate Score',
+    },
+    score_delta: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Score Delta',
+    },
+    metric_deltas: {
+      items: {
+        $ref: '#/components/schemas/MetricDelta',
+      },
+      type: 'array',
+      title: 'Metric Deltas',
+    },
+    baseline_latency_ms: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Baseline Latency Ms',
+    },
+    candidate_latency_ms: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Candidate Latency Ms',
+    },
+    latency_delta_ms: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Latency Delta Ms',
+    },
+  },
+  type: 'object',
+  required: ['scenario_id', 'scenario_name', 'status', 'metric_deltas'],
+  title: 'ScenarioComparison',
 } as const;
 
 export const ScenarioCreateSchema = {
@@ -3353,6 +3968,46 @@ export const ScenarioSetCreateSchema = {
   title: 'ScenarioSetCreate',
 } as const;
 
+export const ScenarioSetDiffSchema = {
+  properties: {
+    same_set: {
+      type: 'boolean',
+      title: 'Same Set',
+    },
+    version_changed: {
+      type: 'boolean',
+      title: 'Version Changed',
+    },
+    added_scenario_ids: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      title: 'Added Scenario Ids',
+    },
+    removed_scenario_ids: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      title: 'Removed Scenario Ids',
+    },
+    common_scenario_ids: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      title: 'Common Scenario Ids',
+    },
+  },
+  type: 'object',
+  required: ['same_set', 'version_changed'],
+  title: 'ScenarioSetDiff',
+} as const;
+
 export const ScenarioSetMembersUpdateSchema = {
   properties: {
     scenario_ids: {
@@ -3784,6 +4439,37 @@ export const ToolDefinitionSchema = {
   required: ['name', 'description'],
   title: 'ToolDefinition',
   description: 'A single tool/function definition the agent has access to.',
+} as const;
+
+export const ToolDiffSchema = {
+  properties: {
+    added: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Added',
+      description: 'Added tool names',
+    },
+    removed: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Removed',
+      description: 'Removed tool names',
+    },
+    modified: {
+      items: {
+        $ref: '#/components/schemas/FieldChange',
+      },
+      type: 'array',
+      title: 'Modified',
+      description: 'Per-tool deepdiff summary',
+    },
+  },
+  type: 'object',
+  title: 'ToolDiff',
 } as const;
 
 export const TurnRoleSchema = {
