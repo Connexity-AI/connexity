@@ -475,6 +475,32 @@ export type BodyLoginLoginAccessToken = {
 };
 
 /**
+ * CauseAnalysisItem
+ */
+export type CauseAnalysisItem = {
+  /**
+   * Metric
+   */
+  metric: string;
+  /**
+   * Direction
+   */
+  direction: 'regressed' | 'improved';
+  /**
+   * Likely Cause
+   */
+  likely_cause: string;
+  /**
+   * Confidence
+   */
+  confidence: 'high' | 'medium' | 'low';
+  /**
+   * Reasoning
+   */
+  reasoning: string;
+};
+
+/**
  * ConfigPublic
  */
 export type ConfigPublic = {
@@ -876,6 +902,62 @@ export type GenerateResult = {
    * Generation Time Ms
    */
   generation_time_ms: number;
+};
+
+/**
+ * ImprovementSuggestion
+ */
+export type ImprovementSuggestion = {
+  /**
+   * Target
+   */
+  target: 'system_prompt' | 'tool_definition' | 'model_selection' | 'scenario_design' | 'other';
+  /**
+   * Title
+   */
+  title: string;
+  /**
+   * Description
+   */
+  description: string;
+  /**
+   * Current Value
+   */
+  current_value?: string | null;
+  /**
+   * Suggested Value
+   */
+  suggested_value?: string | null;
+  /**
+   * Expected Metric Impact
+   */
+  expected_metric_impact: Array<string>;
+  /**
+   * Priority
+   */
+  priority: 'high' | 'medium' | 'low';
+};
+
+/**
+ * ImprovementSuggestions
+ */
+export type ImprovementSuggestions = {
+  /**
+   * Suggestions
+   */
+  suggestions: Array<ImprovementSuggestion>;
+  /**
+   * Summary
+   */
+  summary: string;
+  /**
+   * Model
+   */
+  model: string;
+  /**
+   * Cost Usd
+   */
+  cost_usd?: number | null;
 };
 
 /**
@@ -1332,6 +1414,77 @@ export type PromptDiff = {
 };
 
 /**
+ * RegressionAnalysis
+ */
+export type RegressionAnalysis = {
+  /**
+   * Analysis
+   */
+  analysis: Array<CauseAnalysisItem>;
+  /**
+   * Infrastructure Notes
+   */
+  infrastructure_notes: Array<string>;
+  /**
+   * Summary
+   */
+  summary: string;
+  /**
+   * Prompt Semantic Summary
+   */
+  prompt_semantic_summary?: string | null;
+  /**
+   * Analysis Model
+   */
+  analysis_model: string;
+  /**
+   * Analysis Cost Usd
+   */
+  analysis_cost_usd?: number | null;
+};
+
+/**
+ * RegressionThresholds
+ *
+ * Sensible defaults. Overridable via CLI flags or API query params.
+ */
+export type RegressionThresholds = {
+  /**
+   * Max Pass Rate Drop
+   *
+   * Any pass-rate drop flags regression (default: strict)
+   */
+  max_pass_rate_drop?: number;
+  /**
+   * Max Avg Score Drop
+   *
+   * Tolerance on 0-100 scale for avg score drop (LLM noise)
+   */
+  max_avg_score_drop?: number;
+  /**
+   * Max Latency Increase Pct
+   *
+   * Fraction of latency increase tolerated (0.2 = 20%)
+   */
+  max_latency_increase_pct?: number;
+};
+
+/**
+ * RegressionVerdict
+ */
+export type RegressionVerdict = {
+  /**
+   * Regression Detected
+   */
+  regression_detected: boolean;
+  /**
+   * Reasons
+   */
+  reasons: Array<string>;
+  thresholds_used: RegressionThresholds;
+};
+
+/**
  * RunComparison
  */
 export type RunComparison = {
@@ -1365,10 +1518,12 @@ export type RunComparison = {
    */
   candidate_only_scenarios: Array<string>;
   config_diff: RunConfigDiff;
+  verdict: RegressionVerdict;
   /**
    * Warnings
    */
   warnings: Array<string>;
+  regression_analysis?: RegressionAnalysis | null;
 };
 
 /**
@@ -2611,6 +2766,20 @@ export const SimulatorMode = { LLM: 'llm', SCRIPTED: 'scripted' } as const;
  * SimulatorMode
  */
 export type SimulatorMode = (typeof SimulatorMode)[keyof typeof SimulatorMode];
+
+/**
+ * SuggestionsRequest
+ */
+export type SuggestionsRequest = {
+  /**
+   * Baseline Run Id
+   */
+  baseline_run_id: string;
+  /**
+   * Candidate Run Id
+   */
+  candidate_run_id: string;
+};
 
 /**
  * Token
@@ -5262,6 +5431,30 @@ export type RunsCompareRunsEndpointData = {
      * UUID of the candidate run
      */
     candidate_run_id: string;
+    /**
+     * Max Pass Rate Drop
+     *
+     * Override max pass-rate drop threshold (0.0 = strict)
+     */
+    max_pass_rate_drop?: number | null;
+    /**
+     * Max Avg Score Drop
+     *
+     * Override max avg score drop on 0-100 scale
+     */
+    max_avg_score_drop?: number | null;
+    /**
+     * Max Latency Increase Pct
+     *
+     * Override max latency increase fraction (0.2 = 20%)
+     */
+    max_latency_increase_pct?: number | null;
+    /**
+     * Include Analysis
+     *
+     * Include AI regression analysis (requires LLM call, adds latency)
+     */
+    include_analysis?: boolean;
   };
   url: '/api/v1/runs/compare';
 };
@@ -5309,6 +5502,57 @@ export type RunsCompareRunsEndpointResponses = {
 
 export type RunsCompareRunsEndpointResponse =
   RunsCompareRunsEndpointResponses[keyof RunsCompareRunsEndpointResponses];
+
+export type RunsCompareSuggestionsEndpointData = {
+  body: SuggestionsRequest;
+  path?: never;
+  query?: never;
+  url: '/api/v1/runs/compare/suggestions';
+};
+
+export type RunsCompareSuggestionsEndpointErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type RunsCompareSuggestionsEndpointError =
+  RunsCompareSuggestionsEndpointErrors[keyof RunsCompareSuggestionsEndpointErrors];
+
+export type RunsCompareSuggestionsEndpointResponses = {
+  /**
+   * Successful Response
+   */
+  200: ImprovementSuggestions;
+};
+
+export type RunsCompareSuggestionsEndpointResponse =
+  RunsCompareSuggestionsEndpointResponses[keyof RunsCompareSuggestionsEndpointResponses];
 
 export type RunsDeleteRunData = {
   body?: never;

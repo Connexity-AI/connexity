@@ -74,6 +74,9 @@ import type {
   RunsCompareRunsEndpointData,
   RunsCompareRunsEndpointErrors,
   RunsCompareRunsEndpointResponses,
+  RunsCompareSuggestionsEndpointData,
+  RunsCompareSuggestionsEndpointErrors,
+  RunsCompareSuggestionsEndpointResponses,
   RunsCreateRunData,
   RunsCreateRunErrors,
   RunsCreateRunResponses,
@@ -1320,6 +1323,39 @@ export class RunsService {
       ],
       url: '/api/v1/runs/compare',
       ...options,
+    });
+  }
+
+  /**
+   * Compare Suggestions Endpoint
+   *
+   * Generate AI-powered improvement suggestions for a comparison.
+   *
+   * Requires a prior comparison with regression analysis. More expensive
+   * than the analysis — only called on-demand.
+   */
+  public static compareSuggestionsEndpoint<ThrowOnError extends boolean = false>(
+    options: Options<RunsCompareSuggestionsEndpointData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      RunsCompareSuggestionsEndpointResponses,
+      RunsCompareSuggestionsEndpointErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/runs/compare/suggestions',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
     });
   }
 

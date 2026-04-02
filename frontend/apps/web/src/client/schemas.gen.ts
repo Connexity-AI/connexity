@@ -785,6 +785,36 @@ export const Body_login_login_access_tokenSchema = {
   title: 'Body_login-login_access_token',
 } as const;
 
+export const CauseAnalysisItemSchema = {
+  properties: {
+    metric: {
+      type: 'string',
+      title: 'Metric',
+    },
+    direction: {
+      type: 'string',
+      enum: ['regressed', 'improved'],
+      title: 'Direction',
+    },
+    likely_cause: {
+      type: 'string',
+      title: 'Likely Cause',
+    },
+    confidence: {
+      type: 'string',
+      enum: ['high', 'medium', 'low'],
+      title: 'Confidence',
+    },
+    reasoning: {
+      type: 'string',
+      title: 'Reasoning',
+    },
+  },
+  type: 'object',
+  required: ['metric', 'direction', 'likely_cause', 'confidence', 'reasoning'],
+  title: 'CauseAnalysisItem',
+} as const;
+
 export const ConfigPublicSchema = {
   properties: {
     project_name: {
@@ -1435,6 +1465,95 @@ export const GenerateResultSchema = {
   description: 'Output from scenario generation.',
 } as const;
 
+export const ImprovementSuggestionSchema = {
+  properties: {
+    target: {
+      type: 'string',
+      enum: ['system_prompt', 'tool_definition', 'model_selection', 'scenario_design', 'other'],
+      title: 'Target',
+    },
+    title: {
+      type: 'string',
+      title: 'Title',
+    },
+    description: {
+      type: 'string',
+      title: 'Description',
+    },
+    current_value: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Current Value',
+    },
+    suggested_value: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Suggested Value',
+    },
+    expected_metric_impact: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Expected Metric Impact',
+    },
+    priority: {
+      type: 'string',
+      enum: ['high', 'medium', 'low'],
+      title: 'Priority',
+    },
+  },
+  type: 'object',
+  required: ['target', 'title', 'description', 'expected_metric_impact', 'priority'],
+  title: 'ImprovementSuggestion',
+} as const;
+
+export const ImprovementSuggestionsSchema = {
+  properties: {
+    suggestions: {
+      items: {
+        $ref: '#/components/schemas/ImprovementSuggestion',
+      },
+      type: 'array',
+      title: 'Suggestions',
+    },
+    summary: {
+      type: 'string',
+      title: 'Summary',
+    },
+    model: {
+      type: 'string',
+      title: 'Model',
+    },
+    cost_usd: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Cost Usd',
+    },
+  },
+  type: 'object',
+  required: ['suggestions', 'summary', 'model'],
+  title: 'ImprovementSuggestions',
+} as const;
+
 export const JudgeConfigSchema = {
   properties: {
     metrics: {
@@ -2081,6 +2200,106 @@ export const PromptDiffSchema = {
   title: 'PromptDiff',
 } as const;
 
+export const RegressionAnalysisSchema = {
+  properties: {
+    analysis: {
+      items: {
+        $ref: '#/components/schemas/CauseAnalysisItem',
+      },
+      type: 'array',
+      title: 'Analysis',
+    },
+    infrastructure_notes: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Infrastructure Notes',
+    },
+    summary: {
+      type: 'string',
+      title: 'Summary',
+    },
+    prompt_semantic_summary: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Prompt Semantic Summary',
+    },
+    analysis_model: {
+      type: 'string',
+      title: 'Analysis Model',
+    },
+    analysis_cost_usd: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Analysis Cost Usd',
+    },
+  },
+  type: 'object',
+  required: ['analysis', 'infrastructure_notes', 'summary', 'analysis_model'],
+  title: 'RegressionAnalysis',
+} as const;
+
+export const RegressionThresholdsSchema = {
+  properties: {
+    max_pass_rate_drop: {
+      type: 'number',
+      title: 'Max Pass Rate Drop',
+      description: 'Any pass-rate drop flags regression (default: strict)',
+      default: 0,
+    },
+    max_avg_score_drop: {
+      type: 'number',
+      title: 'Max Avg Score Drop',
+      description: 'Tolerance on 0-100 scale for avg score drop (LLM noise)',
+      default: 5,
+    },
+    max_latency_increase_pct: {
+      type: 'number',
+      title: 'Max Latency Increase Pct',
+      description: 'Fraction of latency increase tolerated (0.2 = 20%)',
+      default: 0.2,
+    },
+  },
+  type: 'object',
+  title: 'RegressionThresholds',
+  description: 'Sensible defaults. Overridable via CLI flags or API query params.',
+} as const;
+
+export const RegressionVerdictSchema = {
+  properties: {
+    regression_detected: {
+      type: 'boolean',
+      title: 'Regression Detected',
+    },
+    reasons: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Reasons',
+    },
+    thresholds_used: {
+      $ref: '#/components/schemas/RegressionThresholds',
+    },
+  },
+  type: 'object',
+  required: ['regression_detected', 'reasons', 'thresholds_used'],
+  title: 'RegressionVerdict',
+} as const;
+
 export const RunComparisonSchema = {
   properties: {
     baseline_run_id: {
@@ -2144,12 +2363,25 @@ export const RunComparisonSchema = {
     config_diff: {
       $ref: '#/components/schemas/RunConfigDiff',
     },
+    verdict: {
+      $ref: '#/components/schemas/RegressionVerdict',
+    },
     warnings: {
       items: {
         type: 'string',
       },
       type: 'array',
       title: 'Warnings',
+    },
+    regression_analysis: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/RegressionAnalysis',
+        },
+        {
+          type: 'null',
+        },
+      ],
     },
   },
   type: 'object',
@@ -2161,6 +2393,7 @@ export const RunComparisonSchema = {
     'baseline_only_scenarios',
     'candidate_only_scenarios',
     'config_diff',
+    'verdict',
     'warnings',
   ],
   title: 'RunComparison',
@@ -4342,6 +4575,24 @@ export const SimulatorModeSchema = {
   type: 'string',
   enum: ['llm', 'scripted'],
   title: 'SimulatorMode',
+} as const;
+
+export const SuggestionsRequestSchema = {
+  properties: {
+    baseline_run_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Baseline Run Id',
+    },
+    candidate_run_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Candidate Run Id',
+    },
+  },
+  type: 'object',
+  required: ['baseline_run_id', 'candidate_run_id'],
+  title: 'SuggestionsRequest',
 } as const;
 
 export const TokenSchema = {

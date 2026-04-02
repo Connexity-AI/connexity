@@ -26,9 +26,9 @@ repos:
       - id: ruff-format
   - repo: local
     hooks:
-      - id: mypy
-        name: mypy
-        entry: bash -c 'cd backend && uv run mypy app cli'
+      - id: pyright
+        name: pyright
+        entry: bash -c 'cd backend && uv run pyright'
         language: system
         types: [python]
         pass_filenames: false

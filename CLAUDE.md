@@ -28,8 +28,45 @@ cd frontend && pnpm typecheck
 
 # Lint
 cd backend && ruff check . && ruff format --check .
+cd backend && pyright
 cd frontend && pnpm lint
+cd frontend && pnpm turbo check-types
 ```
+
+## Quality Checks (run before committing)
+
+After implementing a feature or fix, run the relevant checks before committing:
+
+### Backend changes (`backend/`)
+```bash
+cd backend
+uv run ruff check app cli scripts          # lint
+uv run ruff format --check app cli scripts  # format check
+uv run pyright                              # type check
+uv run pytest app/tests -v                  # tests
+```
+
+### Frontend changes (`frontend/`)
+```bash
+cd frontend
+pnpm lint                  # ESLint
+pnpm turbo check-types       # TypeScript type check
+```
+
+### After backend route or model changes
+If you changed any FastAPI route, request/response model, or anything that affects the OpenAPI schema, you **MUST** regenerate the client:
+```bash
+bash scripts/generate-client.sh
+```
+This keeps the frontend TypeScript SDK in sync. CI will fail if the generated client is stale.
+
+### Quick reference: what to run when
+| What changed | Run |
+|---|---|
+| Python code in `backend/` | `ruff check` + `ruff format --check` + `pyright` + `pytest` |
+| Frontend code in `frontend/` | `pnpm lint` + `pnpm turbo check-types` |
+| Backend routes/models | All backend checks + `bash scripts/generate-client.sh` |
+| Both backend + frontend | All of the above |
 
 ## Git & PRs
 
@@ -69,6 +106,7 @@ IMPORTANT: All Python code in `backend/` MUST follow these conventions.
 - **Async**: Use `async def` for route handlers that do I/O. Use `def` (sync) for CPU-bound or simple operations — FastAPI handles threading.
 - **Dependencies**: Use FastAPI `Depends()` for shared logic (auth, DB sessions). Do not instantiate sessions manually in routes.
 - **Formatter/linter**: `ruff` — format and lint must pass before commit.
+- **Type checker**: `pyright` (basic mode, tightening to standard incrementally) — must pass before commit.
 
 ## TypeScript / React Code Style
 

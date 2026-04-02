@@ -161,7 +161,7 @@ def test_create_scenario_invalid_difficulty(
     )
     assert r.status_code == 422
     detail = r.json()["detail"]
-    assert any("difficulty" in str(e).lower() for e in detail)
+    assert "difficulty" in detail.lower()
 
 
 def test_create_scenario_missing_name(
@@ -174,7 +174,7 @@ def test_create_scenario_missing_name(
     )
     assert r.status_code == 422
     detail = r.json()["detail"]
-    assert any("name" in str(e).lower() for e in detail)
+    assert "name" in detail.lower()
 
 
 def test_create_scenario_invalid_persona_structure(

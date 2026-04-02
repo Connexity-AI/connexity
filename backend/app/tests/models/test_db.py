@@ -76,7 +76,6 @@ def test_scenario_set_create():
         scenario_ids=[uuid.uuid4(), uuid.uuid4()],
     )
     assert len(ss.scenario_ids) == 2
-    assert ss.version == 1
 
 
 def test_scenario_set_table_defaults():

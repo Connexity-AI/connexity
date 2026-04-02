@@ -3,6 +3,6 @@
 set -e
 set -x
 
-mypy app cli
+pyright
 ruff check app cli scripts
 ruff format app cli scripts --check

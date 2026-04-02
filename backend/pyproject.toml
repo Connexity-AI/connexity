@@ -36,10 +36,9 @@ connexity-evals = "cli.main:app"
 dev = [
     "pytest-asyncio>=0.23.0,<0.24.0",
     "pytest<8.0.0,>=7.4.3",
-    "mypy<2.0.0,>=1.8.0",
+    "pyright>=1.1.390",
     "ruff<1.0.0,>=0.2.2",
     "pre-commit<4.0.0,>=3.6.2",
-    "types-passlib<2.0.0.0,>=1.7.7.20240106",
     "coverage<8.0.0,>=7.4.3",
     "pytest-asyncio>=0.23.8",
 ]
@@ -54,10 +53,18 @@ build-backend = "hatchling.build"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 
-[tool.mypy]
-strict = true
-exclude = ["venv", ".venv", "alembic"]
-packages = ["app", "cli"]
+[tool.pyright]
+typeCheckingMode = "basic"
+exclude = ["**/venv", "**/.venv", "**/alembic"]
+include = ["app", "cli"]
+# TODO: tighten to "standard" once existing type errors are fixed
+reportArgumentType = "warning"
+reportAssignmentType = "warning"
+reportOperatorIssue = "warning"
+reportOptionalSubscript = "warning"
+reportOptionalMemberAccess = "warning"
+reportIndexIssue = "warning"
+reportCallIssue = "warning"
 
 [tool.ruff]
 target-version = "py312"

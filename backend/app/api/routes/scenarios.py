@@ -117,6 +117,8 @@ async def generate_scenarios_endpoint(
         raise HTTPException(status_code=502, detail=f"Generation failed: {e}")
     except APIError as e:
         raise HTTPException(status_code=502, detail=f"LLM call failed: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Generation failed: {e}")
 
     persisted: list[ScenarioPublic] = []
     if request.persist:
