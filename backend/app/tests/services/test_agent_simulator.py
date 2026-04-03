@@ -7,8 +7,9 @@ import pytest
 from app.models.agent_contract import ChatMessage
 from app.models.enums import TurnRole
 from app.models.schemas import AgentSimulatorConfig
-from app.services.agent_simulator import AgentSimulator, SyntheticToolExecutor
+from app.services.agent_simulator import AgentSimulator
 from app.services.llm import LLMCallConfig, LLMMessage, LLMResponse
+from app.services.tool_executor import SyntheticToolExecutor, ToolExecutor
 
 
 def _llm_resp(
@@ -133,7 +134,7 @@ async def test_config_overrides_agent_model_and_provider() -> None:
 
 @pytest.mark.asyncio
 async def test_custom_tool_executor() -> None:
-    class CustomExec:
+    class CustomExec(ToolExecutor):
         async def execute(
             self, tool_name: str, tool_call_id: str, arguments: str
         ) -> str:

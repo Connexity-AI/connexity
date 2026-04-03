@@ -6,14 +6,18 @@ from app.models.schemas import (
     AggregateMetrics,
     ConversationTurn,
     ExpectedToolCall,
+    HttpWebhookImplementation,
     JudgeConfig,
     JudgeVerdict,
     MetricScore,
     MetricSelection,
+    MockResponse,
     Persona,
+    PythonImplementation,
     RunConfig,
     ToolCall,
     ToolCallFunction,
+    ToolPlatformConfig,
     UserSimulatorConfig,
 )
 
@@ -60,6 +64,165 @@ def test_expected_tool_call_with_params():
     )
     restored = _round_trip(ExpectedToolCall, tc)
     assert restored.expected_params["order_id"] == "ORD-12345"
+
+
+def test_expected_tool_call_with_mock_responses():
+    tc = ExpectedToolCall(
+        tool="lookup_order",
+        mock_responses=[
+            MockResponse(
+                expected_params={"order_id": "INVALID"},
+                response={"success": False, "error": "Not found"},
+            ),
+            MockResponse(
+                expected_params={"order_id": "ORD-1"},
+                response={"success": True, "order": {"id": "ORD-1", "amount": 49.99}},
+            ),
+        ],
+    )
+    restored = _round_trip(ExpectedToolCall, tc)
+    assert restored.mock_responses is not None
+    assert len(restored.mock_responses) == 2
+    assert restored.mock_responses[0].response["success"] is False
+    assert restored.mock_responses[1].expected_params["order_id"] == "ORD-1"
+
+
+def test_expected_tool_call_mock_responses_default_none():
+    tc = ExpectedToolCall(tool="search")
+    assert tc.mock_responses is None
+
+
+# ── MockResponse ──────────────────────────────────────────────────
+
+
+def test_mock_response_round_trip():
+    mr = MockResponse(
+        expected_params={"q": "test"},
+        response={"results": [1, 2, 3]},
+    )
+    restored = _round_trip(MockResponse, mr)
+    assert restored.expected_params == {"q": "test"}
+    assert restored.response["results"] == [1, 2, 3]
+
+
+def test_mock_response_null_params():
+    mr = MockResponse(response={"ok": True})
+    restored = _round_trip(MockResponse, mr)
+    assert restored.expected_params is None
+
+
+# ── ToolPlatformConfig ────────────────────────────────────────────
+
+
+def test_tool_platform_config_mock_mode():
+    cfg = ToolPlatformConfig(mode="mock")
+    restored = _round_trip(ToolPlatformConfig, cfg)
+    assert restored.mode == "mock"
+    assert restored.implementation is None
+
+
+def test_tool_platform_config_live_python():
+    cfg = ToolPlatformConfig(
+        mode="live",
+        implementation=PythonImplementation(
+            code="async def execute(a, c): return {}",
+            config={"base_url": "https://example.com"},
+            timeout_s=15.0,
+        ),
+    )
+    restored = _round_trip(ToolPlatformConfig, cfg)
+    assert restored.mode == "live"
+    assert restored.implementation is not None
+    assert restored.implementation.type == "python"
+    assert isinstance(restored.implementation, PythonImplementation)
+    assert restored.implementation.config["base_url"] == "https://example.com"
+    assert restored.implementation.timeout_s == 15.0
+
+
+def test_tool_platform_config_live_webhook():
+    cfg = ToolPlatformConfig(
+        mode="live",
+        implementation=HttpWebhookImplementation(
+            url="https://hook.example.com/endpoint",
+            method="POST",
+            headers={"Authorization": "Bearer ${KEY}"},
+            timeout_ms=5000,
+        ),
+    )
+    restored = _round_trip(ToolPlatformConfig, cfg)
+    assert restored.mode == "live"
+    assert isinstance(restored.implementation, HttpWebhookImplementation)
+    assert restored.implementation.url == "https://hook.example.com/endpoint"
+    assert restored.implementation.headers["Authorization"] == "Bearer ${KEY}"
+
+
+def test_tool_platform_config_live_null_implementation():
+    """mode=live with implementation=None is valid at schema level."""
+    cfg = ToolPlatformConfig(mode="live", implementation=None)
+    restored = _round_trip(ToolPlatformConfig, cfg)
+    assert restored.mode == "live"
+    assert restored.implementation is None
+
+
+# ── PythonImplementation ──────────────────────────────────────────
+
+
+def test_python_implementation_defaults():
+    impl = PythonImplementation(code="async def execute(a, c): return {}")
+    assert impl.type == "python"
+    assert impl.config == {}
+    assert impl.timeout_s == 30.0
+
+
+def test_python_implementation_round_trip():
+    impl = PythonImplementation(
+        code="async def execute(a, c): return {'x': 1}",
+        config={"key": "val"},
+        timeout_s=60.0,
+    )
+    _round_trip(PythonImplementation, impl)
+
+
+# ── HttpWebhookImplementation ─────────────────────────────────────
+
+
+def test_http_webhook_implementation_defaults():
+    impl = HttpWebhookImplementation(url="https://example.com")
+    assert impl.type == "http_webhook"
+    assert impl.method == "POST"
+    assert impl.headers is None
+    assert impl.timeout_ms == 10000
+
+
+def test_http_webhook_implementation_round_trip():
+    impl = HttpWebhookImplementation(
+        url="https://api.example.com/hook",
+        method="PUT",
+        headers={"X-Custom": "value"},
+        timeout_ms=30000,
+    )
+    _round_trip(HttpWebhookImplementation, impl)
+
+
+# ── ToolPlatformConfig JSON round-trip (JSONB simulation) ─────────
+
+
+def test_tool_platform_config_json_round_trip():
+    """Simulate how platform_config survives Agent.tools JSONB storage."""
+    import json
+
+    cfg = ToolPlatformConfig(
+        mode="live",
+        implementation=PythonImplementation(
+            code="async def execute(a, c): return {}",
+            config={"url": "https://example.com"},
+        ),
+    )
+    json_str = json.dumps(cfg.model_dump(), default=str)
+    raw = json.loads(json_str)
+    restored = ToolPlatformConfig.model_validate(raw)
+    assert restored.mode == "live"
+    assert isinstance(restored.implementation, PythonImplementation)
 
 
 # ── ToolCall ───────────────────────────────────────────────────────
