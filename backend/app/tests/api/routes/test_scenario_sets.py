@@ -4,7 +4,11 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from app.core.config import settings
-from app.tests.utils.eval import create_test_scenario, create_test_scenario_set
+from app.tests.utils.eval import (
+    create_test_scenario,
+    create_test_scenario_set,
+    scenario_set_members,
+)
 
 
 def test_create_scenario_set(
@@ -29,7 +33,10 @@ def test_create_scenario_set_with_scenarios(
     s2 = create_test_scenario(db)
     data = {
         "name": "Set With Scenarios",
-        "scenario_ids": [str(s1.id), str(s2.id)],
+        "members": [
+            {"scenario_id": str(s1.id), "repetitions": 1},
+            {"scenario_id": str(s2.id), "repetitions": 1},
+        ],
     }
     r = client.post(
         f"{settings.API_V1_STR}/scenario-sets/",
@@ -53,12 +60,12 @@ def test_create_scenario_set_with_scenarios(
     assert body["data"][0]["repetitions"] == 1
 
 
-def test_create_scenario_set_with_invalid_scenario_ids(
+def test_create_scenario_set_with_invalid_members(
     client: TestClient, superuser_auth_cookies: dict[str, str]
 ) -> None:
     data = {
         "name": "Bad Set",
-        "scenario_ids": [str(uuid.uuid4())],
+        "members": [{"scenario_id": str(uuid.uuid4()), "repetitions": 1}],
     }
     r = client.post(
         f"{settings.API_V1_STR}/scenario-sets/",
@@ -174,7 +181,7 @@ def test_replace_scenarios_in_set(
 ) -> None:
     s1 = create_test_scenario(db)
     s2 = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(db, scenario_ids=[s1.id])
+    scenario_set = create_test_scenario_set(db, members=scenario_set_members(s1.id))
     r = client.put(
         f"{settings.API_V1_STR}/scenario-sets/{scenario_set.id}/scenarios",
         json={"members": [{"scenario_id": str(s2.id), "repetitions": 1}]},
@@ -198,7 +205,7 @@ def test_replace_with_invalid_scenarios(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
     s1 = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(db, scenario_ids=[s1.id])
+    scenario_set = create_test_scenario_set(db, members=scenario_set_members(s1.id))
     r = client.put(
         f"{settings.API_V1_STR}/scenario-sets/{scenario_set.id}/scenarios",
         json={"members": [{"scenario_id": str(uuid.uuid4()), "repetitions": 1}]},
@@ -211,7 +218,7 @@ def test_remove_scenario_from_set(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
     s1 = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(db, scenario_ids=[s1.id])
+    scenario_set = create_test_scenario_set(db, members=scenario_set_members(s1.id))
     r = client.delete(
         f"{settings.API_V1_STR}/scenario-sets/{scenario_set.id}/scenarios/{s1.id}",
         cookies=superuser_auth_cookies,
@@ -229,7 +236,10 @@ def test_scenario_count_in_response(
     s2 = create_test_scenario(db)
     data = {
         "name": "Count Check Set",
-        "scenario_ids": [str(s1.id), str(s2.id)],
+        "members": [
+            {"scenario_id": str(s1.id), "repetitions": 1},
+            {"scenario_id": str(s2.id), "repetitions": 1},
+        ],
     }
     r = client.post(
         f"{settings.API_V1_STR}/scenario-sets/",
@@ -248,7 +258,9 @@ def test_list_scenarios_in_set_paginated(
     s1 = create_test_scenario(db)
     s2 = create_test_scenario(db)
     s3 = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(db, scenario_ids=[s1.id, s2.id, s3.id])
+    scenario_set = create_test_scenario_set(
+        db, members=scenario_set_members(s1.id, s2.id, s3.id)
+    )
 
     r = client.get(
         f"{settings.API_V1_STR}/scenario-sets/{scenario_set.id}/scenarios",

@@ -16,6 +16,7 @@ from app.tests.utils.eval import (
     create_test_scenario,
     create_test_scenario_result,
     create_test_scenario_set,
+    scenario_set_members,
 )
 
 _PREFIX = f"{settings.API_V1_STR}/runs/compare"
@@ -30,7 +31,9 @@ def _completed_run_with_results(
     """Create a completed run with one scenario result that has a verdict."""
     agent = create_test_agent(db)
     scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(db, scenario_ids=[scenario.id])
+    scenario_set = create_test_scenario_set(
+        db, members=scenario_set_members(scenario.id)
+    )
     run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
 
     # Mark as completed with aggregate metrics
@@ -41,6 +44,7 @@ def _completed_run_with_results(
             status=RunStatus.COMPLETED,
             aggregate_metrics={
                 "total_scenarios": 1,
+                "total_executions": 1,
                 "passed_count": 1 if passed else 0,
                 "failed_count": 0 if passed else 1,
                 "error_count": 0,
@@ -90,7 +94,9 @@ def _completed_run_pair_same_set(db: Session) -> tuple:
     """Create two completed runs sharing the same scenario set."""
     agent = create_test_agent(db)
     scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(db, scenario_ids=[scenario.id])
+    scenario_set = create_test_scenario_set(
+        db, members=scenario_set_members(scenario.id)
+    )
 
     run_b = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
     run_c = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
@@ -103,6 +109,7 @@ def _completed_run_pair_same_set(db: Session) -> tuple:
                 status=RunStatus.COMPLETED,
                 aggregate_metrics={
                     "total_scenarios": 1,
+                    "total_executions": 1,
                     "passed_count": 1,
                     "failed_count": 0,
                     "error_count": 0,
@@ -214,7 +221,9 @@ def test_compare_runs_baseline_not_completed(
 ) -> None:
     agent = create_test_agent(db)
     scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(db, scenario_ids=[scenario.id])
+    scenario_set = create_test_scenario_set(
+        db, members=scenario_set_members(scenario.id)
+    )
     pending_run = create_test_run(
         db, agent_id=agent.id, scenario_set_id=scenario_set.id
     )
@@ -238,7 +247,9 @@ def test_compare_runs_candidate_not_completed(
     completed_run, _, _ = _completed_run_with_results(db)
     agent = create_test_agent(db)
     scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(db, scenario_ids=[scenario.id])
+    scenario_set = create_test_scenario_set(
+        db, members=scenario_set_members(scenario.id)
+    )
     running_run = create_test_run(
         db, agent_id=agent.id, scenario_set_id=scenario_set.id
     )
@@ -317,7 +328,9 @@ def test_compare_runs_binary_metric_handling(
     """Binary metrics should have delta=None and status based on label transition."""
     agent = create_test_agent(db)
     scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(db, scenario_ids=[scenario.id])
+    scenario_set = create_test_scenario_set(
+        db, members=scenario_set_members(scenario.id)
+    )
 
     runs = []
     for passed, score, binary_label, binary_score in [
@@ -332,6 +345,7 @@ def test_compare_runs_binary_metric_handling(
                 status=RunStatus.COMPLETED,
                 aggregate_metrics={
                     "total_scenarios": 1,
+                    "total_executions": 1,
                     "passed_count": 1 if passed else 0,
                     "failed_count": 0 if passed else 1,
                     "error_count": 0,
@@ -418,7 +432,9 @@ def test_compare_runs_verdict_detects_regression(
     # baseline: passed, candidate: failed
     agent = create_test_agent(db)
     scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(db, scenario_ids=[scenario.id])
+    scenario_set = create_test_scenario_set(
+        db, members=scenario_set_members(scenario.id)
+    )
 
     runs = []
     for passed, score, pass_rate in [(True, 80.0, 1.0), (False, 40.0, 0.0)]:
@@ -430,6 +446,7 @@ def test_compare_runs_verdict_detects_regression(
                 status=RunStatus.COMPLETED,
                 aggregate_metrics={
                     "total_scenarios": 1,
+                    "total_executions": 1,
                     "passed_count": 1 if passed else 0,
                     "failed_count": 0 if passed else 1,
                     "error_count": 0,
@@ -485,7 +502,9 @@ def test_compare_runs_custom_thresholds(
     """Custom threshold can suppress a regression that default would catch."""
     agent = create_test_agent(db)
     scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(db, scenario_ids=[scenario.id])
+    scenario_set = create_test_scenario_set(
+        db, members=scenario_set_members(scenario.id)
+    )
 
     runs = []
     for passed, score, pass_rate in [(True, 80.0, 1.0), (False, 40.0, 0.0)]:
@@ -497,6 +516,7 @@ def test_compare_runs_custom_thresholds(
                 status=RunStatus.COMPLETED,
                 aggregate_metrics={
                     "total_scenarios": 1,
+                    "total_executions": 1,
                     "passed_count": 1 if passed else 0,
                     "failed_count": 0 if passed else 1,
                     "error_count": 0,

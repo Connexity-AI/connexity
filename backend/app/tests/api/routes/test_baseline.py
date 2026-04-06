@@ -12,6 +12,7 @@ from app.tests.utils.eval import (
     create_test_run,
     create_test_scenario,
     create_test_scenario_set,
+    scenario_set_members,
 )
 
 _PREFIX = f"{settings.API_V1_STR}/runs"
@@ -20,7 +21,9 @@ _PREFIX = f"{settings.API_V1_STR}/runs"
 def _setup(db: Session) -> tuple:
     agent = create_test_agent(db)
     scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(db, scenario_ids=[scenario.id])
+    scenario_set = create_test_scenario_set(
+        db, members=scenario_set_members(scenario.id)
+    )
     return agent, scenario_set
 
 
@@ -54,7 +57,9 @@ def test_set_baseline_clears_previous(db: Session) -> None:
 def test_set_baseline_different_scope_independent(db: Session) -> None:
     agent, scenario_set1 = _setup(db)
     scenario2 = create_test_scenario(db)
-    scenario_set2 = create_test_scenario_set(db, scenario_ids=[scenario2.id])
+    scenario_set2 = create_test_scenario_set(
+        db, members=scenario_set_members(scenario2.id)
+    )
 
     run1 = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set1.id)
     run2 = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set2.id)

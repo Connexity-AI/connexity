@@ -355,14 +355,6 @@ class AggregateMetrics(BaseModel):
     )
     passed_count: int = Field(description="Number of scenarios that passed")
 
-    @model_validator(mode="before")
-    @classmethod
-    def _legacy_total_executions(cls, data: Any) -> Any:
-        """Runs stored before total_executions used total_scenarios as execution count."""
-        if isinstance(data, dict) and "total_executions" not in data:
-            return {**data, "total_executions": data.get("total_scenarios", 0)}
-        return data
-
     failed_count: int = Field(description="Number of scenarios that failed")
     error_count: int = Field(
         description="Number of scenarios that errored during execution"

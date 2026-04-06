@@ -535,18 +535,3 @@ def test_aggregate_metrics_json_round_trip():
     restored = AggregateMetrics.model_validate(raw)
     assert restored.total_scenarios == 50
     assert restored.total_executions == 50
-
-
-def test_aggregate_metrics_legacy_json_without_total_executions():
-    """Old runs stored aggregate_metrics without total_executions."""
-    import json
-
-    raw = {
-        "total_scenarios": 5,
-        "passed_count": 4,
-        "failed_count": 1,
-        "error_count": 0,
-        "pass_rate": 0.8,
-    }
-    restored = AggregateMetrics.model_validate(json.loads(json.dumps(raw)))
-    assert restored.total_executions == 5

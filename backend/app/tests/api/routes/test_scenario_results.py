@@ -10,13 +10,16 @@ from app.tests.utils.eval import (
     create_test_scenario,
     create_test_scenario_result,
     create_test_scenario_set,
+    scenario_set_members,
 )
 
 
 def _setup(db: Session) -> tuple:
     agent = create_test_agent(db)
     scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(db, scenario_ids=[scenario.id])
+    scenario_set = create_test_scenario_set(
+        db, members=scenario_set_members(scenario.id)
+    )
     run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
     return run, scenario
 

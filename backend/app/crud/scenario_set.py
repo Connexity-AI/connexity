@@ -34,7 +34,7 @@ def validate_scenario_ids(
 def create_scenario_set(
     *, session: Session, scenario_set_in: ScenarioSetCreate
 ) -> ScenarioSet:
-    create_data = scenario_set_in.model_dump(exclude={"scenario_ids", "members"})
+    create_data = scenario_set_in.model_dump(exclude={"members"})
     db_obj = ScenarioSet.model_validate(create_data)
     session.add(db_obj)
     session.flush()  # generate id without committing — members use the same transaction
@@ -50,20 +50,6 @@ def create_scenario_set(
                 scenario_id=entry.scenario_id,
                 position=position,
                 repetitions=entry.repetitions,
-            )
-            session.add(member)
-    elif scenario_set_in.scenario_ids:
-        missing = validate_scenario_ids(
-            session=session, scenario_ids=scenario_set_in.scenario_ids
-        )
-        if missing:
-            raise ValueError(f"Scenarios not found: {missing}")
-        for position, scenario_id in enumerate(scenario_set_in.scenario_ids):
-            member = ScenarioSetMember(
-                scenario_set_id=db_obj.id,
-                scenario_id=scenario_id,
-                position=position,
-                repetitions=1,
             )
             session.add(member)
 

@@ -118,13 +118,9 @@ class ScenarioSetCreate(SQLModel):
         ge=1,
         description="How many times to repeat the entire set during a run",
     )
-    scenario_ids: list[uuid.UUID] | None = Field(
-        default=None,
-        description="Scenarios to include on creation (repetitions default to 1)",
-    )
     members: list[ScenarioSetMemberEntry] | None = Field(
         default=None,
-        description="Members with per-scenario repetitions; overrides scenario_ids if both set",
+        description="Initial members with per-scenario repetitions (omit or empty for no scenarios)",
     )
 
 

@@ -15,6 +15,7 @@ from app.models import (
     ScenarioResultCreate,
     ScenarioResultUpdate,
     ScenarioSetCreate,
+    ScenarioSetMemberEntry,
     ScenarioStatus,
     User,
     UserCreate,
@@ -187,7 +188,10 @@ def _seed_eval_data(session: Session) -> None:
         scenario_set_in=ScenarioSetCreate(
             name="Billing Scenarios v1",
             description="Core billing test suite",
-            scenario_ids=[s_refund.id, s_escalation.id],
+            members=[
+                ScenarioSetMemberEntry(scenario_id=s_refund.id),
+                ScenarioSetMemberEntry(scenario_id=s_escalation.id),
+            ],
         ),
     )
     sales_set = crud.create_scenario_set(
@@ -195,7 +199,7 @@ def _seed_eval_data(session: Session) -> None:
         scenario_set_in=ScenarioSetCreate(
             name="Sales Scenarios v1",
             description="Sales qualification test suite",
-            scenario_ids=[s_product.id],
+            members=[ScenarioSetMemberEntry(scenario_id=s_product.id)],
         ),
     )
 

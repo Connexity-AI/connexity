@@ -14,6 +14,7 @@ from app.models import (
     ScenarioResultCreate,
     ScenarioSet,
     ScenarioSetCreate,
+    ScenarioSetMemberEntry,
 )
 
 
@@ -39,14 +40,20 @@ def create_test_scenario(session: Session, **overrides: object) -> Scenario:
     )
 
 
+def scenario_set_members(*scenario_ids: uuid.UUID) -> list[ScenarioSetMemberEntry]:
+    """Build member entries with default repetitions=1 (test helper)."""
+    return [ScenarioSetMemberEntry(scenario_id=sid) for sid in scenario_ids]
+
+
 def create_test_scenario_set(
     session: Session,
-    scenario_ids: list[uuid.UUID] | None = None,
+    *,
+    members: list[ScenarioSetMemberEntry] | None = None,
 ) -> ScenarioSet:
     scenario_set_in = ScenarioSetCreate(
         name=f"test-set-{uuid.uuid4().hex[:8]}",
         description="Test scenario set",
-        scenario_ids=scenario_ids,
+        members=members,
     )
     return crud.create_scenario_set(session=session, scenario_set_in=scenario_set_in)
 

@@ -9,7 +9,12 @@ from app.models.enums import (
 from app.models.run import Run, RunCreate
 from app.models.scenario import Scenario, ScenarioCreate
 from app.models.scenario_result import ScenarioResult, ScenarioResultCreate
-from app.models.scenario_set import ScenarioSet, ScenarioSetCreate, ScenarioSetMember
+from app.models.scenario_set import (
+    ScenarioSet,
+    ScenarioSetCreate,
+    ScenarioSetMember,
+    ScenarioSetMemberEntry,
+)
 
 # ── Agent ──────────────────────────────────────────────────────────
 
@@ -71,11 +76,16 @@ def test_scenario_table_defaults():
 
 
 def test_scenario_set_create():
+    a, b = uuid.uuid4(), uuid.uuid4()
     ss = ScenarioSetCreate(
         name="Baseline Set",
-        scenario_ids=[uuid.uuid4(), uuid.uuid4()],
+        members=[
+            ScenarioSetMemberEntry(scenario_id=a),
+            ScenarioSetMemberEntry(scenario_id=b),
+        ],
     )
-    assert len(ss.scenario_ids) == 2
+    assert ss.members is not None
+    assert len(ss.members) == 2
 
 
 def test_scenario_set_table_defaults():

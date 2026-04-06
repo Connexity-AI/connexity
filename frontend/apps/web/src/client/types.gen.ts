@@ -2593,15 +2593,9 @@ export type ScenarioSetCreate = {
    */
   set_repetitions?: number;
   /**
-   * Scenario Ids
-   *
-   * Scenarios to include on creation (repetitions default to 1)
-   */
-  scenario_ids?: Array<string> | null;
-  /**
    * Members
    *
-   * Members with per-scenario repetitions; overrides scenario_ids if both set
+   * Initial members with per-scenario repetitions (omit or empty for no scenarios)
    */
   members?: Array<ScenarioSetMemberEntry> | null;
 };

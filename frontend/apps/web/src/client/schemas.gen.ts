@@ -4315,22 +4315,6 @@ export const ScenarioSetCreateSchema = {
       description: 'How many times to repeat the entire set during a run',
       default: 1,
     },
-    scenario_ids: {
-      anyOf: [
-        {
-          items: {
-            type: 'string',
-            format: 'uuid',
-          },
-          type: 'array',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Scenario Ids',
-      description: 'Scenarios to include on creation (repetitions default to 1)',
-    },
     members: {
       anyOf: [
         {
@@ -4344,7 +4328,7 @@ export const ScenarioSetCreateSchema = {
         },
       ],
       title: 'Members',
-      description: 'Members with per-scenario repetitions; overrides scenario_ids if both set',
+      description: 'Initial members with per-scenario repetitions (omit or empty for no scenarios)',
     },
   },
   type: 'object',

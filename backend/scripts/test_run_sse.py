@@ -103,7 +103,7 @@ def find_or_create_scenario_set(
         json={
             "name": f"SSE test set ({time.strftime('%H:%M:%S')})",
             "description": "Auto-created by test_run_sse.py",
-            "scenario_ids": scenario_ids,
+            "members": [{"scenario_id": sid, "repetitions": 1} for sid in scenario_ids],
         },
     )
     r.raise_for_status()

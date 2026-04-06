@@ -13,13 +13,16 @@ from app.tests.utils.eval import (
     create_test_run,
     create_test_scenario,
     create_test_scenario_set,
+    scenario_set_members,
 )
 
 
 def _setup(db: Session) -> tuple:
     agent = create_test_agent(db)
     scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(db, scenario_ids=[scenario.id])
+    scenario_set = create_test_scenario_set(
+        db, members=scenario_set_members(scenario.id)
+    )
     return agent, scenario_set
 
 
@@ -50,7 +53,9 @@ def test_create_run_agent_not_found(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
     scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(db, scenario_ids=[scenario.id])
+    scenario_set = create_test_scenario_set(
+        db, members=scenario_set_members(scenario.id)
+    )
     data = {
         "agent_id": str(uuid.uuid4()),
         "agent_endpoint_url": "http://localhost:8080/agent",
@@ -68,7 +73,9 @@ def test_create_run_platform_agent_without_endpoint_url(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
     scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(db, scenario_ids=[scenario.id])
+    scenario_set = create_test_scenario_set(
+        db, members=scenario_set_members(scenario.id)
+    )
     agent_r = client.post(
         f"{settings.API_V1_STR}/agents/",
         json={
