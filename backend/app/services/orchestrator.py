@@ -891,7 +891,7 @@ async def execute_run(run_id: uuid.UUID) -> None:
 
             eval_set = crud.get_eval_set(session=session, eval_set_id=run.eval_set_id)
             if not eval_set:
-                logger.error("Run %s references missing test_case set", run_id)
+                logger.error("Run %s references missing eval set", run_id)
                 crud.update_run(
                     session=session,
                     db_run=run,

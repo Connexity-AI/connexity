@@ -4,8 +4,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, field_validator
-from sqlalchemy import Column, Index, Text, text
-from sqlalchemy import Enum as SAEnum
+from sqlalchemy import Column, Enum as SAEnum, Index, Text, text
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
