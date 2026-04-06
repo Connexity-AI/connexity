@@ -209,16 +209,16 @@ async def compare_suggestions_endpoint(
 def get_baseline_run(
     session: SessionDep,
     agent_id: uuid.UUID = Query(description="UUID of the agent"),
-    scenario_set_id: uuid.UUID = Query(description="UUID of the scenario set"),
+    eval_set_id: uuid.UUID = Query(description="UUID of the eval set"),
 ) -> Run:
-    """Resolve the current baseline run for an (agent, scenario_set) pair."""
+    """Resolve the current baseline run for an (agent, eval_set) pair."""
     run = crud.get_baseline_run(
-        session=session, agent_id=agent_id, scenario_set_id=scenario_set_id
+        session=session, agent_id=agent_id, eval_set_id=eval_set_id
     )
     if not run:
         raise HTTPException(
             status_code=404,
-            detail="No baseline run found for this agent + scenario set",
+            detail="No baseline run found for this agent + eval set",
         )
     return run
 

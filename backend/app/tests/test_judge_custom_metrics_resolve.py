@@ -16,9 +16,9 @@ from sqlmodel import Session
 from app import crud
 from app.core.config import settings
 from app.models import CustomMetricCreate, MetricTier, ScoreType
-from app.models.enums import ScenarioStatus, TurnRole
-from app.models.scenario import Scenario
+from app.models.enums import TestCaseStatus, TurnRole
 from app.models.schemas import ConversationTurn, JudgeConfig, MetricSelection
+from app.models.test_case import TestCase
 from app.services.judge import JudgeInput, evaluate_transcript
 from app.services.judge_metrics import (
     custom_metric_row_to_definition,
@@ -144,11 +144,11 @@ def _minimal_transcript() -> list[ConversationTurn]:
     ]
 
 
-def _minimal_scenario() -> Scenario:
-    return Scenario(
+def _minimal_test_case() -> TestCase:
+    return TestCase(
         id=uuid.uuid4(),
         name="test-custom-metric",
-        status=ScenarioStatus.ACTIVE,
+        status=TestCaseStatus.ACTIVE,
         initial_message="Hi",
         max_turns=2,
         tags=[],
@@ -201,7 +201,7 @@ async def test_evaluate_transcript_with_custom_metric(db: Session) -> None:
 
     inp = JudgeInput(
         transcript=_minimal_transcript(),
-        scenario=_minimal_scenario(),
+        test_case=_minimal_test_case(),
         agent_system_prompt=None,
         agent_tools=None,
         judge_config=JudgeConfig(metrics=[MetricSelection(metric=name, weight=1.0)]),
@@ -225,7 +225,7 @@ async def test_evaluate_transcript_unknown_metric_no_owner_returns_failed_verdic
     failed verdict instead of raising."""
     inp = JudgeInput(
         transcript=_minimal_transcript(),
-        scenario=_minimal_scenario(),
+        test_case=_minimal_test_case(),
         agent_system_prompt=None,
         agent_tools=None,
         judge_config=JudgeConfig(

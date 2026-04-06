@@ -11,7 +11,7 @@ from app.models.enums import AgentMode
 
 if TYPE_CHECKING:
     from app.models.run import Run
-    from app.models.scenario import Scenario
+    from app.models.test_case import TestCase
 
 
 def validate_agent_mode_requirements(
@@ -108,7 +108,7 @@ class Agent(AgentBase, table=True):
         back_populates="agent",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
-    scenarios: list["Scenario"] = Relationship(back_populates="agent")
+    test_cases: list["TestCase"] = Relationship(back_populates="agent")
 
 
 class AgentCreate(AgentBase):

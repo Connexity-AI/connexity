@@ -9,23 +9,23 @@ from app.models.comparison import (
     AggregateComparison,
     MetricDelta,
     RegressionThresholds,
-    ScenarioComparison,
+    TestCaseComparison,
 )
 from app.models.schemas import AggregateMetrics, JudgeVerdict, MetricScore
 from app.services.comparison import (
     _build_metric_deltas,
-    _compare_scenario,
+    _compare_test_case,
     _compute_aggregate,
     _compute_per_metric_aggregate_deltas,
     _compute_verdict,
     _metric_status,
-    _scenario_status,
+    _test_case_status,
 )
 
 # ── Helpers ──────────────────────────────────────────────────────
 
-# Fields accessed by comparison.py on ScenarioResult objects.
-_SCENARIO_RESULT_DEFAULTS: dict[str, object] = {
+# Fields accessed by comparison.py on TestCaseResult objects.
+_TEST_CASE_RESULT_DEFAULTS: dict[str, object] = {
     "passed": None,
     "error_message": None,
     "verdict": None,
@@ -34,7 +34,7 @@ _SCENARIO_RESULT_DEFAULTS: dict[str, object] = {
 
 
 def _make_result(**overrides: object) -> SimpleNamespace:
-    return SimpleNamespace(**{**_SCENARIO_RESULT_DEFAULTS, **overrides})
+    return SimpleNamespace(**{**_TEST_CASE_RESULT_DEFAULTS, **overrides})
 
 
 def _make_verdict(
@@ -164,24 +164,24 @@ class TestBuildMetricDeltas:
         assert deltas[0].candidate_score == 4
 
 
-# ── _scenario_status ────────────────────────────────────────────
+# ── _test_case_status ────────────────────────────────────────────
 
 
-class TestScenarioStatus:
+class TestTestCaseStatus:
     def test_error(self) -> None:
         b = _make_result(error_message="boom")
         c = _make_result(passed=True)
-        assert _scenario_status(b, c, None, None) == "error"
+        assert _test_case_status(b, c, None, None) == "error"
 
     def test_pass_to_fail(self) -> None:
         b = _make_result(passed=True)
         c = _make_result(passed=False)
-        assert _scenario_status(b, c, None, None) == "regression"
+        assert _test_case_status(b, c, None, None) == "regression"
 
     def test_fail_to_pass(self) -> None:
         b = _make_result(passed=False)
         c = _make_result(passed=True)
-        assert _scenario_status(b, c, None, None) == "improvement"
+        assert _test_case_status(b, c, None, None) == "improvement"
 
     def test_score_regression_above_threshold(self) -> None:
         b = _make_result(passed=True)
@@ -204,7 +204,7 @@ class TestScenarioStatus:
             judge_model="gpt-4o",
             judge_provider="openai",
         )
-        assert _scenario_status(b, c, b_v, c_v) == "regression"
+        assert _test_case_status(b, c, b_v, c_v) == "regression"
 
     def test_score_improvement_above_threshold(self) -> None:
         b = _make_result(passed=True)
@@ -227,7 +227,7 @@ class TestScenarioStatus:
             judge_model="gpt-4o",
             judge_provider="openai",
         )
-        assert _scenario_status(b, c, b_v, c_v) == "improvement"
+        assert _test_case_status(b, c, b_v, c_v) == "improvement"
 
     def test_score_within_threshold(self) -> None:
         b = _make_result(passed=True)
@@ -250,31 +250,31 @@ class TestScenarioStatus:
             judge_model="gpt-4o",
             judge_provider="openai",
         )
-        assert _scenario_status(b, c, b_v, c_v) == "unchanged"
+        assert _test_case_status(b, c, b_v, c_v) == "unchanged"
 
 
-# ── _compare_scenario ───────────────────────────────────────────
+# ── _compare_test_case ───────────────────────────────────────────
 
 
-class TestCompareScenario:
+class TestCompareTestCase:
     def test_full_comparison(self) -> None:
         sid = uuid.uuid4()
         b = _make_result(
-            scenario_id=sid,
+            test_case_id=sid,
             passed=True,
             verdict=_make_verdict(True, 85.0, [_scored_metric("accuracy", 4, "good")]),
             total_latency_ms=500,
         )
         c = _make_result(
-            scenario_id=sid,
+            test_case_id=sid,
             passed=True,
             verdict=_make_verdict(
                 True, 92.0, [_scored_metric("accuracy", 5, "excellent")]
             ),
             total_latency_ms=450,
         )
-        result = _compare_scenario(sid, "Test scenario", b, c)
-        assert result.scenario_id == sid
+        result = _compare_test_case(sid, "Named test case", b, c)
+        assert result.test_case_id == sid
         assert result.status == "improvement"
         assert result.score_delta == 7.0
         assert result.latency_delta_ms == -50
@@ -288,9 +288,9 @@ class TestCompareScenario:
 class TestPerMetricAggregateDeltas:
     def test_scored_metric_average(self) -> None:
         comparisons = [
-            ScenarioComparison(
-                scenario_id=uuid.uuid4(),
-                scenario_name="s1",
+            TestCaseComparison(
+                test_case_id=uuid.uuid4(),
+                test_case_name="s1",
                 status="improvement",
                 metric_deltas=[
                     MetricDelta(
@@ -303,9 +303,9 @@ class TestPerMetricAggregateDeltas:
                     )
                 ],
             ),
-            ScenarioComparison(
-                scenario_id=uuid.uuid4(),
-                scenario_name="s2",
+            TestCaseComparison(
+                test_case_id=uuid.uuid4(),
+                test_case_name="s2",
                 status="unchanged",
                 metric_deltas=[
                     MetricDelta(
@@ -329,9 +329,9 @@ class TestPerMetricAggregateDeltas:
 
     def test_binary_metric_pass_rate(self) -> None:
         comparisons = [
-            ScenarioComparison(
-                scenario_id=uuid.uuid4(),
-                scenario_name="s1",
+            TestCaseComparison(
+                test_case_id=uuid.uuid4(),
+                test_case_name="s1",
                 status="unchanged",
                 metric_deltas=[
                     MetricDelta(
@@ -346,9 +346,9 @@ class TestPerMetricAggregateDeltas:
                     )
                 ],
             ),
-            ScenarioComparison(
-                scenario_id=uuid.uuid4(),
-                scenario_name="s2",
+            TestCaseComparison(
+                test_case_id=uuid.uuid4(),
+                test_case_name="s2",
                 status="regression",
                 metric_deltas=[
                     MetricDelta(
@@ -379,7 +379,7 @@ class TestPerMetricAggregateDeltas:
 class TestComputeAggregate:
     def test_aggregate_deltas(self) -> None:
         b_metrics = AggregateMetrics(
-            total_scenarios=3,
+            unique_test_case_count=3,
             total_executions=3,
             passed_count=2,
             failed_count=1,
@@ -391,7 +391,7 @@ class TestComputeAggregate:
             total_estimated_cost_usd=0.10,
         )
         c_metrics = AggregateMetrics(
-            total_scenarios=3,
+            unique_test_case_count=3,
             total_executions=3,
             passed_count=3,
             failed_count=0,
@@ -402,27 +402,27 @@ class TestComputeAggregate:
             avg_overall_score=88.0,
             total_estimated_cost_usd=0.12,
         )
-        scenarios = [
-            ScenarioComparison(
-                scenario_id=uuid.uuid4(),
-                scenario_name="s1",
+        comparisons = [
+            TestCaseComparison(
+                test_case_id=uuid.uuid4(),
+                test_case_name="s1",
                 status="improvement",
                 metric_deltas=[],
             ),
-            ScenarioComparison(
-                scenario_id=uuid.uuid4(),
-                scenario_name="s2",
+            TestCaseComparison(
+                test_case_id=uuid.uuid4(),
+                test_case_name="s2",
                 status="unchanged",
                 metric_deltas=[],
             ),
-            ScenarioComparison(
-                scenario_id=uuid.uuid4(),
-                scenario_name="s3",
+            TestCaseComparison(
+                test_case_id=uuid.uuid4(),
+                test_case_name="s3",
                 status="regression",
                 metric_deltas=[],
             ),
         ]
-        result = _compute_aggregate(b_metrics, c_metrics, scenarios)
+        result = _compute_aggregate(b_metrics, c_metrics, comparisons)
         assert result.pass_rate_delta == pytest.approx(0.3333, abs=0.001)
         assert result.avg_score_delta == 13.0
         assert result.latency_avg_delta_ms == -50.0
@@ -452,7 +452,7 @@ class TestComputeVerdict:
         c_latency_avg: float | None = 500.0,
     ) -> AggregateComparison:
         b_metrics = AggregateMetrics(
-            total_scenarios=10,
+            unique_test_case_count=10,
             total_executions=10,
             passed_count=int(b_pass_rate * 10),
             failed_count=10 - int(b_pass_rate * 10),
@@ -462,7 +462,7 @@ class TestComputeVerdict:
             latency_avg_ms=b_latency_avg,
         )
         c_metrics = AggregateMetrics(
-            total_scenarios=10,
+            unique_test_case_count=10,
             total_executions=10,
             passed_count=int(c_pass_rate * 10),
             failed_count=10 - int(c_pass_rate * 10),

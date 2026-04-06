@@ -1,13 +1,13 @@
-# Scenario Schema Specification
+# Test Case Schema Specification
 
 **Schema version:** 1.0.0
 
 ## Design Principles
 
-1. Scenarios do **NOT** contain `agent_system_prompt` or `agent_tools`. Those are captured on the **Run** entity at eval execution time.
+1. Test cases do **NOT** contain `agent_system_prompt` or `agent_tools`. Those are captured on the **Run** entity at eval execution time.
 2. `user_context` is a **free-form dict** — the simulator prompt receives it as a JSON dump. Any domain-specific fields work automatically.
 3. `expected_outcomes` is also **free-form** — keys are descriptive labels the judge interprets semantically, not code-parsed enums.
-4. `expected_tool_calls` defines which tools the agent should (or should not) call, and what parameters are expected. The platform handles mock dispatch and response injection separately from the scenario definition.
+4. `expected_tool_calls` defines which tools the agent should (or should not) call, and what parameters are expected. The platform handles mock dispatch and response injection separately from the test case definition.
 5. Simulation is always **LLM-persona-driven**: the LLM imitates a specific user via a system prompt built from `persona` + `user_context`.
 6. `max_turns` is **nullable** — when omitted or set to `null`, the conversation runs until the agent or simulator terminates it naturally (no cap).
 
@@ -20,17 +20,17 @@
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
 | `name` | `str` | — | Yes | Human-readable short name (max 255 chars) |
-| `description` | `str \| null` | `null` | No | What this scenario tests (for humans) |
+| `description` | `str \| null` | `null` | No | What this test case exercises (for humans) |
 | `difficulty` | `"normal" \| "hard"` | `"normal"` | No | Two-level difficulty for filtering and weighting |
 | `tags` | `list[str]` | `[]` | No | Free-form tags for grouping/filtering. Pre-seeded: `"normal"`, `"red-team"`, `"edge-case"` |
-| `status` | `"draft" \| "active" \| "archived"` | `"active"` | No | Lifecycle state. Only `active` scenarios run by default |
+| `status` | `"draft" \| "active" \| "archived"` | `"active"` | No | Lifecycle state. Only `active` test cases run by default |
 | `persona` | `Persona \| null` | `null` | No | Who the simulated user is (see nested type below) |
 | `initial_message` | `str \| null` | `null` | No | First message the simulated user sends to the agent |
 | `user_context` | `dict[str, Any] \| null` | `null` | No | Free-form knowledge the user "has". JSON-dumped into simulator prompt. Domain-specific: add any fields needed |
 | `max_turns` | `int \| null` | `null` | No | Max conversation turns. `null` = no cap, conversation runs until agent or simulator terminates naturally |
 | `expected_outcomes` | `dict[str, Any] \| null` | `null` | No | Free-form success criteria. Keys = descriptive labels, values = expected state (bool, string, etc.). Judge interprets semantically |
 | `expected_tool_calls` | `list[ExpectedToolCall] \| null` | `null` | No | Tool call expectations for judge evaluation (see nested type below) |
-| `evaluation_criteria_override` | `str \| null` | `null` | No | Custom judge prompt section. Overrides default criteria for this scenario |
+| `evaluation_criteria_override` | `str \| null` | `null` | No | Custom judge prompt section. Overrides default criteria for this test case |
 
 ### Database-only Fields (auto-generated)
 
@@ -56,7 +56,7 @@ Controls who the simulated user is. Dumped into the LLM simulator's system promp
 
 ### ExpectedToolCall
 
-Defines which tools the agent should call during the scenario.
+Defines which tools the agent should call during the test case.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -73,14 +73,14 @@ Defines which tools the agent should call during the scenario.
 | `name`, `description` | Dashboard, docs | Human-readable display |
 | `difficulty` | Selector, dashboard | Filtering, distribution weighting |
 | `tags` | Selector, dashboard | Grouping, filtering |
-| `status` | CRUD API, selector | Lifecycle — only `active` scenarios run by default |
+| `status` | CRUD API, selector | Lifecycle — only `active` test cases run by default |
 | `persona` | Simulator prompt builder | Dumped into LLM system prompt — controls behavior and tone |
 | `initial_message` | Simulator, judge | First turn sent to agent; shown to judge as context |
 | `user_context` | Simulator prompt builder | JSON-dumped into simulator prompt as domain knowledge |
 | `max_turns` | Runner | Caps conversation length; `null` = unlimited |
 | `expected_outcomes` | Judge | Free-form criteria the judge evaluates against |
 | `expected_tool_calls` | Judge | Verifies correct tool usage and parameters |
-| `evaluation_criteria_override` | Judge | Replaces default judge criteria for this scenario. When set, the judge uses this text instead of the platform's default scoring rubric |
+| `evaluation_criteria_override` | Judge | Replaces default judge criteria for this test case. When set, the judge uses this text instead of the platform's default scoring rubric |
 
 ---
 
@@ -91,7 +91,7 @@ Defines which tools the agent should call during the scenario.
 - `status` must be one of: `draft`, `active`, `archived`.
 - `tags` is a PostgreSQL `TEXT[]` column with a GIN index for efficient containment queries.
 - `persona`, `user_context`, `expected_outcomes`, `expected_tool_calls` are stored as JSONB columns.
-- All JSONB fields are nullable — omitting them is valid for draft or minimal scenarios.
+- All JSONB fields are nullable — omitting them is valid for draft or minimal test cases.
 
 ---
 
@@ -129,4 +129,4 @@ Defines which tools the agent should call during the scenario.
 }
 ```
 
-See `examples/scenarios/` for more examples covering normal, red-team, edge-case, tool-heavy, and multi-turn scenarios.
+See `examples/test-cases/` for more examples covering normal, red-team, edge-case, tool-heavy, and multi-turn cases.

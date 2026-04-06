@@ -539,30 +539,30 @@ export const AggregateComparisonSchema = {
 
 export const AggregateMetricsSchema = {
   properties: {
-    total_scenarios: {
+    unique_test_case_count: {
       type: 'integer',
-      title: 'Total Scenarios',
-      description: 'Number of unique scenarios represented in run results',
+      title: 'Unique Test Case Count',
+      description: 'Number of unique test cases represented in run results',
     },
     total_executions: {
       type: 'integer',
       title: 'Total Executions',
-      description: 'Total number of scenario executions (result rows) in the run',
+      description: 'Total number of test case executions (result rows) in the run',
     },
     passed_count: {
       type: 'integer',
       title: 'Passed Count',
-      description: 'Number of scenarios that passed',
+      description: 'Number of test cases that passed',
     },
     failed_count: {
       type: 'integer',
       title: 'Failed Count',
-      description: 'Number of scenarios that failed',
+      description: 'Number of test cases that failed',
     },
     error_count: {
       type: 'integer',
       title: 'Error Count',
-      description: 'Number of scenarios that errored during execution',
+      description: 'Number of test cases that errored during execution',
     },
     pass_rate: {
       type: 'number',
@@ -579,7 +579,7 @@ export const AggregateMetricsSchema = {
         },
       ],
       title: 'Latency P50 Ms',
-      description: 'Median agent latency across scenarios',
+      description: 'Median agent latency across test cases',
     },
     latency_p95_ms: {
       anyOf: [
@@ -603,7 +603,7 @@ export const AggregateMetricsSchema = {
         },
       ],
       title: 'Latency Max Ms',
-      description: 'Maximum agent latency across scenarios',
+      description: 'Maximum agent latency across test cases',
     },
     latency_avg_ms: {
       anyOf: [
@@ -615,7 +615,7 @@ export const AggregateMetricsSchema = {
         },
       ],
       title: 'Latency Avg Ms',
-      description: 'Mean agent latency across scenarios',
+      description: 'Mean agent latency across test cases',
     },
     total_agent_token_usage: {
       anyOf: [
@@ -637,7 +637,7 @@ export const AggregateMetricsSchema = {
         },
       ],
       title: 'Total Agent Token Usage',
-      description: 'Summed token usage from the agent across all scenarios',
+      description: 'Summed token usage from the agent across all test cases',
     },
     total_platform_token_usage: {
       anyOf: [
@@ -700,12 +700,12 @@ export const AggregateMetricsSchema = {
         },
       ],
       title: 'Avg Overall Score',
-      description: 'Mean judge overall score across all scenarios',
+      description: 'Mean judge overall score across all test cases',
     },
   },
   type: 'object',
   required: [
-    'total_scenarios',
+    'unique_test_case_count',
     'total_executions',
     'passed_count',
     'failed_count',
@@ -1293,6 +1293,312 @@ export const ErrorResponseSchema = {
   title: 'ErrorResponse',
 } as const;
 
+export const EvalSetCreateSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Name',
+      description: 'Human-readable set name',
+    },
+    description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Description',
+      description: 'What this eval set covers',
+    },
+    set_repetitions: {
+      type: 'integer',
+      minimum: 1,
+      title: 'Set Repetitions',
+      description: 'How many times to repeat the entire set during a run',
+      default: 1,
+    },
+    members: {
+      anyOf: [
+        {
+          items: {
+            $ref: '#/components/schemas/EvalSetMemberEntry',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Members',
+      description: 'Initial members with per-test-case repetitions (omit or empty for none)',
+    },
+  },
+  type: 'object',
+  required: ['name'],
+  title: 'EvalSetCreate',
+} as const;
+
+export const EvalSetDiffSchema = {
+  properties: {
+    same_set: {
+      type: 'boolean',
+      title: 'Same Set',
+    },
+    version_changed: {
+      type: 'boolean',
+      title: 'Version Changed',
+    },
+    added_test_case_ids: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      title: 'Added Test Case Ids',
+    },
+    removed_test_case_ids: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      title: 'Removed Test Case Ids',
+    },
+    common_test_case_ids: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      title: 'Common Test Case Ids',
+    },
+  },
+  type: 'object',
+  required: ['same_set', 'version_changed'],
+  title: 'EvalSetDiff',
+} as const;
+
+export const EvalSetMemberEntrySchema = {
+  properties: {
+    test_case_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Test Case Id',
+      description: 'Test case to include in the set',
+    },
+    repetitions: {
+      type: 'integer',
+      minimum: 1,
+      title: 'Repetitions',
+      description: 'How many times to execute this test case within one set pass',
+      default: 1,
+    },
+  },
+  type: 'object',
+  required: ['test_case_id'],
+  title: 'EvalSetMemberEntry',
+  description:
+    'API payload for adding or replacing set members with per-test-case repetition counts.',
+} as const;
+
+export const EvalSetMemberPublicSchema = {
+  properties: {
+    test_case_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Test Case Id',
+      description: 'Linked test case id',
+    },
+    position: {
+      type: 'integer',
+      title: 'Position',
+      description: 'Order within the set',
+    },
+    repetitions: {
+      type: 'integer',
+      minimum: 1,
+      title: 'Repetitions',
+      description: 'Executions per set pass for this test case',
+    },
+  },
+  type: 'object',
+  required: ['test_case_id', 'position', 'repetitions'],
+  title: 'EvalSetMemberPublic',
+  description: "Public view of one test case's membership in a set.",
+} as const;
+
+export const EvalSetMembersPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/EvalSetMemberPublic',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Set members with position and repetitions',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+      description: 'Total members matching the query',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'EvalSetMembersPublic',
+} as const;
+
+export const EvalSetMembersUpdateSchema = {
+  properties: {
+    members: {
+      items: {
+        $ref: '#/components/schemas/EvalSetMemberEntry',
+      },
+      type: 'array',
+      title: 'Members',
+    },
+  },
+  type: 'object',
+  required: ['members'],
+  title: 'EvalSetMembersUpdate',
+} as const;
+
+export const EvalSetPublicSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Name',
+      description: 'Human-readable set name',
+    },
+    description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Description',
+      description: 'What this eval set covers',
+    },
+    version: {
+      type: 'integer',
+      title: 'Version',
+      description: 'Monotonically increasing version for snapshot tracking',
+      default: 1,
+    },
+    set_repetitions: {
+      type: 'integer',
+      minimum: 1,
+      title: 'Set Repetitions',
+      description: 'How many times to repeat the entire set during a run',
+      default: 1,
+    },
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+      description: 'Unique eval set identifier',
+    },
+    test_case_count: {
+      type: 'integer',
+      title: 'Test Case Count',
+      default: 0,
+    },
+    effective_test_case_count: {
+      type: 'integer',
+      title: 'Effective Test Case Count',
+      description: 'Sum(member.repetitions) * set_repetitions — total expanded executions',
+      default: 0,
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+      description: 'When the set was created',
+    },
+    updated_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Updated At',
+      description: 'When the set was last updated',
+    },
+  },
+  type: 'object',
+  required: ['name', 'id', 'created_at', 'updated_at'],
+  title: 'EvalSetPublic',
+} as const;
+
+export const EvalSetUpdateSchema = {
+  properties: {
+    name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Name',
+      description: 'Human-readable set name',
+    },
+    description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Description',
+      description: 'What this eval set covers',
+    },
+    set_repetitions: {
+      anyOf: [
+        {
+          type: 'integer',
+          minimum: 1,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Set Repetitions',
+      description: 'How many times to repeat the entire set during a run',
+    },
+  },
+  type: 'object',
+  title: 'EvalSetUpdate',
+} as const;
+
+export const EvalSetsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/EvalSetPublic',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'List of eval sets',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+      description: 'Total number of sets matching the query',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'EvalSetsPublic',
+} as const;
+
 export const ExpectedToolCallSchema = {
   properties: {
     tool: {
@@ -1469,23 +1775,23 @@ export const GenerateRequestSchema = {
         },
       ],
       title: 'Agent Id',
-      description: 'When persist=true, bind created scenarios to this agent',
+      description: 'When persist=true, bind created test cases to this agent',
     },
   },
   type: 'object',
   required: ['agent_prompt'],
   title: 'GenerateRequest',
-  description: 'Input for scenario generation.',
+  description: 'Input for test case generation.',
 } as const;
 
 export const GenerateResultSchema = {
   properties: {
-    scenarios: {
+    test_cases: {
       items: {
-        $ref: '#/components/schemas/ScenarioPublic',
+        $ref: '#/components/schemas/TestCasePublic',
       },
       type: 'array',
-      title: 'Scenarios',
+      title: 'Test Cases',
     },
     count: {
       type: 'integer',
@@ -1501,16 +1807,16 @@ export const GenerateResultSchema = {
     },
   },
   type: 'object',
-  required: ['scenarios', 'count', 'model_used', 'generation_time_ms'],
+  required: ['test_cases', 'count', 'model_used', 'generation_time_ms'],
   title: 'GenerateResult',
-  description: 'Output from scenario generation.',
+  description: 'Output from test case generation.',
 } as const;
 
 export const ImprovementSuggestionSchema = {
   properties: {
     target: {
       type: 'string',
-      enum: ['system_prompt', 'tool_definition', 'model_selection', 'scenario_design', 'other'],
+      enum: ['system_prompt', 'tool_definition', 'model_selection', 'test_case_design', 'other'],
       title: 'Target',
     },
     title: {
@@ -1655,7 +1961,7 @@ export const JudgeVerdictSchema = {
     passed: {
       type: 'boolean',
       title: 'Passed',
-      description: 'Whether the scenario passed overall',
+      description: 'Whether the test case passed overall',
     },
     overall_score: {
       type: 'number',
@@ -2403,28 +2709,28 @@ export const RunComparisonSchema = {
     aggregate: {
       $ref: '#/components/schemas/AggregateComparison',
     },
-    scenario_comparisons: {
+    test_case_comparisons: {
       items: {
-        $ref: '#/components/schemas/ScenarioComparison',
+        $ref: '#/components/schemas/TestCaseComparison',
       },
       type: 'array',
-      title: 'Scenario Comparisons',
+      title: 'Test Case Comparisons',
     },
-    baseline_only_scenarios: {
+    baseline_only_test_cases: {
       items: {
         type: 'string',
         format: 'uuid',
       },
       type: 'array',
-      title: 'Baseline Only Scenarios',
+      title: 'Baseline Only Test Cases',
     },
-    candidate_only_scenarios: {
+    candidate_only_test_cases: {
       items: {
         type: 'string',
         format: 'uuid',
       },
       type: 'array',
-      title: 'Candidate Only Scenarios',
+      title: 'Candidate Only Test Cases',
     },
     config_diff: {
       $ref: '#/components/schemas/RunConfigDiff',
@@ -2455,9 +2761,9 @@ export const RunComparisonSchema = {
     'baseline_run_id',
     'candidate_run_id',
     'aggregate',
-    'scenario_comparisons',
-    'baseline_only_scenarios',
-    'candidate_only_scenarios',
+    'test_case_comparisons',
+    'baseline_only_test_cases',
+    'candidate_only_test_cases',
     'config_diff',
     'verdict',
     'warnings',
@@ -2470,13 +2776,13 @@ export const RunConfig_InputSchema = {
     concurrency: {
       type: 'integer',
       title: 'Concurrency',
-      description: 'Max parallel scenario executions',
+      description: 'Max parallel test case executions',
       default: 5,
     },
-    timeout_per_scenario_ms: {
+    timeout_per_test_case_ms: {
       type: 'integer',
-      title: 'Timeout Per Scenario Ms',
-      description: 'Timeout per scenario in milliseconds before forced stop',
+      title: 'Timeout Per Test Case Ms',
+      description: 'Timeout per test case in milliseconds before forced stop',
       default: 120000,
     },
     judge: {
@@ -2523,13 +2829,13 @@ export const RunConfig_OutputSchema = {
     concurrency: {
       type: 'integer',
       title: 'Concurrency',
-      description: 'Max parallel scenario executions',
+      description: 'Max parallel test case executions',
       default: 5,
     },
-    timeout_per_scenario_ms: {
+    timeout_per_test_case_ms: {
       type: 'integer',
-      title: 'Timeout Per Scenario Ms',
-      description: 'Timeout per scenario in milliseconds before forced stop',
+      title: 'Timeout Per Test Case Ms',
+      description: 'Timeout per test case in milliseconds before forced stop',
       default: 120000,
     },
     judge: {
@@ -2640,12 +2946,12 @@ export const RunConfigDiffSchema = {
       type: 'array',
       title: 'Config Changes',
     },
-    scenario_set_diff: {
-      $ref: '#/components/schemas/ScenarioSetDiff',
+    eval_set_diff: {
+      $ref: '#/components/schemas/EvalSetDiff',
     },
   },
   type: 'object',
-  required: ['scenario_set_diff'],
+  required: ['eval_set_diff'],
   title: 'RunConfigDiff',
   description: 'Structured diff of snapshotted run configuration between two runs.',
 } as const;
@@ -2772,16 +3078,16 @@ export const RunCreateSchema = {
       title: 'Tools Snapshot Hash',
       description: 'SHA-256 hash of tools_snapshot for change detection',
     },
-    scenario_set_id: {
+    eval_set_id: {
       type: 'string',
       format: 'uuid',
-      title: 'Scenario Set Id',
-      description: 'FK to the scenario set to execute',
+      title: 'Eval Set Id',
+      description: 'FK to the eval set to execute',
     },
-    scenario_set_version: {
+    eval_set_version: {
       type: 'integer',
-      title: 'Scenario Set Version',
-      description: 'Version of the scenario set at run time',
+      title: 'Eval Set Version',
+      description: 'Version of the eval set at run time',
       default: 1,
     },
     config: {
@@ -2803,7 +3109,7 @@ export const RunCreateSchema = {
     },
   },
   type: 'object',
-  required: ['agent_id', 'scenario_set_id'],
+  required: ['agent_id', 'eval_set_id'],
   title: 'RunCreate',
 } as const;
 
@@ -2906,16 +3212,16 @@ export const RunPublicSchema = {
       title: 'Agent Provider',
       description: 'Effective LLM provider for platform agent simulator for this run',
     },
-    scenario_set_id: {
+    eval_set_id: {
       type: 'string',
       format: 'uuid',
-      title: 'Scenario Set Id',
-      description: 'FK to the scenario set executed in this run',
+      title: 'Eval Set Id',
+      description: 'FK to the eval set executed in this run',
     },
-    scenario_set_version: {
+    eval_set_version: {
       type: 'integer',
-      title: 'Scenario Set Version',
-      description: 'Version of the scenario set at run time',
+      title: 'Eval Set Version',
+      description: 'Version of the eval set at run time',
     },
     config: {
       anyOf: [
@@ -2992,8 +3298,8 @@ export const RunPublicSchema = {
     'id',
     'name',
     'agent_id',
-    'scenario_set_id',
-    'scenario_set_version',
+    'eval_set_id',
+    'eval_set_version',
     'status',
     'is_baseline',
     'started_at',
@@ -3110,16 +3416,46 @@ export const RunsPublicSchema = {
   title: 'RunsPublic',
 } as const;
 
-export const ScenarioComparisonSchema = {
+export const ScoreTypeSchema = {
+  type: 'string',
+  enum: ['scored', 'binary'],
+  title: 'ScoreType',
+} as const;
+
+export const SimulatorModeSchema = {
+  type: 'string',
+  enum: ['llm', 'scripted'],
+  title: 'SimulatorMode',
+} as const;
+
+export const SuggestionsRequestSchema = {
   properties: {
-    scenario_id: {
+    baseline_run_id: {
       type: 'string',
       format: 'uuid',
-      title: 'Scenario Id',
+      title: 'Baseline Run Id',
     },
-    scenario_name: {
+    candidate_run_id: {
       type: 'string',
-      title: 'Scenario Name',
+      format: 'uuid',
+      title: 'Candidate Run Id',
+    },
+  },
+  type: 'object',
+  required: ['baseline_run_id', 'candidate_run_id'],
+  title: 'SuggestionsRequest',
+} as const;
+
+export const TestCaseComparisonSchema = {
+  properties: {
+    test_case_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Test Case Id',
+    },
+    test_case_name: {
+      type: 'string',
+      title: 'Test Case Name',
     },
     status: {
       type: 'string',
@@ -3223,11 +3559,11 @@ export const ScenarioComparisonSchema = {
     },
   },
   type: 'object',
-  required: ['scenario_id', 'scenario_name', 'status', 'metric_deltas'],
-  title: 'ScenarioComparison',
+  required: ['test_case_id', 'test_case_name', 'status', 'metric_deltas'],
+  title: 'TestCaseComparison',
 } as const;
 
-export const ScenarioCreateSchema = {
+export const TestCaseCreateSchema = {
   properties: {
     name: {
       type: 'string',
@@ -3245,7 +3581,7 @@ export const ScenarioCreateSchema = {
         },
       ],
       title: 'Description',
-      description: 'What this scenario tests (for humans)',
+      description: 'What this test case checks (for humans)',
     },
     difficulty: {
       $ref: '#/components/schemas/Difficulty',
@@ -3261,8 +3597,8 @@ export const ScenarioCreateSchema = {
       description: 'Free-form tags for grouping and filtering',
     },
     status: {
-      $ref: '#/components/schemas/ScenarioStatus',
-      description: 'Lifecycle status — only active scenarios run by default',
+      $ref: '#/components/schemas/TestCaseStatus',
+      description: 'Lifecycle status — only active test cases run by default',
       default: 'active',
     },
     persona: {
@@ -3360,15 +3696,15 @@ export const ScenarioCreateSchema = {
         },
       ],
       title: 'Agent Id',
-      description: 'Agent this scenario belongs to (test suite pool for that agent)',
+      description: 'Agent this test case belongs to (test suite pool for that agent)',
     },
   },
   type: 'object',
   required: ['name'],
-  title: 'ScenarioCreate',
+  title: 'TestCaseCreate',
 } as const;
 
-export const ScenarioImportItemSchema = {
+export const TestCaseImportItemSchema = {
   properties: {
     name: {
       type: 'string',
@@ -3386,7 +3722,7 @@ export const ScenarioImportItemSchema = {
         },
       ],
       title: 'Description',
-      description: 'What this scenario tests (for humans)',
+      description: 'What this test case checks (for humans)',
     },
     difficulty: {
       $ref: '#/components/schemas/Difficulty',
@@ -3402,8 +3738,8 @@ export const ScenarioImportItemSchema = {
       description: 'Free-form tags for grouping and filtering',
     },
     status: {
-      $ref: '#/components/schemas/ScenarioStatus',
-      description: 'Lifecycle status — only active scenarios run by default',
+      $ref: '#/components/schemas/TestCaseStatus',
+      description: 'Lifecycle status — only active test cases run by default',
       default: 'active',
     },
     persona: {
@@ -3501,7 +3837,7 @@ export const ScenarioImportItemSchema = {
         },
       ],
       title: 'Agent Id',
-      description: 'Agent this scenario belongs to (test suite pool for that agent)',
+      description: 'Agent this test case belongs to (test suite pool for that agent)',
     },
     id: {
       anyOf: [
@@ -3518,12 +3854,12 @@ export const ScenarioImportItemSchema = {
   },
   type: 'object',
   required: ['name'],
-  title: 'ScenarioImportItem',
+  title: 'TestCaseImportItem',
   description:
-    'Scenario payload for import — optional id enables round-trip and conflict detection.',
+    'Test case payload for import — optional id enables round-trip and conflict detection.',
 } as const;
 
-export const ScenarioImportResultSchema = {
+export const TestCaseImportResultSchema = {
   properties: {
     created: {
       type: 'integer',
@@ -3552,10 +3888,10 @@ export const ScenarioImportResultSchema = {
   },
   type: 'object',
   required: ['created', 'skipped', 'overwritten', 'total'],
-  title: 'ScenarioImportResult',
+  title: 'TestCaseImportResult',
 } as const;
 
-export const ScenarioPublicSchema = {
+export const TestCasePublicSchema = {
   properties: {
     name: {
       type: 'string',
@@ -3573,7 +3909,7 @@ export const ScenarioPublicSchema = {
         },
       ],
       title: 'Description',
-      description: 'What this scenario tests (for humans)',
+      description: 'What this test case checks (for humans)',
     },
     difficulty: {
       $ref: '#/components/schemas/Difficulty',
@@ -3589,8 +3925,8 @@ export const ScenarioPublicSchema = {
       description: 'Free-form tags for grouping and filtering',
     },
     status: {
-      $ref: '#/components/schemas/ScenarioStatus',
-      description: 'Lifecycle status — only active scenarios run by default',
+      $ref: '#/components/schemas/TestCaseStatus',
+      description: 'Lifecycle status — only active test cases run by default',
       default: 'active',
     },
     persona: {
@@ -3688,33 +4024,33 @@ export const ScenarioPublicSchema = {
         },
       ],
       title: 'Agent Id',
-      description: 'Agent this scenario belongs to (test suite pool for that agent)',
+      description: 'Agent this test case belongs to (test suite pool for that agent)',
     },
     id: {
       type: 'string',
       format: 'uuid',
       title: 'Id',
-      description: 'Unique scenario identifier',
+      description: 'Unique test case identifier',
     },
     created_at: {
       type: 'string',
       format: 'date-time',
       title: 'Created At',
-      description: 'When the scenario was created',
+      description: 'When the test case was created',
     },
     updated_at: {
       type: 'string',
       format: 'date-time',
       title: 'Updated At',
-      description: 'When the scenario was last updated',
+      description: 'When the test case was last updated',
     },
   },
   type: 'object',
   required: ['name', 'id', 'created_at', 'updated_at'],
-  title: 'ScenarioPublic',
+  title: 'TestCasePublic',
 } as const;
 
-export const ScenarioResultCreateSchema = {
+export const TestCaseResultCreateSchema = {
   properties: {
     run_id: {
       type: 'string',
@@ -3722,11 +4058,11 @@ export const ScenarioResultCreateSchema = {
       title: 'Run Id',
       description: 'FK to the parent run',
     },
-    scenario_id: {
+    test_case_id: {
       type: 'string',
       format: 'uuid',
-      title: 'Scenario Id',
-      description: 'FK to the scenario that was executed',
+      title: 'Test Case Id',
+      description: 'FK to the test case that was executed',
     },
     repetition_index: {
       type: 'integer',
@@ -3742,17 +4078,17 @@ export const ScenarioResultCreateSchema = {
     },
   },
   type: 'object',
-  required: ['run_id', 'scenario_id'],
-  title: 'ScenarioResultCreate',
+  required: ['run_id', 'test_case_id'],
+  title: 'TestCaseResultCreate',
 } as const;
 
-export const ScenarioResultPublicSchema = {
+export const TestCaseResultPublicSchema = {
   properties: {
     id: {
       type: 'string',
       format: 'uuid',
       title: 'Id',
-      description: 'Unique scenario result identifier',
+      description: 'Unique test case result identifier',
     },
     run_id: {
       type: 'string',
@@ -3760,11 +4096,11 @@ export const ScenarioResultPublicSchema = {
       title: 'Run Id',
       description: 'FK to the parent run',
     },
-    scenario_id: {
+    test_case_id: {
       type: 'string',
       format: 'uuid',
-      title: 'Scenario Id',
-      description: 'FK to the scenario that was executed',
+      title: 'Test Case Id',
+      description: 'FK to the test case that was executed',
     },
     repetition_index: {
       type: 'integer',
@@ -3824,7 +4160,7 @@ export const ScenarioResultPublicSchema = {
         },
       ],
       title: 'Total Latency Ms',
-      description: 'Total wall-clock latency for the scenario in milliseconds',
+      description: 'Total wall-clock latency for the test case in milliseconds',
     },
     agent_latency_p50_ms: {
       anyOf: [
@@ -3924,7 +4260,7 @@ export const ScenarioResultPublicSchema = {
         },
       ],
       title: 'Agent Cost Usd',
-      description: 'Estimated agent cost in USD for this scenario',
+      description: 'Estimated agent cost in USD for this test case',
     },
     platform_cost_usd: {
       anyOf: [
@@ -3936,7 +4272,7 @@ export const ScenarioResultPublicSchema = {
         },
       ],
       title: 'Platform Cost Usd',
-      description: 'Estimated platform cost in USD (simulator + judge) for this scenario',
+      description: 'Estimated platform cost in USD (simulator + judge) for this test case',
     },
     estimated_cost_usd: {
       anyOf: [
@@ -3948,7 +4284,7 @@ export const ScenarioResultPublicSchema = {
         },
       ],
       title: 'Estimated Cost Usd',
-      description: 'Estimated total cost in USD for this scenario',
+      description: 'Estimated total cost in USD for this test case',
     },
     passed: {
       anyOf: [
@@ -3960,7 +4296,7 @@ export const ScenarioResultPublicSchema = {
         },
       ],
       title: 'Passed',
-      description: 'Whether the scenario passed evaluation',
+      description: 'Whether the test case passed evaluation',
     },
     error_message: {
       anyOf: [
@@ -3985,7 +4321,7 @@ export const ScenarioResultPublicSchema = {
         },
       ],
       title: 'Started At',
-      description: 'When scenario execution began',
+      description: 'When test case execution began',
     },
     completed_at: {
       anyOf: [
@@ -3998,7 +4334,7 @@ export const ScenarioResultPublicSchema = {
         },
       ],
       title: 'Completed At',
-      description: 'When scenario execution finished',
+      description: 'When test case execution finished',
     },
     created_at: {
       type: 'string',
@@ -4017,7 +4353,7 @@ export const ScenarioResultPublicSchema = {
   required: [
     'id',
     'run_id',
-    'scenario_id',
+    'test_case_id',
     'repetition_index',
     'set_repetition_index',
     'turn_count',
@@ -4033,10 +4369,10 @@ export const ScenarioResultPublicSchema = {
     'created_at',
     'updated_at',
   ],
-  title: 'ScenarioResultPublic',
+  title: 'TestCaseResultPublic',
 } as const;
 
-export const ScenarioResultUpdateSchema = {
+export const TestCaseResultUpdateSchema = {
   properties: {
     transcript: {
       anyOf: [
@@ -4086,7 +4422,7 @@ export const ScenarioResultUpdateSchema = {
         },
       ],
       title: 'Total Latency Ms',
-      description: 'Total wall-clock latency for the scenario in milliseconds',
+      description: 'Total wall-clock latency for the test case in milliseconds',
     },
     agent_latency_p50_ms: {
       anyOf: [
@@ -4186,7 +4522,7 @@ export const ScenarioResultUpdateSchema = {
         },
       ],
       title: 'Agent Cost Usd',
-      description: 'Estimated agent cost in USD for this scenario',
+      description: 'Estimated agent cost in USD for this test case',
     },
     platform_cost_usd: {
       anyOf: [
@@ -4198,7 +4534,7 @@ export const ScenarioResultUpdateSchema = {
         },
       ],
       title: 'Platform Cost Usd',
-      description: 'Estimated platform cost in USD (simulator + judge) for this scenario',
+      description: 'Estimated platform cost in USD (simulator + judge) for this test case',
     },
     estimated_cost_usd: {
       anyOf: [
@@ -4210,7 +4546,7 @@ export const ScenarioResultUpdateSchema = {
         },
       ],
       title: 'Estimated Cost Usd',
-      description: 'Estimated total cost in USD for this scenario',
+      description: 'Estimated total cost in USD for this test case',
     },
     passed: {
       anyOf: [
@@ -4222,7 +4558,7 @@ export const ScenarioResultUpdateSchema = {
         },
       ],
       title: 'Passed',
-      description: 'Whether the scenario passed evaluation',
+      description: 'Whether the test case passed evaluation',
     },
     error_message: {
       anyOf: [
@@ -4247,7 +4583,7 @@ export const ScenarioResultUpdateSchema = {
         },
       ],
       title: 'Started At',
-      description: 'When scenario execution began',
+      description: 'When test case execution began',
     },
     completed_at: {
       anyOf: [
@@ -4260,22 +4596,22 @@ export const ScenarioResultUpdateSchema = {
         },
       ],
       title: 'Completed At',
-      description: 'When scenario execution finished',
+      description: 'When test case execution finished',
     },
   },
   type: 'object',
-  title: 'ScenarioResultUpdate',
+  title: 'TestCaseResultUpdate',
 } as const;
 
-export const ScenarioResultsPublicSchema = {
+export const TestCaseResultsPublicSchema = {
   properties: {
     data: {
       items: {
-        $ref: '#/components/schemas/ScenarioResultPublic',
+        $ref: '#/components/schemas/TestCaseResultPublic',
       },
       type: 'array',
       title: 'Data',
-      description: 'List of scenario results',
+      description: 'List of test case results',
     },
     count: {
       type: 'integer',
@@ -4285,322 +4621,16 @@ export const ScenarioResultsPublicSchema = {
   },
   type: 'object',
   required: ['data', 'count'],
-  title: 'ScenarioResultsPublic',
+  title: 'TestCaseResultsPublic',
 } as const;
 
-export const ScenarioSetCreateSchema = {
-  properties: {
-    name: {
-      type: 'string',
-      maxLength: 255,
-      title: 'Name',
-      description: 'Human-readable set name',
-    },
-    description: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Description',
-      description: 'What this scenario set covers',
-    },
-    set_repetitions: {
-      type: 'integer',
-      minimum: 1,
-      title: 'Set Repetitions',
-      description: 'How many times to repeat the entire set during a run',
-      default: 1,
-    },
-    members: {
-      anyOf: [
-        {
-          items: {
-            $ref: '#/components/schemas/ScenarioSetMemberEntry',
-          },
-          type: 'array',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Members',
-      description: 'Initial members with per-scenario repetitions (omit or empty for no scenarios)',
-    },
-  },
-  type: 'object',
-  required: ['name'],
-  title: 'ScenarioSetCreate',
-} as const;
-
-export const ScenarioSetDiffSchema = {
-  properties: {
-    same_set: {
-      type: 'boolean',
-      title: 'Same Set',
-    },
-    version_changed: {
-      type: 'boolean',
-      title: 'Version Changed',
-    },
-    added_scenario_ids: {
-      items: {
-        type: 'string',
-        format: 'uuid',
-      },
-      type: 'array',
-      title: 'Added Scenario Ids',
-    },
-    removed_scenario_ids: {
-      items: {
-        type: 'string',
-        format: 'uuid',
-      },
-      type: 'array',
-      title: 'Removed Scenario Ids',
-    },
-    common_scenario_ids: {
-      items: {
-        type: 'string',
-        format: 'uuid',
-      },
-      type: 'array',
-      title: 'Common Scenario Ids',
-    },
-  },
-  type: 'object',
-  required: ['same_set', 'version_changed'],
-  title: 'ScenarioSetDiff',
-} as const;
-
-export const ScenarioSetMemberEntrySchema = {
-  properties: {
-    scenario_id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Scenario Id',
-      description: 'Scenario to include in the set',
-    },
-    repetitions: {
-      type: 'integer',
-      minimum: 1,
-      title: 'Repetitions',
-      description: 'How many times to execute this scenario within one set pass',
-      default: 1,
-    },
-  },
-  type: 'object',
-  required: ['scenario_id'],
-  title: 'ScenarioSetMemberEntry',
-  description:
-    'API payload for adding or replacing set members with per-scenario repetition counts.',
-} as const;
-
-export const ScenarioSetMemberPublicSchema = {
-  properties: {
-    scenario_id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Scenario Id',
-      description: 'Linked scenario id',
-    },
-    position: {
-      type: 'integer',
-      title: 'Position',
-      description: 'Order within the set',
-    },
-    repetitions: {
-      type: 'integer',
-      minimum: 1,
-      title: 'Repetitions',
-      description: 'Executions per set pass for this scenario',
-    },
-  },
-  type: 'object',
-  required: ['scenario_id', 'position', 'repetitions'],
-  title: 'ScenarioSetMemberPublic',
-  description: "Public view of one scenario's membership in a set.",
-} as const;
-
-export const ScenarioSetMembersPublicSchema = {
-  properties: {
-    data: {
-      items: {
-        $ref: '#/components/schemas/ScenarioSetMemberPublic',
-      },
-      type: 'array',
-      title: 'Data',
-      description: 'Set members with position and repetitions',
-    },
-    count: {
-      type: 'integer',
-      title: 'Count',
-      description: 'Total members matching the query',
-    },
-  },
-  type: 'object',
-  required: ['data', 'count'],
-  title: 'ScenarioSetMembersPublic',
-} as const;
-
-export const ScenarioSetMembersUpdateSchema = {
-  properties: {
-    members: {
-      items: {
-        $ref: '#/components/schemas/ScenarioSetMemberEntry',
-      },
-      type: 'array',
-      title: 'Members',
-    },
-  },
-  type: 'object',
-  required: ['members'],
-  title: 'ScenarioSetMembersUpdate',
-} as const;
-
-export const ScenarioSetPublicSchema = {
-  properties: {
-    name: {
-      type: 'string',
-      maxLength: 255,
-      title: 'Name',
-      description: 'Human-readable set name',
-    },
-    description: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Description',
-      description: 'What this scenario set covers',
-    },
-    version: {
-      type: 'integer',
-      title: 'Version',
-      description: 'Monotonically increasing version for snapshot tracking',
-      default: 1,
-    },
-    set_repetitions: {
-      type: 'integer',
-      minimum: 1,
-      title: 'Set Repetitions',
-      description: 'How many times to repeat the entire set during a run',
-      default: 1,
-    },
-    id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Id',
-      description: 'Unique scenario set identifier',
-    },
-    scenario_count: {
-      type: 'integer',
-      title: 'Scenario Count',
-      default: 0,
-    },
-    effective_scenario_count: {
-      type: 'integer',
-      title: 'Effective Scenario Count',
-      description: 'Sum(member.repetitions) * set_repetitions — total expanded executions',
-      default: 0,
-    },
-    created_at: {
-      type: 'string',
-      format: 'date-time',
-      title: 'Created At',
-      description: 'When the set was created',
-    },
-    updated_at: {
-      type: 'string',
-      format: 'date-time',
-      title: 'Updated At',
-      description: 'When the set was last updated',
-    },
-  },
-  type: 'object',
-  required: ['name', 'id', 'created_at', 'updated_at'],
-  title: 'ScenarioSetPublic',
-} as const;
-
-export const ScenarioSetUpdateSchema = {
-  properties: {
-    name: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Name',
-      description: 'Human-readable set name',
-    },
-    description: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Description',
-      description: 'What this scenario set covers',
-    },
-    set_repetitions: {
-      anyOf: [
-        {
-          type: 'integer',
-          minimum: 1,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Set Repetitions',
-      description: 'How many times to repeat the entire set during a run',
-    },
-  },
-  type: 'object',
-  title: 'ScenarioSetUpdate',
-} as const;
-
-export const ScenarioSetsPublicSchema = {
-  properties: {
-    data: {
-      items: {
-        $ref: '#/components/schemas/ScenarioSetPublic',
-      },
-      type: 'array',
-      title: 'Data',
-      description: 'List of scenario sets',
-    },
-    count: {
-      type: 'integer',
-      title: 'Count',
-      description: 'Total number of sets matching the query',
-    },
-  },
-  type: 'object',
-  required: ['data', 'count'],
-  title: 'ScenarioSetsPublic',
-} as const;
-
-export const ScenarioStatusSchema = {
+export const TestCaseStatusSchema = {
   type: 'string',
   enum: ['draft', 'active', 'archived'],
-  title: 'ScenarioStatus',
+  title: 'TestCaseStatus',
 } as const;
 
-export const ScenarioUpdateSchema = {
+export const TestCaseUpdateSchema = {
   properties: {
     name: {
       anyOf: [
@@ -4624,7 +4654,7 @@ export const ScenarioUpdateSchema = {
         },
       ],
       title: 'Description',
-      description: 'What this scenario tests (for humans)',
+      description: 'What this test case checks (for humans)',
     },
     difficulty: {
       anyOf: [
@@ -4655,13 +4685,13 @@ export const ScenarioUpdateSchema = {
     status: {
       anyOf: [
         {
-          $ref: '#/components/schemas/ScenarioStatus',
+          $ref: '#/components/schemas/TestCaseStatus',
         },
         {
           type: 'null',
         },
       ],
-      description: 'Lifecycle status — only active scenarios run by default',
+      description: 'Lifecycle status — only active test cases run by default',
     },
     persona: {
       anyOf: [
@@ -4756,14 +4786,14 @@ export const ScenarioUpdateSchema = {
         },
       ],
       title: 'Agent Id',
-      description: 'Agent this scenario belongs to (test suite pool for that agent)',
+      description: 'Agent this test case belongs to (test suite pool for that agent)',
     },
   },
   type: 'object',
-  title: 'ScenarioUpdate',
+  title: 'TestCaseUpdate',
 } as const;
 
-export const ScenariosExportSchema = {
+export const TestCasesExportSchema = {
   properties: {
     exported_at: {
       type: 'string',
@@ -4774,68 +4804,38 @@ export const ScenariosExportSchema = {
       type: 'integer',
       title: 'Count',
     },
-    scenarios: {
+    test_cases: {
       items: {
-        $ref: '#/components/schemas/ScenarioPublic',
+        $ref: '#/components/schemas/TestCasePublic',
       },
       type: 'array',
-      title: 'Scenarios',
+      title: 'Test Cases',
     },
   },
   type: 'object',
-  required: ['exported_at', 'count', 'scenarios'],
-  title: 'ScenariosExport',
+  required: ['exported_at', 'count', 'test_cases'],
+  title: 'TestCasesExport',
 } as const;
 
-export const ScenariosPublicSchema = {
+export const TestCasesPublicSchema = {
   properties: {
     data: {
       items: {
-        $ref: '#/components/schemas/ScenarioPublic',
+        $ref: '#/components/schemas/TestCasePublic',
       },
       type: 'array',
       title: 'Data',
-      description: 'List of scenarios',
+      description: 'List of test cases',
     },
     count: {
       type: 'integer',
       title: 'Count',
-      description: 'Total number of scenarios matching the query',
+      description: 'Total number of test cases matching the query',
     },
   },
   type: 'object',
   required: ['data', 'count'],
-  title: 'ScenariosPublic',
-} as const;
-
-export const ScoreTypeSchema = {
-  type: 'string',
-  enum: ['scored', 'binary'],
-  title: 'ScoreType',
-} as const;
-
-export const SimulatorModeSchema = {
-  type: 'string',
-  enum: ['llm', 'scripted'],
-  title: 'SimulatorMode',
-} as const;
-
-export const SuggestionsRequestSchema = {
-  properties: {
-    baseline_run_id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Baseline Run Id',
-    },
-    candidate_run_id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Candidate Run Id',
-    },
-  },
-  type: 'object',
-  required: ['baseline_run_id', 'candidate_run_id'],
-  title: 'SuggestionsRequest',
+  title: 'TestCasesPublic',
 } as const;
 
 export const TokenSchema = {

@@ -5,11 +5,11 @@
 ```mermaid
 erDiagram
     Agent ||--o{ Run : "tested in"
-    ScenarioSet ||--o{ Run : "evaluated by"
-    ScenarioSet ||--o{ ScenarioSetMember : "contains"
-    Scenario ||--o{ ScenarioSetMember : "belongs to"
-    Run ||--o{ ScenarioResult : "produces"
-    Scenario ||--o{ ScenarioResult : "evaluated in"
+    EvalSet ||--o{ Run : "evaluated by"
+    EvalSet ||--o{ EvalSetMember : "contains"
+    TestCase ||--o{ EvalSetMember : "belongs to"
+    Run ||--o{ TestCaseResult : "produces"
+    TestCase ||--o{ TestCaseResult : "evaluated in"
 
     Agent {
         uuid id PK
@@ -26,7 +26,7 @@ erDiagram
         timestamp updated_at
     }
 
-    Scenario {
+    TestCase {
         uuid id PK
         string name
         string description
@@ -44,7 +44,7 @@ erDiagram
         timestamp updated_at
     }
 
-    ScenarioSet {
+    EvalSet {
         uuid id PK
         string name
         string description
@@ -53,9 +53,9 @@ erDiagram
         timestamp updated_at
     }
 
-    ScenarioSetMember {
-        uuid scenario_set_id FK
-        uuid scenario_id FK
+    EvalSetMember {
+        uuid eval_set_id FK
+        uuid test_case_id FK
         int position
     }
 
@@ -71,8 +71,8 @@ erDiagram
         string agent_provider
         jsonb tools_snapshot
         string tools_snapshot_hash
-        uuid scenario_set_id FK
-        int scenario_set_version
+        uuid eval_set_id FK
+        int eval_set_version
         jsonb config
         enum status
         bool is_baseline
@@ -83,10 +83,10 @@ erDiagram
         timestamp updated_at
     }
 
-    ScenarioResult {
+    TestCaseResult {
         uuid id PK
         uuid run_id FK
-        uuid scenario_id FK
+        uuid test_case_id FK
         jsonb transcript
         int turn_count
         jsonb verdict
@@ -111,7 +111,7 @@ erDiagram
 | Enum | Values |
 |------|--------|
 | `Difficulty` | `normal`, `hard` |
-| `ScenarioStatus` | `draft`, `active`, `archived` |
+| `TestCaseStatus` | `draft`, `active`, `archived` |
 | `RunStatus` | `pending`, `running`, `completed`, `failed`, `cancelled` |
 | `TurnRole` | `user`, `assistant`, `system`, `tool` |
 | `AgentMode` | `endpoint`, `platform` |
@@ -125,7 +125,7 @@ These are stored inside JSONB columns, not as separate tables.
 | Field | Type | Default |
 |-------|------|---------|
 | `concurrency` | `int` | `5` |
-| `timeout_per_scenario_ms` | `int` | `120000` |
+| `timeout_per_test_case_ms` | `int` | `120000` |
 | `judge` | `JudgeConfig \| None` | `None` |
 | `user_simulator` | `UserSimulatorConfig \| None` | `None` |
 | `agent_simulator` | `AgentSimulatorConfig \| None` | `None` |
@@ -158,7 +158,7 @@ These are stored inside JSONB columns, not as separate tables.
 | `temperature` | `float \| None` | `None` |
 | `max_tokens` | `int \| None` | `None` |
 
-### ConversationTurn (stored in `scenario_results.transcript`)
+### ConversationTurn (stored in `test_case_result.transcript`)
 
 | Field | Type |
 |-------|------|
@@ -182,7 +182,7 @@ OpenAI chat-completions shape, plus optional `tool_result` for platform-stored o
 | `function` | `ToolCallFunction` (`name`, `arguments` JSON string) |
 | `tool_result` | `Any \| None` |
 
-### JudgeVerdict (stored in `scenario_results.verdict`)
+### JudgeVerdict (stored in `test_case_result.verdict`)
 
 | Field | Type | Default |
 |-------|------|---------|
@@ -214,7 +214,8 @@ OpenAI chat-completions shape, plus optional `tool_result` for platform-stored o
 
 | Field | Type | Default |
 |-------|------|---------|
-| `total_scenarios` | `int` | — |
+| `unique_test_case_count` | `int` | — |
+| `total_executions` | `int` | — |
 | `passed_count` | `int` | — |
 | `failed_count` | `int` | — |
 | `error_count` | `int` | — |
@@ -228,7 +229,7 @@ OpenAI chat-completions shape, plus optional `tool_result` for platform-stored o
 | `total_estimated_cost_usd` | `float \| None` | `None` |
 | `avg_overall_score` | `float \| None` | `None` |
 
-### Persona (stored in `scenarios.persona`)
+### Persona (stored in `test_case.persona`)
 
 | Field | Type |
 |-------|------|
@@ -236,14 +237,14 @@ OpenAI chat-completions shape, plus optional `tool_result` for platform-stored o
 | `description` | `str` |
 | `instructions` | `str` |
 
-### ExpectedToolCall (stored in `scenarios.expected_tool_calls`)
+### ExpectedToolCall (stored in `test_case.expected_tool_calls`)
 
 | Field | Type | Default |
 |-------|------|---------|
 | `tool` | `str` | — |
 | `expected_params` | `dict[str, Any] \| None` | `None` |
 
-### expected_outcomes (stored in `scenarios.expected_outcomes`)
+### expected_outcomes (stored in `test_case.expected_outcomes`)
 
 Free-form `dict[str, Any]`. Keys are descriptive labels (e.g. `"refund_initiated"`), values are expected state (bool, string, etc.). The judge interprets these semantically.
 
@@ -251,20 +252,20 @@ Free-form `dict[str, Any]`. Keys are descriptive labels (e.g. `"refund_initiated
 
 | Table | Index | Type |
 |-------|-------|------|
-| `scenario` | `difficulty` | btree |
-| `scenario` | `status` | btree |
-| `scenario` | `tags` | GIN |
-| `scenario_set` | `name` | btree |
-| `scenario_set_member` | `scenario_set_id` | btree |
+| `test_case` | `difficulty` | btree |
+| `test_case` | `status` | btree |
+| `test_case` | `tags` | GIN |
+| `eval_set` | `name` | btree |
+| `eval_set_member` | `eval_set_id` | btree |
 | `run` | `agent_id` | btree |
-| `run` | `scenario_set_id` | btree |
+| `run` | `eval_set_id` | btree |
 | `run` | `status` | btree |
 | `run` | `is_baseline` | btree |
 | `run` | `created_at` | btree |
-| `scenario_result` | `run_id` | btree |
-| `scenario_result` | `scenario_id` | btree |
-| `scenario_result` | `passed` | btree |
+| `test_case_result` | `run_id` | btree |
+| `test_case_result` | `test_case_id` | btree |
+| `test_case_result` | `passed` | btree |
 
 ## Critical Design Decision
 
-`agent_system_prompt`, `agent_tools`, and `tools_snapshot` live on the **Run** entity (captured at eval time), **NOT** on Scenario. This ensures that each evaluation run captures a complete snapshot of the agent configuration at that point in time.
+`agent_system_prompt`, `agent_tools`, and `tools_snapshot` live on the **Run** entity (captured at eval time), **NOT** on TestCase. This ensures that each evaluation run captures a complete snapshot of the agent configuration at that point in time.

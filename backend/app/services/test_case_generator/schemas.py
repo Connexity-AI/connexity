@@ -2,7 +2,7 @@ import uuid
 
 from pydantic import BaseModel, Field
 
-from app.models.scenario import ScenarioPublic
+from app.models.test_case import TestCasePublic
 
 
 class ToolDefinition(BaseModel):
@@ -14,7 +14,7 @@ class ToolDefinition(BaseModel):
 
 
 class GenerateRequest(BaseModel):
-    """Input for scenario generation."""
+    """Input for test case generation."""
 
     agent_prompt: str
     tools: list[ToolDefinition] = []
@@ -25,14 +25,14 @@ class GenerateRequest(BaseModel):
     persist: bool = True
     agent_id: uuid.UUID | None = Field(
         default=None,
-        description="When persist=true, bind created scenarios to this agent",
+        description="When persist=true, bind created test cases to this agent",
     )
 
 
 class GenerateResult(BaseModel):
-    """Output from scenario generation."""
+    """Output from test case generation."""
 
-    scenarios: list[ScenarioPublic]
+    test_cases: list[TestCasePublic]
     count: int
     model_used: str
     generation_time_ms: int

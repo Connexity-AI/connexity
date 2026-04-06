@@ -1,7 +1,7 @@
 """Pure Pydantic v2 models for JSONB nested entities.
 
 These are NOT database tables — they serialize into JSONB columns
-on the ORM table models (Run, ScenarioResult, Scenario). Run execution
+on the ORM table models (Run, TestCaseResult, TestCase). Run execution
 helpers (:class:`RunConfig`, :class:`UserSimulatorConfig`, :class:`JudgeConfig`)
 live here so API and services share one definition.
 """
@@ -18,9 +18,9 @@ from pydantic import BaseModel, Field, model_validator
 from app.models.enums import SimulatorMode, TurnRole
 
 if TYPE_CHECKING:
-    from app.models.scenario import Scenario
+    from app.models.test_case import TestCase
 
-# ── Scenario nested types ──────────────────────────────────────────
+# ── Test case nested types ──────────────────────────────────────────
 
 
 class Persona(BaseModel):
@@ -99,7 +99,7 @@ ToolImplementation = PythonImplementation | HttpWebhookImplementation
 class ToolPlatformConfig(BaseModel):
     mode: Literal["mock", "live"] = Field(
         default="mock",
-        description="mock: use scenario mock_responses; live: execute real implementation",
+        description="mock: use test-case mock_responses; live: execute real implementation",
     )
     implementation: ToolImplementation | None = Field(
         default=None,
@@ -200,10 +200,10 @@ class AgentSimulatorConfig(BaseModel):
 
 
 class RunConfig(BaseModel):
-    concurrency: int = Field(default=5, description="Max parallel scenario executions")
-    timeout_per_scenario_ms: int = Field(
+    concurrency: int = Field(default=5, description="Max parallel test case executions")
+    timeout_per_test_case_ms: int = Field(
         default=120_000,
-        description="Timeout per scenario in milliseconds before forced stop",
+        description="Timeout per test case in milliseconds before forced stop",
     )
     judge: JudgeConfig | None = Field(
         default=None,
@@ -308,7 +308,7 @@ class MetricScore(BaseModel):
 
 
 class JudgeVerdict(BaseModel):
-    passed: bool = Field(description="Whether the scenario passed overall")
+    passed: bool = Field(description="Whether the test case passed overall")
     overall_score: float = Field(
         description="Weighted overall score across all criteria (0-100)"
     )
@@ -338,45 +338,45 @@ class JudgeVerdict(BaseModel):
 
 
 @dataclass(frozen=True)
-class ScenarioExecution:
-    """One row in a scenario set execution plan (scenario + member metadata)."""
+class TestCaseExecution:
+    """One row in an eval set execution plan (test case + member metadata)."""
 
-    scenario: "Scenario"  # noqa: UP037 — avoid circular import with app.models.scenario
+    test_case: "TestCase"  # noqa: UP037 — avoid circular import with app.models.test_case
     repetitions: int
     position: int
 
 
 class AggregateMetrics(BaseModel):
-    total_scenarios: int = Field(
-        description="Number of unique scenarios represented in run results"
+    unique_test_case_count: int = Field(
+        description="Number of unique test cases represented in run results"
     )
     total_executions: int = Field(
-        description="Total number of scenario executions (result rows) in the run"
+        description="Total number of test case executions (result rows) in the run"
     )
-    passed_count: int = Field(description="Number of scenarios that passed")
+    passed_count: int = Field(description="Number of test cases that passed")
 
-    failed_count: int = Field(description="Number of scenarios that failed")
+    failed_count: int = Field(description="Number of test cases that failed")
     error_count: int = Field(
-        description="Number of scenarios that errored during execution"
+        description="Number of test cases that errored during execution"
     )
     pass_rate: float = Field(
         description="Fraction of executions that passed (0.0–1.0); denominator is total_executions"
     )
     latency_p50_ms: float | None = Field(
-        default=None, description="Median agent latency across scenarios"
+        default=None, description="Median agent latency across test cases"
     )
     latency_p95_ms: float | None = Field(
         default=None, description="95th percentile agent latency"
     )
     latency_max_ms: float | None = Field(
-        default=None, description="Maximum agent latency across scenarios"
+        default=None, description="Maximum agent latency across test cases"
     )
     latency_avg_ms: float | None = Field(
-        default=None, description="Mean agent latency across scenarios"
+        default=None, description="Mean agent latency across test cases"
     )
     total_agent_token_usage: dict[str, int | bool] | None = Field(
         default=None,
-        description="Summed token usage from the agent across all scenarios",
+        description="Summed token usage from the agent across all test cases",
     )
     total_platform_token_usage: dict[str, int] | None = Field(
         default=None,
@@ -394,7 +394,7 @@ class AggregateMetrics(BaseModel):
     )
     avg_overall_score: float | None = Field(
         default=None,
-        description="Mean judge overall score across all scenarios",
+        description="Mean judge overall score across all test cases",
     )
 
 
@@ -406,10 +406,10 @@ class RunStreamEvent(BaseModel):
     data: dict[str, Any]
 
 
-class ScenarioProgressData(BaseModel):
+class TestCaseProgressData(BaseModel):
     run_id: uuid.UUID
-    scenario_id: uuid.UUID
-    scenario_name: str
+    test_case_id: uuid.UUID
+    test_case_name: str
     completed_count: int
     total_count: int
     passed: bool | None = None

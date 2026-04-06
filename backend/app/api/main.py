@@ -6,12 +6,12 @@ from app.api.routes import (
     agents,
     config,
     custom_metrics,
+    eval_sets,
     health,
     login,
     runs,
-    scenario_results,
-    scenario_sets,
-    scenarios,
+    test_case_results,
+    test_cases,
     users,
 )
 from app.models import ErrorResponse
@@ -24,11 +24,11 @@ api_router = APIRouter(responses=ERROR_RESPONSES)
 api_router.include_router(login.router)
 api_router.include_router(users.router)
 api_router.include_router(agents.router)
-api_router.include_router(scenarios.router)
+api_router.include_router(test_cases.router)
 api_router.include_router(custom_metrics.router)
-api_router.include_router(scenario_sets.router)
+api_router.include_router(eval_sets.router)
 api_router.include_router(runs.router)
-api_router.include_router(scenario_results.router)
+api_router.include_router(test_case_results.router)
 api_router.include_router(config.router)
 
 root_router = APIRouter()

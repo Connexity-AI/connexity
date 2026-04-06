@@ -6,17 +6,17 @@ from app.core.config import settings
 from app.models import (
     AgentCreate,
     Difficulty,
+    EvalSetCreate,
+    EvalSetMemberEntry,
     ExpectedToolCall,
     Persona,
     RunCreate,
     RunStatus,
     RunUpdate,
-    ScenarioCreate,
-    ScenarioResultCreate,
-    ScenarioResultUpdate,
-    ScenarioSetCreate,
-    ScenarioSetMemberEntry,
-    ScenarioStatus,
+    TestCaseCreate,
+    TestCaseResultCreate,
+    TestCaseResultUpdate,
+    TestCaseStatus,
     User,
     UserCreate,
 )
@@ -84,15 +84,15 @@ def _seed_eval_data(session: Session) -> None:
         ),
     )
 
-    # Scenarios
-    s_refund = crud.create_scenario(
+    # Test cases
+    s_refund = crud.create_test_case(
         session=session,
-        scenario_in=ScenarioCreate(
+        test_case_in=TestCaseCreate(
             name="Refund Request — Valid",
             description="Customer requests refund within 30-day window",
             difficulty=Difficulty.NORMAL,
             tags=["billing", "refund", "happy-path"],
-            status=ScenarioStatus.ACTIVE,
+            status=TestCaseStatus.ACTIVE,
             persona=Persona(
                 type="polite-customer",
                 description="Polite customer who purchased 5 days ago",
@@ -113,14 +113,14 @@ def _seed_eval_data(session: Session) -> None:
             ],
         ),
     )
-    s_escalation = crud.create_scenario(
+    s_escalation = crud.create_test_case(
         session=session,
-        scenario_in=ScenarioCreate(
+        test_case_in=TestCaseCreate(
             name="Angry Escalation",
             description="Customer is frustrated after multiple failed attempts",
             difficulty=Difficulty.HARD,
             tags=["billing", "escalation", "edge-case"],
-            status=ScenarioStatus.ACTIVE,
+            status=TestCaseStatus.ACTIVE,
             persona=Persona(
                 type="frustrated-customer",
                 description="Frustrated customer with 3 prior contacts, increasingly angry",
@@ -139,14 +139,14 @@ def _seed_eval_data(session: Session) -> None:
             },
         ),
     )
-    s_product = crud.create_scenario(
+    s_product = crud.create_test_case(
         session=session,
-        scenario_in=ScenarioCreate(
+        test_case_in=TestCaseCreate(
             name="Product Comparison",
             description="Customer asks for a comparison between two products",
             difficulty=Difficulty.NORMAL,
             tags=["sales", "product-info"],
-            status=ScenarioStatus.ACTIVE,
+            status=TestCaseStatus.ACTIVE,
             persona=Persona(
                 type="budget-shopper",
                 description="Budget-conscious shopper comparing two subscription plans",
@@ -161,45 +161,45 @@ def _seed_eval_data(session: Session) -> None:
             },
         ),
     )
-    crud.create_scenario(
+    crud.create_test_case(
         session=session,
-        scenario_in=ScenarioCreate(
-            name="Draft Scenario — WIP",
+        test_case_in=TestCaseCreate(
+            name="Draft Test Case — WIP",
             description="Not yet ready for evaluation",
             difficulty=Difficulty.NORMAL,
             tags=["draft"],
-            status=ScenarioStatus.DRAFT,
+            status=TestCaseStatus.DRAFT,
         ),
     )
-    crud.create_scenario(
+    crud.create_test_case(
         session=session,
-        scenario_in=ScenarioCreate(
-            name="Archived Legacy Scenario",
-            description="Deprecated scenario from v0",
+        test_case_in=TestCaseCreate(
+            name="Archived Legacy Test Case",
+            description="Deprecated test case from v0",
             difficulty=Difficulty.HARD,
             tags=["legacy", "archived"],
-            status=ScenarioStatus.ARCHIVED,
+            status=TestCaseStatus.ARCHIVED,
         ),
     )
 
-    # Scenario Sets
-    billing_set = crud.create_scenario_set(
+    # Eval sets
+    billing_set = crud.create_eval_set(
         session=session,
-        scenario_set_in=ScenarioSetCreate(
-            name="Billing Scenarios v1",
+        eval_set_in=EvalSetCreate(
+            name="Billing Eval Set v1",
             description="Core billing test suite",
             members=[
-                ScenarioSetMemberEntry(scenario_id=s_refund.id),
-                ScenarioSetMemberEntry(scenario_id=s_escalation.id),
+                EvalSetMemberEntry(test_case_id=s_refund.id),
+                EvalSetMemberEntry(test_case_id=s_escalation.id),
             ],
         ),
     )
-    sales_set = crud.create_scenario_set(
+    sales_set = crud.create_eval_set(
         session=session,
-        scenario_set_in=ScenarioSetCreate(
-            name="Sales Scenarios v1",
+        eval_set_in=EvalSetCreate(
+            name="Sales Eval Set v1",
             description="Sales qualification test suite",
-            members=[ScenarioSetMemberEntry(scenario_id=s_product.id)],
+            members=[EvalSetMemberEntry(test_case_id=s_product.id)],
         ),
     )
 
@@ -210,7 +210,7 @@ def _seed_eval_data(session: Session) -> None:
             name="Billing Eval — Completed",
             agent_id=agent_cs.id,
             agent_endpoint_url=agent_cs.endpoint_url,
-            scenario_set_id=billing_set.id,
+            eval_set_id=billing_set.id,
         ),
         created_by=owner_id,
     )
@@ -226,7 +226,7 @@ def _seed_eval_data(session: Session) -> None:
             name="Sales Eval — Pending",
             agent_id=agent_sales.id,
             agent_endpoint_url=agent_sales.endpoint_url,
-            scenario_set_id=sales_set.id,
+            eval_set_id=sales_set.id,
         ),
         created_by=owner_id,
     )
@@ -237,7 +237,7 @@ def _seed_eval_data(session: Session) -> None:
             name="Billing Eval — Failed",
             agent_id=agent_cs.id,
             agent_endpoint_url=agent_cs.endpoint_url,
-            scenario_set_id=billing_set.id,
+            eval_set_id=billing_set.id,
         ),
         created_by=owner_id,
     )
@@ -247,35 +247,35 @@ def _seed_eval_data(session: Session) -> None:
         run_in=RunUpdate(status=RunStatus.FAILED),
     )
 
-    # Scenario Results for the completed run
-    result_refund = crud.create_scenario_result(
+    # Test case results for the completed run
+    result_refund = crud.create_test_case_result(
         session=session,
-        result_in=ScenarioResultCreate(
+        result_in=TestCaseResultCreate(
             run_id=run_completed.id,
-            scenario_id=s_refund.id,
+            test_case_id=s_refund.id,
         ),
     )
-    crud.update_scenario_result(
+    crud.update_test_case_result(
         session=session,
         db_result=result_refund,
-        result_in=ScenarioResultUpdate(
+        result_in=TestCaseResultUpdate(
             passed=True,
             turn_count=6,
             total_latency_ms=4500,
         ),
     )
 
-    result_escalation = crud.create_scenario_result(
+    result_escalation = crud.create_test_case_result(
         session=session,
-        result_in=ScenarioResultCreate(
+        result_in=TestCaseResultCreate(
             run_id=run_completed.id,
-            scenario_id=s_escalation.id,
+            test_case_id=s_escalation.id,
         ),
     )
-    crud.update_scenario_result(
+    crud.update_test_case_result(
         session=session,
         db_result=result_escalation,
-        result_in=ScenarioResultUpdate(
+        result_in=TestCaseResultUpdate(
             passed=False,
             turn_count=12,
             total_latency_ms=9800,

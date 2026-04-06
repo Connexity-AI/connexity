@@ -35,12 +35,12 @@ class PromptDiff(BaseModel):
     semantic_summary: str | None = None  # populated by future LLM call (CS-29)
 
 
-class ScenarioSetDiff(BaseModel):
+class EvalSetDiff(BaseModel):
     same_set: bool
     version_changed: bool
-    added_scenario_ids: list[uuid.UUID] = Field(default_factory=list)
-    removed_scenario_ids: list[uuid.UUID] = Field(default_factory=list)
-    common_scenario_ids: list[uuid.UUID] = Field(default_factory=list)
+    added_test_case_ids: list[uuid.UUID] = Field(default_factory=list)
+    removed_test_case_ids: list[uuid.UUID] = Field(default_factory=list)
+    common_test_case_ids: list[uuid.UUID] = Field(default_factory=list)
 
 
 class RunConfigDiff(BaseModel):
@@ -55,7 +55,7 @@ class RunConfigDiff(BaseModel):
     judge_model_changed: FieldChange | None = None
     judge_provider_changed: FieldChange | None = None
     config_changes: list[FieldChange] = Field(default_factory=list)
-    scenario_set_diff: ScenarioSetDiff
+    eval_set_diff: EvalSetDiff
 
 
 # ── CS-27: Per-metric delta ──────────────────────────────────────
@@ -72,12 +72,12 @@ class MetricDelta(BaseModel):
     status: Literal["regression", "improvement", "unchanged"]
 
 
-# ── CS-27: Per-scenario comparison ───────────────────────────────
+# ── CS-27: Per-test-case comparison ───────────────────────────────
 
 
-class ScenarioComparison(BaseModel):
-    scenario_id: uuid.UUID
-    scenario_name: str
+class TestCaseComparison(BaseModel):
+    test_case_id: uuid.UUID
+    test_case_name: str
     status: Literal["regression", "improvement", "unchanged", "error"]
     baseline_passed: bool | None = None
     candidate_passed: bool | None = None
@@ -151,9 +151,9 @@ class RunComparison(BaseModel):
     baseline_run_name: str | None = None
     candidate_run_name: str | None = None
     aggregate: AggregateComparison
-    scenario_comparisons: list[ScenarioComparison]
-    baseline_only_scenarios: list[uuid.UUID]
-    candidate_only_scenarios: list[uuid.UUID]
+    test_case_comparisons: list[TestCaseComparison]
+    baseline_only_test_cases: list[uuid.UUID]
+    candidate_only_test_cases: list[uuid.UUID]
     config_diff: RunConfigDiff
     verdict: RegressionVerdict
     warnings: list[str]
@@ -192,7 +192,7 @@ class ImprovementSuggestion(BaseModel):
         "system_prompt",
         "tool_definition",
         "model_selection",
-        "scenario_design",
+        "test_case_design",
         "other",
     ]
     title: str

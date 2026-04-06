@@ -7,71 +7,71 @@ from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
     from app.models.run import Run
-    from app.models.scenario import Scenario
+    from app.models.test_case import TestCase
 
 
-class ScenarioSetMember(SQLModel, table=True):
-    """Many-to-many join table between ScenarioSet and Scenario."""
+class EvalSetMember(SQLModel, table=True):
+    """Many-to-many join table between EvalSet and TestCase."""
 
-    __tablename__ = "scenario_set_member"
+    __tablename__ = "eval_set_member"
 
-    scenario_set_id: uuid.UUID = Field(
-        foreign_key="scenario_set.id",
+    eval_set_id: uuid.UUID = Field(
+        foreign_key="eval_set.id",
         primary_key=True,
         index=True,
-        description="FK to the parent scenario set",
+        description="FK to the parent eval set",
     )
-    scenario_id: uuid.UUID = Field(
-        foreign_key="scenario.id",
+    test_case_id: uuid.UUID = Field(
+        foreign_key="test_case.id",
         primary_key=True,
-        description="FK to the linked scenario",
+        description="FK to the linked test case",
     )
     position: int = Field(
-        default=0, description="Sort order of the scenario within the set"
+        default=0, description="Sort order of the test case within the set"
     )
     repetitions: int = Field(
         default=1,
         ge=1,
-        description="How many times to execute this scenario within the set",
+        description="How many times to execute this test case within the set",
     )
 
     # Relationships
-    scenario_set: "ScenarioSet" = Relationship(back_populates="scenario_links")
-    scenario: "Scenario" = Relationship(back_populates="scenario_set_links")
+    eval_set: "EvalSet" = Relationship(back_populates="test_case_links")
+    test_case: "TestCase" = Relationship(back_populates="eval_set_links")
 
 
-class ScenarioSetMemberEntry(SQLModel):
-    """API payload for adding or replacing set members with per-scenario repetition counts."""
+class EvalSetMemberEntry(SQLModel):
+    """API payload for adding or replacing set members with per-test-case repetition counts."""
 
-    scenario_id: uuid.UUID = Field(description="Scenario to include in the set")
+    test_case_id: uuid.UUID = Field(description="Test case to include in the set")
     repetitions: int = Field(
         default=1,
         ge=1,
-        description="How many times to execute this scenario within one set pass",
+        description="How many times to execute this test case within one set pass",
     )
 
 
-class ScenarioSetMemberPublic(SQLModel):
-    """Public view of one scenario's membership in a set."""
+class EvalSetMemberPublic(SQLModel):
+    """Public view of one test case's membership in a set."""
 
-    scenario_id: uuid.UUID = Field(description="Linked scenario id")
+    test_case_id: uuid.UUID = Field(description="Linked test case id")
     position: int = Field(description="Order within the set")
     repetitions: int = Field(
-        ge=1, description="Executions per set pass for this scenario"
+        ge=1, description="Executions per set pass for this test case"
     )
 
 
-class ScenarioSetMembersPublic(SQLModel):
-    data: list[ScenarioSetMemberPublic] = Field(
+class EvalSetMembersPublic(SQLModel):
+    data: list[EvalSetMemberPublic] = Field(
         description="Set members with position and repetitions"
     )
     count: int = Field(description="Total members matching the query")
 
 
-class ScenarioSetBase(SQLModel):
+class EvalSetBase(SQLModel):
     name: str = Field(max_length=255, index=True, description="Human-readable set name")
     description: str | None = Field(
-        default=None, description="What this scenario set covers"
+        default=None, description="What this eval set covers"
     )
     version: int = Field(
         default=1,
@@ -84,8 +84,8 @@ class ScenarioSetBase(SQLModel):
     )
 
 
-class ScenarioSet(ScenarioSetBase, table=True):
-    __tablename__ = "scenario_set"
+class EvalSet(EvalSetBase, table=True):
+    __tablename__ = "eval_set"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     created_at: datetime = Field(
@@ -101,33 +101,33 @@ class ScenarioSet(ScenarioSetBase, table=True):
     )
 
     # Relationships
-    scenario_links: list[ScenarioSetMember] = Relationship(
-        back_populates="scenario_set",
+    test_case_links: list[EvalSetMember] = Relationship(
+        back_populates="eval_set",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
-    runs: list["Run"] = Relationship(back_populates="scenario_set")
+    runs: list["Run"] = Relationship(back_populates="eval_set")
 
 
-class ScenarioSetCreate(SQLModel):
+class EvalSetCreate(SQLModel):
     name: str = Field(max_length=255, description="Human-readable set name")
     description: str | None = Field(
-        default=None, description="What this scenario set covers"
+        default=None, description="What this eval set covers"
     )
     set_repetitions: int = Field(
         default=1,
         ge=1,
         description="How many times to repeat the entire set during a run",
     )
-    members: list[ScenarioSetMemberEntry] | None = Field(
+    members: list[EvalSetMemberEntry] | None = Field(
         default=None,
-        description="Initial members with per-scenario repetitions (omit or empty for no scenarios)",
+        description="Initial members with per-test-case repetitions (omit or empty for none)",
     )
 
 
-class ScenarioSetUpdate(SQLModel):
+class EvalSetUpdate(SQLModel):
     name: str | None = Field(default=None, description="Human-readable set name")
     description: str | None = Field(
-        default=None, description="What this scenario set covers"
+        default=None, description="What this eval set covers"
     )
     set_repetitions: int | None = Field(
         default=None,
@@ -136,10 +136,10 @@ class ScenarioSetUpdate(SQLModel):
     )
 
 
-class ScenarioSetPublic(ScenarioSetBase):
-    id: uuid.UUID = Field(description="Unique scenario set identifier")
-    scenario_count: int = 0
-    effective_scenario_count: int = Field(
+class EvalSetPublic(EvalSetBase):
+    id: uuid.UUID = Field(description="Unique eval set identifier")
+    test_case_count: int = 0
+    effective_test_case_count: int = Field(
         default=0,
         description="Sum(member.repetitions) * set_repetitions — total expanded executions",
     )
@@ -147,10 +147,10 @@ class ScenarioSetPublic(ScenarioSetBase):
     updated_at: datetime = Field(description="When the set was last updated")
 
 
-class ScenarioSetsPublic(SQLModel):
-    data: list[ScenarioSetPublic] = Field(description="List of scenario sets")
+class EvalSetsPublic(SQLModel):
+    data: list[EvalSetPublic] = Field(description="List of eval sets")
     count: int = Field(description="Total number of sets matching the query")
 
 
-class ScenarioSetMembersUpdate(SQLModel):
-    members: list[ScenarioSetMemberEntry]
+class EvalSetMembersUpdate(SQLModel):
+    members: list[EvalSetMemberEntry]

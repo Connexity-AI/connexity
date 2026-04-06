@@ -42,6 +42,33 @@ import type {
   CustomMetricsUpdateCustomMetricData,
   CustomMetricsUpdateCustomMetricErrors,
   CustomMetricsUpdateCustomMetricResponses,
+  EvalSetsAddTestCasesToSetData,
+  EvalSetsAddTestCasesToSetErrors,
+  EvalSetsAddTestCasesToSetResponses,
+  EvalSetsCreateEvalSetData,
+  EvalSetsCreateEvalSetErrors,
+  EvalSetsCreateEvalSetResponses,
+  EvalSetsDeleteEvalSetData,
+  EvalSetsDeleteEvalSetErrors,
+  EvalSetsDeleteEvalSetResponses,
+  EvalSetsGetEvalSetData,
+  EvalSetsGetEvalSetErrors,
+  EvalSetsGetEvalSetResponses,
+  EvalSetsListEvalSetsData,
+  EvalSetsListEvalSetsErrors,
+  EvalSetsListEvalSetsResponses,
+  EvalSetsListTestCasesInSetData,
+  EvalSetsListTestCasesInSetErrors,
+  EvalSetsListTestCasesInSetResponses,
+  EvalSetsRemoveTestCaseFromSetData,
+  EvalSetsRemoveTestCaseFromSetErrors,
+  EvalSetsRemoveTestCaseFromSetResponses,
+  EvalSetsReplaceTestCasesInSetData,
+  EvalSetsReplaceTestCasesInSetErrors,
+  EvalSetsReplaceTestCasesInSetResponses,
+  EvalSetsUpdateEvalSetData,
+  EvalSetsUpdateEvalSetErrors,
+  EvalSetsUpdateEvalSetResponses,
   HealthHealthData,
   HealthHealthResponses,
   LoginAuthGithubCallbackData,
@@ -101,72 +128,45 @@ import type {
   RunsUpdateRunData,
   RunsUpdateRunErrors,
   RunsUpdateRunResponses,
-  ScenarioResultsCreateScenarioResultData,
-  ScenarioResultsCreateScenarioResultErrors,
-  ScenarioResultsCreateScenarioResultResponses,
-  ScenarioResultsDeleteScenarioResultData,
-  ScenarioResultsDeleteScenarioResultErrors,
-  ScenarioResultsDeleteScenarioResultResponses,
-  ScenarioResultsGetScenarioResultData,
-  ScenarioResultsGetScenarioResultErrors,
-  ScenarioResultsGetScenarioResultResponses,
-  ScenarioResultsListScenarioResultsData,
-  ScenarioResultsListScenarioResultsErrors,
-  ScenarioResultsListScenarioResultsResponses,
-  ScenarioResultsUpdateScenarioResultData,
-  ScenarioResultsUpdateScenarioResultErrors,
-  ScenarioResultsUpdateScenarioResultResponses,
-  ScenariosCreateScenarioData,
-  ScenariosCreateScenarioErrors,
-  ScenariosCreateScenarioResponses,
-  ScenariosDeleteScenarioData,
-  ScenariosDeleteScenarioErrors,
-  ScenariosDeleteScenarioResponses,
-  ScenarioSetsAddScenariosToSetData,
-  ScenarioSetsAddScenariosToSetErrors,
-  ScenarioSetsAddScenariosToSetResponses,
-  ScenarioSetsCreateScenarioSetData,
-  ScenarioSetsCreateScenarioSetErrors,
-  ScenarioSetsCreateScenarioSetResponses,
-  ScenarioSetsDeleteScenarioSetData,
-  ScenarioSetsDeleteScenarioSetErrors,
-  ScenarioSetsDeleteScenarioSetResponses,
-  ScenarioSetsGetScenarioSetData,
-  ScenarioSetsGetScenarioSetErrors,
-  ScenarioSetsGetScenarioSetResponses,
-  ScenarioSetsListScenarioSetsData,
-  ScenarioSetsListScenarioSetsErrors,
-  ScenarioSetsListScenarioSetsResponses,
-  ScenarioSetsListScenariosInSetData,
-  ScenarioSetsListScenariosInSetErrors,
-  ScenarioSetsListScenariosInSetResponses,
-  ScenarioSetsRemoveScenarioFromSetData,
-  ScenarioSetsRemoveScenarioFromSetErrors,
-  ScenarioSetsRemoveScenarioFromSetResponses,
-  ScenarioSetsReplaceScenariosInSetData,
-  ScenarioSetsReplaceScenariosInSetErrors,
-  ScenarioSetsReplaceScenariosInSetResponses,
-  ScenarioSetsUpdateScenarioSetData,
-  ScenarioSetsUpdateScenarioSetErrors,
-  ScenarioSetsUpdateScenarioSetResponses,
-  ScenariosExportScenariosData,
-  ScenariosExportScenariosErrors,
-  ScenariosExportScenariosResponses,
-  ScenariosGenerateScenariosEndpointData,
-  ScenariosGenerateScenariosEndpointErrors,
-  ScenariosGenerateScenariosEndpointResponses,
-  ScenariosGetScenarioData,
-  ScenariosGetScenarioErrors,
-  ScenariosGetScenarioResponses,
-  ScenariosImportScenariosData,
-  ScenariosImportScenariosErrors,
-  ScenariosImportScenariosResponses,
-  ScenariosListScenariosData,
-  ScenariosListScenariosErrors,
-  ScenariosListScenariosResponses,
-  ScenariosUpdateScenarioData,
-  ScenariosUpdateScenarioErrors,
-  ScenariosUpdateScenarioResponses,
+  TestCaseResultsCreateTestCaseResultData,
+  TestCaseResultsCreateTestCaseResultErrors,
+  TestCaseResultsCreateTestCaseResultResponses,
+  TestCaseResultsDeleteTestCaseResultData,
+  TestCaseResultsDeleteTestCaseResultErrors,
+  TestCaseResultsDeleteTestCaseResultResponses,
+  TestCaseResultsGetTestCaseResultData,
+  TestCaseResultsGetTestCaseResultErrors,
+  TestCaseResultsGetTestCaseResultResponses,
+  TestCaseResultsListTestCaseResultsData,
+  TestCaseResultsListTestCaseResultsErrors,
+  TestCaseResultsListTestCaseResultsResponses,
+  TestCaseResultsUpdateTestCaseResultData,
+  TestCaseResultsUpdateTestCaseResultErrors,
+  TestCaseResultsUpdateTestCaseResultResponses,
+  TestCasesCreateTestCaseData,
+  TestCasesCreateTestCaseErrors,
+  TestCasesCreateTestCaseResponses,
+  TestCasesDeleteTestCaseData,
+  TestCasesDeleteTestCaseErrors,
+  TestCasesDeleteTestCaseResponses,
+  TestCasesExportTestCasesData,
+  TestCasesExportTestCasesErrors,
+  TestCasesExportTestCasesResponses,
+  TestCasesGenerateTestCasesEndpointData,
+  TestCasesGenerateTestCasesEndpointErrors,
+  TestCasesGenerateTestCasesEndpointResponses,
+  TestCasesGetTestCaseData,
+  TestCasesGetTestCaseErrors,
+  TestCasesGetTestCaseResponses,
+  TestCasesImportTestCasesData,
+  TestCasesImportTestCasesErrors,
+  TestCasesImportTestCasesResponses,
+  TestCasesListTestCasesData,
+  TestCasesListTestCasesErrors,
+  TestCasesListTestCasesResponses,
+  TestCasesUpdateTestCaseData,
+  TestCasesUpdateTestCaseErrors,
+  TestCasesUpdateTestCaseResponses,
   UsersDeleteUserMeData,
   UsersDeleteUserMeErrors,
   UsersDeleteUserMeResponses,
@@ -650,16 +650,16 @@ export class AgentsService {
   }
 }
 
-export class ScenariosService {
+export class TestCasesService {
   /**
-   * List Scenarios
+   * List Test Cases
    */
-  public static listScenarios<ThrowOnError extends boolean = false>(
-    options?: Options<ScenariosListScenariosData, ThrowOnError>
+  public static testCasesListTestCases<ThrowOnError extends boolean = false>(
+    options?: Options<TestCasesListTestCasesData, ThrowOnError>
   ) {
     return (options?.client ?? client).get<
-      ScenariosListScenariosResponses,
-      ScenariosListScenariosErrors,
+      TestCasesListTestCasesResponses,
+      TestCasesListTestCasesErrors,
       ThrowOnError
     >({
       security: [
@@ -670,20 +670,20 @@ export class ScenariosService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenarios/',
+      url: '/api/v1/test-cases/',
       ...options,
     });
   }
 
   /**
-   * Create Scenario
+   * Create Test Case
    */
-  public static createScenario<ThrowOnError extends boolean = false>(
-    options: Options<ScenariosCreateScenarioData, ThrowOnError>
+  public static testCasesCreateTestCase<ThrowOnError extends boolean = false>(
+    options: Options<TestCasesCreateTestCaseData, ThrowOnError>
   ) {
     return (options.client ?? client).post<
-      ScenariosCreateScenarioResponses,
-      ScenariosCreateScenarioErrors,
+      TestCasesCreateTestCaseResponses,
+      TestCasesCreateTestCaseErrors,
       ThrowOnError
     >({
       security: [
@@ -694,7 +694,7 @@ export class ScenariosService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenarios/',
+      url: '/api/v1/test-cases/',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -704,14 +704,14 @@ export class ScenariosService {
   }
 
   /**
-   * Export Scenarios
+   * Export Test Cases
    */
-  public static exportScenarios<ThrowOnError extends boolean = false>(
-    options?: Options<ScenariosExportScenariosData, ThrowOnError>
+  public static testCasesExportTestCases<ThrowOnError extends boolean = false>(
+    options?: Options<TestCasesExportTestCasesData, ThrowOnError>
   ) {
     return (options?.client ?? client).get<
-      ScenariosExportScenariosResponses,
-      ScenariosExportScenariosErrors,
+      TestCasesExportTestCasesResponses,
+      TestCasesExportTestCasesErrors,
       ThrowOnError
     >({
       security: [
@@ -722,20 +722,20 @@ export class ScenariosService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenarios/export',
+      url: '/api/v1/test-cases/export',
       ...options,
     });
   }
 
   /**
-   * Import Scenarios
+   * Import Test Cases
    */
-  public static importScenarios<ThrowOnError extends boolean = false>(
-    options: Options<ScenariosImportScenariosData, ThrowOnError>
+  public static testCasesImportTestCases<ThrowOnError extends boolean = false>(
+    options: Options<TestCasesImportTestCasesData, ThrowOnError>
   ) {
     return (options.client ?? client).post<
-      ScenariosImportScenariosResponses,
-      ScenariosImportScenariosErrors,
+      TestCasesImportTestCasesResponses,
+      TestCasesImportTestCasesErrors,
       ThrowOnError
     >({
       security: [
@@ -746,7 +746,7 @@ export class ScenariosService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenarios/import',
+      url: '/api/v1/test-cases/import',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -756,14 +756,14 @@ export class ScenariosService {
   }
 
   /**
-   * Generate Scenarios Endpoint
+   * Generate Test Cases Endpoint
    */
-  public static generateScenariosEndpoint<ThrowOnError extends boolean = false>(
-    options: Options<ScenariosGenerateScenariosEndpointData, ThrowOnError>
+  public static testCasesGenerateTestCasesEndpoint<ThrowOnError extends boolean = false>(
+    options: Options<TestCasesGenerateTestCasesEndpointData, ThrowOnError>
   ) {
     return (options.client ?? client).post<
-      ScenariosGenerateScenariosEndpointResponses,
-      ScenariosGenerateScenariosEndpointErrors,
+      TestCasesGenerateTestCasesEndpointResponses,
+      TestCasesGenerateTestCasesEndpointErrors,
       ThrowOnError
     >({
       security: [
@@ -774,7 +774,7 @@ export class ScenariosService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenarios/generate',
+      url: '/api/v1/test-cases/generate',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -784,14 +784,14 @@ export class ScenariosService {
   }
 
   /**
-   * Delete Scenario
+   * Delete Test Case
    */
-  public static deleteScenario<ThrowOnError extends boolean = false>(
-    options: Options<ScenariosDeleteScenarioData, ThrowOnError>
+  public static testCasesDeleteTestCase<ThrowOnError extends boolean = false>(
+    options: Options<TestCasesDeleteTestCaseData, ThrowOnError>
   ) {
     return (options.client ?? client).delete<
-      ScenariosDeleteScenarioResponses,
-      ScenariosDeleteScenarioErrors,
+      TestCasesDeleteTestCaseResponses,
+      TestCasesDeleteTestCaseErrors,
       ThrowOnError
     >({
       security: [
@@ -802,20 +802,20 @@ export class ScenariosService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenarios/{scenario_id}',
+      url: '/api/v1/test-cases/{test_case_id}',
       ...options,
     });
   }
 
   /**
-   * Get Scenario
+   * Get Test Case
    */
-  public static getScenario<ThrowOnError extends boolean = false>(
-    options: Options<ScenariosGetScenarioData, ThrowOnError>
+  public static testCasesGetTestCase<ThrowOnError extends boolean = false>(
+    options: Options<TestCasesGetTestCaseData, ThrowOnError>
   ) {
     return (options.client ?? client).get<
-      ScenariosGetScenarioResponses,
-      ScenariosGetScenarioErrors,
+      TestCasesGetTestCaseResponses,
+      TestCasesGetTestCaseErrors,
       ThrowOnError
     >({
       security: [
@@ -826,20 +826,20 @@ export class ScenariosService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenarios/{scenario_id}',
+      url: '/api/v1/test-cases/{test_case_id}',
       ...options,
     });
   }
 
   /**
-   * Update Scenario
+   * Update Test Case
    */
-  public static updateScenario<ThrowOnError extends boolean = false>(
-    options: Options<ScenariosUpdateScenarioData, ThrowOnError>
+  public static testCasesUpdateTestCase<ThrowOnError extends boolean = false>(
+    options: Options<TestCasesUpdateTestCaseData, ThrowOnError>
   ) {
     return (options.client ?? client).patch<
-      ScenariosUpdateScenarioResponses,
-      ScenariosUpdateScenarioErrors,
+      TestCasesUpdateTestCaseResponses,
+      TestCasesUpdateTestCaseErrors,
       ThrowOnError
     >({
       security: [
@@ -850,7 +850,7 @@ export class ScenariosService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenarios/{scenario_id}',
+      url: '/api/v1/test-cases/{test_case_id}',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -1020,16 +1020,16 @@ export class CustomMetricsService {
   }
 }
 
-export class ScenarioSetsService {
+export class EvalSetsService {
   /**
-   * List Scenario Sets
+   * List Eval Sets
    */
-  public static scenarioSetsListScenarioSets<ThrowOnError extends boolean = false>(
-    options?: Options<ScenarioSetsListScenarioSetsData, ThrowOnError>
+  public static evalSetsListEvalSets<ThrowOnError extends boolean = false>(
+    options?: Options<EvalSetsListEvalSetsData, ThrowOnError>
   ) {
     return (options?.client ?? client).get<
-      ScenarioSetsListScenarioSetsResponses,
-      ScenarioSetsListScenarioSetsErrors,
+      EvalSetsListEvalSetsResponses,
+      EvalSetsListEvalSetsErrors,
       ThrowOnError
     >({
       security: [
@@ -1040,20 +1040,20 @@ export class ScenarioSetsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenario-sets/',
+      url: '/api/v1/eval-sets/',
       ...options,
     });
   }
 
   /**
-   * Create Scenario Set
+   * Create Eval Set
    */
-  public static scenarioSetsCreateScenarioSet<ThrowOnError extends boolean = false>(
-    options: Options<ScenarioSetsCreateScenarioSetData, ThrowOnError>
+  public static evalSetsCreateEvalSet<ThrowOnError extends boolean = false>(
+    options: Options<EvalSetsCreateEvalSetData, ThrowOnError>
   ) {
     return (options.client ?? client).post<
-      ScenarioSetsCreateScenarioSetResponses,
-      ScenarioSetsCreateScenarioSetErrors,
+      EvalSetsCreateEvalSetResponses,
+      EvalSetsCreateEvalSetErrors,
       ThrowOnError
     >({
       security: [
@@ -1064,7 +1064,7 @@ export class ScenarioSetsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenario-sets/',
+      url: '/api/v1/eval-sets/',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -1074,14 +1074,14 @@ export class ScenarioSetsService {
   }
 
   /**
-   * Delete Scenario Set
+   * Delete Eval Set
    */
-  public static scenarioSetsDeleteScenarioSet<ThrowOnError extends boolean = false>(
-    options: Options<ScenarioSetsDeleteScenarioSetData, ThrowOnError>
+  public static evalSetsDeleteEvalSet<ThrowOnError extends boolean = false>(
+    options: Options<EvalSetsDeleteEvalSetData, ThrowOnError>
   ) {
     return (options.client ?? client).delete<
-      ScenarioSetsDeleteScenarioSetResponses,
-      ScenarioSetsDeleteScenarioSetErrors,
+      EvalSetsDeleteEvalSetResponses,
+      EvalSetsDeleteEvalSetErrors,
       ThrowOnError
     >({
       security: [
@@ -1092,20 +1092,20 @@ export class ScenarioSetsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenario-sets/{scenario_set_id}',
+      url: '/api/v1/eval-sets/{eval_set_id}',
       ...options,
     });
   }
 
   /**
-   * Get Scenario Set
+   * Get Eval Set
    */
-  public static scenarioSetsGetScenarioSet<ThrowOnError extends boolean = false>(
-    options: Options<ScenarioSetsGetScenarioSetData, ThrowOnError>
+  public static evalSetsGetEvalSet<ThrowOnError extends boolean = false>(
+    options: Options<EvalSetsGetEvalSetData, ThrowOnError>
   ) {
     return (options.client ?? client).get<
-      ScenarioSetsGetScenarioSetResponses,
-      ScenarioSetsGetScenarioSetErrors,
+      EvalSetsGetEvalSetResponses,
+      EvalSetsGetEvalSetErrors,
       ThrowOnError
     >({
       security: [
@@ -1116,20 +1116,20 @@ export class ScenarioSetsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenario-sets/{scenario_set_id}',
+      url: '/api/v1/eval-sets/{eval_set_id}',
       ...options,
     });
   }
 
   /**
-   * Update Scenario Set
+   * Update Eval Set
    */
-  public static scenarioSetsUpdateScenarioSet<ThrowOnError extends boolean = false>(
-    options: Options<ScenarioSetsUpdateScenarioSetData, ThrowOnError>
+  public static evalSetsUpdateEvalSet<ThrowOnError extends boolean = false>(
+    options: Options<EvalSetsUpdateEvalSetData, ThrowOnError>
   ) {
     return (options.client ?? client).patch<
-      ScenarioSetsUpdateScenarioSetResponses,
-      ScenarioSetsUpdateScenarioSetErrors,
+      EvalSetsUpdateEvalSetResponses,
+      EvalSetsUpdateEvalSetErrors,
       ThrowOnError
     >({
       security: [
@@ -1140,7 +1140,7 @@ export class ScenarioSetsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenario-sets/{scenario_set_id}',
+      url: '/api/v1/eval-sets/{eval_set_id}',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -1150,14 +1150,14 @@ export class ScenarioSetsService {
   }
 
   /**
-   * List Scenarios In Set
+   * List Test Cases In Set
    */
-  public static scenarioSetsListScenariosInSet<ThrowOnError extends boolean = false>(
-    options: Options<ScenarioSetsListScenariosInSetData, ThrowOnError>
+  public static evalSetsListTestCasesInSet<ThrowOnError extends boolean = false>(
+    options: Options<EvalSetsListTestCasesInSetData, ThrowOnError>
   ) {
     return (options.client ?? client).get<
-      ScenarioSetsListScenariosInSetResponses,
-      ScenarioSetsListScenariosInSetErrors,
+      EvalSetsListTestCasesInSetResponses,
+      EvalSetsListTestCasesInSetErrors,
       ThrowOnError
     >({
       security: [
@@ -1168,20 +1168,20 @@ export class ScenarioSetsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenario-sets/{scenario_set_id}/scenarios',
+      url: '/api/v1/eval-sets/{eval_set_id}/test-cases',
       ...options,
     });
   }
 
   /**
-   * Add Scenarios To Set
+   * Add Test Cases To Set
    */
-  public static scenarioSetsAddScenariosToSet<ThrowOnError extends boolean = false>(
-    options: Options<ScenarioSetsAddScenariosToSetData, ThrowOnError>
+  public static evalSetsAddTestCasesToSet<ThrowOnError extends boolean = false>(
+    options: Options<EvalSetsAddTestCasesToSetData, ThrowOnError>
   ) {
     return (options.client ?? client).post<
-      ScenarioSetsAddScenariosToSetResponses,
-      ScenarioSetsAddScenariosToSetErrors,
+      EvalSetsAddTestCasesToSetResponses,
+      EvalSetsAddTestCasesToSetErrors,
       ThrowOnError
     >({
       security: [
@@ -1192,7 +1192,7 @@ export class ScenarioSetsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenario-sets/{scenario_set_id}/scenarios',
+      url: '/api/v1/eval-sets/{eval_set_id}/test-cases',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -1202,14 +1202,14 @@ export class ScenarioSetsService {
   }
 
   /**
-   * Replace Scenarios In Set
+   * Replace Test Cases In Set
    */
-  public static scenarioSetsReplaceScenariosInSet<ThrowOnError extends boolean = false>(
-    options: Options<ScenarioSetsReplaceScenariosInSetData, ThrowOnError>
+  public static evalSetsReplaceTestCasesInSet<ThrowOnError extends boolean = false>(
+    options: Options<EvalSetsReplaceTestCasesInSetData, ThrowOnError>
   ) {
     return (options.client ?? client).put<
-      ScenarioSetsReplaceScenariosInSetResponses,
-      ScenarioSetsReplaceScenariosInSetErrors,
+      EvalSetsReplaceTestCasesInSetResponses,
+      EvalSetsReplaceTestCasesInSetErrors,
       ThrowOnError
     >({
       security: [
@@ -1220,7 +1220,7 @@ export class ScenarioSetsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenario-sets/{scenario_set_id}/scenarios',
+      url: '/api/v1/eval-sets/{eval_set_id}/test-cases',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -1230,14 +1230,14 @@ export class ScenarioSetsService {
   }
 
   /**
-   * Remove Scenario From Set
+   * Remove Test Case From Set
    */
-  public static scenarioSetsRemoveScenarioFromSet<ThrowOnError extends boolean = false>(
-    options: Options<ScenarioSetsRemoveScenarioFromSetData, ThrowOnError>
+  public static evalSetsRemoveTestCaseFromSet<ThrowOnError extends boolean = false>(
+    options: Options<EvalSetsRemoveTestCaseFromSetData, ThrowOnError>
   ) {
     return (options.client ?? client).delete<
-      ScenarioSetsRemoveScenarioFromSetResponses,
-      ScenarioSetsRemoveScenarioFromSetErrors,
+      EvalSetsRemoveTestCaseFromSetResponses,
+      EvalSetsRemoveTestCaseFromSetErrors,
       ThrowOnError
     >({
       security: [
@@ -1248,7 +1248,7 @@ export class ScenarioSetsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenario-sets/{scenario_set_id}/scenarios/{scenario_id}',
+      url: '/api/v1/eval-sets/{eval_set_id}/test-cases/{test_case_id}',
       ...options,
     });
   }
@@ -1365,7 +1365,7 @@ export class RunsService {
   /**
    * Get Baseline Run
    *
-   * Resolve the current baseline run for an (agent, scenario_set) pair.
+   * Resolve the current baseline run for an (agent, eval_set) pair.
    */
   public static getBaselineRun<ThrowOnError extends boolean = false>(
     options: Options<RunsGetBaselineRunData, ThrowOnError>
@@ -1535,16 +1535,16 @@ export class RunsService {
   }
 }
 
-export class ScenarioResultsService {
+export class TestCaseResultsService {
   /**
-   * List Scenario Results
+   * List Test Case Results
    */
-  public static scenarioResultsListScenarioResults<ThrowOnError extends boolean = false>(
-    options?: Options<ScenarioResultsListScenarioResultsData, ThrowOnError>
+  public static testCaseResultsListTestCaseResults<ThrowOnError extends boolean = false>(
+    options?: Options<TestCaseResultsListTestCaseResultsData, ThrowOnError>
   ) {
     return (options?.client ?? client).get<
-      ScenarioResultsListScenarioResultsResponses,
-      ScenarioResultsListScenarioResultsErrors,
+      TestCaseResultsListTestCaseResultsResponses,
+      TestCaseResultsListTestCaseResultsErrors,
       ThrowOnError
     >({
       security: [
@@ -1555,20 +1555,20 @@ export class ScenarioResultsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenario-results/',
+      url: '/api/v1/test-case-results/',
       ...options,
     });
   }
 
   /**
-   * Create Scenario Result
+   * Create Test Case Result
    */
-  public static scenarioResultsCreateScenarioResult<ThrowOnError extends boolean = false>(
-    options: Options<ScenarioResultsCreateScenarioResultData, ThrowOnError>
+  public static testCaseResultsCreateTestCaseResult<ThrowOnError extends boolean = false>(
+    options: Options<TestCaseResultsCreateTestCaseResultData, ThrowOnError>
   ) {
     return (options.client ?? client).post<
-      ScenarioResultsCreateScenarioResultResponses,
-      ScenarioResultsCreateScenarioResultErrors,
+      TestCaseResultsCreateTestCaseResultResponses,
+      TestCaseResultsCreateTestCaseResultErrors,
       ThrowOnError
     >({
       security: [
@@ -1579,7 +1579,7 @@ export class ScenarioResultsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenario-results/',
+      url: '/api/v1/test-case-results/',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -1589,14 +1589,14 @@ export class ScenarioResultsService {
   }
 
   /**
-   * Delete Scenario Result
+   * Delete Test Case Result
    */
-  public static scenarioResultsDeleteScenarioResult<ThrowOnError extends boolean = false>(
-    options: Options<ScenarioResultsDeleteScenarioResultData, ThrowOnError>
+  public static testCaseResultsDeleteTestCaseResult<ThrowOnError extends boolean = false>(
+    options: Options<TestCaseResultsDeleteTestCaseResultData, ThrowOnError>
   ) {
     return (options.client ?? client).delete<
-      ScenarioResultsDeleteScenarioResultResponses,
-      ScenarioResultsDeleteScenarioResultErrors,
+      TestCaseResultsDeleteTestCaseResultResponses,
+      TestCaseResultsDeleteTestCaseResultErrors,
       ThrowOnError
     >({
       security: [
@@ -1607,20 +1607,20 @@ export class ScenarioResultsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenario-results/{result_id}',
+      url: '/api/v1/test-case-results/{result_id}',
       ...options,
     });
   }
 
   /**
-   * Get Scenario Result
+   * Get Test Case Result
    */
-  public static scenarioResultsGetScenarioResult<ThrowOnError extends boolean = false>(
-    options: Options<ScenarioResultsGetScenarioResultData, ThrowOnError>
+  public static testCaseResultsGetTestCaseResult<ThrowOnError extends boolean = false>(
+    options: Options<TestCaseResultsGetTestCaseResultData, ThrowOnError>
   ) {
     return (options.client ?? client).get<
-      ScenarioResultsGetScenarioResultResponses,
-      ScenarioResultsGetScenarioResultErrors,
+      TestCaseResultsGetTestCaseResultResponses,
+      TestCaseResultsGetTestCaseResultErrors,
       ThrowOnError
     >({
       security: [
@@ -1631,20 +1631,20 @@ export class ScenarioResultsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenario-results/{result_id}',
+      url: '/api/v1/test-case-results/{result_id}',
       ...options,
     });
   }
 
   /**
-   * Update Scenario Result
+   * Update Test Case Result
    */
-  public static scenarioResultsUpdateScenarioResult<ThrowOnError extends boolean = false>(
-    options: Options<ScenarioResultsUpdateScenarioResultData, ThrowOnError>
+  public static testCaseResultsUpdateTestCaseResult<ThrowOnError extends boolean = false>(
+    options: Options<TestCaseResultsUpdateTestCaseResultData, ThrowOnError>
   ) {
     return (options.client ?? client).patch<
-      ScenarioResultsUpdateScenarioResultResponses,
-      ScenarioResultsUpdateScenarioResultErrors,
+      TestCaseResultsUpdateTestCaseResultResponses,
+      TestCaseResultsUpdateTestCaseResultErrors,
       ThrowOnError
     >({
       security: [
@@ -1655,7 +1655,7 @@ export class ScenarioResultsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/scenario-results/{result_id}',
+      url: '/api/v1/test-case-results/{result_id}',
       ...options,
       headers: {
         'Content-Type': 'application/json',

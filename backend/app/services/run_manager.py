@@ -14,7 +14,7 @@ class RunEvent(BaseModel):
 
 
 class RunProgress(BaseModel):
-    total_scenarios: int = 0
+    total_test_cases: int = 0
     completed_count: int = 0
     passed_count: int = 0
     failed_count: int = 0

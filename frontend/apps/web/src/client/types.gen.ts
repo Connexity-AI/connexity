@@ -321,33 +321,33 @@ export type AggregateComparison = {
  */
 export type AggregateMetrics = {
   /**
-   * Total Scenarios
+   * Unique Test Case Count
    *
-   * Number of unique scenarios represented in run results
+   * Number of unique test cases represented in run results
    */
-  total_scenarios: number;
+  unique_test_case_count: number;
   /**
    * Total Executions
    *
-   * Total number of scenario executions (result rows) in the run
+   * Total number of test case executions (result rows) in the run
    */
   total_executions: number;
   /**
    * Passed Count
    *
-   * Number of scenarios that passed
+   * Number of test cases that passed
    */
   passed_count: number;
   /**
    * Failed Count
    *
-   * Number of scenarios that failed
+   * Number of test cases that failed
    */
   failed_count: number;
   /**
    * Error Count
    *
-   * Number of scenarios that errored during execution
+   * Number of test cases that errored during execution
    */
   error_count: number;
   /**
@@ -359,7 +359,7 @@ export type AggregateMetrics = {
   /**
    * Latency P50 Ms
    *
-   * Median agent latency across scenarios
+   * Median agent latency across test cases
    */
   latency_p50_ms?: number | null;
   /**
@@ -371,19 +371,19 @@ export type AggregateMetrics = {
   /**
    * Latency Max Ms
    *
-   * Maximum agent latency across scenarios
+   * Maximum agent latency across test cases
    */
   latency_max_ms?: number | null;
   /**
    * Latency Avg Ms
    *
-   * Mean agent latency across scenarios
+   * Mean agent latency across test cases
    */
   latency_avg_ms?: number | null;
   /**
    * Total Agent Token Usage
    *
-   * Summed token usage from the agent across all scenarios
+   * Summed token usage from the agent across all test cases
    */
   total_agent_token_usage?: {
     [key: string]: number | boolean;
@@ -417,7 +417,7 @@ export type AggregateMetrics = {
   /**
    * Avg Overall Score
    *
-   * Mean judge overall score across all scenarios
+   * Mean judge overall score across all test cases
    */
   avg_overall_score?: number | null;
 };
@@ -795,6 +795,236 @@ export type ErrorResponse = {
 };
 
 /**
+ * EvalSetCreate
+ */
+export type EvalSetCreate = {
+  /**
+   * Name
+   *
+   * Human-readable set name
+   */
+  name: string;
+  /**
+   * Description
+   *
+   * What this eval set covers
+   */
+  description?: string | null;
+  /**
+   * Set Repetitions
+   *
+   * How many times to repeat the entire set during a run
+   */
+  set_repetitions?: number;
+  /**
+   * Members
+   *
+   * Initial members with per-test-case repetitions (omit or empty for none)
+   */
+  members?: Array<EvalSetMemberEntry> | null;
+};
+
+/**
+ * EvalSetDiff
+ */
+export type EvalSetDiff = {
+  /**
+   * Same Set
+   */
+  same_set: boolean;
+  /**
+   * Version Changed
+   */
+  version_changed: boolean;
+  /**
+   * Added Test Case Ids
+   */
+  added_test_case_ids?: Array<string>;
+  /**
+   * Removed Test Case Ids
+   */
+  removed_test_case_ids?: Array<string>;
+  /**
+   * Common Test Case Ids
+   */
+  common_test_case_ids?: Array<string>;
+};
+
+/**
+ * EvalSetMemberEntry
+ *
+ * API payload for adding or replacing set members with per-test-case repetition counts.
+ */
+export type EvalSetMemberEntry = {
+  /**
+   * Test Case Id
+   *
+   * Test case to include in the set
+   */
+  test_case_id: string;
+  /**
+   * Repetitions
+   *
+   * How many times to execute this test case within one set pass
+   */
+  repetitions?: number;
+};
+
+/**
+ * EvalSetMemberPublic
+ *
+ * Public view of one test case's membership in a set.
+ */
+export type EvalSetMemberPublic = {
+  /**
+   * Test Case Id
+   *
+   * Linked test case id
+   */
+  test_case_id: string;
+  /**
+   * Position
+   *
+   * Order within the set
+   */
+  position: number;
+  /**
+   * Repetitions
+   *
+   * Executions per set pass for this test case
+   */
+  repetitions: number;
+};
+
+/**
+ * EvalSetMembersPublic
+ */
+export type EvalSetMembersPublic = {
+  /**
+   * Data
+   *
+   * Set members with position and repetitions
+   */
+  data: Array<EvalSetMemberPublic>;
+  /**
+   * Count
+   *
+   * Total members matching the query
+   */
+  count: number;
+};
+
+/**
+ * EvalSetMembersUpdate
+ */
+export type EvalSetMembersUpdate = {
+  /**
+   * Members
+   */
+  members: Array<EvalSetMemberEntry>;
+};
+
+/**
+ * EvalSetPublic
+ */
+export type EvalSetPublic = {
+  /**
+   * Name
+   *
+   * Human-readable set name
+   */
+  name: string;
+  /**
+   * Description
+   *
+   * What this eval set covers
+   */
+  description?: string | null;
+  /**
+   * Version
+   *
+   * Monotonically increasing version for snapshot tracking
+   */
+  version?: number;
+  /**
+   * Set Repetitions
+   *
+   * How many times to repeat the entire set during a run
+   */
+  set_repetitions?: number;
+  /**
+   * Id
+   *
+   * Unique eval set identifier
+   */
+  id: string;
+  /**
+   * Test Case Count
+   */
+  test_case_count?: number;
+  /**
+   * Effective Test Case Count
+   *
+   * Sum(member.repetitions) * set_repetitions — total expanded executions
+   */
+  effective_test_case_count?: number;
+  /**
+   * Created At
+   *
+   * When the set was created
+   */
+  created_at: string;
+  /**
+   * Updated At
+   *
+   * When the set was last updated
+   */
+  updated_at: string;
+};
+
+/**
+ * EvalSetUpdate
+ */
+export type EvalSetUpdate = {
+  /**
+   * Name
+   *
+   * Human-readable set name
+   */
+  name?: string | null;
+  /**
+   * Description
+   *
+   * What this eval set covers
+   */
+  description?: string | null;
+  /**
+   * Set Repetitions
+   *
+   * How many times to repeat the entire set during a run
+   */
+  set_repetitions?: number | null;
+};
+
+/**
+ * EvalSetsPublic
+ */
+export type EvalSetsPublic = {
+  /**
+   * Data
+   *
+   * List of eval sets
+   */
+  data: Array<EvalSetPublic>;
+  /**
+   * Count
+   *
+   * Total number of sets matching the query
+   */
+  count: number;
+};
+
+/**
  * ExpectedToolCall
  */
 export type ExpectedToolCall = {
@@ -859,7 +1089,7 @@ export type FieldChange = {
 /**
  * GenerateRequest
  *
- * Input for scenario generation.
+ * Input for test case generation.
  */
 export type GenerateRequest = {
   /**
@@ -893,7 +1123,7 @@ export type GenerateRequest = {
   /**
    * Agent Id
    *
-   * When persist=true, bind created scenarios to this agent
+   * When persist=true, bind created test cases to this agent
    */
   agent_id?: string | null;
 };
@@ -901,13 +1131,13 @@ export type GenerateRequest = {
 /**
  * GenerateResult
  *
- * Output from scenario generation.
+ * Output from test case generation.
  */
 export type GenerateResult = {
   /**
-   * Scenarios
+   * Test Cases
    */
-  scenarios: Array<ScenarioPublic>;
+  test_cases: Array<TestCasePublic>;
   /**
    * Count
    */
@@ -929,7 +1159,7 @@ export type ImprovementSuggestion = {
   /**
    * Target
    */
-  target: 'system_prompt' | 'tool_definition' | 'model_selection' | 'scenario_design' | 'other';
+  target: 'system_prompt' | 'tool_definition' | 'model_selection' | 'test_case_design' | 'other';
   /**
    * Title
    */
@@ -1017,7 +1247,7 @@ export type JudgeVerdict = {
   /**
    * Passed
    *
-   * Whether the scenario passed overall
+   * Whether the test case passed overall
    */
   passed: boolean;
   /**
@@ -1546,17 +1776,17 @@ export type RunComparison = {
   candidate_run_name?: string | null;
   aggregate: AggregateComparison;
   /**
-   * Scenario Comparisons
+   * Test Case Comparisons
    */
-  scenario_comparisons: Array<ScenarioComparison>;
+  test_case_comparisons: Array<TestCaseComparison>;
   /**
-   * Baseline Only Scenarios
+   * Baseline Only Test Cases
    */
-  baseline_only_scenarios: Array<string>;
+  baseline_only_test_cases: Array<string>;
   /**
-   * Candidate Only Scenarios
+   * Candidate Only Test Cases
    */
-  candidate_only_scenarios: Array<string>;
+  candidate_only_test_cases: Array<string>;
   config_diff: RunConfigDiff;
   verdict: RegressionVerdict;
   /**
@@ -1573,15 +1803,15 @@ export type RunConfigInput = {
   /**
    * Concurrency
    *
-   * Max parallel scenario executions
+   * Max parallel test case executions
    */
   concurrency?: number;
   /**
-   * Timeout Per Scenario Ms
+   * Timeout Per Test Case Ms
    *
-   * Timeout per scenario in milliseconds before forced stop
+   * Timeout per test case in milliseconds before forced stop
    */
-  timeout_per_scenario_ms?: number;
+  timeout_per_test_case_ms?: number;
   /**
    * Judge metric selection, weights, pass threshold, and model overrides
    */
@@ -1603,15 +1833,15 @@ export type RunConfigOutput = {
   /**
    * Concurrency
    *
-   * Max parallel scenario executions
+   * Max parallel test case executions
    */
   concurrency?: number;
   /**
-   * Timeout Per Scenario Ms
+   * Timeout Per Test Case Ms
    *
-   * Timeout per scenario in milliseconds before forced stop
+   * Timeout per test case in milliseconds before forced stop
    */
-  timeout_per_scenario_ms?: number;
+  timeout_per_test_case_ms?: number;
   /**
    * Judge metric selection, weights, pass threshold, and model overrides
    */
@@ -1642,7 +1872,7 @@ export type RunConfigDiff = {
    * Config Changes
    */
   config_changes?: Array<FieldChange>;
-  scenario_set_diff: ScenarioSetDiff;
+  eval_set_diff: EvalSetDiff;
 };
 
 /**
@@ -1714,17 +1944,17 @@ export type RunCreate = {
    */
   tools_snapshot_hash?: string | null;
   /**
-   * Scenario Set Id
+   * Eval Set Id
    *
-   * FK to the scenario set to execute
+   * FK to the eval set to execute
    */
-  scenario_set_id: string;
+  eval_set_id: string;
   /**
-   * Scenario Set Version
+   * Eval Set Version
    *
-   * Version of the scenario set at run time
+   * Version of the eval set at run time
    */
-  scenario_set_version?: number;
+  eval_set_version?: number;
   /**
    * Run configuration (judge model, concurrency, timeouts, etc.)
    */
@@ -1796,17 +2026,17 @@ export type RunPublic = {
    */
   agent_provider?: string | null;
   /**
-   * Scenario Set Id
+   * Eval Set Id
    *
-   * FK to the scenario set executed in this run
+   * FK to the eval set executed in this run
    */
-  scenario_set_id: string;
+  eval_set_id: string;
   /**
-   * Scenario Set Version
+   * Eval Set Version
    *
-   * Version of the scenario set at run time
+   * Version of the eval set at run time
    */
-  scenario_set_version: number;
+  eval_set_version: number;
   /**
    * Run configuration (judge model, concurrency, timeouts, etc.)
    */
@@ -1924,17 +2154,51 @@ export type RunsPublic = {
 };
 
 /**
- * ScenarioComparison
+ * ScoreType
  */
-export type ScenarioComparison = {
+export const ScoreType = { SCORED: 'scored', BINARY: 'binary' } as const;
+
+/**
+ * ScoreType
+ */
+export type ScoreType = (typeof ScoreType)[keyof typeof ScoreType];
+
+/**
+ * SimulatorMode
+ */
+export const SimulatorMode = { LLM: 'llm', SCRIPTED: 'scripted' } as const;
+
+/**
+ * SimulatorMode
+ */
+export type SimulatorMode = (typeof SimulatorMode)[keyof typeof SimulatorMode];
+
+/**
+ * SuggestionsRequest
+ */
+export type SuggestionsRequest = {
   /**
-   * Scenario Id
+   * Baseline Run Id
    */
-  scenario_id: string;
+  baseline_run_id: string;
   /**
-   * Scenario Name
+   * Candidate Run Id
    */
-  scenario_name: string;
+  candidate_run_id: string;
+};
+
+/**
+ * TestCaseComparison
+ */
+export type TestCaseComparison = {
+  /**
+   * Test Case Id
+   */
+  test_case_id: string;
+  /**
+   * Test Case Name
+   */
+  test_case_name: string;
   /**
    * Status
    */
@@ -1978,9 +2242,9 @@ export type ScenarioComparison = {
 };
 
 /**
- * ScenarioCreate
+ * TestCaseCreate
  */
-export type ScenarioCreate = {
+export type TestCaseCreate = {
   /**
    * Name
    *
@@ -1990,7 +2254,7 @@ export type ScenarioCreate = {
   /**
    * Description
    *
-   * What this scenario tests (for humans)
+   * What this test case checks (for humans)
    */
   description?: string | null;
   /**
@@ -2004,9 +2268,9 @@ export type ScenarioCreate = {
    */
   tags?: Array<string>;
   /**
-   * Lifecycle status — only active scenarios run by default
+   * Lifecycle status — only active test cases run by default
    */
-  status?: ScenarioStatus;
+  status?: TestCaseStatus;
   persona?: Persona | null;
   /**
    * Initial Message
@@ -2049,17 +2313,17 @@ export type ScenarioCreate = {
   /**
    * Agent Id
    *
-   * Agent this scenario belongs to (test suite pool for that agent)
+   * Agent this test case belongs to (test suite pool for that agent)
    */
   agent_id?: string | null;
 };
 
 /**
- * ScenarioImportItem
+ * TestCaseImportItem
  *
- * Scenario payload for import — optional id enables round-trip and conflict detection.
+ * Test case payload for import — optional id enables round-trip and conflict detection.
  */
-export type ScenarioImportItem = {
+export type TestCaseImportItem = {
   /**
    * Name
    *
@@ -2069,7 +2333,7 @@ export type ScenarioImportItem = {
   /**
    * Description
    *
-   * What this scenario tests (for humans)
+   * What this test case checks (for humans)
    */
   description?: string | null;
   /**
@@ -2083,9 +2347,9 @@ export type ScenarioImportItem = {
    */
   tags?: Array<string>;
   /**
-   * Lifecycle status — only active scenarios run by default
+   * Lifecycle status — only active test cases run by default
    */
-  status?: ScenarioStatus;
+  status?: TestCaseStatus;
   persona?: Persona | null;
   /**
    * Initial Message
@@ -2128,7 +2392,7 @@ export type ScenarioImportItem = {
   /**
    * Agent Id
    *
-   * Agent this scenario belongs to (test suite pool for that agent)
+   * Agent this test case belongs to (test suite pool for that agent)
    */
   agent_id?: string | null;
   /**
@@ -2138,9 +2402,9 @@ export type ScenarioImportItem = {
 };
 
 /**
- * ScenarioImportResult
+ * TestCaseImportResult
  */
-export type ScenarioImportResult = {
+export type TestCaseImportResult = {
   /**
    * Created
    */
@@ -2166,9 +2430,9 @@ export type ScenarioImportResult = {
 };
 
 /**
- * ScenarioPublic
+ * TestCasePublic
  */
-export type ScenarioPublic = {
+export type TestCasePublic = {
   /**
    * Name
    *
@@ -2178,7 +2442,7 @@ export type ScenarioPublic = {
   /**
    * Description
    *
-   * What this scenario tests (for humans)
+   * What this test case checks (for humans)
    */
   description?: string | null;
   /**
@@ -2192,9 +2456,9 @@ export type ScenarioPublic = {
    */
   tags?: Array<string>;
   /**
-   * Lifecycle status — only active scenarios run by default
+   * Lifecycle status — only active test cases run by default
    */
-  status?: ScenarioStatus;
+  status?: TestCaseStatus;
   persona?: Persona | null;
   /**
    * Initial Message
@@ -2237,33 +2501,33 @@ export type ScenarioPublic = {
   /**
    * Agent Id
    *
-   * Agent this scenario belongs to (test suite pool for that agent)
+   * Agent this test case belongs to (test suite pool for that agent)
    */
   agent_id?: string | null;
   /**
    * Id
    *
-   * Unique scenario identifier
+   * Unique test case identifier
    */
   id: string;
   /**
    * Created At
    *
-   * When the scenario was created
+   * When the test case was created
    */
   created_at: string;
   /**
    * Updated At
    *
-   * When the scenario was last updated
+   * When the test case was last updated
    */
   updated_at: string;
 };
 
 /**
- * ScenarioResultCreate
+ * TestCaseResultCreate
  */
-export type ScenarioResultCreate = {
+export type TestCaseResultCreate = {
   /**
    * Run Id
    *
@@ -2271,11 +2535,11 @@ export type ScenarioResultCreate = {
    */
   run_id: string;
   /**
-   * Scenario Id
+   * Test Case Id
    *
-   * FK to the scenario that was executed
+   * FK to the test case that was executed
    */
-  scenario_id: string;
+  test_case_id: string;
   /**
    * Repetition Index
    *
@@ -2291,13 +2555,13 @@ export type ScenarioResultCreate = {
 };
 
 /**
- * ScenarioResultPublic
+ * TestCaseResultPublic
  */
-export type ScenarioResultPublic = {
+export type TestCaseResultPublic = {
   /**
    * Id
    *
-   * Unique scenario result identifier
+   * Unique test case result identifier
    */
   id: string;
   /**
@@ -2307,11 +2571,11 @@ export type ScenarioResultPublic = {
    */
   run_id: string;
   /**
-   * Scenario Id
+   * Test Case Id
    *
-   * FK to the scenario that was executed
+   * FK to the test case that was executed
    */
-  scenario_id: string;
+  test_case_id: string;
   /**
    * Repetition Index
    *
@@ -2343,7 +2607,7 @@ export type ScenarioResultPublic = {
   /**
    * Total Latency Ms
    *
-   * Total wall-clock latency for the scenario in milliseconds
+   * Total wall-clock latency for the test case in milliseconds
    */
   total_latency_ms: number | null;
   /**
@@ -2389,25 +2653,25 @@ export type ScenarioResultPublic = {
   /**
    * Agent Cost Usd
    *
-   * Estimated agent cost in USD for this scenario
+   * Estimated agent cost in USD for this test case
    */
   agent_cost_usd?: number | null;
   /**
    * Platform Cost Usd
    *
-   * Estimated platform cost in USD (simulator + judge) for this scenario
+   * Estimated platform cost in USD (simulator + judge) for this test case
    */
   platform_cost_usd?: number | null;
   /**
    * Estimated Cost Usd
    *
-   * Estimated total cost in USD for this scenario
+   * Estimated total cost in USD for this test case
    */
   estimated_cost_usd: number | null;
   /**
    * Passed
    *
-   * Whether the scenario passed evaluation
+   * Whether the test case passed evaluation
    */
   passed: boolean | null;
   /**
@@ -2419,13 +2683,13 @@ export type ScenarioResultPublic = {
   /**
    * Started At
    *
-   * When scenario execution began
+   * When test case execution began
    */
   started_at: string | null;
   /**
    * Completed At
    *
-   * When scenario execution finished
+   * When test case execution finished
    */
   completed_at: string | null;
   /**
@@ -2443,9 +2707,9 @@ export type ScenarioResultPublic = {
 };
 
 /**
- * ScenarioResultUpdate
+ * TestCaseResultUpdate
  */
-export type ScenarioResultUpdate = {
+export type TestCaseResultUpdate = {
   /**
    * Transcript
    *
@@ -2465,7 +2729,7 @@ export type ScenarioResultUpdate = {
   /**
    * Total Latency Ms
    *
-   * Total wall-clock latency for the scenario in milliseconds
+   * Total wall-clock latency for the test case in milliseconds
    */
   total_latency_ms?: number | null;
   /**
@@ -2511,25 +2775,25 @@ export type ScenarioResultUpdate = {
   /**
    * Agent Cost Usd
    *
-   * Estimated agent cost in USD for this scenario
+   * Estimated agent cost in USD for this test case
    */
   agent_cost_usd?: number | null;
   /**
    * Platform Cost Usd
    *
-   * Estimated platform cost in USD (simulator + judge) for this scenario
+   * Estimated platform cost in USD (simulator + judge) for this test case
    */
   platform_cost_usd?: number | null;
   /**
    * Estimated Cost Usd
    *
-   * Estimated total cost in USD for this scenario
+   * Estimated total cost in USD for this test case
    */
   estimated_cost_usd?: number | null;
   /**
    * Passed
    *
-   * Whether the scenario passed evaluation
+   * Whether the test case passed evaluation
    */
   passed?: boolean | null;
   /**
@@ -2541,27 +2805,27 @@ export type ScenarioResultUpdate = {
   /**
    * Started At
    *
-   * When scenario execution began
+   * When test case execution began
    */
   started_at?: string | null;
   /**
    * Completed At
    *
-   * When scenario execution finished
+   * When test case execution finished
    */
   completed_at?: string | null;
 };
 
 /**
- * ScenarioResultsPublic
+ * TestCaseResultsPublic
  */
-export type ScenarioResultsPublic = {
+export type TestCaseResultsPublic = {
   /**
    * Data
    *
-   * List of scenario results
+   * List of test case results
    */
-  data: Array<ScenarioResultPublic>;
+  data: Array<TestCaseResultPublic>;
   /**
    * Count
    *
@@ -2571,253 +2835,23 @@ export type ScenarioResultsPublic = {
 };
 
 /**
- * ScenarioSetCreate
+ * TestCaseStatus
  */
-export type ScenarioSetCreate = {
-  /**
-   * Name
-   *
-   * Human-readable set name
-   */
-  name: string;
-  /**
-   * Description
-   *
-   * What this scenario set covers
-   */
-  description?: string | null;
-  /**
-   * Set Repetitions
-   *
-   * How many times to repeat the entire set during a run
-   */
-  set_repetitions?: number;
-  /**
-   * Members
-   *
-   * Initial members with per-scenario repetitions (omit or empty for no scenarios)
-   */
-  members?: Array<ScenarioSetMemberEntry> | null;
-};
-
-/**
- * ScenarioSetDiff
- */
-export type ScenarioSetDiff = {
-  /**
-   * Same Set
-   */
-  same_set: boolean;
-  /**
-   * Version Changed
-   */
-  version_changed: boolean;
-  /**
-   * Added Scenario Ids
-   */
-  added_scenario_ids?: Array<string>;
-  /**
-   * Removed Scenario Ids
-   */
-  removed_scenario_ids?: Array<string>;
-  /**
-   * Common Scenario Ids
-   */
-  common_scenario_ids?: Array<string>;
-};
-
-/**
- * ScenarioSetMemberEntry
- *
- * API payload for adding or replacing set members with per-scenario repetition counts.
- */
-export type ScenarioSetMemberEntry = {
-  /**
-   * Scenario Id
-   *
-   * Scenario to include in the set
-   */
-  scenario_id: string;
-  /**
-   * Repetitions
-   *
-   * How many times to execute this scenario within one set pass
-   */
-  repetitions?: number;
-};
-
-/**
- * ScenarioSetMemberPublic
- *
- * Public view of one scenario's membership in a set.
- */
-export type ScenarioSetMemberPublic = {
-  /**
-   * Scenario Id
-   *
-   * Linked scenario id
-   */
-  scenario_id: string;
-  /**
-   * Position
-   *
-   * Order within the set
-   */
-  position: number;
-  /**
-   * Repetitions
-   *
-   * Executions per set pass for this scenario
-   */
-  repetitions: number;
-};
-
-/**
- * ScenarioSetMembersPublic
- */
-export type ScenarioSetMembersPublic = {
-  /**
-   * Data
-   *
-   * Set members with position and repetitions
-   */
-  data: Array<ScenarioSetMemberPublic>;
-  /**
-   * Count
-   *
-   * Total members matching the query
-   */
-  count: number;
-};
-
-/**
- * ScenarioSetMembersUpdate
- */
-export type ScenarioSetMembersUpdate = {
-  /**
-   * Members
-   */
-  members: Array<ScenarioSetMemberEntry>;
-};
-
-/**
- * ScenarioSetPublic
- */
-export type ScenarioSetPublic = {
-  /**
-   * Name
-   *
-   * Human-readable set name
-   */
-  name: string;
-  /**
-   * Description
-   *
-   * What this scenario set covers
-   */
-  description?: string | null;
-  /**
-   * Version
-   *
-   * Monotonically increasing version for snapshot tracking
-   */
-  version?: number;
-  /**
-   * Set Repetitions
-   *
-   * How many times to repeat the entire set during a run
-   */
-  set_repetitions?: number;
-  /**
-   * Id
-   *
-   * Unique scenario set identifier
-   */
-  id: string;
-  /**
-   * Scenario Count
-   */
-  scenario_count?: number;
-  /**
-   * Effective Scenario Count
-   *
-   * Sum(member.repetitions) * set_repetitions — total expanded executions
-   */
-  effective_scenario_count?: number;
-  /**
-   * Created At
-   *
-   * When the set was created
-   */
-  created_at: string;
-  /**
-   * Updated At
-   *
-   * When the set was last updated
-   */
-  updated_at: string;
-};
-
-/**
- * ScenarioSetUpdate
- */
-export type ScenarioSetUpdate = {
-  /**
-   * Name
-   *
-   * Human-readable set name
-   */
-  name?: string | null;
-  /**
-   * Description
-   *
-   * What this scenario set covers
-   */
-  description?: string | null;
-  /**
-   * Set Repetitions
-   *
-   * How many times to repeat the entire set during a run
-   */
-  set_repetitions?: number | null;
-};
-
-/**
- * ScenarioSetsPublic
- */
-export type ScenarioSetsPublic = {
-  /**
-   * Data
-   *
-   * List of scenario sets
-   */
-  data: Array<ScenarioSetPublic>;
-  /**
-   * Count
-   *
-   * Total number of sets matching the query
-   */
-  count: number;
-};
-
-/**
- * ScenarioStatus
- */
-export const ScenarioStatus = {
+export const TestCaseStatus = {
   DRAFT: 'draft',
   ACTIVE: 'active',
   ARCHIVED: 'archived',
 } as const;
 
 /**
- * ScenarioStatus
+ * TestCaseStatus
  */
-export type ScenarioStatus = (typeof ScenarioStatus)[keyof typeof ScenarioStatus];
+export type TestCaseStatus = (typeof TestCaseStatus)[keyof typeof TestCaseStatus];
 
 /**
- * ScenarioUpdate
+ * TestCaseUpdate
  */
-export type ScenarioUpdate = {
+export type TestCaseUpdate = {
   /**
    * Name
    *
@@ -2827,7 +2861,7 @@ export type ScenarioUpdate = {
   /**
    * Description
    *
-   * What this scenario tests (for humans)
+   * What this test case checks (for humans)
    */
   description?: string | null;
   /**
@@ -2841,9 +2875,9 @@ export type ScenarioUpdate = {
    */
   tags?: Array<string> | null;
   /**
-   * Lifecycle status — only active scenarios run by default
+   * Lifecycle status — only active test cases run by default
    */
-  status?: ScenarioStatus | null;
+  status?: TestCaseStatus | null;
   persona?: Persona | null;
   /**
    * Initial Message
@@ -2882,15 +2916,15 @@ export type ScenarioUpdate = {
   /**
    * Agent Id
    *
-   * Agent this scenario belongs to (test suite pool for that agent)
+   * Agent this test case belongs to (test suite pool for that agent)
    */
   agent_id?: string | null;
 };
 
 /**
- * ScenariosExport
+ * TestCasesExport
  */
-export type ScenariosExport = {
+export type TestCasesExport = {
   /**
    * Exported At
    */
@@ -2900,61 +2934,27 @@ export type ScenariosExport = {
    */
   count: number;
   /**
-   * Scenarios
+   * Test Cases
    */
-  scenarios: Array<ScenarioPublic>;
+  test_cases: Array<TestCasePublic>;
 };
 
 /**
- * ScenariosPublic
+ * TestCasesPublic
  */
-export type ScenariosPublic = {
+export type TestCasesPublic = {
   /**
    * Data
    *
-   * List of scenarios
+   * List of test cases
    */
-  data: Array<ScenarioPublic>;
+  data: Array<TestCasePublic>;
   /**
    * Count
    *
-   * Total number of scenarios matching the query
+   * Total number of test cases matching the query
    */
   count: number;
-};
-
-/**
- * ScoreType
- */
-export const ScoreType = { SCORED: 'scored', BINARY: 'binary' } as const;
-
-/**
- * ScoreType
- */
-export type ScoreType = (typeof ScoreType)[keyof typeof ScoreType];
-
-/**
- * SimulatorMode
- */
-export const SimulatorMode = { LLM: 'llm', SCRIPTED: 'scripted' } as const;
-
-/**
- * SimulatorMode
- */
-export type SimulatorMode = (typeof SimulatorMode)[keyof typeof SimulatorMode];
-
-/**
- * SuggestionsRequest
- */
-export type SuggestionsRequest = {
-  /**
-   * Baseline Run Id
-   */
-  baseline_run_id: string;
-  /**
-   * Candidate Run Id
-   */
-  candidate_run_id: string;
 };
 
 /**
@@ -4135,7 +4135,7 @@ export type AgentsUpdateAgentResponses = {
 export type AgentsUpdateAgentResponse =
   AgentsUpdateAgentResponses[keyof AgentsUpdateAgentResponses];
 
-export type ScenariosListScenariosData = {
+export type TestCasesListTestCasesData = {
   body?: never;
   path?: never;
   query?: {
@@ -4158,7 +4158,7 @@ export type ScenariosListScenariosData = {
     /**
      * Status
      */
-    status?: ScenarioStatus | null;
+    status?: TestCaseStatus | null;
     /**
      * Search
      *
@@ -4180,14 +4180,14 @@ export type ScenariosListScenariosData = {
     /**
      * Agent Id
      *
-     * Filter scenarios bound to this agent
+     * Filter test cases bound to this agent
      */
     agent_id?: string | null;
   };
-  url: '/api/v1/scenarios/';
+  url: '/api/v1/test-cases/';
 };
 
-export type ScenariosListScenariosErrors = {
+export type TestCasesListTestCasesErrors = {
   /**
    * Bad Request
    */
@@ -4218,27 +4218,27 @@ export type ScenariosListScenariosErrors = {
   500: ErrorResponse;
 };
 
-export type ScenariosListScenariosError =
-  ScenariosListScenariosErrors[keyof ScenariosListScenariosErrors];
+export type TestCasesListTestCasesError =
+  TestCasesListTestCasesErrors[keyof TestCasesListTestCasesErrors];
 
-export type ScenariosListScenariosResponses = {
+export type TestCasesListTestCasesResponses = {
   /**
    * Successful Response
    */
-  200: ScenariosPublic;
+  200: TestCasesPublic;
 };
 
-export type ScenariosListScenariosResponse =
-  ScenariosListScenariosResponses[keyof ScenariosListScenariosResponses];
+export type TestCasesListTestCasesResponse =
+  TestCasesListTestCasesResponses[keyof TestCasesListTestCasesResponses];
 
-export type ScenariosCreateScenarioData = {
-  body: ScenarioCreate;
+export type TestCasesCreateTestCaseData = {
+  body: TestCaseCreate;
   path?: never;
   query?: never;
-  url: '/api/v1/scenarios/';
+  url: '/api/v1/test-cases/';
 };
 
-export type ScenariosCreateScenarioErrors = {
+export type TestCasesCreateTestCaseErrors = {
   /**
    * Bad Request
    */
@@ -4269,20 +4269,20 @@ export type ScenariosCreateScenarioErrors = {
   500: ErrorResponse;
 };
 
-export type ScenariosCreateScenarioError =
-  ScenariosCreateScenarioErrors[keyof ScenariosCreateScenarioErrors];
+export type TestCasesCreateTestCaseError =
+  TestCasesCreateTestCaseErrors[keyof TestCasesCreateTestCaseErrors];
 
-export type ScenariosCreateScenarioResponses = {
+export type TestCasesCreateTestCaseResponses = {
   /**
    * Successful Response
    */
-  200: ScenarioPublic;
+  200: TestCasePublic;
 };
 
-export type ScenariosCreateScenarioResponse =
-  ScenariosCreateScenarioResponses[keyof ScenariosCreateScenarioResponses];
+export type TestCasesCreateTestCaseResponse =
+  TestCasesCreateTestCaseResponses[keyof TestCasesCreateTestCaseResponses];
 
-export type ScenariosExportScenariosData = {
+export type TestCasesExportTestCasesData = {
   body?: never;
   path?: never;
   query?: {
@@ -4297,18 +4297,18 @@ export type ScenariosExportScenariosData = {
     /**
      * Status
      */
-    status?: ScenarioStatus | null;
+    status?: TestCaseStatus | null;
     /**
      * Agent Id
      *
-     * Export only scenarios bound to this agent
+     * Export only test cases bound to this agent
      */
     agent_id?: string | null;
   };
-  url: '/api/v1/scenarios/export';
+  url: '/api/v1/test-cases/export';
 };
 
-export type ScenariosExportScenariosErrors = {
+export type TestCasesExportTestCasesErrors = {
   /**
    * Bad Request
    */
@@ -4339,32 +4339,32 @@ export type ScenariosExportScenariosErrors = {
   500: ErrorResponse;
 };
 
-export type ScenariosExportScenariosError =
-  ScenariosExportScenariosErrors[keyof ScenariosExportScenariosErrors];
+export type TestCasesExportTestCasesError =
+  TestCasesExportTestCasesErrors[keyof TestCasesExportTestCasesErrors];
 
-export type ScenariosExportScenariosResponses = {
+export type TestCasesExportTestCasesResponses = {
   /**
    * Successful Response
    */
-  200: ScenariosExport;
+  200: TestCasesExport;
 };
 
-export type ScenariosExportScenariosResponse =
-  ScenariosExportScenariosResponses[keyof ScenariosExportScenariosResponses];
+export type TestCasesExportTestCasesResponse =
+  TestCasesExportTestCasesResponses[keyof TestCasesExportTestCasesResponses];
 
-export type ScenariosImportScenariosData = {
+export type TestCasesImportTestCasesData = {
   /**
-   * Scenarios In
+   * Test Cases In
    */
-  body: Array<ScenarioImportItem>;
+  body: Array<TestCaseImportItem>;
   path?: never;
   query?: {
     on_conflict?: OnConflict;
   };
-  url: '/api/v1/scenarios/import';
+  url: '/api/v1/test-cases/import';
 };
 
-export type ScenariosImportScenariosErrors = {
+export type TestCasesImportTestCasesErrors = {
   /**
    * Bad Request
    */
@@ -4395,27 +4395,27 @@ export type ScenariosImportScenariosErrors = {
   500: ErrorResponse;
 };
 
-export type ScenariosImportScenariosError =
-  ScenariosImportScenariosErrors[keyof ScenariosImportScenariosErrors];
+export type TestCasesImportTestCasesError =
+  TestCasesImportTestCasesErrors[keyof TestCasesImportTestCasesErrors];
 
-export type ScenariosImportScenariosResponses = {
+export type TestCasesImportTestCasesResponses = {
   /**
    * Successful Response
    */
-  200: ScenarioImportResult;
+  200: TestCaseImportResult;
 };
 
-export type ScenariosImportScenariosResponse =
-  ScenariosImportScenariosResponses[keyof ScenariosImportScenariosResponses];
+export type TestCasesImportTestCasesResponse =
+  TestCasesImportTestCasesResponses[keyof TestCasesImportTestCasesResponses];
 
-export type ScenariosGenerateScenariosEndpointData = {
+export type TestCasesGenerateTestCasesEndpointData = {
   body: GenerateRequest;
   path?: never;
   query?: never;
-  url: '/api/v1/scenarios/generate';
+  url: '/api/v1/test-cases/generate';
 };
 
-export type ScenariosGenerateScenariosEndpointErrors = {
+export type TestCasesGenerateTestCasesEndpointErrors = {
   /**
    * Bad Request
    */
@@ -4446,32 +4446,32 @@ export type ScenariosGenerateScenariosEndpointErrors = {
   500: ErrorResponse;
 };
 
-export type ScenariosGenerateScenariosEndpointError =
-  ScenariosGenerateScenariosEndpointErrors[keyof ScenariosGenerateScenariosEndpointErrors];
+export type TestCasesGenerateTestCasesEndpointError =
+  TestCasesGenerateTestCasesEndpointErrors[keyof TestCasesGenerateTestCasesEndpointErrors];
 
-export type ScenariosGenerateScenariosEndpointResponses = {
+export type TestCasesGenerateTestCasesEndpointResponses = {
   /**
    * Successful Response
    */
   200: GenerateResult;
 };
 
-export type ScenariosGenerateScenariosEndpointResponse =
-  ScenariosGenerateScenariosEndpointResponses[keyof ScenariosGenerateScenariosEndpointResponses];
+export type TestCasesGenerateTestCasesEndpointResponse =
+  TestCasesGenerateTestCasesEndpointResponses[keyof TestCasesGenerateTestCasesEndpointResponses];
 
-export type ScenariosDeleteScenarioData = {
+export type TestCasesDeleteTestCaseData = {
   body?: never;
   path: {
     /**
-     * Scenario Id
+     * Test Case Id
      */
-    scenario_id: string;
+    test_case_id: string;
   };
   query?: never;
-  url: '/api/v1/scenarios/{scenario_id}';
+  url: '/api/v1/test-cases/{test_case_id}';
 };
 
-export type ScenariosDeleteScenarioErrors = {
+export type TestCasesDeleteTestCaseErrors = {
   /**
    * Bad Request
    */
@@ -4502,32 +4502,32 @@ export type ScenariosDeleteScenarioErrors = {
   500: ErrorResponse;
 };
 
-export type ScenariosDeleteScenarioError =
-  ScenariosDeleteScenarioErrors[keyof ScenariosDeleteScenarioErrors];
+export type TestCasesDeleteTestCaseError =
+  TestCasesDeleteTestCaseErrors[keyof TestCasesDeleteTestCaseErrors];
 
-export type ScenariosDeleteScenarioResponses = {
+export type TestCasesDeleteTestCaseResponses = {
   /**
    * Successful Response
    */
   200: Message;
 };
 
-export type ScenariosDeleteScenarioResponse =
-  ScenariosDeleteScenarioResponses[keyof ScenariosDeleteScenarioResponses];
+export type TestCasesDeleteTestCaseResponse =
+  TestCasesDeleteTestCaseResponses[keyof TestCasesDeleteTestCaseResponses];
 
-export type ScenariosGetScenarioData = {
+export type TestCasesGetTestCaseData = {
   body?: never;
   path: {
     /**
-     * Scenario Id
+     * Test Case Id
      */
-    scenario_id: string;
+    test_case_id: string;
   };
   query?: never;
-  url: '/api/v1/scenarios/{scenario_id}';
+  url: '/api/v1/test-cases/{test_case_id}';
 };
 
-export type ScenariosGetScenarioErrors = {
+export type TestCasesGetTestCaseErrors = {
   /**
    * Bad Request
    */
@@ -4558,32 +4558,32 @@ export type ScenariosGetScenarioErrors = {
   500: ErrorResponse;
 };
 
-export type ScenariosGetScenarioError =
-  ScenariosGetScenarioErrors[keyof ScenariosGetScenarioErrors];
+export type TestCasesGetTestCaseError =
+  TestCasesGetTestCaseErrors[keyof TestCasesGetTestCaseErrors];
 
-export type ScenariosGetScenarioResponses = {
+export type TestCasesGetTestCaseResponses = {
   /**
    * Successful Response
    */
-  200: ScenarioPublic;
+  200: TestCasePublic;
 };
 
-export type ScenariosGetScenarioResponse =
-  ScenariosGetScenarioResponses[keyof ScenariosGetScenarioResponses];
+export type TestCasesGetTestCaseResponse =
+  TestCasesGetTestCaseResponses[keyof TestCasesGetTestCaseResponses];
 
-export type ScenariosUpdateScenarioData = {
-  body: ScenarioUpdate;
+export type TestCasesUpdateTestCaseData = {
+  body: TestCaseUpdate;
   path: {
     /**
-     * Scenario Id
+     * Test Case Id
      */
-    scenario_id: string;
+    test_case_id: string;
   };
   query?: never;
-  url: '/api/v1/scenarios/{scenario_id}';
+  url: '/api/v1/test-cases/{test_case_id}';
 };
 
-export type ScenariosUpdateScenarioErrors = {
+export type TestCasesUpdateTestCaseErrors = {
   /**
    * Bad Request
    */
@@ -4614,18 +4614,18 @@ export type ScenariosUpdateScenarioErrors = {
   500: ErrorResponse;
 };
 
-export type ScenariosUpdateScenarioError =
-  ScenariosUpdateScenarioErrors[keyof ScenariosUpdateScenarioErrors];
+export type TestCasesUpdateTestCaseError =
+  TestCasesUpdateTestCaseErrors[keyof TestCasesUpdateTestCaseErrors];
 
-export type ScenariosUpdateScenarioResponses = {
+export type TestCasesUpdateTestCaseResponses = {
   /**
    * Successful Response
    */
-  200: ScenarioPublic;
+  200: TestCasePublic;
 };
 
-export type ScenariosUpdateScenarioResponse =
-  ScenariosUpdateScenarioResponses[keyof ScenariosUpdateScenarioResponses];
+export type TestCasesUpdateTestCaseResponse =
+  TestCasesUpdateTestCaseResponses[keyof TestCasesUpdateTestCaseResponses];
 
 export type CustomMetricsListCustomMetricsData = {
   body?: never;
@@ -4957,7 +4957,7 @@ export type CustomMetricsUpdateCustomMetricResponses = {
 export type CustomMetricsUpdateCustomMetricResponse =
   CustomMetricsUpdateCustomMetricResponses[keyof CustomMetricsUpdateCustomMetricResponses];
 
-export type ScenarioSetsListScenarioSetsData = {
+export type EvalSetsListEvalSetsData = {
   body?: never;
   path?: never;
   query?: {
@@ -4970,10 +4970,10 @@ export type ScenarioSetsListScenarioSetsData = {
      */
     limit?: number;
   };
-  url: '/api/v1/scenario-sets/';
+  url: '/api/v1/eval-sets/';
 };
 
-export type ScenarioSetsListScenarioSetsErrors = {
+export type EvalSetsListEvalSetsErrors = {
   /**
    * Bad Request
    */
@@ -5004,27 +5004,27 @@ export type ScenarioSetsListScenarioSetsErrors = {
   500: ErrorResponse;
 };
 
-export type ScenarioSetsListScenarioSetsError =
-  ScenarioSetsListScenarioSetsErrors[keyof ScenarioSetsListScenarioSetsErrors];
+export type EvalSetsListEvalSetsError =
+  EvalSetsListEvalSetsErrors[keyof EvalSetsListEvalSetsErrors];
 
-export type ScenarioSetsListScenarioSetsResponses = {
+export type EvalSetsListEvalSetsResponses = {
   /**
    * Successful Response
    */
-  200: ScenarioSetsPublic;
+  200: EvalSetsPublic;
 };
 
-export type ScenarioSetsListScenarioSetsResponse =
-  ScenarioSetsListScenarioSetsResponses[keyof ScenarioSetsListScenarioSetsResponses];
+export type EvalSetsListEvalSetsResponse =
+  EvalSetsListEvalSetsResponses[keyof EvalSetsListEvalSetsResponses];
 
-export type ScenarioSetsCreateScenarioSetData = {
-  body: ScenarioSetCreate;
+export type EvalSetsCreateEvalSetData = {
+  body: EvalSetCreate;
   path?: never;
   query?: never;
-  url: '/api/v1/scenario-sets/';
+  url: '/api/v1/eval-sets/';
 };
 
-export type ScenarioSetsCreateScenarioSetErrors = {
+export type EvalSetsCreateEvalSetErrors = {
   /**
    * Bad Request
    */
@@ -5055,32 +5055,32 @@ export type ScenarioSetsCreateScenarioSetErrors = {
   500: ErrorResponse;
 };
 
-export type ScenarioSetsCreateScenarioSetError =
-  ScenarioSetsCreateScenarioSetErrors[keyof ScenarioSetsCreateScenarioSetErrors];
+export type EvalSetsCreateEvalSetError =
+  EvalSetsCreateEvalSetErrors[keyof EvalSetsCreateEvalSetErrors];
 
-export type ScenarioSetsCreateScenarioSetResponses = {
+export type EvalSetsCreateEvalSetResponses = {
   /**
    * Successful Response
    */
-  200: ScenarioSetPublic;
+  200: EvalSetPublic;
 };
 
-export type ScenarioSetsCreateScenarioSetResponse =
-  ScenarioSetsCreateScenarioSetResponses[keyof ScenarioSetsCreateScenarioSetResponses];
+export type EvalSetsCreateEvalSetResponse =
+  EvalSetsCreateEvalSetResponses[keyof EvalSetsCreateEvalSetResponses];
 
-export type ScenarioSetsDeleteScenarioSetData = {
+export type EvalSetsDeleteEvalSetData = {
   body?: never;
   path: {
     /**
-     * Scenario Set Id
+     * Eval Set Id
      */
-    scenario_set_id: string;
+    eval_set_id: string;
   };
   query?: never;
-  url: '/api/v1/scenario-sets/{scenario_set_id}';
+  url: '/api/v1/eval-sets/{eval_set_id}';
 };
 
-export type ScenarioSetsDeleteScenarioSetErrors = {
+export type EvalSetsDeleteEvalSetErrors = {
   /**
    * Bad Request
    */
@@ -5111,32 +5111,32 @@ export type ScenarioSetsDeleteScenarioSetErrors = {
   500: ErrorResponse;
 };
 
-export type ScenarioSetsDeleteScenarioSetError =
-  ScenarioSetsDeleteScenarioSetErrors[keyof ScenarioSetsDeleteScenarioSetErrors];
+export type EvalSetsDeleteEvalSetError =
+  EvalSetsDeleteEvalSetErrors[keyof EvalSetsDeleteEvalSetErrors];
 
-export type ScenarioSetsDeleteScenarioSetResponses = {
+export type EvalSetsDeleteEvalSetResponses = {
   /**
    * Successful Response
    */
   200: Message;
 };
 
-export type ScenarioSetsDeleteScenarioSetResponse =
-  ScenarioSetsDeleteScenarioSetResponses[keyof ScenarioSetsDeleteScenarioSetResponses];
+export type EvalSetsDeleteEvalSetResponse =
+  EvalSetsDeleteEvalSetResponses[keyof EvalSetsDeleteEvalSetResponses];
 
-export type ScenarioSetsGetScenarioSetData = {
+export type EvalSetsGetEvalSetData = {
   body?: never;
   path: {
     /**
-     * Scenario Set Id
+     * Eval Set Id
      */
-    scenario_set_id: string;
+    eval_set_id: string;
   };
   query?: never;
-  url: '/api/v1/scenario-sets/{scenario_set_id}';
+  url: '/api/v1/eval-sets/{eval_set_id}';
 };
 
-export type ScenarioSetsGetScenarioSetErrors = {
+export type EvalSetsGetEvalSetErrors = {
   /**
    * Bad Request
    */
@@ -5167,32 +5167,31 @@ export type ScenarioSetsGetScenarioSetErrors = {
   500: ErrorResponse;
 };
 
-export type ScenarioSetsGetScenarioSetError =
-  ScenarioSetsGetScenarioSetErrors[keyof ScenarioSetsGetScenarioSetErrors];
+export type EvalSetsGetEvalSetError = EvalSetsGetEvalSetErrors[keyof EvalSetsGetEvalSetErrors];
 
-export type ScenarioSetsGetScenarioSetResponses = {
+export type EvalSetsGetEvalSetResponses = {
   /**
    * Successful Response
    */
-  200: ScenarioSetPublic;
+  200: EvalSetPublic;
 };
 
-export type ScenarioSetsGetScenarioSetResponse =
-  ScenarioSetsGetScenarioSetResponses[keyof ScenarioSetsGetScenarioSetResponses];
+export type EvalSetsGetEvalSetResponse =
+  EvalSetsGetEvalSetResponses[keyof EvalSetsGetEvalSetResponses];
 
-export type ScenarioSetsUpdateScenarioSetData = {
-  body: ScenarioSetUpdate;
+export type EvalSetsUpdateEvalSetData = {
+  body: EvalSetUpdate;
   path: {
     /**
-     * Scenario Set Id
+     * Eval Set Id
      */
-    scenario_set_id: string;
+    eval_set_id: string;
   };
   query?: never;
-  url: '/api/v1/scenario-sets/{scenario_set_id}';
+  url: '/api/v1/eval-sets/{eval_set_id}';
 };
 
-export type ScenarioSetsUpdateScenarioSetErrors = {
+export type EvalSetsUpdateEvalSetErrors = {
   /**
    * Bad Request
    */
@@ -5223,26 +5222,26 @@ export type ScenarioSetsUpdateScenarioSetErrors = {
   500: ErrorResponse;
 };
 
-export type ScenarioSetsUpdateScenarioSetError =
-  ScenarioSetsUpdateScenarioSetErrors[keyof ScenarioSetsUpdateScenarioSetErrors];
+export type EvalSetsUpdateEvalSetError =
+  EvalSetsUpdateEvalSetErrors[keyof EvalSetsUpdateEvalSetErrors];
 
-export type ScenarioSetsUpdateScenarioSetResponses = {
+export type EvalSetsUpdateEvalSetResponses = {
   /**
    * Successful Response
    */
-  200: ScenarioSetPublic;
+  200: EvalSetPublic;
 };
 
-export type ScenarioSetsUpdateScenarioSetResponse =
-  ScenarioSetsUpdateScenarioSetResponses[keyof ScenarioSetsUpdateScenarioSetResponses];
+export type EvalSetsUpdateEvalSetResponse =
+  EvalSetsUpdateEvalSetResponses[keyof EvalSetsUpdateEvalSetResponses];
 
-export type ScenarioSetsListScenariosInSetData = {
+export type EvalSetsListTestCasesInSetData = {
   body?: never;
   path: {
     /**
-     * Scenario Set Id
+     * Eval Set Id
      */
-    scenario_set_id: string;
+    eval_set_id: string;
   };
   query?: {
     /**
@@ -5254,10 +5253,10 @@ export type ScenarioSetsListScenariosInSetData = {
      */
     limit?: number;
   };
-  url: '/api/v1/scenario-sets/{scenario_set_id}/scenarios';
+  url: '/api/v1/eval-sets/{eval_set_id}/test-cases';
 };
 
-export type ScenarioSetsListScenariosInSetErrors = {
+export type EvalSetsListTestCasesInSetErrors = {
   /**
    * Bad Request
    */
@@ -5288,32 +5287,32 @@ export type ScenarioSetsListScenariosInSetErrors = {
   500: ErrorResponse;
 };
 
-export type ScenarioSetsListScenariosInSetError =
-  ScenarioSetsListScenariosInSetErrors[keyof ScenarioSetsListScenariosInSetErrors];
+export type EvalSetsListTestCasesInSetError =
+  EvalSetsListTestCasesInSetErrors[keyof EvalSetsListTestCasesInSetErrors];
 
-export type ScenarioSetsListScenariosInSetResponses = {
+export type EvalSetsListTestCasesInSetResponses = {
   /**
    * Successful Response
    */
-  200: ScenarioSetMembersPublic;
+  200: EvalSetMembersPublic;
 };
 
-export type ScenarioSetsListScenariosInSetResponse =
-  ScenarioSetsListScenariosInSetResponses[keyof ScenarioSetsListScenariosInSetResponses];
+export type EvalSetsListTestCasesInSetResponse =
+  EvalSetsListTestCasesInSetResponses[keyof EvalSetsListTestCasesInSetResponses];
 
-export type ScenarioSetsAddScenariosToSetData = {
-  body: ScenarioSetMembersUpdate;
+export type EvalSetsAddTestCasesToSetData = {
+  body: EvalSetMembersUpdate;
   path: {
     /**
-     * Scenario Set Id
+     * Eval Set Id
      */
-    scenario_set_id: string;
+    eval_set_id: string;
   };
   query?: never;
-  url: '/api/v1/scenario-sets/{scenario_set_id}/scenarios';
+  url: '/api/v1/eval-sets/{eval_set_id}/test-cases';
 };
 
-export type ScenarioSetsAddScenariosToSetErrors = {
+export type EvalSetsAddTestCasesToSetErrors = {
   /**
    * Bad Request
    */
@@ -5344,32 +5343,32 @@ export type ScenarioSetsAddScenariosToSetErrors = {
   500: ErrorResponse;
 };
 
-export type ScenarioSetsAddScenariosToSetError =
-  ScenarioSetsAddScenariosToSetErrors[keyof ScenarioSetsAddScenariosToSetErrors];
+export type EvalSetsAddTestCasesToSetError =
+  EvalSetsAddTestCasesToSetErrors[keyof EvalSetsAddTestCasesToSetErrors];
 
-export type ScenarioSetsAddScenariosToSetResponses = {
+export type EvalSetsAddTestCasesToSetResponses = {
   /**
    * Successful Response
    */
-  200: ScenarioSetPublic;
+  200: EvalSetPublic;
 };
 
-export type ScenarioSetsAddScenariosToSetResponse =
-  ScenarioSetsAddScenariosToSetResponses[keyof ScenarioSetsAddScenariosToSetResponses];
+export type EvalSetsAddTestCasesToSetResponse =
+  EvalSetsAddTestCasesToSetResponses[keyof EvalSetsAddTestCasesToSetResponses];
 
-export type ScenarioSetsReplaceScenariosInSetData = {
-  body: ScenarioSetMembersUpdate;
+export type EvalSetsReplaceTestCasesInSetData = {
+  body: EvalSetMembersUpdate;
   path: {
     /**
-     * Scenario Set Id
+     * Eval Set Id
      */
-    scenario_set_id: string;
+    eval_set_id: string;
   };
   query?: never;
-  url: '/api/v1/scenario-sets/{scenario_set_id}/scenarios';
+  url: '/api/v1/eval-sets/{eval_set_id}/test-cases';
 };
 
-export type ScenarioSetsReplaceScenariosInSetErrors = {
+export type EvalSetsReplaceTestCasesInSetErrors = {
   /**
    * Bad Request
    */
@@ -5400,36 +5399,36 @@ export type ScenarioSetsReplaceScenariosInSetErrors = {
   500: ErrorResponse;
 };
 
-export type ScenarioSetsReplaceScenariosInSetError =
-  ScenarioSetsReplaceScenariosInSetErrors[keyof ScenarioSetsReplaceScenariosInSetErrors];
+export type EvalSetsReplaceTestCasesInSetError =
+  EvalSetsReplaceTestCasesInSetErrors[keyof EvalSetsReplaceTestCasesInSetErrors];
 
-export type ScenarioSetsReplaceScenariosInSetResponses = {
+export type EvalSetsReplaceTestCasesInSetResponses = {
   /**
    * Successful Response
    */
-  200: ScenarioSetPublic;
+  200: EvalSetPublic;
 };
 
-export type ScenarioSetsReplaceScenariosInSetResponse =
-  ScenarioSetsReplaceScenariosInSetResponses[keyof ScenarioSetsReplaceScenariosInSetResponses];
+export type EvalSetsReplaceTestCasesInSetResponse =
+  EvalSetsReplaceTestCasesInSetResponses[keyof EvalSetsReplaceTestCasesInSetResponses];
 
-export type ScenarioSetsRemoveScenarioFromSetData = {
+export type EvalSetsRemoveTestCaseFromSetData = {
   body?: never;
   path: {
     /**
-     * Scenario Set Id
+     * Eval Set Id
      */
-    scenario_set_id: string;
+    eval_set_id: string;
     /**
-     * Scenario Id
+     * Test Case Id
      */
-    scenario_id: string;
+    test_case_id: string;
   };
   query?: never;
-  url: '/api/v1/scenario-sets/{scenario_set_id}/scenarios/{scenario_id}';
+  url: '/api/v1/eval-sets/{eval_set_id}/test-cases/{test_case_id}';
 };
 
-export type ScenarioSetsRemoveScenarioFromSetErrors = {
+export type EvalSetsRemoveTestCaseFromSetErrors = {
   /**
    * Bad Request
    */
@@ -5460,18 +5459,18 @@ export type ScenarioSetsRemoveScenarioFromSetErrors = {
   500: ErrorResponse;
 };
 
-export type ScenarioSetsRemoveScenarioFromSetError =
-  ScenarioSetsRemoveScenarioFromSetErrors[keyof ScenarioSetsRemoveScenarioFromSetErrors];
+export type EvalSetsRemoveTestCaseFromSetError =
+  EvalSetsRemoveTestCaseFromSetErrors[keyof EvalSetsRemoveTestCaseFromSetErrors];
 
-export type ScenarioSetsRemoveScenarioFromSetResponses = {
+export type EvalSetsRemoveTestCaseFromSetResponses = {
   /**
    * Successful Response
    */
-  200: ScenarioSetPublic;
+  200: EvalSetPublic;
 };
 
-export type ScenarioSetsRemoveScenarioFromSetResponse =
-  ScenarioSetsRemoveScenarioFromSetResponses[keyof ScenarioSetsRemoveScenarioFromSetResponses];
+export type EvalSetsRemoveTestCaseFromSetResponse =
+  EvalSetsRemoveTestCaseFromSetResponses[keyof EvalSetsRemoveTestCaseFromSetResponses];
 
 export type RunsListRunsData = {
   body?: never;
@@ -5753,11 +5752,11 @@ export type RunsGetBaselineRunData = {
      */
     agent_id: string;
     /**
-     * Scenario Set Id
+     * Eval Set Id
      *
-     * UUID of the scenario set
+     * UUID of the eval set
      */
-    scenario_set_id: string;
+    eval_set_id: string;
   };
   url: '/api/v1/runs/baseline';
 };
@@ -6131,7 +6130,7 @@ export type RunsStreamRunResponses = {
   200: unknown;
 };
 
-export type ScenarioResultsListScenarioResultsData = {
+export type TestCaseResultsListTestCaseResultsData = {
   body?: never;
   path?: never;
   query?: {
@@ -6148,9 +6147,9 @@ export type ScenarioResultsListScenarioResultsData = {
      */
     run_id?: string | null;
     /**
-     * Scenario Id
+     * Test Case Id
      */
-    scenario_id?: string | null;
+    test_case_id?: string | null;
     /**
      * Repetition Index
      *
@@ -6164,10 +6163,10 @@ export type ScenarioResultsListScenarioResultsData = {
      */
     set_repetition_index?: number | null;
   };
-  url: '/api/v1/scenario-results/';
+  url: '/api/v1/test-case-results/';
 };
 
-export type ScenarioResultsListScenarioResultsErrors = {
+export type TestCaseResultsListTestCaseResultsErrors = {
   /**
    * Bad Request
    */
@@ -6198,27 +6197,27 @@ export type ScenarioResultsListScenarioResultsErrors = {
   500: ErrorResponse;
 };
 
-export type ScenarioResultsListScenarioResultsError =
-  ScenarioResultsListScenarioResultsErrors[keyof ScenarioResultsListScenarioResultsErrors];
+export type TestCaseResultsListTestCaseResultsError =
+  TestCaseResultsListTestCaseResultsErrors[keyof TestCaseResultsListTestCaseResultsErrors];
 
-export type ScenarioResultsListScenarioResultsResponses = {
+export type TestCaseResultsListTestCaseResultsResponses = {
   /**
    * Successful Response
    */
-  200: ScenarioResultsPublic;
+  200: TestCaseResultsPublic;
 };
 
-export type ScenarioResultsListScenarioResultsResponse =
-  ScenarioResultsListScenarioResultsResponses[keyof ScenarioResultsListScenarioResultsResponses];
+export type TestCaseResultsListTestCaseResultsResponse =
+  TestCaseResultsListTestCaseResultsResponses[keyof TestCaseResultsListTestCaseResultsResponses];
 
-export type ScenarioResultsCreateScenarioResultData = {
-  body: ScenarioResultCreate;
+export type TestCaseResultsCreateTestCaseResultData = {
+  body: TestCaseResultCreate;
   path?: never;
   query?: never;
-  url: '/api/v1/scenario-results/';
+  url: '/api/v1/test-case-results/';
 };
 
-export type ScenarioResultsCreateScenarioResultErrors = {
+export type TestCaseResultsCreateTestCaseResultErrors = {
   /**
    * Bad Request
    */
@@ -6249,20 +6248,20 @@ export type ScenarioResultsCreateScenarioResultErrors = {
   500: ErrorResponse;
 };
 
-export type ScenarioResultsCreateScenarioResultError =
-  ScenarioResultsCreateScenarioResultErrors[keyof ScenarioResultsCreateScenarioResultErrors];
+export type TestCaseResultsCreateTestCaseResultError =
+  TestCaseResultsCreateTestCaseResultErrors[keyof TestCaseResultsCreateTestCaseResultErrors];
 
-export type ScenarioResultsCreateScenarioResultResponses = {
+export type TestCaseResultsCreateTestCaseResultResponses = {
   /**
    * Successful Response
    */
-  200: ScenarioResultPublic;
+  200: TestCaseResultPublic;
 };
 
-export type ScenarioResultsCreateScenarioResultResponse =
-  ScenarioResultsCreateScenarioResultResponses[keyof ScenarioResultsCreateScenarioResultResponses];
+export type TestCaseResultsCreateTestCaseResultResponse =
+  TestCaseResultsCreateTestCaseResultResponses[keyof TestCaseResultsCreateTestCaseResultResponses];
 
-export type ScenarioResultsDeleteScenarioResultData = {
+export type TestCaseResultsDeleteTestCaseResultData = {
   body?: never;
   path: {
     /**
@@ -6271,10 +6270,10 @@ export type ScenarioResultsDeleteScenarioResultData = {
     result_id: string;
   };
   query?: never;
-  url: '/api/v1/scenario-results/{result_id}';
+  url: '/api/v1/test-case-results/{result_id}';
 };
 
-export type ScenarioResultsDeleteScenarioResultErrors = {
+export type TestCaseResultsDeleteTestCaseResultErrors = {
   /**
    * Bad Request
    */
@@ -6305,20 +6304,20 @@ export type ScenarioResultsDeleteScenarioResultErrors = {
   500: ErrorResponse;
 };
 
-export type ScenarioResultsDeleteScenarioResultError =
-  ScenarioResultsDeleteScenarioResultErrors[keyof ScenarioResultsDeleteScenarioResultErrors];
+export type TestCaseResultsDeleteTestCaseResultError =
+  TestCaseResultsDeleteTestCaseResultErrors[keyof TestCaseResultsDeleteTestCaseResultErrors];
 
-export type ScenarioResultsDeleteScenarioResultResponses = {
+export type TestCaseResultsDeleteTestCaseResultResponses = {
   /**
    * Successful Response
    */
   200: Message;
 };
 
-export type ScenarioResultsDeleteScenarioResultResponse =
-  ScenarioResultsDeleteScenarioResultResponses[keyof ScenarioResultsDeleteScenarioResultResponses];
+export type TestCaseResultsDeleteTestCaseResultResponse =
+  TestCaseResultsDeleteTestCaseResultResponses[keyof TestCaseResultsDeleteTestCaseResultResponses];
 
-export type ScenarioResultsGetScenarioResultData = {
+export type TestCaseResultsGetTestCaseResultData = {
   body?: never;
   path: {
     /**
@@ -6327,10 +6326,10 @@ export type ScenarioResultsGetScenarioResultData = {
     result_id: string;
   };
   query?: never;
-  url: '/api/v1/scenario-results/{result_id}';
+  url: '/api/v1/test-case-results/{result_id}';
 };
 
-export type ScenarioResultsGetScenarioResultErrors = {
+export type TestCaseResultsGetTestCaseResultErrors = {
   /**
    * Bad Request
    */
@@ -6361,21 +6360,21 @@ export type ScenarioResultsGetScenarioResultErrors = {
   500: ErrorResponse;
 };
 
-export type ScenarioResultsGetScenarioResultError =
-  ScenarioResultsGetScenarioResultErrors[keyof ScenarioResultsGetScenarioResultErrors];
+export type TestCaseResultsGetTestCaseResultError =
+  TestCaseResultsGetTestCaseResultErrors[keyof TestCaseResultsGetTestCaseResultErrors];
 
-export type ScenarioResultsGetScenarioResultResponses = {
+export type TestCaseResultsGetTestCaseResultResponses = {
   /**
    * Successful Response
    */
-  200: ScenarioResultPublic;
+  200: TestCaseResultPublic;
 };
 
-export type ScenarioResultsGetScenarioResultResponse =
-  ScenarioResultsGetScenarioResultResponses[keyof ScenarioResultsGetScenarioResultResponses];
+export type TestCaseResultsGetTestCaseResultResponse =
+  TestCaseResultsGetTestCaseResultResponses[keyof TestCaseResultsGetTestCaseResultResponses];
 
-export type ScenarioResultsUpdateScenarioResultData = {
-  body: ScenarioResultUpdate;
+export type TestCaseResultsUpdateTestCaseResultData = {
+  body: TestCaseResultUpdate;
   path: {
     /**
      * Result Id
@@ -6383,10 +6382,10 @@ export type ScenarioResultsUpdateScenarioResultData = {
     result_id: string;
   };
   query?: never;
-  url: '/api/v1/scenario-results/{result_id}';
+  url: '/api/v1/test-case-results/{result_id}';
 };
 
-export type ScenarioResultsUpdateScenarioResultErrors = {
+export type TestCaseResultsUpdateTestCaseResultErrors = {
   /**
    * Bad Request
    */
@@ -6417,18 +6416,18 @@ export type ScenarioResultsUpdateScenarioResultErrors = {
   500: ErrorResponse;
 };
 
-export type ScenarioResultsUpdateScenarioResultError =
-  ScenarioResultsUpdateScenarioResultErrors[keyof ScenarioResultsUpdateScenarioResultErrors];
+export type TestCaseResultsUpdateTestCaseResultError =
+  TestCaseResultsUpdateTestCaseResultErrors[keyof TestCaseResultsUpdateTestCaseResultErrors];
 
-export type ScenarioResultsUpdateScenarioResultResponses = {
+export type TestCaseResultsUpdateTestCaseResultResponses = {
   /**
    * Successful Response
    */
-  200: ScenarioResultPublic;
+  200: TestCaseResultPublic;
 };
 
-export type ScenarioResultsUpdateScenarioResultResponse =
-  ScenarioResultsUpdateScenarioResultResponses[keyof ScenarioResultsUpdateScenarioResultResponses];
+export type TestCaseResultsUpdateTestCaseResultResponse =
+  TestCaseResultsUpdateTestCaseResultResponses[keyof TestCaseResultsUpdateTestCaseResultResponses];
 
 export type ConfigGetConfigData = {
   body?: never;

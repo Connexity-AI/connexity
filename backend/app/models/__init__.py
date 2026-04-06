@@ -34,6 +34,7 @@ from app.models.common import ConfigPublic, ErrorResponse  # noqa: F401
 from app.models.comparison import (  # noqa: F401
     AggregateComparison,
     CauseAnalysisItem,
+    EvalSetDiff,
     FieldChange,
     ImprovementSuggestion,
     ImprovementSuggestions,
@@ -45,9 +46,8 @@ from app.models.comparison import (  # noqa: F401
     RegressionVerdict,
     RunComparison,
     RunConfigDiff,
-    ScenarioComparison,
-    ScenarioSetDiff,
     SuggestionsRequest,
+    TestCaseComparison,
     ToolDiff,
 )
 
@@ -67,10 +67,25 @@ from app.models.enums import (  # noqa: F401
     Difficulty,
     MetricTier,
     RunStatus,
-    ScenarioStatus,
     ScoreType,
     SimulatorMode,
+    TestCaseStatus,
     TurnRole,
+)
+
+# ── Eval set ───────────────────────────────────────────────────────
+from app.models.eval_set import (  # noqa: F401
+    EvalSet,
+    EvalSetBase,
+    EvalSetCreate,
+    EvalSetMember,
+    EvalSetMemberEntry,
+    EvalSetMemberPublic,
+    EvalSetMembersPublic,
+    EvalSetMembersUpdate,
+    EvalSetPublic,
+    EvalSetsPublic,
+    EvalSetUpdate,
 )
 
 # ── Run ────────────────────────────────────────────────────────────
@@ -81,45 +96,6 @@ from app.models.run import (  # noqa: F401
     RunPublic,
     RunsPublic,
     RunUpdate,
-)
-
-# ── Scenario ───────────────────────────────────────────────────────
-from app.models.scenario import (  # noqa: F401
-    OnConflict,
-    Scenario,
-    ScenarioBase,
-    ScenarioCreate,
-    ScenarioImportItem,
-    ScenarioImportResult,
-    ScenarioPublic,
-    ScenariosExport,
-    ScenariosPublic,
-    ScenarioUpdate,
-)
-
-# ── Scenario Result ────────────────────────────────────────────────
-from app.models.scenario_result import (  # noqa: F401
-    ScenarioResult,
-    ScenarioResultBase,
-    ScenarioResultCreate,
-    ScenarioResultPublic,
-    ScenarioResultsPublic,
-    ScenarioResultUpdate,
-)
-
-# ── Scenario Set ───────────────────────────────────────────────────
-from app.models.scenario_set import (  # noqa: F401
-    ScenarioSet,
-    ScenarioSetBase,
-    ScenarioSetCreate,
-    ScenarioSetMember,
-    ScenarioSetMemberEntry,
-    ScenarioSetMemberPublic,
-    ScenarioSetMembersPublic,
-    ScenarioSetMembersUpdate,
-    ScenarioSetPublic,
-    ScenarioSetsPublic,
-    ScenarioSetUpdate,
 )
 
 # ── JSONB nested schemas (pure Pydantic) ───────────────────────────
@@ -137,12 +113,36 @@ from app.models.schemas import (  # noqa: F401
     Persona,
     PythonImplementation,
     RunConfig,
-    ScenarioExecution,
+    TestCaseExecution,
     ToolCall,
     ToolCallFunction,
     ToolImplementation,
     ToolPlatformConfig,
     UserSimulatorConfig,
+)
+
+# ── Test case ──────────────────────────────────────────────────────
+from app.models.test_case import (  # noqa: F401
+    OnConflict,
+    TestCase,
+    TestCaseBase,
+    TestCaseCreate,
+    TestCaseImportItem,
+    TestCaseImportResult,
+    TestCasePublic,
+    TestCasesExport,
+    TestCasesPublic,
+    TestCaseUpdate,
+)
+
+# ── Test case result ───────────────────────────────────────────────
+from app.models.test_case_result import (  # noqa: F401
+    TestCaseResult,
+    TestCaseResultBase,
+    TestCaseResultCreate,
+    TestCaseResultPublic,
+    TestCaseResultsPublic,
+    TestCaseResultUpdate,
 )
 
 # ── Existing user models ──────────────────────────────────────────

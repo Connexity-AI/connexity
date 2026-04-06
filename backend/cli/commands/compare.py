@@ -78,7 +78,7 @@ def _format_comparison_table(data: dict[str, Any]) -> str:
 
     lines.append("")
     lines.append(
-        f"  Scenarios: {agg.get('total_regressions', 0)} regressed, "
+        f"  TestCases: {agg.get('total_regressions', 0)} regressed, "
         f"{agg.get('total_improvements', 0)} improved, "
         f"{agg.get('total_unchanged', 0)} unchanged, "
         f"{agg.get('total_errors', 0)} errors"

@@ -184,8 +184,8 @@ def sum_platform_usage_dicts(
 
 
 @dataclass
-class ScenarioTokenAccumulator:
-    """Collects per-scenario agent/platform token dicts and USD costs."""
+class TestCaseTokenAccumulator:
+    """Collects per-test-case agent/platform token dicts and USD costs."""
 
     _agent_parts: list[AgentUsageDict] = field(default_factory=list)
     _platform_parts: list[PlatformUsageDict] = field(default_factory=list)

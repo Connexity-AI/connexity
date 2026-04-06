@@ -402,14 +402,14 @@ def test_run_config_defaults():
     config = RunConfig()
     restored = _round_trip(RunConfig, config)
     assert restored.concurrency == 5
-    assert restored.timeout_per_scenario_ms == 120_000
+    assert restored.timeout_per_test_case_ms == 120_000
     assert restored.judge is None
 
 
 def test_run_config_full():
     config = RunConfig(
         concurrency=10,
-        timeout_per_scenario_ms=60_000,
+        timeout_per_test_case_ms=60_000,
         judge=JudgeConfig(
             model="claude-sonnet-4-5-20250514",
             provider="anthropic",
@@ -463,7 +463,7 @@ def test_run_config_with_user_simulator_round_trip():
 
 def test_aggregate_metrics_minimal():
     metrics = AggregateMetrics(
-        total_scenarios=0,
+        unique_test_case_count=0,
         total_executions=0,
         passed_count=0,
         failed_count=0,
@@ -476,7 +476,7 @@ def test_aggregate_metrics_minimal():
 
 def test_aggregate_metrics_full():
     metrics = AggregateMetrics(
-        total_scenarios=100,
+        unique_test_case_count=100,
         total_executions=100,
         passed_count=85,
         failed_count=10,
@@ -523,7 +523,7 @@ def test_aggregate_metrics_json_round_trip():
     import json
 
     metrics = AggregateMetrics(
-        total_scenarios=50,
+        unique_test_case_count=50,
         total_executions=50,
         passed_count=45,
         failed_count=3,
@@ -533,5 +533,5 @@ def test_aggregate_metrics_json_round_trip():
     json_str = json.dumps(metrics.model_dump(), default=str)
     raw = json.loads(json_str)
     restored = AggregateMetrics.model_validate(raw)
-    assert restored.total_scenarios == 50
+    assert restored.unique_test_case_count == 50
     assert restored.total_executions == 50

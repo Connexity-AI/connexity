@@ -32,7 +32,7 @@ def _build_system_prompt(
     user_context: dict[str, object] | None,
     expected_outcomes: dict[str, object] | None,
 ) -> str:
-    """Build the simulator system prompt from persona and scenario context."""
+    """Build the simulator system prompt from persona and test case context."""
     ctx_block = (
         json.dumps(user_context, indent=2, ensure_ascii=False)
         if user_context

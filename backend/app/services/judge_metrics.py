@@ -166,7 +166,7 @@ Scored 0-5 integer. Measures: concision, natural phrasing, TTS-friendliness, non
 
 _RUBRIC_TASK_COMPLETION = """\
 Binary pass/fail. Measures whether the agent completed the primary task described in expected_outcomes.
-Pass: outcomes satisfied given the transcript and scenario.
+Pass: outcomes satisfied given the transcript and test case.
 Fail: primary task not achieved."""
 
 

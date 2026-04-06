@@ -11,7 +11,7 @@ from pydantic import BaseModel
 # They are duplicated here so this example stays self-contained / copy-paste
 # friendly.  See docs/agent-contract.md for the authoritative spec.
 #
-# Tools & mock data align with examples/scenarios/*.json expected_tool_calls:
+# Tools & mock data align with examples/test-cases/*.json expected_tool_calls:
 #   - normal-refund-request: lookup_order, process_refund
 #   - tool-heavy-order-management: lookup_order, update_shipping_address,
 #     apply_discount, add_order_item
@@ -215,9 +215,9 @@ class ChatMessage(BaseModel):
 
 
 class AgentMetadata(BaseModel):
-    """Platform sends scenario_id + turn_index; see app.models.agent_contract.AgentRequestMetadata."""
+    """Platform sends test_case_id + turn_index; see app.models.agent_contract.AgentRequestMetadata."""
 
-    scenario_id: str | None = None
+    test_case_id: str | None = None
     turn_index: int | None = None
 
 

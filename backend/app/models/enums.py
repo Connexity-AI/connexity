@@ -6,7 +6,7 @@ class Difficulty(StrEnum):
     HARD = "hard"
 
 
-class ScenarioStatus(StrEnum):
+class TestCaseStatus(StrEnum):
     DRAFT = "draft"
     ACTIVE = "active"
     ARCHIVED = "archived"

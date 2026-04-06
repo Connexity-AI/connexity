@@ -8,7 +8,6 @@ from typing import Any
 
 from app.core.config import settings
 from app.models.enums import TurnRole
-from app.models.scenario import Scenario
 from app.models.schemas import (
     ConversationTurn,
     JudgeConfig,
@@ -16,6 +15,7 @@ from app.models.schemas import (
     MetricScore,
     ToolCall,
 )
+from app.models.test_case import TestCase
 from app.services.judge_metrics import (
     MetricDefinition,
     ScoreType,
@@ -38,7 +38,7 @@ SCORED_LABELS: dict[int, str] = {
 @dataclass(frozen=True)
 class JudgeInput:
     transcript: list[ConversationTurn]
-    scenario: Scenario
+    test_case: TestCase
     agent_system_prompt: str | None
     agent_tools: list[dict[str, Any]] | None
     judge_config: JudgeConfig | None
@@ -156,10 +156,10 @@ Keys must match the metric ids exactly.
 def _build_user_prompt(inp: JudgeInput, metric_names: list[str]) -> str:
     """Build the user prompt carrying only per-evaluation evidence."""
     outcomes = json.dumps(
-        inp.scenario.expected_outcomes or {}, indent=2, ensure_ascii=False
+        inp.test_case.expected_outcomes or {}, indent=2, ensure_ascii=False
     )
     tools_expected = json.dumps(
-        inp.scenario.expected_tool_calls or [],
+        inp.test_case.expected_tool_calls or [],
         indent=2,
         ensure_ascii=False,
     )
@@ -169,14 +169,14 @@ def _build_user_prompt(inp: JudgeInput, metric_names: list[str]) -> str:
         if inp.agent_tools
         else "(not captured)"
     )
-    override = (inp.scenario.evaluation_criteria_override or "").strip()
+    override = (inp.test_case.evaluation_criteria_override or "").strip()
 
     override_section = ""
     if override:
-        override_section = f"\n## Scenario-specific evaluation emphasis\n{override}\n"
+        override_section = f"\n## Test case-specific evaluation emphasis\n{override}\n"
 
     return f"""\
-## Scenario Context
+## Test Case Context
 
 **Expected outcomes:**
 ```json

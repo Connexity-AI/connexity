@@ -1,4 +1,4 @@
-"""Scenario list, import, export, and generate via the API."""
+"""TestCase list, import, export, and generate via the API."""
 
 import json
 import sys
@@ -11,12 +11,12 @@ from cli import output
 from cli.context import get_output_format, open_client, root_obj
 
 
-@click.group("scenarios")
-def scenarios_group() -> None:
-    """Manage scenarios."""
+@click.group("test-cases")
+def test_cases_group() -> None:
+    """Manage test cases."""
 
 
-@scenarios_group.command("list")
+@test_cases_group.command("list")
 @click.option(
     "--tag",
     "--tags",
@@ -35,7 +35,7 @@ def scenarios_group() -> None:
     default=None,
 )
 @click.pass_context
-def scenarios_list(
+def test_cases_list(
     ctx: click.Context,
     tag: tuple[str, ...],
     difficulty: str | None,
@@ -45,7 +45,7 @@ def scenarios_list(
     skip: int,
     output_override: str | None,
 ) -> None:
-    """List scenarios with optional filters."""
+    """List test cases with optional filters."""
     if not root_obj(ctx).get("token"):
         raise click.ClickException(
             "Authentication required: set CONNEXITY_EVALS_API_TOKEN or pass --token."
@@ -64,7 +64,7 @@ def scenarios_list(
                 params["status"] = status
             if search:
                 params["search"] = search
-            data = client.list_scenarios(params=params)
+            data = client.list_test_cases(params=params)
         else:
             merged: dict[str, dict[str, Any]] = {}
             total = 0
@@ -80,7 +80,7 @@ def scenarios_list(
                     params["status"] = status
                 if search:
                     params["search"] = search
-                chunk = client.list_scenarios(params=params)
+                chunk = client.list_test_cases(params=params)
                 total += int(chunk.get("count") or 0)
                 for row in chunk.get("data") or []:
                     if isinstance(row, dict) and "id" in row:
@@ -94,22 +94,23 @@ def _load_import_payload(raw: str) -> list[dict[str, Any]]:
     parsed = json.loads(raw)
     if isinstance(parsed, list):
         return [x for x in parsed if isinstance(x, dict)]
-    if isinstance(parsed, dict) and "scenarios" in parsed:
-        inner = parsed["scenarios"]
+    if isinstance(parsed, dict):
+        inner = parsed.get("test_cases")
         if isinstance(inner, list):
             return [x for x in inner if isinstance(x, dict)]
     raise click.ClickException(
-        "Import file must be a JSON array of scenarios or an object with a 'scenarios' array."
+        "Import file must be a JSON array of test cases or an object with a "
+        "'test_cases' array."
     )
 
 
-@scenarios_group.command("import")
+@test_cases_group.command("import")
 @click.argument("file", type=click.Path(exists=True, dir_okay=False))
 @click.option(
     "--overwrite",
     is_flag=True,
     default=False,
-    help="Overwrite existing scenarios on id conflict (maps to on_conflict=overwrite)",
+    help="Overwrite existing test cases on id conflict (maps to on_conflict=overwrite)",
 )
 @click.option(
     "--output",
@@ -118,13 +119,13 @@ def _load_import_payload(raw: str) -> list[dict[str, Any]]:
     default=None,
 )
 @click.pass_context
-def scenarios_import(
+def test_cases_import(
     ctx: click.Context,
     file: str,
     overwrite: bool,
     output_override: str | None,
 ) -> None:
-    """Bulk-import scenarios from JSON."""
+    """Bulk-import test cases from JSON."""
     if not root_obj(ctx).get("token"):
         raise click.ClickException(
             "Authentication required: set CONNEXITY_EVALS_API_TOKEN or pass --token."
@@ -133,18 +134,18 @@ def scenarios_import(
     raw = Path(file).read_text(encoding="utf-8")
     items = _load_import_payload(raw)
     if not items:
-        raise click.ClickException("No scenario objects found in file.")
+        raise click.ClickException("No test case objects found in file.")
 
     on_conflict = "overwrite" if overwrite else "skip"
     with open_client(ctx) as client:
-        result = client.import_scenarios(items, on_conflict=on_conflict)
+        result = client.import_test_cases(items, on_conflict=on_conflict)
 
     output.emit(result, output_format=fmt)
     if result.get("errors"):
         sys.exit(1)
 
 
-@scenarios_group.command("export")
+@test_cases_group.command("export")
 @click.option("--tag", default=None)
 @click.option("--difficulty", default=None)
 @click.option("--status", default=None)
@@ -162,7 +163,7 @@ def scenarios_import(
     default=None,
 )
 @click.pass_context
-def scenarios_export(
+def test_cases_export(
     ctx: click.Context,
     tag: str | None,
     difficulty: str | None,
@@ -170,7 +171,7 @@ def scenarios_export(
     out_path: str | None,
     output_override: str | None,
 ) -> None:
-    """Export scenarios as JSON."""
+    """Export test cases as JSON."""
     if not root_obj(ctx).get("token"):
         raise click.ClickException(
             "Authentication required: set CONNEXITY_EVALS_API_TOKEN or pass --token."
@@ -184,7 +185,7 @@ def scenarios_export(
         params["status"] = status
 
     with open_client(ctx) as client:
-        data = client.export_scenarios(params=params)
+        data = client.export_test_cases(params=params)
 
     if out_path:
         Path(out_path).write_text(
@@ -197,7 +198,7 @@ def scenarios_export(
     output.emit(data, output_format=fmt)
 
 
-@scenarios_group.command("generate")
+@test_cases_group.command("generate")
 @click.option(
     "--prompt",
     "prompt_file",
@@ -216,7 +217,7 @@ def scenarios_export(
     "--count",
     default=10,
     type=click.IntRange(1, 50),
-    help="Number of scenarios to generate",
+    help="Number of test cases to generate",
 )
 @click.option("--model", default=None, help="Override LLM model")
 @click.option(
@@ -224,13 +225,13 @@ def scenarios_export(
     "write_file",
     type=click.Path(dir_okay=False),
     default=None,
-    help="Write generated scenarios JSON to this file",
+    help="Write generated test cases JSON to this file",
 )
 @click.option(
     "--no-persist",
     is_flag=True,
     default=False,
-    help="Do not persist scenarios in the database",
+    help="Do not persist test cases in the database",
 )
 @click.option(
     "--output",
@@ -239,7 +240,7 @@ def scenarios_export(
     default=None,
 )
 @click.pass_context
-def scenarios_generate(
+def test_cases_generate(
     ctx: click.Context,
     prompt_file: str,
     tools_file: str | None,
@@ -249,7 +250,7 @@ def scenarios_generate(
     no_persist: bool,
     output_override: str | None,
 ) -> None:
-    """Generate scenarios via the API (POST /scenarios/generate)."""
+    """Generate test cases via the API (POST /test-cases/generate)."""
     if not root_obj(ctx).get("token"):
         raise click.ClickException(
             "Authentication required: set CONNEXITY_EVALS_API_TOKEN or pass --token."
@@ -274,33 +275,33 @@ def scenarios_generate(
         body["model"] = model
 
     with open_client(ctx) as client:
-        result = client.generate_scenarios(body)
+        result = client.generate_test_cases(body)
 
     if write_file:
-        scenarios = result.get("scenarios") or []
+        test_cases = result.get("test_cases") or []
         Path(write_file).write_text(
-            json.dumps(scenarios, indent=2, default=str),
+            json.dumps(test_cases, indent=2, default=str),
             encoding="utf-8",
         )
-        click.echo(f"Written {len(scenarios)} scenario(s) to {write_file}", err=True)
+        click.echo(f"Written {len(test_cases)} test case(s) to {write_file}", err=True)
 
     if fmt == "json":
         output.emit(result, output_format="json")
         return
 
     click.echo(
-        f"Generated {result.get('count')} scenario(s) using "
+        f"Generated {result.get('count')} test case(s) using "
         f"{result.get('model_used')} ({result.get('generation_time_ms')}ms)"
     )
-    scenarios = result.get("scenarios") or []
-    if scenarios:
+    test_cases = result.get("test_cases") or []
+    if test_cases:
         rows = [
             {
                 "name": s.get("name"),
                 "id": str(s.get("id", "")),
                 "status": s.get("status"),
             }
-            for s in scenarios
+            for s in test_cases
             if isinstance(s, dict)
         ]
         click.echo(output.format_dict_rows(rows))

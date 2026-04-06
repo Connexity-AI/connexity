@@ -7,64 +7,64 @@ from app.models import (
     Agent,
     Difficulty,
     OnConflict,
-    Scenario,
-    ScenarioCreate,
-    ScenarioImportItem,
-    ScenarioImportResult,
-    ScenarioStatus,
-    ScenarioUpdate,
+    TestCase,
+    TestCaseCreate,
+    TestCaseImportItem,
+    TestCaseImportResult,
+    TestCaseStatus,
+    TestCaseUpdate,
 )
 
 
-def create_scenario(*, session: Session, scenario_in: ScenarioCreate) -> Scenario:
-    if scenario_in.agent_id is not None:
-        agent = session.get(Agent, scenario_in.agent_id)
+def create_test_case(*, session: Session, test_case_in: TestCaseCreate) -> TestCase:
+    if test_case_in.agent_id is not None:
+        agent = session.get(Agent, test_case_in.agent_id)
         if agent is None:
-            msg = f"Agent not found: {scenario_in.agent_id}"
+            msg = f"Agent not found: {test_case_in.agent_id}"
             raise ValueError(msg)
-    db_obj = Scenario.model_validate(scenario_in.model_dump())
+    db_obj = TestCase.model_validate(test_case_in.model_dump())
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
     return db_obj
 
 
-def get_scenario(*, session: Session, scenario_id: uuid.UUID) -> Scenario | None:
-    return session.get(Scenario, scenario_id)
+def get_test_case(*, session: Session, test_case_id: uuid.UUID) -> TestCase | None:
+    return session.get(TestCase, test_case_id)
 
 
-def list_scenarios(
+def list_test_cases(
     *,
     session: Session,
     skip: int = 0,
     limit: int = 100,
     tag: str | None = None,
     difficulty: Difficulty | None = None,
-    status: ScenarioStatus | None = None,
+    status: TestCaseStatus | None = None,
     search: str | None = None,
     sort_by: str = "created_at",
     sort_order: str = "desc",
     agent_id: uuid.UUID | None = None,
-) -> tuple[list[Scenario], int]:
-    statement = select(Scenario)
-    count_statement = select(func.count()).select_from(Scenario)
+) -> tuple[list[TestCase], int]:
+    statement = select(TestCase)
+    count_statement = select(func.count()).select_from(TestCase)
 
     if tag is not None:
-        statement = statement.where(col(Scenario.tags).any(tag))
-        count_statement = count_statement.where(col(Scenario.tags).any(tag))
+        statement = statement.where(col(TestCase.tags).any(tag))
+        count_statement = count_statement.where(col(TestCase.tags).any(tag))
     if difficulty is not None:
-        statement = statement.where(Scenario.difficulty == difficulty)
-        count_statement = count_statement.where(Scenario.difficulty == difficulty)
+        statement = statement.where(TestCase.difficulty == difficulty)
+        count_statement = count_statement.where(TestCase.difficulty == difficulty)
     if status is not None:
-        statement = statement.where(Scenario.status == status)
-        count_statement = count_statement.where(Scenario.status == status)
+        statement = statement.where(TestCase.status == status)
+        count_statement = count_statement.where(TestCase.status == status)
     if agent_id is not None:
-        statement = statement.where(Scenario.agent_id == agent_id)
-        count_statement = count_statement.where(Scenario.agent_id == agent_id)
+        statement = statement.where(TestCase.agent_id == agent_id)
+        count_statement = count_statement.where(TestCase.agent_id == agent_id)
     if search is not None:
         pattern = f"%{search}%"
-        search_filter = col(Scenario.name).ilike(pattern) | col(
-            Scenario.description
+        search_filter = col(TestCase.name).ilike(pattern) | col(
+            TestCase.description
         ).ilike(pattern)
         statement = statement.where(search_filter)
         count_statement = count_statement.where(search_filter)
@@ -72,7 +72,7 @@ def list_scenarios(
     allowed_sort_fields = {"created_at", "updated_at", "name", "difficulty", "status"}
     if sort_by not in allowed_sort_fields:
         sort_by = "created_at"
-    sort_column = getattr(Scenario, sort_by)
+    sort_column = getattr(TestCase, sort_by)
     order = sort_column.desc() if sort_order == "desc" else sort_column.asc()
     statement = statement.order_by(order)
 
@@ -81,76 +81,75 @@ def list_scenarios(
     return items, count
 
 
-def update_scenario(
-    *, session: Session, db_scenario: Scenario, scenario_in: ScenarioUpdate
-) -> Scenario:
-    update_data = scenario_in.model_dump(exclude_unset=True)
+def update_test_case(
+    *, session: Session, db_test_case: TestCase, test_case_in: TestCaseUpdate
+) -> TestCase:
+    update_data = test_case_in.model_dump(exclude_unset=True)
     if "agent_id" in update_data and update_data["agent_id"] is not None:
         agent = session.get(Agent, update_data["agent_id"])
         if agent is None:
             msg = f"Agent not found: {update_data['agent_id']}"
             raise ValueError(msg)
-    db_scenario.sqlmodel_update(update_data)
-    session.add(db_scenario)
+    db_test_case.sqlmodel_update(update_data)
+    session.add(db_test_case)
     session.commit()
-    session.refresh(db_scenario)
-    return db_scenario
+    session.refresh(db_test_case)
+    return db_test_case
 
 
-def delete_scenario(*, session: Session, db_scenario: Scenario) -> None:
-    session.delete(db_scenario)
+def delete_test_case(*, session: Session, db_test_case: TestCase) -> None:
+    session.delete(db_test_case)
     session.commit()
 
 
 EXPORT_MAX_ROWS = 5000
 
 
-def export_scenarios(
+def export_test_cases(
     *,
     session: Session,
     tag: str | None = None,
     difficulty: Difficulty | None = None,
-    status: ScenarioStatus | None = None,
+    status: TestCaseStatus | None = None,
     agent_id: uuid.UUID | None = None,
-) -> list[Scenario]:
-    """Export scenarios matching optional filters (capped at EXPORT_MAX_ROWS)."""
-    statement = select(Scenario)
+) -> list[TestCase]:
+    """Export test cases matching optional filters (capped at EXPORT_MAX_ROWS)."""
+    statement = select(TestCase)
 
     if tag is not None:
-        statement = statement.where(col(Scenario.tags).any(tag))
+        statement = statement.where(col(TestCase.tags).any(tag))
     if difficulty is not None:
-        statement = statement.where(Scenario.difficulty == difficulty)
+        statement = statement.where(TestCase.difficulty == difficulty)
     if status is not None:
-        statement = statement.where(Scenario.status == status)
+        statement = statement.where(TestCase.status == status)
     if agent_id is not None:
-        statement = statement.where(Scenario.agent_id == agent_id)
+        statement = statement.where(TestCase.agent_id == agent_id)
 
     statement = statement.limit(EXPORT_MAX_ROWS)
     return list(session.exec(statement).all())
 
 
-def bulk_import_scenarios(
+def bulk_import_test_cases(
     *,
     session: Session,
-    scenarios_in: list[ScenarioImportItem],
+    test_cases_in: list[TestCaseImportItem],
     on_conflict: OnConflict,
-) -> ScenarioImportResult:
-    """Import scenarios in bulk. Handles ID conflicts via on_conflict strategy."""
+) -> TestCaseImportResult:
+    """Import test cases in bulk. Handles ID conflicts via on_conflict strategy."""
     created = 0
     skipped = 0
     overwritten = 0
     errors: list[str] = []
 
-    # Batch-fetch existing scenarios for items that provide an id
-    incoming_ids = [item.id for item in scenarios_in if item.id is not None]
-    existing: dict[uuid.UUID, Scenario] = {}
+    incoming_ids = [item.id for item in test_cases_in if item.id is not None]
+    existing: dict[uuid.UUID, TestCase] = {}
     if incoming_ids:
         rows = session.exec(
-            select(Scenario).where(col(Scenario.id).in_(incoming_ids))
+            select(TestCase).where(col(TestCase.id).in_(incoming_ids))
         ).all()
         existing = {row.id: row for row in rows}
 
-    for idx, item in enumerate(scenarios_in):
+    for idx, item in enumerate(test_cases_in):
         try:
             if item.agent_id is not None:
                 agent = session.get(Agent, item.agent_id)
@@ -162,7 +161,7 @@ def bulk_import_scenarios(
             data = item.model_dump(exclude_unset=True, exclude={"id"})
 
             if item.id is None:
-                db_obj = Scenario.model_validate(data)
+                db_obj = TestCase.model_validate(data)
                 session.add(db_obj)
                 created += 1
             elif item.id in existing:
@@ -173,7 +172,7 @@ def bulk_import_scenarios(
                     session.add(existing[item.id])
                     overwritten += 1
             else:
-                db_obj = Scenario.model_validate({**data, "id": item.id})
+                db_obj = TestCase.model_validate({**data, "id": item.id})
                 session.add(db_obj)
                 created += 1
         except Exception as exc:
@@ -185,10 +184,10 @@ def bulk_import_scenarios(
     else:
         session.commit()
 
-    return ScenarioImportResult(
+    return TestCaseImportResult(
         created=created,
         skipped=skipped,
         overwritten=overwritten,
-        total=len(scenarios_in),
+        total=len(test_cases_in),
         errors=errors,
     )

@@ -10,23 +10,23 @@ from app.models.schemas import ConversationTurn, JudgeVerdict
 
 if TYPE_CHECKING:
     from app.models.run import Run
-    from app.models.scenario import Scenario
+    from app.models.test_case import TestCase
 
 
-class ScenarioResultBase(SQLModel):
+class TestCaseResultBase(SQLModel):
     run_id: uuid.UUID = Field(
         foreign_key="run.id",
         index=True,
         description="FK to the parent run",
     )
-    scenario_id: uuid.UUID = Field(
-        foreign_key="scenario.id",
+    test_case_id: uuid.UUID = Field(
+        foreign_key="test_case.id",
         index=True,
-        description="FK to the scenario that was executed",
+        description="FK to the test case that was executed",
     )
     repetition_index: int = Field(
         default=0,
-        description="Which repetition of this scenario within a single set pass (0-based)",
+        description="Which repetition of this test case within a single set pass (0-based)",
     )
     set_repetition_index: int = Field(
         default=0,
@@ -50,7 +50,7 @@ class ScenarioResultBase(SQLModel):
     # Metrics
     total_latency_ms: int | None = Field(
         default=None,
-        description="Total wall-clock latency for the scenario in milliseconds",
+        description="Total wall-clock latency for the test case in milliseconds",
     )
     agent_latency_p50_ms: int | None = Field(
         default=None, description="Agent response latency p50 in milliseconds"
@@ -78,33 +78,33 @@ class ScenarioResultBase(SQLModel):
         description="Token usage from the eval platform (simulator + judge)",
     )
     agent_cost_usd: float | None = Field(
-        default=None, description="Estimated agent cost in USD for this scenario"
+        default=None, description="Estimated agent cost in USD for this test case"
     )
     platform_cost_usd: float | None = Field(
         default=None,
-        description="Estimated platform cost in USD (simulator + judge) for this scenario",
+        description="Estimated platform cost in USD (simulator + judge) for this test case",
     )
     estimated_cost_usd: float | None = Field(
-        default=None, description="Estimated total cost in USD for this scenario"
+        default=None, description="Estimated total cost in USD for this test case"
     )
     # Status
     passed: bool | None = Field(
-        default=None, index=True, description="Whether the scenario passed evaluation"
+        default=None, index=True, description="Whether the test case passed evaluation"
     )
     error_message: str | None = Field(
         default=None, description="Human-readable error message if applicable"
     )
     # Timing
     started_at: datetime | None = Field(
-        default=None, description="When scenario execution began"
+        default=None, description="When test case execution began"
     )
     completed_at: datetime | None = Field(
-        default=None, description="When scenario execution finished"
+        default=None, description="When test case execution finished"
     )
 
 
-class ScenarioResult(ScenarioResultBase, table=True):
-    __tablename__ = "scenario_result"
+class TestCaseResult(TestCaseResultBase, table=True):
+    __tablename__ = "test_case_result"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     created_at: datetime = Field(
@@ -120,13 +120,13 @@ class ScenarioResult(ScenarioResultBase, table=True):
     )
 
     # Relationships
-    run: "Run" = Relationship(back_populates="scenario_results")
-    scenario: "Scenario" = Relationship(back_populates="scenario_results")
+    run: "Run" = Relationship(back_populates="test_case_results")
+    test_case: "TestCase" = Relationship(back_populates="test_case_results")
 
 
-class ScenarioResultCreate(SQLModel):
+class TestCaseResultCreate(SQLModel):
     run_id: uuid.UUID = Field(description="FK to the parent run")
-    scenario_id: uuid.UUID = Field(description="FK to the scenario that was executed")
+    test_case_id: uuid.UUID = Field(description="FK to the test case that was executed")
     repetition_index: int = Field(
         default=0,
         description="Repetition within one set pass (0-based)",
@@ -137,7 +137,7 @@ class ScenarioResultCreate(SQLModel):
     )
 
 
-class ScenarioResultUpdate(SQLModel):
+class TestCaseResultUpdate(SQLModel):
     transcript: list[ConversationTurn] | None = Field(
         default=None,
         description="Full conversation transcript as a list of turns",
@@ -151,7 +151,7 @@ class ScenarioResultUpdate(SQLModel):
     )
     total_latency_ms: int | None = Field(
         default=None,
-        description="Total wall-clock latency for the scenario in milliseconds",
+        description="Total wall-clock latency for the test case in milliseconds",
     )
     agent_latency_p50_ms: int | None = Field(
         default=None, description="Agent response latency p50 in milliseconds"
@@ -176,33 +176,33 @@ class ScenarioResultUpdate(SQLModel):
         description="Token usage from the eval platform (simulator + judge)",
     )
     agent_cost_usd: float | None = Field(
-        default=None, description="Estimated agent cost in USD for this scenario"
+        default=None, description="Estimated agent cost in USD for this test case"
     )
     platform_cost_usd: float | None = Field(
         default=None,
-        description="Estimated platform cost in USD (simulator + judge) for this scenario",
+        description="Estimated platform cost in USD (simulator + judge) for this test case",
     )
     estimated_cost_usd: float | None = Field(
-        default=None, description="Estimated total cost in USD for this scenario"
+        default=None, description="Estimated total cost in USD for this test case"
     )
     passed: bool | None = Field(
-        default=None, description="Whether the scenario passed evaluation"
+        default=None, description="Whether the test case passed evaluation"
     )
     error_message: str | None = Field(
         default=None, description="Human-readable error message if applicable"
     )
     started_at: datetime | None = Field(
-        default=None, description="When scenario execution began"
+        default=None, description="When test case execution began"
     )
     completed_at: datetime | None = Field(
-        default=None, description="When scenario execution finished"
+        default=None, description="When test case execution finished"
     )
 
 
-class ScenarioResultPublic(SQLModel):
-    id: uuid.UUID = Field(description="Unique scenario result identifier")
+class TestCaseResultPublic(SQLModel):
+    id: uuid.UUID = Field(description="Unique test case result identifier")
     run_id: uuid.UUID = Field(description="FK to the parent run")
-    scenario_id: uuid.UUID = Field(description="FK to the scenario that was executed")
+    test_case_id: uuid.UUID = Field(description="FK to the test case that was executed")
     repetition_index: int = Field(
         description="Repetition within one set pass (0-based)",
     )
@@ -217,7 +217,7 @@ class ScenarioResultPublic(SQLModel):
         description="Judge verdict with scores, pass/fail, and reasoning",
     )
     total_latency_ms: int | None = Field(
-        description="Total wall-clock latency for the scenario in milliseconds"
+        description="Total wall-clock latency for the test case in milliseconds"
     )
     agent_latency_p50_ms: int | None = Field(
         description="Agent response latency p50 in milliseconds"
@@ -241,27 +241,27 @@ class ScenarioResultPublic(SQLModel):
         description="Token usage from the eval platform (simulator + judge)",
     )
     agent_cost_usd: float | None = Field(
-        default=None, description="Estimated agent cost in USD for this scenario"
+        default=None, description="Estimated agent cost in USD for this test case"
     )
     platform_cost_usd: float | None = Field(
         default=None,
-        description="Estimated platform cost in USD (simulator + judge) for this scenario",
+        description="Estimated platform cost in USD (simulator + judge) for this test case",
     )
     estimated_cost_usd: float | None = Field(
-        description="Estimated total cost in USD for this scenario"
+        description="Estimated total cost in USD for this test case"
     )
-    passed: bool | None = Field(description="Whether the scenario passed evaluation")
+    passed: bool | None = Field(description="Whether the test case passed evaluation")
     error_message: str | None = Field(
         description="Human-readable error message if applicable"
     )
-    started_at: datetime | None = Field(description="When scenario execution began")
+    started_at: datetime | None = Field(description="When test case execution began")
     completed_at: datetime | None = Field(
-        description="When scenario execution finished"
+        description="When test case execution finished"
     )
     created_at: datetime = Field(description="When the result was created")
     updated_at: datetime = Field(description="When the result was last updated")
 
 
-class ScenarioResultsPublic(SQLModel):
-    data: list[ScenarioResultPublic] = Field(description="List of scenario results")
+class TestCaseResultsPublic(SQLModel):
+    data: list[TestCaseResultPublic] = Field(description="List of test case results")
     count: int = Field(description="Total number of results matching the query")

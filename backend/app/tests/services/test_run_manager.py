@@ -19,7 +19,7 @@ def test_register_creates_state(manager: RunManager) -> None:
     assert state.run_id == run_id
     assert manager.is_active(run_id)
     assert isinstance(state.progress, RunProgress)
-    assert state.progress.total_scenarios == 0
+    assert state.progress.total_test_cases == 0
 
 
 def test_register_idempotent(manager: RunManager) -> None:
@@ -51,11 +51,11 @@ def test_get_progress_returns_none_for_unknown(manager: RunManager) -> None:
 def test_get_progress_returns_state_progress(manager: RunManager) -> None:
     run_id = uuid.uuid4()
     state = manager.register(run_id)
-    state.progress.total_scenarios = 5
+    state.progress.total_test_cases = 5
     state.progress.completed_count = 3
     progress = manager.get_progress(run_id)
     assert progress is not None
-    assert progress.total_scenarios == 5
+    assert progress.total_test_cases == 5
     assert progress.completed_count == 3
 
 
@@ -99,12 +99,12 @@ async def test_emit_delivers_to_subscriber(manager: RunManager) -> None:
     task = asyncio.create_task(consume())
     await asyncio.sleep(0.01)
 
-    manager.emit(run_id, "scenario_started", {"idx": 1})
+    manager.emit(run_id, "test_case_started", {"idx": 1})
     manager.unregister(run_id)
     await task
 
     event_names = [e.event for e in received]
-    assert "scenario_started" in event_names
+    assert "test_case_started" in event_names
     assert event_names[-1] == "stream_closed"
 
 
@@ -112,7 +112,7 @@ async def test_subscribe_replays_history(manager: RunManager) -> None:
     run_id = uuid.uuid4()
     manager.register(run_id)
     manager.emit(run_id, "run_started", {"t": 1})
-    manager.emit(run_id, "scenario_completed", {"t": 2})
+    manager.emit(run_id, "test_case_completed", {"t": 2})
 
     received: list[RunEvent] = []
 
@@ -128,7 +128,7 @@ async def test_subscribe_replays_history(manager: RunManager) -> None:
     await task
 
     assert received[0].event == "run_started"
-    assert received[1].event == "scenario_completed"
+    assert received[1].event == "test_case_completed"
     assert received[-1].event == "stream_closed"
 
 

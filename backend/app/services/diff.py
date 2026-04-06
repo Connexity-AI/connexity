@@ -5,7 +5,7 @@ Computes structured diffs between two run snapshots:
 - Tools: keyed by function.name, deepdiff per tool schema
 - Model/provider: simple equality
 - RunConfig JSONB: deepdiff on the full config dict
-- Scenario set membership: set intersection/difference on scenario IDs
+- Eval set membership: set intersection/difference on test case IDs
 """
 
 import difflib
@@ -14,10 +14,10 @@ import uuid
 from deepdiff import DeepDiff
 
 from app.models.comparison import (
+    EvalSetDiff,
     FieldChange,
     PromptDiff,
     RunConfigDiff,
-    ScenarioSetDiff,
     ToolDiff,
 )
 from app.models.run import Run
@@ -68,7 +68,6 @@ def _tools_by_name(tools: list[dict] | None) -> dict[str, dict]:
         if name:
             result[name] = tool
         else:
-            # Fallback: use full dict repr as key (shouldn't happen with valid schemas)
             result[str(tool)] = tool
     return result
 
@@ -128,12 +127,12 @@ def _extract_judge_config(run: Run) -> dict | None:
     """Extract judge config dict from run's config JSONB."""
     if not run.config:
         return None
-    cfg = run.config  # already dict from JSONB
+    cfg = run.config
     return cfg.get("judge")
 
 
 def compute_config_diff(old_run: Run, new_run: Run) -> list[FieldChange]:
-    """Diff the RunConfig JSONB between two runs, excluding judge model/provider (handled separately)."""
+    """Diff the RunConfig JSONB between two runs, excluding judge model/provider."""
     old_cfg = old_run.config or {}
     new_cfg = new_run.config or {}
 
@@ -174,27 +173,25 @@ def compute_config_diff(old_run: Run, new_run: Run) -> list[FieldChange]:
     return changes
 
 
-def compute_scenario_set_diff(
+def compute_eval_set_diff(
     old_run: Run,
     new_run: Run,
-    baseline_scenario_ids: set[uuid.UUID],
-    candidate_scenario_ids: set[uuid.UUID],
-) -> ScenarioSetDiff:
-    same_set = old_run.scenario_set_id == new_run.scenario_set_id
-    version_changed = (
-        same_set and old_run.scenario_set_version != new_run.scenario_set_version
-    )
+    baseline_test_case_ids: set[uuid.UUID],
+    candidate_test_case_ids: set[uuid.UUID],
+) -> EvalSetDiff:
+    same_set = old_run.eval_set_id == new_run.eval_set_id
+    version_changed = same_set and old_run.eval_set_version != new_run.eval_set_version
 
-    common = baseline_scenario_ids & candidate_scenario_ids
-    added = candidate_scenario_ids - baseline_scenario_ids
-    removed = baseline_scenario_ids - candidate_scenario_ids
+    common = baseline_test_case_ids & candidate_test_case_ids
+    added = candidate_test_case_ids - baseline_test_case_ids
+    removed = baseline_test_case_ids - candidate_test_case_ids
 
-    return ScenarioSetDiff(
+    return EvalSetDiff(
         same_set=same_set,
         version_changed=version_changed,
-        added_scenario_ids=sorted(added),
-        removed_scenario_ids=sorted(removed),
-        common_scenario_ids=sorted(common),
+        added_test_case_ids=sorted(added),
+        removed_test_case_ids=sorted(removed),
+        common_test_case_ids=sorted(common),
     )
 
 
@@ -209,8 +206,8 @@ def _field_change_or_none(
 def compute_run_config_diff(
     baseline: Run,
     candidate: Run,
-    baseline_scenario_ids: set[uuid.UUID],
-    candidate_scenario_ids: set[uuid.UUID],
+    baseline_test_case_ids: set[uuid.UUID],
+    candidate_test_case_ids: set[uuid.UUID],
 ) -> RunConfigDiff:
     """Orchestrator: computes the full structured diff between two runs."""
     prompt_diff = compute_prompt_diff(
@@ -229,7 +226,6 @@ def compute_run_config_diff(
         "agent_provider", baseline.agent_provider, candidate.agent_provider
     )
 
-    # Judge model/provider from config JSONB
     old_judge = _extract_judge_config(baseline) or {}
     new_judge = _extract_judge_config(candidate) or {}
     judge_model_changed = _field_change_or_none(
@@ -241,8 +237,8 @@ def compute_run_config_diff(
 
     config_changes = compute_config_diff(baseline, candidate)
 
-    scenario_set_diff = compute_scenario_set_diff(
-        baseline, candidate, baseline_scenario_ids, candidate_scenario_ids
+    eval_set_diff = compute_eval_set_diff(
+        baseline, candidate, baseline_test_case_ids, candidate_test_case_ids
     )
 
     return RunConfigDiff(
@@ -253,5 +249,5 @@ def compute_run_config_diff(
         judge_model_changed=judge_model_changed,
         judge_provider_changed=judge_provider_changed,
         config_changes=config_changes,
-        scenario_set_diff=scenario_set_diff,
+        eval_set_diff=eval_set_diff,
     )

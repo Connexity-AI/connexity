@@ -43,7 +43,7 @@ def _partial_match(expected: dict[str, Any], actual: dict[str, Any]) -> bool:
 
 
 class MockToolExecutor(ToolExecutor):
-    """Returns canned mock responses from scenario expected_tool_calls."""
+    """Returns canned mock responses from test case expected_tool_calls."""
 
     def __init__(self, expected_tool_calls: list[ExpectedToolCall]) -> None:
         self._queues: dict[str, deque[MockResponse]] = {}
@@ -94,10 +94,10 @@ class LiveToolExecutor(ToolExecutor):
     def __init__(
         self,
         tool_configs: dict[str, ToolPlatformConfig],
-        scenario_context: dict[str, Any],
+        test_case_context: dict[str, Any],
     ) -> None:
         self._tool_configs = tool_configs
-        self._scenario_context = scenario_context
+        self._test_case_context = test_case_context
 
     async def execute(
         self,
@@ -142,7 +142,7 @@ class LiveToolExecutor(ToolExecutor):
         context = ToolContext(
             http=httpx.AsyncClient(timeout=httpx.Timeout(impl.timeout_s)),
             config=impl.config,
-            scenario_context=self._scenario_context,
+            test_case_context=self._test_case_context,
         )
         try:
             return await execute_python_tool(
@@ -208,9 +208,9 @@ def _extract_tool_name(tool_def: dict[str, Any]) -> str | None:
 def build_tool_executor(
     tools: list[dict[str, Any]] | None,
     expected_tool_calls: list[dict[str, Any]] | None,
-    scenario_context: dict[str, Any],
+    test_case_context: dict[str, Any],
 ) -> ToolExecutor:
-    """Build the appropriate ToolExecutor from agent tools and scenario data.
+    """Build the appropriate ToolExecutor from agent tools and test case data.
 
     Returns :class:`CompositeToolExecutor` when any tool has ``platform_config``,
     otherwise :class:`SyntheticToolExecutor` for CS-54 backward compatibility.
@@ -249,7 +249,7 @@ def build_tool_executor(
             parsed_etc.append(raw)
 
     mock_executor = MockToolExecutor(parsed_etc)
-    live_executor = LiveToolExecutor(live_configs, scenario_context)
+    live_executor = LiveToolExecutor(live_configs, test_case_context)
 
     return CompositeToolExecutor(
         tool_modes=tool_modes,

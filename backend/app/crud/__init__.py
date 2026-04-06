@@ -15,6 +15,23 @@ from app.crud.custom_metrics import (  # noqa: F401
     list_custom_metrics,
     update_custom_metric,
 )
+from app.crud.eval_set import (  # noqa: F401
+    add_test_cases_to_set,
+    count_test_cases_in_set,
+    count_test_cases_in_sets,
+    create_eval_set,
+    delete_eval_set,
+    get_eval_set,
+    get_test_cases_for_set,
+    list_eval_sets,
+    list_test_cases_in_set,
+    remove_test_case_from_set,
+    replace_test_cases_in_set,
+    sum_member_repetitions_in_set,
+    sum_member_repetitions_in_sets,
+    update_eval_set,
+    validate_test_case_ids,
+)
 from app.crud.run import (  # noqa: F401
     create_run,
     delete_run,
@@ -25,38 +42,21 @@ from app.crud.run import (  # noqa: F401
     set_baseline,
     update_run,
 )
-from app.crud.scenario import (  # noqa: F401
-    bulk_import_scenarios,
-    create_scenario,
-    delete_scenario,
-    export_scenarios,
-    get_scenario,
-    list_scenarios,
-    update_scenario,
+from app.crud.test_case import (  # noqa: F401
+    bulk_import_test_cases,
+    create_test_case,
+    delete_test_case,
+    export_test_cases,
+    get_test_case,
+    list_test_cases,
+    update_test_case,
 )
-from app.crud.scenario_result import (  # noqa: F401
-    create_scenario_result,
-    delete_scenario_result,
-    get_scenario_result,
-    list_scenario_results,
-    update_scenario_result,
-)
-from app.crud.scenario_set import (  # noqa: F401
-    add_scenarios_to_set,
-    count_scenarios_in_set,
-    count_scenarios_in_sets,
-    create_scenario_set,
-    delete_scenario_set,
-    get_scenario_set,
-    get_scenarios_for_set,
-    list_scenario_sets,
-    list_scenarios_in_set,
-    remove_scenario_from_set,
-    replace_scenarios_in_set,
-    sum_member_repetitions_in_set,
-    sum_member_repetitions_in_sets,
-    update_scenario_set,
-    validate_scenario_ids,
+from app.crud.test_case_result import (  # noqa: F401
+    create_test_case_result,
+    delete_test_case_result,
+    get_test_case_result,
+    list_test_case_results,
+    update_test_case_result,
 )
 from app.crud.user import (  # noqa: F401
     authenticate,

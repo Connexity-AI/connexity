@@ -120,7 +120,7 @@ def update_run(*, session: Session, db_run: Run, run_in: RunUpdate) -> Run:
 
 
 def set_baseline(*, session: Session, db_run: Run) -> Run:
-    """Mark *db_run* as the baseline for its (agent_id, scenario_set_id) pair.
+    """Mark *db_run* as the baseline for its (agent_id, eval_set_id) pair.
 
     Any other run that was previously the baseline for the same pair is cleared.
 
@@ -135,7 +135,7 @@ def set_baseline(*, session: Session, db_run: Run) -> Run:
     # Clear existing baselines for the same scope
     statement = select(Run).where(
         Run.agent_id == db_run.agent_id,
-        Run.scenario_set_id == db_run.scenario_set_id,
+        Run.eval_set_id == db_run.eval_set_id,
         Run.is_baseline == True,  # noqa: E712
         Run.id != db_run.id,
     )
@@ -154,14 +154,14 @@ def get_baseline_run(
     *,
     session: Session,
     agent_id: uuid.UUID,
-    scenario_set_id: uuid.UUID,
+    eval_set_id: uuid.UUID,
 ) -> Run | None:
-    """Return the current baseline run for the given (agent, scenario_set) pair."""
+    """Return the current baseline run for the given (agent, eval_set) pair."""
     statement = (
         select(Run)
         .where(
             Run.agent_id == agent_id,
-            Run.scenario_set_id == scenario_set_id,
+            Run.eval_set_id == eval_set_id,
             Run.is_baseline == True,  # noqa: E712
         )
         .order_by(col(Run.created_at).desc())

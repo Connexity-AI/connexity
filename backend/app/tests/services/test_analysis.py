@@ -10,6 +10,7 @@ import pytest
 from app.models.comparison import (
     AggregateComparison,
     CauseAnalysisItem,
+    EvalSetDiff,
     FieldChange,
     ImprovementSuggestion,
     ImprovementSuggestions,
@@ -20,9 +21,8 @@ from app.models.comparison import (
     RegressionVerdict,
     RunComparison,
     RunConfigDiff,
-    ScenarioComparison,
-    ScenarioSetDiff,
     SuggestionsRequest,
+    TestCaseComparison,
     ToolDiff,
 )
 from app.models.schemas import AggregateMetrics
@@ -32,7 +32,7 @@ from app.services.analysis import (
     _extract_simulator_change,
     _format_field_change,
     _format_metric_deltas,
-    _format_top_regressed_scenarios,
+    _format_top_regressed_test_cases,
     _parse_analysis_json,
     compute_improvement_suggestions,
     compute_prompt_semantic_summary,
@@ -44,7 +44,7 @@ from app.services.analysis import (
 
 def _make_aggregate_metrics(**overrides: object) -> AggregateMetrics:
     defaults = {
-        "total_scenarios": 10,
+        "unique_test_case_count": 10,
         "total_executions": 10,
         "passed_count": 8,
         "failed_count": 2,
@@ -61,10 +61,10 @@ def _make_config_diff(**overrides: object) -> RunConfigDiff:
     defaults = {
         "prompt_diff": PromptDiff(changed=False, change_ratio=0.0),
         "tool_diff": ToolDiff(),
-        "scenario_set_diff": ScenarioSetDiff(
+        "eval_set_diff": EvalSetDiff(
             same_set=True,
             version_changed=False,
-            common_scenario_ids=[uuid.uuid4()],
+            common_test_case_ids=[uuid.uuid4()],
         ),
     }
     defaults.update(overrides)
@@ -77,7 +77,7 @@ def _make_comparison(
     avg_score_delta: float = -10.0,
     total_regressions: int = 2,
     total_improvements: int = 0,
-    scenario_comparisons: list[ScenarioComparison] | None = None,
+    test_case_comparisons: list[TestCaseComparison] | None = None,
     config_diff: RunConfigDiff | None = None,
     per_metric_aggregate_deltas: list[MetricAggregateDelta] | None = None,
 ) -> RunComparison:
@@ -101,9 +101,9 @@ def _make_comparison(
         baseline_run_id=uuid.uuid4(),
         candidate_run_id=uuid.uuid4(),
         aggregate=agg,
-        scenario_comparisons=scenario_comparisons or [],
-        baseline_only_scenarios=[],
-        candidate_only_scenarios=[],
+        test_case_comparisons=test_case_comparisons or [],
+        baseline_only_test_cases=[],
+        candidate_only_test_cases=[],
         config_diff=config_diff or _make_config_diff(),
         verdict=RegressionVerdict(
             regression_detected=True,
@@ -200,35 +200,35 @@ class TestFormatHelpers:
         assert "accuracy" in result
         assert "-1.00" in result
 
-    def test_format_top_regressed_scenarios_empty(self) -> None:
-        result = _format_top_regressed_scenarios([])
+    def test_format_top_regressed_test_cases_empty(self) -> None:
+        result = _format_top_regressed_test_cases([])
         assert "none" in result
 
-    def test_format_top_regressed_scenarios_sorted(self) -> None:
-        scenarios = [
-            ScenarioComparison(
-                scenario_id=uuid.uuid4(),
-                scenario_name="Mild regression",
+    def test_format_top_regressed_test_cases_sorted(self) -> None:
+        comparisons = [
+            TestCaseComparison(
+                test_case_id=uuid.uuid4(),
+                test_case_name="Mild regression",
                 status="regression",
                 score_delta=-5.0,
                 metric_deltas=[],
             ),
-            ScenarioComparison(
-                scenario_id=uuid.uuid4(),
-                scenario_name="Severe regression",
+            TestCaseComparison(
+                test_case_id=uuid.uuid4(),
+                test_case_name="Severe regression",
                 status="regression",
                 score_delta=-20.0,
                 metric_deltas=[],
             ),
-            ScenarioComparison(
-                scenario_id=uuid.uuid4(),
-                scenario_name="Unchanged",
+            TestCaseComparison(
+                test_case_id=uuid.uuid4(),
+                test_case_name="Unchanged",
                 status="unchanged",
                 score_delta=0.0,
                 metric_deltas=[],
             ),
         ]
-        result = _format_top_regressed_scenarios(scenarios)
+        result = _format_top_regressed_test_cases(comparisons)
         # Severe comes first (most negative delta)
         assert result.index("Severe") < result.index("Mild")
         assert "Unchanged" not in result

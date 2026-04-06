@@ -37,8 +37,8 @@ The platform sends **conversation history** between the user simulator and the a
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `scenario_id` | string \| null | no | Scenario identifier from the eval platform. |
-| `turn_index` | integer \| null | no | Zero-based turn index in the scenario. |
+| `test_case_id` | string \| null | no | Test case identifier from the eval platform. |
+| `turn_index` | integer \| null | no | Zero-based turn index in the conversation. |
 
 ### Tool call object (`ToolCall`)
 
@@ -97,7 +97,7 @@ All fields optional; include whatever your stack reports (often **summed** acros
     }
   ],
   "metadata": {
-    "scenario_id": "residential_duct_cleaning_happy_path",
+    "test_case_id": "residential_duct_cleaning_happy_path",
     "turn_index": 0
   }
 }
@@ -144,7 +144,7 @@ All fields optional; include whatever your stack reports (often **summed** acros
     }
   ],
   "metadata": {
-    "scenario_id": "residential_duct_cleaning_happy_path",
+    "test_case_id": "residential_duct_cleaning_happy_path",
     "turn_index": 2
   }
 }
@@ -215,7 +215,7 @@ For hard transport failures (timeout, 5xx), the platform run records an appropri
 ## OpenAPI (machine-readable)
 
 - **Reference implementation:** run the mock agent (`examples/mock_agent/`) and open its `/docs` — FastAPI generates OpenAPI from the same request/response shapes.
-- **Backend models:** `AgentRequest` / `AgentResponse` are part of the Python package for the runner and tests; the main Connexity API OpenAPI documents scenario/run resources that *reference* transcript types (`ConversationTurn`, `ToolCall`).
+- **Backend models:** `AgentRequest` / `AgentResponse` are part of the Python package for the runner and tests; the main Connexity API OpenAPI documents test-case/run resources that *reference* transcript types (`ConversationTurn`, `ToolCall`).
 
 ## Examples in this repo
 

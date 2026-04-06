@@ -77,36 +77,36 @@ class ApiClient:
         r = self._client.get("runs/", params=params or {})
         return self._json_dict(r)
 
-    def get_baseline_run(self, agent_id: str, scenario_set_id: str) -> dict[str, Any]:
+    def get_baseline_run(self, agent_id: str, eval_set_id: str) -> dict[str, Any]:
         r = self._client.get(
             "runs/baseline",
-            params={"agent_id": agent_id, "scenario_set_id": scenario_set_id},
+            params={"agent_id": agent_id, "eval_set_id": eval_set_id},
         )
         return self._json_dict(r)
 
-    def list_scenarios(self, params: dict[str, Any] | None = None) -> dict[str, Any]:
-        r = self._client.get("scenarios/", params=params or {})
+    def list_test_cases(self, params: dict[str, Any] | None = None) -> dict[str, Any]:
+        r = self._client.get("test-cases/", params=params or {})
         return self._json_dict(r)
 
-    def import_scenarios(
+    def import_test_cases(
         self,
         items: list[dict[str, Any]],
         *,
         on_conflict: str = "skip",
     ) -> dict[str, Any]:
         r = self._client.post(
-            "scenarios/import",
+            "test-cases/import",
             params={"on_conflict": on_conflict},
             json=items,
         )
         return self._json_dict(r)
 
-    def export_scenarios(self, params: dict[str, Any] | None = None) -> dict[str, Any]:
-        r = self._client.get("scenarios/export", params=params or {})
+    def export_test_cases(self, params: dict[str, Any] | None = None) -> dict[str, Any]:
+        r = self._client.get("test-cases/export", params=params or {})
         return self._json_dict(r)
 
-    def generate_scenarios(self, body: dict[str, Any]) -> dict[str, Any]:
-        r = self._client.post("scenarios/generate", json=body)
+    def generate_test_cases(self, body: dict[str, Any]) -> dict[str, Any]:
+        r = self._client.post("test-cases/generate", json=body)
         return self._json_dict(r)
 
     def compare_runs(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -121,14 +121,12 @@ class ApiClient:
         r = self._client.get(f"agents/{agent_id}")
         return self._json_dict(r)
 
-    def list_scenario_sets(
-        self, params: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
-        r = self._client.get("scenario-sets/", params=params or {})
+    def list_eval_sets(self, params: dict[str, Any] | None = None) -> dict[str, Any]:
+        r = self._client.get("eval-sets/", params=params or {})
         return self._json_dict(r)
 
-    def get_scenario_set(self, scenario_set_id: str) -> dict[str, Any]:
-        r = self._client.get(f"scenario-sets/{scenario_set_id}")
+    def get_eval_set(self, eval_set_id: str) -> dict[str, Any]:
+        r = self._client.get(f"eval-sets/{eval_set_id}")
         return self._json_dict(r)
 
     def iter_run_sse(self, run_id: str) -> Iterator[ServerSentEvent]:

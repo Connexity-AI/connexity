@@ -37,7 +37,7 @@ class ChatMessage(BaseModel):
 
 class AgentRequest(BaseModel):
     messages: list[ChatMessage]
-    # Platform sends {"scenario_id": "...", "turn_index": 0}
+    # Platform sends {"test_case_id": "...", "turn_index": 0}
     # We accept any dict here for simplicity; see app.models.agent_contract.AgentRequestMetadata
     metadata: dict[str, Any] | None = None
 

@@ -5,29 +5,30 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, field_validator
 from sqlalchemy import Column, Index, Text, text
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
 from app.models.agent import Agent
-from app.models.enums import Difficulty, ScenarioStatus
+from app.models.enums import Difficulty, TestCaseStatus
 from app.models.schemas import ExpectedToolCall, Persona
 
 if TYPE_CHECKING:
-    from app.models.scenario_result import ScenarioResult
-    from app.models.scenario_set import ScenarioSetMember
+    from app.models.eval_set import EvalSetMember
+    from app.models.test_case_result import TestCaseResult
 
 
-class ScenarioBase(SQLModel):
+class TestCaseBase(SQLModel):
     """Base fields shared by ORM and API schemas.
 
     JSONB columns use raw dict/list types for SQLAlchemy compatibility.
-    API-facing schemas (ScenarioCreate, ScenarioPublic, ScenarioUpdate)
+    API-facing schemas (TestCaseCreate, TestCasePublic, TestCaseUpdate)
     override persona and expected_tool_calls with typed Pydantic models.
     """
 
     name: str = Field(max_length=255, description="Human-readable short name")
     description: str | None = Field(
-        default=None, description="What this scenario tests (for humans)"
+        default=None, description="What this test case checks (for humans)"
     )
     difficulty: Difficulty = Field(
         default=Difficulty.NORMAL,
@@ -39,10 +40,19 @@ class ScenarioBase(SQLModel):
         sa_column=Column(ARRAY(Text), nullable=False, server_default="{}"),
         description="Free-form tags for grouping and filtering",
     )
-    status: ScenarioStatus = Field(
-        default=ScenarioStatus.ACTIVE,
-        index=True,
-        description="Lifecycle status — only active scenarios run by default",
+    status: TestCaseStatus = Field(
+        default=TestCaseStatus.ACTIVE,
+        description="Lifecycle status — only active test cases run by default",
+        sa_column=Column(
+            SAEnum(
+                TestCaseStatus,
+                name="testcasestatus",
+                native_enum=True,
+                values_callable=lambda m: [e.name for e in m],
+            ),
+            nullable=False,
+            index=True,
+        ),
     )
     persona: dict[str, Any] | None = Field(
         default=None,
@@ -80,7 +90,7 @@ class ScenarioBase(SQLModel):
         default=None,
         foreign_key="agent.id",
         index=True,
-        description="Agent this scenario belongs to (test suite pool for that agent)",
+        description="Agent this test case belongs to (test suite pool for that agent)",
     )
 
     @field_validator("persona", mode="before")
@@ -100,8 +110,8 @@ class ScenarioBase(SQLModel):
         return v
 
 
-class Scenario(ScenarioBase, table=True):
-    __tablename__ = "scenario"
+class TestCase(TestCaseBase, table=True):
+    __tablename__ = "test_case"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     created_at: datetime = Field(
@@ -117,28 +127,28 @@ class Scenario(ScenarioBase, table=True):
     )
 
     # Relationships
-    agent: Agent | None = Relationship(back_populates="scenarios")
-    scenario_set_links: list["ScenarioSetMember"] = Relationship(
-        back_populates="scenario",
+    agent: Agent | None = Relationship(back_populates="test_cases")
+    eval_set_links: list["EvalSetMember"] = Relationship(
+        back_populates="test_case",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
-    scenario_results: list["ScenarioResult"] = Relationship(
-        back_populates="scenario",
+    test_case_results: list["TestCaseResult"] = Relationship(
+        back_populates="test_case",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
 
-    __table_args__ = (Index("ix_scenario_tags_gin", "tags", postgresql_using="gin"),)
+    __table_args__ = (Index("ix_test_case_tags_gin", "tags", postgresql_using="gin"),)
 
 
-class ScenarioCreate(ScenarioBase):
+class TestCaseCreate(TestCaseBase):
     persona: Persona | None = None  # type: ignore[assignment]
     expected_tool_calls: list[ExpectedToolCall] | None = None  # type: ignore[assignment]
 
 
-class ScenarioUpdate(SQLModel):
+class TestCaseUpdate(SQLModel):
     name: str | None = Field(default=None, description="Human-readable short name")
     description: str | None = Field(
-        default=None, description="What this scenario tests (for humans)"
+        default=None, description="What this test case checks (for humans)"
     )
     difficulty: Difficulty | None = Field(
         default=None, description="Two-level difficulty classification"
@@ -146,9 +156,9 @@ class ScenarioUpdate(SQLModel):
     tags: list[str] | None = Field(
         default=None, description="Free-form tags for grouping and filtering"
     )
-    status: ScenarioStatus | None = Field(
+    status: TestCaseStatus | None = Field(
         default=None,
-        description="Lifecycle status — only active scenarios run by default",
+        description="Lifecycle status — only active test cases run by default",
     )
     persona: Persona | None = None
     initial_message: str | None = Field(
@@ -168,21 +178,21 @@ class ScenarioUpdate(SQLModel):
     )
     agent_id: uuid.UUID | None = Field(
         default=None,
-        description="Agent this scenario belongs to (test suite pool for that agent)",
+        description="Agent this test case belongs to (test suite pool for that agent)",
     )
 
 
-class ScenarioPublic(ScenarioBase):
-    id: uuid.UUID = Field(description="Unique scenario identifier")
-    created_at: datetime = Field(description="When the scenario was created")
-    updated_at: datetime = Field(description="When the scenario was last updated")
+class TestCasePublic(TestCaseBase):
+    id: uuid.UUID = Field(description="Unique test case identifier")
+    created_at: datetime = Field(description="When the test case was created")
+    updated_at: datetime = Field(description="When the test case was last updated")
     persona: Persona | None = None  # type: ignore[assignment]
     expected_tool_calls: list[ExpectedToolCall] | None = None  # type: ignore[assignment]
 
 
-class ScenariosPublic(SQLModel):
-    data: list[ScenarioPublic] = Field(description="List of scenarios")
-    count: int = Field(description="Total number of scenarios matching the query")
+class TestCasesPublic(SQLModel):
+    data: list[TestCasePublic] = Field(description="List of test cases")
+    count: int = Field(description="Total number of test cases matching the query")
 
 
 class OnConflict(StrEnum):
@@ -190,13 +200,13 @@ class OnConflict(StrEnum):
     OVERWRITE = "overwrite"
 
 
-class ScenarioImportItem(ScenarioCreate):
-    """Scenario payload for import — optional id enables round-trip and conflict detection."""
+class TestCaseImportItem(TestCaseCreate):
+    """Test case payload for import — optional id enables round-trip and conflict detection."""
 
     id: uuid.UUID | None = None
 
 
-class ScenarioImportResult(SQLModel):
+class TestCaseImportResult(SQLModel):
     created: int
     skipped: int
     overwritten: int
@@ -206,7 +216,7 @@ class ScenarioImportResult(SQLModel):
     )
 
 
-class ScenariosExport(SQLModel):
+class TestCasesExport(SQLModel):
     exported_at: datetime
     count: int
-    scenarios: list[ScenarioPublic]
+    test_cases: list[TestCasePublic]

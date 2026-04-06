@@ -5,17 +5,17 @@ from types import SimpleNamespace
 
 from app.services.diff import (
     compute_config_diff,
+    compute_eval_set_diff,
     compute_prompt_diff,
     compute_run_config_diff,
-    compute_scenario_set_diff,
     compute_tool_diff,
 )
 
 # Fields accessed by diff.py on Run objects.
 _RUN_DEFAULTS: dict[str, object] = {
     "id": None,  # overridden per call
-    "scenario_set_id": None,
-    "scenario_set_version": 1,
+    "eval_set_id": None,
+    "eval_set_version": 1,
     "agent_system_prompt": None,
     "agent_tools": None,
     "tools_snapshot": None,
@@ -26,7 +26,7 @@ _RUN_DEFAULTS: dict[str, object] = {
 
 
 def _make_run(**overrides: object) -> SimpleNamespace:
-    defaults = {**_RUN_DEFAULTS, "id": uuid.uuid4(), "scenario_set_id": uuid.uuid4()}
+    defaults = {**_RUN_DEFAULTS, "id": uuid.uuid4(), "eval_set_id": uuid.uuid4()}
     defaults.update(overrides)
     return SimpleNamespace(**defaults)
 
@@ -149,41 +149,41 @@ class TestComputeConfigDiff:
         assert result == []
 
 
-# ── Scenario set diff ────────────────────────────────────────────
+# ── TestCase set diff ────────────────────────────────────────────
 
 
-class TestComputeScenarioSetDiff:
+class TestComputeEvalSetDiff:
     def test_same_set_same_version(self) -> None:
         set_id = uuid.uuid4()
         s1, s2, s3 = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
-        r1 = _make_run(scenario_set_id=set_id, scenario_set_version=1)
-        r2 = _make_run(scenario_set_id=set_id, scenario_set_version=1)
-        result = compute_scenario_set_diff(r1, r2, {s1, s2, s3}, {s1, s2, s3})
+        r1 = _make_run(eval_set_id=set_id, eval_set_version=1)
+        r2 = _make_run(eval_set_id=set_id, eval_set_version=1)
+        result = compute_eval_set_diff(r1, r2, {s1, s2, s3}, {s1, s2, s3})
         assert result.same_set is True
         assert result.version_changed is False
-        assert len(result.common_scenario_ids) == 3
-        assert result.added_scenario_ids == []
-        assert result.removed_scenario_ids == []
+        assert len(result.common_test_case_ids) == 3
+        assert result.added_test_case_ids == []
+        assert result.removed_test_case_ids == []
 
     def test_same_set_version_bump_with_changes(self) -> None:
         set_id = uuid.uuid4()
         common = uuid.uuid4()
         removed = uuid.uuid4()
         added = uuid.uuid4()
-        r1 = _make_run(scenario_set_id=set_id, scenario_set_version=1)
-        r2 = _make_run(scenario_set_id=set_id, scenario_set_version=2)
-        result = compute_scenario_set_diff(r1, r2, {common, removed}, {common, added})
+        r1 = _make_run(eval_set_id=set_id, eval_set_version=1)
+        r2 = _make_run(eval_set_id=set_id, eval_set_version=2)
+        result = compute_eval_set_diff(r1, r2, {common, removed}, {common, added})
         assert result.same_set is True
         assert result.version_changed is True
-        assert common in result.common_scenario_ids
-        assert added in result.added_scenario_ids
-        assert removed in result.removed_scenario_ids
+        assert common in result.common_test_case_ids
+        assert added in result.added_test_case_ids
+        assert removed in result.removed_test_case_ids
 
     def test_different_sets(self) -> None:
         s1 = uuid.uuid4()
-        r1 = _make_run(scenario_set_id=uuid.uuid4(), scenario_set_version=1)
-        r2 = _make_run(scenario_set_id=uuid.uuid4(), scenario_set_version=1)
-        result = compute_scenario_set_diff(r1, r2, {s1}, {s1})
+        r1 = _make_run(eval_set_id=uuid.uuid4(), eval_set_version=1)
+        r2 = _make_run(eval_set_id=uuid.uuid4(), eval_set_version=1)
+        result = compute_eval_set_diff(r1, r2, {s1}, {s1})
         assert result.same_set is False
         assert result.version_changed is False
 
@@ -196,13 +196,13 @@ class TestComputeRunConfigDiff:
         set_id = uuid.uuid4()
         sids = {uuid.uuid4()}
         r1 = _make_run(
-            scenario_set_id=set_id,
+            eval_set_id=set_id,
             agent_system_prompt="Hello",
             agent_model="gpt-4o",
             agent_provider="openai",
         )
         r2 = _make_run(
-            scenario_set_id=set_id,
+            eval_set_id=set_id,
             agent_system_prompt="Hello",
             agent_model="gpt-4o",
             agent_provider="openai",
@@ -216,8 +216,8 @@ class TestComputeRunConfigDiff:
     def test_model_swap(self) -> None:
         set_id = uuid.uuid4()
         sids = {uuid.uuid4()}
-        r1 = _make_run(scenario_set_id=set_id, agent_model="gpt-4o")
-        r2 = _make_run(scenario_set_id=set_id, agent_model="gpt-4o-mini")
+        r1 = _make_run(eval_set_id=set_id, agent_model="gpt-4o")
+        r2 = _make_run(eval_set_id=set_id, agent_model="gpt-4o-mini")
         result = compute_run_config_diff(r1, r2, sids, sids)
         assert result.model_changed is not None
         assert result.model_changed.old_value == "gpt-4o"
@@ -227,12 +227,12 @@ class TestComputeRunConfigDiff:
         set_id = uuid.uuid4()
         sids = {uuid.uuid4()}
         r1 = _make_run(
-            scenario_set_id=set_id,
+            eval_set_id=set_id,
             agent_system_prompt="V1 prompt",
             tools_snapshot=[_tool("search")],
         )
         r2 = _make_run(
-            scenario_set_id=set_id,
+            eval_set_id=set_id,
             agent_system_prompt="V2 prompt completely rewritten",
             tools_snapshot=[_tool("search"), _tool("weather")],
         )
@@ -246,11 +246,11 @@ class TestComputeRunConfigDiff:
         set_id = uuid.uuid4()
         sids = {uuid.uuid4()}
         r1 = _make_run(
-            scenario_set_id=set_id,
+            eval_set_id=set_id,
             config={"judge": {"model": "gpt-4o", "provider": "openai"}},
         )
         r2 = _make_run(
-            scenario_set_id=set_id,
+            eval_set_id=set_id,
             config={"judge": {"model": "claude-3-5-sonnet", "provider": "anthropic"}},
         )
         result = compute_run_config_diff(r1, r2, sids, sids)

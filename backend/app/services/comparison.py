@@ -1,6 +1,6 @@
 """Run-to-run comparison engine (CS-27).
 
-Computes structured diffs between two completed runs: per-scenario verdict
+Computes structured diffs between two completed runs: per-test-case verdict
 changes, per-metric score deltas, and suite-level aggregate metric deltas.
 """
 
@@ -17,16 +17,16 @@ from app.models.comparison import (
     RegressionThresholds,
     RegressionVerdict,
     RunComparison,
-    ScenarioComparison,
+    TestCaseComparison,
 )
 from app.models.run import Run
-from app.models.scenario import Scenario
-from app.models.scenario_result import ScenarioResult
 from app.models.schemas import AggregateMetrics, JudgeVerdict, MetricScore
+from app.models.test_case import TestCase
+from app.models.test_case_result import TestCaseResult
 from app.services.diff import compute_run_config_diff
 
 # Score threshold on the 0-100 overall_score scale for classifying
-# a scenario as regression/improvement (when pass/fail didn't flip).
+# a test case as regression/improvement (when pass/fail didn't flip).
 _SCORE_THRESHOLD = 5.0
 
 
@@ -39,55 +39,55 @@ def compare_runs(
     """Compare two completed runs and return a structured RunComparison."""
     warnings: list[str] = []
 
-    # Load scenario results for both runs in bulk
-    baseline_results = _load_results_by_scenario(session, baseline.id)
-    candidate_results = _load_results_by_scenario(session, candidate.id)
+    # Load test case results for both runs in bulk
+    baseline_results = _load_results_by_test_case(session, baseline.id)
+    candidate_results = _load_results_by_test_case(session, candidate.id)
 
-    baseline_sids = set(baseline_results)
-    candidate_sids = set(candidate_results)
+    baseline_tc_ids = set(baseline_results)
+    candidate_tc_ids = set(candidate_results)
 
-    # Determine scenario matching
-    if baseline.scenario_set_id != candidate.scenario_set_id:
+    # Determine test case matching
+    if baseline.eval_set_id != candidate.eval_set_id:
         warnings.append(
-            "Runs use different scenario sets — comparison is based on "
-            "overlapping scenario IDs only."
+            "Runs use different eval sets — comparison is based on "
+            "overlapping test case IDs only."
         )
 
-    matched_ids = baseline_sids & candidate_sids
-    baseline_only = sorted(baseline_sids - candidate_sids)
-    candidate_only = sorted(candidate_sids - baseline_sids)
+    matched_ids = baseline_tc_ids & candidate_tc_ids
+    baseline_only = sorted(baseline_tc_ids - candidate_tc_ids)
+    candidate_only = sorted(candidate_tc_ids - baseline_tc_ids)
 
     if baseline_only or candidate_only:
-        if baseline.scenario_set_id == candidate.scenario_set_id:
+        if baseline.eval_set_id == candidate.eval_set_id:
             warnings.append(
-                f"Scenario set versions differ ({baseline.scenario_set_version} vs "
-                f"{candidate.scenario_set_version}): {len(baseline_only)} removed, "
+                f"Eval set versions differ ({baseline.eval_set_version} vs "
+                f"{candidate.eval_set_version}): {len(baseline_only)} removed, "
                 f"{len(candidate_only)} added."
             )
 
-    # Load scenario names for matched scenarios
-    scenario_names = _load_scenario_names(session, matched_ids)
+    # Load test case names for matched test cases
+    test_case_names = _load_test_case_names(session, matched_ids)
 
-    # Per-scenario comparisons
-    scenario_comparisons: list[ScenarioComparison] = []
+    # Per-test-case comparisons
+    test_case_comparisons: list[TestCaseComparison] = []
     for sid in sorted(matched_ids):
         b_result = baseline_results[sid]
         c_result = candidate_results[sid]
-        sc = _compare_scenario(
-            sid, scenario_names.get(sid, "Unknown"), b_result, c_result
+        sc = _compare_test_case(
+            sid, test_case_names.get(sid, "Unknown"), b_result, c_result
         )
-        scenario_comparisons.append(sc)
+        test_case_comparisons.append(sc)
 
     # Aggregate comparison
     baseline_metrics = _parse_aggregate_metrics(baseline)
     candidate_metrics = _parse_aggregate_metrics(candidate)
     aggregate = _compute_aggregate(
-        baseline_metrics, candidate_metrics, scenario_comparisons
+        baseline_metrics, candidate_metrics, test_case_comparisons
     )
 
     # Config diff (CS-47)
     config_diff = compute_run_config_diff(
-        baseline, candidate, baseline_sids, candidate_sids
+        baseline, candidate, baseline_tc_ids, candidate_tc_ids
     )
 
     # Regression verdict (CS-28)
@@ -100,9 +100,9 @@ def compare_runs(
         baseline_run_name=baseline.name,
         candidate_run_name=candidate.name,
         aggregate=aggregate,
-        scenario_comparisons=scenario_comparisons,
-        baseline_only_scenarios=baseline_only,
-        candidate_only_scenarios=candidate_only,
+        test_case_comparisons=test_case_comparisons,
+        baseline_only_test_cases=baseline_only,
+        candidate_only_test_cases=candidate_only,
         config_diff=config_diff,
         verdict=verdict,
         warnings=warnings,
@@ -112,28 +112,28 @@ def compare_runs(
 # ── Internal helpers ─────────────────────────────────────────────
 
 
-def _load_results_by_scenario(
+def _load_results_by_test_case(
     session: Session, run_id: uuid.UUID
-) -> dict[uuid.UUID, ScenarioResult]:
-    """Load all ScenarioResults for a run, keyed by scenario_id."""
-    stmt = select(ScenarioResult).where(ScenarioResult.run_id == run_id)
+) -> dict[uuid.UUID, TestCaseResult]:
+    """Load all TestCaseResults for a run, keyed by test_case_id."""
+    stmt = select(TestCaseResult).where(TestCaseResult.run_id == run_id)
     results = session.exec(stmt).all()
-    return {r.scenario_id: r for r in results}
+    return {r.test_case_id: r for r in results}
 
 
-def _load_scenario_names(
-    session: Session, scenario_ids: set[uuid.UUID]
+def _load_test_case_names(
+    session: Session, test_case_ids: set[uuid.UUID]
 ) -> dict[uuid.UUID, str]:
-    if not scenario_ids:
+    if not test_case_ids:
         return {}
-    stmt = select(Scenario.id, Scenario.name).where(
-        Scenario.id.in_(scenario_ids)  # type: ignore[union-attr]
+    stmt = select(TestCase.id, TestCase.name).where(
+        TestCase.id.in_(test_case_ids)  # type: ignore[union-attr]
     )
     rows = session.exec(stmt).all()
     return {row[0]: row[1] for row in rows}
 
 
-def _parse_verdict(result: ScenarioResult) -> JudgeVerdict | None:
+def _parse_verdict(result: TestCaseResult) -> JudgeVerdict | None:
     if not result.verdict:
         return None
     return JudgeVerdict.model_validate(result.verdict)
@@ -141,10 +141,9 @@ def _parse_verdict(result: ScenarioResult) -> JudgeVerdict | None:
 
 def _parse_aggregate_metrics(run: Run) -> AggregateMetrics:
     if run.aggregate_metrics:
-        return AggregateMetrics.model_validate(run.aggregate_metrics)
-    # Fallback: empty metrics if somehow missing on a completed run
+        return AggregateMetrics.model_validate(dict(run.aggregate_metrics))
     return AggregateMetrics(
-        total_scenarios=0,
+        unique_test_case_count=0,
         total_executions=0,
         passed_count=0,
         failed_count=0,
@@ -229,13 +228,13 @@ def _build_metric_deltas(
     return deltas
 
 
-def _scenario_status(
-    b_result: ScenarioResult,
-    c_result: ScenarioResult,
+def _test_case_status(
+    b_result: TestCaseResult,
+    c_result: TestCaseResult,
     b_verdict: JudgeVerdict | None,
     c_verdict: JudgeVerdict | None,
 ) -> Literal["regression", "improvement", "unchanged", "error"]:
-    """Determine overall scenario comparison status."""
+    """Determine overall test case comparison status."""
     if b_result.error_message or c_result.error_message:
         return "error"
 
@@ -259,12 +258,12 @@ def _scenario_status(
     return "unchanged"
 
 
-def _compare_scenario(
-    scenario_id: uuid.UUID,
-    scenario_name: str,
-    b_result: ScenarioResult,
-    c_result: ScenarioResult,
-) -> ScenarioComparison:
+def _compare_test_case(
+    test_case_id: uuid.UUID,
+    test_case_name: str,
+    b_result: TestCaseResult,
+    c_result: TestCaseResult,
+) -> TestCaseComparison:
     b_verdict = _parse_verdict(b_result)
     c_verdict = _parse_verdict(c_result)
 
@@ -279,10 +278,10 @@ def _compare_scenario(
     if b_result.total_latency_ms is not None and c_result.total_latency_ms is not None:
         latency_delta = c_result.total_latency_ms - b_result.total_latency_ms
 
-    return ScenarioComparison(
-        scenario_id=scenario_id,
-        scenario_name=scenario_name,
-        status=_scenario_status(b_result, c_result, b_verdict, c_verdict),
+    return TestCaseComparison(
+        test_case_id=test_case_id,
+        test_case_name=test_case_name,
+        status=_test_case_status(b_result, c_result, b_verdict, c_verdict),
         baseline_passed=b_result.passed,
         candidate_passed=c_result.passed,
         baseline_score=b_score,
@@ -303,9 +302,9 @@ def _safe_delta(a: float | None, b: float | None) -> float | None:
 
 
 def _compute_per_metric_aggregate_deltas(
-    scenario_comparisons: list[ScenarioComparison],
+    test_case_comparisons: list[TestCaseComparison],
 ) -> list[MetricAggregateDelta]:
-    """Aggregate each metric across all matched scenarios.
+    """Aggregate each metric across all matched test cases.
 
     For binary metrics: pass rate (fraction where label == 'pass').
     For scored metrics: mean 0-5 score.
@@ -315,7 +314,7 @@ def _compute_per_metric_aggregate_deltas(
     candidate_scores: dict[str, list[int | str]] = {}
     is_binary_map: dict[str, bool] = {}
 
-    for sc in scenario_comparisons:
+    for sc in test_case_comparisons:
         for md in sc.metric_deltas:
             is_binary_map[md.metric] = md.is_binary
 
@@ -370,16 +369,16 @@ def _compute_per_metric_aggregate_deltas(
 def _compute_aggregate(
     baseline_metrics: AggregateMetrics,
     candidate_metrics: AggregateMetrics,
-    scenario_comparisons: list[ScenarioComparison],
+    test_case_comparisons: list[TestCaseComparison],
 ) -> AggregateComparison:
     total_regressions = sum(
-        1 for sc in scenario_comparisons if sc.status == "regression"
+        1 for sc in test_case_comparisons if sc.status == "regression"
     )
     total_improvements = sum(
-        1 for sc in scenario_comparisons if sc.status == "improvement"
+        1 for sc in test_case_comparisons if sc.status == "improvement"
     )
-    total_unchanged = sum(1 for sc in scenario_comparisons if sc.status == "unchanged")
-    total_errors = sum(1 for sc in scenario_comparisons if sc.status == "error")
+    total_unchanged = sum(1 for sc in test_case_comparisons if sc.status == "unchanged")
+    total_errors = sum(1 for sc in test_case_comparisons if sc.status == "error")
 
     return AggregateComparison(
         baseline_metrics=baseline_metrics,
@@ -405,7 +404,7 @@ def _compute_aggregate(
         total_unchanged=total_unchanged,
         total_errors=total_errors,
         per_metric_aggregate_deltas=_compute_per_metric_aggregate_deltas(
-            scenario_comparisons
+            test_case_comparisons
         ),
     )
 

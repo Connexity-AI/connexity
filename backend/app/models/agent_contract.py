@@ -13,11 +13,11 @@ from app.models.schemas import ToolCall
 
 
 class AgentRequestMetadata(BaseModel):
-    scenario_id: str | None = Field(
-        default=None, description="Scenario identifier from the eval platform"
+    test_case_id: str | None = Field(
+        default=None, description="Test case identifier from the eval platform"
     )
     turn_index: int | None = Field(
-        default=None, description="Zero-based turn index in the scenario conversation"
+        default=None, description="Zero-based turn index in the test case conversation"
     )
 
 

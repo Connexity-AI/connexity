@@ -18,7 +18,7 @@ def _make_context(**overrides: object) -> ToolContext:
     return ToolContext(
         http=AsyncMock(spec=httpx.AsyncClient),
         config=overrides.get("config", {}),  # type: ignore[arg-type]
-        scenario_context=overrides.get("scenario_context", {}),  # type: ignore[arg-type]
+        test_case_context=overrides.get("test_case_context", {}),  # type: ignore[arg-type]
     )
 
 
@@ -104,12 +104,12 @@ async def test_python_tool_uses_context_config() -> None:
 
 
 @pytest.mark.asyncio
-async def test_python_tool_uses_scenario_context() -> None:
+async def test_python_tool_uses_test_case_context() -> None:
     code = (
         "async def execute(args, context):\n"
-        "    return {'customer': context.scenario_context['customer_name']}\n"
+        "    return {'customer': context.test_case_context['customer_name']}\n"
     )
-    ctx = _make_context(scenario_context={"customer_name": "Alice"})
+    ctx = _make_context(test_case_context={"customer_name": "Alice"})
     result = await execute_python_tool(code, {}, ctx)
     assert result == {"customer": "Alice"}
 

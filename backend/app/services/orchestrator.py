@@ -1,4 +1,4 @@
-"""Partial run orchestration: agent HTTP calls, message mapping, scenario loop."""
+"""Partial run orchestration: agent HTTP calls, message mapping, test_case loop."""
 
 import asyncio
 import logging
@@ -22,8 +22,6 @@ from app.models.agent_contract import (
     TokenUsage,
 )
 from app.models.enums import AgentMode, SimulatorMode, TurnRole
-from app.models.scenario import Scenario
-from app.models.scenario_result import ScenarioResult
 from app.models.schemas import (
     AggregateMetrics,
     ConversationTurn,
@@ -33,9 +31,11 @@ from app.models.schemas import (
     ToolCall,
     UserSimulatorConfig,
 )
+from app.models.test_case import TestCase
+from app.models.test_case_result import TestCaseResult
 from app.services.agent_simulator import AgentSimulator
 from app.services.cost_tracker import (
-    ScenarioTokenAccumulator,
+    TestCaseTokenAccumulator,
     estimate_agent_cost,
     estimate_agent_tokens,
     sum_platform_usage_dicts,
@@ -60,8 +60,8 @@ async def _agent_http_client(agent_mode: AgentMode):
 
 
 @dataclass(frozen=True)
-class ScenarioRunResult:
-    """Outcome of :func:`run_scenario` including token/cost aggregates (simulator only)."""
+class TestCaseRunResult:
+    """Outcome of :func:`run_test_case` including token/cost aggregates (simulator only)."""
 
     transcript: list[ConversationTurn]
     agent_token_usage: dict[str, int | bool]
@@ -153,9 +153,9 @@ def transcript_to_simulator_messages(
     return out
 
 
-def _persona_from_scenario(scenario: Scenario) -> Persona:
-    if scenario.persona:
-        return Persona.model_validate(scenario.persona)
+def _persona_from_test_case(test_case: TestCase) -> Persona:
+    if test_case.persona:
+        return Persona.model_validate(test_case.persona)
     return Persona(
         type="user",
         description="A user interacting with the assistant.",
@@ -236,8 +236,8 @@ async def call_agent(
     return parsed, elapsed_ms
 
 
-async def run_scenario(
-    scenario: Scenario,
+async def run_test_case(
+    test_case: TestCase,
     agent_endpoint_url: str | None,
     config: RunConfig,
     *,
@@ -247,24 +247,24 @@ async def run_scenario(
     agent_system_prompt: str | None = None,
     agent_tools: list[dict[str, Any]] | None = None,
     cancel_event: asyncio.Event | None = None,
-) -> ScenarioRunResult:
-    """Execute one scenario: initial user message, then agent / simulator turns.
+) -> TestCaseRunResult:
+    """Execute one test_case: initial user message, then agent / simulator turns.
 
-    If ``scenario.initial_message`` is empty, the opening user line is produced by
+    If ``test_case.initial_message`` is empty, the opening user line is produced by
     calling the simulator (LLM mode: first completion; scripted mode: first
     scripted line).
 
-    Stops when ``scenario.max_turns`` agent rounds are done, scripted lines are
+    Stops when ``test_case.max_turns`` agent rounds are done, scripted lines are
     exhausted, timeout is hit, or the agent call fails.
     """
     sim_cfg = config.user_simulator or UserSimulatorConfig()
-    persona = _persona_from_scenario(scenario)
-    initial = scenario.initial_message or ""
+    persona = _persona_from_test_case(test_case)
+    initial = test_case.initial_message or ""
     simulator = UserSimulator(
         persona=persona,
         initial_message=initial,
-        user_context=scenario.user_context,
-        expected_outcomes=scenario.expected_outcomes,
+        user_context=test_case.user_context,
+        expected_outcomes=test_case.expected_outcomes,
         config=sim_cfg,
     )
 
@@ -273,13 +273,13 @@ async def run_scenario(
         model_id = (agent_model or "").strip()
         if not model_id:
             logger.error(
-                "Platform agent mode requires agent_model on the run snapshot; scenario %s",
-                scenario.id,
+                "Platform agent mode requires agent_model on the run snapshot; test_case %s",
+                test_case.id,
             )
         tool_executor = build_tool_executor(
             tools=agent_tools,
-            expected_tool_calls=scenario.expected_tool_calls,
-            scenario_context=scenario.user_context or {},
+            expected_tool_calls=test_case.expected_tool_calls,
+            test_case_context=test_case.user_context or {},
         )
         agent_simulator = AgentSimulator(
             system_prompt=agent_system_prompt or "",
@@ -290,9 +290,9 @@ async def run_scenario(
             tool_executor=tool_executor,
         )
 
-    acc = ScenarioTokenAccumulator()
+    acc = TestCaseTokenAccumulator()
     transcript: list[ConversationTurn] = []
-    initial_stripped = (scenario.initial_message or "").strip()
+    initial_stripped = (test_case.initial_message or "").strip()
     if initial_stripped:
         transcript.append(
             build_conversation_turn(
@@ -306,11 +306,11 @@ async def run_scenario(
             opening = await simulator.generate_message([])
         except RuntimeError as e:
             logger.warning(
-                "Could not produce opening user message for scenario %s: %s",
-                scenario.id,
+                "Could not produce opening user message for test_case %s: %s",
+                test_case.id,
                 e,
             )
-            return ScenarioRunResult(
+            return TestCaseRunResult(
                 transcript=transcript,
                 agent_token_usage=acc.agent_token_usage,
                 platform_token_usage=acc.platform_token_usage,
@@ -331,15 +331,15 @@ async def run_scenario(
             )
         )
 
-    max_agent_rounds = scenario.max_turns
+    max_agent_rounds = test_case.max_turns
     agent_rounds = 0
     started = time.perf_counter()
-    timeout_ms = config.timeout_per_scenario_ms
+    timeout_ms = config.timeout_per_test_case_ms
 
     async with _agent_http_client(agent_mode) as client:
         while True:
             if cancel_event is not None and cancel_event.is_set():
-                logger.warning("Scenario %s stopped: run cancelled", scenario.id)
+                logger.warning("TestCase %s stopped: run cancelled", test_case.id)
                 transcript.append(
                     build_conversation_turn(
                         index=len(transcript),
@@ -353,15 +353,15 @@ async def run_scenario(
             elapsed_ms = int((time.perf_counter() - started) * 1000)
             if elapsed_ms >= timeout_ms:
                 logger.warning(
-                    "Scenario %s stopped: timeout %sms elapsed",
-                    scenario.id,
+                    "TestCase %s stopped: timeout %sms elapsed",
+                    test_case.id,
                     timeout_ms,
                 )
                 transcript.append(
                     build_conversation_turn(
                         index=len(transcript),
                         role=TurnRole.ASSISTANT,
-                        content=f"[platform: scenario timeout after {timeout_ms}ms]",
+                        content=f"[platform: test_case timeout after {timeout_ms}ms]",
                         latency_ms=None,
                     )
                 )
@@ -372,7 +372,7 @@ async def run_scenario(
 
             agent_messages = transcript_to_agent_messages(transcript)
             meta = AgentRequestMetadata(
-                scenario_id=str(scenario.id),
+                test_case_id=str(test_case.id),
                 turn_index=len(transcript),
             )
             remaining_ms = max(1, timeout_ms - elapsed_ms)
@@ -382,8 +382,8 @@ async def run_scenario(
                     plat = await agent_simulator.generate_response(agent_messages)
                 except Exception as e:
                     logger.warning(
-                        "Platform agent simulator failed for scenario %s: %s",
-                        scenario.id,
+                        "Platform agent simulator failed for test_case %s: %s",
+                        test_case.id,
                         e,
                     )
                     transcript.append(
@@ -436,7 +436,7 @@ async def run_scenario(
                     )
                 except AgentCallError as e:
                     logger.warning(
-                        "Agent call failed for scenario %s: %s", scenario.id, e
+                        "Agent call failed for test_case %s: %s", test_case.id, e
                     )
                     transcript.append(
                         build_conversation_turn(
@@ -502,7 +502,7 @@ async def run_scenario(
             if sim_cfg.mode == SimulatorMode.SCRIPTED and simulator.is_exhausted:
                 break
 
-    return ScenarioRunResult(
+    return TestCaseRunResult(
         transcript=transcript,
         agent_token_usage=acc.agent_token_usage,
         platform_token_usage=acc.platform_token_usage,
@@ -511,8 +511,8 @@ async def run_scenario(
     )
 
 
-async def run_scenario_with_evaluation(
-    scenario: Scenario,
+async def run_test_case_with_evaluation(
+    test_case: TestCase,
     agent_endpoint_url: str | None,
     config: RunConfig,
     *,
@@ -523,14 +523,14 @@ async def run_scenario_with_evaluation(
     agent_tools: list[dict[str, Any]] | None = None,
     cancel_event: asyncio.Event | None = None,
     metrics_owner_id: uuid.UUID | None = None,
-) -> tuple[ScenarioRunResult, JudgeVerdict | None]:
+) -> tuple[TestCaseRunResult, JudgeVerdict | None]:
     """Run simulation then judge the transcript.
 
     Returns ``(run_result, verdict)``. If the transcript is empty, ``verdict`` is
     ``None``.
     """
-    run_out = await run_scenario(
-        scenario,
+    run_out = await run_test_case(
+        test_case,
         agent_endpoint_url,
         config,
         agent_mode=agent_mode,
@@ -546,7 +546,7 @@ async def run_scenario_with_evaluation(
     verdict = await evaluate_transcript(
         JudgeInput(
             transcript=run_out.transcript,
-            scenario=scenario,
+            test_case=test_case,
             agent_system_prompt=agent_system_prompt,
             agent_tools=agent_tools,
             judge_config=config.judge,
@@ -557,12 +557,12 @@ async def run_scenario_with_evaluation(
 
 
 def compute_aggregate_metrics(
-    results: list[ScenarioResult],
+    results: list[TestCaseResult],
 ) -> AggregateMetrics:
     total_executions = len(results)
     if total_executions == 0:
         return AggregateMetrics(
-            total_scenarios=0,
+            unique_test_case_count=0,
             total_executions=0,
             passed_count=0,
             failed_count=0,
@@ -570,7 +570,7 @@ def compute_aggregate_metrics(
             pass_rate=0.0,
         )
 
-    unique_scenario_count = len({r.scenario_id for r in results})
+    unique_test_case_count = len({r.test_case_id for r in results})
     passed = sum(1 for r in results if r.passed is True)
     errored = sum(1 for r in results if r.error_message is not None)
     failed = sum(1 for r in results if r.passed is False and r.error_message is None)
@@ -607,7 +607,7 @@ def compute_aggregate_metrics(
     total_cost_usd = sum(cost_values) if cost_values else None
 
     return AggregateMetrics(
-        total_scenarios=unique_scenario_count,
+        unique_test_case_count=unique_test_case_count,
         total_executions=total_executions,
         passed_count=passed,
         failed_count=failed,
@@ -637,9 +637,9 @@ def _parse_run_agent_mode(raw: str | None) -> AgentMode:
         return AgentMode.ENDPOINT
 
 
-async def _execute_single_scenario(
+async def _execute_single_test_case(
     run_id: uuid.UUID,
-    scenario: Scenario,
+    test_case: TestCase,
     agent_endpoint_url: str | None,
     config: RunConfig,
     agent_mode: AgentMode,
@@ -653,21 +653,21 @@ async def _execute_single_scenario(
     *,
     repetition_index: int = 0,
     set_repetition_index: int = 0,
-) -> ScenarioResult:
+) -> TestCaseResult:
     from sqlmodel import Session
 
     from app import crud
     from app.core.db import engine
-    from app.models import ScenarioResultCreate, ScenarioResultUpdate
-    from app.models.schemas import ScenarioProgressData
+    from app.models import TestCaseResultCreate, TestCaseResultUpdate
+    from app.models.schemas import TestCaseProgressData
     from app.services.run_manager import run_manager
 
     with Session(engine) as session:
-        result = crud.create_scenario_result(
+        result = crud.create_test_case_result(
             session=session,
-            result_in=ScenarioResultCreate(
+            result_in=TestCaseResultCreate(
                 run_id=run_id,
-                scenario_id=scenario.id,
+                test_case_id=test_case.id,
                 repetition_index=repetition_index,
                 set_repetition_index=set_repetition_index,
             ),
@@ -680,14 +680,14 @@ async def _execute_single_scenario(
 
         run_manager.emit(
             run_id,
-            "scenario_started",
-            {"scenario_id": str(scenario.id), "scenario_name": scenario.name},
+            "test_case_started",
+            {"test_case_id": str(test_case.id), "test_case_name": test_case.name},
         )
 
         started_at = datetime.now(UTC)
         try:
-            run_out, verdict = await run_scenario_with_evaluation(
-                scenario=scenario,
+            run_out, verdict = await run_test_case_with_evaluation(
+                test_case=test_case,
                 agent_endpoint_url=agent_endpoint_url,
                 config=config,
                 agent_mode=agent_mode,
@@ -725,9 +725,9 @@ async def _execute_single_scenario(
             judge_cost = (verdict.judge_cost_usd or 0.0) if verdict else 0.0
             if verdict and verdict.judge_cost_usd is None:
                 logger.warning(
-                    "Judge cost unavailable for scenario %s — LiteLLM may lack "
+                    "Judge cost unavailable for test_case %s — LiteLLM may lack "
                     "pricing for model %s; judge cost excluded from totals",
-                    scenario.id,
+                    test_case.id,
                     verdict.judge_model,
                 )
             platform_cost = run_out.platform_cost_usd + judge_cost
@@ -738,7 +738,7 @@ async def _execute_single_scenario(
             )
             platform_usage_out = platform_usage if platform_usage else None
 
-            update_data = ScenarioResultUpdate(
+            update_data = TestCaseResultUpdate(
                 transcript=transcript,
                 turn_count=turn_count,
                 verdict=verdict,
@@ -758,9 +758,9 @@ async def _execute_single_scenario(
             )
 
         except Exception as e:
-            logger.exception("Scenario %s failed unexpectedly", scenario.id)
+            logger.exception("TestCase %s failed unexpectedly", test_case.id)
             completed_at = datetime.now(UTC)
-            update_data = ScenarioResultUpdate(
+            update_data = TestCaseResultUpdate(
                 passed=False,
                 error_message=str(e),
                 started_at=started_at,
@@ -773,11 +773,11 @@ async def _execute_single_scenario(
 
             def _update_db():
                 with Session(engine) as session:
-                    db_result = crud.get_scenario_result(
+                    db_result = crud.get_test_case_result(
                         session=session, result_id=result_id
                     )
                     if db_result:
-                        return crud.update_scenario_result(
+                        return crud.update_test_case_result(
                             session=session,
                             db_result=db_result,
                             result_in=update_data,
@@ -787,8 +787,8 @@ async def _execute_single_scenario(
             updated_result = await asyncio.to_thread(_update_db)
         except Exception:
             logger.exception(
-                "Failed to persist result for scenario %s in run %s",
-                scenario.id,
+                "Failed to persist result for test_case %s in run %s",
+                test_case.id,
                 run_id,
             )
             db_persist_failed = True
@@ -797,16 +797,16 @@ async def _execute_single_scenario(
 
                 def _mark_db_error():
                     with Session(engine) as session:
-                        db_result = crud.get_scenario_result(
+                        db_result = crud.get_test_case_result(
                             session=session, result_id=result_id
                         )
                         if db_result:
-                            return crud.update_scenario_result(
+                            return crud.update_test_case_result(
                                 session=session,
                                 db_result=db_result,
-                                result_in=ScenarioResultUpdate(
+                                result_in=TestCaseResultUpdate(
                                     passed=False,
-                                    error_message="DB persistence failed for scenario result",
+                                    error_message="DB persistence failed for test_case result",
                                     started_at=started_at,
                                     completed_at=datetime.now(UTC),
                                 ),
@@ -816,8 +816,8 @@ async def _execute_single_scenario(
                 updated_result = await asyncio.to_thread(_mark_db_error)
             except Exception:
                 logger.exception(
-                    "Failed to mark DB error for scenario %s in run %s",
-                    scenario.id,
+                    "Failed to mark DB error for test_case %s in run %s",
+                    test_case.id,
                     run_id,
                 )
                 updated_result = None
@@ -840,13 +840,13 @@ async def _execute_single_scenario(
 
                     run_manager.emit(
                         run_id,
-                        "scenario_completed",
-                        ScenarioProgressData(
+                        "test_case_completed",
+                        TestCaseProgressData(
                             run_id=run_id,
-                            scenario_id=scenario.id,
-                            scenario_name=scenario.name,
+                            test_case_id=test_case.id,
+                            test_case_name=test_case.name,
                             completed_count=progress.completed_count,
-                            total_count=progress.total_scenarios,
+                            total_count=progress.total_test_cases,
                             passed=updated_result.passed if updated_result else False,
                             overall_score=updated_result.verdict.get("overall_score")
                             if updated_result and updated_result.verdict
@@ -858,8 +858,8 @@ async def _execute_single_scenario(
                     )
         except Exception:
             logger.exception(
-                "Failed to emit progress for scenario %s in run %s",
-                scenario.id,
+                "Failed to emit progress for test_case %s in run %s",
+                test_case.id,
                 run_id,
             )
 
@@ -867,7 +867,7 @@ async def _execute_single_scenario(
 
 
 async def execute_run(run_id: uuid.UUID) -> None:
-    """Top-level orchestration: load run + scenarios, execute concurrently, persist results."""
+    """Top-level orchestration: load run + test cases, execute concurrently, persist results."""
     from sqlmodel import Session
 
     from app import crud
@@ -889,11 +889,9 @@ async def execute_run(run_id: uuid.UUID) -> None:
                 logger.error("Run %s not found or not in executable state", run_id)
                 return
 
-            scenario_set = crud.get_scenario_set(
-                session=session, scenario_set_id=run.scenario_set_id
-            )
-            if not scenario_set:
-                logger.error("Run %s references missing scenario set", run_id)
+            eval_set = crud.get_eval_set(session=session, eval_set_id=run.eval_set_id)
+            if not eval_set:
+                logger.error("Run %s references missing eval set", run_id)
                 crud.update_run(
                     session=session,
                     db_run=run,
@@ -912,10 +910,10 @@ async def execute_run(run_id: uuid.UUID) -> None:
                 ),
             )
 
-            execution_plan = crud.get_scenarios_for_set(
-                session=session, scenario_set_id=run.scenario_set_id
+            execution_plan = crud.get_test_cases_for_set(
+                session=session, eval_set_id=run.eval_set_id
             )
-            set_repetitions = scenario_set.set_repetitions
+            set_repetitions = eval_set.set_repetitions
 
             config = RunConfig.model_validate(run.config) if run.config else RunConfig()
             agent_endpoint_url = run.agent_endpoint_url
@@ -928,18 +926,18 @@ async def execute_run(run_id: uuid.UUID) -> None:
 
         per_pass_total = sum(entry.repetitions for entry in execution_plan)
         total_expanded = per_pass_total * set_repetitions
-        state.progress.total_scenarios = total_expanded
+        state.progress.total_test_cases = total_expanded
         run_manager.emit(
             run_id,
             "run_started",
-            {"run_id": str(run_id), "total_scenarios": total_expanded},
+            {"run_id": str(run_id), "total_test_cases": total_expanded},
         )
 
         semaphore = asyncio.Semaphore(config.concurrency)
         tasks = [
-            _execute_single_scenario(
+            _execute_single_test_case(
                 run_id=run_id,
-                scenario=entry.scenario,
+                test_case=entry.test_case,
                 agent_endpoint_url=agent_endpoint_url,
                 config=config,
                 agent_mode=agent_mode,
@@ -960,11 +958,11 @@ async def execute_run(run_id: uuid.UUID) -> None:
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        valid_results: list[ScenarioResult] = []
+        valid_results: list[TestCaseResult] = []
         for i, r in enumerate(results):
             if isinstance(r, Exception):
                 logger.exception(
-                    "Scenario task %d failed for run %s: %s",
+                    "TestCase task %d failed for run %s: %s",
                     i,
                     run_id,
                     r,

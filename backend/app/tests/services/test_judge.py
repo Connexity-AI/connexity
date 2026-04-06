@@ -12,13 +12,13 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from app.models.enums import TurnRole
-from app.models.scenario import Scenario
 from app.models.schemas import (
     ConversationTurn,
     JudgeConfig,
     JudgeVerdict,
     MetricSelection,
 )
+from app.models.test_case import TestCase
 from app.services.judge import (
     JudgeInput,
     evaluate_transcript,
@@ -28,11 +28,11 @@ from app.services.llm import LLMResponse
 # ── Helpers ───────────────────────────────────────────────────────────
 
 
-def _make_scenario(**overrides: object) -> Scenario:
+def _make_test_case(**overrides: object) -> TestCase:
     defaults: dict[str, object] = {
         "id": uuid.uuid4(),
-        "name": "Test scenario",
-        "description": "A test scenario",
+        "name": "Sample test case",
+        "description": "A sample test case for judge tests",
         "expected_outcomes": {"task": "book appointment"},
         "expected_tool_calls": [{"tool": "book_appointment"}],
         "evaluation_criteria_override": None,
@@ -45,7 +45,7 @@ def _make_scenario(**overrides: object) -> Scenario:
         "updated_at": datetime.now(UTC),
     }
     defaults.update(overrides)
-    return Scenario(**defaults)  # type: ignore[arg-type]
+    return TestCase(**defaults)  # type: ignore[arg-type]
 
 
 def _make_turn(
@@ -144,7 +144,7 @@ def _make_judge_input(
 ) -> JudgeInput:
     return JudgeInput(
         transcript=transcript if transcript is not None else _make_transcript(),
-        scenario=_make_scenario(),
+        test_case=_make_test_case(),
         agent_system_prompt="You are a helpful assistant.",
         agent_tools=[{"type": "function", "function": {"name": "book_appointment"}}],
         judge_config=judge_config,

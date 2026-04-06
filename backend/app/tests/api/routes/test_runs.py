@@ -10,20 +10,18 @@ from app.models import RunStatus, RunUpdate
 from app.models.enums import AgentMode
 from app.tests.utils.eval import (
     create_test_agent,
+    create_test_case_fixture,
+    create_test_eval_set,
     create_test_run,
-    create_test_scenario,
-    create_test_scenario_set,
-    scenario_set_members,
+    eval_set_members,
 )
 
 
 def _setup(db: Session) -> tuple:
     agent = create_test_agent(db)
-    scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(
-        db, members=scenario_set_members(scenario.id)
-    )
-    return agent, scenario_set
+    test_case = create_test_case_fixture(db)
+    eval_set = create_test_eval_set(db, members=eval_set_members(test_case.id))
+    return agent, eval_set
 
 
 # ── Basic CRUD endpoints ──────────────────────────────────────────
@@ -32,11 +30,11 @@ def _setup(db: Session) -> tuple:
 def test_create_run(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    agent, scenario_set = _setup(db)
+    agent, eval_set = _setup(db)
     data = {
         "agent_id": str(agent.id),
         "agent_endpoint_url": "http://localhost:8080/agent",
-        "scenario_set_id": str(scenario_set.id),
+        "eval_set_id": str(eval_set.id),
     }
     r = client.post(
         f"{settings.API_V1_STR}/runs/",
@@ -52,14 +50,12 @@ def test_create_run(
 def test_create_run_agent_not_found(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(
-        db, members=scenario_set_members(scenario.id)
-    )
+    test_case = create_test_case_fixture(db)
+    eval_set = create_test_eval_set(db, members=eval_set_members(test_case.id))
     data = {
         "agent_id": str(uuid.uuid4()),
         "agent_endpoint_url": "http://localhost:8080/agent",
-        "scenario_set_id": str(scenario_set.id),
+        "eval_set_id": str(eval_set.id),
     }
     r = client.post(
         f"{settings.API_V1_STR}/runs/",
@@ -72,10 +68,8 @@ def test_create_run_agent_not_found(
 def test_create_run_platform_agent_without_endpoint_url(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(
-        db, members=scenario_set_members(scenario.id)
-    )
+    test_case = create_test_case_fixture(db)
+    eval_set = create_test_eval_set(db, members=eval_set_members(test_case.id))
     agent_r = client.post(
         f"{settings.API_V1_STR}/agents/",
         json={
@@ -92,7 +86,7 @@ def test_create_run_platform_agent_without_endpoint_url(
 
     data = {
         "agent_id": agent_id,
-        "scenario_set_id": str(scenario_set.id),
+        "eval_set_id": str(eval_set.id),
         "config": {
             "agent_simulator": {"model": "gpt-4o", "temperature": 0.2},
         },
@@ -114,8 +108,8 @@ def test_create_run_platform_agent_without_endpoint_url(
 def test_list_runs(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    agent, scenario_set = _setup(db)
-    create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+    agent, eval_set = _setup(db)
+    create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
     r = client.get(
         f"{settings.API_V1_STR}/runs/",
         cookies=superuser_auth_cookies,
@@ -127,8 +121,8 @@ def test_list_runs(
 def test_list_runs_filter_by_agent(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    agent, scenario_set = _setup(db)
-    create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+    agent, eval_set = _setup(db)
+    create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
     r = client.get(
         f"{settings.API_V1_STR}/runs/",
         params={"agent_id": str(agent.id)},
@@ -154,8 +148,8 @@ def test_list_runs_filter_by_status(
 def test_get_run(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    agent, scenario_set = _setup(db)
-    run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+    agent, eval_set = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
     r = client.get(
         f"{settings.API_V1_STR}/runs/{run.id}",
         cookies=superuser_auth_cookies,
@@ -177,8 +171,8 @@ def test_get_run_not_found(
 def test_update_run(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    agent, scenario_set = _setup(db)
-    run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+    agent, eval_set = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
     r = client.patch(
         f"{settings.API_V1_STR}/runs/{run.id}",
         json={"status": "running"},
@@ -191,8 +185,8 @@ def test_update_run(
 def test_delete_run(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    agent, scenario_set = _setup(db)
-    run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+    agent, eval_set = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
     r = client.delete(
         f"{settings.API_V1_STR}/runs/{run.id}",
         cookies=superuser_auth_cookies,
@@ -213,8 +207,8 @@ def test_execute_pending_run(
     superuser_auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
-    agent, scenario_set = _setup(db)
-    run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+    agent, eval_set = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
     r = client.post(
         f"{settings.API_V1_STR}/runs/{run.id}/execute",
         cookies=superuser_auth_cookies,
@@ -233,8 +227,8 @@ def test_execute_failed_run(
     superuser_auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
-    agent, scenario_set = _setup(db)
-    run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+    agent, eval_set = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
     crud.update_run(session=db, db_run=run, run_in=RunUpdate(status=RunStatus.FAILED))
     r = client.post(
         f"{settings.API_V1_STR}/runs/{run.id}/execute",
@@ -246,8 +240,8 @@ def test_execute_failed_run(
 def test_execute_running_run_fails(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    agent, scenario_set = _setup(db)
-    run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+    agent, eval_set = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
     crud.update_run(session=db, db_run=run, run_in=RunUpdate(status=RunStatus.RUNNING))
     r = client.post(
         f"{settings.API_V1_STR}/runs/{run.id}/execute",
@@ -259,8 +253,8 @@ def test_execute_running_run_fails(
 def test_execute_completed_run_fails(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    agent, scenario_set = _setup(db)
-    run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+    agent, eval_set = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
     crud.update_run(
         session=db, db_run=run, run_in=RunUpdate(status=RunStatus.COMPLETED)
     )
@@ -287,8 +281,8 @@ def test_execute_not_found(
 def test_cancel_pending_run(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    agent, scenario_set = _setup(db)
-    run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+    agent, eval_set = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
     r = client.post(
         f"{settings.API_V1_STR}/runs/{run.id}/cancel",
         cookies=superuser_auth_cookies,
@@ -300,8 +294,8 @@ def test_cancel_running_run_without_active_task(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
     """A run in RUNNING status but not tracked by RunManager (e.g. orphaned)."""
-    agent, scenario_set = _setup(db)
-    run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+    agent, eval_set = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
     crud.update_run(session=db, db_run=run, run_in=RunUpdate(status=RunStatus.RUNNING))
     r = client.post(
         f"{settings.API_V1_STR}/runs/{run.id}/cancel",
@@ -328,8 +322,8 @@ def test_stream_finished_run(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
     """A completed run returns a snapshot event then closes."""
-    agent, scenario_set = _setup(db)
-    run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+    agent, eval_set = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
     crud.update_run(
         session=db, db_run=run, run_in=RunUpdate(status=RunStatus.COMPLETED)
     )
@@ -367,11 +361,11 @@ def test_create_run_with_auto_execute(
     superuser_auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
-    agent, scenario_set = _setup(db)
+    agent, eval_set = _setup(db)
     data = {
         "agent_id": str(agent.id),
         "agent_endpoint_url": "http://localhost:8080/agent",
-        "scenario_set_id": str(scenario_set.id),
+        "eval_set_id": str(eval_set.id),
     }
     r = client.post(
         f"{settings.API_V1_STR}/runs/",
@@ -387,11 +381,11 @@ def test_create_run_with_auto_execute(
 def test_create_run_without_auto_execute(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    agent, scenario_set = _setup(db)
+    agent, eval_set = _setup(db)
     data = {
         "agent_id": str(agent.id),
         "agent_endpoint_url": "http://localhost:8080/agent",
-        "scenario_set_id": str(scenario_set.id),
+        "eval_set_id": str(eval_set.id),
     }
     r = client.post(
         f"{settings.API_V1_STR}/runs/",

@@ -9,12 +9,12 @@ def test_404_consistent_format(
     client: TestClient, superuser_auth_cookies: dict[str, str]
 ) -> None:
     r = client.get(
-        f"{settings.API_V1_STR}/scenarios/{uuid.uuid4()}",
+        f"{settings.API_V1_STR}/test-cases/{uuid.uuid4()}",
         cookies=superuser_auth_cookies,
     )
     assert r.status_code == 404
     result = r.json()
-    assert result["detail"] == "Scenario not found"
+    assert result["detail"] == "Test case not found"
     assert result["code"] == "NOT_FOUND"
     assert result["status"] == 404
 
@@ -23,7 +23,7 @@ def test_422_consistent_format(
     client: TestClient, superuser_auth_cookies: dict[str, str]
 ) -> None:
     r = client.post(
-        f"{settings.API_V1_STR}/scenarios/",
+        f"{settings.API_V1_STR}/test-cases/",
         json={},
         cookies=superuser_auth_cookies,
     )
@@ -36,7 +36,7 @@ def test_422_consistent_format(
 
 
 def test_401_consistent_format(client: TestClient) -> None:
-    r = client.get(f"{settings.API_V1_STR}/scenarios/")
+    r = client.get(f"{settings.API_V1_STR}/test-cases/")
     assert r.status_code == 401
     result = r.json()
     assert result["code"] == "UNAUTHORIZED"

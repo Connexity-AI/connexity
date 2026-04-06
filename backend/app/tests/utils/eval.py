@@ -6,15 +6,15 @@ from app import crud
 from app.models import (
     Agent,
     AgentCreate,
+    EvalSet,
+    EvalSetCreate,
+    EvalSetMemberEntry,
     Run,
     RunCreate,
-    Scenario,
-    ScenarioCreate,
-    ScenarioResult,
-    ScenarioResultCreate,
-    ScenarioSet,
-    ScenarioSetCreate,
-    ScenarioSetMemberEntry,
+    TestCase,
+    TestCaseCreate,
+    TestCaseResult,
+    TestCaseResultCreate,
 )
 
 
@@ -27,58 +27,58 @@ def create_test_agent(session: Session) -> Agent:
     return crud.create_agent(session=session, agent_in=agent_in)
 
 
-def create_test_scenario(session: Session, **overrides: object) -> Scenario:
+def create_test_case_fixture(session: Session, **overrides: object) -> TestCase:
     defaults: dict[str, object] = {
-        "name": f"test-scenario-{uuid.uuid4().hex[:8]}",
-        "description": "Test scenario for automated tests",
+        "name": f"test-case-{uuid.uuid4().hex[:8]}",
+        "description": "Test case for automated tests",
         "tags": ["test"],
     }
     defaults.update(overrides)
-    return crud.create_scenario(
+    return crud.create_test_case(
         session=session,
-        scenario_in=ScenarioCreate(**defaults),  # type: ignore[arg-type]
+        test_case_in=TestCaseCreate(**defaults),  # type: ignore[arg-type]
     )
 
 
-def scenario_set_members(*scenario_ids: uuid.UUID) -> list[ScenarioSetMemberEntry]:
+def eval_set_members(*test_case_ids: uuid.UUID) -> list[EvalSetMemberEntry]:
     """Build member entries with default repetitions=1 (test helper)."""
-    return [ScenarioSetMemberEntry(scenario_id=sid) for sid in scenario_ids]
+    return [EvalSetMemberEntry(test_case_id=sid) for sid in test_case_ids]
 
 
-def create_test_scenario_set(
+def create_test_eval_set(
     session: Session,
     *,
-    members: list[ScenarioSetMemberEntry] | None = None,
-) -> ScenarioSet:
-    scenario_set_in = ScenarioSetCreate(
+    members: list[EvalSetMemberEntry] | None = None,
+) -> EvalSet:
+    eval_set_in = EvalSetCreate(
         name=f"test-set-{uuid.uuid4().hex[:8]}",
-        description="Test scenario set",
+        description="Test eval set",
         members=members,
     )
-    return crud.create_scenario_set(session=session, scenario_set_in=scenario_set_in)
+    return crud.create_eval_set(session=session, eval_set_in=eval_set_in)
 
 
 def create_test_run(
     session: Session,
     agent_id: uuid.UUID,
-    scenario_set_id: uuid.UUID,
+    eval_set_id: uuid.UUID,
 ) -> Run:
     run_in = RunCreate(
         name=f"test-run-{uuid.uuid4().hex[:8]}",
         agent_id=agent_id,
         agent_endpoint_url="http://localhost:8080/agent",
-        scenario_set_id=scenario_set_id,
+        eval_set_id=eval_set_id,
     )
     return crud.create_run(session=session, run_in=run_in)
 
 
-def create_test_scenario_result(
+def create_test_case_result_fixture(
     session: Session,
     run_id: uuid.UUID,
-    scenario_id: uuid.UUID,
-) -> ScenarioResult:
-    result_in = ScenarioResultCreate(
+    test_case_id: uuid.UUID,
+) -> TestCaseResult:
+    result_in = TestCaseResultCreate(
         run_id=run_id,
-        scenario_id=scenario_id,
+        test_case_id=test_case_id,
     )
-    return crud.create_scenario_result(session=session, result_in=result_in)
+    return crud.create_test_case_result(session=session, result_in=result_in)

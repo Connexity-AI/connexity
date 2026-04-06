@@ -9,7 +9,7 @@ from cli.commands.baseline import baseline_group
 from cli.commands.compare import compare_command
 from cli.commands.results import results_group
 from cli.commands.run import run_command
-from cli.commands.scenarios import scenarios_group
+from cli.commands.test_cases import test_cases_group
 
 
 @click.group()
@@ -54,4 +54,4 @@ app.add_command(baseline_group)
 app.add_command(compare_command)
 app.add_command(run_command)
 app.add_command(results_group)
-app.add_command(scenarios_group)
+app.add_command(test_cases_group)

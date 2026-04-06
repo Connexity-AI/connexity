@@ -9,11 +9,11 @@ Prerequisites:
 The script will:
   - Log in as the superuser to obtain an auth cookie
   - Create (or reuse) an Agent pointing at the mock agent
-  - Create scenarios from examples/scenarios/ and bundle them into a ScenarioSet
+  - Create test cases from examples/test-cases/ and bundle them into an EvalSet
   - Create a Run with auto_execute=true
   - Subscribe to GET /runs/{run_id}/stream and print every SSE event live
   - Fetch + print the final Run (aggregate metrics including token/cost totals)
-  - List GET /scenario-results/?run_id= for per-scenario token usage and estimated_cost_usd
+  - List GET /test-case-results/?run_id= for per-test-case token usage and estimated_cost_usd
 
 Usage::
 
@@ -22,7 +22,7 @@ Usage::
     # Options:
     uv run python scripts/test_run_sse.py --backend http://localhost:8000 \\
         --agent-url http://localhost:8001/agent/respond \\
-        --scenarios ../examples/scenarios/normal-refund-request.json
+        --test-cases ../examples/test-cases/normal-refund-request.json
 """
 
 import argparse
@@ -35,7 +35,7 @@ import httpx
 import httpx_sse
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-SCENARIOS_DIR = _REPO_ROOT / "examples" / "scenarios"
+TEST_CASES_DIR = _REPO_ROOT / "examples" / "test-cases"
 
 DEFAULT_BACKEND = "http://localhost:8000"
 DEFAULT_AGENT_URL = "http://localhost:8001/agent/respond"
@@ -80,35 +80,37 @@ def find_or_create_agent(client: httpx.Client, base: str, agent_url: str) -> str
     return agent_id
 
 
-def create_scenarios(
-    client: httpx.Client, base: str, scenario_paths: list[Path]
+def create_test_cases(
+    client: httpx.Client, base: str, test_case_paths: list[Path]
 ) -> list[str]:
-    scenario_ids: list[str] = []
-    for path in scenario_paths:
+    test_case_ids: list[str] = []
+    for path in test_case_paths:
         raw = json.loads(path.read_text(encoding="utf-8"))
         raw.pop("id", None)
-        r = client.post(_api(base, "/scenarios/"), json=raw)
+        r = client.post(_api(base, "/test-cases/"), json=raw)
         r.raise_for_status()
         sid = r.json()["id"]
-        scenario_ids.append(sid)
-        print(f"[setup] Created scenario '{raw['name']}' ({sid})")
-    return scenario_ids
+        test_case_ids.append(sid)
+        print(f"[setup] Created test case '{raw['name']}' ({sid})")
+    return test_case_ids
 
 
-def find_or_create_scenario_set(
-    client: httpx.Client, base: str, scenario_ids: list[str]
+def find_or_create_eval_set(
+    client: httpx.Client, base: str, test_case_ids: list[str]
 ) -> str:
     r = client.post(
-        _api(base, "/scenario-sets/"),
+        _api(base, "/eval-sets/"),
         json={
             "name": f"SSE test set ({time.strftime('%H:%M:%S')})",
             "description": "Auto-created by test_run_sse.py",
-            "members": [{"scenario_id": sid, "repetitions": 1} for sid in scenario_ids],
+            "members": [
+                {"test_case_id": sid, "repetitions": 1} for sid in test_case_ids
+            ],
         },
     )
     r.raise_for_status()
     set_id = r.json()["id"]
-    print(f"[setup] Created scenario set ({set_id}) with {len(scenario_ids)} scenarios")
+    print(f"[setup] Created eval set ({set_id}) with {len(test_case_ids)} test case(s)")
     return set_id
 
 
@@ -117,7 +119,7 @@ def create_run(
     base: str,
     agent_id: str,
     agent_url: str,
-    scenario_set_id: str,
+    eval_set_id: str,
 ) -> str:
     r = client.post(
         _api(base, "/runs/"),
@@ -125,11 +127,11 @@ def create_run(
         json={
             "agent_id": agent_id,
             "agent_endpoint_url": agent_url,
-            "scenario_set_id": scenario_set_id,
+            "eval_set_id": eval_set_id,
             "name": f"SSE test run ({time.strftime('%H:%M:%S')})",
             "config": {
                 "concurrency": 5,
-                "timeout_per_scenario_ms": 120_000,
+                "timeout_per_test_case_ms": 120_000,
             },
         },
     )
@@ -186,7 +188,7 @@ def fetch_final_run(client: httpx.Client, base: str, run_id: str) -> None:
     metrics = run.get("aggregate_metrics")
     if metrics:
         print("\n  --- Aggregate Metrics ---")
-        print(f"  Total scenarios:  {metrics['total_scenarios']}")
+        print(f"  Unique test cases:  {metrics['unique_test_case_count']}")
         print(f"  Passed:           {metrics['passed_count']}")
         print(f"  Failed:           {metrics['failed_count']}")
         print(f"  Errors:           {metrics['error_count']}")
@@ -213,9 +215,9 @@ def fetch_final_run(client: httpx.Client, base: str, run_id: str) -> None:
     print()
 
 
-def fetch_scenario_results(client: httpx.Client, base: str, run_id: str) -> None:
+def fetch_test_case_results(client: httpx.Client, base: str, run_id: str) -> None:
     r = client.get(
-        _api(base, "/scenario-results/"),
+        _api(base, "/test-case-results/"),
         params={"run_id": run_id, "limit": 1000},
     )
     r.raise_for_status()
@@ -223,20 +225,20 @@ def fetch_scenario_results(client: httpx.Client, base: str, run_id: str) -> None
     items: list[dict[str, object]] = payload.get("data") or []
 
     print(f"{'=' * 60}")
-    print("PER-SCENARIO RESULTS (token / cost tracking)")
+    print("PER-TEST-CASE RESULTS (token / cost tracking)")
     print(f"{'=' * 60}\n")
 
     if not items:
-        print("  (no scenario results)\n")
+        print("  (no test case results)\n")
         return
 
     for row in items:
-        sid = row.get("scenario_id")
+        sid = row.get("test_case_id")
         lat = row.get("total_latency_ms")
         cost = row.get("estimated_cost_usd")
         agent_u = row.get("agent_token_usage")
         plat_u = row.get("platform_token_usage")
-        print(f"  Scenario {sid}")
+        print(f"  TestCase {sid}")
         if lat is not None:
             print(f"    total_latency_ms:   {lat}")
         if cost is not None:
@@ -283,44 +285,44 @@ def main() -> int:
         help="Login password (default: password)",
     )
     parser.add_argument(
-        "--scenarios",
+        "--test-cases",
         nargs="*",
-        help="Scenario JSON file paths (default: all files in examples/scenarios/)",
+        help="Test case JSON file paths (default: all files in examples/test-cases/)",
     )
     parser.add_argument(
-        "--skip-scenario-details",
+        "--skip-test-case-details",
         action="store_true",
-        help="Do not fetch GET /scenario-results for per-scenario token/cost rows",
+        help="Do not fetch GET /test-case-results for per-test-case token/cost rows",
     )
     args = parser.parse_args()
 
-    if args.scenarios:
-        scenario_paths = [Path(s).resolve() for s in args.scenarios]
+    if args.test_cases:
+        test_case_paths = [Path(s).resolve() for s in args.test_cases]
     else:
-        scenario_paths = sorted(SCENARIOS_DIR.glob("*.json"))
+        test_case_paths = sorted(TEST_CASES_DIR.glob("*.json"))
 
-    if not scenario_paths:
-        print("[error] No scenario files found", file=sys.stderr)
+    if not test_case_paths:
+        print("[error] No test case files found", file=sys.stderr)
         return 1
 
     print(f"[config] Backend:    {args.backend}")
     print(f"[config] Agent URL:  {args.agent_url}")
-    print(f"[config] Scenarios:  {len(scenario_paths)} file(s)")
+    print(f"[config] TestCases:  {len(test_case_paths)} file(s)")
     print()
 
     with httpx.Client(timeout=30.0) as client:
         login(client, args.backend, args.email, args.password)
 
         agent_id = find_or_create_agent(client, args.backend, args.agent_url)
-        scenario_ids = create_scenarios(client, args.backend, scenario_paths)
-        set_id = find_or_create_scenario_set(client, args.backend, scenario_ids)
+        test_case_ids = create_test_cases(client, args.backend, test_case_paths)
+        set_id = find_or_create_eval_set(client, args.backend, test_case_ids)
         run_id = create_run(client, args.backend, agent_id, args.agent_url, set_id)
 
         time.sleep(0.5)
         stream_events(client, args.backend, run_id)
         fetch_final_run(client, args.backend, run_id)
-        if not args.skip_scenario_details:
-            fetch_scenario_results(client, args.backend, run_id)
+        if not args.skip_test_case_details:
+            fetch_test_case_results(client, args.backend, run_id)
 
     return 0
 

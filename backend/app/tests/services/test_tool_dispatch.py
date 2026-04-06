@@ -146,7 +146,7 @@ async def test_live_routes_python() -> None:
             ),
         ),
     }
-    executor = LiveToolExecutor(configs, scenario_context={})
+    executor = LiveToolExecutor(configs, test_case_context={})
 
     with patch(
         "app.services.tool_dispatch.execute_python_tool",
@@ -174,7 +174,7 @@ async def test_live_routes_webhook() -> None:
             ),
         ),
     }
-    executor = LiveToolExecutor(configs, scenario_context={})
+    executor = LiveToolExecutor(configs, test_case_context={})
 
     with patch(
         "app.services.tool_dispatch.execute_webhook_tool",
@@ -191,7 +191,7 @@ async def test_live_routes_webhook() -> None:
 
 @pytest.mark.asyncio
 async def test_live_unknown_tool_returns_error() -> None:
-    executor = LiveToolExecutor({}, scenario_context={})
+    executor = LiveToolExecutor({}, test_case_context={})
     result = json.loads(await executor.execute("missing", "c1", "{}"))
     assert "error" in result
     assert "No live implementation" in result["error"]
@@ -243,7 +243,7 @@ async def test_composite_unknown_tool_falls_back_to_synthetic() -> None:
 
 def test_build_no_tools_returns_synthetic() -> None:
     executor = build_tool_executor(
-        tools=None, expected_tool_calls=None, scenario_context={}
+        tools=None, expected_tool_calls=None, test_case_context={}
     )
     assert isinstance(executor, SyntheticToolExecutor)
 
@@ -256,7 +256,7 @@ def test_build_no_platform_config_returns_synthetic() -> None:
         }
     ]
     executor = build_tool_executor(
-        tools=tools, expected_tool_calls=None, scenario_context={}
+        tools=tools, expected_tool_calls=None, test_case_context={}
     )
     assert isinstance(executor, SyntheticToolExecutor)
 
@@ -289,6 +289,6 @@ def test_build_mixed_modes_returns_composite() -> None:
         }
     ]
     executor = build_tool_executor(
-        tools=tools, expected_tool_calls=expected, scenario_context={"key": "val"}
+        tools=tools, expected_tool_calls=expected, test_case_context={"key": "val"}
     )
     assert isinstance(executor, CompositeToolExecutor)

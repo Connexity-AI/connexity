@@ -9,9 +9,9 @@
 to control how tool calls are resolved:
 
 * ``synthetic`` (default) — placeholder acknowledgement (no real data).
-* ``mock`` — canned responses from each scenario's ``mock_responses``.
+* ``mock`` — canned responses from each test case's ``mock_responses``.
 * ``live`` — Python sandbox execution with hardcoded logic and
-  ``context.scenario_context`` (mirrors ``mock_agent`` tool registry).
+  ``context.test_case_context`` (mirrors ``mock_agent`` tool registry).
 
 Setup and run (repo root paths shown; run from ``backend/``)::
 
@@ -20,29 +20,29 @@ Setup and run (repo root paths shown; run from ``backend/``)::
     # Terminal A — optional: mock HTTP agent
     uv run python ../examples/mock_agent/main.py
 
-    # Endpoint mode (LLM user from scenario persona; needs LLM keys)
+    # Endpoint mode (LLM user from test case persona; needs LLM keys)
     uv run python scripts/simulate_convo.py \\
         --agent-url http://127.0.0.1:8001/agent/respond \\
-        --scenario ../examples/scenarios/normal-refund-request.json
+        --test-case ../examples/test-cases/normal-refund-request.json
 
     # Platform mode — synthetic tool results (default, backward compat)
     uv run python scripts/simulate_convo.py \\
         --platform-agent \\
-        --scenario ../examples/scenarios/normal-refund-request.json
+        --test-case ../examples/test-cases/normal-refund-request.json
 
-    # Platform mode — mock tool responses from scenario JSON
+    # Platform mode — mock tool responses from test case JSON
     uv run python scripts/simulate_convo.py \\
         --platform-agent --tool-mode mock \\
-        --scenario ../examples/scenarios/normal-refund-request.json
+        --test-case ../examples/test-cases/normal-refund-request.json
 
     # Platform mode — live Python tool execution
     uv run python scripts/simulate_convo.py \\
         --platform-agent --tool-mode live \\
-        --scenario ../examples/scenarios/normal-refund-request.json
+        --test-case ../examples/test-cases/normal-refund-request.json
 
 Fixed replay lines instead of an LLM user (no simulator LLM calls)::
 
-    uv run python scripts/simulate_convo.py --agent-url ... --scenario ... --scripted
+    uv run python scripts/simulate_convo.py --agent-url ... --test-case ... --scripted
 """
 
 from __future__ import annotations
@@ -57,7 +57,6 @@ from pathlib import Path
 from typing import Any
 
 from app.models.enums import AgentMode, SimulatorMode, TurnRole
-from app.models.scenario import Scenario
 from app.models.schemas import (
     AgentSimulatorConfig,
     ConversationTurn,
@@ -66,10 +65,11 @@ from app.models.schemas import (
     RunConfig,
     UserSimulatorConfig,
 )
+from app.models.test_case import TestCase
 from app.services.orchestrator import (
-    ScenarioRunResult,
-    run_scenario,
-    run_scenario_with_evaluation,
+    TestCaseRunResult,
+    run_test_case,
+    run_test_case_with_evaluation,
 )
 
 # ---------------------------------------------------------------------------
@@ -77,7 +77,7 @@ from app.services.orchestrator import (
 #
 # Each value is an ``async def execute(args, context) -> dict`` body.  The
 # sandbox receives ``args`` (parsed JSON) and a ``ToolContext`` whose
-# ``scenario_context`` carries the scenario's ``user_context``.
+# ``test_case_context`` carries the test case's ``user_context``.
 # ---------------------------------------------------------------------------
 _TOOL_PYTHON_IMPLEMENTATIONS: dict[str, str] = {
     "check_service_area": (
@@ -88,7 +88,7 @@ _TOOL_PYTHON_IMPLEMENTATIONS: dict[str, str] = {
     "lookup_order": (
         "async def execute(args, context):\n"
         '    oid = args.get("order_id", "").strip().upper()\n'
-        "    ctx = context.scenario_context\n"
+        "    ctx = context.test_case_context\n"
         '    if ctx.get("order_id", "").upper() == oid:\n'
         "        return {\n"
         '            "order_id": oid,\n'
@@ -145,7 +145,7 @@ _TOOL_PYTHON_IMPLEMENTATIONS: dict[str, str] = {
     "lookup_account": (
         "async def execute(args, context):\n"
         '    aid = args.get("account_id", "").strip().upper()\n'
-        "    ctx = context.scenario_context\n"
+        "    ctx = context.test_case_context\n"
         '    if ctx.get("account_id", "").upper() == aid:\n'
         "        return {\n"
         '            "account_id": aid,\n'
@@ -160,7 +160,7 @@ _TOOL_PYTHON_IMPLEMENTATIONS: dict[str, str] = {
     "get_billing_history": (
         "async def execute(args, context):\n"
         '    aid = args.get("account_id", "").strip().upper()\n'
-        "    ctx = context.scenario_context\n"
+        "    ctx = context.test_case_context\n"
         '    if ctx.get("account_id", "").upper() == aid:\n'
         '        overcharge = ctx.get("monthly_overcharge", 50.0)\n'
         '        months = ctx.get("months_affected", 3)\n'
@@ -249,11 +249,11 @@ def _load_mock_agent_prompt_tools() -> tuple[str, list[dict[str, Any]]]:
     return prompt, tools
 
 
-def _load_scenario(path: Path) -> Scenario:
+def _load_test_case(path: Path) -> TestCase:
     raw: dict = json.loads(path.read_text(encoding="utf-8"))
     if "id" not in raw:
         raw["id"] = str(uuid.uuid4())
-    return Scenario.model_validate(raw)
+    return TestCase.model_validate(raw)
 
 
 def _print_transcript(transcript: list[ConversationTurn]) -> None:
@@ -272,8 +272,8 @@ def _print_transcript(transcript: list[ConversationTurn]) -> None:
 
 
 async def _run(args: argparse.Namespace) -> int:
-    scenario_path = Path(args.scenario).resolve()
-    scenario = _load_scenario(scenario_path)
+    test_case_path = Path(args.test_case).resolve()
+    test_case = _load_test_case(test_case_path)
 
     if args.scripted:
         scripted = [s.strip() for s in args.scripted_user.split("|") if s.strip()]
@@ -310,7 +310,7 @@ async def _run(args: argparse.Namespace) -> int:
             )
 
     run_cfg = RunConfig(
-        timeout_per_scenario_ms=args.timeout_ms,
+        timeout_per_test_case_ms=args.timeout_ms,
         judge=JudgeConfig(
             model=args.judge_model,
             provider=args.judge_provider,
@@ -328,16 +328,16 @@ async def _run(args: argparse.Namespace) -> int:
     }
 
     if args.judge:
-        run_out, verdict = await run_scenario_with_evaluation(
-            scenario,
+        run_out, verdict = await run_test_case_with_evaluation(
+            test_case,
             agent_url,
             run_cfg,
             **run_kw,
         )
         transcript = run_out.transcript
     else:
-        run_out = await run_scenario(
-            scenario,
+        run_out = await run_test_case(
+            test_case,
             agent_url,
             run_cfg,
             **run_kw,
@@ -355,7 +355,7 @@ async def _run(args: argparse.Namespace) -> int:
         if args.platform_agent
         else "endpoint"
     )
-    print(f"Scenario: {scenario.name} ({scenario_path})  [agent: {mode_note}]")
+    print(f"TestCase: {test_case.name} ({test_case_path})  [agent: {mode_note}]")
     print(f"Turns: {len(transcript)}")
     _print_transcript(transcript)
     _print_run_tracking(run_out, verdict)
@@ -365,9 +365,9 @@ async def _run(args: argparse.Namespace) -> int:
 
 
 def _print_run_tracking(
-    run_out: ScenarioRunResult, verdict: JudgeVerdict | None
+    run_out: TestCaseRunResult, verdict: JudgeVerdict | None
 ) -> None:
-    print("\n--- Token & cost (same fields persisted on scenario_result) ---")
+    print("\n--- Token & cost (same fields persisted on test_case_result) ---")
     print(f"  Agent tokens:      {json.dumps(run_out.agent_token_usage)}")
     print(f"  Platform tokens:   {json.dumps(run_out.platform_token_usage)}")
     print(f"  Agent cost USD:    {run_out.agent_cost_usd:.6f}")
@@ -381,7 +381,7 @@ def _print_run_tracking(
         if verdict.judge_cost_usd is not None:
             print(f"  Judge cost USD:    {verdict.judge_cost_usd:.6f}")
             total += verdict.judge_cost_usd
-    print(f"  Scenario total USD: {total:.6f}")
+    print(f"  TestCase total USD: {total:.6f}")
     print()
 
 
@@ -426,7 +426,7 @@ def main() -> None:
         help=(
             "How platform-agent tool calls are resolved (only with --platform-agent). "
             "synthetic: placeholder results (default). "
-            "mock: canned responses from scenario mock_responses. "
+            "mock: canned responses from test case mock_responses. "
             "live: execute Python implementations defined in this script."
         ),
     )
@@ -456,16 +456,17 @@ def main() -> None:
         help="Optional max_tokens for platform agent LLM (RunConfig.agent_simulator).",
     )
     parser.add_argument(
-        "--scenario",
+        "--test-case",
         required=True,
         type=Path,
-        help="Path to scenario JSON (e.g. examples/scenarios/normal-refund-request.json)",
+        dest="test_case",
+        help="Path to test case JSON (e.g. examples/test-cases/normal-refund-request.json)",
     )
     parser.add_argument(
         "--timeout-ms",
         type=int,
         default=120_000,
-        help="Per-scenario timeout (orchestrator wall clock; agent HTTP or platform LLM)",
+        help="Per-test-case timeout (orchestrator wall clock; agent HTTP or platform LLM)",
     )
     parser.add_argument(
         "--scripted",

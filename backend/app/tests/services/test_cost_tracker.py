@@ -7,7 +7,7 @@ import pytest
 from app.models.agent_contract import ChatMessage
 from app.models.enums import TurnRole
 from app.services.cost_tracker import (
-    ScenarioTokenAccumulator,
+    TestCaseTokenAccumulator,
     _char_heuristic_token_estimate,
     _count_tokens,
     estimate_agent_cost,
@@ -269,25 +269,25 @@ class TestSumPlatformUsageDicts:
         assert sum_platform_usage_dicts() == {}
 
 
-# ── ScenarioTokenAccumulator ─────────────────────────────────────────
+# ── TestCaseTokenAccumulator ─────────────────────────────────────────
 
 
-class TestScenarioTokenAccumulator:
+class TestTestCaseTokenAccumulator:
     def test_empty_accumulator(self) -> None:
-        acc = ScenarioTokenAccumulator()
+        acc = TestCaseTokenAccumulator()
         assert acc.agent_token_usage == {}
         assert acc.platform_token_usage == {}
         assert acc.agent_cost_usd == 0.0
         assert acc.platform_cost_usd == 0.0
 
     def test_agent_usage_accumulation(self) -> None:
-        acc = ScenarioTokenAccumulator()
+        acc = TestCaseTokenAccumulator()
         acc.add_agent_usage({"prompt_tokens": 10, "completion_tokens": 5})
         acc.add_agent_usage({"prompt_tokens": 20, "completion_tokens": 10})
         assert acc.agent_token_usage == {"prompt_tokens": 30, "completion_tokens": 15}
 
     def test_platform_usage_accumulation(self) -> None:
-        acc = ScenarioTokenAccumulator()
+        acc = TestCaseTokenAccumulator()
         acc.add_platform_usage({"prompt_tokens": 100, "completion_tokens": 20})
         acc.add_platform_usage({"prompt_tokens": 50, "completion_tokens": 10})
         assert acc.platform_token_usage == {
@@ -296,7 +296,7 @@ class TestScenarioTokenAccumulator:
         }
 
     def test_cost_accumulation(self) -> None:
-        acc = ScenarioTokenAccumulator()
+        acc = TestCaseTokenAccumulator()
         acc.add_agent_cost(0.01)
         acc.add_agent_cost(0.02)
         acc.add_platform_cost(0.005)
@@ -304,21 +304,21 @@ class TestScenarioTokenAccumulator:
         assert acc.platform_cost_usd == pytest.approx(0.005)
 
     def test_none_cost_ignored(self) -> None:
-        acc = ScenarioTokenAccumulator()
+        acc = TestCaseTokenAccumulator()
         acc.add_agent_cost(None)
         acc.add_platform_cost(None)
         assert acc.agent_cost_usd == 0.0
         assert acc.platform_cost_usd == 0.0
 
     def test_none_usage_ignored(self) -> None:
-        acc = ScenarioTokenAccumulator()
+        acc = TestCaseTokenAccumulator()
         acc.add_agent_usage(None)
         acc.add_platform_usage(None)
         assert acc.agent_token_usage == {}
         assert acc.platform_token_usage == {}
 
     def test_estimated_flag_preserved(self) -> None:
-        acc = ScenarioTokenAccumulator()
+        acc = TestCaseTokenAccumulator()
         acc.add_agent_usage({"prompt_tokens": 10, "estimated": True})
         acc.add_agent_usage({"prompt_tokens": 20})
         result = acc.agent_token_usage

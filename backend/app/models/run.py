@@ -11,8 +11,8 @@ from app.models.schemas import AggregateMetrics, RunConfig
 
 if TYPE_CHECKING:
     from app.models.agent import Agent
-    from app.models.scenario_result import ScenarioResult
-    from app.models.scenario_set import ScenarioSet
+    from app.models.eval_set import EvalSet
+    from app.models.test_case_result import TestCaseResult
 
 
 class RunBase(SQLModel):
@@ -64,15 +64,15 @@ class RunBase(SQLModel):
         max_length=64,
         description="SHA-256 hash of tools_snapshot for change detection",
     )
-    # Scenario set
-    scenario_set_id: uuid.UUID = Field(
-        foreign_key="scenario_set.id",
+    # Eval set
+    eval_set_id: uuid.UUID = Field(
+        foreign_key="eval_set.id",
         index=True,
-        description="FK to the scenario set executed in this run",
+        description="FK to the eval set executed in this run",
     )
-    scenario_set_version: int = Field(
+    eval_set_version: int = Field(
         default=1,
-        description="Version of the scenario set at run time",
+        description="Version of the eval set at run time",
     )
     # Config
     config: dict[str, Any] | None = Field(
@@ -131,8 +131,8 @@ class Run(RunBase, table=True):
 
     # Relationships
     agent: "Agent" = Relationship(back_populates="runs")
-    scenario_set: "ScenarioSet" = Relationship(back_populates="runs")
-    scenario_results: list["ScenarioResult"] = Relationship(
+    eval_set: "EvalSet" = Relationship(back_populates="runs")
+    test_case_results: list["TestCaseResult"] = Relationship(
         back_populates="run",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
@@ -173,9 +173,9 @@ class RunCreate(SQLModel):
     tools_snapshot_hash: str | None = Field(
         default=None, description="SHA-256 hash of tools_snapshot for change detection"
     )
-    scenario_set_id: uuid.UUID = Field(description="FK to the scenario set to execute")
-    scenario_set_version: int = Field(
-        default=1, description="Version of the scenario set at run time"
+    eval_set_id: uuid.UUID = Field(description="FK to the eval set to execute")
+    eval_set_version: int = Field(
+        default=1, description="Version of the eval set at run time"
     )
     config: RunConfig | None = Field(
         default=None,
@@ -238,12 +238,10 @@ class RunPublic(SQLModel):
         default=None,
         description="Effective LLM provider for platform agent simulator for this run",
     )
-    scenario_set_id: uuid.UUID = Field(
-        description="FK to the scenario set executed in this run"
+    eval_set_id: uuid.UUID = Field(
+        description="FK to the eval set executed in this run"
     )
-    scenario_set_version: int = Field(
-        description="Version of the scenario set at run time"
-    )
+    eval_set_version: int = Field(description="Version of the eval set at run time")
     config: RunConfig | None = Field(
         default=None,
         description="Run configuration (judge model, concurrency, timeouts, etc.)",

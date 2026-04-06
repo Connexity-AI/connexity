@@ -18,14 +18,14 @@ from app.models.comparison import (
     RegressionAnalysis,
     RunComparison,
     RunConfigDiff,
-    ScenarioComparison,
+    TestCaseComparison,
 )
 from app.models.run import Run
 from app.services.llm import LLMCallConfig, LLMMessage, call_llm
 
 logger = logging.getLogger(__name__)
 
-_TOP_SCENARIOS_LIMIT = 10
+_TOP_TEST_CASES_LIMIT = 10
 
 
 def _analysis_llm_config(max_tokens: int | None = None) -> LLMCallConfig:
@@ -103,12 +103,12 @@ def _format_metric_deltas(
     return "\n".join(lines)
 
 
-def _format_top_regressed_scenarios(
-    scenarios: list[ScenarioComparison],
+def _format_top_regressed_test_cases(
+    test_cases: list[TestCaseComparison],
 ) -> str:
-    regressed = [s for s in scenarios if s.status == "regression"]
+    regressed = [s for s in test_cases if s.status == "regression"]
     regressed.sort(key=lambda s: s.score_delta or 0)
-    top = regressed[:_TOP_SCENARIOS_LIMIT]
+    top = regressed[:_TOP_TEST_CASES_LIMIT]
     if not top:
         return "(none)"
     lines: list[str] = []
@@ -120,7 +120,7 @@ def _format_top_regressed_scenarios(
             if m.status != "unchanged"
         )
         lines.append(
-            f"- {s.scenario_name}: score delta {delta_str}"
+            f"- {s.test_case_name}: score delta {delta_str}"
             + (f" [{metric_details}]" if metric_details else "")
         )
     return "\n".join(lines)
@@ -203,10 +203,10 @@ def _build_analysis_prompt(
 - Average score: {f"{avg_score_delta:+.1f}" if avg_score_delta is not None else "N/A"} ({f"{avg_score_b:.1f}" if avg_score_b is not None else "N/A"} → {f"{avg_score_c:.1f}" if avg_score_c is not None else "N/A"})
 - Per-metric:
 {_format_metric_deltas(agg.per_metric_aggregate_deltas)}
-- Scenarios regressed: {regressed_count} | improved: {improved_count}
+- Test cases regressed: {regressed_count} | improved: {improved_count}
 
-## Top regressed scenarios
-{_format_top_regressed_scenarios(comparison.scenario_comparisons)}
+## Top regressed test cases
+{_format_top_regressed_test_cases(comparison.test_case_comparisons)}
 
 ## Task
 For each significant metric change, identify the most likely cause from the changes listed above."""
@@ -348,7 +348,7 @@ def _build_suggestions_prompt(
         "Be specific — quote the exact section of the prompt to modify and "
         "suggest the replacement text where possible.\n\n"
         "Output ONLY valid JSON matching this schema:\n"
-        '{"suggestions": [{"target": "system_prompt|tool_definition|model_selection|scenario_design|other", '
+        '{"suggestions": [{"target": "system_prompt|tool_definition|model_selection|test_case_design|other", '
         '"title": "...", "description": "...", "current_value": "...", '
         '"suggested_value": "...", "expected_metric_impact": ["..."], '
         '"priority": "high|medium|low"}], '

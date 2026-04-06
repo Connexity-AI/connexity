@@ -210,11 +210,11 @@ To include this metric, add it to `JudgeConfig.metrics` with an explicit weight:
 3. `task_completion` requires an explicit weight when selected (its default
    weight is 0).
 
-### Scenario-level Override
+### Test case-level override
 
-Each scenario can carry an `evaluation_criteria_override` (free text) that is
-appended to the judge user prompt as a "Scenario-specific evaluation emphasis"
-section. This allows scenario authors to add context without changing which
+Each test case can carry an `evaluation_criteria_override` (free text) that is
+appended to the judge user prompt as a "Test case-specific evaluation emphasis"
+section. This allows test case authors to add context without changing which
 metrics are evaluated.
 
 ## API

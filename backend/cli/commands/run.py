@@ -23,11 +23,11 @@ def _try_uuid(value: str) -> str | None:
         return None
 
 
-def _resolve_scenario_set(client: ApiClient, ref: str) -> dict[str, Any]:
+def _resolve_eval_set(client: ApiClient, ref: str) -> dict[str, Any]:
     uid = _try_uuid(ref)
     if uid:
-        return client.get_scenario_set(uid)
-    data = client.list_scenario_sets(params={"limit": 1000})
+        return client.get_eval_set(uid)
+    data = client.list_eval_sets(params={"limit": 1000})
     raw = data.get("data")
     rows: list[dict[str, Any]] = (
         [r for r in raw if isinstance(r, dict)] if isinstance(raw, list) else []
@@ -38,11 +38,11 @@ def _resolve_scenario_set(client: ApiClient, ref: str) -> dict[str, Any]:
         return matches[0]
     if not matches:
         raise click.ClickException(
-            f"No scenario set found with name {ref!r}. Use a UUID or exact name."
+            f"No eval set found with name {ref!r}. Use a UUID or exact name."
         )
     names = ", ".join(str(m.get("name")) for m in matches[:5])
     raise click.ClickException(
-        f"Multiple scenario sets match {ref!r}: {names}. Use a UUID."
+        f"Multiple eval sets match {ref!r}: {names}. Use a UUID."
     )
 
 
@@ -88,10 +88,10 @@ def _resolve_agent(client: ApiClient, ref: str) -> dict[str, Any]:
 
 @click.command("run")
 @click.option(
-    "--scenarios",
-    "scenario_ref",
+    "--eval-set",
+    "eval_set_ref",
     required=True,
-    help="Scenario set name or UUID",
+    help="Eval set name or UUID",
 )
 @click.option(
     "--agent",
@@ -141,7 +141,7 @@ def _resolve_agent(client: ApiClient, ref: str) -> dict[str, Any]:
 @click.pass_context
 def run_command(
     ctx: click.Context,
-    scenario_ref: str,
+    eval_set_ref: str,
     agent_ref: str,
     run_name: str | None,
     timeout: float,
@@ -159,14 +159,14 @@ def run_command(
     fmt = get_output_format(ctx, output_override)
 
     with open_client(ctx) as client:
-        scenario_set = _resolve_scenario_set(client, scenario_ref)
+        eval_set = _resolve_eval_set(client, eval_set_ref)
         agent = _resolve_agent(client, agent_ref)
         agent_id = str(agent["id"])
 
         body: dict[str, Any] = {
             "agent_id": agent_id,
-            "scenario_set_id": str(scenario_set["id"]),
-            "scenario_set_version": int(scenario_set.get("version", 1)),
+            "eval_set_id": str(eval_set["id"]),
+            "eval_set_version": int(eval_set.get("version", 1)),
         }
         endpoint_url = agent.get("endpoint_url")
         if endpoint_url:

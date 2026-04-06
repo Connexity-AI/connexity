@@ -1,22 +1,22 @@
-"""Integration-style tests for :func:`run_scenario` in platform agent mode."""
+"""Integration-style tests for :func:`run_test_case` in platform agent mode."""
 
 import uuid
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.models.enums import AgentMode, ScenarioStatus, SimulatorMode, TurnRole
-from app.models.scenario import Scenario
+from app.models.enums import AgentMode, SimulatorMode, TestCaseStatus, TurnRole
 from app.models.schemas import RunConfig, UserSimulatorConfig
+from app.models.test_case import TestCase
 from app.services.llm import LLMResponse
-from app.services.orchestrator import run_scenario
+from app.services.orchestrator import run_test_case
 
 
-def _platform_scenario() -> Scenario:
-    return Scenario(
+def _platform_test_case() -> TestCase:
+    return TestCase(
         id=uuid.uuid4(),
-        name="platform-scenario",
-        status=ScenarioStatus.ACTIVE,
+        name="platform-test-case",
+        status=TestCaseStatus.ACTIVE,
         initial_message="Hello",
         max_turns=1,
         tags=[],
@@ -24,14 +24,14 @@ def _platform_scenario() -> Scenario:
 
 
 @pytest.mark.asyncio
-async def test_run_scenario_platform_uses_agent_simulator_and_tracks_cost() -> None:
-    scenario = _platform_scenario()
+async def test_run_test_case_platform_uses_agent_simulator_and_tracks_cost() -> None:
+    test_case = _platform_test_case()
     config = RunConfig(
         user_simulator=UserSimulatorConfig(
             mode=SimulatorMode.SCRIPTED,
             scripted_messages=["Thanks, goodbye"],
         ),
-        timeout_per_scenario_ms=120_000,
+        timeout_per_test_case_ms=120_000,
     )
     llm_reply = LLMResponse(
         content="Agent reply here",
@@ -47,8 +47,8 @@ async def test_run_scenario_platform_uses_agent_simulator_and_tracks_cost() -> N
         new_callable=AsyncMock,
         return_value=llm_reply,
     ) as mock_agent_llm:
-        result = await run_scenario(
-            scenario,
+        result = await run_test_case(
+            test_case,
             None,
             config,
             agent_mode=AgentMode.PLATFORM,

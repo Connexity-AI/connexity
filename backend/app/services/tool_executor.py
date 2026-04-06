@@ -61,7 +61,7 @@ class ToolContext:
 
     http: httpx.AsyncClient
     config: dict[str, Any] = field(default_factory=dict)
-    scenario_context: dict[str, Any] = field(default_factory=dict)
+    test_case_context: dict[str, Any] = field(default_factory=dict)
 
     def secret(self, name: str) -> str:
         """Resolve a server-side environment variable by name."""

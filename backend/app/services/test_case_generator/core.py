@@ -3,25 +3,25 @@ import logging
 import re
 
 from app.core.config import settings
-from app.models.scenario import ScenarioCreate
+from app.models.test_case import TestCaseCreate
 from app.services.llm import LLMCallConfig, LLMMessage, LLMResponse, call_llm
-from app.services.scenario_generator.prompt import (
+from app.services.test_case_generator.prompt import (
     build_system_prompt,
     build_user_prompt,
 )
-from app.services.scenario_generator.schemas import GenerateRequest
+from app.services.test_case_generator.schemas import GenerateRequest
 
 logger = logging.getLogger(__name__)
 
 _FENCE_RE = re.compile(r"^\s*```\w*\s*\n(.*?)\n\s*```\s*$", re.DOTALL)
 
 
-async def generate_scenarios(
+async def generate_test_cases(
     request: GenerateRequest,
-) -> tuple[list[ScenarioCreate], str, int]:
-    """Generate scenarios from agent prompt.
+) -> tuple[list[TestCaseCreate], str, int]:
+    """Generate test cases from agent prompt.
 
-    Returns (scenarios, model_used, latency_ms).
+    Returns (test_cases, model_used, latency_ms).
     """
     system_prompt = build_system_prompt()
     user_prompt = build_user_prompt(
@@ -51,16 +51,15 @@ async def generate_scenarios(
         config=llm_config,
     )
 
-    scenarios = _parse_scenarios(response.content, expected_count=request.count)
+    test_cases = _parse_test_cases(response.content, expected_count=request.count)
     latency_ms = response.latency_ms or 0
-    return scenarios, response.model, latency_ms
+    return test_cases, response.model, latency_ms
 
 
-def _parse_scenarios(raw: str, expected_count: int) -> list[ScenarioCreate]:
-    """Parse LLM JSON output into validated ScenarioCreate objects."""
+def _parse_test_cases(raw: str, expected_count: int) -> list[TestCaseCreate]:
+    """Parse LLM JSON output into validated TestCaseCreate objects."""
     text = raw.strip()
 
-    # Strip markdown code fences if present
     match = _FENCE_RE.match(text)
     if match:
         text = match.group(1).strip()
@@ -69,15 +68,14 @@ def _parse_scenarios(raw: str, expected_count: int) -> list[ScenarioCreate]:
     if not isinstance(data, list):
         raise ValueError("LLM response is not a JSON array")
 
-    scenarios: list[ScenarioCreate] = []
+    test_cases: list[TestCaseCreate] = []
     for item in data:
-        # Force status to draft without mutating the original dict
-        scenario = ScenarioCreate.model_validate({**item, "status": "draft"})
-        scenarios.append(scenario)
+        tc = TestCaseCreate.model_validate({**item, "status": "draft"})
+        test_cases.append(tc)
 
-    if len(scenarios) < expected_count:
+    if len(test_cases) < expected_count:
         logger.warning(
-            "LLM produced %d scenarios, expected %d", len(scenarios), expected_count
+            "LLM produced %d test cases, expected %d", len(test_cases), expected_count
         )
 
-    return scenarios
+    return test_cases

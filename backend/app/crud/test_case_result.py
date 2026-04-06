@@ -3,57 +3,57 @@ import uuid
 from sqlalchemy import func
 from sqlmodel import Session, select
 
-from app.models import ScenarioResult, ScenarioResultCreate, ScenarioResultUpdate
+from app.models import TestCaseResult, TestCaseResultCreate, TestCaseResultUpdate
 
 
-def create_scenario_result(
-    *, session: Session, result_in: ScenarioResultCreate
-) -> ScenarioResult:
-    db_obj = ScenarioResult.model_validate(result_in)
+def create_test_case_result(
+    *, session: Session, result_in: TestCaseResultCreate
+) -> TestCaseResult:
+    db_obj = TestCaseResult.model_validate(result_in)
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
     return db_obj
 
 
-def get_scenario_result(
+def get_test_case_result(
     *, session: Session, result_id: uuid.UUID
-) -> ScenarioResult | None:
-    return session.get(ScenarioResult, result_id)
+) -> TestCaseResult | None:
+    return session.get(TestCaseResult, result_id)
 
 
-def list_scenario_results(
+def list_test_case_results(
     *,
     session: Session,
     skip: int = 0,
     limit: int = 100,
     run_id: uuid.UUID | None = None,
-    scenario_id: uuid.UUID | None = None,
+    test_case_id: uuid.UUID | None = None,
     repetition_index: int | None = None,
     set_repetition_index: int | None = None,
-) -> tuple[list[ScenarioResult], int]:
-    statement = select(ScenarioResult)
-    count_statement = select(func.count()).select_from(ScenarioResult)
+) -> tuple[list[TestCaseResult], int]:
+    statement = select(TestCaseResult)
+    count_statement = select(func.count()).select_from(TestCaseResult)
 
     if run_id is not None:
-        statement = statement.where(ScenarioResult.run_id == run_id)
-        count_statement = count_statement.where(ScenarioResult.run_id == run_id)
-    if scenario_id is not None:
-        statement = statement.where(ScenarioResult.scenario_id == scenario_id)
+        statement = statement.where(TestCaseResult.run_id == run_id)
+        count_statement = count_statement.where(TestCaseResult.run_id == run_id)
+    if test_case_id is not None:
+        statement = statement.where(TestCaseResult.test_case_id == test_case_id)
         count_statement = count_statement.where(
-            ScenarioResult.scenario_id == scenario_id
+            TestCaseResult.test_case_id == test_case_id
         )
     if repetition_index is not None:
-        statement = statement.where(ScenarioResult.repetition_index == repetition_index)
+        statement = statement.where(TestCaseResult.repetition_index == repetition_index)
         count_statement = count_statement.where(
-            ScenarioResult.repetition_index == repetition_index
+            TestCaseResult.repetition_index == repetition_index
         )
     if set_repetition_index is not None:
         statement = statement.where(
-            ScenarioResult.set_repetition_index == set_repetition_index
+            TestCaseResult.set_repetition_index == set_repetition_index
         )
         count_statement = count_statement.where(
-            ScenarioResult.set_repetition_index == set_repetition_index
+            TestCaseResult.set_repetition_index == set_repetition_index
         )
 
     count = session.exec(count_statement).one()
@@ -61,14 +61,13 @@ def list_scenario_results(
     return items, count
 
 
-def update_scenario_result(
+def update_test_case_result(
     *,
     session: Session,
-    db_result: ScenarioResult,
-    result_in: ScenarioResultUpdate,
-) -> ScenarioResult:
+    db_result: TestCaseResult,
+    result_in: TestCaseResultUpdate,
+) -> TestCaseResult:
     update_data = result_in.model_dump(exclude_unset=True)
-    # Pydantic models → JSON-safe dicts for JSONB columns (datetime → ISO string)
     if "transcript" in update_data and result_in.transcript is not None:
         update_data["transcript"] = [
             t.model_dump(mode="json") for t in result_in.transcript
@@ -82,6 +81,6 @@ def update_scenario_result(
     return db_result
 
 
-def delete_scenario_result(*, session: Session, db_result: ScenarioResult) -> None:
+def delete_test_case_result(*, session: Session, db_result: TestCaseResult) -> None:
     session.delete(db_result)
     session.commit()

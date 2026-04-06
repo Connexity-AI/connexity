@@ -8,15 +8,15 @@ from sqlmodel import Session
 from app import crud
 from app.core.config import settings
 from app.models import RunStatus, RunUpdate
-from app.models.scenario_result import ScenarioResultUpdate
 from app.models.schemas import JudgeVerdict, MetricScore
+from app.models.test_case_result import TestCaseResultUpdate
 from app.tests.utils.eval import (
     create_test_agent,
+    create_test_case_fixture,
+    create_test_case_result_fixture,
+    create_test_eval_set,
     create_test_run,
-    create_test_scenario,
-    create_test_scenario_result,
-    create_test_scenario_set,
-    scenario_set_members,
+    eval_set_members,
 )
 
 _PREFIX = f"{settings.API_V1_STR}/runs/compare"
@@ -28,13 +28,11 @@ def _completed_run_with_results(
     overall_score: float = 80.0,
     metric_scores: list[MetricScore] | None = None,
 ) -> tuple:
-    """Create a completed run with one scenario result that has a verdict."""
+    """Create a completed run with one test case result that has a verdict."""
     agent = create_test_agent(db)
-    scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(
-        db, members=scenario_set_members(scenario.id)
-    )
-    run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+    test_case = create_test_case_fixture(db)
+    eval_set = create_test_eval_set(db, members=eval_set_members(test_case.id))
+    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
 
     # Mark as completed with aggregate metrics
     crud.update_run(
@@ -43,7 +41,7 @@ def _completed_run_with_results(
         run_in=RunUpdate(
             status=RunStatus.COMPLETED,
             aggregate_metrics={
-                "total_scenarios": 1,
+                "unique_test_case_count": 1,
                 "total_executions": 1,
                 "passed_count": 1 if passed else 0,
                 "failed_count": 0 if passed else 1,
@@ -57,8 +55,10 @@ def _completed_run_with_results(
         ),
     )
 
-    # Create scenario result with verdict
-    result = create_test_scenario_result(db, run_id=run.id, scenario_id=scenario.id)
+    # Create test case result with verdict
+    result = create_test_case_result_fixture(
+        db, run_id=run.id, test_case_id=test_case.id
+    )
     verdict = JudgeVerdict(
         passed=passed,
         overall_score=overall_score,
@@ -77,29 +77,27 @@ def _completed_run_with_results(
         judge_model="gpt-4o",
         judge_provider="openai",
     )
-    crud.update_scenario_result(
+    crud.update_test_case_result(
         session=db,
         db_result=result,
-        result_in=ScenarioResultUpdate(
+        result_in=TestCaseResultUpdate(
             passed=passed,
             verdict=verdict,
             total_latency_ms=500,
         ),
     )
 
-    return run, scenario, scenario_set
+    return run, test_case, eval_set
 
 
 def _completed_run_pair_same_set(db: Session) -> tuple:
-    """Create two completed runs sharing the same scenario set."""
+    """Create two completed runs sharing the same eval set."""
     agent = create_test_agent(db)
-    scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(
-        db, members=scenario_set_members(scenario.id)
-    )
+    test_case = create_test_case_fixture(db)
+    eval_set = create_test_eval_set(db, members=eval_set_members(test_case.id))
 
-    run_b = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
-    run_c = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+    run_b = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    run_c = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
 
     for run, passed, score in [(run_b, True, 80.0), (run_c, True, 90.0)]:
         crud.update_run(
@@ -108,7 +106,7 @@ def _completed_run_pair_same_set(db: Session) -> tuple:
             run_in=RunUpdate(
                 status=RunStatus.COMPLETED,
                 aggregate_metrics={
-                    "total_scenarios": 1,
+                    "unique_test_case_count": 1,
                     "total_executions": 1,
                     "passed_count": 1,
                     "failed_count": 0,
@@ -120,7 +118,9 @@ def _completed_run_pair_same_set(db: Session) -> tuple:
                 },
             ),
         )
-        result = create_test_scenario_result(db, run_id=run.id, scenario_id=scenario.id)
+        result = create_test_case_result_fixture(
+            db, run_id=run.id, test_case_id=test_case.id
+        )
         verdict = JudgeVerdict(
             passed=passed,
             overall_score=score,
@@ -138,10 +138,10 @@ def _completed_run_pair_same_set(db: Session) -> tuple:
             judge_model="gpt-4o",
             judge_provider="openai",
         )
-        crud.update_scenario_result(
+        crud.update_test_case_result(
             session=db,
             db_result=result,
-            result_in=ScenarioResultUpdate(
+            result_in=TestCaseResultUpdate(
                 passed=passed,
                 verdict=verdict,
                 total_latency_ms=500,
@@ -171,7 +171,7 @@ def test_compare_runs_success(
     assert body["baseline_run_id"] == str(run_b.id)
     assert body["candidate_run_id"] == str(run_c.id)
     assert "aggregate" in body
-    assert "scenario_comparisons" in body
+    assert "test_case_comparisons" in body
     assert "config_diff" in body
     assert isinstance(body["warnings"], list)
 
@@ -194,7 +194,7 @@ def test_compare_runs_aggregate_deltas(
     assert agg["pass_rate_delta"] == 0.0  # both 100%
 
 
-def test_compare_runs_scenario_comparisons(
+def test_compare_runs_test_case_comparisons(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
     run_b, run_c = _completed_run_pair_same_set(db)
@@ -207,9 +207,9 @@ def test_compare_runs_scenario_comparisons(
         cookies=superuser_auth_cookies,
     )
     assert r.status_code == 200
-    scenarios = r.json()["scenario_comparisons"]
-    assert len(scenarios) == 1
-    sc = scenarios[0]
+    test_cases = r.json()["test_case_comparisons"]
+    assert len(test_cases) == 1
+    sc = test_cases[0]
     assert sc["status"] == "improvement"
     assert sc["baseline_score"] == 80.0
     assert sc["candidate_score"] == 90.0
@@ -220,13 +220,9 @@ def test_compare_runs_baseline_not_completed(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
-    scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(
-        db, members=scenario_set_members(scenario.id)
-    )
-    pending_run = create_test_run(
-        db, agent_id=agent.id, scenario_set_id=scenario_set.id
-    )
+    test_case = create_test_case_fixture(db)
+    eval_set = create_test_eval_set(db, members=eval_set_members(test_case.id))
+    pending_run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
     completed_run, _, _ = _completed_run_with_results(db)
 
     r = client.get(
@@ -246,13 +242,9 @@ def test_compare_runs_candidate_not_completed(
 ) -> None:
     completed_run, _, _ = _completed_run_with_results(db)
     agent = create_test_agent(db)
-    scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(
-        db, members=scenario_set_members(scenario.id)
-    )
-    running_run = create_test_run(
-        db, agent_id=agent.id, scenario_set_id=scenario_set.id
-    )
+    test_case = create_test_case_fixture(db)
+    eval_set = create_test_eval_set(db, members=eval_set_members(test_case.id))
+    running_run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
     crud.update_run(
         session=db,
         db_run=running_run,
@@ -285,7 +277,7 @@ def test_compare_runs_not_found(
     assert r.status_code == 404
 
 
-def test_compare_runs_different_scenario_sets_warning(
+def test_compare_runs_different_eval_sets_warning(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
     run_b, _, _ = _completed_run_with_results(db)
@@ -301,7 +293,7 @@ def test_compare_runs_different_scenario_sets_warning(
     )
     assert r.status_code == 200
     body = r.json()
-    assert any("different scenario sets" in w for w in body["warnings"])
+    assert any("different eval sets" in w for w in body["warnings"])
 
 
 def test_compare_runs_config_diff_present(
@@ -318,8 +310,8 @@ def test_compare_runs_config_diff_present(
     )
     assert r.status_code == 200
     config_diff = r.json()["config_diff"]
-    assert "scenario_set_diff" in config_diff
-    assert config_diff["scenario_set_diff"]["same_set"] is True
+    assert "eval_set_diff" in config_diff
+    assert config_diff["eval_set_diff"]["same_set"] is True
 
 
 def test_compare_runs_binary_metric_handling(
@@ -327,24 +319,22 @@ def test_compare_runs_binary_metric_handling(
 ) -> None:
     """Binary metrics should have delta=None and status based on label transition."""
     agent = create_test_agent(db)
-    scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(
-        db, members=scenario_set_members(scenario.id)
-    )
+    test_case = create_test_case_fixture(db)
+    eval_set = create_test_eval_set(db, members=eval_set_members(test_case.id))
 
     runs = []
     for passed, score, binary_label, binary_score in [
         (True, 80.0, "pass", 5),
         (False, 40.0, "fail", 0),
     ]:
-        run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+        run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
         crud.update_run(
             session=db,
             db_run=run,
             run_in=RunUpdate(
                 status=RunStatus.COMPLETED,
                 aggregate_metrics={
-                    "total_scenarios": 1,
+                    "unique_test_case_count": 1,
                     "total_executions": 1,
                     "passed_count": 1 if passed else 0,
                     "failed_count": 0 if passed else 1,
@@ -354,7 +344,9 @@ def test_compare_runs_binary_metric_handling(
                 },
             ),
         )
-        result = create_test_scenario_result(db, run_id=run.id, scenario_id=scenario.id)
+        result = create_test_case_result_fixture(
+            db, run_id=run.id, test_case_id=test_case.id
+        )
         verdict = JudgeVerdict(
             passed=passed,
             overall_score=score,
@@ -373,10 +365,10 @@ def test_compare_runs_binary_metric_handling(
             judge_model="gpt-4o",
             judge_provider="openai",
         )
-        crud.update_scenario_result(
+        crud.update_test_case_result(
             session=db,
             db_result=result,
-            result_in=ScenarioResultUpdate(passed=passed, verdict=verdict),
+            result_in=TestCaseResultUpdate(passed=passed, verdict=verdict),
         )
         runs.append(run)
 
@@ -389,7 +381,7 @@ def test_compare_runs_binary_metric_handling(
         cookies=superuser_auth_cookies,
     )
     assert r.status_code == 200
-    sc = r.json()["scenario_comparisons"][0]
+    sc = r.json()["test_case_comparisons"][0]
     md = sc["metric_deltas"][0]
     assert md["is_binary"] is True
     assert md["delta"] is None
@@ -431,21 +423,19 @@ def test_compare_runs_verdict_detects_regression(
     """Regression detected when pass_rate drops."""
     # baseline: passed, candidate: failed
     agent = create_test_agent(db)
-    scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(
-        db, members=scenario_set_members(scenario.id)
-    )
+    test_case = create_test_case_fixture(db)
+    eval_set = create_test_eval_set(db, members=eval_set_members(test_case.id))
 
     runs = []
     for passed, score, pass_rate in [(True, 80.0, 1.0), (False, 40.0, 0.0)]:
-        run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+        run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
         crud.update_run(
             session=db,
             db_run=run,
             run_in=RunUpdate(
                 status=RunStatus.COMPLETED,
                 aggregate_metrics={
-                    "total_scenarios": 1,
+                    "unique_test_case_count": 1,
                     "total_executions": 1,
                     "passed_count": 1 if passed else 0,
                     "failed_count": 0 if passed else 1,
@@ -457,7 +447,9 @@ def test_compare_runs_verdict_detects_regression(
                 },
             ),
         )
-        result = create_test_scenario_result(db, run_id=run.id, scenario_id=scenario.id)
+        result = create_test_case_result_fixture(
+            db, run_id=run.id, test_case_id=test_case.id
+        )
         verdict = JudgeVerdict(
             passed=passed,
             overall_score=score,
@@ -475,10 +467,10 @@ def test_compare_runs_verdict_detects_regression(
             judge_model="gpt-4o",
             judge_provider="openai",
         )
-        crud.update_scenario_result(
+        crud.update_test_case_result(
             session=db,
             db_result=result,
-            result_in=ScenarioResultUpdate(passed=passed, verdict=verdict),
+            result_in=TestCaseResultUpdate(passed=passed, verdict=verdict),
         )
         runs.append(run)
 
@@ -501,21 +493,19 @@ def test_compare_runs_custom_thresholds(
 ) -> None:
     """Custom threshold can suppress a regression that default would catch."""
     agent = create_test_agent(db)
-    scenario = create_test_scenario(db)
-    scenario_set = create_test_scenario_set(
-        db, members=scenario_set_members(scenario.id)
-    )
+    test_case = create_test_case_fixture(db)
+    eval_set = create_test_eval_set(db, members=eval_set_members(test_case.id))
 
     runs = []
     for passed, score, pass_rate in [(True, 80.0, 1.0), (False, 40.0, 0.0)]:
-        run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+        run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
         crud.update_run(
             session=db,
             db_run=run,
             run_in=RunUpdate(
                 status=RunStatus.COMPLETED,
                 aggregate_metrics={
-                    "total_scenarios": 1,
+                    "unique_test_case_count": 1,
                     "total_executions": 1,
                     "passed_count": 1 if passed else 0,
                     "failed_count": 0 if passed else 1,
@@ -526,7 +516,9 @@ def test_compare_runs_custom_thresholds(
                 },
             ),
         )
-        result = create_test_scenario_result(db, run_id=run.id, scenario_id=scenario.id)
+        result = create_test_case_result_fixture(
+            db, run_id=run.id, test_case_id=test_case.id
+        )
         verdict = JudgeVerdict(
             passed=passed,
             overall_score=score,
@@ -544,10 +536,10 @@ def test_compare_runs_custom_thresholds(
             judge_model="gpt-4o",
             judge_provider="openai",
         )
-        crud.update_scenario_result(
+        crud.update_test_case_result(
             session=db,
             db_result=result,
-            result_in=ScenarioResultUpdate(passed=passed, verdict=verdict),
+            result_in=TestCaseResultUpdate(passed=passed, verdict=verdict),
         )
         runs.append(run)
 

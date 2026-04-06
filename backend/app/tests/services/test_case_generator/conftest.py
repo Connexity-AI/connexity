@@ -11,10 +11,10 @@ def db() -> Generator[None, None, None]:
     yield
 
 
-MOCK_SCENARIOS_RAW: list[dict] = [
+MOCK_TEST_CASES_RAW: list[dict] = [
     {
-        "name": f"Test Scenario {i}",
-        "description": f"Test scenario description {i}",
+        "name": f"Test TestCase {i}",
+        "description": f"Test case description {i}",
         "difficulty": "normal" if i % 3 != 0 else "hard",
         "tags": [
             ["normal", "happy-path"],
@@ -24,13 +24,13 @@ MOCK_SCENARIOS_RAW: list[dict] = [
         "status": "draft",
         "persona": {
             "type": f"test-persona-{i}",
-            "description": f"A test persona for scenario {i}",
+            "description": f"A test persona for test case {i}",
             "instructions": f"Behave as persona {i} would.",
         },
         "initial_message": f"Hello, this is test message {i}.",
-        "user_context": {"scenario_index": i, "test": True},
+        "user_context": {"test_case_index": i, "test": True},
         "max_turns": 10,
-        "expected_outcomes": {"success": True, "scenario_index": i},
+        "expected_outcomes": {"success": True, "test_case_index": i},
         "expected_tool_calls": [
             {"tool": "test_tool", "expected_params": {"id": str(i)}}
         ],
@@ -38,7 +38,7 @@ MOCK_SCENARIOS_RAW: list[dict] = [
     for i in range(10)
 ]
 
-MOCK_LLM_RESPONSE = json.dumps(MOCK_SCENARIOS_RAW)
+MOCK_LLM_RESPONSE = json.dumps(MOCK_TEST_CASES_RAW)
 
 
 @pytest.fixture()
@@ -47,5 +47,5 @@ def mock_llm_response() -> str:
 
 
 @pytest.fixture()
-def mock_scenarios_raw() -> list[dict]:
-    return list(MOCK_SCENARIOS_RAW)
+def mock_test_cases_raw() -> list[dict]:
+    return list(MOCK_TEST_CASES_RAW)
