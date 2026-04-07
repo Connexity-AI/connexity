@@ -224,6 +224,11 @@ export const AgentPublicSchema = {
       title: 'Id',
       description: 'Unique agent identifier',
     },
+    version: {
+      type: 'integer',
+      title: 'Version',
+      description: 'Current behavioral config version',
+    },
     created_at: {
       type: 'string',
       format: 'date-time',
@@ -238,8 +243,32 @@ export const AgentPublicSchema = {
     },
   },
   type: 'object',
-  required: ['name', 'id', 'created_at', 'updated_at'],
+  required: ['name', 'id', 'version', 'created_at', 'updated_at'],
   title: 'AgentPublic',
+} as const;
+
+export const AgentRollbackRequestSchema = {
+  properties: {
+    version: {
+      type: 'integer',
+      minimum: 1,
+      title: 'Version',
+    },
+    change_description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Change Description',
+    },
+  },
+  type: 'object',
+  required: ['version'],
+  title: 'AgentRollbackRequest',
 } as const;
 
 export const AgentSimulatorConfigSchema = {
@@ -417,9 +446,236 @@ export const AgentUpdateSchema = {
       title: 'Agent Metadata',
       description: 'Arbitrary key-value metadata about the agent',
     },
+    change_description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Change Description',
+      description: 'Optional changelog when a versionable field changes',
+    },
   },
   type: 'object',
   title: 'AgentUpdate',
+} as const;
+
+export const AgentVersionDiffSchema = {
+  properties: {
+    from_version: {
+      type: 'integer',
+      title: 'From Version',
+    },
+    to_version: {
+      type: 'integer',
+      title: 'To Version',
+    },
+    prompt_diff: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/PromptDiff',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    tool_diff: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/ToolDiff',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    mode_changed: {
+      type: 'boolean',
+      title: 'Mode Changed',
+      default: false,
+    },
+    model_changed: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/FieldChange',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    provider_changed: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/FieldChange',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    endpoint_url_changed: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/FieldChange',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+  },
+  type: 'object',
+  required: ['from_version', 'to_version'],
+  title: 'AgentVersionDiff',
+  description: 'Structured diff between two immutable agent_version snapshots.',
+} as const;
+
+export const AgentVersionPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    version: {
+      type: 'integer',
+      title: 'Version',
+    },
+    mode: {
+      $ref: '#/components/schemas/AgentMode',
+    },
+    endpoint_url: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Endpoint Url',
+    },
+    system_prompt: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'System Prompt',
+    },
+    tools: {
+      anyOf: [
+        {
+          items: {
+            type: 'object',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Tools',
+    },
+    agent_model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Model',
+    },
+    agent_provider: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Provider',
+    },
+    change_description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Change Description',
+    },
+    created_by: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Created By',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'agent_id',
+    'version',
+    'mode',
+    'endpoint_url',
+    'system_prompt',
+    'tools',
+    'agent_model',
+    'agent_provider',
+    'change_description',
+    'created_by',
+    'created_at',
+  ],
+  title: 'AgentVersionPublic',
+} as const;
+
+export const AgentVersionsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/AgentVersionPublic',
+      },
+      type: 'array',
+      title: 'Data',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'AgentVersionsPublic',
 } as const;
 
 export const AgentsPublicSchema = {
@@ -3090,6 +3346,31 @@ export const RunCreateSchema = {
       description: 'Version of the eval set at run time',
       default: 1,
     },
+    agent_version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Version',
+      description: 'Agent behavioral config version at run creation (set by server)',
+    },
+    agent_version_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Version Id',
+      description: 'FK to agent_version row at run creation (set by server)',
+    },
     config: {
       anyOf: [
         {
@@ -3222,6 +3503,18 @@ export const RunPublicSchema = {
       type: 'integer',
       title: 'Eval Set Version',
       description: 'Version of the eval set at run time',
+    },
+    agent_version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Version',
+      description: 'Agent behavioral config version at run creation',
     },
     config: {
       anyOf: [

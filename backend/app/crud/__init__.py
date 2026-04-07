@@ -7,6 +7,11 @@ from app.crud.agent import (  # noqa: F401
     list_agents,
     update_agent,
 )
+from app.crud.agent_version import get_version as get_agent_version  # noqa: F401
+from app.crud.agent_version import list_versions as list_agent_versions  # noqa: F401
+from app.crud.agent_version import (
+    rollback_to_version as rollback_agent_version,  # noqa: F401
+)
 from app.crud.custom_metrics import (  # noqa: F401
     create_custom_metric,
     delete_custom_metric,

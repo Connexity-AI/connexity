@@ -63,11 +63,16 @@ def create_test_run(
     agent_id: uuid.UUID,
     eval_set_id: uuid.UUID,
 ) -> Run:
+    agent = crud.get_agent(session=session, agent_id=agent_id)
+    assert agent is not None
     run_in = RunCreate(
         name=f"test-run-{uuid.uuid4().hex[:8]}",
         agent_id=agent_id,
         agent_endpoint_url="http://localhost:8080/agent",
         eval_set_id=eval_set_id,
+    )
+    run_in = crud.enrich_run_create_from_agent(
+        session=session, run_in=run_in, agent=agent
     )
     return crud.create_run(session=session, run_in=run_in)
 

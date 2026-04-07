@@ -13,7 +13,9 @@ import uuid
 
 from deepdiff import DeepDiff
 
+from app.models.agent_version import AgentVersion
 from app.models.comparison import (
+    AgentVersionDiff,
     EvalSetDiff,
     FieldChange,
     PromptDiff,
@@ -250,4 +252,37 @@ def compute_run_config_diff(
         judge_provider_changed=judge_provider_changed,
         config_changes=config_changes,
         eval_set_diff=eval_set_diff,
+    )
+
+
+def compute_agent_version_diff(
+    *,
+    from_version_num: int,
+    to_version_num: int,
+    old: AgentVersion,
+    new: AgentVersion,
+) -> AgentVersionDiff:
+    prompt_diff = compute_prompt_diff(old.system_prompt, new.system_prompt)
+    tool_diff = compute_tool_diff(old.tools, new.tools)
+    old_mode = old.mode.value if hasattr(old.mode, "value") else str(old.mode)
+    new_mode = new.mode.value if hasattr(new.mode, "value") else str(new.mode)
+    mode_changed = old_mode != new_mode
+    model_changed = _field_change_or_none(
+        "agent_model", old.agent_model, new.agent_model
+    )
+    provider_changed = _field_change_or_none(
+        "agent_provider", old.agent_provider, new.agent_provider
+    )
+    endpoint_url_changed = _field_change_or_none(
+        "endpoint_url", old.endpoint_url, new.endpoint_url
+    )
+    return AgentVersionDiff(
+        from_version=from_version_num,
+        to_version=to_version_num,
+        prompt_diff=prompt_diff,
+        tool_diff=tool_diff,
+        mode_changed=mode_changed,
+        model_changed=model_changed,
+        provider_changed=provider_changed,
+        endpoint_url_changed=endpoint_url_changed,
     )

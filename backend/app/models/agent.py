@@ -10,6 +10,7 @@ from sqlmodel import Field, Relationship, SQLModel
 from app.models.enums import AgentMode
 
 if TYPE_CHECKING:
+    from app.models.agent_version import AgentVersion
     from app.models.run import Run
     from app.models.test_case import TestCase
 
@@ -91,6 +92,11 @@ class Agent(AgentBase, table=True):
     __tablename__ = "agent"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    version: int = Field(
+        default=1,
+        nullable=False,
+        description="Current config version number (denormalized; see agent_version history)",
+    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"server_default": text("now()")},
@@ -109,6 +115,10 @@ class Agent(AgentBase, table=True):
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
     test_cases: list["TestCase"] = Relationship(back_populates="agent")
+    agent_versions: list["AgentVersion"] = Relationship(
+        back_populates="agent",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
 
 
 class AgentCreate(AgentBase):
@@ -150,10 +160,15 @@ class AgentUpdate(SQLModel):
     agent_metadata: dict[str, Any] | None = Field(
         default=None, description="Arbitrary key-value metadata about the agent"
     )
+    change_description: str | None = Field(
+        default=None,
+        description="Optional changelog when a versionable field changes",
+    )
 
 
 class AgentPublic(AgentBase):
     id: uuid.UUID = Field(description="Unique agent identifier")
+    version: int = Field(description="Current behavioral config version")
     created_at: datetime = Field(description="When the agent was created")
     updated_at: datetime = Field(description="When the agent was last updated")
 

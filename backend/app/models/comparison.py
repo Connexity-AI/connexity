@@ -4,6 +4,7 @@ import uuid
 from typing import Literal
 
 from pydantic import BaseModel, Field
+from sqlmodel import SQLModel
 
 from app.models.schemas import AggregateMetrics
 
@@ -56,6 +57,21 @@ class RunConfigDiff(BaseModel):
     judge_provider_changed: FieldChange | None = None
     config_changes: list[FieldChange] = Field(default_factory=list)
     eval_set_diff: EvalSetDiff
+
+
+class AgentVersionDiff(SQLModel):
+    """Structured diff between two immutable agent_version snapshots."""
+
+    model_config = {"protected_namespaces": ()}
+
+    from_version: int
+    to_version: int
+    prompt_diff: PromptDiff | None = None
+    tool_diff: ToolDiff | None = None
+    mode_changed: bool = False
+    model_changed: FieldChange | None = None
+    provider_changed: FieldChange | None = None
+    endpoint_url_changed: FieldChange | None = None
 
 
 # ── CS-27: Per-metric delta ──────────────────────────────────────

@@ -54,7 +54,9 @@ async def create_run(
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     try:
-        run_in = crud.enrich_run_create_from_agent(run_in=run_in, agent=agent)
+        run_in = crud.enrich_run_create_from_agent(
+            session=session, run_in=run_in, agent=agent
+        )
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
     run = crud.create_run(session=session, run_in=run_in, created_by=current_user.id)
@@ -69,6 +71,9 @@ def list_runs(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=1000),
     agent_id: uuid.UUID | None = None,
+    agent_version: int | None = Query(
+        default=None, ge=1, description="Filter by agent config version at run creation"
+    ),
     status: RunStatus | None = None,
     created_after: datetime | None = None,
     created_before: datetime | None = None,
@@ -78,6 +83,7 @@ def list_runs(
         skip=skip,
         limit=limit,
         agent_id=agent_id,
+        agent_version=agent_version,
         status=status,
         created_after=created_after,
         created_before=created_before,
@@ -210,10 +216,18 @@ def get_baseline_run(
     session: SessionDep,
     agent_id: uuid.UUID = Query(description="UUID of the agent"),
     eval_set_id: uuid.UUID = Query(description="UUID of the eval set"),
+    agent_version: int | None = Query(
+        default=None,
+        ge=1,
+        description="Only consider baselines for this agent config version",
+    ),
 ) -> Run:
     """Resolve the current baseline run for an (agent, eval_set) pair."""
     run = crud.get_baseline_run(
-        session=session, agent_id=agent_id, eval_set_id=eval_set_id
+        session=session,
+        agent_id=agent_id,
+        eval_set_id=eval_set_id,
+        agent_version=agent_version,
     )
     if not run:
         raise HTTPException(

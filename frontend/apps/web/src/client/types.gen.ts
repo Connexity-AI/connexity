@@ -143,6 +143,12 @@ export type AgentPublic = {
    */
   id: string;
   /**
+   * Version
+   *
+   * Current behavioral config version
+   */
+  version: number;
+  /**
    * Created At
    *
    * When the agent was created
@@ -154,6 +160,20 @@ export type AgentPublic = {
    * When the agent was last updated
    */
   updated_at: string;
+};
+
+/**
+ * AgentRollbackRequest
+ */
+export type AgentRollbackRequest = {
+  /**
+   * Version
+   */
+  version: number;
+  /**
+   * Change Description
+   */
+  change_description?: string | null;
 };
 
 /**
@@ -248,6 +268,104 @@ export type AgentUpdate = {
   agent_metadata?: {
     [key: string]: unknown;
   } | null;
+  /**
+   * Change Description
+   *
+   * Optional changelog when a versionable field changes
+   */
+  change_description?: string | null;
+};
+
+/**
+ * AgentVersionDiff
+ *
+ * Structured diff between two immutable agent_version snapshots.
+ */
+export type AgentVersionDiff = {
+  /**
+   * From Version
+   */
+  from_version: number;
+  /**
+   * To Version
+   */
+  to_version: number;
+  prompt_diff?: PromptDiff | null;
+  tool_diff?: ToolDiff | null;
+  /**
+   * Mode Changed
+   */
+  mode_changed?: boolean;
+  model_changed?: FieldChange | null;
+  provider_changed?: FieldChange | null;
+  endpoint_url_changed?: FieldChange | null;
+};
+
+/**
+ * AgentVersionPublic
+ */
+export type AgentVersionPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Version
+   */
+  version: number;
+  mode: AgentMode;
+  /**
+   * Endpoint Url
+   */
+  endpoint_url: string | null;
+  /**
+   * System Prompt
+   */
+  system_prompt: string | null;
+  /**
+   * Tools
+   */
+  tools: Array<{
+    [key: string]: unknown;
+  }> | null;
+  /**
+   * Agent Model
+   */
+  agent_model: string | null;
+  /**
+   * Agent Provider
+   */
+  agent_provider: string | null;
+  /**
+   * Change Description
+   */
+  change_description: string | null;
+  /**
+   * Created By
+   */
+  created_by: string | null;
+  /**
+   * Created At
+   */
+  created_at: string;
+};
+
+/**
+ * AgentVersionsPublic
+ */
+export type AgentVersionsPublic = {
+  /**
+   * Data
+   */
+  data: Array<AgentVersionPublic>;
+  /**
+   * Count
+   */
+  count: number;
 };
 
 /**
@@ -1956,6 +2074,18 @@ export type RunCreate = {
    */
   eval_set_version?: number;
   /**
+   * Agent Version
+   *
+   * Agent behavioral config version at run creation (set by server)
+   */
+  agent_version?: number | null;
+  /**
+   * Agent Version Id
+   *
+   * FK to agent_version row at run creation (set by server)
+   */
+  agent_version_id?: string | null;
+  /**
    * Run configuration (judge model, concurrency, timeouts, etc.)
    */
   config?: RunConfigInput | null;
@@ -2037,6 +2167,12 @@ export type RunPublic = {
    * Version of the eval set at run time
    */
   eval_set_version: number;
+  /**
+   * Agent Version
+   *
+   * Agent behavioral config version at run creation
+   */
+  agent_version?: number | null;
   /**
    * Run configuration (judge model, concurrency, timeouts, etc.)
    */
@@ -3971,6 +4107,255 @@ export type AgentsCreateAgentResponses = {
 export type AgentsCreateAgentResponse =
   AgentsCreateAgentResponses[keyof AgentsCreateAgentResponses];
 
+export type AgentsDiffAgentVersionsData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query: {
+    /**
+     * From Version
+     *
+     * Earlier version number
+     */
+    from_version: number;
+    /**
+     * To Version
+     *
+     * Later version number
+     */
+    to_version: number;
+  };
+  url: '/api/v1/agents/{agent_id}/versions/diff';
+};
+
+export type AgentsDiffAgentVersionsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsDiffAgentVersionsError =
+  AgentsDiffAgentVersionsErrors[keyof AgentsDiffAgentVersionsErrors];
+
+export type AgentsDiffAgentVersionsResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentVersionDiff;
+};
+
+export type AgentsDiffAgentVersionsResponse =
+  AgentsDiffAgentVersionsResponses[keyof AgentsDiffAgentVersionsResponses];
+
+export type AgentsReadAgentVersionData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+    /**
+     * Version
+     */
+    version: number;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/versions/{version}';
+};
+
+export type AgentsReadAgentVersionErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsReadAgentVersionError =
+  AgentsReadAgentVersionErrors[keyof AgentsReadAgentVersionErrors];
+
+export type AgentsReadAgentVersionResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentVersionPublic;
+};
+
+export type AgentsReadAgentVersionResponse =
+  AgentsReadAgentVersionResponses[keyof AgentsReadAgentVersionResponses];
+
+export type AgentsListAgentVersionsData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: {
+    /**
+     * Skip
+     */
+    skip?: number;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/agents/{agent_id}/versions';
+};
+
+export type AgentsListAgentVersionsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsListAgentVersionsError =
+  AgentsListAgentVersionsErrors[keyof AgentsListAgentVersionsErrors];
+
+export type AgentsListAgentVersionsResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentVersionsPublic;
+};
+
+export type AgentsListAgentVersionsResponse =
+  AgentsListAgentVersionsResponses[keyof AgentsListAgentVersionsResponses];
+
+export type AgentsRollbackAgentData = {
+  body: AgentRollbackRequest;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/rollback';
+};
+
+export type AgentsRollbackAgentErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsRollbackAgentError = AgentsRollbackAgentErrors[keyof AgentsRollbackAgentErrors];
+
+export type AgentsRollbackAgentResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentVersionPublic;
+};
+
+export type AgentsRollbackAgentResponse =
+  AgentsRollbackAgentResponses[keyof AgentsRollbackAgentResponses];
+
 export type AgentsDeleteAgentData = {
   body?: never;
   path: {
@@ -5489,6 +5874,12 @@ export type RunsListRunsData = {
      */
     agent_id?: string | null;
     /**
+     * Agent Version
+     *
+     * Filter by agent config version at run creation
+     */
+    agent_version?: number | null;
+    /**
      * Status
      */
     status?: RunStatus | null;
@@ -5757,6 +6148,12 @@ export type RunsGetBaselineRunData = {
      * UUID of the eval set
      */
     eval_set_id: string;
+    /**
+     * Agent Version
+     *
+     * Only consider baselines for this agent config version
+     */
+    agent_version?: number | null;
   };
   url: '/api/v1/runs/baseline';
 };

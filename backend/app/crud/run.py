@@ -4,14 +4,19 @@ from datetime import datetime
 from sqlalchemy import func
 from sqlmodel import Session, col, select
 
+from app.crud import agent_version as agent_version_crud
 from app.models import Agent, Run, RunCreate, RunStatus, RunUpdate
 from app.models.enums import AgentMode
 from app.models.schemas import RunConfig
 
 
-def enrich_run_create_from_agent(*, run_in: RunCreate, agent: Agent) -> RunCreate:
+def enrich_run_create_from_agent(
+    *, session: Session, run_in: RunCreate, agent: Agent
+) -> RunCreate:
     """Fill run snapshot fields from the agent and validate endpoint mode."""
     data = run_in.model_dump()
+    data.pop("agent_version", None)
+    data.pop("agent_version_id", None)
     cfg = run_in.config or RunConfig()
     asim = cfg.agent_simulator
 
@@ -46,6 +51,12 @@ def enrich_run_create_from_agent(*, run_in: RunCreate, agent: Agent) -> RunCreat
             msg = "agent_endpoint_url is required when the agent is in endpoint mode"
             raise ValueError(msg)
 
+    data["agent_version"] = agent.version
+    ver_row = agent_version_crud.get_current_version_row(
+        session=session, agent_id=agent.id, version=agent.version
+    )
+    data["agent_version_id"] = ver_row.id if ver_row else None
+
     return RunCreate.model_validate(data)
 
 
@@ -78,6 +89,7 @@ def list_runs(
     skip: int = 0,
     limit: int = 100,
     agent_id: uuid.UUID | None = None,
+    agent_version: int | None = None,
     status: RunStatus | None = None,
     created_after: datetime | None = None,
     created_before: datetime | None = None,
@@ -88,6 +100,9 @@ def list_runs(
     if agent_id is not None:
         statement = statement.where(Run.agent_id == agent_id)
         count_statement = count_statement.where(Run.agent_id == agent_id)
+    if agent_version is not None:
+        statement = statement.where(Run.agent_version == agent_version)
+        count_statement = count_statement.where(Run.agent_version == agent_version)
     if status is not None:
         statement = statement.where(Run.status == status)
         count_statement = count_statement.where(Run.status == status)
@@ -155,18 +170,17 @@ def get_baseline_run(
     session: Session,
     agent_id: uuid.UUID,
     eval_set_id: uuid.UUID,
+    agent_version: int | None = None,
 ) -> Run | None:
     """Return the current baseline run for the given (agent, eval_set) pair."""
-    statement = (
-        select(Run)
-        .where(
-            Run.agent_id == agent_id,
-            Run.eval_set_id == eval_set_id,
-            Run.is_baseline == True,  # noqa: E712
-        )
-        .order_by(col(Run.created_at).desc())
-        .limit(1)
+    statement = select(Run).where(
+        Run.agent_id == agent_id,
+        Run.eval_set_id == eval_set_id,
+        Run.is_baseline == True,  # noqa: E712
     )
+    if agent_version is not None:
+        statement = statement.where(Run.agent_version == agent_version)
+    statement = statement.order_by(col(Run.created_at).desc()).limit(1)
     return session.exec(statement).first()
 
 

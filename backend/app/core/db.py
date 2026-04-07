@@ -73,6 +73,7 @@ def _seed_eval_data(session: Session) -> None:
             endpoint_url="http://localhost:8081/agent",
             agent_metadata={"model": "claude-3-5-sonnet", "version": "1.0"},
         ),
+        created_by=owner_id,
     )
     agent_sales = crud.create_agent(
         session=session,
@@ -82,6 +83,7 @@ def _seed_eval_data(session: Session) -> None:
             endpoint_url="http://localhost:8082/agent",
             agent_metadata={"model": "gpt-4o", "version": "2.1"},
         ),
+        created_by=owner_id,
     )
 
     # Test cases
@@ -204,14 +206,18 @@ def _seed_eval_data(session: Session) -> None:
     )
 
     # Runs
+    run_completed_in = RunCreate(
+        name="Billing Eval — Completed",
+        agent_id=agent_cs.id,
+        agent_endpoint_url=agent_cs.endpoint_url,
+        eval_set_id=billing_set.id,
+    )
+    run_completed_in = crud.enrich_run_create_from_agent(
+        session=session, run_in=run_completed_in, agent=agent_cs
+    )
     run_completed = crud.create_run(
         session=session,
-        run_in=RunCreate(
-            name="Billing Eval — Completed",
-            agent_id=agent_cs.id,
-            agent_endpoint_url=agent_cs.endpoint_url,
-            eval_set_id=billing_set.id,
-        ),
+        run_in=run_completed_in,
         created_by=owner_id,
     )
     crud.update_run(
@@ -220,25 +226,33 @@ def _seed_eval_data(session: Session) -> None:
         run_in=RunUpdate(status=RunStatus.COMPLETED),
     )
 
+    run_pending_in = RunCreate(
+        name="Sales Eval — Pending",
+        agent_id=agent_sales.id,
+        agent_endpoint_url=agent_sales.endpoint_url,
+        eval_set_id=sales_set.id,
+    )
+    run_pending_in = crud.enrich_run_create_from_agent(
+        session=session, run_in=run_pending_in, agent=agent_sales
+    )
     _run_pending = crud.create_run(
         session=session,
-        run_in=RunCreate(
-            name="Sales Eval — Pending",
-            agent_id=agent_sales.id,
-            agent_endpoint_url=agent_sales.endpoint_url,
-            eval_set_id=sales_set.id,
-        ),
+        run_in=run_pending_in,
         created_by=owner_id,
     )
 
+    run_failed_in = RunCreate(
+        name="Billing Eval — Failed",
+        agent_id=agent_cs.id,
+        agent_endpoint_url=agent_cs.endpoint_url,
+        eval_set_id=billing_set.id,
+    )
+    run_failed_in = crud.enrich_run_create_from_agent(
+        session=session, run_in=run_failed_in, agent=agent_cs
+    )
     run_failed = crud.create_run(
         session=session,
-        run_in=RunCreate(
-            name="Billing Eval — Failed",
-            agent_id=agent_cs.id,
-            agent_endpoint_url=agent_cs.endpoint_url,
-            eval_set_id=billing_set.id,
-        ),
+        run_in=run_failed_in,
         created_by=owner_id,
     )
     crud.update_run(

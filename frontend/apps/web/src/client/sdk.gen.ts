@@ -9,12 +9,24 @@ import type {
   AgentsDeleteAgentData,
   AgentsDeleteAgentErrors,
   AgentsDeleteAgentResponses,
+  AgentsDiffAgentVersionsData,
+  AgentsDiffAgentVersionsErrors,
+  AgentsDiffAgentVersionsResponses,
   AgentsGetAgentData,
   AgentsGetAgentErrors,
   AgentsGetAgentResponses,
   AgentsListAgentsData,
   AgentsListAgentsErrors,
   AgentsListAgentsResponses,
+  AgentsListAgentVersionsData,
+  AgentsListAgentVersionsErrors,
+  AgentsListAgentVersionsResponses,
+  AgentsReadAgentVersionData,
+  AgentsReadAgentVersionErrors,
+  AgentsReadAgentVersionResponses,
+  AgentsRollbackAgentData,
+  AgentsRollbackAgentErrors,
+  AgentsRollbackAgentResponses,
   AgentsUpdateAgentData,
   AgentsUpdateAgentErrors,
   AgentsUpdateAgentResponses,
@@ -565,6 +577,106 @@ export class AgentsService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/agents/',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Diff Agent Versions
+   */
+  public static diffAgentVersions<ThrowOnError extends boolean = false>(
+    options: Options<AgentsDiffAgentVersionsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      AgentsDiffAgentVersionsResponses,
+      AgentsDiffAgentVersionsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/versions/diff',
+      ...options,
+    });
+  }
+
+  /**
+   * Read Agent Version
+   */
+  public static readAgentVersion<ThrowOnError extends boolean = false>(
+    options: Options<AgentsReadAgentVersionData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      AgentsReadAgentVersionResponses,
+      AgentsReadAgentVersionErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/versions/{version}',
+      ...options,
+    });
+  }
+
+  /**
+   * List Agent Versions
+   */
+  public static listAgentVersions<ThrowOnError extends boolean = false>(
+    options: Options<AgentsListAgentVersionsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      AgentsListAgentVersionsResponses,
+      AgentsListAgentVersionsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/versions',
+      ...options,
+    });
+  }
+
+  /**
+   * Rollback Agent
+   */
+  public static rollbackAgent<ThrowOnError extends boolean = false>(
+    options: Options<AgentsRollbackAgentData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      AgentsRollbackAgentResponses,
+      AgentsRollbackAgentErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/rollback',
       ...options,
       headers: {
         'Content-Type': 'application/json',
