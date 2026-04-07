@@ -6,6 +6,7 @@ from sqlalchemy import Column, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
+from app.models.agent_version import AgentVersion
 from app.models.enums import RunStatus
 from app.models.schemas import AggregateMetrics, RunConfig
 
@@ -74,6 +75,17 @@ class RunBase(SQLModel):
         default=1,
         description="Version of the eval set at run time",
     )
+    agent_version: int | None = Field(
+        default=None,
+        index=True,
+        description="Agent behavioral config version at run creation",
+    )
+    agent_version_id: uuid.UUID | None = Field(
+        default=None,
+        foreign_key="agent_version.id",
+        index=True,
+        description="FK to immutable agent_version row at run creation",
+    )
     # Config
     config: dict[str, Any] | None = Field(
         default=None,
@@ -131,6 +143,7 @@ class Run(RunBase, table=True):
 
     # Relationships
     agent: "Agent" = Relationship(back_populates="runs")
+    agent_version_row: AgentVersion | None = Relationship()
     eval_set: "EvalSet" = Relationship(back_populates="runs")
     test_case_results: list["TestCaseResult"] = Relationship(
         back_populates="run",
@@ -176,6 +189,14 @@ class RunCreate(SQLModel):
     eval_set_id: uuid.UUID = Field(description="FK to the eval set to execute")
     eval_set_version: int = Field(
         default=1, description="Version of the eval set at run time"
+    )
+    agent_version: int | None = Field(
+        default=None,
+        description="Agent behavioral config version at run creation (set by server)",
+    )
+    agent_version_id: uuid.UUID | None = Field(
+        default=None,
+        description="FK to agent_version row at run creation (set by server)",
     )
     config: RunConfig | None = Field(
         default=None,
@@ -242,6 +263,10 @@ class RunPublic(SQLModel):
         description="FK to the eval set executed in this run"
     )
     eval_set_version: int = Field(description="Version of the eval set at run time")
+    agent_version: int | None = Field(
+        default=None,
+        description="Agent behavioral config version at run creation",
+    )
     config: RunConfig | None = Field(
         default=None,
         description="Run configuration (judge model, concurrency, timeouts, etc.)",

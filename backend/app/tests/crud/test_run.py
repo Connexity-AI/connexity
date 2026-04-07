@@ -29,9 +29,13 @@ def test_enrich_run_create_fills_endpoint_snapshot(db: Session) -> None:
         agent_id=agent.id,
         eval_set_id=eval_set.id,
     )
-    enriched = crud.enrich_run_create_from_agent(run_in=run_in, agent=agent)
+    enriched = crud.enrich_run_create_from_agent(
+        session=db, run_in=run_in, agent=agent
+    )
     assert enriched.agent_endpoint_url == "http://localhost:8080/agent"
     assert enriched.agent_mode == AgentMode.ENDPOINT.value
+    assert enriched.agent_version == agent.version
+    assert enriched.agent_version_id is not None
 
 
 def test_enrich_run_create_platform_agent(db: Session) -> None:
@@ -45,7 +49,9 @@ def test_enrich_run_create_platform_agent(db: Session) -> None:
     agent = crud.create_agent(session=db, agent_in=agent_in)
     eval_set = create_test_eval_set(db)
     run_in = RunCreate(agent_id=agent.id, eval_set_id=eval_set.id)
-    enriched = crud.enrich_run_create_from_agent(run_in=run_in, agent=agent)
+    enriched = crud.enrich_run_create_from_agent(
+        session=db, run_in=run_in, agent=agent
+    )
     assert enriched.agent_mode == AgentMode.PLATFORM.value
     assert enriched.agent_model == "gpt-4o-mini"
     assert enriched.agent_provider == "openai"
@@ -67,7 +73,9 @@ def test_enrich_run_create_platform_agent_simulator_model_override(db: Session) 
         eval_set_id=eval_set.id,
         config=RunConfig(agent_simulator=AgentSimulatorConfig(model="gpt-4o")),
     )
-    enriched = crud.enrich_run_create_from_agent(run_in=run_in, agent=agent)
+    enriched = crud.enrich_run_create_from_agent(
+        session=db, run_in=run_in, agent=agent
+    )
     assert enriched.agent_model == "gpt-4o"
     assert enriched.agent_provider == "openai"
 
@@ -91,7 +99,9 @@ def test_enrich_run_create_platform_agent_simulator_provider_override(
             agent_simulator=AgentSimulatorConfig(provider="anthropic"),
         ),
     )
-    enriched = crud.enrich_run_create_from_agent(run_in=run_in, agent=agent)
+    enriched = crud.enrich_run_create_from_agent(
+        session=db, run_in=run_in, agent=agent
+    )
     assert enriched.agent_model == "claude-3-5-haiku-20241022"
     assert enriched.agent_provider == "anthropic"
 
@@ -113,6 +123,9 @@ def test_create_run_with_config(db: Session) -> None:
         agent_endpoint_url="http://localhost:8080/agent",
         eval_set_id=eval_set.id,
         config=config,
+    )
+    run_in = crud.enrich_run_create_from_agent(
+        session=db, run_in=run_in, agent=agent
     )
     run = crud.create_run(session=db, run_in=run_in)
     assert run.config is not None
@@ -141,6 +154,14 @@ def test_list_runs_filter_by_agent(db: Session) -> None:
     items, count = crud.list_runs(session=db, agent_id=agent.id)
     assert count >= 1
     assert all(r.agent_id == agent.id for r in items)
+
+
+def test_list_runs_filter_by_agent_version(db: Session) -> None:
+    agent, eval_set = _setup_run(db)
+    create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    items, count = crud.list_runs(session=db, agent_version=1, agent_id=agent.id)
+    assert count >= 1
+    assert all(r.agent_version == 1 for r in items)
 
 
 def test_list_runs_filter_by_status(db: Session) -> None:

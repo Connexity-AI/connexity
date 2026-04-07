@@ -26,12 +26,19 @@ from app.models.agent_contract import (  # noqa: F401
     ChatMessage,
     TokenUsage,
 )
+from app.models.agent_version import (  # noqa: F401
+    AgentRollbackRequest,
+    AgentVersion,
+    AgentVersionPublic,
+    AgentVersionsPublic,
+)
 
 # ── Common ─────────────────────────────────────────────────────────
 from app.models.common import ConfigPublic, ErrorResponse  # noqa: F401
 
 # ── Comparison / diff schemas (pure Pydantic) ────────────────────
 from app.models.comparison import (  # noqa: F401
+    AgentVersionDiff,
     AggregateComparison,
     CauseAnalysisItem,
     EvalSetDiff,
