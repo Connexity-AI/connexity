@@ -6,7 +6,6 @@ from sqlmodel import Session
 
 from app import crud
 from app.core.config import settings
-from app.models import AgentUpdate
 from app.models.enums import RunStatus
 from app.tests.utils.eval import (
     create_test_agent,
@@ -156,12 +155,16 @@ def test_get_baseline_filters_by_agent_version(
     )
     assert r.status_code == 404
 
-    # Bump agent to v2 and set a new baseline — this clears v1 baseline.
-    crud.update_agent(
+    # Bump agent to v2 via draft→publish and set a new baseline — this clears v1.
+    from app.crud.agent_version import create_or_update_draft, publish_draft
+
+    create_or_update_draft(
         session=db,
-        db_agent=agent,
-        agent_in=AgentUpdate(endpoint_url="http://v2.example.com/agent"),
+        agent=agent,
+        draft_data={"endpoint_url": "http://v2.example.com/agent"},
+        created_by=None,
     )
+    publish_draft(session=db, agent=agent, change_description=None, created_by=None)
     db.refresh(agent)
     assert agent.version == 2
 

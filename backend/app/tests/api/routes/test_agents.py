@@ -21,6 +21,7 @@ def test_create_agent(
     assert result["name"] == "Route Agent"
     assert result["endpoint_url"] == "http://example.com/agent"
     assert result["mode"] == "endpoint"
+    assert result["has_draft"] is False
     assert "id" in result
 
 
@@ -157,9 +158,10 @@ def test_create_endpoint_agent_missing_url(
     assert r.status_code == 422
 
 
-def test_update_agent_switch_to_platform(
+def test_update_agent_versionable_creates_draft(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
+    """PATCH with versionable fields now creates a draft instead of auto-bumping version."""
     agent = create_test_agent(db)
     r = client.patch(
         f"{settings.API_V1_STR}/agents/{agent.id}",
@@ -171,20 +173,27 @@ def test_update_agent_switch_to_platform(
         cookies=superuser_auth_cookies,
     )
     assert r.status_code == 200
-    assert r.json()["mode"] == "platform"
+    body = r.json()
+    # Agent version should NOT bump (changes are in draft)
+    assert body["version"] == 1
+    assert body["has_draft"] is True
+    # Published agent fields should still reflect original config
+    assert body["mode"] == "endpoint"
 
 
 def test_update_agent_invalid_mode_transition(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    """Switching to platform without system_prompt should fail."""
+    """Switching to platform without system_prompt goes to draft; validation happens on publish."""
     agent = create_test_agent(db)
+    # This creates a draft with mode=platform but no system_prompt — allowed in draft
     r = client.patch(
         f"{settings.API_V1_STR}/agents/{agent.id}",
         json={"mode": "platform"},
         cookies=superuser_auth_cookies,
     )
-    assert r.status_code == 422
+    assert r.status_code == 200
+    assert r.json()["has_draft"] is True
 
 
 def test_create_agent_unauthenticated(client: TestClient) -> None:

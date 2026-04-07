@@ -67,6 +67,37 @@ export type AgentCreate = {
 };
 
 /**
+ * AgentDraftUpdate
+ *
+ * Partial update for versionable agent fields — used by PUT /agents/{id}/draft.
+ */
+export type AgentDraftUpdate = {
+  mode?: AgentMode | null;
+  /**
+   * Endpoint Url
+   */
+  endpoint_url?: string | null;
+  /**
+   * System Prompt
+   */
+  system_prompt?: string | null;
+  /**
+   * Tools
+   */
+  tools?: Array<{
+    [key: string]: unknown;
+  }> | null;
+  /**
+   * Agent Model
+   */
+  agent_model?: string | null;
+  /**
+   * Agent Provider
+   */
+  agent_provider?: string | null;
+};
+
+/**
  * AgentMode
  */
 export const AgentMode = { ENDPOINT: 'endpoint', PLATFORM: 'platform' } as const;
@@ -148,6 +179,12 @@ export type AgentPublic = {
    * Current behavioral config version
    */
   version: number;
+  /**
+   * Has Draft
+   *
+   * True when an unpublished draft version exists
+   */
+  has_draft: boolean;
   /**
    * Created At
    *
@@ -316,7 +353,8 @@ export type AgentVersionPublic = {
   /**
    * Version
    */
-  version: number;
+  version: number | null;
+  status: AgentVersionStatus;
   mode: AgentMode;
   /**
    * Endpoint Url
@@ -353,6 +391,16 @@ export type AgentVersionPublic = {
    */
   created_at: string;
 };
+
+/**
+ * AgentVersionStatus
+ */
+export const AgentVersionStatus = { DRAFT: 'draft', PUBLISHED: 'published' } as const;
+
+/**
+ * AgentVersionStatus
+ */
+export type AgentVersionStatus = (typeof AgentVersionStatus)[keyof typeof AgentVersionStatus];
 
 /**
  * AgentVersionsPublic
@@ -1799,6 +1847,16 @@ export type PromptDiff = {
    * Semantic Summary
    */
   semantic_summary?: string | null;
+};
+
+/**
+ * PublishRequest
+ */
+export type PublishRequest = {
+  /**
+   * Change Description
+   */
+  change_description?: string | null;
 };
 
 /**
@@ -4355,6 +4413,225 @@ export type AgentsRollbackAgentResponses = {
 
 export type AgentsRollbackAgentResponse =
   AgentsRollbackAgentResponses[keyof AgentsRollbackAgentResponses];
+
+export type AgentsDiscardDraftData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/draft';
+};
+
+export type AgentsDiscardDraftErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsDiscardDraftError = AgentsDiscardDraftErrors[keyof AgentsDiscardDraftErrors];
+
+export type AgentsDiscardDraftResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type AgentsDiscardDraftResponse =
+  AgentsDiscardDraftResponses[keyof AgentsDiscardDraftResponses];
+
+export type AgentsGetDraftData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/draft';
+};
+
+export type AgentsGetDraftErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsGetDraftError = AgentsGetDraftErrors[keyof AgentsGetDraftErrors];
+
+export type AgentsGetDraftResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentVersionPublic;
+};
+
+export type AgentsGetDraftResponse = AgentsGetDraftResponses[keyof AgentsGetDraftResponses];
+
+export type AgentsUpsertDraftData = {
+  body: AgentDraftUpdate;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/draft';
+};
+
+export type AgentsUpsertDraftErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsUpsertDraftError = AgentsUpsertDraftErrors[keyof AgentsUpsertDraftErrors];
+
+export type AgentsUpsertDraftResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentVersionPublic;
+};
+
+export type AgentsUpsertDraftResponse =
+  AgentsUpsertDraftResponses[keyof AgentsUpsertDraftResponses];
+
+export type AgentsPublishDraftData = {
+  body: PublishRequest;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/publish';
+};
+
+export type AgentsPublishDraftErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsPublishDraftError = AgentsPublishDraftErrors[keyof AgentsPublishDraftErrors];
+
+export type AgentsPublishDraftResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentVersionPublic;
+};
+
+export type AgentsPublishDraftResponse =
+  AgentsPublishDraftResponses[keyof AgentsPublishDraftResponses];
 
 export type AgentsDeleteAgentData = {
   body?: never;

@@ -27,10 +27,12 @@ from app.models.agent_contract import (  # noqa: F401
     TokenUsage,
 )
 from app.models.agent_version import (  # noqa: F401
+    AgentDraftUpdate,
     AgentRollbackRequest,
     AgentVersion,
     AgentVersionPublic,
     AgentVersionsPublic,
+    PublishRequest,
 )
 
 # ── Common ─────────────────────────────────────────────────────────
@@ -71,6 +73,7 @@ from app.models.custom_metric import (  # noqa: F401
 # ── Enums ──────────────────────────────────────────────────────────
 from app.models.enums import (  # noqa: F401
     AgentMode,
+    AgentVersionStatus,
     Difficulty,
     MetricTier,
     RunStatus,

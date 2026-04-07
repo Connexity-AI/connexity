@@ -25,6 +25,11 @@ class AgentMode(StrEnum):
     PLATFORM = "platform"
 
 
+class AgentVersionStatus(StrEnum):
+    DRAFT = "draft"
+    PUBLISHED = "published"
+
+
 class SimulatorMode(StrEnum):
     LLM = "llm"
     SCRIPTED = "scripted"

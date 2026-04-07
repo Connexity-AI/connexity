@@ -97,6 +97,11 @@ class Agent(AgentBase, table=True):
         nullable=False,
         description="Current config version number (denormalized; see agent_version history)",
     )
+    has_draft: bool = Field(
+        default=False,
+        nullable=False,
+        description="True when an unpublished draft version exists",
+    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"server_default": text("now()")},
@@ -169,6 +174,7 @@ class AgentUpdate(SQLModel):
 class AgentPublic(AgentBase):
     id: uuid.UUID = Field(description="Unique agent identifier")
     version: int = Field(description="Current behavioral config version")
+    has_draft: bool = Field(description="True when an unpublished draft version exists")
     created_at: datetime = Field(description="When the agent was created")
     updated_at: datetime = Field(description="When the agent was last updated")
 

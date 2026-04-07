@@ -109,6 +109,82 @@ export const AgentCreateSchema = {
   title: 'AgentCreate',
 } as const;
 
+export const AgentDraftUpdateSchema = {
+  properties: {
+    mode: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/AgentMode',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    endpoint_url: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Endpoint Url',
+    },
+    system_prompt: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'System Prompt',
+    },
+    tools: {
+      anyOf: [
+        {
+          items: {
+            type: 'object',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Tools',
+    },
+    agent_model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Model',
+    },
+    agent_provider: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Provider',
+    },
+  },
+  type: 'object',
+  title: 'AgentDraftUpdate',
+  description: 'Partial update for versionable agent fields — used by PUT /agents/{id}/draft.',
+} as const;
+
 export const AgentModeSchema = {
   type: 'string',
   enum: ['endpoint', 'platform'],
@@ -229,6 +305,11 @@ export const AgentPublicSchema = {
       title: 'Version',
       description: 'Current behavioral config version',
     },
+    has_draft: {
+      type: 'boolean',
+      title: 'Has Draft',
+      description: 'True when an unpublished draft version exists',
+    },
     created_at: {
       type: 'string',
       format: 'date-time',
@@ -243,7 +324,7 @@ export const AgentPublicSchema = {
     },
   },
   type: 'object',
-  required: ['name', 'id', 'version', 'created_at', 'updated_at'],
+  required: ['name', 'id', 'version', 'has_draft', 'created_at', 'updated_at'],
   title: 'AgentPublic',
 } as const;
 
@@ -548,8 +629,18 @@ export const AgentVersionPublicSchema = {
       title: 'Agent Id',
     },
     version: {
-      type: 'integer',
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Version',
+    },
+    status: {
+      $ref: '#/components/schemas/AgentVersionStatus',
     },
     mode: {
       $ref: '#/components/schemas/AgentMode',
@@ -646,6 +737,7 @@ export const AgentVersionPublicSchema = {
     'id',
     'agent_id',
     'version',
+    'status',
     'mode',
     'endpoint_url',
     'system_prompt',
@@ -657,6 +749,12 @@ export const AgentVersionPublicSchema = {
     'created_at',
   ],
   title: 'AgentVersionPublic',
+} as const;
+
+export const AgentVersionStatusSchema = {
+  type: 'string',
+  enum: ['draft', 'published'],
+  title: 'AgentVersionStatus',
 } as const;
 
 export const AgentVersionsPublicSchema = {
@@ -2826,6 +2924,24 @@ export const PromptDiffSchema = {
   type: 'object',
   required: ['changed', 'change_ratio'],
   title: 'PromptDiff',
+} as const;
+
+export const PublishRequestSchema = {
+  properties: {
+    change_description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Change Description',
+    },
+  },
+  type: 'object',
+  title: 'PublishRequest',
 } as const;
 
 export const RegressionAnalysisSchema = {

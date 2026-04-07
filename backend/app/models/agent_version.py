@@ -3,11 +3,11 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from pydantic import ConfigDict
-from sqlalchemy import Column, text
+from sqlalchemy import Column, Index, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
-from app.models.enums import AgentMode
+from app.models.enums import AgentMode, AgentVersionStatus
 
 if TYPE_CHECKING:
     from app.models.agent import Agent
@@ -15,6 +15,19 @@ if TYPE_CHECKING:
 
 class AgentVersion(SQLModel, table=True):
     __tablename__ = "agent_version"
+    __table_args__ = (
+        UniqueConstraint(
+            "agent_id",
+            "version",
+            name="uq_agent_version_agent_version",
+        ),
+        Index(
+            "ix_agent_version_one_draft_per_agent",
+            "agent_id",
+            unique=True,
+            postgresql_where=text("status = 'draft'"),
+        ),
+    )
     model_config = ConfigDict(use_enum_values=True)
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -23,8 +36,15 @@ class AgentVersion(SQLModel, table=True):
         index=True,
         nullable=False,
     )
-    version: int = Field(
-        nullable=False, description="Monotonic version number per agent"
+    version: int | None = Field(
+        default=None,
+        nullable=True,
+        description="Monotonic version number; NULL for drafts",
+    )
+    status: AgentVersionStatus = Field(
+        default=AgentVersionStatus.PUBLISHED,
+        nullable=False,
+        description="draft or published",
     )
     mode: AgentMode = Field(
         description="endpoint: HTTP agent; platform: LLM simulated on the platform"
@@ -56,7 +76,8 @@ class AgentVersionPublic(SQLModel):
 
     id: uuid.UUID
     agent_id: uuid.UUID
-    version: int
+    version: int | None
+    status: AgentVersionStatus
     mode: AgentMode
     endpoint_url: str | None
     system_prompt: str | None
@@ -75,4 +96,19 @@ class AgentVersionsPublic(SQLModel):
 
 class AgentRollbackRequest(SQLModel):
     version: int = Field(ge=1)
+    change_description: str | None = None
+
+
+class AgentDraftUpdate(SQLModel):
+    """Partial update for versionable agent fields — used by PUT /agents/{id}/draft."""
+
+    mode: AgentMode | None = None
+    endpoint_url: str | None = None
+    system_prompt: str | None = None
+    tools: list[dict[str, Any]] | None = None
+    agent_model: str | None = None
+    agent_provider: str | None = None
+
+
+class PublishRequest(SQLModel):
     change_description: str | None = None
