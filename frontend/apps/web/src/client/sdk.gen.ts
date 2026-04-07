@@ -1593,7 +1593,7 @@ export class RunsService {
   /**
    * Get Baseline Run
    *
-   * Resolve the current baseline run for an (agent, eval_set) pair.
+   * Resolve the baseline run for an (agent, eval_set) pair (version-scoped).
    */
   public static getBaselineRun<ThrowOnError extends boolean = false>(
     options: Options<RunsGetBaselineRunData, ThrowOnError>

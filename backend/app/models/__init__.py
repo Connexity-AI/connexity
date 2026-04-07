@@ -40,6 +40,7 @@ from app.models.common import ConfigPublic, ErrorResponse  # noqa: F401
 
 # ── Comparison / diff schemas (pure Pydantic) ────────────────────
 from app.models.comparison import (  # noqa: F401
+    AgentConfigDiff,
     AgentVersionDiff,
     AggregateComparison,
     CauseAnalysisItem,

@@ -55,16 +55,6 @@ class RunBase(SQLModel):
         max_length=64,
         description="Effective LLM provider for platform agent simulator for this run",
     )
-    tools_snapshot: list[dict[str, Any]] | None = Field(
-        default=None,
-        sa_column=Column("tools_snapshot", JSONB, nullable=True),
-        description="Full tool schema array at run time",
-    )
-    tools_snapshot_hash: str | None = Field(
-        default=None,
-        max_length=64,
-        description="SHA-256 hash of tools_snapshot for change detection",
-    )
     # Eval set
     eval_set_id: uuid.UUID = Field(
         foreign_key="eval_set.id",
@@ -179,12 +169,6 @@ class RunCreate(SQLModel):
     agent_provider: str | None = Field(
         default=None,
         description="Effective LLM provider for platform agent simulator for this run",
-    )
-    tools_snapshot: list[dict[str, Any]] | None = Field(
-        default=None, description="Full tool schema array at run time"
-    )
-    tools_snapshot_hash: str | None = Field(
-        default=None, description="SHA-256 hash of tools_snapshot for change detection"
     )
     eval_set_id: uuid.UUID = Field(description="FK to the eval set to execute")
     eval_set_version: int = Field(

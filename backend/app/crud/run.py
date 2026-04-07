@@ -147,9 +147,10 @@ def set_baseline(*, session: Session, db_run: Run) -> Run:
             f"Only completed runs can be marked as baseline (status={db_run.status})"
         )
 
-    # Clear existing baselines for the same scope
+    # Clear existing baselines for the same (agent, agent_version, eval_set) scope
     statement = select(Run).where(
         Run.agent_id == db_run.agent_id,
+        Run.agent_version == db_run.agent_version,
         Run.eval_set_id == db_run.eval_set_id,
         Run.is_baseline == True,  # noqa: E712
         Run.id != db_run.id,
@@ -172,7 +173,11 @@ def get_baseline_run(
     eval_set_id: uuid.UUID,
     agent_version: int | None = None,
 ) -> Run | None:
-    """Return the current baseline run for the given (agent, eval_set) pair."""
+    """Return baseline for (agent, eval_set), optionally scoped to a version.
+
+    If *agent_version* is None, returns the baseline for the agent's current
+    version (``Agent.version``).
+    """
     statement = select(Run).where(
         Run.agent_id == agent_id,
         Run.eval_set_id == eval_set_id,
@@ -180,6 +185,11 @@ def get_baseline_run(
     )
     if agent_version is not None:
         statement = statement.where(Run.agent_version == agent_version)
+    else:
+        agent = session.exec(select(Agent).where(Agent.id == agent_id)).first()
+        if agent is None:
+            return None
+        statement = statement.where(Run.agent_version == agent.version)
     statement = statement.order_by(col(Run.created_at).desc()).limit(1)
     return session.exec(statement).first()
 

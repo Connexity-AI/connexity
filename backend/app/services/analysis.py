@@ -319,7 +319,7 @@ def _format_metric_scores_for_suggestions(
 
 def _format_tools_summary(candidate_run: Run) -> str:
     """Summarize tool definitions from the candidate run."""
-    tools = candidate_run.tools_snapshot or candidate_run.agent_tools
+    tools = candidate_run.agent_tools
     if not tools:
         return "(no tools defined)"
     names: list[str] = []

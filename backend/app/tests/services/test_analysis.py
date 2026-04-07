@@ -118,8 +118,7 @@ def _make_fake_run(**overrides: object) -> SimpleNamespace:
     defaults = {
         "id": uuid.uuid4(),
         "agent_system_prompt": "You are a helpful assistant.",
-        "agent_tools": None,
-        "tools_snapshot": [
+        "agent_tools": [
             {
                 "type": "function",
                 "function": {"name": "search", "description": "Search the web"},

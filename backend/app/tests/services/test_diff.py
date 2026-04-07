@@ -3,11 +3,14 @@
 import uuid
 from types import SimpleNamespace
 
+from app.models.enums import AgentMode
 from app.services.diff import (
+    AgentConfigSnapshot,
+    compute_agent_config_diff,
+    compute_agent_version_diff,
     compute_config_diff,
     compute_eval_set_diff,
     compute_prompt_diff,
-    compute_run_config_diff,
     compute_tool_diff,
 )
 
@@ -18,7 +21,6 @@ _RUN_DEFAULTS: dict[str, object] = {
     "eval_set_version": 1,
     "agent_system_prompt": None,
     "agent_tools": None,
-    "tools_snapshot": None,
     "agent_model": None,
     "agent_provider": None,
     "config": None,
@@ -188,73 +190,93 @@ class TestComputeEvalSetDiff:
         assert result.version_changed is False
 
 
-# ── Full orchestrator ────────────────────────────────────────────
+# ── Shared agent config diff ─────────────────────────────────────
 
 
-class TestComputeRunConfigDiff:
+class TestComputeAgentConfigDiff:
     def test_no_changes(self) -> None:
-        set_id = uuid.uuid4()
-        sids = {uuid.uuid4()}
-        r1 = _make_run(
-            eval_set_id=set_id,
-            agent_system_prompt="Hello",
+        snap = AgentConfigSnapshot(
+            mode=AgentMode.ENDPOINT.value,
+            endpoint_url="http://x",
+            system_prompt="Hello",
+            tools=None,
             agent_model="gpt-4o",
             agent_provider="openai",
         )
-        r2 = _make_run(
-            eval_set_id=set_id,
-            agent_system_prompt="Hello",
-            agent_model="gpt-4o",
-            agent_provider="openai",
-        )
-        result = compute_run_config_diff(r1, r2, sids, sids)
+        result = compute_agent_config_diff(snap, snap)
         assert result.prompt_diff is not None
         assert result.prompt_diff.changed is False
+        assert result.mode_changed is False
         assert result.model_changed is None
-        assert result.provider_changed is None
 
     def test_model_swap(self) -> None:
-        set_id = uuid.uuid4()
-        sids = {uuid.uuid4()}
-        r1 = _make_run(eval_set_id=set_id, agent_model="gpt-4o")
-        r2 = _make_run(eval_set_id=set_id, agent_model="gpt-4o-mini")
-        result = compute_run_config_diff(r1, r2, sids, sids)
+        old = AgentConfigSnapshot(
+            mode=AgentMode.ENDPOINT.value,
+            endpoint_url="http://x",
+            system_prompt=None,
+            tools=None,
+            agent_model="gpt-4o",
+            agent_provider=None,
+        )
+        new = AgentConfigSnapshot(
+            mode=AgentMode.ENDPOINT.value,
+            endpoint_url="http://x",
+            system_prompt=None,
+            tools=None,
+            agent_model="gpt-4o-mini",
+            agent_provider=None,
+        )
+        result = compute_agent_config_diff(old, new)
         assert result.model_changed is not None
         assert result.model_changed.old_value == "gpt-4o"
         assert result.model_changed.new_value == "gpt-4o-mini"
 
-    def test_prompt_and_tool_change(self) -> None:
-        set_id = uuid.uuid4()
-        sids = {uuid.uuid4()}
-        r1 = _make_run(
-            eval_set_id=set_id,
-            agent_system_prompt="V1 prompt",
-            tools_snapshot=[_tool("search")],
-        )
-        r2 = _make_run(
-            eval_set_id=set_id,
-            agent_system_prompt="V2 prompt completely rewritten",
-            tools_snapshot=[_tool("search"), _tool("weather")],
-        )
-        result = compute_run_config_diff(r1, r2, sids, sids)
-        assert result.prompt_diff is not None
-        assert result.prompt_diff.changed is True
-        assert result.tool_diff is not None
-        assert result.tool_diff.added == ["weather"]
 
-    def test_judge_model_change(self) -> None:
-        set_id = uuid.uuid4()
-        sids = {uuid.uuid4()}
-        r1 = _make_run(
-            eval_set_id=set_id,
-            config={"judge": {"model": "gpt-4o", "provider": "openai"}},
-        )
-        r2 = _make_run(
-            eval_set_id=set_id,
-            config={"judge": {"model": "claude-3-5-sonnet", "provider": "anthropic"}},
-        )
-        result = compute_run_config_diff(r1, r2, sids, sids)
-        assert result.judge_model_changed is not None
-        assert result.judge_model_changed.old_value == "gpt-4o"
-        assert result.judge_model_changed.new_value == "claude-3-5-sonnet"
-        assert result.judge_provider_changed is not None
+def test_compute_agent_version_diff_matches_shared_function() -> None:
+    """compute_agent_version_diff must delegate to compute_agent_config_diff."""
+    old = SimpleNamespace(
+        mode=AgentMode.PLATFORM,
+        endpoint_url=None,
+        system_prompt="same",
+        tools=[_tool("a")],
+        agent_model="gpt-4o",
+        agent_provider="openai",
+    )
+    new = SimpleNamespace(
+        mode=AgentMode.PLATFORM,
+        endpoint_url=None,
+        system_prompt="same",
+        tools=[_tool("a"), _tool("b")],
+        agent_model="gpt-4o-mini",
+        agent_provider="openai",
+    )
+    expected = compute_agent_config_diff(
+        AgentConfigSnapshot(
+            mode=AgentMode.PLATFORM.value,
+            endpoint_url=None,
+            system_prompt="same",
+            tools=[_tool("a")],
+            agent_model="gpt-4o",
+            agent_provider="openai",
+        ),
+        AgentConfigSnapshot(
+            mode=AgentMode.PLATFORM.value,
+            endpoint_url=None,
+            system_prompt="same",
+            tools=[_tool("a"), _tool("b")],
+            agent_model="gpt-4o-mini",
+            agent_provider="openai",
+        ),
+    )
+    got = compute_agent_version_diff(
+        from_version_num=1,
+        to_version_num=2,
+        old=old,  # type: ignore[arg-type]
+        new=new,  # type: ignore[arg-type]
+    )
+    assert got.prompt_diff == expected.prompt_diff
+    assert got.tool_diff == expected.tool_diff
+    assert got.mode_changed == expected.mode_changed
+    assert got.model_changed == expected.model_changed
+    assert got.provider_changed == expected.provider_changed
+    assert got.endpoint_url_changed == expected.endpoint_url_changed

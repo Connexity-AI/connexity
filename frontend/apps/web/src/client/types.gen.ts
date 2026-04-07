@@ -1260,8 +1260,10 @@ export type FieldChange = {
 export type GenerateRequest = {
   /**
    * Agent Prompt
+   *
+   * Agent system prompt; optional if agent_id is set (loaded from AgentVersion)
    */
-  agent_prompt: string;
+  agent_prompt?: string | null;
   /**
    * Tools
    */
@@ -1289,9 +1291,15 @@ export type GenerateRequest = {
   /**
    * Agent Id
    *
-   * When persist=true, bind created test cases to this agent
+   * When set, may load prompt/tools from AgentVersion; when persist=true, bind test cases
    */
   agent_id?: string | null;
+  /**
+   * Agent Version
+   *
+   * Version to load config from when agent_id is set; defaults to agent's current version
+   */
+  agent_version?: number | null;
 };
 
 /**
@@ -1943,6 +1951,14 @@ export type RunComparison = {
    */
   candidate_run_id: string;
   /**
+   * Baseline Agent Version
+   */
+  baseline_agent_version?: number | null;
+  /**
+   * Candidate Agent Version
+   */
+  candidate_agent_version?: number | null;
+  /**
    * Baseline Run Name
    */
   baseline_run_name?: string | null;
@@ -2038,10 +2054,23 @@ export type RunConfigOutput = {
  * Structured diff of snapshotted run configuration between two runs.
  */
 export type RunConfigDiff = {
+  /**
+   * Baseline Agent Version
+   */
+  baseline_agent_version?: number | null;
+  /**
+   * Candidate Agent Version
+   */
+  candidate_agent_version?: number | null;
   prompt_diff?: PromptDiff | null;
   tool_diff?: ToolDiff | null;
+  /**
+   * Mode Changed
+   */
+  mode_changed?: boolean;
   model_changed?: FieldChange | null;
   provider_changed?: FieldChange | null;
+  endpoint_url_changed?: FieldChange | null;
   judge_model_changed?: FieldChange | null;
   judge_provider_changed?: FieldChange | null;
   /**
@@ -2105,20 +2134,6 @@ export type RunCreate = {
    * Effective LLM provider for platform agent simulator for this run
    */
   agent_provider?: string | null;
-  /**
-   * Tools Snapshot
-   *
-   * Full tool schema array at run time
-   */
-  tools_snapshot?: Array<{
-    [key: string]: unknown;
-  }> | null;
-  /**
-   * Tools Snapshot Hash
-   *
-   * SHA-256 hash of tools_snapshot for change detection
-   */
-  tools_snapshot_hash?: string | null;
   /**
    * Eval Set Id
    *
@@ -6428,7 +6443,7 @@ export type RunsGetBaselineRunData = {
     /**
      * Agent Version
      *
-     * Only consider baselines for this agent config version
+     * Scope baseline to this agent config version; omit to use the agent's current version
      */
     agent_version?: number | null;
   };

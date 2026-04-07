@@ -219,10 +219,13 @@ def get_baseline_run(
     agent_version: int | None = Query(
         default=None,
         ge=1,
-        description="Only consider baselines for this agent config version",
+        description=(
+            "Scope baseline to this agent config version; "
+            "omit to use the agent's current version"
+        ),
     ),
 ) -> Run:
-    """Resolve the current baseline run for an (agent, eval_set) pair."""
+    """Resolve the baseline run for an (agent, eval_set) pair (version-scoped)."""
     run = crud.get_baseline_run(
         session=session,
         agent_id=agent_id,

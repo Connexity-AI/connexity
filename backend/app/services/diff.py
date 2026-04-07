@@ -6,15 +6,24 @@ Computes structured diffs between two run snapshots:
 - Model/provider: simple equality
 - RunConfig JSONB: deepdiff on the full config dict
 - Eval set membership: set intersection/difference on test case IDs
+
+Agent config for run-to-run comparison is loaded from linked AgentVersion rows
+(version-scoped baselines / CS-72).
 """
+
+from __future__ import annotations
 
 import difflib
 import uuid
+from dataclasses import dataclass
+from typing import Any
 
 from deepdiff import DeepDiff
+from sqlmodel import Session
 
 from app.models.agent_version import AgentVersion
 from app.models.comparison import (
+    AgentConfigDiff,
     AgentVersionDiff,
     EvalSetDiff,
     FieldChange,
@@ -25,6 +34,77 @@ from app.models.comparison import (
 from app.models.run import Run
 
 _UNIFIED_DIFF_MAX_CHARS = 5_000
+
+
+@dataclass(frozen=True, slots=True)
+class AgentConfigSnapshot:
+    """Decoupled agent config for diffing (no ORM dependency)."""
+
+    mode: str
+    endpoint_url: str | None
+    system_prompt: str | None
+    tools: list[dict[str, Any]] | None
+    agent_model: str | None
+    agent_provider: str | None
+
+
+def _mode_str(mode: object) -> str:
+    if isinstance(mode, str):
+        return mode
+    return str(getattr(mode, "value", mode))
+
+
+def _snapshot_from_agent_version(row: AgentVersion) -> AgentConfigSnapshot:
+    """Build a snapshot from an immutable agent_version row."""
+    return AgentConfigSnapshot(
+        mode=_mode_str(row.mode),
+        endpoint_url=row.endpoint_url,
+        system_prompt=row.system_prompt,
+        tools=row.tools,
+        agent_model=row.agent_model,
+        agent_provider=row.agent_provider,
+    )
+
+
+def _agent_config_from_run(run: Run, session: Session) -> AgentConfigSnapshot:
+    """Extract agent config from a run's linked AgentVersion."""
+    if run.agent_version_id is None:
+        msg = f"Run {run.id} has no agent_version_id; cannot diff agent config from version"
+        raise ValueError(msg)
+    version = session.get(AgentVersion, run.agent_version_id)
+    if version is None:
+        msg = f"AgentVersion {run.agent_version_id} not found for run {run.id}"
+        raise ValueError(msg)
+    return _snapshot_from_agent_version(version)
+
+
+def compute_agent_config_diff(
+    old: AgentConfigSnapshot, new: AgentConfigSnapshot
+) -> AgentConfigDiff:
+    """Pure function: diffs two agent configs.
+
+    Used by both run comparison and GET /agents/.../versions/diff.
+    """
+    prompt_diff = compute_prompt_diff(old.system_prompt, new.system_prompt)
+    tool_diff = compute_tool_diff(old.tools, new.tools)
+    mode_changed = old.mode != new.mode
+    model_changed = _field_change_or_none(
+        "agent_model", old.agent_model, new.agent_model
+    )
+    provider_changed = _field_change_or_none(
+        "agent_provider", old.agent_provider, new.agent_provider
+    )
+    endpoint_url_changed = _field_change_or_none(
+        "endpoint_url", old.endpoint_url, new.endpoint_url
+    )
+    return AgentConfigDiff(
+        prompt_diff=prompt_diff,
+        tool_diff=tool_diff,
+        mode_changed=mode_changed,
+        model_changed=model_changed,
+        provider_changed=provider_changed,
+        endpoint_url_changed=endpoint_url_changed,
+    )
 
 
 def compute_prompt_diff(old_prompt: str | None, new_prompt: str | None) -> PromptDiff:
@@ -210,23 +290,13 @@ def compute_run_config_diff(
     candidate: Run,
     baseline_test_case_ids: set[uuid.UUID],
     candidate_test_case_ids: set[uuid.UUID],
+    *,
+    session: Session,
 ) -> RunConfigDiff:
     """Orchestrator: computes the full structured diff between two runs."""
-    prompt_diff = compute_prompt_diff(
-        baseline.agent_system_prompt, candidate.agent_system_prompt
-    )
-
-    tool_diff = compute_tool_diff(
-        baseline.tools_snapshot or baseline.agent_tools,
-        candidate.tools_snapshot or candidate.agent_tools,
-    )
-
-    model_changed = _field_change_or_none(
-        "agent_model", baseline.agent_model, candidate.agent_model
-    )
-    provider_changed = _field_change_or_none(
-        "agent_provider", baseline.agent_provider, candidate.agent_provider
-    )
+    old_config = _agent_config_from_run(baseline, session)
+    new_config = _agent_config_from_run(candidate, session)
+    agent_diff = compute_agent_config_diff(old_config, new_config)
 
     old_judge = _extract_judge_config(baseline) or {}
     new_judge = _extract_judge_config(candidate) or {}
@@ -244,10 +314,14 @@ def compute_run_config_diff(
     )
 
     return RunConfigDiff(
-        prompt_diff=prompt_diff,
-        tool_diff=tool_diff,
-        model_changed=model_changed,
-        provider_changed=provider_changed,
+        baseline_agent_version=baseline.agent_version,
+        candidate_agent_version=candidate.agent_version,
+        prompt_diff=agent_diff.prompt_diff,
+        tool_diff=agent_diff.tool_diff,
+        mode_changed=agent_diff.mode_changed,
+        model_changed=agent_diff.model_changed,
+        provider_changed=agent_diff.provider_changed,
+        endpoint_url_changed=agent_diff.endpoint_url_changed,
         judge_model_changed=judge_model_changed,
         judge_provider_changed=judge_provider_changed,
         config_changes=config_changes,
@@ -262,27 +336,16 @@ def compute_agent_version_diff(
     old: AgentVersion,
     new: AgentVersion,
 ) -> AgentVersionDiff:
-    prompt_diff = compute_prompt_diff(old.system_prompt, new.system_prompt)
-    tool_diff = compute_tool_diff(old.tools, new.tools)
-    old_mode = old.mode.value if hasattr(old.mode, "value") else str(old.mode)
-    new_mode = new.mode.value if hasattr(new.mode, "value") else str(new.mode)
-    mode_changed = old_mode != new_mode
-    model_changed = _field_change_or_none(
-        "agent_model", old.agent_model, new.agent_model
-    )
-    provider_changed = _field_change_or_none(
-        "agent_provider", old.agent_provider, new.agent_provider
-    )
-    endpoint_url_changed = _field_change_or_none(
-        "endpoint_url", old.endpoint_url, new.endpoint_url
+    agent_diff = compute_agent_config_diff(
+        _snapshot_from_agent_version(old), _snapshot_from_agent_version(new)
     )
     return AgentVersionDiff(
         from_version=from_version_num,
         to_version=to_version_num,
-        prompt_diff=prompt_diff,
-        tool_diff=tool_diff,
-        mode_changed=mode_changed,
-        model_changed=model_changed,
-        provider_changed=provider_changed,
-        endpoint_url_changed=endpoint_url_changed,
+        prompt_diff=agent_diff.prompt_diff,
+        tool_diff=agent_diff.tool_diff,
+        mode_changed=agent_diff.mode_changed,
+        model_changed=agent_diff.model_changed,
+        provider_changed=agent_diff.provider_changed,
+        endpoint_url_changed=agent_diff.endpoint_url_changed,
     )
