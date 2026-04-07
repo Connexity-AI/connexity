@@ -6,6 +6,7 @@ from sqlmodel import Session
 
 from app import crud
 from app.core.config import settings
+from app.crud.agent_version import create_or_update_draft, publish_draft
 from app.models import AgentUpdate
 from app.models.enums import RunStatus
 from app.tests.utils.eval import (
@@ -156,9 +157,7 @@ def test_get_baseline_filters_by_agent_version(
     )
     assert r.status_code == 404
 
-    # Bump agent to v2 via draft→publish and set a new baseline — this clears v1.
-    from app.crud.agent_version import create_or_update_draft, publish_draft
-
+    # Bump agent to v2 via draft→publish and set a v2 baseline (v1 baseline stays).
     create_or_update_draft(
         session=db,
         agent=agent,
@@ -183,13 +182,14 @@ def test_get_baseline_filters_by_agent_version(
     assert r.json()["id"] == str(run_v2.id)
     assert r.json()["agent_version"] == 2
 
-    # agent_version=1 → 404 (v1 baseline was cleared when v2 was set).
+    # v1 baseline is still scoped to agent_version=1 (CS-72).
     r = client.get(
         f"{_PREFIX}/baseline",
         params={**base_params, "agent_version": 1},
         cookies=superuser_auth_cookies,
     )
-    assert r.status_code == 404
+    assert r.status_code == 200
+    assert r.json()["id"] == str(run_v1.id)
 
 
 def test_get_baseline_endpoint_not_found(
@@ -215,7 +215,9 @@ def test_set_baseline_scoped_per_agent_version(db: Session) -> None:
         db_agent=agent,
         agent_in=AgentUpdate(endpoint_url="http://localhost:9001/agent"),
     )
+    publish_draft(session=db, agent=agent, change_description=None, created_by=None)
     db.refresh(agent)
+    assert agent.version == 2
     run_v2a = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
     run_v2b = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
     _mark_completed(db, run_v2a)
@@ -242,6 +244,7 @@ def test_get_baseline_run_defaults_to_current_agent_version(db: Session) -> None
         db_agent=agent,
         agent_in=AgentUpdate(endpoint_url="http://localhost:9002/agent"),
     )
+    publish_draft(session=db, agent=agent, change_description=None, created_by=None)
     db.refresh(agent)
     assert agent.version == 2
     assert (
@@ -278,6 +281,7 @@ def test_get_baseline_omitted_agent_version_resolves_current(
         db_agent=agent,
         agent_in=AgentUpdate(endpoint_url="http://localhost:7201/agent"),
     )
+    publish_draft(session=db, agent=agent, change_description=None, created_by=None)
     db.refresh(agent)
     assert agent.version == 2
 
