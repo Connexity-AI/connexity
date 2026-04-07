@@ -11,6 +11,7 @@ from app.models.enums import AgentMode
 
 if TYPE_CHECKING:
     from app.models.agent_version import AgentVersion
+    from app.models.prompt_editor import PromptEditorSession
     from app.models.run import Run
     from app.models.test_case import TestCase
 
@@ -121,6 +122,10 @@ class Agent(AgentBase, table=True):
     )
     test_cases: list["TestCase"] = Relationship(back_populates="agent")
     agent_versions: list["AgentVersion"] = Relationship(
+        back_populates="agent",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+    prompt_editor_sessions: list["PromptEditorSession"] = Relationship(
         back_populates="agent",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )

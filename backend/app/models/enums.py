@@ -52,3 +52,14 @@ class MetricTier(StrEnum):
     KNOWLEDGE = "knowledge"
     PROCESS = "process"
     DELIVERY = "delivery"
+
+
+class PromptEditorSessionStatus(StrEnum):
+    ACTIVE = "active"
+    ARCHIVED = "archived"
+
+
+class PromptSuggestionStatus(StrEnum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    DECLINED = "declined"

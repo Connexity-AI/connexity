@@ -77,6 +77,8 @@ from app.models.enums import (  # noqa: F401
     AgentVersionStatus,
     Difficulty,
     MetricTier,
+    PromptEditorSessionStatus,
+    PromptSuggestionStatus,
     RunStatus,
     ScoreType,
     SimulatorMode,
@@ -97,6 +99,21 @@ from app.models.eval_set import (  # noqa: F401
     EvalSetPublic,
     EvalSetsPublic,
     EvalSetUpdate,
+)
+
+# ── Prompt editor (chat) ───────────────────────────────────────────
+from app.models.prompt_editor import (  # noqa: F401
+    PromptEditorMessage,
+    PromptEditorMessageBase,
+    PromptEditorMessageCreate,
+    PromptEditorMessagePublic,
+    PromptEditorMessagesPublic,
+    PromptEditorSession,
+    PromptEditorSessionBase,
+    PromptEditorSessionCreate,
+    PromptEditorSessionPublic,
+    PromptEditorSessionsPublic,
+    PromptEditorSessionUpdate,
 )
 
 # ── Run ────────────────────────────────────────────────────────────
