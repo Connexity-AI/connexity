@@ -82,9 +82,7 @@ def list_versions(
 def get_version(
     *, session: Session, agent_id: uuid.UUID, version: int
 ) -> AgentVersion | None:
-    return get_current_version_row(
-        session=session, agent_id=agent_id, version=version
-    )
+    return get_current_version_row(session=session, agent_id=agent_id, version=version)
 
 
 def rollback_to_version(
@@ -102,9 +100,7 @@ def rollback_to_version(
         msg = "Agent not found"
         raise ValueError(msg)
 
-    target = get_version(
-        session=session, agent_id=locked.id, version=target_version
-    )
+    target = get_version(session=session, agent_id=locked.id, version=target_version)
     if target is None:
         msg = f"Agent version {target_version} not found"
         raise ValueError(msg)

@@ -23,7 +23,9 @@ class AgentVersion(SQLModel, table=True):
         index=True,
         nullable=False,
     )
-    version: int = Field(nullable=False, description="Monotonic version number per agent")
+    version: int = Field(
+        nullable=False, description="Monotonic version number per agent"
+    )
     mode: AgentMode = Field(
         description="endpoint: HTTP agent; platform: LLM simulated on the platform"
     )

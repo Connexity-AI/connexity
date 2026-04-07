@@ -25,9 +25,7 @@ def _values_equal(a: object, b: object) -> bool:
     return a == b
 
 
-def _versionable_fields_changed(
-    *, before: Agent, patch: dict[str, object]
-) -> bool:
+def _versionable_fields_changed(*, before: Agent, patch: dict[str, object]) -> bool:
     for key in _VERSIONABLE_FIELDS:
         if key not in patch:
             continue
