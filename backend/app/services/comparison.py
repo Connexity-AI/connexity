@@ -87,7 +87,11 @@ def compare_runs(
 
     # Config diff (CS-47)
     config_diff = compute_run_config_diff(
-        baseline, candidate, baseline_tc_ids, candidate_tc_ids
+        baseline,
+        candidate,
+        baseline_tc_ids,
+        candidate_tc_ids,
+        session=session,
     )
 
     # Regression verdict (CS-28)
@@ -97,6 +101,8 @@ def compare_runs(
     return RunComparison(
         baseline_run_id=baseline.id,
         candidate_run_id=candidate.id,
+        baseline_agent_version=baseline.agent_version,
+        candidate_agent_version=candidate.agent_version,
         baseline_run_name=baseline.name,
         candidate_run_name=candidate.name,
         aggregate=aggregate,

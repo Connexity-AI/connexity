@@ -11,6 +11,7 @@ from app.models.enums import AgentMode
 
 if TYPE_CHECKING:
     from app.models.agent_version import AgentVersion
+    from app.models.prompt_editor import PromptEditorSession
     from app.models.run import Run
     from app.models.test_case import TestCase
 
@@ -97,6 +98,11 @@ class Agent(AgentBase, table=True):
         nullable=False,
         description="Current config version number (denormalized; see agent_version history)",
     )
+    has_draft: bool = Field(
+        default=False,
+        nullable=False,
+        description="True when an unpublished draft version exists",
+    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"server_default": text("now()")},
@@ -116,6 +122,10 @@ class Agent(AgentBase, table=True):
     )
     test_cases: list["TestCase"] = Relationship(back_populates="agent")
     agent_versions: list["AgentVersion"] = Relationship(
+        back_populates="agent",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+    prompt_editor_sessions: list["PromptEditorSession"] = Relationship(
         back_populates="agent",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
@@ -169,6 +179,7 @@ class AgentUpdate(SQLModel):
 class AgentPublic(AgentBase):
     id: uuid.UUID = Field(description="Unique agent identifier")
     version: int = Field(description="Current behavioral config version")
+    has_draft: bool = Field(description="True when an unpublished draft version exists")
     created_at: datetime = Field(description="When the agent was created")
     updated_at: datetime = Field(description="When the agent was last updated")
 

@@ -314,6 +314,26 @@ def test_compare_runs_config_diff_present(
     assert config_diff["eval_set_diff"]["same_set"] is True
 
 
+def test_compare_runs_includes_agent_versions(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    run_b, run_c = _completed_run_pair_same_set(db)
+    r = client.get(
+        _PREFIX,
+        params={
+            "baseline_run_id": str(run_b.id),
+            "candidate_run_id": str(run_c.id),
+        },
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["baseline_agent_version"] == run_b.agent_version
+    assert body["candidate_agent_version"] == run_c.agent_version
+    assert body["config_diff"]["baseline_agent_version"] == run_b.agent_version
+    assert body["config_diff"]["candidate_agent_version"] == run_c.agent_version
+
+
 def test_compare_runs_binary_metric_handling(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:

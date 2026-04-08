@@ -69,8 +69,6 @@ erDiagram
         string agent_mode
         string agent_model
         string agent_provider
-        jsonb tools_snapshot
-        string tools_snapshot_hash
         uuid eval_set_id FK
         int eval_set_version
         jsonb config
@@ -268,4 +266,4 @@ Free-form `dict[str, Any]`. Keys are descriptive labels (e.g. `"refund_initiated
 
 ## Critical Design Decision
 
-`agent_system_prompt`, `agent_tools`, and `tools_snapshot` live on the **Run** entity (captured at eval time), **NOT** on TestCase. This ensures that each evaluation run captures a complete snapshot of the agent configuration at that point in time.
+`agent_system_prompt`, `agent_tools`, and related agent snapshot fields live on the **Run** entity (captured at eval time), **NOT** on TestCase. Each run also records `agent_version` / `agent_version_id` pointing at the immutable **AgentVersion** row. This ensures that each evaluation run captures a complete snapshot of the agent configuration at that point in time.

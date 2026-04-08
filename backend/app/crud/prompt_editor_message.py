@@ -1,0 +1,84 @@
+import uuid
+
+from sqlalchemy import func
+from sqlmodel import Session, col, select
+
+from app.models.enums import PromptEditorSessionStatus, PromptSuggestionStatus
+from app.models.prompt_editor import (
+    PromptEditorMessage,
+    PromptEditorMessageCreate,
+    PromptEditorSession,
+)
+
+
+def create_message(
+    *, session: Session, message_in: PromptEditorMessageCreate
+) -> PromptEditorMessage:
+    db_sess = session.get(PromptEditorSession, message_in.session_id)
+    if db_sess is None:
+        msg = "Prompt editor session not found"
+        raise ValueError(msg)
+    if db_sess.status != PromptEditorSessionStatus.ACTIVE:
+        msg = "Session is not active"
+        raise ValueError(msg)
+
+    prompt_suggestion = message_in.prompt_suggestion
+    if prompt_suggestion is not None and not str(prompt_suggestion).strip():
+        prompt_suggestion = None
+
+    suggestion_status: PromptSuggestionStatus | None = None
+    if prompt_suggestion is not None:
+        suggestion_status = PromptSuggestionStatus.PENDING
+
+    db_obj = PromptEditorMessage(
+        session_id=message_in.session_id,
+        role=message_in.role,
+        content=message_in.content,
+        prompt_suggestion=prompt_suggestion,
+        suggestion_status=suggestion_status,
+    )
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
+def list_messages(
+    *, session: Session, session_id: uuid.UUID, skip: int, limit: int
+) -> tuple[list[PromptEditorMessage], int]:
+    filters = [col(PromptEditorMessage.session_id) == session_id]
+    count_stmt = select(func.count()).select_from(PromptEditorMessage).where(*filters)
+    total = session.exec(count_stmt).one()
+    list_stmt = (
+        select(PromptEditorMessage)
+        .where(*filters)
+        .order_by(col(PromptEditorMessage.created_at).asc())
+        .offset(skip)
+        .limit(limit)
+    )
+    items = list(session.exec(list_stmt).all())
+    return items, total
+
+
+def update_suggestion_status(
+    *,
+    session: Session,
+    message_id: uuid.UUID,
+    status: PromptSuggestionStatus,
+) -> PromptEditorMessage:
+    db_msg = session.get(PromptEditorMessage, message_id)
+    if db_msg is None:
+        msg = "Message not found"
+        raise ValueError(msg)
+    if db_msg.prompt_suggestion is None:
+        msg = "Message has no prompt suggestion"
+        raise ValueError(msg)
+    if db_msg.suggestion_status != PromptSuggestionStatus.PENDING:
+        msg = "Suggestion status is not pending"
+        raise ValueError(msg)
+
+    db_msg.suggestion_status = status
+    session.add(db_msg)
+    session.commit()
+    session.refresh(db_msg)
+    return db_msg

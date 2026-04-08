@@ -27,10 +27,12 @@ from app.models.agent_contract import (  # noqa: F401
     TokenUsage,
 )
 from app.models.agent_version import (  # noqa: F401
+    AgentDraftUpdate,
     AgentRollbackRequest,
     AgentVersion,
     AgentVersionPublic,
     AgentVersionsPublic,
+    PublishRequest,
 )
 
 # ── Common ─────────────────────────────────────────────────────────
@@ -38,6 +40,7 @@ from app.models.common import ConfigPublic, ErrorResponse  # noqa: F401
 
 # ── Comparison / diff schemas (pure Pydantic) ────────────────────
 from app.models.comparison import (  # noqa: F401
+    AgentConfigDiff,
     AgentVersionDiff,
     AggregateComparison,
     CauseAnalysisItem,
@@ -71,8 +74,11 @@ from app.models.custom_metric import (  # noqa: F401
 # ── Enums ──────────────────────────────────────────────────────────
 from app.models.enums import (  # noqa: F401
     AgentMode,
+    AgentVersionStatus,
     Difficulty,
     MetricTier,
+    PromptEditorSessionStatus,
+    PromptSuggestionStatus,
     RunStatus,
     ScoreType,
     SimulatorMode,
@@ -93,6 +99,21 @@ from app.models.eval_set import (  # noqa: F401
     EvalSetPublic,
     EvalSetsPublic,
     EvalSetUpdate,
+)
+
+# ── Prompt editor (chat) ───────────────────────────────────────────
+from app.models.prompt_editor import (  # noqa: F401
+    PromptEditorMessage,
+    PromptEditorMessageBase,
+    PromptEditorMessageCreate,
+    PromptEditorMessagePublic,
+    PromptEditorMessagesPublic,
+    PromptEditorSession,
+    PromptEditorSessionBase,
+    PromptEditorSessionCreate,
+    PromptEditorSessionPublic,
+    PromptEditorSessionsPublic,
+    PromptEditorSessionUpdate,
 )
 
 # ── Run ────────────────────────────────────────────────────────────

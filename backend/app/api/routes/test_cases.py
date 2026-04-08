@@ -5,9 +5,11 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from litellm.exceptions import APIError
+from sqlmodel import Session
 
 from app import crud
 from app.api.deps import SessionDep, get_current_user
+from app.crud import agent_version as agent_version_crud
 from app.models import (
     Agent,
     Difficulty,
@@ -24,7 +26,11 @@ from app.models import (
     TestCaseUpdate,
 )
 from app.services.test_case_generator.core import generate_test_cases
-from app.services.test_case_generator.schemas import GenerateRequest, GenerateResult
+from app.services.test_case_generator.schemas import (
+    GenerateRequest,
+    GenerateResult,
+    tool_definitions_from_agent_tools,
+)
 
 router = APIRouter(
     prefix="/test-cases", tags=["test-cases"], dependencies=[Depends(get_current_user)]
@@ -123,13 +129,64 @@ def import_test_cases(
     )
 
 
+def _resolve_generate_request(
+    *, session: Session, request: GenerateRequest
+) -> GenerateRequest:
+    """Fill agent_prompt/tools from AgentVersion when agent_id is set."""
+    if request.agent_id is None:
+        ap = request.agent_prompt
+        if ap is None or not ap.strip():
+            raise HTTPException(
+                status_code=422,
+                detail="Either agent_prompt or agent_id must be provided",
+            )
+        return request.model_copy(
+            update={"agent_prompt": ap, "tools": list(request.tools)}
+        )
+
+    agent = session.get(Agent, request.agent_id)
+    if agent is None:
+        raise HTTPException(
+            status_code=404, detail=f"Agent not found: {request.agent_id}"
+        )
+
+    version_num = (
+        request.agent_version if request.agent_version is not None else agent.version
+    )
+    version = agent_version_crud.get_version(
+        session=session, agent_id=agent.id, version=version_num
+    )
+    if version is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Agent version {version_num} not found for agent {agent.id}",
+        )
+
+    prompt_in = request.agent_prompt
+    if prompt_in is None or not str(prompt_in).strip():
+        effective_prompt = version.system_prompt or ""
+    else:
+        effective_prompt = prompt_in
+
+    tools_in = list(request.tools)
+    if not tools_in:
+        effective_tools = tool_definitions_from_agent_tools(version.tools)
+    else:
+        effective_tools = tools_in
+
+    return request.model_copy(
+        update={"agent_prompt": effective_prompt, "tools": effective_tools}
+    )
+
+
 @router.post("/generate", response_model=GenerateResult)
 async def generate_test_cases_endpoint(
     session: SessionDep,
     request: GenerateRequest,
 ) -> GenerateResult:
+    gen_request = _resolve_generate_request(session=session, request=request)
     try:
-        test_cases, model_used, latency_ms = await generate_test_cases(request)
+        test_cases, model_used, latency_ms = await generate_test_cases(gen_request)
     except json.JSONDecodeError as exc:
         raise HTTPException(
             status_code=502, detail="LLM returned invalid JSON"

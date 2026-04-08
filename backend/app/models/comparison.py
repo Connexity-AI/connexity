@@ -44,15 +44,32 @@ class EvalSetDiff(BaseModel):
     common_test_case_ids: list[uuid.UUID] = Field(default_factory=list)
 
 
-class RunConfigDiff(BaseModel):
-    """Structured diff of snapshotted run configuration between two runs."""
+class AgentConfigDiff(BaseModel):
+    """Structured diff of agent behavioral config (shared by run comparison and version diff)."""
 
     model_config = {"protected_namespaces": ()}
 
     prompt_diff: PromptDiff | None = None
     tool_diff: ToolDiff | None = None
+    mode_changed: bool = False
     model_changed: FieldChange | None = None
     provider_changed: FieldChange | None = None
+    endpoint_url_changed: FieldChange | None = None
+
+
+class RunConfigDiff(BaseModel):
+    """Structured diff of snapshotted run configuration between two runs."""
+
+    model_config = {"protected_namespaces": ()}
+
+    baseline_agent_version: int | None = None
+    candidate_agent_version: int | None = None
+    prompt_diff: PromptDiff | None = None
+    tool_diff: ToolDiff | None = None
+    mode_changed: bool = False
+    model_changed: FieldChange | None = None
+    provider_changed: FieldChange | None = None
+    endpoint_url_changed: FieldChange | None = None
     judge_model_changed: FieldChange | None = None
     judge_provider_changed: FieldChange | None = None
     config_changes: list[FieldChange] = Field(default_factory=list)
@@ -164,6 +181,8 @@ class RegressionVerdict(BaseModel):
 class RunComparison(BaseModel):
     baseline_run_id: uuid.UUID
     candidate_run_id: uuid.UUID
+    baseline_agent_version: int | None = None
+    candidate_agent_version: int | None = None
     baseline_run_name: str | None = None
     candidate_run_name: str | None = None
     aggregate: AggregateComparison

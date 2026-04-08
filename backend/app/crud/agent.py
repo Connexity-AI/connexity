@@ -1,8 +1,6 @@
 import uuid
-from datetime import UTC, datetime
 
 from sqlalchemy import func
-from sqlalchemy import update as sa_update
 from sqlmodel import Session, select
 
 from app.crud import agent_version as agent_version_crud
@@ -76,59 +74,45 @@ def update_agent(
         raise ValueError(msg)
 
     update_data = agent_in.model_dump(exclude_unset=True)
-    change_description = update_data.pop("change_description", None)
+    update_data.pop("change_description", None)
 
     if not update_data:
         return locked
 
-    if not _versionable_fields_changed(before=locked, patch=update_data):
-        locked.sqlmodel_update(update_data)
-        validate_agent_mode_requirements(
-            mode=locked.mode,
-            endpoint_url=locked.endpoint_url,
-            system_prompt=locked.system_prompt,
-            agent_model=locked.agent_model,
-        )
+    # Split into identity vs versionable changes
+    identity_data = {
+        k: v for k, v in update_data.items() if k not in _VERSIONABLE_FIELDS
+    }
+    versionable_data = {
+        k: v for k, v in update_data.items() if k in _VERSIONABLE_FIELDS
+    }
+
+    has_versionable_change = bool(versionable_data) and _versionable_fields_changed(
+        before=locked, patch=versionable_data
+    )
+
+    # Apply identity changes directly to agent
+    if identity_data:
+        locked.sqlmodel_update(identity_data)
+        # If there are no versionable changes, validate the current agent state
+        if not has_versionable_change:
+            validate_agent_mode_requirements(
+                mode=locked.mode,
+                endpoint_url=locked.endpoint_url,
+                system_prompt=locked.system_prompt,
+                agent_model=locked.agent_model,
+            )
         session.add(locked)
-        session.commit()
-        session.refresh(locked)
-        return locked
 
-    working = locked.model_copy(update=update_data)
-    validate_agent_mode_requirements(
-        mode=working.mode,
-        endpoint_url=working.endpoint_url,
-        system_prompt=working.system_prompt,
-        agent_model=working.agent_model,
-    )
-
-    session.execute(
-        sa_update(Agent)
-        .where(Agent.id == locked.id)
-        .values(
-            version=Agent.version + 1,
-            name=working.name,
-            description=working.description,
-            mode=working.mode,
-            endpoint_url=working.endpoint_url,
-            system_prompt=working.system_prompt,
-            tools=working.tools,
-            agent_model=working.agent_model,
-            agent_provider=working.agent_provider,
-            agent_metadata=working.agent_metadata,
-            updated_at=datetime.now(UTC),
+    # Send versionable changes to draft
+    if has_versionable_change:
+        agent_version_crud.create_or_update_draft(
+            session=session,
+            agent=locked,
+            draft_data=versionable_data,
+            created_by=created_by,
         )
-    )
-    session.flush()
-    session.refresh(locked)
-    new_row = agent_version_crud.build_version_row(
-        agent_id=locked.id,
-        version=locked.version,
-        source=locked,
-        change_description=change_description,
-        created_by=created_by,
-    )
-    session.add(new_row)
+
     session.commit()
     session.refresh(locked)
     return locked

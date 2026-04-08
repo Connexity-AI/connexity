@@ -9,12 +9,17 @@ from app.models import (
     EvalSet,
     EvalSetCreate,
     EvalSetMemberEntry,
+    PromptEditorMessage,
+    PromptEditorMessageCreate,
+    PromptEditorSession,
+    PromptEditorSessionCreate,
     Run,
     RunCreate,
     TestCase,
     TestCaseCreate,
     TestCaseResult,
     TestCaseResultCreate,
+    TurnRole,
 )
 
 
@@ -87,3 +92,39 @@ def create_test_case_result_fixture(
         test_case_id=test_case_id,
     )
     return crud.create_test_case_result(session=session, result_in=result_in)
+
+
+def create_test_prompt_editor_session(
+    session: Session,
+    *,
+    agent_id: uuid.UUID,
+    created_by: uuid.UUID,
+    **overrides: object,
+) -> PromptEditorSession:
+    defaults: dict[str, object] = {
+        "agent_id": agent_id,
+        "title": f"test-session-{uuid.uuid4().hex[:8]}",
+    }
+    defaults.update(overrides)
+    return crud.create_prompt_editor_session(
+        session=session,
+        session_in=PromptEditorSessionCreate(**defaults),  # type: ignore[arg-type]
+        created_by=created_by,
+    )
+
+
+def create_test_prompt_editor_message(
+    session: Session,
+    session_id: uuid.UUID,
+    **overrides: object,
+) -> PromptEditorMessage:
+    defaults: dict[str, object] = {
+        "session_id": session_id,
+        "role": TurnRole.USER,
+        "content": "hello",
+    }
+    defaults.update(overrides)
+    return crud.create_prompt_editor_message(
+        session=session,
+        message_in=PromptEditorMessageCreate(**defaults),  # type: ignore[arg-type]
+    )

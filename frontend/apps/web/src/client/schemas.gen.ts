@@ -109,6 +109,82 @@ export const AgentCreateSchema = {
   title: 'AgentCreate',
 } as const;
 
+export const AgentDraftUpdateSchema = {
+  properties: {
+    mode: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/AgentMode',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    endpoint_url: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Endpoint Url',
+    },
+    system_prompt: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'System Prompt',
+    },
+    tools: {
+      anyOf: [
+        {
+          items: {
+            type: 'object',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Tools',
+    },
+    agent_model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Model',
+    },
+    agent_provider: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Provider',
+    },
+  },
+  type: 'object',
+  title: 'AgentDraftUpdate',
+  description: 'Partial update for versionable agent fields — used by PUT /agents/{id}/draft.',
+} as const;
+
 export const AgentModeSchema = {
   type: 'string',
   enum: ['endpoint', 'platform'],
@@ -229,6 +305,11 @@ export const AgentPublicSchema = {
       title: 'Version',
       description: 'Current behavioral config version',
     },
+    has_draft: {
+      type: 'boolean',
+      title: 'Has Draft',
+      description: 'True when an unpublished draft version exists',
+    },
     created_at: {
       type: 'string',
       format: 'date-time',
@@ -243,7 +324,7 @@ export const AgentPublicSchema = {
     },
   },
   type: 'object',
-  required: ['name', 'id', 'version', 'created_at', 'updated_at'],
+  required: ['name', 'id', 'version', 'has_draft', 'created_at', 'updated_at'],
   title: 'AgentPublic',
 } as const;
 
@@ -548,8 +629,18 @@ export const AgentVersionPublicSchema = {
       title: 'Agent Id',
     },
     version: {
-      type: 'integer',
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Version',
+    },
+    status: {
+      $ref: '#/components/schemas/AgentVersionStatus',
     },
     mode: {
       $ref: '#/components/schemas/AgentMode',
@@ -646,6 +737,7 @@ export const AgentVersionPublicSchema = {
     'id',
     'agent_id',
     'version',
+    'status',
     'mode',
     'endpoint_url',
     'system_prompt',
@@ -657,6 +749,12 @@ export const AgentVersionPublicSchema = {
     'created_at',
   ],
   title: 'AgentVersionPublic',
+} as const;
+
+export const AgentVersionStatusSchema = {
+  type: 'string',
+  enum: ['draft', 'published'],
+  title: 'AgentVersionStatus',
 } as const;
 
 export const AgentVersionsPublicSchema = {
@@ -1965,8 +2063,16 @@ export const FieldChangeSchema = {
 export const GenerateRequestSchema = {
   properties: {
     agent_prompt: {
-      type: 'string',
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Agent Prompt',
+      description: 'Agent system prompt; optional if agent_id is set (loaded from AgentVersion)',
     },
     tools: {
       items: {
@@ -1974,7 +2080,6 @@ export const GenerateRequestSchema = {
       },
       type: 'array',
       title: 'Tools',
-      default: [],
     },
     count: {
       type: 'integer',
@@ -1989,7 +2094,6 @@ export const GenerateRequestSchema = {
       },
       type: 'array',
       title: 'Focus Tags',
-      default: [],
     },
     model: {
       anyOf: [
@@ -2031,11 +2135,25 @@ export const GenerateRequestSchema = {
         },
       ],
       title: 'Agent Id',
-      description: 'When persist=true, bind created test cases to this agent',
+      description:
+        'When set, may load prompt/tools from AgentVersion; when persist=true, bind test cases',
+    },
+    agent_version: {
+      anyOf: [
+        {
+          type: 'integer',
+          minimum: 1,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Version',
+      description:
+        "Version to load config from when agent_id is set; defaults to agent's current version",
     },
   },
   type: 'object',
-  required: ['agent_prompt'],
   title: 'GenerateRequest',
   description: 'Input for test case generation.',
 } as const;
@@ -2828,6 +2946,24 @@ export const PromptDiffSchema = {
   title: 'PromptDiff',
 } as const;
 
+export const PublishRequestSchema = {
+  properties: {
+    change_description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Change Description',
+    },
+  },
+  type: 'object',
+  title: 'PublishRequest',
+} as const;
+
 export const RegressionAnalysisSchema = {
   properties: {
     analysis: {
@@ -2939,6 +3075,28 @@ export const RunComparisonSchema = {
       type: 'string',
       format: 'uuid',
       title: 'Candidate Run Id',
+    },
+    baseline_agent_version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Baseline Agent Version',
+    },
+    candidate_agent_version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Candidate Agent Version',
     },
     baseline_run_name: {
       anyOf: [
@@ -3135,6 +3293,28 @@ export const RunConfig_OutputSchema = {
 
 export const RunConfigDiffSchema = {
   properties: {
+    baseline_agent_version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Baseline Agent Version',
+    },
+    candidate_agent_version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Candidate Agent Version',
+    },
     prompt_diff: {
       anyOf: [
         {
@@ -3155,6 +3335,11 @@ export const RunConfigDiffSchema = {
         },
       ],
     },
+    mode_changed: {
+      type: 'boolean',
+      title: 'Mode Changed',
+      default: false,
+    },
     model_changed: {
       anyOf: [
         {
@@ -3166,6 +3351,16 @@ export const RunConfigDiffSchema = {
       ],
     },
     provider_changed: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/FieldChange',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    endpoint_url_changed: {
       anyOf: [
         {
           $ref: '#/components/schemas/FieldChange',
@@ -3306,33 +3501,6 @@ export const RunCreateSchema = {
       ],
       title: 'Agent Provider',
       description: 'Effective LLM provider for platform agent simulator for this run',
-    },
-    tools_snapshot: {
-      anyOf: [
-        {
-          items: {
-            type: 'object',
-          },
-          type: 'array',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Tools Snapshot',
-      description: 'Full tool schema array at run time',
-    },
-    tools_snapshot_hash: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Tools Snapshot Hash',
-      description: 'SHA-256 hash of tools_snapshot for change detection',
     },
     eval_set_id: {
       type: 'string',

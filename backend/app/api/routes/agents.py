@@ -7,6 +7,7 @@ from app.api.deps import CurrentUser, SessionDep, get_current_user
 from app.models import (
     Agent,
     AgentCreate,
+    AgentDraftUpdate,
     AgentPublic,
     AgentRollbackRequest,
     AgentsPublic,
@@ -15,6 +16,7 @@ from app.models import (
     AgentVersionPublic,
     AgentVersionsPublic,
     Message,
+    PublishRequest,
 )
 from app.services.diff import compute_agent_version_diff
 
@@ -130,6 +132,87 @@ def rollback_agent(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     return AgentVersionPublic.model_validate(new_row)
+
+
+# ── Draft / Publish endpoints ────────────────────────────────────────
+
+
+@router.put("/{agent_id}/draft", response_model=AgentVersionPublic)
+def upsert_draft(
+    session: SessionDep,
+    current_user: CurrentUser,
+    agent_id: uuid.UUID,
+    body: AgentDraftUpdate,
+) -> AgentVersionPublic:
+    agent = crud.get_agent(session=session, agent_id=agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    draft_data = body.model_dump(exclude_unset=True)
+    if not draft_data:
+        raise HTTPException(status_code=422, detail="No fields provided")
+    try:
+        draft = crud.create_or_update_agent_draft(
+            session=session,
+            agent=agent,
+            draft_data=draft_data,
+            created_by=current_user.id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    return AgentVersionPublic.model_validate(draft)
+
+
+@router.get("/{agent_id}/draft", response_model=AgentVersionPublic)
+def get_draft(
+    session: SessionDep,
+    agent_id: uuid.UUID,
+) -> AgentVersionPublic:
+    agent = crud.get_agent(session=session, agent_id=agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    draft = crud.get_agent_draft(session=session, agent_id=agent_id)
+    if draft is None:
+        raise HTTPException(status_code=404, detail="No draft found")
+    return AgentVersionPublic.model_validate(draft)
+
+
+@router.post("/{agent_id}/publish", response_model=AgentVersionPublic)
+def publish_draft(
+    session: SessionDep,
+    current_user: CurrentUser,
+    agent_id: uuid.UUID,
+    body: PublishRequest,
+) -> AgentVersionPublic:
+    agent = crud.get_agent(session=session, agent_id=agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    try:
+        published = crud.publish_agent_draft(
+            session=session,
+            agent=agent,
+            change_description=body.change_description,
+            created_by=current_user.id,
+        )
+    except ValueError as e:
+        detail = str(e)
+        if detail == "No draft to publish":
+            raise HTTPException(status_code=409, detail=detail) from e
+        raise HTTPException(status_code=422, detail=detail) from e
+    return AgentVersionPublic.model_validate(published)
+
+
+@router.delete("/{agent_id}/draft", status_code=204)
+def discard_draft(
+    session: SessionDep,
+    agent_id: uuid.UUID,
+) -> None:
+    agent = crud.get_agent(session=session, agent_id=agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    crud.discard_agent_draft(session=session, agent=agent)
+
+
+# ── Agent CRUD endpoints ─────────────────────────────────────────────
 
 
 @router.get("/{agent_id}", response_model=AgentPublic)

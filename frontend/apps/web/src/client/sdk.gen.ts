@@ -12,15 +12,24 @@ import type {
   AgentsDiffAgentVersionsData,
   AgentsDiffAgentVersionsErrors,
   AgentsDiffAgentVersionsResponses,
+  AgentsDiscardDraftData,
+  AgentsDiscardDraftErrors,
+  AgentsDiscardDraftResponses,
   AgentsGetAgentData,
   AgentsGetAgentErrors,
   AgentsGetAgentResponses,
+  AgentsGetDraftData,
+  AgentsGetDraftErrors,
+  AgentsGetDraftResponses,
   AgentsListAgentsData,
   AgentsListAgentsErrors,
   AgentsListAgentsResponses,
   AgentsListAgentVersionsData,
   AgentsListAgentVersionsErrors,
   AgentsListAgentVersionsResponses,
+  AgentsPublishDraftData,
+  AgentsPublishDraftErrors,
+  AgentsPublishDraftResponses,
   AgentsReadAgentVersionData,
   AgentsReadAgentVersionErrors,
   AgentsReadAgentVersionResponses,
@@ -30,6 +39,9 @@ import type {
   AgentsUpdateAgentData,
   AgentsUpdateAgentErrors,
   AgentsUpdateAgentResponses,
+  AgentsUpsertDraftData,
+  AgentsUpsertDraftErrors,
+  AgentsUpsertDraftResponses,
   ConfigGetAvailableMetricsData,
   ConfigGetAvailableMetricsErrors,
   ConfigGetAvailableMetricsResponses,
@@ -677,6 +689,110 @@ export class AgentsService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/agents/{agent_id}/rollback',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Discard Draft
+   */
+  public static discardDraft<ThrowOnError extends boolean = false>(
+    options: Options<AgentsDiscardDraftData, ThrowOnError>
+  ) {
+    return (options.client ?? client).delete<
+      AgentsDiscardDraftResponses,
+      AgentsDiscardDraftErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/draft',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Draft
+   */
+  public static getDraft<ThrowOnError extends boolean = false>(
+    options: Options<AgentsGetDraftData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      AgentsGetDraftResponses,
+      AgentsGetDraftErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/draft',
+      ...options,
+    });
+  }
+
+  /**
+   * Upsert Draft
+   */
+  public static upsertDraft<ThrowOnError extends boolean = false>(
+    options: Options<AgentsUpsertDraftData, ThrowOnError>
+  ) {
+    return (options.client ?? client).put<
+      AgentsUpsertDraftResponses,
+      AgentsUpsertDraftErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/draft',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Publish Draft
+   */
+  public static publishDraft<ThrowOnError extends boolean = false>(
+    options: Options<AgentsPublishDraftData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      AgentsPublishDraftResponses,
+      AgentsPublishDraftErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/publish',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -1477,7 +1593,7 @@ export class RunsService {
   /**
    * Get Baseline Run
    *
-   * Resolve the current baseline run for an (agent, eval_set) pair.
+   * Resolve the baseline run for an (agent, eval_set) pair (version-scoped).
    */
   public static getBaselineRun<ThrowOnError extends boolean = false>(
     options: Options<RunsGetBaselineRunData, ThrowOnError>

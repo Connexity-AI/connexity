@@ -67,6 +67,37 @@ export type AgentCreate = {
 };
 
 /**
+ * AgentDraftUpdate
+ *
+ * Partial update for versionable agent fields — used by PUT /agents/{id}/draft.
+ */
+export type AgentDraftUpdate = {
+  mode?: AgentMode | null;
+  /**
+   * Endpoint Url
+   */
+  endpoint_url?: string | null;
+  /**
+   * System Prompt
+   */
+  system_prompt?: string | null;
+  /**
+   * Tools
+   */
+  tools?: Array<{
+    [key: string]: unknown;
+  }> | null;
+  /**
+   * Agent Model
+   */
+  agent_model?: string | null;
+  /**
+   * Agent Provider
+   */
+  agent_provider?: string | null;
+};
+
+/**
  * AgentMode
  */
 export const AgentMode = { ENDPOINT: 'endpoint', PLATFORM: 'platform' } as const;
@@ -148,6 +179,12 @@ export type AgentPublic = {
    * Current behavioral config version
    */
   version: number;
+  /**
+   * Has Draft
+   *
+   * True when an unpublished draft version exists
+   */
+  has_draft: boolean;
   /**
    * Created At
    *
@@ -316,7 +353,8 @@ export type AgentVersionPublic = {
   /**
    * Version
    */
-  version: number;
+  version: number | null;
+  status: AgentVersionStatus;
   mode: AgentMode;
   /**
    * Endpoint Url
@@ -353,6 +391,16 @@ export type AgentVersionPublic = {
    */
   created_at: string;
 };
+
+/**
+ * AgentVersionStatus
+ */
+export const AgentVersionStatus = { DRAFT: 'draft', PUBLISHED: 'published' } as const;
+
+/**
+ * AgentVersionStatus
+ */
+export type AgentVersionStatus = (typeof AgentVersionStatus)[keyof typeof AgentVersionStatus];
 
 /**
  * AgentVersionsPublic
@@ -1212,8 +1260,10 @@ export type FieldChange = {
 export type GenerateRequest = {
   /**
    * Agent Prompt
+   *
+   * Agent system prompt; optional if agent_id is set (loaded from AgentVersion)
    */
-  agent_prompt: string;
+  agent_prompt?: string | null;
   /**
    * Tools
    */
@@ -1241,9 +1291,15 @@ export type GenerateRequest = {
   /**
    * Agent Id
    *
-   * When persist=true, bind created test cases to this agent
+   * When set, may load prompt/tools from AgentVersion; when persist=true, bind test cases
    */
   agent_id?: string | null;
+  /**
+   * Agent Version
+   *
+   * Version to load config from when agent_id is set; defaults to agent's current version
+   */
+  agent_version?: number | null;
 };
 
 /**
@@ -1802,6 +1858,16 @@ export type PromptDiff = {
 };
 
 /**
+ * PublishRequest
+ */
+export type PublishRequest = {
+  /**
+   * Change Description
+   */
+  change_description?: string | null;
+};
+
+/**
  * RegressionAnalysis
  */
 export type RegressionAnalysis = {
@@ -1884,6 +1950,14 @@ export type RunComparison = {
    * Candidate Run Id
    */
   candidate_run_id: string;
+  /**
+   * Baseline Agent Version
+   */
+  baseline_agent_version?: number | null;
+  /**
+   * Candidate Agent Version
+   */
+  candidate_agent_version?: number | null;
   /**
    * Baseline Run Name
    */
@@ -1980,10 +2054,23 @@ export type RunConfigOutput = {
  * Structured diff of snapshotted run configuration between two runs.
  */
 export type RunConfigDiff = {
+  /**
+   * Baseline Agent Version
+   */
+  baseline_agent_version?: number | null;
+  /**
+   * Candidate Agent Version
+   */
+  candidate_agent_version?: number | null;
   prompt_diff?: PromptDiff | null;
   tool_diff?: ToolDiff | null;
+  /**
+   * Mode Changed
+   */
+  mode_changed?: boolean;
   model_changed?: FieldChange | null;
   provider_changed?: FieldChange | null;
+  endpoint_url_changed?: FieldChange | null;
   judge_model_changed?: FieldChange | null;
   judge_provider_changed?: FieldChange | null;
   /**
@@ -2047,20 +2134,6 @@ export type RunCreate = {
    * Effective LLM provider for platform agent simulator for this run
    */
   agent_provider?: string | null;
-  /**
-   * Tools Snapshot
-   *
-   * Full tool schema array at run time
-   */
-  tools_snapshot?: Array<{
-    [key: string]: unknown;
-  }> | null;
-  /**
-   * Tools Snapshot Hash
-   *
-   * SHA-256 hash of tools_snapshot for change detection
-   */
-  tools_snapshot_hash?: string | null;
   /**
    * Eval Set Id
    *
@@ -4356,6 +4429,225 @@ export type AgentsRollbackAgentResponses = {
 export type AgentsRollbackAgentResponse =
   AgentsRollbackAgentResponses[keyof AgentsRollbackAgentResponses];
 
+export type AgentsDiscardDraftData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/draft';
+};
+
+export type AgentsDiscardDraftErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsDiscardDraftError = AgentsDiscardDraftErrors[keyof AgentsDiscardDraftErrors];
+
+export type AgentsDiscardDraftResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type AgentsDiscardDraftResponse =
+  AgentsDiscardDraftResponses[keyof AgentsDiscardDraftResponses];
+
+export type AgentsGetDraftData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/draft';
+};
+
+export type AgentsGetDraftErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsGetDraftError = AgentsGetDraftErrors[keyof AgentsGetDraftErrors];
+
+export type AgentsGetDraftResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentVersionPublic;
+};
+
+export type AgentsGetDraftResponse = AgentsGetDraftResponses[keyof AgentsGetDraftResponses];
+
+export type AgentsUpsertDraftData = {
+  body: AgentDraftUpdate;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/draft';
+};
+
+export type AgentsUpsertDraftErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsUpsertDraftError = AgentsUpsertDraftErrors[keyof AgentsUpsertDraftErrors];
+
+export type AgentsUpsertDraftResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentVersionPublic;
+};
+
+export type AgentsUpsertDraftResponse =
+  AgentsUpsertDraftResponses[keyof AgentsUpsertDraftResponses];
+
+export type AgentsPublishDraftData = {
+  body: PublishRequest;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/publish';
+};
+
+export type AgentsPublishDraftErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsPublishDraftError = AgentsPublishDraftErrors[keyof AgentsPublishDraftErrors];
+
+export type AgentsPublishDraftResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentVersionPublic;
+};
+
+export type AgentsPublishDraftResponse =
+  AgentsPublishDraftResponses[keyof AgentsPublishDraftResponses];
+
 export type AgentsDeleteAgentData = {
   body?: never;
   path: {
@@ -6151,7 +6443,7 @@ export type RunsGetBaselineRunData = {
     /**
      * Agent Version
      *
-     * Only consider baselines for this agent config version
+     * Scope baseline to this agent config version; omit to use the agent's current version
      */
     agent_version?: number | null;
   };
