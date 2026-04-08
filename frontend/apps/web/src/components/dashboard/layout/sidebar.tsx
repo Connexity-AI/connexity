@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { BarChart3, Bot } from 'lucide-react';
 
 import {
@@ -13,8 +14,8 @@ import {
   Sidebar as UISidebar,
 } from '@workspace/ui/components/ui/sidebar';
 
+import NavUser from '@/components/dashboard/layout/nav-user';
 import WithIsActive from '@/components/dashboard/layout/with-is-active';
-import { UrlGenerator } from '@/common/url-generator/url-generator';
 
 import type { UserPublic } from '@/client/types.gen';
 import type { FC } from 'react';
@@ -68,11 +69,12 @@ const Sidebar: FC<Props> = async ({ currentUser }) => {
       )}
 
       {currentUser?.email && (
-        <SidebarFooter className="p-6 group-data-[collapsible=icon]:p-2">
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            <p className="group-data-[collapsible=icon]:hidden">Logged in as:</p>
-            <p className="font-medium group-data-[collapsible=icon]:hidden">{currentUser.email}</p>
-          </div>
+        <SidebarFooter className="p-2">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <NavUser email={currentUser.email} />
+            </SidebarMenuItem>
+          </SidebarMenu>
         </SidebarFooter>
       )}
     </UISidebar>
