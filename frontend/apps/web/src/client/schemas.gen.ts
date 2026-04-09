@@ -1181,6 +1181,35 @@ export const CauseAnalysisItemSchema = {
   title: 'CauseAnalysisItem',
 } as const;
 
+export const ChatMessageCreateSchema = {
+  properties: {
+    content: {
+      type: 'string',
+      title: 'Content',
+      description: 'User message text',
+    },
+    test_case_result_ids: {
+      anyOf: [
+        {
+          items: {
+            type: 'string',
+            format: 'uuid',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Test Case Result Ids',
+      description: 'Optional test case result IDs for eval context injection',
+    },
+  },
+  type: 'object',
+  required: ['content'],
+  title: 'ChatMessageCreate',
+} as const;
+
 export const ConfigPublicSchema = {
   properties: {
     project_name: {
@@ -2897,6 +2926,42 @@ export const PersonaSchema = {
   title: 'Persona',
 } as const;
 
+export const PresetPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      title: 'Id',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+    },
+    message: {
+      type: 'string',
+      title: 'Message',
+    },
+    description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Description',
+    },
+    context: {
+      type: 'string',
+      title: 'Context',
+      description: "'none' or 'eval'",
+    },
+  },
+  type: 'object',
+  required: ['id', 'label', 'message', 'context'],
+  title: 'PresetPublic',
+} as const;
+
 export const PromptDiffSchema = {
   properties: {
     changed: {
@@ -2944,6 +3009,364 @@ export const PromptDiffSchema = {
   type: 'object',
   required: ['changed', 'change_ratio'],
   title: 'PromptDiff',
+} as const;
+
+export const PromptEditBatchStatusUpdateSchema = {
+  properties: {
+    status: {
+      type: 'string',
+      enum: ['accepted', 'declined'],
+      title: 'Status',
+    },
+    edit_ids: {
+      anyOf: [
+        {
+          items: {
+            type: 'string',
+            format: 'uuid',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Edit Ids',
+    },
+  },
+  type: 'object',
+  required: ['status'],
+  title: 'PromptEditBatchStatusUpdate',
+} as const;
+
+export const PromptEditPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    message_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Message Id',
+    },
+    start_line: {
+      type: 'integer',
+      title: 'Start Line',
+    },
+    end_line: {
+      type: 'integer',
+      title: 'End Line',
+    },
+    new_content: {
+      type: 'string',
+      title: 'New Content',
+    },
+    original_content: {
+      type: 'string',
+      title: 'Original Content',
+    },
+    status: {
+      type: 'string',
+      title: 'Status',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'message_id',
+    'start_line',
+    'end_line',
+    'new_content',
+    'original_content',
+    'status',
+    'created_at',
+  ],
+  title: 'PromptEditPublic',
+} as const;
+
+export const PromptEditStatusUpdateSchema = {
+  properties: {
+    status: {
+      type: 'string',
+      enum: ['accepted', 'declined'],
+      title: 'Status',
+    },
+  },
+  type: 'object',
+  required: ['status'],
+  title: 'PromptEditStatusUpdate',
+} as const;
+
+export const PromptEditorMessagePublicSchema = {
+  properties: {
+    role: {
+      $ref: '#/components/schemas/TurnRole',
+      description: 'Message role (user, assistant, …)',
+    },
+    content: {
+      type: 'string',
+      title: 'Content',
+      description: 'Full message text',
+    },
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+      description: 'Message id',
+    },
+    session_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Session Id',
+      description: 'Session id',
+    },
+    prompt_suggestion: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Prompt Suggestion',
+      description: 'Suggested prompt text if any',
+    },
+    suggestion_status: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/PromptSuggestionStatus',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Suggestion workflow status',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+      description: 'Created at',
+    },
+  },
+  type: 'object',
+  required: [
+    'role',
+    'content',
+    'id',
+    'session_id',
+    'prompt_suggestion',
+    'suggestion_status',
+    'created_at',
+  ],
+  title: 'PromptEditorMessagePublic',
+} as const;
+
+export const PromptEditorMessagesPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/PromptEditorMessagePublic',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Messages',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+      description: 'Total messages in the query',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'PromptEditorMessagesPublic',
+} as const;
+
+export const PromptEditorSessionCreateSchema = {
+  properties: {
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+      description: 'Agent to attach the session to',
+    },
+    title: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Title',
+      description: 'Optional title; auto-generated if omitted',
+    },
+    run_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Run Id',
+      description: 'Optional run for eval context',
+    },
+  },
+  type: 'object',
+  required: ['agent_id'],
+  title: 'PromptEditorSessionCreate',
+} as const;
+
+export const PromptEditorSessionPublicSchema = {
+  properties: {
+    title: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Title',
+      description: 'Session title (auto-generated or user-set)',
+    },
+    status: {
+      $ref: '#/components/schemas/PromptEditorSessionStatus',
+      description: 'active or archived',
+      default: 'active',
+    },
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+      description: 'Session id',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+      description: 'Agent id',
+    },
+    created_by: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Created By',
+      description: 'Owner user id',
+    },
+    run_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Run Id',
+      description: 'Linked run id if any',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+      description: 'Created at',
+    },
+    updated_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Updated At',
+      description: 'Updated at',
+    },
+    message_count: {
+      type: 'integer',
+      title: 'Message Count',
+      description: 'Number of messages in the session',
+    },
+  },
+  type: 'object',
+  required: ['id', 'agent_id', 'created_by', 'run_id', 'created_at', 'updated_at', 'message_count'],
+  title: 'PromptEditorSessionPublic',
+} as const;
+
+export const PromptEditorSessionStatusSchema = {
+  type: 'string',
+  enum: ['active', 'archived'],
+  title: 'PromptEditorSessionStatus',
+} as const;
+
+export const PromptEditorSessionUpdateSchema = {
+  properties: {
+    title: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Title',
+      description: 'Session title',
+    },
+    status: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/PromptEditorSessionStatus',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'active or archived',
+    },
+  },
+  type: 'object',
+  title: 'PromptEditorSessionUpdate',
+} as const;
+
+export const PromptEditorSessionsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/PromptEditorSessionPublic',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Sessions',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+      description: 'Total matching sessions',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'PromptEditorSessionsPublic',
+} as const;
+
+export const PromptSuggestionStatusSchema = {
+  type: 'string',
+  enum: ['pending', 'accepted', 'declined'],
+  title: 'PromptSuggestionStatus',
 } as const;
 
 export const PublishRequestSchema = {

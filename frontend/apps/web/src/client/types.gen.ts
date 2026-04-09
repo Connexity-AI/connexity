@@ -673,6 +673,24 @@ export type CauseAnalysisItem = {
 };
 
 /**
+ * ChatMessageCreate
+ */
+export type ChatMessageCreate = {
+  /**
+   * Content
+   *
+   * User message text
+   */
+  content: string;
+  /**
+   * Test Case Result Ids
+   *
+   * Optional test case result IDs for eval context injection
+   */
+  test_case_result_ids?: Array<string> | null;
+};
+
+/**
  * ConfigPublic
  */
 export type ConfigPublic = {
@@ -1826,6 +1844,34 @@ export type Persona = {
 };
 
 /**
+ * PresetPublic
+ */
+export type PresetPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Label
+   */
+  label: string;
+  /**
+   * Message
+   */
+  message: string;
+  /**
+   * Description
+   */
+  description?: string | null;
+  /**
+   * Context
+   *
+   * 'none' or 'eval'
+   */
+  context: string;
+};
+
+/**
  * PromptDiff
  */
 export type PromptDiff = {
@@ -1856,6 +1902,272 @@ export type PromptDiff = {
    */
   semantic_summary?: string | null;
 };
+
+/**
+ * PromptEditBatchStatusUpdate
+ */
+export type PromptEditBatchStatusUpdate = {
+  /**
+   * Status
+   */
+  status: 'accepted' | 'declined';
+  /**
+   * Edit Ids
+   */
+  edit_ids?: Array<string> | null;
+};
+
+/**
+ * PromptEditPublic
+ */
+export type PromptEditPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Message Id
+   */
+  message_id: string;
+  /**
+   * Start Line
+   */
+  start_line: number;
+  /**
+   * End Line
+   */
+  end_line: number;
+  /**
+   * New Content
+   */
+  new_content: string;
+  /**
+   * Original Content
+   */
+  original_content: string;
+  /**
+   * Status
+   */
+  status: string;
+  /**
+   * Created At
+   */
+  created_at: string;
+};
+
+/**
+ * PromptEditStatusUpdate
+ */
+export type PromptEditStatusUpdate = {
+  /**
+   * Status
+   */
+  status: 'accepted' | 'declined';
+};
+
+/**
+ * PromptEditorMessagePublic
+ */
+export type PromptEditorMessagePublic = {
+  /**
+   * Message role (user, assistant, …)
+   */
+  role: TurnRole;
+  /**
+   * Content
+   *
+   * Full message text
+   */
+  content: string;
+  /**
+   * Id
+   *
+   * Message id
+   */
+  id: string;
+  /**
+   * Session Id
+   *
+   * Session id
+   */
+  session_id: string;
+  /**
+   * Prompt Suggestion
+   *
+   * Suggested prompt text if any
+   */
+  prompt_suggestion: string | null;
+  /**
+   * Suggestion workflow status
+   */
+  suggestion_status: PromptSuggestionStatus | null;
+  /**
+   * Created At
+   *
+   * Created at
+   */
+  created_at: string;
+};
+
+/**
+ * PromptEditorMessagesPublic
+ */
+export type PromptEditorMessagesPublic = {
+  /**
+   * Data
+   *
+   * Messages
+   */
+  data: Array<PromptEditorMessagePublic>;
+  /**
+   * Count
+   *
+   * Total messages in the query
+   */
+  count: number;
+};
+
+/**
+ * PromptEditorSessionCreate
+ */
+export type PromptEditorSessionCreate = {
+  /**
+   * Agent Id
+   *
+   * Agent to attach the session to
+   */
+  agent_id: string;
+  /**
+   * Title
+   *
+   * Optional title; auto-generated if omitted
+   */
+  title?: string | null;
+  /**
+   * Run Id
+   *
+   * Optional run for eval context
+   */
+  run_id?: string | null;
+};
+
+/**
+ * PromptEditorSessionPublic
+ */
+export type PromptEditorSessionPublic = {
+  /**
+   * Title
+   *
+   * Session title (auto-generated or user-set)
+   */
+  title?: string | null;
+  /**
+   * active or archived
+   */
+  status?: PromptEditorSessionStatus;
+  /**
+   * Id
+   *
+   * Session id
+   */
+  id: string;
+  /**
+   * Agent Id
+   *
+   * Agent id
+   */
+  agent_id: string;
+  /**
+   * Created By
+   *
+   * Owner user id
+   */
+  created_by: string;
+  /**
+   * Run Id
+   *
+   * Linked run id if any
+   */
+  run_id: string | null;
+  /**
+   * Created At
+   *
+   * Created at
+   */
+  created_at: string;
+  /**
+   * Updated At
+   *
+   * Updated at
+   */
+  updated_at: string;
+  /**
+   * Message Count
+   *
+   * Number of messages in the session
+   */
+  message_count: number;
+};
+
+/**
+ * PromptEditorSessionStatus
+ */
+export const PromptEditorSessionStatus = { ACTIVE: 'active', ARCHIVED: 'archived' } as const;
+
+/**
+ * PromptEditorSessionStatus
+ */
+export type PromptEditorSessionStatus =
+  (typeof PromptEditorSessionStatus)[keyof typeof PromptEditorSessionStatus];
+
+/**
+ * PromptEditorSessionUpdate
+ */
+export type PromptEditorSessionUpdate = {
+  /**
+   * Title
+   *
+   * Session title
+   */
+  title?: string | null;
+  /**
+   * active or archived
+   */
+  status?: PromptEditorSessionStatus | null;
+};
+
+/**
+ * PromptEditorSessionsPublic
+ */
+export type PromptEditorSessionsPublic = {
+  /**
+   * Data
+   *
+   * Sessions
+   */
+  data: Array<PromptEditorSessionPublic>;
+  /**
+   * Count
+   *
+   * Total matching sessions
+   */
+  count: number;
+};
+
+/**
+ * PromptSuggestionStatus
+ */
+export const PromptSuggestionStatus = {
+  PENDING: 'pending',
+  ACCEPTED: 'accepted',
+  DECLINED: 'declined',
+} as const;
+
+/**
+ * PromptSuggestionStatus
+ */
+export type PromptSuggestionStatus =
+  (typeof PromptSuggestionStatus)[keyof typeof PromptSuggestionStatus];
 
 /**
  * PublishRequest
@@ -7117,6 +7429,592 @@ export type TestCaseResultsUpdateTestCaseResultResponses = {
 
 export type TestCaseResultsUpdateTestCaseResultResponse =
   TestCaseResultsUpdateTestCaseResultResponses[keyof TestCaseResultsUpdateTestCaseResultResponses];
+
+export type PromptEditorListSessionsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Agent Id
+     */
+    agent_id?: string | null;
+    /**
+     * Skip
+     */
+    skip?: number;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/prompt-editor/sessions/';
+};
+
+export type PromptEditorListSessionsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PromptEditorListSessionsError =
+  PromptEditorListSessionsErrors[keyof PromptEditorListSessionsErrors];
+
+export type PromptEditorListSessionsResponses = {
+  /**
+   * Successful Response
+   */
+  200: PromptEditorSessionsPublic;
+};
+
+export type PromptEditorListSessionsResponse =
+  PromptEditorListSessionsResponses[keyof PromptEditorListSessionsResponses];
+
+export type PromptEditorCreateSessionData = {
+  body: PromptEditorSessionCreate;
+  path?: never;
+  query?: never;
+  url: '/api/v1/prompt-editor/sessions/';
+};
+
+export type PromptEditorCreateSessionErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PromptEditorCreateSessionError =
+  PromptEditorCreateSessionErrors[keyof PromptEditorCreateSessionErrors];
+
+export type PromptEditorCreateSessionResponses = {
+  /**
+   * Successful Response
+   */
+  200: PromptEditorSessionPublic;
+};
+
+export type PromptEditorCreateSessionResponse =
+  PromptEditorCreateSessionResponses[keyof PromptEditorCreateSessionResponses];
+
+export type PromptEditorDeleteSessionData = {
+  body?: never;
+  path: {
+    /**
+     * Session Id
+     */
+    session_id: string;
+  };
+  query?: never;
+  url: '/api/v1/prompt-editor/sessions/{session_id}';
+};
+
+export type PromptEditorDeleteSessionErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PromptEditorDeleteSessionError =
+  PromptEditorDeleteSessionErrors[keyof PromptEditorDeleteSessionErrors];
+
+export type PromptEditorDeleteSessionResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message;
+};
+
+export type PromptEditorDeleteSessionResponse =
+  PromptEditorDeleteSessionResponses[keyof PromptEditorDeleteSessionResponses];
+
+export type PromptEditorGetSessionData = {
+  body?: never;
+  path: {
+    /**
+     * Session Id
+     */
+    session_id: string;
+  };
+  query?: never;
+  url: '/api/v1/prompt-editor/sessions/{session_id}';
+};
+
+export type PromptEditorGetSessionErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PromptEditorGetSessionError =
+  PromptEditorGetSessionErrors[keyof PromptEditorGetSessionErrors];
+
+export type PromptEditorGetSessionResponses = {
+  /**
+   * Successful Response
+   */
+  200: PromptEditorSessionPublic;
+};
+
+export type PromptEditorGetSessionResponse =
+  PromptEditorGetSessionResponses[keyof PromptEditorGetSessionResponses];
+
+export type PromptEditorUpdateSessionData = {
+  body: PromptEditorSessionUpdate;
+  path: {
+    /**
+     * Session Id
+     */
+    session_id: string;
+  };
+  query?: never;
+  url: '/api/v1/prompt-editor/sessions/{session_id}';
+};
+
+export type PromptEditorUpdateSessionErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PromptEditorUpdateSessionError =
+  PromptEditorUpdateSessionErrors[keyof PromptEditorUpdateSessionErrors];
+
+export type PromptEditorUpdateSessionResponses = {
+  /**
+   * Successful Response
+   */
+  200: PromptEditorSessionPublic;
+};
+
+export type PromptEditorUpdateSessionResponse =
+  PromptEditorUpdateSessionResponses[keyof PromptEditorUpdateSessionResponses];
+
+export type PromptEditorListMessagesData = {
+  body?: never;
+  path: {
+    /**
+     * Session Id
+     */
+    session_id: string;
+  };
+  query?: {
+    /**
+     * Skip
+     */
+    skip?: number;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/prompt-editor/sessions/{session_id}/messages';
+};
+
+export type PromptEditorListMessagesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PromptEditorListMessagesError =
+  PromptEditorListMessagesErrors[keyof PromptEditorListMessagesErrors];
+
+export type PromptEditorListMessagesResponses = {
+  /**
+   * Successful Response
+   */
+  200: PromptEditorMessagesPublic;
+};
+
+export type PromptEditorListMessagesResponse =
+  PromptEditorListMessagesResponses[keyof PromptEditorListMessagesResponses];
+
+export type PromptEditorChatData = {
+  body: ChatMessageCreate;
+  path: {
+    /**
+     * Session Id
+     */
+    session_id: string;
+  };
+  query?: never;
+  url: '/api/v1/prompt-editor/sessions/{session_id}/messages';
+};
+
+export type PromptEditorChatErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PromptEditorChatError = PromptEditorChatErrors[keyof PromptEditorChatErrors];
+
+export type PromptEditorChatResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type PromptEditorUpdateEditStatusData = {
+  body: PromptEditStatusUpdate;
+  path: {
+    /**
+     * Session Id
+     */
+    session_id: string;
+    /**
+     * Message Id
+     */
+    message_id: string;
+    /**
+     * Edit Id
+     */
+    edit_id: string;
+  };
+  query?: never;
+  url: '/api/v1/prompt-editor/sessions/{session_id}/messages/{message_id}/edits/{edit_id}';
+};
+
+export type PromptEditorUpdateEditStatusErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PromptEditorUpdateEditStatusError =
+  PromptEditorUpdateEditStatusErrors[keyof PromptEditorUpdateEditStatusErrors];
+
+export type PromptEditorUpdateEditStatusResponses = {
+  /**
+   * Successful Response
+   */
+  200: PromptEditPublic;
+};
+
+export type PromptEditorUpdateEditStatusResponse =
+  PromptEditorUpdateEditStatusResponses[keyof PromptEditorUpdateEditStatusResponses];
+
+export type PromptEditorBatchUpdateEditStatusData = {
+  body: PromptEditBatchStatusUpdate;
+  path: {
+    /**
+     * Session Id
+     */
+    session_id: string;
+    /**
+     * Message Id
+     */
+    message_id: string;
+  };
+  query?: never;
+  url: '/api/v1/prompt-editor/sessions/{session_id}/messages/{message_id}/edits';
+};
+
+export type PromptEditorBatchUpdateEditStatusErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PromptEditorBatchUpdateEditStatusError =
+  PromptEditorBatchUpdateEditStatusErrors[keyof PromptEditorBatchUpdateEditStatusErrors];
+
+export type PromptEditorBatchUpdateEditStatusResponses = {
+  /**
+   * Response Prompt-Editor-Batch Update Edit Status
+   *
+   * Successful Response
+   */
+  200: Array<PromptEditPublic>;
+};
+
+export type PromptEditorBatchUpdateEditStatusResponse =
+  PromptEditorBatchUpdateEditStatusResponses[keyof PromptEditorBatchUpdateEditStatusResponses];
+
+export type PromptEditorGetPresetsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Agent Id
+     *
+     * Agent ID for contextual filtering (ignored in mock)
+     */
+    agent_id?: string | null;
+  };
+  url: '/api/v1/prompt-editor/presets';
+};
+
+export type PromptEditorGetPresetsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PromptEditorGetPresetsError =
+  PromptEditorGetPresetsErrors[keyof PromptEditorGetPresetsErrors];
+
+export type PromptEditorGetPresetsResponses = {
+  /**
+   * Response Prompt-Editor-Get Presets
+   *
+   * Successful Response
+   */
+  200: Array<PresetPublic>;
+};
+
+export type PromptEditorGetPresetsResponse =
+  PromptEditorGetPresetsResponses[keyof PromptEditorGetPresetsResponses];
 
 export type ConfigGetConfigData = {
   body?: never;

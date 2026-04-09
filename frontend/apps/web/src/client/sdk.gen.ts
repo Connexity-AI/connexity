@@ -119,6 +119,36 @@ import type {
   LoginTestTokenData,
   LoginTestTokenErrors,
   LoginTestTokenResponses,
+  PromptEditorBatchUpdateEditStatusData,
+  PromptEditorBatchUpdateEditStatusErrors,
+  PromptEditorBatchUpdateEditStatusResponses,
+  PromptEditorChatData,
+  PromptEditorChatErrors,
+  PromptEditorChatResponses,
+  PromptEditorCreateSessionData,
+  PromptEditorCreateSessionErrors,
+  PromptEditorCreateSessionResponses,
+  PromptEditorDeleteSessionData,
+  PromptEditorDeleteSessionErrors,
+  PromptEditorDeleteSessionResponses,
+  PromptEditorGetPresetsData,
+  PromptEditorGetPresetsErrors,
+  PromptEditorGetPresetsResponses,
+  PromptEditorGetSessionData,
+  PromptEditorGetSessionErrors,
+  PromptEditorGetSessionResponses,
+  PromptEditorListMessagesData,
+  PromptEditorListMessagesErrors,
+  PromptEditorListMessagesResponses,
+  PromptEditorListSessionsData,
+  PromptEditorListSessionsErrors,
+  PromptEditorListSessionsResponses,
+  PromptEditorUpdateEditStatusData,
+  PromptEditorUpdateEditStatusErrors,
+  PromptEditorUpdateEditStatusResponses,
+  PromptEditorUpdateSessionData,
+  PromptEditorUpdateSessionErrors,
+  PromptEditorUpdateSessionResponses,
   RunsCancelRunEndpointData,
   RunsCancelRunEndpointErrors,
   RunsCancelRunEndpointResponses,
@@ -1889,6 +1919,283 @@ export class TestCaseResultsService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+    });
+  }
+}
+
+export class PromptEditorService {
+  /**
+   * List Sessions
+   */
+  public static promptEditorListSessions<ThrowOnError extends boolean = false>(
+    options?: Options<PromptEditorListSessionsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      PromptEditorListSessionsResponses,
+      PromptEditorListSessionsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/prompt-editor/sessions/',
+      ...options,
+    });
+  }
+
+  /**
+   * Create Session
+   */
+  public static promptEditorCreateSession<ThrowOnError extends boolean = false>(
+    options: Options<PromptEditorCreateSessionData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      PromptEditorCreateSessionResponses,
+      PromptEditorCreateSessionErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/prompt-editor/sessions/',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Delete Session
+   */
+  public static promptEditorDeleteSession<ThrowOnError extends boolean = false>(
+    options: Options<PromptEditorDeleteSessionData, ThrowOnError>
+  ) {
+    return (options.client ?? client).delete<
+      PromptEditorDeleteSessionResponses,
+      PromptEditorDeleteSessionErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/prompt-editor/sessions/{session_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Session
+   */
+  public static promptEditorGetSession<ThrowOnError extends boolean = false>(
+    options: Options<PromptEditorGetSessionData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      PromptEditorGetSessionResponses,
+      PromptEditorGetSessionErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/prompt-editor/sessions/{session_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Update Session
+   */
+  public static promptEditorUpdateSession<ThrowOnError extends boolean = false>(
+    options: Options<PromptEditorUpdateSessionData, ThrowOnError>
+  ) {
+    return (options.client ?? client).patch<
+      PromptEditorUpdateSessionResponses,
+      PromptEditorUpdateSessionErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/prompt-editor/sessions/{session_id}',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * List Messages
+   */
+  public static promptEditorListMessages<ThrowOnError extends boolean = false>(
+    options: Options<PromptEditorListMessagesData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      PromptEditorListMessagesResponses,
+      PromptEditorListMessagesErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/prompt-editor/sessions/{session_id}/messages',
+      ...options,
+    });
+  }
+
+  /**
+   * Chat
+   *
+   * Stream the editor agent's response as semantic SSE events.
+   *
+   * Returns ``text/event-stream`` with events: ``status``, ``reasoning``,
+   * ``edit``, ``done``, and ``error``.
+   *
+   * **Currently returns mock data** — real LLM integration pending CS-60.
+   */
+  public static promptEditorChat<ThrowOnError extends boolean = false>(
+    options: Options<PromptEditorChatData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      PromptEditorChatResponses,
+      PromptEditorChatErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/prompt-editor/sessions/{session_id}/messages',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Update Edit Status
+   *
+   * Accept or decline a single proposed edit (mock).
+   */
+  public static promptEditorUpdateEditStatus<ThrowOnError extends boolean = false>(
+    options: Options<PromptEditorUpdateEditStatusData, ThrowOnError>
+  ) {
+    return (options.client ?? client).patch<
+      PromptEditorUpdateEditStatusResponses,
+      PromptEditorUpdateEditStatusErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/prompt-editor/sessions/{session_id}/messages/{message_id}/edits/{edit_id}',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Batch Update Edit Status
+   *
+   * Accept or decline multiple edits at once (mock).
+   *
+   * If ``edit_ids`` is null, applies to every pending edit on the message.
+   */
+  public static promptEditorBatchUpdateEditStatus<ThrowOnError extends boolean = false>(
+    options: Options<PromptEditorBatchUpdateEditStatusData, ThrowOnError>
+  ) {
+    return (options.client ?? client).patch<
+      PromptEditorBatchUpdateEditStatusResponses,
+      PromptEditorBatchUpdateEditStatusErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/prompt-editor/sessions/{session_id}/messages/{message_id}/edits',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Get Presets
+   *
+   * Return available presets. Mock returns all without filtering.
+   */
+  public static promptEditorGetPresets<ThrowOnError extends boolean = false>(
+    options?: Options<PromptEditorGetPresetsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      PromptEditorGetPresetsResponses,
+      PromptEditorGetPresetsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/prompt-editor/presets',
+      ...options,
     });
   }
 }
