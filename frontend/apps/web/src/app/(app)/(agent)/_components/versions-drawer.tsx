@@ -36,7 +36,7 @@ export function VersionsDrawer() {
   const sorted = [...versions].sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
 
   return (
-    <Drawer direction="right" open={isDrawerOpen} onOpenChange={(open: boolean) => !open && closeDrawer()}>
+    <Drawer direction="right" modal={false} open={isDrawerOpen} onOpenChange={(open: boolean) => !open && closeDrawer()}>
       <DrawerContent>
         <DrawerHeader className="flex flex-row items-center justify-between border-b px-4 py-3">
           <div className="flex items-center gap-2">

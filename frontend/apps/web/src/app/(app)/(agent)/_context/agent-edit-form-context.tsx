@@ -148,7 +148,7 @@ export function AgentEditFormProvider({ agentId, children }: AgentEditFormProvid
   //  The function saves the current form as a draft (flushing any
   // pending debounced save first) and then opens the publish confirmation dialog.
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     if (isReadOnly) return;
 
     // Cancel any in-flight debounced auto-save so we don't double-save or
@@ -157,6 +157,11 @@ export function AgentEditFormProvider({ agentId, children }: AgentEditFormProvid
       clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = null;
     }
+
+    // Trigger validation on all fields so errors appear under each field
+    // and tab names turn red for tabs with invalid fields.
+    const isValid = await form.trigger();
+    if (!isValid) return;
 
     // Validate → save draft → open publish dialog
     form.handleSubmit((data) => {
