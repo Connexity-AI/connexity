@@ -84,7 +84,7 @@ class AgentBase(SQLModel):
 
     @model_validator(mode="after")
     def validate_mode_fields(self) -> "AgentBase":
-        # Skip validation for draft agents (all mode-specific fields are None)
+        # Skip validation for table models (drafts may have incomplete fields)
         has_any_mode_field = (
             self.endpoint_url is not None
             or self.system_prompt is not None
@@ -143,7 +143,15 @@ class Agent(AgentBase, table=True):
 
 
 class AgentCreate(AgentBase):
-    pass
+    @model_validator(mode="after")
+    def validate_mode_fields(self) -> "AgentCreate":
+        validate_agent_mode_requirements(
+            mode=self.mode,
+            endpoint_url=self.endpoint_url,
+            system_prompt=self.system_prompt,
+            agent_model=self.agent_model,
+        )
+        return self
 
 
 class AgentCreateDraft(SQLModel):

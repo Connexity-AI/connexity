@@ -625,6 +625,16 @@ export type AggregateMetrics = {
 };
 
 /**
+ * AuthProvider
+ */
+export const AuthProvider = { EMAIL: 'email', GITHUB: 'github' } as const;
+
+/**
+ * AuthProvider
+ */
+export type AuthProvider = (typeof AuthProvider)[keyof typeof AuthProvider];
+
+/**
  * AvailableMetricsPublic
  */
 export type AvailableMetricsPublic = {
@@ -3335,6 +3345,7 @@ export type UserPublic = {
    * Email
    */
   email: string;
+  provider?: AuthProvider;
   /**
    * Is Active
    */

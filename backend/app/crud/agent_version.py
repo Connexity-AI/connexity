@@ -281,7 +281,7 @@ def publish_draft(
         .where(Agent.id == locked.id)
         .values(
             version=new_version,
-            has_draft=True,
+            has_draft=False,
             mode=draft.mode,
             endpoint_url=draft.endpoint_url,
             system_prompt=draft.system_prompt,

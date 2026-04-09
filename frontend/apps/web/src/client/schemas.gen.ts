@@ -1141,6 +1141,12 @@ export const AggregateMetricsSchema = {
   title: 'AggregateMetrics',
 } as const;
 
+export const AuthProviderSchema = {
+  type: 'string',
+  enum: ['email', 'github'],
+  title: 'AuthProvider',
+} as const;
+
 export const AvailableMetricsPublicSchema = {
   properties: {
     data: {
@@ -5526,6 +5532,10 @@ export const UserPublicSchema = {
       maxLength: 255,
       format: 'email',
       title: 'Email',
+    },
+    provider: {
+      $ref: '#/components/schemas/AuthProvider',
+      default: 'email',
     },
     is_active: {
       type: 'boolean',
