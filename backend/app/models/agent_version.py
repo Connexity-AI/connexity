@@ -57,6 +57,7 @@ class AgentVersion(SQLModel, table=True):
     )
     agent_model: str | None = Field(default=None, max_length=255)
     agent_provider: str | None = Field(default=None, max_length=64)
+    agent_temperature: float | None = Field(default=None)
     change_description: str | None = Field(default=None)
     created_by: uuid.UUID | None = Field(
         default=None,
@@ -84,6 +85,7 @@ class AgentVersionPublic(SQLModel):
     tools: list[dict[str, Any]] | None
     agent_model: str | None
     agent_provider: str | None
+    agent_temperature: float | None
     change_description: str | None
     created_by: uuid.UUID | None
     created_at: datetime
@@ -108,6 +110,7 @@ class AgentDraftUpdate(SQLModel):
     tools: list[dict[str, Any]] | None = None
     agent_model: str | None = None
     agent_provider: str | None = None
+    agent_temperature: float | None = None
 
 
 class PublishRequest(SQLModel):

@@ -57,10 +57,6 @@ class Settings(BaseSettings):
 
     # Secrets
     JWT_SECRET_KEY: str = DEFAULT_SECRET_VALUE
-    SESSION_SECRET_KEY: str = DEFAULT_SECRET_VALUE
-
-    GITHUB_CLIENT_ID: str = DEFAULT_SECRET_VALUE
-    GITHUB_CLIENT_SECRET: str = DEFAULT_SECRET_VALUE
 
     # Secrets with defaults
     FIRST_SUPERUSER: EmailStr = "admin@example.com"
@@ -180,7 +176,6 @@ class Settings(BaseSettings):
     def _enforce_non_default_secrets(self) -> Self:
         # required vars
         self._check_default_secret("JWT_SECRET_KEY", self.JWT_SECRET_KEY)
-        self._check_default_secret("SESSION_SECRET_KEY", self.SESSION_SECRET_KEY)
         # conditional required vars
         if self.POSTGRES_PASSWORD:
             self._check_default_secret("POSTGRES_PASSWORD", self.POSTGRES_PASSWORD)

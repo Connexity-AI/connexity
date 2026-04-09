@@ -1,4 +1,3 @@
-import uuid
 from typing import Any
 
 from sqlmodel import Session, select
@@ -48,31 +47,3 @@ def authenticate(*, session: Session, email: str, password: str) -> User | None:
     return db_user
 
 
-def authenticate_github(
-    *, session: Session, primary_email: str | None, profile: dict[str, Any]
-) -> User:
-    # Get profile data
-    github_full_name = profile.get("name")
-    github_username = profile.get("login")
-    github_id_str = str(profile.get("id"))
-
-    # Find or create user
-    user = session.exec(select(User).where(User.oauth_id == github_id_str)).first()
-
-    if not user:
-        fallback_email = (
-            f"{github_username or github_id_str}-{uuid.uuid4().hex[:8]}@github.local",
-        )
-
-        user = User(
-            provider="github",
-            oauth_id=github_id_str,
-            full_name=github_full_name or github_username,
-            email=primary_email or fallback_email,
-            is_active=True,
-        )
-        session.add(user)
-        session.commit()
-        session.refresh(user)
-
-    return user

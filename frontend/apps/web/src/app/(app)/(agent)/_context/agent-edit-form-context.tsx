@@ -1,25 +1,23 @@
 'use client';
 
-import { createContext, useContext, useEffect, useRef, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { createContext, useContext, useEffect, useMemo, useRef } from 'react';
+
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 
 import { Form } from '@workspace/ui/components/ui/form';
 
-import {
-  agentFormSchema,
-  agentFormDefaults,
-  type AgentFormValues,
-} from '@/app/(app)/(agent)/_schemas/agent-form';
+import { useVersions } from '@/app/(app)/(agent)/_context/versions-context';
 import { useAgent } from '@/app/(app)/(agent)/_hooks/use-agent';
 import { useAgentDraft } from '@/app/(app)/(agent)/_hooks/use-agent-draft';
 import { useAgentVersion } from '@/app/(app)/(agent)/_hooks/use-agent-version';
-import { useUpsertDraft } from '@/app/(app)/(agent)/_hooks/use-upsert-draft';
 import { useUpdateAgent } from '@/app/(app)/(agent)/_hooks/use-update-agent';
+import { useUpsertDraft } from '@/app/(app)/(agent)/_hooks/use-upsert-draft';
+import { agentFormDefaults, agentFormSchema } from '@/app/(app)/(agent)/_schemas/agent-form';
 import { mapAgentToForm } from '@/app/(app)/(agent)/_utils/map-agent-to-form';
 import { mapFormToDraft } from '@/app/(app)/(agent)/_utils/map-form-to-draft';
-import { useVersions } from '@/app/(app)/(agent)/_context/versions-context';
 
+import type { AgentFormValues } from '@/app/(app)/(agent)/_schemas/agent-form';
 import type { ReactNode } from 'react';
 
 // ─── Actions context ─────────────────────────────────────────────────────────
@@ -146,8 +144,8 @@ export function AgentEditFormProvider({ agentId, children }: AgentEditFormProvid
   }, [form, isReadOnly, draftMutate]);
 
   // ─── Submit (publish) ────────────────────────────────────────────────────
-  // No useCallback needed — React Compiler handles memoisation for this
-  // component. The function saves the current form as a draft (flushing any
+
+  //  The function saves the current form as a draft (flushing any
   // pending debounced save first) and then opens the publish confirmation dialog.
 
   const onSubmit = () => {

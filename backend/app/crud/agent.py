@@ -6,6 +6,7 @@ from sqlmodel import Session, select
 from app.crud import agent_version as agent_version_crud
 from app.models import Agent, AgentCreate, AgentUpdate
 from app.models.agent import validate_agent_mode_requirements
+from app.models.enums import AgentMode, AgentVersionStatus
 
 _VERSIONABLE_FIELDS = frozenset(
     {
@@ -42,6 +43,33 @@ def create_agent(
     agent_version_crud.create_initial_version(
         session=session, agent=db_obj, created_by=created_by
     )
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
+def create_draft_agent(
+    *, session: Session, name: str = "Untitled Agent", created_by: uuid.UUID | None = None
+) -> Agent:
+    db_obj = Agent(
+        name=name,
+        mode=AgentMode.PLATFORM,
+        version=0,
+        has_draft=True,
+    )
+    session.add(db_obj)
+    session.flush()
+
+    from app.models import AgentVersion
+
+    draft = AgentVersion(
+        agent_id=db_obj.id,
+        version=None,
+        status=AgentVersionStatus.DRAFT,
+        mode=AgentMode.PLATFORM,
+        created_by=created_by,
+    )
+    session.add(draft)
     session.commit()
     session.refresh(db_obj)
     return db_obj

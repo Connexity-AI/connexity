@@ -2,7 +2,6 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import jwt
-from authlib.integrations.starlette_client import OAuth  # type: ignore[import-untyped]
 from passlib.context import CryptContext
 
 from app.core.config import settings
@@ -25,26 +24,3 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
-
-
-# ------------------------ GitHub OAuth ---------------------------
-
-
-GITHUB_OAUTH_CONFIG = {
-    "name": "github",
-    "client_id": settings.GITHUB_CLIENT_ID,
-    "client_secret": settings.GITHUB_CLIENT_SECRET,
-    "access_token_url": "https://github.com/login/oauth/access_token",
-    "authorize_url": "https://github.com/login/oauth/authorize",
-    "api_base_url": "https://api.github.com/",
-    "client_kwargs": {"scope": "user:email"},
-}
-
-
-def create_oauth() -> OAuth:
-    oauth = OAuth()
-    oauth.register(**GITHUB_OAUTH_CONFIG)
-    return oauth
-
-
-oauth = create_oauth()

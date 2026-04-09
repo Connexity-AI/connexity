@@ -1,21 +1,12 @@
 import uuid
-from enum import Enum
 
 from pydantic import EmailStr
 from sqlmodel import Field, SQLModel
 
 
-class AuthProvider(str, Enum):
-    email = "email"
-    github = "github"
-
-
 # Shared properties
 class UserBase(SQLModel):
     email: EmailStr = Field(unique=True, index=True, max_length=255)
-    provider: AuthProvider = Field(default=AuthProvider.email)
-    # Must store github_id to identify OAuth users
-    oauth_id: str | None = Field(default=None, max_length=255)
     is_active: bool = True
     is_superuser: bool = False
     full_name: str | None = Field(default=None, max_length=255)
@@ -51,7 +42,7 @@ class UpdatePassword(SQLModel):
 # Database model, database table inferred from class name
 class User(UserBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    hashed_password: str | None = None  # password | github
+    hashed_password: str | None = None
 
 
 # Properties to return via API, id is always required

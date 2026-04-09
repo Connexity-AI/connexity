@@ -1,12 +1,10 @@
 import logging
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
-from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
-from starlette.requests import Request
 
 from app import crud
 from app.api.deps import (
@@ -21,7 +19,6 @@ from app.models import Message, NewPassword, Token, UserPublic
 from app.utils import (
     generate_password_reset_token,
     generate_reset_password_email,
-    is_prod,
     send_email,
     verify_password_reset_token,
 )
@@ -152,72 +149,4 @@ def logout() -> JSONResponse:
     """
     response = JSONResponse(content={"message": "Logged out"})
     response.delete_cookie(settings.AUTH_COOKIE)
-    return response
-
-
-# ------------------------ GitHub OAuth ---------------------------
-
-
-@router.get("/login/github")
-async def login_github(request: Request) -> Any:
-    """
-    Redirect to GitHub login page
-    Must initiate OAuth flow from backend
-    """
-    redirect_uri = request.url_for("auth_github_callback")  # matches function name
-
-    # rewrite to https in production
-    if is_prod:
-        redirect_uri = redirect_uri.replace(scheme="https")
-
-    return await security.oauth.github.authorize_redirect(request, redirect_uri)
-
-
-@router.get("/auth/github/callback")
-async def auth_github_callback(
-    request: Request, session: SessionDep
-) -> RedirectResponse:
-    """
-    GitHub OAuth callback, GitHub will call this endpoint
-    """
-    # Exchange code for access token
-    token = await security.oauth.github.authorize_access_token(request)
-
-    # Get user profile GitHub API
-    user_info = await security.oauth.github.get("user", token=token)
-    profile = user_info.json()
-
-    # Get primary email GitHub API
-    emails = await security.oauth.github.get("user/emails", token=token)
-    primary_email = next((e["email"] for e in emails.json() if e["primary"]), None)
-
-    logger.info(f"Primary GitHub email: {primary_email}")
-
-    # Authenticate or create user
-    user = crud.authenticate_github(
-        session=session,
-        primary_email=primary_email,
-        profile=profile,
-    )
-
-    expires_delta = timedelta(hours=settings.ACCESS_TOKEN_EXPIRE_HOURS)
-
-    access_token = security.create_access_token(user.id, expires_delta)
-
-    # Absolute expiration timestamp (UTC)
-    expires_at = datetime.now(UTC) + expires_delta
-    expires_timestamp = int(expires_at.timestamp())
-
-    # Build redirect URL to Next.js cookie-setter
-    base_url = f"{settings.SITE_URL}/api/auth/set-cookie"
-    query = urlencode(
-        {
-            "access_token": access_token,
-            "expires": expires_timestamp,
-        }
-    )
-    redirect_url = f"{base_url}?{query}"
-
-    response = RedirectResponse(url=redirect_url, status_code=302)
-
     return response

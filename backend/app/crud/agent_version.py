@@ -16,6 +16,7 @@ _VERSIONABLE_FIELDS = (
     "tools",
     "agent_model",
     "agent_provider",
+    "agent_temperature",
 )
 
 
@@ -38,6 +39,7 @@ def build_version_row(
         tools=source.tools,
         agent_model=source.agent_model,
         agent_provider=source.agent_provider,
+        agent_temperature=source.agent_temperature,
         change_description=change_description,
         created_by=created_by,
     )
@@ -136,6 +138,7 @@ def rollback_to_version(
             tools=target.tools,
             agent_model=target.agent_model,
             agent_provider=target.agent_provider,
+            agent_temperature=target.agent_temperature,
             updated_at=datetime.now(UTC),
         )
     )
@@ -150,6 +153,26 @@ def rollback_to_version(
         created_by=created_by,
     )
     session.add(new_row)
+
+    # Update the draft row to match the rollback target (discard existing draft changes)
+    draft = get_draft(session=session, agent_id=locked.id)
+    if draft is not None:
+        for field in _VERSIONABLE_FIELDS:
+            setattr(draft, field, getattr(target, field))
+        session.add(draft)
+    else:
+        new_draft = build_version_row(
+            agent_id=locked.id,
+            version=None,
+            status=AgentVersionStatus.DRAFT,
+            source=target,
+            change_description=None,
+            created_by=created_by,
+        )
+        session.add(new_draft)
+        locked.has_draft = True
+        session.add(locked)
+
     session.commit()
     session.refresh(locked)
     session.refresh(new_row)
@@ -241,36 +264,39 @@ def publish_draft(
 
     new_version = locked.version + 1
 
-    # Promote draft → published
-    draft.version = new_version
-    draft.status = AgentVersionStatus.PUBLISHED
-    if change_description is not None:
-        draft.change_description = change_description
-    if created_by is not None:
-        draft.created_by = created_by
-    session.add(draft)
+    # Create a new published row from the draft (draft stays unchanged)
+    published_row = build_version_row(
+        agent_id=locked.id,
+        version=new_version,
+        status=AgentVersionStatus.PUBLISHED,
+        source=draft,
+        change_description=change_description,
+        created_by=created_by,
+    )
+    session.add(published_row)
 
-    # Update agent's live config from draft
+    # Update agent's live config from draft (has_draft stays True)
     session.execute(
         sa_update(Agent)
         .where(Agent.id == locked.id)
         .values(
             version=new_version,
-            has_draft=False,
+            has_draft=True,
             mode=draft.mode,
             endpoint_url=draft.endpoint_url,
             system_prompt=draft.system_prompt,
             tools=draft.tools,
             agent_model=draft.agent_model,
             agent_provider=draft.agent_provider,
+            agent_temperature=draft.agent_temperature,
             updated_at=datetime.now(UTC),
         )
     )
 
     session.commit()
-    session.refresh(draft)
+    session.refresh(published_row)
     session.refresh(locked)
-    return draft
+    return published_row
 
 
 def discard_draft(*, session: Session, agent: Agent) -> None:

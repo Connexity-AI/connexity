@@ -13,6 +13,7 @@ from app.models.agent import (  # noqa: F401
     Agent,
     AgentBase,
     AgentCreate,
+    AgentCreateDraft,
     AgentPublic,
     AgentsPublic,
     AgentUpdate,
@@ -175,7 +176,6 @@ from app.models.test_case_result import (  # noqa: F401
 
 # ── Existing user models ──────────────────────────────────────────
 from app.models.user import (  # noqa: F401
-    AuthProvider,
     Message,
     NewPassword,
     Token,

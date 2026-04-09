@@ -7,6 +7,7 @@ from app.api.deps import CurrentUser, SessionDep, get_current_user
 from app.models import (
     Agent,
     AgentCreate,
+    AgentCreateDraft,
     AgentDraftUpdate,
     AgentPublic,
     AgentRollbackRequest,
@@ -33,6 +34,17 @@ def create_agent(
 ) -> Agent:
     return crud.create_agent(
         session=session, agent_in=agent_in, created_by=current_user.id
+    )
+
+
+@router.post("/draft", response_model=AgentPublic)
+def create_draft_agent(
+    session: SessionDep,
+    current_user: CurrentUser,
+    body: AgentCreateDraft,
+) -> Agent:
+    return crud.create_draft_agent(
+        session=session, name=body.name, created_by=current_user.id
     )
 
 

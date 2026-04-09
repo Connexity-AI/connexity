@@ -18,7 +18,6 @@ def health() -> Message:
         "SITE_URL": bool(settings.SITE_URL),
         "DATABASE_URL": bool(settings.DATABASE_URL),
         "JWT_SECRET_KEY": bool(settings.JWT_SECRET_KEY),
-        "SESSION_SECRET_KEY": bool(settings.SESSION_SECRET_KEY),
     }
 
     message = "All required environment variables are set."
