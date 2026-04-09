@@ -1,13 +1,11 @@
 import { createTypedLink } from '@/common/url-generator/typed-links';
-import { emptyParser, newAgentParser } from '@/common/url-generator/parsers';
+import { agentsParser, emptyParser } from '@/common/url-generator/parsers';
 import type { Route } from 'next';
 import type {
   AgentsType,
   AuthType,
   DashboardType,
   MetricsType,
-  NewAgentType,
-  SettingsType,
 } from '@/common/url-generator/types';
 
 export class UrlGenerator {
@@ -41,21 +39,15 @@ export class UrlGenerator {
 
   static agents({ options, values }: AgentsType = {}) {
     const route = '/agents/' as Route;
-    return createTypedLink(route, emptyParser, options)(values);
+    return createTypedLink(route, agentsParser, options)(values);
   }
 
-  static newAgent({ options, values }: NewAgentType = {}) {
-    const route = '/agents/new/' as Route;
-    return createTypedLink(route, newAgentParser, options)(values);
+  static agent(agentId: string) {
+    return `/agents/${agentId}/` as Route;
   }
 
   static metrics({ options, values }: MetricsType = {}) {
     const route = '/metrics/' as Route;
-    return createTypedLink(route, emptyParser, options)(values);
-  }
-
-  static settings({ options, values }: SettingsType = {}) {
-    const route = '/settings/' as Route;
     return createTypedLink(route, emptyParser, options)(values);
   }
 
@@ -80,10 +72,6 @@ export class UrlGenerator {
   }
 
   // ── API ──
-
-  static apiLoginGithub() {
-    return '/api/v1/login/github/' as Route;
-  }
 
   static apiOgImages() {
     return '/api/v1/open-graph/' as Route;

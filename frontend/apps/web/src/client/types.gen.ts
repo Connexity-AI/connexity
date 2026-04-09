@@ -57,6 +57,12 @@ export type AgentCreate = {
    */
   agent_provider?: string | null;
   /**
+   * Agent Temperature
+   *
+   * Sampling temperature for platform agent simulator (0.0–2.0)
+   */
+  agent_temperature?: number | null;
+  /**
    * Agent Metadata
    *
    * Arbitrary key-value metadata about the agent
@@ -64,6 +70,16 @@ export type AgentCreate = {
   agent_metadata?: {
     [key: string]: unknown;
   } | null;
+};
+
+/**
+ * AgentCreateDraft
+ */
+export type AgentCreateDraft = {
+  /**
+   * Name
+   */
+  name?: string;
 };
 
 /**
@@ -95,6 +111,10 @@ export type AgentDraftUpdate = {
    * Agent Provider
    */
   agent_provider?: string | null;
+  /**
+   * Agent Temperature
+   */
+  agent_temperature?: number | null;
 };
 
 /**
@@ -159,6 +179,12 @@ export type AgentPublic = {
    * LLM provider for platform agent simulator (e.g. openai, anthropic)
    */
   agent_provider?: string | null;
+  /**
+   * Agent Temperature
+   *
+   * Sampling temperature for platform agent simulator (0.0–2.0)
+   */
+  agent_temperature?: number | null;
   /**
    * Agent Metadata
    *
@@ -298,6 +324,12 @@ export type AgentUpdate = {
    */
   agent_provider?: string | null;
   /**
+   * Agent Temperature
+   *
+   * Sampling temperature for platform agent simulator (0.0–2.0)
+   */
+  agent_temperature?: number | null;
+  /**
    * Agent Metadata
    *
    * Arbitrary key-value metadata about the agent
@@ -378,6 +410,10 @@ export type AgentVersionPublic = {
    * Agent Provider
    */
   agent_provider: string | null;
+  /**
+   * Agent Temperature
+   */
+  agent_temperature: number | null;
   /**
    * Change Description
    */
@@ -587,16 +623,6 @@ export type AggregateMetrics = {
    */
   avg_overall_score?: number | null;
 };
-
-/**
- * AuthProvider
- */
-export const AuthProvider = { EMAIL: 'email', GITHUB: 'github' } as const;
-
-/**
- * AuthProvider
- */
-export type AuthProvider = (typeof AuthProvider)[keyof typeof AuthProvider];
 
 /**
  * AvailableMetricsPublic
@@ -3309,11 +3335,6 @@ export type UserPublic = {
    * Email
    */
   email: string;
-  provider?: AuthProvider;
-  /**
-   * Oauth Id
-   */
-  oauth_id?: string | null;
   /**
    * Is Active
    */
@@ -3725,103 +3746,6 @@ export type LoginLogoutResponses = {
   200: unknown;
 };
 
-export type LoginLoginGithubData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/api/v1/login/github';
-};
-
-export type LoginLoginGithubErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type LoginLoginGithubError = LoginLoginGithubErrors[keyof LoginLoginGithubErrors];
-
-export type LoginLoginGithubResponses = {
-  /**
-   * Response Login-Login Github
-   *
-   * Successful Response
-   */
-  200: unknown;
-};
-
-export type LoginAuthGithubCallbackData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/api/v1/auth/github/callback';
-};
-
-export type LoginAuthGithubCallbackErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type LoginAuthGithubCallbackError =
-  LoginAuthGithubCallbackErrors[keyof LoginAuthGithubCallbackErrors];
-
-export type LoginAuthGithubCallbackResponses = {
-  /**
-   * Successful Response
-   */
-  200: unknown;
-};
-
 export type UsersRegisterUserData = {
   body: UserRegister;
   path?: never;
@@ -4179,6 +4103,57 @@ export type AgentsCreateAgentResponses = {
 
 export type AgentsCreateAgentResponse =
   AgentsCreateAgentResponses[keyof AgentsCreateAgentResponses];
+
+export type AgentsCreateDraftAgentData = {
+  body: AgentCreateDraft;
+  path?: never;
+  query?: never;
+  url: '/api/v1/agents/draft';
+};
+
+export type AgentsCreateDraftAgentErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsCreateDraftAgentError =
+  AgentsCreateDraftAgentErrors[keyof AgentsCreateDraftAgentErrors];
+
+export type AgentsCreateDraftAgentResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentPublic;
+};
+
+export type AgentsCreateDraftAgentResponse =
+  AgentsCreateDraftAgentResponses[keyof AgentsCreateDraftAgentResponses];
 
 export type AgentsDiffAgentVersionsData = {
   body?: never;

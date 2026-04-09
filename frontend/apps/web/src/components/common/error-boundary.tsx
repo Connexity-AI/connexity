@@ -2,6 +2,8 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 
+import { Button } from '@workspace/ui/components/ui/button';
+
 interface Props {
   children: ReactNode;
 }
@@ -37,13 +39,13 @@ class ErrorBoundary extends Component<Props, State> {
           <h2 className="font-semibold text-lg truncate">
             {this.state.errorMessage ?? 'Oops, something went wrong.'}
           </h2>
-          <button
-            type="button"
+          <Button
+            variant="destructive"
             onClick={this.handleRetry}
-            className="mt-3 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
+            className="mt-3 bg-red-600 hover:bg-red-700"
           >
             Try again
-          </button>
+          </Button>
         </div>
       );
     }

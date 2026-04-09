@@ -29,6 +29,7 @@ npm-debug.log*
 # Misc
 .DS_Store
 *.pem
+next-env.d.ts
 
 # repeat Tiangolo
 

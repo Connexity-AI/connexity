@@ -1,4 +1,3 @@
-import ButtonGithubLogin from '@/components/auth/button-github-login';
 import FormLogin from '@/components/auth/form-login';
 
 import type { FC } from 'react';
@@ -10,7 +9,6 @@ const LoginPage: FC = () => (
       <p className="text-sm text-muted-foreground">Enter your credentials to sign in</p>
     </div>
 
-    <ButtonGithubLogin />
     <FormLogin />
   </div>
 );

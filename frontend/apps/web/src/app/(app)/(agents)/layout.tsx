@@ -1,4 +1,4 @@
-import { NewAgentHeader } from '@/app/(app)/(new-agent)/_components/new-agent-header';
+import { NewAgentHeader } from '@/app/(app)/(agents)/_components/new-agent-header';
 
 import type { FC, ReactNode } from 'react';
 
@@ -9,7 +9,7 @@ interface Props {
 const AgentsLayout: FC<Props> = ({ children }) => (
   <>
     <NewAgentHeader />
-    <main className="flex-1 p-6">{children}</main>
+    <main className="flex-1">{children}</main>
   </>
 );
 

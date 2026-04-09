@@ -5,7 +5,6 @@ import { BarChart3, Bot } from 'lucide-react';
 
 import {
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarMenu,
@@ -30,11 +29,11 @@ const menuItems = [
     url: UrlGenerator.agents(),
     icon: Bot,
   },
-  {
-    title: 'Metrics',
-    url: UrlGenerator.metrics(),
-    icon: BarChart3,
-  },
+  // {
+  //   title: 'Metrics',
+  //   url: UrlGenerator.metrics(),
+  //   icon: BarChart3,
+  // },
 ];
 
 const Sidebar: FC<Props> = async ({ currentUser }) => {
@@ -69,13 +68,9 @@ const Sidebar: FC<Props> = async ({ currentUser }) => {
       )}
 
       {currentUser?.email && (
-        <SidebarFooter className="p-2">
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <NavUser email={currentUser.email} />
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarFooter>
+        <div className="mt-auto p-2 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+          <NavUser email={currentUser.email} />
+        </div>
       )}
     </UISidebar>
   );

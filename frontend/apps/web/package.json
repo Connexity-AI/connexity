@@ -18,7 +18,9 @@
   "dependencies": {
     "@hookform/resolvers": "5.2.2",
     "@tanstack/react-query": "5.96.2",
+    "@tanstack/react-table": "8.21.3",
     "@workspace/ui": "workspace:*",
+    "date-fns": "4.1.0",
     "lucide-react": "0.562.0",
     "next": "16.2.0",
     "next-public-env": "1.1.0",

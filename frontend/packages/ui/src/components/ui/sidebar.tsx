@@ -6,7 +6,7 @@ import { Slot } from '@radix-ui/react-slot';
 import { cva, VariantProps } from 'class-variance-authority';
 import { PanelLeft } from 'lucide-react';
 
-import { Button } from '@workspace/ui/components/ui/button';
+import { Button, type ButtonProps } from '@workspace/ui/components/ui/button';
 import { Input } from '@workspace/ui/components/ui/input';
 import { Separator } from '@workspace/ui/components/ui/separator';
 import { Sheet, SheetContent } from '@workspace/ui/components/ui/sheet';
@@ -255,10 +255,12 @@ const Sidebar = React.forwardRef<
 );
 Sidebar.displayName = 'Sidebar';
 
-const SidebarTrigger = React.forwardRef<
-  React.ElementRef<typeof Button>,
-  React.ComponentProps<typeof Button>
->(({ className, onClick, ...props }, ref) => {
+const SidebarTrigger: React.FC<ButtonProps & { ref?: React.Ref<HTMLButtonElement> }> = ({
+  className,
+  onClick,
+  ref,
+  ...props
+}) => {
   const { toggleSidebar } = useSidebar();
 
   return (
@@ -278,7 +280,7 @@ const SidebarTrigger = React.forwardRef<
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   );
-});
+};
 SidebarTrigger.displayName = 'SidebarTrigger';
 
 const SidebarRail = React.forwardRef<HTMLButtonElement, React.ComponentProps<'button'>>(
