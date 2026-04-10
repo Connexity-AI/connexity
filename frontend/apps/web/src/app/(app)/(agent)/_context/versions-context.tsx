@@ -4,6 +4,8 @@ import { createContext, useCallback, useContext, useMemo, useState } from 'react
 
 import type { ReactNode } from 'react';
 
+export type DiffVersionId = number | 'draft';
+
 interface VersionsContextValue {
   isDrawerOpen: boolean;
   openDrawer: () => void;
@@ -14,6 +16,12 @@ interface VersionsContextValue {
   isPublishDialogOpen: boolean;
   openPublishDialog: () => void;
   closePublishDialog: () => void;
+  showDiff: boolean;
+  toggleDiff: () => void;
+  diffFromVersion: DiffVersionId;
+  diffToVersion: DiffVersionId;
+  setDiffFromVersion: (v: DiffVersionId) => void;
+  setDiffToVersion: (v: DiffVersionId) => void;
 }
 
 const VersionsContext = createContext<VersionsContextValue | null>(null);
@@ -35,16 +43,34 @@ export function VersionsProvider({ children }: VersionsProviderProps) {
   const [isDrawerOpen, setDrawerOpen] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
   const [isPublishDialogOpen, setPublishDialogOpen] = useState(false);
+  const [showDiff, setShowDiff] = useState(false);
+  const [diffFromVersion, setDiffFromVersion] = useState<DiffVersionId>('draft');
+  const [diffToVersion, setDiffToVersion] = useState<DiffVersionId>('draft');
 
   const openDrawer = useCallback(() => setDrawerOpen(true), []);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
 
   const selectVersion = useCallback((version: number | null) => {
     setSelectedVersion(version);
+    if (version === null) {
+      setShowDiff(false);
+    }
   }, []);
 
   const openPublishDialog = useCallback(() => setPublishDialogOpen(true), []);
   const closePublishDialog = useCallback(() => setPublishDialogOpen(false), []);
+
+  const toggleDiff = useCallback(() => {
+    setShowDiff((prev) => {
+      const next = !prev;
+      // When turning diff ON, seed From = selected version, To = draft
+      if (next && selectedVersion !== null) {
+        setDiffFromVersion(selectedVersion);
+        setDiffToVersion('draft');
+      }
+      return next;
+    });
+  }, [selectedVersion]);
 
   const isReadOnly = selectedVersion !== null;
 
@@ -59,6 +85,12 @@ export function VersionsProvider({ children }: VersionsProviderProps) {
       isPublishDialogOpen,
       openPublishDialog,
       closePublishDialog,
+      showDiff,
+      toggleDiff,
+      diffFromVersion,
+      diffToVersion,
+      setDiffFromVersion,
+      setDiffToVersion,
     }),
     [
       isDrawerOpen,
@@ -70,6 +102,10 @@ export function VersionsProvider({ children }: VersionsProviderProps) {
       isPublishDialogOpen,
       openPublishDialog,
       closePublishDialog,
+      showDiff,
+      toggleDiff,
+      diffFromVersion,
+      diffToVersion,
     ]
   );
 

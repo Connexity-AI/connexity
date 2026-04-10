@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { publishAgentDraft } from '@/actions/agents';
+import { agentKeys } from '@/constants/query-keys';
 import { isErrorApiResult } from '@/utils/api';
 import { getApiErrorMessage } from '@/utils/error';
 
@@ -16,10 +17,10 @@ export function usePublishDraft(agentId: string) {
 
     onSuccess: (result) => {
       if (isErrorApiResult(result)) return;
-      queryClient.invalidateQueries({ queryKey: ['agent-versions', agentId] });
-      queryClient.invalidateQueries({ queryKey: ['agent', agentId] });
-      queryClient.invalidateQueries({ queryKey: ['agent-draft', agentId] });
-      queryClient.invalidateQueries({ queryKey: ['agents'] });
+      queryClient.invalidateQueries({ queryKey: agentKeys.versions(agentId) });
+      queryClient.invalidateQueries({ queryKey: agentKeys.detail(agentId) });
+      queryClient.invalidateQueries({ queryKey: agentKeys.draft(agentId) });
+      queryClient.invalidateQueries({ queryKey: agentKeys.lists });
     },
   });
 

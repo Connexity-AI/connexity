@@ -1,15 +1,17 @@
 'use client';
 
-import { ArrowLeft, RotateCcw } from 'lucide-react';
+import { Clock, GitCompare, RotateCcw } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/ui/button';
+import { Separator } from '@workspace/ui/components/ui/separator';
+import { cn } from '@workspace/ui/lib/utils';
 
 import { useVersions } from '@/app/(app)/(agent)/_context/versions-context';
 import { useAgentEditFormActions } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
 import { useRollbackAgent } from '@/app/(app)/(agent)/_hooks/use-rollback-agent';
 
 export function ReadOnlyBanner() {
-  const { selectedVersion, selectVersion, isReadOnly } = useVersions();
+  const { selectedVersion, selectVersion, isReadOnly, showDiff, toggleDiff } = useVersions();
   const { agentId } = useAgentEditFormActions();
   const { mutate: rollback, isPending } = useRollbackAgent(agentId);
 
@@ -25,34 +27,49 @@ export function ReadOnlyBanner() {
   };
 
   return (
-    <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-muted/50">
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">
-          Viewing <span className="font-medium text-foreground">Version {selectedVersion}</span>{' '}
-          (read-only)
-        </span>
+    <div className="flex items-center justify-between px-4 py-2.5 border-b border-blue-500/20 bg-blue-500/5 shrink-0">
+      <div className="flex items-center gap-2 text-xs text-blue-400">
+        <Clock className="w-3.5 h-3.5 shrink-0" />
+        <span>Viewing v{selectedVersion}</span>
+        <span className="text-blue-400/50">· Read-only</span>
       </div>
 
       <div className="flex items-center gap-2">
         <Button
-          variant="ghost"
           size="sm"
-          className="gap-1.5"
-          onClick={() => selectVersion(null)}
+          variant="outline"
+          onClick={toggleDiff}
+          className={cn(
+            'h-7 px-2.5 gap-1.5 text-xs font-normal rounded [&_svg]:size-3.5!',
+            showDiff
+              ? 'bg-blue-500/20 border-blue-500/40 text-blue-300 hover:bg-blue-500/20 hover:text-blue-300'
+              : 'border-blue-500/20 text-blue-400/70 hover:bg-blue-500/10 hover:text-blue-400'
+          )}
         >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to Draft
+          <GitCompare />
+          {showDiff ? 'Hide diff' : 'View diff'}
+        </Button>
+
+        <Separator orientation="vertical" className="h-4 bg-blue-400/20" />
+
+        <Button
+          size="sm"
+          variant="link"
+          onClick={() => selectVersion(null)}
+          className="h-auto p-0 text-xs font-normal text-blue-400/60 hover:text-blue-400 hover:no-underline"
+        >
+          Back to draft
         </Button>
 
         <Button
-          variant="outline"
           size="sm"
-          className="gap-1.5"
+          variant="outline"
           onClick={handleRollback}
           disabled={isPending}
+          className="h-7 px-2.5 gap-1.5 text-xs font-normal border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:text-blue-400 [&_svg]:size-3!"
         >
-          <RotateCcw className="h-3.5 w-3.5" />
-          {isPending ? 'Rolling back...' : 'Rollback to this version'}
+          <RotateCcw />
+          {isPending ? 'Rolling back...' : 'Roll back'}
         </Button>
       </div>
     </div>

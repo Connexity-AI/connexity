@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { upsertAgentDraft } from '@/actions/agents';
 import { isErrorApiResult } from '@/utils/api';
 import { getApiErrorMessage } from '@/utils/error';
+import { agentKeys } from '@/constants/query-keys';
 
 import type { AgentDraftUpdate, AgentPublic } from '@/client/types.gen';
 
@@ -13,10 +14,11 @@ export function useUpsertDraft(agentId: string) {
 
   const mutation = useMutation({
     mutationFn: (body: AgentDraftUpdate) => upsertAgentDraft(agentId, body),
+
     onSuccess: (result) => {
       if (isErrorApiResult(result)) return;
-      queryClient.invalidateQueries({ queryKey: ['agent-draft', agentId] });
-      queryClient.setQueryData<AgentPublic>(['agent', agentId], (old) =>
+      queryClient.invalidateQueries({ queryKey: agentKeys.draft(agentId) });
+      queryClient.setQueryData<AgentPublic>(agentKeys.detail(agentId), (old) =>
         old ? { ...old, has_draft: true } : old
       );
     },

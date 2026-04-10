@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
@@ -10,7 +9,7 @@ import { Button } from '@workspace/ui/components/ui/button';
 import { Separator } from '@workspace/ui/components/ui/separator';
 import { SidebarTrigger } from '@workspace/ui/components/ui/sidebar';
 
-import { createDraftAgent } from '@/actions/agents';
+import { useCreateDraftAgent } from '@/app/(app)/(agents)/_hooks/use-create-draft-agent';
 import { isSuccessApiResult } from '@/utils/api';
 import { PlatformHeader } from '@/components/common/platform-header';
 
@@ -32,16 +31,16 @@ const Leading = () => {
 
 const Trailing = () => {
   const router = useRouter();
-  const [isPending, setIsPending] = useState(false);
+  const { mutate, isPending } = useCreateDraftAgent();
 
-  const handleCreate = async () => {
-    setIsPending(true);
-    const result = await createDraftAgent();
-    if (isSuccessApiResult(result)) {
-      const agent = result.data as AgentPublic;
-      router.push(UrlGenerator.agent(agent.id));
-    }
-    setIsPending(false);
+  const handleCreate = () => {
+    mutate(undefined, {
+      onSuccess: (result) => {
+        if (!isSuccessApiResult(result)) return;
+        const agent = result.data as AgentPublic;
+        router.push(UrlGenerator.agent(agent.id));
+      },
+    });
   };
 
   return (

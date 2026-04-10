@@ -5,7 +5,6 @@ from sqlmodel import Session, select
 
 from app.crud import agent_version as agent_version_crud
 from app.models import Agent, AgentCreate, AgentUpdate
-from app.models.agent import validate_agent_mode_requirements
 from app.models.enums import AgentMode, AgentVersionStatus
 
 _VERSIONABLE_FIELDS = frozenset(
@@ -86,7 +85,11 @@ def list_agents(
     *, session: Session, skip: int = 0, limit: int = 100
 ) -> tuple[list[Agent], int]:
     count = session.exec(select(func.count()).select_from(Agent)).one()
-    items = list(session.exec(select(Agent).offset(skip).limit(limit)).all())
+    items = list(
+        session.exec(
+            select(Agent).order_by(Agent.updated_at.desc()).offset(skip).limit(limit)
+        ).all()
+    )
     return items, count
 
 
@@ -125,14 +128,6 @@ def update_agent(
     # Apply identity changes directly to agent
     if identity_data:
         locked.sqlmodel_update(identity_data)
-        # If there are no versionable changes, validate the current agent state
-        if not has_versionable_change:
-            validate_agent_mode_requirements(
-                mode=locked.mode,
-                endpoint_url=locked.endpoint_url,
-                system_prompt=locked.system_prompt,
-                agent_model=locked.agent_model,
-            )
         session.add(locked)
 
     # Send versionable changes to draft

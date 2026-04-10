@@ -2,23 +2,19 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { rollbackAgentVersion } from '@/actions/agents';
-import { agentKeys } from '@/constants/query-keys';
+import { createDraftAgent } from '@/actions/agents';
 import { isErrorApiResult } from '@/utils/api';
 import { getApiErrorMessage } from '@/utils/error';
+import { agentKeys } from '@/constants/query-keys';
 
-import type { AgentRollbackRequest } from '@/client/types.gen';
-
-export function useRollbackAgent(agentId: string) {
+export function useCreateDraftAgent() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (body: AgentRollbackRequest) => rollbackAgentVersion(agentId, body),
+    mutationFn: (name?: string) => createDraftAgent(name),
+
     onSuccess: (result) => {
       if (isErrorApiResult(result)) return;
-      queryClient.invalidateQueries({ queryKey: agentKeys.versions(agentId) });
-      queryClient.invalidateQueries({ queryKey: agentKeys.detail(agentId) });
-      queryClient.invalidateQueries({ queryKey: agentKeys.draft(agentId) });
       queryClient.invalidateQueries({ queryKey: agentKeys.lists });
     },
   });

@@ -37,7 +37,7 @@ export function VersionsDrawer() {
 
   return (
     <Drawer direction="right" modal={false} open={isDrawerOpen} onOpenChange={(open: boolean) => !open && closeDrawer()}>
-      <DrawerContent>
+      <DrawerContent onInteractOutside={closeDrawer}>
         <DrawerHeader className="flex flex-row items-center justify-between border-b px-4 py-3">
           <div className="flex items-center gap-2">
             <History className="h-4 w-4 text-muted-foreground" />

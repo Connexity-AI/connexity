@@ -1,5 +1,7 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
+
 import { AgentsService } from '@/client/sdk.gen';
 import { isSuccessApiResult } from '@/utils/api';
 
@@ -75,6 +77,7 @@ export const createDraftAgent = async (
     headers: { 'Content-Type': 'application/json' },
   });
   const { response: _, ...result } = apiResponse;
+
   return result as ApiResult<AgentPublic>;
 };
 
@@ -122,9 +125,7 @@ export const getAgentVersion = async (
   return result as ApiResult<AgentVersionPublic>;
 };
 
-export const getAgentDraft = async (
-  agentId: string
-): Promise<ApiResult<AgentVersionPublic>> => {
+export const getAgentDraft = async (agentId: string): Promise<ApiResult<AgentVersionPublic>> => {
   const apiResponse = await AgentsService.getDraft({
     path: { agent_id: agentId },
   });

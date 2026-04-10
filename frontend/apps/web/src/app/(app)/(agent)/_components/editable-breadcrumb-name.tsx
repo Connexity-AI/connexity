@@ -15,8 +15,10 @@ interface EditableBreadcrumbNameProps {
 }
 
 export function EditableBreadcrumbName({ agentId, agentName }: EditableBreadcrumbNameProps) {
-  const { form, isEditing, inputRef, startEdit, commit, onSubmit, handleKeyDown } =
-    useEditableName(agentId, agentName);
+  const { form, isEditing, inputRef, startEdit, commit, onSubmit, handleKeyDown } = useEditableName(
+    agentId,
+    agentName
+  );
 
   return (
     <BreadcrumbItem>
@@ -51,7 +53,7 @@ export function EditableBreadcrumbName({ agentId, agentName }: EditableBreadcrum
           title="Click to rename"
           className="group gap-1.5 max-w-[11rem] px-1.5 h-7"
         >
-          <span className="truncate">{agentName || 'Agent'}</span>
+          <span className="truncate">{agentName}</span>
           <Pencil className="w-3 h-3 text-muted-foreground/0 group-hover:text-muted-foreground/60 transition-colors shrink-0" />
         </Button>
       )}

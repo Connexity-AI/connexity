@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { updateAgent } from '@/actions/agents';
+import { agentKeys } from '@/constants/query-keys';
 
 const editableNameSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -28,21 +29,22 @@ export function useEditableName(agentId: string, agentName: string) {
   const { mutate: mutateAgentName } = useMutation({
     mutationFn: (name: string) => updateAgent(agentId, { name }),
     onMutate: async (newName) => {
-      await queryClient.cancelQueries({ queryKey: ['agent', agentId] });
-      const previous = queryClient.getQueryData(['agent', agentId]);
-      queryClient.setQueryData(['agent', agentId], (old: Record<string, unknown> | undefined) =>
-        old ? { ...old, name: newName } : old
+      await queryClient.cancelQueries({ queryKey: agentKeys.detail(agentId) });
+      const previous = queryClient.getQueryData(agentKeys.detail(agentId));
+      queryClient.setQueryData(
+        agentKeys.detail(agentId),
+        (old: Record<string, unknown> | undefined) => (old ? { ...old, name: newName } : old)
       );
       return { previous };
     },
     onError: (_err, _name, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(['agent', agentId], context.previous);
+        queryClient.setQueryData(agentKeys.detail(agentId), context.previous);
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['agents'] });
-      queryClient.invalidateQueries({ queryKey: ['agent', agentId] });
+      queryClient.invalidateQueries({ queryKey: agentKeys.lists });
+      queryClient.invalidateQueries({ queryKey: agentKeys.detail(agentId) });
     },
   });
 

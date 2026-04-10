@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { updateAgent } from '@/actions/agents';
+import { agentKeys } from '@/constants/query-keys';
 import { isErrorApiResult } from '@/utils/api';
 import { getApiErrorMessage } from '@/utils/error';
 
@@ -65,8 +66,8 @@ export function useUpdateAgent(agentId: string, agentName: string) {
     onSuccess: (result) => {
       if (isErrorApiResult(result)) return;
       const agent = result.data as AgentPublic;
-      queryClient.invalidateQueries({ queryKey: ['agents'] });
-      queryClient.setQueryData(['agent', agentId], agent);
+      queryClient.invalidateQueries({ queryKey: agentKeys.lists });
+      queryClient.setQueryData(agentKeys.detail(agentId), agent);
     },
   });
 
