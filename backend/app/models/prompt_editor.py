@@ -1,6 +1,6 @@
 import uuid
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import ConfigDict
 from sqlalchemy import Column, Text, text
@@ -8,7 +8,7 @@ from sqlmodel import Field, Relationship, SQLModel
 
 from app.models.enums import (
     PromptEditorSessionStatus,
-    PromptSuggestionStatus,
+    PromptEditStatus,
     TurnRole,
 )
 from app.models.run import Run
@@ -129,41 +129,79 @@ class PromptEditorMessage(PromptEditorMessageBase, table=True):
         index=True,
         description="Parent session",
     )
-    prompt_suggestion: str | None = Field(
-        default=None,
-        sa_column=Column(Text, nullable=True),
-        description="Extracted prompt text when the assistant suggests an update",
-    )
-    suggestion_status: PromptSuggestionStatus | None = Field(
-        default=None,
-        description="pending / accepted / declined when a suggestion exists",
-    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"server_default": text("now()")},
     )
 
     session: PromptEditorSession = Relationship(back_populates="messages")
+    edits: list["PromptEdit"] = Relationship(
+        back_populates="message",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+
+
+class PromptEdit(SQLModel, table=True):
+    __tablename__ = "prompt_edit"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    message_id: uuid.UUID = Field(
+        foreign_key="prompt_editor_message.id",
+        index=True,
+    )
+    start_line: int
+    end_line: int
+    new_content: str = Field(sa_column=Column(Text, nullable=False))
+    original_content: str = Field(sa_column=Column(Text, nullable=False))
+    status: PromptEditStatus = Field(default=PromptEditStatus.PENDING)
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC),
+        sa_column_kwargs={"server_default": text("now()")},
+    )
+
+    message: PromptEditorMessage = Relationship(back_populates="edits")
+
+
+class PromptEditCreate(SQLModel):
+    start_line: int
+    end_line: int
+    new_content: str
+    original_content: str
+
+
+class PromptEditPublic(SQLModel):
+    model_config = ConfigDict(use_enum_values=True)
+
+    id: uuid.UUID
+    message_id: uuid.UUID
+    start_line: int
+    end_line: int
+    new_content: str
+    original_content: str
+    status: PromptEditStatus
+    created_at: datetime
+
+
+class PromptEditStatusUpdate(SQLModel):
+    status: Literal["accepted", "declined"]
+
+
+class PromptEditBatchStatusUpdate(SQLModel):
+    status: Literal["accepted", "declined"]
+    edit_ids: list[uuid.UUID] | None = None
 
 
 class PromptEditorMessageCreate(SQLModel):
     session_id: uuid.UUID = Field(description="Session to append to")
     role: TurnRole = Field(description="Message role")
     content: str = Field(description="Message body")
-    prompt_suggestion: str | None = Field(
-        default=None,
-        description="Optional extracted prompt suggestion",
-    )
 
 
 class PromptEditorMessagePublic(PromptEditorMessageBase):
     id: uuid.UUID = Field(description="Message id")
     session_id: uuid.UUID = Field(description="Session id")
-    prompt_suggestion: str | None = Field(description="Suggested prompt text if any")
-    suggestion_status: PromptSuggestionStatus | None = Field(
-        description="Suggestion workflow status"
-    )
     created_at: datetime = Field(description="Created at")
+    edits: list[PromptEditPublic] = Field(default_factory=list)
 
 
 class PromptEditorMessagesPublic(SQLModel):

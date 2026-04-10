@@ -1918,42 +1918,18 @@ export type PromptEditBatchStatusUpdate = {
 };
 
 /**
- * PromptEditPublic
+ * PromptEditStatus
  */
-export type PromptEditPublic = {
-  /**
-   * Id
-   */
-  id: string;
-  /**
-   * Message Id
-   */
-  message_id: string;
-  /**
-   * Start Line
-   */
-  start_line: number;
-  /**
-   * End Line
-   */
-  end_line: number;
-  /**
-   * New Content
-   */
-  new_content: string;
-  /**
-   * Original Content
-   */
-  original_content: string;
-  /**
-   * Status
-   */
-  status: string;
-  /**
-   * Created At
-   */
-  created_at: string;
-};
+export const PromptEditStatus = {
+  PENDING: 'pending',
+  ACCEPTED: 'accepted',
+  DECLINED: 'declined',
+} as const;
+
+/**
+ * PromptEditStatus
+ */
+export type PromptEditStatus = (typeof PromptEditStatus)[keyof typeof PromptEditStatus];
 
 /**
  * PromptEditStatusUpdate
@@ -1992,21 +1968,15 @@ export type PromptEditorMessagePublic = {
    */
   session_id: string;
   /**
-   * Prompt Suggestion
-   *
-   * Suggested prompt text if any
-   */
-  prompt_suggestion: string | null;
-  /**
-   * Suggestion workflow status
-   */
-  suggestion_status: PromptSuggestionStatus | null;
-  /**
    * Created At
    *
    * Created at
    */
   created_at: string;
+  /**
+   * Edits
+   */
+  edits?: Array<AppModelsPromptEditorPromptEditPublic>;
 };
 
 /**
@@ -2153,21 +2123,6 @@ export type PromptEditorSessionsPublic = {
    */
   count: number;
 };
-
-/**
- * PromptSuggestionStatus
- */
-export const PromptSuggestionStatus = {
-  PENDING: 'pending',
-  ACCEPTED: 'accepted',
-  DECLINED: 'declined',
-} as const;
-
-/**
- * PromptSuggestionStatus
- */
-export type PromptSuggestionStatus =
-  (typeof PromptSuggestionStatus)[keyof typeof PromptSuggestionStatus];
 
 /**
  * PublishRequest
@@ -3710,6 +3665,79 @@ export type UserUpdateMe = {
    * Email
    */
   email?: string | null;
+};
+
+/**
+ * PromptEditPublic
+ */
+export type AppApiRoutesPromptEditorPromptEditPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Message Id
+   */
+  message_id: string;
+  /**
+   * Start Line
+   */
+  start_line: number;
+  /**
+   * End Line
+   */
+  end_line: number;
+  /**
+   * New Content
+   */
+  new_content: string;
+  /**
+   * Original Content
+   */
+  original_content: string;
+  /**
+   * Status
+   */
+  status: string;
+  /**
+   * Created At
+   */
+  created_at: string;
+};
+
+/**
+ * PromptEditPublic
+ */
+export type AppModelsPromptEditorPromptEditPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Message Id
+   */
+  message_id: string;
+  /**
+   * Start Line
+   */
+  start_line: number;
+  /**
+   * End Line
+   */
+  end_line: number;
+  /**
+   * New Content
+   */
+  new_content: string;
+  /**
+   * Original Content
+   */
+  original_content: string;
+  status: PromptEditStatus;
+  /**
+   * Created At
+   */
+  created_at: string;
 };
 
 export type HealthHealthData = {
@@ -7888,7 +7916,7 @@ export type PromptEditorUpdateEditStatusResponses = {
   /**
    * Successful Response
    */
-  200: PromptEditPublic;
+  200: AppApiRoutesPromptEditorPromptEditPublic;
 };
 
 export type PromptEditorUpdateEditStatusResponse =
@@ -7950,7 +7978,7 @@ export type PromptEditorBatchUpdateEditStatusResponses = {
    *
    * Successful Response
    */
-  200: Array<PromptEditPublic>;
+  200: Array<AppApiRoutesPromptEditorPromptEditPublic>;
 };
 
 export type PromptEditorBatchUpdateEditStatusResponse =
