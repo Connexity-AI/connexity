@@ -1,17 +1,19 @@
 """Prompt editor routes.
 
 Session and message CRUD use real DB persistence. The streaming chat
-endpoint and edit endpoints return **mock data** until the real LLM
-integration (CS-59 / CS-60 / CS-61) is implemented.
+endpoint returns **mock data** until the real LLM integration is wired.
 
 SSE Event Protocol
 ------------------
 event: status    — {"message_id": str, "phase": "analyzing"|"editing"|"complete"}
 event: reasoning — {"content": str}  (incremental text token)
-event: edit      — {"edit_id": str, "index": int, "start_line": int, "end_line": int,
-                     "new_content": str, "original_content": str, "status": "pending"}
-event: done      — {"message": {...}, "prompt_preview": str}
-event: error     — {"code": str, "detail": str}
+event: edit      — {"edited_prompt": str, "edit_index": int, "total_edits": int}
+event: done      — {"message": {...}, "base_prompt": str}
+event: error     — {"detail": str}
+
+Each ``edit`` event carries the **full prompt text** after applying the first
+``edit_index + 1`` tool calls (cumulative). The frontend diffs ``base_prompt``
+(from ``done``) against each ``edited_prompt`` for live streaming UX.
 """
 
 import asyncio
@@ -19,7 +21,7 @@ import json
 import uuid
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
@@ -48,29 +50,6 @@ SSE_HEADERS = {
 def format_sse(event: str, data: dict[str, Any]) -> str:
     """Format a single SSE frame: ``event: <type>\\ndata: <json>\\n\\n``."""
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
-
-
-# ── Mock-only response models (replaced by CS-96 PromptEdit later) ──
-
-
-class PromptEditPublic(BaseModel):
-    id: uuid.UUID
-    message_id: uuid.UUID
-    start_line: int
-    end_line: int
-    new_content: str
-    original_content: str
-    status: str
-    created_at: datetime
-
-
-class PromptEditStatusUpdate(BaseModel):
-    status: Literal["accepted", "declined"]
-
-
-class PromptEditBatchStatusUpdate(BaseModel):
-    status: Literal["accepted", "declined"]
-    edit_ids: list[uuid.UUID] | None = None
 
 
 class ChatMessageCreate(BaseModel):
@@ -175,27 +154,35 @@ _MOCK_EDITS_DATA: list[dict[str, Any]] = [
     },
 ]
 
-_MOCK_PROMPT_PREVIEW = """\
-You are a helpful customer support agent for TechCorp.
-Greet the user warmly and ask how you can help.
-Always be polite and professional.
-If the user asks about billing, check their account status first.
-For technical issues, gather the error message, steps to reproduce, and the user's environment details.
-If the issue persists after basic troubleshooting, escalate to Tier 2 support with a summary.
-Handle complaints with empathy: acknowledge the user's frustration, apologize for the inconvenience, and propose a concrete resolution.
-If you can't resolve an issue, create a support ticket.
-Provide the ticket number to the user.
-Always ask if there's anything else you can help with before ending.
-If the user is frustrated or angry, remain calm and use de-escalation techniques:
-- Acknowledge their feelings explicitly
-- Avoid defensive language
-- Offer to transfer to a senior agent if they request it
-Never share internal policies or system details with the user.
-For refund requests, verify the purchase date and check eligibility against the 30-day refund policy before processing.
-Escalate to a manager if the user requests it.
-Keep responses concise but thorough.
-Use the knowledge base tool to look up product information.
-Log all interactions for quality assurance."""
+
+def _apply_mock_edit_ops(base: str, ops: list[dict[str, Any]]) -> str:
+    """Apply line edits bottom-up (matches CS-59 ``apply_edits_to_prompt`` ordering)."""
+    lines = base.split("\n")
+    for op in sorted(ops, key=lambda o: o["start_line"], reverse=True):
+        s = op["start_line"]
+        e = op["end_line"]
+        new_raw = op["new_content"]
+        if s > e:
+            new_lines = new_raw.split("\n") if new_raw else []
+            insert_at = s
+            lines = lines[:insert_at] + new_lines + lines[insert_at:]
+        else:
+            new_lines = new_raw.split("\n") if new_raw else []
+            start_idx = s - 1
+            end_idx = e - 1
+            lines = lines[:start_idx] + new_lines + lines[end_idx + 1 :]
+    return "\n".join(lines)
+
+
+def _mock_progressive_edited_prompts(
+    base: str, edits: list[dict[str, Any]]
+) -> list[str]:
+    return [_apply_mock_edit_ops(base, edits[: i + 1]) for i in range(len(edits))]
+
+
+_MOCK_EDIT_PROGRESSIVE: list[str] = _mock_progressive_edited_prompts(
+    _MOCK_PROMPT, _MOCK_EDITS_DATA
+)
 
 _MOCK_PRESETS: list[PresetPublic] = [
     PresetPublic(
@@ -261,10 +248,6 @@ _MOCK_PRESETS: list[PresetPublic] = [
         context="none",
     ),
 ]
-
-# In-memory store for mock edits (keyed by edit UUID).
-# Populated by the mock SSE generator, read by accept/reject endpoints.
-_mock_edits: dict[uuid.UUID, PromptEditPublic] = {}
 
 # ── Router ───────────────────────────────────────────────────────────
 
@@ -424,11 +407,13 @@ async def chat(
     Returns ``text/event-stream`` with events: ``status``, ``reasoning``,
     ``edit``, ``done``, and ``error``.
 
-    **Currently returns mock data** — real LLM integration pending CS-60.
+    **Currently returns mock data** — real LLM integration pending.
     """
+    _ = body.content  # used when chat persists the user message (real impl)
     message_id = uuid.uuid4()
-    user_content = body.content
     now = datetime.now(UTC)
+    total_edits = len(_MOCK_EDIT_PROGRESSIVE)
+    final_edited = _MOCK_EDIT_PROGRESSIVE[-1] if total_edits else _MOCK_PROMPT
 
     async def event_generator() -> AsyncGenerator[str, None]:
         # Phase 1 — Analysing (stream reasoning tokens)
@@ -445,42 +430,31 @@ async def chat(
             await asyncio.sleep(0.08)
             yield format_sse("reasoning", {"content": chunk})
 
-        # Phase 2 — Editing (emit proposed edits)
+        # Phase 2 — Editing (full prompt after each cumulative edit)
         await asyncio.sleep(0.3)
-        yield format_sse("status", {"phase": "editing"})
+        yield format_sse(
+            "status",
+            {"message_id": str(message_id), "phase": "editing"},
+        )
 
-        edits_payload: list[dict[str, Any]] = []
-        for idx, edit_data in enumerate(_MOCK_EDITS_DATA):
+        for idx, edited_prompt in enumerate(_MOCK_EDIT_PROGRESSIVE):
             if await request.is_disconnected():
                 return
-            edit_id = uuid.uuid4()
-            edit_event: dict[str, Any] = {
-                "edit_id": str(edit_id),
-                "index": idx,
-                "start_line": edit_data["start_line"],
-                "end_line": edit_data["end_line"],
-                "new_content": edit_data["new_content"],
-                "original_content": edit_data["original_content"],
-                "status": "pending",
-            }
-            edits_payload.append(edit_event)
-
-            _mock_edits[edit_id] = PromptEditPublic(
-                id=edit_id,
-                message_id=message_id,
-                start_line=edit_data["start_line"],
-                end_line=edit_data["end_line"],
-                new_content=edit_data["new_content"],
-                original_content=edit_data["original_content"],
-                status="pending",
-                created_at=now,
+            await asyncio.sleep(0.2)
+            yield format_sse(
+                "edit",
+                {
+                    "edited_prompt": edited_prompt,
+                    "edit_index": idx,
+                    "total_edits": total_edits,
+                },
             )
 
-            await asyncio.sleep(0.2)
-            yield format_sse("edit", edit_event)
-
         # Phase 3 — Complete
-        yield format_sse("status", {"phase": "complete"})
+        yield format_sse(
+            "status",
+            {"message_id": str(message_id), "phase": "complete"},
+        )
 
         done_data: dict[str, Any] = {
             "message": {
@@ -488,11 +462,11 @@ async def chat(
                 "session_id": str(session_id),
                 "role": "assistant",
                 "content": full_reasoning,
-                "edits": edits_payload,
+                "edited_prompt": final_edited,
+                "edits": [],
                 "created_at": now.isoformat(),
             },
-            "user_content": user_content,
-            "prompt_preview": _MOCK_PROMPT_PREVIEW,
+            "base_prompt": _MOCK_PROMPT,
         }
         yield format_sse("done", done_data)
 
@@ -501,56 +475,6 @@ async def chat(
         media_type="text/event-stream",
         headers=SSE_HEADERS,
     )
-
-
-# ── Mock edit accept / reject ────────────────────────────────────────
-
-
-@router.patch(
-    "/sessions/{session_id}/messages/{message_id}/edits/{edit_id}",
-    response_model=PromptEditPublic,
-)
-def update_edit_status(
-    session_id: uuid.UUID,
-    message_id: uuid.UUID,
-    edit_id: uuid.UUID,
-    body: PromptEditStatusUpdate,
-) -> PromptEditPublic:
-    """Accept or decline a single proposed edit (mock)."""
-    _ = session_id, message_id
-    edit = _mock_edits.get(edit_id)
-    if edit is None:
-        raise HTTPException(status_code=404, detail="Edit not found")
-    edit.status = body.status
-    return edit
-
-
-@router.patch(
-    "/sessions/{session_id}/messages/{message_id}/edits",
-    response_model=list[PromptEditPublic],
-)
-def batch_update_edit_status(
-    session_id: uuid.UUID,
-    message_id: uuid.UUID,
-    body: PromptEditBatchStatusUpdate,
-) -> list[PromptEditPublic]:
-    """Accept or decline multiple edits at once (mock).
-
-    If ``edit_ids`` is null, applies to every pending edit on the message.
-    """
-    _ = session_id
-    target_ids = body.edit_ids
-    results: list[PromptEditPublic] = []
-    for eid, edit in _mock_edits.items():
-        if edit.message_id != message_id:
-            continue
-        if target_ids is not None and eid not in target_ids:
-            continue
-        if edit.status != "pending":
-            continue
-        edit.status = body.status
-        results.append(edit)
-    return results
 
 
 # ── Presets ───────────────────────────────────────────────────────────

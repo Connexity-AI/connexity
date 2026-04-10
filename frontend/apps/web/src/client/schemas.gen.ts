@@ -3011,34 +3011,6 @@ export const PromptDiffSchema = {
   title: 'PromptDiff',
 } as const;
 
-export const PromptEditBatchStatusUpdateSchema = {
-  properties: {
-    status: {
-      type: 'string',
-      enum: ['accepted', 'declined'],
-      title: 'Status',
-    },
-    edit_ids: {
-      anyOf: [
-        {
-          items: {
-            type: 'string',
-            format: 'uuid',
-          },
-          type: 'array',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Edit Ids',
-    },
-  },
-  type: 'object',
-  required: ['status'],
-  title: 'PromptEditBatchStatusUpdate',
-} as const;
-
 export const PromptEditPublicSchema = {
   properties: {
     id: {
@@ -3068,8 +3040,7 @@ export const PromptEditPublicSchema = {
       title: 'Original Content',
     },
     status: {
-      type: 'string',
-      title: 'Status',
+      $ref: '#/components/schemas/PromptEditStatus',
     },
     created_at: {
       type: 'string',
@@ -3091,17 +3062,10 @@ export const PromptEditPublicSchema = {
   title: 'PromptEditPublic',
 } as const;
 
-export const PromptEditStatusUpdateSchema = {
-  properties: {
-    status: {
-      type: 'string',
-      enum: ['accepted', 'declined'],
-      title: 'Status',
-    },
-  },
-  type: 'object',
-  required: ['status'],
-  title: 'PromptEditStatusUpdate',
+export const PromptEditStatusSchema = {
+  type: 'string',
+  enum: ['pending', 'accepted', 'declined'],
+  title: 'PromptEditStatus',
 } as const;
 
 export const PromptEditorMessagePublicSchema = {
@@ -3127,46 +3091,22 @@ export const PromptEditorMessagePublicSchema = {
       title: 'Session Id',
       description: 'Session id',
     },
-    prompt_suggestion: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Prompt Suggestion',
-      description: 'Suggested prompt text if any',
-    },
-    suggestion_status: {
-      anyOf: [
-        {
-          $ref: '#/components/schemas/PromptSuggestionStatus',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      description: 'Suggestion workflow status',
-    },
     created_at: {
       type: 'string',
       format: 'date-time',
       title: 'Created At',
       description: 'Created at',
     },
+    edits: {
+      items: {
+        $ref: '#/components/schemas/PromptEditPublic',
+      },
+      type: 'array',
+      title: 'Edits',
+    },
   },
   type: 'object',
-  required: [
-    'role',
-    'content',
-    'id',
-    'session_id',
-    'prompt_suggestion',
-    'suggestion_status',
-    'created_at',
-  ],
+  required: ['role', 'content', 'id', 'session_id', 'created_at'],
   title: 'PromptEditorMessagePublic',
 } as const;
 
@@ -3361,12 +3301,6 @@ export const PromptEditorSessionsPublicSchema = {
   type: 'object',
   required: ['data', 'count'],
   title: 'PromptEditorSessionsPublic',
-} as const;
-
-export const PromptSuggestionStatusSchema = {
-  type: 'string',
-  enum: ['pending', 'accepted', 'declined'],
-  title: 'PromptSuggestionStatus',
 } as const;
 
 export const PublishRequestSchema = {
