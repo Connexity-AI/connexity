@@ -229,15 +229,20 @@ def build_editor_messages(
     current_prompt: str,
     eval_context: str | None = None,
 ) -> list[LLMMessage]:
-    """Build messages for the editor LLM (single merged system message for broad provider support)."""
+    """Build messages for the editor LLM.
+
+    Returns two system messages: static identity (cacheable) then dynamic working state.
+    """
     static = build_static_system_message(target_provider=agent.agent_provider)
     dynamic = build_dynamic_system_message(
         current_prompt=current_prompt,
         agent=agent,
         eval_context=eval_context,
     )
-    combined = static + "\n\n---\n\n" + dynamic
-    out: list[LLMMessage] = [LLMMessage(role="system", content=combined)]
+    out: list[LLMMessage] = [
+        LLMMessage(role="system", content=static),
+        LLMMessage(role="system", content=dynamic),
+    ]
     out.extend(prompt_editor_messages_to_llm_history(session_messages))
     out.append(LLMMessage(role="user", content=user_message))
     return out

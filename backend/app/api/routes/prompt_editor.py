@@ -28,22 +28,8 @@ from app.models import (
     PromptEditorSessionUpdate,
 )
 from app.models.enums import PromptEditorSessionStatus, TurnRole
-from app.services.llm import (
-    LLMCallConfig,
-    LLMStreamChunk,
-    LLMStreamResult,
-    call_llm_stream,
-)
-from app.services.prompt_editor.agent_prompt import (
-    EDIT_PROMPT_TOOL,
-    apply_edits_progressively,
-    build_editor_messages,
-    get_prompt_line_count,
-    llm_tool_calls_to_openai_dicts,
-    parse_edit_prompt_tool_calls,
-    platform_agent_required,
-    validate_edits_against_line_count,
-)
+from app.services.prompt_editor import EditorInput, EditorResult, PromptEditor
+from app.services.prompt_editor.agent_prompt import platform_agent_required
 
 logger = logging.getLogger(__name__)
 
@@ -302,79 +288,41 @@ async def chat(
 
     async def event_generator() -> AsyncGenerator[str, None]:
         try:
-            llm_messages = build_editor_messages(
-                agent=agent,
-                session_messages=prior_messages,
-                user_message=body.content,
-                current_prompt=body.current_prompt,
-                eval_context=None,
+            editor = PromptEditor(
+                EditorInput(
+                    agent=agent,
+                    session_messages=prior_messages,
+                    user_message=body.content,
+                    current_prompt=body.current_prompt,
+                    eval_context=None,
+                )
             )
         except Exception as exc:
-            logger.exception("build_editor_messages failed: %s", exc)
+            logger.exception("PromptEditor init failed: %s", exc)
             yield format_sse(
                 "error", {"detail": f"Failed to build LLM messages: {exc}"}
             )
             return
 
-        yield format_sse("status", {"phase": "analyzing"})
+        result: EditorResult | None = None
+        async for ev in editor.run_stream(
+            app_settings=settings,
+            is_disconnected=request.is_disconnected,
+        ):
+            if ev.type == "error":
+                yield format_sse("error", ev.data)
+                return
+            if ev.type == "reasoning":
+                yield format_sse("reasoning", ev.data)
+            elif ev.type == "status":
+                yield format_sse("status", ev.data)
+            elif ev.type == "edit":
+                yield format_sse("edit", ev.data)
+            elif ev.type == "done":
+                result = ev.data["result"]
 
-        llm_config = LLMCallConfig(
-            tools=[EDIT_PROMPT_TOOL],
-            max_tokens=8192,
-            temperature=0.35,
-        )
-
-        stream_result: LLMStreamResult | None = None
-        try:
-            stream = call_llm_stream(llm_messages, llm_config, app_settings=settings)
-            async for item in stream:
-                if await request.is_disconnected():
-                    return
-                if isinstance(item, LLMStreamChunk) and item.content:
-                    yield format_sse("reasoning", {"content": item.content})
-                elif isinstance(item, LLMStreamResult):
-                    stream_result = item
-        except ValueError as exc:
-            logger.warning("LLM configuration error: %s", exc)
-            yield format_sse("error", {"detail": str(exc)})
+        if result is None:
             return
-        except Exception as exc:
-            logger.exception("LLM stream failed: %s", exc)
-            yield format_sse("error", {"detail": f"LLM call failed: {exc}"})
-            return
-
-        if stream_result is None:
-            yield format_sse("error", {"detail": "Stream ended without a final result"})
-            return
-
-        raw_edits = parse_edit_prompt_tool_calls(stream_result.tool_calls)
-        line_count = get_prompt_line_count(body.current_prompt)
-        valid_edits = validate_edits_against_line_count(raw_edits, line_count)
-
-        if valid_edits:
-            yield format_sse("status", {"phase": "editing"})
-            snapshots = apply_edits_progressively(body.current_prompt, valid_edits)
-            total = len(snapshots)
-            for idx, snap in enumerate(snapshots):
-                if await request.is_disconnected():
-                    return
-                yield format_sse(
-                    "edit",
-                    {
-                        "edited_prompt": snap,
-                        "edit_index": idx,
-                        "total_edits": total,
-                    },
-                )
-            final_prompt = snapshots[-1]
-        else:
-            final_prompt = body.current_prompt
-
-        tool_calls_payload = (
-            llm_tool_calls_to_openai_dicts(stream_result.tool_calls)
-            if stream_result.tool_calls
-            else None
-        )
 
         # Open a fresh DB session for the post-stream writes; the
         # dependency-scoped session is already closed at this point.
@@ -385,8 +333,8 @@ async def chat(
                     message_in=PromptEditorMessageCreate(
                         session_id=session_id,
                         role=TurnRole.ASSISTANT,
-                        content=stream_result.full_content,
-                        tool_calls=tool_calls_payload,
+                        content=result.content,
+                        tool_calls=result.tool_calls_payload,
                     ),
                 )
             except ValueError as exc:
@@ -403,7 +351,7 @@ async def chat(
             crud.update_prompt_editor_session_edited_prompt(
                 session=db,
                 db_session=fresh_pe_session,
-                edited_prompt=final_prompt,
+                edited_prompt=result.edited_prompt,
             )
 
             yield format_sse("status", {"phase": "complete"})
@@ -412,7 +360,7 @@ async def chat(
             )
             done_payload = {
                 "message": message_public.model_dump(mode="json"),
-                "edited_prompt": final_prompt,
+                "edited_prompt": result.edited_prompt,
                 "base_prompt": base_prompt,
             }
             yield format_sse("done", done_payload)
