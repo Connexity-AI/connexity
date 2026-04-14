@@ -14,9 +14,11 @@ If the effective ``model`` is missing after merging defaults, raises
 ``ValueError``.
 """
 
+import json
 import logging
 import time
-from typing import Any, Literal, Protocol
+from collections.abc import AsyncGenerator, AsyncIterable
+from typing import Any, Literal, Protocol, cast
 
 import litellm
 from litellm.exceptions import (
@@ -96,6 +98,32 @@ class LLMResponse(BaseModel):
         default=None,
         description="Tool calls from the assistant message (OpenAI-compatible dicts)",
     )
+
+
+class LLMToolCall(BaseModel):
+    """A fully assembled tool call from streaming deltas."""
+
+    id: str
+    function_name: str
+    arguments: dict[str, Any]
+
+
+class LLMStreamChunk(BaseModel):
+    """A single chunk from a streaming LLM response (text delta)."""
+
+    content: str
+    finish_reason: str | None = None
+
+
+class LLMStreamResult(BaseModel):
+    """Final result after the stream is fully consumed (or interrupted)."""
+
+    full_content: str
+    tool_calls: list[LLMToolCall]
+    usage: dict[str, int] = Field(default_factory=dict)
+    model: str
+    latency_ms: int
+    response_cost_usd: float | None = None
 
 
 _PROVIDER_ALIASES: dict[str, str] = {
@@ -220,7 +248,9 @@ def _normalize_tool_calls(raw: object) -> list[dict[str, Any]] | None:
             continue
         dumped = getattr(tc, "model_dump", None)
         if callable(dumped):
-            out.append(dumped(mode="json"))
+            raw_dump = dumped(mode="json")
+            if isinstance(raw_dump, dict):
+                out.append(raw_dump)
             continue
         fn = getattr(tc, "function", None)
         fn_name = getattr(fn, "name", None) if fn is not None else None
@@ -282,6 +312,80 @@ def _llm_message_to_litellm_dict(m: LLMMessage) -> dict[str, Any]:
     return d
 
 
+class _ToolCallAccumulator:
+    """Accumulates OpenAI-style tool_call deltas across streaming chunks."""
+
+    def __init__(self) -> None:
+        self._slots: dict[int, dict[str, str]] = {}
+
+    def process_delta_list(self, deltas: object) -> None:
+        if not deltas or not isinstance(deltas, list):
+            return
+        for d in deltas:
+            self._process_one_delta(d)
+
+    def _process_one_delta(self, d: object) -> None:
+        idx_raw = getattr(d, "index", None)
+        if idx_raw is None and isinstance(d, dict):
+            idx_raw = d.get("index")
+        idx = 0 if idx_raw is None else int(idx_raw)
+        slot = self._slots.setdefault(idx, {"id": "", "name": "", "arguments": ""})
+
+        tid = getattr(d, "id", None)
+        if tid is None and isinstance(d, dict):
+            tid = d.get("id")
+        if tid:
+            slot["id"] = str(tid)
+
+        fn = getattr(d, "function", None)
+        if fn is None and isinstance(d, dict):
+            fn = d.get("function")
+        if fn is None:
+            return
+        name = getattr(fn, "name", None)
+        args = getattr(fn, "arguments", None)
+        if name is None and isinstance(fn, dict):
+            name = fn.get("name")
+        if args is None and isinstance(fn, dict):
+            args = fn.get("arguments")
+        if name:
+            slot["name"] += str(name)
+        if args:
+            slot["arguments"] += str(args)
+
+    def finalize(self) -> list[LLMToolCall]:
+        out: list[LLMToolCall] = []
+        for idx in sorted(self._slots.keys()):
+            slot = self._slots[idx]
+            name = slot["name"].strip()
+            if not name:
+                continue
+            raw_args = slot["arguments"] or "{}"
+            try:
+                parsed = json.loads(raw_args)
+            except json.JSONDecodeError as e:
+                logger.warning(
+                    "Malformed tool call arguments for stream index %s: %s",
+                    idx,
+                    e,
+                )
+                continue
+            if not isinstance(parsed, dict):
+                logger.warning(
+                    "Tool call arguments for stream index %s are not a JSON object; skipping",
+                    idx,
+                )
+                continue
+            out.append(
+                LLMToolCall(
+                    id=slot["id"] or f"call_{idx}",
+                    function_name=name,
+                    arguments=parsed,
+                )
+            )
+        return out
+
+
 async def _acompletion_once(
     *,
     model: str,
@@ -310,7 +414,40 @@ async def _acompletion_once(
     for k, v in extra.items():
         if v is not None:
             kwargs[k] = v
-    return await litellm.acompletion(**kwargs)
+    return await litellm.acompletion(**cast(Any, kwargs))
+
+
+async def _acompletion_stream_once(
+    *,
+    model: str,
+    message_dicts: list[dict[str, Any]],
+    tools: list[dict[str, Any]] | None,
+    temperature: float | None,
+    max_tokens: int | None,
+    timeout: float | None,
+    response_format: dict[str, object] | None,
+    extra: dict[str, LLMExtraValue],
+) -> object:
+    kwargs: dict[str, object] = {
+        "model": model,
+        "messages": message_dicts,
+        "stream": True,
+        "stream_options": {"include_usage": True},
+    }
+    if temperature is not None:
+        kwargs["temperature"] = temperature
+    if max_tokens is not None:
+        kwargs["max_tokens"] = max_tokens
+    if timeout is not None:
+        kwargs["timeout"] = timeout
+    if response_format is not None:
+        kwargs["response_format"] = response_format
+    if tools is not None:
+        kwargs["tools"] = tools
+    for k, v in extra.items():
+        if v is not None:
+            kwargs[k] = v
+    return await litellm.acompletion(**cast(Any, kwargs))
 
 
 async def call_llm(
@@ -371,3 +508,139 @@ async def call_llm(
             )
 
     raise AssertionError("unreachable")  # pragma: no cover
+
+
+def _delta_from_stream_chunk(chunk: object) -> tuple[object | None, str | None]:
+    """Return (delta, finish_reason) from a streaming chunk, if any."""
+    choices = getattr(chunk, "choices", None)
+    if not choices:
+        return None, None
+    first = choices[0]
+    finish = getattr(first, "finish_reason", None)
+    delta = getattr(first, "delta", None)
+    return delta, finish if isinstance(finish, str) else None
+
+
+async def call_llm_stream(
+    messages: list[LLMMessage],
+    config: LLMCallConfig | None = None,
+    *,
+    app_settings: LLMSettingsView | None = None,
+) -> AsyncGenerator[LLMStreamChunk | LLMStreamResult, None]:
+    """Streaming variant of :func:`call_llm`.
+
+    Yields :class:`LLMStreamChunk` for each non-empty text delta. Tool call
+    fragments are accumulated and not yielded. After the stream completes,
+    yields a single :class:`LLMStreamResult` with full text, parsed tool
+    calls, usage, and timing. On mid-stream errors, yields a partial result
+    with accumulated text and empty tool calls.
+    """
+    app_settings = app_settings or settings
+    resolved_model, _ = _merge_effective_model_provider(config, app_settings)
+    c = config or LLMCallConfig()
+
+    temperature = c.temperature
+    max_tokens = c.max_tokens
+    timeout = c.timeout_seconds
+    response_format = c.response_format
+    extra = dict(c.extra)
+    tools = c.tools
+
+    message_dicts = [_llm_message_to_litellm_dict(m) for m in messages]
+    started = time.perf_counter()
+
+    stream: object | None = None
+    async for attempt in AsyncRetrying(
+        stop=stop_after_attempt(app_settings.LLM_RETRY_MAX_ATTEMPTS),
+        wait=wait_exponential(
+            multiplier=1,
+            min=app_settings.LLM_RETRY_MIN_WAIT_SECONDS,
+            max=app_settings.LLM_RETRY_MAX_WAIT_SECONDS,
+        ),
+        retry=retry_if_exception(_is_transient_llm_error),
+        before_sleep=_log_retry,
+        reraise=True,
+    ):
+        with attempt:
+            stream = await _acompletion_stream_once(
+                model=resolved_model,
+                message_dicts=message_dicts,
+                tools=tools,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                timeout=timeout,
+                response_format=response_format,
+                extra=extra,
+            )
+            break
+
+    if stream is None:
+        raise AssertionError("unreachable")  # pragma: no cover
+
+    full_parts: list[str] = []
+    accumulator = _ToolCallAccumulator()
+    usage: dict[str, int] = {}
+    response_model = resolved_model
+    response_cost: float | None = None
+
+    stream_iter = cast(AsyncIterable[object], stream)
+    try:
+        async for chunk in stream_iter:
+            m = getattr(chunk, "model", None)
+            if m:
+                response_model = str(m)
+            usage_obj = getattr(chunk, "usage", None)
+            if usage_obj is not None:
+                usage = _usage_to_dict(usage_obj)
+            cost = _response_cost_usd_from_litellm(chunk)
+            if cost is not None:
+                response_cost = cost
+
+            delta, fr = _delta_from_stream_chunk(chunk)
+            if delta is None:
+                continue
+
+            text = getattr(delta, "content", None)
+            if isinstance(text, str) and text:
+                full_parts.append(text)
+                yield LLMStreamChunk(content=text, finish_reason=fr)
+
+            tool_deltas = getattr(delta, "tool_calls", None)
+            if tool_deltas:
+                accumulator.process_delta_list(tool_deltas)
+    except Exception as exc:
+        logger.warning("LLM stream interrupted: %s: %s", type(exc).__name__, exc)
+        latency_ms = int((time.perf_counter() - started) * 1000)
+        yield LLMStreamResult(
+            full_content="".join(full_parts),
+            tool_calls=[],
+            usage=usage,
+            model=response_model,
+            latency_ms=latency_ms,
+            response_cost_usd=response_cost,
+        )
+        return
+
+    latency_ms = int((time.perf_counter() - started) * 1000)
+    yield LLMStreamResult(
+        full_content="".join(full_parts),
+        tool_calls=accumulator.finalize(),
+        usage=usage,
+        model=response_model,
+        latency_ms=latency_ms,
+        response_cost_usd=response_cost,
+    )
+
+
+async def collect_stream(
+    stream: AsyncGenerator[LLMStreamChunk | LLMStreamResult, None],
+) -> LLMStreamResult:
+    """Consume a stream from :func:`call_llm_stream`; return the final result only."""
+    final: LLMStreamResult | None = None
+    async for item in stream:
+        if isinstance(item, LLMStreamResult):
+            final = item
+    if final is None:
+        msg = "Stream ended without an LLMStreamResult"
+        raise RuntimeError(msg)
+    return final
