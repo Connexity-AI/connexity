@@ -2074,6 +2074,15 @@ export class PromptEditorService {
    * Chat
    *
    * Stream the editor agent response (reasoning + full-text edit snapshots).
+   *
+   * The SSE generator outlives the FastAPI dependency scope (``get_db`` closes
+   * the SQLAlchemy ``Session`` once this function returns the
+   * ``StreamingResponse``).  Therefore we:
+   *
+   * 1. Read all data we need *before* returning and copy it into plain Python
+   * objects so the generator never touches the original session.
+   * 2. Open a **new** ``Session`` inside the generator for the DB writes that
+   * happen after the LLM stream completes.
    */
   public static promptEditorChat<ThrowOnError extends boolean = false>(
     options: Options<PromptEditorChatData, ThrowOnError>
