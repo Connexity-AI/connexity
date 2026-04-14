@@ -39,7 +39,7 @@ const methodNameBuilder = (operation: Operation) => {
     // Remove '_', '-', ' ' separators
     // and convert the following char to camelCase
     // or remove the separator if the separator is at the end
-    .replace(/[-_\s]+(.)?/g, (_, c) => (c ? c.toUpperCase() : ''))
+    .replace(/[-_\s]+(.)?/g, (_, nextChar) => (nextChar ? nextChar.toUpperCase() : ''))
     // remove non-alphanumeric characters
     .replace(/[^a-zA-Z0-9]/g, '');
 

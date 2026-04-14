@@ -1,4 +1,5 @@
-import { Wrench, Globe, ChevronRight } from 'lucide-react';
+import { ChevronRight, Globe, Wrench } from 'lucide-react';
+
 import { cn } from '@workspace/ui/lib/utils';
 
 import type { HttpMethod } from '@/app/(app)/(agent)/_schemas/agent-form';
@@ -45,9 +46,7 @@ export function ToolRow({
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
-          <span className="text-sm text-foreground font-mono truncate">
-            {name || 'Untitled'}
-          </span>
+          <span className="text-sm text-foreground font-mono truncate">{name || 'Untitled'}</span>
           <span
             className={cn(
               'text-[10px] px-1.5 py-0.5 rounded border font-mono shrink-0',
@@ -59,15 +58,13 @@ export function ToolRow({
           </span>
         </div>
         <p className="text-xs text-muted-foreground truncate pr-4">
-          {description || (
-            <span className="italic text-muted-foreground/40">No description</span>
-          )}
+          {description || <span className="italic text-muted-foreground/40">No description</span>}
         </p>
       </div>
 
       <div className="flex items-center gap-3 shrink-0">
         {url && (
-          <span className="hidden group-hover:flex items-center gap-1 text-[10px] text-muted-foreground/40 max-w-[180px]">
+          <span className="hidden group-hover:flex items-center gap-1 text-[10px] text-muted-foreground/40 max-w-45">
             <Globe className="w-3 h-3 shrink-0" />
             <span className="truncate font-mono">{url.replace(/^https?:\/\//, '')}</span>
           </span>

@@ -27,7 +27,7 @@ const serverFetch: typeof fetch = async (input, init = {}) => {
   const cookieStore = await cookies();
   const cookieHeader = cookieStore
     .getAll()
-    .map((c) => `${c.name}=${c.value}`)
+    .map((cookie) => `${cookie.name}=${cookie.value}`)
     .join('; ');
 
   // Note: must append auth_cookie like this or content-type header will break in server actions
@@ -46,15 +46,39 @@ const serverFetch: typeof fetch = async (input, init = {}) => {
 const clientFetch: typeof fetch = async (input, init = {}) => {
   const { API_URL } = getPublicEnv() as { API_URL: string };
 
-  // hey-api sends absolute URL
-  const url: string = typeof input === 'string' ? input : input.toString();
+  // hey-api may pass a string URL, a URL object, or a Request (e.g. from the SSE client)
+  const originalUrl: string =
+    typeof input === 'string'
+      ? input
+      : input instanceof Request
+        ? input.url
+        : input.toString();
 
   // Normalize to relative URL
   // API_URL.length + 1 - removes leading slash, API_URL guaranteed not to have trailing slash
-  const relativeUrl = url.startsWith(API_URL) ? url.slice(API_URL.length + 1) : url;
+  const relativeUrl = originalUrl.startsWith(API_URL)
+    ? originalUrl.slice(API_URL.length + 1)
+    : originalUrl;
 
   // Build the proxy URL relative to Next.js API
   const proxyUrl = `${CLIENT_PROXY}${relativeUrl}`;
+
+  // When hey-api's SSE client passes a Request, re-issue the fetch against the
+  // proxy URL. Rebuilding via `new Request(proxyUrl, input)` leaks internal
+  // state from the original origin (causing ERR_ALPN_NEGOTIATION_FAILED), so
+  // copy the relevant fields onto a plain init object instead.
+  if (input instanceof Request) {
+    const bodyless = input.method === 'GET' || input.method === 'HEAD';
+    const body = bodyless ? undefined : await input.arrayBuffer();
+    return fetch(proxyUrl, {
+      method: input.method,
+      headers: input.headers,
+      body,
+      signal: input.signal,
+      redirect: input.redirect,
+      credentials: 'include',
+    });
+  }
 
   const headers = new Headers(init.headers);
 

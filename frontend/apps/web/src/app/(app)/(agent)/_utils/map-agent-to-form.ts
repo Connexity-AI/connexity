@@ -160,7 +160,7 @@ function mapOpenAIToolToForm(rawTool: unknown): AgentToolValues {
  * form always receives valid, complete defaults.
  */
 export function mapAgentToForm(agent: VersionableAgent): AgentFormValues {
-  const tools: AgentToolValues[] = (agent.tools ?? []).map((t) => mapOpenAIToolToForm(t));
+  const tools: AgentToolValues[] = (agent.tools ?? []).map((tool) => mapOpenAIToolToForm(tool));
 
   return {
     prompt: agent.system_prompt ?? '',

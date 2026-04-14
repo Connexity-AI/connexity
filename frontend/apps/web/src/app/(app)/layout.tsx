@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
@@ -24,12 +25,17 @@ interface Props {
 }
 
 const AppLayout: FC<Props> = async ({ children }) => {
-  const currentUser = await getAuthenticatedUser();
+  const [currentUser, cookieStore] = await Promise.all([
+    getAuthenticatedUser(),
+    cookies(),
+  ]);
 
   if (!currentUser) redirect(UrlGenerator.login());
 
+  const defaultOpen = cookieStore.get('sidebar:state')?.value !== 'false';
+
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={defaultOpen}>
       <div className="flex min-h-screen w-full">
         <Sidebar currentUser={currentUser} />
 

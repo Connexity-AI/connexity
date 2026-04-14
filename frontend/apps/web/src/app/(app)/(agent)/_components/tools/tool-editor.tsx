@@ -14,19 +14,13 @@ import {
 import { Textarea } from '@workspace/ui/components/ui/textarea';
 import { cn } from '@workspace/ui/lib/utils';
 
-import { DraftAuthHeaderRow } from '@/app/(app)/(agent)/_components/draft-auth-header-row';
-import { DraftToolEditorHeader } from '@/app/(app)/(agent)/_components/draft-tool-editor-header';
-import { DraftToolParameters } from '@/app/(app)/(agent)/_components/draft-tool-parameters';
-import {
-  Field,
-  SectionHeading,
-} from '@/app/(app)/(agent)/_components/tool-editor-field';
-import { useDraftTool } from '@/app/(app)/(agent)/_hooks/use-draft-tool';
+import { AuthHeaderRow } from '@/app/(app)/(agent)/_components/tools/auth-header-row';
+import { Field, SectionHeading } from '@/app/(app)/(agent)/_components/tools/tool-editor-field';
+import { ToolEditorHeader } from '@/app/(app)/(agent)/_components/tools/tool-editor-header';
+import { ToolParameters } from '@/app/(app)/(agent)/_components/tools/tool-parameters';
+import { useToolEditor } from '@/app/(app)/(agent)/_hooks/use-tool-editor';
 
-import type {
-  AgentToolValues,
-  HttpMethod,
-} from '@/app/(app)/(agent)/_schemas/agent-form';
+import type { HttpMethod } from '@/app/(app)/(agent)/_schemas/agent-form';
 
 const HTTP_METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 
@@ -38,31 +32,38 @@ const METHOD_COLOR: Record<HttpMethod, string> = {
   DELETE: 'text-red-400',
 };
 
-interface DraftToolEditorProps {
-  onSave: (tool: AgentToolValues) => void;
+interface ToolEditorProps {
+  toolIndex: number;
+  isNew: boolean;
   onBack: () => void;
+  onDelete: () => void;
+  readOnly?: boolean;
 }
 
-export function DraftToolEditor({ onSave, onBack }: DraftToolEditorProps) {
+export function ToolEditor({ toolIndex, isNew, onBack, onDelete, readOnly }: ToolEditorProps) {
   const {
-    draft,
-    set,
-    setToolName,
+    register,
+    toolName,
+    method,
+    authFields,
     setMethod,
-    addAuthHeader,
+    setToolName,
     removeAuth,
-    updateAuthHeader,
-    addParameter,
-    removeParameter,
-    updateParameter,
-  } = useDraftTool();
+    addAuthHeader,
+  } = useToolEditor(toolIndex);
 
   return (
     <div className="flex flex-col h-full w-full bg-background">
-      <DraftToolEditorHeader toolName={draft.name} onBack={onBack} onSave={() => onSave(draft)} />
+      <ToolEditorHeader
+        toolName={toolName}
+        isNew={isNew}
+        onBack={onBack}
+        onDelete={onDelete}
+        readOnly={readOnly}
+      />
 
       <div className="flex-1 overflow-auto">
-        <div className="px-8 py-6 space-y-8">
+        <fieldset disabled={readOnly} className="px-8 py-6 space-y-8">
           {/* Identity */}
           <div>
             <SectionHeading>Identity</SectionHeading>
@@ -72,20 +73,22 @@ export function DraftToolEditor({ onSave, onBack }: DraftToolEditorProps) {
                 hint="snake_case — the model uses this name to reference the tool"
               >
                 <Input
-                  value={draft.name}
-                  onChange={(e) => setToolName(e.target.value.replace(/\s/g, '_').toLowerCase())}
+                  {...register(`tools.${toolIndex}.name`, {
+                    onChange: (event) => {
+                      const cleaned = event.target.value.replace(/\s/g, '_').toLowerCase();
+                      setToolName(cleaned);
+                    },
+                  })}
                   placeholder="e.g. get_available_time"
                   className="h-9 text-sm font-mono"
                 />
               </Field>
-
               <Field
                 label="Description"
                 hint="The model reads this to decide when to invoke the tool. Be specific about the trigger condition."
               >
                 <Textarea
-                  value={draft.description}
-                  onChange={(e) => set('description', e.target.value)}
+                  {...register(`tools.${toolIndex}.description`)}
                   placeholder="Describe what this tool does and when the model should call it..."
                   className="resize-none text-sm h-24"
                 />
@@ -99,21 +102,20 @@ export function DraftToolEditor({ onSave, onBack }: DraftToolEditorProps) {
             <div className="space-y-4">
               <div className="flex gap-3">
                 <Field label="Method">
-                  <Select value={draft.method} onValueChange={(v) => setMethod(v as HttpMethod)}>
+                  <Select value={method} onValueChange={(value) => setMethod(value as HttpMethod)}>
                     <SelectTrigger
-                      className={cn('h-9 text-sm font-mono w-[120px]', METHOD_COLOR[draft.method])}
+                      className={cn('h-9 text-sm font-mono w-30', METHOD_COLOR[method])}
                     >
                       <SelectValue />
                     </SelectTrigger>
-
                     <SelectContent>
-                      {HTTP_METHODS.map((m) => (
+                      {HTTP_METHODS.map((httpMethod) => (
                         <SelectItem
-                          key={m}
-                          value={m}
-                          className={cn('font-mono text-sm', METHOD_COLOR[m])}
+                          key={httpMethod}
+                          value={httpMethod}
+                          className={cn('font-mono text-sm', METHOD_COLOR[httpMethod])}
                         >
-                          {m}
+                          {httpMethod}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -121,22 +123,19 @@ export function DraftToolEditor({ onSave, onBack }: DraftToolEditorProps) {
                 </Field>
                 <Field label="URL" className="flex-1 min-w-0">
                   <Input
-                    value={draft.url}
-                    onChange={(e) => set('url', e.target.value)}
+                    {...register(`tools.${toolIndex}.url`)}
                     placeholder="https://api.example.com/endpoint"
                     className="h-9 text-sm font-mono w-full"
                   />
                 </Field>
               </div>
-
               <Field label="Timeout (seconds)">
                 <Input
                   type="number"
                   min={1}
                   max={120}
-                  value={draft.timeout}
-                  onChange={(e) => set('timeout', Math.max(1, parseInt(e.target.value) || 3))}
-                  className="h-9 text-sm font-mono w-[120px]"
+                  {...register(`tools.${toolIndex}.timeout`, { valueAsNumber: true })}
+                  className="h-9 text-sm font-mono w-30"
                 />
               </Field>
             </div>
@@ -145,22 +144,25 @@ export function DraftToolEditor({ onSave, onBack }: DraftToolEditorProps) {
           {/* Auth headers */}
           <div>
             <SectionHeading>Auth headers</SectionHeading>
+
             <div className="space-y-2">
-              {draft.authHeaders.length > 0 && (
+              {authFields.length > 0 && (
                 <div className="flex items-center gap-2 mb-1 px-0.5">
                   <span className="text-[10px] text-muted-foreground/40 flex-2">Key</span>
                   <span className="text-[10px] text-muted-foreground/40 flex-3">Value</span>
                   <span className="w-8" />
                 </div>
               )}
-              {draft.authHeaders.map((header, i) => (
-                <DraftAuthHeaderRow
-                  key={header.id}
-                  header={header}
-                  onChange={(patch) => updateAuthHeader(i, patch)}
-                  onRemove={() => removeAuth(i)}
+
+              {authFields.map((field, headerIndex) => (
+                <AuthHeaderRow
+                  key={field.id}
+                  toolIndex={toolIndex}
+                  headerIndex={headerIndex}
+                  onRemove={() => removeAuth(headerIndex)}
                 />
               ))}
+
               <Button
                 variant="ghost"
                 onClick={addAuthHeader}
@@ -175,18 +177,15 @@ export function DraftToolEditor({ onSave, onBack }: DraftToolEditorProps) {
           {/* Parameters */}
           <div>
             <SectionHeading>Parameters</SectionHeading>
+
             <p className="text-xs text-muted-foreground/50 mb-4 leading-relaxed">
               Define the arguments the model should collect and pass when calling this tool. Each
               parameter becomes a field in the JSON body or query string.
             </p>
-            <DraftToolParameters
-              parameters={draft.parameters}
-              onAdd={addParameter}
-              onUpdate={updateParameter}
-              onRemove={removeParameter}
-            />
+
+            <ToolParameters toolIndex={toolIndex} />
           </div>
-        </div>
+        </fieldset>
       </div>
     </div>
   );

@@ -34,7 +34,7 @@ export function SettingsTab() {
   const { isReadOnly } = useAgentEditFormActions();
   const provider = form.watch('provider');
   const temperature = form.watch('temperature');
-  const currentProvider = PROVIDERS.find((p) => p.group === provider);
+  const currentProvider = PROVIDERS.find((providerItem) => providerItem.group === provider);
 
   return (
     <TabsContent value="settings" className="flex-1 mt-0 overflow-auto">
@@ -54,9 +54,9 @@ export function SettingsTab() {
               <FormControl>
                 <Select
                   value={field.value}
-                  onValueChange={(val) => {
-                    field.onChange(val);
-                    form.setValue('model', DEFAULT_MODELS[val] ?? '');
+                  onValueChange={(providerValue) => {
+                    field.onChange(providerValue);
+                    form.setValue('model', DEFAULT_MODELS[providerValue] ?? '');
                   }}
                   disabled={isReadOnly}
                 >
@@ -64,9 +64,9 @@ export function SettingsTab() {
                     <SelectValue placeholder="Select provider" />
                   </SelectTrigger>
                   <SelectContent>
-                    {PROVIDERS.map((p) => (
-                      <SelectItem key={p.group} value={p.group}>
-                        {p.group}
+                    {PROVIDERS.map((providerItem) => (
+                      <SelectItem key={providerItem.group} value={providerItem.group}>
+                        {providerItem.group}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -92,9 +92,9 @@ export function SettingsTab() {
                   <SelectContent>
                     <SelectGroup>
                       <SelectLabel>{provider}</SelectLabel>
-                      {currentProvider?.models.map((m) => (
-                        <SelectItem key={m} value={m}>
-                          {m}
+                      {currentProvider?.models.map((modelName) => (
+                        <SelectItem key={modelName} value={modelName}>
+                          {modelName}
                         </SelectItem>
                       ))}
                     </SelectGroup>

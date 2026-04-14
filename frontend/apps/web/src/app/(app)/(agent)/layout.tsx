@@ -5,7 +5,7 @@ interface Props {
 }
 
 const AgentLayout: FC<Props> = ({ children }) => (
-  <main className="flex-1 flex flex-col">{children}</main>
+  <main className="h-screen flex flex-col overflow-hidden">{children}</main>
 );
 
 export default AgentLayout;

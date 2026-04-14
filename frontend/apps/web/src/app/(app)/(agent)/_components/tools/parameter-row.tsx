@@ -1,10 +1,10 @@
 'use client';
 
-import { useFormContext } from 'react-hook-form';
 import { Trash2 } from 'lucide-react';
+import { useFormContext } from 'react-hook-form';
+
 import { Button } from '@workspace/ui/components/ui/button';
 import { Input } from '@workspace/ui/components/ui/input';
-import { cn } from '@workspace/ui/lib/utils';
 import {
   Select,
   SelectContent,
@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@workspace/ui/components/ui/select';
+import { cn } from '@workspace/ui/lib/utils';
 
 import type { AgentFormValues } from '@/app/(app)/(agent)/_schemas/agent-form';
 
@@ -53,14 +54,20 @@ export function ParameterRow({ toolIndex, paramIndex, isFirst, onRemove }: Param
         className="h-8 text-xs bg-accent/20 border-border/60"
       />
 
-      <Select value={type} onValueChange={(v) => setValue(`${basePath}.type`, v as 'string' | 'number' | 'integer')}>
+      <Select
+        value={type}
+        onValueChange={(value) =>
+          setValue(`${basePath}.type`, value as 'string' | 'number' | 'integer')
+        }
+      >
         <SelectTrigger className="h-8 text-xs bg-accent/20 border-border/60">
           <SelectValue />
         </SelectTrigger>
+
         <SelectContent>
-          {PARAM_TYPES.map((t) => (
-            <SelectItem key={t.value} value={t.value} className="text-xs">
-              {t.label}
+          {PARAM_TYPES.map((paramType) => (
+            <SelectItem key={paramType.value} value={paramType.value} className="text-xs">
+              {paramType.label}
             </SelectItem>
           ))}
         </SelectContent>

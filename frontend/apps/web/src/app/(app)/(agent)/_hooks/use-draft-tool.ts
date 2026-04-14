@@ -31,7 +31,7 @@ export function useDraftTool() {
    * All specialized setters below delegate to this.
    */
   const set = <K extends keyof AgentToolValues>(key: K, value: AgentToolValues[K]) =>
-    setDraft((prev) => ({ ...prev, [key]: value }));
+    setDraft((previous) => ({ ...previous, [key]: value }));
 
   // ── Scalar field setters ───────────────────────────────────────────────
 
@@ -47,14 +47,16 @@ export function useDraftTool() {
   const removeAuth = (index: number) =>
     set(
       'authHeaders',
-      draft.authHeaders.filter((_, i) => i !== index)
+      draft.authHeaders.filter((_, headerIndex) => headerIndex !== index)
     );
 
   /** Partially update the auth header at `index` (merge semantics). */
   const updateAuthHeader = (index: number, patch: Partial<AuthHeaderValues>) =>
     set(
       'authHeaders',
-      draft.authHeaders.map((h, i) => (i === index ? { ...h, ...patch } : h))
+      draft.authHeaders.map((header, headerIndex) =>
+        headerIndex === index ? { ...header, ...patch } : header
+      )
     );
 
   // ── Parameter CRUD ─────────────────────────────────────────────────────
@@ -66,14 +68,16 @@ export function useDraftTool() {
   const removeParameter = (index: number) =>
     set(
       'parameters',
-      draft.parameters.filter((_, i) => i !== index)
+      draft.parameters.filter((_, parameterIndex) => parameterIndex !== index)
     );
 
   /** Partially update the parameter at `index` (merge semantics). */
   const updateParameter = (index: number, patch: Partial<ToolParameterValues>) =>
     set(
       'parameters',
-      draft.parameters.map((p, i) => (i === index ? { ...p, ...patch } : p))
+      draft.parameters.map((parameter, parameterIndex) =>
+        parameterIndex === index ? { ...parameter, ...patch } : parameter
+      )
     );
 
   return {

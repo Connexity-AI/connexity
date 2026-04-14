@@ -38,30 +38,30 @@ export function DraftParameterRow({ param, isFirst, onChange, onRemove }: DraftP
     >
       <Input
         value={param.name}
-        onChange={(e) => onChange({ name: e.target.value })}
+        onChange={(event) => onChange({ name: event.target.value })}
         placeholder="param_name"
         className="h-8 text-xs font-mono bg-accent/20 border-border/60"
       />
 
       <Input
         value={param.description}
-        onChange={(e) => onChange({ description: e.target.value })}
+        onChange={(event) => onChange({ description: event.target.value })}
         placeholder="What this parameter does..."
         className="h-8 text-xs bg-accent/20 border-border/60"
       />
 
       <Select
         value={param.type}
-        onValueChange={(v) => onChange({ type: v as 'string' | 'number' | 'integer' })}
+        onValueChange={(value) => onChange({ type: value as 'string' | 'number' | 'integer' })}
       >
         <SelectTrigger className="h-8 text-xs bg-accent/20 border-border/60">
           <SelectValue />
         </SelectTrigger>
 
         <SelectContent>
-          {PARAM_TYPES.map((t) => (
-            <SelectItem key={t.value} value={t.value} className="text-xs">
-              {t.label}
+          {PARAM_TYPES.map((paramType) => (
+            <SelectItem key={paramType.value} value={paramType.value} className="text-xs">
+              {paramType.label}
             </SelectItem>
           ))}
         </SelectContent>

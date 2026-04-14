@@ -4,9 +4,9 @@ import type { AgentFormValues, AgentToolValues } from '@/app/(app)/(agent)/_sche
 function mapToolToOpenAI(tool: AgentToolValues): Record<string, unknown> {
   const hasEndpoint = tool.url.trim().length > 0;
 
-  const headers = tool.authHeaders.reduce<Record<string, string>>((acc, h) => {
-    if (h.key.trim()) acc[h.key] = h.value;
-    return acc;
+  const headers = tool.authHeaders.reduce<Record<string, string>>((accumulator, header) => {
+    if (header.key.trim()) accumulator[header.key] = header.value;
+    return accumulator;
   }, {});
 
   return {
@@ -17,9 +17,14 @@ function mapToolToOpenAI(tool: AgentToolValues): Record<string, unknown> {
       parameters: {
         type: 'object',
         properties: Object.fromEntries(
-          tool.parameters.map((p) => [p.name, { type: p.type, description: p.description }])
+          tool.parameters.map((parameter) => [
+            parameter.name,
+            { type: parameter.type, description: parameter.description },
+          ])
         ),
-        required: tool.parameters.filter((p) => p.required).map((p) => p.name),
+        required: tool.parameters
+          .filter((parameter) => parameter.required)
+          .map((parameter) => parameter.name),
       },
     },
     ...(hasEndpoint && {

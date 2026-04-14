@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
-import { BarChart3, Bot } from 'lucide-react';
+import { Bot } from 'lucide-react';
 
 import {
   SidebarContent,
@@ -29,11 +29,6 @@ const menuItems = [
     url: UrlGenerator.agents(),
     icon: Bot,
   },
-  // {
-  //   title: 'Metrics',
-  //   url: UrlGenerator.metrics(),
-  //   icon: BarChart3,
-  // },
 ];
 
 const Sidebar: FC<Props> = async ({ currentUser }) => {

@@ -2,19 +2,19 @@
 
 import { History, X } from 'lucide-react';
 
-import { cn } from '@workspace/ui/lib/utils';
+import { Button } from '@workspace/ui/components/ui/button';
 import {
   Drawer,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
 } from '@workspace/ui/components/ui/drawer';
-import { Button } from '@workspace/ui/components/ui/button';
+import { cn } from '@workspace/ui/lib/utils';
 
-import { useVersions } from '@/app/(app)/(agent)/_context/versions-context';
 import { useAgentEditFormActions } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
-import { useAgentVersions } from '@/app/(app)/(agent)/_hooks/use-agent-versions';
+import { useVersions } from '@/app/(app)/(agent)/_context/versions-context';
 import { useAgentDraft } from '@/app/(app)/(agent)/_hooks/use-agent-draft';
+import { useAgentVersions } from '@/app/(app)/(agent)/_hooks/use-agent-versions';
 import { formatTimeAgo } from '@/app/(app)/(agent)/_utils/format-time-ago';
 
 function parseVersionName(changeDescription: string | null): {
@@ -36,7 +36,12 @@ export function VersionsDrawer() {
   const sorted = [...versions].sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
 
   return (
-    <Drawer direction="right" modal={false} open={isDrawerOpen} onOpenChange={(open: boolean) => !open && closeDrawer()}>
+    <Drawer
+      direction="right"
+      modal={false}
+      open={isDrawerOpen}
+      onOpenChange={(open: boolean) => !open && closeDrawer()}
+    >
       <DrawerContent onInteractOutside={closeDrawer}>
         <DrawerHeader className="flex flex-row items-center justify-between border-b px-4 py-3">
           <div className="flex items-center gap-2">
@@ -52,10 +57,11 @@ export function VersionsDrawer() {
           {/* Draft row */}
           {draft && (
             <div className="px-2 pb-2">
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => selectVersion(null)}
                 className={cn(
-                  'w-full text-left px-3 py-3 rounded-md transition-colors',
+                  'w-full h-auto block text-left px-3 py-3 rounded-md whitespace-normal transition-colors',
                   selectedVersion === null ? 'bg-accent' : 'hover:bg-accent/50'
                 )}
               >
@@ -70,7 +76,7 @@ export function VersionsDrawer() {
                     {formatTimeAgo(draft.created_at)}
                   </span>
                 </div>
-              </button>
+              </Button>
               <div className="mt-2 border-t border-border" />
             </div>
           )}
@@ -82,28 +88,30 @@ export function VersionsDrawer() {
                 No published versions yet. Click Publish to create one.
               </p>
             )}
-            {sorted.map((v) => {
-              const isSelected = selectedVersion === v.version;
-              const { name, description } = parseVersionName(v.change_description);
+
+            {sorted.map((version) => {
+              const isSelected = selectedVersion === version.version;
+              const { name, description } = parseVersionName(version.change_description);
 
               return (
-                <div key={v.id}>
-                  <button
-                    onClick={() => selectVersion(v.version!)}
+                <div key={version.id}>
+                  <Button
+                    variant="ghost"
+                    onClick={() => selectVersion(version.version!)}
                     className={cn(
-                      'w-full text-left px-3 py-3 rounded-md transition-colors',
+                      'w-full h-auto block text-left px-3 py-3 rounded-md whitespace-normal transition-colors',
                       isSelected ? 'bg-accent' : 'hover:bg-accent/50'
                     )}
                   >
                     <div className="flex items-center justify-between mb-1 gap-2">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-xs font-medium text-foreground shrink-0">
-                          V{v.version}
+                          Version {version.version}
                           {name ? ` — ${name}` : ''}
                         </span>
                       </div>
                       <span className="text-xs text-muted-foreground shrink-0">
-                        {formatTimeAgo(v.created_at)}
+                        {formatTimeAgo(version.created_at)}
                       </span>
                     </div>
 
@@ -112,7 +120,7 @@ export function VersionsDrawer() {
                         {description}
                       </p>
                     )}
-                  </button>
+                  </Button>
                 </div>
               );
             })}

@@ -2,47 +2,55 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { getPublicEnv } from '@/config/process-env';
 
-import { ClientProxyRouteParam } from '@/types/api';
+// Proxies authenticated client-side requests to the FastAPI backend so the
+// browser can attach the HttpOnly `auth_cookie`. Preserves the full pathname
+// (including trailing slashes that FastAPI route definitions rely on) and the
+// query string from the incoming request.
 
-// Note: endpoints to proxy requests from client to FastAPI backend, allowing us to attach HttpOnly cookies
-// Only UsersService.readUserMe() actually used for now
+const PROXY_PREFIX = '/api/client-proxy';
 
-const proxyHandler = async (request: NextRequest, { params }: ClientProxyRouteParam) => {
-  const { path } = await params;
+const HOP_BY_HOP_REQUEST_HEADERS = new Set(['host', 'connection']);
+const HOP_BY_HOP_RESPONSE_HEADERS = new Set([
+  'content-encoding',
+  'transfer-encoding',
+  'connection',
+]);
 
+const proxyHandler = async (request: NextRequest) => {
   const { API_URL } = getPublicEnv();
 
-  // params.path just splits into array, this just joins back to string
-  // path = ['api', 'v1', 'users', 'me'] -> http://api.localhost:8000/api/v1/users/me
-  const backendUrl = `${API_URL}/${path.join('/')}`;
+  const { pathname, search } = request.nextUrl;
+  const relativePath = pathname.startsWith(PROXY_PREFIX)
+    ? pathname.slice(PROXY_PREFIX.length)
+    : pathname;
+  const backendUrl = `${API_URL}${relativePath}${search}`;
 
-  // clone headers from client request
-  const headers: Record<string, string> = {};
-  request.headers.forEach((value, key) => (headers[key] = value));
+  const headers = new Headers();
+  request.headers.forEach((value, key) => {
+    if (!HOP_BY_HOP_REQUEST_HEADERS.has(key.toLowerCase())) {
+      headers.set(key, value);
+    }
+  });
 
   const { method } = request;
   const body = ['GET', 'HEAD'].includes(method) ? undefined : await request.arrayBuffer();
 
   const apiResponse = await fetch(backendUrl, { method, headers, body });
 
-  const data = await apiResponse.arrayBuffer();
-  const response = new NextResponse(Buffer.from(data), { status: apiResponse.status });
-
-  // copy headers from backend response, excluding ones automatically controlled by Node/Next.js internally
-  const excludeHeaders = ['content-encoding', 'transfer-encoding', 'connection'];
-  apiResponse.headers.forEach(
-    (value, key) => !excludeHeaders.includes(key) && response.headers.set(key, value)
-  );
-
-  // optional: return error if response not ok
   if (!apiResponse.ok) {
     console.warn('Client proxy returned error:', apiResponse.status, backendUrl);
   }
 
+  // Stream the backend response body through so SSE endpoints are not buffered
+  const response = new NextResponse(apiResponse.body, { status: apiResponse.status });
+
+  apiResponse.headers.forEach(
+    (value, key) =>
+      !HOP_BY_HOP_RESPONSE_HEADERS.has(key.toLowerCase()) && response.headers.set(key, value)
+  );
+
   return response;
 };
-
-// add PUT, DELETE, PATCH if needed
 
 export const GET = proxyHandler;
 

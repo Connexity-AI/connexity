@@ -20,9 +20,9 @@ export function EditableBreadcrumbName({ agentId, agentName }: EditableBreadcrum
     agentName
   );
 
-  return (
-    <BreadcrumbItem>
-      {isEditing ? (
+  if (isEditing) {
+    return (
+      <BreadcrumbItem>
         <Form {...form}>
           <form onSubmit={onSubmit}>
             <FormField
@@ -45,18 +45,22 @@ export function EditableBreadcrumbName({ agentId, agentName }: EditableBreadcrum
             />
           </form>
         </Form>
-      ) : (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={startEdit}
-          title="Click to rename"
-          className="group gap-1.5 max-w-[11rem] px-1.5 h-7"
-        >
-          <span className="truncate">{agentName}</span>
-          <Pencil className="w-3 h-3 text-muted-foreground/0 group-hover:text-muted-foreground/60 transition-colors shrink-0" />
-        </Button>
-      )}
+      </BreadcrumbItem>
+    );
+  }
+
+  return (
+    <BreadcrumbItem>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={startEdit}
+        title="Click to rename"
+        className="group gap-1.5 max-w-44 px-1.5 h-7"
+      >
+        <span className="truncate">{agentName}</span>
+        <Pencil className="w-3 h-3 text-muted-foreground/0 group-hover:text-muted-foreground/60 transition-colors shrink-0" />
+      </Button>
     </BreadcrumbItem>
   );
 }

@@ -9,6 +9,7 @@ interface Props {
 const AgentsLayout: FC<Props> = ({ children }) => (
   <>
     <NewAgentHeader />
+
     <main className="flex-1">{children}</main>
   </>
 );

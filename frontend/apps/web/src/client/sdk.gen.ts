@@ -6,6 +6,9 @@ import type {
   AgentsCreateAgentData,
   AgentsCreateAgentErrors,
   AgentsCreateAgentResponses,
+  AgentsCreateDraftAgentData,
+  AgentsCreateDraftAgentErrors,
+  AgentsCreateDraftAgentResponses,
   AgentsDeleteAgentData,
   AgentsDeleteAgentErrors,
   AgentsDeleteAgentResponses,
@@ -95,15 +98,9 @@ import type {
   EvalSetsUpdateEvalSetResponses,
   HealthHealthData,
   HealthHealthResponses,
-  LoginAuthGithubCallbackData,
-  LoginAuthGithubCallbackErrors,
-  LoginAuthGithubCallbackResponses,
   LoginLoginAccessTokenData,
   LoginLoginAccessTokenErrors,
   LoginLoginAccessTokenResponses,
-  LoginLoginGithubData,
-  LoginLoginGithubErrors,
-  LoginLoginGithubResponses,
   LoginLogoutData,
   LoginLogoutErrors,
   LoginLogoutResponses,
@@ -399,37 +396,6 @@ export class LoginService {
       ...options,
     });
   }
-
-  /**
-   * Login Github
-   *
-   * Redirect to GitHub login page
-   * Must initiate OAuth flow from backend
-   */
-  public static loginGithub<ThrowOnError extends boolean = false>(
-    options?: Options<LoginLoginGithubData, ThrowOnError>
-  ) {
-    return (options?.client ?? client).get<
-      LoginLoginGithubResponses,
-      LoginLoginGithubErrors,
-      ThrowOnError
-    >({ url: '/api/v1/login/github', ...options });
-  }
-
-  /**
-   * Auth Github Callback
-   *
-   * GitHub OAuth callback, GitHub will call this endpoint
-   */
-  public static authGithubCallback<ThrowOnError extends boolean = false>(
-    options?: Options<LoginAuthGithubCallbackData, ThrowOnError>
-  ) {
-    return (options?.client ?? client).get<
-      LoginAuthGithubCallbackResponses,
-      LoginAuthGithubCallbackErrors,
-      ThrowOnError
-    >({ url: '/api/v1/auth/github/callback', ...options });
-  }
 }
 
 export class UsersService {
@@ -613,6 +579,34 @@ export class AgentsService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/agents/',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Create Draft Agent
+   */
+  public static createDraftAgent<ThrowOnError extends boolean = false>(
+    options: Options<AgentsCreateDraftAgentData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      AgentsCreateDraftAgentResponses,
+      AgentsCreateDraftAgentErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/draft',
       ...options,
       headers: {
         'Content-Type': 'application/json',

@@ -14,3 +14,8 @@ export const agentKeys = {
   version: (agentId: string, version: number | null) =>
     ['agent-version', agentId, version] as const,
 };
+
+export const promptEditorKeys = {
+  session: (agentId: string) => ['prompt-editor-session', agentId] as const,
+  messages: (sessionId: string) => ['prompt-editor-messages', sessionId] as const,
+};

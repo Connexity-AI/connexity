@@ -12,8 +12,9 @@ import {
 } from '@workspace/ui/components/ui/select';
 import { cn } from '@workspace/ui/lib/utils';
 
-import { DiffVersionOptions } from '@/app/(app)/(agent)/_components/diff-version-options';
-import type { DiffVersionId } from '@/app/(app)/(agent)/_context/versions-context';
+import { DiffVersionOptions } from '@/app/(app)/(agent)/_components/diff/diff-version-options';
+
+import type { DiffVersionId } from '@/app/(app)/(agent)/_context/diff-context';
 import type { AgentVersionPublic } from '@/client/types.gen';
 
 interface DiffControlsProps {
@@ -22,6 +23,14 @@ interface DiffControlsProps {
   toVersion: DiffVersionId;
   onFromChange: (version: DiffVersionId) => void;
   onToChange: (version: DiffVersionId) => void;
+  /**
+   * Scrolling container the sticky bar lives inside. Used as the
+   * IntersectionObserver root so the "stuck" animation fires the instant
+   * the sentinel scrolls past the top of *this* container — not the
+   * viewport, which may not be the actual scroll ancestor in layouts
+   * that constrain the page to 100vh.
+   */
+  scrollRootRef?: React.RefObject<HTMLElement | null>;
 }
 
 function toSelectValue(versionId: DiffVersionId): string {
@@ -38,6 +47,7 @@ export function DiffControls({
   toVersion,
   onFromChange,
   onToChange,
+  scrollRootRef,
 }: DiffControlsProps) {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [isStuck, setIsStuck] = useState(false);
@@ -46,27 +56,38 @@ export function DiffControls({
     const sentinelElement = sentinelRef.current;
     if (!sentinelElement) return;
 
+    // Observe against the actual scroll container when provided, so the
+    // "stuck" transition fires the moment the sentinel crosses the top edge
+    // of that container. Without `root`, IntersectionObserver uses the
+    // viewport, which produces the "animates too late / bar scrolls away"
+    // bug when the real scroll happens inside a nested overflow-auto element.
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry) setIsStuck(!entry.isIntersecting);
       },
-      { threshold: 0, rootMargin: '-65px 0px 0px 0px' }
+      {
+        root: scrollRootRef?.current ?? null,
+        threshold: 0,
+        rootMargin: '0px 0px 0px 0px',
+      }
     );
 
     observer.observe(sentinelElement);
     return () => observer.disconnect();
-  }, []);
+  }, [scrollRootRef]);
 
   const sortedVersions = [...versions]
     .filter((version) => version.version !== null)
-    .sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
+    .sort(
+      (firstVersion, secondVersion) => (secondVersion.version ?? 0) - (firstVersion.version ?? 0)
+    );
 
   return (
     <>
       <div ref={sentinelRef} aria-hidden className="h-px" />
       <div
         className={cn(
-          'sticky top-16 z-[5] flex items-center gap-2 transition-[background-color,border-radius,margin,padding] duration-150',
+          'sticky top-0 z-5 flex items-center gap-2 transition-[background-color,border-radius,margin,padding] duration-150',
           isStuck
             ? '-mx-6 px-6 py-2.5 bg-background/95 backdrop-blur border-b rounded-none mb-3'
             : 'mb-3 px-4 py-2.5 bg-muted/30 border rounded-md'
@@ -77,7 +98,7 @@ export function DiffControls({
           value={toSelectValue(fromVersion)}
           onValueChange={(selectValue) => onFromChange(fromSelectValue(selectValue))}
         >
-          <SelectTrigger className="h-8 w-[180px] text-xs">
+          <SelectTrigger className="h-8 w-45 text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -92,7 +113,7 @@ export function DiffControls({
           value={toSelectValue(toVersion)}
           onValueChange={(selectValue) => onToChange(fromSelectValue(selectValue))}
         >
-          <SelectTrigger className="h-8 w-[180px] text-xs">
+          <SelectTrigger className="h-8 w-45 text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

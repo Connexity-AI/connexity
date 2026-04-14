@@ -33,8 +33,8 @@ export const ListSkeleton: FC<ListSkeletonProps> = ({ count = 1, showHeader = tr
   return (
     <div className="space-y-4 border shadow-sm rounded-md p-4">
       {showHeader && <ListHeaderSkeleton />}
-      {Array.from({ length: count }).map((_, i) => (
-        <ListItemSkeleton key={i} />
+      {Array.from({ length: count }).map((_, index) => (
+        <ListItemSkeleton key={index} />
       ))}
     </div>
   );

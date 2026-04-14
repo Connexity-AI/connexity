@@ -20,8 +20,8 @@ interface VersionsContextValue {
   toggleDiff: () => void;
   diffFromVersion: DiffVersionId;
   diffToVersion: DiffVersionId;
-  setDiffFromVersion: (v: DiffVersionId) => void;
-  setDiffToVersion: (v: DiffVersionId) => void;
+  setDiffFromVersion: (version: DiffVersionId) => void;
+  setDiffToVersion: (version: DiffVersionId) => void;
 }
 
 const VersionsContext = createContext<VersionsContextValue | null>(null);
@@ -61,8 +61,8 @@ export function VersionsProvider({ children }: VersionsProviderProps) {
   const closePublishDialog = useCallback(() => setPublishDialogOpen(false), []);
 
   const toggleDiff = useCallback(() => {
-    setShowDiff((prev) => {
-      const next = !prev;
+    setShowDiff((previous) => {
+      const next = !previous;
       // When turning diff ON, seed From = selected version, To = draft
       if (next && selectedVersion !== null) {
         setDiffFromVersion(selectedVersion);

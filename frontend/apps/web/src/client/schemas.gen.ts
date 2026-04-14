@@ -91,6 +91,18 @@ export const AgentCreateSchema = {
       title: 'Agent Provider',
       description: 'LLM provider for platform agent simulator (e.g. openai, anthropic)',
     },
+    agent_temperature: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Temperature',
+      description: 'Sampling temperature for platform agent simulator (0.0–2.0)',
+    },
     agent_metadata: {
       anyOf: [
         {
@@ -107,6 +119,19 @@ export const AgentCreateSchema = {
   type: 'object',
   required: ['name'],
   title: 'AgentCreate',
+} as const;
+
+export const AgentCreateDraftSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Name',
+      default: 'Untitled Agent',
+    },
+  },
+  type: 'object',
+  title: 'AgentCreateDraft',
 } as const;
 
 export const AgentDraftUpdateSchema = {
@@ -178,6 +203,17 @@ export const AgentDraftUpdateSchema = {
         },
       ],
       title: 'Agent Provider',
+    },
+    agent_temperature: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Temperature',
     },
   },
   type: 'object',
@@ -281,6 +317,18 @@ export const AgentPublicSchema = {
       ],
       title: 'Agent Provider',
       description: 'LLM provider for platform agent simulator (e.g. openai, anthropic)',
+    },
+    agent_temperature: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Temperature',
+      description: 'Sampling temperature for platform agent simulator (0.0–2.0)',
     },
     agent_metadata: {
       anyOf: [
@@ -515,6 +563,18 @@ export const AgentUpdateSchema = {
       title: 'Agent Provider',
       description: 'LLM provider for platform agent simulator',
     },
+    agent_temperature: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Temperature',
+      description: 'Sampling temperature for platform agent simulator (0.0–2.0)',
+    },
     agent_metadata: {
       anyOf: [
         {
@@ -703,6 +763,17 @@ export const AgentVersionPublicSchema = {
       ],
       title: 'Agent Provider',
     },
+    agent_temperature: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Temperature',
+    },
     change_description: {
       anyOf: [
         {
@@ -744,6 +815,7 @@ export const AgentVersionPublicSchema = {
     'tools',
     'agent_model',
     'agent_provider',
+    'agent_temperature',
     'change_description',
     'created_by',
     'created_at',
@@ -5797,18 +5869,6 @@ export const UserPublicSchema = {
     provider: {
       $ref: '#/components/schemas/AuthProvider',
       default: 'email',
-    },
-    oauth_id: {
-      anyOf: [
-        {
-          type: 'string',
-          maxLength: 255,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Oauth Id',
     },
     is_active: {
       type: 'boolean',

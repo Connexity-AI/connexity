@@ -6,10 +6,10 @@ import { TabsContent } from '@workspace/ui/components/ui/tabs';
 
 import { useToolsField } from '@/app/(app)/(agent)/_hooks/use-tools-field';
 import { useAgentEditFormActions } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
-import { ToolEditor } from '@/app/(app)/(agent)/_components/tool-editor';
-import { DraftToolEditor } from '@/app/(app)/(agent)/_components/draft-tool-editor';
-import { ToolRow } from '@/app/(app)/(agent)/_components/tool-row';
-import { ToolsEmptyState } from '@/app/(app)/(agent)/_components/tools-empty-state';
+import { ToolEditor } from '@/app/(app)/(agent)/_components/tools/tool-editor';
+import { DraftToolEditor } from '@/app/(app)/(agent)/_components/tools/draft/draft-tool-editor';
+import { ToolRow } from '@/app/(app)/(agent)/_components/tools/tool-row';
+import { ToolsEmptyState } from '@/app/(app)/(agent)/_components/tools/tools-empty-state';
 
 export function ToolsTab() {
   const { isReadOnly } = useAgentEditFormActions();

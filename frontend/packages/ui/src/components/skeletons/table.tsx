@@ -21,8 +21,8 @@ export const TableSkeleton: FC<TableSkeletonProps> = ({ count = 5, columns = 2 }
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            {Array.from({ length: columns }).map((_, i) => (
-              <TableHead key={i}>
+            {Array.from({ length: columns }).map((_, index) => (
+              <TableHead key={index}>
                 <Skeleton className="h-4 w-20" />
               </TableHead>
             ))}

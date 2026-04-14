@@ -6,12 +6,14 @@ import { Button } from '@workspace/ui/components/ui/button';
 import { Separator } from '@workspace/ui/components/ui/separator';
 import { cn } from '@workspace/ui/lib/utils';
 
-import { useVersions } from '@/app/(app)/(agent)/_context/versions-context';
 import { useAgentEditFormActions } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
+import { useDiff } from '@/app/(app)/(agent)/_context/diff-context';
+import { useVersions } from '@/app/(app)/(agent)/_context/versions-context';
 import { useRollbackAgent } from '@/app/(app)/(agent)/_hooks/use-rollback-agent';
 
 export function ReadOnlyBanner() {
-  const { selectedVersion, selectVersion, isReadOnly, showDiff, toggleDiff } = useVersions();
+  const { selectedVersion, selectVersion, isReadOnly } = useVersions();
+  const { showDiff, toggleDiff } = useDiff();
   const { agentId } = useAgentEditFormActions();
   const { mutate: rollback, isPending } = useRollbackAgent(agentId);
 

@@ -9,5 +9,5 @@ export const { getPublicEnv, PublicEnv } = createPublicEnv(
     SITE_URL: process.env.SITE_URL,
     API_URL: process.env.API_URL,
   },
-  { schema: (z) => getProcessEnvSchemaProps(z) }
+  { schema: (zod) => getProcessEnvSchemaProps(zod) }
 );

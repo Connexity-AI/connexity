@@ -66,8 +66,8 @@ export function useEditableName(agentId: string, agentName: string) {
     commit();
   });
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Escape') {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Escape') {
       form.reset({ name: agentName });
       setIsEditing(false);
     }

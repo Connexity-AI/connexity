@@ -10,9 +10,15 @@ interface ToolEditorHeaderProps {
   readOnly?: boolean;
 }
 
-export function ToolEditorHeader({ toolName, isNew, onBack, onDelete, readOnly }: ToolEditorHeaderProps) {
+export function ToolEditorHeader({
+  toolName,
+  isNew,
+  onBack,
+  onDelete,
+  readOnly,
+}: ToolEditorHeaderProps) {
   return (
-    <div className="flex items-center justify-between px-5 h-[52px] border-b border-border shrink-0 gap-4">
+    <div className="flex items-center justify-between px-5 h-13 border-b border-border shrink-0 gap-4">
       <Button
         variant="ghost"
         onClick={onBack}
@@ -26,6 +32,7 @@ export function ToolEditorHeader({ toolName, isNew, onBack, onDelete, readOnly }
         <span className="text-sm text-foreground truncate">
           {toolName || (isNew ? 'New Tool' : 'Untitled')}
         </span>
+
         {isNew && (
           <span className="text-[10px] bg-blue-500/15 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded shrink-0">
             new

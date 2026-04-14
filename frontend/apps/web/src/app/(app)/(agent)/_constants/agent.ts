@@ -45,10 +45,10 @@ export const DEFAULT_MODELS: Record<string, string> = {
   Cohere: 'command-r-plus',
 };
 
-export function temperatureLabel(t: number) {
-  if (t <= 0.2) return 'Deterministic';
-  if (t <= 0.5) return 'Focused';
-  if (t <= 0.8) return 'Balanced';
-  if (t <= 1.2) return 'Creative';
+export function temperatureLabel(temperature: number) {
+  if (temperature <= 0.2) return 'Deterministic';
+  if (temperature <= 0.5) return 'Focused';
+  if (temperature <= 0.8) return 'Balanced';
+  if (temperature <= 1.2) return 'Creative';
   return 'Random';
 }
