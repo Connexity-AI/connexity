@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from app.core.config import settings
+from app.services.prompt_editor.agent_prompt import DEFAULT_EDITOR_GUIDELINES
 from app.tests.utils.eval import create_test_agent
 
 
@@ -199,4 +200,118 @@ def test_update_agent_invalid_mode_transition(
 def test_create_agent_unauthenticated(client: TestClient) -> None:
     data = {"name": "Unauth Agent", "endpoint_url": "http://example.com/agent"}
     r = client.post(f"{settings.API_V1_STR}/agents/", json=data)
+    assert r.status_code in (401, 403)
+
+
+def test_get_guidelines_default(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = create_test_agent(db)
+    r = client.get(
+        f"{settings.API_V1_STR}/agents/{agent.id}/guidelines",
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["is_default"] is True
+    assert body["guidelines"] == DEFAULT_EDITOR_GUIDELINES
+    assert "Structure and hierarchy" in body["guidelines"]
+
+
+def test_put_guidelines_custom(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = create_test_agent(db)
+    custom = "CUSTOM_API_GUIDELINES_ONLY_HERE"
+    r = client.put(
+        f"{settings.API_V1_STR}/agents/{agent.id}/guidelines",
+        json={"guidelines": custom},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["is_default"] is False
+    assert body["guidelines"] == custom
+
+    r2 = client.get(
+        f"{settings.API_V1_STR}/agents/{agent.id}/guidelines",
+        cookies=superuser_auth_cookies,
+    )
+    assert r2.status_code == 200
+    assert r2.json()["guidelines"] == custom
+    assert r2.json()["is_default"] is False
+
+
+def test_put_guidelines_reset_to_default(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = create_test_agent(db)
+    client.put(
+        f"{settings.API_V1_STR}/agents/{agent.id}/guidelines",
+        json={"guidelines": "temporary custom"},
+        cookies=superuser_auth_cookies,
+    )
+    r = client.put(
+        f"{settings.API_V1_STR}/agents/{agent.id}/guidelines",
+        json={"guidelines": None},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["is_default"] is True
+    assert body["guidelines"] == DEFAULT_EDITOR_GUIDELINES
+
+
+def test_put_guidelines_empty_string_resets(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = create_test_agent(db)
+    client.put(
+        f"{settings.API_V1_STR}/agents/{agent.id}/guidelines",
+        json={"guidelines": "x"},
+        cookies=superuser_auth_cookies,
+    )
+    r = client.put(
+        f"{settings.API_V1_STR}/agents/{agent.id}/guidelines",
+        json={"guidelines": ""},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    assert r.json()["is_default"] is True
+    assert r.json()["guidelines"] == DEFAULT_EDITOR_GUIDELINES
+
+
+def test_get_guidelines_agent_not_found(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    r = client.get(
+        f"{settings.API_V1_STR}/agents/{uuid.uuid4()}/guidelines",
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 404
+
+
+def test_put_guidelines_agent_not_found(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    r = client.put(
+        f"{settings.API_V1_STR}/agents/{uuid.uuid4()}/guidelines",
+        json={"guidelines": "x"},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 404
+
+
+def test_get_guidelines_unauthenticated(client: TestClient, db: Session) -> None:
+    agent = create_test_agent(db)
+    r = client.get(f"{settings.API_V1_STR}/agents/{agent.id}/guidelines")
+    assert r.status_code in (401, 403)
+
+
+def test_put_guidelines_unauthenticated(client: TestClient, db: Session) -> None:
+    agent = create_test_agent(db)
+    r = client.put(
+        f"{settings.API_V1_STR}/agents/{agent.id}/guidelines",
+        json={"guidelines": "x"},
+    )
     assert r.status_code in (401, 403)

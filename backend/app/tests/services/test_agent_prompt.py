@@ -10,6 +10,7 @@ from app.services.prompt_editor.agent_prompt import (
     add_line_numbers,
     apply_edits_progressively,
     apply_edits_to_prompt,
+    build_creator_static_system_message,
     build_dynamic_system_message,
     build_editor_messages,
     build_static_system_message,
@@ -93,6 +94,7 @@ def _platform_agent(
     agent_model: str = "gpt-4o-mini",
     agent_provider: str | None = "openai",
     tools: list[dict[str, object]] | None = None,
+    editor_guidelines: str | None = None,
 ) -> Agent:
     return Agent(
         name=name,
@@ -101,14 +103,30 @@ def _platform_agent(
         agent_model=agent_model,
         agent_provider=agent_provider,
         tools=tools,
+        editor_guidelines=editor_guidelines,
     )
 
 
 def test_build_static_system_message_includes_role_and_tool() -> None:
-    text = build_static_system_message(target_provider="openai")
+    text = build_static_system_message(editor_guidelines=None)
     assert "senior prompt engineer" in text.lower()
     assert "edit_prompt" in text
-    assert "Prompting practices" in text or "prompt" in text.lower()
+    assert "Prompting practices" in text
+    assert "Structure and hierarchy" in text
+
+
+def test_build_static_system_message_uses_custom_guidelines() -> None:
+    custom = "CUSTOM_GUIDELINE_MARKER_ONLY_IN_CUSTOM"
+    text = build_static_system_message(editor_guidelines=custom)
+    assert custom in text
+    assert "Structure and hierarchy" not in text
+
+
+def test_build_creator_static_uses_custom_guidelines() -> None:
+    custom = "CREATOR_CUSTOM_GUIDELINES"
+    text = build_creator_static_system_message(editor_guidelines=custom)
+    assert custom in text
+    assert "generate_prompt" in text
 
 
 def test_build_dynamic_system_message_numbered_prompt_and_config() -> None:
@@ -144,7 +162,9 @@ def test_build_dynamic_system_message_includes_eval_context() -> None:
 
 
 def test_build_editor_messages_two_system_then_history_then_user() -> None:
-    agent = _platform_agent()
+    agent = _platform_agent(
+        editor_guidelines="EDITOR_MSG_CUSTOM_GUIDELINES",
+    )
     sid = uuid.uuid4()
     hist = [
         PromptEditorMessage(
@@ -180,6 +200,7 @@ def test_build_editor_messages_two_system_then_history_then_user() -> None:
     assert msgs[0].role == "system"
     assert msgs[1].role == "system"
     assert msgs[0].content != msgs[1].content
+    assert "EDITOR_MSG_CUSTOM_GUIDELINES" in msgs[0].content
     assert msgs[-1].role == "user"
     assert msgs[-1].content == "new user"
 

@@ -15,9 +15,90 @@ from app.models.agent import Agent
 from app.models.enums import AgentMode, TurnRole
 from app.models.prompt_editor import PromptEditorMessage
 from app.services.llm import LLMMessage, LLMToolCall
-from app.services.prompt_editor.guidelines import load_provider_guidelines
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Built-in default prompting practices (editor agent; also returned by GET guidelines when custom is unset)
+# ---------------------------------------------------------------------------
+
+DEFAULT_EDITOR_GUIDELINES: str = """\
+# Prompt engineering for voice and conversational agents
+
+Use these practices when drafting or improving system prompts. They apply across providers (OpenAI, Anthropic, Google, etc.) and modalities (voice, chat).
+
+## Structure and hierarchy
+
+- Organize long prompts with **clear sections**: role, goals, constraints, tool usage, output format, edge cases, and safety. Use **XML-style tags** (e.g. `<role>`, `<tool_logic>`, `<rules>`) or **markdown headings** consistently.
+- Put **non-negotiable rules first** or repeat them where they apply; models weight early and repeated constraints more reliably.
+- Separate **must-follow** rules from **nice-to-have** tone or style guidance.
+- For multi-step flows, use **numbered steps** or ordered bullets the model can follow in sequence.
+- Avoid walls of unstructured prose; short paragraphs and lists beat dense paragraphs.
+
+## Specificity over vagueness
+
+- Prefer **measurable or concrete** instructions: "Reply in 1–2 sentences unless the user asks for detail" rather than "be concise."
+- Specify **formats** when it matters: dates (ISO vs spoken), phone numbers, currency, how to read codes or IDs aloud.
+- State **defaults** when the user is silent (e.g. default timezone, language, escalation path).
+
+## Tool alignment
+
+- **Name tools accurately** in the prompt only if they exist in the agent's tool list; remove references to tools that are not deployed.
+- For each tool: **when to call it**, **required parameters**, **what to do on empty or error results**, and **whether to tell the user** before/after calling.
+- Keep tool-related instructions **aligned** with the tool definitions (names, descriptions, argument shapes).
+- If the stack uses separate system vs developer messages, keep **stable policy** in system and **task-specific** details where your platform expects them.
+
+## Examples and edge cases
+
+- Add **short examples** when behavior is easy to misinterpret (e.g. how to refuse a request, how to confirm a booking).
+- Cover **error paths**: timeouts, failed lookups, ambiguous user input, and **fallback** behaviors (retry once, apologize, offer human).
+- For voice: call out **barge-in**, **silence**, **unclear audio**, and **repeat-back** for critical data (addresses, numbers).
+
+## Consistency
+
+- Ensure **later sections do not contradict** earlier hard constraints unless you explicitly say the override is intentional.
+- Use one term for one concept (e.g. "caller" vs "user" vs "customer" — pick one for the runbook).
+
+## Safety, guardrails, and escalation
+
+- State **forbidden topics** and **disallowed commitments** (medical/legal advice, guaranteed outcomes, unauthorized discounts).
+- Define **escalation**: when to transfer to a human, how to phrase it, and what data to collect first.
+- Handle **"Are you an AI?"** and similar in line with your brand policy (honest, brief, and on-script).
+- When the model **does not know**, specify **exact phrasing** to defer or follow up rather than guessing.
+
+## Voice AI specifics
+
+- **Greeting**: first impression, brand voice, and any required legal disclaimer.
+- **Information collection**: one question at a time when appropriate; confirm critical fields (spelling, numbers).
+- **Turn-taking**: keep responses short enough for natural back-and-forth; avoid monologues unless the persona requires it.
+- **Closing**: summary, next steps, and clean hangup or `end_call` behavior if applicable.
+- **TTS / pronunciation**: spell out tricky brand names, acronyms, and how to say prices, dates, and phone numbers if your TTS stack needs it.
+
+## JSON, structured output, and strict formats
+
+- If output must match a schema, **show the schema** and a **minimal valid example**.
+- Say explicitly what to do on **parse errors** or **partial** structured output.
+
+## Reasoning and internal thought
+
+- If the target stack uses chain-of-thought or hidden reasoning, **separate** internal reasoning from **user-visible** speech in the prompt design so the agent does not leak internal steps to the caller.
+
+## Prompt caching and long static instructions
+
+- Put **stable, reusable** instructions in a fixed prefix; vary only **suffixes** with per-session or per-user content so caches stay effective where supported.
+
+## Review mindset
+
+- After edits, mentally simulate **three paths**: happy path, user confusion, and tool failure — each should have clear instructions.
+"""
+
+
+def get_effective_guidelines(custom: str | None) -> str:
+    """Return custom guidelines if set and non-empty after strip; otherwise the built-in default."""
+    if custom is not None and custom.strip():
+        return custom.strip()
+    return DEFAULT_EDITOR_GUIDELINES
+
 
 # ---------------------------------------------------------------------------
 # Tool definitions
@@ -198,10 +279,9 @@ def _build_agent_config_block(agent: Agent) -> str:
 # ---------------------------------------------------------------------------
 
 
-def build_static_system_message(*, target_provider: str | None) -> str:
-    """First system block: identity, behavior, guidelines, tools, reasoning-then-edit."""
-    guidelines = load_provider_guidelines(target_provider)
-    tool_schema = json.dumps(EDIT_PROMPT_TOOL, indent=2)
+def build_static_system_message(*, editor_guidelines: str | None) -> str:
+    """First system block: identity, behavior, guidelines, reasoning-then-edit."""
+    guidelines = get_effective_guidelines(editor_guidelines)
     return f"""\
 You are a senior prompt engineer specializing in **Voice AI and conversational agent** system prompts. You help users iteratively improve their agent's system prompt — making it clearer, more robust, and better aligned with how the target LLM will interpret it.
 
@@ -246,12 +326,7 @@ When reviewing or improving a prompt, evaluate these dimensions (in priority ord
 When `<eval_context>` is present, it contains results from running the agent against test scenarios. Prioritize fixes that address observed failures or regressions in those results. Reference specific eval findings in your reasoning.
 
 ## Prompting practices
-{guidelines.strip()}
-
-## Tool available
-```json
-{tool_schema}
-```
+{guidelines}
 """
 
 
@@ -281,10 +356,9 @@ def build_dynamic_system_message(
 # ---------------------------------------------------------------------------
 
 
-def build_creator_static_system_message(*, target_provider: str | None) -> str:
+def build_creator_static_system_message(*, editor_guidelines: str | None) -> str:
     """System prompt for the creating mode: interview the user then generate."""
-    guidelines = load_provider_guidelines(target_provider)
-    tool_schema = json.dumps(GENERATE_PROMPT_TOOL, indent=2)
+    guidelines = get_effective_guidelines(editor_guidelines)
     return f"""\
 You are an expert prompt engineer helping a user **create a system prompt from scratch** for a Voice AI agent.
 
@@ -388,12 +462,7 @@ Guardrails, forbidden topics, escalation paths, edge case handling.
 Adapt the sections based on what's relevant. Omit sections that have no content. Add sections if the use case requires them (e.g. `<tts_pronunciation>`, `<exampleEnding>`).
 
 ## Prompting practices
-{guidelines.strip()}
-
-## Tool available
-```json
-{tool_schema}
-```
+{guidelines}
 """
 
 
@@ -468,11 +537,11 @@ def build_editor_messages(
     """
     if is_creating_mode(current_prompt):
         static = build_creator_static_system_message(
-            target_provider=agent.agent_provider,
+            editor_guidelines=agent.editor_guidelines,
         )
         dynamic = build_creator_dynamic_system_message(agent=agent)
     else:
-        static = build_static_system_message(target_provider=agent.agent_provider)
+        static = build_static_system_message(editor_guidelines=agent.editor_guidelines)
         dynamic = build_dynamic_system_message(
             current_prompt=current_prompt,
             agent=agent,

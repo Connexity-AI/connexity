@@ -115,6 +115,19 @@ export const AgentCreateSchema = {
       title: 'Agent Metadata',
       description: 'Arbitrary key-value metadata about the agent',
     },
+    editor_guidelines: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Editor Guidelines',
+      description:
+        'Custom prompting guidelines for the prompt editor agent (None = use built-in default)',
+    },
   },
   type: 'object',
   required: ['name'],
@@ -219,6 +232,43 @@ export const AgentDraftUpdateSchema = {
   type: 'object',
   title: 'AgentDraftUpdate',
   description: 'Partial update for versionable agent fields — used by PUT /agents/{id}/draft.',
+} as const;
+
+export const AgentGuidelinesPublicSchema = {
+  properties: {
+    guidelines: {
+      type: 'string',
+      title: 'Guidelines',
+      description: 'Effective guidelines text (custom or default)',
+    },
+    is_default: {
+      type: 'boolean',
+      title: 'Is Default',
+      description: 'True when using built-in defaults (no custom guidelines stored)',
+    },
+  },
+  type: 'object',
+  required: ['guidelines', 'is_default'],
+  title: 'AgentGuidelinesPublic',
+} as const;
+
+export const AgentGuidelinesUpdateSchema = {
+  properties: {
+    guidelines: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Guidelines',
+      description: 'Custom guidelines text, or null to reset to built-in default',
+    },
+  },
+  type: 'object',
+  title: 'AgentGuidelinesUpdate',
 } as const;
 
 export const AgentModeSchema = {
@@ -341,6 +391,19 @@ export const AgentPublicSchema = {
       ],
       title: 'Agent Metadata',
       description: 'Arbitrary key-value metadata about the agent',
+    },
+    editor_guidelines: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Editor Guidelines',
+      description:
+        'Custom prompting guidelines for the prompt editor agent (None = use built-in default)',
     },
     id: {
       type: 'string',
@@ -586,6 +649,18 @@ export const AgentUpdateSchema = {
       ],
       title: 'Agent Metadata',
       description: 'Arbitrary key-value metadata about the agent',
+    },
+    editor_guidelines: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Editor Guidelines',
+      description: 'Custom prompting guidelines for the prompt editor agent (None = use default)',
     },
     change_description: {
       anyOf: [

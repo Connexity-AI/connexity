@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from pydantic import ConfigDict, model_validator
-from sqlalchemy import Column, text
+from sqlalchemy import Column, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -80,6 +80,13 @@ class AgentBase(SQLModel):
         default=None,
         sa_column=Column("metadata", JSONB, nullable=True),
         description="Arbitrary key-value metadata about the agent",
+    )
+    editor_guidelines: str | None = Field(
+        default=None,
+        sa_column=Column(Text, nullable=True),
+        description=(
+            "Custom prompting guidelines for the prompt editor agent (None = use built-in default)"
+        ),
     )
 
     @model_validator(mode="after")
@@ -197,6 +204,10 @@ class AgentUpdate(SQLModel):
     agent_metadata: dict[str, Any] | None = Field(
         default=None, description="Arbitrary key-value metadata about the agent"
     )
+    editor_guidelines: str | None = Field(
+        default=None,
+        description="Custom prompting guidelines for the prompt editor agent (None = use default)",
+    )
     change_description: str | None = Field(
         default=None,
         description="Optional changelog when a versionable field changes",
@@ -214,3 +225,17 @@ class AgentPublic(AgentBase):
 class AgentsPublic(SQLModel):
     data: list[AgentPublic] = Field(description="List of agents")
     count: int = Field(description="Total number of agents matching the query")
+
+
+class AgentGuidelinesPublic(SQLModel):
+    guidelines: str = Field(description="Effective guidelines text (custom or default)")
+    is_default: bool = Field(
+        description="True when using built-in defaults (no custom guidelines stored)"
+    )
+
+
+class AgentGuidelinesUpdate(SQLModel):
+    guidelines: str | None = Field(
+        default=None,
+        description="Custom guidelines text, or null to reset to built-in default",
+    )

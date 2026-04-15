@@ -1,11 +1,13 @@
 """CRUD package — re-exports all functions for ``from app import crud`` compatibility."""
 
 from app.crud.agent import (  # noqa: F401
+    agent_guidelines_public,
     create_agent,
     create_draft_agent,
     delete_agent,
     get_agent,
     list_agents,
+    set_agent_editor_guidelines,
     update_agent,
 )
 from app.crud.agent_version import (  # noqa: F401

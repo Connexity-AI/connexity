@@ -14,6 +14,8 @@ from app.models.agent import (  # noqa: F401
     AgentBase,
     AgentCreate,
     AgentCreateDraft,
+    AgentGuidelinesPublic,
+    AgentGuidelinesUpdate,
     AgentPublic,
     AgentsPublic,
     AgentUpdate,

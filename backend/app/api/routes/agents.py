@@ -9,6 +9,8 @@ from app.models import (
     AgentCreate,
     AgentCreateDraft,
     AgentDraftUpdate,
+    AgentGuidelinesPublic,
+    AgentGuidelinesUpdate,
     AgentPublic,
     AgentRollbackRequest,
     AgentsPublic,
@@ -225,6 +227,31 @@ def discard_draft(
 
 
 # ── Agent CRUD endpoints ─────────────────────────────────────────────
+
+
+@router.get("/{agent_id}/guidelines", response_model=AgentGuidelinesPublic)
+def get_agent_guidelines(
+    session: SessionDep, agent_id: uuid.UUID
+) -> AgentGuidelinesPublic:
+    agent = crud.get_agent(session=session, agent_id=agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return crud.agent_guidelines_public(agent=agent)
+
+
+@router.put("/{agent_id}/guidelines", response_model=AgentGuidelinesPublic)
+def put_agent_guidelines(
+    session: SessionDep,
+    agent_id: uuid.UUID,
+    body: AgentGuidelinesUpdate,
+) -> AgentGuidelinesPublic:
+    agent = crud.get_agent(session=session, agent_id=agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    updated = crud.set_agent_editor_guidelines(
+        session=session, db_agent=agent, guidelines=body.guidelines
+    )
+    return crud.agent_guidelines_public(agent=updated)
 
 
 @router.get("/{agent_id}", response_model=AgentPublic)

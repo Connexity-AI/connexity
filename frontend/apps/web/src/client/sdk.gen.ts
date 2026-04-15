@@ -20,6 +20,9 @@ import type {
   AgentsDiscardDraftResponses,
   AgentsGetAgentData,
   AgentsGetAgentErrors,
+  AgentsGetAgentGuidelinesData,
+  AgentsGetAgentGuidelinesErrors,
+  AgentsGetAgentGuidelinesResponses,
   AgentsGetAgentResponses,
   AgentsGetDraftData,
   AgentsGetDraftErrors,
@@ -33,6 +36,9 @@ import type {
   AgentsPublishDraftData,
   AgentsPublishDraftErrors,
   AgentsPublishDraftResponses,
+  AgentsPutAgentGuidelinesData,
+  AgentsPutAgentGuidelinesErrors,
+  AgentsPutAgentGuidelinesResponses,
   AgentsReadAgentVersionData,
   AgentsReadAgentVersionErrors,
   AgentsReadAgentVersionResponses,
@@ -814,6 +820,58 @@ export class AgentsService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/agents/{agent_id}/publish',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Get Agent Guidelines
+   */
+  public static getAgentGuidelines<ThrowOnError extends boolean = false>(
+    options: Options<AgentsGetAgentGuidelinesData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      AgentsGetAgentGuidelinesResponses,
+      AgentsGetAgentGuidelinesErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/guidelines',
+      ...options,
+    });
+  }
+
+  /**
+   * Put Agent Guidelines
+   */
+  public static putAgentGuidelines<ThrowOnError extends boolean = false>(
+    options: Options<AgentsPutAgentGuidelinesData, ThrowOnError>
+  ) {
+    return (options.client ?? client).put<
+      AgentsPutAgentGuidelinesResponses,
+      AgentsPutAgentGuidelinesErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/guidelines',
       ...options,
       headers: {
         'Content-Type': 'application/json',

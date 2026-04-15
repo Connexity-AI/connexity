@@ -70,6 +70,12 @@ export type AgentCreate = {
   agent_metadata?: {
     [key: string]: unknown;
   } | null;
+  /**
+   * Editor Guidelines
+   *
+   * Custom prompting guidelines for the prompt editor agent (None = use built-in default)
+   */
+  editor_guidelines?: string | null;
 };
 
 /**
@@ -115,6 +121,36 @@ export type AgentDraftUpdate = {
    * Agent Temperature
    */
   agent_temperature?: number | null;
+};
+
+/**
+ * AgentGuidelinesPublic
+ */
+export type AgentGuidelinesPublic = {
+  /**
+   * Guidelines
+   *
+   * Effective guidelines text (custom or default)
+   */
+  guidelines: string;
+  /**
+   * Is Default
+   *
+   * True when using built-in defaults (no custom guidelines stored)
+   */
+  is_default: boolean;
+};
+
+/**
+ * AgentGuidelinesUpdate
+ */
+export type AgentGuidelinesUpdate = {
+  /**
+   * Guidelines
+   *
+   * Custom guidelines text, or null to reset to built-in default
+   */
+  guidelines?: string | null;
 };
 
 /**
@@ -193,6 +229,12 @@ export type AgentPublic = {
   agent_metadata?: {
     [key: string]: unknown;
   } | null;
+  /**
+   * Editor Guidelines
+   *
+   * Custom prompting guidelines for the prompt editor agent (None = use built-in default)
+   */
+  editor_guidelines?: string | null;
   /**
    * Id
    *
@@ -337,6 +379,12 @@ export type AgentUpdate = {
   agent_metadata?: {
     [key: string]: unknown;
   } | null;
+  /**
+   * Editor Guidelines
+   *
+   * Custom prompting guidelines for the prompt editor agent (None = use default)
+   */
+  editor_guidelines?: string | null;
   /**
    * Change Description
    *
@@ -4906,6 +4954,118 @@ export type AgentsPublishDraftResponses = {
 
 export type AgentsPublishDraftResponse =
   AgentsPublishDraftResponses[keyof AgentsPublishDraftResponses];
+
+export type AgentsGetAgentGuidelinesData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/guidelines';
+};
+
+export type AgentsGetAgentGuidelinesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsGetAgentGuidelinesError =
+  AgentsGetAgentGuidelinesErrors[keyof AgentsGetAgentGuidelinesErrors];
+
+export type AgentsGetAgentGuidelinesResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentGuidelinesPublic;
+};
+
+export type AgentsGetAgentGuidelinesResponse =
+  AgentsGetAgentGuidelinesResponses[keyof AgentsGetAgentGuidelinesResponses];
+
+export type AgentsPutAgentGuidelinesData = {
+  body: AgentGuidelinesUpdate;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/guidelines';
+};
+
+export type AgentsPutAgentGuidelinesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsPutAgentGuidelinesError =
+  AgentsPutAgentGuidelinesErrors[keyof AgentsPutAgentGuidelinesErrors];
+
+export type AgentsPutAgentGuidelinesResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentGuidelinesPublic;
+};
+
+export type AgentsPutAgentGuidelinesResponse =
+  AgentsPutAgentGuidelinesResponses[keyof AgentsPutAgentGuidelinesResponses];
 
 export type AgentsDeleteAgentData = {
   body?: never;
