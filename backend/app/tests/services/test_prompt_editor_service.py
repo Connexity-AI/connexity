@@ -6,7 +6,12 @@ import pytest
 
 from app.models.agent import Agent
 from app.models.enums import AgentMode
-from app.services.llm import LLMStreamChunk, LLMStreamResult, LLMToolCall
+from app.services.llm import (
+    LLMCallConfig,
+    LLMStreamChunk,
+    LLMStreamResult,
+    LLMToolCall,
+)
 from app.services.prompt_editor.core import EditorInput, PromptEditor
 
 
@@ -241,3 +246,97 @@ async def test_run_stream_disconnected_stops_without_done() -> None:
         events = [e async for e in editor.run_stream(is_disconnected=always_dc)]
 
     assert all(e.type != "done" for e in events)
+
+
+@pytest.mark.asyncio
+async def test_run_stream_forwards_llm_provider_and_model() -> None:
+    current = "a\nb"
+    inp = EditorInput(
+        agent=_agent(),
+        session_messages=[],
+        user_message="fix line 2",
+        current_prompt=current,
+        eval_context=None,
+        llm_provider="anthropic",
+        llm_model="claude-3-5-sonnet-20241022",
+    )
+    editor = PromptEditor(inp)
+    final = LLMStreamResult(
+        full_content="done",
+        tool_calls=[
+            LLMToolCall(
+                id="1",
+                function_name="edit_prompt",
+                arguments={"start_line": 2, "end_line": 2, "new_content": "B2"},
+            )
+        ],
+        usage={},
+        model="claude-3-5-sonnet-20241022",
+        latency_ms=1,
+        response_cost_usd=None,
+    )
+
+    async def mock_call_llm_stream(
+        _messages: object,
+        config: LLMCallConfig,
+        *,
+        app_settings: object | None = None,
+    ):
+        _ = app_settings
+        assert config.provider == "anthropic"
+        assert config.model == "claude-3-5-sonnet-20241022"
+        assert config.temperature == 0.35
+        yield final
+
+    with patch(
+        "app.services.prompt_editor.core.call_llm_stream",
+        side_effect=mock_call_llm_stream,
+    ):
+        events = [e async for e in editor.run_stream()]
+
+    assert events[-1].type == "done"
+
+
+@pytest.mark.asyncio
+async def test_run_stream_omitted_llm_overrides_pass_none_in_config() -> None:
+    inp = EditorInput(
+        agent=_agent(),
+        session_messages=[],
+        user_message="x",
+        current_prompt="a\nb",
+        eval_context=None,
+    )
+    editor = PromptEditor(inp)
+    final = LLMStreamResult(
+        full_content="",
+        tool_calls=[
+            LLMToolCall(
+                id="1",
+                function_name="edit_prompt",
+                arguments={"start_line": 1, "end_line": 1, "new_content": "A"},
+            )
+        ],
+        usage={},
+        model="gpt-4o-mini",
+        latency_ms=0,
+        response_cost_usd=None,
+    )
+
+    async def mock_call_llm_stream(
+        _messages: object,
+        config: LLMCallConfig,
+        *,
+        app_settings: object | None = None,
+    ):
+        _ = app_settings
+        assert config.provider is None
+        assert config.model is None
+        yield final
+
+    with patch(
+        "app.services.prompt_editor.core.call_llm_stream",
+        side_effect=mock_call_llm_stream,
+    ):
+        events = [e async for e in editor.run_stream()]
+
+    assert events[-1].type == "done"

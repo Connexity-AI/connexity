@@ -3066,6 +3066,32 @@ export const PromptEditorChatMessageCreateSchema = {
       title: 'Current Prompt',
       description: 'Current prompt text as shown in the editor (includes manual edits)',
     },
+    provider: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Provider',
+      description:
+        'Optional LLM provider for this turn (e.g. openai, anthropic). Merged with model per LiteLLM rules; omit if model is a full routing id (contains /).',
+    },
+    model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Model',
+      description:
+        'Optional LLM model for this turn (bare id or full vendor/model routing id). When omitted, server defaults apply.',
+    },
     test_case_result_ids: {
       anyOf: [
         {

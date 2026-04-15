@@ -11,7 +11,12 @@ from app import crud
 from app.core.config import settings
 from app.models import PromptEditorMessageCreate
 from app.models.enums import TurnRole
-from app.services.llm import LLMStreamChunk, LLMStreamResult, LLMToolCall
+from app.services.llm import (
+    LLMCallConfig,
+    LLMStreamChunk,
+    LLMStreamResult,
+    LLMToolCall,
+)
 from app.tests.utils.eval import (
     create_test_agent,
     create_test_platform_agent,
@@ -296,6 +301,47 @@ def test_chat_happy_path_no_edits(
     assert done_data["base_prompt"] == "You are helpful."
     assert done_data["message"]["role"] == "assistant"
     assert done_data["message"]["content"] == "Looks good already!"
+
+
+@patch("app.services.prompt_editor.core.call_llm_stream")
+def test_chat_passes_provider_and_model_to_llm(
+    mock_stream: object,
+    client: TestClient,
+    superuser_auth_cookies: dict[str, str],
+    db: Session,
+) -> None:
+    agent = create_test_platform_agent(db, system_prompt="You are helpful.")
+    sess = _create_session_via_api(client, superuser_auth_cookies, agent.id)
+
+    final = LLMStreamResult(
+        full_content="ok",
+        tool_calls=[],
+        usage={},
+        model="claude-3-5-sonnet-20241022",
+        latency_ms=50,
+        response_cost_usd=None,
+    )
+    mock_stream.return_value = _llm_stream_factory(  # type: ignore[attr-defined]
+        chunks=[LLMStreamChunk(content="ok")],
+        final=final,
+    )
+
+    r = client.post(
+        f"{PREFIX}/sessions/{sess['id']}/messages",
+        json={
+            "content": "Review my prompt",
+            "current_prompt": "You are helpful.",
+            "provider": "anthropic",
+            "model": "claude-3-5-sonnet-20241022",
+        },
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    mock_stream.assert_called_once()  # type: ignore[union-attr]
+    _messages_arg, cfg = mock_stream.call_args[0]  # type: ignore[union-attr]
+    assert isinstance(cfg, LLMCallConfig)
+    assert cfg.provider == "anthropic"
+    assert cfg.model == "claude-3-5-sonnet-20241022"
 
 
 @patch("app.services.prompt_editor.core.call_llm_stream")

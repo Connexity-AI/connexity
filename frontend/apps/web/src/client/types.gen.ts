@@ -1940,6 +1940,18 @@ export type PromptEditorChatMessageCreate = {
    */
   current_prompt: string;
   /**
+   * Provider
+   *
+   * Optional LLM provider for this turn (e.g. openai, anthropic). Merged with model per LiteLLM rules; omit if model is a full routing id (contains /).
+   */
+  provider?: string | null;
+  /**
+   * Model
+   *
+   * Optional LLM model for this turn (bare id or full vendor/model routing id). When omitted, server defaults apply.
+   */
+  model?: string | null;
+  /**
    * Test Case Result Ids
    *
    * Optional test case result IDs for eval context injection (CS-64)

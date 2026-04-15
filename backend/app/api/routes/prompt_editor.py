@@ -58,9 +58,8 @@ _MOCK_PRESETS: list[PresetPublic] = [
         id="help_create_agent",
         label="Help me create an agent",
         message=(
-            "I need help creating a system prompt for this agent. Ask me about "
-            "its purpose, target audience, and desired behavior so you can draft "
-            "an effective prompt."
+            "I want to create a system prompt for a Voice AI agent from scratch. "
+            "Start the interview and guide me through the process."
         ),
         description="Start from scratch with guided prompt creation",
         context="none",
@@ -295,6 +294,8 @@ async def chat(
                     user_message=body.content,
                     current_prompt=body.current_prompt,
                     eval_context=None,
+                    llm_provider=body.provider,
+                    llm_model=body.model,
                 )
             )
         except Exception as exc:

@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, field_validator
 from sqlalchemy import Column, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
@@ -181,7 +181,30 @@ class PromptEditorChatMessageCreate(SQLModel):
     current_prompt: str = Field(
         description="Current prompt text as shown in the editor (includes manual edits)",
     )
+    provider: str | None = Field(
+        default=None,
+        description=(
+            "Optional LLM provider for this turn (e.g. openai, anthropic). "
+            "Merged with model per LiteLLM rules; omit if model is a full routing id "
+            "(contains /)."
+        ),
+    )
+    model: str | None = Field(
+        default=None,
+        description=(
+            "Optional LLM model for this turn (bare id or full vendor/model routing id). "
+            "When omitted, server defaults apply."
+        ),
+    )
     test_case_result_ids: list[uuid.UUID] | None = Field(
         default=None,
         description="Optional test case result IDs for eval context injection (CS-64)",
     )
+
+    @field_validator("provider", "model", mode="before")
+    @classmethod
+    def _strip_optional_llm_fields(cls, value: object) -> object:
+        if isinstance(value, str):
+            stripped = value.strip()
+            return stripped if stripped else None
+        return value
