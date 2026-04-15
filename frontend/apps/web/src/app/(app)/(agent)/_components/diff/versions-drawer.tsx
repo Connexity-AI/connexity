@@ -65,7 +65,7 @@ export function VersionsDrawer() {
                   selectedVersion === null ? 'bg-accent' : 'hover:bg-accent/50'
                 )}
               >
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-foreground">Draft</span>
                     <span className="text-[10px] bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-1.5 py-0.5 rounded">
@@ -103,7 +103,12 @@ export function VersionsDrawer() {
                       isSelected ? 'bg-accent' : 'hover:bg-accent/50'
                     )}
                   >
-                    <div className="flex items-center justify-between mb-1 gap-2">
+                    <div
+                      className={cn(
+                        'flex items-center justify-between gap-2',
+                        description && 'mb-1'
+                      )}
+                    >
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-xs font-medium text-foreground shrink-0">
                           Version {version.version}

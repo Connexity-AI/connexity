@@ -25,10 +25,7 @@ interface Props {
 }
 
 const AppLayout: FC<Props> = async ({ children }) => {
-  const [currentUser, cookieStore] = await Promise.all([
-    getAuthenticatedUser(),
-    cookies(),
-  ]);
+  const [currentUser, cookieStore] = await Promise.all([getAuthenticatedUser(), cookies()]);
 
   if (!currentUser) redirect(UrlGenerator.login());
 

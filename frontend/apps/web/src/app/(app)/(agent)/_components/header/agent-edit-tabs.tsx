@@ -69,7 +69,7 @@ function AgentTabTrigger({ tab }: { tab: (typeof TABS)[number] }) {
 }
 
 const triggerClassName = cn(
-  'relative rounded-none bg-transparent px-5 py-3 text-sm font-medium shadow-none',
+  'relative cursor-pointer rounded-none bg-transparent px-5 py-3 text-sm font-medium shadow-none',
   'transition-colors duration-150 select-none',
   'after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:rounded-t-full after:transition-all after:duration-150',
   'data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=active]:after:bg-foreground',

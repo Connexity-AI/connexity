@@ -61,6 +61,7 @@ export function useAgentChatbot() {
   const sendMessage = useCallback(
     async (content: string) => {
       const currentPrompt = form.getValues().prompt ?? '';
+
       await underlyingSendMessage(content, currentPrompt);
     },
     [form, underlyingSendMessage]

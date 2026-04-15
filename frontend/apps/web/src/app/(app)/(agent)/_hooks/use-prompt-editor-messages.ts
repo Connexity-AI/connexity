@@ -18,13 +18,16 @@ export function usePromptEditorMessages(sessionId: string | null) {
     queryKey: promptEditorKeys.messages(sessionId ?? '__none__'),
     queryFn: async (): Promise<PromptEditorMessagesPublic> => {
       if (!sessionId) throw new Error('sessionId is required');
+
       const result = await PromptEditorService.promptEditorListMessages({
         path: { session_id: sessionId },
         query: { skip: 0, limit: 200 },
       });
+
       if (result.error || !result.data) {
         throw new Error('Failed to list prompt-editor messages');
       }
+
       return result.data;
     },
     enabled: sessionId !== null,
