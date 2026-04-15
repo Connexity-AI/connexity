@@ -106,7 +106,7 @@ def _platform_agent(
 
 def test_build_static_system_message_includes_role_and_tool() -> None:
     text = build_static_system_message(target_provider="openai")
-    assert "expert prompt engineer" in text.lower()
+    assert "senior prompt engineer" in text.lower()
     assert "edit_prompt" in text
     assert "Prompting practices" in text or "prompt" in text.lower()
 

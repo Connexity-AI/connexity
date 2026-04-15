@@ -28,8 +28,14 @@ from app.models import (
     PromptEditorSessionUpdate,
 )
 from app.models.enums import PromptEditorSessionStatus, TurnRole
-from app.services.prompt_editor import EditorInput, EditorResult, PromptEditor
-from app.services.prompt_editor.agent_prompt import platform_agent_required
+from app.services.prompt_editor import (
+    EditorInput,
+    EditorResult,
+    PromptEditor,
+    build_eval_context,
+    format_eval_context_for_prompt,
+    platform_agent_required,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -266,6 +272,16 @@ async def chat(
         session=session, session_id=session_id, skip=0, limit=500
     )
 
+    eval_ctx = await build_eval_context(
+        db_session=session,
+        agent=agent,
+        run_id=pe_session.run_id,
+        test_case_result_ids=body.test_case_result_ids,
+    )
+    eval_context_str = (
+        format_eval_context_for_prompt(eval_ctx) if eval_ctx is not None else None
+    )
+
     # Extract scalar data and detach ORM objects the generator will need
     # BEFORE the commit inside create_prompt_editor_message expires them.
     base_prompt = pe_session.base_prompt or ""
@@ -293,7 +309,7 @@ async def chat(
                     session_messages=prior_messages,
                     user_message=body.content,
                     current_prompt=body.current_prompt,
-                    eval_context=None,
+                    eval_context=eval_context_str,
                     llm_provider=body.provider,
                     llm_model=body.model,
                 )

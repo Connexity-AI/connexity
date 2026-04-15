@@ -7,8 +7,6 @@ Supports two modes selected by whether ``current_prompt`` is empty:
 * **Editing** — incremental line-based edits via the ``edit_prompt`` tool.
 """
 
-from __future__ import annotations
-
 import json
 import logging
 from typing import Any

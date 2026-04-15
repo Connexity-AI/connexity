@@ -11,8 +11,6 @@ Agent config for run-to-run comparison is loaded from linked AgentVersion rows
 (version-scoped baselines / CS-72).
 """
 
-from __future__ import annotations
-
 import difflib
 import uuid
 from dataclasses import dataclass

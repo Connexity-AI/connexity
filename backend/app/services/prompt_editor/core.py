@@ -7,14 +7,14 @@ Supports two modes:
 * **Editing** (``current_prompt`` non-empty) — incremental ``edit_prompt`` calls.
 """
 
-from __future__ import annotations
-
 import logging
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any, Literal
 
 from app.core.config import settings
+from app.models.agent import Agent
+from app.models.prompt_editor import PromptEditorMessage
 from app.services.llm import (
     LLMCallConfig,
     LLMSettingsView,
@@ -34,10 +34,6 @@ from app.services.prompt_editor.agent_prompt import (
     parse_generate_prompt_tool_call,
     validate_edits_against_line_count,
 )
-
-if TYPE_CHECKING:
-    from app.models.agent import Agent
-    from app.models.prompt_editor import PromptEditorMessage
 
 logger = logging.getLogger(__name__)
 

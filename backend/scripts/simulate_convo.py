@@ -45,8 +45,6 @@ Fixed replay lines instead of an LLM user (no simulator LLM calls)::
     uv run python scripts/simulate_convo.py --agent-url ... --test-case ... --scripted
 """
 
-from __future__ import annotations
-
 import argparse
 import asyncio
 import importlib.util

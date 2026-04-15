@@ -6,12 +6,10 @@ helpers (:class:`RunConfig`, :class:`UserSimulatorConfig`, :class:`JudgeConfig`)
 live here so API and services share one definition.
 """
 
-from __future__ import annotations
-
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, Self
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -168,7 +166,7 @@ class UserSimulatorConfig(BaseModel):
     )
 
     @model_validator(mode="after")
-    def scripted_mode_requires_messages(self) -> UserSimulatorConfig:
+    def scripted_mode_requires_messages(self) -> Self:
         if self.mode == SimulatorMode.SCRIPTED and not self.scripted_messages:
             msg = "scripted_messages must be non-empty when mode is 'scripted'"
             raise ValueError(msg)
