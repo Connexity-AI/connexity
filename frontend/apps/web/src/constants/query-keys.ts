@@ -13,6 +13,7 @@ export const agentKeys = {
   versions: (agentId: string) => ['agent-versions', agentId] as const,
   version: (agentId: string, version: number | null) =>
     ['agent-version', agentId, version] as const,
+  guidelines: (agentId: string) => ['agent-guidelines', agentId] as const,
 };
 
 export const promptEditorKeys = {

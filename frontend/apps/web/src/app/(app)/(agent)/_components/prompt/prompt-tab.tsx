@@ -10,13 +10,14 @@ import { Textarea } from '@workspace/ui/components/ui/textarea';
 
 import { AiSuggestionDiff } from '@/app/(app)/(agent)/_components/diff/ai-suggestion-diff';
 import { DiffControls } from '@/app/(app)/(agent)/_components/diff/diff-controls';
-import { DiffView } from '@/app/(app)/(agent)/_components/diff/diff-view';
+import { EditableDiffView } from '@/app/(app)/(agent)/_components/diff/editable-diff-view';
 import { useAgentEditFormActions } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
 import { useAiSuggestion } from '@/app/(app)/(agent)/_context/ai-suggestion-context';
 import { useDiff } from '@/app/(app)/(agent)/_context/diff-context';
 import { useAgent } from '@/app/(app)/(agent)/_hooks/use-agent';
 import { useAgentDraft } from '@/app/(app)/(agent)/_hooks/use-agent-draft';
 import { useAgentVersions } from '@/app/(app)/(agent)/_hooks/use-agent-versions';
+import { usePromptEditorSession } from '@/app/(app)/(agent)/_hooks/use-prompt-editor-session';
 
 import type { DiffVersionId } from '@/app/(app)/(agent)/_context/diff-context';
 import type { AgentFormValues } from '@/app/(app)/(agent)/_schemas/agent-form';
@@ -31,6 +32,7 @@ export function PromptTab() {
   const { data: agent } = useAgent(agentId);
   const { data: draft } = useAgentDraft(agentId, agent?.has_draft === true);
   const { suggestedPrompt, clearSuggestion } = useAiSuggestion();
+  const { basePrompt, updateBasePrompt } = usePromptEditorSession(agentId);
   const diffScrollRef = useRef<HTMLDivElement>(null);
 
   const resolveContent = (versionId: DiffVersionId): string => {
@@ -60,13 +62,20 @@ export function PromptTab() {
   // diff branch above still wins because it requires `isReadOnly`, and we
   // never show AI diff in read-only mode (autosave is disabled there).
   if (suggestedPrompt !== null && !isReadOnly) {
-    const diffBase = form.getValues().prompt ?? '';
+    // Diff baseline is the session's immutable base_prompt snapshot, so
+    // every chat turn shows the cumulative delta from session start rather
+    // than just this turn's incremental change. Falls back to the current
+    // form value if the session hasn't loaded yet.
+    const diffBase = basePrompt ?? form.getValues().prompt ?? '';
 
-    const handleAccept = () => {
-      form.setValue('prompt', suggestedPrompt, {
+    const handleAccept = (editedPrompt: string) => {
+      form.setValue('prompt', editedPrompt, {
         shouldDirty: true,
         shouldTouch: true,
       });
+      // Advance the session's diff baseline so the next chat turn shows a
+      // fresh delta from what the user just agreed to, not from session start.
+      void updateBasePrompt(editedPrompt);
       clearSuggestion();
     };
 
@@ -77,6 +86,7 @@ export function PromptTab() {
     return (
       <TabsContent value="prompt" className="flex-1 mt-0 p-6 flex flex-col min-h-0">
         <AiSuggestionDiff
+          agentId={agentId}
           draftContent={diffBase}
           suggestedContent={suggestedPrompt}
           isBusy={false}
@@ -100,7 +110,10 @@ export function PromptTab() {
           of TabsContent guarantees it has a bounded height, that overflow
           happens inside it, and that `position: sticky` inside it works.
         */}
-        <div ref={diffScrollRef} className="absolute inset-0 overflow-y-auto px-6 pb-6">
+        <div
+          ref={diffScrollRef}
+          className="absolute inset-0 overflow-y-auto px-6 pb-6 flex flex-col"
+        >
           {/*
             24px spacer above the diff bar. We deliberately *don't* use
             `pt-6` on the scroll container: that would leave a 24px gap
@@ -120,9 +133,11 @@ export function PromptTab() {
             onToChange={setDiffToVersion}
             scrollRootRef={diffScrollRef}
           />
-          <DiffView
+          <EditableDiffView
             fromContent={resolveContent(diffFromVersion)}
             toContent={resolveContent(diffToVersion)}
+            editable={diffToVersion === 'draft'}
+            agentId={agentId}
           />
         </div>
       </TabsContent>

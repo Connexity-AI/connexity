@@ -9,10 +9,17 @@ import { agentKeys } from '@/constants/query-keys';
 
 import type { AgentDraftUpdate, AgentPublic } from '@/client/types.gen';
 
+// Shared mutation key so every caller (form autosave, editable-diff autosave,
+// …) appears under one roof in react-query. Consumers use useIsMutating with
+// this key to show a single "Saving…" indicator regardless of which surface
+// triggered the save.
+export const agentDraftMutationKey = (agentId: string) => ['agent-draft', agentId] as const;
+
 export function useUpsertDraft(agentId: string) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
+    mutationKey: agentDraftMutationKey(agentId),
     mutationFn: (body: AgentDraftUpdate) => upsertAgentDraft(agentId, body),
 
     onSuccess: (result) => {

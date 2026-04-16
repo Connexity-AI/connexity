@@ -8,7 +8,6 @@ import emails  # type: ignore
 import jwt
 from jinja2 import Template
 from jwt.exceptions import InvalidTokenError
-from pydantic import BaseModel
 
 from app.core import security
 from app.core.config import settings
@@ -122,17 +121,6 @@ def verify_password_reset_token(token: str) -> str | None:
         return str(decoded_token["sub"])
     except InvalidTokenError:
         return None
-
-
-def log_settings(settings: BaseModel) -> None:
-    logging.basicConfig(
-        level=logging.INFO, format="[%(levelname)s] %(message)s", force=True
-    )
-    logger = logging.getLogger(__name__)
-
-    logger.info("=== Settings values ===")
-    for field, value in settings.model_dump().items():
-        logger.info(f"{field}: {value}")
 
 
 is_prod = settings.ENVIRONMENT == "production"

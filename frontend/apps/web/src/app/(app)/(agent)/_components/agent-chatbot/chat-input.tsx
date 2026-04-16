@@ -1,6 +1,6 @@
 'use client';
 
-import { Send, Sparkles } from 'lucide-react';
+import { BookOpen, Send, Sparkles } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/ui/button';
 import { Textarea } from '@workspace/ui/components/ui/textarea';
@@ -21,6 +21,8 @@ interface ChatInputProps {
   onModelChange: (model: string) => void;
   /** Optional suggestion chip shown above the input (e.g. "Improve agent prompt"). */
   suggestion?: SuggestionPill;
+  /** Opens the assistant guidelines dialog when the toolbar book icon is clicked. */
+  onOpenGuidelines: () => void;
 }
 
 /**
@@ -37,6 +39,7 @@ export function ChatInput({
   model,
   onModelChange,
   suggestion,
+  onOpenGuidelines,
 }: ChatInputProps) {
   const { value, textareaRef, canSend, handleChange, handleSubmit, handleKeyDown } = useChatInput({
     onSend,
@@ -82,18 +85,31 @@ export function ChatInput({
         />
 
         {/* Bottom toolbar */}
-        <div className="flex items-center justify-end gap-1.5 px-2 pb-2 pt-1">
-          <ModelSelector model={model} onModelChange={onModelChange} disabled={disabled} />
+        <div className="flex items-center justify-between gap-1.5 px-2 pb-2 pt-1">
           <Button
-            type="submit"
+            type="button"
             size="icon"
             variant="ghost"
-            disabled={!canSend}
+            icon={BookOpen}
+            onClick={onOpenGuidelines}
+            disabled={disabled}
             className="h-7 w-7 rounded-lg shrink-0"
-            aria-label="Send message"
-          >
-            <Send className="w-3.5 h-3.5" />
-          </Button>
+            aria-label="Edit assistant guidelines"
+            title="Guidelines"
+          />
+          <div className="flex items-center gap-1.5">
+            <ModelSelector model={model} onModelChange={onModelChange} disabled={disabled} />
+            <Button
+              type="submit"
+              size="icon"
+              variant="ghost"
+              disabled={!canSend}
+              className="h-7 w-7 rounded-lg shrink-0"
+              aria-label="Send message"
+            >
+              <Send className="w-3.5 h-3.5" />
+            </Button>
+          </div>
         </div>
       </form>
     </div>

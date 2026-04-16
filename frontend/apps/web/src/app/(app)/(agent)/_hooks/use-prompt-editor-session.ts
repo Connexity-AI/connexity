@@ -4,10 +4,10 @@ import { useCallback, useState } from 'react';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { PromptEditorService } from '@/client/sdk.gen';
 import { useAgentEditFormActions } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
-import { promptEditorKeys } from '@/constants/query-keys';
+import { PromptEditorService } from '@/client/sdk.gen';
 import { getApiErrorMessage } from '@/utils/error';
+import { promptEditorKeys } from '@/constants/query-keys';
 
 import type { PromptEditorSessionPublic } from '@/client/types.gen';
 
@@ -37,9 +37,7 @@ export function usePromptEditorSession(agentId: string) {
         query: { agent_id: agentId, skip: 0, limit: 1 },
       });
       if (list.error || !list.data) {
-        throw new Error(
-          `Failed to list sessions: ${getApiErrorMessage(list.error)}`
-        );
+        throw new Error(`Failed to list sessions: ${getApiErrorMessage(list.error)}`);
       }
 
       const newest = list.data.data[0];
@@ -58,9 +56,7 @@ export function usePromptEditorSession(agentId: string) {
         body: { agent_id: agentId },
       });
       if (created.error || !created.data) {
-        throw new Error(
-          `Failed to create session: ${getApiErrorMessage(created.error)}`
-        );
+        throw new Error(`Failed to create session: ${getApiErrorMessage(created.error)}`);
       }
       return created.data;
     },
@@ -75,6 +71,46 @@ export function usePromptEditorSession(agentId: string) {
     return created.id;
   }, [createMutation]);
 
+  const updateBasePromptMutation = useMutation({
+    mutationFn: async (params: {
+      sessionId: string;
+      basePrompt: string;
+    }): Promise<PromptEditorSessionPublic> => {
+      const result = await PromptEditorService.promptEditorUpdateSessionBasePrompt({
+        path: { session_id: params.sessionId },
+        body: { base_prompt: params.basePrompt },
+      });
+      if (result.error || !result.data) {
+        throw new Error(`Failed to update base prompt: ${getApiErrorMessage(result.error)}`);
+      }
+      return result.data;
+    },
+
+    onMutate: ({ basePrompt }) => {
+      queryClient.setQueryData<PromptEditorSessionPublic | null>(
+        promptEditorKeys.session(agentId),
+        (prev) => (prev ? { ...prev, base_prompt: basePrompt } : prev)
+      );
+    },
+
+    onSuccess: (updated) => {
+      queryClient.setQueryData(promptEditorKeys.session(agentId), updated);
+    },
+  });
+
+  const updateBasePrompt = useCallback(
+    async (basePrompt: string): Promise<void> => {
+      const sessionId = query.data?.id;
+      if (!sessionId) return;
+      try {
+        await updateBasePromptMutation.mutateAsync({ sessionId, basePrompt });
+      } catch (err) {
+        console.error('Failed to update prompt editor session base_prompt', err);
+      }
+    },
+    [query.data?.id, updateBasePromptMutation]
+  );
+
   const startNewSession = useCallback(() => {
     setPendingNew(true);
   }, []);
@@ -84,7 +120,7 @@ export function usePromptEditorSession(agentId: string) {
     setPendingNew(true);
   }, [queryClient, agentId]);
 
-  const effectiveSession = pendingNew ? null : query.data ?? null;
+  const effectiveSession = pendingNew ? null : (query.data ?? null);
 
   return {
     sessionId: effectiveSession?.id ?? null,
@@ -95,6 +131,7 @@ export function usePromptEditorSession(agentId: string) {
     createSession,
     startNewSession,
     clearStaleSession,
+    updateBasePrompt,
     isCreating: createMutation.isPending,
   };
 }

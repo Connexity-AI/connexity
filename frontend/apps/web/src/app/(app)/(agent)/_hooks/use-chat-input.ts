@@ -28,6 +28,18 @@ interface UseChatInputArgs {
 export function useChatInput({ onSend, disabled }: UseChatInputArgs) {
   const [value, setValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const wasDisabledRef = useRef<boolean>(disabled ?? false);
+
+  // Refocus the textarea when the input re-enables after a streaming turn,
+  // so the user can immediately type the next message without reaching for
+  // the mouse. Only fires on the true→false transition to avoid stealing
+  // focus on initial mount.
+  useEffect(() => {
+    if (wasDisabledRef.current && !disabled) {
+      textareaRef.current?.focus();
+    }
+    wasDisabledRef.current = disabled ?? false;
+  }, [disabled]);
 
   // Auto-resize: the only reliable way to size a textarea to its content is
   // to first collapse it (`height: auto`) so `scrollHeight` reflects the real

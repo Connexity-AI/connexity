@@ -1,13 +1,17 @@
 'use client';
 
+import { useState } from 'react';
+
 import { Button } from '@workspace/ui/components/ui/button';
 
 import { useAgentChatbot } from '@/app/(app)/(agent)/_hooks/use-agent-chatbot';
 import { ChatInput } from './chat-input';
 import { ChatMessagesArea } from './chat-messages-area';
+import { GuidelinesDialog } from './guidelines-dialog';
 
 export function AgentChatbot() {
   const {
+    agentId,
     sessionError,
     isSessionLoading,
     model,
@@ -23,6 +27,8 @@ export function AgentChatbot() {
     isCreatingSession,
   } = useAgentChatbot();
 
+  const [guidelinesOpen, setGuidelinesOpen] = useState(false);
+
   return (
     <div className="flex flex-col h-full bg-background">
       <div className="border-b border-border h-11.25 px-4 flex items-center justify-between shrink-0">
@@ -33,9 +39,9 @@ export function AgentChatbot() {
           size="sm"
           onClick={() => void createNewSession()}
           disabled={isCreatingSession || isStreaming}
-          className="h-7 px-2 text-xs"
+          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
         >
-          + New
+          New Chat
         </Button>
       </div>
 
@@ -59,7 +65,10 @@ export function AgentChatbot() {
         model={model}
         onModelChange={setModel}
         suggestion={suggestion}
+        onOpenGuidelines={() => setGuidelinesOpen(true)}
       />
+
+      <GuidelinesDialog agentId={agentId} open={guidelinesOpen} onOpenChange={setGuidelinesOpen} />
     </div>
   );
 }

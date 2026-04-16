@@ -12,7 +12,6 @@ from starlette.middleware.cors import CORSMiddleware
 
 from app.api.main import api_router, root_router
 from app.core.config import settings
-from app.utils import log_settings
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +128,3 @@ async def unhandled_exception_handler(
         status_code=500,
         content={"detail": "Internal server error", "code": code, "status": 500},
     )
-
-
-log_settings(settings)

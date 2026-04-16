@@ -4,6 +4,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useIsMutating } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 
 import { Form } from '@workspace/ui/components/ui/form';
@@ -13,7 +14,10 @@ import { useAgent } from '@/app/(app)/(agent)/_hooks/use-agent';
 import { useAgentDraft } from '@/app/(app)/(agent)/_hooks/use-agent-draft';
 import { useAgentVersion } from '@/app/(app)/(agent)/_hooks/use-agent-version';
 import { useUpdateAgent } from '@/app/(app)/(agent)/_hooks/use-update-agent';
-import { useUpsertDraft } from '@/app/(app)/(agent)/_hooks/use-upsert-draft';
+import {
+  agentDraftMutationKey,
+  useUpsertDraft,
+} from '@/app/(app)/(agent)/_hooks/use-upsert-draft';
 import { agentFormDefaults, agentFormSchema } from '@/app/(app)/(agent)/_schemas/agent-form';
 import { mapAgentToForm } from '@/app/(app)/(agent)/_utils/map-agent-to-form';
 import { mapFormToDraft } from '@/app/(app)/(agent)/_utils/map-form-to-draft';
@@ -105,11 +109,13 @@ export function AgentEditFormProvider({ agentId, children }: AgentEditFormProvid
 
   const agentName = agent?.name ?? '';
   const { isPending: isUpdatePending, error: updateError } = useUpdateAgent(agentId, agentName);
-  const {
-    mutate: draftMutate,
-    mutateAsync: draftMutateAsync,
-    isPending: isDraftSaving,
-  } = useUpsertDraft(agentId);
+  const { mutate: draftMutate, mutateAsync: draftMutateAsync } = useUpsertDraft(agentId);
+
+  // Counts any in-flight draft-save, regardless of which caller triggered it
+  // (form autosave, editable diff, etc.). All callers share the same
+  // mutation key via `agentDraftMutationKey`, so a single header spinner
+  // covers every save surface.
+  const isDraftSaving = useIsMutating({ mutationKey: agentDraftMutationKey(agentId) }) > 0;
 
   // ─── Auto-save to draft ──────────────────────────────────────────────────
   // Subscribes to every form change via `form.watch` and persists the values
