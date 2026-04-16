@@ -179,5 +179,12 @@ def test_whitespace_only_prompt_treated_as_absent(db: Session) -> None:
     db.add(agent)
     db.commit()
     db.refresh(agent)
-    ids = _preset_ids(db, agent)
-    assert ids == ["help_create_agent"]
+    try:
+        ids = _preset_ids(db, agent)
+        assert ids == ["help_create_agent"]
+    finally:
+        # Drop the row — its whitespace-only system_prompt violates AgentBase's
+        # mode validator and would break any later test that validates Agent
+        # rows through AgentPublic (e.g. the agents list endpoint).
+        db.delete(agent)
+        db.commit()
