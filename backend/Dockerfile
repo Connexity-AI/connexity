@@ -27,6 +27,7 @@ RUN uv sync --frozen --no-install-project --no-dev
 ENV PYTHONPATH=/backend
 
 COPY ./scripts /backend/scripts
+RUN chmod +x /backend/scripts/*.sh
 COPY ./alembic.ini /backend/
 COPY ./app /backend/app
 
