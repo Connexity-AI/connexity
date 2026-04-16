@@ -109,10 +109,10 @@ EDIT_PROMPT_TOOL: dict[str, Any] = {
     "function": {
         "name": "edit_prompt",
         "description": (
-            "Replace lines in the agent's system prompt. Line numbers refer to the prompt as shown "
-            "in <current_prompt> before any edits in this turn. For multiple edits in one turn, "
-            "all line numbers reference that same original; the backend applies edits bottom-up "
-            "by start_line. Use empty new_content to delete lines. If start_line > end_line, "
+            "Replace lines in the agent's system prompt. Line numbers refer to the prompt "
+            "as shown in <current_prompt>. For multiple edits in one response, all line "
+            "numbers reference the same snapshot; the backend applies edits bottom-up by "
+            "start_line. Use empty new_content to delete lines. If start_line > end_line, "
             "insert new_content after line start_line (1-based) without replacing lines."
         ),
         "parameters": {
@@ -280,7 +280,7 @@ def _build_agent_config_block(agent: Agent) -> str:
 
 
 def build_static_system_message(*, editor_guidelines: str | None) -> str:
-    """First system block: identity, behavior, guidelines, reasoning-then-edit."""
+    """First system block: identity, behavior, guidelines, brief-summary-then-edit."""
     guidelines = get_effective_guidelines(editor_guidelines)
     return f"""\
 You are a senior prompt engineer specializing in **Voice AI and conversational agent** system prompts. You help users iteratively improve their agent's system prompt — making it clearer, more robust, and better aligned with how the target LLM will interpret it.
@@ -289,41 +289,50 @@ The `<agent_config>` block tells you what agent this prompt powers (name, mode, 
 
 ## How you work
 - Be collaborative, not prescriptive. Preserve the user's intent, voice, and existing structure.
-- **First** write your reasoning, **then** call `edit_prompt` one or more times.
-- All line numbers in tool calls refer to `<current_prompt>` **before any edits in this turn**.
+- Use a **separate `edit_prompt` call for each logically distinct change**. If the user asks for three things, make three `edit_prompt` calls (one per change). Never silently drop part of a request.
+- **Address every part of the user's request.** If the user mentions N changes, you should generally produce N tool calls.
+- All line numbers in tool calls refer to `<current_prompt>` as shown — the backend handles line-shift math.
 - If the user's request is vague or could be interpreted multiple ways, ask a clarifying question instead of guessing.
 
-## Reasoning format
-Structure your explanation before each edit:
-1. **Observation** — What the current prompt does (or fails to do).
-2. **Impact** — Why it matters for the agent's behavior or reliability.
-3. **Change** — What you will edit and how it fixes the issue.
+## Your response format
+Before calling tools, write **1–3 sentences** summarizing what you will change and why. This text is shown directly to the user in a chat bubble — keep it conversational and brief. The user sees a diff viewer for the actual changes, so your text should explain intent, not implementation.
 
-Keep reasoning concise — a few sentences per edit, not paragraphs. Group reasoning for related edits together, then apply them all.
+**Do NOT** include any of the following in your text:
+- Markdown headers (no `###`, `## `, etc.)
+- Numbered or bulleted breakdowns of changes
+- Line numbers or line ranges
+- Echoed/quoted new content — the diff viewer shows that
+- Sections like "Observations", "Impact", "Plan", or "Let me implement"
+
+Good example: "I'll add the funeral service context to the location and update the AI-disclosure response to mention funeral arrangements."
+
+Bad example: "### Change 1: Modify location\\nTarget lines: 44-44\\nNew content: `- Location: ...`\\n### Change 2: ..."
+
+When you have finished all edits, stop calling tools. Any text you write after your last tool call is also shown to the user.
 
 ## Edit strategy
 Match your approach to the size of the request:
 
-- **Surgical fix** (typo, wording tweak, add a sentence): Single edit, minimal explanation.
-- **Targeted improvement** (improve greeting, add error handling, fix a section): Explain the issue, make focused edits to the relevant section.
-- **General review** ("make this better", "improve this prompt"): Assess the prompt using the quality checklist below, identify the 2–3 highest-impact issues, and address those. Don't try to fix everything at once.
-- **Restructure / rewrite**: Explain the new organization first, then apply edits section by section.
+- **Surgical fix** (typo, wording tweak, add a sentence): one `edit_prompt` call per fix.
+- **Targeted improvement** (improve greeting, add error handling, fix a section): focused edits to the relevant section(s). Use separate `edit_prompt` calls when changes target different sections.
+- **General review** ("make this better", "improve this prompt"): identify the 2–3 highest-impact issues and address those. Don't try to fix everything at once.
+- **Restructure / rewrite**: apply edits section by section.
 
 Prefer incremental improvements unless the user explicitly asks for a full rewrite.
 
-## Quality checklist
-When reviewing or improving a prompt, evaluate these dimensions (in priority order):
+## Quality checklist (internal guidance)
+Use these dimensions to decide *what* to edit (in priority order). Do not expose this structure in your response.
 
-1. **Clarity** — Are instructions unambiguous? Could the LLM misinterpret any rule?
+1. **Clarity** — Are instructions unambiguous?
 2. **Completeness** — Are edge cases, error paths, and fallback behaviors covered?
-3. **Tool alignment** — Do prompt instructions match the agent's declared tools? Are there tools referenced in the prompt that don't exist, or declared tools the prompt never mentions?
-4. **Structure** — Does it follow a logical section flow? For Voice AI agents, the recommended structure is: `<role>`, `<tool_logic>`, `<objective>`, `<goal>`, `<communicationStyle>`, `<rules>`, `<business_information>`, `<guidelines>`. Sections can be added, removed, or renamed as needed.
-5. **Specificity** — Concrete instructions ("respond in 1–2 sentences") vs. vague adjectives ("be concise")?
-6. **Consistency** — No contradictory rules? Later sections don't silently override earlier constraints?
-7. **Guardrails** — Are safety rules, forbidden topics, and escalation paths present and clear?
+3. **Tool alignment** — Do prompt instructions match the agent's declared tools?
+4. **Structure** — Logical section flow? Recommended: `<role>`, `<tool_logic>`, `<objective>`, `<goal>`, `<communicationStyle>`, `<rules>`, `<business_information>`, `<guidelines>`.
+5. **Specificity** — Concrete instructions vs. vague adjectives?
+6. **Consistency** — No contradictory rules?
+7. **Guardrails** — Safety rules, forbidden topics, and escalation paths present?
 
 ## Using eval context
-When `<eval_context>` is present, it contains results from running the agent against test scenarios. Prioritize fixes that address observed failures or regressions in those results. Reference specific eval findings in your reasoning.
+When `<eval_context>` is present, it contains results from running the agent against test scenarios. Prioritize fixes that address observed failures or regressions.
 
 ## Prompting practices
 {guidelines}
@@ -475,6 +484,77 @@ _TOOL_RESULT_MESSAGES: dict[str, str] = {
     "edit_prompt": "Edit applied successfully.",
     "generate_prompt": "Prompt generated and saved successfully.",
 }
+
+
+def build_edit_tool_result(start_line: int, end_line: int, new_line_count: int) -> str:
+    """Build an informative tool result for an ``edit_prompt`` call.
+
+    Used during continuation turns so the model knows what happened and can
+    reference accurate line numbers in the refreshed ``<current_prompt>``.
+    """
+    if start_line > end_line:
+        return (
+            f"Edit applied: inserted new content after line {start_line}. "
+            f"The prompt now has {new_line_count} lines. "
+            "Refer to <current_prompt> for updated line numbers."
+        )
+    if start_line == end_line:
+        return (
+            f"Edit applied: replaced line {start_line}. "
+            f"The prompt now has {new_line_count} lines. "
+            "Refer to <current_prompt> for updated line numbers."
+        )
+    return (
+        f"Edit applied: replaced lines {start_line}-{end_line}. "
+        f"The prompt now has {new_line_count} lines. "
+        "Refer to <current_prompt> for updated line numbers."
+    )
+
+
+def build_continuation_messages(
+    *,
+    stream_content: str,
+    tool_calls_payload: list[dict[str, Any]],
+    edits: list[tuple[int, int, str]],
+    new_line_count: int,
+) -> list[LLMMessage]:
+    """Build assistant + tool-result messages for a continuation turn.
+
+    Returns the assistant message (with tool calls) followed by one tool-result
+    ``LLMMessage`` per tool call, using informative results for ``edit_prompt``.
+    """
+    msgs: list[LLMMessage] = [
+        LLMMessage(
+            role="assistant",
+            content=stream_content,
+            tool_calls=tool_calls_payload,
+        ),
+    ]
+    edit_idx = 0
+    for tc_dict in tool_calls_payload:
+        tid = tc_dict.get("id")
+        if not tid:
+            continue
+        fn_info = tc_dict.get("function", {})
+        fn_name = fn_info.get("name", "") if isinstance(fn_info, dict) else ""
+
+        if fn_name == "edit_prompt" and edit_idx < len(edits):
+            start_line, end_line, _ = edits[edit_idx]
+            result_text = build_edit_tool_result(start_line, end_line, new_line_count)
+            edit_idx += 1
+        else:
+            result_text = _TOOL_RESULT_MESSAGES.get(
+                fn_name, "Tool executed successfully."
+            )
+        msgs.append(
+            LLMMessage(
+                role="tool",
+                content=result_text,
+                tool_call_id=str(tid),
+                name=fn_name,
+            )
+        )
+    return msgs
 
 
 def prompt_editor_messages_to_llm_history(
