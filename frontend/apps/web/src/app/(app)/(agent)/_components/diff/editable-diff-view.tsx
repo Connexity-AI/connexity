@@ -276,11 +276,7 @@ export function EditableDiffView({
           onMount={handleMount}
           height="100%"
           options={{
-            // Side-by-side (not inline). Monaco's inline diff mode renders
-            // the modified content through decorations on a non-interactive
-            // view, so the editable buffer isn't reachable by the cursor.
-            // Side-by-side keeps the modified (right) editor fully editable.
-            renderSideBySide: true,
+            renderSideBySide: false,
             originalEditable: false,
             readOnly: !editable,
             fontFamily:

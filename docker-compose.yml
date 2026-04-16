@@ -65,17 +65,20 @@ services:
     networks:
       - default
 
+  # pgweb — zero-login Postgres browser for dev. Service name kept as `adminer`
+  # so existing docs/scripts (e.g. CLAUDE.md) still compose up.
   adminer:
-    image: adminer:5.4.0-standalone
+    image: sosedoff/pgweb:latest
     container_name: connexity-evals-adminer
     restart: unless-stopped
     depends_on:
       - database
+    env_file:
+      - .env
     environment:
-      - ADMINER_DESIGN=nicu
-      - ADMINER_DEFAULT_SERVER=database
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?sslmode=disable
     ports:
-      - 8083:8080
+      - 8083:8081
     networks:
       - default
 
