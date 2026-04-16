@@ -30,6 +30,11 @@ class AgentVersionStatus(StrEnum):
     PUBLISHED = "published"
 
 
+class FirstTurn(StrEnum):
+    AGENT = "agent"
+    PERSONA = "persona"
+
+
 class SimulatorMode(StrEnum):
     LLM = "llm"
     SCRIPTED = "scripted"

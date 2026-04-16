@@ -4,12 +4,8 @@
   "difficulty": "hard",
   "tags": ["tool-use", "order-management", "multi-step"],
   "status": "active",
-  "persona": {
-    "type": "demanding-customer",
-    "description": "Organized customer who knows exactly what they want and expects efficient service.",
-    "instructions": "Request three changes in your first message: (1) change shipping address, (2) apply discount code SAVE20, (3) add 'USB-C Cable' to the order. If the agent asks you to confirm, confirm. If the agent says something can't be done, ask why and push back once before accepting."
-  },
-  "initial_message": "I need to make some changes to order ORD-55555. I need to update the shipping address to 742 Evergreen Terrace, Springfield, IL 62704. Also, please apply discount code SAVE20, and add a USB-C Cable to the order.",
+  "persona_context": "Organized customer who knows exactly what they want and expects efficient service.\n\nRequest three changes in your first message: (1) change shipping address, (2) apply discount code SAVE20, (3) add 'USB-C Cable' to the order. If the agent asks you to confirm, confirm. If the agent says something can't be done, ask why and push back once before accepting.",
+  "first_message": "I need to make some changes to order ORD-55555. I need to update the shipping address to 742 Evergreen Terrace, Springfield, IL 62704. Also, please apply discount code SAVE20, and add a USB-C Cable to the order.",
   "user_context": {
     "order_id": "ORD-55555",
     "current_address": "123 Main St, Chicago, IL 60601",
@@ -19,14 +15,13 @@
     "order_total": 129.99,
     "order_status": "processing"
   },
-  "max_turns": 6,
-  "expected_outcomes": {
-    "address_updated": true,
-    "discount_applied": true,
-    "item_added": true,
-    "order_total_recalculated": true,
-    "confirmation_provided": true
-  },
+  "expected_outcomes": [
+    "Agent MUST update the shipping address to the new address",
+    "Agent MUST apply the SAVE20 discount code",
+    "Agent MUST add the USB-C Cable to the order",
+    "Agent MUST recalculate and confirm the updated order total",
+    "Agent MUST provide a confirmation of all changes made"
+  ],
   "expected_tool_calls": [
     {
       "tool": "lookup_order",

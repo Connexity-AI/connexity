@@ -17,8 +17,7 @@ def _platform_test_case() -> TestCase:
         id=uuid.uuid4(),
         name="platform-test-case",
         status=TestCaseStatus.ACTIVE,
-        initial_message="Hello",
-        max_turns=1,
+        first_message="Hello",
         tags=[],
     )
 

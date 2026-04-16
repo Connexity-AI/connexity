@@ -23,12 +23,6 @@ if TYPE_CHECKING:
 # ── Test case nested types ──────────────────────────────────────────
 
 
-class Persona(BaseModel):
-    type: str = Field(description="Short persona archetype label")
-    description: str = Field(description="Detailed persona description")
-    instructions: str = Field(description="Behavioral directives for the LLM simulator")
-
-
 class MockResponse(BaseModel):
     expected_params: dict[str, Any] | None = Field(
         default=None,
@@ -150,7 +144,7 @@ class UserSimulatorConfig(BaseModel):
     )
     scripted_messages: list[str] = Field(
         default_factory=list,
-        description="User lines after initial_message, in order (scripted mode only)",
+        description="User lines after first_message, in order (scripted mode only)",
     )
     model: str | None = Field(
         default=None,
@@ -204,6 +198,10 @@ class RunConfig(BaseModel):
     timeout_per_test_case_ms: int = Field(
         default=120_000,
         description="Timeout per test case in milliseconds before forced stop",
+    )
+    max_turns: int | None = Field(
+        default=None,
+        description="Max agent response rounds per test case; null = no cap",
     )
     judge: JudgeConfig | None = Field(
         default=None,
@@ -307,12 +305,26 @@ class MetricScore(BaseModel):
     )
 
 
+class ExpectedOutcomeResult(BaseModel):
+    statement: str = Field(
+        description="The expected outcome statement from the test case"
+    )
+    passed: bool = Field(description="Whether the expected outcome was met")
+    justification: str = Field(
+        description="Judge reasoning for the pass/fail determination"
+    )
+
+
 class JudgeVerdict(BaseModel):
     passed: bool = Field(description="Whether the test case passed overall")
     overall_score: float = Field(
         description="Weighted overall score across all criteria (0-100)"
     )
     metric_scores: list[MetricScore] = Field(description="Per-metric score breakdown")
+    expected_outcome_results: list[ExpectedOutcomeResult] | None = Field(
+        default=None,
+        description="Per-outcome pass/fail results for each expected outcome statement",
+    )
     summary: str | None = Field(
         default=None,
         description="Optional summary; not produced by the judge LLM in the current pipeline",

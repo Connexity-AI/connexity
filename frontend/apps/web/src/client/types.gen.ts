@@ -977,12 +977,6 @@ export type EvalSetCreate = {
    */
   description?: string | null;
   /**
-   * Set Repetitions
-   *
-   * How many times to repeat the entire set during a run
-   */
-  set_repetitions?: number;
-  /**
    * Members
    *
    * Initial members with per-test-case repetitions (omit or empty for none)
@@ -1113,12 +1107,6 @@ export type EvalSetPublic = {
    */
   version?: number;
   /**
-   * Set Repetitions
-   *
-   * How many times to repeat the entire set during a run
-   */
-  set_repetitions?: number;
-  /**
    * Id
    *
    * Unique eval set identifier
@@ -1131,7 +1119,7 @@ export type EvalSetPublic = {
   /**
    * Effective Test Case Count
    *
-   * Sum(member.repetitions) * set_repetitions — total expanded executions
+   * Sum of per-test-case repetitions — total expanded executions
    */
   effective_test_case_count?: number;
   /**
@@ -1164,12 +1152,6 @@ export type EvalSetUpdate = {
    * What this eval set covers
    */
   description?: string | null;
-  /**
-   * Set Repetitions
-   *
-   * How many times to repeat the entire set during a run
-   */
-  set_repetitions?: number | null;
 };
 
 /**
@@ -1188,6 +1170,30 @@ export type EvalSetsPublic = {
    * Total number of sets matching the query
    */
   count: number;
+};
+
+/**
+ * ExpectedOutcomeResult
+ */
+export type ExpectedOutcomeResult = {
+  /**
+   * Statement
+   *
+   * The expected outcome statement from the test case
+   */
+  statement: string;
+  /**
+   * Passed
+   *
+   * Whether the expected outcome was met
+   */
+  passed: boolean;
+  /**
+   * Justification
+   *
+   * Judge reasoning for the pass/fail determination
+   */
+  justification: string;
 };
 
 /**
@@ -1251,6 +1257,16 @@ export type FieldChange = {
     | Array<unknown>
     | null;
 };
+
+/**
+ * FirstTurn
+ */
+export const FirstTurn = { AGENT: 'agent', PERSONA: 'persona' } as const;
+
+/**
+ * FirstTurn
+ */
+export type FirstTurn = (typeof FirstTurn)[keyof typeof FirstTurn];
 
 /**
  * GenerateRequest
@@ -1436,6 +1452,12 @@ export type JudgeVerdict = {
    * Per-metric score breakdown
    */
   metric_scores: Array<MetricScore>;
+  /**
+   * Expected Outcome Results
+   *
+   * Per-outcome pass/fail results for each expected outcome statement
+   */
+  expected_outcome_results?: Array<ExpectedOutcomeResult> | null;
   /**
    * Summary
    *
@@ -1802,30 +1824,6 @@ export const OnConflict = { SKIP: 'skip', OVERWRITE: 'overwrite' } as const;
 export type OnConflict = (typeof OnConflict)[keyof typeof OnConflict];
 
 /**
- * Persona
- */
-export type Persona = {
-  /**
-   * Type
-   *
-   * Short persona archetype label
-   */
-  type: string;
-  /**
-   * Description
-   *
-   * Detailed persona description
-   */
-  description: string;
-  /**
-   * Instructions
-   *
-   * Behavioral directives for the LLM simulator
-   */
-  instructions: string;
-};
-
-/**
  * PromptDiff
  */
 export type PromptDiff = {
@@ -2005,6 +2003,12 @@ export type RunConfigInput = {
    */
   timeout_per_test_case_ms?: number;
   /**
+   * Max Turns
+   *
+   * Max agent response rounds per test case; null = no cap
+   */
+  max_turns?: number | null;
+  /**
    * Judge metric selection, weights, pass threshold, and model overrides
    */
   judge?: JudgeConfig | null;
@@ -2034,6 +2038,12 @@ export type RunConfigOutput = {
    * Timeout per test case in milliseconds before forced stop
    */
   timeout_per_test_case_ms?: number;
+  /**
+   * Max Turns
+   *
+   * Max agent response rounds per test case; null = no cap
+   */
+  max_turns?: number | null;
   /**
    * Judge metric selection, weights, pass threshold, and model overrides
    */
@@ -2480,13 +2490,22 @@ export type TestCaseCreate = {
    * Lifecycle status — only active test cases run by default
    */
   status?: TestCaseStatus;
-  persona?: Persona | null;
   /**
-   * Initial Message
+   * Persona Context
    *
-   * First message the simulated user sends to the agent
+   * Free-form persona description for the LLM simulator (type, description, behavioral instructions in one text block)
    */
-  initial_message?: string | null;
+  persona_context?: string | null;
+  /**
+   * Who speaks first in the conversation: agent or persona
+   */
+  first_turn?: FirstTurn;
+  /**
+   * First Message
+   *
+   * Opening message for whoever speaks first. When first_turn=persona this is the user's opener; when first_turn=agent this is the agent's greeting.
+   */
+  first_message?: string | null;
   /**
    * User Context
    *
@@ -2496,19 +2515,11 @@ export type TestCaseCreate = {
     [key: string]: unknown;
   } | null;
   /**
-   * Max Turns
-   *
-   * Max conversation turns; null = no cap
-   */
-  max_turns?: number | null;
-  /**
    * Expected Outcomes
    *
-   * Free-form success criteria the judge evaluates against
+   * List of true-statement assertions the judge evaluates (e.g. "Agent MUST confirm the appointment date")
    */
-  expected_outcomes?: {
-    [key: string]: unknown;
-  } | null;
+  expected_outcomes?: Array<string> | null;
   /**
    * Expected Tool Calls
    */
@@ -2559,13 +2570,22 @@ export type TestCaseImportItem = {
    * Lifecycle status — only active test cases run by default
    */
   status?: TestCaseStatus;
-  persona?: Persona | null;
   /**
-   * Initial Message
+   * Persona Context
    *
-   * First message the simulated user sends to the agent
+   * Free-form persona description for the LLM simulator (type, description, behavioral instructions in one text block)
    */
-  initial_message?: string | null;
+  persona_context?: string | null;
+  /**
+   * Who speaks first in the conversation: agent or persona
+   */
+  first_turn?: FirstTurn;
+  /**
+   * First Message
+   *
+   * Opening message for whoever speaks first. When first_turn=persona this is the user's opener; when first_turn=agent this is the agent's greeting.
+   */
+  first_message?: string | null;
   /**
    * User Context
    *
@@ -2575,19 +2595,11 @@ export type TestCaseImportItem = {
     [key: string]: unknown;
   } | null;
   /**
-   * Max Turns
-   *
-   * Max conversation turns; null = no cap
-   */
-  max_turns?: number | null;
-  /**
    * Expected Outcomes
    *
-   * Free-form success criteria the judge evaluates against
+   * List of true-statement assertions the judge evaluates (e.g. "Agent MUST confirm the appointment date")
    */
-  expected_outcomes?: {
-    [key: string]: unknown;
-  } | null;
+  expected_outcomes?: Array<string> | null;
   /**
    * Expected Tool Calls
    */
@@ -2668,13 +2680,22 @@ export type TestCasePublic = {
    * Lifecycle status — only active test cases run by default
    */
   status?: TestCaseStatus;
-  persona?: Persona | null;
   /**
-   * Initial Message
+   * Persona Context
    *
-   * First message the simulated user sends to the agent
+   * Free-form persona description for the LLM simulator (type, description, behavioral instructions in one text block)
    */
-  initial_message?: string | null;
+  persona_context?: string | null;
+  /**
+   * Who speaks first in the conversation: agent or persona
+   */
+  first_turn?: FirstTurn;
+  /**
+   * First Message
+   *
+   * Opening message for whoever speaks first. When first_turn=persona this is the user's opener; when first_turn=agent this is the agent's greeting.
+   */
+  first_message?: string | null;
   /**
    * User Context
    *
@@ -2684,19 +2705,11 @@ export type TestCasePublic = {
     [key: string]: unknown;
   } | null;
   /**
-   * Max Turns
-   *
-   * Max conversation turns; null = no cap
-   */
-  max_turns?: number | null;
-  /**
    * Expected Outcomes
    *
-   * Free-form success criteria the judge evaluates against
+   * List of true-statement assertions the judge evaluates (e.g. "Agent MUST confirm the appointment date")
    */
-  expected_outcomes?: {
-    [key: string]: unknown;
-  } | null;
+  expected_outcomes?: Array<string> | null;
   /**
    * Expected Tool Calls
    */
@@ -2755,12 +2768,6 @@ export type TestCaseResultCreate = {
    * Repetition within one set pass (0-based)
    */
   repetition_index?: number;
-  /**
-   * Set Repetition Index
-   *
-   * Which full set pass (0-based)
-   */
-  set_repetition_index?: number;
 };
 
 /**
@@ -2791,12 +2798,6 @@ export type TestCaseResultPublic = {
    * Repetition within one set pass (0-based)
    */
   repetition_index: number;
-  /**
-   * Set Repetition Index
-   *
-   * Which full set pass (0-based)
-   */
-  set_repetition_index: number;
   /**
    * Transcript
    *
@@ -3087,13 +3088,22 @@ export type TestCaseUpdate = {
    * Lifecycle status — only active test cases run by default
    */
   status?: TestCaseStatus | null;
-  persona?: Persona | null;
   /**
-   * Initial Message
+   * Persona Context
    *
-   * First message the simulated user sends to the agent
+   * Free-form persona description for the LLM simulator
    */
-  initial_message?: string | null;
+  persona_context?: string | null;
+  /**
+   * Who speaks first: agent or persona
+   */
+  first_turn?: FirstTurn | null;
+  /**
+   * First Message
+   *
+   * Opening message for whoever speaks first
+   */
+  first_message?: string | null;
   /**
    * User Context
    */
@@ -3101,17 +3111,9 @@ export type TestCaseUpdate = {
     [key: string]: unknown;
   } | null;
   /**
-   * Max Turns
-   *
-   * Max conversation turns; null = no cap
-   */
-  max_turns?: number | null;
-  /**
    * Expected Outcomes
    */
-  expected_outcomes?: {
-    [key: string]: unknown;
-  } | null;
+  expected_outcomes?: Array<string> | null;
   /**
    * Expected Tool Calls
    */
@@ -3363,7 +3365,7 @@ export type UserSimulatorConfig = {
   /**
    * Scripted Messages
    *
-   * User lines after initial_message, in order (scripted mode only)
+   * User lines after first_message, in order (scripted mode only)
    */
   scripted_messages?: Array<string>;
   /**
@@ -6845,12 +6847,6 @@ export type TestCaseResultsListTestCaseResultsData = {
      * Filter by repetition within a set pass (0-based)
      */
     repetition_index?: number | null;
-    /**
-     * Set Repetition Index
-     *
-     * Filter by full set pass index (0-based)
-     */
-    set_repetition_index?: number | null;
   };
   url: '/api/v1/test-case-results/';
 };

@@ -21,12 +21,11 @@ from app.models.agent_contract import (
     ChatMessage,
     TokenUsage,
 )
-from app.models.enums import AgentMode, SimulatorMode, TurnRole
+from app.models.enums import AgentMode, FirstTurn, SimulatorMode, TurnRole
 from app.models.schemas import (
     AggregateMetrics,
     ConversationTurn,
     JudgeVerdict,
-    Persona,
     RunConfig,
     ToolCall,
     UserSimulatorConfig,
@@ -153,16 +152,6 @@ def transcript_to_simulator_messages(
     return out
 
 
-def _persona_from_test_case(test_case: TestCase) -> Persona:
-    if test_case.persona:
-        return Persona.model_validate(test_case.persona)
-    return Persona(
-        type="user",
-        description="A user interacting with the assistant.",
-        instructions="Respond naturally and stay in character.",
-    )
-
-
 def _append_agent_response(
     transcript: list[ConversationTurn],
     response: AgentResponse,
@@ -236,6 +225,169 @@ async def call_agent(
     return parsed, elapsed_ms
 
 
+# ── Turn-step helpers ─────────────────────────────────────────────────
+
+
+async def _do_agent_turn(
+    transcript: list[ConversationTurn],
+    test_case: TestCase,
+    agent_endpoint_url: str | None,
+    agent_mode: AgentMode,
+    agent_system_prompt: str | None,
+    agent_tools: list[dict[str, Any]] | None,
+    agent_simulator: AgentSimulator | None,
+    acc: TestCaseTokenAccumulator,
+    timeout_ms: int,
+    started: float,
+    client: httpx.AsyncClient | None,
+) -> bool:
+    """Execute one agent turn. Returns False if the loop should break."""
+    agent_messages = transcript_to_agent_messages(transcript)
+    meta = AgentRequestMetadata(
+        test_case_id=str(test_case.id),
+        turn_index=len(transcript),
+    )
+    elapsed_ms = int((time.perf_counter() - started) * 1000)
+    remaining_ms = max(1, timeout_ms - elapsed_ms)
+
+    if agent_mode == AgentMode.PLATFORM:
+        assert agent_simulator is not None
+        try:
+            plat = await agent_simulator.generate_response(agent_messages)
+        except Exception as e:
+            logger.warning(
+                "Platform agent simulator failed for test_case %s: %s",
+                test_case.id,
+                e,
+            )
+            transcript.append(
+                build_conversation_turn(
+                    index=len(transcript),
+                    role=TurnRole.ASSISTANT,
+                    content=f"[agent_error] {e!s}",
+                    latency_ms=None,
+                )
+            )
+            return False
+
+        usage_map = plat.token_usage
+        if usage_map:
+            acc.add_agent_usage(usage_map)
+        if plat.cost_usd is not None:
+            acc.add_agent_cost(plat.cost_usd)
+        response = AgentResponse(
+            messages=plat.messages,
+            model=plat.model,
+            provider=plat.provider,
+            usage=TokenUsage(
+                prompt_tokens=usage_map.get("prompt_tokens"),
+                completion_tokens=usage_map.get("completion_tokens"),
+                total_tokens=usage_map.get("total_tokens"),
+            ),
+        )
+        _append_agent_response(transcript, response, plat.latency_ms)
+    else:
+        if not agent_endpoint_url:
+            logger.error("Endpoint mode missing agent_endpoint_url")
+            transcript.append(
+                build_conversation_turn(
+                    index=len(transcript),
+                    role=TurnRole.ASSISTANT,
+                    content="[agent_error] missing agent endpoint URL",
+                    latency_ms=None,
+                )
+            )
+            return False
+        assert client is not None
+        try:
+            response, round_latency = await call_agent(
+                agent_endpoint_url,
+                agent_messages,
+                timeout_ms=remaining_ms,
+                metadata=meta,
+                client=client,
+            )
+        except AgentCallError as e:
+            logger.warning("Agent call failed for test_case %s: %s", test_case.id, e)
+            transcript.append(
+                build_conversation_turn(
+                    index=len(transcript),
+                    role=TurnRole.ASSISTANT,
+                    content=f"[agent_error] {e!s}",
+                    latency_ms=None,
+                )
+            )
+            return False
+
+        reported = _reported_agent_usage(response.usage)
+        if reported is not None:
+            acc.add_agent_usage(reported)
+        else:
+            estimated = estimate_agent_tokens(
+                prompt_messages=agent_messages,
+                response_messages=response.messages,
+                agent_system_prompt=agent_system_prompt,
+                agent_tools=agent_tools,
+                model=response.model,
+                fallback_model=settings.LLM_DEFAULT_MODEL,
+            )
+            acc.add_agent_usage(estimated)
+            reported = estimated
+
+        if reported.get("prompt_tokens") or reported.get("completion_tokens"):
+            acc.add_agent_cost(
+                estimate_agent_cost(
+                    model=response.model,
+                    provider=response.provider,
+                    usage=reported,
+                )
+            )
+
+        _append_agent_response(transcript, response, round_latency)
+
+    return True
+
+
+async def _do_user_turn(
+    transcript: list[ConversationTurn],
+    simulator: UserSimulator,
+    sim_cfg: UserSimulatorConfig,
+    acc: TestCaseTokenAccumulator,
+) -> bool:
+    """Execute one user simulator turn. Returns False if the loop should break."""
+    if sim_cfg.mode == SimulatorMode.SCRIPTED and simulator.is_exhausted:
+        return False
+
+    try:
+        sim_messages = transcript_to_simulator_messages(transcript)
+        sim_result = await simulator.generate_message(sim_messages)
+    except RuntimeError as e:
+        logger.warning("Simulator exhausted or failed: %s", e)
+        return False
+
+    if sim_result.token_usage:
+        acc.add_platform_usage(dict(sim_result.token_usage))
+    acc.add_platform_cost(sim_result.cost_usd)
+    sim_total = sim_result.token_usage.get("total_tokens")
+    transcript.append(
+        build_conversation_turn(
+            index=len(transcript),
+            role=TurnRole.USER,
+            content=sim_result.content,
+            latency_ms=sim_result.latency_ms,
+            token_count=sim_total,
+        )
+    )
+
+    if sim_cfg.mode == SimulatorMode.SCRIPTED and simulator.is_exhausted:
+        return False
+
+    return True
+
+
+# ── Main test case runner ─────────────────────────────────────────────
+
+
 async def run_test_case(
     test_case: TestCase,
     agent_endpoint_url: str | None,
@@ -248,21 +400,22 @@ async def run_test_case(
     agent_tools: list[dict[str, Any]] | None = None,
     cancel_event: asyncio.Event | None = None,
 ) -> TestCaseRunResult:
-    """Execute one test_case: initial user message, then agent / simulator turns.
+    """Execute one test_case conversation.
 
-    If ``test_case.initial_message`` is empty, the opening user line is produced by
-    calling the simulator (LLM mode: first completion; scripted mode: first
-    scripted line).
+    Respects ``test_case.first_turn`` to decide who speaks first (agent or
+    persona).  ``test_case.first_message`` provides the opening line for
+    whoever goes first; when absent, the opener is LLM-generated.
 
-    Stops when ``test_case.max_turns`` agent rounds are done, scripted lines are
+    Stops when ``config.max_turns`` agent rounds are done, scripted lines are
     exhausted, timeout is hit, or the agent call fails.
     """
     sim_cfg = config.user_simulator or UserSimulatorConfig()
-    persona = _persona_from_test_case(test_case)
-    initial = test_case.initial_message or ""
+    first_message_text = (test_case.first_message or "").strip()
+    first_turn = test_case.first_turn or FirstTurn.PERSONA
+
     simulator = UserSimulator(
-        persona=persona,
-        initial_message=initial,
+        persona_context=test_case.persona_context,
+        initial_message=first_message_text if first_turn == FirstTurn.PERSONA else "",
         user_context=test_case.user_context,
         expected_outcomes=test_case.expected_outcomes,
         config=sim_cfg,
@@ -292,51 +445,97 @@ async def run_test_case(
 
     acc = TestCaseTokenAccumulator()
     transcript: list[ConversationTurn] = []
-    initial_stripped = (test_case.initial_message or "").strip()
-    if initial_stripped:
-        transcript.append(
-            build_conversation_turn(
-                index=0,
-                role=TurnRole.USER,
-                content=simulator.get_initial_message(),
-            )
-        )
-    else:
-        try:
-            opening = await simulator.generate_message([])
-        except RuntimeError as e:
-            logger.warning(
-                "Could not produce opening user message for test_case %s: %s",
-                test_case.id,
-                e,
-            )
-            return TestCaseRunResult(
-                transcript=transcript,
-                agent_token_usage=acc.agent_token_usage,
-                platform_token_usage=acc.platform_token_usage,
-                agent_cost_usd=acc.agent_cost_usd,
-                platform_cost_usd=acc.platform_cost_usd,
-            )
-        if opening.token_usage:
-            acc.add_platform_usage(dict(opening.token_usage))
-        acc.add_platform_cost(opening.cost_usd)
-        total_tok = opening.token_usage.get("total_tokens")
-        transcript.append(
-            build_conversation_turn(
-                index=0,
-                role=TurnRole.USER,
-                content=opening.content,
-                latency_ms=opening.latency_ms,
-                token_count=total_tok,
-            )
-        )
 
-    max_agent_rounds = test_case.max_turns
+    # ── Initial message ──────────────────────────────────────────────
+    if first_turn == FirstTurn.PERSONA:
+        # Persona speaks first
+        if first_message_text:
+            transcript.append(
+                build_conversation_turn(
+                    index=0,
+                    role=TurnRole.USER,
+                    content=simulator.get_initial_message(),
+                )
+            )
+        else:
+            try:
+                opening = await simulator.generate_message([])
+            except RuntimeError as e:
+                logger.warning(
+                    "Could not produce opening user message for test_case %s: %s",
+                    test_case.id,
+                    e,
+                )
+                return TestCaseRunResult(
+                    transcript=transcript,
+                    agent_token_usage=acc.agent_token_usage,
+                    platform_token_usage=acc.platform_token_usage,
+                    agent_cost_usd=acc.agent_cost_usd,
+                    platform_cost_usd=acc.platform_cost_usd,
+                )
+            if opening.token_usage:
+                acc.add_platform_usage(dict(opening.token_usage))
+            acc.add_platform_cost(opening.cost_usd)
+            total_tok = opening.token_usage.get("total_tokens")
+            transcript.append(
+                build_conversation_turn(
+                    index=0,
+                    role=TurnRole.USER,
+                    content=opening.content,
+                    latency_ms=opening.latency_ms,
+                    token_count=total_tok,
+                )
+            )
+    else:
+        # Agent speaks first
+        if first_message_text:
+            transcript.append(
+                build_conversation_turn(
+                    index=0,
+                    role=TurnRole.ASSISTANT,
+                    content=first_message_text,
+                )
+            )
+        else:
+            # Generate agent's opening by calling the agent with no prior messages
+            # (handled by _do_agent_turn with an empty transcript)
+            pass
+
+    max_agent_rounds = config.max_turns
     agent_rounds = 0
     started = time.perf_counter()
     timeout_ms = config.timeout_per_test_case_ms
 
+    # If agent spoke first via first_message, count it as a round
+    if first_turn == FirstTurn.AGENT and first_message_text:
+        agent_rounds += 1
+
     async with _agent_http_client(agent_mode) as client:
+        # For agent-first without first_message, generate the opening
+        if first_turn == FirstTurn.AGENT and not first_message_text:
+            ok = await _do_agent_turn(
+                transcript,
+                test_case,
+                agent_endpoint_url,
+                agent_mode,
+                agent_system_prompt,
+                agent_tools,
+                agent_simulator,
+                acc,
+                timeout_ms,
+                started,
+                client,
+            )
+            if not ok:
+                return TestCaseRunResult(
+                    transcript=transcript,
+                    agent_token_usage=acc.agent_token_usage,
+                    platform_token_usage=acc.platform_token_usage,
+                    agent_cost_usd=acc.agent_cost_usd,
+                    platform_cost_usd=acc.platform_cost_usd,
+                )
+            agent_rounds += 1
+
         while True:
             if cancel_event is not None and cancel_event.is_set():
                 logger.warning("TestCase %s stopped: run cancelled", test_case.id)
@@ -370,137 +569,54 @@ async def run_test_case(
             if max_agent_rounds is not None and agent_rounds >= max_agent_rounds:
                 break
 
-            agent_messages = transcript_to_agent_messages(transcript)
-            meta = AgentRequestMetadata(
-                test_case_id=str(test_case.id),
-                turn_index=len(transcript),
-            )
-            remaining_ms = max(1, timeout_ms - elapsed_ms)
-            if agent_mode == AgentMode.PLATFORM:
-                assert agent_simulator is not None
-                try:
-                    plat = await agent_simulator.generate_response(agent_messages)
-                except Exception as e:
-                    logger.warning(
-                        "Platform agent simulator failed for test_case %s: %s",
-                        test_case.id,
-                        e,
-                    )
-                    transcript.append(
-                        build_conversation_turn(
-                            index=len(transcript),
-                            role=TurnRole.ASSISTANT,
-                            content=f"[agent_error] {e!s}",
-                            latency_ms=None,
-                        )
-                    )
-                    break
-
-                agent_rounds += 1
-                usage_map = plat.token_usage
-                if usage_map:
-                    acc.add_agent_usage(usage_map)
-                if plat.cost_usd is not None:
-                    acc.add_agent_cost(plat.cost_usd)
-                response = AgentResponse(
-                    messages=plat.messages,
-                    model=plat.model,
-                    provider=plat.provider,
-                    usage=TokenUsage(
-                        prompt_tokens=usage_map.get("prompt_tokens"),
-                        completion_tokens=usage_map.get("completion_tokens"),
-                        total_tokens=usage_map.get("total_tokens"),
-                    ),
+            if first_turn == FirstTurn.PERSONA:
+                # Persona-first: agent responds → user responds
+                ok = await _do_agent_turn(
+                    transcript,
+                    test_case,
+                    agent_endpoint_url,
+                    agent_mode,
+                    agent_system_prompt,
+                    agent_tools,
+                    agent_simulator,
+                    acc,
+                    timeout_ms,
+                    started,
+                    client,
                 )
-                _append_agent_response(transcript, response, plat.latency_ms)
+                if not ok:
+                    break
+                agent_rounds += 1
+
+                ok = await _do_user_turn(transcript, simulator, sim_cfg, acc)
+                if not ok:
+                    break
             else:
-                if not agent_endpoint_url:
-                    logger.error("Endpoint mode missing agent_endpoint_url")
-                    transcript.append(
-                        build_conversation_turn(
-                            index=len(transcript),
-                            role=TurnRole.ASSISTANT,
-                            content="[agent_error] missing agent endpoint URL",
-                            latency_ms=None,
-                        )
-                    )
-                    break
-                assert client is not None
-                try:
-                    response, round_latency = await call_agent(
-                        agent_endpoint_url,
-                        agent_messages,
-                        timeout_ms=remaining_ms,
-                        metadata=meta,
-                        client=client,
-                    )
-                except AgentCallError as e:
-                    logger.warning(
-                        "Agent call failed for test_case %s: %s", test_case.id, e
-                    )
-                    transcript.append(
-                        build_conversation_turn(
-                            index=len(transcript),
-                            role=TurnRole.ASSISTANT,
-                            content=f"[agent_error] {e!s}",
-                            latency_ms=None,
-                        )
-                    )
+                # Agent-first: user responds → agent responds
+                ok = await _do_user_turn(transcript, simulator, sim_cfg, acc)
+                if not ok:
                     break
 
-                agent_rounds += 1
-                reported = _reported_agent_usage(response.usage)
-                if reported is not None:
-                    acc.add_agent_usage(reported)
-                else:
-                    estimated = estimate_agent_tokens(
-                        prompt_messages=agent_messages,
-                        response_messages=response.messages,
-                        agent_system_prompt=agent_system_prompt,
-                        agent_tools=agent_tools,
-                        model=response.model,
-                        fallback_model=settings.LLM_DEFAULT_MODEL,
-                    )
-                    acc.add_agent_usage(estimated)
-                    reported = estimated
+                # Re-check max_turns before agent turn
+                if max_agent_rounds is not None and agent_rounds >= max_agent_rounds:
+                    break
 
-                if reported.get("prompt_tokens") or reported.get("completion_tokens"):
-                    acc.add_agent_cost(
-                        estimate_agent_cost(
-                            model=response.model,
-                            provider=response.provider,
-                            usage=reported,
-                        )
-                    )
-
-                _append_agent_response(transcript, response, round_latency)
-
-            if sim_cfg.mode == SimulatorMode.SCRIPTED and simulator.is_exhausted:
-                break
-
-            try:
-                sim_messages = transcript_to_simulator_messages(transcript)
-                sim_result = await simulator.generate_message(sim_messages)
-            except RuntimeError as e:
-                logger.warning("Simulator exhausted or failed: %s", e)
-                break
-
-            if sim_result.token_usage:
-                acc.add_platform_usage(dict(sim_result.token_usage))
-            acc.add_platform_cost(sim_result.cost_usd)
-            sim_total = sim_result.token_usage.get("total_tokens")
-            transcript.append(
-                build_conversation_turn(
-                    index=len(transcript),
-                    role=TurnRole.USER,
-                    content=sim_result.content,
-                    latency_ms=sim_result.latency_ms,
-                    token_count=sim_total,
+                ok = await _do_agent_turn(
+                    transcript,
+                    test_case,
+                    agent_endpoint_url,
+                    agent_mode,
+                    agent_system_prompt,
+                    agent_tools,
+                    agent_simulator,
+                    acc,
+                    timeout_ms,
+                    started,
+                    client,
                 )
-            )
-
-            if sim_cfg.mode == SimulatorMode.SCRIPTED and simulator.is_exhausted:
-                break
+                if not ok:
+                    break
+                agent_rounds += 1
 
     return TestCaseRunResult(
         transcript=transcript,
@@ -652,7 +768,6 @@ async def _execute_single_test_case(
     metrics_owner_id: uuid.UUID | None = None,
     *,
     repetition_index: int = 0,
-    set_repetition_index: int = 0,
 ) -> TestCaseResult:
     from sqlmodel import Session
 
@@ -669,7 +784,6 @@ async def _execute_single_test_case(
                 run_id=run_id,
                 test_case_id=test_case.id,
                 repetition_index=repetition_index,
-                set_repetition_index=set_repetition_index,
             ),
         )
         result_id = result.id
@@ -913,7 +1027,6 @@ async def execute_run(run_id: uuid.UUID) -> None:
             execution_plan = crud.get_test_cases_for_set(
                 session=session, eval_set_id=run.eval_set_id
             )
-            set_repetitions = eval_set.set_repetitions
 
             config = RunConfig.model_validate(run.config) if run.config else RunConfig()
             agent_endpoint_url = run.agent_endpoint_url
@@ -924,8 +1037,7 @@ async def execute_run(run_id: uuid.UUID) -> None:
             agent_provider = run.agent_provider
             metrics_owner_id = run.created_by
 
-        per_pass_total = sum(entry.repetitions for entry in execution_plan)
-        total_expanded = per_pass_total * set_repetitions
+        total_expanded = sum(entry.repetitions for entry in execution_plan)
         state.progress.total_test_cases = total_expanded
         run_manager.emit(
             run_id,
@@ -949,9 +1061,7 @@ async def execute_run(run_id: uuid.UUID) -> None:
                 cancel_event=state.cancel_event,
                 metrics_owner_id=metrics_owner_id,
                 repetition_index=rep,
-                set_repetition_index=set_rep,
             )
-            for set_rep in range(set_repetitions)
             for entry in execution_plan
             for rep in range(entry.repetitions)
         ]

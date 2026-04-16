@@ -9,7 +9,6 @@ from app.models import (
     EvalSetCreate,
     EvalSetMemberEntry,
     ExpectedToolCall,
-    Persona,
     RunCreate,
     RunStatus,
     RunUpdate,
@@ -95,19 +94,23 @@ def _seed_eval_data(session: Session) -> None:
             difficulty=Difficulty.NORMAL,
             tags=["billing", "refund", "happy-path"],
             status=TestCaseStatus.ACTIVE,
-            persona=Persona(
-                type="polite-customer",
-                description="Polite customer who purchased 5 days ago",
-                instructions="Be cooperative but insistent on getting a full refund. Provide order number when asked.",
+            persona_context=(
+                "[Persona type]\npolite-customer\n\n"
+                "[Description]\nPolite customer who purchased 5 days ago\n\n"
+                "[Behavioral instructions]\n"
+                "Be cooperative but insistent on getting a full refund. "
+                "Provide order number when asked."
             ),
-            initial_message="Hi, I'd like to request a refund for my recent order.",
+            first_message="Hi, I'd like to request a refund for my recent order.",
             user_context={
                 "order_id": "ORD-12345",
                 "purchase_date": "2026-03-15",
                 "amount": 49.99,
             },
-            max_turns=10,
-            expected_outcomes={"refund_initiated": True, "customer_satisfied": True},
+            expected_outcomes=[
+                "Agent MUST initiate refund for the customer",
+                "Customer MUST be satisfied with the resolution",
+            ],
             expected_tool_calls=[
                 ExpectedToolCall(
                     tool="lookup_order", expected_params={"order_id": "ORD-12345"}
@@ -123,22 +126,23 @@ def _seed_eval_data(session: Session) -> None:
             difficulty=Difficulty.HARD,
             tags=["billing", "escalation", "edge-case"],
             status=TestCaseStatus.ACTIVE,
-            persona=Persona(
-                type="frustrated-customer",
-                description="Frustrated customer with 3 prior contacts, increasingly angry",
-                instructions="Express frustration. Demand to speak to a supervisor. If not transferred within 3 turns, threaten to cancel account.",
+            persona_context=(
+                "[Persona type]\nfrustrated-customer\n\n"
+                "[Description]\nFrustrated customer with 3 prior contacts, increasingly angry\n\n"
+                "[Behavioral instructions]\n"
+                "Express frustration. Demand to speak to a supervisor. "
+                "If not transferred within 3 turns, threaten to cancel account."
             ),
-            initial_message="I've called three times already and nobody has fixed my issue!",
+            first_message="I've called three times already and nobody has fixed my issue!",
             user_context={
                 "account_id": "ACC-67890",
                 "prior_contacts": 3,
                 "issue": "billing overcharge",
             },
-            max_turns=15,
-            expected_outcomes={
-                "escalated_to_supervisor": True,
-                "compensation_offered": True,
-            },
+            expected_outcomes=[
+                "Agent MUST escalate to a supervisor",
+                "Agent MUST offer compensation for the inconvenience",
+            ],
         ),
     )
     s_product = crud.create_test_case(
@@ -149,18 +153,19 @@ def _seed_eval_data(session: Session) -> None:
             difficulty=Difficulty.NORMAL,
             tags=["sales", "product-info"],
             status=TestCaseStatus.ACTIVE,
-            persona=Persona(
-                type="budget-shopper",
-                description="Budget-conscious shopper comparing two subscription plans",
-                instructions="Ask detailed questions about pricing, features, and limitations. Push back on upselling.",
+            persona_context=(
+                "[Persona type]\nbudget-shopper\n\n"
+                "[Description]\nBudget-conscious shopper comparing two subscription plans\n\n"
+                "[Behavioral instructions]\n"
+                "Ask detailed questions about pricing, features, and limitations. "
+                "Push back on upselling."
             ),
-            initial_message="Can you help me compare Plan A and Plan B?",
+            first_message="Can you help me compare Plan A and Plan B?",
             user_context={"budget": 50, "team_size": 5},
-            max_turns=10,
-            expected_outcomes={
-                "comparison_provided": True,
-                "recommendation_given": True,
-            },
+            expected_outcomes=[
+                "Agent MUST provide a comparison of the two plans",
+                "Agent MUST give a recommendation based on the customer's needs",
+            ],
         ),
     )
     crud.create_test_case(

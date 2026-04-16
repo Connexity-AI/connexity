@@ -3,22 +3,18 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from app.models.enums import SimulatorMode
-from app.models.schemas import Persona, UserSimulatorConfig
+from app.models.schemas import UserSimulatorConfig
 from app.services.llm import LLMMessage, LLMResponse
 from app.services.user_simulator import UserSimulator, _build_system_prompt
 
-
-def _persona() -> Persona:
-    return Persona(
-        type="shopper",
-        description="A careful online shopper.",
-        instructions="Ask concise questions about shipping and returns.",
-    )
+_PERSONA_CONTEXT = (
+    "A careful online shopper. Ask concise questions about shipping and returns."
+)
 
 
 def test_get_initial_message() -> None:
     sim = UserSimulator(
-        persona=_persona(),
+        persona_context=_PERSONA_CONTEXT,
         initial_message="Do you ship to Canada?",
         user_context=None,
         expected_outcomes=None,
@@ -36,7 +32,7 @@ async def test_llm_mode_generates_message() -> None:
         latency_ms=42,
     )
     sim = UserSimulator(
-        persona=_persona(),
+        persona_context=_PERSONA_CONTEXT,
         initial_message="Hi",
         user_context=None,
         expected_outcomes=None,
@@ -66,7 +62,7 @@ async def test_llm_mode_prepends_system_prompt() -> None:
         latency_ms=1,
     )
     sim = UserSimulator(
-        persona=_persona(),
+        persona_context=_PERSONA_CONTEXT,
         initial_message="x",
         user_context=None,
         expected_outcomes=None,
@@ -88,9 +84,8 @@ async def test_llm_mode_prepends_system_prompt() -> None:
 @pytest.mark.asyncio
 async def test_llm_mode_system_prompt_contains_persona() -> None:
     resp = LLMResponse(content="x", model="m", usage={}, latency_ms=1)
-    persona = _persona()
     sim = UserSimulator(
-        persona=persona,
+        persona_context=_PERSONA_CONTEXT,
         initial_message="x",
         user_context=None,
         expected_outcomes=None,
@@ -104,18 +99,17 @@ async def test_llm_mode_system_prompt_contains_persona() -> None:
         await sim.generate_message([])
 
     system = mock_llm.await_args.args[0][0].content
-    assert persona.type in system
-    assert persona.description in system
-    assert persona.instructions in system
+    assert "careful online shopper" in system
+    assert "shipping and returns" in system
 
 
 @pytest.mark.asyncio
 async def test_llm_mode_system_prompt_contains_context() -> None:
     resp = LLMResponse(content="x", model="m", usage={}, latency_ms=1)
     ctx = {"order_id": "123"}
-    outcomes = {"must": "get refund policy"}
+    outcomes = ["Agent MUST provide refund policy"]
     sim = UserSimulator(
-        persona=_persona(),
+        persona_context=_PERSONA_CONTEXT,
         initial_message="x",
         user_context=ctx,
         expected_outcomes=outcomes,
@@ -136,7 +130,7 @@ async def test_llm_mode_system_prompt_contains_context() -> None:
 @pytest.mark.asyncio
 async def test_scripted_mode_returns_messages_in_order() -> None:
     sim = UserSimulator(
-        persona=_persona(),
+        persona_context=_PERSONA_CONTEXT,
         initial_message="First",
         user_context=None,
         expected_outcomes=None,
@@ -156,7 +150,7 @@ async def test_scripted_mode_returns_messages_in_order() -> None:
 @pytest.mark.asyncio
 async def test_scripted_mode_is_exhausted() -> None:
     sim = UserSimulator(
-        persona=_persona(),
+        persona_context=_PERSONA_CONTEXT,
         initial_message="x",
         user_context=None,
         expected_outcomes=None,
@@ -179,7 +173,7 @@ async def test_scripted_mode_raises_when_exhausted() -> None:
         scripted_messages=[],
     )
     sim = UserSimulator(
-        persona=_persona(),
+        persona_context=_PERSONA_CONTEXT,
         initial_message="x",
         user_context=None,
         expected_outcomes=None,
@@ -191,6 +185,6 @@ async def test_scripted_mode_raises_when_exhausted() -> None:
 
 
 def test_build_system_prompt_with_none_context() -> None:
-    text = _build_system_prompt(_persona(), None, None)
+    text = _build_system_prompt(_PERSONA_CONTEXT, None, None)
     assert "shopper" in text
     assert "(none)" in text

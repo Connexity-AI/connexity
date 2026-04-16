@@ -77,11 +77,6 @@ class EvalSetBase(SQLModel):
         default=1,
         description="Monotonically increasing version for snapshot tracking",
     )
-    set_repetitions: int = Field(
-        default=1,
-        ge=1,
-        description="How many times to repeat the entire set during a run",
-    )
 
 
 class EvalSet(EvalSetBase, table=True):
@@ -113,11 +108,6 @@ class EvalSetCreate(SQLModel):
     description: str | None = Field(
         default=None, description="What this eval set covers"
     )
-    set_repetitions: int = Field(
-        default=1,
-        ge=1,
-        description="How many times to repeat the entire set during a run",
-    )
     members: list[EvalSetMemberEntry] | None = Field(
         default=None,
         description="Initial members with per-test-case repetitions (omit or empty for none)",
@@ -129,11 +119,6 @@ class EvalSetUpdate(SQLModel):
     description: str | None = Field(
         default=None, description="What this eval set covers"
     )
-    set_repetitions: int | None = Field(
-        default=None,
-        ge=1,
-        description="How many times to repeat the entire set during a run",
-    )
 
 
 class EvalSetPublic(EvalSetBase):
@@ -141,7 +126,7 @@ class EvalSetPublic(EvalSetBase):
     test_case_count: int = 0
     effective_test_case_count: int = Field(
         default=0,
-        description="Sum(member.repetitions) * set_repetitions — total expanded executions",
+        description="Sum of per-test-case repetitions — total expanded executions",
     )
     created_at: datetime = Field(description="When the set was created")
     updated_at: datetime = Field(description="When the set was last updated")

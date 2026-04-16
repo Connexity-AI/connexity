@@ -28,10 +28,6 @@ class TestCaseResultBase(SQLModel):
         default=0,
         description="Which repetition of this test case within a single set pass (0-based)",
     )
-    set_repetition_index: int = Field(
-        default=0,
-        description="Which pass of the entire set this execution belongs to (0-based)",
-    )
     # Transcript
     transcript: list[dict[str, Any]] | None = Field(
         default=None,
@@ -131,10 +127,6 @@ class TestCaseResultCreate(SQLModel):
         default=0,
         description="Repetition within one set pass (0-based)",
     )
-    set_repetition_index: int = Field(
-        default=0,
-        description="Which full set pass (0-based)",
-    )
 
 
 class TestCaseResultUpdate(SQLModel):
@@ -206,7 +198,6 @@ class TestCaseResultPublic(SQLModel):
     repetition_index: int = Field(
         description="Repetition within one set pass (0-based)",
     )
-    set_repetition_index: int = Field(description="Which full set pass (0-based)")
     transcript: list[ConversationTurn] | None = Field(
         default=None,
         description="Full conversation transcript as a list of turns",

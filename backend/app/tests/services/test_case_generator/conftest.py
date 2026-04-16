@@ -22,15 +22,10 @@ MOCK_TEST_CASES_RAW: list[dict] = [
             ["red-team", "adversarial"],
         ][i % 3],
         "status": "draft",
-        "persona": {
-            "type": f"test-persona-{i}",
-            "description": f"A test persona for test case {i}",
-            "instructions": f"Behave as persona {i} would.",
-        },
-        "initial_message": f"Hello, this is test message {i}.",
+        "persona_context": f"Test persona {i}. Behave as persona {i} would.",
+        "first_message": f"Hello, this is test message {i}.",
         "user_context": {"test_case_index": i, "test": True},
-        "max_turns": 10,
-        "expected_outcomes": {"success": True, "test_case_index": i},
+        "expected_outcomes": [f"Agent MUST handle test case {i} successfully"],
         "expected_tool_calls": [
             {"tool": "test_tool", "expected_params": {"id": str(i)}}
         ],

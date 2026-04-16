@@ -472,7 +472,7 @@ def main() -> None:
         "--scripted",
         action="store_true",
         help=(
-            "Replay fixed user lines from --scripted-user after initial_message "
+            "Replay fixed user lines from --scripted-user after first_message "
             "(no LLM user simulator)"
         ),
     )

@@ -10,8 +10,8 @@ from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
 from app.models.agent import Agent
-from app.models.enums import Difficulty, TestCaseStatus
-from app.models.schemas import ExpectedToolCall, Persona
+from app.models.enums import Difficulty, FirstTurn, TestCaseStatus
+from app.models.schemas import ExpectedToolCall
 
 if TYPE_CHECKING:
     from app.models.eval_set import EvalSetMember
@@ -23,7 +23,7 @@ class TestCaseBase(SQLModel):
 
     JSONB columns use raw dict/list types for SQLAlchemy compatibility.
     API-facing schemas (TestCaseCreate, TestCasePublic, TestCaseUpdate)
-    override persona and expected_tool_calls with typed Pydantic models.
+    override expected_tool_calls with typed Pydantic models.
     """
 
     name: str = Field(max_length=255, description="Human-readable short name")
@@ -54,28 +54,47 @@ class TestCaseBase(SQLModel):
             index=True,
         ),
     )
-    persona: dict[str, Any] | None = Field(
+    persona_context: str | None = Field(
         default=None,
-        sa_column=Column("persona", JSONB, nullable=True),
-        description="Structured persona for the LLM simulator (type, description, instructions)",
+        description=(
+            "Free-form persona description for the LLM simulator "
+            "(type, description, behavioral instructions in one text block)"
+        ),
     )
-    initial_message: str | None = Field(
+    first_turn: FirstTurn = Field(
+        default=FirstTurn.PERSONA,
+        description="Who speaks first in the conversation: agent or persona",
+        sa_column=Column(
+            SAEnum(
+                FirstTurn,
+                name="firstturn",
+                native_enum=True,
+                values_callable=lambda m: [e.name for e in m],
+            ),
+            nullable=False,
+            server_default="PERSONA",
+        ),
+    )
+    first_message: str | None = Field(
         default=None,
-        description="First message the simulated user sends to the agent",
+        description=(
+            "Opening message for whoever speaks first. "
+            "When first_turn=persona this is the user's opener; "
+            "when first_turn=agent this is the agent's greeting."
+        ),
     )
     user_context: dict[str, Any] | None = Field(
         default=None,
         sa_column=Column("user_context", JSONB, nullable=True),
         description="Free-form domain knowledge JSON-dumped into simulator prompt",
     )
-    max_turns: int | None = Field(
-        default=None,
-        description="Max conversation turns; null = no cap",
-    )
-    expected_outcomes: dict[str, Any] | None = Field(
+    expected_outcomes: list[str] | None = Field(
         default=None,
         sa_column=Column("expected_outcomes", JSONB, nullable=True),
-        description="Free-form success criteria the judge evaluates against",
+        description=(
+            "List of true-statement assertions the judge evaluates "
+            '(e.g. "Agent MUST confirm the appointment date")'
+        ),
     )
     expected_tool_calls: list[dict[str, Any]] | None = Field(
         default=None,
@@ -92,13 +111,6 @@ class TestCaseBase(SQLModel):
         index=True,
         description="Agent this test case belongs to (test suite pool for that agent)",
     )
-
-    @field_validator("persona", mode="before")
-    @classmethod
-    def _serialize_persona(cls, v: Any) -> dict[str, Any] | None:
-        if isinstance(v, BaseModel):
-            return v.model_dump()
-        return v
 
     @field_validator("expected_tool_calls", mode="before")
     @classmethod
@@ -141,7 +153,6 @@ class TestCase(TestCaseBase, table=True):
 
 
 class TestCaseCreate(TestCaseBase):
-    persona: Persona | None = None  # type: ignore[assignment]
     expected_tool_calls: list[ExpectedToolCall] | None = None  # type: ignore[assignment]
 
 
@@ -160,17 +171,17 @@ class TestCaseUpdate(SQLModel):
         default=None,
         description="Lifecycle status — only active test cases run by default",
     )
-    persona: Persona | None = None
-    initial_message: str | None = Field(
-        default=None,
-        description="First message the simulated user sends to the agent",
+    persona_context: str | None = Field(
+        default=None, description="Free-form persona description for the LLM simulator"
+    )
+    first_turn: FirstTurn | None = Field(
+        default=None, description="Who speaks first: agent or persona"
+    )
+    first_message: str | None = Field(
+        default=None, description="Opening message for whoever speaks first"
     )
     user_context: dict[str, Any] | None = None
-    max_turns: int | None = Field(
-        default=None,
-        description="Max conversation turns; null = no cap",
-    )
-    expected_outcomes: dict[str, Any] | None = None
+    expected_outcomes: list[str] | None = None
     expected_tool_calls: list[ExpectedToolCall] | None = None
     evaluation_criteria_override: str | None = Field(
         default=None,
@@ -186,7 +197,6 @@ class TestCasePublic(TestCaseBase):
     id: uuid.UUID = Field(description="Unique test case identifier")
     created_at: datetime = Field(description="When the test case was created")
     updated_at: datetime = Field(description="When the test case was last updated")
-    persona: Persona | None = None  # type: ignore[assignment]
     expected_tool_calls: list[ExpectedToolCall] | None = None  # type: ignore[assignment]
 
 

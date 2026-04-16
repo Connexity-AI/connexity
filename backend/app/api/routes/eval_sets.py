@@ -36,7 +36,7 @@ def _to_public(
             session=session, eval_set_id=eval_set.id
         )
     )
-    effective = sum_rep * eval_set.set_repetitions
+    effective = sum_rep
     return EvalSetPublic.model_validate(
         eval_set,
         update={

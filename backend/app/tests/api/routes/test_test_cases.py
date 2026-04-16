@@ -177,15 +177,16 @@ def test_create_test_case_missing_name(
     assert "name" in detail.lower()
 
 
-def test_create_test_case_invalid_persona_structure(
+def test_create_test_case_with_persona_context_string(
     client: TestClient, superuser_auth_cookies: dict[str, str]
 ) -> None:
     r = client.post(
         f"{settings.API_V1_STR}/test-cases/",
-        json={"name": "Bad Persona", "persona": {"wrong_field": "value"}},
+        json={"name": "Persona Context", "persona_context": "A polite customer"},
         cookies=superuser_auth_cookies,
     )
-    assert r.status_code == 422
+    assert r.status_code == 200
+    assert r.json()["persona_context"] == "A polite customer"
 
 
 def test_create_test_case_with_full_schema(
@@ -193,15 +194,10 @@ def test_create_test_case_with_full_schema(
 ) -> None:
     data = {
         "name": "Full Schema Route Test",
-        "persona": {
-            "type": "polite-customer",
-            "description": "A polite customer",
-            "instructions": "Be cooperative.",
-        },
-        "initial_message": "Hello, I need help.",
+        "persona_context": "A polite customer. Be cooperative.",
+        "first_message": "Hello, I need help.",
         "user_context": {"order_id": "ORD-99999"},
-        "max_turns": 10,
-        "expected_outcomes": {"issue_resolved": True},
+        "expected_outcomes": ["Issue MUST be resolved"],
         "expected_tool_calls": [
             {"tool": "lookup_order", "expected_params": {"order_id": "ORD-99999"}},
         ],
@@ -213,11 +209,10 @@ def test_create_test_case_with_full_schema(
     )
     assert r.status_code == 200
     result = r.json()
-    assert result["persona"]["type"] == "polite-customer"
+    assert result["persona_context"] == "A polite customer. Be cooperative."
     assert result["user_context"]["order_id"] == "ORD-99999"
-    assert result["expected_outcomes"]["issue_resolved"] is True
+    assert result["expected_outcomes"] == ["Issue MUST be resolved"]
     assert result["expected_tool_calls"][0]["tool"] == "lookup_order"
-    assert result["max_turns"] == 10
 
 
 def test_update_test_case_with_new_fields(
@@ -227,19 +222,15 @@ def test_update_test_case_with_new_fields(
     r = client.patch(
         f"{settings.API_V1_STR}/test-cases/{test_case.id}",
         json={
-            "persona": {
-                "type": "angry-customer",
-                "description": "An angry customer",
-                "instructions": "Express frustration.",
-            },
-            "expected_outcomes": {"escalated": True},
+            "persona_context": "An angry customer. Express frustration.",
+            "expected_outcomes": ["Call MUST be escalated"],
         },
         cookies=superuser_auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
-    assert result["persona"]["type"] == "angry-customer"
-    assert result["expected_outcomes"]["escalated"] is True
+    assert result["persona_context"] == "An angry customer. Express frustration."
+    assert result["expected_outcomes"] == ["Call MUST be escalated"]
 
 
 # ── Export / Import ───────────────────────────────────────────────
@@ -310,7 +301,7 @@ def test_import_test_cases_round_trip(
         db,
         name="Round Trip TestCase",
         tags=[tag],
-        persona={"type": "tester", "description": "A tester", "instructions": "Test."},
+        persona_context="A tester. Test.",
         user_context={"key": "value"},
         expected_tool_calls=[{"tool": "test_tool", "expected_params": {"a": 1}}],
     )
@@ -348,7 +339,7 @@ def test_import_test_cases_round_trip(
         "name",
         "tags",
         "difficulty",
-        "persona",
+        "persona_context",
         "user_context",
         "expected_tool_calls",
     ):
@@ -390,7 +381,7 @@ def test_import_test_cases_overwrite_conflict(
     test_case = create_test_case_fixture(
         db,
         name="Before Overwrite",
-        persona={"type": "original", "description": "Keep me", "instructions": "Stay."},
+        persona_context="Original persona. Keep me. Stay.",
         user_context={"preserved": True},
     )
     payload = [
@@ -418,7 +409,7 @@ def test_import_test_cases_overwrite_conflict(
     )
     updated = r.json()
     assert updated["name"] == "After Overwrite"
-    assert updated["persona"]["type"] == "original"
+    assert "Original persona" in updated["persona_context"]
     assert updated["user_context"]["preserved"] is True
 
 
