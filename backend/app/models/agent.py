@@ -221,6 +221,13 @@ class AgentPublic(AgentBase):
     created_at: datetime = Field(description="When the agent was created")
     updated_at: datetime = Field(description="When the agent was last updated")
 
+    @model_validator(mode="after")
+    def validate_mode_fields(self) -> "AgentPublic":
+        # Responses mirror persisted rows (drafts, direct DB updates, whitespace-only
+        # prompts, etc.). Create/update use AgentCreate / AgentUpdate / Agent with
+        # full mode validation.
+        return self
+
 
 class AgentsPublic(SQLModel):
     data: list[AgentPublic] = Field(description="List of agents")

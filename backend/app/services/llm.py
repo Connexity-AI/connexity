@@ -82,6 +82,14 @@ class LLMCallConfig(BaseModel):
         default=None,
         description="OpenAI-format tool/function definitions for function calling",
     )
+    parallel_tool_calls: bool | None = Field(
+        default=None,
+        description=(
+            "When True, the model may return multiple tool calls in one assistant "
+            "message (OpenAI `parallel_tool_calls`). When False, at most one tool "
+            "call per turn. Omit to use the provider default."
+        ),
+    )
     extra: dict[str, LLMExtraValue] = Field(default_factory=dict)
 
 
@@ -395,6 +403,7 @@ async def _acompletion_once(
     max_tokens: int | None,
     timeout: float | None,
     response_format: dict[str, object] | None,
+    parallel_tool_calls: bool | None,
     extra: dict[str, LLMExtraValue],
 ) -> object:
     kwargs: dict[str, object] = {
@@ -411,6 +420,8 @@ async def _acompletion_once(
         kwargs["response_format"] = response_format
     if tools is not None:
         kwargs["tools"] = tools
+    if parallel_tool_calls is not None:
+        kwargs["parallel_tool_calls"] = parallel_tool_calls
     for k, v in extra.items():
         if v is not None:
             kwargs[k] = v
@@ -426,6 +437,7 @@ async def _acompletion_stream_once(
     max_tokens: int | None,
     timeout: float | None,
     response_format: dict[str, object] | None,
+    parallel_tool_calls: bool | None,
     extra: dict[str, LLMExtraValue],
 ) -> object:
     kwargs: dict[str, object] = {
@@ -444,6 +456,8 @@ async def _acompletion_stream_once(
         kwargs["response_format"] = response_format
     if tools is not None:
         kwargs["tools"] = tools
+    if parallel_tool_calls is not None:
+        kwargs["parallel_tool_calls"] = parallel_tool_calls
     for k, v in extra.items():
         if v is not None:
             kwargs[k] = v
@@ -467,6 +481,7 @@ async def call_llm(
     response_format = c.response_format
     extra = dict(c.extra)
     tools = c.tools
+    parallel_tool_calls = c.parallel_tool_calls
 
     message_dicts = [_llm_message_to_litellm_dict(m) for m in messages]
 
@@ -491,6 +506,7 @@ async def call_llm(
                 max_tokens=max_tokens,
                 timeout=timeout,
                 response_format=response_format,
+                parallel_tool_calls=parallel_tool_calls,
                 extra=extra,
             )
             latency_ms = int((time.perf_counter() - started) * 1000)
@@ -545,6 +561,7 @@ async def call_llm_stream(
     response_format = c.response_format
     extra = dict(c.extra)
     tools = c.tools
+    parallel_tool_calls = c.parallel_tool_calls
 
     message_dicts = [_llm_message_to_litellm_dict(m) for m in messages]
     started = time.perf_counter()
@@ -570,6 +587,7 @@ async def call_llm_stream(
                 max_tokens=max_tokens,
                 timeout=timeout,
                 response_format=response_format,
+                parallel_tool_calls=parallel_tool_calls,
                 extra=extra,
             )
             break

@@ -2,7 +2,8 @@
 
 import json
 import uuid
-from unittest.mock import patch
+from collections.abc import AsyncGenerator, Callable
+from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
 from sqlmodel import Session
@@ -75,6 +76,49 @@ def _llm_stream_factory(
         yield final
 
     return gen()
+
+
+def _llm_stream_factory_editing_turns(
+    *,
+    chunks: list[LLMStreamChunk],
+    first_final: LLMStreamResult,
+    second_final: LLMStreamResult | None = None,
+) -> Callable[..., AsyncGenerator[LLMStreamChunk | LLMStreamResult, None]]:
+    """``side_effect`` for editing mode when the model uses ``edit_prompt`` tools.
+
+    The editor performs a follow-up LLM call after tool results. Each
+    ``call_llm_stream`` invocation must receive a **new** async generator; a
+    single ``return_value`` generator is exhausted on the first call and breaks
+    the second round (no ``done`` event, session not updated).
+    """
+    round_idx = [0]
+
+    def _factory(
+        *_args: object,
+        **_kwargs: object,
+    ) -> AsyncGenerator[LLMStreamChunk | LLMStreamResult, None]:
+        i = round_idx[0]
+        round_idx[0] += 1
+        follow = second_final or LLMStreamResult(
+            full_content="",
+            tool_calls=[],
+            usage=first_final.usage,
+            model=first_final.model,
+            latency_ms=0,
+            response_cost_usd=None,
+        )
+
+        async def gen() -> AsyncGenerator[LLMStreamChunk | LLMStreamResult, None]:
+            if i == 0:
+                for c in chunks:
+                    yield c
+                yield first_final
+            else:
+                yield follow
+
+        return gen()
+
+    return _factory
 
 
 # ── Session CRUD ─────────────────────────────────────────────────────
@@ -381,7 +425,7 @@ def test_chat_passes_provider_and_model_to_llm(
 
 @patch("app.services.prompt_editor.core.call_llm_stream")
 def test_chat_happy_path_with_edits(
-    mock_stream: object,
+    mock_stream: MagicMock,
     client: TestClient,
     superuser_auth_cookies: dict[str, str],
     db: Session,
@@ -408,9 +452,9 @@ def test_chat_happy_path_with_edits(
         latency_ms=200,
         response_cost_usd=0.002,
     )
-    mock_stream.return_value = _llm_stream_factory(  # type: ignore[attr-defined]
+    mock_stream.side_effect = _llm_stream_factory_editing_turns(
         chunks=[LLMStreamChunk(content="Replacing line 2.")],
-        final=final,
+        first_final=final,
     )
 
     r = client.post(
@@ -446,7 +490,7 @@ def test_chat_happy_path_with_edits(
 
 @patch("app.services.prompt_editor.core.call_llm_stream")
 def test_chat_multiple_edits(
-    mock_stream: object,
+    mock_stream: MagicMock,
     client: TestClient,
     superuser_auth_cookies: dict[str, str],
     db: Session,
@@ -474,7 +518,9 @@ def test_chat_multiple_edits(
         latency_ms=50,
         response_cost_usd=None,
     )
-    mock_stream.return_value = _llm_stream_factory(chunks=[], final=final)  # type: ignore[attr-defined]
+    mock_stream.side_effect = _llm_stream_factory_editing_turns(
+        chunks=[], first_final=final
+    )
 
     r = client.post(
         f"{PREFIX}/sessions/{sess['id']}/messages",
@@ -537,7 +583,7 @@ def test_chat_persists_messages(
 
 @patch("app.services.prompt_editor.core.call_llm_stream")
 def test_chat_updates_session_edited_prompt(
-    mock_stream: object,
+    mock_stream: MagicMock,
     client: TestClient,
     superuser_auth_cookies: dict[str, str],
     db: Session,
@@ -560,7 +606,9 @@ def test_chat_updates_session_edited_prompt(
         latency_ms=0,
         response_cost_usd=None,
     )
-    mock_stream.return_value = _llm_stream_factory(chunks=[], final=final)  # type: ignore[attr-defined]
+    mock_stream.side_effect = _llm_stream_factory_editing_turns(
+        chunks=[], first_final=final
+    )
 
     r = client.post(
         f"{PREFIX}/sessions/{sess['id']}/messages",
@@ -659,7 +707,7 @@ def test_chat_llm_error_yields_error_event(
 
 @patch("app.services.prompt_editor.core.call_llm_stream")
 def test_chat_invalid_edit_lines_dropped(
-    mock_stream: object,
+    mock_stream: MagicMock,
     client: TestClient,
     superuser_auth_cookies: dict[str, str],
     db: Session,
@@ -687,7 +735,9 @@ def test_chat_invalid_edit_lines_dropped(
         latency_ms=0,
         response_cost_usd=None,
     )
-    mock_stream.return_value = _llm_stream_factory(chunks=[], final=final)  # type: ignore[attr-defined]
+    mock_stream.side_effect = _llm_stream_factory_editing_turns(
+        chunks=[], first_final=final
+    )
 
     r = client.post(
         f"{PREFIX}/sessions/{sess['id']}/messages",
@@ -705,7 +755,7 @@ def test_chat_invalid_edit_lines_dropped(
 
 @patch("app.services.prompt_editor.core.call_llm_stream")
 def test_chat_tool_calls_reflected_in_edits(
-    mock_stream: object,
+    mock_stream: MagicMock,
     client: TestClient,
     superuser_auth_cookies: dict[str, str],
     db: Session,
@@ -728,7 +778,9 @@ def test_chat_tool_calls_reflected_in_edits(
         latency_ms=0,
         response_cost_usd=None,
     )
-    mock_stream.return_value = _llm_stream_factory(chunks=[], final=final)  # type: ignore[attr-defined]
+    mock_stream.side_effect = _llm_stream_factory_editing_turns(
+        chunks=[], first_final=final
+    )
 
     r = client.post(
         f"{PREFIX}/sessions/{sess['id']}/messages",
