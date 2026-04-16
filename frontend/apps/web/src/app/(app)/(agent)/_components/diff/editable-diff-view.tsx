@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-
 import dynamic from 'next/dynamic';
 
 import { Check, Loader2 } from 'lucide-react';
@@ -11,11 +10,7 @@ import { cn } from '@workspace/ui/lib/utils';
 
 import { useDraftAutosave } from '@/app/(app)/(agent)/_hooks/use-draft-autosave';
 
-import type {
-  DiffBeforeMount,
-  DiffOnMount,
-  MonacoDiffEditor,
-} from '@monaco-editor/react';
+import type { DiffBeforeMount, DiffOnMount, MonacoDiffEditor } from '@monaco-editor/react';
 
 interface EditableDiffViewProps {
   fromContent: string;
@@ -107,10 +102,6 @@ export function EditableDiffView({
   const monacoTheme = resolvedTheme === 'dark' ? DARK_THEME : LIGHT_THEME;
 
   const editorRef = useRef<MonacoDiffEditor | null>(null);
-  const latestToContentRef = useRef(toContent);
-  useEffect(() => {
-    latestToContentRef.current = toContent;
-  }, [toContent]);
 
   // Capture the toContent at mount and never update it, so the `modified`
   // prop handed to the library stays stable and its built-in setModel path
@@ -129,20 +120,13 @@ export function EditableDiffView({
   // mutation key on useUpsertDraft, so there's no per-surface spinner.
   const { schedule, flush, primeBaseline, getLastSaved } = useDraftAutosave(agentId);
 
-  // Keep the latest `editable` flag + controlled-mode callback available to
-  // the onDidChangeModelContent listener without having to re-subscribe it
-  // on every flag flip.
-  const editableRef = useRef(editable);
+  // Consolidated "latest props" ref. The onDidChangeModelContent listener and
+  // unmount cleanup are registered once at mount but need current values —
+  // kept in a single ref so there's only one sync effect.
+  const latestRef = useRef({ toContent, editable, isControlled, onModifiedChange, flush });
   useEffect(() => {
-    editableRef.current = editable;
-  }, [editable]);
-
-  const isControlledRef = useRef(isControlled);
-  const onModifiedChangeRef = useRef(onModifiedChange);
-  useEffect(() => {
-    isControlledRef.current = isControlled;
-    onModifiedChangeRef.current = onModifiedChange;
-  }, [isControlled, onModifiedChange]);
+    latestRef.current = { toContent, editable, isControlled, onModifiedChange, flush };
+  }, [toContent, editable, isControlled, onModifiedChange, flush]);
 
   useEffect(() => {
     // Autosave baseline is only meaningful when we actually own the draft
@@ -188,16 +172,19 @@ export function EditableDiffView({
 
       modifiedEditor.onDidChangeModelContent(() => {
         const value = modifiedEditor.getValue();
-        if (!editableRef.current) return;
-        if (isControlledRef.current) {
-          onModifiedChangeRef.current?.(value);
+
+        if (!latestRef.current.editable) return;
+
+        if (latestRef.current.isControlled) {
+          latestRef.current.onModifiedChange?.(value);
         } else {
           schedule(value);
         }
       });
 
       const mountedValue = modifiedEditor.getValue();
-      const latestValue = latestToContentRef.current;
+
+      const latestValue = latestRef.current.toContent;
       if (mountedValue !== latestValue) {
         modifiedEditor.getModel()?.setValue(latestValue);
       }
@@ -211,8 +198,11 @@ export function EditableDiffView({
   // path; controlled mode has no internal buffer to flush.
   useEffect(() => {
     const editor = editorRef.current;
+
     if (!editor) return;
+
     editor.updateOptions({ readOnly: !editable });
+
     if (!editable && !isControlled) {
       flush(editor.getModifiedEditor().getValue());
     }
@@ -226,22 +216,20 @@ export function EditableDiffView({
   // previous one), so no echo suppression is needed.
   useEffect(() => {
     const editor = editorRef.current;
+
     if (!editor) return;
+
     const modifiedEditor = editor.getModifiedEditor();
     const model = modifiedEditor.getModel();
+
     if (!model) return;
+
     const current = model.getValue();
+
     if (toContent === current) return;
     if (!isControlled && toContent === getLastSaved()) return;
     model.setValue(toContent);
   }, [toContent, getLastSaved, isControlled]);
-
-  // Keep flush in a ref so the unmount cleanup below stays mount-only (empty
-  // deps) — we don't want to re-run it whenever the autosave hook rebuilds.
-  const flushRef = useRef(flush);
-  useEffect(() => {
-    flushRef.current = flush;
-  }, [flush]);
 
   // Flush pending autosave + detach the diff model on unmount.
   //
@@ -255,9 +243,10 @@ export function EditableDiffView({
     return () => {
       const editor = editorRef.current;
       if (!editor) return;
+
       try {
-        if (editableRef.current && !isControlledRef.current) {
-          flushRef.current(editor.getModifiedEditor().getValue());
+        if (latestRef.current.editable && !latestRef.current.isControlled) {
+          latestRef.current.flush(editor.getModifiedEditor().getValue());
         }
       } finally {
         editor.setModel(null);
@@ -289,9 +278,7 @@ export function EditableDiffView({
         <span className="text-green-600 dark:text-green-400 font-medium">+{counts.added}</span>
         <span className="text-red-600 dark:text-red-400 font-medium">-{counts.removed}</span>
         <span className="text-muted-foreground">{counts.total} lines</span>
-        {!editable && (
-          <span className="ml-auto text-muted-foreground">Read-only</span>
-        )}
+        {!editable && <span className="ml-auto text-muted-foreground">Read-only</span>}
       </div>
       <div className={cn('flex-1 min-h-0')}>
         <MonacoDiffEditorComponent
