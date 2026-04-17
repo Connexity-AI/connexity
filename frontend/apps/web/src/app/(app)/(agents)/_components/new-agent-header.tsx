@@ -13,8 +13,6 @@ import { useCreateDraftAgent } from '@/app/(app)/(agents)/_hooks/use-create-draf
 import { isSuccessApiResult } from '@/utils/api';
 import { PlatformHeader } from '@/components/common/platform-header';
 
-import type { AgentPublic } from '@/client/types.gen';
-
 export const NewAgentHeader = () => {
   return <PlatformHeader className="px-6" leading={<Leading />} trailing={<Trailing />} />;
 };
@@ -37,8 +35,7 @@ const Trailing = () => {
     mutate(undefined, {
       onSuccess: (result) => {
         if (!isSuccessApiResult(result)) return;
-        const agent = result.data as AgentPublic;
-        router.push(UrlGenerator.agentEdit(agent.id));
+        router.push(UrlGenerator.agentEdit(result.data.id));
       },
     });
   };

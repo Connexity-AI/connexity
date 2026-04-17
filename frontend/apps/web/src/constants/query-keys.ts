@@ -20,3 +20,7 @@ export const promptEditorKeys = {
   session: (agentId: string) => ['prompt-editor-session', agentId] as const,
   messages: (sessionId: string) => ['prompt-editor-messages', sessionId] as const,
 };
+
+export const testCaseKeys = {
+  list: (agentId: string) => ['test-cases', agentId] as const,
+};

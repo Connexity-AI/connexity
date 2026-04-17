@@ -6,8 +6,6 @@ import { getAgentVersion } from '@/actions/agents';
 import { isSuccessApiResult } from '@/utils/api';
 import { agentKeys } from '@/constants/query-keys';
 
-import type { AgentVersionPublic } from '@/client/types.gen';
-
 export function useAgentVersion(agentId: string, version: number | null) {
   return useQuery({
     queryKey: agentKeys.version(agentId, version),
@@ -15,7 +13,7 @@ export function useAgentVersion(agentId: string, version: number | null) {
     queryFn: async () => {
       const result = await getAgentVersion(agentId, version!);
       if (!isSuccessApiResult(result)) throw new Error('Failed to fetch agent version');
-      return result.data as unknown as AgentVersionPublic;
+      return result.data;
     },
 
     staleTime: 30 * 1000,

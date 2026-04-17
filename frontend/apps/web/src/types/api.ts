@@ -7,18 +7,10 @@ export type ApiResult<
   TError = unknown,
   ThrowOnError extends boolean = boolean,
 > = ThrowOnError extends true
-  ? {
-      data: TData extends Record<string, unknown> ? TData[keyof TData] : TData;
-    }
+  ? { data: TData }
   :
-      | {
-          data: TData extends Record<string, unknown> ? TData[keyof TData] : TData;
-          error: undefined;
-        }
-      | {
-          data: undefined;
-          error: TError extends Record<string, unknown> ? TError[keyof TError] : TError;
-        };
+      | { data: TData; error: undefined }
+      | { data: undefined; error: TError };
 
 export interface ClientProxyRouteParam {
   params: Promise<{ path: string[] }>;

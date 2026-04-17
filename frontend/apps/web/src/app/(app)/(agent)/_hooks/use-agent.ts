@@ -6,8 +6,6 @@ import { getAgent } from '@/actions/agents';
 import { agentKeys } from '@/constants/query-keys';
 import { isSuccessApiResult } from '@/utils/api';
 
-import type { AgentPublic } from '@/client/types.gen';
-
 export function useAgent(agentId: string) {
   return useQuery({
     queryKey: agentKeys.detail(agentId),
@@ -15,7 +13,7 @@ export function useAgent(agentId: string) {
     queryFn: async () => {
       const result = await getAgent(agentId);
       if (!isSuccessApiResult(result)) throw new Error('Failed to fetch agent');
-      return result.data as AgentPublic;
+      return result.data;
     },
 
     staleTime: 30 * 1000,

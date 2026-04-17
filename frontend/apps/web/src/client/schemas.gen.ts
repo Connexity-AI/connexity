@@ -115,19 +115,6 @@ export const AgentCreateSchema = {
       title: 'Agent Metadata',
       description: 'Arbitrary key-value metadata about the agent',
     },
-    editor_guidelines: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Editor Guidelines',
-      description:
-        'Custom prompting guidelines for the prompt editor agent (None = use built-in default)',
-    },
   },
   type: 'object',
   required: ['name'],
@@ -232,43 +219,6 @@ export const AgentDraftUpdateSchema = {
   type: 'object',
   title: 'AgentDraftUpdate',
   description: 'Partial update for versionable agent fields — used by PUT /agents/{id}/draft.',
-} as const;
-
-export const AgentGuidelinesPublicSchema = {
-  properties: {
-    guidelines: {
-      type: 'string',
-      title: 'Guidelines',
-      description: 'Effective guidelines text (custom or default)',
-    },
-    is_default: {
-      type: 'boolean',
-      title: 'Is Default',
-      description: 'True when using built-in defaults (no custom guidelines stored)',
-    },
-  },
-  type: 'object',
-  required: ['guidelines', 'is_default'],
-  title: 'AgentGuidelinesPublic',
-} as const;
-
-export const AgentGuidelinesUpdateSchema = {
-  properties: {
-    guidelines: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Guidelines',
-      description: 'Custom guidelines text, or null to reset to built-in default',
-    },
-  },
-  type: 'object',
-  title: 'AgentGuidelinesUpdate',
 } as const;
 
 export const AgentModeSchema = {
@@ -391,19 +341,6 @@ export const AgentPublicSchema = {
       ],
       title: 'Agent Metadata',
       description: 'Arbitrary key-value metadata about the agent',
-    },
-    editor_guidelines: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Editor Guidelines',
-      description:
-        'Custom prompting guidelines for the prompt editor agent (None = use built-in default)',
     },
     id: {
       type: 'string',
@@ -649,18 +586,6 @@ export const AgentUpdateSchema = {
       ],
       title: 'Agent Metadata',
       description: 'Arbitrary key-value metadata about the agent',
-    },
-    editor_guidelines: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Editor Guidelines',
-      description: 'Custom prompting guidelines for the prompt editor agent (None = use default)',
     },
     change_description: {
       anyOf: [
@@ -3078,7 +3003,6 @@ export const PresetPublicSchema = {
   type: 'object',
   required: ['id', 'label', 'message', 'context'],
   title: 'PresetPublic',
-  description: 'API shape for a preset (excludes internal ``requires`` gates).',
 } as const;
 
 export const PromptDiffSchema = {
@@ -3141,32 +3065,6 @@ export const PromptEditorChatMessageCreateSchema = {
       type: 'string',
       title: 'Current Prompt',
       description: 'Current prompt text as shown in the editor (includes manual edits)',
-    },
-    provider: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Provider',
-      description:
-        'Optional LLM provider for this turn (e.g. openai, anthropic). Merged with model per LiteLLM rules; omit if model is a full routing id (contains /).',
-    },
-    model: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Model',
-      description:
-        'Optional LLM model for this turn (bare id or full vendor/model routing id). When omitted, server defaults apply.',
     },
     test_case_result_ids: {
       anyOf: [
@@ -3245,21 +3143,6 @@ export const PromptEditorMessagesPublicSchema = {
   type: 'object',
   required: ['data', 'count'],
   title: 'PromptEditorMessagesPublic',
-} as const;
-
-export const PromptEditorSessionBasePromptUpdateSchema = {
-  properties: {
-    base_prompt: {
-      type: 'string',
-      title: 'Base Prompt',
-      description:
-        'New diff baseline for this session (e.g. after saving the agent draft). Typically matches the current draft system_prompt.',
-    },
-  },
-  type: 'object',
-  required: ['base_prompt'],
-  title: 'PromptEditorSessionBasePromptUpdate',
-  description: 'Body for PATCH /prompt-editor/sessions/{id}/base-prompt.',
 } as const;
 
 export const PromptEditorSessionCreateSchema = {

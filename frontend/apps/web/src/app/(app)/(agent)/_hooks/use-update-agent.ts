@@ -7,7 +7,7 @@ import { agentKeys } from '@/constants/query-keys';
 import { isErrorApiResult } from '@/utils/api';
 import { getApiErrorMessage } from '@/utils/error';
 
-import type { AgentUpdate, AgentPublic } from '@/client/types.gen';
+import type { AgentUpdate } from '@/client/types.gen';
 import type {
   AgentFormValues,
   AgentToolValues,
@@ -70,9 +70,8 @@ export function useUpdateAgent(agentId: string, agentName: string) {
     },
     onSuccess: (result) => {
       if (isErrorApiResult(result)) return;
-      const agent = result.data as AgentPublic;
       queryClient.invalidateQueries({ queryKey: agentKeys.lists });
-      queryClient.setQueryData(agentKeys.detail(agentId), agent);
+      queryClient.setQueryData(agentKeys.detail(agentId), result.data);
     },
   });
 

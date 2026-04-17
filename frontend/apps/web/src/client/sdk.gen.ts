@@ -20,9 +20,6 @@ import type {
   AgentsDiscardDraftResponses,
   AgentsGetAgentData,
   AgentsGetAgentErrors,
-  AgentsGetAgentGuidelinesData,
-  AgentsGetAgentGuidelinesErrors,
-  AgentsGetAgentGuidelinesResponses,
   AgentsGetAgentResponses,
   AgentsGetDraftData,
   AgentsGetDraftErrors,
@@ -36,9 +33,6 @@ import type {
   AgentsPublishDraftData,
   AgentsPublishDraftErrors,
   AgentsPublishDraftResponses,
-  AgentsPutAgentGuidelinesData,
-  AgentsPutAgentGuidelinesErrors,
-  AgentsPutAgentGuidelinesResponses,
   AgentsReadAgentVersionData,
   AgentsReadAgentVersionErrors,
   AgentsReadAgentVersionResponses,
@@ -143,9 +137,6 @@ import type {
   PromptEditorListSessionsData,
   PromptEditorListSessionsErrors,
   PromptEditorListSessionsResponses,
-  PromptEditorUpdateSessionBasePromptData,
-  PromptEditorUpdateSessionBasePromptErrors,
-  PromptEditorUpdateSessionBasePromptResponses,
   PromptEditorUpdateSessionData,
   PromptEditorUpdateSessionErrors,
   PromptEditorUpdateSessionResponses,
@@ -820,58 +811,6 @@ export class AgentsService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/agents/{agent_id}/publish',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-  }
-
-  /**
-   * Get Agent Guidelines
-   */
-  public static getAgentGuidelines<ThrowOnError extends boolean = false>(
-    options: Options<AgentsGetAgentGuidelinesData, ThrowOnError>
-  ) {
-    return (options.client ?? client).get<
-      AgentsGetAgentGuidelinesResponses,
-      AgentsGetAgentGuidelinesErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/agents/{agent_id}/guidelines',
-      ...options,
-    });
-  }
-
-  /**
-   * Put Agent Guidelines
-   */
-  public static putAgentGuidelines<ThrowOnError extends boolean = false>(
-    options: Options<AgentsPutAgentGuidelinesData, ThrowOnError>
-  ) {
-    return (options.client ?? client).put<
-      AgentsPutAgentGuidelinesResponses,
-      AgentsPutAgentGuidelinesErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/agents/{agent_id}/guidelines',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -2102,36 +2041,6 @@ export class PromptEditorService {
   }
 
   /**
-   * Update Session Base Prompt
-   *
-   * Set ``base_prompt`` (diff baseline), e.g. after the agent draft is saved.
-   */
-  public static promptEditorUpdateSessionBasePrompt<ThrowOnError extends boolean = false>(
-    options: Options<PromptEditorUpdateSessionBasePromptData, ThrowOnError>
-  ) {
-    return (options.client ?? client).patch<
-      PromptEditorUpdateSessionBasePromptResponses,
-      PromptEditorUpdateSessionBasePromptErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/prompt-editor/sessions/{session_id}/base-prompt',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-  }
-
-  /**
    * List Messages
    */
   public static promptEditorListMessages<ThrowOnError extends boolean = false>(
@@ -2198,9 +2107,9 @@ export class PromptEditorService {
    * Get Presets
    */
   public static promptEditorGetPresets<ThrowOnError extends boolean = false>(
-    options: Options<PromptEditorGetPresetsData, ThrowOnError>
+    options?: Options<PromptEditorGetPresetsData, ThrowOnError>
   ) {
-    return (options.client ?? client).get<
+    return (options?.client ?? client).get<
       PromptEditorGetPresetsResponses,
       PromptEditorGetPresetsErrors,
       ThrowOnError

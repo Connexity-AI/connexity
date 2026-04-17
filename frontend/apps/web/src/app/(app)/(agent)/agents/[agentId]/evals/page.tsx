@@ -10,6 +10,8 @@ import {
 } from '@workspace/ui/components/ui/tabs';
 import { cn } from '@workspace/ui/lib/utils';
 
+import { TestCasesTab } from '@/app/(app)/(agent)/_components/evals/test-cases-tab';
+
 const EVALS_TABS = [
   { id: 'test-cases', label: 'Test Cases' },
   { id: 'eval-configs', label: 'Eval Configs', disabled: true },
@@ -48,9 +50,9 @@ export default function AgentEvalsPage() {
 
         <TabsContent
           value="test-cases"
-          className="flex-1 overflow-auto mt-0 p-4"
+          className="flex-1 flex flex-col min-h-0 mt-0"
         >
-          <div className="text-muted-foreground">Test Cases — coming soon</div>
+          <TestCasesTab />
         </TabsContent>
 
         <TabsContent

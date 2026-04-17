@@ -111,7 +111,7 @@ export const getAgentVersions = async (
     query: { skip, limit },
   });
   const { response: _, ...result } = apiResponse;
-  return result as ApiResult<AgentVersionsPublic>;
+  return result;
 };
 
 export const getAgentVersion = async (
@@ -122,7 +122,7 @@ export const getAgentVersion = async (
     path: { agent_id: agentId, version },
   });
   const { response: _, ...result } = apiResponse;
-  return result as ApiResult<AgentVersionPublic>;
+  return result;
 };
 
 export const getAgentDraft = async (agentId: string): Promise<ApiResult<AgentVersionPublic>> => {
@@ -130,7 +130,7 @@ export const getAgentDraft = async (agentId: string): Promise<ApiResult<AgentVer
     path: { agent_id: agentId },
   });
   const { response: _, ...result } = apiResponse;
-  return result as ApiResult<AgentVersionPublic>;
+  return result;
 };
 
 export const upsertAgentDraft = async (
@@ -142,7 +142,7 @@ export const upsertAgentDraft = async (
     body,
   });
   const { response: _, ...result } = apiResponse;
-  return result as ApiResult<AgentVersionPublic>;
+  return result;
 };
 
 export const publishAgentDraft = async (
@@ -154,7 +154,7 @@ export const publishAgentDraft = async (
     body,
   });
   const { response: _, ...result } = apiResponse;
-  return result as ApiResult<AgentVersionPublic>;
+  return result;
 };
 
 export const rollbackAgentVersion = async (
@@ -166,5 +166,5 @@ export const rollbackAgentVersion = async (
     body,
   });
   const { response: _, ...result } = apiResponse;
-  return result as ApiResult<AgentVersionPublic>;
+  return result;
 };

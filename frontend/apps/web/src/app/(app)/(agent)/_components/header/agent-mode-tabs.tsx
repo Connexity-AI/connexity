@@ -22,8 +22,20 @@ interface ModeTab {
 const MODE_TABS: ModeTab[] = [
   { value: 'edit', label: 'Edit', Icon: Pencil, href: UrlGenerator.agentEdit },
   { value: 'evals', label: 'Evals', Icon: FlaskConical, href: UrlGenerator.agentEvals },
-  { value: 'deploy', label: 'Deploy', Icon: Rocket, href: UrlGenerator.agentDeploy, disabled: true },
-  { value: 'observe', label: 'Observe', Icon: Radio, href: UrlGenerator.agentObserve, disabled: true },
+  {
+    value: 'deploy',
+    label: 'Deploy',
+    Icon: Rocket,
+    href: UrlGenerator.agentDeploy,
+    disabled: true,
+  },
+  {
+    value: 'observe',
+    label: 'Observe',
+    Icon: Radio,
+    href: UrlGenerator.agentObserve,
+    disabled: true,
+  },
 ];
 
 interface AgentModeTabsProps {
@@ -41,13 +53,13 @@ export function AgentModeTabs({ agentId, activeMode }: AgentModeTabsProps) {
             value={value}
             disabled={disabled}
             asChild={!disabled}
-            className="gap-1.5 cursor-pointer disabled:cursor-not-allowed"
+            className="gap-1.5 px-4  cursor-pointer disabled:cursor-not-allowed"
           >
             {disabled ? (
-              <span>
+              <>
                 <Icon className="h-3.5 w-3.5" />
                 {label}
-              </span>
+              </>
             ) : (
               <Link href={href(agentId)}>
                 <Icon className="h-3.5 w-3.5" />

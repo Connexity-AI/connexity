@@ -48,7 +48,7 @@ class GenerateRequest(BaseModel):
         description="Agent system prompt; optional if agent_id is set (loaded from AgentVersion)",
     )
     tools: list[ToolDefinition] = Field(default_factory=list)
-    count: int = Field(default=10, ge=1, le=50)
+    count: int = Field(default=10, ge=1, le=200)
     focus_tags: list[str] = Field(default_factory=list)
     model: str | None = None
     temperature: float | None = Field(default=None, ge=0.0, le=2.0)
