@@ -31,8 +31,7 @@ def _make_test_case(*, name: str = "test-case") -> TestCase:
         id=uuid.uuid4(),
         name=name,
         status=TestCaseStatus.ACTIVE,
-        initial_message="Hello",
-        max_turns=5,
+        first_message="Hello",
         tags=[],
     )
 
@@ -53,10 +52,9 @@ def _make_run(
     )
 
 
-def _mock_eval_set(*, eval_set_id: uuid.UUID, set_repetitions: int = 1) -> MagicMock:
+def _mock_eval_set(*, eval_set_id: uuid.UUID) -> MagicMock:
     m = MagicMock()
     m.id = eval_set_id
-    m.set_repetitions = set_repetitions
     return m
 
 
@@ -179,13 +177,11 @@ class TestExecuteSingleTestCase:
                 semaphore=asyncio.Semaphore(5),
                 cancel_event=asyncio.Event(),
                 repetition_index=2,
-                set_repetition_index=1,
             )
 
         create_call = mock_crud.create_test_case_result.call_args
         result_in = create_call.kwargs.get("result_in", create_call[1].get("result_in"))
         assert result_in.repetition_index == 2
-        assert result_in.set_repetition_index == 1
 
         assert result.passed is True
         mock_run_eval.assert_awaited_once()
@@ -316,7 +312,7 @@ class TestExecuteRun:
         "app.services.orchestrator._execute_single_test_case",
         new_callable=AsyncMock,
     )
-    async def test_expands_tasks_by_set_and_member_repetitions(
+    async def test_expands_tasks_by_member_repetitions(
         self, mock_single: AsyncMock
     ) -> None:
         s1 = _make_test_case(name="a")
@@ -327,7 +323,7 @@ class TestExecuteRun:
         mock_crud.get_run.return_value = run
         mock_crud.update_run.return_value = run
         mock_crud.get_eval_set.return_value = _mock_eval_set(
-            eval_set_id=run.eval_set_id, set_repetitions=2
+            eval_set_id=run.eval_set_id
         )
         mock_crud.get_test_cases_for_set.return_value = [
             TestCaseExecution(test_case=s1, repetitions=2, position=0),
@@ -342,17 +338,16 @@ class TestExecuteRun:
         with p1, p2, p3, p4:
             await execute_run(run.id)
 
-        # (2 + 1) member reps * 2 set reps = 6 tasks
-        assert mock_single.await_count == 6
+        # 2 + 1 member reps = 3 tasks (set_repetitions removed)
+        assert mock_single.await_count == 3
         seen = {
             (
                 c.kwargs["repetition_index"],
-                c.kwargs["set_repetition_index"],
                 c.kwargs["test_case"].id,
             )
             for c in mock_single.call_args_list
         }
-        assert len(seen) == 6
+        assert len(seen) == 3
 
     @patch(
         "app.services.orchestrator._execute_single_test_case",

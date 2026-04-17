@@ -203,7 +203,7 @@ def count_test_cases_in_set(*, session: Session, eval_set_id: uuid.UUID) -> int:
 
 
 def sum_member_repetitions_in_set(*, session: Session, eval_set_id: uuid.UUID) -> int:
-    """Sum of repetitions across all members (one set pass, before set_repetitions)."""
+    """Sum of per-test-case repetitions across all members — total expanded executions."""
     total = session.exec(
         select(func.coalesce(func.sum(EvalSetMember.repetitions), 0)).where(
             EvalSetMember.eval_set_id == eval_set_id
@@ -229,7 +229,7 @@ def count_test_cases_in_sets(
 def sum_member_repetitions_in_sets(
     *, session: Session, eval_set_ids: list[uuid.UUID]
 ) -> dict[uuid.UUID, int]:
-    """Batch-fetch sum of member repetitions per set (one set pass, before set_repetitions)."""
+    """Batch-fetch sum of per-test-case repetitions per set — total expanded executions."""
     if not eval_set_ids:
         return {}
     rows = session.exec(

@@ -20,12 +20,12 @@ KEY FIELD DETAILS:
 - "status": ALWAYS set to "draft"
 - "difficulty": either "normal" or "hard"
 - "tags": MUST include at least one category tag: "normal", "edge-case", or "red-team"
-- "persona": object with "type" (short label), "description", and "instructions" (behavioral directives for the simulated user)
-- "initial_message": the first message the simulated user sends to the agent
+- "persona_context": a single text block describing the persona (type, description, and behavioral instructions combined)
+- "first_turn": who speaks first — "persona" (default) or "agent". Use "agent" for greeting/welcome scenarios.
+- "first_message": the opening message for whoever speaks first
 - "user_context": free-form dict of background info available to the simulator
-- "expected_outcomes": free-form dict of success criteria the judge evaluates
+- "expected_outcomes": list of true-statement assertions the judge evaluates (e.g. "Agent MUST confirm the appointment date")
 - "expected_tool_calls": list of tools the agent should invoke, each with "tool" (name) and optional "expected_params"
-- "max_turns": suggested conversation length cap (null for unlimited)
 
 DIVERSITY REQUIREMENTS:
 - Include a mix of: happy-path/normal cases, edge cases, and red-team/adversarial cases

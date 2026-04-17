@@ -10,8 +10,8 @@ def test_build_system_prompt_contains_schema_fields() -> None:
     assert "name" in prompt
     assert "difficulty" in prompt
     assert "tags" in prompt
-    assert "persona" in prompt
-    assert "initial_message" in prompt
+    assert "persona_context" in prompt
+    assert "first_message" in prompt
     assert "expected_tool_calls" in prompt
     assert "draft" in prompt
 

@@ -30,7 +30,6 @@ def list_test_case_results(
     run_id: uuid.UUID | None = None,
     test_case_id: uuid.UUID | None = None,
     repetition_index: int | None = None,
-    set_repetition_index: int | None = None,
 ) -> tuple[list[TestCaseResult], int]:
     statement = select(TestCaseResult)
     count_statement = select(func.count()).select_from(TestCaseResult)
@@ -47,13 +46,6 @@ def list_test_case_results(
         statement = statement.where(TestCaseResult.repetition_index == repetition_index)
         count_statement = count_statement.where(
             TestCaseResult.repetition_index == repetition_index
-        )
-    if set_repetition_index is not None:
-        statement = statement.where(
-            TestCaseResult.set_repetition_index == set_repetition_index
-        )
-        count_statement = count_statement.where(
-            TestCaseResult.set_repetition_index == set_repetition_index
         )
 
     count = session.exec(count_statement).one()

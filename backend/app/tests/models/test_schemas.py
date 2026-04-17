@@ -12,7 +12,6 @@ from app.models.schemas import (
     MetricScore,
     MetricSelection,
     MockResponse,
-    Persona,
     PythonImplementation,
     RunConfig,
     ToolCall,
@@ -28,23 +27,6 @@ def _round_trip(model_class, instance):
     restored = model_class.model_validate(data)
     assert restored == instance
     return restored
-
-
-# ── Persona ────────────────────────────────────────────────────────
-
-
-def test_persona_round_trip():
-    persona = Persona(
-        type="polite-customer",
-        description="A polite customer requesting help",
-        instructions="Be cooperative and provide order number when asked.",
-    )
-    restored = _round_trip(Persona, persona)
-    assert restored.type == "polite-customer"
-    assert restored.description == "A polite customer requesting help"
-    assert (
-        restored.instructions == "Be cooperative and provide order number when asked."
-    )
 
 
 # ── ExpectedToolCall ──────────────────────────────────────────────

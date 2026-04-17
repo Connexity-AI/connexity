@@ -53,7 +53,7 @@ def test_test_case_create_minimal():
     tc = TestCaseCreate(name="Test TestCase")
     assert tc.difficulty == Difficulty.NORMAL
     assert tc.status == TestCaseStatus.ACTIVE
-    assert tc.max_turns is None
+    assert tc.first_message is None
 
 
 def test_test_case_create_with_tags():

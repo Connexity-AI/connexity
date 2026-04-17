@@ -5,7 +5,7 @@ import json
 from pydantic import BaseModel, Field
 
 from app.models.enums import SimulatorMode
-from app.models.schemas import Persona, UserSimulatorConfig
+from app.models.schemas import UserSimulatorConfig
 from app.services.llm import LLMCallConfig, LLMMessage, call_llm
 
 
@@ -28,31 +28,26 @@ class SimulatorResult(BaseModel):
 
 
 def _build_system_prompt(
-    persona: Persona,
+    persona_context: str | None,
     user_context: dict[str, object] | None,
-    expected_outcomes: dict[str, object] | None,
+    expected_outcomes: list[str] | None,
 ) -> str:
-    """Build the simulator system prompt from persona and test case context."""
+    """Build the simulator system prompt from persona context and test case context."""
+    persona_block = persona_context or "(no persona specified)"
     ctx_block = (
         json.dumps(user_context, indent=2, ensure_ascii=False)
         if user_context
         else "(none)"
     )
-    outcomes_block = (
-        json.dumps(expected_outcomes, indent=2, ensure_ascii=False)
-        if expected_outcomes
-        else "(none)"
-    )
+    if expected_outcomes:
+        outcomes_block = "\n".join(f"- {o}" for o in expected_outcomes)
+    else:
+        outcomes_block = "(none)"
 
     return f"""You are simulating the USER in a conversation with an AI assistant (the agent under test).
 
-PERSONA TYPE: {persona.type}
-
-PERSONA DESCRIPTION:
-{persona.description}
-
-BEHAVIORAL INSTRUCTIONS (follow closely):
-{persona.instructions}
+PERSONA CONTEXT:
+{persona_block}
 
 BACKGROUND CONTEXT (only you know this; do not reveal you are a simulator):
 {ctx_block}
@@ -77,20 +72,17 @@ class UserSimulator:
 
     def __init__(
         self,
-        persona: Persona,
+        persona_context: str | None,
         initial_message: str,
         user_context: dict[str, object] | None,
-        expected_outcomes: dict[str, object] | None,
+        expected_outcomes: list[str] | None,
         config: UserSimulatorConfig,
     ) -> None:
-        self._persona = persona
         self._initial_message = initial_message
-        self._user_context = user_context
-        self._expected_outcomes = expected_outcomes
         self._config = config
         self._scripted_index = 0
         self._system_prompt = _build_system_prompt(
-            persona, user_context, expected_outcomes
+            persona_context, user_context, expected_outcomes
         )
 
     def get_initial_message(self) -> str:

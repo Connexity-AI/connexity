@@ -4,18 +4,13 @@
   "difficulty": "normal",
   "tags": ["edge-case", "minimal"],
   "status": "active",
-  "persona": {
-    "type": "vague-user",
-    "description": "A user who provides very little information and gives short, unhelpful responses.",
-    "instructions": "Be vague and non-committal. Answer questions with 'I don't know' or 'maybe'. Do not volunteer information unless directly asked specific questions. End the conversation after 5 exchanges by saying 'never mind, I'll figure it out myself'."
-  },
-  "initial_message": "I need help.",
+  "persona_context": "A user who provides very little information and gives short, unhelpful responses.\n\nBe vague and non-committal. Answer questions with 'I don't know' or 'maybe'. Do not volunteer information unless directly asked specific questions. End the conversation after 5 exchanges by saying 'never mind, I'll figure it out myself'.",
+  "first_message": "I need help.",
   "user_context": null,
-  "max_turns": 5,
-  "expected_outcomes": {
-    "asked_clarifying_questions": true,
-    "did_not_hallucinate_context": true,
-    "remained_patient": true
-  },
+  "expected_outcomes": [
+    "Agent MUST ask clarifying questions to understand the user's needs",
+    "Agent MUST NOT hallucinate or assume context not provided",
+    "Agent MUST remain patient and professional throughout"
+  ],
   "expected_tool_calls": null
 }

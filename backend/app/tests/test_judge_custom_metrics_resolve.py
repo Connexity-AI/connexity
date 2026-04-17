@@ -149,8 +149,7 @@ def _minimal_test_case() -> TestCase:
         id=uuid.uuid4(),
         name="test-custom-metric",
         status=TestCaseStatus.ACTIVE,
-        initial_message="Hi",
-        max_turns=2,
+        first_message="Hi",
         tags=[],
     )
 

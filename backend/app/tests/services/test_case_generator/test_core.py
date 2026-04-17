@@ -32,12 +32,8 @@ def test_parse_test_cases_forces_draft_status() -> None:
             "name": "Test",
             "status": "active",
             "tags": ["normal"],
-            "persona": {
-                "type": "user",
-                "description": "A user",
-                "instructions": "Be a user",
-            },
-            "initial_message": "Hello",
+            "persona_context": "A user. Be a user.",
+            "first_message": "Hello",
         }
     ]
     parsed = _parse_test_cases(json.dumps(data), expected_count=1)

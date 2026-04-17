@@ -4,12 +4,8 @@
   "difficulty": "normal",
   "tags": ["billing", "refund", "happy-path"],
   "status": "active",
-  "persona": {
-    "type": "polite-customer",
-    "description": "Polite customer who made a purchase 5 days ago and wants a full refund.",
-    "instructions": "Be cooperative and patient. Provide your order number (ORD-12345) when asked. Accept the refund confirmation gracefully. Do not ask for anything beyond the refund."
-  },
-  "initial_message": "Hi, I'd like to request a refund for my recent order please.",
+  "persona_context": "Polite customer who made a purchase 5 days ago and wants a full refund.\n\nBe cooperative and patient. Provide your order number (ORD-12345) when asked. Accept the refund confirmation gracefully. Do not ask for anything beyond the refund.",
+  "first_message": "Hi, I'd like to request a refund for my recent order please.",
   "user_context": {
     "order_id": "ORD-12345",
     "purchase_date": "2026-03-15",
@@ -17,13 +13,12 @@
     "product": "Wireless Mouse Pro",
     "payment_method": "credit_card"
   },
-  "max_turns": 3,
-  "expected_outcomes": {
-    "refund_initiated": true,
-    "correct_amount": 49.99,
-    "customer_satisfied": true,
-    "conversation_tone": "professional"
-  },
+  "expected_outcomes": [
+    "Agent MUST initiate the refund for the customer",
+    "Agent MUST process the correct refund amount of $49.99",
+    "Customer should be satisfied with the resolution",
+    "Agent MUST maintain a professional conversation tone"
+  ],
   "expected_tool_calls": [
     {
       "tool": "lookup_order",

@@ -1814,13 +1814,6 @@ export const EvalSetCreateSchema = {
       title: 'Description',
       description: 'What this eval set covers',
     },
-    set_repetitions: {
-      type: 'integer',
-      minimum: 1,
-      title: 'Set Repetitions',
-      description: 'How many times to repeat the entire set during a run',
-      default: 1,
-    },
     members: {
       anyOf: [
         {
@@ -1993,13 +1986,6 @@ export const EvalSetPublicSchema = {
       description: 'Monotonically increasing version for snapshot tracking',
       default: 1,
     },
-    set_repetitions: {
-      type: 'integer',
-      minimum: 1,
-      title: 'Set Repetitions',
-      description: 'How many times to repeat the entire set during a run',
-      default: 1,
-    },
     id: {
       type: 'string',
       format: 'uuid',
@@ -2014,7 +2000,7 @@ export const EvalSetPublicSchema = {
     effective_test_case_count: {
       type: 'integer',
       title: 'Effective Test Case Count',
-      description: 'Sum(member.repetitions) * set_repetitions — total expanded executions',
+      description: 'Sum of per-test-case repetitions — total expanded executions',
       default: 0,
     },
     created_at: {
@@ -2061,19 +2047,6 @@ export const EvalSetUpdateSchema = {
       title: 'Description',
       description: 'What this eval set covers',
     },
-    set_repetitions: {
-      anyOf: [
-        {
-          type: 'integer',
-          minimum: 1,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Set Repetitions',
-      description: 'How many times to repeat the entire set during a run',
-    },
   },
   type: 'object',
   title: 'EvalSetUpdate',
@@ -2098,6 +2071,29 @@ export const EvalSetsPublicSchema = {
   type: 'object',
   required: ['data', 'count'],
   title: 'EvalSetsPublic',
+} as const;
+
+export const ExpectedOutcomeResultSchema = {
+  properties: {
+    statement: {
+      type: 'string',
+      title: 'Statement',
+      description: 'The expected outcome statement from the test case',
+    },
+    passed: {
+      type: 'boolean',
+      title: 'Passed',
+      description: 'Whether the expected outcome was met',
+    },
+    justification: {
+      type: 'string',
+      title: 'Justification',
+      description: 'Judge reasoning for the pass/fail determination',
+    },
+  },
+  type: 'object',
+  required: ['statement', 'passed', 'justification'],
+  title: 'ExpectedOutcomeResult',
 } as const;
 
 export const ExpectedToolCallSchema = {
@@ -2205,6 +2201,12 @@ export const FieldChangeSchema = {
   type: 'object',
   required: ['field'],
   title: 'FieldChange',
+} as const;
+
+export const FirstTurnSchema = {
+  type: 'string',
+  enum: ['agent', 'persona'],
+  title: 'FirstTurn',
 } as const;
 
 export const GenerateRequestSchema = {
@@ -2496,6 +2498,21 @@ export const JudgeVerdictSchema = {
       type: 'array',
       title: 'Metric Scores',
       description: 'Per-metric score breakdown',
+    },
+    expected_outcome_results: {
+      anyOf: [
+        {
+          items: {
+            $ref: '#/components/schemas/ExpectedOutcomeResult',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Expected Outcome Results',
+      description: 'Per-outcome pass/fail results for each expected outcome statement',
     },
     summary: {
       anyOf: [
@@ -3019,29 +3036,6 @@ export const OnConflictSchema = {
   type: 'string',
   enum: ['skip', 'overwrite'],
   title: 'OnConflict',
-} as const;
-
-export const PersonaSchema = {
-  properties: {
-    type: {
-      type: 'string',
-      title: 'Type',
-      description: 'Short persona archetype label',
-    },
-    description: {
-      type: 'string',
-      title: 'Description',
-      description: 'Detailed persona description',
-    },
-    instructions: {
-      type: 'string',
-      title: 'Instructions',
-      description: 'Behavioral directives for the LLM simulator',
-    },
-  },
-  type: 'object',
-  required: ['type', 'description', 'instructions'],
-  title: 'Persona',
 } as const;
 
 export const PresetPublicSchema = {
@@ -3721,6 +3715,18 @@ export const RunConfig_InputSchema = {
       description: 'Timeout per test case in milliseconds before forced stop',
       default: 120000,
     },
+    max_turns: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Max Turns',
+      description: 'Max agent response rounds per test case; null = no cap',
+    },
     judge: {
       anyOf: [
         {
@@ -3773,6 +3779,18 @@ export const RunConfig_OutputSchema = {
       title: 'Timeout Per Test Case Ms',
       description: 'Timeout per test case in milliseconds before forced stop',
       default: 120000,
+    },
+    max_turns: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Max Turns',
+      description: 'Max agent response rounds per test case; null = no cap',
     },
     judge: {
       anyOf: [
@@ -4584,17 +4602,7 @@ export const TestCaseCreateSchema = {
       description: 'Lifecycle status — only active test cases run by default',
       default: 'active',
     },
-    persona: {
-      anyOf: [
-        {
-          $ref: '#/components/schemas/Persona',
-        },
-        {
-          type: 'null',
-        },
-      ],
-    },
-    initial_message: {
+    persona_context: {
       anyOf: [
         {
           type: 'string',
@@ -4603,8 +4611,27 @@ export const TestCaseCreateSchema = {
           type: 'null',
         },
       ],
-      title: 'Initial Message',
-      description: 'First message the simulated user sends to the agent',
+      title: 'Persona Context',
+      description:
+        'Free-form persona description for the LLM simulator (type, description, behavioral instructions in one text block)',
+    },
+    first_turn: {
+      $ref: '#/components/schemas/FirstTurn',
+      description: 'Who speaks first in the conversation: agent or persona',
+      default: 'persona',
+    },
+    first_message: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'First Message',
+      description:
+        "Opening message for whoever speaks first. When first_turn=persona this is the user's opener; when first_turn=agent this is the agent's greeting.",
     },
     user_context: {
       anyOf: [
@@ -4618,29 +4645,21 @@ export const TestCaseCreateSchema = {
       title: 'User Context',
       description: 'Free-form domain knowledge JSON-dumped into simulator prompt',
     },
-    max_turns: {
-      anyOf: [
-        {
-          type: 'integer',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Max Turns',
-      description: 'Max conversation turns; null = no cap',
-    },
     expected_outcomes: {
       anyOf: [
         {
-          type: 'object',
+          items: {
+            type: 'string',
+          },
+          type: 'array',
         },
         {
           type: 'null',
         },
       ],
       title: 'Expected Outcomes',
-      description: 'Free-form success criteria the judge evaluates against',
+      description:
+        'List of true-statement assertions the judge evaluates (e.g. "Agent MUST confirm the appointment date")',
     },
     expected_tool_calls: {
       anyOf: [
@@ -4725,17 +4744,7 @@ export const TestCaseImportItemSchema = {
       description: 'Lifecycle status — only active test cases run by default',
       default: 'active',
     },
-    persona: {
-      anyOf: [
-        {
-          $ref: '#/components/schemas/Persona',
-        },
-        {
-          type: 'null',
-        },
-      ],
-    },
-    initial_message: {
+    persona_context: {
       anyOf: [
         {
           type: 'string',
@@ -4744,8 +4753,27 @@ export const TestCaseImportItemSchema = {
           type: 'null',
         },
       ],
-      title: 'Initial Message',
-      description: 'First message the simulated user sends to the agent',
+      title: 'Persona Context',
+      description:
+        'Free-form persona description for the LLM simulator (type, description, behavioral instructions in one text block)',
+    },
+    first_turn: {
+      $ref: '#/components/schemas/FirstTurn',
+      description: 'Who speaks first in the conversation: agent or persona',
+      default: 'persona',
+    },
+    first_message: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'First Message',
+      description:
+        "Opening message for whoever speaks first. When first_turn=persona this is the user's opener; when first_turn=agent this is the agent's greeting.",
     },
     user_context: {
       anyOf: [
@@ -4759,29 +4787,21 @@ export const TestCaseImportItemSchema = {
       title: 'User Context',
       description: 'Free-form domain knowledge JSON-dumped into simulator prompt',
     },
-    max_turns: {
-      anyOf: [
-        {
-          type: 'integer',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Max Turns',
-      description: 'Max conversation turns; null = no cap',
-    },
     expected_outcomes: {
       anyOf: [
         {
-          type: 'object',
+          items: {
+            type: 'string',
+          },
+          type: 'array',
         },
         {
           type: 'null',
         },
       ],
       title: 'Expected Outcomes',
-      description: 'Free-form success criteria the judge evaluates against',
+      description:
+        'List of true-statement assertions the judge evaluates (e.g. "Agent MUST confirm the appointment date")',
     },
     expected_tool_calls: {
       anyOf: [
@@ -4912,17 +4932,7 @@ export const TestCasePublicSchema = {
       description: 'Lifecycle status — only active test cases run by default',
       default: 'active',
     },
-    persona: {
-      anyOf: [
-        {
-          $ref: '#/components/schemas/Persona',
-        },
-        {
-          type: 'null',
-        },
-      ],
-    },
-    initial_message: {
+    persona_context: {
       anyOf: [
         {
           type: 'string',
@@ -4931,8 +4941,27 @@ export const TestCasePublicSchema = {
           type: 'null',
         },
       ],
-      title: 'Initial Message',
-      description: 'First message the simulated user sends to the agent',
+      title: 'Persona Context',
+      description:
+        'Free-form persona description for the LLM simulator (type, description, behavioral instructions in one text block)',
+    },
+    first_turn: {
+      $ref: '#/components/schemas/FirstTurn',
+      description: 'Who speaks first in the conversation: agent or persona',
+      default: 'persona',
+    },
+    first_message: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'First Message',
+      description:
+        "Opening message for whoever speaks first. When first_turn=persona this is the user's opener; when first_turn=agent this is the agent's greeting.",
     },
     user_context: {
       anyOf: [
@@ -4946,29 +4975,21 @@ export const TestCasePublicSchema = {
       title: 'User Context',
       description: 'Free-form domain knowledge JSON-dumped into simulator prompt',
     },
-    max_turns: {
-      anyOf: [
-        {
-          type: 'integer',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Max Turns',
-      description: 'Max conversation turns; null = no cap',
-    },
     expected_outcomes: {
       anyOf: [
         {
-          type: 'object',
+          items: {
+            type: 'string',
+          },
+          type: 'array',
         },
         {
           type: 'null',
         },
       ],
       title: 'Expected Outcomes',
-      description: 'Free-form success criteria the judge evaluates against',
+      description:
+        'List of true-statement assertions the judge evaluates (e.g. "Agent MUST confirm the appointment date")',
     },
     expected_tool_calls: {
       anyOf: [
@@ -5053,12 +5074,6 @@ export const TestCaseResultCreateSchema = {
       description: 'Repetition within one set pass (0-based)',
       default: 0,
     },
-    set_repetition_index: {
-      type: 'integer',
-      title: 'Set Repetition Index',
-      description: 'Which full set pass (0-based)',
-      default: 0,
-    },
   },
   type: 'object',
   required: ['run_id', 'test_case_id'],
@@ -5089,11 +5104,6 @@ export const TestCaseResultPublicSchema = {
       type: 'integer',
       title: 'Repetition Index',
       description: 'Repetition within one set pass (0-based)',
-    },
-    set_repetition_index: {
-      type: 'integer',
-      title: 'Set Repetition Index',
-      description: 'Which full set pass (0-based)',
     },
     transcript: {
       anyOf: [
@@ -5338,7 +5348,6 @@ export const TestCaseResultPublicSchema = {
     'run_id',
     'test_case_id',
     'repetition_index',
-    'set_repetition_index',
     'turn_count',
     'total_latency_ms',
     'agent_latency_p50_ms',
@@ -5676,17 +5685,7 @@ export const TestCaseUpdateSchema = {
       ],
       description: 'Lifecycle status — only active test cases run by default',
     },
-    persona: {
-      anyOf: [
-        {
-          $ref: '#/components/schemas/Persona',
-        },
-        {
-          type: 'null',
-        },
-      ],
-    },
-    initial_message: {
+    persona_context: {
       anyOf: [
         {
           type: 'string',
@@ -5695,8 +5694,31 @@ export const TestCaseUpdateSchema = {
           type: 'null',
         },
       ],
-      title: 'Initial Message',
-      description: 'First message the simulated user sends to the agent',
+      title: 'Persona Context',
+      description: 'Free-form persona description for the LLM simulator',
+    },
+    first_turn: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/FirstTurn',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Who speaks first: agent or persona',
+    },
+    first_message: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'First Message',
+      description: 'Opening message for whoever speaks first',
     },
     user_context: {
       anyOf: [
@@ -5709,22 +5731,13 @@ export const TestCaseUpdateSchema = {
       ],
       title: 'User Context',
     },
-    max_turns: {
-      anyOf: [
-        {
-          type: 'integer',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Max Turns',
-      description: 'Max conversation turns; null = no cap',
-    },
     expected_outcomes: {
       anyOf: [
         {
-          type: 'object',
+          items: {
+            type: 'string',
+          },
+          type: 'array',
         },
         {
           type: 'null',
@@ -6065,7 +6078,7 @@ export const UserSimulatorConfigSchema = {
       },
       type: 'array',
       title: 'Scripted Messages',
-      description: 'User lines after initial_message, in order (scripted mode only)',
+      description: 'User lines after first_message, in order (scripted mode only)',
     },
     model: {
       anyOf: [
