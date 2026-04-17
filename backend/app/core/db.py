@@ -1,9 +1,9 @@
-from sqlalchemy import text
-from sqlmodel import Session, SQLModel, col, create_engine, select
+from sqlmodel import Session, col, create_engine, select
 
 from app import crud
 from app.core.config import settings
 from app.models import (
+    Agent,
     AgentCreate,
     Difficulty,
     EvalSetCreate,
@@ -31,35 +31,28 @@ engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
 
 
 def init_db(session: Session) -> None:
-    # Tables should be created with Alembic migrations
-    # But if you don't want to use migrations, create
-    # the tables un-commenting the next lines
-    # from sqlmodel import SQLModel
-
-    # This works because the models are already imported and registered from app.models
-    # SQLModel.metadata.create_all(engine)
-
-    # Wipe everything
-    truncate_all_tables(session)
-
-    # Seed one superuser
+    """Ensure the admin superuser exists. Safe to run on every boot."""
     # Credentials come from .env — defaults: admin@example.com / password
-    user_in = UserCreate(
-        email=settings.FIRST_SUPERUSER,
-        password=settings.FIRST_SUPERUSER_PASSWORD,
-        is_superuser=True,
-        full_name="Admin",
-    )
-    crud.create_user(session=session, user_create=user_in)
-
-    # Seed eval-domain entities
-    _seed_eval_data(session)
+    if not crud.get_user_by_email(session=session, email=settings.FIRST_SUPERUSER):
+        user_in = UserCreate(
+            email=settings.FIRST_SUPERUSER,
+            password=settings.FIRST_SUPERUSER_PASSWORD,
+            is_superuser=True,
+            full_name="Admin",
+        )
+        crud.create_user(session=session, user_create=user_in)
 
     session.commit()
 
 
-def _seed_eval_data(session: Session) -> None:
-    """Seed eval-domain entities for dev/testing."""
+def seed_eval_data(session: Session) -> None:
+    """Seed eval-domain entities for dev/testing.
+
+    Skips entirely if any agent already exists (preserves existing data on restart).
+    """
+    if session.exec(select(Agent)).first():
+        return
+
     admin = session.exec(select(User).where(col(User.is_superuser).is_(True))).first()
     owner_id = admin.id if admin else None
 
@@ -301,15 +294,3 @@ def _seed_eval_data(session: Session) -> None:
             error_message="Agent failed to transfer to supervisor",
         ),
     )
-
-
-def truncate_all_tables(session: Session) -> None:
-    """
-    Truncate all SQLModel tables dynamically.
-    """
-    table_names = ", ".join(
-        f'"{table.name}"' for table in SQLModel.metadata.sorted_tables
-    )
-
-    session.execute(text(f"TRUNCATE TABLE {table_names} RESTART IDENTITY CASCADE;"))
-    session.commit()
