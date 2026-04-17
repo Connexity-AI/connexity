@@ -39,7 +39,7 @@ def test_format_eval_context_with_aggregate_and_comparison() -> None:
         tool_names=["lookup"],
         run_id=uuid.uuid4(),
         run_name="Run 1",
-        eval_set_name="Suite",
+        eval_config_name="Suite",
         total_test_cases=10,
         pass_rate=0.7,
         avg_overall_score=72.5,

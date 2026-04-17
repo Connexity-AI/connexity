@@ -7,9 +7,9 @@ from app.models import (
     Agent,
     AgentCreate,
     AgentMode,
-    EvalSet,
-    EvalSetCreate,
-    EvalSetMemberEntry,
+    EvalConfig,
+    EvalConfigCreate,
+    EvalConfigMemberEntry,
     PromptEditorMessage,
     PromptEditorMessageCreate,
     PromptEditorSession,
@@ -60,28 +60,33 @@ def create_test_case_fixture(session: Session, **overrides: object) -> TestCase:
     )
 
 
-def eval_set_members(*test_case_ids: uuid.UUID) -> list[EvalSetMemberEntry]:
+def eval_config_members(*test_case_ids: uuid.UUID) -> list[EvalConfigMemberEntry]:
     """Build member entries with default repetitions=1 (test helper)."""
-    return [EvalSetMemberEntry(test_case_id=sid) for sid in test_case_ids]
+    return [EvalConfigMemberEntry(test_case_id=sid) for sid in test_case_ids]
 
 
-def create_test_eval_set(
+def create_test_eval_config(
     session: Session,
     *,
-    members: list[EvalSetMemberEntry] | None = None,
-) -> EvalSet:
-    eval_set_in = EvalSetCreate(
-        name=f"test-set-{uuid.uuid4().hex[:8]}",
-        description="Test eval set",
+    agent_id: uuid.UUID | None = None,
+    members: list[EvalConfigMemberEntry] | None = None,
+) -> EvalConfig:
+    if agent_id is None:
+        agent = create_test_agent(session)
+        agent_id = agent.id
+    eval_config_in = EvalConfigCreate(
+        name=f"test-config-{uuid.uuid4().hex[:8]}",
+        description="Test eval config",
+        agent_id=agent_id,
         members=members,
     )
-    return crud.create_eval_set(session=session, eval_set_in=eval_set_in)
+    return crud.create_eval_config(session=session, eval_config_in=eval_config_in)
 
 
 def create_test_run(
     session: Session,
     agent_id: uuid.UUID,
-    eval_set_id: uuid.UUID,
+    eval_config_id: uuid.UUID,
 ) -> Run:
     agent = crud.get_agent(session=session, agent_id=agent_id)
     assert agent is not None
@@ -89,7 +94,7 @@ def create_test_run(
         name=f"test-run-{uuid.uuid4().hex[:8]}",
         agent_id=agent_id,
         agent_endpoint_url="http://localhost:8080/agent",
-        eval_set_id=eval_set_id,
+        eval_config_id=eval_config_id,
     )
     run_in = crud.enrich_run_create_from_agent(
         session=session, run_in=run_in, agent=agent

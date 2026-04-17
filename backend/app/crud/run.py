@@ -135,7 +135,7 @@ def update_run(*, session: Session, db_run: Run, run_in: RunUpdate) -> Run:
 
 
 def set_baseline(*, session: Session, db_run: Run) -> Run:
-    """Mark *db_run* as the baseline for its (agent_id, eval_set_id) pair.
+    """Mark *db_run* as the baseline for its (agent_id, eval_config_id) pair.
 
     Any other run that was previously the baseline for the same pair is cleared.
 
@@ -147,11 +147,11 @@ def set_baseline(*, session: Session, db_run: Run) -> Run:
             f"Only completed runs can be marked as baseline (status={db_run.status})"
         )
 
-    # Clear existing baselines for the same (agent, agent_version, eval_set) scope
+    # Clear existing baselines for the same (agent, agent_version, eval_config) scope
     statement = select(Run).where(
         Run.agent_id == db_run.agent_id,
         Run.agent_version == db_run.agent_version,
-        Run.eval_set_id == db_run.eval_set_id,
+        Run.eval_config_id == db_run.eval_config_id,
         Run.is_baseline == True,  # noqa: E712
         Run.id != db_run.id,
     )
@@ -170,17 +170,17 @@ def get_baseline_run(
     *,
     session: Session,
     agent_id: uuid.UUID,
-    eval_set_id: uuid.UUID,
+    eval_config_id: uuid.UUID,
     agent_version: int | None = None,
 ) -> Run | None:
-    """Return baseline for (agent, eval_set), optionally scoped to a version.
+    """Return baseline for (agent, eval_config), optionally scoped to a version.
 
     If *agent_version* is None, returns the baseline for the agent's current
     version (``Agent.version``).
     """
     statement = select(Run).where(
         Run.agent_id == agent_id,
-        Run.eval_set_id == eval_set_id,
+        Run.eval_config_id == eval_config_id,
         Run.is_baseline == True,  # noqa: E712
     )
     if agent_version is not None:

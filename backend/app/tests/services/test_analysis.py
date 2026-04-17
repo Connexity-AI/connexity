@@ -10,7 +10,7 @@ import pytest
 from app.models.comparison import (
     AggregateComparison,
     CauseAnalysisItem,
-    EvalSetDiff,
+    EvalConfigDiff,
     FieldChange,
     ImprovementSuggestion,
     ImprovementSuggestions,
@@ -61,7 +61,7 @@ def _make_config_diff(**overrides: object) -> RunConfigDiff:
     defaults = {
         "prompt_diff": PromptDiff(changed=False, change_ratio=0.0),
         "tool_diff": ToolDiff(),
-        "eval_set_diff": EvalSetDiff(
+        "eval_config_diff": EvalConfigDiff(
             same_set=True,
             version_changed=False,
             common_test_case_ids=[uuid.uuid4()],

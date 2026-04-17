@@ -21,7 +21,7 @@ KEY FIELD DETAILS:
 - "difficulty": either "normal" or "hard"
 - "tags": MUST include at least one category tag: "normal", "edge-case", or "red-team"
 - "persona_context": a single text block describing the persona (type, description, and behavioral instructions combined)
-- "first_turn": who speaks first — "persona" (default) or "agent". Use "agent" for greeting/welcome scenarios.
+- "first_turn": who speaks first — "user" (default) or "agent". Use "agent" for greeting/welcome scenarios.
 - "first_message": the opening message for whoever speaks first
 - "user_context": free-form dict of background info available to the simulator
 - "expected_outcomes": list of true-statement assertions the judge evaluates (e.g. "Agent MUST confirm the appointment date")

@@ -6,8 +6,8 @@ from app.models import (
     Agent,
     AgentCreate,
     Difficulty,
-    EvalSetCreate,
-    EvalSetMemberEntry,
+    EvalConfigCreate,
+    EvalConfigMemberEntry,
     ExpectedToolCall,
     RunCreate,
     RunStatus,
@@ -182,24 +182,26 @@ def seed_eval_data(session: Session) -> None:
         ),
     )
 
-    # Eval sets
-    billing_set = crud.create_eval_set(
+    # Eval configs
+    billing_config = crud.create_eval_config(
         session=session,
-        eval_set_in=EvalSetCreate(
-            name="Billing Eval Set v1",
+        eval_config_in=EvalConfigCreate(
+            name="Billing Eval Config v1",
             description="Core billing test suite",
+            agent_id=agent_cs.id,
             members=[
-                EvalSetMemberEntry(test_case_id=s_refund.id),
-                EvalSetMemberEntry(test_case_id=s_escalation.id),
+                EvalConfigMemberEntry(test_case_id=s_refund.id),
+                EvalConfigMemberEntry(test_case_id=s_escalation.id),
             ],
         ),
     )
-    sales_set = crud.create_eval_set(
+    sales_config = crud.create_eval_config(
         session=session,
-        eval_set_in=EvalSetCreate(
-            name="Sales Eval Set v1",
+        eval_config_in=EvalConfigCreate(
+            name="Sales Eval Config v1",
             description="Sales qualification test suite",
-            members=[EvalSetMemberEntry(test_case_id=s_product.id)],
+            agent_id=agent_sales.id,
+            members=[EvalConfigMemberEntry(test_case_id=s_product.id)],
         ),
     )
 
@@ -208,7 +210,7 @@ def seed_eval_data(session: Session) -> None:
         name="Billing Eval — Completed",
         agent_id=agent_cs.id,
         agent_endpoint_url=agent_cs.endpoint_url,
-        eval_set_id=billing_set.id,
+        eval_config_id=billing_config.id,
     )
     run_completed_in = crud.enrich_run_create_from_agent(
         session=session, run_in=run_completed_in, agent=agent_cs
@@ -228,7 +230,7 @@ def seed_eval_data(session: Session) -> None:
         name="Sales Eval — Pending",
         agent_id=agent_sales.id,
         agent_endpoint_url=agent_sales.endpoint_url,
-        eval_set_id=sales_set.id,
+        eval_config_id=sales_config.id,
     )
     run_pending_in = crud.enrich_run_create_from_agent(
         session=session, run_in=run_pending_in, agent=agent_sales
@@ -243,7 +245,7 @@ def seed_eval_data(session: Session) -> None:
         name="Billing Eval — Failed",
         agent_id=agent_cs.id,
         agent_endpoint_url=agent_cs.endpoint_url,
-        eval_set_id=billing_set.id,
+        eval_config_id=billing_config.id,
     )
     run_failed_in = crud.enrich_run_create_from_agent(
         session=session, run_in=run_failed_in, agent=agent_cs

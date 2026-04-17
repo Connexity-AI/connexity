@@ -19,7 +19,7 @@ from app.services.prompt_editor.presets import (
 )
 from app.tests.utils.eval import (
     create_test_agent,
-    create_test_eval_set,
+    create_test_eval_config,
     create_test_platform_agent,
     create_test_run,
 )
@@ -94,8 +94,8 @@ def test_platform_agent_with_completed_run_includes_suggest_from_evals(
     db: Session,
 ) -> None:
     agent = create_test_platform_agent(db)
-    eval_set = create_test_eval_set(db)
-    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    eval_config = create_test_eval_config(db, agent_id=agent.id)
+    run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     crud.update_run(
         session=db,
         db_run=run,
@@ -116,8 +116,8 @@ def test_completed_run_for_other_agent_does_not_unlock_eval_preset(
 ) -> None:
     agent_a = create_test_platform_agent(db)
     agent_b = create_test_platform_agent(db)
-    eval_set = create_test_eval_set(db)
-    run = create_test_run(db, agent_id=agent_b.id, eval_set_id=eval_set.id)
+    eval_config = create_test_eval_config(db, agent_id=agent_b.id)
+    run = create_test_run(db, agent_id=agent_b.id, eval_config_id=eval_config.id)
     crud.update_run(
         session=db,
         db_run=run,
@@ -129,8 +129,8 @@ def test_completed_run_for_other_agent_does_not_unlock_eval_preset(
 
 def test_non_completed_run_does_not_unlock_eval_preset(db: Session) -> None:
     agent = create_test_platform_agent(db)
-    eval_set = create_test_eval_set(db)
-    create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    eval_config = create_test_eval_config(db, agent_id=agent.id)
+    create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     ids = _preset_ids(db, agent)
     assert "suggest_from_evals" not in ids
 
@@ -154,8 +154,8 @@ def test_platform_agent_tools_and_completed_run_five_presets(db: Session) -> Non
         ],
     )
     agent = crud.create_agent(session=db, agent_in=agent_in)
-    eval_set = create_test_eval_set(db)
-    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    eval_config = create_test_eval_config(db, agent_id=agent.id)
+    run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     crud.update_run(
         session=db,
         db_run=run,

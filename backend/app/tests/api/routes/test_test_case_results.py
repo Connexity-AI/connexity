@@ -8,17 +8,19 @@ from app.tests.utils.eval import (
     create_test_agent,
     create_test_case_fixture,
     create_test_case_result_fixture,
-    create_test_eval_set,
+    create_test_eval_config,
     create_test_run,
-    eval_set_members,
+    eval_config_members,
 )
 
 
 def _setup(db: Session) -> tuple:
     agent = create_test_agent(db)
     test_case = create_test_case_fixture(db)
-    eval_set = create_test_eval_set(db, members=eval_set_members(test_case.id))
-    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    eval_config = create_test_eval_config(
+        db, agent_id=agent.id, members=eval_config_members(test_case.id)
+    )
+    run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     return run, test_case
 
 

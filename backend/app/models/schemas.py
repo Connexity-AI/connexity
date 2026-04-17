@@ -201,6 +201,10 @@ class RunConfig(BaseModel):
         default=None,
         description="Max agent response rounds per test case; null = no cap",
     )
+    tool_mode: Literal["mock", "live"] = Field(
+        default="mock",
+        description="Global tool execution mode: mock uses test-case mock_responses, live executes real implementations",
+    )
     judge: JudgeConfig | None = Field(
         default=None,
         description="Judge metric selection, weights, pass threshold, and model overrides",

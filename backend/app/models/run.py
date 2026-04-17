@@ -12,7 +12,7 @@ from app.models.schemas import AggregateMetrics, RunConfig
 
 if TYPE_CHECKING:
     from app.models.agent import Agent
-    from app.models.eval_set import EvalSet
+    from app.models.eval_config import EvalConfig
     from app.models.test_case_result import TestCaseResult
 
 
@@ -55,15 +55,15 @@ class RunBase(SQLModel):
         max_length=64,
         description="Effective LLM provider for platform agent simulator for this run",
     )
-    # Eval set
-    eval_set_id: uuid.UUID = Field(
-        foreign_key="eval_set.id",
+    # Eval config
+    eval_config_id: uuid.UUID = Field(
+        foreign_key="eval_config.id",
         index=True,
-        description="FK to the eval set executed in this run",
+        description="FK to the eval config executed in this run",
     )
-    eval_set_version: int = Field(
+    eval_config_version: int = Field(
         default=1,
-        description="Version of the eval set at run time",
+        description="Version of the eval config at run time",
     )
     agent_version: int | None = Field(
         default=None,
@@ -134,7 +134,7 @@ class Run(RunBase, table=True):
     # Relationships
     agent: "Agent" = Relationship(back_populates="runs")
     agent_version_row: AgentVersion | None = Relationship()
-    eval_set: "EvalSet" = Relationship(back_populates="runs")
+    eval_config: "EvalConfig" = Relationship(back_populates="runs")
     test_case_results: list["TestCaseResult"] = Relationship(
         back_populates="run",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
@@ -170,9 +170,9 @@ class RunCreate(SQLModel):
         default=None,
         description="Effective LLM provider for platform agent simulator for this run",
     )
-    eval_set_id: uuid.UUID = Field(description="FK to the eval set to execute")
-    eval_set_version: int = Field(
-        default=1, description="Version of the eval set at run time"
+    eval_config_id: uuid.UUID = Field(description="FK to the eval config to execute")
+    eval_config_version: int = Field(
+        default=1, description="Version of the eval config at run time"
     )
     agent_version: int | None = Field(
         default=None,
@@ -243,10 +243,12 @@ class RunPublic(SQLModel):
         default=None,
         description="Effective LLM provider for platform agent simulator for this run",
     )
-    eval_set_id: uuid.UUID = Field(
-        description="FK to the eval set executed in this run"
+    eval_config_id: uuid.UUID = Field(
+        description="FK to the eval config executed in this run"
     )
-    eval_set_version: int = Field(description="Version of the eval set at run time")
+    eval_config_version: int = Field(
+        description="Version of the eval config at run time"
+    )
     agent_version: int | None = Field(
         default=None,
         description="Agent behavioral config version at run creation",

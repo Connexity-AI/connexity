@@ -100,7 +100,7 @@ class EditorEvalContext(BaseModel):
     tool_names: list[str]
     run_id: uuid.UUID | None = None
     run_name: str | None = None
-    eval_set_name: str | None = None
+    eval_config_name: str | None = None
     total_test_cases: int | None = None
     pass_rate: float | None = None
     avg_overall_score: float | None = None
@@ -374,16 +374,16 @@ async def build_eval_context(
     pass_rate: float | None = None
     avg_overall_score: float | None = None
     run_name: str | None = None
-    eval_set_name: str | None = None
+    eval_config_name: str | None = None
     aggregate_run_id: uuid.UUID | None = None
 
     if aggregate_run is not None:
         aggregate_run_id = aggregate_run.id
         run_name = aggregate_run.name
-        es = crud.get_eval_set(
-            session=db_session, eval_set_id=aggregate_run.eval_set_id
+        ec = crud.get_eval_config(
+            session=db_session, eval_config_id=aggregate_run.eval_config_id
         )
-        eval_set_name = es.name if es else None
+        eval_config_name = ec.name if ec else None
 
         results, _count = crud.list_test_case_results(
             session=db_session,
@@ -416,7 +416,7 @@ async def build_eval_context(
         baseline = crud.get_baseline_run(
             session=db_session,
             agent_id=agent.id,
-            eval_set_id=aggregate_run.eval_set_id,
+            eval_config_id=aggregate_run.eval_config_id,
         )
         if (
             baseline is not None
@@ -453,7 +453,7 @@ async def build_eval_context(
         tool_names=tool_names,
         run_id=aggregate_run_id,
         run_name=run_name,
-        eval_set_name=eval_set_name,
+        eval_config_name=eval_config_name,
         total_test_cases=total_test_cases,
         pass_rate=pass_rate,
         avg_overall_score=avg_overall_score,
@@ -497,8 +497,10 @@ def format_eval_context_for_prompt(context: EditorEvalContext) -> str:
     ):
         run_label = _escape_xml_text(context.run_name or str(context.run_id))
         lines.append(f'  <eval_results run="{run_label}">')
-        if context.eval_set_name:
-            lines.append(f"    Eval set: {_escape_xml_text(context.eval_set_name)}")
+        if context.eval_config_name:
+            lines.append(
+                f"    Eval config: {_escape_xml_text(context.eval_config_name)}"
+            )
         pr_pct = (context.pass_rate * 100.0) if context.pass_rate is not None else 0.0
         avg = (
             context.avg_overall_score if context.avg_overall_score is not None else 0.0

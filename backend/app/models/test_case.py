@@ -14,7 +14,7 @@ from app.models.enums import Difficulty, FirstTurn, TestCaseStatus
 from app.models.schemas import ExpectedToolCall
 
 if TYPE_CHECKING:
-    from app.models.eval_set import EvalSetMember
+    from app.models.eval_config import EvalConfigMember
     from app.models.test_case_result import TestCaseResult
 
 
@@ -62,8 +62,8 @@ class TestCaseBase(SQLModel):
         ),
     )
     first_turn: FirstTurn = Field(
-        default=FirstTurn.PERSONA,
-        description="Who speaks first in the conversation: agent or persona",
+        default=FirstTurn.USER,
+        description="Who speaks first in the conversation: agent or user",
         sa_column=Column(
             SAEnum(
                 FirstTurn,
@@ -72,14 +72,14 @@ class TestCaseBase(SQLModel):
                 values_callable=lambda m: [e.name for e in m],
             ),
             nullable=False,
-            server_default="PERSONA",
+            server_default="USER",
         ),
     )
     first_message: str | None = Field(
         default=None,
         description=(
             "Opening message for whoever speaks first. "
-            "When first_turn=persona this is the user's opener; "
+            "When first_turn=user this is the user's opener; "
             "when first_turn=agent this is the agent's greeting."
         ),
     )
@@ -140,7 +140,7 @@ class TestCase(TestCaseBase, table=True):
 
     # Relationships
     agent: Agent | None = Relationship(back_populates="test_cases")
-    eval_set_links: list["EvalSetMember"] = Relationship(
+    eval_config_links: list["EvalConfigMember"] = Relationship(
         back_populates="test_case",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
@@ -175,7 +175,7 @@ class TestCaseUpdate(SQLModel):
         default=None, description="Free-form persona description for the LLM simulator"
     )
     first_turn: FirstTurn | None = Field(
-        default=None, description="Who speaks first: agent or persona"
+        default=None, description="Who speaks first: agent or user"
     )
     first_message: str | None = Field(
         default=None, description="Opening message for whoever speaks first"

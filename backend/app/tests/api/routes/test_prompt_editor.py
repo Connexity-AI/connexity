@@ -20,7 +20,7 @@ from app.services.llm import (
 )
 from app.tests.utils.eval import (
     create_test_agent,
-    create_test_eval_set,
+    create_test_eval_config,
     create_test_platform_agent,
     create_test_prompt_editor_session,
     create_test_run,
@@ -862,8 +862,8 @@ def test_get_presets_includes_suggest_from_evals_after_completed_run(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_platform_agent(db)
-    eval_set = create_test_eval_set(db)
-    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    eval_config = create_test_eval_config(db, agent_id=agent.id)
+    run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     crud.update_run(
         session=db,
         db_run=run,

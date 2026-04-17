@@ -9,7 +9,7 @@ from app.services.diff import (
     compute_agent_config_diff,
     compute_agent_version_diff,
     compute_config_diff,
-    compute_eval_set_diff,
+    compute_eval_config_diff,
     compute_prompt_diff,
     compute_tool_diff,
 )
@@ -17,8 +17,8 @@ from app.services.diff import (
 # Fields accessed by diff.py on Run objects.
 _RUN_DEFAULTS: dict[str, object] = {
     "id": None,  # overridden per call
-    "eval_set_id": None,
-    "eval_set_version": 1,
+    "eval_config_id": None,
+    "eval_config_version": 1,
     "agent_system_prompt": None,
     "agent_tools": None,
     "agent_model": None,
@@ -28,7 +28,7 @@ _RUN_DEFAULTS: dict[str, object] = {
 
 
 def _make_run(**overrides: object) -> SimpleNamespace:
-    defaults = {**_RUN_DEFAULTS, "id": uuid.uuid4(), "eval_set_id": uuid.uuid4()}
+    defaults = {**_RUN_DEFAULTS, "id": uuid.uuid4(), "eval_config_id": uuid.uuid4()}
     defaults.update(overrides)
     return SimpleNamespace(**defaults)
 
@@ -154,13 +154,13 @@ class TestComputeConfigDiff:
 # ── TestCase set diff ────────────────────────────────────────────
 
 
-class TestComputeEvalSetDiff:
+class TestComputeEvalConfigDiff:
     def test_same_set_same_version(self) -> None:
         set_id = uuid.uuid4()
         s1, s2, s3 = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
-        r1 = _make_run(eval_set_id=set_id, eval_set_version=1)
-        r2 = _make_run(eval_set_id=set_id, eval_set_version=1)
-        result = compute_eval_set_diff(r1, r2, {s1, s2, s3}, {s1, s2, s3})
+        r1 = _make_run(eval_config_id=set_id, eval_config_version=1)
+        r2 = _make_run(eval_config_id=set_id, eval_config_version=1)
+        result = compute_eval_config_diff(r1, r2, {s1, s2, s3}, {s1, s2, s3})
         assert result.same_set is True
         assert result.version_changed is False
         assert len(result.common_test_case_ids) == 3
@@ -172,9 +172,9 @@ class TestComputeEvalSetDiff:
         common = uuid.uuid4()
         removed = uuid.uuid4()
         added = uuid.uuid4()
-        r1 = _make_run(eval_set_id=set_id, eval_set_version=1)
-        r2 = _make_run(eval_set_id=set_id, eval_set_version=2)
-        result = compute_eval_set_diff(r1, r2, {common, removed}, {common, added})
+        r1 = _make_run(eval_config_id=set_id, eval_config_version=1)
+        r2 = _make_run(eval_config_id=set_id, eval_config_version=2)
+        result = compute_eval_config_diff(r1, r2, {common, removed}, {common, added})
         assert result.same_set is True
         assert result.version_changed is True
         assert common in result.common_test_case_ids
@@ -183,9 +183,9 @@ class TestComputeEvalSetDiff:
 
     def test_different_sets(self) -> None:
         s1 = uuid.uuid4()
-        r1 = _make_run(eval_set_id=uuid.uuid4(), eval_set_version=1)
-        r2 = _make_run(eval_set_id=uuid.uuid4(), eval_set_version=1)
-        result = compute_eval_set_diff(r1, r2, {s1}, {s1})
+        r1 = _make_run(eval_config_id=uuid.uuid4(), eval_config_version=1)
+        r2 = _make_run(eval_config_id=uuid.uuid4(), eval_config_version=1)
+        result = compute_eval_config_diff(r1, r2, {s1}, {s1})
         assert result.same_set is False
         assert result.version_changed is False
 

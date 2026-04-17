@@ -32,7 +32,7 @@ class AgentVersionStatus(StrEnum):
 
 class FirstTurn(StrEnum):
     AGENT = "agent"
-    PERSONA = "persona"
+    USER = "user"
 
 
 class SimulatorMode(StrEnum):

@@ -1794,13 +1794,13 @@ export const ErrorResponseSchema = {
   title: 'ErrorResponse',
 } as const;
 
-export const EvalSetCreateSchema = {
+export const EvalConfigCreateSchema = {
   properties: {
     name: {
       type: 'string',
       maxLength: 255,
       title: 'Name',
-      description: 'Human-readable set name',
+      description: 'Human-readable config name',
     },
     description: {
       anyOf: [
@@ -1812,13 +1812,30 @@ export const EvalSetCreateSchema = {
         },
       ],
       title: 'Description',
-      description: 'What this eval set covers',
+      description: 'What this eval config covers',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+      description: 'Agent this eval config belongs to',
+    },
+    config: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/RunConfig-Input',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Run configuration (concurrency, max_turns, judge, tool_mode, etc.)',
     },
     members: {
       anyOf: [
         {
           items: {
-            $ref: '#/components/schemas/EvalSetMemberEntry',
+            $ref: '#/components/schemas/EvalConfigMemberEntry',
           },
           type: 'array',
         },
@@ -1831,11 +1848,11 @@ export const EvalSetCreateSchema = {
     },
   },
   type: 'object',
-  required: ['name'],
-  title: 'EvalSetCreate',
+  required: ['name', 'agent_id'],
+  title: 'EvalConfigCreate',
 } as const;
 
-export const EvalSetDiffSchema = {
+export const EvalConfigDiffSchema = {
   properties: {
     same_set: {
       type: 'boolean',
@@ -1872,33 +1889,33 @@ export const EvalSetDiffSchema = {
   },
   type: 'object',
   required: ['same_set', 'version_changed'],
-  title: 'EvalSetDiff',
+  title: 'EvalConfigDiff',
 } as const;
 
-export const EvalSetMemberEntrySchema = {
+export const EvalConfigMemberEntrySchema = {
   properties: {
     test_case_id: {
       type: 'string',
       format: 'uuid',
       title: 'Test Case Id',
-      description: 'Test case to include in the set',
+      description: 'Test case to include in the config',
     },
     repetitions: {
       type: 'integer',
       minimum: 1,
       title: 'Repetitions',
-      description: 'How many times to execute this test case within one set pass',
+      description: 'How many times to execute this test case per run',
       default: 1,
     },
   },
   type: 'object',
   required: ['test_case_id'],
-  title: 'EvalSetMemberEntry',
+  title: 'EvalConfigMemberEntry',
   description:
-    'API payload for adding or replacing set members with per-test-case repetition counts.',
+    'API payload for adding or replacing config members with per-test-case repetition counts.',
 } as const;
 
-export const EvalSetMemberPublicSchema = {
+export const EvalConfigMemberPublicSchema = {
   properties: {
     test_case_id: {
       type: 'string',
@@ -1909,30 +1926,30 @@ export const EvalSetMemberPublicSchema = {
     position: {
       type: 'integer',
       title: 'Position',
-      description: 'Order within the set',
+      description: 'Order within the config',
     },
     repetitions: {
       type: 'integer',
       minimum: 1,
       title: 'Repetitions',
-      description: 'Executions per set pass for this test case',
+      description: 'Executions per run for this test case',
     },
   },
   type: 'object',
   required: ['test_case_id', 'position', 'repetitions'],
-  title: 'EvalSetMemberPublic',
-  description: "Public view of one test case's membership in a set.",
+  title: 'EvalConfigMemberPublic',
+  description: "Public view of one test case's membership in a config.",
 } as const;
 
-export const EvalSetMembersPublicSchema = {
+export const EvalConfigMembersPublicSchema = {
   properties: {
     data: {
       items: {
-        $ref: '#/components/schemas/EvalSetMemberPublic',
+        $ref: '#/components/schemas/EvalConfigMemberPublic',
       },
       type: 'array',
       title: 'Data',
-      description: 'Set members with position and repetitions',
+      description: 'Config members with position and repetitions',
     },
     count: {
       type: 'integer',
@@ -1942,14 +1959,14 @@ export const EvalSetMembersPublicSchema = {
   },
   type: 'object',
   required: ['data', 'count'],
-  title: 'EvalSetMembersPublic',
+  title: 'EvalConfigMembersPublic',
 } as const;
 
-export const EvalSetMembersUpdateSchema = {
+export const EvalConfigMembersUpdateSchema = {
   properties: {
     members: {
       items: {
-        $ref: '#/components/schemas/EvalSetMemberEntry',
+        $ref: '#/components/schemas/EvalConfigMemberEntry',
       },
       type: 'array',
       title: 'Members',
@@ -1957,16 +1974,16 @@ export const EvalSetMembersUpdateSchema = {
   },
   type: 'object',
   required: ['members'],
-  title: 'EvalSetMembersUpdate',
+  title: 'EvalConfigMembersUpdate',
 } as const;
 
-export const EvalSetPublicSchema = {
+export const EvalConfigPublicSchema = {
   properties: {
     name: {
       type: 'string',
       maxLength: 255,
       title: 'Name',
-      description: 'Human-readable set name',
+      description: 'Human-readable config name',
     },
     description: {
       anyOf: [
@@ -1978,7 +1995,13 @@ export const EvalSetPublicSchema = {
         },
       ],
       title: 'Description',
-      description: 'What this eval set covers',
+      description: 'What this eval config covers',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+      description: 'Agent this eval config belongs to',
     },
     version: {
       type: 'integer',
@@ -1990,7 +2013,18 @@ export const EvalSetPublicSchema = {
       type: 'string',
       format: 'uuid',
       title: 'Id',
-      description: 'Unique eval set identifier',
+      description: 'Unique eval config identifier',
+    },
+    config: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/RunConfig-Output',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Run configuration (concurrency, max_turns, judge, tool_mode, etc.)',
     },
     test_case_count: {
       type: 'integer',
@@ -2007,21 +2041,21 @@ export const EvalSetPublicSchema = {
       type: 'string',
       format: 'date-time',
       title: 'Created At',
-      description: 'When the set was created',
+      description: 'When the config was created',
     },
     updated_at: {
       type: 'string',
       format: 'date-time',
       title: 'Updated At',
-      description: 'When the set was last updated',
+      description: 'When the config was last updated',
     },
   },
   type: 'object',
-  required: ['name', 'id', 'created_at', 'updated_at'],
-  title: 'EvalSetPublic',
+  required: ['name', 'agent_id', 'id', 'created_at', 'updated_at'],
+  title: 'EvalConfigPublic',
 } as const;
 
-export const EvalSetUpdateSchema = {
+export const EvalConfigUpdateSchema = {
   properties: {
     name: {
       anyOf: [
@@ -2033,7 +2067,7 @@ export const EvalSetUpdateSchema = {
         },
       ],
       title: 'Name',
-      description: 'Human-readable set name',
+      description: 'Human-readable config name',
     },
     description: {
       anyOf: [
@@ -2045,32 +2079,43 @@ export const EvalSetUpdateSchema = {
         },
       ],
       title: 'Description',
-      description: 'What this eval set covers',
+      description: 'What this eval config covers',
+    },
+    config: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/RunConfig-Input',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Run configuration (concurrency, max_turns, judge, tool_mode, etc.)',
     },
   },
   type: 'object',
-  title: 'EvalSetUpdate',
+  title: 'EvalConfigUpdate',
 } as const;
 
-export const EvalSetsPublicSchema = {
+export const EvalConfigsPublicSchema = {
   properties: {
     data: {
       items: {
-        $ref: '#/components/schemas/EvalSetPublic',
+        $ref: '#/components/schemas/EvalConfigPublic',
       },
       type: 'array',
       title: 'Data',
-      description: 'List of eval sets',
+      description: 'List of eval configs',
     },
     count: {
       type: 'integer',
       title: 'Count',
-      description: 'Total number of sets matching the query',
+      description: 'Total number of configs matching the query',
     },
   },
   type: 'object',
   required: ['data', 'count'],
-  title: 'EvalSetsPublic',
+  title: 'EvalConfigsPublic',
 } as const;
 
 export const ExpectedOutcomeResultSchema = {
@@ -2205,7 +2250,7 @@ export const FieldChangeSchema = {
 
 export const FirstTurnSchema = {
   type: 'string',
-  enum: ['agent', 'persona'],
+  enum: ['agent', 'user'],
   title: 'FirstTurn',
 } as const;
 
@@ -3727,6 +3772,14 @@ export const RunConfig_InputSchema = {
       title: 'Max Turns',
       description: 'Max agent response rounds per test case; null = no cap',
     },
+    tool_mode: {
+      type: 'string',
+      enum: ['mock', 'live'],
+      title: 'Tool Mode',
+      description:
+        'Global tool execution mode: mock uses test-case mock_responses, live executes real implementations',
+      default: 'mock',
+    },
     judge: {
       anyOf: [
         {
@@ -3791,6 +3844,14 @@ export const RunConfig_OutputSchema = {
       ],
       title: 'Max Turns',
       description: 'Max agent response rounds per test case; null = no cap',
+    },
+    tool_mode: {
+      type: 'string',
+      enum: ['mock', 'live'],
+      title: 'Tool Mode',
+      description:
+        'Global tool execution mode: mock uses test-case mock_responses, live executes real implementations',
+      default: 'mock',
     },
     judge: {
       anyOf: [
@@ -3937,12 +3998,12 @@ export const RunConfigDiffSchema = {
       type: 'array',
       title: 'Config Changes',
     },
-    eval_set_diff: {
-      $ref: '#/components/schemas/EvalSetDiff',
+    eval_config_diff: {
+      $ref: '#/components/schemas/EvalConfigDiff',
     },
   },
   type: 'object',
-  required: ['eval_set_diff'],
+  required: ['eval_config_diff'],
   title: 'RunConfigDiff',
   description: 'Structured diff of snapshotted run configuration between two runs.',
 } as const;
@@ -4042,16 +4103,16 @@ export const RunCreateSchema = {
       title: 'Agent Provider',
       description: 'Effective LLM provider for platform agent simulator for this run',
     },
-    eval_set_id: {
+    eval_config_id: {
       type: 'string',
       format: 'uuid',
-      title: 'Eval Set Id',
-      description: 'FK to the eval set to execute',
+      title: 'Eval Config Id',
+      description: 'FK to the eval config to execute',
     },
-    eval_set_version: {
+    eval_config_version: {
       type: 'integer',
-      title: 'Eval Set Version',
-      description: 'Version of the eval set at run time',
+      title: 'Eval Config Version',
+      description: 'Version of the eval config at run time',
       default: 1,
     },
     agent_version: {
@@ -4098,7 +4159,7 @@ export const RunCreateSchema = {
     },
   },
   type: 'object',
-  required: ['agent_id', 'eval_set_id'],
+  required: ['agent_id', 'eval_config_id'],
   title: 'RunCreate',
 } as const;
 
@@ -4201,16 +4262,16 @@ export const RunPublicSchema = {
       title: 'Agent Provider',
       description: 'Effective LLM provider for platform agent simulator for this run',
     },
-    eval_set_id: {
+    eval_config_id: {
       type: 'string',
       format: 'uuid',
-      title: 'Eval Set Id',
-      description: 'FK to the eval set executed in this run',
+      title: 'Eval Config Id',
+      description: 'FK to the eval config executed in this run',
     },
-    eval_set_version: {
+    eval_config_version: {
       type: 'integer',
-      title: 'Eval Set Version',
-      description: 'Version of the eval set at run time',
+      title: 'Eval Config Version',
+      description: 'Version of the eval config at run time',
     },
     agent_version: {
       anyOf: [
@@ -4299,8 +4360,8 @@ export const RunPublicSchema = {
     'id',
     'name',
     'agent_id',
-    'eval_set_id',
-    'eval_set_version',
+    'eval_config_id',
+    'eval_config_version',
     'status',
     'is_baseline',
     'started_at',
@@ -4617,8 +4678,8 @@ export const TestCaseCreateSchema = {
     },
     first_turn: {
       $ref: '#/components/schemas/FirstTurn',
-      description: 'Who speaks first in the conversation: agent or persona',
-      default: 'persona',
+      description: 'Who speaks first in the conversation: agent or user',
+      default: 'user',
     },
     first_message: {
       anyOf: [
@@ -4631,7 +4692,7 @@ export const TestCaseCreateSchema = {
       ],
       title: 'First Message',
       description:
-        "Opening message for whoever speaks first. When first_turn=persona this is the user's opener; when first_turn=agent this is the agent's greeting.",
+        "Opening message for whoever speaks first. When first_turn=user this is the user's opener; when first_turn=agent this is the agent's greeting.",
     },
     user_context: {
       anyOf: [
@@ -4759,8 +4820,8 @@ export const TestCaseImportItemSchema = {
     },
     first_turn: {
       $ref: '#/components/schemas/FirstTurn',
-      description: 'Who speaks first in the conversation: agent or persona',
-      default: 'persona',
+      description: 'Who speaks first in the conversation: agent or user',
+      default: 'user',
     },
     first_message: {
       anyOf: [
@@ -4773,7 +4834,7 @@ export const TestCaseImportItemSchema = {
       ],
       title: 'First Message',
       description:
-        "Opening message for whoever speaks first. When first_turn=persona this is the user's opener; when first_turn=agent this is the agent's greeting.",
+        "Opening message for whoever speaks first. When first_turn=user this is the user's opener; when first_turn=agent this is the agent's greeting.",
     },
     user_context: {
       anyOf: [
@@ -4947,8 +5008,8 @@ export const TestCasePublicSchema = {
     },
     first_turn: {
       $ref: '#/components/schemas/FirstTurn',
-      description: 'Who speaks first in the conversation: agent or persona',
-      default: 'persona',
+      description: 'Who speaks first in the conversation: agent or user',
+      default: 'user',
     },
     first_message: {
       anyOf: [
@@ -4961,7 +5022,7 @@ export const TestCasePublicSchema = {
       ],
       title: 'First Message',
       description:
-        "Opening message for whoever speaks first. When first_turn=persona this is the user's opener; when first_turn=agent this is the agent's greeting.",
+        "Opening message for whoever speaks first. When first_turn=user this is the user's opener; when first_turn=agent this is the agent's greeting.",
     },
     user_context: {
       anyOf: [
@@ -5706,7 +5767,7 @@ export const TestCaseUpdateSchema = {
           type: 'null',
         },
       ],
-      description: 'Who speaks first: agent or persona',
+      description: 'Who speaks first: agent or user',
     },
     first_message: {
       anyOf: [
