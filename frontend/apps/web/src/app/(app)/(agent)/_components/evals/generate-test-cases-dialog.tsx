@@ -178,8 +178,13 @@ export function GenerateTestCasesDialog({
                           onBlur={field.onBlur}
                           value={Number.isFinite(field.value) ? field.value : ''}
                           onChange={(e) => {
-                            const parsed = Number.parseInt(e.target.value, 10);
-                            field.onChange(Number.isNaN(parsed) ? 0 : parsed);
+                            const raw = e.target.value;
+                            if (raw === '') {
+                              field.onChange(Number.NaN);
+                              return;
+                            }
+                            const parsed = Number.parseInt(raw, 10);
+                            field.onChange(Number.isNaN(parsed) ? Number.NaN : parsed);
                           }}
                         />
                       </FormControl>

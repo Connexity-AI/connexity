@@ -102,7 +102,7 @@ export function TestCasesToolbar({
   onGenerateClick,
 }: TestCasesToolbarProps) {
   return (
-    <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-2.5">
+    <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-2.5 h-12">
       <LeadingContent
         selectedCount={selectedCount}
         filteredCount={filteredCount}
@@ -110,7 +110,7 @@ export function TestCasesToolbar({
         onBatchDelete={onBatchDelete}
         onClearSelection={onClearSelection}
       />
-      <div className="flex items-center gap-1.5">
+      {/* <div className="flex items-center gap-1.5">
         <Button size="sm" className="h-7 gap-1.5 text-xs" onClick={onGenerateClick}>
           <Sparkles className="h-3 w-3" />
           Generate
@@ -119,7 +119,7 @@ export function TestCasesToolbar({
           <Plus className="h-3 w-3" />
           Add test case
         </Button>
-      </div>
+      </div> */}
     </div>
   );
 }
