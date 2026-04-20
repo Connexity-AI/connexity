@@ -21,6 +21,7 @@ export function TestCasesTab() {
   const [justQueued, setJustQueued] = useState(false);
 
   const handleGenerate = (count: number) => {
+    console.info('[gen-tc] tab.handleGenerate', { agentId, count });
     generate(count);
     setJustQueued(true);
   };

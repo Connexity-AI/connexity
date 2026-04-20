@@ -11,10 +11,21 @@ export function useGenerateTestCases(agentId: string) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (count: number) =>
-      generateTestCases({ agent_id: agentId, count, persist: true }),
+    mutationFn: async (count: number) => {
+      console.info('[gen-tc] request →', { agentId, count });
+      const result = await generateTestCases({ agent_id: agentId, count, persist: true });
+      console.info('[gen-tc] response ←', result);
+      return result;
+    },
 
-    onSettled: () => {
+    onError: (error) => {
+      console.error('[gen-tc] mutation error', error);
+    },
+
+    onSettled: (data) => {
+      if (data && isErrorApiResult(data)) {
+        console.error('[gen-tc] API error', data.error);
+      }
       queryClient.invalidateQueries({ queryKey: testCaseKeys.list(agentId) });
     },
   });

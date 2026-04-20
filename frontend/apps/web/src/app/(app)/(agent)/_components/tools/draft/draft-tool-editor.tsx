@@ -130,13 +130,17 @@ export function DraftToolEditor({ onSave, onBack }: DraftToolEditorProps) {
 
               <Field label="Timeout (seconds)">
                 <Input
-                  type="number"
-                  min={1}
-                  max={120}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={draft.timeout}
-                  onChange={(event) =>
-                    set('timeout', Math.max(1, parseInt(event.target.value) || 3))
-                  }
+                  onChange={(event) => {
+                    const parsed = parseInt(event.target.value, 10);
+                    set(
+                      'timeout',
+                      Math.min(120, Math.max(1, Number.isFinite(parsed) ? parsed : 3))
+                    );
+                  }}
                   className="h-9 text-sm font-mono w-30"
                 />
               </Field>
