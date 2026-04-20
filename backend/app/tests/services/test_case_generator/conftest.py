@@ -21,7 +21,6 @@ MOCK_TEST_CASES_RAW: list[dict] = [
             ["edge-case", "boundary"],
             ["red-team", "adversarial"],
         ][i % 3],
-        "status": "draft",
         "persona_context": f"Test persona {i}. Behave as persona {i} would.",
         "first_message": f"Hello, this is test message {i}.",
         "user_context": {"test_case_index": i, "test": True},

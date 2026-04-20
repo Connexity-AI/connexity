@@ -13,7 +13,13 @@ def test_build_system_prompt_contains_schema_fields() -> None:
     assert "persona_context" in prompt
     assert "first_message" in prompt
     assert "expected_tool_calls" in prompt
-    assert "draft" in prompt
+
+
+def test_build_system_prompt_omits_status() -> None:
+    # Status is a platform concern; the LLM never sees it.
+    prompt = build_system_prompt()
+    assert '"status"' not in prompt
+    assert "draft" not in prompt
 
 
 def test_build_system_prompt_contains_diversity_requirements() -> None:

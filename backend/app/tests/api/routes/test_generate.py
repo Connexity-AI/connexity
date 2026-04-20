@@ -79,7 +79,7 @@ def test_generate_test_cases_persists_drafts(
     assert r.status_code == 200
     data = r.json()
     for tc in data["test_cases"]:
-        assert tc["status"] == "draft"
+        assert tc["status"] == "active"
         assert tc["id"] is not None
 
 
