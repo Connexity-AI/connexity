@@ -10,11 +10,11 @@ import { GenerateTestCasesDialog } from '@/app/(app)/(agent)/_components/evals/g
 import { TestCasesTable } from '@/app/(app)/(agent)/_components/evals/test-cases/test-cases-table';
 import { useAgentEditFormActions } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
 import { useGenerateTestCases } from '@/app/(app)/(agent)/_hooks/use-generate-test-cases';
-import { useTestCases } from '@/app/(app)/(agent)/_hooks/use-test-cases';
+import { useSuspenseTestCases } from '@/app/(app)/(agent)/_hooks/use-test-cases';
 
 export function TestCasesTab() {
   const { agentId } = useAgentEditFormActions();
-  const { data, isLoading } = useTestCases(agentId);
+  const { data } = useSuspenseTestCases(agentId);
   const { mutate: generate, isPending } = useGenerateTestCases(agentId);
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -25,14 +25,6 @@ export function TestCasesTab() {
     generate(count);
     setJustQueued(true);
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-1 items-center justify-center text-muted-foreground">
-        <Loader2 className="w-4 h-4 animate-spin" />
-      </div>
-    );
-  }
 
   const isGenerating = justQueued && isPending;
   const isEmpty = (data?.count ?? 0) === 0;
