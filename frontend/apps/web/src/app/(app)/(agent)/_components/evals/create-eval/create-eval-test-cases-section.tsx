@@ -110,7 +110,7 @@ function AddTestCasesDialog({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search test cases…"
-            className="h-7 border-none bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
+            className="h-8"
           />
         </div>
 

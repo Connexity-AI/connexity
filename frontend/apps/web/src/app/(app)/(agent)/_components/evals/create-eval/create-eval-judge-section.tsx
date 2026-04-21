@@ -1,9 +1,7 @@
 'use client';
 'use no memo';
 
-import { useMemo } from 'react';
-
-import { useFieldArray, useFormContext, useWatch } from 'react-hook-form';
+import { useFormContext } from 'react-hook-form';
 
 import { Checkbox } from '@workspace/ui/components/ui/checkbox';
 import { FormControl, FormField, FormItem, FormMessage } from '@workspace/ui/components/ui/form';
@@ -23,7 +21,8 @@ import {
   FieldLabel,
   Section,
 } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-section-primitives';
-import { DEFAULT_MODELS, PROVIDERS } from '@/app/(app)/(agent)/_constants/agent';
+import { useJudgeMetrics } from '@/app/(app)/(agent)/_components/evals/create-eval/use-judge-metrics';
+import { useJudgeProvider } from '@/app/(app)/(agent)/_components/evals/create-eval/use-judge-provider';
 
 import type { CreateEvalFormValues } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
 import type { MetricDefinition, MetricTier } from '@/client/types.gen';
@@ -31,8 +30,7 @@ import type { MetricDefinition, MetricTier } from '@/client/types.gen';
 function ProviderAndModel() {
   const form = useFormContext<CreateEvalFormValues>();
   const readOnly = useCreateEvalReadOnly();
-  const provider = useWatch({ control: form.control, name: 'judge.provider' });
-  const models = PROVIDERS.find((p) => p.group === provider)?.models ?? [];
+  const { providers, models, onProviderChange } = useJudgeProvider();
 
   return (
     <div className="grid grid-cols-2 gap-4">
@@ -43,15 +41,7 @@ function ProviderAndModel() {
           <FormItem>
             <FieldLabel>LLM Provider</FieldLabel>
 
-            <Select
-              value={field.value}
-              disabled={readOnly}
-              onValueChange={(next) => {
-                field.onChange(next);
-                const fallback = DEFAULT_MODELS[next] ?? '';
-                form.setValue('judge.model', fallback, { shouldDirty: true });
-              }}
-            >
+            <Select value={field.value} disabled={readOnly} onValueChange={onProviderChange}>
               <FormControl>
                 <SelectTrigger className="h-9 text-sm">
                   <SelectValue />
@@ -59,7 +49,7 @@ function ProviderAndModel() {
               </FormControl>
 
               <SelectContent>
-                {PROVIDERS.map((p) => (
+                {providers.map((p) => (
                   <SelectItem key={p.group} value={p.group}>
                     {p.group}
                   </SelectItem>
@@ -103,27 +93,11 @@ interface MetricsTableProps {
 }
 
 function MetricsTable({ metrics }: MetricsTableProps) {
-  const form = useFormContext<CreateEvalFormValues>();
   const readOnly = useCreateEvalReadOnly();
-  const fieldArray = useFieldArray({ control: form.control, name: 'judge.metrics' });
-  const watched = useWatch({ control: form.control, name: 'judge.metrics' }) ?? [];
+  const { fields, rows, byName, enabledCount, allEnabled, toggleAll, updateRow, rootError } =
+    useJudgeMetrics({ metrics });
 
-  const byName = useMemo(() => {
-    const map = new Map<string, MetricDefinition>();
-    metrics.forEach((m) => map.set(m.name, m));
-    return map;
-  }, [metrics]);
-
-  const enabledCount = watched.filter((m) => m.enabled).length;
-  const allEnabled = watched.length > 0 && enabledCount === watched.length;
-
-  const toggleAll = (next: boolean) => {
-    fieldArray.replace(watched.map((m) => ({ ...m, enabled: next })));
-  };
-
-  const rootError = form.formState.errors.judge?.metrics?.message;
-
-  if (watched.length === 0) {
+  if (rows.length === 0) {
     return (
       <div className="rounded-md border border-border bg-accent/5 px-4 py-6 text-center text-xs text-muted-foreground/60">
         Loading metrics…
@@ -146,8 +120,8 @@ function MetricsTable({ metrics }: MetricsTableProps) {
           <span className="text-right">Weight</span>
         </div>
         <ul>
-          {fieldArray.fields.map((field, index) => {
-            const row = watched[index];
+          {fields.map((field, index) => {
+            const row = rows[index];
             if (!row) return null;
             const def = byName.get(row.metric);
             const tierDot = def ? EVAL_TIER_DOT[def.tier as MetricTier] : 'bg-muted';
@@ -163,7 +137,7 @@ function MetricsTable({ metrics }: MetricsTableProps) {
                   checked={row.enabled}
                   disabled={readOnly}
                   onCheckedChange={(checked) =>
-                    fieldArray.update(index, { ...row, enabled: Boolean(checked) })
+                    updateRow(index, { ...row, enabled: Boolean(checked) })
                   }
                 />
                 <div className="min-w-0">
@@ -190,7 +164,7 @@ function MetricsTable({ metrics }: MetricsTableProps) {
                   value={row.weight}
                   onChange={(e) => {
                     const next = e.target.valueAsNumber;
-                    fieldArray.update(index, {
+                    updateRow(index, {
                       ...row,
                       weight: Number.isNaN(next) ? 0 : next,
                     });
@@ -203,7 +177,7 @@ function MetricsTable({ metrics }: MetricsTableProps) {
       </div>
       <div className="mt-1.5 flex items-center justify-between text-[10px] text-muted-foreground/50">
         <span>
-          {enabledCount} / {watched.length} metrics enabled
+          {enabledCount} / {rows.length} metrics enabled
         </span>
       </div>
       {typeof rootError === 'string' ? (

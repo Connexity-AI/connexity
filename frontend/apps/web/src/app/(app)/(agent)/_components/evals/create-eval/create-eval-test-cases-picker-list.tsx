@@ -38,11 +38,18 @@ export function TestCasesPickerList({
         const isChecked = selected.has(tc.id);
         return (
           <li key={tc.id}>
-            <button
-              type="button"
+            <div
+              role="button"
+              tabIndex={0}
               onClick={() => onToggle(tc.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onToggle(tc.id);
+                }
+              }}
               className={cn(
-                'flex w-full items-center gap-3 px-5 py-2 text-left hover:bg-accent/30',
+                'flex w-full cursor-pointer items-center gap-3 px-5 py-2 text-left hover:bg-accent/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 isChecked && 'bg-accent/40'
               )}
             >
@@ -63,7 +70,7 @@ export function TestCasesPickerList({
                   ))}
                 </div>
               </div>
-            </button>
+            </div>
           </li>
         );
       })}
