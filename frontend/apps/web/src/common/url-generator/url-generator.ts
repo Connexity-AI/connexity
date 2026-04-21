@@ -62,6 +62,10 @@ export class UrlGenerator {
     return `/agents/${agentId}/evals/eval-runs` as Route;
   }
 
+  static agentEvalsRunDetail(agentId: string, runId: string) {
+    return `/agents/${agentId}/evals/eval-runs/${runId}` as Route;
+  }
+
   static agentEvalsCreate(agentId: string) {
     return `/agents/${agentId}/evals/create-eval` as Route;
   }

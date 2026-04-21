@@ -8,6 +8,7 @@ import { Form } from '@workspace/ui/components/ui/form';
 import { CreateEvalReadOnlyProvider } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-readonly-context';
 import { CreateEvalSaveActions } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-save-actions';
 import { CreateEvalTopbar } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-topbar';
+import { RunEvalConfigButton } from '@/app/(app)/(agent)/_components/evals/run-eval-config-button';
 import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { JudgeSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-judge-section';
 import { PersonaSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-persona-section';
@@ -20,6 +21,23 @@ import type { EvalConfigMemberPublic, EvalConfigPublic } from '@/client/types.ge
 function defaultConfigName() {
   const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   return `Eval Config ${today}`;
+}
+
+interface DetailPageRunButtonProps {
+  readOnly: boolean;
+  initialConfig: EvalConfigPublic | undefined;
+  agentId: string;
+}
+
+function DetailPageRunButton({
+  readOnly,
+  initialConfig,
+  agentId,
+}: DetailPageRunButtonProps) {
+  if (!readOnly) return null;
+  if (!initialConfig) return null;
+
+  return <RunEvalConfigButton agentId={agentId} evalConfigId={initialConfig.id} />;
 }
 
 interface CreateEvalViewProps {
@@ -73,6 +91,11 @@ export function CreateEvalView({
                 agentId={agentId}
                 href={backHref}
                 label={readOnly ? 'Close' : 'Cancel'}
+              />
+              <DetailPageRunButton
+                readOnly={readOnly}
+                initialConfig={initialConfig}
+                agentId={agentId}
               />
               <CreateEvalSaveActions
                 readOnly={readOnly}

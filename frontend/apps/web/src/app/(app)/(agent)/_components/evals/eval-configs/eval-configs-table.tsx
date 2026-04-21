@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Button } from '@workspace/ui/components/ui/button';
 
 import { useEvalConfigs } from '@/app/(app)/(agent)/_hooks/use-eval-configs';
+import { RunEvalConfigButton } from '@/app/(app)/(agent)/_components/evals/run-eval-config-button';
 import { UrlGenerator } from '@/common/url-generator/url-generator';
 
 import type { EvalConfigPublic } from '@/client/types.gen';
@@ -85,31 +86,41 @@ function Header({ agentId, count }: { agentId: string; count: number }) {
 
 function ColumnHeaders() {
   return (
-    <div className="sticky top-0 z-10 grid grid-cols-[1fr_100px_120px_120px_180px] items-center gap-4 border-b border-border bg-background px-5 py-2 text-[10px] uppercase tracking-wider text-muted-foreground/60">
+    <div className="sticky top-0 z-10 grid grid-cols-[1fr_100px_120px_120px_180px_80px] items-center gap-4 border-b border-border bg-background px-5 py-2 text-[10px] uppercase tracking-wider text-muted-foreground/60">
       <span>Name</span>
       <span>Cases</span>
       <span>Total Runs</span>
       <span>Tool Calls</span>
       <span>Created</span>
+      <span />
     </div>
   );
 }
 
 function Row({ agentId, config }: { agentId: string; config: EvalConfigPublic }) {
   return (
-    <li>
+    <li className="group relative grid grid-cols-[1fr_100px_120px_120px_180px_80px] items-center gap-4 border-b border-border/40 px-5 py-2.5 hover:bg-accent/20">
       <Link
         href={UrlGenerator.agentEvalsConfigDetail(agentId, config.id)}
-        className="grid grid-cols-[1fr_100px_120px_120px_180px] items-center gap-4 border-b border-border/40 px-5 py-2.5 hover:bg-accent/20"
-      >
-        <span className="truncate text-sm">{config.name}</span>
-        <span className="font-mono text-xs tabular-nums text-muted-foreground">
-          {config.test_case_count ?? 0}
-        </span>
-        <span className="font-mono text-xs tabular-nums text-muted-foreground">—</span>
-        <span className="font-mono text-xs tabular-nums text-muted-foreground">—</span>
-        <span className="text-xs text-muted-foreground">{formatDate(config.created_at)}</span>
-      </Link>
+        className="absolute inset-0"
+        aria-label={`Open ${config.name}`}
+      />
+      <span className="relative truncate text-sm">{config.name}</span>
+      <span className="relative font-mono text-xs tabular-nums text-muted-foreground">
+        {config.test_case_count ?? 0}
+      </span>
+      <span className="relative font-mono text-xs tabular-nums text-muted-foreground">—</span>
+      <span className="relative font-mono text-xs tabular-nums text-muted-foreground">—</span>
+      <span className="relative text-xs text-muted-foreground">
+        {formatDate(config.created_at)}
+      </span>
+      <div className="relative flex justify-end">
+        <RunEvalConfigButton
+          agentId={agentId}
+          evalConfigId={config.id}
+          variant="row"
+        />
+      </div>
     </li>
   );
 }

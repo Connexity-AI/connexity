@@ -1,7 +1,6 @@
 'use client';
 
-import { Save } from 'lucide-react';
-// import { Play, Save } from 'lucide-react';
+import { Play, Save } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/ui/button';
 
@@ -16,8 +15,8 @@ export function CreateEvalSaveActions({
   readOnly,
   isPending,
   onSave,
-}: // onSaveAndRun,
-CreateEvalSaveActionsProps) {
+  onSaveAndRun,
+}: CreateEvalSaveActionsProps) {
   if (readOnly) return null;
 
   return (
@@ -34,7 +33,7 @@ CreateEvalSaveActionsProps) {
         Save
       </Button>
 
-      {/* <Button
+      <Button
         type="button"
         size="sm"
         className="h-8 gap-1.5 text-xs"
@@ -43,7 +42,7 @@ CreateEvalSaveActionsProps) {
       >
         <Play className="h-3.5 w-3.5" />
         Save &amp; Run
-      </Button> */}
+      </Button>
     </>
   );
 }
