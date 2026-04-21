@@ -73,7 +73,11 @@ export function TestCasesTable({ agentId, testCases }: TestCasesTableProps) {
               onAddManually={() => setManualAddOpen(true)}
               onAddWithAi={() => setAiAddOpen(true)}
             />
-            <TestCasesToolbar.CreateEvalButton agentId={agentId} />
+            <TestCasesToolbar.CreateEvalButton
+              agentId={agentId}
+              selectedIds={Array.from(selection.selectedIds)}
+              filteredIds={filteredIds}
+            />
           </TestCasesToolbar.Actions>
         </TestCasesToolbar>
 

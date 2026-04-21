@@ -131,12 +131,31 @@ function AddTestCaseDropdown({ onAddManually, onAddWithAi }: AddTestCaseDropdown
   );
 }
 
-function CreateEvalButton({ agentId }: { agentId: string }) {
+interface CreateEvalButtonProps {
+  agentId: string;
+  selectedIds: string[];
+  filteredIds: string[];
+}
+
+function CreateEvalButton({ agentId, selectedIds, filteredIds }: CreateEvalButtonProps) {
+  const targetIds = selectedIds.length > 0 ? selectedIds : filteredIds;
+
+  if (targetIds.length === 0) {
+    return (
+      <Button size="sm" className="h-7 gap-1.5 text-xs" disabled>
+        <FlaskConical className="h-3 w-3" />
+        Create Eval (0)
+      </Button>
+    );
+  }
+
+  const href = `${UrlGenerator.agentEvalsCreate(agentId)}?ids=${targetIds.join(',')}`;
+
   return (
     <Button asChild size="sm" className="h-7 gap-1.5 text-xs">
-      <Link href={UrlGenerator.agentEvalsCreate(agentId)}>
+      <Link href={href}>
         <FlaskConical className="h-3 w-3" />
-        Create Eval
+        Create Eval ({targetIds.length})
       </Link>
     </Button>
   );

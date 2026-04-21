@@ -3,12 +3,10 @@
 
 import { useState } from 'react';
 
-import { Play, Save } from 'lucide-react';
-
-import { Button } from '@workspace/ui/components/ui/button';
 import { Form } from '@workspace/ui/components/ui/form';
 
 import { CreateEvalReadOnlyProvider } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-readonly-context';
+import { CreateEvalSaveActions } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-save-actions';
 import { CreateEvalTopbar } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-topbar';
 import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { JudgeSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-judge-section';
@@ -76,31 +74,12 @@ export function CreateEvalView({
                 href={backHref}
                 label={readOnly ? 'Close' : 'Cancel'}
               />
-              {readOnly ? null : (
-                <>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 gap-1.5 text-xs"
-                    onClick={submitSave}
-                    disabled={isPending}
-                  >
-                    <Save className="h-3.5 w-3.5" />
-                    Save
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="h-8 gap-1.5 text-xs"
-                    onClick={submitSaveAndRun}
-                    disabled={isPending}
-                  >
-                    <Play className="h-3.5 w-3.5" />
-                    Save &amp; Run
-                  </Button>
-                </>
-              )}
+              <CreateEvalSaveActions
+                readOnly={readOnly}
+                isPending={isPending}
+                onSave={submitSave}
+                onSaveAndRun={submitSaveAndRun}
+              />
             </CreateEvalTopbar.Actions>
           </CreateEvalTopbar>
 
