@@ -14,9 +14,9 @@ from app.tests.utils.eval import (
     create_test_agent,
     create_test_case_fixture,
     create_test_case_result_fixture,
-    create_test_eval_set,
+    create_test_eval_config,
     create_test_run,
-    eval_set_members,
+    eval_config_members,
 )
 
 _PREFIX = f"{settings.API_V1_STR}/runs/compare"
@@ -31,8 +31,10 @@ def _completed_run_with_results(
     """Create a completed run with one test case result that has a verdict."""
     agent = create_test_agent(db)
     test_case = create_test_case_fixture(db)
-    eval_set = create_test_eval_set(db, members=eval_set_members(test_case.id))
-    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    eval_config = create_test_eval_config(
+        db, agent_id=agent.id, members=eval_config_members(test_case.id)
+    )
+    run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
 
     # Mark as completed with aggregate metrics
     crud.update_run(
@@ -87,17 +89,19 @@ def _completed_run_with_results(
         ),
     )
 
-    return run, test_case, eval_set
+    return run, test_case, eval_config
 
 
 def _completed_run_pair_same_set(db: Session) -> tuple:
     """Create two completed runs sharing the same eval set."""
     agent = create_test_agent(db)
     test_case = create_test_case_fixture(db)
-    eval_set = create_test_eval_set(db, members=eval_set_members(test_case.id))
+    eval_config = create_test_eval_config(
+        db, agent_id=agent.id, members=eval_config_members(test_case.id)
+    )
 
-    run_b = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
-    run_c = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    run_b = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
+    run_c = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
 
     for run, passed, score in [(run_b, True, 80.0), (run_c, True, 90.0)]:
         crud.update_run(
@@ -221,8 +225,10 @@ def test_compare_runs_baseline_not_completed(
 ) -> None:
     agent = create_test_agent(db)
     test_case = create_test_case_fixture(db)
-    eval_set = create_test_eval_set(db, members=eval_set_members(test_case.id))
-    pending_run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    eval_config = create_test_eval_config(
+        db, agent_id=agent.id, members=eval_config_members(test_case.id)
+    )
+    pending_run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     completed_run, _, _ = _completed_run_with_results(db)
 
     r = client.get(
@@ -243,8 +249,10 @@ def test_compare_runs_candidate_not_completed(
     completed_run, _, _ = _completed_run_with_results(db)
     agent = create_test_agent(db)
     test_case = create_test_case_fixture(db)
-    eval_set = create_test_eval_set(db, members=eval_set_members(test_case.id))
-    running_run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    eval_config = create_test_eval_config(
+        db, agent_id=agent.id, members=eval_config_members(test_case.id)
+    )
+    running_run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     crud.update_run(
         session=db,
         db_run=running_run,
@@ -277,7 +285,7 @@ def test_compare_runs_not_found(
     assert r.status_code == 404
 
 
-def test_compare_runs_different_eval_sets_warning(
+def test_compare_runs_different_eval_configs_warning(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
     run_b, _, _ = _completed_run_with_results(db)
@@ -293,7 +301,7 @@ def test_compare_runs_different_eval_sets_warning(
     )
     assert r.status_code == 200
     body = r.json()
-    assert any("different eval sets" in w for w in body["warnings"])
+    assert any("different eval configs" in w for w in body["warnings"])
 
 
 def test_compare_runs_config_diff_present(
@@ -310,8 +318,8 @@ def test_compare_runs_config_diff_present(
     )
     assert r.status_code == 200
     config_diff = r.json()["config_diff"]
-    assert "eval_set_diff" in config_diff
-    assert config_diff["eval_set_diff"]["same_set"] is True
+    assert "eval_config_diff" in config_diff
+    assert config_diff["eval_config_diff"]["same_set"] is True
 
 
 def test_compare_runs_includes_agent_versions(
@@ -340,14 +348,16 @@ def test_compare_runs_binary_metric_handling(
     """Binary metrics should have delta=None and status based on label transition."""
     agent = create_test_agent(db)
     test_case = create_test_case_fixture(db)
-    eval_set = create_test_eval_set(db, members=eval_set_members(test_case.id))
+    eval_config = create_test_eval_config(
+        db, agent_id=agent.id, members=eval_config_members(test_case.id)
+    )
 
     runs = []
     for passed, score, binary_label, binary_score in [
         (True, 80.0, "pass", 5),
         (False, 40.0, "fail", 0),
     ]:
-        run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+        run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
         crud.update_run(
             session=db,
             db_run=run,
@@ -444,11 +454,13 @@ def test_compare_runs_verdict_detects_regression(
     # baseline: passed, candidate: failed
     agent = create_test_agent(db)
     test_case = create_test_case_fixture(db)
-    eval_set = create_test_eval_set(db, members=eval_set_members(test_case.id))
+    eval_config = create_test_eval_config(
+        db, agent_id=agent.id, members=eval_config_members(test_case.id)
+    )
 
     runs = []
     for passed, score, pass_rate in [(True, 80.0, 1.0), (False, 40.0, 0.0)]:
-        run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+        run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
         crud.update_run(
             session=db,
             db_run=run,
@@ -514,11 +526,13 @@ def test_compare_runs_custom_thresholds(
     """Custom threshold can suppress a regression that default would catch."""
     agent = create_test_agent(db)
     test_case = create_test_case_fixture(db)
-    eval_set = create_test_eval_set(db, members=eval_set_members(test_case.id))
+    eval_config = create_test_eval_config(
+        db, agent_id=agent.id, members=eval_config_members(test_case.id)
+    )
 
     runs = []
     for passed, score, pass_rate in [(True, 80.0, 1.0), (False, 40.0, 0.0)]:
-        run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+        run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
         crud.update_run(
             session=db,
             db_run=run,

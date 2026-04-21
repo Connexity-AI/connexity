@@ -411,11 +411,11 @@ async def run_test_case(
     """
     sim_cfg = config.user_simulator or UserSimulatorConfig()
     first_message_text = (test_case.first_message or "").strip()
-    first_turn = test_case.first_turn or FirstTurn.PERSONA
+    first_turn = test_case.first_turn or FirstTurn.USER
 
     simulator = UserSimulator(
         persona_context=test_case.persona_context,
-        initial_message=first_message_text if first_turn == FirstTurn.PERSONA else "",
+        initial_message=first_message_text if first_turn == FirstTurn.USER else "",
         user_context=test_case.user_context,
         expected_outcomes=test_case.expected_outcomes,
         config=sim_cfg,
@@ -447,7 +447,7 @@ async def run_test_case(
     transcript: list[ConversationTurn] = []
 
     # ── Initial message ──────────────────────────────────────────────
-    if first_turn == FirstTurn.PERSONA:
+    if first_turn == FirstTurn.USER:
         # Persona speaks first
         if first_message_text:
             transcript.append(
@@ -569,7 +569,7 @@ async def run_test_case(
             if max_agent_rounds is not None and agent_rounds >= max_agent_rounds:
                 break
 
-            if first_turn == FirstTurn.PERSONA:
+            if first_turn == FirstTurn.USER:
                 # Persona-first: agent responds → user responds
                 ok = await _do_agent_turn(
                     transcript,
@@ -1003,9 +1003,11 @@ async def execute_run(run_id: uuid.UUID) -> None:
                 logger.error("Run %s not found or not in executable state", run_id)
                 return
 
-            eval_set = crud.get_eval_set(session=session, eval_set_id=run.eval_set_id)
-            if not eval_set:
-                logger.error("Run %s references missing eval set", run_id)
+            eval_config = crud.get_eval_config(
+                session=session, eval_config_id=run.eval_config_id
+            )
+            if not eval_config:
+                logger.error("Run %s references missing eval config", run_id)
                 crud.update_run(
                     session=session,
                     db_run=run,
@@ -1024,8 +1026,8 @@ async def execute_run(run_id: uuid.UUID) -> None:
                 ),
             )
 
-            execution_plan = crud.get_test_cases_for_set(
-                session=session, eval_set_id=run.eval_set_id
+            execution_plan = crud.get_test_cases_for_config(
+                session=session, eval_config_id=run.eval_config_id
             )
 
             config = RunConfig.model_validate(run.config) if run.config else RunConfig()

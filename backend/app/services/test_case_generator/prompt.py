@@ -1,9 +1,32 @@
 import json
+from copy import deepcopy
+from typing import Any
 
 from app.models.test_case import TestCaseCreate
 from app.services.test_case_generator.schemas import ToolDefinition
 
-_TEST_CASE_SCHEMA = json.dumps(TestCaseCreate.model_json_schema(), indent=2)
+
+def _test_case_schema_without_status() -> dict[str, Any]:
+    """``TestCaseCreate`` JSON schema with ``status`` stripped.
+
+    Lifecycle status is a platform concern; the LLM never needs to set or
+    reason about it. We also drop the unused ``TestCaseStatus`` ``$defs`` entry
+    so its enum values do not bleed back into the prompt.
+    """
+    schema = deepcopy(TestCaseCreate.model_json_schema())
+    props = schema.get("properties")
+    if isinstance(props, dict):
+        props.pop("status", None)
+    required = schema.get("required")
+    if isinstance(required, list):
+        schema["required"] = [r for r in required if r != "status"]
+    defs = schema.get("$defs")
+    if isinstance(defs, dict):
+        defs.pop("TestCaseStatus", None)
+    return schema
+
+
+_TEST_CASE_SCHEMA = json.dumps(_test_case_schema_without_status(), indent=2)
 
 _SYSTEM_PROMPT = f"""\
 You are a test case generation expert for an AI agent evaluation platform.
@@ -17,11 +40,10 @@ Each object MUST conform to this schema:
 {_TEST_CASE_SCHEMA}
 
 KEY FIELD DETAILS:
-- "status": ALWAYS set to "draft"
 - "difficulty": either "normal" or "hard"
 - "tags": MUST include at least one category tag: "normal", "edge-case", or "red-team"
 - "persona_context": a single text block describing the persona (type, description, and behavioral instructions combined)
-- "first_turn": who speaks first — "persona" (default) or "agent". Use "agent" for greeting/welcome scenarios.
+- "first_turn": who speaks first — "user" (default) or "agent". Use "agent" for greeting/welcome scenarios.
 - "first_message": the opening message for whoever speaks first
 - "user_context": free-form dict of background info available to the simulator
 - "expected_outcomes": list of true-statement assertions the judge evaluates (e.g. "Agent MUST confirm the appointment date")

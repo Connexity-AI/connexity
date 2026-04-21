@@ -13,12 +13,12 @@ from app.models.prompt_editor import PromptEditorMessage
 from app.tests.utils.eval import (
     create_test_agent,
     create_test_case_fixture,
-    create_test_eval_set,
+    create_test_eval_config,
     create_test_platform_agent,
     create_test_prompt_editor_message,
     create_test_prompt_editor_session,
     create_test_run,
-    eval_set_members,
+    eval_config_members,
 )
 from app.tests.utils.user import create_random_user
 
@@ -89,8 +89,10 @@ def test_create_session_with_run_id(db: Session) -> None:
     agent = create_test_agent(db)
     user = create_random_user(db)
     tc = create_test_case_fixture(session=db, agent_id=agent.id)
-    es = create_test_eval_set(session=db, members=eval_set_members(tc.id))
-    run = create_test_run(db, agent_id=agent.id, eval_set_id=es.id)
+    es = create_test_eval_config(
+        session=db, agent_id=agent.id, members=eval_config_members(tc.id)
+    )
+    run = create_test_run(db, agent_id=agent.id, eval_config_id=es.id)
 
     session_in = PromptEditorSessionCreate(
         agent_id=agent.id,
@@ -120,8 +122,10 @@ def test_create_session_run_id_wrong_agent(db: Session) -> None:
     agent_b = create_test_agent(db)
     user = create_random_user(db)
     tc = create_test_case_fixture(session=db, agent_id=agent_a.id)
-    es = create_test_eval_set(session=db, members=eval_set_members(tc.id))
-    run = create_test_run(db, agent_id=agent_a.id, eval_set_id=es.id)
+    es = create_test_eval_config(
+        session=db, agent_id=agent_a.id, members=eval_config_members(tc.id)
+    )
+    run = create_test_run(db, agent_id=agent_a.id, eval_config_id=es.id)
 
     session_in = PromptEditorSessionCreate(
         agent_id=agent_b.id,

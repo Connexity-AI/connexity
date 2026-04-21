@@ -69,6 +69,53 @@ def test_list_test_cases_filter_by_agent_id(db: Session) -> None:
     assert all(s.agent_id == agent.id for s in items)
 
 
+def test_list_distinct_tags_for_agent(db: Session) -> None:
+    agent = create_test_agent(db)
+    crud.create_test_case(
+        session=db,
+        test_case_in=TestCaseCreate(
+            name="t1",
+            tags=["alpha", "beta"],
+            agent_id=agent.id,
+        ),
+    )
+    crud.create_test_case(
+        session=db,
+        test_case_in=TestCaseCreate(
+            name="t2",
+            tags=["beta", "gamma"],
+            agent_id=agent.id,
+        ),
+    )
+    tags = crud.list_distinct_tags_for_agent(session=db, agent_id=agent.id)
+    assert tags == ["alpha", "beta", "gamma"]
+
+
+def test_list_recent_test_cases_for_agent(db: Session) -> None:
+    agent = create_test_agent(db)
+    crud.create_test_case(
+        session=db,
+        test_case_in=TestCaseCreate(
+            name="older",
+            tags=["x"],
+            agent_id=agent.id,
+        ),
+    )
+    newer = crud.create_test_case(
+        session=db,
+        test_case_in=TestCaseCreate(
+            name="newer",
+            tags=["y"],
+            agent_id=agent.id,
+        ),
+    )
+    recent = crud.list_recent_test_cases_for_agent(
+        session=db, agent_id=agent.id, limit=5
+    )
+    assert len(recent) >= 1
+    assert recent[0].id == newer.id
+
+
 def test_list_test_cases_filter_by_status(db: Session) -> None:
     create_test_case_fixture(db, status=TestCaseStatus.ARCHIVED)
     items, count = crud.list_test_cases(session=db, status=TestCaseStatus.ARCHIVED)

@@ -12,9 +12,9 @@ from app.models.enums import RunStatus
 from app.tests.utils.eval import (
     create_test_agent,
     create_test_case_fixture,
-    create_test_eval_set,
+    create_test_eval_config,
     create_test_run,
-    eval_set_members,
+    eval_config_members,
 )
 
 _PREFIX = f"{settings.API_V1_STR}/runs"
@@ -23,8 +23,10 @@ _PREFIX = f"{settings.API_V1_STR}/runs"
 def _setup(db: Session) -> tuple:
     agent = create_test_agent(db)
     test_case = create_test_case_fixture(db)
-    eval_set = create_test_eval_set(db, members=eval_set_members(test_case.id))
-    return agent, eval_set
+    eval_config = create_test_eval_config(
+        db, agent_id=agent.id, members=eval_config_members(test_case.id)
+    )
+    return agent, eval_config
 
 
 def _mark_completed(db: Session, run: object) -> None:
@@ -39,9 +41,9 @@ def _mark_completed(db: Session, run: object) -> None:
 
 
 def test_set_baseline_clears_previous(db: Session) -> None:
-    agent, eval_set = _setup(db)
-    run1 = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
-    run2 = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    agent, eval_config = _setup(db)
+    run1 = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
+    run2 = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     _mark_completed(db, run1)
     _mark_completed(db, run2)
 
@@ -55,12 +57,14 @@ def test_set_baseline_clears_previous(db: Session) -> None:
 
 
 def test_set_baseline_different_scope_independent(db: Session) -> None:
-    agent, eval_set1 = _setup(db)
+    agent, eval_config1 = _setup(db)
     test_case2 = create_test_case_fixture(db)
-    eval_set2 = create_test_eval_set(db, members=eval_set_members(test_case2.id))
+    eval_config2 = create_test_eval_config(
+        db, agent_id=agent.id, members=eval_config_members(test_case2.id)
+    )
 
-    run1 = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set1.id)
-    run2 = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set2.id)
+    run1 = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config1.id)
+    run2 = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config2.id)
     _mark_completed(db, run1)
     _mark_completed(db, run2)
 
@@ -74,8 +78,8 @@ def test_set_baseline_different_scope_independent(db: Session) -> None:
 
 
 def test_set_baseline_rejects_non_completed_run(db: Session) -> None:
-    agent, eval_set = _setup(db)
-    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    agent, eval_config = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     # run is pending by default
     with pytest.raises(ValueError, match="Only completed runs"):
         crud.set_baseline(session=db, db_run=run)
@@ -85,22 +89,22 @@ def test_set_baseline_rejects_non_completed_run(db: Session) -> None:
 
 
 def test_get_baseline_run_found(db: Session) -> None:
-    agent, eval_set = _setup(db)
-    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    agent, eval_config = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     _mark_completed(db, run)
     crud.set_baseline(session=db, db_run=run)
 
     result = crud.get_baseline_run(
-        session=db, agent_id=agent.id, eval_set_id=eval_set.id
+        session=db, agent_id=agent.id, eval_config_id=eval_config.id
     )
     assert result is not None
     assert result.id == run.id
 
 
 def test_get_baseline_run_not_found(db: Session) -> None:
-    agent, eval_set = _setup(db)
+    agent, eval_config = _setup(db)
     result = crud.get_baseline_run(
-        session=db, agent_id=agent.id, eval_set_id=eval_set.id
+        session=db, agent_id=agent.id, eval_config_id=eval_config.id
     )
     assert result is None
 
@@ -111,14 +115,14 @@ def test_get_baseline_run_not_found(db: Session) -> None:
 def test_get_baseline_endpoint(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    agent, eval_set = _setup(db)
-    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    agent, eval_config = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     _mark_completed(db, run)
     crud.set_baseline(session=db, db_run=run)
 
     r = client.get(
         f"{_PREFIX}/baseline",
-        params={"agent_id": str(agent.id), "eval_set_id": str(eval_set.id)},
+        params={"agent_id": str(agent.id), "eval_config_id": str(eval_config.id)},
         cookies=superuser_auth_cookies,
     )
     assert r.status_code == 200
@@ -130,14 +134,14 @@ def test_get_baseline_filters_by_agent_version(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
     """GET /runs/baseline?agent_version=N only returns baseline for that version."""
-    agent, eval_set = _setup(db)
+    agent, eval_config = _setup(db)
 
     # Create a completed run at agent v1 and mark it baseline.
-    run_v1 = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    run_v1 = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     _mark_completed(db, run_v1)
     crud.set_baseline(session=db, db_run=run_v1)
 
-    base_params = {"agent_id": str(agent.id), "eval_set_id": str(eval_set.id)}
+    base_params = {"agent_id": str(agent.id), "eval_config_id": str(eval_config.id)}
 
     # Matching version filter → returns the baseline.
     r = client.get(
@@ -168,7 +172,7 @@ def test_get_baseline_filters_by_agent_version(
     db.refresh(agent)
     assert agent.version == 2
 
-    run_v2 = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    run_v2 = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     _mark_completed(db, run_v2)
     crud.set_baseline(session=db, db_run=run_v2)
 
@@ -195,10 +199,10 @@ def test_get_baseline_filters_by_agent_version(
 def test_get_baseline_endpoint_not_found(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    agent, eval_set = _setup(db)
+    agent, eval_config = _setup(db)
     r = client.get(
         f"{_PREFIX}/baseline",
-        params={"agent_id": str(agent.id), "eval_set_id": str(eval_set.id)},
+        params={"agent_id": str(agent.id), "eval_config_id": str(eval_config.id)},
         cookies=superuser_auth_cookies,
     )
     assert r.status_code == 404
@@ -206,8 +210,8 @@ def test_get_baseline_endpoint_not_found(
 
 def test_set_baseline_scoped_per_agent_version(db: Session) -> None:
     """v1 and v2 can each have a baseline for the same eval set."""
-    agent, eval_set = _setup(db)
-    run_v1 = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    agent, eval_config = _setup(db)
+    run_v1 = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     _mark_completed(db, run_v1)
     crud.set_baseline(session=db, db_run=run_v1)
     crud.update_agent(
@@ -218,8 +222,8 @@ def test_set_baseline_scoped_per_agent_version(db: Session) -> None:
     publish_draft(session=db, agent=agent, change_description=None, created_by=None)
     db.refresh(agent)
     assert agent.version == 2
-    run_v2a = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
-    run_v2b = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    run_v2a = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
+    run_v2b = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     _mark_completed(db, run_v2a)
     _mark_completed(db, run_v2b)
     crud.set_baseline(session=db, db_run=run_v2a)
@@ -235,8 +239,8 @@ def test_set_baseline_scoped_per_agent_version(db: Session) -> None:
 
 
 def test_get_baseline_run_defaults_to_current_agent_version(db: Session) -> None:
-    agent, eval_set = _setup(db)
-    run_v1 = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    agent, eval_config = _setup(db)
+    run_v1 = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     _mark_completed(db, run_v1)
     crud.set_baseline(session=db, db_run=run_v1)
     crud.update_agent(
@@ -248,19 +252,23 @@ def test_get_baseline_run_defaults_to_current_agent_version(db: Session) -> None
     db.refresh(agent)
     assert agent.version == 2
     assert (
-        crud.get_baseline_run(session=db, agent_id=agent.id, eval_set_id=eval_set.id)
+        crud.get_baseline_run(
+            session=db, agent_id=agent.id, eval_config_id=eval_config.id
+        )
         is None
     )
-    run_v2 = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    run_v2 = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     _mark_completed(db, run_v2)
     crud.set_baseline(session=db, db_run=run_v2)
-    got = crud.get_baseline_run(session=db, agent_id=agent.id, eval_set_id=eval_set.id)
+    got = crud.get_baseline_run(
+        session=db, agent_id=agent.id, eval_config_id=eval_config.id
+    )
     assert got is not None
     assert got.id == run_v2.id
     got_v1 = crud.get_baseline_run(
         session=db,
         agent_id=agent.id,
-        eval_set_id=eval_set.id,
+        eval_config_id=eval_config.id,
         agent_version=1,
     )
     assert got_v1 is not None
@@ -271,8 +279,8 @@ def test_get_baseline_omitted_agent_version_resolves_current(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
     """Without agent_version, baseline lookup uses the agent's current version."""
-    agent, eval_set = _setup(db)
-    run_v1 = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    agent, eval_config = _setup(db)
+    run_v1 = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     _mark_completed(db, run_v1)
     crud.set_baseline(session=db, db_run=run_v1)
 
@@ -288,7 +296,7 @@ def test_get_baseline_omitted_agent_version_resolves_current(
     # Default: resolve baseline for agent's *current* version (v2) — none stored
     r_current = client.get(
         f"{_PREFIX}/baseline",
-        params={"agent_id": str(agent.id), "eval_set_id": str(eval_set.id)},
+        params={"agent_id": str(agent.id), "eval_config_id": str(eval_config.id)},
         cookies=superuser_auth_cookies,
     )
     assert r_current.status_code == 404
@@ -297,7 +305,7 @@ def test_get_baseline_omitted_agent_version_resolves_current(
         f"{_PREFIX}/baseline",
         params={
             "agent_id": str(agent.id),
-            "eval_set_id": str(eval_set.id),
+            "eval_config_id": str(eval_config.id),
             "agent_version": 2,
         },
         cookies=superuser_auth_cookies,
@@ -308,7 +316,7 @@ def test_get_baseline_omitted_agent_version_resolves_current(
         f"{_PREFIX}/baseline",
         params={
             "agent_id": str(agent.id),
-            "eval_set_id": str(eval_set.id),
+            "eval_config_id": str(eval_config.id),
             "agent_version": 1,
         },
         cookies=superuser_auth_cookies,
@@ -323,9 +331,9 @@ def test_get_baseline_omitted_agent_version_resolves_current(
 def test_patch_set_baseline_enforces_single(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    agent, eval_set = _setup(db)
-    run1 = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
-    run2 = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    agent, eval_config = _setup(db)
+    run1 = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
+    run2 = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     _mark_completed(db, run1)
     _mark_completed(db, run2)
 
@@ -358,8 +366,8 @@ def test_patch_set_baseline_enforces_single(
 def test_patch_set_baseline_rejects_non_completed(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    agent, eval_set = _setup(db)
-    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    agent, eval_config = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     # run is pending — should be rejected
     r = client.patch(
         f"{_PREFIX}/{run.id}",
@@ -377,8 +385,8 @@ def test_patch_set_baseline_rejects_non_completed(
 def test_patch_unset_baseline(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    agent, eval_set = _setup(db)
-    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    agent, eval_config = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     _mark_completed(db, run)
     crud.set_baseline(session=db, db_run=run)
 
@@ -395,8 +403,8 @@ def test_patch_other_fields_without_baseline(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
     """Patching non-baseline fields should not affect baseline state."""
-    agent, eval_set = _setup(db)
-    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    agent, eval_config = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
 
     r = client.patch(
         f"{_PREFIX}/{run.id}",

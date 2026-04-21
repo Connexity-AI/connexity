@@ -47,7 +47,7 @@ from app.models.comparison import (  # noqa: F401
     AgentVersionDiff,
     AggregateComparison,
     CauseAnalysisItem,
-    EvalSetDiff,
+    EvalConfigDiff,
     FieldChange,
     ImprovementSuggestion,
     ImprovementSuggestions,
@@ -89,19 +89,19 @@ from app.models.enums import (  # noqa: F401
     TurnRole,
 )
 
-# ── Eval set ───────────────────────────────────────────────────────
-from app.models.eval_set import (  # noqa: F401
-    EvalSet,
-    EvalSetBase,
-    EvalSetCreate,
-    EvalSetMember,
-    EvalSetMemberEntry,
-    EvalSetMemberPublic,
-    EvalSetMembersPublic,
-    EvalSetMembersUpdate,
-    EvalSetPublic,
-    EvalSetsPublic,
-    EvalSetUpdate,
+# ── Eval config ────────────────────────────────────────────────────
+from app.models.eval_config import (  # noqa: F401
+    EvalConfig,
+    EvalConfigBase,
+    EvalConfigCreate,
+    EvalConfigMember,
+    EvalConfigMemberEntry,
+    EvalConfigMemberPublic,
+    EvalConfigMembersPublic,
+    EvalConfigMembersUpdate,
+    EvalConfigPublic,
+    EvalConfigsPublic,
+    EvalConfigUpdate,
 )
 
 # ── Integration ────────────────────────────────────────────────────

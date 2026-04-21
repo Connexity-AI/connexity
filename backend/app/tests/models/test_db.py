@@ -6,11 +6,11 @@ from app.models.enums import (
     RunStatus,
     TestCaseStatus,
 )
-from app.models.eval_set import (
-    EvalSet,
-    EvalSetCreate,
-    EvalSetMember,
-    EvalSetMemberEntry,
+from app.models.eval_config import (
+    EvalConfig,
+    EvalConfigCreate,
+    EvalConfigMember,
+    EvalConfigMemberEntry,
 )
 from app.models.run import Run, RunCreate
 from app.models.test_case import TestCase, TestCaseCreate
@@ -72,31 +72,32 @@ def test_test_case_table_defaults():
     assert isinstance(tc.id, uuid.UUID)
 
 
-# ── EvalSet ────────────────────────────────────────────────────
+# ── EvalConfig ────────────────────────────────────────────────────
 
 
-def test_eval_set_create():
+def test_eval_config_create():
     a, b = uuid.uuid4(), uuid.uuid4()
-    ss = EvalSetCreate(
-        name="Baseline Set",
+    ec = EvalConfigCreate(
+        name="Baseline Config",
+        agent_id=uuid.uuid4(),
         members=[
-            EvalSetMemberEntry(test_case_id=a),
-            EvalSetMemberEntry(test_case_id=b),
+            EvalConfigMemberEntry(test_case_id=a),
+            EvalConfigMemberEntry(test_case_id=b),
         ],
     )
-    assert ss.members is not None
-    assert len(ss.members) == 2
+    assert ec.members is not None
+    assert len(ec.members) == 2
 
 
-def test_eval_set_table_defaults():
-    ss = EvalSet(name="Test Set")
-    assert ss.id is not None
-    assert ss.version == 1
+def test_eval_config_table_defaults():
+    ec = EvalConfig(name="Test Config", agent_id=uuid.uuid4())
+    assert ec.id is not None
+    assert ec.version == 1
 
 
-def test_eval_set_member():
-    member = EvalSetMember(
-        eval_set_id=uuid.uuid4(),
+def test_eval_config_member():
+    member = EvalConfigMember(
+        eval_config_id=uuid.uuid4(),
         test_case_id=uuid.uuid4(),
         position=3,
     )
@@ -111,7 +112,7 @@ def test_run_create_minimal():
     run = RunCreate(
         agent_id=uuid.uuid4(),
         agent_endpoint_url="https://example.com/agent",
-        eval_set_id=uuid.uuid4(),
+        eval_config_id=uuid.uuid4(),
     )
     assert run.is_baseline is False
     assert run.config is None
@@ -123,7 +124,7 @@ def test_run_create_with_config():
     run = RunCreate(
         agent_id=uuid.uuid4(),
         agent_endpoint_url="https://example.com/agent",
-        eval_set_id=uuid.uuid4(),
+        eval_config_id=uuid.uuid4(),
         config=RunConfig(concurrency=10, judge=JudgeConfig(model="gpt-4o")),
     )
     assert run.config.concurrency == 10
@@ -133,7 +134,7 @@ def test_run_table_defaults():
     run = Run(
         agent_id=uuid.uuid4(),
         agent_endpoint_url="https://example.com/agent",
-        eval_set_id=uuid.uuid4(),
+        eval_config_id=uuid.uuid4(),
     )
     assert run.id is not None
     assert run.status == RunStatus.PENDING
@@ -145,7 +146,7 @@ def test_run_enum_values():
         run = Run(
             agent_id=uuid.uuid4(),
             agent_endpoint_url="https://example.com/agent",
-            eval_set_id=uuid.uuid4(),
+            eval_config_id=uuid.uuid4(),
             status=status,
         )
         assert run.status == status

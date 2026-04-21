@@ -1,10 +1,16 @@
+import json
 import uuid
+from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from app.core.config import settings
-from app.tests.utils.eval import create_test_case_fixture
+from app.services.llm import LLMResponse
+from app.tests.utils.eval import (
+    create_test_case_fixture,
+    create_test_platform_agent,
+)
 
 
 def test_create_test_case(
@@ -450,3 +456,206 @@ def test_import_test_cases_unauthenticated(client: TestClient) -> None:
         json=[{"name": "No Auth"}],
     )
     assert r.status_code in (401, 403)
+
+
+def test_test_case_ai_from_transcript_missing_transcript(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = create_test_platform_agent(db)
+    r = client.post(
+        f"{settings.API_V1_STR}/test-cases/ai",
+        json={
+            "mode": "from_transcript",
+            "user_message": "convert",
+            "agent_id": str(agent.id),
+        },
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 422
+
+
+def test_test_case_ai_edit_missing_test_case_id(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = create_test_platform_agent(db)
+    r = client.post(
+        f"{settings.API_V1_STR}/test-cases/ai",
+        json={
+            "mode": "edit",
+            "user_message": "fix",
+            "agent_id": str(agent.id),
+        },
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 422
+
+
+def test_test_case_ai_edit_agent_mismatch(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    a1 = create_test_platform_agent(db)
+    a2 = create_test_platform_agent(db)
+    tc = create_test_case_fixture(db, agent_id=a1.id)
+    r = client.post(
+        f"{settings.API_V1_STR}/test-cases/ai",
+        json={
+            "mode": "edit",
+            "user_message": "x",
+            "agent_id": str(a2.id),
+            "test_case_id": str(tc.id),
+        },
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 422
+    assert "belong" in r.json()["detail"].lower()
+
+
+def test_test_case_ai_create_preview(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = create_test_platform_agent(db)
+    mock_resp = LLMResponse(
+        content="",
+        model="gpt-4o",
+        usage={},
+        latency_ms=1,
+        tool_calls=[
+            {
+                "id": "c1",
+                "type": "function",
+                "function": {
+                    "name": "create_test_case",
+                    "arguments": json.dumps(
+                        {
+                            "name": "AI Case",
+                            "tags": ["normal"],
+                            "difficulty": "normal",
+                            "persona_context": "p",
+                            "first_message": "hi",
+                        }
+                    ),
+                },
+            }
+        ],
+    )
+    with patch(
+        "app.services.test_case_generator.agent.core.call_llm",
+        new_callable=AsyncMock,
+        return_value=mock_resp,
+    ):
+        r = client.post(
+            f"{settings.API_V1_STR}/test-cases/ai",
+            json={
+                "mode": "create",
+                "user_message": "one case",
+                "agent_id": str(agent.id),
+                "persist": False,
+            },
+            cookies=superuser_auth_cookies,
+        )
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data["created"]) == 1
+    assert data["created"][0]["name"] == "AI Case"
+    assert data["edited"] is None
+
+
+def test_test_case_ai_edit_preview_default_no_db_write(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = create_test_platform_agent(db)
+    tc = create_test_case_fixture(db, agent_id=agent.id, name="Original Name")
+    mock_resp = LLMResponse(
+        content="",
+        model="gpt-4o",
+        usage={},
+        latency_ms=1,
+        tool_calls=[
+            {
+                "id": "c1",
+                "type": "function",
+                "function": {
+                    "name": "edit_test_case",
+                    "arguments": json.dumps(
+                        {
+                            "name": "Renamed By AI",
+                            "tags": ["edge-case"],
+                            "difficulty": "hard",
+                            "persona_context": "pc",
+                            "first_message": "yo",
+                        }
+                    ),
+                },
+            }
+        ],
+    )
+    with patch(
+        "app.services.test_case_generator.agent.core.call_llm",
+        new_callable=AsyncMock,
+        return_value=mock_resp,
+    ):
+        r = client.post(
+            f"{settings.API_V1_STR}/test-cases/ai",
+            json={
+                "mode": "edit",
+                "user_message": "rename",
+                "agent_id": str(agent.id),
+                "test_case_id": str(tc.id),
+            },
+            cookies=superuser_auth_cookies,
+        )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["edited"]["name"] == "Renamed By AI"
+    db.refresh(tc)
+    assert tc.name == "Original Name"
+
+
+def test_test_case_ai_edit_persist_updates_db(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = create_test_platform_agent(db)
+    tc = create_test_case_fixture(db, agent_id=agent.id, name="Before Persist")
+    mock_resp = LLMResponse(
+        content="",
+        model="gpt-4o",
+        usage={},
+        latency_ms=1,
+        tool_calls=[
+            {
+                "id": "c1",
+                "type": "function",
+                "function": {
+                    "name": "edit_test_case",
+                    "arguments": json.dumps(
+                        {
+                            "name": "After Persist",
+                            "tags": ["normal"],
+                            "difficulty": "normal",
+                            "persona_context": "pc",
+                            "first_message": "m",
+                        }
+                    ),
+                },
+            }
+        ],
+    )
+    with patch(
+        "app.services.test_case_generator.agent.core.call_llm",
+        new_callable=AsyncMock,
+        return_value=mock_resp,
+    ):
+        r = client.post(
+            f"{settings.API_V1_STR}/test-cases/ai",
+            json={
+                "mode": "edit",
+                "user_message": "update",
+                "agent_id": str(agent.id),
+                "test_case_id": str(tc.id),
+                "persist": True,
+            },
+            cookies=superuser_auth_cookies,
+        )
+    assert r.status_code == 200
+    db.refresh(tc)
+    assert tc.name == "After Persist"

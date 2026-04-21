@@ -47,9 +47,9 @@ def compare_runs(
     candidate_tc_ids = set(candidate_results)
 
     # Determine test case matching
-    if baseline.eval_set_id != candidate.eval_set_id:
+    if baseline.eval_config_id != candidate.eval_config_id:
         warnings.append(
-            "Runs use different eval sets — comparison is based on "
+            "Runs use different eval configs — comparison is based on "
             "overlapping test case IDs only."
         )
 
@@ -58,10 +58,10 @@ def compare_runs(
     candidate_only = sorted(candidate_tc_ids - baseline_tc_ids)
 
     if baseline_only or candidate_only:
-        if baseline.eval_set_id == candidate.eval_set_id:
+        if baseline.eval_config_id == candidate.eval_config_id:
             warnings.append(
-                f"Eval set versions differ ({baseline.eval_set_version} vs "
-                f"{candidate.eval_set_version}): {len(baseline_only)} removed, "
+                f"Eval config versions differ ({baseline.eval_config_version} vs "
+                f"{candidate.eval_config_version}): {len(baseline_only)} removed, "
                 f"{len(candidate_only)} added."
             )
 

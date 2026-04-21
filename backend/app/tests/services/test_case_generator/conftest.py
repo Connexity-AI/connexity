@@ -1,15 +1,8 @@
-"""Generator tests are pure unit tests — no DB required."""
+"""Shared fixtures and mocks for test_case_generator tests."""
 
 import json
-from collections.abc import Generator
 
 import pytest
-
-
-@pytest.fixture(scope="session", autouse=True)
-def db() -> Generator[None, None, None]:
-    yield
-
 
 MOCK_TEST_CASES_RAW: list[dict] = [
     {
@@ -21,7 +14,6 @@ MOCK_TEST_CASES_RAW: list[dict] = [
             ["edge-case", "boundary"],
             ["red-team", "adversarial"],
         ][i % 3],
-        "status": "draft",
         "persona_context": f"Test persona {i}. Behave as persona {i} would.",
         "first_message": f"Hello, this is test message {i}.",
         "user_context": {"test_case_index": i, "test": True},

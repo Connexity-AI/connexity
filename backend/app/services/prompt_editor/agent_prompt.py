@@ -246,30 +246,60 @@ def _apply_one_edit_lines(
     return lines[:lo] + chunk + lines[hi:]
 
 
-def _extract_agent_tool_names(agent: Agent) -> list[str]:
-    """Return the tool function names declared on the agent."""
-    tool_names: list[str] = []
-    if agent.tools:
-        for t in agent.tools:
-            if isinstance(t, dict) and "function" in t:
-                fn = t.get("function")
-                if isinstance(fn, dict) and "name" in fn:
-                    tool_names.append(str(fn["name"]))
-            elif isinstance(t, dict) and "name" in t:
-                tool_names.append(str(t["name"]))
-    return tool_names
+# ---------------------------------------------------------------------------
+# Agent-config block (used by editing + creating dynamic system messages)
+# ---------------------------------------------------------------------------
 
 
-def _build_agent_config_block(agent: Agent) -> str:
-    """Render the ``<agent_config>`` block used by both modes."""
-    tool_names = _extract_agent_tool_names(agent)
-    tools_line = ", ".join(tool_names) if tool_names else "(none)"
-    return (
-        "## Target agent configuration\n<agent_config>\n"
+def _extract_agent_tools(agent: Agent) -> list[dict[str, Any]]:
+    """Return OpenAI-style tool dicts defined on the agent (``type``/``function``).
+
+    Entries that do not match the expected shape are skipped so we never
+    surface malformed tools to the LLM.
+    """
+    tools: list[dict[str, Any]] = []
+    if not agent.tools:
+        return tools
+    for t in agent.tools:
+        if not isinstance(t, dict):
+            continue
+        fn = t.get("function") if "function" in t else None
+        if isinstance(fn, dict) and fn.get("name"):
+            tools.append(
+                {
+                    "name": str(fn.get("name", "")),
+                    "description": str(fn.get("description") or ""),
+                    "parameters": fn.get("parameters") or {},
+                }
+            )
+        elif t.get("name"):
+            tools.append(
+                {
+                    "name": str(t.get("name", "")),
+                    "description": str(t.get("description") or ""),
+                    "parameters": t.get("parameters") or {},
+                }
+            )
+    return tools
+
+
+def build_agent_config_block(agent: Agent) -> str:
+    """Render ``<agent_config>`` with full tool schemas (not just names).
+
+    The editor needs to see each tool's description and parameter schema so it
+    can align prompt instructions with the actual tool surface the agent has.
+    """
+    tools = _extract_agent_tools(agent)
+    header = (
         f"Agent: {agent.name} | Mode: {agent.mode} "
         f"| Model: {agent.agent_model or ''} "
-        f"| Provider: {agent.agent_provider or ''}\n"
-        f"Tools ({len(tool_names)}): {tools_line}\n"
+        f"| Provider: {agent.agent_provider or ''}"
+    )
+    tools_json = json.dumps(tools, indent=2, ensure_ascii=False) if tools else "(none)"
+    return (
+        "## Target agent configuration\n<agent_config>\n"
+        f"{header}\n"
+        f"Tools ({len(tools)}):\n{tools_json}\n"
         "</agent_config>"
     )
 
@@ -351,7 +381,7 @@ def build_dynamic_system_message(
         "## Current prompt (with line numbers)\n<current_prompt>\n"
         f"{numbered}\n"
         "</current_prompt>",
-        _build_agent_config_block(agent),
+        build_agent_config_block(agent),
     ]
     if eval_context and eval_context.strip():
         parts.append(
@@ -477,7 +507,7 @@ Adapt the sections based on what's relevant. Omit sections that have no content.
 
 def build_creator_dynamic_system_message(*, agent: Agent) -> str:
     """Dynamic block for creating mode: agent config only (no current prompt)."""
-    return _build_agent_config_block(agent)
+    return build_agent_config_block(agent)
 
 
 _TOOL_RESULT_MESSAGES: dict[str, str] = {

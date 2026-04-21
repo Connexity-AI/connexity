@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlmodel import Session, col, select
 
 from app.models import (
@@ -31,6 +31,31 @@ def create_test_case(*, session: Session, test_case_in: TestCaseCreate) -> TestC
 
 def get_test_case(*, session: Session, test_case_id: uuid.UUID) -> TestCase | None:
     return session.get(TestCase, test_case_id)
+
+
+def list_distinct_tags_for_agent(*, session: Session, agent_id: uuid.UUID) -> list[str]:
+    """Return sorted distinct tags used on test cases bound to ``agent_id``."""
+    statement = text(
+        "SELECT DISTINCT t FROM test_case "
+        "CROSS JOIN LATERAL unnest(tags) AS t "
+        "WHERE agent_id = :aid AND cardinality(tags) > 0 "
+        "ORDER BY t"
+    )
+    rows = session.execute(statement, {"aid": agent_id}).fetchall()
+    return [str(r[0]) for r in rows if r[0]]
+
+
+def list_recent_test_cases_for_agent(
+    *, session: Session, agent_id: uuid.UUID, limit: int = 20
+) -> list[TestCase]:
+    """Most recently created test cases for an agent (for prompt context)."""
+    statement = (
+        select(TestCase)
+        .where(TestCase.agent_id == agent_id)
+        .order_by(col(TestCase.created_at).desc())
+        .limit(limit)
+    )
+    return list(session.exec(statement).all())
 
 
 def list_test_cases(

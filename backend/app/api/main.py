@@ -6,7 +6,7 @@ from app.api.routes import (
     agents,
     config,
     custom_metrics,
-    eval_sets,
+    eval_configs,
     health,
     integrations,
     login,
@@ -28,7 +28,7 @@ api_router.include_router(users.router)
 api_router.include_router(agents.router)
 api_router.include_router(test_cases.router)
 api_router.include_router(custom_metrics.router)
-api_router.include_router(eval_sets.router)
+api_router.include_router(eval_configs.router)
 api_router.include_router(runs.router)
 api_router.include_router(test_case_results.router)
 api_router.include_router(prompt_editor.router)

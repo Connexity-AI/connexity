@@ -74,6 +74,9 @@ def list_runs(
     agent_version: int | None = Query(
         default=None, ge=1, description="Filter by agent config version at run creation"
     ),
+    eval_config_id: uuid.UUID | None = Query(
+        default=None, description="Filter by eval config"
+    ),
     status: RunStatus | None = None,
     created_after: datetime | None = None,
     created_before: datetime | None = None,
@@ -84,6 +87,7 @@ def list_runs(
         limit=limit,
         agent_id=agent_id,
         agent_version=agent_version,
+        eval_config_id=eval_config_id,
         status=status,
         created_after=created_after,
         created_before=created_before,
@@ -215,7 +219,7 @@ async def compare_suggestions_endpoint(
 def get_baseline_run(
     session: SessionDep,
     agent_id: uuid.UUID = Query(description="UUID of the agent"),
-    eval_set_id: uuid.UUID = Query(description="UUID of the eval set"),
+    eval_config_id: uuid.UUID = Query(description="UUID of the eval config"),
     agent_version: int | None = Query(
         default=None,
         ge=1,
@@ -225,17 +229,17 @@ def get_baseline_run(
         ),
     ),
 ) -> Run:
-    """Resolve the baseline run for an (agent, eval_set) pair (version-scoped)."""
+    """Resolve the baseline run for an (agent, eval_config) pair (version-scoped)."""
     run = crud.get_baseline_run(
         session=session,
         agent_id=agent_id,
-        eval_set_id=eval_set_id,
+        eval_config_id=eval_config_id,
         agent_version=agent_version,
     )
     if not run:
         raise HTTPException(
             status_code=404,
-            detail="No baseline run found for this agent + eval set",
+            detail="No baseline run found for this agent + eval config",
         )
     return run
 

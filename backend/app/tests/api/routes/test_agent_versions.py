@@ -12,7 +12,7 @@ from app.core.db import engine
 from app.models import AgentCreate, AgentMode, AgentUpdate
 from app.tests.utils.eval import (
     create_test_agent,
-    create_test_eval_set,
+    create_test_eval_config,
     create_test_run,
 )
 
@@ -171,8 +171,8 @@ def test_list_runs_filter_agent_version(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
-    eval_set = create_test_eval_set(db)
-    create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    eval_config = create_test_eval_config(db, agent_id=agent.id)
+    create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     r = client.get(
         f"{settings.API_V1_STR}/runs/",
         params={"agent_id": str(agent.id), "agent_version": 1},

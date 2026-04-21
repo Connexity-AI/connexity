@@ -74,7 +74,11 @@ export function GenerateTestCasesDialog({
   }, [open, form]);
 
   const onSubmit = (data: FormValues) => {
-    if (!hasPublishedVersion) return;
+    console.info('[gen-tc] dialog submit', { count: data.count, hasPublishedVersion });
+    if (!hasPublishedVersion) {
+      console.warn('[gen-tc] blocked: no published version');
+      return;
+    }
     onGenerate(data.count);
     onOpenChange(false);
   };
@@ -174,8 +178,13 @@ export function GenerateTestCasesDialog({
                           onBlur={field.onBlur}
                           value={Number.isFinite(field.value) ? field.value : ''}
                           onChange={(e) => {
-                            const parsed = Number.parseInt(e.target.value, 10);
-                            field.onChange(Number.isNaN(parsed) ? 0 : parsed);
+                            const raw = e.target.value;
+                            if (raw === '') {
+                              field.onChange(Number.NaN);
+                              return;
+                            }
+                            const parsed = Number.parseInt(raw, 10);
+                            field.onChange(Number.isNaN(parsed) ? Number.NaN : parsed);
                           }}
                         />
                       </FormControl>
@@ -200,7 +209,23 @@ export function GenerateTestCasesDialog({
               >
                 Cancel
               </Button>
-              <Button type="submit" size="sm" className="h-8 text-xs gap-1.5" disabled={!canSubmit}>
+              <Button
+                type="submit"
+                size="sm"
+                className="h-8 text-xs gap-1.5"
+                disabled={!canSubmit}
+                onClick={() =>
+                  console.info('[gen-tc] submit click', {
+                    canSubmit,
+                    hasPublishedVersion,
+                    versionsLoading,
+                    count,
+                    min: MIN_COUNT,
+                    max: MAX_COUNT,
+                    errors: form.formState.errors,
+                  })
+                }
+              >
                 <Sparkles className="w-3.5 h-3.5" />
                 Generate {count || ''} test case{count === 1 ? '' : 's'}
               </Button>

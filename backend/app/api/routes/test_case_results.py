@@ -37,6 +37,9 @@ def list_test_case_results(
     repetition_index: int | None = Query(
         default=None, description="Filter by repetition within a set pass (0-based)"
     ),
+    passed: bool | None = Query(
+        default=None, description="Filter by pass/fail verdict"
+    ),
 ) -> TestCaseResultsPublic:
     items, count = crud.list_test_case_results(
         session=session,
@@ -45,6 +48,7 @@ def list_test_case_results(
         run_id=run_id,
         test_case_id=test_case_id,
         repetition_index=repetition_index,
+        passed=passed,
     )
     return TestCaseResultsPublic(data=items, count=count)  # type: ignore[arg-type]
 

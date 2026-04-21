@@ -75,33 +75,33 @@ import type {
   CustomMetricsUpdateCustomMetricData,
   CustomMetricsUpdateCustomMetricErrors,
   CustomMetricsUpdateCustomMetricResponses,
-  EvalSetsAddTestCasesToSetData,
-  EvalSetsAddTestCasesToSetErrors,
-  EvalSetsAddTestCasesToSetResponses,
-  EvalSetsCreateEvalSetData,
-  EvalSetsCreateEvalSetErrors,
-  EvalSetsCreateEvalSetResponses,
-  EvalSetsDeleteEvalSetData,
-  EvalSetsDeleteEvalSetErrors,
-  EvalSetsDeleteEvalSetResponses,
-  EvalSetsGetEvalSetData,
-  EvalSetsGetEvalSetErrors,
-  EvalSetsGetEvalSetResponses,
-  EvalSetsListEvalSetsData,
-  EvalSetsListEvalSetsErrors,
-  EvalSetsListEvalSetsResponses,
-  EvalSetsListTestCasesInSetData,
-  EvalSetsListTestCasesInSetErrors,
-  EvalSetsListTestCasesInSetResponses,
-  EvalSetsRemoveTestCaseFromSetData,
-  EvalSetsRemoveTestCaseFromSetErrors,
-  EvalSetsRemoveTestCaseFromSetResponses,
-  EvalSetsReplaceTestCasesInSetData,
-  EvalSetsReplaceTestCasesInSetErrors,
-  EvalSetsReplaceTestCasesInSetResponses,
-  EvalSetsUpdateEvalSetData,
-  EvalSetsUpdateEvalSetErrors,
-  EvalSetsUpdateEvalSetResponses,
+  EvalConfigsAddTestCasesToConfigData,
+  EvalConfigsAddTestCasesToConfigErrors,
+  EvalConfigsAddTestCasesToConfigResponses,
+  EvalConfigsCreateEvalConfigData,
+  EvalConfigsCreateEvalConfigErrors,
+  EvalConfigsCreateEvalConfigResponses,
+  EvalConfigsDeleteEvalConfigData,
+  EvalConfigsDeleteEvalConfigErrors,
+  EvalConfigsDeleteEvalConfigResponses,
+  EvalConfigsGetEvalConfigData,
+  EvalConfigsGetEvalConfigErrors,
+  EvalConfigsGetEvalConfigResponses,
+  EvalConfigsListEvalConfigsData,
+  EvalConfigsListEvalConfigsErrors,
+  EvalConfigsListEvalConfigsResponses,
+  EvalConfigsListTestCasesInConfigData,
+  EvalConfigsListTestCasesInConfigErrors,
+  EvalConfigsListTestCasesInConfigResponses,
+  EvalConfigsRemoveTestCaseFromConfigData,
+  EvalConfigsRemoveTestCaseFromConfigErrors,
+  EvalConfigsRemoveTestCaseFromConfigResponses,
+  EvalConfigsReplaceTestCasesInConfigData,
+  EvalConfigsReplaceTestCasesInConfigErrors,
+  EvalConfigsReplaceTestCasesInConfigResponses,
+  EvalConfigsUpdateEvalConfigData,
+  EvalConfigsUpdateEvalConfigErrors,
+  EvalConfigsUpdateEvalConfigResponses,
   HealthHealthData,
   HealthHealthResponses,
   IntegrationsCreateIntegrationData,
@@ -230,6 +230,9 @@ import type {
   TestCasesListTestCasesData,
   TestCasesListTestCasesErrors,
   TestCasesListTestCasesResponses,
+  TestCasesRunTestCaseAiAgentData,
+  TestCasesRunTestCaseAiAgentErrors,
+  TestCasesRunTestCaseAiAgentResponses,
   TestCasesUpdateTestCaseData,
   TestCasesUpdateTestCaseErrors,
   TestCasesUpdateTestCaseResponses,
@@ -1103,6 +1106,36 @@ export class TestCasesService {
   }
 
   /**
+   * Run Test Case Ai Agent
+   *
+   * Single-turn tool-calling agent: create, from_transcript, or edit test cases.
+   */
+  public static testCasesRunTestCaseAiAgent<ThrowOnError extends boolean = false>(
+    options: Options<TestCasesRunTestCaseAiAgentData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      TestCasesRunTestCaseAiAgentResponses,
+      TestCasesRunTestCaseAiAgentErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/test-cases/ai',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
    * Delete Test Case
    */
   public static testCasesDeleteTestCase<ThrowOnError extends boolean = false>(
@@ -1339,16 +1372,16 @@ export class CustomMetricsService {
   }
 }
 
-export class EvalSetsService {
+export class EvalConfigsService {
   /**
-   * List Eval Sets
+   * List Eval Configs
    */
-  public static evalSetsListEvalSets<ThrowOnError extends boolean = false>(
-    options?: Options<EvalSetsListEvalSetsData, ThrowOnError>
+  public static evalConfigsListEvalConfigs<ThrowOnError extends boolean = false>(
+    options?: Options<EvalConfigsListEvalConfigsData, ThrowOnError>
   ) {
     return (options?.client ?? client).get<
-      EvalSetsListEvalSetsResponses,
-      EvalSetsListEvalSetsErrors,
+      EvalConfigsListEvalConfigsResponses,
+      EvalConfigsListEvalConfigsErrors,
       ThrowOnError
     >({
       security: [
@@ -1359,20 +1392,20 @@ export class EvalSetsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/eval-sets/',
+      url: '/api/v1/eval-configs/',
       ...options,
     });
   }
 
   /**
-   * Create Eval Set
+   * Create Eval Config
    */
-  public static evalSetsCreateEvalSet<ThrowOnError extends boolean = false>(
-    options: Options<EvalSetsCreateEvalSetData, ThrowOnError>
+  public static evalConfigsCreateEvalConfig<ThrowOnError extends boolean = false>(
+    options: Options<EvalConfigsCreateEvalConfigData, ThrowOnError>
   ) {
     return (options.client ?? client).post<
-      EvalSetsCreateEvalSetResponses,
-      EvalSetsCreateEvalSetErrors,
+      EvalConfigsCreateEvalConfigResponses,
+      EvalConfigsCreateEvalConfigErrors,
       ThrowOnError
     >({
       security: [
@@ -1383,7 +1416,7 @@ export class EvalSetsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/eval-sets/',
+      url: '/api/v1/eval-configs/',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -1393,14 +1426,14 @@ export class EvalSetsService {
   }
 
   /**
-   * Delete Eval Set
+   * Delete Eval Config
    */
-  public static evalSetsDeleteEvalSet<ThrowOnError extends boolean = false>(
-    options: Options<EvalSetsDeleteEvalSetData, ThrowOnError>
+  public static evalConfigsDeleteEvalConfig<ThrowOnError extends boolean = false>(
+    options: Options<EvalConfigsDeleteEvalConfigData, ThrowOnError>
   ) {
     return (options.client ?? client).delete<
-      EvalSetsDeleteEvalSetResponses,
-      EvalSetsDeleteEvalSetErrors,
+      EvalConfigsDeleteEvalConfigResponses,
+      EvalConfigsDeleteEvalConfigErrors,
       ThrowOnError
     >({
       security: [
@@ -1411,20 +1444,20 @@ export class EvalSetsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/eval-sets/{eval_set_id}',
+      url: '/api/v1/eval-configs/{eval_config_id}',
       ...options,
     });
   }
 
   /**
-   * Get Eval Set
+   * Get Eval Config
    */
-  public static evalSetsGetEvalSet<ThrowOnError extends boolean = false>(
-    options: Options<EvalSetsGetEvalSetData, ThrowOnError>
+  public static evalConfigsGetEvalConfig<ThrowOnError extends boolean = false>(
+    options: Options<EvalConfigsGetEvalConfigData, ThrowOnError>
   ) {
     return (options.client ?? client).get<
-      EvalSetsGetEvalSetResponses,
-      EvalSetsGetEvalSetErrors,
+      EvalConfigsGetEvalConfigResponses,
+      EvalConfigsGetEvalConfigErrors,
       ThrowOnError
     >({
       security: [
@@ -1435,20 +1468,20 @@ export class EvalSetsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/eval-sets/{eval_set_id}',
+      url: '/api/v1/eval-configs/{eval_config_id}',
       ...options,
     });
   }
 
   /**
-   * Update Eval Set
+   * Update Eval Config
    */
-  public static evalSetsUpdateEvalSet<ThrowOnError extends boolean = false>(
-    options: Options<EvalSetsUpdateEvalSetData, ThrowOnError>
+  public static evalConfigsUpdateEvalConfig<ThrowOnError extends boolean = false>(
+    options: Options<EvalConfigsUpdateEvalConfigData, ThrowOnError>
   ) {
     return (options.client ?? client).patch<
-      EvalSetsUpdateEvalSetResponses,
-      EvalSetsUpdateEvalSetErrors,
+      EvalConfigsUpdateEvalConfigResponses,
+      EvalConfigsUpdateEvalConfigErrors,
       ThrowOnError
     >({
       security: [
@@ -1459,7 +1492,7 @@ export class EvalSetsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/eval-sets/{eval_set_id}',
+      url: '/api/v1/eval-configs/{eval_config_id}',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -1469,14 +1502,14 @@ export class EvalSetsService {
   }
 
   /**
-   * List Test Cases In Set
+   * List Test Cases In Config
    */
-  public static evalSetsListTestCasesInSet<ThrowOnError extends boolean = false>(
-    options: Options<EvalSetsListTestCasesInSetData, ThrowOnError>
+  public static evalConfigsListTestCasesInConfig<ThrowOnError extends boolean = false>(
+    options: Options<EvalConfigsListTestCasesInConfigData, ThrowOnError>
   ) {
     return (options.client ?? client).get<
-      EvalSetsListTestCasesInSetResponses,
-      EvalSetsListTestCasesInSetErrors,
+      EvalConfigsListTestCasesInConfigResponses,
+      EvalConfigsListTestCasesInConfigErrors,
       ThrowOnError
     >({
       security: [
@@ -1487,20 +1520,20 @@ export class EvalSetsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/eval-sets/{eval_set_id}/test-cases',
+      url: '/api/v1/eval-configs/{eval_config_id}/test-cases',
       ...options,
     });
   }
 
   /**
-   * Add Test Cases To Set
+   * Add Test Cases To Config
    */
-  public static evalSetsAddTestCasesToSet<ThrowOnError extends boolean = false>(
-    options: Options<EvalSetsAddTestCasesToSetData, ThrowOnError>
+  public static evalConfigsAddTestCasesToConfig<ThrowOnError extends boolean = false>(
+    options: Options<EvalConfigsAddTestCasesToConfigData, ThrowOnError>
   ) {
     return (options.client ?? client).post<
-      EvalSetsAddTestCasesToSetResponses,
-      EvalSetsAddTestCasesToSetErrors,
+      EvalConfigsAddTestCasesToConfigResponses,
+      EvalConfigsAddTestCasesToConfigErrors,
       ThrowOnError
     >({
       security: [
@@ -1511,7 +1544,7 @@ export class EvalSetsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/eval-sets/{eval_set_id}/test-cases',
+      url: '/api/v1/eval-configs/{eval_config_id}/test-cases',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -1521,14 +1554,14 @@ export class EvalSetsService {
   }
 
   /**
-   * Replace Test Cases In Set
+   * Replace Test Cases In Config
    */
-  public static evalSetsReplaceTestCasesInSet<ThrowOnError extends boolean = false>(
-    options: Options<EvalSetsReplaceTestCasesInSetData, ThrowOnError>
+  public static evalConfigsReplaceTestCasesInConfig<ThrowOnError extends boolean = false>(
+    options: Options<EvalConfigsReplaceTestCasesInConfigData, ThrowOnError>
   ) {
     return (options.client ?? client).put<
-      EvalSetsReplaceTestCasesInSetResponses,
-      EvalSetsReplaceTestCasesInSetErrors,
+      EvalConfigsReplaceTestCasesInConfigResponses,
+      EvalConfigsReplaceTestCasesInConfigErrors,
       ThrowOnError
     >({
       security: [
@@ -1539,7 +1572,7 @@ export class EvalSetsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/eval-sets/{eval_set_id}/test-cases',
+      url: '/api/v1/eval-configs/{eval_config_id}/test-cases',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -1549,14 +1582,14 @@ export class EvalSetsService {
   }
 
   /**
-   * Remove Test Case From Set
+   * Remove Test Case From Config
    */
-  public static evalSetsRemoveTestCaseFromSet<ThrowOnError extends boolean = false>(
-    options: Options<EvalSetsRemoveTestCaseFromSetData, ThrowOnError>
+  public static evalConfigsRemoveTestCaseFromConfig<ThrowOnError extends boolean = false>(
+    options: Options<EvalConfigsRemoveTestCaseFromConfigData, ThrowOnError>
   ) {
     return (options.client ?? client).delete<
-      EvalSetsRemoveTestCaseFromSetResponses,
-      EvalSetsRemoveTestCaseFromSetErrors,
+      EvalConfigsRemoveTestCaseFromConfigResponses,
+      EvalConfigsRemoveTestCaseFromConfigErrors,
       ThrowOnError
     >({
       security: [
@@ -1567,7 +1600,7 @@ export class EvalSetsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/eval-sets/{eval_set_id}/test-cases/{test_case_id}',
+      url: '/api/v1/eval-configs/{eval_config_id}/test-cases/{test_case_id}',
       ...options,
     });
   }
@@ -1684,7 +1717,7 @@ export class RunsService {
   /**
    * Get Baseline Run
    *
-   * Resolve the baseline run for an (agent, eval_set) pair (version-scoped).
+   * Resolve the baseline run for an (agent, eval_config) pair (version-scoped).
    */
   public static getBaselineRun<ThrowOnError extends boolean = false>(
     options: Options<RunsGetBaselineRunData, ThrowOnError>

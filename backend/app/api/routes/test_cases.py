@@ -25,6 +25,15 @@ from app.models import (
     TestCaseStatus,
     TestCaseUpdate,
 )
+from app.services.test_case_generator.agent import (
+    AgentMode,
+    TestCaseAgent,
+    TestCaseAgentContextError,
+    TestCaseAgentInput,
+    TestCaseAgentRequest,
+    TestCaseAgentResult,
+    build_agent_context,
+)
 from app.services.test_case_generator.core import generate_test_cases
 from app.services.test_case_generator.schemas import (
     GenerateRequest,
@@ -238,6 +247,113 @@ async def generate_test_cases_endpoint(
         count=len(persisted),
         model_used=model_used,
         generation_time_ms=latency_ms,
+    )
+
+
+@router.post("/ai", response_model=TestCaseAgentResult)
+async def run_test_case_ai_agent(
+    session: SessionDep,
+    request: TestCaseAgentRequest,
+) -> TestCaseAgentResult:
+    """Single-turn tool-calling agent: create, from_transcript, or edit test cases."""
+    try:
+        ctx = build_agent_context(session=session, request=request)
+    except TestCaseAgentContextError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+    agent = TestCaseAgent(
+        TestCaseAgentInput(
+            mode=request.mode,
+            user_message=request.user_message,
+            context=ctx,
+            llm_provider=request.provider,
+            llm_model=request.model,
+            temperature=request.temperature,
+        )
+    )
+    try:
+        out = await agent.run()
+    except ValueError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except APIError as exc:
+        raise HTTPException(status_code=502, detail=f"LLM call failed: {exc}") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Agent failed: {exc}") from exc
+
+    assert request.persist is not None
+
+    if request.mode == AgentMode.EDIT:
+        target = ctx.target_test_case
+        if target is None:
+            raise HTTPException(status_code=500, detail="Missing target test case")
+        if out.edited is None:
+            raise HTTPException(
+                status_code=502, detail="Agent returned no edit payload"
+            )
+
+        if request.persist:
+            payload = out.edited.model_dump()
+            payload["agent_id"] = request.agent_id
+            try:
+                updated = crud.update_test_case(
+                    session=session,
+                    db_test_case=target,
+                    test_case_in=TestCaseUpdate(**payload),
+                )
+            except ValueError as exc:
+                raise HTTPException(status_code=422, detail=str(exc)) from exc
+            edited_pub = TestCasePublic.model_validate(updated, from_attributes=True)
+        else:
+            payload = out.edited.model_dump()
+            payload["agent_id"] = request.agent_id
+            edited_pub = TestCasePublic(
+                **payload,
+                id=target.id,
+                created_at=target.created_at,
+                updated_at=target.updated_at,
+            )
+
+        return TestCaseAgentResult(
+            mode=request.mode,
+            created=[],
+            edited=edited_pub,
+            model_used=out.model_used,
+            latency_ms=out.latency_ms,
+            token_usage=out.token_usage,
+            cost_usd=out.cost_usd,
+        )
+
+    created_public: list[TestCasePublic] = []
+    for tc in out.created:
+        payload = tc.model_dump()
+        payload["agent_id"] = request.agent_id
+        if request.persist:
+            try:
+                db_obj = crud.create_test_case(
+                    session=session, test_case_in=TestCaseCreate(**payload)
+                )
+            except ValueError as exc:
+                raise HTTPException(status_code=422, detail=str(exc)) from exc
+            created_public.append(
+                TestCasePublic.model_validate(db_obj, from_attributes=True)
+            )
+        else:
+            pub = TestCasePublic(
+                **payload,
+                id=uuid.uuid4(),
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
+            )
+            created_public.append(pub)
+
+    return TestCaseAgentResult(
+        mode=request.mode,
+        created=created_public,
+        edited=None,
+        model_used=out.model_used,
+        latency_ms=out.latency_ms,
+        token_usage=out.token_usage,
+        cost_usd=out.cost_usd,
     )
 
 

@@ -36,7 +36,7 @@ class PromptDiff(BaseModel):
     semantic_summary: str | None = None  # populated by future LLM call (CS-29)
 
 
-class EvalSetDiff(BaseModel):
+class EvalConfigDiff(BaseModel):
     same_set: bool
     version_changed: bool
     added_test_case_ids: list[uuid.UUID] = Field(default_factory=list)
@@ -73,7 +73,7 @@ class RunConfigDiff(BaseModel):
     judge_model_changed: FieldChange | None = None
     judge_provider_changed: FieldChange | None = None
     config_changes: list[FieldChange] = Field(default_factory=list)
-    eval_set_diff: EvalSetDiff
+    eval_config_diff: EvalConfigDiff
 
 
 class AgentVersionDiff(SQLModel):

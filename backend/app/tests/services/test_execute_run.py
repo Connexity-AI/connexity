@@ -38,23 +38,23 @@ def _make_test_case(*, name: str = "test-case") -> TestCase:
 
 def _make_run(
     *,
-    eval_set_id: uuid.UUID | None = None,
+    eval_config_id: uuid.UUID | None = None,
     status: RunStatus = RunStatus.PENDING,
 ) -> Run:
     return Run(
         id=uuid.uuid4(),
         agent_id=uuid.uuid4(),
         agent_endpoint_url="http://localhost:8080/agent",
-        eval_set_id=eval_set_id or uuid.uuid4(),
+        eval_config_id=eval_config_id or uuid.uuid4(),
         status=status,
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
     )
 
 
-def _mock_eval_set(*, eval_set_id: uuid.UUID) -> MagicMock:
+def _mock_eval_config(*, eval_config_id: uuid.UUID) -> MagicMock:
     m = MagicMock()
-    m.id = eval_set_id
+    m.id = eval_config_id
     return m
 
 
@@ -285,10 +285,10 @@ class TestExecuteRun:
         mock_crud = MagicMock()
         mock_crud.get_run.return_value = run
         mock_crud.update_run.return_value = run
-        mock_crud.get_eval_set.return_value = _mock_eval_set(
-            eval_set_id=run.eval_set_id
+        mock_crud.get_eval_config.return_value = _mock_eval_config(
+            eval_config_id=run.eval_config_id
         )
-        mock_crud.get_test_cases_for_set.return_value = [
+        mock_crud.get_test_cases_for_config.return_value = [
             TestCaseExecution(test_case=test_case, repetitions=1, position=0)
         ]
 
@@ -322,10 +322,10 @@ class TestExecuteRun:
         mock_crud = MagicMock()
         mock_crud.get_run.return_value = run
         mock_crud.update_run.return_value = run
-        mock_crud.get_eval_set.return_value = _mock_eval_set(
-            eval_set_id=run.eval_set_id
+        mock_crud.get_eval_config.return_value = _mock_eval_config(
+            eval_config_id=run.eval_config_id
         )
-        mock_crud.get_test_cases_for_set.return_value = [
+        mock_crud.get_test_cases_for_config.return_value = [
             TestCaseExecution(test_case=s1, repetitions=2, position=0),
             TestCaseExecution(test_case=s2, repetitions=1, position=1),
         ]
@@ -395,10 +395,10 @@ class TestExecuteRun:
         mock_crud = MagicMock()
         mock_crud.get_run.return_value = run
         mock_crud.update_run.return_value = run
-        mock_crud.get_eval_set.return_value = _mock_eval_set(
-            eval_set_id=run.eval_set_id
+        mock_crud.get_eval_config.return_value = _mock_eval_config(
+            eval_config_id=run.eval_config_id
         )
-        mock_crud.get_test_cases_for_set.return_value = [
+        mock_crud.get_test_cases_for_config.return_value = [
             TestCaseExecution(test_case=test_case, repetitions=1, position=0)
         ]
 
@@ -430,10 +430,10 @@ class TestExecuteRun:
         mock_crud = MagicMock()
         mock_crud.get_run.return_value = run
         mock_crud.update_run.return_value = run
-        mock_crud.get_eval_set.return_value = _mock_eval_set(
-            eval_set_id=run.eval_set_id
+        mock_crud.get_eval_config.return_value = _mock_eval_config(
+            eval_config_id=run.eval_config_id
         )
-        mock_crud.get_test_cases_for_set.side_effect = RuntimeError("db error")
+        mock_crud.get_test_cases_for_config.side_effect = RuntimeError("db error")
 
         manager = RunManager()
 

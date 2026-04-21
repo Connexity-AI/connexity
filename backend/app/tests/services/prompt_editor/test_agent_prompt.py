@@ -134,7 +134,20 @@ def test_build_dynamic_system_message_numbered_prompt_and_config() -> None:
         name="MyBot",
         agent_model="gpt-4o",
         agent_provider="anthropic",
-        tools=[{"type": "function", "function": {"name": "lookup"}}],
+        tools=[
+            {
+                "type": "function",
+                "function": {
+                    "name": "lookup",
+                    "description": "Look up an order by ID",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"order_id": {"type": "string"}},
+                        "required": ["order_id"],
+                    },
+                },
+            }
+        ],
     )
     body = build_dynamic_system_message(
         current_prompt="line_a\nline_b",
@@ -146,7 +159,10 @@ def test_build_dynamic_system_message_numbered_prompt_and_config() -> None:
     assert "2 | line_b" in body
     assert "<agent_config>" in body
     assert "MyBot" in body
+    # Full tool schema should be rendered, not just the name
     assert "lookup" in body
+    assert "Look up an order by ID" in body
+    assert "order_id" in body
     assert "eval_context" not in body
 
 

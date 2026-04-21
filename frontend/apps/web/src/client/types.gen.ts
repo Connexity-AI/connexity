@@ -23,7 +23,7 @@ export type AgentCreate = {
   /**
    * endpoint: HTTP agent; platform: LLM simulated on the platform
    */
-  mode?: AgentMode;
+  mode?: AppModelsEnumsAgentMode;
   /**
    * Endpoint Url
    *
@@ -94,7 +94,7 @@ export type AgentCreateDraft = {
  * Partial update for versionable agent fields — used by PUT /agents/{id}/draft.
  */
 export type AgentDraftUpdate = {
-  mode?: AgentMode | null;
+  mode?: AppModelsEnumsAgentMode | null;
   /**
    * Endpoint Url
    */
@@ -154,16 +154,6 @@ export type AgentGuidelinesUpdate = {
 };
 
 /**
- * AgentMode
- */
-export const AgentMode = { ENDPOINT: 'endpoint', PLATFORM: 'platform' } as const;
-
-/**
- * AgentMode
- */
-export type AgentMode = (typeof AgentMode)[keyof typeof AgentMode];
-
-/**
  * AgentPublic
  */
 export type AgentPublic = {
@@ -182,7 +172,7 @@ export type AgentPublic = {
   /**
    * endpoint: HTTP agent; platform: LLM simulated on the platform
    */
-  mode?: AgentMode;
+  mode?: AppModelsEnumsAgentMode;
   /**
    * Endpoint Url
    *
@@ -332,7 +322,7 @@ export type AgentUpdate = {
   /**
    * endpoint: HTTP agent; platform: LLM simulated on the platform
    */
-  mode?: AgentMode | null;
+  mode?: AppModelsEnumsAgentMode | null;
   /**
    * Endpoint Url
    *
@@ -435,7 +425,7 @@ export type AgentVersionPublic = {
    */
   version: number | null;
   status: AgentVersionStatus;
-  mode: AgentMode;
+  mode: AppModelsEnumsAgentMode;
   /**
    * Endpoint Url
    */
@@ -1045,33 +1035,43 @@ export type ErrorResponse = {
 };
 
 /**
- * EvalSetCreate
+ * EvalConfigCreate
  */
-export type EvalSetCreate = {
+export type EvalConfigCreate = {
   /**
    * Name
    *
-   * Human-readable set name
+   * Human-readable config name
    */
   name: string;
   /**
    * Description
    *
-   * What this eval set covers
+   * What this eval config covers
    */
   description?: string | null;
+  /**
+   * Agent Id
+   *
+   * Agent this eval config belongs to
+   */
+  agent_id: string;
+  /**
+   * Run configuration (concurrency, max_turns, judge, tool_mode, etc.)
+   */
+  config?: RunConfigInput | null;
   /**
    * Members
    *
    * Initial members with per-test-case repetitions (omit or empty for none)
    */
-  members?: Array<EvalSetMemberEntry> | null;
+  members?: Array<EvalConfigMemberEntry> | null;
 };
 
 /**
- * EvalSetDiff
+ * EvalConfigDiff
  */
-export type EvalSetDiff = {
+export type EvalConfigDiff = {
   /**
    * Same Set
    */
@@ -1095,31 +1095,31 @@ export type EvalSetDiff = {
 };
 
 /**
- * EvalSetMemberEntry
+ * EvalConfigMemberEntry
  *
- * API payload for adding or replacing set members with per-test-case repetition counts.
+ * API payload for adding or replacing config members with per-test-case repetition counts.
  */
-export type EvalSetMemberEntry = {
+export type EvalConfigMemberEntry = {
   /**
    * Test Case Id
    *
-   * Test case to include in the set
+   * Test case to include in the config
    */
   test_case_id: string;
   /**
    * Repetitions
    *
-   * How many times to execute this test case within one set pass
+   * How many times to execute this test case per run
    */
   repetitions?: number;
 };
 
 /**
- * EvalSetMemberPublic
+ * EvalConfigMemberPublic
  *
- * Public view of one test case's membership in a set.
+ * Public view of one test case's membership in a config.
  */
-export type EvalSetMemberPublic = {
+export type EvalConfigMemberPublic = {
   /**
    * Test Case Id
    *
@@ -1129,27 +1129,27 @@ export type EvalSetMemberPublic = {
   /**
    * Position
    *
-   * Order within the set
+   * Order within the config
    */
   position: number;
   /**
    * Repetitions
    *
-   * Executions per set pass for this test case
+   * Executions per run for this test case
    */
   repetitions: number;
 };
 
 /**
- * EvalSetMembersPublic
+ * EvalConfigMembersPublic
  */
-export type EvalSetMembersPublic = {
+export type EvalConfigMembersPublic = {
   /**
    * Data
    *
-   * Set members with position and repetitions
+   * Config members with position and repetitions
    */
-  data: Array<EvalSetMemberPublic>;
+  data: Array<EvalConfigMemberPublic>;
   /**
    * Count
    *
@@ -1159,31 +1159,37 @@ export type EvalSetMembersPublic = {
 };
 
 /**
- * EvalSetMembersUpdate
+ * EvalConfigMembersUpdate
  */
-export type EvalSetMembersUpdate = {
+export type EvalConfigMembersUpdate = {
   /**
    * Members
    */
-  members: Array<EvalSetMemberEntry>;
+  members: Array<EvalConfigMemberEntry>;
 };
 
 /**
- * EvalSetPublic
+ * EvalConfigPublic
  */
-export type EvalSetPublic = {
+export type EvalConfigPublic = {
   /**
    * Name
    *
-   * Human-readable set name
+   * Human-readable config name
    */
   name: string;
   /**
    * Description
    *
-   * What this eval set covers
+   * What this eval config covers
    */
   description?: string | null;
+  /**
+   * Agent Id
+   *
+   * Agent this eval config belongs to
+   */
+  agent_id: string;
   /**
    * Version
    *
@@ -1193,9 +1199,13 @@ export type EvalSetPublic = {
   /**
    * Id
    *
-   * Unique eval set identifier
+   * Unique eval config identifier
    */
   id: string;
+  /**
+   * Run configuration (concurrency, max_turns, judge, tool_mode, etc.)
+   */
+  config?: RunConfigOutput | null;
   /**
    * Test Case Count
    */
@@ -1209,49 +1219,53 @@ export type EvalSetPublic = {
   /**
    * Created At
    *
-   * When the set was created
+   * When the config was created
    */
   created_at: string;
   /**
    * Updated At
    *
-   * When the set was last updated
+   * When the config was last updated
    */
   updated_at: string;
 };
 
 /**
- * EvalSetUpdate
+ * EvalConfigUpdate
  */
-export type EvalSetUpdate = {
+export type EvalConfigUpdate = {
   /**
    * Name
    *
-   * Human-readable set name
+   * Human-readable config name
    */
   name?: string | null;
   /**
    * Description
    *
-   * What this eval set covers
+   * What this eval config covers
    */
   description?: string | null;
+  /**
+   * Run configuration (concurrency, max_turns, judge, tool_mode, etc.)
+   */
+  config?: RunConfigInput | null;
 };
 
 /**
- * EvalSetsPublic
+ * EvalConfigsPublic
  */
-export type EvalSetsPublic = {
+export type EvalConfigsPublic = {
   /**
    * Data
    *
-   * List of eval sets
+   * List of eval configs
    */
-  data: Array<EvalSetPublic>;
+  data: Array<EvalConfigPublic>;
   /**
    * Count
    *
-   * Total number of sets matching the query
+   * Total number of configs matching the query
    */
   count: number;
 };
@@ -1345,7 +1359,7 @@ export type FieldChange = {
 /**
  * FirstTurn
  */
-export const FirstTurn = { AGENT: 'agent', PERSONA: 'persona' } as const;
+export const FirstTurn = { AGENT: 'agent', USER: 'user' } as const;
 
 /**
  * FirstTurn
@@ -2424,6 +2438,12 @@ export type RunConfigInput = {
    */
   max_turns?: number | null;
   /**
+   * Tool Mode
+   *
+   * Global tool execution mode: mock uses test-case mock_responses, live executes real implementations
+   */
+  tool_mode?: 'mock' | 'live';
+  /**
    * Judge metric selection, weights, pass threshold, and model overrides
    */
   judge?: JudgeConfig | null;
@@ -2459,6 +2479,12 @@ export type RunConfigOutput = {
    * Max agent response rounds per test case; null = no cap
    */
   max_turns?: number | null;
+  /**
+   * Tool Mode
+   *
+   * Global tool execution mode: mock uses test-case mock_responses, live executes real implementations
+   */
+  tool_mode?: 'mock' | 'live';
   /**
    * Judge metric selection, weights, pass threshold, and model overrides
    */
@@ -2502,7 +2528,7 @@ export type RunConfigDiff = {
    * Config Changes
    */
   config_changes?: Array<FieldChange>;
-  eval_set_diff: EvalSetDiff;
+  eval_config_diff: EvalConfigDiff;
 };
 
 /**
@@ -2560,17 +2586,17 @@ export type RunCreate = {
    */
   agent_provider?: string | null;
   /**
-   * Eval Set Id
+   * Eval Config Id
    *
-   * FK to the eval set to execute
+   * FK to the eval config to execute
    */
-  eval_set_id: string;
+  eval_config_id: string;
   /**
-   * Eval Set Version
+   * Eval Config Version
    *
-   * Version of the eval set at run time
+   * Version of the eval config at run time
    */
-  eval_set_version?: number;
+  eval_config_version?: number;
   /**
    * Agent Version
    *
@@ -2654,17 +2680,17 @@ export type RunPublic = {
    */
   agent_provider?: string | null;
   /**
-   * Eval Set Id
+   * Eval Config Id
    *
-   * FK to the eval set executed in this run
+   * FK to the eval config executed in this run
    */
-  eval_set_id: string;
+  eval_config_id: string;
   /**
-   * Eval Set Version
+   * Eval Config Version
    *
-   * Version of the eval set at run time
+   * Version of the eval config at run time
    */
-  eval_set_version: number;
+  eval_config_version: number;
   /**
    * Agent Version
    *
@@ -2822,6 +2848,89 @@ export type SuggestionsRequest = {
 };
 
 /**
+ * TestCaseAgentRequest
+ *
+ * Input for the single-turn test-case AI agent.
+ */
+export type TestCaseAgentRequest = {
+  mode: AppServicesTestCaseGeneratorAgentSchemasAgentMode;
+  /**
+   * User Message
+   */
+  user_message: string;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Version
+   *
+   * Agent version to load prompt/tools from; defaults to agent's current version
+   */
+  agent_version?: number | null;
+  /**
+   * Transcript
+   */
+  transcript?: Array<ConversationTurnInput> | null;
+  /**
+   * Test Case Id
+   *
+   * Required when mode=edit; must belong to agent_id
+   */
+  test_case_id?: string | null;
+  /**
+   * Persist
+   *
+   * Default true for create/from_transcript; default false for edit
+   */
+  persist?: boolean | null;
+  /**
+   * Model
+   */
+  model?: string | null;
+  /**
+   * Provider
+   */
+  provider?: string | null;
+  /**
+   * Temperature
+   */
+  temperature?: number | null;
+};
+
+/**
+ * TestCaseAgentResult
+ *
+ * Output from the test-case AI agent.
+ */
+export type TestCaseAgentResult = {
+  mode: AppServicesTestCaseGeneratorAgentSchemasAgentMode;
+  /**
+   * Created
+   */
+  created?: Array<TestCasePublic>;
+  edited?: TestCasePublic | null;
+  /**
+   * Model Used
+   */
+  model_used: string;
+  /**
+   * Latency Ms
+   */
+  latency_ms: number;
+  /**
+   * Token Usage
+   */
+  token_usage?: {
+    [key: string]: number;
+  } | null;
+  /**
+   * Cost Usd
+   */
+  cost_usd?: number | null;
+};
+
+/**
  * TestCaseComparison
  */
 export type TestCaseComparison = {
@@ -2912,13 +3021,13 @@ export type TestCaseCreate = {
    */
   persona_context?: string | null;
   /**
-   * Who speaks first in the conversation: agent or persona
+   * Who speaks first in the conversation: agent or user
    */
   first_turn?: FirstTurn;
   /**
    * First Message
    *
-   * Opening message for whoever speaks first. When first_turn=persona this is the user's opener; when first_turn=agent this is the agent's greeting.
+   * Opening message for whoever speaks first. When first_turn=user this is the user's opener; when first_turn=agent this is the agent's greeting.
    */
   first_message?: string | null;
   /**
@@ -2992,13 +3101,13 @@ export type TestCaseImportItem = {
    */
   persona_context?: string | null;
   /**
-   * Who speaks first in the conversation: agent or persona
+   * Who speaks first in the conversation: agent or user
    */
   first_turn?: FirstTurn;
   /**
    * First Message
    *
-   * Opening message for whoever speaks first. When first_turn=persona this is the user's opener; when first_turn=agent this is the agent's greeting.
+   * Opening message for whoever speaks first. When first_turn=user this is the user's opener; when first_turn=agent this is the agent's greeting.
    */
   first_message?: string | null;
   /**
@@ -3102,13 +3211,13 @@ export type TestCasePublic = {
    */
   persona_context?: string | null;
   /**
-   * Who speaks first in the conversation: agent or persona
+   * Who speaks first in the conversation: agent or user
    */
   first_turn?: FirstTurn;
   /**
    * First Message
    *
-   * Opening message for whoever speaks first. When first_turn=persona this is the user's opener; when first_turn=agent this is the agent's greeting.
+   * Opening message for whoever speaks first. When first_turn=user this is the user's opener; when first_turn=agent this is the agent's greeting.
    */
   first_message?: string | null;
   /**
@@ -3510,7 +3619,7 @@ export type TestCaseUpdate = {
    */
   persona_context?: string | null;
   /**
-   * Who speaks first: agent or persona
+   * Who speaks first: agent or user
    */
   first_turn?: FirstTurn | null;
   /**
@@ -3812,6 +3921,32 @@ export type UserUpdateMe = {
    */
   email?: string | null;
 };
+
+/**
+ * AgentMode
+ */
+export const AppModelsEnumsAgentMode = { ENDPOINT: 'endpoint', PLATFORM: 'platform' } as const;
+
+/**
+ * AgentMode
+ */
+export type AppModelsEnumsAgentMode =
+  (typeof AppModelsEnumsAgentMode)[keyof typeof AppModelsEnumsAgentMode];
+
+/**
+ * AgentMode
+ */
+export const AppServicesTestCaseGeneratorAgentSchemasAgentMode = {
+  CREATE: 'create',
+  FROM_TRANSCRIPT: 'from_transcript',
+  EDIT: 'edit',
+} as const;
+
+/**
+ * AgentMode
+ */
+export type AppServicesTestCaseGeneratorAgentSchemasAgentMode =
+  (typeof AppServicesTestCaseGeneratorAgentSchemasAgentMode)[keyof typeof AppServicesTestCaseGeneratorAgentSchemasAgentMode];
 
 export type HealthHealthData = {
   body?: never;
@@ -5615,6 +5750,57 @@ export type TestCasesGenerateTestCasesEndpointResponses = {
 export type TestCasesGenerateTestCasesEndpointResponse =
   TestCasesGenerateTestCasesEndpointResponses[keyof TestCasesGenerateTestCasesEndpointResponses];
 
+export type TestCasesRunTestCaseAiAgentData = {
+  body: TestCaseAgentRequest;
+  path?: never;
+  query?: never;
+  url: '/api/v1/test-cases/ai';
+};
+
+export type TestCasesRunTestCaseAiAgentErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type TestCasesRunTestCaseAiAgentError =
+  TestCasesRunTestCaseAiAgentErrors[keyof TestCasesRunTestCaseAiAgentErrors];
+
+export type TestCasesRunTestCaseAiAgentResponses = {
+  /**
+   * Successful Response
+   */
+  200: TestCaseAgentResult;
+};
+
+export type TestCasesRunTestCaseAiAgentResponse =
+  TestCasesRunTestCaseAiAgentResponses[keyof TestCasesRunTestCaseAiAgentResponses];
+
 export type TestCasesDeleteTestCaseData = {
   body?: never;
   path: {
@@ -6113,7 +6299,7 @@ export type CustomMetricsUpdateCustomMetricResponses = {
 export type CustomMetricsUpdateCustomMetricResponse =
   CustomMetricsUpdateCustomMetricResponses[keyof CustomMetricsUpdateCustomMetricResponses];
 
-export type EvalSetsListEvalSetsData = {
+export type EvalConfigsListEvalConfigsData = {
   body?: never;
   path?: never;
   query?: {
@@ -6125,11 +6311,15 @@ export type EvalSetsListEvalSetsData = {
      * Limit
      */
     limit?: number;
+    /**
+     * Agent Id
+     */
+    agent_id?: string | null;
   };
-  url: '/api/v1/eval-sets/';
+  url: '/api/v1/eval-configs/';
 };
 
-export type EvalSetsListEvalSetsErrors = {
+export type EvalConfigsListEvalConfigsErrors = {
   /**
    * Bad Request
    */
@@ -6160,27 +6350,27 @@ export type EvalSetsListEvalSetsErrors = {
   500: ErrorResponse;
 };
 
-export type EvalSetsListEvalSetsError =
-  EvalSetsListEvalSetsErrors[keyof EvalSetsListEvalSetsErrors];
+export type EvalConfigsListEvalConfigsError =
+  EvalConfigsListEvalConfigsErrors[keyof EvalConfigsListEvalConfigsErrors];
 
-export type EvalSetsListEvalSetsResponses = {
+export type EvalConfigsListEvalConfigsResponses = {
   /**
    * Successful Response
    */
-  200: EvalSetsPublic;
+  200: EvalConfigsPublic;
 };
 
-export type EvalSetsListEvalSetsResponse =
-  EvalSetsListEvalSetsResponses[keyof EvalSetsListEvalSetsResponses];
+export type EvalConfigsListEvalConfigsResponse =
+  EvalConfigsListEvalConfigsResponses[keyof EvalConfigsListEvalConfigsResponses];
 
-export type EvalSetsCreateEvalSetData = {
-  body: EvalSetCreate;
+export type EvalConfigsCreateEvalConfigData = {
+  body: EvalConfigCreate;
   path?: never;
   query?: never;
-  url: '/api/v1/eval-sets/';
+  url: '/api/v1/eval-configs/';
 };
 
-export type EvalSetsCreateEvalSetErrors = {
+export type EvalConfigsCreateEvalConfigErrors = {
   /**
    * Bad Request
    */
@@ -6211,32 +6401,32 @@ export type EvalSetsCreateEvalSetErrors = {
   500: ErrorResponse;
 };
 
-export type EvalSetsCreateEvalSetError =
-  EvalSetsCreateEvalSetErrors[keyof EvalSetsCreateEvalSetErrors];
+export type EvalConfigsCreateEvalConfigError =
+  EvalConfigsCreateEvalConfigErrors[keyof EvalConfigsCreateEvalConfigErrors];
 
-export type EvalSetsCreateEvalSetResponses = {
+export type EvalConfigsCreateEvalConfigResponses = {
   /**
    * Successful Response
    */
-  200: EvalSetPublic;
+  200: EvalConfigPublic;
 };
 
-export type EvalSetsCreateEvalSetResponse =
-  EvalSetsCreateEvalSetResponses[keyof EvalSetsCreateEvalSetResponses];
+export type EvalConfigsCreateEvalConfigResponse =
+  EvalConfigsCreateEvalConfigResponses[keyof EvalConfigsCreateEvalConfigResponses];
 
-export type EvalSetsDeleteEvalSetData = {
+export type EvalConfigsDeleteEvalConfigData = {
   body?: never;
   path: {
     /**
-     * Eval Set Id
+     * Eval Config Id
      */
-    eval_set_id: string;
+    eval_config_id: string;
   };
   query?: never;
-  url: '/api/v1/eval-sets/{eval_set_id}';
+  url: '/api/v1/eval-configs/{eval_config_id}';
 };
 
-export type EvalSetsDeleteEvalSetErrors = {
+export type EvalConfigsDeleteEvalConfigErrors = {
   /**
    * Bad Request
    */
@@ -6267,32 +6457,32 @@ export type EvalSetsDeleteEvalSetErrors = {
   500: ErrorResponse;
 };
 
-export type EvalSetsDeleteEvalSetError =
-  EvalSetsDeleteEvalSetErrors[keyof EvalSetsDeleteEvalSetErrors];
+export type EvalConfigsDeleteEvalConfigError =
+  EvalConfigsDeleteEvalConfigErrors[keyof EvalConfigsDeleteEvalConfigErrors];
 
-export type EvalSetsDeleteEvalSetResponses = {
+export type EvalConfigsDeleteEvalConfigResponses = {
   /**
    * Successful Response
    */
   200: Message;
 };
 
-export type EvalSetsDeleteEvalSetResponse =
-  EvalSetsDeleteEvalSetResponses[keyof EvalSetsDeleteEvalSetResponses];
+export type EvalConfigsDeleteEvalConfigResponse =
+  EvalConfigsDeleteEvalConfigResponses[keyof EvalConfigsDeleteEvalConfigResponses];
 
-export type EvalSetsGetEvalSetData = {
+export type EvalConfigsGetEvalConfigData = {
   body?: never;
   path: {
     /**
-     * Eval Set Id
+     * Eval Config Id
      */
-    eval_set_id: string;
+    eval_config_id: string;
   };
   query?: never;
-  url: '/api/v1/eval-sets/{eval_set_id}';
+  url: '/api/v1/eval-configs/{eval_config_id}';
 };
 
-export type EvalSetsGetEvalSetErrors = {
+export type EvalConfigsGetEvalConfigErrors = {
   /**
    * Bad Request
    */
@@ -6323,31 +6513,32 @@ export type EvalSetsGetEvalSetErrors = {
   500: ErrorResponse;
 };
 
-export type EvalSetsGetEvalSetError = EvalSetsGetEvalSetErrors[keyof EvalSetsGetEvalSetErrors];
+export type EvalConfigsGetEvalConfigError =
+  EvalConfigsGetEvalConfigErrors[keyof EvalConfigsGetEvalConfigErrors];
 
-export type EvalSetsGetEvalSetResponses = {
+export type EvalConfigsGetEvalConfigResponses = {
   /**
    * Successful Response
    */
-  200: EvalSetPublic;
+  200: EvalConfigPublic;
 };
 
-export type EvalSetsGetEvalSetResponse =
-  EvalSetsGetEvalSetResponses[keyof EvalSetsGetEvalSetResponses];
+export type EvalConfigsGetEvalConfigResponse =
+  EvalConfigsGetEvalConfigResponses[keyof EvalConfigsGetEvalConfigResponses];
 
-export type EvalSetsUpdateEvalSetData = {
-  body: EvalSetUpdate;
+export type EvalConfigsUpdateEvalConfigData = {
+  body: EvalConfigUpdate;
   path: {
     /**
-     * Eval Set Id
+     * Eval Config Id
      */
-    eval_set_id: string;
+    eval_config_id: string;
   };
   query?: never;
-  url: '/api/v1/eval-sets/{eval_set_id}';
+  url: '/api/v1/eval-configs/{eval_config_id}';
 };
 
-export type EvalSetsUpdateEvalSetErrors = {
+export type EvalConfigsUpdateEvalConfigErrors = {
   /**
    * Bad Request
    */
@@ -6378,26 +6569,26 @@ export type EvalSetsUpdateEvalSetErrors = {
   500: ErrorResponse;
 };
 
-export type EvalSetsUpdateEvalSetError =
-  EvalSetsUpdateEvalSetErrors[keyof EvalSetsUpdateEvalSetErrors];
+export type EvalConfigsUpdateEvalConfigError =
+  EvalConfigsUpdateEvalConfigErrors[keyof EvalConfigsUpdateEvalConfigErrors];
 
-export type EvalSetsUpdateEvalSetResponses = {
+export type EvalConfigsUpdateEvalConfigResponses = {
   /**
    * Successful Response
    */
-  200: EvalSetPublic;
+  200: EvalConfigPublic;
 };
 
-export type EvalSetsUpdateEvalSetResponse =
-  EvalSetsUpdateEvalSetResponses[keyof EvalSetsUpdateEvalSetResponses];
+export type EvalConfigsUpdateEvalConfigResponse =
+  EvalConfigsUpdateEvalConfigResponses[keyof EvalConfigsUpdateEvalConfigResponses];
 
-export type EvalSetsListTestCasesInSetData = {
+export type EvalConfigsListTestCasesInConfigData = {
   body?: never;
   path: {
     /**
-     * Eval Set Id
+     * Eval Config Id
      */
-    eval_set_id: string;
+    eval_config_id: string;
   };
   query?: {
     /**
@@ -6409,10 +6600,10 @@ export type EvalSetsListTestCasesInSetData = {
      */
     limit?: number;
   };
-  url: '/api/v1/eval-sets/{eval_set_id}/test-cases';
+  url: '/api/v1/eval-configs/{eval_config_id}/test-cases';
 };
 
-export type EvalSetsListTestCasesInSetErrors = {
+export type EvalConfigsListTestCasesInConfigErrors = {
   /**
    * Bad Request
    */
@@ -6443,32 +6634,32 @@ export type EvalSetsListTestCasesInSetErrors = {
   500: ErrorResponse;
 };
 
-export type EvalSetsListTestCasesInSetError =
-  EvalSetsListTestCasesInSetErrors[keyof EvalSetsListTestCasesInSetErrors];
+export type EvalConfigsListTestCasesInConfigError =
+  EvalConfigsListTestCasesInConfigErrors[keyof EvalConfigsListTestCasesInConfigErrors];
 
-export type EvalSetsListTestCasesInSetResponses = {
+export type EvalConfigsListTestCasesInConfigResponses = {
   /**
    * Successful Response
    */
-  200: EvalSetMembersPublic;
+  200: EvalConfigMembersPublic;
 };
 
-export type EvalSetsListTestCasesInSetResponse =
-  EvalSetsListTestCasesInSetResponses[keyof EvalSetsListTestCasesInSetResponses];
+export type EvalConfigsListTestCasesInConfigResponse =
+  EvalConfigsListTestCasesInConfigResponses[keyof EvalConfigsListTestCasesInConfigResponses];
 
-export type EvalSetsAddTestCasesToSetData = {
-  body: EvalSetMembersUpdate;
+export type EvalConfigsAddTestCasesToConfigData = {
+  body: EvalConfigMembersUpdate;
   path: {
     /**
-     * Eval Set Id
+     * Eval Config Id
      */
-    eval_set_id: string;
+    eval_config_id: string;
   };
   query?: never;
-  url: '/api/v1/eval-sets/{eval_set_id}/test-cases';
+  url: '/api/v1/eval-configs/{eval_config_id}/test-cases';
 };
 
-export type EvalSetsAddTestCasesToSetErrors = {
+export type EvalConfigsAddTestCasesToConfigErrors = {
   /**
    * Bad Request
    */
@@ -6499,32 +6690,32 @@ export type EvalSetsAddTestCasesToSetErrors = {
   500: ErrorResponse;
 };
 
-export type EvalSetsAddTestCasesToSetError =
-  EvalSetsAddTestCasesToSetErrors[keyof EvalSetsAddTestCasesToSetErrors];
+export type EvalConfigsAddTestCasesToConfigError =
+  EvalConfigsAddTestCasesToConfigErrors[keyof EvalConfigsAddTestCasesToConfigErrors];
 
-export type EvalSetsAddTestCasesToSetResponses = {
+export type EvalConfigsAddTestCasesToConfigResponses = {
   /**
    * Successful Response
    */
-  200: EvalSetPublic;
+  200: EvalConfigPublic;
 };
 
-export type EvalSetsAddTestCasesToSetResponse =
-  EvalSetsAddTestCasesToSetResponses[keyof EvalSetsAddTestCasesToSetResponses];
+export type EvalConfigsAddTestCasesToConfigResponse =
+  EvalConfigsAddTestCasesToConfigResponses[keyof EvalConfigsAddTestCasesToConfigResponses];
 
-export type EvalSetsReplaceTestCasesInSetData = {
-  body: EvalSetMembersUpdate;
+export type EvalConfigsReplaceTestCasesInConfigData = {
+  body: EvalConfigMembersUpdate;
   path: {
     /**
-     * Eval Set Id
+     * Eval Config Id
      */
-    eval_set_id: string;
+    eval_config_id: string;
   };
   query?: never;
-  url: '/api/v1/eval-sets/{eval_set_id}/test-cases';
+  url: '/api/v1/eval-configs/{eval_config_id}/test-cases';
 };
 
-export type EvalSetsReplaceTestCasesInSetErrors = {
+export type EvalConfigsReplaceTestCasesInConfigErrors = {
   /**
    * Bad Request
    */
@@ -6555,36 +6746,36 @@ export type EvalSetsReplaceTestCasesInSetErrors = {
   500: ErrorResponse;
 };
 
-export type EvalSetsReplaceTestCasesInSetError =
-  EvalSetsReplaceTestCasesInSetErrors[keyof EvalSetsReplaceTestCasesInSetErrors];
+export type EvalConfigsReplaceTestCasesInConfigError =
+  EvalConfigsReplaceTestCasesInConfigErrors[keyof EvalConfigsReplaceTestCasesInConfigErrors];
 
-export type EvalSetsReplaceTestCasesInSetResponses = {
+export type EvalConfigsReplaceTestCasesInConfigResponses = {
   /**
    * Successful Response
    */
-  200: EvalSetPublic;
+  200: EvalConfigPublic;
 };
 
-export type EvalSetsReplaceTestCasesInSetResponse =
-  EvalSetsReplaceTestCasesInSetResponses[keyof EvalSetsReplaceTestCasesInSetResponses];
+export type EvalConfigsReplaceTestCasesInConfigResponse =
+  EvalConfigsReplaceTestCasesInConfigResponses[keyof EvalConfigsReplaceTestCasesInConfigResponses];
 
-export type EvalSetsRemoveTestCaseFromSetData = {
+export type EvalConfigsRemoveTestCaseFromConfigData = {
   body?: never;
   path: {
     /**
-     * Eval Set Id
+     * Eval Config Id
      */
-    eval_set_id: string;
+    eval_config_id: string;
     /**
      * Test Case Id
      */
     test_case_id: string;
   };
   query?: never;
-  url: '/api/v1/eval-sets/{eval_set_id}/test-cases/{test_case_id}';
+  url: '/api/v1/eval-configs/{eval_config_id}/test-cases/{test_case_id}';
 };
 
-export type EvalSetsRemoveTestCaseFromSetErrors = {
+export type EvalConfigsRemoveTestCaseFromConfigErrors = {
   /**
    * Bad Request
    */
@@ -6615,18 +6806,18 @@ export type EvalSetsRemoveTestCaseFromSetErrors = {
   500: ErrorResponse;
 };
 
-export type EvalSetsRemoveTestCaseFromSetError =
-  EvalSetsRemoveTestCaseFromSetErrors[keyof EvalSetsRemoveTestCaseFromSetErrors];
+export type EvalConfigsRemoveTestCaseFromConfigError =
+  EvalConfigsRemoveTestCaseFromConfigErrors[keyof EvalConfigsRemoveTestCaseFromConfigErrors];
 
-export type EvalSetsRemoveTestCaseFromSetResponses = {
+export type EvalConfigsRemoveTestCaseFromConfigResponses = {
   /**
    * Successful Response
    */
-  200: EvalSetPublic;
+  200: EvalConfigPublic;
 };
 
-export type EvalSetsRemoveTestCaseFromSetResponse =
-  EvalSetsRemoveTestCaseFromSetResponses[keyof EvalSetsRemoveTestCaseFromSetResponses];
+export type EvalConfigsRemoveTestCaseFromConfigResponse =
+  EvalConfigsRemoveTestCaseFromConfigResponses[keyof EvalConfigsRemoveTestCaseFromConfigResponses];
 
 export type RunsListRunsData = {
   body?: never;
@@ -6650,6 +6841,12 @@ export type RunsListRunsData = {
      * Filter by agent config version at run creation
      */
     agent_version?: number | null;
+    /**
+     * Eval Config Id
+     *
+     * Filter by eval config
+     */
+    eval_config_id?: string | null;
     /**
      * Status
      */
@@ -6914,11 +7111,11 @@ export type RunsGetBaselineRunData = {
      */
     agent_id: string;
     /**
-     * Eval Set Id
+     * Eval Config Id
      *
-     * UUID of the eval set
+     * UUID of the eval config
      */
-    eval_set_id: string;
+    eval_config_id: string;
     /**
      * Agent Version
      *
@@ -7324,6 +7521,12 @@ export type TestCaseResultsListTestCaseResultsData = {
      * Filter by repetition within a set pass (0-based)
      */
     repetition_index?: number | null;
+    /**
+     * Passed
+     *
+     * Filter by pass/fail verdict
+     */
+    passed?: boolean | null;
   };
   url: '/api/v1/test-case-results/';
 };

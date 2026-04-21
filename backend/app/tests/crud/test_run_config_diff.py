@@ -12,9 +12,9 @@ from app.services.diff import compute_run_config_diff
 from app.tests.utils.eval import (
     create_test_agent,
     create_test_case_fixture,
-    create_test_eval_set,
+    create_test_eval_config,
     create_test_run,
-    eval_set_members,
+    eval_config_members,
 )
 
 
@@ -32,7 +32,9 @@ def _tool(name: str) -> dict:
 def test_compute_run_config_diff_no_changes(db: Session) -> None:
     agent = create_test_agent(db)
     tc = create_test_case_fixture(db)
-    es = create_test_eval_set(db, members=eval_set_members(tc.id))
+    es = create_test_eval_config(
+        db, agent_id=agent.id, members=eval_config_members(tc.id)
+    )
     r1 = create_test_run(db, agent.id, es.id)
     r2 = create_test_run(db, agent.id, es.id)
     sids = {tc.id}
@@ -55,7 +57,9 @@ def test_compute_run_config_diff_model_swap(db: Session) -> None:
     )
     agent = crud.create_agent(session=db, agent_in=agent_in)
     tc = create_test_case_fixture(db)
-    es = create_test_eval_set(db, members=eval_set_members(tc.id))
+    es = create_test_eval_config(
+        db, agent_id=agent.id, members=eval_config_members(tc.id)
+    )
     r1 = create_test_run(db, agent.id, es.id)
     crud.update_agent(
         session=db,
@@ -83,7 +87,9 @@ def test_compute_run_config_diff_prompt_and_tools(db: Session) -> None:
     )
     agent = crud.create_agent(session=db, agent_in=agent_in)
     tc = create_test_case_fixture(db)
-    es = create_test_eval_set(db, members=eval_set_members(tc.id))
+    es = create_test_eval_config(
+        db, agent_id=agent.id, members=eval_config_members(tc.id)
+    )
     r1 = create_test_run(db, agent.id, es.id)
     crud.update_agent(
         session=db,
@@ -106,7 +112,9 @@ def test_compute_run_config_diff_prompt_and_tools(db: Session) -> None:
 def test_compute_run_config_diff_judge_model_change(db: Session) -> None:
     agent = create_test_agent(db)
     tc = create_test_case_fixture(db)
-    es = create_test_eval_set(db, members=eval_set_members(tc.id))
+    es = create_test_eval_config(
+        db, agent_id=agent.id, members=eval_config_members(tc.id)
+    )
     r1 = create_test_run(db, agent.id, es.id)
     r2 = create_test_run(db, agent.id, es.id)
     r1.config = {"judge": {"model": "gpt-4o", "provider": "openai"}}

@@ -5,7 +5,7 @@ Computes structured diffs between two run snapshots:
 - Tools: keyed by function.name, deepdiff per tool schema
 - Model/provider: simple equality
 - RunConfig JSONB: deepdiff on the full config dict
-- Eval set membership: set intersection/difference on test case IDs
+- Eval config membership: set intersection/difference on test case IDs
 
 Agent config for run-to-run comparison is loaded from linked AgentVersion rows
 (version-scoped baselines / CS-72).
@@ -23,7 +23,7 @@ from app.models.agent_version import AgentVersion
 from app.models.comparison import (
     AgentConfigDiff,
     AgentVersionDiff,
-    EvalSetDiff,
+    EvalConfigDiff,
     FieldChange,
     PromptDiff,
     RunConfigDiff,
@@ -253,20 +253,22 @@ def compute_config_diff(old_run: Run, new_run: Run) -> list[FieldChange]:
     return changes
 
 
-def compute_eval_set_diff(
+def compute_eval_config_diff(
     old_run: Run,
     new_run: Run,
     baseline_test_case_ids: set[uuid.UUID],
     candidate_test_case_ids: set[uuid.UUID],
-) -> EvalSetDiff:
-    same_set = old_run.eval_set_id == new_run.eval_set_id
-    version_changed = same_set and old_run.eval_set_version != new_run.eval_set_version
+) -> EvalConfigDiff:
+    same_set = old_run.eval_config_id == new_run.eval_config_id
+    version_changed = (
+        same_set and old_run.eval_config_version != new_run.eval_config_version
+    )
 
     common = baseline_test_case_ids & candidate_test_case_ids
     added = candidate_test_case_ids - baseline_test_case_ids
     removed = baseline_test_case_ids - candidate_test_case_ids
 
-    return EvalSetDiff(
+    return EvalConfigDiff(
         same_set=same_set,
         version_changed=version_changed,
         added_test_case_ids=sorted(added),
@@ -307,7 +309,7 @@ def compute_run_config_diff(
 
     config_changes = compute_config_diff(baseline, candidate)
 
-    eval_set_diff = compute_eval_set_diff(
+    eval_config_diff = compute_eval_config_diff(
         baseline, candidate, baseline_test_case_ids, candidate_test_case_ids
     )
 
@@ -323,7 +325,7 @@ def compute_run_config_diff(
         judge_model_changed=judge_model_changed,
         judge_provider_changed=judge_provider_changed,
         config_changes=config_changes,
-        eval_set_diff=eval_set_diff,
+        eval_config_diff=eval_config_diff,
     )
 
 

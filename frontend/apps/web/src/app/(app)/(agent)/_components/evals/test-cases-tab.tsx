@@ -1,14 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Coffee, Database, Loader2, Plus, Sparkles } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/ui/button';
 
+import { GenerateTestCasesDialog } from '@/app/(app)/(agent)/_components/evals/generate-test-cases-dialog';
+import { TestCasesTable } from '@/app/(app)/(agent)/_components/evals/test-cases/test-cases-table';
 import { useAgentEditFormActions } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
 import { useGenerateTestCases } from '@/app/(app)/(agent)/_hooks/use-generate-test-cases';
 import { useTestCases } from '@/app/(app)/(agent)/_hooks/use-test-cases';
-import { GenerateTestCasesDialog } from '@/app/(app)/(agent)/_components/evals/generate-test-cases-dialog';
 
 export function TestCasesTab() {
   const { agentId } = useAgentEditFormActions();
@@ -19,6 +21,7 @@ export function TestCasesTab() {
   const [justQueued, setJustQueued] = useState(false);
 
   const handleGenerate = (count: number) => {
+    console.info('[gen-tc] tab.handleGenerate', { agentId, count });
     generate(count);
     setJustQueued(true);
   };
@@ -33,6 +36,7 @@ export function TestCasesTab() {
 
   const isGenerating = justQueued && isPending;
   const isEmpty = (data?.count ?? 0) === 0;
+  const testCases = data?.data ?? [];
 
   if (isGenerating) {
     return (
@@ -48,9 +52,7 @@ export function TestCasesTab() {
         </div>
         <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border bg-accent/30">
           <Coffee className="w-4 h-4 text-muted-foreground" />
-          <p className="text-xs text-muted-foreground">
-            Perfect time to grab a coffee
-          </p>
+          <p className="text-xs text-muted-foreground">Perfect time to grab a coffee</p>
         </div>
       </div>
     );
@@ -66,8 +68,8 @@ export function TestCasesTab() {
           <div className="flex flex-col gap-1.5">
             <p className="text-sm text-foreground">No test cases yet</p>
             <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
-              Generate test cases from your current agent version to start
-              evaluating your agent&apos;s behaviour.
+              Generate test cases from your current agent version to start evaluating your
+              agent&apos;s behaviour.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -75,6 +77,7 @@ export function TestCasesTab() {
               <Sparkles className="w-3.5 h-3.5" />
               Generate Test Cases
             </Button>
+
             <Button size="sm" variant="outline" className="gap-1.5" disabled>
               <Plus className="w-3.5 h-3.5" />
               Add test case
@@ -93,10 +96,15 @@ export function TestCasesTab() {
   }
 
   return (
-    <div className="flex-1 overflow-auto p-4">
-      <p className="text-muted-foreground">
-        {data?.count} test case{data?.count === 1 ? '' : 's'}
-      </p>
-    </div>
+    <>
+      <TestCasesTable agentId={agentId} testCases={testCases} />
+
+      <GenerateTestCasesDialog
+        agentId={agentId}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onGenerate={handleGenerate}
+      />
+    </>
   );
 }

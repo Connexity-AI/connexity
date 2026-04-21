@@ -91,7 +91,7 @@ def upgrade() -> None:
                     statements.append(f"{k.replace('_', ' ')}: {v}")
             conn.execute(
                 sa.text(
-                    "UPDATE test_case SET expected_outcomes = :val::jsonb WHERE id = :id"
+                    "UPDATE test_case SET expected_outcomes = CAST(:val AS jsonb) WHERE id = :id"
                 ),
                 {"val": json.dumps(statements), "id": row_id},
             )

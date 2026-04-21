@@ -95,6 +95,7 @@ export function DataTable<TData, TValue>({
           )}
         </TableBody>
       </Table>
+
       {footer && <div className="border-t border-border px-4 py-3">{footer}</div>}
     </div>
   );

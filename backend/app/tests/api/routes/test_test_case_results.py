@@ -3,22 +3,26 @@ import uuid
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
+from app import crud
 from app.core.config import settings
+from app.models import TestCaseResultUpdate
 from app.tests.utils.eval import (
     create_test_agent,
     create_test_case_fixture,
     create_test_case_result_fixture,
-    create_test_eval_set,
+    create_test_eval_config,
     create_test_run,
-    eval_set_members,
+    eval_config_members,
 )
 
 
 def _setup(db: Session) -> tuple:
     agent = create_test_agent(db)
     test_case = create_test_case_fixture(db)
-    eval_set = create_test_eval_set(db, members=eval_set_members(test_case.id))
-    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    eval_config = create_test_eval_config(
+        db, agent_id=agent.id, members=eval_config_members(test_case.id)
+    )
+    run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     return run, test_case
 
 
@@ -68,6 +72,48 @@ def test_list_test_case_results_filter_by_run(
     data = r.json()
     assert data["count"] >= 1
     assert all(item["run_id"] == str(run.id) for item in data["data"])
+
+
+def test_list_test_case_results_filter_by_passed(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    run, test_case = _setup(db)
+    passed_result = create_test_case_result_fixture(
+        db, run_id=run.id, test_case_id=test_case.id
+    )
+    crud.update_test_case_result(
+        session=db,
+        db_result=passed_result,
+        result_in=TestCaseResultUpdate(passed=True),
+    )
+    failed_result = create_test_case_result_fixture(
+        db, run_id=run.id, test_case_id=test_case.id
+    )
+    crud.update_test_case_result(
+        session=db,
+        db_result=failed_result,
+        result_in=TestCaseResultUpdate(passed=False),
+    )
+
+    r = client.get(
+        f"{settings.API_V1_STR}/test-case-results/",
+        params={"run_id": str(run.id), "passed": "true"},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["count"] >= 1
+    assert all(item["passed"] is True for item in data["data"])
+
+    r = client.get(
+        f"{settings.API_V1_STR}/test-case-results/",
+        params={"run_id": str(run.id), "passed": "false"},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["count"] >= 1
+    assert all(item["passed"] is False for item in data["data"])
 
 
 def test_get_test_case_result(

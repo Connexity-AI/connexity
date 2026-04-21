@@ -70,7 +70,10 @@ def _parse_test_cases(raw: str, expected_count: int) -> list[TestCaseCreate]:
 
     test_cases: list[TestCaseCreate] = []
     for item in data:
-        tc = TestCaseCreate.model_validate({**item, "status": "draft"})
+        # Drop any status the LLM may have emitted so the model default
+        # (ACTIVE) applies; status is not part of the prompt schema.
+        cleaned = {k: v for k, v in item.items() if k != "status"}
+        tc = TestCaseCreate.model_validate(cleaned)
         test_cases.append(tc)
 
     if len(test_cases) < expected_count:

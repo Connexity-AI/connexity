@@ -131,10 +131,15 @@ export function ToolEditor({ toolIndex, isNew, onBack, onDelete, readOnly }: Too
               </div>
               <Field label="Timeout (seconds)">
                 <Input
-                  type="number"
-                  min={1}
-                  max={120}
-                  {...register(`tools.${toolIndex}.timeout`, { valueAsNumber: true })}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  {...register(`tools.${toolIndex}.timeout`, {
+                    setValueAs: (value) => {
+                      const parsed = Number.parseInt(value, 10);
+                      return Number.isFinite(parsed) ? Math.min(120, Math.max(1, parsed)) : 3;
+                    },
+                  })}
                   className="h-9 text-sm font-mono w-30"
                 />
               </Field>

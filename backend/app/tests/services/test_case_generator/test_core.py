@@ -26,18 +26,20 @@ def test_parse_test_cases_valid_json(mock_llm_response: str) -> None:
     assert all(isinstance(s, TestCaseCreate) for s in parsed)
 
 
-def test_parse_test_cases_forces_draft_status() -> None:
+def test_parse_test_cases_defaults_status_to_active() -> None:
+    # The LLM no longer sees ``status``; the platform default (ACTIVE) applies,
+    # and any stray ``status`` value the model emits is stripped.
     data = [
         {
             "name": "Test",
-            "status": "active",
+            "status": "draft",
             "tags": ["normal"],
             "persona_context": "A user. Be a user.",
             "first_message": "Hello",
         }
     ]
     parsed = _parse_test_cases(json.dumps(data), expected_count=1)
-    assert parsed[0].status.value == "draft"
+    assert parsed[0].status.value == "active"
 
 
 def test_parse_test_cases_strips_markdown_fences() -> None:
