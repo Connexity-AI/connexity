@@ -2424,6 +2424,79 @@ export const ImprovementSuggestionsSchema = {
   title: 'ImprovementSuggestions',
 } as const;
 
+export const IntegrationCreateSchema = {
+  properties: {
+    provider: {
+      type: 'string',
+      maxLength: 64,
+      title: 'Provider',
+    },
+    name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Name',
+    },
+    api_key: {
+      type: 'string',
+      title: 'Api Key',
+    },
+  },
+  type: 'object',
+  required: ['provider', 'name', 'api_key'],
+  title: 'IntegrationCreate',
+} as const;
+
+export const IntegrationPublicSchema = {
+  properties: {
+    provider: {
+      type: 'string',
+      maxLength: 64,
+      title: 'Provider',
+    },
+    name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Name',
+    },
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+    },
+    masked_api_key: {
+      type: 'string',
+      title: 'Masked Api Key',
+    },
+  },
+  type: 'object',
+  required: ['provider', 'name', 'id', 'created_at', 'masked_api_key'],
+  title: 'IntegrationPublic',
+} as const;
+
+export const IntegrationsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/IntegrationPublic',
+      },
+      type: 'array',
+      title: 'Data',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'IntegrationsPublic',
+} as const;
+
 export const JudgeConfigSchema = {
   properties: {
     metrics: {

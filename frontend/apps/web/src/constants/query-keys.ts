@@ -24,3 +24,8 @@ export const promptEditorKeys = {
 export const testCaseKeys = {
   list: (agentId: string) => ['test-cases', agentId] as const,
 };
+
+export const integrationKeys = {
+  all: ['integrations'] as const,
+  list: () => ['integrations', 'list'] as const,
+};

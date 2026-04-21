@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
-import { Bot } from 'lucide-react';
+import { Bot, Plug } from 'lucide-react';
 
 import {
   SidebarContent,
@@ -28,6 +28,11 @@ const menuItems = [
     title: 'Agents',
     url: UrlGenerator.agents(),
     icon: Bot,
+  },
+  {
+    title: 'Integrations',
+    url: UrlGenerator.integrations(),
+    icon: Plug,
   },
 ];
 

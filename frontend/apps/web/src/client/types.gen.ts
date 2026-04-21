@@ -1483,6 +1483,64 @@ export type ImprovementSuggestions = {
 };
 
 /**
+ * IntegrationCreate
+ */
+export type IntegrationCreate = {
+  /**
+   * Provider
+   */
+  provider: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Api Key
+   */
+  api_key: string;
+};
+
+/**
+ * IntegrationPublic
+ */
+export type IntegrationPublic = {
+  /**
+   * Provider
+   */
+  provider: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Masked Api Key
+   */
+  masked_api_key: string;
+};
+
+/**
+ * IntegrationsPublic
+ */
+export type IntegrationsPublic = {
+  /**
+   * Data
+   */
+  data: Array<IntegrationPublic>;
+  /**
+   * Count
+   */
+  count: number;
+};
+
+/**
  * JudgeConfig
  *
  * Judge behavior and LLM overrides.
@@ -8148,3 +8206,226 @@ export type ConfigGetAvailableMetricsResponses = {
 
 export type ConfigGetAvailableMetricsResponse =
   ConfigGetAvailableMetricsResponses[keyof ConfigGetAvailableMetricsResponses];
+
+export type IntegrationsListIntegrationsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Skip
+     */
+    skip?: number;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/integrations/';
+};
+
+export type IntegrationsListIntegrationsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type IntegrationsListIntegrationsError =
+  IntegrationsListIntegrationsErrors[keyof IntegrationsListIntegrationsErrors];
+
+export type IntegrationsListIntegrationsResponses = {
+  /**
+   * Successful Response
+   */
+  200: IntegrationsPublic;
+};
+
+export type IntegrationsListIntegrationsResponse =
+  IntegrationsListIntegrationsResponses[keyof IntegrationsListIntegrationsResponses];
+
+export type IntegrationsCreateIntegrationData = {
+  body: IntegrationCreate;
+  path?: never;
+  query?: never;
+  url: '/api/v1/integrations/';
+};
+
+export type IntegrationsCreateIntegrationErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type IntegrationsCreateIntegrationError =
+  IntegrationsCreateIntegrationErrors[keyof IntegrationsCreateIntegrationErrors];
+
+export type IntegrationsCreateIntegrationResponses = {
+  /**
+   * Successful Response
+   */
+  200: IntegrationPublic;
+};
+
+export type IntegrationsCreateIntegrationResponse =
+  IntegrationsCreateIntegrationResponses[keyof IntegrationsCreateIntegrationResponses];
+
+export type IntegrationsDeleteIntegrationData = {
+  body?: never;
+  path: {
+    /**
+     * Integration Id
+     */
+    integration_id: string;
+  };
+  query?: never;
+  url: '/api/v1/integrations/{integration_id}';
+};
+
+export type IntegrationsDeleteIntegrationErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type IntegrationsDeleteIntegrationError =
+  IntegrationsDeleteIntegrationErrors[keyof IntegrationsDeleteIntegrationErrors];
+
+export type IntegrationsDeleteIntegrationResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message;
+};
+
+export type IntegrationsDeleteIntegrationResponse =
+  IntegrationsDeleteIntegrationResponses[keyof IntegrationsDeleteIntegrationResponses];
+
+export type IntegrationsTestIntegrationData = {
+  body?: never;
+  path: {
+    /**
+     * Integration Id
+     */
+    integration_id: string;
+  };
+  query?: never;
+  url: '/api/v1/integrations/{integration_id}/test';
+};
+
+export type IntegrationsTestIntegrationErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type IntegrationsTestIntegrationError =
+  IntegrationsTestIntegrationErrors[keyof IntegrationsTestIntegrationErrors];
+
+export type IntegrationsTestIntegrationResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message;
+};
+
+export type IntegrationsTestIntegrationResponse =
+  IntegrationsTestIntegrationResponses[keyof IntegrationsTestIntegrationResponses];
