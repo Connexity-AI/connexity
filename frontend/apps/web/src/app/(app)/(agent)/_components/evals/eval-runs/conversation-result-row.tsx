@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, X } from 'lucide-react';
+import { Check, MessageSquare, X } from 'lucide-react';
 
 import {
   AccordionContent,
@@ -9,10 +9,9 @@ import {
 } from '@workspace/ui/components/ui/accordion';
 import { cn } from '@workspace/ui/lib/utils';
 
-import { ScoreBar } from './shared/score-bar';
 import { roundScore, scoreColor } from './shared/score-utils';
 
-import type { TestCaseResultPublic } from '@/client/types.gen';
+import type { Difficulty, TestCaseResultPublic } from '@/client/types.gen';
 
 type Verdict = NonNullable<TestCaseResultPublic['verdict']>;
 type Outcome = NonNullable<Verdict['expected_outcome_results']>[number];
@@ -21,6 +20,8 @@ type Metric = NonNullable<Verdict['metric_scores']>[number];
 interface ConversationResultRowProps {
   result: TestCaseResultPublic;
   testCaseName: string;
+  tags?: string[];
+  difficulty?: Difficulty;
   onOpenTrace: () => void;
 }
 
@@ -31,11 +32,18 @@ const TIER_COLORS: Record<string, string> = {
   delivery: 'text-teal-400',
 };
 
+const DIFFICULTY_COLORS: Record<Difficulty, string> = {
+  normal: 'bg-accent/60 text-muted-foreground',
+  hard: 'bg-amber-500/15 text-amber-400',
+};
+
 const isMetricPass = (m: Metric) => (m.is_binary ? m.score >= 5 : m.score >= 3);
 
 export function ConversationResultRow({
   result,
   testCaseName,
+  tags,
+  difficulty,
   onOpenTrace,
 }: ConversationResultRowProps) {
   const verdict = result.verdict;
@@ -61,6 +69,7 @@ export function ConversationResultRow({
 
         <div className="min-w-0 text-left">
           <div className="truncate text-sm text-foreground">{testCaseName}</div>
+          <TagRow tags={tags} difficulty={difficulty} />
           <ErrorMessage message={result.error_message} />
         </div>
 
@@ -80,17 +89,50 @@ export function ConversationResultRow({
           <span className={cn('font-mono text-xs tabular-nums', scoreColors.text)}>
             {score === null ? '—' : `${score}/100`}
           </span>
-          <ScoreBar value={score} />
+          <ScoreBarInline value={score} />
         </div>
       </AccordionTrigger>
 
-      <AccordionContent className="bg-background/50 px-5 pb-4 pt-0">
-        <div className="flex flex-col gap-4 border-t border-border/40 pt-4">
+      <AccordionContent className="p-0">
+        <div className="border-t border-border/40">
           <OutcomesSection outcomes={outcomes} passedCount={passedOutcomes} />
           <MetricsSection metrics={metrics} passedCount={passedMetrics} />
         </div>
       </AccordionContent>
     </AccordionItem>
+  );
+}
+
+function TagRow({ tags, difficulty }: { tags?: string[]; difficulty?: Difficulty }) {
+  const hasTags = tags && tags.length > 0;
+  if (!difficulty && !hasTags) return null;
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+      {difficulty ? <DifficultyBadge difficulty={difficulty} /> : null}
+      {hasTags
+        ? tags!.map((tag) => (
+            <span
+              key={tag}
+              className="rounded bg-accent px-1.5 py-0.5 text-[10px] text-muted-foreground"
+            >
+              {tag}
+            </span>
+          ))
+        : null}
+    </div>
+  );
+}
+
+function DifficultyBadge({ difficulty }: { difficulty: Difficulty }) {
+  return (
+    <span
+      className={cn(
+        'rounded px-1.5 py-0.5 text-[10px] capitalize',
+        DIFFICULTY_COLORS[difficulty]
+      )}
+    >
+      {difficulty}
+    </span>
   );
 }
 
@@ -109,9 +151,20 @@ function TraceAction({ onOpenTrace }: { onOpenTrace: () => void }) {
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') handle(e);
       }}
-      className="rounded px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex items-center gap-1.5 rounded border border-transparent px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:border-border hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      Trace
+      <MessageSquare className="h-3.5 w-3.5" />
+      <span>Trace</span>
+    </div>
+  );
+}
+
+function ScoreBarInline({ value }: { value: number | null }) {
+  const pct = Math.max(0, Math.min(100, value ?? 0));
+  const color = scoreColor(value).bar;
+  return (
+    <div className="h-1.5 w-[110px] overflow-hidden rounded-full bg-accent/80">
+      <div className={cn('h-full rounded-full', color)} style={{ width: `${pct}%` }} />
     </div>
   );
 }
@@ -137,53 +190,80 @@ function OutcomesOverflow({ total }: { total: number }) {
   return <span className="text-[10px] text-muted-foreground">+{total - 6}</span>;
 }
 
+function SectionHeader({
+  title,
+  passedCount,
+  total,
+}: {
+  title: string;
+  passedCount: number;
+  total: number;
+}) {
+  return (
+    <div className="flex items-center gap-2 border-y border-border/30 bg-accent/5 px-8 py-1.5">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground/50">{title}</span>
+      <span className="ml-auto text-[10px] tabular-nums text-muted-foreground/40">
+        {passedCount}/{total} passed
+      </span>
+    </div>
+  );
+}
+
 function OutcomesSection({ outcomes, passedCount }: { outcomes: Outcome[]; passedCount: number }) {
   if (outcomes.length === 0) return null;
 
   return (
-    <section className="flex flex-col gap-2">
-      <h4 className="flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground/60">
-        <span>Expected outcomes</span>
-        <span>
-          {passedCount}/{outcomes.length} passed
-        </span>
-      </h4>
-      <ul className="flex flex-col gap-2">
-        {outcomes.map((o, i) => (
-          <OutcomeRow key={i} outcome={o} />
-        ))}
-      </ul>
+    <section>
+      <SectionHeader title="Expected Outcomes" passedCount={passedCount} total={outcomes.length} />
+      {outcomes.map((o, i) => (
+        <OutcomeRow key={i} outcome={o} />
+      ))}
     </section>
   );
 }
 
 function OutcomeRow({ outcome }: { outcome: Outcome }) {
   return (
-    <li className="flex items-start gap-2 text-xs text-foreground">
-      <StatusIcon passed={outcome.passed} className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-      <div className="min-w-0">
-        <div>{outcome.statement}</div>
-        <Justification text={outcome.justification} />
+    <div className="flex items-start gap-3 border-b border-border/20 bg-background px-8 py-3 last:border-0">
+      <div
+        className={cn(
+          'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full',
+          outcome.passed ? 'bg-green-500/15' : 'bg-red-500/15'
+        )}
+      >
+        {outcome.passed ? (
+          <Check className="h-2.5 w-2.5 text-green-400" />
+        ) : (
+          <X className="h-2.5 w-2.5 text-red-400" />
+        )}
       </div>
-    </li>
+      <div className="min-w-0 flex-1">
+        <p
+          className={cn(
+            'text-xs leading-relaxed',
+            outcome.passed ? 'text-foreground' : 'text-muted-foreground'
+          )}
+        >
+          {outcome.statement}
+        </p>
+        {outcome.justification ? (
+          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground/70">
+            {outcome.justification}
+          </p>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
 function MetricsSection({ metrics, passedCount }: { metrics: Metric[]; passedCount: number }) {
   if (metrics.length === 0) return null;
   return (
-    <section className="flex flex-col gap-2">
-      <h4 className="flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground/60">
-        <span>Metrics</span>
-        <span>
-          {passedCount}/{metrics.length} passed
-        </span>
-      </h4>
-      <ul className="flex flex-col gap-2">
-        {metrics.map((m) => (
-          <MetricRow key={m.metric} metric={m} />
-        ))}
-      </ul>
+    <section>
+      <SectionHeader title="Metrics" passedCount={passedCount} total={metrics.length} />
+      {metrics.map((m) => (
+        <MetricRow key={m.metric} metric={m} />
+      ))}
     </section>
   );
 }
@@ -191,18 +271,22 @@ function MetricsSection({ metrics, passedCount }: { metrics: Metric[]; passedCou
 function MetricRow({ metric }: { metric: Metric }) {
   const isPass = isMetricPass(metric);
   return (
-    <li className="grid grid-cols-[1fr_auto] items-center gap-3">
-      <div className="flex min-w-0 flex-col gap-0.5">
+    <div className="grid grid-cols-[1fr_auto] items-center gap-6 border-b border-border/20 bg-background px-8 py-3 last:border-0">
+      <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <span className="truncate text-xs text-foreground">{metric.metric}</span>
+          <p className="text-xs text-foreground">{humanizeMetricName(metric.metric)}</p>
           <MetricTier tier={metric.tier} />
         </div>
-        <Justification text={metric.justification} className="mt-0 truncate" />
+        {metric.justification ? (
+          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground/70">
+            ↳ {metric.justification}
+          </p>
+        ) : null}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2.5">
         <MetricValue metric={metric} isPass={isPass} />
       </div>
-    </li>
+    </div>
   );
 }
 
@@ -223,38 +307,36 @@ function MetricValue({ metric, isPass }: { metric: Metric; isPass: boolean }) {
     return (
       <span
         className={cn(
-          'rounded-full border px-1.5 py-0.5 text-[10px]',
-          isPass
-            ? 'border-green-500/25 bg-green-500/15 text-green-400'
-            : 'border-red-500/25 bg-red-500/15 text-red-400'
+          'inline-flex items-center gap-1 rounded px-2.5 py-1 text-[10px]',
+          isPass ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
         )}
       >
-        {isPass ? 'pass' : 'fail'}
+        {isPass ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+        {isPass ? 'Pass' : 'Fail'}
       </span>
     );
   }
+  const pct = (metric.score / 5) * 100;
+  const colorClass =
+    metric.score >= 4 ? 'text-green-400' : metric.score === 3 ? 'text-yellow-400' : 'text-red-400';
+  const barClass =
+    metric.score >= 4 ? 'bg-green-400' : metric.score === 3 ? 'bg-yellow-400' : 'bg-red-400';
   return (
     <>
-      <span
-        className={cn(
-          'font-mono text-[11px] tabular-nums',
-          isPass ? 'text-foreground' : 'text-red-400'
-        )}
-      >
+      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-accent/80">
+        <div className={cn('h-full rounded-full', barClass)} style={{ width: `${pct}%` }} />
+      </div>
+      <span className={cn('w-8 text-right font-mono text-xs tabular-nums', colorClass)}>
         {metric.score}/5
       </span>
-      <ScoreBar value={(metric.score / 5) * 100} trackClassName="w-16" />
     </>
   );
 }
 
-function Justification({
-  text,
-  className,
-}: {
-  text: string | null | undefined;
-  className?: string;
-}) {
-  if (!text) return null;
-  return <div className={cn('mt-0.5 text-[11px] text-muted-foreground', className)}>{text}</div>;
+function humanizeMetricName(slug: string): string {
+  return slug
+    .split('_')
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
 }

@@ -6,10 +6,12 @@ import { ArrowLeft } from 'lucide-react';
 
 import { Accordion } from '@workspace/ui/components/ui/accordion';
 import { Button } from '@workspace/ui/components/ui/button';
+import { Separator } from '@workspace/ui/components/ui/separator';
 import { Skeleton } from '@workspace/ui/components/ui/skeleton';
 import { ToggleGroup, ToggleGroupItem } from '@workspace/ui/components/ui/toggle-group';
 import { cn } from '@workspace/ui/lib/utils';
 
+import { useAgent } from '@/app/(app)/(agent)/_hooks/use-agent';
 import { useEvalConfigs } from '@/app/(app)/(agent)/_hooks/use-eval-configs';
 import { useEvalRunDetail, type ResultFilter } from '@/app/(app)/(agent)/_hooks/use-eval-run-detail';
 import { useSuspenseTestCases } from '@/app/(app)/(agent)/_hooks/use-test-cases';
@@ -44,6 +46,7 @@ function EvalRunDetailContent({
 }: EvalRunDetailViewProps & { backHref: string }) {
   const { data: configsData } = useEvalConfigs(agentId);
   const { data: testCasesData } = useSuspenseTestCases(agentId);
+  const { data: agent } = useAgent(agentId);
   const configs = configsData?.data ?? [];
   const testCases = testCasesData?.data ?? [];
 
@@ -52,7 +55,7 @@ function EvalRunDetailContent({
     results,
     filteredResults,
     configName,
-    testCaseNameById,
+    testCaseById,
     passedCount,
     failedCount,
     filter,
@@ -67,6 +70,7 @@ function EvalRunDetailContent({
       <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-3">
         <div className="flex min-w-0 items-center gap-3">
           <BackButton href={backHref} />
+          <Separator orientation="vertical" className="h-4" />
           <div className="flex min-w-0 items-center gap-2 text-sm">
             <span className="truncate text-foreground">{configName}</span>
             {run.agent_version !== null && run.agent_version !== undefined ? (
@@ -77,19 +81,19 @@ function EvalRunDetailContent({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <RunStatusIcon status={run.status} />
           <span
             className={cn(
-              'rounded-full border px-1.5 py-0.5 text-[10px]',
+              'inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px]',
               runStatusBadgeClasses(run.status as RunStatus)
             )}
           >
+            <RunStatusIcon status={run.status} />
             {runStatusLabel(run.status as RunStatus)}
           </span>
         </div>
       </div>
 
-      <EvalRunMetricsBar metrics={run.aggregate_metrics} status={run.status as RunStatus} />
+      <EvalRunMetricsBar run={run} status={run.status as RunStatus} />
 
       <div className="flex h-10 shrink-0 items-center gap-2 border-b border-border px-5 py-2">
         <ToggleGroup
@@ -132,16 +136,19 @@ function EvalRunDetailContent({
           </div>
         ) : (
           <Accordion type="multiple" className="w-full">
-            {filteredResults.map((result) => (
-              <ConversationResultRow
-                key={result.id}
-                result={result}
-                testCaseName={
-                  testCaseNameById.get(result.test_case_id) ?? 'Unknown test case'
-                }
-                onOpenTrace={() => setDrawerResultId(result.id)}
-              />
-            ))}
+            {filteredResults.map((result) => {
+              const testCase = testCaseById.get(result.test_case_id);
+              return (
+                <ConversationResultRow
+                  key={result.id}
+                  result={result}
+                  testCaseName={testCase?.name ?? 'Unknown test case'}
+                  tags={testCase?.tags}
+                  difficulty={testCase?.difficulty}
+                  onOpenTrace={() => setDrawerResultId(result.id)}
+                />
+              );
+            })}
           </Accordion>
         )}
       </div>
@@ -154,9 +161,10 @@ function EvalRunDetailContent({
         result={drawerResult}
         testCaseName={
           drawerResult
-            ? testCaseNameById.get(drawerResult.test_case_id) ?? 'Unknown test case'
+            ? testCaseById.get(drawerResult.test_case_id)?.name ?? 'Unknown test case'
             : ''
         }
+        agentName={agent?.name ?? null}
       />
     </div>
   );

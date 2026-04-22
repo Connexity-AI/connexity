@@ -43,7 +43,7 @@ export function EvalRunListRow({
   return (
     <li
       className={cn(
-        'group grid cursor-pointer grid-cols-[32px_1fr_72px_110px_110px] items-center gap-3 border-b border-border/40 px-5 py-3 transition-colors select-none',
+        'group grid cursor-pointer grid-cols-[32px_1fr_72px_110px_110px_96px] items-center gap-3 border-b border-border/40 px-5 py-3 transition-colors select-none',
         selected ? 'bg-accent/50' : 'hover:bg-accent/25'
       )}
       onClick={onOpen}
@@ -80,9 +80,6 @@ export function EvalRunListRow({
               latest
             </span>
           ) : null}
-          <span className="truncate text-xs text-muted-foreground">
-            {formatTimeAgo(run.created_at)}
-          </span>
         </div>
       </div>
 
@@ -113,6 +110,10 @@ export function EvalRunListRow({
             : '—'}
         </span>
         <ScoreBar value={passRate} />
+      </div>
+
+      <div className="text-right text-[10px] text-muted-foreground/60 tabular-nums">
+        {formatTimeAgo(run.created_at)}
       </div>
     </li>
   );

@@ -39,6 +39,7 @@ export function useEvalRunsView({ runs, configById }: UseEvalRunsViewParams) {
 
   const groupedRuns = useMemo<RunConfigGroup[] | null>(() => {
     if (!groupByConfig) return null;
+
     return groupRunsByConfig(sortedRuns, configById);
   }, [groupByConfig, sortedRuns, configById]);
 
@@ -57,12 +58,15 @@ function groupRunsByConfig(
   configById: Map<string, EvalConfigPublic>
 ): RunConfigGroup[] {
   const groups = new Map<string, RunPublic[]>();
+
   for (const r of runs) {
     const list = groups.get(r.eval_config_id) ?? [];
     list.push(r);
     groups.set(r.eval_config_id, list);
   }
+
   const result: RunConfigGroup[] = [];
+
   for (const [configId, items] of groups) {
     result.push({
       configId,

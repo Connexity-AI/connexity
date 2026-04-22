@@ -29,9 +29,9 @@ export function useEvalRunDetail({ runId, configs, testCases }: UseEvalRunDetail
     return config?.name ?? 'Unknown config';
   }, [configs, run.eval_config_id]);
 
-  const testCaseNameById = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const tc of testCases) map.set(tc.id, tc.name);
+  const testCaseById = useMemo(() => {
+    const map = new Map<string, TestCasePublic>();
+    for (const tc of testCases) map.set(tc.id, tc);
     return map;
   }, [testCases]);
 
@@ -59,7 +59,7 @@ export function useEvalRunDetail({ runId, configs, testCases }: UseEvalRunDetail
     results,
     filteredResults,
     configName,
-    testCaseNameById,
+    testCaseById,
     passedCount,
     failedCount,
     filter,

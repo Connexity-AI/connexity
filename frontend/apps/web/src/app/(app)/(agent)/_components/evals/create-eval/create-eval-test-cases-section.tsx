@@ -105,7 +105,7 @@ function AddTestCasesDialog({
         </DialogHeader>
 
         <div className="flex items-center gap-2 border-b border-border px-5 py-2.5">
-          <Search className="h-3.5 w-3.5 text-muted-foreground/60" />
+          <Search size={20} className=" text-muted-foreground/60" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}

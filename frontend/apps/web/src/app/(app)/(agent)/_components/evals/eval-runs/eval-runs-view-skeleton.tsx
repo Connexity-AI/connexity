@@ -10,18 +10,19 @@ export function EvalRunsViewSkeleton() {
         <Skeleton className="h-7 w-32" />
         <Skeleton className="h-7 w-40" />
       </div>
-      <div className="sticky top-0 z-10 grid grid-cols-[32px_1fr_72px_110px_110px] items-center gap-3 border-b border-border bg-background px-5 py-2 text-[10px] uppercase tracking-wider text-muted-foreground/60">
+      <div className="sticky top-0 z-10 grid grid-cols-[32px_1fr_72px_110px_110px_96px] items-center gap-3 border-b border-border bg-background px-5 py-2 text-[10px] uppercase tracking-wider text-muted-foreground/60">
         <span />
         <span>Run</span>
-        <span>Tool</span>
+        <span>Tool Calls</span>
         <span>Score</span>
         <span>Cases</span>
+        <span aria-hidden="true" />
       </div>
       <ul>
         {Array.from({ length: 8 }).map((_, i) => (
           <li
             key={i}
-            className="grid grid-cols-[32px_1fr_72px_110px_110px] items-center gap-3 border-b border-border/40 px-5 py-3"
+            className="grid grid-cols-[32px_1fr_72px_110px_110px_96px] items-center gap-3 border-b border-border/40 px-5 py-3"
           >
             <Skeleton className="h-4 w-4" />
             <div className="flex flex-col gap-1.5">
@@ -31,6 +32,7 @@ export function EvalRunsViewSkeleton() {
             <Skeleton className="h-4 w-10" />
             <Skeleton className="h-3 w-14" />
             <Skeleton className="h-3 w-14" />
+            <Skeleton className="h-3 w-16 justify-self-end" />
           </li>
         ))}
       </ul>
