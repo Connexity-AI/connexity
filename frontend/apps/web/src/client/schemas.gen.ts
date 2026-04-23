@@ -2585,8 +2585,10 @@ export const IntegrationCreateSchema = {
   properties: {
     provider: {
       type: 'string',
+      enum: ['retell'],
+      const: 'retell',
       maxLength: 64,
-      title: 'Provider',
+      title: 'IntegrationProvider',
     },
     name: {
       type: 'string',
@@ -2603,12 +2605,22 @@ export const IntegrationCreateSchema = {
   title: 'IntegrationCreate',
 } as const;
 
+export const IntegrationProviderSchema = {
+  type: 'string',
+  enum: ['retell'],
+  const: 'retell',
+  maxLength: 64,
+  title: 'IntegrationProvider',
+} as const;
+
 export const IntegrationPublicSchema = {
   properties: {
     provider: {
       type: 'string',
+      enum: ['retell'],
+      const: 'retell',
       maxLength: 64,
-      title: 'Provider',
+      title: 'IntegrationProvider',
     },
     name: {
       type: 'string',

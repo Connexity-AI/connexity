@@ -80,6 +80,7 @@ from app.models.enums import (  # noqa: F401
     AgentVersionStatus,
     Difficulty,
     FirstTurn,
+    IntegrationProvider,
     MetricTier,
     Platform,
     PromptEditorSessionStatus,

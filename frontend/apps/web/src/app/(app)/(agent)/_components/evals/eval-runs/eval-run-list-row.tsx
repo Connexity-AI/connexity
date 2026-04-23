@@ -3,6 +3,9 @@
 import { Checkbox } from '@workspace/ui/components/ui/checkbox';
 import { cn } from '@workspace/ui/lib/utils';
 
+import { useRunStream } from '@/app/(app)/(agent)/_hooks/use-run-stream';
+import { RunStatus } from '@/client/types.gen';
+
 import { formatTimeAgo } from './shared/format-time';
 import { RunStatusIcon } from './shared/run-status-icon';
 import { ScoreBar } from './shared/score-bar';
@@ -29,6 +32,12 @@ export function EvalRunListRow({
   onToggleSelected,
   onOpen,
 }: EvalRunListRowProps) {
+  useRunStream({
+    runId: run.id,
+    agentId: run.agent_id,
+    enabled: run.status === RunStatus.PENDING || run.status === RunStatus.RUNNING,
+  });
+
   const metrics = run.aggregate_metrics;
   const avgScore = roundScore(metrics?.avg_overall_score);
   const passRate =

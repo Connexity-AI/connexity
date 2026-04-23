@@ -1581,9 +1581,9 @@ export type ImprovementSuggestions = {
  */
 export type IntegrationCreate = {
   /**
-   * Provider
+   * IntegrationProvider
    */
-  provider: string;
+  provider: 'retell';
   /**
    * Name
    */
@@ -1595,13 +1595,23 @@ export type IntegrationCreate = {
 };
 
 /**
+ * IntegrationProvider
+ */
+export const IntegrationProvider = { RETELL: 'retell' } as const;
+
+/**
+ * IntegrationProvider
+ */
+export type IntegrationProvider = (typeof IntegrationProvider)[keyof typeof IntegrationProvider];
+
+/**
  * IntegrationPublic
  */
 export type IntegrationPublic = {
   /**
-   * Provider
+   * IntegrationProvider
    */
-  provider: string;
+  provider: 'retell';
   /**
    * Name
    */

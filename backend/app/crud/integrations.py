@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import func
 from sqlmodel import Session, col, select
 
-from app.core.encryption import encrypt
+from app.core.encryption import encrypt, mask_key
 from app.models.integration import Integration, IntegrationCreate
 
 
@@ -14,6 +14,7 @@ def create_integration(
         provider=data.provider,
         name=data.name,
         encrypted_api_key=encrypt(data.api_key),
+        masked_api_key=mask_key(data.api_key),
         user_id=user_id,
     )
     session.add(db_obj)

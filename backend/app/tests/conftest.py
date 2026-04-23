@@ -19,7 +19,21 @@ def db() -> Generator[Session, None, None]:
     with Session(engine) as session:
         init_db(session)
         yield session
-        session.execute(text('TRUNCATE TABLE "user" CASCADE'))
+        # Wipe every application table so tables without an FK to "user"
+        # (agent, eval_config, test_case, ...) don't accumulate orphans
+        # across runs. Keep alembic_version so the schema survives.
+        table_names = [
+            row[0]
+            for row in session.execute(
+                text(
+                    "SELECT tablename FROM pg_tables "
+                    "WHERE schemaname = 'public' AND tablename <> 'alembic_version'"
+                )
+            ).all()
+        ]
+        if table_names:
+            quoted = ", ".join(f'"{name}"' for name in table_names)
+            session.execute(text(f"TRUNCATE TABLE {quoted} RESTART IDENTITY CASCADE"))
         session.commit()
 
 

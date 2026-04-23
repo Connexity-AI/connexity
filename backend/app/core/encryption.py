@@ -1,9 +1,13 @@
+from functools import lru_cache
+
 from cryptography.fernet import Fernet
 
 from app.core.config import settings
 
 
+@lru_cache(maxsize=1)
 def _fernet() -> Fernet:
+    # Surfaces malformed/missing keys at first use rather than per-call
     return Fernet(settings.ENCRYPTION_KEY.encode())
 
 

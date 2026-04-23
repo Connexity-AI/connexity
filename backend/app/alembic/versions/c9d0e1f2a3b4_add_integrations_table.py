@@ -24,6 +24,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("user_id", sa.Uuid(), nullable=False),
         sa.Column("encrypted_api_key", sa.Text(), nullable=False),
+        sa.Column("masked_api_key", sa.String(length=255), nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(),
