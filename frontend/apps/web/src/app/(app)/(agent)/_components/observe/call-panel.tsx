@@ -1,7 +1,13 @@
 'use client';
 
-import { Clock, PenLine, Sparkles } from 'lucide-react';
+import { CheckCircle2, Clock, PenLine, Sparkles, Wrench } from 'lucide-react';
 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@workspace/ui/components/ui/accordion';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +17,7 @@ import {
 import { cn } from '@workspace/ui/lib/utils';
 
 import {
+  buildTranscriptDisplayItems,
   extractTurns,
   formatDate,
   formatDuration,
@@ -33,6 +40,7 @@ export function CallPanel({
   onCreateTestCaseAi,
 }: CallPanelProps) {
   const turns = extractTurns(call.transcript);
+  const displayItems = buildTranscriptDisplayItems(turns);
   const showCreateButton = !!onCreateTestCaseManual || !!onCreateTestCaseAi;
 
   return (
@@ -106,16 +114,118 @@ export function CallPanel({
         <p className="mb-4 text-[10px] uppercase tracking-wider text-muted-foreground">
           Transcript
         </p>
-        {turns.length === 0 ? (
+        {displayItems.length === 0 ? (
           <p className="text-xs text-muted-foreground">
             No transcript available for this call.
           </p>
         ) : (
-          turns.map((turn, idx) => <TranscriptBubble key={idx} turn={turn} />)
+          displayItems.map((item) => {
+            if (item.kind === 'message') {
+              return <TranscriptBubble key={item.key} turn={item.turn} />;
+            }
+            if (item.kind === 'tool_call') {
+              return (
+                <ToolAccordionBubble
+                  key={item.key}
+                  itemKey={item.key}
+                  variant="request"
+                  tool={item.tool}
+                  body={item.params ?? {}}
+                  startSeconds={item.startSeconds}
+                />
+              );
+            }
+            return (
+              <ToolAccordionBubble
+                key={item.key}
+                itemKey={item.key}
+                variant="result"
+                tool={item.tool}
+                body={item.result}
+                startSeconds={item.startSeconds}
+              />
+            );
+          })
         )}
       </div>
     </div>
   );
+}
+
+interface ToolAccordionBubbleProps {
+  itemKey: string;
+  variant: 'request' | 'result';
+  tool: string;
+  body: unknown;
+  startSeconds: number | null;
+}
+
+function ToolAccordionBubble({
+  itemKey,
+  variant,
+  tool,
+  body,
+  startSeconds,
+}: ToolAccordionBubbleProps) {
+  const isRequest = variant === 'request';
+  const timestamp = startSeconds !== null ? formatTimestamp(startSeconds) : null;
+  const Icon = isRequest ? Wrench : CheckCircle2;
+  const label = isRequest ? 'Tool Request' : 'Tool Result';
+  const json = safeStringify(body);
+
+  return (
+    <div className="flex flex-col items-center">
+      {timestamp ? (
+        <span className="mb-1 px-1 text-[9px] tabular-nums text-muted-foreground/40">
+          {timestamp}
+        </span>
+      ) : null}
+      <Accordion
+        type="single"
+        collapsible
+        defaultValue={itemKey}
+        className="w-full"
+      >
+        <AccordionItem
+          value={itemKey}
+          className="overflow-hidden rounded-lg border border-border bg-accent/10"
+        >
+          <AccordionTrigger className="px-3 py-2 text-[11px] font-normal text-muted-foreground hover:no-underline data-[state=open]:border-b data-[state=open]:border-border/40">
+            <span className="flex min-w-0 items-center gap-2">
+              <Icon className="h-3 w-3 shrink-0 text-muted-foreground/60" />
+              <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60">
+                {label}
+              </span>
+              <span className="truncate font-mono text-[11px] text-foreground/80">
+                {tool}
+              </span>
+            </span>
+          </AccordionTrigger>
+          <AccordionContent className="px-3 pb-3 pt-3">
+            <pre className="whitespace-pre-wrap break-all font-mono text-[10px] leading-relaxed text-foreground/80">
+              {json}
+            </pre>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    </div>
+  );
+}
+
+function safeStringify(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') {
+    try {
+      return JSON.stringify(JSON.parse(value), null, 2);
+    } catch {
+      return value;
+    }
+  }
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
 }
 
 function TranscriptBubble({ turn }: { turn: TranscriptTurn }) {

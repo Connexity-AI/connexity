@@ -1,8 +1,14 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { CheckCircle2, ChevronDown, MessageSquare, Wrench, XCircle } from 'lucide-react';
+import { useMemo } from 'react';
+import { CheckCircle2, MessageSquare, Wrench, XCircle } from 'lucide-react';
 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@workspace/ui/components/ui/accordion';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@workspace/ui/components/ui/sheet';
 import { cn } from '@workspace/ui/lib/utils';
 
@@ -22,10 +28,15 @@ type DisplayItem =
   | { kind: 'user'; content: string; key: string }
   | { kind: 'agent'; content: string; key: string }
   | {
-      kind: 'tool_pair';
+      kind: 'tool_call';
       tool: string;
       params: Record<string, unknown> | null;
-      result: string;
+      key: string;
+    }
+  | {
+      kind: 'tool_result';
+      tool: string;
+      result: unknown;
       key: string;
     };
 
@@ -36,20 +47,9 @@ export function ConversationDrawer({
   testCaseName,
   agentName,
 }: ConversationDrawerProps) {
-  const [expandedTools, setExpandedTools] = useState<Set<string>>(new Set());
-
   const turns = result?.transcript ?? [];
 
   const displayItems = useMemo<DisplayItem[]>(() => buildDisplayItems(turns), [turns]);
-
-  const toggleTool = (key: string) => {
-    setExpandedTools((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
 
   if (!result) return null;
 
@@ -62,7 +62,7 @@ export function ConversationDrawer({
     (d) => d.kind === 'user' || d.kind === 'agent'
   ).length;
   const turnCount = Math.ceil(messageCount / 2);
-  const toolCallCount = displayItems.filter((d) => d.kind === 'tool_pair').length;
+  const toolCallCount = displayItems.filter((d) => d.kind === 'tool_call').length;
 
   const agentLabel = agentName ? `${agentName} (Agent)` : 'Agent';
 
@@ -152,70 +152,26 @@ export function ConversationDrawer({
                 );
               }
 
-              const isOpen = expandedTools.has(item.key);
-              const resultObject = parseJsonObject(item.result);
-              const paramsEntries = item.params ? Object.entries(item.params) : [];
+              if (item.kind === 'tool_call') {
+                return (
+                  <ToolAccordion
+                    key={item.key}
+                    itemKey={item.key}
+                    variant="request"
+                    tool={item.tool}
+                    body={item.params ?? {}}
+                  />
+                );
+              }
 
               return (
-                <div key={item.key} className="flex justify-center">
-                  <button
-                    type="button"
-                    onClick={() => toggleTool(item.key)}
-                    className={cn(
-                      'w-full max-w-[88%] rounded-lg border text-left transition-colors',
-                      isOpen
-                        ? 'border-border bg-accent/30'
-                        : 'border-border/50 bg-accent/10 hover:border-border hover:bg-accent/20'
-                    )}
-                  >
-                    <div className="flex items-center gap-2 px-3 py-2">
-                      <Wrench className="h-3 w-3 shrink-0 text-muted-foreground/60" />
-                      <span className="flex-1 truncate font-mono text-[11px] text-muted-foreground">
-                        {item.tool}
-                        {paramsEntries.length > 0 && (
-                          <span className="ml-1 text-muted-foreground/40">
-                            (
-                            {paramsEntries
-                              .map(([k, v]) => `${k}: "${formatParamValue(v)}"`)
-                              .join(', ')}
-                            )
-                          </span>
-                        )}
-                      </span>
-                      <ChevronDown
-                        className={cn(
-                          'h-3 w-3 shrink-0 text-muted-foreground/40 transition-transform duration-150',
-                          isOpen && 'rotate-180'
-                        )}
-                      />
-                    </div>
-                    {isOpen && (
-                      <div className="border-t border-border/40 px-3 pb-3 pt-2">
-                        <p className="mb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/50">
-                          Response
-                        </p>
-                        {resultObject ? (
-                          <div className="space-y-1">
-                            {Object.entries(resultObject).map(([k, v]) => (
-                              <div key={k} className="flex items-start gap-2">
-                                <span className="shrink-0 font-mono text-[11px] text-muted-foreground/60">
-                                  {k}:
-                                </span>
-                                <span className="break-all font-mono text-[11px] text-foreground/80">
-                                  {formatResultValue(v)}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <pre className="whitespace-pre-wrap break-all font-mono text-[11px] text-foreground/70">
-                            {item.result}
-                          </pre>
-                        )}
-                      </div>
-                    )}
-                  </button>
-                </div>
+                <ToolAccordion
+                  key={item.key}
+                  itemKey={item.key}
+                  variant="result"
+                  tool={item.tool}
+                  body={item.result}
+                />
               );
             })
           )}
@@ -254,11 +210,21 @@ function buildDisplayItems(turns: ConversationTurnOutput[]): DisplayItem[] {
             ? (parsed as Record<string, unknown>)
             : null;
         items.push({
-          kind: 'tool_pair',
+          kind: 'tool_call',
           tool: call.function.name,
           params,
-          result: toolResultByCallId.get(call.id) ?? stringifyToolResult(call.tool_result),
-          key: `t-${call.id}`,
+          key: `tc-${call.id}`,
+        });
+        const rawResult = toolResultByCallId.get(call.id);
+        const resultValue =
+          rawResult !== undefined
+            ? (tryParseJson(rawResult) ?? rawResult)
+            : call.tool_result;
+        items.push({
+          kind: 'tool_result',
+          tool: call.function.name,
+          result: resultValue,
+          key: `tr-${call.id}`,
         });
       }
     }
@@ -280,29 +246,65 @@ function tryParseJson(raw: unknown): unknown {
   }
 }
 
-function parseJsonObject(raw: string): Record<string, unknown> | null {
-  const parsed = tryParseJson(raw);
-  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-    return parsed as Record<string, unknown>;
+function safeStringify(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') {
+    try {
+      return JSON.stringify(JSON.parse(value), null, 2);
+    } catch {
+      return value;
+    }
   }
-  return null;
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
 }
 
-function stringifyToolResult(value: unknown): string {
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'string') return value;
-  return JSON.stringify(value);
+interface ToolAccordionProps {
+  itemKey: string;
+  variant: 'request' | 'result';
+  tool: string;
+  body: unknown;
 }
 
-function formatParamValue(value: unknown): string {
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'string') return value;
-  return JSON.stringify(value);
-}
+function ToolAccordion({ itemKey, variant, tool, body }: ToolAccordionProps) {
+  const isRequest = variant === 'request';
+  const Icon = isRequest ? Wrench : CheckCircle2;
+  const label = isRequest ? 'Tool Request' : 'Tool Result';
+  const json = safeStringify(body);
 
-function formatResultValue(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map((v) => String(v)).join(', ')}]`;
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'object') return JSON.stringify(value);
-  return String(value);
+  return (
+    <div className="flex justify-center">
+      <Accordion
+        type="single"
+        collapsible
+        defaultValue={itemKey}
+        className="w-full"
+      >
+        <AccordionItem
+          value={itemKey}
+          className="overflow-hidden rounded-lg border border-border bg-accent/10"
+        >
+          <AccordionTrigger className="px-3 py-2 text-[11px] font-normal text-muted-foreground hover:no-underline data-[state=open]:border-b data-[state=open]:border-border/40">
+            <span className="flex min-w-0 items-center gap-2">
+              <Icon className="h-3 w-3 shrink-0 text-muted-foreground/60" />
+              <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60">
+                {label}
+              </span>
+              <span className="truncate font-mono text-xs text-foreground/80">
+                {tool}
+              </span>
+            </span>
+          </AccordionTrigger>
+          <AccordionContent className="px-3 pb-3 pt-3">
+            <pre className="whitespace-pre-wrap break-all font-mono text-[11px] leading-relaxed text-foreground/80">
+              {json}
+            </pre>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    </div>
+  );
 }
