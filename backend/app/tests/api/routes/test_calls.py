@@ -69,7 +69,9 @@ def _owned_agent_with_environment(db: Session, retell_agent_id: str = "ret_a1"):
     return agent, integration, user
 
 
-def _fake_retell_call(call_id: str, start_ms: int, end_ms: int | None = None) -> RetellCall:
+def _fake_retell_call(
+    call_id: str, start_ms: int, end_ms: int | None = None
+) -> RetellCall:
     return RetellCall(
         call_id=call_id,
         agent_id="ret_a1",

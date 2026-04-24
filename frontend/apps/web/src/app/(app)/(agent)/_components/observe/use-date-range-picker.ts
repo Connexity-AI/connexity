@@ -64,7 +64,6 @@ export function useDateRangePicker({
       if (range.from && range.to) {
         onChange({ preset: 'custom', range });
         setDraftRange(undefined);
-        setOpen(false);
       }
     },
     [onChange],

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { useRunTestCaseAiAgent } from '@/app/(app)/(agent)/_hooks/use-run-test-case-ai-agent';
+import { TurnRole, type CallPublic, type ConversationTurnInput } from '@/client/types.gen';
 import { isErrorApiResult } from '@/utils/api';
 
 export const STAGES = [
@@ -22,12 +23,59 @@ type Phase = 'input' | 'generating';
 
 interface UseCreateTestCaseAiPromptArgs {
   agentId: string;
+  call: CallPublic;
   onClose: () => void;
   onGenerated: (testCaseId: string) => void;
 }
 
+function normalizeRole(raw: unknown): TurnRole {
+  if (typeof raw !== 'string') return TurnRole.USER;
+  const lower = raw.toLowerCase();
+  if (lower === 'assistant' || lower === 'agent') return TurnRole.ASSISTANT;
+  if (lower === 'system') return TurnRole.SYSTEM;
+  if (lower === 'tool') return TurnRole.TOOL;
+  return TurnRole.USER;
+}
+
+function extractOffsetSeconds(entry: Record<string, unknown>): number | null {
+  if (typeof entry.start === 'number') return entry.start;
+  if (typeof entry.timestamp === 'number') return entry.timestamp;
+  return null;
+}
+
+function buildTranscriptFromCall(call: CallPublic): ConversationTurnInput[] {
+  const raw = call.transcript;
+  if (!Array.isArray(raw)) return [];
+
+  const startedAtMs = new Date(call.started_at).getTime();
+  const turns: ConversationTurnInput[] = [];
+
+  for (const [index, entry] of raw.entries()) {
+    if (!entry || typeof entry !== 'object') continue;
+
+    const role = normalizeRole(entry.role);
+
+    let content: string | null = null;
+    if (typeof entry.content === 'string') {
+      content = entry.content;
+    }
+
+    const offsetSeconds = extractOffsetSeconds(entry);
+    let timestampMs = startedAtMs + index;
+    if (offsetSeconds !== null) {
+      timestampMs = startedAtMs + offsetSeconds * 1000;
+    }
+    const timestamp = new Date(timestampMs).toISOString();
+
+    turns.push({ index, role, content, timestamp });
+  }
+
+  return turns;
+}
+
 export function useCreateTestCaseAiPrompt({
   agentId,
+  call,
   onClose,
   onGenerated,
 }: UseCreateTestCaseAiPromptArgs) {
@@ -98,7 +146,12 @@ export function useCreateTestCaseAiPrompt({
     setPhase('generating');
     startStageAnimation();
 
-    const result = await mutateAsync({ prompt });
+    const transcript = buildTranscriptFromCall(call);
+    const result = await mutateAsync({
+      prompt,
+      sourceCallId: call.id,
+      transcript: transcript.length > 0 ? transcript : null,
+    });
     cancelAnimation();
 
     if (isErrorApiResult(result)) {

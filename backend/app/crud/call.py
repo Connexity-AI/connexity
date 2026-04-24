@@ -85,9 +85,7 @@ def list_calls_for_agent(
     date_to: datetime | None = None,
 ) -> tuple[list[CallPublic], int]:
     base = select(Call).where(Call.agent_id == agent_id)
-    count_stmt = (
-        select(func.count()).select_from(Call).where(Call.agent_id == agent_id)
-    )
+    count_stmt = select(func.count()).select_from(Call).where(Call.agent_id == agent_id)
     if date_from is not None:
         base = base.where(Call.started_at >= date_from)
         count_stmt = count_stmt.where(Call.started_at >= date_from)
@@ -149,7 +147,5 @@ def get_call(*, session: Session, call_id: uuid.UUID) -> Call | None:
 
 
 def count_calls_for_agent(*, session: Session, agent_id: uuid.UUID) -> int:
-    stmt = (
-        select(func.count()).select_from(Call).where(Call.agent_id == agent_id)
-    )
+    stmt = select(func.count()).select_from(Call).where(Call.agent_id == agent_id)
     return int(session.exec(stmt).one())

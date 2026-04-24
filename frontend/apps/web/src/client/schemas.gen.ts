@@ -5005,6 +5005,19 @@ export const TestCaseAgentRequestSchema = {
       title: 'Test Case Id',
       description: 'Required when mode=edit; must belong to agent_id',
     },
+    source_call_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Source Call Id',
+      description: 'Call this test case is generated from; linked onto persisted rows',
+    },
     persist: {
       anyOf: [
         {

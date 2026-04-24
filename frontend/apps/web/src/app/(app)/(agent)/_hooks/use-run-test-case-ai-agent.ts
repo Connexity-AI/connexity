@@ -3,25 +3,35 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { runTestCaseAiAgent } from '@/actions/test-cases';
-import { AppServicesTestCaseGeneratorAgentSchemasAgentMode } from '@/client/types.gen';
-import { testCaseKeys } from '@/constants/query-keys';
+import {
+  AppServicesTestCaseGeneratorAgentSchemasAgentMode,
+  type ConversationTurnInput,
+} from '@/client/types.gen';
+import { callKeys, testCaseKeys } from '@/constants/query-keys';
 import { isErrorApiResult } from '@/utils/api';
 import { getApiErrorMessage } from '@/utils/error';
 
 interface RunTestCaseAiAgentInput {
   prompt: string;
+  sourceCallId?: string | null;
+  transcript?: ConversationTurnInput[] | null;
 }
 
 export function useRunTestCaseAiAgent(agentId: string) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: async ({ prompt }: RunTestCaseAiAgentInput) => {
+    mutationFn: async ({ prompt, sourceCallId, transcript }: RunTestCaseAiAgentInput) => {
+      const hasTranscript = !!transcript && transcript.length > 0;
       return runTestCaseAiAgent({
-        mode: AppServicesTestCaseGeneratorAgentSchemasAgentMode.CREATE,
+        mode: hasTranscript
+          ? AppServicesTestCaseGeneratorAgentSchemasAgentMode.FROM_TRANSCRIPT
+          : AppServicesTestCaseGeneratorAgentSchemasAgentMode.CREATE,
         user_message: prompt,
         agent_id: agentId,
         persist: true,
+        source_call_id: sourceCallId ?? null,
+        transcript: hasTranscript ? transcript : null,
       });
     },
 
@@ -34,6 +44,7 @@ export function useRunTestCaseAiAgent(agentId: string) {
         console.error('[ai-tc] API error', data.error);
       }
       queryClient.invalidateQueries({ queryKey: testCaseKeys.list(agentId) });
+      queryClient.invalidateQueries({ queryKey: callKeys.all });
     },
   });
 

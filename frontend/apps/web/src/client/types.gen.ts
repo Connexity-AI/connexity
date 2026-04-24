@@ -3125,6 +3125,12 @@ export type TestCaseAgentRequest = {
    */
   test_case_id?: string | null;
   /**
+   * Source Call Id
+   *
+   * Call this test case is generated from; linked onto persisted rows
+   */
+  source_call_id?: string | null;
+  /**
    * Persist
    *
    * Default true for create/from_transcript; default false for edit

@@ -12,20 +12,25 @@ import { TestCaseUserSimulationSection } from '@/app/(app)/(agent)/_components/e
 import { StatusBadge } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-drawer-primitives';
 import { useManualTestCaseForm } from '@/app/(app)/(agent)/_components/evals/test-cases/use-manual-test-case-form';
 
+import type { CallPublic } from '@/client/types.gen';
+
 interface ObserveManualTestCasePanelProps {
   agentId: string;
+  call?: CallPublic | null;
   onClose: () => void;
   onOpenAiAssistant?: () => void;
 }
 
 export function ObserveManualTestCasePanel({
   agentId,
+  call,
   onClose,
   onOpenAiAssistant,
 }: ObserveManualTestCasePanelProps) {
   const { form, availableTools, handleSubmit, name, status, isPending, error, onOpenChange } =
     useManualTestCaseForm({
       agentId,
+      sourceCallId: call?.id ?? null,
       onOpenChange: (open) => {
         if (!open) onClose();
       },

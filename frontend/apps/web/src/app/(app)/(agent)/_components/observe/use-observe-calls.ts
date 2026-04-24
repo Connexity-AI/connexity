@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo } from 'react';
 
+import { isSameDay } from 'date-fns';
 import { useQueryStates } from 'nuqs';
 
 import { useCalls, useRefreshCalls } from '@/app/(app)/(agent)/_hooks/use-calls';
@@ -27,13 +28,10 @@ export function useObserveCalls(agentId: string): UseObserveCallsResult {
 
   const dateRange = useMemo<DateRangeValue>(() => {
     if (params.preset === 'custom') {
-      return {
-        preset: 'custom',
-        range: {
-          from: params.from ? new Date(params.from) : undefined,
-          to: params.to ? new Date(params.to) : undefined,
-        },
-      };
+      const from = params.from ? new Date(params.from) : undefined;
+      const rawTo = params.to ? new Date(params.to) : undefined;
+      const to = rawTo && isSameDay(rawTo, new Date()) ? new Date() : rawTo;
+      return { preset: 'custom', range: { from, to } };
     }
     return {
       preset: params.preset as Exclude<PresetId, 'custom'>,

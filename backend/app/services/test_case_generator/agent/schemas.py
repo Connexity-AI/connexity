@@ -30,6 +30,10 @@ class TestCaseAgentRequest(BaseModel):
         default=None,
         description="Required when mode=edit; must belong to agent_id",
     )
+    source_call_id: uuid.UUID | None = Field(
+        default=None,
+        description="Call this test case is generated from; linked onto persisted rows",
+    )
     persist: bool | None = Field(
         default=None,
         description="Default true for create/from_transcript; default false for edit",

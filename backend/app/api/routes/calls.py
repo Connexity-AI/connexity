@@ -147,9 +147,7 @@ async def refresh_agent_calls(
     return CallRefreshResult(created=created, total=total)
 
 
-def _owned_call_or_404(
-    *, session, current_user, call_id: uuid.UUID
-):
+def _owned_call_or_404(*, session, current_user, call_id: uuid.UUID):
     call = crud.get_call(session=session, call_id=call_id)
     if call is None:
         raise HTTPException(status_code=404, detail="Call not found")

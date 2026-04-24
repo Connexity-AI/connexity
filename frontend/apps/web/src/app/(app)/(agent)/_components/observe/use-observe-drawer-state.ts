@@ -18,7 +18,9 @@ interface UseObserveDrawerStateResult {
   selectedCall: CallPublic | null;
   selectedTestCase: TestCasePublic | null;
   rightPanelMode: ObserveRightPanelMode | null;
+  testCasesByCallId: Map<string, TestCasePublic[]>;
   onRowClick: (call: CallPublic) => void;
+  onTestCaseClick: (call: CallPublic, testCase: TestCasePublic) => void;
   onCloseDrawer: () => void;
   onCloseRightPanel: () => void;
   onCreateTestCaseManual: () => void;
@@ -61,6 +63,20 @@ export function useObserveDrawerState({
     [testCases, selectedTestCaseId],
   );
 
+  const testCasesByCallId = useMemo(() => {
+    const map = new Map<string, TestCasePublic[]>();
+    for (const tc of testCases) {
+      if (!tc.source_call_id) continue;
+      const existing = map.get(tc.source_call_id);
+      if (existing) {
+        existing.push(tc);
+      } else {
+        map.set(tc.source_call_id, [tc]);
+      }
+    }
+    return map;
+  }, [testCases]);
+
   // After AI generation, wait for the newly created test case to land in the
   // list cache, then switch the right panel over to it.
   useEffect(() => {
@@ -76,6 +92,17 @@ export function useObserveDrawerState({
   const onRowClick = useCallback(
     (call: CallPublic) => {
       setSelectedCallId(call.id);
+      if (call.is_new) markSeen.mutate(call.id);
+    },
+    [markSeen],
+  );
+
+  const onTestCaseClick = useCallback(
+    (call: CallPublic, testCase: TestCasePublic) => {
+      setSelectedCallId(call.id);
+      setSelectedTestCaseId(testCase.id);
+      setRightPanelMode('test-case');
+      setPendingTestCaseId(null);
       if (call.is_new) markSeen.mutate(call.id);
     },
     [markSeen],
@@ -123,7 +150,9 @@ export function useObserveDrawerState({
     selectedCall,
     selectedTestCase,
     rightPanelMode,
+    testCasesByCallId,
     onRowClick,
+    onTestCaseClick,
     onCloseDrawer,
     onCloseRightPanel,
     onCreateTestCaseManual,

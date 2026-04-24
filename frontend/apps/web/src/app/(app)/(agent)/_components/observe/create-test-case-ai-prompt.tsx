@@ -38,7 +38,7 @@ export function CreateTestCaseAiPrompt({
     isPending,
     handleGenerate,
     handleKeyDown,
-  } = useCreateTestCaseAiPrompt({ agentId, onClose, onGenerated });
+  } = useCreateTestCaseAiPrompt({ agentId, call, onClose, onGenerated });
 
   return (
     <div className="flex h-full w-[420px] shrink-0 flex-col overflow-hidden">

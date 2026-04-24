@@ -32,7 +32,14 @@ export function ObserveContent({ agentId }: ObserveContentProps) {
   const calls = useObserveCalls(agentId);
   const drawer = useObserveDrawerState({ agentId, calls: calls.rows });
 
-  const columns = useMemo(() => getCallsColumns(), []);
+  const columns = useMemo(
+    () =>
+      getCallsColumns({
+        testCasesByCallId: drawer.testCasesByCallId,
+        onTestCaseClick: drawer.onTestCaseClick,
+      }),
+    [drawer.testCasesByCallId, drawer.onTestCaseClick],
+  );
 
   const hasRetellEnvironment = (environmentsData?.data ?? []).some(
     (env) => env.platform === 'retell',

@@ -95,6 +95,7 @@ export function ObserveDrawer({
         {rightPanelMode === 'manual-create' ? (
           <ObserveManualTestCasePanel
             agentId={agentId}
+            call={call}
             onClose={onCloseRightPanel}
             onOpenAiAssistant={call ? () => onCreateTestCaseAi(call) : undefined}
           />

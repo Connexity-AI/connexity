@@ -2,9 +2,12 @@
 
 import { Clock, FlaskConical } from 'lucide-react';
 
+import { Button } from '@workspace/ui/components/ui/button';
+
 import type { ColumnDef } from '@tanstack/react-table';
 
 import type { CallRow } from '@/actions/calls';
+import type { TestCasePublic } from '@/client/types.gen';
 
 function formatCallDate(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
@@ -23,7 +26,15 @@ function formatDuration(seconds: number | null | undefined): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export const getCallsColumns = (): ColumnDef<CallRow>[] => [
+interface GetCallsColumnsArgs {
+  testCasesByCallId: Map<string, TestCasePublic[]>;
+  onTestCaseClick: (call: CallRow, testCase: TestCasePublic) => void;
+}
+
+export const getCallsColumns = ({
+  testCasesByCallId,
+  onTestCaseClick,
+}: GetCallsColumnsArgs): ColumnDef<CallRow>[] => [
   {
     accessorKey: 'started_at',
     header: 'Date',
@@ -57,14 +68,31 @@ export const getCallsColumns = (): ColumnDef<CallRow>[] => [
     header: 'Test Cases',
     enableSorting: false,
     cell: ({ row }) => {
-      const count = row.original.test_case_count ?? 0;
+      const call = row.original;
+      const items = testCasesByCallId.get(call.id) ?? [];
+
+      if (items.length === 0) {
+        return <span className="text-[10px] text-muted-foreground/30">—</span>;
+      }
+
       return (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <FlaskConical className="h-3 w-3" />
-          <span className="tabular-nums text-foreground">{count}</span>
-          <span className="text-muted-foreground/60">
-            {count === 1 ? 'test case' : 'test cases'}
-          </span>
+        <div className="flex flex-col gap-1">
+          {items.map((tc) => (
+            <Button
+              key={tc.id}
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={(event) => {
+                event.stopPropagation();
+                onTestCaseClick(call, tc);
+              }}
+              className="group/tc h-auto max-w-[200px] justify-start gap-1.5 rounded border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-left text-[10px] font-normal text-emerald-400 transition-all [&_svg]:size-2.5 hover:border-emerald-500/35 hover:bg-emerald-500/20 hover:text-emerald-400"
+            >
+              <FlaskConical className="shrink-0" />
+              <span className="truncate">{tc.name}</span>
+            </Button>
+          ))}
         </div>
       );
     },

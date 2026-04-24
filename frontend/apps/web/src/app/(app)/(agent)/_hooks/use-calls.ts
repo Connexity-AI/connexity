@@ -7,6 +7,7 @@ import {
   markCallSeen,
   refreshCalls,
   type CallQueryFilters,
+  type GetCallsResult,
 } from '@/actions/calls';
 import { callKeys } from '@/constants/query-keys';
 import { isSuccessApiResult } from '@/utils/api';
@@ -44,8 +45,23 @@ export function useMarkCallSeen(agentId: string) {
       if (!isSuccessApiResult(result)) throw new Error('Failed to mark seen');
       return result.data;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['calls', agentId] });
+    onMutate: async (callId: string) => {
+      await qc.cancelQueries({ queryKey: ['calls', agentId] });
+      const snapshots = qc.getQueriesData<GetCallsResult>({ queryKey: ['calls', agentId] });
+      qc.setQueriesData<GetCallsResult>({ queryKey: ['calls', agentId] }, (prev) => {
+        if (!prev) return prev;
+        let changed = false;
+        const rows = prev.rows.map((row) => {
+          if (row.id !== callId || !row.is_new) return row;
+          changed = true;
+          return { ...row, is_new: false };
+        });
+        return changed ? { ...prev, rows } : prev;
+      });
+      return { snapshots };
+    },
+    onError: (_err, _callId, context) => {
+      context?.snapshots.forEach(([key, data]) => qc.setQueryData(key, data));
     },
   });
 }
