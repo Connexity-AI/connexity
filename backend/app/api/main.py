@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from app.api.routes import (
     agents,
+    calls,
     config,
     custom_metrics,
     environments,
@@ -36,6 +37,7 @@ api_router.include_router(prompt_editor.router)
 api_router.include_router(config.router)
 api_router.include_router(integrations.router)
 api_router.include_router(environments.router)
+api_router.include_router(calls.router)
 
 root_router = APIRouter()
 root_router.include_router(health.router)

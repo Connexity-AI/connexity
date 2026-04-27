@@ -21,6 +21,15 @@ from app.crud.agent_version import publish_draft as publish_agent_draft  # noqa:
 from app.crud.agent_version import (
     rollback_to_version as rollback_agent_version,  # noqa: F401
 )
+from app.crud.call import (  # noqa: F401
+    count_calls_for_agent,
+    get_call,
+    get_latest_call_started_at,
+    list_calls_for_agent,
+    mark_call_seen,
+    touch_calls_last_synced_at,
+    upsert_calls_from_retell,
+)
 from app.crud.custom_metrics import (  # noqa: F401
     create_custom_metric,
     delete_custom_metric,

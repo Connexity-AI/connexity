@@ -6,13 +6,17 @@ import { Trash2 } from 'lucide-react';
 
 import { DeleteEnvironmentDialog } from './delete-environment-dialog';
 
-import type { EnvironmentPublic } from '@/client/types.gen';
+import { Platform, type EnvironmentPublic } from '@/client/types.gen';
 import type { FC } from 'react';
 
 interface Props {
   environment: EnvironmentPublic;
   agentId: string;
 }
+
+const PLATFORM_LABELS: Record<Platform, string> = {
+  [Platform.RETELL]: 'Retell',
+};
 
 export const EnvironmentCard: FC<Props> = ({ environment, agentId }) => {
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -25,7 +29,7 @@ return (
             <div className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)] shrink-0" />
             <span className="text-sm text-foreground">{environment.name}</span>
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400">
-              Retell
+              {PLATFORM_LABELS[environment.platform]}
             </span>
           </div>
           <div className="flex items-center gap-3">

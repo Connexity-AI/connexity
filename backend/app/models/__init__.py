@@ -38,6 +38,14 @@ from app.models.agent_version import (  # noqa: F401
     PublishRequest,
 )
 
+# ── Call (Observer) ────────────────────────────────────────────────
+from app.models.call import (  # noqa: F401
+    Call,
+    CallPublic,
+    CallRefreshResult,
+    CallsPublic,
+)
+
 # ── Common ─────────────────────────────────────────────────────────
 from app.models.common import ConfigPublic, ErrorResponse  # noqa: F401
 

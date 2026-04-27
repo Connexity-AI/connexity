@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { Button } from '@workspace/ui/components/ui/button';
-import { Dialog, DialogContent } from '@workspace/ui/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@workspace/ui/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -86,7 +86,9 @@ export const AddIntegrationDialog: FC<Props> = ({ open, onOpenChange, onAdded })
     <Dialog open={open} onOpenChange={(o) => dialogState !== 'testing' && onOpenChange(o)}>
       <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden [&>button:last-of-type]:hidden">
         <div className="px-6 py-4 border-b border-border">
-          <h2 className="text-sm font-medium text-foreground">Add Integration</h2>
+          <DialogTitle className="text-sm font-medium text-foreground">
+            Add Integration
+          </DialogTitle>
         </div>
 
         {dialogState === 'success' ? (
