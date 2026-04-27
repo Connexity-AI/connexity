@@ -20,6 +20,9 @@ class Environment(EnvironmentBase, table=True):
     integration_id: uuid.UUID = Field(foreign_key="integration.id", index=True)
     platform_agent_id: str = Field(max_length=255, index=True)
     platform_agent_name: str = Field(max_length=255)
+    current_version_number: int | None = Field(default=None)
+    current_version_name: str | None = Field(default=None, max_length=255)
+    current_deployed_at: datetime | None = Field(default=None)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"server_default": text("now()")},
@@ -47,6 +50,9 @@ class EnvironmentPublic(EnvironmentBase):
     integration_name: str
     platform_agent_id: str
     platform_agent_name: str
+    current_version_number: int | None
+    current_version_name: str | None
+    current_deployed_at: datetime | None
     created_at: datetime
 
 

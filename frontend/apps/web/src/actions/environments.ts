@@ -2,7 +2,14 @@
 
 import { EnvironmentsService } from '@/client/sdk.gen';
 
-import type { EnvironmentCreate, EnvironmentPublic, EnvironmentsPublic } from '@/client/types.gen';
+import type {
+  DeploymentCreate,
+  DeploymentPublic,
+  DeploymentsPublic,
+  EnvironmentCreate,
+  EnvironmentPublic,
+  EnvironmentsPublic,
+} from '@/client/types.gen';
 import type { ApiResult } from '@/types/api';
 
 export const createEnvironment = async (
@@ -29,4 +36,26 @@ export const deleteEnvironment = async (id: string): Promise<ApiResult<void>> =>
   });
   const { response: _, ...result } = apiResponse;
   return result as ApiResult<void>;
+};
+
+export const deployEnvironment = async (
+  environmentId: string,
+  body: DeploymentCreate
+): Promise<ApiResult<DeploymentPublic>> => {
+  const apiResponse = await EnvironmentsService.deployEnvironment({
+    path: { environment_id: environmentId },
+    body,
+  });
+  const { response: _, ...result } = apiResponse;
+  return result;
+};
+
+export const listEnvironmentDeployments = async (
+  environmentId: string
+): Promise<ApiResult<DeploymentsPublic>> => {
+  const apiResponse = await EnvironmentsService.listEnvironmentDeployments({
+    path: { environment_id: environmentId },
+  });
+  const { response: _, ...result } = apiResponse;
+  return result;
 };

@@ -81,6 +81,12 @@ import type {
   EnvironmentsDeleteEnvironmentData,
   EnvironmentsDeleteEnvironmentErrors,
   EnvironmentsDeleteEnvironmentResponses,
+  EnvironmentsDeployEnvironmentData,
+  EnvironmentsDeployEnvironmentErrors,
+  EnvironmentsDeployEnvironmentResponses,
+  EnvironmentsListEnvironmentDeploymentsData,
+  EnvironmentsListEnvironmentDeploymentsErrors,
+  EnvironmentsListEnvironmentDeploymentsResponses,
   EnvironmentsListEnvironmentsData,
   EnvironmentsListEnvironmentsErrors,
   EnvironmentsListEnvironmentsResponses,
@@ -2525,6 +2531,58 @@ export class EnvironmentsService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/environments/{environment_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Deploy Environment
+   */
+  public static deployEnvironment<ThrowOnError extends boolean = false>(
+    options: Options<EnvironmentsDeployEnvironmentData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      EnvironmentsDeployEnvironmentResponses,
+      EnvironmentsDeployEnvironmentErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/environments/{environment_id}/deploy',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * List Environment Deployments
+   */
+  public static listEnvironmentDeployments<ThrowOnError extends boolean = false>(
+    options: Options<EnvironmentsListEnvironmentDeploymentsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      EnvironmentsListEnvironmentDeploymentsResponses,
+      EnvironmentsListEnvironmentDeploymentsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/environments/{environment_id}/deployments',
       ...options,
     });
   }
