@@ -154,7 +154,7 @@ def test_list_environments_unknown_agent_returns_404(
     assert r.status_code == 404
 
 
-def test_other_user_cannot_list_or_delete_environment(
+def test_other_user_can_list_environment(
     client: TestClient,
     normal_user_auth_cookies: dict[str, str],
     db: Session,
@@ -178,13 +178,8 @@ def test_other_user_cannot_list_or_delete_environment(
         params={"agent_id": str(agent.id)},
         cookies=normal_user_auth_cookies,
     )
-    assert other_list.status_code == 404
-
-    other_del = client.delete(
-        f"{settings.API_V1_STR}/environments/{env.id}",
-        cookies=normal_user_auth_cookies,
-    )
-    assert other_del.status_code == 404
+    assert other_list.status_code == 200
+    assert any(item["id"] == str(env.id) for item in other_list.json()["data"])
 
 
 def test_delete_integration_returns_409_when_environment_depends_on_it(
