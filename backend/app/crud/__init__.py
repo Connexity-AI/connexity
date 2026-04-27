@@ -96,6 +96,8 @@ from app.crud.prompt_editor_session import (
     update_session_edited_prompt as update_prompt_editor_session_edited_prompt,  # noqa: F401
 )
 from app.crud.run import (  # noqa: F401
+    count_runs_by_eval_config_ids,
+    count_runs_for_eval_config,
     create_run,
     delete_run,
     enrich_run_create_from_agent,

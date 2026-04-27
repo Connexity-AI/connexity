@@ -1385,6 +1385,12 @@ export type EvalConfigPublic = {
    */
   effective_test_case_count?: number;
   /**
+   * Total Runs
+   *
+   * Total number of runs for this eval config
+   */
+  total_runs?: number;
+  /**
    * Created At
    *
    * When the config was created

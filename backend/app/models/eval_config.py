@@ -156,6 +156,9 @@ class EvalConfigPublic(EvalConfigBase):
         default=0,
         description="Sum of per-test-case repetitions — total expanded executions",
     )
+    total_runs: int = Field(
+        default=0, description="Total number of runs for this eval config"
+    )
     created_at: datetime = Field(description="When the config was created")
     updated_at: datetime = Field(description="When the config was last updated")
 
