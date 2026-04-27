@@ -128,32 +128,6 @@ export const AgentCreateSchema = {
       description:
         'Custom prompting guidelines for the prompt editor agent (None = use built-in default)',
     },
-    integration_id: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'uuid',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Integration Id',
-      description: 'Retell integration this agent pulls calls from (for Observer)',
-    },
-    retell_agent_id: {
-      anyOf: [
-        {
-          type: 'string',
-          maxLength: 255,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Retell Agent Id',
-      description: 'Retell-side agent_id used to filter /v2/list-calls',
-    },
   },
   type: 'object',
   required: ['name'],
@@ -425,32 +399,6 @@ export const AgentPublicSchema = {
       description:
         'Custom prompting guidelines for the prompt editor agent (None = use built-in default)',
     },
-    integration_id: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'uuid',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Integration Id',
-      description: 'Retell integration this agent pulls calls from (for Observer)',
-    },
-    retell_agent_id: {
-      anyOf: [
-        {
-          type: 'string',
-          maxLength: 255,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Retell Agent Id',
-      description: 'Retell-side agent_id used to filter /v2/list-calls',
-    },
     id: {
       type: 'string',
       format: 'uuid',
@@ -707,32 +655,6 @@ export const AgentUpdateSchema = {
       ],
       title: 'Editor Guidelines',
       description: 'Custom prompting guidelines for the prompt editor agent (None = use default)',
-    },
-    integration_id: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'uuid',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Integration Id',
-      description: 'Retell integration this agent pulls calls from (for Observer)',
-    },
-    retell_agent_id: {
-      anyOf: [
-        {
-          type: 'string',
-          maxLength: 255,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Retell Agent Id',
-      description: 'Retell-side agent_id used to filter /v2/list-calls',
     },
     change_description: {
       anyOf: [

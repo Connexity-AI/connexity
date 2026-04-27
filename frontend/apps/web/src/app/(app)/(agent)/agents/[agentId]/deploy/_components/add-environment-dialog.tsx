@@ -119,7 +119,7 @@ export const AddEnvironmentDialog: FC<Props> = ({ open, onOpenChange, agentId, i
   const retellIntegrations = integrations.filter((i) => i.provider === 'retell');
   const hasIntegrations = retellIntegrations.length > 0;
 
-  const { mutateAsync, isPending } = useCreateEnvironment(agentId);
+  const { mutateAsync, isPending, error } = useCreateEnvironment(agentId);
 
   const form = useForm<AddEnvironmentFormValues>({
     resolver: zodResolver(addEnvironmentFormSchema),
@@ -154,15 +154,19 @@ export const AddEnvironmentDialog: FC<Props> = ({ open, onOpenChange, agentId, i
   };
 
   const onSubmit = async (values: AddEnvironmentFormValues) => {
-    await mutateAsync({
-      name: values.name,
-      platform: values.platform,
-      agent_id: agentId,
-      integration_id: values.integration_id,
-      platform_agent_id: values.platform_agent_id,
-      platform_agent_name: values.platform_agent_name,
-    });
-    onOpenChange(false);
+    try {
+      await mutateAsync({
+        name: values.name,
+        platform: values.platform,
+        agent_id: agentId,
+        integration_id: values.integration_id,
+        platform_agent_id: values.platform_agent_id,
+        platform_agent_name: values.platform_agent_name,
+      });
+      onOpenChange(false);
+    } catch {
+      // Error is exposed via `error` from useCreateEnvironment and rendered below.
+    }
   };
 
   return (
@@ -295,6 +299,9 @@ export const AddEnvironmentDialog: FC<Props> = ({ open, onOpenChange, agentId, i
                 </div>
               </div>
 
+              {error && (
+                <p className="text-sm text-destructive px-1 pt-1 shrink-0">{error}</p>
+              )}
               <div className="flex justify-end gap-2 pt-1 shrink-0">
                 <Button
                   type="button"

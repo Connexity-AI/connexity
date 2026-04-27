@@ -1,12 +1,14 @@
+import logging
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy import func
-from sqlmodel import select
+from sqlmodel import Session, select
 
 from app import crud
 from app.api.deps import CurrentUser, SessionDep, get_current_user
+from app.core.db import engine
 from app.core.encryption import decrypt
 from app.models import (
     CallPublic,
@@ -14,9 +16,12 @@ from app.models import (
     CallsPublic,
     Message,
 )
+from app.models.agent import Agent
 from app.models.enums import Platform
 from app.models.test_case import TestCase
 from app.services.retell import list_retell_calls
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["calls"], dependencies=[Depends(get_current_user)])
 
@@ -24,6 +29,12 @@ router = APIRouter(tags=["calls"], dependencies=[Depends(get_current_user)])
 # full we keep paging forward until the backlog is exhausted or we hit the cap.
 _RETELL_PAGE_SIZE = 100
 _MAX_FETCH_ITERATIONS = 20
+
+# Stale-while-revalidate window for the GET /calls endpoint. Pagination,
+# filtering, and React Query refetches inside this window all serve from DB
+# without touching Retell; outside it, the next GET schedules one background
+# sync. Doubles as a backoff after a failed sync (we don't reset the stamp).
+_SYNC_TTL = timedelta(seconds=15)
 
 
 async def _fetch_and_store_from_retell(
@@ -96,10 +107,49 @@ async def _fetch_and_store_from_retell(
     return created_total
 
 
+def _is_sync_stale(last_synced_at: datetime | None) -> bool:
+    if last_synced_at is None:
+        return True
+    # The DB column is timezone-naive (sa.DateTime()) and we always write UTC,
+    # so treat naive reads as UTC for comparison with datetime.now(UTC).
+    last = (
+        last_synced_at.replace(tzinfo=UTC)
+        if last_synced_at.tzinfo is None
+        else last_synced_at
+    )
+    return (datetime.now(UTC) - last) >= _SYNC_TTL
+
+
+async def _sync_calls_in_background(agent_id: uuid.UUID) -> None:
+    """Run a Retell sync in a fresh DB session after the request response is sent.
+
+    Errors are logged, never raised — there is no caller left to receive them.
+    The TTL stamp is set by the caller before scheduling; we do not reset it on
+    failure, so failures back off naturally for one ``_SYNC_TTL`` window.
+    """
+    with Session(engine) as session:
+        agent = session.get(Agent, agent_id)
+        if agent is None:
+            return
+        try:
+            await _fetch_and_store_from_retell(
+                session=session, agent=agent, incremental=True
+            )
+        except HTTPException as exc:
+            logger.warning(
+                "background Retell sync for agent %s failed: %s", agent_id, exc.detail
+            )
+        except Exception:
+            logger.exception(
+                "unexpected error during background Retell sync for %s", agent_id
+            )
+
+
 @router.get("/agents/{agent_id}/calls", response_model=CallsPublic)
 async def list_agent_calls(
     session: SessionDep,
     current_user: CurrentUser,
+    background_tasks: BackgroundTasks,
     agent_id: uuid.UUID,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=25, ge=1, le=200),
@@ -110,14 +160,13 @@ async def list_agent_calls(
     if agent is None or agent.created_by != current_user.id:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    try:
-        await _fetch_and_store_from_retell(
-            session=session, agent=agent, incremental=True
-        )
-    except HTTPException:
-        # Don't block the page load if the agent has no environment yet or
-        # Retell is unreachable — return whatever we already have in DB.
-        pass
+    # Stale-while-revalidate: always serve DB rows; outside _SYNC_TTL, schedule
+    # a background sync whose results land in time for the next refetch. Stamp
+    # the timestamp now (before scheduling) so concurrent in-window requests
+    # see a fresh marker and skip queueing duplicate syncs.
+    if _is_sync_stale(agent.calls_last_synced_at):
+        crud.touch_calls_last_synced_at(session=session, agent_id=agent_id)
+        background_tasks.add_task(_sync_calls_in_background, agent_id)
 
     items, count = crud.list_calls_for_agent(
         session=session,
@@ -143,6 +192,7 @@ async def refresh_agent_calls(
     created = await _fetch_and_store_from_retell(
         session=session, agent=agent, incremental=True
     )
+    crud.touch_calls_last_synced_at(session=session, agent_id=agent_id)
     total = crud.count_calls_for_agent(session=session, agent_id=agent_id)
     return CallRefreshResult(created=created, total=total)
 

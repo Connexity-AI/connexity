@@ -5,6 +5,7 @@ from sqlalchemy import Table, func, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlmodel import Session, col, select
 
+from app.models.agent import Agent
 from app.models.call import Call, CallPublic
 from app.models.test_case import TestCase
 from app.services.retell import RetellCall
@@ -13,6 +14,7 @@ from app.services.retell import RetellCall
 # pyright's stubs don't expose it on ``type[Call]``; bind it once with an
 # explicit ``Table`` annotation so downstream usage typechecks cleanly.
 _CALL_TABLE: Table = Call.__table__  # type: ignore[attr-defined]
+_AGENT_TABLE: Table = Agent.__table__  # type: ignore[attr-defined]
 
 
 def _retell_call_to_row(
@@ -154,3 +156,21 @@ def get_call(*, session: Session, call_id: uuid.UUID) -> Call | None:
 def count_calls_for_agent(*, session: Session, agent_id: uuid.UUID) -> int:
     stmt = select(func.count()).select_from(Call).where(Call.agent_id == agent_id)
     return int(session.exec(stmt).one())
+
+
+def touch_calls_last_synced_at(
+    *, session: Session, agent_id: uuid.UUID, value: datetime | None = None
+) -> None:
+    """Stamp the agent's stale-while-revalidate marker.
+
+    Pass ``value=None`` (the default) to use ``now()``; pass an explicit
+    datetime to e.g. clear the stamp. Commits before returning so concurrent
+    requests in other sessions see the updated timestamp.
+    """
+    stamp = value if value is not None else datetime.now(UTC)
+    session.execute(
+        update(_AGENT_TABLE)
+        .where(_AGENT_TABLE.c.id == agent_id)
+        .values(calls_last_synced_at=stamp)
+    )
+    session.commit()

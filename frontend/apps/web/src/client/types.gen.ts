@@ -76,18 +76,6 @@ export type AgentCreate = {
    * Custom prompting guidelines for the prompt editor agent (None = use built-in default)
    */
   editor_guidelines?: string | null;
-  /**
-   * Integration Id
-   *
-   * Retell integration this agent pulls calls from (for Observer)
-   */
-  integration_id?: string | null;
-  /**
-   * Retell Agent Id
-   *
-   * Retell-side agent_id used to filter /v2/list-calls
-   */
-  retell_agent_id?: string | null;
 };
 
 /**
@@ -238,18 +226,6 @@ export type AgentPublic = {
    */
   editor_guidelines?: string | null;
   /**
-   * Integration Id
-   *
-   * Retell integration this agent pulls calls from (for Observer)
-   */
-  integration_id?: string | null;
-  /**
-   * Retell Agent Id
-   *
-   * Retell-side agent_id used to filter /v2/list-calls
-   */
-  retell_agent_id?: string | null;
-  /**
    * Id
    *
    * Unique agent identifier
@@ -399,18 +375,6 @@ export type AgentUpdate = {
    * Custom prompting guidelines for the prompt editor agent (None = use default)
    */
   editor_guidelines?: string | null;
-  /**
-   * Integration Id
-   *
-   * Retell integration this agent pulls calls from (for Observer)
-   */
-  integration_id?: string | null;
-  /**
-   * Retell Agent Id
-   *
-   * Retell-side agent_id used to filter /v2/list-calls
-   */
-  retell_agent_id?: string | null;
   /**
    * Change Description
    *

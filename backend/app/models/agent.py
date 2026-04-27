@@ -89,18 +89,6 @@ class AgentBase(SQLModel):
             "Custom prompting guidelines for the prompt editor agent (None = use built-in default)"
         ),
     )
-    integration_id: uuid.UUID | None = Field(
-        default=None,
-        foreign_key="integration.id",
-        index=True,
-        description="Retell integration this agent pulls calls from (for Observer)",
-    )
-    retell_agent_id: str | None = Field(
-        default=None,
-        max_length=255,
-        index=True,
-        description="Retell-side agent_id used to filter /v2/list-calls",
-    )
 
     @model_validator(mode="after")
     def validate_mode_fields(self) -> "AgentBase":
@@ -147,6 +135,15 @@ class Agent(AgentBase, table=True):
             "server_default": text("now()"),
             "onupdate": lambda: datetime.now(UTC),
         },
+    )
+    calls_last_synced_at: datetime | None = Field(
+        default=None,
+        nullable=True,
+        description=(
+            "Stale-while-revalidate marker for Observer. Stamped each time the "
+            "GET /calls endpoint kicks off a background Retell sync; gates dedup "
+            "and TTL backoff. Operational state, not part of the public API."
+        ),
     )
 
     # Relationships
@@ -227,15 +224,6 @@ class AgentUpdate(SQLModel):
     editor_guidelines: str | None = Field(
         default=None,
         description="Custom prompting guidelines for the prompt editor agent (None = use default)",
-    )
-    integration_id: uuid.UUID | None = Field(
-        default=None,
-        description="Retell integration this agent pulls calls from (for Observer)",
-    )
-    retell_agent_id: str | None = Field(
-        default=None,
-        max_length=255,
-        description="Retell-side agent_id used to filter /v2/list-calls",
     )
     change_description: str | None = Field(
         default=None,

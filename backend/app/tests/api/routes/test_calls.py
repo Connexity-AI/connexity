@@ -130,6 +130,15 @@ def test_list_calls_fetches_from_retell_and_marks_new(
     ]
     mocked = AsyncMock(return_value=fake_calls)
     with patch("app.api.routes.calls.list_retell_calls", mocked):
+        # Stale-while-revalidate: first GET serves an empty response and kicks
+        # off a background sync. TestClient awaits ASGI background tasks before
+        # returning, so by the second GET the DB is populated. The TTL gate
+        # keeps the second GET from queueing another sync.
+        first = client.get(
+            f"{settings.API_V1_STR}/agents/{agent.id}/calls",
+            cookies=superuser_auth_cookies,
+        )
+        assert first.status_code == 200
         r = client.get(
             f"{settings.API_V1_STR}/agents/{agent.id}/calls",
             cookies=superuser_auth_cookies,
@@ -157,6 +166,12 @@ def test_seen_endpoint_clears_new_badge(
         "app.api.routes.calls.list_retell_calls",
         AsyncMock(return_value=fake_calls),
     ):
+        # Prime: kicks off the background sync.
+        client.get(
+            f"{settings.API_V1_STR}/agents/{agent.id}/calls",
+            cookies=superuser_auth_cookies,
+        )
+        # Read populated state on the next call (TTL gate prevents a second sync).
         r = client.get(
             f"{settings.API_V1_STR}/agents/{agent.id}/calls",
             cookies=superuser_auth_cookies,
@@ -170,14 +185,10 @@ def test_seen_endpoint_clears_new_badge(
     )
     assert seen_r.status_code == 200
 
-    with patch(
-        "app.api.routes.calls.list_retell_calls",
-        AsyncMock(return_value=[]),
-    ):
-        r2 = client.get(
-            f"{settings.API_V1_STR}/agents/{agent.id}/calls",
-            cookies=superuser_auth_cookies,
-        )
+    r2 = client.get(
+        f"{settings.API_V1_STR}/agents/{agent.id}/calls",
+        cookies=superuser_auth_cookies,
+    )
     assert r2.status_code == 200
     target = next(c for c in r2.json()["data"] if c["id"] == call_id)
     assert target["is_new"] is False
