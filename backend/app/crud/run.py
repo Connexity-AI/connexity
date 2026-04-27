@@ -201,3 +201,26 @@ def get_baseline_run(
 def delete_run(*, session: Session, db_run: Run) -> None:
     session.delete(db_run)
     session.commit()
+
+
+def count_runs_for_eval_config(*, session: Session, eval_config_id: uuid.UUID) -> int:
+    return session.exec(
+        select(func.count()).where(Run.eval_config_id == eval_config_id)
+    ).one()
+
+
+def count_runs_by_eval_config_ids(
+    *, session: Session, eval_config_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, int]:
+    """Batch-fetch run counts for multiple eval configs in a single query."""
+    if not eval_config_ids:
+        return {}
+    rows = session.exec(
+        select(Run.eval_config_id, func.count())
+        .where(col(Run.eval_config_id).in_(eval_config_ids))
+        .group_by(Run.eval_config_id)
+    ).all()
+    result: dict[uuid.UUID, int] = {eid: 0 for eid in eval_config_ids}
+    for eid, n in rows:
+        result[eid] = int(n)
+    return result

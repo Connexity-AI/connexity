@@ -23,6 +23,7 @@ def _to_public(
     *,
     test_case_count: int | None = None,
     sum_member_repetitions: int | None = None,
+    total_runs: int | None = None,
 ) -> EvalConfigPublic:
     """Convert an EvalConfig ORM object to EvalConfigPublic with counts."""
     count = (
@@ -39,6 +40,13 @@ def _to_public(
             session=session, eval_config_id=eval_config.id
         )
     )
+    runs_count = (
+        total_runs
+        if total_runs is not None
+        else crud.count_runs_for_eval_config(
+            session=session, eval_config_id=eval_config.id
+        )
+    )
     effective = sum_rep
     parsed_config = (
         RunConfig.model_validate(eval_config.config) if eval_config.config else None
@@ -48,6 +56,7 @@ def _to_public(
         update={
             "test_case_count": count,
             "effective_test_case_count": effective,
+            "total_runs": runs_count,
             "config": parsed_config,
         },
     )
@@ -88,12 +97,16 @@ def list_eval_configs(
     sum_reps = crud.sum_member_repetitions_in_configs(
         session=session, eval_config_ids=ids
     )
+    total_runs_map = crud.count_runs_by_eval_config_ids(
+        session=session, eval_config_ids=ids
+    )
     public_items = [
         _to_public(
             session,
             item,
             test_case_count=counts.get(item.id, 0),
             sum_member_repetitions=sum_reps.get(item.id, 0),
+            total_runs=total_runs_map.get(item.id, 0),
         )
         for item in items
     ]

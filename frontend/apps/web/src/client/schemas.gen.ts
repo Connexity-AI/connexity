@@ -2149,6 +2149,12 @@ export const EvalConfigPublicSchema = {
       description: 'Sum of per-test-case repetitions — total expanded executions',
       default: 0,
     },
+    total_runs: {
+      type: 'integer',
+      title: 'Total Runs',
+      description: 'Total number of runs for this eval config',
+      default: 0,
+    },
     created_at: {
       type: 'string',
       format: 'date-time',
