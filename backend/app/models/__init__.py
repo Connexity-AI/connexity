@@ -80,6 +80,7 @@ from app.models.enums import (  # noqa: F401
     AgentVersionStatus,
     Difficulty,
     FirstTurn,
+    IntegrationProvider,
     MetricTier,
     PromptEditorSessionStatus,
     RunStatus,
@@ -102,6 +103,14 @@ from app.models.eval_config import (  # noqa: F401
     EvalConfigPublic,
     EvalConfigsPublic,
     EvalConfigUpdate,
+)
+
+# ── Integration ────────────────────────────────────────────────────
+from app.models.integration import (  # noqa: F401
+    Integration,
+    IntegrationCreate,
+    IntegrationPublic,
+    IntegrationsPublic,
 )
 
 # ── Prompt editor (chat) ───────────────────────────────────────────

@@ -104,6 +104,18 @@ import type {
   EvalConfigsUpdateEvalConfigResponses,
   HealthHealthData,
   HealthHealthResponses,
+  IntegrationsCreateIntegrationData,
+  IntegrationsCreateIntegrationErrors,
+  IntegrationsCreateIntegrationResponses,
+  IntegrationsDeleteIntegrationData,
+  IntegrationsDeleteIntegrationErrors,
+  IntegrationsDeleteIntegrationResponses,
+  IntegrationsListIntegrationsData,
+  IntegrationsListIntegrationsErrors,
+  IntegrationsListIntegrationsResponses,
+  IntegrationsTestIntegrationData,
+  IntegrationsTestIntegrationErrors,
+  IntegrationsTestIntegrationResponses,
   LoginLoginAccessTokenData,
   LoginLoginAccessTokenErrors,
   LoginLoginAccessTokenResponses,
@@ -2297,6 +2309,108 @@ export class ConfigService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/config/available-metrics',
+      ...options,
+    });
+  }
+}
+
+export class IntegrationsService {
+  /**
+   * List Integrations
+   */
+  public static listIntegrations<ThrowOnError extends boolean = false>(
+    options?: Options<IntegrationsListIntegrationsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      IntegrationsListIntegrationsResponses,
+      IntegrationsListIntegrationsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/integrations/',
+      ...options,
+    });
+  }
+
+  /**
+   * Create Integration
+   */
+  public static createIntegration<ThrowOnError extends boolean = false>(
+    options: Options<IntegrationsCreateIntegrationData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      IntegrationsCreateIntegrationResponses,
+      IntegrationsCreateIntegrationErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/integrations/',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Delete Integration
+   */
+  public static deleteIntegration<ThrowOnError extends boolean = false>(
+    options: Options<IntegrationsDeleteIntegrationData, ThrowOnError>
+  ) {
+    return (options.client ?? client).delete<
+      IntegrationsDeleteIntegrationResponses,
+      IntegrationsDeleteIntegrationErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/integrations/{integration_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Test Integration
+   */
+  public static testIntegration<ThrowOnError extends boolean = false>(
+    options: Options<IntegrationsTestIntegrationData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      IntegrationsTestIntegrationResponses,
+      IntegrationsTestIntegrationErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/integrations/{integration_id}/test',
       ...options,
     });
   }

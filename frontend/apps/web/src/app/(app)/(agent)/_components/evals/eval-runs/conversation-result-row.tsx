@@ -9,6 +9,8 @@ import {
 } from '@workspace/ui/components/ui/accordion';
 import { cn } from '@workspace/ui/lib/utils';
 
+import { SelectionCheckbox } from './selection-checkbox';
+
 import { roundScore, scoreColor } from './shared/score-utils';
 
 import type { Difficulty, TestCaseResultPublic } from '@/client/types.gen';
@@ -23,6 +25,8 @@ interface ConversationResultRowProps {
   tags?: string[];
   difficulty?: Difficulty;
   onOpenTrace: () => void;
+  selected: boolean;
+  onSelectChange: (id: string, checked: boolean) => void;
 }
 
 const TIER_COLORS: Record<string, string> = {
@@ -45,6 +49,8 @@ export function ConversationResultRow({
   tags,
   difficulty,
   onOpenTrace,
+  selected,
+  onSelectChange,
 }: ConversationResultRowProps) {
   const verdict = result.verdict;
   const score = roundScore(verdict?.overall_score);
@@ -55,14 +61,25 @@ export function ConversationResultRow({
   const passedMetrics = metrics.filter(isMetricPass).length;
 
   return (
-    <AccordionItem value={result.id} className="border-b border-border/40 last:border-b-0">
+    <AccordionItem
+      value={result.id}
+      className="relative border-b border-border/40 last:border-b-0"
+    >
+      <SelectCheckbox
+        selected={selected}
+        resultId={result.id}
+        testCaseName={testCaseName}
+        onSelectChange={onSelectChange}
+      />
       <AccordionTrigger
         className={cn(
-          'grid grid-cols-[24px_1fr_auto_auto_auto_auto] items-center gap-3 px-5 py-3',
+          'grid grid-cols-[24px_24px_1fr_auto_auto_auto] items-center gap-3 py-3 pr-5 pl-5',
           'font-normal text-foreground hover:no-underline',
-          'hover:bg-accent/20 data-[state=open]:bg-accent/30'
+          'hover:bg-accent/20 data-[state=open]:bg-accent/30',
+          selected && 'bg-accent/30'
         )}
       >
+        <span aria-hidden className="h-6 w-6" />
         <div className="flex h-6 w-6 items-center justify-center">
           <StatusIcon passed={result.passed} className="h-4 w-4" />
         </div>
@@ -100,6 +117,37 @@ export function ConversationResultRow({
         </div>
       </AccordionContent>
     </AccordionItem>
+  );
+}
+
+function SelectCheckbox({
+  selected,
+  resultId,
+  testCaseName,
+  onSelectChange,
+}: {
+  selected: boolean;
+  resultId: string;
+  testCaseName: string;
+  onSelectChange: (id: string, checked: boolean) => void;
+}) {
+  const stop = (e: React.SyntheticEvent) => {
+    e.stopPropagation();
+  };
+
+  return (
+    <div
+      className="absolute left-5 top-3 z-10 flex h-6 w-6 items-center justify-center"
+      onClick={stop}
+      onPointerDown={stop}
+      onKeyDown={stop}
+    >
+      <SelectionCheckbox
+        checked={selected}
+        onCheckedChange={(checked) => onSelectChange(resultId, checked === true)}
+        aria-label={`Select ${testCaseName}`}
+      />
+    </div>
   );
 }
 

@@ -12,6 +12,13 @@ const PADDING_PX = 8;
 interface UseChatInputArgs {
   onSend: (content: string) => void;
   disabled?: boolean;
+  /**
+   * When true, the send button is enabled even if the textarea is empty.
+   * The consumer can then substitute a default message on their side. Used
+   * when attachments (e.g. Suggest Fixes cases) supply the context so the
+   * user doesn't have to type anything.
+   */
+  allowEmpty?: boolean;
 }
 
 /**
@@ -25,7 +32,7 @@ interface UseChatInputArgs {
  * The component that consumes this is purely presentational — it wires the
  * returned handlers onto the form/textarea and renders the send button.
  */
-export function useChatInput({ onSend, disabled }: UseChatInputArgs) {
+export function useChatInput({ onSend, disabled, allowEmpty = false }: UseChatInputArgs) {
   const [value, setValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const wasDisabledRef = useRef<boolean>(disabled ?? false);
@@ -71,7 +78,7 @@ export function useChatInput({ onSend, disabled }: UseChatInputArgs) {
     }
   }, [value]);
 
-  const canSend = value.trim().length > 0 && !disabled;
+  const canSend = (allowEmpty || value.trim().length > 0) && !disabled;
 
   const submit = useCallback(() => {
     if (!canSend) return;
