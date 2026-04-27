@@ -57,6 +57,8 @@ class Settings(BaseSettings):
 
     # Secrets
     JWT_SECRET_KEY: str = DEFAULT_SECRET_VALUE
+    # Fernet key for encrypting integration API keys — generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    ENCRYPTION_KEY: str = DEFAULT_SECRET_VALUE
 
     # Secrets with defaults
     FIRST_SUPERUSER: EmailStr = "admin@example.com"
@@ -176,6 +178,7 @@ class Settings(BaseSettings):
     def _enforce_non_default_secrets(self) -> Self:
         # required vars
         self._check_default_secret("JWT_SECRET_KEY", self.JWT_SECRET_KEY)
+        self._check_default_secret("ENCRYPTION_KEY", self.ENCRYPTION_KEY)
         # conditional required vars
         if self.POSTGRES_PASSWORD:
             self._check_default_secret("POSTGRES_PASSWORD", self.POSTGRES_PASSWORD)

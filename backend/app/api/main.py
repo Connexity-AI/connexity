@@ -8,6 +8,7 @@ from app.api.routes import (
     custom_metrics,
     eval_configs,
     health,
+    integrations,
     login,
     prompt_editor,
     runs,
@@ -32,6 +33,7 @@ api_router.include_router(runs.router)
 api_router.include_router(test_case_results.router)
 api_router.include_router(prompt_editor.router)
 api_router.include_router(config.router)
+api_router.include_router(integrations.router)
 
 root_router = APIRouter()
 root_router.include_router(health.router)

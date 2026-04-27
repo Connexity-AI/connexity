@@ -87,6 +87,12 @@ export class UrlGenerator {
     return createTypedLink(route, emptyParser, options)(values);
   }
 
+  // ── Integrations ──
+
+  static integrations() {
+    return '/integrations' as Route;
+  }
+
   // ── API ──
 
   static apiClientProxy() {

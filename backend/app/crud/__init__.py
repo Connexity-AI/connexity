@@ -46,6 +46,12 @@ from app.crud.eval_config import (  # noqa: F401
     update_eval_config,
     validate_test_case_ids,
 )
+from app.crud.integrations import (  # noqa: F401
+    create_integration,
+    delete_integration,
+    get_integration,
+    list_integrations,
+)
 from app.crud.prompt_editor_message import (
     create_message as create_prompt_editor_message,  # noqa: F401
 )
