@@ -75,6 +75,15 @@ import type {
   CustomMetricsUpdateCustomMetricData,
   CustomMetricsUpdateCustomMetricErrors,
   CustomMetricsUpdateCustomMetricResponses,
+  EnvironmentsCreateEnvironmentData,
+  EnvironmentsCreateEnvironmentErrors,
+  EnvironmentsCreateEnvironmentResponses,
+  EnvironmentsDeleteEnvironmentData,
+  EnvironmentsDeleteEnvironmentErrors,
+  EnvironmentsDeleteEnvironmentResponses,
+  EnvironmentsListEnvironmentsData,
+  EnvironmentsListEnvironmentsErrors,
+  EnvironmentsListEnvironmentsResponses,
   EvalConfigsAddTestCasesToConfigData,
   EvalConfigsAddTestCasesToConfigErrors,
   EvalConfigsAddTestCasesToConfigResponses,
@@ -110,6 +119,9 @@ import type {
   IntegrationsDeleteIntegrationData,
   IntegrationsDeleteIntegrationErrors,
   IntegrationsDeleteIntegrationResponses,
+  IntegrationsListIntegrationAgentsData,
+  IntegrationsListIntegrationAgentsErrors,
+  IntegrationsListIntegrationAgentsResponses,
   IntegrationsListIntegrationsData,
   IntegrationsListIntegrationsErrors,
   IntegrationsListIntegrationsResponses,
@@ -2411,6 +2423,108 @@ export class IntegrationsService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/integrations/{integration_id}/test',
+      ...options,
+    });
+  }
+
+  /**
+   * List Integration Agents
+   */
+  public static listIntegrationAgents<ThrowOnError extends boolean = false>(
+    options: Options<IntegrationsListIntegrationAgentsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      IntegrationsListIntegrationAgentsResponses,
+      IntegrationsListIntegrationAgentsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/integrations/{integration_id}/agents',
+      ...options,
+    });
+  }
+}
+
+export class EnvironmentsService {
+  /**
+   * List Environments
+   */
+  public static listEnvironments<ThrowOnError extends boolean = false>(
+    options: Options<EnvironmentsListEnvironmentsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      EnvironmentsListEnvironmentsResponses,
+      EnvironmentsListEnvironmentsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/environments/',
+      ...options,
+    });
+  }
+
+  /**
+   * Create Environment
+   */
+  public static createEnvironment<ThrowOnError extends boolean = false>(
+    options: Options<EnvironmentsCreateEnvironmentData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      EnvironmentsCreateEnvironmentResponses,
+      EnvironmentsCreateEnvironmentErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/environments/',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Delete Environment
+   */
+  public static deleteEnvironment<ThrowOnError extends boolean = false>(
+    options: Options<EnvironmentsDeleteEnvironmentData, ThrowOnError>
+  ) {
+    return (options.client ?? client).delete<
+      EnvironmentsDeleteEnvironmentResponses,
+      EnvironmentsDeleteEnvironmentErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/environments/{environment_id}',
       ...options,
     });
   }

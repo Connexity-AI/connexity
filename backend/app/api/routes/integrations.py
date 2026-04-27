@@ -12,7 +12,11 @@ from app.models import (
     IntegrationsPublic,
     Message,
 )
-from app.services.retell import test_retell_connection
+from app.services.retell import (
+    RetellAgentSummary,
+    list_retell_agents,
+    test_retell_connection,
+)
 
 _CONNECTION_TESTERS = {
     IntegrationProvider.RETELL: test_retell_connection,
@@ -78,6 +82,14 @@ def delete_integration(
     )
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
+    env_count = crud.count_environments_for_integration(
+        session=session, integration_id=integration_id
+    )
+    if env_count > 0:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Cannot delete integration: {env_count} environment(s) depend on it",
+        )
     crud.delete_integration(session=session, db_integration=integration)
     return Message(message="Integration deleted successfully")
 
@@ -98,3 +110,18 @@ async def test_integration(
     if not ok:
         raise HTTPException(status_code=400, detail="Connection test failed")
     return Message(message="Connection successful")
+
+
+@router.get("/{integration_id}/agents", response_model=list[RetellAgentSummary])
+async def list_integration_agents(
+    session: SessionDep,
+    current_user: CurrentUser,
+    integration_id: uuid.UUID,
+) -> list[RetellAgentSummary]:
+    integration = crud.get_integration(
+        session=session, integration_id=integration_id, user_id=current_user.id
+    )
+    if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    api_key = decrypt(integration.encrypted_api_key)
+    return await list_retell_agents(api_key)

@@ -1017,6 +1017,86 @@ export const Difficulty = { NORMAL: 'normal', HARD: 'hard' } as const;
 export type Difficulty = (typeof Difficulty)[keyof typeof Difficulty];
 
 /**
+ * EnvironmentCreate
+ */
+export type EnvironmentCreate = {
+  /**
+   * Name
+   */
+  name: string;
+  platform: Platform;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Integration Id
+   */
+  integration_id: string;
+  /**
+   * Platform Agent Id
+   */
+  platform_agent_id: string;
+  /**
+   * Platform Agent Name
+   */
+  platform_agent_name: string;
+};
+
+/**
+ * EnvironmentPublic
+ */
+export type EnvironmentPublic = {
+  /**
+   * Name
+   */
+  name: string;
+  platform: Platform;
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Integration Id
+   */
+  integration_id: string;
+  /**
+   * Integration Name
+   */
+  integration_name: string;
+  /**
+   * Platform Agent Id
+   */
+  platform_agent_id: string;
+  /**
+   * Platform Agent Name
+   */
+  platform_agent_name: string;
+  /**
+   * Created At
+   */
+  created_at: string;
+};
+
+/**
+ * EnvironmentsPublic
+ */
+export type EnvironmentsPublic = {
+  /**
+   * Data
+   */
+  data: Array<EnvironmentPublic>;
+  /**
+   * Count
+   */
+  count: number;
+};
+
+/**
  * ErrorResponse
  */
 export type ErrorResponse = {
@@ -1996,6 +2076,16 @@ export const OnConflict = { SKIP: 'skip', OVERWRITE: 'overwrite' } as const;
 export type OnConflict = (typeof OnConflict)[keyof typeof OnConflict];
 
 /**
+ * Platform
+ */
+export const Platform = { RETELL: 'retell' } as const;
+
+/**
+ * Platform
+ */
+export type Platform = (typeof Platform)[keyof typeof Platform];
+
+/**
  * PresetPublic
  *
  * API shape for a preset (excludes internal ``requires`` gates).
@@ -2379,6 +2469,28 @@ export type RegressionVerdict = {
    */
   reasons: Array<string>;
   thresholds_used: RegressionThresholds;
+};
+
+/**
+ * RetellAgentSummary
+ */
+export type RetellAgentSummary = {
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Name
+   */
+  agent_name?: string | null;
+  /**
+   * Is Published
+   */
+  is_published?: boolean;
+  /**
+   * Version
+   */
+  version?: number | null;
 };
 
 /**
@@ -8648,3 +8760,224 @@ export type IntegrationsTestIntegrationResponses = {
 
 export type IntegrationsTestIntegrationResponse =
   IntegrationsTestIntegrationResponses[keyof IntegrationsTestIntegrationResponses];
+
+export type IntegrationsListIntegrationAgentsData = {
+  body?: never;
+  path: {
+    /**
+     * Integration Id
+     */
+    integration_id: string;
+  };
+  query?: never;
+  url: '/api/v1/integrations/{integration_id}/agents';
+};
+
+export type IntegrationsListIntegrationAgentsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type IntegrationsListIntegrationAgentsError =
+  IntegrationsListIntegrationAgentsErrors[keyof IntegrationsListIntegrationAgentsErrors];
+
+export type IntegrationsListIntegrationAgentsResponses = {
+  /**
+   * Response Integrations-List Integration Agents
+   *
+   * Successful Response
+   */
+  200: Array<RetellAgentSummary>;
+};
+
+export type IntegrationsListIntegrationAgentsResponse =
+  IntegrationsListIntegrationAgentsResponses[keyof IntegrationsListIntegrationAgentsResponses];
+
+export type EnvironmentsListEnvironmentsData = {
+  body?: never;
+  path?: never;
+  query: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  url: '/api/v1/environments/';
+};
+
+export type EnvironmentsListEnvironmentsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type EnvironmentsListEnvironmentsError =
+  EnvironmentsListEnvironmentsErrors[keyof EnvironmentsListEnvironmentsErrors];
+
+export type EnvironmentsListEnvironmentsResponses = {
+  /**
+   * Successful Response
+   */
+  200: EnvironmentsPublic;
+};
+
+export type EnvironmentsListEnvironmentsResponse =
+  EnvironmentsListEnvironmentsResponses[keyof EnvironmentsListEnvironmentsResponses];
+
+export type EnvironmentsCreateEnvironmentData = {
+  body: EnvironmentCreate;
+  path?: never;
+  query?: never;
+  url: '/api/v1/environments/';
+};
+
+export type EnvironmentsCreateEnvironmentErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type EnvironmentsCreateEnvironmentError =
+  EnvironmentsCreateEnvironmentErrors[keyof EnvironmentsCreateEnvironmentErrors];
+
+export type EnvironmentsCreateEnvironmentResponses = {
+  /**
+   * Successful Response
+   */
+  200: EnvironmentPublic;
+};
+
+export type EnvironmentsCreateEnvironmentResponse =
+  EnvironmentsCreateEnvironmentResponses[keyof EnvironmentsCreateEnvironmentResponses];
+
+export type EnvironmentsDeleteEnvironmentData = {
+  body?: never;
+  path: {
+    /**
+     * Environment Id
+     */
+    environment_id: string;
+  };
+  query?: never;
+  url: '/api/v1/environments/{environment_id}';
+};
+
+export type EnvironmentsDeleteEnvironmentErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type EnvironmentsDeleteEnvironmentError =
+  EnvironmentsDeleteEnvironmentErrors[keyof EnvironmentsDeleteEnvironmentErrors];
+
+export type EnvironmentsDeleteEnvironmentResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message;
+};
+
+export type EnvironmentsDeleteEnvironmentResponse =
+  EnvironmentsDeleteEnvironmentResponses[keyof EnvironmentsDeleteEnvironmentResponses];

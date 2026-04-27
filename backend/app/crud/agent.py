@@ -37,6 +37,7 @@ def create_agent(
 ) -> Agent:
     db_obj = Agent.model_validate(agent_in)
     db_obj.version = 1
+    db_obj.created_by = created_by
     session.add(db_obj)
     session.flush()
     agent_version_crud.create_initial_version(
@@ -58,6 +59,7 @@ def create_draft_agent(
         mode=AgentMode.PLATFORM,
         version=0,
         has_draft=True,
+        created_by=created_by,
     )
     session.add(db_obj)
     session.flush()

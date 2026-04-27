@@ -64,5 +64,9 @@ class PromptEditorSessionStatus(StrEnum):
     ARCHIVED = "archived"
 
 
+class Platform(StrEnum):
+    RETELL = "retell"
+
+
 class IntegrationProvider(StrEnum):
     RETELL = "retell"

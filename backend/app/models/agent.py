@@ -112,6 +112,9 @@ class Agent(AgentBase, table=True):
     __tablename__ = "agent"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_by: uuid.UUID | None = Field(
+        default=None, foreign_key="user.id", index=True
+    )
     version: int = Field(
         default=1,
         nullable=False,

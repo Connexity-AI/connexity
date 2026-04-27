@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import Generator
 from typing import Annotated
 
@@ -16,6 +17,7 @@ from app.core import security
 from app.core.config import settings
 from app.core.db import engine
 from app.models import TokenPayload, User
+from app.models.agent import Agent
 
 cookie_scheme = APIKeyCookie(name=settings.AUTH_COOKIE, auto_error=False)
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -68,3 +70,12 @@ def get_current_active_superuser(current_user: CurrentUser) -> User:
             status_code=403, detail="The user doesn't have enough privileges"
         )
     return current_user
+
+
+def get_owned_agent(
+    *, agent_id: uuid.UUID, session: Session, current_user: User
+) -> Agent:
+    agent = session.get(Agent, agent_id)
+    if agent is None or agent.created_by != current_user.id:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return agent

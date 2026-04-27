@@ -47,3 +47,11 @@ export const runKeys = {
 export const testCaseResultKeys = {
   byRun: (runId: string) => ['test-case-results', runId] as const,
 };
+
+export const environmentKeys = {
+  list: (agentId: string) => ['environments', agentId] as const,
+};
+
+export const retellAgentKeys = {
+  byIntegration: (integrationId: string) => ['retell-agents', integrationId] as const,
+};

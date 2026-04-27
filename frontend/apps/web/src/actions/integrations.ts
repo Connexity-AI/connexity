@@ -2,7 +2,12 @@
 
 import { IntegrationsService } from '@/client/sdk.gen';
 
-import type { IntegrationCreate, IntegrationPublic, IntegrationsPublic } from '@/client/types.gen';
+import type {
+  IntegrationCreate,
+  IntegrationPublic,
+  IntegrationsPublic,
+  RetellAgentSummary,
+} from '@/client/types.gen';
 import type { ApiResult } from '@/types/api';
 
 export const createIntegration = async (
@@ -35,6 +40,16 @@ export const deleteIntegration = async (id: string): Promise<ApiResult<void>> =>
 export const testIntegration = async (id: string): Promise<ApiResult<{ message: string }>> => {
   const apiResponse = await IntegrationsService.testIntegration({
     path: { integration_id: id },
+  });
+  const { response: _, ...result } = apiResponse;
+  return result;
+};
+
+export const listRetellAgents = async (
+  integrationId: string
+): Promise<ApiResult<RetellAgentSummary[]>> => {
+  const apiResponse = await IntegrationsService.listIntegrationAgents({
+    path: { integration_id: integrationId },
   });
   const { response: _, ...result } = apiResponse;
   return result;

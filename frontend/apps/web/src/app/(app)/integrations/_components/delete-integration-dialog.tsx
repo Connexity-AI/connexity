@@ -14,7 +14,8 @@ import {
 } from '@workspace/ui/components/ui/alert-dialog';
 
 import { deleteIntegration } from '@/actions/integrations';
-import { isSuccessApiResult } from '@/utils/api';
+import { isErrorApiResult, isSuccessApiResult } from '@/utils/api';
+import { getApiErrorMessage } from '@/utils/error';
 
 import type { IntegrationPublic } from '@/client/types.gen';
 import type { FC } from 'react';
@@ -33,19 +34,31 @@ export const DeleteIntegrationDialog: FC<Props> = ({
   onDeleted,
 }) => {
   const [isPending, setIsPending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleConfirm = async () => {
     setIsPending(true);
+    setErrorMessage(null);
     const result = await deleteIntegration(integration.id);
     setIsPending(false);
     if (isSuccessApiResult(result)) {
       onDeleted(integration.id);
       onOpenChange(false);
+    } else if (isErrorApiResult(result)) {
+      setErrorMessage(getApiErrorMessage(result.error));
     }
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!isPending) {
+          setErrorMessage(null);
+          onOpenChange(o);
+        }
+      }}
+    >
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Delete integration</AlertDialogTitle>
@@ -54,6 +67,9 @@ export const DeleteIntegrationDialog: FC<Props> = ({
             be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
+        {errorMessage && (
+          <p className="text-sm text-destructive px-1">{errorMessage}</p>
+        )}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
           <AlertDialogAction

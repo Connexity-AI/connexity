@@ -6,6 +6,7 @@ from app.api.routes import (
     agents,
     config,
     custom_metrics,
+    environments,
     eval_configs,
     health,
     integrations,
@@ -34,6 +35,7 @@ api_router.include_router(test_case_results.router)
 api_router.include_router(prompt_editor.router)
 api_router.include_router(config.router)
 api_router.include_router(integrations.router)
+api_router.include_router(environments.router)
 
 root_router = APIRouter()
 root_router.include_router(health.router)

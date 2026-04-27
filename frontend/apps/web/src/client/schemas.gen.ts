@@ -1768,6 +1768,124 @@ export const DifficultySchema = {
   title: 'Difficulty',
 } as const;
 
+export const EnvironmentCreateSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Name',
+    },
+    platform: {
+      $ref: '#/components/schemas/Platform',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    integration_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Integration Id',
+    },
+    platform_agent_id: {
+      type: 'string',
+      title: 'Platform Agent Id',
+    },
+    platform_agent_name: {
+      type: 'string',
+      title: 'Platform Agent Name',
+    },
+  },
+  type: 'object',
+  required: [
+    'name',
+    'platform',
+    'agent_id',
+    'integration_id',
+    'platform_agent_id',
+    'platform_agent_name',
+  ],
+  title: 'EnvironmentCreate',
+} as const;
+
+export const EnvironmentPublicSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Name',
+    },
+    platform: {
+      $ref: '#/components/schemas/Platform',
+    },
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    integration_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Integration Id',
+    },
+    integration_name: {
+      type: 'string',
+      title: 'Integration Name',
+    },
+    platform_agent_id: {
+      type: 'string',
+      title: 'Platform Agent Id',
+    },
+    platform_agent_name: {
+      type: 'string',
+      title: 'Platform Agent Name',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+    },
+  },
+  type: 'object',
+  required: [
+    'name',
+    'platform',
+    'id',
+    'agent_id',
+    'integration_id',
+    'integration_name',
+    'platform_agent_id',
+    'platform_agent_name',
+    'created_at',
+  ],
+  title: 'EnvironmentPublic',
+} as const;
+
+export const EnvironmentsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/EnvironmentPublic',
+      },
+      type: 'array',
+      title: 'Data',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'EnvironmentsPublic',
+} as const;
+
 export const ErrorResponseSchema = {
   properties: {
     detail: {
@@ -3168,6 +3286,13 @@ export const OnConflictSchema = {
   title: 'OnConflict',
 } as const;
 
+export const PlatformSchema = {
+  type: 'string',
+  enum: ['retell'],
+  const: 'retell',
+  title: 'Platform',
+} as const;
+
 export const PresetPublicSchema = {
   properties: {
     id: {
@@ -3708,6 +3833,45 @@ export const RegressionVerdictSchema = {
   type: 'object',
   required: ['regression_detected', 'reasons', 'thresholds_used'],
   title: 'RegressionVerdict',
+} as const;
+
+export const RetellAgentSummarySchema = {
+  properties: {
+    agent_id: {
+      type: 'string',
+      title: 'Agent Id',
+    },
+    agent_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Name',
+    },
+    is_published: {
+      type: 'boolean',
+      title: 'Is Published',
+      default: false,
+    },
+    version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version',
+    },
+  },
+  type: 'object',
+  required: ['agent_id'],
+  title: 'RetellAgentSummary',
 } as const;
 
 export const RunComparisonSchema = {
