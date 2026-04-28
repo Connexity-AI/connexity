@@ -1,3 +1,5 @@
+from typing import Any
+
 import httpx
 from fastapi import HTTPException
 from pydantic import BaseModel
@@ -8,6 +10,12 @@ class RetellAgentSummary(BaseModel):
     agent_name: str | None = None
     is_published: bool = False
     version: int | None = None
+
+
+class RetellAgentVersion(BaseModel):
+    version: int
+    version_title: str | None = None
+    is_published: bool = False
 
 
 class RetellDeployResult(BaseModel):
@@ -58,56 +66,197 @@ async def list_retell_agents(api_key: str) -> list[RetellAgentSummary]:
     return agents
 
 
+async def list_retell_agent_versions(
+    *, api_key: str, retell_agent_id: str
+) -> list[RetellAgentVersion]:
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"https://api.retellai.com/get-agent-versions/{retell_agent_id}",
+                headers={"Authorization": f"Bearer {api_key}"},
+                timeout=10.0,
+            )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502, detail="Failed to reach Retell API"
+        ) from exc
+
+    if response.status_code != 200:
+        raise HTTPException(status_code=502, detail="Retell API returned an error")
+
+    body = response.json()
+    items = body if isinstance(body, list) else body.get("versions", [])
+
+    versions: list[RetellAgentVersion] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        raw_version = item.get("version")
+        if raw_version is None:
+            continue
+        versions.append(
+            RetellAgentVersion(
+                version=int(raw_version),
+                version_title=item.get("version_title"),
+                is_published=bool(item.get("is_published", False)),
+            )
+        )
+    return versions
+
+
+def _map_tools_for_retell(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    retell_tools: list[dict[str, Any]] = []
+    for tool in tools:
+        func = tool.get("function", {})
+        impl = tool.get("platform_config", {}).get("implementation", {})
+        retell_tools.append(
+            {
+                "type": "custom",
+                "name": func.get("name", ""),
+                "description": func.get("description", ""),
+                "url": impl.get("url", ""),
+                "method": impl.get("method", ""),
+            }
+        )
+    return retell_tools
+
+
 async def deploy_retell_agent(
     *,
     api_key: str,
     retell_agent_id: str,
-    connexity_agent_version: int,
-    connexity_deployment_id: str,
+    system_prompt: str | None,
+    agent_model: str | None,
+    agent_temperature: float | None,
+    tools: list[dict[str, Any]] | None,
+    change_description: str | None,
 ) -> RetellDeployResult:
-    """Patch a Retell agent's metadata to record the Connexity deployment.
-
-    Sends only the metadata field — does not modify Retell's version_title or
-    description. Retell creates a new version on update; we read its
-    ``version_title`` (falling back to ``v{version}``) for display.
-    """
-    payload = {
-        "metadata": {
-            "connexity_agent_version": connexity_agent_version,
-            "connexity_deployment_id": connexity_deployment_id,
-        }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
     }
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.patch(
-                f"https://api.retellai.com/update-agent/{retell_agent_id}",
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json",
-                },
-                json=payload,
+
+    async with httpx.AsyncClient() as client:
+        # Step 1: fetch the agent to get llm_id
+        try:
+            resp = await client.get(
+                f"https://api.retellai.com/get-agent/{retell_agent_id}",
+                headers=headers,
                 timeout=30.0,
             )
-    except httpx.HTTPError as exc:
-        return RetellDeployResult(
-            success=False,
-            error_message=f"Failed to reach Retell API: {exc}",
-        )
+        except httpx.HTTPError as exc:
+            return RetellDeployResult(
+                success=False,
+                error_message=f"Failed to reach Retell API: {exc}",
+            )
 
-    if response.status_code >= 400:
+        if resp.status_code >= 400:
+            try:
+                detail = resp.json()
+            except ValueError:
+                detail = resp.text
+            return RetellDeployResult(
+                success=False,
+                error_message=f"Retell get-agent returned {resp.status_code}: {detail}",
+            )
+
+        agent_data = resp.json()
+        llm_id: str | None = (
+            agent_data.get("response_engine", {}).get("llm_id")
+            if isinstance(agent_data, dict)
+            else None
+        )
+        if not llm_id:
+            return RetellDeployResult(
+                success=False,
+                error_message="Retell agent has no associated LLM (response_engine.llm_id missing)",
+            )
+
+        # Step 2: patch the LLM with agent version data
+        llm_payload: dict[str, Any] = {}
+        if system_prompt is not None:
+            llm_payload["general_prompt"] = system_prompt
+        if agent_model is not None:
+            llm_payload["model"] = agent_model
+        if agent_temperature is not None:
+            llm_payload["model_temperature"] = agent_temperature
+        if tools:
+            llm_payload["general_tools"] = _map_tools_for_retell(tools)
+
         try:
-            detail = response.json()
-        except ValueError:
-            detail = response.text
-        return RetellDeployResult(
-            success=False,
-            error_message=f"Retell update-agent returned {response.status_code}: {detail}",
-        )
+            resp = await client.patch(
+                f"https://api.retellai.com/update-retell-llm/{llm_id}",
+                headers=headers,
+                json=llm_payload,
+                timeout=30.0,
+            )
+        except httpx.HTTPError as exc:
+            return RetellDeployResult(
+                success=False,
+                error_message=f"Failed to reach Retell API: {exc}",
+            )
 
-    try:
-        body = response.json()
-    except ValueError:
-        body = {}
+        if resp.status_code >= 400:
+            try:
+                detail = resp.json()
+            except ValueError:
+                detail = resp.text
+            return RetellDeployResult(
+                success=False,
+                error_message=f"Retell update-retell-llm returned {resp.status_code}: {detail}",
+            )
+
+        # Step 3: patch the agent with version description
+        try:
+            resp = await client.patch(
+                f"https://api.retellai.com/update-agent/{retell_agent_id}",
+                headers=headers,
+                json={"version_description": change_description},
+                timeout=30.0,
+            )
+        except httpx.HTTPError as exc:
+            return RetellDeployResult(
+                success=False,
+                error_message=f"Failed to reach Retell API: {exc}",
+            )
+
+        if resp.status_code >= 400:
+            try:
+                detail = resp.json()
+            except ValueError:
+                detail = resp.text
+            return RetellDeployResult(
+                success=False,
+                error_message=f"Retell update-agent returned {resp.status_code}: {detail}",
+            )
+
+        # Step 4: publish the agent
+        try:
+            resp = await client.post(
+                f"https://api.retellai.com/publish-agent/{retell_agent_id}",
+                headers=headers,
+                timeout=30.0,
+            )
+        except httpx.HTTPError as exc:
+            return RetellDeployResult(
+                success=False,
+                error_message=f"Failed to reach Retell API: {exc}",
+            )
+
+        if resp.status_code >= 400:
+            try:
+                detail = resp.json()
+            except ValueError:
+                detail = resp.text
+            return RetellDeployResult(
+                success=False,
+                error_message=f"Retell publish-agent returned {resp.status_code}: {detail}",
+            )
+
+        try:
+            body = resp.json()
+        except ValueError:
+            body = {}
 
     version_title = body.get("version_title") if isinstance(body, dict) else None
     version_number = body.get("version") if isinstance(body, dict) else None

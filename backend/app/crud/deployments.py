@@ -77,3 +77,15 @@ def list_deployments_for_environment(
         .order_by(col(Deployment.deployed_at).desc())
     )
     return list(session.exec(statement).all())
+
+
+def list_deployments_for_agent(
+    *, session: Session, agent_id: uuid.UUID
+) -> list[tuple[Deployment, str]]:
+    statement = (
+        select(Deployment, Environment.name)
+        .join(Environment, Environment.id == Deployment.environment_id)  # type: ignore[arg-type]
+        .where(Deployment.agent_id == agent_id)
+        .order_by(col(Deployment.deployed_at).desc())
+    )
+    return [(d, name) for d, name in session.exec(statement).all()]

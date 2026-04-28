@@ -50,7 +50,10 @@ export const testCaseResultKeys = {
 
 export const environmentKeys = {
   list: (agentId: string) => ['environments', agentId] as const,
+  agentDeployments: (agentId: string) => ['agent-deployments', agentId] as const,
   deployments: (environmentId: string) => ['environment-deployments', environmentId] as const,
+  retellVersions: (environmentId: string) =>
+    ['environment-retell-versions', environmentId] as const,
 };
 
 export const retellAgentKeys = {

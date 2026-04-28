@@ -16,7 +16,11 @@ from app.models import (
     EnvironmentsPublic,
     Message,
 )
-from app.services.retell import deploy_retell_agent
+from app.services.retell import (
+    RetellAgentVersion,
+    deploy_retell_agent,
+    list_retell_agent_versions,
+)
 
 router = APIRouter(
     prefix="/environments",
@@ -156,8 +160,11 @@ async def deploy_environment(
     result = await deploy_retell_agent(
         api_key=api_key,
         retell_agent_id=env.platform_agent_id,
-        connexity_agent_version=body.agent_version,
-        connexity_deployment_id=str(deployment.id),
+        system_prompt=version_row.system_prompt,
+        agent_model=version_row.agent_model,
+        agent_temperature=version_row.agent_temperature,
+        tools=version_row.tools,
+        change_description=version_row.change_description,
     )
 
     if result.success:
@@ -174,6 +181,51 @@ async def deploy_environment(
         )
 
     return _deployment_to_public(deployment, env.name)
+
+
+@router.get(
+    "/{environment_id}/retell-versions",
+    response_model=list[RetellAgentVersion],
+)
+async def list_environment_retell_versions(
+    session: SessionDep,
+    current_user: CurrentUser,
+    environment_id: uuid.UUID,
+) -> list[RetellAgentVersion]:
+    env = crud.get_environment(session=session, environment_id=environment_id)
+    if not env:
+        raise HTTPException(status_code=404, detail="Environment not found")
+    get_owned_agent(agent_id=env.agent_id, session=session, current_user=current_user)
+
+    integration = crud.get_integration(
+        session=session,
+        integration_id=env.integration_id,
+        user_id=current_user.id,
+    )
+    if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+
+    api_key = decrypt(integration.encrypted_api_key)
+    versions = await list_retell_agent_versions(
+        api_key=api_key, retell_agent_id=env.platform_agent_id
+    )
+    published = [v for v in versions if v.is_published]
+    published.sort(key=lambda v: v.version, reverse=True)
+    return published
+
+
+@router.get("/deployments", response_model=DeploymentsPublic)
+def list_agent_deployments(
+    session: SessionDep,
+    current_user: CurrentUser,
+    agent_id: uuid.UUID = Query(...),
+) -> DeploymentsPublic:
+    get_owned_agent(agent_id=agent_id, session=session, current_user=current_user)
+    rows = crud.list_deployments_for_agent(session=session, agent_id=agent_id)
+    return DeploymentsPublic(
+        data=[_deployment_to_public(d, name) for d, name in rows],
+        count=len(rows),
+    )
 
 
 @router.get("/{environment_id}/deployments", response_model=DeploymentsPublic)

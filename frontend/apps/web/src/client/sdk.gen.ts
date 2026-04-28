@@ -84,9 +84,15 @@ import type {
   EnvironmentsDeployEnvironmentData,
   EnvironmentsDeployEnvironmentErrors,
   EnvironmentsDeployEnvironmentResponses,
+  EnvironmentsListAgentDeploymentsData,
+  EnvironmentsListAgentDeploymentsErrors,
+  EnvironmentsListAgentDeploymentsResponses,
   EnvironmentsListEnvironmentDeploymentsData,
   EnvironmentsListEnvironmentDeploymentsErrors,
   EnvironmentsListEnvironmentDeploymentsResponses,
+  EnvironmentsListEnvironmentRetellVersionsData,
+  EnvironmentsListEnvironmentRetellVersionsErrors,
+  EnvironmentsListEnvironmentRetellVersionsResponses,
   EnvironmentsListEnvironmentsData,
   EnvironmentsListEnvironmentsErrors,
   EnvironmentsListEnvironmentsResponses,
@@ -2560,6 +2566,54 @@ export class EnvironmentsService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+    });
+  }
+
+  /**
+   * List Environment Retell Versions
+   */
+  public static listEnvironmentRetellVersions<ThrowOnError extends boolean = false>(
+    options: Options<EnvironmentsListEnvironmentRetellVersionsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      EnvironmentsListEnvironmentRetellVersionsResponses,
+      EnvironmentsListEnvironmentRetellVersionsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/environments/{environment_id}/retell-versions',
+      ...options,
+    });
+  }
+
+  /**
+   * List Agent Deployments
+   */
+  public static listAgentDeployments<ThrowOnError extends boolean = false>(
+    options: Options<EnvironmentsListAgentDeploymentsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      EnvironmentsListAgentDeploymentsResponses,
+      EnvironmentsListAgentDeploymentsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/environments/deployments',
+      ...options,
     });
   }
 

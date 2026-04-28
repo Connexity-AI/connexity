@@ -14,26 +14,23 @@ import { cn } from '@workspace/ui/lib/utils';
 import { useAgentEditFormActions } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
 import { useVersions } from '@/app/(app)/(agent)/_context/versions-context';
 import { useAgentDraft } from '@/app/(app)/(agent)/_hooks/use-agent-draft';
+import { useAgentDeployments } from '@/app/(app)/(agent)/_hooks/use-agent-deployments';
 import { useAgentVersions } from '@/app/(app)/(agent)/_hooks/use-agent-versions';
 import { formatTimeAgo } from '@/app/(app)/(agent)/_utils/format-time-ago';
-
-function parseVersionName(changeDescription: string | null): {
-  name: string | null;
-  description: string | null;
-} {
-  if (!changeDescription) return { name: null, description: null };
-  const lines = changeDescription.split('\n');
-  if (lines.length <= 1) return { name: lines[0] || null, description: null };
-  return { name: lines[0] || null, description: lines.slice(1).join('\n').trim() || null };
-}
+import { parseVersionName } from '@/app/(app)/(agent)/_utils/parse-version-name';
 
 export function VersionsDrawer() {
   const { isDrawerOpen, closeDrawer, selectedVersion, selectVersion } = useVersions();
   const { agentId } = useAgentEditFormActions();
   const { data: versionsData } = useAgentVersions(agentId);
+  const { data: deploymentsData } = useAgentDeployments(agentId);
   const { data: draft } = useAgentDraft(agentId, true);
   const versions = versionsData?.data ?? [];
   const sorted = [...versions].sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
+
+  const deployedAtByVersion = new Map(
+    (deploymentsData?.data ?? []).map((d) => [d.agent_version, d.deployed_at])
+  );
 
   return (
     <Drawer
@@ -116,7 +113,7 @@ export function VersionsDrawer() {
                         </span>
                       </div>
                       <span className="text-xs text-muted-foreground shrink-0">
-                        {formatTimeAgo(version.created_at)}
+                        {formatTimeAgo(deployedAtByVersion.get(version.version!) ?? version.created_at)}
                       </span>
                     </div>
 

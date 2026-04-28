@@ -2585,6 +2585,24 @@ export type RetellAgentSummary = {
 };
 
 /**
+ * RetellAgentVersion
+ */
+export type RetellAgentVersion = {
+  /**
+   * Version
+   */
+  version: number;
+  /**
+   * Version Title
+   */
+  version_title?: string | null;
+  /**
+   * Is Published
+   */
+  is_published?: boolean;
+};
+
+/**
  * RunComparison
  */
 export type RunComparison = {
@@ -9128,6 +9146,120 @@ export type EnvironmentsDeployEnvironmentResponses = {
 
 export type EnvironmentsDeployEnvironmentResponse =
   EnvironmentsDeployEnvironmentResponses[keyof EnvironmentsDeployEnvironmentResponses];
+
+export type EnvironmentsListEnvironmentRetellVersionsData = {
+  body?: never;
+  path: {
+    /**
+     * Environment Id
+     */
+    environment_id: string;
+  };
+  query?: never;
+  url: '/api/v1/environments/{environment_id}/retell-versions';
+};
+
+export type EnvironmentsListEnvironmentRetellVersionsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type EnvironmentsListEnvironmentRetellVersionsError =
+  EnvironmentsListEnvironmentRetellVersionsErrors[keyof EnvironmentsListEnvironmentRetellVersionsErrors];
+
+export type EnvironmentsListEnvironmentRetellVersionsResponses = {
+  /**
+   * Response Environments-List Environment Retell Versions
+   *
+   * Successful Response
+   */
+  200: Array<RetellAgentVersion>;
+};
+
+export type EnvironmentsListEnvironmentRetellVersionsResponse =
+  EnvironmentsListEnvironmentRetellVersionsResponses[keyof EnvironmentsListEnvironmentRetellVersionsResponses];
+
+export type EnvironmentsListAgentDeploymentsData = {
+  body?: never;
+  path?: never;
+  query: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  url: '/api/v1/environments/deployments';
+};
+
+export type EnvironmentsListAgentDeploymentsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type EnvironmentsListAgentDeploymentsError =
+  EnvironmentsListAgentDeploymentsErrors[keyof EnvironmentsListAgentDeploymentsErrors];
+
+export type EnvironmentsListAgentDeploymentsResponses = {
+  /**
+   * Successful Response
+   */
+  200: DeploymentsPublic;
+};
+
+export type EnvironmentsListAgentDeploymentsResponse =
+  EnvironmentsListAgentDeploymentsResponses[keyof EnvironmentsListAgentDeploymentsResponses];
 
 export type EnvironmentsListEnvironmentDeploymentsData = {
   body?: never;

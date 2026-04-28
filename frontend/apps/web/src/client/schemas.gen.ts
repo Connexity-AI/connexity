@@ -4039,6 +4039,34 @@ export const RetellAgentSummarySchema = {
   title: 'RetellAgentSummary',
 } as const;
 
+export const RetellAgentVersionSchema = {
+  properties: {
+    version: {
+      type: 'integer',
+      title: 'Version',
+    },
+    version_title: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version Title',
+    },
+    is_published: {
+      type: 'boolean',
+      title: 'Is Published',
+      default: false,
+    },
+  },
+  type: 'object',
+  required: ['version'],
+  title: 'RetellAgentVersion',
+} as const;
+
 export const RunComparisonSchema = {
   properties: {
     baseline_run_id: {
