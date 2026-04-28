@@ -78,7 +78,11 @@ def upsert_calls_from_retell(
 def get_latest_call_started_at(
     *, session: Session, agent_id: uuid.UUID
 ) -> datetime | None:
-    stmt = select(func.max(Call.started_at)).where(Call.agent_id == agent_id)
+    stmt = (
+        select(func.max(Call.started_at))
+        .where(Call.agent_id == agent_id)
+        .where(Call.deleted_at.is_(None))  # type: ignore[union-attr]
+    )
     return session.exec(stmt).one_or_none()
 
 
@@ -91,8 +95,15 @@ def list_calls_for_agent(
     date_from: datetime | None = None,
     date_to: datetime | None = None,
 ) -> tuple[list[CallPublic], int]:
-    base = select(Call).where(Call.agent_id == agent_id)
-    count_stmt = select(func.count()).select_from(Call).where(Call.agent_id == agent_id)
+    base = (
+        select(Call).where(Call.agent_id == agent_id).where(Call.deleted_at.is_(None))  # type: ignore[union-attr]
+    )
+    count_stmt = (
+        select(func.count())
+        .select_from(Call)
+        .where(Call.agent_id == agent_id)
+        .where(Call.deleted_at.is_(None))  # type: ignore[union-attr]
+    )
     if date_from is not None:
         base = base.where(Call.started_at >= date_from)
         count_stmt = count_stmt.where(Call.started_at >= date_from)
@@ -150,12 +161,37 @@ def mark_call_seen(*, session: Session, call_id: uuid.UUID) -> None:
 
 
 def get_call(*, session: Session, call_id: uuid.UUID) -> Call | None:
-    return session.get(Call, call_id)
+    call = session.get(Call, call_id)
+    if call is None or call.deleted_at is not None:
+        return None
+    return call
 
 
 def count_calls_for_agent(*, session: Session, agent_id: uuid.UUID) -> int:
-    stmt = select(func.count()).select_from(Call).where(Call.agent_id == agent_id)
+    stmt = (
+        select(func.count())
+        .select_from(Call)
+        .where(Call.agent_id == agent_id)
+        .where(Call.deleted_at.is_(None))  # type: ignore[union-attr]
+    )
     return int(session.exec(stmt).one())
+
+
+def soft_delete_calls_for_integration(
+    *, session: Session, integration_id: uuid.UUID
+) -> None:
+    """Mark every call belonging to this integration as deleted and unlink the FK.
+
+    The row stays so test cases that reference ``source_call_id`` keep their FK
+    target. Reads in this module filter ``deleted_at IS NULL``.
+    """
+    stmt = (
+        update(_CALL_TABLE)
+        .where(_CALL_TABLE.c.integration_id == integration_id)
+        .where(_CALL_TABLE.c.deleted_at.is_(None))
+        .values(deleted_at=datetime.now(UTC), integration_id=None)
+    )
+    session.execute(stmt)
 
 
 def touch_calls_last_synced_at(

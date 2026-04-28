@@ -12,7 +12,9 @@ class Call(SQLModel, table=True):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     agent_id: uuid.UUID = Field(foreign_key="agent.id", index=True)
-    integration_id: uuid.UUID = Field(foreign_key="integration.id", index=True)
+    integration_id: uuid.UUID | None = Field(
+        default=None, foreign_key="integration.id", index=True, nullable=True
+    )
     retell_call_id: str = Field(max_length=255, unique=True, index=True)
     retell_agent_id: str = Field(max_length=255, index=True)
     started_at: datetime = Field(index=True)
@@ -25,6 +27,7 @@ class Call(SQLModel, table=True):
         default=None, sa_column=Column("raw", JSONB, nullable=True)
     )
     seen_at: datetime | None = Field(default=None)
+    deleted_at: datetime | None = Field(default=None, index=True)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"server_default": text("now()")},

@@ -102,12 +102,6 @@ class TestCaseAgent:
             if not created:
                 msg = "LLM returned no valid create_test_case tool calls"
                 raise ValueError(msg)
-            if self._inp.mode == AgentMode.FROM_TRANSCRIPT and len(created) != 1:
-                msg = (
-                    f"from_transcript mode expects exactly one create_test_case; "
-                    f"got {len(created)}"
-                )
-                raise ValueError(msg)
         else:
             edited = parse_edit_test_case_tool_call(raw_calls)
             if edited is None:
