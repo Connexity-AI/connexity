@@ -17,7 +17,6 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.execute("DELETE FROM integration")
     op.drop_index(op.f("ix_integration_user_id"), table_name="integration")
     op.drop_column("integration", "user_id")
 
