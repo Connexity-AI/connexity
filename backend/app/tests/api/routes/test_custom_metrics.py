@@ -33,13 +33,13 @@ def test_custom_metrics_require_auth(client: TestClient) -> None:
 
 
 def test_create_list_get_update_delete_custom_metric(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     name = f"api_metric_{uuid.uuid4().hex[:10]}"
     create_r = client.post(
         f"{settings.API_V1_STR}/custom-metrics/",
         json=_create_body(name=name),
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert create_r.status_code == 200
     created = create_r.json()
@@ -48,7 +48,7 @@ def test_create_list_get_update_delete_custom_metric(
 
     list_r = client.get(
         f"{settings.API_V1_STR}/custom-metrics/",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert list_r.status_code == 200
     listed_names = {m["name"] for m in list_r.json()["data"]}
@@ -56,7 +56,7 @@ def test_create_list_get_update_delete_custom_metric(
 
     get_r = client.get(
         f"{settings.API_V1_STR}/custom-metrics/{metric_id}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert get_r.status_code == 200
     assert get_r.json()["display_name"] == "API Metric"
@@ -64,39 +64,39 @@ def test_create_list_get_update_delete_custom_metric(
     patch_r = client.put(
         f"{settings.API_V1_STR}/custom-metrics/{metric_id}",
         json={"display_name": "Updated"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert patch_r.status_code == 200
     assert patch_r.json()["display_name"] == "Updated"
 
     del_r = client.delete(
         f"{settings.API_V1_STR}/custom-metrics/{metric_id}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert del_r.status_code == 200
 
     get_again = client.get(
         f"{settings.API_V1_STR}/custom-metrics/{metric_id}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert get_again.status_code == 404
 
 
 def test_create_custom_metric_reserved_builtin_name_conflict(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     body = _create_body(name="tool_routing")
     r = client.post(
         f"{settings.API_V1_STR}/custom-metrics/",
         json=body,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 409
     assert "built-in" in r.json()["detail"].lower()
 
 
 def test_create_duplicate_name_same_user(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     name = f"dup_{uuid.uuid4().hex[:10]}"
     body = _create_body(name=name)
@@ -104,28 +104,28 @@ def test_create_duplicate_name_same_user(
         client.post(
             f"{settings.API_V1_STR}/custom-metrics/",
             json=body,
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         ).status_code
         == 200
     )
     r2 = client.post(
         f"{settings.API_V1_STR}/custom-metrics/",
         json=body,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r2.status_code == 409
 
 
 def test_custom_metric_other_owner_get_returns_404(
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     normal_user_auth_cookies: dict[str, str],
 ) -> None:
     name = f"isolated_{uuid.uuid4().hex[:10]}"
     create_r = client.post(
         f"{settings.API_V1_STR}/custom-metrics/",
         json=_create_body(name=name),
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert create_r.status_code == 200
     metric_id = create_r.json()["id"]
@@ -152,7 +152,7 @@ def test_custom_metric_other_owner_get_returns_404(
 
 def test_list_custom_metrics_does_not_include_other_users(
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
     other = create_random_user(db)
@@ -174,7 +174,7 @@ def test_list_custom_metrics_does_not_include_other_users(
 
     r = client.get(
         f"{settings.API_V1_STR}/custom-metrics/",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     names = {m["name"] for m in r.json()["data"]}
@@ -182,19 +182,19 @@ def test_list_custom_metrics_does_not_include_other_users(
 
 
 def test_create_custom_metric_invalid_slug(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     body = _create_body(name="Bad-Name")
     r = client.post(
         f"{settings.API_V1_STR}/custom-metrics/",
         json=body,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 422
 
 
 def test_generate_custom_metric_preview_mocked_llm(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     rubric = (
         "Measures: whether the agent closed the loop.\n\n"
@@ -219,7 +219,7 @@ def test_generate_custom_metric_preview_mocked_llm(
         r = client.post(
             f"{settings.API_V1_STR}/custom-metrics/generate",
             json={"description": "Close the user loop"},
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
     assert r.status_code == 200
     data = r.json()

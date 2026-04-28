@@ -25,6 +25,7 @@ from app.tests.utils.eval import (
     create_test_prompt_editor_session,
     create_test_run,
 )
+from app.tests.utils.utils import AUTH_USER_EMAIL
 
 PREFIX = f"{settings.API_V1_STR}/prompt-editor"
 
@@ -125,10 +126,10 @@ def _llm_stream_factory_editing_turns(
 
 
 def test_create_session(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_platform_agent(db)
-    body = _create_session_via_api(client, superuser_auth_cookies, agent.id)
+    body = _create_session_via_api(client, auth_cookies, agent.id)
     assert body["agent_id"] == str(agent.id)
     assert body["status"] == "active"
     assert body["base_prompt"] is not None
@@ -136,48 +137,48 @@ def test_create_session(
 
 
 def test_create_session_non_platform_agent_allowed(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     """Session creation accepts any agent; platform check is on chat only."""
     agent = create_test_agent(db)
     r = client.post(
         f"{PREFIX}/sessions/",
         json={"agent_id": str(agent.id)},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
 
 
 def test_create_session_agent_not_found(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.post(
         f"{PREFIX}/sessions/",
         json={"agent_id": str(uuid.uuid4())},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 422
 
 
 def test_list_sessions(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_platform_agent(db)
-    _create_session_via_api(client, superuser_auth_cookies, agent.id)
-    r = client.get(f"{PREFIX}/sessions/", cookies=superuser_auth_cookies)
+    _create_session_via_api(client, auth_cookies, agent.id)
+    r = client.get(f"{PREFIX}/sessions/", cookies=auth_cookies)
     assert r.status_code == 200
     assert r.json()["count"] >= 1
 
 
 def test_list_sessions_filter_by_agent(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_platform_agent(db)
-    _create_session_via_api(client, superuser_auth_cookies, agent.id)
+    _create_session_via_api(client, auth_cookies, agent.id)
     r = client.get(
         f"{PREFIX}/sessions/",
         params={"agent_id": str(agent.id)},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     for sess in r.json()["data"]:
@@ -185,103 +186,103 @@ def test_list_sessions_filter_by_agent(
 
 
 def test_get_session(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_platform_agent(db)
-    created = _create_session_via_api(client, superuser_auth_cookies, agent.id)
+    created = _create_session_via_api(client, auth_cookies, agent.id)
     r = client.get(
         f"{PREFIX}/sessions/{created['id']}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["id"] == created["id"]
 
 
 def test_get_session_not_found(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.get(
         f"{PREFIX}/sessions/{uuid.uuid4()}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
 
 def test_update_session(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_platform_agent(db)
-    created = _create_session_via_api(client, superuser_auth_cookies, agent.id)
+    created = _create_session_via_api(client, auth_cookies, agent.id)
     r = client.patch(
         f"{PREFIX}/sessions/{created['id']}",
         json={"title": "New title"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["title"] == "New title"
 
 
 def test_update_session_base_prompt(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_platform_agent(db)
-    created = _create_session_via_api(client, superuser_auth_cookies, agent.id)
+    created = _create_session_via_api(client, auth_cookies, agent.id)
     assert created["base_prompt"] is not None
     r = client.patch(
         f"{PREFIX}/sessions/{created['id']}/base-prompt",
         json={"base_prompt": "updated baseline after draft save"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     body = r.json()
     assert body["base_prompt"] == "updated baseline after draft save"
     r2 = client.get(
         f"{PREFIX}/sessions/{created['id']}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r2.status_code == 200
     assert r2.json()["base_prompt"] == "updated baseline after draft save"
 
 
 def test_update_session_base_prompt_not_found(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.patch(
         f"{PREFIX}/sessions/{uuid.uuid4()}/base-prompt",
         json={"base_prompt": "x"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
 
 def test_archive_session(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_platform_agent(db)
-    created = _create_session_via_api(client, superuser_auth_cookies, agent.id)
+    created = _create_session_via_api(client, auth_cookies, agent.id)
     r = client.patch(
         f"{PREFIX}/sessions/{created['id']}",
         json={"status": "archived"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["status"] == "archived"
 
 
 def test_delete_session(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_platform_agent(db)
-    created = _create_session_via_api(client, superuser_auth_cookies, agent.id)
+    created = _create_session_via_api(client, auth_cookies, agent.id)
     r = client.delete(
         f"{PREFIX}/sessions/{created['id']}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     # Verify it's gone
     r2 = client.get(
         f"{PREFIX}/sessions/{created['id']}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r2.status_code == 404
 
@@ -290,10 +291,10 @@ def test_delete_session(
 
 
 def test_list_messages(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_platform_agent(db)
-    user = crud.get_user_by_email(session=db, email=settings.FIRST_SUPERUSER)
+    user = crud.get_user_by_email(session=db, email=AUTH_USER_EMAIL)
     assert user is not None
     pe_session = create_test_prompt_editor_session(
         db, agent_id=agent.id, created_by=user.id
@@ -306,18 +307,18 @@ def test_list_messages(
     )
     r = client.get(
         f"{PREFIX}/sessions/{pe_session.id}/messages",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["count"] >= 1
 
 
 def test_list_messages_session_not_found(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.get(
         f"{PREFIX}/sessions/{uuid.uuid4()}/messages",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
@@ -329,12 +330,12 @@ def test_list_messages_session_not_found(
 def test_chat_happy_path_no_edits(
     mock_stream: object,
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
     """Chat with no tool calls: reasoning + done (prompt unchanged)."""
     agent = create_test_platform_agent(db, system_prompt="You are helpful.")
-    sess = _create_session_via_api(client, superuser_auth_cookies, agent.id)
+    sess = _create_session_via_api(client, auth_cookies, agent.id)
 
     final = LLMStreamResult(
         full_content="Looks good already!",
@@ -355,7 +356,7 @@ def test_chat_happy_path_no_edits(
     r = client.post(
         f"{PREFIX}/sessions/{sess['id']}/messages",
         json={"content": "Review my prompt", "current_prompt": "You are helpful."},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("text/event-stream")
@@ -386,11 +387,11 @@ def test_chat_happy_path_no_edits(
 def test_chat_passes_provider_and_model_to_llm(
     mock_stream: object,
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
     agent = create_test_platform_agent(db, system_prompt="You are helpful.")
-    sess = _create_session_via_api(client, superuser_auth_cookies, agent.id)
+    sess = _create_session_via_api(client, auth_cookies, agent.id)
 
     final = LLMStreamResult(
         full_content="ok",
@@ -413,7 +414,7 @@ def test_chat_passes_provider_and_model_to_llm(
             "provider": "anthropic",
             "model": "claude-3-5-sonnet-20241022",
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     mock_stream.assert_called_once()  # type: ignore[union-attr]
@@ -427,12 +428,12 @@ def test_chat_passes_provider_and_model_to_llm(
 def test_chat_happy_path_with_edits(
     mock_stream: MagicMock,
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
     """Chat with tool calls: reasoning + edit snapshots + done."""
     agent = create_test_platform_agent(db, system_prompt="Line one\nLine two")
-    sess = _create_session_via_api(client, superuser_auth_cookies, agent.id)
+    sess = _create_session_via_api(client, auth_cookies, agent.id)
 
     final = LLMStreamResult(
         full_content="Replacing line 2.",
@@ -460,7 +461,7 @@ def test_chat_happy_path_with_edits(
     r = client.post(
         f"{PREFIX}/sessions/{sess['id']}/messages",
         json={"content": "Fix line 2", "current_prompt": "Line one\nLine two"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
 
@@ -492,12 +493,12 @@ def test_chat_happy_path_with_edits(
 def test_chat_multiple_edits(
     mock_stream: MagicMock,
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
     """Multiple tool calls produce multiple edit events."""
     agent = create_test_platform_agent(db, system_prompt="A\nB\nC")
-    sess = _create_session_via_api(client, superuser_auth_cookies, agent.id)
+    sess = _create_session_via_api(client, auth_cookies, agent.id)
 
     final = LLMStreamResult(
         full_content="Updating.",
@@ -525,7 +526,7 @@ def test_chat_multiple_edits(
     r = client.post(
         f"{PREFIX}/sessions/{sess['id']}/messages",
         json={"content": "edit both", "current_prompt": "A\nB\nC"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
 
@@ -542,12 +543,12 @@ def test_chat_multiple_edits(
 def test_chat_persists_messages(
     mock_stream: object,
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
     """Both user and assistant messages are persisted to the database."""
     agent = create_test_platform_agent(db, system_prompt="Test prompt")
-    sess = _create_session_via_api(client, superuser_auth_cookies, agent.id)
+    sess = _create_session_via_api(client, auth_cookies, agent.id)
 
     final = LLMStreamResult(
         full_content="Response text.",
@@ -562,14 +563,14 @@ def test_chat_persists_messages(
     r = client.post(
         f"{PREFIX}/sessions/{sess['id']}/messages",
         json={"content": "Hello there", "current_prompt": "Test prompt"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
 
     # Verify messages were persisted
     msgs_r = client.get(
         f"{PREFIX}/sessions/{sess['id']}/messages",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert msgs_r.status_code == 200
     msgs = msgs_r.json()
@@ -585,12 +586,12 @@ def test_chat_persists_messages(
 def test_chat_updates_session_edited_prompt(
     mock_stream: MagicMock,
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
     """After edits, the session's edited_prompt is updated."""
     agent = create_test_platform_agent(db, system_prompt="Original")
-    sess = _create_session_via_api(client, superuser_auth_cookies, agent.id)
+    sess = _create_session_via_api(client, auth_cookies, agent.id)
 
     final = LLMStreamResult(
         full_content="Edited.",
@@ -613,61 +614,61 @@ def test_chat_updates_session_edited_prompt(
     r = client.post(
         f"{PREFIX}/sessions/{sess['id']}/messages",
         json={"content": "update", "current_prompt": "Original"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
 
     # Check session reflects the edit
     sess_r = client.get(
         f"{PREFIX}/sessions/{sess['id']}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert sess_r.status_code == 200
     assert sess_r.json()["edited_prompt"] == "Updated"
 
 
 def test_chat_session_not_found(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.post(
         f"{PREFIX}/sessions/{uuid.uuid4()}/messages",
         json={"content": "hi", "current_prompt": "p"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
 
 def test_chat_archived_session(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_platform_agent(db)
-    sess = _create_session_via_api(client, superuser_auth_cookies, agent.id)
+    sess = _create_session_via_api(client, auth_cookies, agent.id)
     # Archive the session
     client.patch(
         f"{PREFIX}/sessions/{sess['id']}",
         json={"status": "archived"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
 
     r = client.post(
         f"{PREFIX}/sessions/{sess['id']}/messages",
         json={"content": "hi", "current_prompt": "p"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 400
     assert "archived" in r.json()["detail"].lower()
 
 
 def test_chat_non_platform_agent_rejected(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     """Chat endpoint rejects non-platform agents."""
     agent = create_test_agent(db)
-    sess = _create_session_via_api(client, superuser_auth_cookies, agent.id)
+    sess = _create_session_via_api(client, auth_cookies, agent.id)
     r = client.post(
         f"{PREFIX}/sessions/{sess['id']}/messages",
         json={"content": "hi", "current_prompt": "p"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 422
 
@@ -676,12 +677,12 @@ def test_chat_non_platform_agent_rejected(
 def test_chat_llm_error_yields_error_event(
     mock_stream: object,
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
     """LLM failure produces an error SSE event."""
     agent = create_test_platform_agent(db, system_prompt="p")
-    sess = _create_session_via_api(client, superuser_auth_cookies, agent.id)
+    sess = _create_session_via_api(client, auth_cookies, agent.id)
 
     async def boom():
         raise RuntimeError("rate limited")
@@ -692,7 +693,7 @@ def test_chat_llm_error_yields_error_event(
     r = client.post(
         f"{PREFIX}/sessions/{sess['id']}/messages",
         json={"content": "do something", "current_prompt": "p"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200  # SSE always returns 200, errors in stream
     assert r.headers["content-type"].startswith("text/event-stream")
@@ -709,12 +710,12 @@ def test_chat_llm_error_yields_error_event(
 def test_chat_invalid_edit_lines_dropped(
     mock_stream: MagicMock,
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
     """Out-of-range edit tool calls are dropped; valid ones applied."""
     agent = create_test_platform_agent(db, system_prompt="Single line")
-    sess = _create_session_via_api(client, superuser_auth_cookies, agent.id)
+    sess = _create_session_via_api(client, auth_cookies, agent.id)
 
     final = LLMStreamResult(
         full_content="Trying edits.",
@@ -742,7 +743,7 @@ def test_chat_invalid_edit_lines_dropped(
     r = client.post(
         f"{PREFIX}/sessions/{sess['id']}/messages",
         json={"content": "fix", "current_prompt": "Single line"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
 
@@ -757,12 +758,12 @@ def test_chat_invalid_edit_lines_dropped(
 def test_chat_tool_calls_reflected_in_edits(
     mock_stream: MagicMock,
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
     """Tool calls produce edit events and update the prompt."""
     agent = create_test_platform_agent(db, system_prompt="X")
-    sess = _create_session_via_api(client, superuser_auth_cookies, agent.id)
+    sess = _create_session_via_api(client, auth_cookies, agent.id)
 
     final = LLMStreamResult(
         full_content="Done.",
@@ -785,7 +786,7 @@ def test_chat_tool_calls_reflected_in_edits(
     r = client.post(
         f"{PREFIX}/sessions/{sess['id']}/messages",
         json={"content": "go", "current_prompt": "X"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
 
@@ -806,19 +807,19 @@ def test_chat_tool_calls_reflected_in_edits(
 
 
 def test_get_presets_requires_agent_id(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
-    r = client.get(f"{PREFIX}/presets", cookies=superuser_auth_cookies)
+    r = client.get(f"{PREFIX}/presets", cookies=auth_cookies)
     assert r.status_code == 422
 
 
 def test_get_presets_agent_not_found(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.get(
         f"{PREFIX}/presets",
         params={"agent_id": str(uuid.uuid4())},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
@@ -830,13 +831,13 @@ def test_get_presets_unauthenticated(client: TestClient, db: Session) -> None:
 
 
 def test_get_presets_endpoint_agent_only_help_create(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     r = client.get(
         f"{PREFIX}/presets",
         params={"agent_id": str(agent.id)},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     presets = r.json()
@@ -844,13 +845,13 @@ def test_get_presets_endpoint_agent_only_help_create(
 
 
 def test_get_presets_platform_agent_filtered(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_platform_agent(db)
     r = client.get(
         f"{PREFIX}/presets",
         params={"agent_id": str(agent.id)},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     ids = [p["id"] for p in r.json()]
@@ -859,7 +860,7 @@ def test_get_presets_platform_agent_filtered(
 
 
 def test_get_presets_includes_suggest_from_evals_after_completed_run(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_platform_agent(db)
     eval_config = create_test_eval_config(db, agent_id=agent.id)
@@ -872,7 +873,7 @@ def test_get_presets_includes_suggest_from_evals_after_completed_run(
     r = client.get(
         f"{PREFIX}/presets",
         params={"agent_id": str(agent.id)},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     ids = [p["id"] for p in r.json()]

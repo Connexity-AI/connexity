@@ -20,13 +20,13 @@ from app.tests.utils.eval import (
 
 
 def test_create_agent_has_version_one(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     data = {"name": "V1 Agent", "endpoint_url": "http://example.com/agent"}
     r = client.post(
         f"{settings.API_V1_STR}/agents/",
         json=data,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     body = r.json()
@@ -35,7 +35,7 @@ def test_create_agent_has_version_one(
 
 
 def test_patch_versionable_field_creates_draft(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     """PATCH with versionable fields creates a draft instead of auto-publishing."""
     agent = create_test_agent(db)
@@ -45,7 +45,7 @@ def test_patch_versionable_field_creates_draft(
             "endpoint_url": "http://new.example/agent",
             "change_description": "new endpoint",
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     body = r.json()
@@ -58,13 +58,13 @@ def test_patch_versionable_field_creates_draft(
 
 
 def test_patch_identity_only_no_version_bump(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     r = client.patch(
         f"{settings.API_V1_STR}/agents/{agent.id}",
         json={"name": "Renamed Only"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["version"] == 1
@@ -74,7 +74,7 @@ def test_patch_identity_only_no_version_bump(
 
 
 def test_list_versions_and_get_one(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     """Create agent, draft, publish → 2 published versions."""
     agent = create_test_agent(db)
@@ -82,17 +82,17 @@ def test_list_versions_and_get_one(
     client.put(
         f"{settings.API_V1_STR}/agents/{agent.id}/draft",
         json={"endpoint_url": "http://v2.example/agent"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     # Publish draft
     client.post(
         f"{settings.API_V1_STR}/agents/{agent.id}/publish",
         json={},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     r = client.get(
         f"{settings.API_V1_STR}/agents/{agent.id}/versions",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     data = r.json()
@@ -101,31 +101,31 @@ def test_list_versions_and_get_one(
 
     r2 = client.get(
         f"{settings.API_V1_STR}/agents/{agent.id}/versions/1",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r2.status_code == 200
     assert r2.json()["version"] == 1
 
 
 def test_versions_diff(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     # Create draft + publish to get version 2
     client.put(
         f"{settings.API_V1_STR}/agents/{agent.id}/draft",
         json={"endpoint_url": "http://diff.example/agent"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     client.post(
         f"{settings.API_V1_STR}/agents/{agent.id}/publish",
         json={},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     r = client.get(
         f"{settings.API_V1_STR}/agents/{agent.id}/versions/diff",
         params={"from_version": 1, "to_version": 2},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     body = r.json()
@@ -135,25 +135,25 @@ def test_versions_diff(
 
 
 def test_rollback_creates_new_version(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     # Draft + publish to get version 2
     client.put(
         f"{settings.API_V1_STR}/agents/{agent.id}/draft",
         json={"endpoint_url": "http://rolled.example/agent"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     client.post(
         f"{settings.API_V1_STR}/agents/{agent.id}/publish",
         json={},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     # Rollback to version 1
     r = client.post(
         f"{settings.API_V1_STR}/agents/{agent.id}/rollback",
         json={"version": 1, "change_description": "back to v1"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     rolled = r.json()
@@ -168,7 +168,7 @@ def test_rollback_creates_new_version(
 
 
 def test_list_runs_filter_agent_version(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     eval_config = create_test_eval_config(db, agent_id=agent.id)
@@ -176,7 +176,7 @@ def test_list_runs_filter_agent_version(
     r = client.get(
         f"{settings.API_V1_STR}/runs/",
         params={"agent_id": str(agent.id), "agent_version": 1},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     for item in r.json()["data"]:
@@ -226,7 +226,7 @@ def test_concurrent_updates_distinct_drafts(db: Session) -> None:
 
 
 def test_platform_agent_version_on_prompt_change(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.post(
         f"{settings.API_V1_STR}/agents/",
@@ -237,7 +237,7 @@ def test_platform_agent_version_on_prompt_change(
             "agent_model": "gpt-4o-mini",
             "agent_provider": "openai",
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     aid = r.json()["id"]
@@ -245,7 +245,7 @@ def test_platform_agent_version_on_prompt_change(
     r2 = client.patch(
         f"{settings.API_V1_STR}/agents/{aid}",
         json={"system_prompt": "B"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r2.status_code == 200
     assert r2.json()["version"] == 1
@@ -254,7 +254,7 @@ def test_platform_agent_version_on_prompt_change(
     r3 = client.post(
         f"{settings.API_V1_STR}/agents/{aid}/publish",
         json={"change_description": "Updated prompt to B"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r3.status_code == 200
     assert r3.json()["version"] == 2
@@ -265,13 +265,13 @@ def test_platform_agent_version_on_prompt_change(
 
 
 def test_put_draft_creates_new_draft(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     r = client.put(
         f"{settings.API_V1_STR}/agents/{agent.id}/draft",
         json={"endpoint_url": "http://draft.example/agent"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     draft = r.json()
@@ -283,20 +283,20 @@ def test_put_draft_creates_new_draft(
 
 
 def test_put_draft_merges_into_existing(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     # First draft
     client.put(
         f"{settings.API_V1_STR}/agents/{agent.id}/draft",
         json={"endpoint_url": "http://draft.example/agent"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     # Merge into existing draft
     r = client.put(
         f"{settings.API_V1_STR}/agents/{agent.id}/draft",
         json={"agent_provider": "openai"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     draft = r.json()
@@ -306,13 +306,13 @@ def test_put_draft_merges_into_existing(
 
 
 def test_get_draft(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     # No draft yet → 404
     r = client.get(
         f"{settings.API_V1_STR}/agents/{agent.id}/draft",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
@@ -320,31 +320,31 @@ def test_get_draft(
     client.put(
         f"{settings.API_V1_STR}/agents/{agent.id}/draft",
         json={"endpoint_url": "http://draft.example/agent"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     r = client.get(
         f"{settings.API_V1_STR}/agents/{agent.id}/draft",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["status"] == "draft"
 
 
 def test_publish_draft(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     # Create draft
     client.put(
         f"{settings.API_V1_STR}/agents/{agent.id}/draft",
         json={"endpoint_url": "http://published.example/agent"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     # Publish
     r = client.post(
         f"{settings.API_V1_STR}/agents/{agent.id}/publish",
         json={"change_description": "Updated endpoint"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     published = r.json()
@@ -363,19 +363,19 @@ def test_publish_draft(
 
 
 def test_publish_no_draft_returns_409(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     r = client.post(
         f"{settings.API_V1_STR}/agents/{agent.id}/publish",
         json={},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 409
 
 
 def test_publish_draft_validates_mode(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     """Publishing a draft with invalid mode config should fail."""
     agent = create_test_agent(db)
@@ -383,37 +383,37 @@ def test_publish_draft_validates_mode(
     client.put(
         f"{settings.API_V1_STR}/agents/{agent.id}/draft",
         json={"mode": "platform"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     r = client.post(
         f"{settings.API_V1_STR}/agents/{agent.id}/publish",
         json={},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 422
 
 
 def test_discard_draft(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     # Create draft
     client.put(
         f"{settings.API_V1_STR}/agents/{agent.id}/draft",
         json={"endpoint_url": "http://discarded.example/agent"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     # Discard
     r = client.delete(
         f"{settings.API_V1_STR}/agents/{agent.id}/draft",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 204
 
     # Draft should be gone
     r2 = client.get(
         f"{settings.API_V1_STR}/agents/{agent.id}/draft",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r2.status_code == 404
 
@@ -425,19 +425,19 @@ def test_discard_draft(
 
 
 def test_discard_nonexistent_draft_is_idempotent(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     """Discarding when no draft exists should succeed (204)."""
     agent = create_test_agent(db)
     r = client.delete(
         f"{settings.API_V1_STR}/agents/{agent.id}/draft",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 204
 
 
 def test_agent_live_fields_reflect_published_not_draft(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     """Agent's versionable fields always reflect latest PUBLISHED version, not draft."""
     agent = create_test_agent(db)
@@ -446,12 +446,12 @@ def test_agent_live_fields_reflect_published_not_draft(
     client.put(
         f"{settings.API_V1_STR}/agents/{agent.id}/draft",
         json={"endpoint_url": "http://draft-only.example/agent"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     # Get agent — should still have original config
     r = client.get(
         f"{settings.API_V1_STR}/agents/{agent.id}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["endpoint_url"] == original_url
@@ -459,7 +459,7 @@ def test_agent_live_fields_reflect_published_not_draft(
 
 
 def test_list_versions_excludes_drafts(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     """List versions should only return published versions."""
     agent = create_test_agent(db)
@@ -467,11 +467,11 @@ def test_list_versions_excludes_drafts(
     client.put(
         f"{settings.API_V1_STR}/agents/{agent.id}/draft",
         json={"endpoint_url": "http://draft.example/agent"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     r = client.get(
         f"{settings.API_V1_STR}/agents/{agent.id}/versions",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     data = r.json()
@@ -481,14 +481,14 @@ def test_list_versions_excludes_drafts(
 
 
 def test_full_draft_publish_cycle(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     """Full lifecycle: create → draft → iterate → publish → verify."""
     # Create agent
     r = client.post(
         f"{settings.API_V1_STR}/agents/",
         json={"name": "Lifecycle Agent", "endpoint_url": "http://v1.example/agent"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     aid = r.json()["id"]
@@ -497,7 +497,7 @@ def test_full_draft_publish_cycle(
     r = client.put(
         f"{settings.API_V1_STR}/agents/{aid}/draft",
         json={"endpoint_url": "http://wip.example/agent"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
 
@@ -505,7 +505,7 @@ def test_full_draft_publish_cycle(
     r = client.put(
         f"{settings.API_V1_STR}/agents/{aid}/draft",
         json={"endpoint_url": "http://v2.example/agent"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["endpoint_url"] == "http://v2.example/agent"
@@ -514,7 +514,7 @@ def test_full_draft_publish_cycle(
     r = client.post(
         f"{settings.API_V1_STR}/agents/{aid}/publish",
         json={"change_description": "Finalized v2 endpoint"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["version"] == 2
@@ -523,7 +523,7 @@ def test_full_draft_publish_cycle(
     # Verify agent reflects published config
     r = client.get(
         f"{settings.API_V1_STR}/agents/{aid}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["version"] == 2
@@ -533,19 +533,19 @@ def test_full_draft_publish_cycle(
     # Verify version history
     r = client.get(
         f"{settings.API_V1_STR}/agents/{aid}/versions",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["count"] == 2
 
 
 def test_version_public_includes_status(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     r = client.get(
         f"{settings.API_V1_STR}/agents/{agent.id}/versions/1",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["status"] == "published"

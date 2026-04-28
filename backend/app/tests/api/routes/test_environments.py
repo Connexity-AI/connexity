@@ -18,6 +18,7 @@ from app.models import (
     User,
 )
 from app.tests.utils.eval import create_test_agent
+from app.tests.utils.utils import AUTH_USER_EMAIL
 
 
 @pytest.fixture(autouse=True)
@@ -30,13 +31,13 @@ def _encryption_key(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, No
     encryption._fernet.cache_clear()
 
 
-def _superuser(db: Session) -> User:
-    return db.exec(select(User).where(User.email == settings.FIRST_SUPERUSER)).one()
+def _seed_user(db: Session) -> User:
+    return db.exec(select(User).where(User.email == AUTH_USER_EMAIL)).one()
 
 
 def _make_owned_agent(db: Session, owner_email: str | None = None):
     user = (
-        _superuser(db)
+        _seed_user(db)
         if owner_email is None
         else db.exec(select(User).where(User.email == owner_email)).one()
     )
@@ -81,21 +82,21 @@ def test_environments_require_auth(client: TestClient) -> None:
 
 def test_create_environment_returns_404_when_integration_missing(
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
     agent, _ = _make_owned_agent(db)
     r = client.post(
         f"{settings.API_V1_STR}/environments/",
         json=_create_env_body(agent_id=agent.id, integration_id=uuid.uuid4()),
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
 
 def test_create_list_delete_environment_flow(
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
     agent, user = _make_owned_agent(db)
@@ -106,7 +107,7 @@ def test_create_list_delete_environment_flow(
         json=_create_env_body(
             agent_id=agent.id, integration_id=integration.id, name="prod"
         ),
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert create_r.status_code == 200
     body = create_r.json()
@@ -119,7 +120,7 @@ def test_create_list_delete_environment_flow(
     list_r = client.get(
         f"{settings.API_V1_STR}/environments/",
         params={"agent_id": str(agent.id)},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert list_r.status_code == 200
     listed = list_r.json()
@@ -129,26 +130,26 @@ def test_create_list_delete_environment_flow(
 
     del_r = client.delete(
         f"{settings.API_V1_STR}/environments/{env_id}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert del_r.status_code == 200
 
     list_after = client.get(
         f"{settings.API_V1_STR}/environments/",
         params={"agent_id": str(agent.id)},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert list_after.json()["count"] == 0
 
 
 def test_list_environments_unknown_agent_returns_404(
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
 ) -> None:
     r = client.get(
         f"{settings.API_V1_STR}/environments/",
         params={"agent_id": str(uuid.uuid4())},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
@@ -183,7 +184,7 @@ def test_other_user_can_list_environment(
 
 def test_delete_integration_returns_409_when_environment_depends_on_it(
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
     agent, user = _make_owned_agent(db)
@@ -207,7 +208,7 @@ def test_delete_integration_returns_409_when_environment_depends_on_it(
     ):
         del_r = client.delete(
             f"{settings.API_V1_STR}/integrations/{integration.id}",
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
     assert del_r.status_code == 409
     assert "environment" in del_r.json()["detail"].lower()

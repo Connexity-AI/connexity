@@ -30,7 +30,7 @@ def _setup(db: Session) -> tuple:
 
 
 def test_create_run(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent, eval_config = _setup(db)
     data = {
@@ -41,7 +41,7 @@ def test_create_run(
     r = client.post(
         f"{settings.API_V1_STR}/runs/",
         json=data,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -50,7 +50,7 @@ def test_create_run(
 
 
 def test_create_run_agent_not_found(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     test_case = create_test_case_fixture(db)
     eval_config = create_test_eval_config(db, members=eval_config_members(test_case.id))
@@ -62,13 +62,13 @@ def test_create_run_agent_not_found(
     r = client.post(
         f"{settings.API_V1_STR}/runs/",
         json=data,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
 
 def test_create_run_platform_agent_without_endpoint_url(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     test_case = create_test_case_fixture(db)
     eval_config = create_test_eval_config(db, members=eval_config_members(test_case.id))
@@ -81,7 +81,7 @@ def test_create_run_platform_agent_without_endpoint_url(
             "agent_model": "gpt-4o-mini",
             "agent_provider": "openai",
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert agent_r.status_code == 200
     agent_id = agent_r.json()["id"]
@@ -96,7 +96,7 @@ def test_create_run_platform_agent_without_endpoint_url(
     r = client.post(
         f"{settings.API_V1_STR}/runs/",
         json=data,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     body = r.json()
@@ -108,27 +108,27 @@ def test_create_run_platform_agent_without_endpoint_url(
 
 
 def test_list_runs(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent, eval_config = _setup(db)
     create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     r = client.get(
         f"{settings.API_V1_STR}/runs/",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["count"] >= 1
 
 
 def test_list_runs_filter_by_agent(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent, eval_config = _setup(db)
     create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     r = client.get(
         f"{settings.API_V1_STR}/runs/",
         params={"agent_id": str(agent.id)},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     data = r.json()
@@ -137,7 +137,7 @@ def test_list_runs_filter_by_agent(
 
 
 def test_list_runs_filter_by_eval_config(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     tc = create_test_case_fixture(db)
@@ -153,7 +153,7 @@ def test_list_runs_filter_by_eval_config(
     r = client.get(
         f"{settings.API_V1_STR}/runs/",
         params={"eval_config_id": str(eval_config_a.id)},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     data = r.json()
@@ -162,61 +162,57 @@ def test_list_runs_filter_by_eval_config(
 
 
 def test_list_runs_filter_by_status(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.get(
         f"{settings.API_V1_STR}/runs/",
         params={"status": "pending"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
 
 
-def test_get_run(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
-) -> None:
+def test_get_run(client: TestClient, auth_cookies: dict[str, str], db: Session) -> None:
     agent, eval_config = _setup(db)
     run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     r = client.get(
         f"{settings.API_V1_STR}/runs/{run.id}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["id"] == str(run.id)
 
 
-def test_get_run_not_found(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
-) -> None:
+def test_get_run_not_found(client: TestClient, auth_cookies: dict[str, str]) -> None:
     r = client.get(
         f"{settings.API_V1_STR}/runs/{uuid.uuid4()}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
 
 def test_update_run(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent, eval_config = _setup(db)
     run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     r = client.patch(
         f"{settings.API_V1_STR}/runs/{run.id}",
         json={"status": "running"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["status"] == "running"
 
 
 def test_delete_run(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent, eval_config = _setup(db)
     run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     r = client.delete(
         f"{settings.API_V1_STR}/runs/{run.id}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
 
@@ -231,14 +227,14 @@ def test_delete_run(
 def test_execute_pending_run(
     _mock_exec: AsyncMock,
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
     agent, eval_config = _setup(db)
     run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     r = client.post(
         f"{settings.API_V1_STR}/runs/{run.id}/execute",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 202
     assert r.json()["id"] == str(run.id)
@@ -251,7 +247,7 @@ def test_execute_pending_run(
 def test_execute_failed_run(
     _mock_exec: AsyncMock,
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
     agent, eval_config = _setup(db)
@@ -259,26 +255,26 @@ def test_execute_failed_run(
     crud.update_run(session=db, db_run=run, run_in=RunUpdate(status=RunStatus.FAILED))
     r = client.post(
         f"{settings.API_V1_STR}/runs/{run.id}/execute",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 202
 
 
 def test_execute_running_run_fails(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent, eval_config = _setup(db)
     run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     crud.update_run(session=db, db_run=run, run_in=RunUpdate(status=RunStatus.RUNNING))
     r = client.post(
         f"{settings.API_V1_STR}/runs/{run.id}/execute",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 400
 
 
 def test_execute_completed_run_fails(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent, eval_config = _setup(db)
     run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
@@ -287,17 +283,15 @@ def test_execute_completed_run_fails(
     )
     r = client.post(
         f"{settings.API_V1_STR}/runs/{run.id}/execute",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 400
 
 
-def test_execute_not_found(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
-) -> None:
+def test_execute_not_found(client: TestClient, auth_cookies: dict[str, str]) -> None:
     r = client.post(
         f"{settings.API_V1_STR}/runs/{uuid.uuid4()}/execute",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
@@ -306,19 +300,19 @@ def test_execute_not_found(
 
 
 def test_cancel_pending_run(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent, eval_config = _setup(db)
     run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     r = client.post(
         f"{settings.API_V1_STR}/runs/{run.id}/cancel",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
 
 
 def test_cancel_running_run_without_active_task(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     """A run in RUNNING status but not tracked by RunManager (e.g. orphaned)."""
     agent, eval_config = _setup(db)
@@ -326,18 +320,16 @@ def test_cancel_running_run_without_active_task(
     crud.update_run(session=db, db_run=run, run_in=RunUpdate(status=RunStatus.RUNNING))
     r = client.post(
         f"{settings.API_V1_STR}/runs/{run.id}/cancel",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["status"] == "cancelled"
 
 
-def test_cancel_not_found(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
-) -> None:
+def test_cancel_not_found(client: TestClient, auth_cookies: dict[str, str]) -> None:
     r = client.post(
         f"{settings.API_V1_STR}/runs/{uuid.uuid4()}/cancel",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
@@ -346,7 +338,7 @@ def test_cancel_not_found(
 
 
 def test_stream_finished_run(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     """A completed run returns a snapshot event then closes."""
     agent, eval_config = _setup(db)
@@ -356,7 +348,7 @@ def test_stream_finished_run(
     )
     r = client.get(
         f"{settings.API_V1_STR}/runs/{run.id}/stream",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("text/event-stream")
@@ -365,12 +357,10 @@ def test_stream_finished_run(
     assert "event: stream_closed" in body
 
 
-def test_stream_not_found(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
-) -> None:
+def test_stream_not_found(client: TestClient, auth_cookies: dict[str, str]) -> None:
     r = client.get(
         f"{settings.API_V1_STR}/runs/{uuid.uuid4()}/stream",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
@@ -385,7 +375,7 @@ def test_stream_not_found(
 def test_create_run_with_auto_execute(
     _mock_exec: AsyncMock,
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
     agent, eval_config = _setup(db)
@@ -398,7 +388,7 @@ def test_create_run_with_auto_execute(
         f"{settings.API_V1_STR}/runs/",
         json=data,
         params={"auto_execute": True},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -406,7 +396,7 @@ def test_create_run_with_auto_execute(
 
 
 def test_create_run_without_auto_execute(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent, eval_config = _setup(db)
     data = {
@@ -418,7 +408,7 @@ def test_create_run_without_auto_execute(
         f"{settings.API_V1_STR}/runs/",
         json=data,
         params={"auto_execute": False},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["status"] == "pending"

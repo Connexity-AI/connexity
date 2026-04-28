@@ -12,10 +12,10 @@ from app.services.llm_models import (
 )
 
 
-def test_get_config(client: TestClient, superuser_auth_cookies: dict[str, str]) -> None:
+def test_get_config(client: TestClient, auth_cookies: dict[str, str]) -> None:
     r = client.get(
         f"{settings.API_V1_STR}/config/",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -37,7 +37,7 @@ def test_llm_models_requires_auth(client: TestClient) -> None:
 
 def test_llm_models_returns_catalog(
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     monkeypatch: MonkeyPatch,
 ) -> None:
     catalog = LLMModelsPublic(
@@ -68,7 +68,7 @@ def test_llm_models_returns_catalog(
 
     r = client.get(
         f"{settings.API_V1_STR}/config/llm-models",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
 
     assert r.status_code == 200
@@ -80,11 +80,11 @@ def test_llm_models_returns_catalog(
 
 
 def test_available_metrics_includes_custom_metrics(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     before = client.get(
         f"{settings.API_V1_STR}/config/available-metrics",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert before.status_code == 200
     count_before = before.json()["count"]
@@ -102,13 +102,13 @@ def test_available_metrics_includes_custom_metrics(
             "rubric": "Measures: test.\n5: ok.\n   Example: Agent replied.",
             "include_in_defaults": False,
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert create_r.status_code == 200
 
     after = client.get(
         f"{settings.API_V1_STR}/config/available-metrics",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert after.status_code == 200
     payload = after.json()

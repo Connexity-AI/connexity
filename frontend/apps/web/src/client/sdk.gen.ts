@@ -151,9 +151,6 @@ import type {
   LoginLogoutResponses,
   LoginRecoverPasswordData,
   LoginRecoverPasswordErrors,
-  LoginRecoverPasswordHtmlContentData,
-  LoginRecoverPasswordHtmlContentErrors,
-  LoginRecoverPasswordHtmlContentResponses,
   LoginRecoverPasswordResponses,
   LoginResetPasswordData,
   LoginResetPasswordErrors,
@@ -397,32 +394,6 @@ export class LoginService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
-    });
-  }
-
-  /**
-   * Recover Password Html Content
-   *
-   * HTML Content for Password Recovery
-   */
-  public static recoverPasswordHtmlContent<ThrowOnError extends boolean = false>(
-    options: Options<LoginRecoverPasswordHtmlContentData, ThrowOnError>
-  ) {
-    return (options.client ?? client).post<
-      LoginRecoverPasswordHtmlContentResponses,
-      LoginRecoverPasswordHtmlContentErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/password-recovery-html-content/{email}',
-      ...options,
     });
   }
 

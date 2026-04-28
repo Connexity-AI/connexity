@@ -60,10 +60,6 @@ class Settings(BaseSettings):
     # Fernet key for encrypting integration API keys — generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
     ENCRYPTION_KEY: str = DEFAULT_SECRET_VALUE
 
-    # Secrets with defaults
-    FIRST_SUPERUSER: EmailStr = "admin@example.com"
-    FIRST_SUPERUSER_PASSWORD: str = "password"
-
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
 
     API_V1_STR: str = "/api/v1"

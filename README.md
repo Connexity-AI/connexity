@@ -22,8 +22,8 @@ make install
 # 3. Start database
 make db
 
-# 4. Run migrations and seed data
-make db-seed
+# 4. Run migrations
+make db-upgrade
 
 # 5. Start backend (in one terminal)
 make dev
@@ -53,16 +53,9 @@ make docker-up
 | Backend  | http://localhost:8000/docs |
 | Adminer  | http://localhost:8083   |
 
-## Seed Credentials
+## Accounts
 
-`make db-seed` wipes the database and creates one superuser:
-
-| Field    | Value                |
-| -------- | -------------------- |
-| Email    | admin@example.com    |
-| Password | password             |
-
-These come from `FIRST_SUPERUSER` / `FIRST_SUPERUSER_PASSWORD` in your `.env`.
+The database starts empty. Sign up at the frontend (`http://localhost:3000`) or via `POST /api/v1/users/signup` to create an account.
 
 ## All Commands
 

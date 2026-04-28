@@ -45,3 +45,19 @@ def authentication_token_from_email(
         user = crud.update_user(session=db, db_user=user, user_in=user_in_update)
 
     return user_authentication_headers(client=client, email=email, password=password)
+
+
+def authentication_token_with_password(
+    *, client: TestClient, email: str, password: str, db: Session
+) -> dict[str, str]:
+    """Idempotently ensure a user exists with the given credentials, then login."""
+    user = crud.get_user_by_email(session=db, email=email)
+    if not user:
+        crud.create_user(
+            session=db, user_create=UserCreate(email=email, password=password)
+        )
+    else:
+        crud.update_user(
+            session=db, db_user=user, user_in=UserUpdate(password=password)
+        )
+    return user_authentication_headers(client=client, email=email, password=password)

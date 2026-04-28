@@ -62,4 +62,4 @@ cd backend && alembic history --verbose
 
 - `env.py` imports `app.models.SQLModel` to pick up all table metadata for autogeneration.
 - `DATABASE_URL` is read from Pydantic `settings.SQLALCHEMY_DATABASE_URI` (not from `alembic.ini`).
-- `scripts/prestart.sh` runs `alembic upgrade head` + seeds initial data — used by `make db-seed` and Docker entrypoint.
+- `scripts/prestart.sh` runs `alembic upgrade head` — used by `make db-upgrade` and Docker entrypoint.

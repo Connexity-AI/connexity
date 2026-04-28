@@ -113,7 +113,7 @@ def test_get_baseline_run_not_found(db: Session) -> None:
 
 
 def test_get_baseline_endpoint(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent, eval_config = _setup(db)
     run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
@@ -123,7 +123,7 @@ def test_get_baseline_endpoint(
     r = client.get(
         f"{_PREFIX}/baseline",
         params={"agent_id": str(agent.id), "eval_config_id": str(eval_config.id)},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["id"] == str(run.id)
@@ -131,7 +131,7 @@ def test_get_baseline_endpoint(
 
 
 def test_get_baseline_filters_by_agent_version(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     """GET /runs/baseline?agent_version=N only returns baseline for that version."""
     agent, eval_config = _setup(db)
@@ -147,7 +147,7 @@ def test_get_baseline_filters_by_agent_version(
     r = client.get(
         f"{_PREFIX}/baseline",
         params={**base_params, "agent_version": 1},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["id"] == str(run_v1.id)
@@ -157,7 +157,7 @@ def test_get_baseline_filters_by_agent_version(
     r = client.get(
         f"{_PREFIX}/baseline",
         params={**base_params, "agent_version": 99},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
@@ -180,7 +180,7 @@ def test_get_baseline_filters_by_agent_version(
     r = client.get(
         f"{_PREFIX}/baseline",
         params={**base_params, "agent_version": 2},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["id"] == str(run_v2.id)
@@ -190,20 +190,20 @@ def test_get_baseline_filters_by_agent_version(
     r = client.get(
         f"{_PREFIX}/baseline",
         params={**base_params, "agent_version": 1},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["id"] == str(run_v1.id)
 
 
 def test_get_baseline_endpoint_not_found(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent, eval_config = _setup(db)
     r = client.get(
         f"{_PREFIX}/baseline",
         params={"agent_id": str(agent.id), "eval_config_id": str(eval_config.id)},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
@@ -276,7 +276,7 @@ def test_get_baseline_run_defaults_to_current_agent_version(db: Session) -> None
 
 
 def test_get_baseline_omitted_agent_version_resolves_current(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     """Without agent_version, baseline lookup uses the agent's current version."""
     agent, eval_config = _setup(db)
@@ -297,7 +297,7 @@ def test_get_baseline_omitted_agent_version_resolves_current(
     r_current = client.get(
         f"{_PREFIX}/baseline",
         params={"agent_id": str(agent.id), "eval_config_id": str(eval_config.id)},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r_current.status_code == 404
 
@@ -308,7 +308,7 @@ def test_get_baseline_omitted_agent_version_resolves_current(
             "eval_config_id": str(eval_config.id),
             "agent_version": 2,
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r_v2.status_code == 404
 
@@ -319,7 +319,7 @@ def test_get_baseline_omitted_agent_version_resolves_current(
             "eval_config_id": str(eval_config.id),
             "agent_version": 1,
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r_v1.status_code == 200
     assert r_v1.json()["id"] == str(run_v1.id)
@@ -329,7 +329,7 @@ def test_get_baseline_omitted_agent_version_resolves_current(
 
 
 def test_patch_set_baseline_enforces_single(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent, eval_config = _setup(db)
     run1 = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
@@ -341,7 +341,7 @@ def test_patch_set_baseline_enforces_single(
     r = client.patch(
         f"{_PREFIX}/{run1.id}",
         json={"is_baseline": True},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["is_baseline"] is True
@@ -350,7 +350,7 @@ def test_patch_set_baseline_enforces_single(
     r = client.patch(
         f"{_PREFIX}/{run2.id}",
         json={"is_baseline": True},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["is_baseline"] is True
@@ -358,13 +358,13 @@ def test_patch_set_baseline_enforces_single(
     # Verify run1 is no longer baseline
     r = client.get(
         f"{_PREFIX}/{run1.id}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.json()["is_baseline"] is False
 
 
 def test_patch_set_baseline_rejects_non_completed(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent, eval_config = _setup(db)
     run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
@@ -372,7 +372,7 @@ def test_patch_set_baseline_rejects_non_completed(
     r = client.patch(
         f"{_PREFIX}/{run.id}",
         json={"is_baseline": True},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 409
     assert "Only completed runs" in r.json()["detail"]
@@ -383,7 +383,7 @@ def test_patch_set_baseline_rejects_non_completed(
 
 
 def test_patch_unset_baseline(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent, eval_config = _setup(db)
     run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
@@ -393,14 +393,14 @@ def test_patch_unset_baseline(
     r = client.patch(
         f"{_PREFIX}/{run.id}",
         json={"is_baseline": False},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["is_baseline"] is False
 
 
 def test_patch_other_fields_without_baseline(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     """Patching non-baseline fields should not affect baseline state."""
     agent, eval_config = _setup(db)
@@ -409,7 +409,7 @@ def test_patch_other_fields_without_baseline(
     r = client.patch(
         f"{_PREFIX}/{run.id}",
         json={"name": "renamed"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["name"] == "renamed"

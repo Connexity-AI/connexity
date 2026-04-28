@@ -22,7 +22,6 @@ make db-migrate MSG="add workspace table"
 
 ```bash
 make db-upgrade          # run alembic upgrade head
-make db-seed             # run migrations + seed data (prestart.sh)
 ```
 
 ## Downgrading

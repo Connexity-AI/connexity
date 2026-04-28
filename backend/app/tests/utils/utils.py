@@ -4,9 +4,11 @@ import string
 import httpx
 from fastapi import Response
 from fastapi.responses import JSONResponse
-from fastapi.testclient import TestClient
 
 from app.core.config import settings
+
+AUTH_USER_EMAIL = "auth-user@example.com"
+AUTH_USER_PASSWORD = "auth-password-changeme"
 
 
 def random_lower_string() -> str:
@@ -15,15 +17,6 @@ def random_lower_string() -> str:
 
 def random_email() -> str:
     return f"{random_lower_string()}@{random_lower_string()}.com"
-
-
-def get_superuser_auth_cookies(client: TestClient) -> dict[str, str]:
-    login_data = {
-        "username": settings.FIRST_SUPERUSER,
-        "password": settings.FIRST_SUPERUSER_PASSWORD,
-    }
-    r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
-    return extract_cookies(r)
 
 
 def extract_token_as_cookie(
