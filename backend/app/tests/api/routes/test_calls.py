@@ -53,7 +53,6 @@ def _owned_agent_with_environment(db: Session, retell_agent_id: str = "ret_a1"):
             name=f"int-{uuid.uuid4().hex[:6]}",
             api_key="sk_test_key_abcdef",
         ),
-        user_id=user.id,
     )
     crud.create_environment(
         session=db,

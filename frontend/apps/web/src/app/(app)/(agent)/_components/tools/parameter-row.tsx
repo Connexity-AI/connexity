@@ -66,7 +66,9 @@ export function ParameterRow({ toolIndex, paramIndex, isFirst, onRemove }: Param
       <Select
         value={type}
         onValueChange={(value) =>
-          setValue(`${basePath}.type`, value as 'string' | 'number' | 'integer')
+          setValue(`${basePath}.type`, value as 'string' | 'number' | 'integer', {
+            shouldDirty: true,
+          })
         }
       >
         <SelectTrigger className="h-8 text-xs bg-accent/20 border-border/60">

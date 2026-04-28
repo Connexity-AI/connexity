@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app import crud
-from app.api.deps import CurrentUser, SessionDep, get_current_user
+from app.api.deps import SessionDep, get_current_user
 from app.core.encryption import decrypt
 from app.models import (
     IntegrationCreate,
@@ -40,7 +40,6 @@ router = APIRouter(
 @router.post("/", response_model=IntegrationPublic)
 async def create_integration(
     session: SessionDep,
-    current_user: CurrentUser,
     integration_in: IntegrationCreate,
 ) -> IntegrationPublic:
     ok = await _test_connection(integration_in.provider, integration_in.api_key)
@@ -49,22 +48,17 @@ async def create_integration(
             status_code=400,
             detail="Could not connect to provider — check your API key and try again",
         )
-    db_obj = crud.create_integration(
-        session=session, data=integration_in, user_id=current_user.id
-    )
+    db_obj = crud.create_integration(session=session, data=integration_in)
     return IntegrationPublic.model_validate(db_obj)
 
 
 @router.get("/", response_model=IntegrationsPublic)
 def list_integrations(
     session: SessionDep,
-    current_user: CurrentUser,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=1000),
 ) -> IntegrationsPublic:
-    items, count = crud.list_integrations(
-        session=session, user_id=current_user.id, skip=skip, limit=limit
-    )
+    items, count = crud.list_integrations(session=session, skip=skip, limit=limit)
     return IntegrationsPublic(
         data=[IntegrationPublic.model_validate(i) for i in items],
         count=count,
@@ -74,12 +68,9 @@ def list_integrations(
 @router.delete("/{integration_id}", response_model=Message)
 def delete_integration(
     session: SessionDep,
-    current_user: CurrentUser,
     integration_id: uuid.UUID,
 ) -> Message:
-    integration = crud.get_integration(
-        session=session, integration_id=integration_id, user_id=current_user.id
-    )
+    integration = crud.get_integration(session=session, integration_id=integration_id)
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
     env_count = crud.count_environments_for_integration(
@@ -97,12 +88,9 @@ def delete_integration(
 @router.post("/{integration_id}/test", response_model=Message)
 async def test_integration(
     session: SessionDep,
-    current_user: CurrentUser,
     integration_id: uuid.UUID,
 ) -> Message:
-    integration = crud.get_integration(
-        session=session, integration_id=integration_id, user_id=current_user.id
-    )
+    integration = crud.get_integration(session=session, integration_id=integration_id)
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
     api_key = decrypt(integration.encrypted_api_key)
@@ -115,12 +103,9 @@ async def test_integration(
 @router.get("/{integration_id}/agents", response_model=list[RetellAgentSummary])
 async def list_integration_agents(
     session: SessionDep,
-    current_user: CurrentUser,
     integration_id: uuid.UUID,
 ) -> list[RetellAgentSummary]:
-    integration = crud.get_integration(
-        session=session, integration_id=integration_id, user_id=current_user.id
-    )
+    integration = crud.get_integration(session=session, integration_id=integration_id)
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
     api_key = decrypt(integration.encrypted_api_key)

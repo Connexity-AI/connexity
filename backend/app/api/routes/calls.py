@@ -70,7 +70,6 @@ async def _fetch_and_store_from_retell(
         integration = crud.get_integration(
             session=session,
             integration_id=env.integration_id,
-            user_id=agent.created_by,
         )
         if integration is None:
             continue
