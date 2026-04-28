@@ -49,7 +49,7 @@ class LLMModelsPublic(BaseModel):
     default_model: str = Field(description="Global default full LiteLLM routing id")
 
 
-_GLOBAL_DEFAULT_MODEL = "openai/gpt-4o-mini"
+_GLOBAL_DEFAULT_MODEL = "openai/gpt-4.1"
 _MODEL_COST = cast("dict[str, dict[str, object]]", litellm.model_cost)
 _CatalogCache = tuple[float, LLMModelsPublic]
 _catalog_cache: _CatalogCache | None = None
@@ -69,7 +69,8 @@ def get_available_llm_models() -> LLMModelsPublic:
             return cached_catalog
 
     catalog = _build_model_catalog()
-    _catalog_cache = (now, catalog)
+    if catalog.count > 0:
+        _catalog_cache = (now, catalog)
     return catalog
 
 

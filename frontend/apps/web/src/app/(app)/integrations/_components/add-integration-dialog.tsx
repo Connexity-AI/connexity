@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CheckCircle, Loader2, XCircle } from 'lucide-react';
@@ -52,14 +52,17 @@ export const AddIntegrationDialog: FC<Props> = ({ open, onOpenChange, onAdded })
     defaultValues: { provider: 'retell', name: '', api_key: '' },
   });
 
-  const handleOpenChange = (next: boolean) => {
-    if (dialogState === 'testing' && !next) {
-      return;
-    }
-    if (next) {
+  useEffect(() => {
+    if (open) {
       form.reset({ provider: 'retell', name: '', api_key: '' });
       setDialogState('form');
       setErrorMessage('');
+    }
+  }, [open, form]);
+
+  const handleOpenChange = (next: boolean) => {
+    if (dialogState === 'testing' && !next) {
+      return;
     }
     onOpenChange(next);
   };
