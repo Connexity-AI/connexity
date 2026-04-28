@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useParams } from 'next/navigation';
 
 import { Plus, Zap } from 'lucide-react';
-import { useParams } from 'next/navigation';
 
 import { useEnvironments } from '@/app/(app)/(agent)/_hooks/use-environments';
 import { AddEnvironmentDialog } from './add-environment-dialog';
