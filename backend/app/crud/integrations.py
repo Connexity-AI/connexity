@@ -8,15 +8,12 @@ from app.crud.call import soft_delete_calls_for_integration
 from app.models.integration import Integration, IntegrationCreate
 
 
-def create_integration(
-    *, session: Session, data: IntegrationCreate, user_id: uuid.UUID
-) -> Integration:
+def create_integration(*, session: Session, data: IntegrationCreate) -> Integration:
     db_obj = Integration(
         provider=data.provider,
         name=data.name,
         encrypted_api_key=encrypt(data.api_key),
         masked_api_key=mask_key(data.api_key),
-        user_id=user_id,
     )
     session.add(db_obj)
     session.commit()
@@ -25,31 +22,22 @@ def create_integration(
 
 
 def get_integration(
-    *, session: Session, integration_id: uuid.UUID, user_id: uuid.UUID
+    *, session: Session, integration_id: uuid.UUID
 ) -> Integration | None:
-    statement = select(Integration).where(
-        Integration.id == integration_id,
-        Integration.user_id == user_id,
-    )
+    statement = select(Integration).where(Integration.id == integration_id)
     return session.exec(statement).first()
 
 
 def list_integrations(
     *,
     session: Session,
-    user_id: uuid.UUID,
     skip: int = 0,
     limit: int = 100,
 ) -> tuple[list[Integration], int]:
-    count_statement = (
-        select(func.count())
-        .select_from(Integration)
-        .where(Integration.user_id == user_id)
-    )
+    count_statement = select(func.count()).select_from(Integration)
     count = session.exec(count_statement).one()
     statement = (
         select(Integration)
-        .where(Integration.user_id == user_id)
         .order_by(col(Integration.created_at).desc())
         .offset(skip)
         .limit(limit)

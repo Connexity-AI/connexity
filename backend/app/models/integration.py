@@ -16,7 +16,6 @@ class Integration(IntegrationBase, table=True):
     __tablename__ = "integration"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    user_id: uuid.UUID = Field(foreign_key="user.id", index=True)
     encrypted_api_key: str = Field(sa_column=Column(Text, nullable=False))
     masked_api_key: str = Field(max_length=255)
     created_at: datetime = Field(

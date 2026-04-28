@@ -21,11 +21,11 @@ export function useToolEditor(toolIndex: number) {
   });
 
   const setMethod = (value: HttpMethod) => {
-    setValue(`tools.${toolIndex}.method`, value);
+    setValue(`tools.${toolIndex}.method`, value, { shouldDirty: true });
   };
 
   const setToolName = (value: string) => {
-    setValue(`tools.${toolIndex}.name`, value);
+    setValue(`tools.${toolIndex}.name`, value, { shouldDirty: true });
   };
 
   const addAuthHeader = () => {
