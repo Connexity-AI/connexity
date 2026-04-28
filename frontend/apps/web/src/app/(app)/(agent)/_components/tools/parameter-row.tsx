@@ -18,7 +18,7 @@ import type { AgentFormValues } from '@/app/(app)/(agent)/_schemas/agent-form';
 
 const PARAM_TYPES = [
   { value: 'string', label: 'String' },
-  { value: 'number', label: 'Number' },
+  { value: 'number', label: 'Float' },
   { value: 'integer', label: 'Integer' },
 ] as const;
 
@@ -30,23 +30,32 @@ interface ParameterRowProps {
 }
 
 export function ParameterRow({ toolIndex, paramIndex, isFirst, onRemove }: ParameterRowProps) {
-  const { register, watch, setValue } = useFormContext<AgentFormValues>();
+  const { register, watch, setValue, formState } = useFormContext<AgentFormValues>();
 
   const basePath = `tools.${toolIndex}.parameters.${paramIndex}` as const;
   const type = watch(`${basePath}.type`);
+  const nameError =
+    formState.errors.tools?.[toolIndex]?.parameters?.[paramIndex]?.name?.message;
 
   return (
     <div
       className={cn(
-        'grid grid-cols-[1.2fr_2fr_100px_36px] items-center px-4 py-2.5 gap-3',
+        'grid grid-cols-[1.2fr_2fr_100px_36px] items-start px-4 py-2.5 gap-3',
         !isFirst && 'border-t border-border/40'
       )}
     >
-      <Input
-        {...register(`${basePath}.name`)}
-        placeholder="param_name"
-        className="h-8 text-xs font-mono bg-accent/20 border-border/60"
-      />
+      <div className="flex flex-col gap-1">
+        <Input
+          {...register(`${basePath}.name`)}
+          placeholder="param_name"
+          aria-invalid={Boolean(nameError)}
+          className={cn(
+            'h-8 text-xs font-mono bg-accent/20 border-border/60',
+            nameError && 'border-red-500/60 focus-visible:ring-red-500/40'
+          )}
+        />
+        {nameError && <span className="text-[10px] text-red-400">{nameError}</span>}
+      </div>
 
       <Input
         {...register(`${basePath}.description`)}

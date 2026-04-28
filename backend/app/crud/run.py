@@ -5,19 +5,37 @@ from sqlalchemy import func
 from sqlmodel import Session, col, select
 
 from app.crud import agent_version as agent_version_crud
-from app.models import Agent, Run, RunCreate, RunStatus, RunUpdate
+from app.models import Agent, EvalConfig, Run, RunCreate, RunStatus, RunUpdate
 from app.models.enums import AgentMode
 from app.models.schemas import RunConfig
 
 
 def enrich_run_create_from_agent(
-    *, session: Session, run_in: RunCreate, agent: Agent
+    *,
+    session: Session,
+    run_in: RunCreate,
+    agent: Agent,
+    eval_config: EvalConfig,
 ) -> RunCreate:
-    """Fill run snapshot fields from the agent and validate endpoint mode."""
+    """Fill run snapshot fields from the agent and eval config; validate endpoint mode."""
     data = run_in.model_dump()
     data.pop("agent_version", None)
     data.pop("agent_version_id", None)
-    cfg = run_in.config or RunConfig()
+
+    # Snapshot the eval config's run config when the caller didn't override it,
+    # so max_turns / concurrency / judge / tool_mode set on the eval config are
+    # actually honored at run time. Always persist the resolved config so the
+    # run row never has a NULL config and frontend defaults are not relied on.
+    if run_in.config is not None:
+        cfg = run_in.config
+    elif eval_config.config is not None:
+        cfg = RunConfig.model_validate(eval_config.config)
+    else:
+        cfg = RunConfig()
+    data["config"] = cfg.model_dump()
+
+    data["eval_config_version"] = eval_config.version
+
     asim = cfg.agent_simulator
 
     if not data.get("agent_endpoint_url") and agent.endpoint_url:

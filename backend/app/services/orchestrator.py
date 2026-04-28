@@ -588,6 +588,11 @@ async def run_test_case(
                     break
                 agent_rounds += 1
 
+                # End on the agent's last reply: skip the trailing user turn
+                # that nothing would read.
+                if max_agent_rounds is not None and agent_rounds >= max_agent_rounds:
+                    break
+
                 ok = await _do_user_turn(transcript, simulator, sim_cfg, acc)
                 if not ok:
                     break
