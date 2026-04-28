@@ -67,6 +67,55 @@ async def test_call_llm_success_maps_response() -> None:
     assert _call_kw["messages"] == [{"role": "user", "content": "hi"}]
 
 
+@pytest.mark.asyncio
+async def test_call_llm_strips_reasoning_knobs_from_extra() -> None:
+    fake = _FakeLLMSettings()
+    resp = _fake_response()
+    with patch(
+        "app.services.llm.litellm.acompletion",
+        new_callable=AsyncMock,
+        return_value=resp,
+    ) as mock_completion:
+        await call_llm(
+            [LLMMessage(role="user", content="hi")],
+            LLMCallConfig(
+                model="gpt-4.1-nano",
+                extra={
+                    "reasoning_effort": "high",
+                    "thinking": "disabled",
+                    "seed": 42,
+                },
+            ),
+            app_settings=fake,
+        )
+    assert mock_completion.await_args is not None
+    kw = mock_completion.await_args.kwargs
+    assert "reasoning_effort" not in kw
+    assert "thinking" not in kw
+    assert kw.get("seed") == 42
+
+
+@pytest.mark.asyncio
+async def test_call_llm_sets_reasoning_effort_none_when_supports_reasoning() -> None:
+    fake = _FakeLLMSettings()
+    resp = _fake_response()
+    with (
+        patch(
+            "app.services.llm.litellm.acompletion",
+            new_callable=AsyncMock,
+            return_value=resp,
+        ) as mock_completion,
+        patch("app.services.llm.supports_reasoning", return_value=True),
+    ):
+        await call_llm(
+            [LLMMessage(role="user", content="hi")],
+            LLMCallConfig(model="gpt-4.1-nano"),
+            app_settings=fake,
+        )
+    assert mock_completion.await_args is not None
+    assert mock_completion.await_args.kwargs["reasoning_effort"] == "none"
+
+
 @pytest.mark.parametrize(
     ("model", "provider", "expected"),
     [
