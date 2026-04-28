@@ -721,6 +721,94 @@ export type BodyLoginLoginAccessToken = {
 };
 
 /**
+ * CallPublic
+ */
+export type CallPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Retell Call Id
+   */
+  retell_call_id: string;
+  /**
+   * Retell Agent Id
+   */
+  retell_agent_id: string;
+  /**
+   * Started At
+   */
+  started_at: string;
+  /**
+   * Duration Seconds
+   */
+  duration_seconds?: number | null;
+  /**
+   * Status
+   */
+  status?: string | null;
+  /**
+   * Transcript
+   */
+  transcript?: Array<{
+    [key: string]: unknown;
+  }> | null;
+  /**
+   * Is New
+   *
+   * True when the requesting user has not opened this call yet
+   */
+  is_new?: boolean;
+  /**
+   * Test Case Count
+   *
+   * Number of test cases sourced from this call
+   */
+  test_case_count?: number;
+  /**
+   * Created At
+   */
+  created_at: string;
+};
+
+/**
+ * CallRefreshResult
+ */
+export type CallRefreshResult = {
+  /**
+   * Created
+   *
+   * Number of new call rows inserted from Retell
+   */
+  created: number;
+  /**
+   * Total
+   *
+   * Total call rows in DB for this agent after refresh
+   */
+  total: number;
+};
+
+/**
+ * CallsPublic
+ */
+export type CallsPublic = {
+  /**
+   * Data
+   */
+  data: Array<CallPublic>;
+  /**
+   * Count
+   */
+  count: number;
+};
+
+/**
  * CauseAnalysisItem
  */
 export type CauseAnalysisItem = {
@@ -1394,6 +1482,12 @@ export type EvalConfigPublic = {
    */
   effective_test_case_count?: number;
   /**
+   * Total Runs
+   *
+   * Total number of runs for this eval config
+   */
+  total_runs?: number;
+  /**
    * Created At
    *
    * When the config was created
@@ -1845,6 +1939,120 @@ export type JudgeVerdict = {
    * LiteLLM-estimated USD cost for the judge completion
    */
   judge_cost_usd?: number | null;
+};
+
+/**
+ * LLMModelProviderPublic
+ */
+export type LlmModelProviderPublic = {
+  /**
+   * Provider
+   *
+   * LiteLLM provider key
+   */
+  provider: string;
+  /**
+   * Label
+   *
+   * Human-readable provider label
+   */
+  label: string;
+  /**
+   * Default Model
+   *
+   * Full LiteLLM routing id for this provider
+   */
+  default_model?: string | null;
+  /**
+   * Models
+   *
+   * Selectable chat models
+   */
+  models: Array<LlmModelPublic>;
+};
+
+/**
+ * LLMModelPublic
+ */
+export type LlmModelPublic = {
+  /**
+   * Id
+   *
+   * Full LiteLLM routing id, e.g. openai/gpt-4o-mini
+   */
+  id: string;
+  /**
+   * Provider
+   *
+   * LiteLLM provider key, e.g. openai
+   */
+  provider: string;
+  /**
+   * Provider Label
+   *
+   * Human-readable provider label
+   */
+  provider_label: string;
+  /**
+   * Model
+   *
+   * Provider-local model id
+   */
+  model: string;
+  /**
+   * Label
+   *
+   * Human-readable model label
+   */
+  label: string;
+  /**
+   * Is Default
+   *
+   * Whether this is the default model for the provider
+   */
+  is_default: boolean;
+  /**
+   * Is Recommended
+   *
+   * Whether this model should be featured first
+   */
+  is_recommended: boolean;
+  /**
+   * Max Input Tokens
+   *
+   * Known input context window
+   */
+  max_input_tokens?: number | null;
+  /**
+   * Max Output Tokens
+   *
+   * Known output token limit
+   */
+  max_output_tokens?: number | null;
+};
+
+/**
+ * LLMModelsPublic
+ */
+export type LlmModelsPublic = {
+  /**
+   * Data
+   *
+   * Available LLM models by provider
+   */
+  data: Array<LlmModelProviderPublic>;
+  /**
+   * Count
+   *
+   * Total number of selectable models
+   */
+  count: number;
+  /**
+   * Default Model
+   *
+   * Global default full LiteLLM routing id
+   */
+  default_model: string;
 };
 
 /**
@@ -3116,6 +3324,12 @@ export type TestCaseAgentRequest = {
    */
   test_case_id?: string | null;
   /**
+   * Source Call Id
+   *
+   * Call this test case is generated from; linked onto persisted rows
+   */
+  source_call_id?: string | null;
+  /**
    * Persist
    *
    * Default true for create/from_transcript; default false for edit
@@ -3297,6 +3511,12 @@ export type TestCaseCreate = {
    * Agent this test case belongs to (test suite pool for that agent)
    */
   agent_id?: string | null;
+  /**
+   * Source Call Id
+   *
+   * Call this test case was created from (Observer drawer)
+   */
+  source_call_id?: string | null;
 };
 
 /**
@@ -3377,6 +3597,12 @@ export type TestCaseImportItem = {
    * Agent this test case belongs to (test suite pool for that agent)
    */
   agent_id?: string | null;
+  /**
+   * Source Call Id
+   *
+   * Call this test case was created from (Observer drawer)
+   */
+  source_call_id?: string | null;
   /**
    * Id
    */
@@ -3487,6 +3713,12 @@ export type TestCasePublic = {
    * Agent this test case belongs to (test suite pool for that agent)
    */
   agent_id?: string | null;
+  /**
+   * Source Call Id
+   *
+   * Call this test case was created from (Observer drawer)
+   */
+  source_call_id?: string | null;
   /**
    * Id
    *
@@ -3891,6 +4123,12 @@ export type TestCaseUpdate = {
    * Agent this test case belongs to (test suite pool for that agent)
    */
   agent_id?: string | null;
+  /**
+   * Source Call Id
+   *
+   * Call this test case was created from (Observer drawer)
+   */
+  source_call_id?: string | null;
 };
 
 /**
@@ -8646,6 +8884,56 @@ export type ConfigGetAvailableMetricsResponses = {
 
 export type ConfigGetAvailableMetricsResponse =
   ConfigGetAvailableMetricsResponses[keyof ConfigGetAvailableMetricsResponses];
+
+export type ConfigGetLlmModelsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/config/llm-models';
+};
+
+export type ConfigGetLlmModelsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ConfigGetLlmModelsError = ConfigGetLlmModelsErrors[keyof ConfigGetLlmModelsErrors];
+
+export type ConfigGetLlmModelsResponses = {
+  /**
+   * Successful Response
+   */
+  200: LlmModelsPublic;
+};
+
+export type ConfigGetLlmModelsResponse =
+  ConfigGetLlmModelsResponses[keyof ConfigGetLlmModelsResponses];
 
 export type IntegrationsListIntegrationsData = {
   body?: never;

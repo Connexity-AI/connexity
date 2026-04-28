@@ -10,7 +10,7 @@ import { useEmptyStateSuggestion } from '@/app/(app)/(agent)/_hooks/use-empty-st
 import { usePromptEditorChat } from '@/app/(app)/(agent)/_hooks/use-prompt-editor-chat';
 import { usePromptEditorSession } from '@/app/(app)/(agent)/_hooks/use-prompt-editor-session';
 import { useSuggestFixesHandoff } from '@/app/(app)/(agent)/_hooks/use-suggest-fixes-handoff';
-import { DEFAULT_ASSISTANT_MODEL_ID } from '@/config/assistant-models';
+import { DEFAULT_LLM_MODEL_ID } from '@/constants/llm-models';
 
 import type { AgentFormValues } from '@/app/(app)/(agent)/_schemas/agent-form';
 
@@ -34,7 +34,7 @@ export function useAgentChatbot() {
 
   const handoff = useSuggestFixesHandoff({ sessionId, sessionRunId, startNewSession });
 
-  const [model, setModel] = useState<string>(DEFAULT_ASSISTANT_MODEL_ID);
+  const [model, setModel] = useState<string>(DEFAULT_LLM_MODEL_ID);
 
   const form = useFormContext<AgentFormValues>();
   const draftPrompt = useWatch({ control: form.control, name: 'prompt' }) ?? '';

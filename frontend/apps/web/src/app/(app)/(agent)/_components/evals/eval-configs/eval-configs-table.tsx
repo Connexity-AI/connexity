@@ -4,6 +4,7 @@ import { FlaskConical, Plus } from 'lucide-react';
 import Link from 'next/link';
 
 import { Button } from '@workspace/ui/components/ui/button';
+import { cn } from '@workspace/ui/lib/utils';
 
 import { useEvalConfigs } from '@/app/(app)/(agent)/_hooks/use-eval-configs';
 import { RunEvalConfigButton } from '@/app/(app)/(agent)/_components/evals/run-eval-config-button';
@@ -98,6 +99,7 @@ function ColumnHeaders() {
 }
 
 function Row({ agentId, config }: { agentId: string; config: EvalConfigPublic }) {
+  const toolMode = config.config?.tool_mode ?? 'mock';
   return (
     <li className="group relative grid grid-cols-[1fr_100px_120px_120px_180px_80px] items-center gap-4 border-b border-border/40 px-5 py-2.5 hover:bg-accent/20">
       <Link
@@ -105,13 +107,24 @@ function Row({ agentId, config }: { agentId: string; config: EvalConfigPublic })
         className="absolute inset-0"
         aria-label={`Open ${config.name}`}
       />
-      <span className="relative truncate text-sm">{config.name}</span>
-      <span className="relative font-mono text-xs tabular-nums text-muted-foreground">
+      <span className="pointer-events-none relative truncate text-sm">{config.name}</span>
+      <span className="pointer-events-none relative font-mono text-xs tabular-nums text-muted-foreground">
         {config.test_case_count ?? 0}
       </span>
-      <span className="relative font-mono text-xs tabular-nums text-muted-foreground">—</span>
-      <span className="relative font-mono text-xs tabular-nums text-muted-foreground">—</span>
-      <span className="relative text-xs text-muted-foreground">
+      <span className="pointer-events-none relative font-mono text-xs tabular-nums text-muted-foreground">
+        {config.total_runs ?? 0}
+      </span>
+      <span
+        className={cn(
+          'pointer-events-none relative w-fit rounded px-1.5 py-0.5 text-[10px]',
+          toolMode === 'mock'
+            ? 'bg-yellow-500/15 text-yellow-400'
+            : 'bg-blue-500/15 text-blue-400'
+        )}
+      >
+        {toolMode === 'mock' ? 'Mock' : 'Live'}
+      </span>
+      <span className="pointer-events-none relative text-xs text-muted-foreground">
         {formatDate(config.created_at)}
       </span>
       <div className="relative flex justify-end">

@@ -4,13 +4,6 @@
 import { useFormContext, useWatch } from 'react-hook-form';
 
 import { FormControl, FormField, FormItem, FormMessage } from '@workspace/ui/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@workspace/ui/components/ui/select';
 import { Slider } from '@workspace/ui/components/ui/slider';
 
 import { useCreateEvalReadOnly } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-readonly-context';
@@ -18,7 +11,8 @@ import {
   FieldLabel,
   Section,
 } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-section-primitives';
-import { DEFAULT_MODELS, PROVIDERS, temperatureLabel } from '@/app/(app)/(agent)/_constants/agent';
+import { LlmModelPicker } from '@/app/(app)/(agent)/_components/llm/llm-model-picker';
+import { temperatureLabel } from '@/app/(app)/(agent)/_constants/agent';
 
 import type { CreateEvalFormValues } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
 
@@ -26,63 +20,24 @@ function ProviderAndModel() {
   const form = useFormContext<CreateEvalFormValues>();
   const readOnly = useCreateEvalReadOnly();
   const provider = useWatch({ control: form.control, name: 'persona.provider' });
-  const models = PROVIDERS.find((p) => p.group === provider)?.models ?? [];
 
   return (
-    <div className="grid grid-cols-2 gap-4">
-      <FormField
-        control={form.control}
-        name="persona.provider"
-        render={({ field }) => (
-          <FormItem>
-            <FieldLabel>LLM Provider</FieldLabel>
-            <Select
-              value={field.value}
-              disabled={readOnly}
-              onValueChange={(next) => {
-                field.onChange(next);
-                form.setValue('persona.model', DEFAULT_MODELS[next] ?? '', { shouldDirty: true });
-              }}
-            >
-              <FormControl>
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-              </FormControl>
-
-              <SelectContent>
-                {PROVIDERS.map((p) => (
-                  <SelectItem key={p.group} value={p.group}>
-                    {p.group}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
+    <div>
       <FormField
         control={form.control}
         name="persona.model"
         render={({ field }) => (
           <FormItem>
             <FieldLabel>LLM Model</FieldLabel>
-            <Select value={field.value} onValueChange={field.onChange} disabled={readOnly}>
-              <FormControl>
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {models.map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {m}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <LlmModelPicker
+              value={field.value}
+              provider={provider}
+              onSelect={(modelOption) => {
+                form.setValue('persona.provider', modelOption.provider, { shouldDirty: true });
+                field.onChange(modelOption.model);
+              }}
+              disabled={readOnly}
+            />
             <FormMessage />
           </FormItem>
         )}

@@ -44,7 +44,7 @@ export function EvalRunListRow({
     metrics && metrics.total_executions > 0
       ? (metrics.passed_count / metrics.total_executions) * 100
       : null;
-  const toolMode = run.config?.tool_mode ?? 'live';
+  const toolMode = run.config?.tool_mode ?? 'mock';
 
   const scoreText = scoreColor(avgScore);
   const passRateColor = scoreColor(passRate);

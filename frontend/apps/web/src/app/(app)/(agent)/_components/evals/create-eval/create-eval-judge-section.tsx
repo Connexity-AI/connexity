@@ -1,18 +1,11 @@
 'use client';
 'use no memo';
 
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, useWatch } from 'react-hook-form';
 
 import { Checkbox } from '@workspace/ui/components/ui/checkbox';
-import { FormControl, FormField, FormItem, FormMessage } from '@workspace/ui/components/ui/form';
+import { FormField, FormItem, FormMessage } from '@workspace/ui/components/ui/form';
 import { Input } from '@workspace/ui/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@workspace/ui/components/ui/select';
 import { cn } from '@workspace/ui/lib/utils';
 
 import { useCreateEvalReadOnly } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-readonly-context';
@@ -21,8 +14,8 @@ import {
   FieldLabel,
   Section,
 } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-section-primitives';
+import { LlmModelPicker } from '@/app/(app)/(agent)/_components/llm/llm-model-picker';
 import { useJudgeMetrics } from '@/app/(app)/(agent)/_components/evals/create-eval/use-judge-metrics';
-import { useJudgeProvider } from '@/app/(app)/(agent)/_components/evals/create-eval/use-judge-provider';
 
 import type { CreateEvalFormValues } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
 import type { MetricDefinition, MetricTier } from '@/client/types.gen';
@@ -30,56 +23,25 @@ import type { MetricDefinition, MetricTier } from '@/client/types.gen';
 function ProviderAndModel() {
   const form = useFormContext<CreateEvalFormValues>();
   const readOnly = useCreateEvalReadOnly();
-  const { providers, models, onProviderChange } = useJudgeProvider();
+  const provider = useWatch({ control: form.control, name: 'judge.provider' });
 
   return (
-    <div className="grid grid-cols-2 gap-4">
-      <FormField
-        control={form.control}
-        name="judge.provider"
-        render={({ field }) => (
-          <FormItem>
-            <FieldLabel>LLM Provider</FieldLabel>
-
-            <Select value={field.value} disabled={readOnly} onValueChange={onProviderChange}>
-              <FormControl>
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-              </FormControl>
-
-              <SelectContent>
-                {providers.map((p) => (
-                  <SelectItem key={p.group} value={p.group}>
-                    {p.group}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+    <div>
       <FormField
         control={form.control}
         name="judge.model"
         render={({ field }) => (
           <FormItem>
             <FieldLabel>LLM Model</FieldLabel>
-            <Select value={field.value} onValueChange={field.onChange} disabled={readOnly}>
-              <FormControl>
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {models.map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {m}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <LlmModelPicker
+              value={field.value}
+              provider={provider}
+              onSelect={(modelOption) => {
+                form.setValue('judge.provider', modelOption.provider, { shouldDirty: true });
+                field.onChange(modelOption.model);
+              }}
+              disabled={readOnly}
+            />
             <FormMessage />
           </FormItem>
         )}

@@ -77,7 +77,7 @@ async def test_run_create_mode(db: Session) -> None:
 
 
 @pytest.mark.asyncio
-async def test_run_from_transcript_requires_single_create(db: Session) -> None:
+async def test_run_from_transcript_allows_multiple_creates(db: Session) -> None:
     agent = create_test_platform_agent(db)
     ctx = AgentContext(
         agent=agent,
@@ -94,7 +94,7 @@ async def test_run_from_transcript_requires_single_create(db: Session) -> None:
         usage={},
         latency_ms=1,
         tool_calls=[
-            _tool_dict("create_test_case", _tc_args()),
+            _tool_dict("create_test_case", _tc_args(name="First")),
             _tool_dict("create_test_case", _tc_args(name="Second")),
         ],
     )
@@ -103,14 +103,16 @@ async def test_run_from_transcript_requires_single_create(db: Session) -> None:
         new_callable=AsyncMock,
         return_value=mock_resp,
     ):
-        with pytest.raises(ValueError, match="exactly one"):
-            await TestCaseAgent(
-                TestCaseAgentInput(
-                    mode=AgentMode.FROM_TRANSCRIPT,
-                    user_message="Convert",
-                    context=ctx,
-                )
-            ).run()
+        out = await TestCaseAgent(
+            TestCaseAgentInput(
+                mode=AgentMode.FROM_TRANSCRIPT,
+                user_message="Convert",
+                context=ctx,
+            )
+        ).run()
+    assert len(out.created) == 2
+    assert [tc.name for tc in out.created] == ["First", "Second"]
+    assert out.edited is None
 
 
 @pytest.mark.asyncio

@@ -12,6 +12,10 @@ Model resolution (used after merging per-call config with
 
 If the effective ``model`` is missing after merging defaults, raises
 ``ValueError``.
+
+Reasoning-related LiteLLM kwargs (see ``_finalize_litellm_reasoning_kwargs``) are
+normalized on every completion: overrides from :attr:`LLMCallConfig.extra` cannot
+enable reasoning; reasoning-capable models get ``reasoning_effort=none``.
 """
 
 import json
@@ -30,6 +34,7 @@ from litellm.exceptions import (
     ServiceUnavailableError,
     Timeout,
 )
+from litellm.utils import supports_reasoning
 from pydantic import BaseModel, Field
 from tenacity import (
     AsyncRetrying,
@@ -46,6 +51,36 @@ logger = logging.getLogger(__name__)
 LLMExtraValue = str | int | float | bool | None
 
 LLMRole = Literal["system", "user", "assistant", "tool"]
+
+# LiteLLM forwards these to provider-specific reasoning / extended-thinking APIs.
+# :func:`_finalize_litellm_reasoning_kwargs` removes them from each completion request,
+# then sets ``reasoning_effort=none`` when LiteLLM marks the model as reasoning-capable.
+_LITELLM_REASONING_KNOB_KEYS: frozenset[str] = frozenset(
+    {"reasoning_effort", "thinking"}
+)
+
+
+def _finalize_litellm_reasoning_kwargs(model: str, kwargs: dict[str, object]) -> None:
+    """Normalize reasoning controls on merged litellm.acompletion kwargs.
+
+    Drops ``reasoning_effort`` / ``thinking`` so :attr:`LLMCallConfig.extra` cannot
+    enable extended reasoning. For models :func:`litellm.utils.supports_reasoning`,
+    sets ``reasoning_effort='none'`` so LiteLLM maps providers to minimal/no extended
+    reasoning where supported.
+    """
+    for key in _LITELLM_REASONING_KNOB_KEYS:
+        kwargs.pop(key, None)
+    try:
+        if not supports_reasoning(model=model):
+            return
+    except Exception:
+        logger.debug(
+            "supports_reasoning failed for model=%s; skipping reasoning_effort=none",
+            model,
+            exc_info=True,
+        )
+        return
+    kwargs["reasoning_effort"] = "none"
 
 
 class LLMSettingsView(Protocol):
@@ -90,7 +125,14 @@ class LLMCallConfig(BaseModel):
             "call per turn. Omit to use the provider default."
         ),
     )
-    extra: dict[str, LLMExtraValue] = Field(default_factory=dict)
+    extra: dict[str, LLMExtraValue] = Field(
+        default_factory=dict,
+        description=(
+            "Forwarded as top-level kwargs to litellm.acompletion. Reasoning-related "
+            "keys (reasoning_effort, thinking) from extra are dropped when building "
+            "the request; reasoning-capable models then receive reasoning_effort=none."
+        ),
+    )
 
 
 class LLMResponse(BaseModel):
@@ -425,6 +467,7 @@ async def _acompletion_once(
     for k, v in extra.items():
         if v is not None:
             kwargs[k] = v
+    _finalize_litellm_reasoning_kwargs(model, kwargs)
     return await litellm.acompletion(**cast(Any, kwargs))
 
 
@@ -461,6 +504,7 @@ async def _acompletion_stream_once(
     for k, v in extra.items():
         if v is not None:
             kwargs[k] = v
+    _finalize_litellm_reasoning_kwargs(model, kwargs)
     return await litellm.acompletion(**cast(Any, kwargs))
 
 

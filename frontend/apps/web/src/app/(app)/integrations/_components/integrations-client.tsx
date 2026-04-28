@@ -2,37 +2,21 @@
 
 import { useState } from 'react';
 
-import { useQueryClient } from '@tanstack/react-query';
 import { Plug } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/ui/button';
 
-import { integrationKeys } from '@/constants/query-keys';
-
+import { useIntegrations } from '@/app/(app)/(agent)/_hooks/use-integrations';
 import { AddIntegrationDialog } from '@/app/(app)/integrations/_components/add-integration-dialog';
 import { IntegrationCard } from '@/app/(app)/integrations/_components/integration-card';
 
 import type { IntegrationPublic } from '@/client/types.gen';
 import type { FC } from 'react';
 
-interface Props {
-  initialData: IntegrationPublic[];
-}
-
-export const IntegrationsClient: FC<Props> = ({ initialData }) => {
+export const IntegrationsClient: FC = () => {
   const [open, setOpen] = useState(false);
-  const queryClient = useQueryClient();
-  const [integrations, setIntegrations] = useState<IntegrationPublic[]>(initialData);
-
-  const handleAdded = (integration: IntegrationPublic) => {
-    setIntegrations((prev) => [integration, ...prev]);
-    void queryClient.invalidateQueries({ queryKey: integrationKeys.all });
-  };
-
-  const handleDeleted = (id: string) => {
-    setIntegrations((prev) => prev.filter((i) => i.id !== id));
-    void queryClient.invalidateQueries({ queryKey: integrationKeys.all });
-  };
+  const { data } = useIntegrations();
+  const integrations = data.data;
 
   return (
     <div className="flex flex-1 flex-col min-w-0 p-6">
@@ -73,11 +57,7 @@ export const IntegrationsClient: FC<Props> = ({ initialData }) => {
               </h2>
               <div className="space-y-3">
                 {items.map((integration) => (
-                  <IntegrationCard
-                    key={integration.id}
-                    integration={integration}
-                    onDeleted={handleDeleted}
-                  />
+                  <IntegrationCard key={integration.id} integration={integration} />
                 ))}
               </div>
             </div>
@@ -85,7 +65,7 @@ export const IntegrationsClient: FC<Props> = ({ initialData }) => {
         </div>
       )}
 
-      <AddIntegrationDialog open={open} onOpenChange={setOpen} onAdded={handleAdded} />
+      <AddIntegrationDialog open={open} onOpenChange={setOpen} />
     </div>
   );
 };

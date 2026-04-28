@@ -1,7 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-
 import { AgentsService } from '@/client/sdk.gen';
 import { isSuccessApiResult } from '@/utils/api';
 

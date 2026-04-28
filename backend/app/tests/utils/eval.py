@@ -90,6 +90,8 @@ def create_test_run(
 ) -> Run:
     agent = crud.get_agent(session=session, agent_id=agent_id)
     assert agent is not None
+    eval_config = crud.get_eval_config(session=session, eval_config_id=eval_config_id)
+    assert eval_config is not None
     run_in = RunCreate(
         name=f"test-run-{uuid.uuid4().hex[:8]}",
         agent_id=agent_id,
@@ -97,7 +99,7 @@ def create_test_run(
         eval_config_id=eval_config_id,
     )
     run_in = crud.enrich_run_create_from_agent(
-        session=session, run_in=run_in, agent=agent
+        session=session, run_in=run_in, agent=agent, eval_config=eval_config
     )
     return crud.create_run(session=session, run_in=run_in)
 

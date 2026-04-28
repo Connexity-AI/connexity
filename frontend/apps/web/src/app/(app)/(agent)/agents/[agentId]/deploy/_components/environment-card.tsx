@@ -19,7 +19,7 @@ import { parseVersionName } from '@/app/(app)/(agent)/_utils/parse-version-name'
 
 import { DeleteEnvironmentDialog } from './delete-environment-dialog';
 
-import type { EnvironmentPublic } from '@/client/types.gen';
+import { Platform, type EnvironmentPublic } from '@/client/types.gen';
 import type { FC } from 'react';
 
 import { formatTimeAgo } from '@/app/(app)/(agent)/_components/evals/eval-runs/shared/format-time';
@@ -97,7 +97,7 @@ export const EnvironmentCard: FC<Props> = ({ environment, agentId }) => {
             <div className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)] shrink-0" />
             <span className="text-sm text-foreground">{environment.name}</span>
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400">
-              Retell
+              {PLATFORM_LABELS[environment.platform]}
             </span>
           </div>
           <div className="flex items-center gap-3">

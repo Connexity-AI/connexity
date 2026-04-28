@@ -67,3 +67,54 @@ async def test_run_test_case_platform_uses_agent_simulator_and_tracks_cost() -> 
     assert result.agent_token_usage.get("total_tokens") == 15
     assert result.agent_cost_usd == pytest.approx(0.002)
     assert result.platform_token_usage == {}
+
+
+@pytest.mark.asyncio
+async def test_run_test_case_persona_first_max_turns_ends_on_agent() -> None:
+    """max_turns=N should yield N agent turns and end on the agent's last reply,
+    without an unanswered trailing user message."""
+    test_case = _platform_test_case()
+    max_turns = 3
+    config = RunConfig(
+        max_turns=max_turns,
+        user_simulator=UserSimulatorConfig(
+            mode=SimulatorMode.SCRIPTED,
+            # Plenty of scripted replies so the simulator is never the limiter.
+            scripted_messages=[f"reply {i}" for i in range(10)],
+        ),
+        timeout_per_test_case_ms=120_000,
+    )
+    llm_reply = LLMResponse(
+        content="Agent reply",
+        model="openai/gpt-4o-mini",
+        usage={"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+        latency_ms=1,
+        response_cost_usd=0.0,
+        tool_calls=None,
+    )
+
+    with patch(
+        "app.services.agent_simulator.call_llm",
+        new_callable=AsyncMock,
+        return_value=llm_reply,
+    ) as mock_agent_llm:
+        result = await run_test_case(
+            test_case,
+            None,
+            config,
+            agent_mode=AgentMode.PLATFORM,
+            agent_model="gpt-4o-mini",
+            agent_provider="openai",
+            agent_system_prompt="You are the evaluated agent.",
+            agent_tools=None,
+        )
+
+    # Exactly max_turns agent calls, no extras.
+    assert mock_agent_llm.await_count == max_turns
+
+    roles = [t.role for t in result.transcript]
+    # 1 opener + max_turns agent + (max_turns - 1) user replies = 2 * max_turns
+    assert len(roles) == 2 * max_turns
+    # Conversation ends on the agent's reply, not on an unanswered user turn.
+    assert roles[-1] == TurnRole.ASSISTANT
+    assert sum(1 for r in roles if r == TurnRole.ASSISTANT) == max_turns

@@ -16,10 +16,9 @@ const PROVIDER_STYLES: Record<string, string> = {
 
 interface Props {
   integration: IntegrationPublic;
-  onDeleted: (id: string) => void;
 }
 
-export const IntegrationCard: FC<Props> = ({ integration, onDeleted }) => {
+export const IntegrationCard: FC<Props> = ({ integration }) => {
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const formattedDate = new Date(integration.created_at).toLocaleString(undefined, {
@@ -65,7 +64,6 @@ export const IntegrationCard: FC<Props> = ({ integration, onDeleted }) => {
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         integration={integration}
-        onDeleted={onDeleted}
       />
     </>
   );

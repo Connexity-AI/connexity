@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useParams } from 'next/navigation';
 
 import { Activity, AlertCircle, CheckCheck, Loader2, Plus, Rocket, Zap } from 'lucide-react';
 
@@ -19,10 +20,11 @@ interface Props {
   integrations: IntegrationPublic[];
 }
 
-export const EnvironmentsSection: FC<Props> = ({ agentId, integrations }) => {
+export const EnvironmentsSection = () => {
   const [addOpen, setAddOpen] = useState(false);
+  const { agentId } = useParams<{ agentId: string }>();
   const { data } = useEnvironments(agentId);
-  const environments = data?.data ?? [];
+  const environments = data.data;
 
   return (
     <>
