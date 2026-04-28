@@ -10,6 +10,7 @@ from app.services.judge_metrics import (
     custom_metric_row_to_definition,
     get_metrics_for_api,
 )
+from app.services.llm_models import LLMModelsPublic, get_available_llm_models
 
 router = APIRouter(
     prefix="/config",
@@ -48,3 +49,8 @@ def get_available_metrics(
     custom_defs = [custom_metric_row_to_definition(r) for r in custom_rows]
     merged = [*builtin, *custom_defs]
     return AvailableMetricsPublic(data=merged, count=len(merged))
+
+
+@router.get("/llm-models", response_model=LLMModelsPublic)
+def get_llm_models() -> LLMModelsPublic:
+    return get_available_llm_models()

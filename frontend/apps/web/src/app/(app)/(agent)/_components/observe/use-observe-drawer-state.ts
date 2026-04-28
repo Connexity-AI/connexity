@@ -83,7 +83,6 @@ export function useObserveDrawerState({
     if (!pendingTestCaseId) return;
     const found = testCases.find((tc) => tc.id === pendingTestCaseId);
     if (!found) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing UI mode with async list refetch after AI generation
     setSelectedTestCaseId(found.id);
     setRightPanelMode('test-case');
     setPendingTestCaseId(null);

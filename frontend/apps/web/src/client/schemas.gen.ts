@@ -2962,6 +2962,137 @@ export const JudgeVerdictSchema = {
   title: 'JudgeVerdict',
 } as const;
 
+export const LLMModelProviderPublicSchema = {
+  properties: {
+    provider: {
+      type: 'string',
+      title: 'Provider',
+      description: 'LiteLLM provider key',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+      description: 'Human-readable provider label',
+    },
+    default_model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Default Model',
+      description: 'Full LiteLLM routing id for this provider',
+    },
+    models: {
+      items: {
+        $ref: '#/components/schemas/LLMModelPublic',
+      },
+      type: 'array',
+      title: 'Models',
+      description: 'Selectable chat models',
+    },
+  },
+  type: 'object',
+  required: ['provider', 'label', 'models'],
+  title: 'LLMModelProviderPublic',
+} as const;
+
+export const LLMModelPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      title: 'Id',
+      description: 'Full LiteLLM routing id, e.g. openai/gpt-4o-mini',
+    },
+    provider: {
+      type: 'string',
+      title: 'Provider',
+      description: 'LiteLLM provider key, e.g. openai',
+    },
+    provider_label: {
+      type: 'string',
+      title: 'Provider Label',
+      description: 'Human-readable provider label',
+    },
+    model: {
+      type: 'string',
+      title: 'Model',
+      description: 'Provider-local model id',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+      description: 'Human-readable model label',
+    },
+    is_default: {
+      type: 'boolean',
+      title: 'Is Default',
+      description: 'Whether this is the default model for the provider',
+    },
+    is_recommended: {
+      type: 'boolean',
+      title: 'Is Recommended',
+      description: 'Whether this model should be featured first',
+    },
+    max_input_tokens: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Max Input Tokens',
+      description: 'Known input context window',
+    },
+    max_output_tokens: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Max Output Tokens',
+      description: 'Known output token limit',
+    },
+  },
+  type: 'object',
+  required: ['id', 'provider', 'provider_label', 'model', 'label', 'is_default', 'is_recommended'],
+  title: 'LLMModelPublic',
+} as const;
+
+export const LLMModelsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/LLMModelProviderPublic',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Available LLM models by provider',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+      description: 'Total number of selectable models',
+    },
+    default_model: {
+      type: 'string',
+      title: 'Default Model',
+      description: 'Global default full LiteLLM routing id',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count', 'default_model'],
+  title: 'LLMModelsPublic',
+} as const;
+
 export const MessageSchema = {
   properties: {
     message: {

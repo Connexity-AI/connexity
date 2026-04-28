@@ -39,6 +39,10 @@ export const metricKeys = {
   list: () => ['available-metrics'] as const,
 };
 
+export const llmModelKeys = {
+  list: () => ['llm-models'] as const,
+};
+
 export const runKeys = {
   list: (agentId: string) => ['runs', agentId] as const,
   detail: (runId: string) => ['run', runId] as const,

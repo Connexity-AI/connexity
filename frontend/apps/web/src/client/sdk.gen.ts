@@ -69,6 +69,9 @@ import type {
   ConfigGetConfigData,
   ConfigGetConfigErrors,
   ConfigGetConfigResponses,
+  ConfigGetLlmModelsData,
+  ConfigGetLlmModelsErrors,
+  ConfigGetLlmModelsResponses,
   CustomMetricsCreateCustomMetricData,
   CustomMetricsCreateCustomMetricErrors,
   CustomMetricsCreateCustomMetricResponses,
@@ -2333,6 +2336,30 @@ export class ConfigService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/config/available-metrics',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Llm Models
+   */
+  public static getLlmModels<ThrowOnError extends boolean = false>(
+    options?: Options<ConfigGetLlmModelsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      ConfigGetLlmModelsResponses,
+      ConfigGetLlmModelsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/config/llm-models',
       ...options,
     });
   }

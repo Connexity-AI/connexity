@@ -1845,6 +1845,120 @@ export type JudgeVerdict = {
 };
 
 /**
+ * LLMModelProviderPublic
+ */
+export type LlmModelProviderPublic = {
+  /**
+   * Provider
+   *
+   * LiteLLM provider key
+   */
+  provider: string;
+  /**
+   * Label
+   *
+   * Human-readable provider label
+   */
+  label: string;
+  /**
+   * Default Model
+   *
+   * Full LiteLLM routing id for this provider
+   */
+  default_model?: string | null;
+  /**
+   * Models
+   *
+   * Selectable chat models
+   */
+  models: Array<LlmModelPublic>;
+};
+
+/**
+ * LLMModelPublic
+ */
+export type LlmModelPublic = {
+  /**
+   * Id
+   *
+   * Full LiteLLM routing id, e.g. openai/gpt-4o-mini
+   */
+  id: string;
+  /**
+   * Provider
+   *
+   * LiteLLM provider key, e.g. openai
+   */
+  provider: string;
+  /**
+   * Provider Label
+   *
+   * Human-readable provider label
+   */
+  provider_label: string;
+  /**
+   * Model
+   *
+   * Provider-local model id
+   */
+  model: string;
+  /**
+   * Label
+   *
+   * Human-readable model label
+   */
+  label: string;
+  /**
+   * Is Default
+   *
+   * Whether this is the default model for the provider
+   */
+  is_default: boolean;
+  /**
+   * Is Recommended
+   *
+   * Whether this model should be featured first
+   */
+  is_recommended: boolean;
+  /**
+   * Max Input Tokens
+   *
+   * Known input context window
+   */
+  max_input_tokens?: number | null;
+  /**
+   * Max Output Tokens
+   *
+   * Known output token limit
+   */
+  max_output_tokens?: number | null;
+};
+
+/**
+ * LLMModelsPublic
+ */
+export type LlmModelsPublic = {
+  /**
+   * Data
+   *
+   * Available LLM models by provider
+   */
+  data: Array<LlmModelProviderPublic>;
+  /**
+   * Count
+   *
+   * Total number of selectable models
+   */
+  count: number;
+  /**
+   * Default Model
+   *
+   * Global default full LiteLLM routing id
+   */
+  default_model: string;
+};
+
+/**
  * Message
  */
 export type Message = {
@@ -8655,6 +8769,56 @@ export type ConfigGetAvailableMetricsResponses = {
 
 export type ConfigGetAvailableMetricsResponse =
   ConfigGetAvailableMetricsResponses[keyof ConfigGetAvailableMetricsResponses];
+
+export type ConfigGetLlmModelsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/config/llm-models';
+};
+
+export type ConfigGetLlmModelsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ConfigGetLlmModelsError = ConfigGetLlmModelsErrors[keyof ConfigGetLlmModelsErrors];
+
+export type ConfigGetLlmModelsResponses = {
+  /**
+   * Successful Response
+   */
+  200: LlmModelsPublic;
+};
+
+export type ConfigGetLlmModelsResponse =
+  ConfigGetLlmModelsResponses[keyof ConfigGetLlmModelsResponses];
 
 export type IntegrationsListIntegrationsData = {
   body?: never;

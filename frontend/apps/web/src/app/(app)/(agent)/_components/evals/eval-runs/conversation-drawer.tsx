@@ -47,9 +47,10 @@ export function ConversationDrawer({
   testCaseName,
   agentName,
 }: ConversationDrawerProps) {
-  const turns = result?.transcript ?? [];
-
-  const displayItems = useMemo<DisplayItem[]>(() => buildDisplayItems(turns), [turns]);
+  const displayItems = useMemo<DisplayItem[]>(() => {
+    const turns = result?.transcript ?? [];
+    return buildDisplayItems(turns);
+  }, [result]);
 
   if (!result) return null;
 

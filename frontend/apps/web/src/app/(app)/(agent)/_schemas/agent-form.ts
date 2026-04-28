@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { DEFAULT_LLM_MODEL, DEFAULT_LLM_PROVIDER } from '@/constants/llm-models';
+
 // ─── Sub-schemas ─────────────────────────────────────────────────────────────
 
 const authHeaderSchema = z.object({
@@ -66,8 +68,8 @@ export type HttpMethod = (typeof HTTP_METHODS)[number];
 export const agentFormDefaults: AgentFormValues = {
   prompt: '',
   tools: [],
-  provider: 'OpenAI',
-  model: 'gpt-4.1',
+  provider: DEFAULT_LLM_PROVIDER,
+  model: DEFAULT_LLM_MODEL,
   temperature: 0.7,
 };
 
