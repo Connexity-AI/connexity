@@ -61,7 +61,11 @@ interface AlertEnvProps {
 }
 
 const AlertEnv: FC<AlertEnvProps> = ({ error }) => {
-  const isEnvError = (error as any)?.type === ENV_ERROR_TYPE;
+  const isEnvError =
+    typeof error === 'object' &&
+    error !== null &&
+    'type' in error &&
+    (error as { type?: unknown }).type === ENV_ERROR_TYPE;
 
   if (!isEnvError) return null;
 

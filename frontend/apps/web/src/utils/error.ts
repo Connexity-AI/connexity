@@ -7,7 +7,10 @@ export const getApiErrorMessage = (error: unknown): string => {
   // Default error message
   let errorMessage: string = API_ERROR_MESSAGE._500;
 
-  const detail = (error as any)?.detail;
+  const detail =
+    typeof error === 'object' && error !== null && 'detail' in error
+      ? (error as { detail?: unknown }).detail
+      : undefined;
 
   // detail is array
   if (Array.isArray(detail) && detail.length > 0 && typeof detail[0].msg === 'string')

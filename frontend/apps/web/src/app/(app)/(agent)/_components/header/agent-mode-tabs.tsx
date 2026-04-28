@@ -33,7 +33,6 @@ const MODE_TABS: ModeTab[] = [
     label: 'Observe',
     Icon: Radio,
     href: UrlGenerator.agentObserve,
-    disabled: true,
   },
 ];
 

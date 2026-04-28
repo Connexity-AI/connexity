@@ -68,6 +68,7 @@ export function DeleteTestCasesDialog({
                 <span className="truncate text-muted-foreground">{item.name}</span>
               </div>
             ))}
+
             {remaining > 0 && (
               <div className="border-t border-border/50 px-3 py-2 text-[10px] italic text-muted-foreground/50">
                 + {remaining} more…
@@ -80,6 +81,7 @@ export function DeleteTestCasesDialog({
           <AlertDialogCancel className="h-8 text-xs" disabled={isPending}>
             Cancel
           </AlertDialogCancel>
+
           <AlertDialogAction
             className="h-8 gap-1.5 border-0 bg-red-500 text-xs text-white hover:bg-red-600"
             disabled={isPending}

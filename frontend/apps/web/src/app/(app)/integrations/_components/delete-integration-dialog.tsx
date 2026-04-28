@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 
+import { useQueryClient } from '@tanstack/react-query';
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +16,7 @@ import {
 } from '@workspace/ui/components/ui/alert-dialog';
 
 import { deleteIntegration } from '@/actions/integrations';
+import { integrationKeys } from '@/constants/query-keys';
 import { isErrorApiResult, isSuccessApiResult } from '@/utils/api';
 import { getApiErrorMessage } from '@/utils/error';
 
@@ -24,15 +27,14 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   integration: IntegrationPublic;
-  onDeleted: (id: string) => void;
 }
 
 export const DeleteIntegrationDialog: FC<Props> = ({
   open,
   onOpenChange,
   integration,
-  onDeleted,
 }) => {
+  const queryClient = useQueryClient();
   const [isPending, setIsPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -42,7 +44,7 @@ export const DeleteIntegrationDialog: FC<Props> = ({
     const result = await deleteIntegration(integration.id);
     setIsPending(false);
     if (isSuccessApiResult(result)) {
-      onDeleted(integration.id);
+      void queryClient.invalidateQueries({ queryKey: integrationKeys.all });
       onOpenChange(false);
     } else if (isErrorApiResult(result)) {
       setErrorMessage(getApiErrorMessage(result.error));

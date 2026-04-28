@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { DEFAULT_LLM_MODEL, DEFAULT_LLM_PROVIDER } from '@/constants/llm-models';
+
 // ─── Sub-schemas ─────────────────────────────────────────────────────────────
 
 const authHeaderSchema = z.object({
@@ -18,16 +20,32 @@ const toolParameterSchema = z.object({
 
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const;
 
-const agentToolSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1, 'Tool name is required'),
-  description: z.string(),
-  url: z.string(),
-  method: z.enum(HTTP_METHODS),
-  timeout: z.number().min(1).max(120),
-  authHeaders: z.array(authHeaderSchema),
-  parameters: z.array(toolParameterSchema),
-});
+const agentToolSchema = z
+  .object({
+    id: z.string(),
+    name: z.string().min(1, 'Tool name is required'),
+    description: z.string(),
+    url: z.string(),
+    method: z.enum(HTTP_METHODS),
+    timeout: z.number().min(1).max(120),
+    authHeaders: z.array(authHeaderSchema),
+    parameters: z.array(toolParameterSchema),
+  })
+  .superRefine((tool, ctx) => {
+    const counts = new Map<string, number>();
+    for (const p of tool.parameters) {
+      if (p.name) counts.set(p.name, (counts.get(p.name) ?? 0) + 1);
+    }
+    tool.parameters.forEach((p, i) => {
+      if (p.name && (counts.get(p.name) ?? 0) > 1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['parameters', i, 'name'],
+          message: 'Duplicate parameter name',
+        });
+      }
+    });
+  });
 
 // ─── Main form schema ────────────────────────────────────────────────────────
 
@@ -50,8 +68,8 @@ export type HttpMethod = (typeof HTTP_METHODS)[number];
 export const agentFormDefaults: AgentFormValues = {
   prompt: '',
   tools: [],
-  provider: 'OpenAI',
-  model: 'gpt-4.1',
+  provider: DEFAULT_LLM_PROVIDER,
+  model: DEFAULT_LLM_MODEL,
   temperature: 0.7,
 };
 
@@ -92,4 +110,13 @@ export function makeDefaultAuthHeader(overrides?: Partial<AuthHeaderValues>): Au
     value: '',
     ...overrides,
   };
+}
+
+// ─── Validation helpers (for draft tool editor — outside react-hook-form) ────
+
+export function validateParameterName(name: string, allNames: string[]): string | undefined {
+  if (!name) return 'Parameter name is required';
+  const occurrences = allNames.reduce((n, current) => (current === name ? n + 1 : n), 0);
+  if (occurrences > 1) return 'Duplicate parameter name';
+  return undefined;
 }

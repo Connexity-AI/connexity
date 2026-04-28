@@ -51,12 +51,27 @@ import type {
   AgentsUpsertDraftData,
   AgentsUpsertDraftErrors,
   AgentsUpsertDraftResponses,
+  CallsGetCallDetailData,
+  CallsGetCallDetailErrors,
+  CallsGetCallDetailResponses,
+  CallsListAgentCallsData,
+  CallsListAgentCallsErrors,
+  CallsListAgentCallsResponses,
+  CallsMarkCallSeenEndpointData,
+  CallsMarkCallSeenEndpointErrors,
+  CallsMarkCallSeenEndpointResponses,
+  CallsRefreshAgentCallsData,
+  CallsRefreshAgentCallsErrors,
+  CallsRefreshAgentCallsResponses,
   ConfigGetAvailableMetricsData,
   ConfigGetAvailableMetricsErrors,
   ConfigGetAvailableMetricsResponses,
   ConfigGetConfigData,
   ConfigGetConfigErrors,
   ConfigGetConfigResponses,
+  ConfigGetLlmModelsData,
+  ConfigGetLlmModelsErrors,
+  ConfigGetLlmModelsResponses,
   CustomMetricsCreateCustomMetricData,
   CustomMetricsCreateCustomMetricErrors,
   CustomMetricsCreateCustomMetricResponses,
@@ -2336,6 +2351,30 @@ export class ConfigService {
       ...options,
     });
   }
+
+  /**
+   * Get Llm Models
+   */
+  public static getLlmModels<ThrowOnError extends boolean = false>(
+    options?: Options<ConfigGetLlmModelsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      ConfigGetLlmModelsResponses,
+      ConfigGetLlmModelsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/config/llm-models',
+      ...options,
+    });
+  }
 }
 
 export class IntegrationsService {
@@ -2637,6 +2676,104 @@ export class EnvironmentsService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/environments/{environment_id}/deployments',
+      ...options,
+    });
+  }
+}
+
+export class CallsService {
+  /**
+   * List Agent Calls
+   */
+  public static listAgentCalls<ThrowOnError extends boolean = false>(
+    options: Options<CallsListAgentCallsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      CallsListAgentCallsResponses,
+      CallsListAgentCallsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/calls',
+      ...options,
+    });
+  }
+
+  /**
+   * Refresh Agent Calls
+   */
+  public static refreshAgentCalls<ThrowOnError extends boolean = false>(
+    options: Options<CallsRefreshAgentCallsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      CallsRefreshAgentCallsResponses,
+      CallsRefreshAgentCallsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/calls/refresh',
+      ...options,
+    });
+  }
+
+  /**
+   * Mark Call Seen Endpoint
+   */
+  public static markCallSeenEndpoint<ThrowOnError extends boolean = false>(
+    options: Options<CallsMarkCallSeenEndpointData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      CallsMarkCallSeenEndpointResponses,
+      CallsMarkCallSeenEndpointErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/calls/{call_id}/seen',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Call Detail
+   */
+  public static getCallDetail<ThrowOnError extends boolean = false>(
+    options: Options<CallsGetCallDetailData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      CallsGetCallDetailResponses,
+      CallsGetCallDetailErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/calls/{call_id}',
       ...options,
     });
   }

@@ -21,6 +21,16 @@ from app.crud.agent_version import publish_draft as publish_agent_draft  # noqa:
 from app.crud.agent_version import (
     rollback_to_version as rollback_agent_version,  # noqa: F401
 )
+from app.crud.call import (  # noqa: F401
+    count_calls_for_agent,
+    get_call,
+    get_latest_call_started_at,
+    list_calls_for_agent,
+    mark_call_seen,
+    soft_delete_calls_for_integration,
+    touch_calls_last_synced_at,
+    upsert_calls_from_retell,
+)
 from app.crud.custom_metrics import (  # noqa: F401
     create_custom_metric,
     delete_custom_metric,
@@ -94,6 +104,8 @@ from app.crud.prompt_editor_session import (
     update_session_edited_prompt as update_prompt_editor_session_edited_prompt,  # noqa: F401
 )
 from app.crud.run import (  # noqa: F401
+    count_runs_by_eval_config_ids,
+    count_runs_for_eval_config,
     create_run,
     delete_run,
     enrich_run_create_from_agent,

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { DEFAULT_MODELS } from '@/app/(app)/(agent)/_constants/agent';
+import { DEFAULT_LLM_MODEL, DEFAULT_LLM_PROVIDER } from '@/constants/llm-models';
 
 import type { EvalConfigCreate } from '@/client/types.gen';
 
@@ -56,13 +56,13 @@ export function buildDefaults(name: string): CreateEvalFormValues {
     },
     test_cases: [],
     judge: {
-      provider: 'OpenAI',
-      model: DEFAULT_MODELS.OpenAI ?? 'gpt-4.1',
+      provider: DEFAULT_LLM_PROVIDER,
+      model: DEFAULT_LLM_MODEL,
       metrics: [],
     },
     persona: {
-      provider: 'OpenAI',
-      model: 'gpt-4o',
+      provider: DEFAULT_LLM_PROVIDER,
+      model: DEFAULT_LLM_MODEL,
       temperature: 0.7,
     },
   };

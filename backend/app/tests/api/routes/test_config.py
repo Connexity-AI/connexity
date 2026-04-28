@@ -1,8 +1,15 @@
 import uuid
 
 from fastapi.testclient import TestClient
+from pytest import MonkeyPatch
 
+from app.api.routes import config as config_route
 from app.core.config import settings
+from app.services.llm_models import (
+    LLMModelProviderPublic,
+    LLMModelPublic,
+    LLMModelsPublic,
+)
 
 
 def test_get_config(client: TestClient, superuser_auth_cookies: dict[str, str]) -> None:
@@ -21,6 +28,55 @@ def test_get_config(client: TestClient, superuser_auth_cookies: dict[str, str]) 
 def test_get_config_requires_auth(client: TestClient) -> None:
     r = client.get(f"{settings.API_V1_STR}/config/")
     assert r.status_code == 401
+
+
+def test_llm_models_requires_auth(client: TestClient) -> None:
+    r = client.get(f"{settings.API_V1_STR}/config/llm-models")
+    assert r.status_code == 401
+
+
+def test_llm_models_returns_catalog(
+    client: TestClient,
+    superuser_auth_cookies: dict[str, str],
+    monkeypatch: MonkeyPatch,
+) -> None:
+    catalog = LLMModelsPublic(
+        default_model="openai/gpt-4o-mini",
+        count=1,
+        data=[
+            LLMModelProviderPublic(
+                provider="openai",
+                label="OpenAI",
+                default_model="openai/gpt-4o-mini",
+                models=[
+                    LLMModelPublic(
+                        id="openai/gpt-4o-mini",
+                        provider="openai",
+                        provider_label="OpenAI",
+                        model="gpt-4o-mini",
+                        label="GPT 4o mini",
+                        is_default=True,
+                        is_recommended=True,
+                        max_input_tokens=128000,
+                        max_output_tokens=16384,
+                    )
+                ],
+            )
+        ],
+    )
+    monkeypatch.setattr(config_route, "get_available_llm_models", lambda: catalog)
+
+    r = client.get(
+        f"{settings.API_V1_STR}/config/llm-models",
+        cookies=superuser_auth_cookies,
+    )
+
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["default_model"] == "openai/gpt-4o-mini"
+    assert payload["count"] == 1
+    assert payload["data"][0]["provider"] == "openai"
+    assert payload["data"][0]["models"][0]["id"] == "openai/gpt-4o-mini"
 
 
 def test_available_metrics_includes_custom_metrics(

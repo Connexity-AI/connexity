@@ -70,11 +70,9 @@ def create_environment(
     current_user: CurrentUser,
     environment_in: EnvironmentCreate,
 ) -> EnvironmentPublic:
-    get_owned_agent(
-        agent_id=environment_in.agent_id,
-        session=session,
-        current_user=current_user,
-    )
+    agent = crud.get_agent(session=session, agent_id=environment_in.agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
     integration = crud.get_integration(
         session=session,
         integration_id=environment_in.integration_id,
@@ -89,10 +87,11 @@ def create_environment(
 @router.get("/", response_model=EnvironmentsPublic)
 def list_environments(
     session: SessionDep,
-    current_user: CurrentUser,
     agent_id: uuid.UUID = Query(...),
 ) -> EnvironmentsPublic:
-    get_owned_agent(agent_id=agent_id, session=session, current_user=current_user)
+    agent = crud.get_agent(session=session, agent_id=agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
     rows = crud.list_environments_by_agent(session=session, agent_id=agent_id)
     return EnvironmentsPublic(
         data=[_to_public(env, name) for env, name in rows],
@@ -109,7 +108,6 @@ def delete_environment(
     env = crud.get_environment(session=session, environment_id=environment_id)
     if not env:
         raise HTTPException(status_code=404, detail="Environment not found")
-    get_owned_agent(agent_id=env.agent_id, session=session, current_user=current_user)
     integration = crud.get_integration(
         session=session,
         integration_id=env.integration_id,

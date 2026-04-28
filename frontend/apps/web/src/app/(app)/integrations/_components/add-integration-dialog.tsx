@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, Loader2, XCircle } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { Button } from '@workspace/ui/components/ui/button';
-import { Dialog, DialogContent } from '@workspace/ui/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@workspace/ui/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -19,9 +20,9 @@ import {
 } from '@workspace/ui/components/ui/form';
 
 import { createIntegration } from '@/actions/integrations';
+import { integrationKeys } from '@/constants/query-keys';
 import { isSuccessApiResult } from '@/utils/api';
 
-import type { IntegrationPublic } from '@/client/types.gen';
 import type { FC } from 'react';
 
 const formSchema = z.object({
@@ -37,28 +38,28 @@ type DialogState = 'form' | 'testing' | 'success' | 'error';
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdded: (integration: IntegrationPublic) => void;
 }
 
 const INPUT_CLASS =
   'w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50';
 
-export const AddIntegrationDialog: FC<Props> = ({ open, onOpenChange, onAdded }) => {
+export const AddIntegrationDialog: FC<Props> = ({ open, onOpenChange }) => {
+  const queryClient = useQueryClient();
   const [dialogState, setDialogState] = useState<DialogState>('form');
   const [errorMessage, setErrorMessage] = useState<string>('');
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: { provider: 'retell', name: '', api_key: '' },
+    values: { provider: 'retell', name: '', api_key: '' },
   });
 
-  useEffect(() => {
-    if (open) {
-      form.reset({ provider: 'retell', name: '', api_key: '' });
-      setDialogState('form');
-      setErrorMessage('');
+  const handleOpenChange = (next: boolean) => {
+    if (dialogState === 'testing' && !next) {
+      return;
     }
-  }, [open, form]);
+    onOpenChange(next);
+  };
 
   const onSubmit = async (values: FormValues) => {
     setDialogState('testing');
@@ -68,7 +69,7 @@ export const AddIntegrationDialog: FC<Props> = ({ open, onOpenChange, onAdded })
 
     if (isSuccessApiResult(result)) {
       setDialogState('success');
-      onAdded(result.data);
+      void queryClient.invalidateQueries({ queryKey: integrationKeys.all });
       setTimeout(() => onOpenChange(false), 1500);
       return;
     }
@@ -83,10 +84,12 @@ export const AddIntegrationDialog: FC<Props> = ({ open, onOpenChange, onAdded })
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => dialogState !== 'testing' && onOpenChange(o)}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden [&>button:last-of-type]:hidden">
         <div className="px-6 py-4 border-b border-border">
-          <h2 className="text-sm font-medium text-foreground">Add Integration</h2>
+          <DialogTitle className="text-sm font-medium text-foreground">
+            Add Integration
+          </DialogTitle>
         </div>
 
         {dialogState === 'success' ? (

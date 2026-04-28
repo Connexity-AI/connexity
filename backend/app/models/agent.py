@@ -136,6 +136,15 @@ class Agent(AgentBase, table=True):
             "onupdate": lambda: datetime.now(UTC),
         },
     )
+    calls_last_synced_at: datetime | None = Field(
+        default=None,
+        nullable=True,
+        description=(
+            "Stale-while-revalidate marker for Observer. Stamped each time the "
+            "GET /calls endpoint kicks off a background Retell sync; gates dedup "
+            "and TTL backoff. Operational state, not part of the public API."
+        ),
+    )
 
     # Relationships
     runs: list["Run"] = Relationship(

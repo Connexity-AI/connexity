@@ -6,7 +6,10 @@ import { Button } from '@workspace/ui/components/ui/button';
 
 import { DraftParameterRow } from '@/app/(app)/(agent)/_components/tools/draft/draft-parameter-row';
 
-import type { ToolParameterValues } from '@/app/(app)/(agent)/_schemas/agent-form';
+import {
+  validateParameterName,
+  type ToolParameterValues,
+} from '@/app/(app)/(agent)/_schemas/agent-form';
 
 interface DraftToolParametersProps {
   parameters: ToolParameterValues[];
@@ -40,15 +43,20 @@ export function DraftToolParameters({
 
             <span />
           </div>
-          {parameters.map((param, index) => (
-            <DraftParameterRow
-              key={param.id}
-              param={param}
-              isFirst={index === 0}
-              onChange={(patch) => onUpdate(index, patch)}
-              onRemove={() => onRemove(index)}
-            />
-          ))}
+          {parameters.map((param, index) => {
+            const allNames = parameters.map((p) => p.name);
+            const nameError = validateParameterName(param.name, allNames);
+            return (
+              <DraftParameterRow
+                key={param.id}
+                param={param}
+                isFirst={index === 0}
+                nameError={nameError}
+                onChange={(patch) => onUpdate(index, patch)}
+                onRemove={() => onRemove(index)}
+              />
+            );
+          })}
         </div>
       )}
 

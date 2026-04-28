@@ -39,6 +39,10 @@ export const metricKeys = {
   list: () => ['available-metrics'] as const,
 };
 
+export const llmModelKeys = {
+  list: () => ['llm-models'] as const,
+};
+
 export const runKeys = {
   list: (agentId: string) => ['runs', agentId] as const,
   detail: (runId: string) => ['run', runId] as const,
@@ -58,4 +62,18 @@ export const environmentKeys = {
 
 export const retellAgentKeys = {
   byIntegration: (integrationId: string) => ['retell-agents', integrationId] as const,
+};
+
+export type CallFilters = {
+  page?: number;
+  pageSize?: number;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+};
+
+export const callKeys = {
+  all: ['calls'] as const,
+  list: (agentId: string, filters: CallFilters = {}) =>
+    ['calls', agentId, filters] as const,
+  detail: (callId: string) => ['call', callId] as const,
 };

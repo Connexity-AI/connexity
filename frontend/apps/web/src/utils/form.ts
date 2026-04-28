@@ -1,9 +1,9 @@
-export const objectToFormData = (obj: Record<string, any>): FormData => {
+export const objectToFormData = (obj: Record<string, string | Blob>): FormData => {
   const formData = new FormData();
 
-  Object.keys(obj).forEach((key) => {
-    formData.append(key, obj[key]);
-  });
+  for (const [key, value] of Object.entries(obj)) {
+    formData.append(key, value);
+  }
 
   return formData;
 };

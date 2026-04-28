@@ -26,12 +26,14 @@ const ADD_TEST_CASE_DEFAULTS: TestCaseFormValues = {
 
 interface UseManualTestCaseFormOptions {
   agentId: string;
+  sourceCallId?: string | null;
   onOpenChange: (open: boolean) => void;
 }
 
 function formValuesToCreatePayload(
   values: TestCaseFormValues,
-  agentId: string
+  agentId: string,
+  sourceCallId: string | null | undefined
 ): TestCaseCreate {
   return {
     name: values.name,
@@ -47,11 +49,13 @@ function formValuesToCreatePayload(
       expected_params: call.expected_params,
     })),
     agent_id: agentId,
+    source_call_id: sourceCallId ?? null,
   };
 }
 
 export function useManualTestCaseForm({
   agentId,
+  sourceCallId,
   onOpenChange,
 }: UseManualTestCaseFormOptions) {
   const agentForm = useFormContext<AgentFormValues>();
@@ -73,7 +77,7 @@ export function useManualTestCaseForm({
   };
 
   const submit = async (values: TestCaseFormValues) => {
-    await mutateAsync(formValuesToCreatePayload(values, agentId));
+    await mutateAsync(formValuesToCreatePayload(values, agentId, sourceCallId));
     handleOpenChange(false);
   };
 

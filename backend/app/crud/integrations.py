@@ -4,6 +4,7 @@ from sqlalchemy import func
 from sqlmodel import Session, col, select
 
 from app.core.encryption import encrypt, mask_key
+from app.crud.call import soft_delete_calls_for_integration
 from app.models.integration import Integration, IntegrationCreate
 
 
@@ -58,5 +59,12 @@ def list_integrations(
 
 
 def delete_integration(*, session: Session, db_integration: Integration) -> None:
+    """Hard-delete the integration after detaching dependent rows.
+
+    Calls are soft-deleted (rows kept so ``test_case.source_call_id`` FKs remain
+    valid) and have their ``integration_id`` nulled. All in one transaction.
+    """
+    integration_id = db_integration.id
+    soft_delete_calls_for_integration(session=session, integration_id=integration_id)
     session.delete(db_integration)
     session.commit()
