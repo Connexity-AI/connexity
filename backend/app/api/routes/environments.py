@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app import crud
-from app.api.deps import CurrentUser, SessionDep, get_current_user
+from app.api.deps import SessionDep, get_current_user
 from app.models import (
     Environment,
     EnvironmentCreate,
@@ -36,7 +36,6 @@ def _to_public(env: Environment, integration_name: str) -> EnvironmentPublic:
 @router.post("/", response_model=EnvironmentPublic)
 def create_environment(
     session: SessionDep,
-    current_user: CurrentUser,
     environment_in: EnvironmentCreate,
 ) -> EnvironmentPublic:
     agent = crud.get_agent(session=session, agent_id=environment_in.agent_id)
@@ -45,7 +44,6 @@ def create_environment(
     integration = crud.get_integration(
         session=session,
         integration_id=environment_in.integration_id,
-        user_id=current_user.id,
     )
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
@@ -71,7 +69,6 @@ def list_environments(
 @router.delete("/{environment_id}", response_model=Message)
 def delete_environment(
     session: SessionDep,
-    current_user: CurrentUser,
     environment_id: uuid.UUID,
 ) -> Message:
     env = crud.get_environment(session=session, environment_id=environment_id)
@@ -80,7 +77,6 @@ def delete_environment(
     integration = crud.get_integration(
         session=session,
         integration_id=env.integration_id,
-        user_id=current_user.id,
     )
     if not integration:
         raise HTTPException(status_code=404, detail="Environment not found")

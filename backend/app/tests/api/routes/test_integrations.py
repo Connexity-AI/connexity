@@ -116,7 +116,7 @@ def test_create_list_get_test_delete_flow(
     assert all(i["id"] != integration_id for i in list_after.json()["data"])
 
 
-def test_other_user_cannot_access_or_delete(
+def test_integration_visible_to_all_authenticated_users(
     client: TestClient,
     superuser_auth_cookies: dict[str, str],
     normal_user_auth_cookies: dict[str, str],
@@ -128,27 +128,38 @@ def test_other_user_cannot_access_or_delete(
     ):
         create_r = client.post(
             f"{settings.API_V1_STR}/integrations/",
-            json=_create_body("isolated"),
+            json=_create_body("shared"),
             cookies=superuser_auth_cookies,
         )
     assert create_r.status_code == 200
     integration_id = create_r.json()["id"]
-
-    other_test = client.post(
-        f"{settings.API_V1_STR}/integrations/{integration_id}/test",
-        cookies=normal_user_auth_cookies,
-    )
-    assert other_test.status_code == 404
-
-    other_del = client.delete(
-        f"{settings.API_V1_STR}/integrations/{integration_id}",
-        cookies=normal_user_auth_cookies,
-    )
-    assert other_del.status_code == 404
 
     other_list = client.get(
         f"{settings.API_V1_STR}/integrations/",
         cookies=normal_user_auth_cookies,
     )
     assert other_list.status_code == 200
-    assert all(i["id"] != integration_id for i in other_list.json()["data"])
+    assert any(i["id"] == integration_id for i in other_list.json()["data"])
+
+    with patch.dict(
+        "app.api.routes.integrations._CONNECTION_TESTERS",
+        {IntegrationProvider.RETELL: AsyncMock(return_value=True)},
+        clear=False,
+    ):
+        other_test = client.post(
+            f"{settings.API_V1_STR}/integrations/{integration_id}/test",
+            cookies=normal_user_auth_cookies,
+        )
+    assert other_test.status_code == 200
+
+    other_del = client.delete(
+        f"{settings.API_V1_STR}/integrations/{integration_id}",
+        cookies=normal_user_auth_cookies,
+    )
+    assert other_del.status_code == 200
+
+    list_after = client.get(
+        f"{settings.API_V1_STR}/integrations/",
+        cookies=superuser_auth_cookies,
+    )
+    assert all(i["id"] != integration_id for i in list_after.json()["data"])

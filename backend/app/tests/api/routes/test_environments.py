@@ -48,7 +48,7 @@ def _make_owned_agent(db: Session, owner_email: str | None = None):
     return agent, user
 
 
-def _make_integration(db: Session, user_id: uuid.UUID):
+def _make_integration(db: Session):
     return crud.create_integration(
         session=db,
         data=IntegrationCreate(
@@ -56,7 +56,6 @@ def _make_integration(db: Session, user_id: uuid.UUID):
             name=f"int-{uuid.uuid4().hex[:6]}",
             api_key="sk_test_env_routes",
         ),
-        user_id=user_id,
     )
 
 
@@ -100,7 +99,7 @@ def test_create_list_delete_environment_flow(
     db: Session,
 ) -> None:
     agent, user = _make_owned_agent(db)
-    integration = _make_integration(db, user.id)
+    integration = _make_integration(db)
 
     create_r = client.post(
         f"{settings.API_V1_STR}/environments/",
@@ -160,7 +159,7 @@ def test_other_user_can_list_environment(
     db: Session,
 ) -> None:
     agent, user = _make_owned_agent(db)
-    integration = _make_integration(db, user.id)
+    integration = _make_integration(db)
     env = crud.create_environment(
         session=db,
         data=EnvironmentCreate(
@@ -188,7 +187,7 @@ def test_delete_integration_returns_409_when_environment_depends_on_it(
     db: Session,
 ) -> None:
     agent, user = _make_owned_agent(db)
-    integration = _make_integration(db, user.id)
+    integration = _make_integration(db)
     crud.create_environment(
         session=db,
         data=EnvironmentCreate(
