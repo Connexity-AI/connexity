@@ -34,13 +34,14 @@ export function ParameterRow({ toolIndex, paramIndex, isFirst, onRemove }: Param
 
   const basePath = `tools.${toolIndex}.parameters.${paramIndex}` as const;
   const type = watch(`${basePath}.type`);
+  const required = watch(`${basePath}.required`);
   const nameError =
     formState.errors.tools?.[toolIndex]?.parameters?.[paramIndex]?.name?.message;
 
   return (
     <div
       className={cn(
-        'grid grid-cols-[1.2fr_2fr_100px_36px] items-start px-4 py-2.5 gap-3',
+        'grid grid-cols-[1.2fr_2fr_100px_72px_36px] items-start px-4 py-2.5 gap-3',
         !isFirst && 'border-t border-border/40'
       )}
     >
@@ -83,6 +84,22 @@ export function ParameterRow({ toolIndex, paramIndex, isFirst, onRemove }: Param
           ))}
         </SelectContent>
       </Select>
+
+      <Button
+        type="button"
+        variant="ghost"
+        onClick={() =>
+          setValue(`${basePath}.required`, !required, { shouldDirty: true })
+        }
+        className={cn(
+          'h-8 px-2 w-full rounded text-xs border transition-colors select-none',
+          required
+            ? 'bg-foreground text-background border-foreground hover:bg-foreground/90 hover:text-background'
+            : 'border-border text-muted-foreground hover:text-foreground hover:bg-accent/50'
+        )}
+      >
+        {required ? 'Yes' : 'No'}
+      </Button>
 
       <Button
         variant="ghost"

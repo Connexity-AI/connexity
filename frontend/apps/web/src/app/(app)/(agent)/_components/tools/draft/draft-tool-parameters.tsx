@@ -28,7 +28,7 @@ export function DraftToolParameters({
     <div className="space-y-3">
       {parameters.length > 0 && (
         <div className="rounded-lg border border-border overflow-hidden">
-          <div className="grid grid-cols-[1.2fr_2fr_100px_36px] items-center px-4 py-2 bg-accent/30 border-b border-border gap-3">
+          <div className="grid grid-cols-[1.2fr_2fr_100px_72px_36px] items-center px-4 py-2 bg-accent/30 border-b border-border gap-3">
             <span className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">
               Name
             </span>
@@ -39,6 +39,10 @@ export function DraftToolParameters({
 
             <span className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">
               Type
+            </span>
+
+            <span className="text-[10px] text-muted-foreground/50 uppercase tracking-wider text-center">
+              Required
             </span>
 
             <span />
