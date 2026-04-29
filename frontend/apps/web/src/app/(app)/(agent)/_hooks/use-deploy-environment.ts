@@ -23,12 +23,18 @@ export function useDeployEnvironment(agentId: string) {
       if (isErrorApiResult(result)) {
         throw new Error(getApiErrorMessage(result.error));
       }
+      if (result.data.status === 'failed') {
+        throw new Error(result.data.error_message ?? 'Deploy failed');
+      }
       return result.data;
     },
-    onSuccess: (_data, { environmentId }) => {
+    onSettled: (_data, _err, { environmentId }) => {
       void queryClient.invalidateQueries({ queryKey: environmentKeys.list(agentId) });
       void queryClient.invalidateQueries({
         queryKey: environmentKeys.deployments(environmentId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: environmentKeys.agentDeployments(agentId),
       });
     },
   });

@@ -183,20 +183,41 @@ async def list_retell_calls(
     return calls
 
 
+_RETELL_ALLOWED_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE"}
+
+
 def _map_tools_for_retell(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Map Connexity tools to Retell ``general_tools`` (type=custom).
+
+    Only HTTP webhook tools are forwarded — Retell cannot execute Python or
+    mock-mode tools, so they're dropped silently.
+    """
     retell_tools: list[dict[str, Any]] = []
     for tool in tools:
-        func = tool.get("function", {})
-        impl = tool.get("platform_config", {}).get("implementation", {})
-        retell_tools.append(
-            {
-                "type": "custom",
-                "name": func.get("name", ""),
-                "description": func.get("description", ""),
-                "url": impl.get("url", ""),
-                "method": impl.get("method", ""),
-            }
-        )
+        impl = (tool.get("platform_config") or {}).get("implementation") or {}
+        if impl.get("type") != "http_webhook":
+            continue
+
+        url = impl.get("url") or ""
+        if not url:
+            continue
+
+        method = str(impl.get("method") or "POST").upper()
+        if method not in _RETELL_ALLOWED_METHODS:
+            method = "POST"
+
+        func = tool.get("function") or {}
+        retell_tool: dict[str, Any] = {
+            "type": "custom",
+            "name": func.get("name", ""),
+            "description": func.get("description", ""),
+            "url": url,
+            "method": method,
+        }
+        params = func.get("parameters")
+        if isinstance(params, dict) and params:
+            retell_tool["parameters"] = params
+        retell_tools.append(retell_tool)
     return retell_tools
 
 

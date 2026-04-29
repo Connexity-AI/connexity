@@ -130,7 +130,6 @@ async def deploy_environment(
     integration = crud.get_integration(
         session=session,
         integration_id=env.integration_id,
-        user_id=current_user.id,
     )
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
@@ -151,6 +150,10 @@ async def deploy_environment(
     )
 
     api_key = decrypt(integration.encrypted_api_key)
+    connexity_label = f"Connexity Agent v{body.agent_version}"
+    notes = (version_row.change_description or "").strip()
+    combined_description = f"{connexity_label} — {notes}" if notes else connexity_label
+
     result = await deploy_retell_agent(
         api_key=api_key,
         retell_agent_id=env.platform_agent_id,
@@ -158,7 +161,7 @@ async def deploy_environment(
         agent_model=version_row.agent_model,
         agent_temperature=version_row.agent_temperature,
         tools=version_row.tools,
-        change_description=version_row.change_description,
+        change_description=combined_description,
     )
 
     if result.success:
@@ -194,7 +197,6 @@ async def list_environment_retell_versions(
     integration = crud.get_integration(
         session=session,
         integration_id=env.integration_id,
-        user_id=current_user.id,
     )
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")

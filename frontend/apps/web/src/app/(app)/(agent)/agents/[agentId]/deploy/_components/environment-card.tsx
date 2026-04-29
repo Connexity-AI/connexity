@@ -68,6 +68,12 @@ export const EnvironmentCard: FC<Props> = ({ environment, agentId }) => {
     return () => clearTimeout(t);
   }, [deploy.isSuccess, deploy]);
 
+  useEffect(() => {
+    if (selectedVersion != null) return;
+    if (latestPublished == null) return;
+    setSelectedVersion(latestPublished);
+  }, [latestPublished, selectedVersion]);
+
   const handleDeploy = () => {
     if (selectedVersion == null) return;
     deploy.mutate({ environmentId: environment.id, agentVersion: selectedVersion });
@@ -139,6 +145,12 @@ export const EnvironmentCard: FC<Props> = ({ environment, agentId }) => {
               <div className="flex items-center gap-2">
                 <span className="text-sm text-foreground font-medium">
                   v{currentVersion}
+                  {environment.current_version_name ? (
+                    <span className="text-muted-foreground font-normal">
+                      {' '}
+                      — {environment.current_version_name}
+                    </span>
+                  ) : null}
                 </span>
               </div>
               <span className="text-xs text-muted-foreground">
