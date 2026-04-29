@@ -23,6 +23,12 @@ interface ChatInputProps {
   suggestion?: SuggestionPill;
   /** Opens the assistant guidelines dialog when the toolbar book icon is clicked. */
   onOpenGuidelines: () => void;
+  /**
+   * When true, the send button is enabled even with an empty textarea. The
+   * parent (e.g. AgentChatbot) substitutes a default message on the send
+   * side so attached context alone is enough to kick off a turn.
+   */
+  allowEmptySend?: boolean;
 }
 
 /**
@@ -40,10 +46,12 @@ export function ChatInput({
   onModelChange,
   suggestion,
   onOpenGuidelines,
+  allowEmptySend,
 }: ChatInputProps) {
   const { value, textareaRef, canSend, handleChange, handleSubmit, handleKeyDown } = useChatInput({
     onSend,
     disabled,
+    allowEmpty: allowEmptySend,
   });
 
   return (

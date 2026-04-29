@@ -70,9 +70,9 @@ Together these pieces form a **closed development loop**: import or build → ed
 
 Run Connexity on your own infrastructure. Two deployment paths are supported today:
 
-### Local (Docker Compose)
+### Local development
 
-Run the entire stack on your own machine in a few minutes using Docker Compose. Recommended for development and evaluation.
+**Option A** runs the app on your machine with the database (and migrations) wired through Make; **Option B** runs the full stack in Docker Compose. Pick one workflow below.
 
 ```bash
 # Get a copy of the latest Connexity repository
@@ -83,7 +83,30 @@ cd connexity-evals
 cp .env.example .env
 cp frontend/apps/web/.env.example frontend/apps/web/.env
 
-# Start everything in Docker (frontend, backend, database, adminer)
+# 2. Install dependencies (Python + frontend)
+make install
+
+# 3. Start database
+make db
+
+# 4. Run migrations
+make db-upgrade
+
+# 5. Start backend (in one terminal)
+make dev
+
+# 6. Start frontend (in another terminal)
+make dashboard
+```
+
+### Option B — Everything in Docker
+
+```bash
+# 1. Copy environment variables
+cp .env.example .env
+cp frontend/apps/web/.env.example frontend/apps/web/.env
+
+# 2. Start all services (frontend, backend, database, adminer)
 make docker-up
 ```
 
@@ -92,6 +115,10 @@ Then open the dashboard at [http://localhost:3000](http://localhost:3000).
 ### VM
 
 Run Connexity on a single Virtual Machine using the same Docker Compose stack. Suitable for small teams and internal deployments — clone the repo on your VM, set production secrets in `.env`, and run `make docker-up`. See the [`docs/`](./docs) folder for hardening and configuration tips.
+
+## Accounts
+
+The database starts empty. Sign up at the frontend (`http://localhost:3000`) or via `POST /api/v1/users/signup` to create an account.
 
 ## 🪢 Integrations
 

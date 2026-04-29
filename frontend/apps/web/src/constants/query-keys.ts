@@ -24,3 +24,52 @@ export const promptEditorKeys = {
 export const testCaseKeys = {
   list: (agentId: string) => ['test-cases', agentId] as const,
 };
+
+export const integrationKeys = {
+  all: ['integrations'] as const,
+  list: () => ['integrations', 'list'] as const,
+};
+
+export const evalConfigKeys = {
+  list: (agentId: string) => ['eval-configs', agentId] as const,
+  detail: (evalConfigId: string) => ['eval-config', evalConfigId] as const,
+};
+
+export const metricKeys = {
+  list: () => ['available-metrics'] as const,
+};
+
+export const llmModelKeys = {
+  list: () => ['llm-models'] as const,
+};
+
+export const runKeys = {
+  list: (agentId: string) => ['runs', agentId] as const,
+  detail: (runId: string) => ['run', runId] as const,
+};
+
+export const testCaseResultKeys = {
+  byRun: (runId: string) => ['test-case-results', runId] as const,
+};
+
+export const environmentKeys = {
+  list: (agentId: string) => ['environments', agentId] as const,
+};
+
+export const retellAgentKeys = {
+  byIntegration: (integrationId: string) => ['retell-agents', integrationId] as const,
+};
+
+export type CallFilters = {
+  page?: number;
+  pageSize?: number;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+};
+
+export const callKeys = {
+  all: ['calls'] as const,
+  list: (agentId: string, filters: CallFilters = {}) =>
+    ['calls', agentId, filters] as const,
+  detail: (callId: string) => ['call', callId] as const,
+};

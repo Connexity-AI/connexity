@@ -6,7 +6,10 @@ import { Button } from '@workspace/ui/components/ui/button';
 
 import { DraftParameterRow } from '@/app/(app)/(agent)/_components/tools/draft/draft-parameter-row';
 
-import type { ToolParameterValues } from '@/app/(app)/(agent)/_schemas/agent-form';
+import {
+  validateParameterName,
+  type ToolParameterValues,
+} from '@/app/(app)/(agent)/_schemas/agent-form';
 
 interface DraftToolParametersProps {
   parameters: ToolParameterValues[];
@@ -25,7 +28,7 @@ export function DraftToolParameters({
     <div className="space-y-3">
       {parameters.length > 0 && (
         <div className="rounded-lg border border-border overflow-hidden">
-          <div className="grid grid-cols-[1.2fr_2fr_100px_36px] items-center px-4 py-2 bg-accent/30 border-b border-border gap-3">
+          <div className="grid grid-cols-[1.2fr_2fr_100px_72px_36px] items-center px-4 py-2 bg-accent/30 border-b border-border gap-3">
             <span className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">
               Name
             </span>
@@ -38,17 +41,26 @@ export function DraftToolParameters({
               Type
             </span>
 
+            <span className="text-[10px] text-muted-foreground/50 uppercase tracking-wider text-center">
+              Required
+            </span>
+
             <span />
           </div>
-          {parameters.map((param, index) => (
-            <DraftParameterRow
-              key={param.id}
-              param={param}
-              isFirst={index === 0}
-              onChange={(patch) => onUpdate(index, patch)}
-              onRemove={() => onRemove(index)}
-            />
-          ))}
+          {parameters.map((param, index) => {
+            const allNames = parameters.map((p) => p.name);
+            const nameError = validateParameterName(param.name, allNames);
+            return (
+              <DraftParameterRow
+                key={param.id}
+                param={param}
+                isFirst={index === 0}
+                nameError={nameError}
+                onChange={(patch) => onUpdate(index, patch)}
+                onRemove={() => onRemove(index)}
+              />
+            );
+          })}
         </div>
       )}
 

@@ -17,6 +17,11 @@ const nextConfig = {
         destination: '/agents',
         permanent: false,
       },
+      {
+        source: '/agents/:agentId/evals',
+        destination: '/agents/:agentId/evals/test-cases',
+        permanent: false,
+      },
     ];
   },
 };

@@ -50,6 +50,30 @@ export class UrlGenerator {
     return `/agents/${agentId}/evals` as Route;
   }
 
+  static agentEvalsTestCases(agentId: string) {
+    return `/agents/${agentId}/evals/test-cases` as Route;
+  }
+
+  static agentEvalsConfigs(agentId: string) {
+    return `/agents/${agentId}/evals/eval-configs` as Route;
+  }
+
+  static agentEvalsRuns(agentId: string) {
+    return `/agents/${agentId}/evals/eval-runs` as Route;
+  }
+
+  static agentEvalsRunDetail(agentId: string, runId: string) {
+    return `/agents/${agentId}/evals/eval-runs/${runId}` as Route;
+  }
+
+  static agentEvalsCreate(agentId: string) {
+    return `/agents/${agentId}/evals/create-eval` as Route;
+  }
+
+  static agentEvalsConfigDetail(agentId: string, evalConfigId: string) {
+    return `/agents/${agentId}/evals/eval-configs/${evalConfigId}` as Route;
+  }
+
   static agentDeploy(agentId: string) {
     return `/agents/${agentId}/deploy` as Route;
   }
@@ -61,6 +85,12 @@ export class UrlGenerator {
   static metrics({ options, values }: MetricsType = {}) {
     const route = '/metrics/' as Route;
     return createTypedLink(route, emptyParser, options)(values);
+  }
+
+  // ── Integrations ──
+
+  static integrations() {
+    return '/integrations' as Route;
   }
 
   // ── API ──

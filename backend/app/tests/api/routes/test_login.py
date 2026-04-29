@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
@@ -8,14 +9,21 @@ from app.core.security import verify_password
 from app.crud import create_user
 from app.models import UserCreate
 from app.tests.utils.user import user_authentication_headers
-from app.tests.utils.utils import random_email, random_lower_string
+from app.tests.utils.utils import (
+    AUTH_USER_EMAIL,
+    AUTH_USER_PASSWORD,
+    random_email,
+    random_lower_string,
+)
 from app.utils import generate_password_reset_token
 
 
+@pytest.mark.usefixtures("auth_cookies")
 def test_get_auth_cookie(client: TestClient) -> None:
+    # auth_cookies fixture ensures AUTH_USER_EMAIL exists with AUTH_USER_PASSWORD
     login_data = {
-        "username": settings.FIRST_SUPERUSER,
-        "password": settings.FIRST_SUPERUSER_PASSWORD,
+        "username": AUTH_USER_EMAIL,
+        "password": AUTH_USER_PASSWORD,
     }
 
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
@@ -26,31 +34,31 @@ def test_get_auth_cookie(client: TestClient) -> None:
     assert "expires" in data
 
 
+@pytest.mark.usefixtures("auth_cookies")
 def test_get_auth_cookie_incorrect_password(client: TestClient) -> None:
     login_data = {
-        "username": settings.FIRST_SUPERUSER,
+        "username": AUTH_USER_EMAIL,
         "password": "incorrect",
     }
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
     assert r.status_code == 400
 
 
-def test_use_auth_cookie(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
-) -> None:
+def test_use_auth_cookie(client: TestClient, auth_cookies: dict[str, str]) -> None:
     r = client.post(
         f"{settings.API_V1_STR}/login/test-token",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     result = r.json()
     assert r.status_code == 200
     assert "email" in result
 
 
+@pytest.mark.usefixtures("auth_cookies")
 def test_use_bearer_token(client: TestClient) -> None:
     login_data = {
-        "username": settings.FIRST_SUPERUSER,
-        "password": settings.FIRST_SUPERUSER_PASSWORD,
+        "username": AUTH_USER_EMAIL,
+        "password": AUTH_USER_PASSWORD,
     }
     login = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
     assert login.status_code == 200
@@ -102,7 +110,6 @@ def test_reset_password(client: TestClient, db: Session) -> None:
         full_name="Test User",
         password=password,
         is_active=True,
-        is_superuser=False,
     )
     user = create_user(session=db, user_create=user_create)
     token = generate_password_reset_token(email=email)
@@ -124,12 +131,12 @@ def test_reset_password(client: TestClient, db: Session) -> None:
 
 
 def test_reset_password_invalid_token(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     data = {"new_password": "changethis", "token": "invalid"}
     r = client.post(
         f"{settings.API_V1_STR}/reset-password/",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
         json=data,
     )
     response = r.json()

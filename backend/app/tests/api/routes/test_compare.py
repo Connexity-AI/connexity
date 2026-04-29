@@ -159,7 +159,7 @@ def _completed_run_pair_same_set(db: Session) -> tuple:
 
 
 def test_compare_runs_success(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     run_b, run_c = _completed_run_pair_same_set(db)
     r = client.get(
@@ -168,7 +168,7 @@ def test_compare_runs_success(
             "baseline_run_id": str(run_b.id),
             "candidate_run_id": str(run_c.id),
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     body = r.json()
@@ -181,7 +181,7 @@ def test_compare_runs_success(
 
 
 def test_compare_runs_aggregate_deltas(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     run_b, run_c = _completed_run_pair_same_set(db)
     r = client.get(
@@ -190,7 +190,7 @@ def test_compare_runs_aggregate_deltas(
             "baseline_run_id": str(run_b.id),
             "candidate_run_id": str(run_c.id),
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     agg = r.json()["aggregate"]
@@ -199,7 +199,7 @@ def test_compare_runs_aggregate_deltas(
 
 
 def test_compare_runs_test_case_comparisons(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     run_b, run_c = _completed_run_pair_same_set(db)
     r = client.get(
@@ -208,7 +208,7 @@ def test_compare_runs_test_case_comparisons(
             "baseline_run_id": str(run_b.id),
             "candidate_run_id": str(run_c.id),
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     test_cases = r.json()["test_case_comparisons"]
@@ -221,7 +221,7 @@ def test_compare_runs_test_case_comparisons(
 
 
 def test_compare_runs_baseline_not_completed(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     test_case = create_test_case_fixture(db)
@@ -237,14 +237,14 @@ def test_compare_runs_baseline_not_completed(
             "baseline_run_id": str(pending_run.id),
             "candidate_run_id": str(completed_run.id),
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 400
     assert "not completed" in r.json()["detail"]
 
 
 def test_compare_runs_candidate_not_completed(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     completed_run, _, _ = _completed_run_with_results(db)
     agent = create_test_agent(db)
@@ -265,14 +265,14 @@ def test_compare_runs_candidate_not_completed(
             "baseline_run_id": str(completed_run.id),
             "candidate_run_id": str(running_run.id),
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 400
     assert "not completed" in r.json()["detail"]
 
 
 def test_compare_runs_not_found(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.get(
         _PREFIX,
@@ -280,13 +280,13 @@ def test_compare_runs_not_found(
             "baseline_run_id": str(uuid.uuid4()),
             "candidate_run_id": str(uuid.uuid4()),
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
 
 def test_compare_runs_different_eval_configs_warning(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     run_b, _, _ = _completed_run_with_results(db)
     run_c, _, _ = _completed_run_with_results(db)
@@ -297,7 +297,7 @@ def test_compare_runs_different_eval_configs_warning(
             "baseline_run_id": str(run_b.id),
             "candidate_run_id": str(run_c.id),
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     body = r.json()
@@ -305,7 +305,7 @@ def test_compare_runs_different_eval_configs_warning(
 
 
 def test_compare_runs_config_diff_present(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     run_b, run_c = _completed_run_pair_same_set(db)
     r = client.get(
@@ -314,7 +314,7 @@ def test_compare_runs_config_diff_present(
             "baseline_run_id": str(run_b.id),
             "candidate_run_id": str(run_c.id),
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     config_diff = r.json()["config_diff"]
@@ -323,7 +323,7 @@ def test_compare_runs_config_diff_present(
 
 
 def test_compare_runs_includes_agent_versions(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     run_b, run_c = _completed_run_pair_same_set(db)
     r = client.get(
@@ -332,7 +332,7 @@ def test_compare_runs_includes_agent_versions(
             "baseline_run_id": str(run_b.id),
             "candidate_run_id": str(run_c.id),
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     body = r.json()
@@ -343,7 +343,7 @@ def test_compare_runs_includes_agent_versions(
 
 
 def test_compare_runs_binary_metric_handling(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     """Binary metrics should have delta=None and status based on label transition."""
     agent = create_test_agent(db)
@@ -408,7 +408,7 @@ def test_compare_runs_binary_metric_handling(
             "baseline_run_id": str(runs[0].id),
             "candidate_run_id": str(runs[1].id),
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     sc = r.json()["test_case_comparisons"][0]
@@ -424,7 +424,7 @@ def test_compare_runs_binary_metric_handling(
 
 
 def test_compare_runs_verdict_present(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     """RunComparison response includes a verdict with default thresholds."""
     run_b, run_c = _completed_run_pair_same_set(db)
@@ -434,7 +434,7 @@ def test_compare_runs_verdict_present(
             "baseline_run_id": str(run_b.id),
             "candidate_run_id": str(run_c.id),
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     body = r.json()
@@ -448,7 +448,7 @@ def test_compare_runs_verdict_present(
 
 
 def test_compare_runs_verdict_detects_regression(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     """Regression detected when pass_rate drops."""
     # baseline: passed, candidate: failed
@@ -512,7 +512,7 @@ def test_compare_runs_verdict_detects_regression(
             "baseline_run_id": str(runs[0].id),
             "candidate_run_id": str(runs[1].id),
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     verdict = r.json()["verdict"]
@@ -521,7 +521,7 @@ def test_compare_runs_verdict_detects_regression(
 
 
 def test_compare_runs_custom_thresholds(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     """Custom threshold can suppress a regression that default would catch."""
     agent = create_test_agent(db)
@@ -586,7 +586,7 @@ def test_compare_runs_custom_thresholds(
             "max_pass_rate_drop": 1.0,  # allow 100% drop
             "max_avg_score_drop": 100.0,  # allow full score drop
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     verdict = r.json()["verdict"]
@@ -596,7 +596,7 @@ def test_compare_runs_custom_thresholds(
 
 
 def test_compare_runs_default_thresholds_in_response(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     """When no threshold overrides, defaults appear in the response."""
     run_b, run_c = _completed_run_pair_same_set(db)
@@ -606,7 +606,7 @@ def test_compare_runs_default_thresholds_in_response(
             "baseline_run_id": str(run_b.id),
             "candidate_run_id": str(run_c.id),
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     thresholds = r.json()["verdict"]["thresholds_used"]

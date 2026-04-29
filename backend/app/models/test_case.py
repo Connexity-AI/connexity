@@ -111,6 +111,12 @@ class TestCaseBase(SQLModel):
         index=True,
         description="Agent this test case belongs to (test suite pool for that agent)",
     )
+    source_call_id: uuid.UUID | None = Field(
+        default=None,
+        foreign_key="call.id",
+        index=True,
+        description="Call this test case was created from (Observer drawer)",
+    )
 
     @field_validator("expected_tool_calls", mode="before")
     @classmethod
@@ -190,6 +196,10 @@ class TestCaseUpdate(SQLModel):
     agent_id: uuid.UUID | None = Field(
         default=None,
         description="Agent this test case belongs to (test suite pool for that agent)",
+    )
+    source_call_id: uuid.UUID | None = Field(
+        default=None,
+        description="Call this test case was created from (Observer drawer)",
     )
 
 

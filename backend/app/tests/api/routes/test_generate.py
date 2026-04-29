@@ -43,7 +43,7 @@ def _platform_agent_for_generation(session: Session) -> Agent:
 
 
 def test_generate_test_cases_endpoint_success(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     with patch(
         "app.api.routes.test_cases.generate_test_cases",
@@ -53,7 +53,7 @@ def test_generate_test_cases_endpoint_success(
         r = client.post(
             f"{settings.API_V1_STR}/test-cases/generate",
             json={"agent_prompt": "You are a helpful agent.", "count": 10},
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
     assert r.status_code == 200
     data = r.json()
@@ -64,7 +64,7 @@ def test_generate_test_cases_endpoint_success(
 
 
 def test_generate_test_cases_persists_drafts(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     with patch(
         "app.api.routes.test_cases.generate_test_cases",
@@ -74,7 +74,7 @@ def test_generate_test_cases_persists_drafts(
         r = client.post(
             f"{settings.API_V1_STR}/test-cases/generate",
             json={"agent_prompt": "You are a helpful agent.", "persist": True},
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
     assert r.status_code == 200
     data = r.json()
@@ -84,7 +84,7 @@ def test_generate_test_cases_persists_drafts(
 
 
 def test_generate_test_cases_with_agent_id(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     with patch(
@@ -99,7 +99,7 @@ def test_generate_test_cases_with_agent_id(
                 "persist": True,
                 "agent_id": str(agent.id),
             },
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
     assert r.status_code == 200
     for tc in r.json()["test_cases"]:
@@ -107,7 +107,7 @@ def test_generate_test_cases_with_agent_id(
 
 
 def test_generate_test_cases_no_persist(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     with patch(
         "app.api.routes.test_cases.generate_test_cases",
@@ -120,7 +120,7 @@ def test_generate_test_cases_no_persist(
                 "agent_prompt": "You are a helpful agent.",
                 "persist": False,
             },
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
     assert r.status_code == 200
     data = r.json()
@@ -136,7 +136,7 @@ def test_generate_test_cases_unauthenticated(client: TestClient) -> None:
 
 
 def test_generate_test_cases_llm_error(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     with patch(
         "app.api.routes.test_cases.generate_test_cases",
@@ -146,24 +146,24 @@ def test_generate_test_cases_llm_error(
         r = client.post(
             f"{settings.API_V1_STR}/test-cases/generate",
             json={"agent_prompt": "You are a helpful agent."},
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
     assert r.status_code == 502
 
 
 def test_generate_test_cases_invalid_request(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.post(
         f"{settings.API_V1_STR}/test-cases/generate",
         json={},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 422
 
 
 def test_generate_from_agent_version_without_prompt(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = _platform_agent_for_generation(db)
     captured: list[GenerateRequest] = []
@@ -180,7 +180,7 @@ def test_generate_from_agent_version_without_prompt(
         r = client.post(
             f"{settings.API_V1_STR}/test-cases/generate",
             json={"agent_id": str(agent.id), "count": 10},
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
     assert r.status_code == 200
     assert len(captured) == 1
@@ -191,7 +191,7 @@ def test_generate_from_agent_version_without_prompt(
 
 
 def test_generate_from_specific_historical_version(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = _platform_agent_for_generation(db)
     crud.update_agent(
@@ -220,14 +220,14 @@ def test_generate_from_specific_historical_version(
                 "agent_version": 1,
                 "count": 10,
             },
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
     assert r.status_code == 200
     assert captured[0].agent_prompt == "Prompt from agent version one."
 
 
 def test_generate_agent_prompt_overrides_version(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = _platform_agent_for_generation(db)
     captured: list[GenerateRequest] = []
@@ -248,14 +248,14 @@ def test_generate_agent_prompt_overrides_version(
                 "agent_prompt": "Explicit override prompt.",
                 "count": 10,
             },
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
     assert r.status_code == 200
     assert captured[0].agent_prompt == "Explicit override prompt."
 
 
 def test_generate_invalid_agent_version_returns_404(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     with patch(
@@ -270,14 +270,14 @@ def test_generate_invalid_agent_version_returns_404(
                 "agent_version": 999,
                 "count": 10,
             },
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
     assert r.status_code == 404
     assert "999" in r.json()["detail"]
 
 
 def test_generate_agent_version_without_agent_id_returns_422(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.post(
         f"{settings.API_V1_STR}/test-cases/generate",
@@ -286,6 +286,6 @@ def test_generate_agent_version_without_agent_id_returns_422(
             "agent_version": 1,
             "count": 10,
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 422

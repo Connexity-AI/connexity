@@ -112,6 +112,9 @@ class Agent(AgentBase, table=True):
     __tablename__ = "agent"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_by: uuid.UUID | None = Field(
+        default=None, foreign_key="user.id", index=True
+    )
     version: int = Field(
         default=1,
         nullable=False,
@@ -132,6 +135,15 @@ class Agent(AgentBase, table=True):
             "server_default": text("now()"),
             "onupdate": lambda: datetime.now(UTC),
         },
+    )
+    calls_last_synced_at: datetime | None = Field(
+        default=None,
+        nullable=True,
+        description=(
+            "Stale-while-revalidate marker for Observer. Stamped each time the "
+            "GET /calls endpoint kicks off a background Retell sync; gates dedup "
+            "and TTL backoff. Operational state, not part of the public API."
+        ),
     )
 
     # Relationships

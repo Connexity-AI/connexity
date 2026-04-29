@@ -1,7 +1,7 @@
 # connexity-evals Makefile
 # Two modes: local (no Docker for app, just DB) and docker (everything in Docker)
 
-.PHONY: help install dev dashboard db db-seed db-upgrade db-migrate db-downgrade db-stop \
+.PHONY: help install dev dashboard db db-upgrade db-migrate db-downgrade db-stop \
         docker-up docker-down docker-logs \
         cli lint format test generate-client
 
@@ -31,9 +31,6 @@ dashboard: ## Start Next.js dev server
 
 db: ## Start Postgres + Adminer in Docker
 	docker compose up -d database adminer
-
-db-seed: ## Run migrations and seed data
-	cd backend && uv run bash scripts/prestart.sh
 
 db-upgrade: ## Run Alembic migrations to latest
 	cd backend && uv run python -m alembic upgrade head

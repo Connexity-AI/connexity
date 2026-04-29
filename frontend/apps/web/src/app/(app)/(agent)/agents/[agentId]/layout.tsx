@@ -2,6 +2,7 @@ import { AgentEditHeader } from '@/app/(app)/(agent)/_components/header/agent-ed
 import { AgentEditFormProvider } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
 import { AiSuggestionProvider } from '@/app/(app)/(agent)/_context/ai-suggestion-context';
 import { DiffProvider } from '@/app/(app)/(agent)/_context/diff-context';
+import { SuggestFixesProvider } from '@/app/(app)/(agent)/_context/suggest-fixes-context';
 import { VersionsProvider } from '@/app/(app)/(agent)/_context/versions-context';
 
 import type { ReactNode } from 'react';
@@ -19,8 +20,10 @@ export default async function AgentLayout({ children, params }: Props) {
       <DiffProvider>
         <AgentEditFormProvider agentId={agentId}>
           <AiSuggestionProvider>
-            <AgentEditHeader />
-            {children}
+            <SuggestFixesProvider>
+              <AgentEditHeader />
+              {children}
+            </SuggestFixesProvider>
           </AiSuggestionProvider>
         </AgentEditFormProvider>
       </DiffProvider>

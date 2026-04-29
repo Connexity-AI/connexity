@@ -24,10 +24,22 @@ type OnSuggestion = (args: { prompt: string; messageId: string }) => void;
 
 interface UsePromptEditorChatArgs {
   sessionId: string | null;
-  createSession: () => Promise<string>;
+  createSession: (args?: { runId?: string | null }) => Promise<string>;
   onSessionStale: () => void;
   onSuggestion: OnSuggestion;
   onEditedPrompt: (editedPrompt: string) => void;
+}
+
+export interface SendMessageOptions {
+  runId?: string | null;
+  testCaseResultIds?: string[] | null;
+  /**
+   * If true, discard the current `sessionId` and start a fresh session for
+   * this turn — used when the current session's run binding doesn't match
+   * the incoming Suggest Fixes attachment, so the backend loads aggregate
+   * eval context for the correct run.
+   */
+  forceNewSession?: boolean;
 }
 
 export function usePromptEditorChat({
@@ -64,7 +76,12 @@ export function usePromptEditorChat({
   const isStreaming = phase === 'analyzing' || phase === 'editing';
 
   const sendMessage = useCallback(
-    async (content: string, currentPrompt: string, model: string | null) => {
+    async (
+      content: string,
+      currentPrompt: string,
+      model: string | null,
+      options: SendMessageOptions = {},
+    ) => {
       const trimmed = content.trim();
       if (!trimmed) return;
       if (inFlightRef.current) return;
@@ -76,10 +93,13 @@ export function usePromptEditorChat({
 
         let activeSessionId = sessionId;
 
-        if (!activeSessionId) {
-          console.log('[chat] no session, creating one');
+        if (!activeSessionId || options.forceNewSession) {
+          console.log('[chat] creating session', {
+            reason: !activeSessionId ? 'none' : 'force',
+            runId: options.runId ?? null,
+          });
           try {
-            activeSessionId = await createSession();
+            activeSessionId = await createSession({ runId: options.runId ?? null });
             console.log('[chat] session created', { sessionId: activeSessionId });
             seedEmptyMessagesCache(queryClient, activeSessionId);
           } catch (error) {
@@ -220,6 +240,11 @@ export function usePromptEditorChat({
         try {
           console.log('[chat] POST /messages', { sessionId: activeSessionId });
 
+          const testCaseResultIds =
+            options.testCaseResultIds && options.testCaseResultIds.length > 0
+              ? options.testCaseResultIds
+              : null;
+
           const { stream } = await client.sse.post({
             security: [
               { in: 'cookie', name: 'auth_cookie', type: 'apiKey' },
@@ -232,6 +257,7 @@ export function usePromptEditorChat({
               content: trimmed,
               current_prompt: currentPrompt,
               model: model && model.trim() ? model : null,
+              test_case_result_ids: testCaseResultIds,
             },
             headers: { 'Content-Type': 'application/json' },
 

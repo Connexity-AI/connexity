@@ -50,7 +50,7 @@ bash ./scripts/test.sh
 
 ## Database
 
-Run Postgres container, run migrations and seed the initial data.
+Run Postgres container and run migrations.
 
 ```bash
 # From project root
@@ -64,7 +64,7 @@ cd ./backend
 
 # Needs activated venv and Python dependencies
 
-# Await db, run migrations and seed (must have .env), reminder: MUST rerun after delete db in dev
+# Await db and run migrations (must have .env), reminder: MUST rerun after delete db in dev
 bash scripts/prestart.sh
 
 # Apply just database migrations

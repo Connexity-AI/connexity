@@ -38,6 +38,14 @@ from app.models.agent_version import (  # noqa: F401
     PublishRequest,
 )
 
+# ── Call (Observer) ────────────────────────────────────────────────
+from app.models.call import (  # noqa: F401
+    Call,
+    CallPublic,
+    CallRefreshResult,
+    CallsPublic,
+)
+
 # ── Common ─────────────────────────────────────────────────────────
 from app.models.common import ConfigPublic, ErrorResponse  # noqa: F401
 
@@ -80,13 +88,23 @@ from app.models.enums import (  # noqa: F401
     AgentVersionStatus,
     Difficulty,
     FirstTurn,
+    IntegrationProvider,
     MetricTier,
+    Platform,
     PromptEditorSessionStatus,
     RunStatus,
     ScoreType,
     SimulatorMode,
     TestCaseStatus,
     TurnRole,
+)
+
+# ── Environment ────────────────────────────────────────────────────
+from app.models.environment import (  # noqa: F401
+    Environment,
+    EnvironmentCreate,
+    EnvironmentPublic,
+    EnvironmentsPublic,
 )
 
 # ── Eval config ────────────────────────────────────────────────────
@@ -102,6 +120,14 @@ from app.models.eval_config import (  # noqa: F401
     EvalConfigPublic,
     EvalConfigsPublic,
     EvalConfigUpdate,
+)
+
+# ── Integration ────────────────────────────────────────────────────
+from app.models.integration import (  # noqa: F401
+    Integration,
+    IntegrationCreate,
+    IntegrationPublic,
+    IntegrationsPublic,
 )
 
 # ── Prompt editor (chat) ───────────────────────────────────────────

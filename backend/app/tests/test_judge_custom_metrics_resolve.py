@@ -14,7 +14,6 @@ import pytest
 from sqlmodel import Session
 
 from app import crud
-from app.core.config import settings
 from app.models import CustomMetricCreate, MetricTier, ScoreType
 from app.models.enums import TestCaseStatus, TurnRole
 from app.models.schemas import ConversationTurn, JudgeConfig, MetricSelection
@@ -24,11 +23,11 @@ from app.services.judge_metrics import (
     custom_metric_row_to_definition,
     resolve_metrics,
 )
+from app.tests.utils.user import create_random_user
 
 
 def test_custom_metric_row_to_definition_matches_shape(db: Session) -> None:
-    owner = crud.get_user_by_email(session=db, email=settings.FIRST_SUPERUSER)
-    assert owner is not None
+    owner = create_random_user(db)
     name = f"judge_shape_{uuid.uuid4().hex[:10]}"
     row = crud.create_custom_metric(
         session=db,
@@ -52,8 +51,7 @@ def test_custom_metric_row_to_definition_matches_shape(db: Session) -> None:
 
 
 def test_resolve_metrics_custom_from_db(db: Session) -> None:
-    owner = crud.get_user_by_email(session=db, email=settings.FIRST_SUPERUSER)
-    assert owner is not None
+    owner = create_random_user(db)
     name = f"custom_res_{uuid.uuid4().hex[:10]}"
     crud.create_custom_metric(
         session=db,
@@ -77,8 +75,7 @@ def test_resolve_metrics_custom_from_db(db: Session) -> None:
 
 
 def test_resolve_metrics_mixed_builtin_and_custom(db: Session) -> None:
-    owner = crud.get_user_by_email(session=db, email=settings.FIRST_SUPERUSER)
-    assert owner is not None
+    owner = create_random_user(db)
     name = f"mixed_{uuid.uuid4().hex[:10]}"
     crud.create_custom_metric(
         session=db,
@@ -107,8 +104,7 @@ def test_resolve_metrics_mixed_builtin_and_custom(db: Session) -> None:
 
 
 def test_resolve_metrics_custom_wrong_owner(db: Session) -> None:
-    owner = crud.get_user_by_email(session=db, email=settings.FIRST_SUPERUSER)
-    assert owner is not None
+    owner = create_random_user(db)
     name = f"wrong_owner_{uuid.uuid4().hex[:10]}"
     crud.create_custom_metric(
         session=db,
@@ -157,8 +153,7 @@ def _minimal_test_case() -> TestCase:
 @pytest.mark.asyncio
 async def test_evaluate_transcript_with_custom_metric(db: Session) -> None:
     """Full judge pipeline resolves a DB-backed custom metric and scores it."""
-    owner = crud.get_user_by_email(session=db, email=settings.FIRST_SUPERUSER)
-    assert owner is not None
+    owner = create_random_user(db)
 
     name = f"e2e_judge_{uuid.uuid4().hex[:8]}"
     crud.create_custom_metric(

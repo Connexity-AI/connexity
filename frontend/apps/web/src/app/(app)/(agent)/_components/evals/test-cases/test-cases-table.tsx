@@ -60,15 +60,26 @@ export function TestCasesTable({ agentId, testCases }: TestCasesTableProps) {
   return (
     <>
       <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
-        <TestCasesToolbar
-          selectedCount={selection.selectedIds.size}
-          filteredCount={filtered.length}
-          totalCount={testCases.length}
-          onClearSelection={selection.clear}
-          onBatchDelete={requestBatchDelete}
-          onAddManually={() => setManualAddOpen(true)}
-          onAddWithAi={() => setAiAddOpen(true)}
-        />
+        <TestCasesToolbar>
+          <TestCasesToolbar.Leading
+            selectedCount={selection.selectedIds.size}
+            filteredCount={filtered.length}
+            totalCount={testCases.length}
+            onBatchDelete={requestBatchDelete}
+            onClearSelection={selection.clear}
+          />
+          <TestCasesToolbar.Actions>
+            <TestCasesToolbar.AddTestCaseDropdown
+              onAddManually={() => setManualAddOpen(true)}
+              onAddWithAi={() => setAiAddOpen(true)}
+            />
+            <TestCasesToolbar.CreateEvalButton
+              agentId={agentId}
+              selectedIds={Array.from(selection.selectedIds)}
+              filteredIds={filteredIds}
+            />
+          </TestCasesToolbar.Actions>
+        </TestCasesToolbar>
 
         <TestCasesFilterBar
           statusFilter={statusFilter}

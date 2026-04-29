@@ -4,10 +4,12 @@ import { useState } from 'react';
 
 import { Button } from '@workspace/ui/components/ui/button';
 
+import { useSuggestFixes } from '@/app/(app)/(agent)/_context/suggest-fixes-context';
 import { useAgentChatbot } from '@/app/(app)/(agent)/_hooks/use-agent-chatbot';
 import { ChatInput } from './chat-input';
 import { ChatMessagesArea } from './chat-messages-area';
 import { GuidelinesDialog } from './guidelines-dialog';
+import { SuggestFixesAttachments } from './suggest-fixes-attachments';
 
 export function AgentChatbot() {
   const {
@@ -26,6 +28,9 @@ export function AgentChatbot() {
     createNewSession,
     isCreatingSession,
   } = useAgentChatbot();
+
+  const { attachment: suggestFixesAttachment } = useSuggestFixes();
+  const hasAttachments = !!suggestFixesAttachment && suggestFixesAttachment.caseSummaries.length > 0;
 
   const [guidelinesOpen, setGuidelinesOpen] = useState(false);
 
@@ -59,6 +64,8 @@ export function AgentChatbot() {
         </div>
       )}
 
+      <SuggestFixesAttachments />
+
       <ChatInput
         onSend={sendMessage}
         disabled={isStreaming || isCreatingSession}
@@ -66,6 +73,7 @@ export function AgentChatbot() {
         onModelChange={setModel}
         suggestion={suggestion}
         onOpenGuidelines={() => setGuidelinesOpen(true)}
+        allowEmptySend={hasAttachments}
       />
 
       <GuidelinesDialog agentId={agentId} open={guidelinesOpen} onOpenChange={setGuidelinesOpen} />

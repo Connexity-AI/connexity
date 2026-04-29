@@ -327,6 +327,8 @@ async def run_test_case_ai_agent(
     for tc in out.created:
         payload = tc.model_dump()
         payload["agent_id"] = request.agent_id
+        if request.source_call_id is not None:
+            payload["source_call_id"] = request.source_call_id
         if request.persist:
             try:
                 db_obj = crud.create_test_case(

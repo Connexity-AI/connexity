@@ -11,8 +11,8 @@
     "standalone": "pnpm cp && node .next/standalone/apps/web/server.js",
     "cp": "cp -r public .next/standalone/apps/web/ && cp -r .next/static .next/standalone/apps/web/.next/",
     "format": "prettier --write \"**/*.{js,ts,tsx,md,json}\"",
-    "lint": "next lint",
-    "lint:fix": "next lint --fix",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix --max-warnings 0",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -29,6 +29,7 @@
     "nuqs": "2.8.9",
     "object-treeify": "5.0.1",
     "react": "19.2.3",
+    "react-day-picker": "9.14.0",
     "react-dom": "19.2.3",
     "react-hook-form": "7.71.2",
     "react-icons": "5.5.0",
@@ -43,6 +44,7 @@
     "@types/set-cookie-parser": "2.4.10",
     "@workspace/eslint-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
+    "eslint": "9.39.2",
     "typescript": "5.9.3"
   }
 }

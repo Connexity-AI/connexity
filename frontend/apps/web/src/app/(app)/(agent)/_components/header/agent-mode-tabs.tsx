@@ -27,14 +27,12 @@ const MODE_TABS: ModeTab[] = [
     label: 'Deploy',
     Icon: Rocket,
     href: UrlGenerator.agentDeploy,
-    disabled: true,
   },
   {
     value: 'observe',
     label: 'Observe',
     Icon: Radio,
     href: UrlGenerator.agentObserve,
-    disabled: true,
   },
 ];
 

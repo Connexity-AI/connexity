@@ -13,9 +13,7 @@ from app.tests.utils.eval import (
 )
 
 
-def test_create_test_case(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
-) -> None:
+def test_create_test_case(client: TestClient, auth_cookies: dict[str, str]) -> None:
     data = {
         "name": "Route TestCase",
         "tags": ["billing"],
@@ -24,7 +22,7 @@ def test_create_test_case(
     r = client.post(
         f"{settings.API_V1_STR}/test-cases/",
         json=data,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -34,26 +32,26 @@ def test_create_test_case(
 
 
 def test_list_test_cases(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     create_test_case_fixture(db)
     r = client.get(
         f"{settings.API_V1_STR}/test-cases/",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["count"] >= 1
 
 
 def test_list_test_cases_filter_by_tag(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     tag = "route-tag-filter"
     create_test_case_fixture(db, tags=[tag])
     r = client.get(
         f"{settings.API_V1_STR}/test-cases/",
         params={"tag": tag},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     data = r.json()
@@ -62,70 +60,70 @@ def test_list_test_cases_filter_by_tag(
 
 
 def test_list_test_cases_filter_by_difficulty(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.get(
         f"{settings.API_V1_STR}/test-cases/",
         params={"difficulty": "hard"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
 
 
 def test_get_test_case(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     test_case = create_test_case_fixture(db)
     r = client.get(
         f"{settings.API_V1_STR}/test-cases/{test_case.id}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["id"] == str(test_case.id)
 
 
 def test_get_test_case_not_found(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.get(
         f"{settings.API_V1_STR}/test-cases/{uuid.uuid4()}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
 
 def test_update_test_case(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     test_case = create_test_case_fixture(db)
     r = client.patch(
         f"{settings.API_V1_STR}/test-cases/{test_case.id}",
         json={"name": "Patched TestCase"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["name"] == "Patched TestCase"
 
 
 def test_delete_test_case(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     test_case = create_test_case_fixture(db)
     r = client.delete(
         f"{settings.API_V1_STR}/test-cases/{test_case.id}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
 
 
 def test_list_test_cases_search(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     create_test_case_fixture(db, name="Banana Split TestCase")
     r = client.get(
         f"{settings.API_V1_STR}/test-cases/",
         params={"search": "banana split"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     data = r.json()
@@ -133,13 +131,11 @@ def test_list_test_cases_search(
     assert any("Banana Split" in s["name"] for s in data["data"])
 
 
-def test_list_test_cases_sort(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
-) -> None:
+def test_list_test_cases_sort(client: TestClient, auth_cookies: dict[str, str]) -> None:
     r = client.get(
         f"{settings.API_V1_STR}/test-cases/",
         params={"sort_by": "name", "sort_order": "asc"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     names = [s["name"] for s in r.json()["data"]]
@@ -147,23 +143,23 @@ def test_list_test_cases_sort(
 
 
 def test_list_test_cases_invalid_sort_order(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.get(
         f"{settings.API_V1_STR}/test-cases/",
         params={"sort_order": "invalid"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 422
 
 
 def test_create_test_case_invalid_difficulty(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.post(
         f"{settings.API_V1_STR}/test-cases/",
         json={"name": "Bad TestCase", "difficulty": "impossible"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 422
     detail = r.json()["detail"]
@@ -171,12 +167,12 @@ def test_create_test_case_invalid_difficulty(
 
 
 def test_create_test_case_missing_name(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.post(
         f"{settings.API_V1_STR}/test-cases/",
         json={"tags": ["test"]},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 422
     detail = r.json()["detail"]
@@ -184,19 +180,19 @@ def test_create_test_case_missing_name(
 
 
 def test_create_test_case_with_persona_context_string(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.post(
         f"{settings.API_V1_STR}/test-cases/",
         json={"name": "Persona Context", "persona_context": "A polite customer"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["persona_context"] == "A polite customer"
 
 
 def test_create_test_case_with_full_schema(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     data = {
         "name": "Full Schema Route Test",
@@ -211,7 +207,7 @@ def test_create_test_case_with_full_schema(
     r = client.post(
         f"{settings.API_V1_STR}/test-cases/",
         json=data,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -222,7 +218,7 @@ def test_create_test_case_with_full_schema(
 
 
 def test_update_test_case_with_new_fields(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     test_case = create_test_case_fixture(db)
     r = client.patch(
@@ -231,7 +227,7 @@ def test_update_test_case_with_new_fields(
             "persona_context": "An angry customer. Express frustration.",
             "expected_outcomes": ["Call MUST be escalated"],
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -243,12 +239,12 @@ def test_update_test_case_with_new_fields(
 
 
 def test_export_test_cases(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     create_test_case_fixture(db, tags=["export-test"])
     r = client.get(
         f"{settings.API_V1_STR}/test-cases/export",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     data = r.json()
@@ -262,7 +258,7 @@ def test_export_test_cases(
 
 
 def test_export_test_cases_with_filters(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     tag = f"export-filter-{uuid.uuid4().hex[:6]}"
     create_test_case_fixture(db, tags=[tag], difficulty="hard")
@@ -270,7 +266,7 @@ def test_export_test_cases_with_filters(
     r = client.get(
         f"{settings.API_V1_STR}/test-cases/export",
         params={"tag": tag},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     data = r.json()
@@ -279,7 +275,7 @@ def test_export_test_cases_with_filters(
 
 
 def test_import_test_cases_create_new(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     payload = [
         {"name": "Import New 1", "tags": ["import-test"]},
@@ -288,7 +284,7 @@ def test_import_test_cases_create_new(
     r = client.post(
         f"{settings.API_V1_STR}/test-cases/import",
         json=payload,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -300,7 +296,7 @@ def test_import_test_cases_create_new(
 
 
 def test_import_test_cases_round_trip(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     tag = f"roundtrip-{uuid.uuid4().hex[:6]}"
     create_test_case_fixture(
@@ -316,7 +312,7 @@ def test_import_test_cases_round_trip(
     r = client.get(
         f"{settings.API_V1_STR}/test-cases/export",
         params={"tag": tag},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     exported = r.json()
@@ -328,7 +324,7 @@ def test_import_test_cases_round_trip(
         f"{settings.API_V1_STR}/test-cases/import",
         params={"on_conflict": "overwrite"},
         json=exported["test_cases"],
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -337,7 +333,7 @@ def test_import_test_cases_round_trip(
     # Fetch and compare
     r = client.get(
         f"{settings.API_V1_STR}/test-cases/{original['id']}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     reimported = r.json()
@@ -353,7 +349,7 @@ def test_import_test_cases_round_trip(
 
 
 def test_import_test_cases_skip_conflict(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     test_case = create_test_case_fixture(db, name="Original Name")
     payload = [
@@ -366,7 +362,7 @@ def test_import_test_cases_skip_conflict(
     r = client.post(
         f"{settings.API_V1_STR}/test-cases/import",
         json=payload,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -376,13 +372,13 @@ def test_import_test_cases_skip_conflict(
     # Verify original unchanged
     r = client.get(
         f"{settings.API_V1_STR}/test-cases/{test_case.id}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.json()["name"] == "Original Name"
 
 
 def test_import_test_cases_overwrite_conflict(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     test_case = create_test_case_fixture(
         db,
@@ -401,7 +397,7 @@ def test_import_test_cases_overwrite_conflict(
         f"{settings.API_V1_STR}/test-cases/import",
         params={"on_conflict": "overwrite"},
         json=payload,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -411,7 +407,7 @@ def test_import_test_cases_overwrite_conflict(
     # Verify updated field changed, unset fields preserved
     r = client.get(
         f"{settings.API_V1_STR}/test-cases/{test_case.id}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     updated = r.json()
     assert updated["name"] == "After Overwrite"
@@ -420,7 +416,7 @@ def test_import_test_cases_overwrite_conflict(
 
 
 def test_import_test_cases_mixed(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     existing = create_test_case_fixture(db, name="Existing")
     payload = [
@@ -430,7 +426,7 @@ def test_import_test_cases_mixed(
     r = client.post(
         f"{settings.API_V1_STR}/test-cases/import",
         json=payload,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -440,12 +436,12 @@ def test_import_test_cases_mixed(
 
 
 def test_import_test_cases_empty_list(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.post(
         f"{settings.API_V1_STR}/test-cases/import",
         json=[],
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 400
 
@@ -459,7 +455,7 @@ def test_import_test_cases_unauthenticated(client: TestClient) -> None:
 
 
 def test_test_case_ai_from_transcript_missing_transcript(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_platform_agent(db)
     r = client.post(
@@ -469,13 +465,13 @@ def test_test_case_ai_from_transcript_missing_transcript(
             "user_message": "convert",
             "agent_id": str(agent.id),
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 422
 
 
 def test_test_case_ai_edit_missing_test_case_id(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_platform_agent(db)
     r = client.post(
@@ -485,13 +481,13 @@ def test_test_case_ai_edit_missing_test_case_id(
             "user_message": "fix",
             "agent_id": str(agent.id),
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 422
 
 
 def test_test_case_ai_edit_agent_mismatch(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     a1 = create_test_platform_agent(db)
     a2 = create_test_platform_agent(db)
@@ -504,14 +500,14 @@ def test_test_case_ai_edit_agent_mismatch(
             "agent_id": str(a2.id),
             "test_case_id": str(tc.id),
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 422
     assert "belong" in r.json()["detail"].lower()
 
 
 def test_test_case_ai_create_preview(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_platform_agent(db)
     mock_resp = LLMResponse(
@@ -551,7 +547,7 @@ def test_test_case_ai_create_preview(
                 "agent_id": str(agent.id),
                 "persist": False,
             },
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
     assert r.status_code == 200
     data = r.json()
@@ -561,7 +557,7 @@ def test_test_case_ai_create_preview(
 
 
 def test_test_case_ai_edit_preview_default_no_db_write(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_platform_agent(db)
     tc = create_test_case_fixture(db, agent_id=agent.id, name="Original Name")
@@ -602,7 +598,7 @@ def test_test_case_ai_edit_preview_default_no_db_write(
                 "agent_id": str(agent.id),
                 "test_case_id": str(tc.id),
             },
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
     assert r.status_code == 200
     data = r.json()
@@ -612,7 +608,7 @@ def test_test_case_ai_edit_preview_default_no_db_write(
 
 
 def test_test_case_ai_edit_persist_updates_db(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_platform_agent(db)
     tc = create_test_case_fixture(db, agent_id=agent.id, name="Before Persist")
@@ -654,7 +650,7 @@ def test_test_case_ai_edit_persist_updates_db(
                 "test_case_id": str(tc.id),
                 "persist": True,
             },
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
     assert r.status_code == 200
     db.refresh(tc)

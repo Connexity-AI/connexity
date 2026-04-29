@@ -8,14 +8,12 @@ from app.services.prompt_editor.agent_prompt import DEFAULT_EDITOR_GUIDELINES
 from app.tests.utils.eval import create_test_agent
 
 
-def test_create_agent(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
-) -> None:
+def test_create_agent(client: TestClient, auth_cookies: dict[str, str]) -> None:
     data = {"name": "Route Agent", "endpoint_url": "http://example.com/agent"}
     r = client.post(
         f"{settings.API_V1_STR}/agents/",
         json=data,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -27,12 +25,12 @@ def test_create_agent(
 
 
 def test_list_agents(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     create_test_agent(db)
     r = client.get(
         f"{settings.API_V1_STR}/agents/",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -41,59 +39,57 @@ def test_list_agents(
 
 
 def test_get_agent(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     r = client.get(
         f"{settings.API_V1_STR}/agents/{agent.id}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["id"] == str(agent.id)
 
 
-def test_get_agent_not_found(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
-) -> None:
+def test_get_agent_not_found(client: TestClient, auth_cookies: dict[str, str]) -> None:
     r = client.get(
         f"{settings.API_V1_STR}/agents/{uuid.uuid4()}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
 
 def test_update_agent(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     r = client.patch(
         f"{settings.API_V1_STR}/agents/{agent.id}",
         json={"name": "Patched Agent"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["name"] == "Patched Agent"
 
 
 def test_delete_agent(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     r = client.delete(
         f"{settings.API_V1_STR}/agents/{agent.id}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     # Verify deleted
     r2 = client.get(
         f"{settings.API_V1_STR}/agents/{agent.id}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r2.status_code == 404
 
 
 def test_create_platform_agent(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     data = {
         "name": "Platform Agent",
@@ -105,7 +101,7 @@ def test_create_platform_agent(
     r = client.post(
         f"{settings.API_V1_STR}/agents/",
         json=data,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -116,7 +112,7 @@ def test_create_platform_agent(
 
 
 def test_create_platform_agent_missing_system_prompt(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     data = {
         "name": "Bad Platform Agent",
@@ -126,13 +122,13 @@ def test_create_platform_agent_missing_system_prompt(
     r = client.post(
         f"{settings.API_V1_STR}/agents/",
         json=data,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 422
 
 
 def test_create_platform_agent_missing_model(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     data = {
         "name": "Bad Platform Agent",
@@ -142,25 +138,25 @@ def test_create_platform_agent_missing_model(
     r = client.post(
         f"{settings.API_V1_STR}/agents/",
         json=data,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 422
 
 
 def test_create_endpoint_agent_missing_url(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     data = {"name": "Bad Endpoint Agent", "mode": "endpoint"}
     r = client.post(
         f"{settings.API_V1_STR}/agents/",
         json=data,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 422
 
 
 def test_update_agent_versionable_creates_draft(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     """PATCH with versionable fields now creates a draft instead of auto-bumping version."""
     agent = create_test_agent(db)
@@ -171,7 +167,7 @@ def test_update_agent_versionable_creates_draft(
             "system_prompt": "Be concise.",
             "agent_model": "gpt-4o",
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     body = r.json()
@@ -183,7 +179,7 @@ def test_update_agent_versionable_creates_draft(
 
 
 def test_update_agent_invalid_mode_transition(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     """Switching to platform without system_prompt goes to draft; validation happens on publish."""
     agent = create_test_agent(db)
@@ -191,7 +187,7 @@ def test_update_agent_invalid_mode_transition(
     r = client.patch(
         f"{settings.API_V1_STR}/agents/{agent.id}",
         json={"mode": "platform"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["has_draft"] is True
@@ -204,12 +200,12 @@ def test_create_agent_unauthenticated(client: TestClient) -> None:
 
 
 def test_get_guidelines_default(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     r = client.get(
         f"{settings.API_V1_STR}/agents/{agent.id}/guidelines",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     body = r.json()
@@ -219,14 +215,14 @@ def test_get_guidelines_default(
 
 
 def test_put_guidelines_custom(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     custom = "CUSTOM_API_GUIDELINES_ONLY_HERE"
     r = client.put(
         f"{settings.API_V1_STR}/agents/{agent.id}/guidelines",
         json={"guidelines": custom},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     body = r.json()
@@ -235,7 +231,7 @@ def test_put_guidelines_custom(
 
     r2 = client.get(
         f"{settings.API_V1_STR}/agents/{agent.id}/guidelines",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r2.status_code == 200
     assert r2.json()["guidelines"] == custom
@@ -243,18 +239,18 @@ def test_put_guidelines_custom(
 
 
 def test_put_guidelines_reset_to_default(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     client.put(
         f"{settings.API_V1_STR}/agents/{agent.id}/guidelines",
         json={"guidelines": "temporary custom"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     r = client.put(
         f"{settings.API_V1_STR}/agents/{agent.id}/guidelines",
         json={"guidelines": None},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     body = r.json()
@@ -263,18 +259,18 @@ def test_put_guidelines_reset_to_default(
 
 
 def test_put_guidelines_empty_string_resets(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     client.put(
         f"{settings.API_V1_STR}/agents/{agent.id}/guidelines",
         json={"guidelines": "x"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     r = client.put(
         f"{settings.API_V1_STR}/agents/{agent.id}/guidelines",
         json={"guidelines": ""},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["is_default"] is True
@@ -282,22 +278,22 @@ def test_put_guidelines_empty_string_resets(
 
 
 def test_get_guidelines_agent_not_found(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.get(
         f"{settings.API_V1_STR}/agents/{uuid.uuid4()}/guidelines",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
 
 def test_put_guidelines_agent_not_found(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.put(
         f"{settings.API_V1_STR}/agents/{uuid.uuid4()}/guidelines",
         json={"guidelines": "x"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 

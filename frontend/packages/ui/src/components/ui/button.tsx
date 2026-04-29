@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { Slot } from '@radix-ui/react-slot';
+import { Slot, Slottable } from '@radix-ui/react-slot';
 import { cva } from 'class-variance-authority';
 
 import { cn } from '@workspace/ui/lib/utils';
@@ -93,24 +93,22 @@ const Button: React.FC<ButtonProps> = ({
       ref={ref}
       {...props}
     >
-      <>
-        {StartIcon && (
-          <StartIcon
-            size={size === 'sm' ? 16 : 20}
-            className={cn(iconVariants({ variant }), 'p-0 mr-2')}
-          />
-        )}
-        {Icon && (
-          <Icon size={size === 'sm' ? 16 : 20} className="text-current" />
-        )}
-        {!Icon && children}
-        {EndIcon && (
-          <EndIcon
-            size={size === 'sm' ? 16 : 20}
-            className={cn(iconVariants({ variant }), 'p-0 ml-2')}
-          />
-        )}
-      </>
+      {StartIcon && (
+        <StartIcon
+          size={size === 'sm' ? 16 : 20}
+          className={cn(iconVariants({ variant }), 'p-0 mr-2')}
+        />
+      )}
+      {Icon && (
+        <Icon size={size === 'sm' ? 16 : 20} className="text-current" />
+      )}
+      {!Icon && <Slottable>{children}</Slottable>}
+      {EndIcon && (
+        <EndIcon
+          size={size === 'sm' ? 16 : 20}
+          className={cn(iconVariants({ variant }), 'p-0 ml-2')}
+        />
+      )}
     </Comp>
   );
 };

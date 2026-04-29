@@ -17,31 +17,45 @@ import type { ToolParameterValues } from '@/app/(app)/(agent)/_schemas/agent-for
 
 const PARAM_TYPES = [
   { value: 'string', label: 'String' },
-  { value: 'number', label: 'Number' },
+  { value: 'number', label: 'Float' },
   { value: 'integer', label: 'Integer' },
 ] as const;
 
 interface DraftParameterRowProps {
   param: ToolParameterValues;
   isFirst: boolean;
+  nameError?: string;
   onChange: (patch: Partial<ToolParameterValues>) => void;
   onRemove: () => void;
 }
 
-export function DraftParameterRow({ param, isFirst, onChange, onRemove }: DraftParameterRowProps) {
+export function DraftParameterRow({
+  param,
+  isFirst,
+  nameError,
+  onChange,
+  onRemove,
+}: DraftParameterRowProps) {
   return (
     <div
       className={cn(
-        'grid grid-cols-[1.2fr_2fr_100px_36px] items-center px-4 py-2.5 gap-3',
+        'grid grid-cols-[1.2fr_2fr_100px_72px_36px] items-start px-4 py-2.5 gap-3',
         !isFirst && 'border-t border-border/40'
       )}
     >
-      <Input
-        value={param.name}
-        onChange={(event) => onChange({ name: event.target.value })}
-        placeholder="param_name"
-        className="h-8 text-xs font-mono bg-accent/20 border-border/60"
-      />
+      <div className="flex flex-col gap-1">
+        <Input
+          value={param.name}
+          onChange={(event) => onChange({ name: event.target.value })}
+          placeholder="param_name"
+          aria-invalid={Boolean(nameError)}
+          className={cn(
+            'h-8 text-xs font-mono bg-accent/20 border-border/60',
+            nameError && 'border-red-500/60 focus-visible:ring-red-500/40'
+          )}
+        />
+        {nameError && <span className="text-[10px] text-red-400">{nameError}</span>}
+      </div>
 
       <Input
         value={param.description}
@@ -66,6 +80,20 @@ export function DraftParameterRow({ param, isFirst, onChange, onRemove }: DraftP
           ))}
         </SelectContent>
       </Select>
+
+      <Button
+        type="button"
+        variant="ghost"
+        onClick={() => onChange({ required: !param.required })}
+        className={cn(
+          'h-8 px-2 w-full rounded text-xs border transition-colors select-none',
+          param.required
+            ? 'bg-foreground text-background border-foreground hover:bg-foreground/90 hover:text-background'
+            : 'border-border text-muted-foreground hover:text-foreground hover:bg-accent/50'
+        )}
+      >
+        {param.required ? 'Yes' : 'No'}
+      </Button>
 
       <Button
         variant="ghost"

@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from sqlmodel import Session
 
 from app import crud
-from app.models import AgentCreate, RunCreate, RunStatus, RunUpdate
+from app.models import AgentCreate, EvalConfigUpdate, RunCreate, RunStatus, RunUpdate
 from app.models.enums import AgentMode
 from app.models.schemas import AgentSimulatorConfig, JudgeConfig, RunConfig
 from app.tests.utils.eval import (
@@ -31,7 +31,9 @@ def test_enrich_run_create_fills_endpoint_snapshot(db: Session) -> None:
         agent_id=agent.id,
         eval_config_id=eval_config.id,
     )
-    enriched = crud.enrich_run_create_from_agent(session=db, run_in=run_in, agent=agent)
+    enriched = crud.enrich_run_create_from_agent(
+        session=db, run_in=run_in, agent=agent, eval_config=eval_config
+    )
     assert enriched.agent_endpoint_url == "http://localhost:8080/agent"
     assert enriched.agent_mode == AgentMode.ENDPOINT.value
     assert enriched.agent_version == agent.version
@@ -49,7 +51,9 @@ def test_enrich_run_create_platform_agent(db: Session) -> None:
     agent = crud.create_agent(session=db, agent_in=agent_in)
     eval_config = create_test_eval_config(db)
     run_in = RunCreate(agent_id=agent.id, eval_config_id=eval_config.id)
-    enriched = crud.enrich_run_create_from_agent(session=db, run_in=run_in, agent=agent)
+    enriched = crud.enrich_run_create_from_agent(
+        session=db, run_in=run_in, agent=agent, eval_config=eval_config
+    )
     assert enriched.agent_mode == AgentMode.PLATFORM.value
     assert enriched.agent_model == "gpt-4o-mini"
     assert enriched.agent_provider == "openai"
@@ -71,7 +75,9 @@ def test_enrich_run_create_platform_agent_simulator_model_override(db: Session) 
         eval_config_id=eval_config.id,
         config=RunConfig(agent_simulator=AgentSimulatorConfig(model="gpt-4o")),
     )
-    enriched = crud.enrich_run_create_from_agent(session=db, run_in=run_in, agent=agent)
+    enriched = crud.enrich_run_create_from_agent(
+        session=db, run_in=run_in, agent=agent, eval_config=eval_config
+    )
     assert enriched.agent_model == "gpt-4o"
     assert enriched.agent_provider == "openai"
 
@@ -95,9 +101,52 @@ def test_enrich_run_create_platform_agent_simulator_provider_override(
             agent_simulator=AgentSimulatorConfig(provider="anthropic"),
         ),
     )
-    enriched = crud.enrich_run_create_from_agent(session=db, run_in=run_in, agent=agent)
+    enriched = crud.enrich_run_create_from_agent(
+        session=db, run_in=run_in, agent=agent, eval_config=eval_config
+    )
     assert enriched.agent_model == "claude-3-5-haiku-20241022"
     assert enriched.agent_provider == "anthropic"
+
+
+def test_enrich_run_create_snapshots_eval_config(db: Session) -> None:
+    agent, eval_config = _setup_run(db)
+    crud.update_eval_config(
+        session=db,
+        db_eval_config=eval_config,
+        eval_config_in=EvalConfigUpdate(
+            config=RunConfig(max_turns=7, concurrency=4, tool_mode="live"),
+        ),
+    )
+    run_in = RunCreate(agent_id=agent.id, eval_config_id=eval_config.id)
+    enriched = crud.enrich_run_create_from_agent(
+        session=db, run_in=run_in, agent=agent, eval_config=eval_config
+    )
+    assert enriched.config is not None
+    assert enriched.config.max_turns == 7
+    assert enriched.config.concurrency == 4
+    assert enriched.config.tool_mode == "live"
+    assert enriched.eval_config_version == eval_config.version
+
+
+def test_enrich_run_create_explicit_config_overrides_eval_config(db: Session) -> None:
+    agent, eval_config = _setup_run(db)
+    crud.update_eval_config(
+        session=db,
+        db_eval_config=eval_config,
+        eval_config_in=EvalConfigUpdate(config=RunConfig(max_turns=7, concurrency=4)),
+    )
+    run_in = RunCreate(
+        agent_id=agent.id,
+        eval_config_id=eval_config.id,
+        config=RunConfig(max_turns=15),
+    )
+    enriched = crud.enrich_run_create_from_agent(
+        session=db, run_in=run_in, agent=agent, eval_config=eval_config
+    )
+    assert enriched.config is not None
+    assert enriched.config.max_turns == 15
+    # explicit run-level config wins wholesale; we don't merge from eval_config
+    assert enriched.config.concurrency == RunConfig().concurrency
 
 
 def test_create_run(db: Session) -> None:
@@ -118,7 +167,9 @@ def test_create_run_with_config(db: Session) -> None:
         eval_config_id=eval_config.id,
         config=config,
     )
-    run_in = crud.enrich_run_create_from_agent(session=db, run_in=run_in, agent=agent)
+    run_in = crud.enrich_run_create_from_agent(
+        session=db, run_in=run_in, agent=agent, eval_config=eval_config
+    )
     run = crud.create_run(session=db, run_in=run_in)
     assert run.config is not None
     assert run.config["judge"]["model"] == "claude-3-5-sonnet"

@@ -721,6 +721,94 @@ export type BodyLoginLoginAccessToken = {
 };
 
 /**
+ * CallPublic
+ */
+export type CallPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Retell Call Id
+   */
+  retell_call_id: string;
+  /**
+   * Retell Agent Id
+   */
+  retell_agent_id: string;
+  /**
+   * Started At
+   */
+  started_at: string;
+  /**
+   * Duration Seconds
+   */
+  duration_seconds?: number | null;
+  /**
+   * Status
+   */
+  status?: string | null;
+  /**
+   * Transcript
+   */
+  transcript?: Array<{
+    [key: string]: unknown;
+  }> | null;
+  /**
+   * Is New
+   *
+   * True when the requesting user has not opened this call yet
+   */
+  is_new?: boolean;
+  /**
+   * Test Case Count
+   *
+   * Number of test cases sourced from this call
+   */
+  test_case_count?: number;
+  /**
+   * Created At
+   */
+  created_at: string;
+};
+
+/**
+ * CallRefreshResult
+ */
+export type CallRefreshResult = {
+  /**
+   * Created
+   *
+   * Number of new call rows inserted from Retell
+   */
+  created: number;
+  /**
+   * Total
+   *
+   * Total call rows in DB for this agent after refresh
+   */
+  total: number;
+};
+
+/**
+ * CallsPublic
+ */
+export type CallsPublic = {
+  /**
+   * Data
+   */
+  data: Array<CallPublic>;
+  /**
+   * Count
+   */
+  count: number;
+};
+
+/**
  * CauseAnalysisItem
  */
 export type CauseAnalysisItem = {
@@ -1017,6 +1105,86 @@ export const Difficulty = { NORMAL: 'normal', HARD: 'hard' } as const;
 export type Difficulty = (typeof Difficulty)[keyof typeof Difficulty];
 
 /**
+ * EnvironmentCreate
+ */
+export type EnvironmentCreate = {
+  /**
+   * Name
+   */
+  name: string;
+  platform: Platform;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Integration Id
+   */
+  integration_id: string;
+  /**
+   * Platform Agent Id
+   */
+  platform_agent_id: string;
+  /**
+   * Platform Agent Name
+   */
+  platform_agent_name: string;
+};
+
+/**
+ * EnvironmentPublic
+ */
+export type EnvironmentPublic = {
+  /**
+   * Name
+   */
+  name: string;
+  platform: Platform;
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Integration Id
+   */
+  integration_id: string;
+  /**
+   * Integration Name
+   */
+  integration_name: string;
+  /**
+   * Platform Agent Id
+   */
+  platform_agent_id: string;
+  /**
+   * Platform Agent Name
+   */
+  platform_agent_name: string;
+  /**
+   * Created At
+   */
+  created_at: string;
+};
+
+/**
+ * EnvironmentsPublic
+ */
+export type EnvironmentsPublic = {
+  /**
+   * Data
+   */
+  data: Array<EnvironmentPublic>;
+  /**
+   * Count
+   */
+  count: number;
+};
+
+/**
  * ErrorResponse
  */
 export type ErrorResponse = {
@@ -1216,6 +1384,12 @@ export type EvalConfigPublic = {
    * Sum of per-test-case repetitions — total expanded executions
    */
   effective_test_case_count?: number;
+  /**
+   * Total Runs
+   *
+   * Total number of runs for this eval config
+   */
+  total_runs?: number;
   /**
    * Created At
    *
@@ -1497,6 +1671,74 @@ export type ImprovementSuggestions = {
 };
 
 /**
+ * IntegrationCreate
+ */
+export type IntegrationCreate = {
+  /**
+   * IntegrationProvider
+   */
+  provider: 'retell';
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Api Key
+   */
+  api_key: string;
+};
+
+/**
+ * IntegrationProvider
+ */
+export const IntegrationProvider = { RETELL: 'retell' } as const;
+
+/**
+ * IntegrationProvider
+ */
+export type IntegrationProvider = (typeof IntegrationProvider)[keyof typeof IntegrationProvider];
+
+/**
+ * IntegrationPublic
+ */
+export type IntegrationPublic = {
+  /**
+   * IntegrationProvider
+   */
+  provider: 'retell';
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Masked Api Key
+   */
+  masked_api_key: string;
+};
+
+/**
+ * IntegrationsPublic
+ */
+export type IntegrationsPublic = {
+  /**
+   * Data
+   */
+  data: Array<IntegrationPublic>;
+  /**
+   * Count
+   */
+  count: number;
+};
+
+/**
  * JudgeConfig
  *
  * Judge behavior and LLM overrides.
@@ -1600,6 +1842,120 @@ export type JudgeVerdict = {
    * LiteLLM-estimated USD cost for the judge completion
    */
   judge_cost_usd?: number | null;
+};
+
+/**
+ * LLMModelProviderPublic
+ */
+export type LlmModelProviderPublic = {
+  /**
+   * Provider
+   *
+   * LiteLLM provider key
+   */
+  provider: string;
+  /**
+   * Label
+   *
+   * Human-readable provider label
+   */
+  label: string;
+  /**
+   * Default Model
+   *
+   * Full LiteLLM routing id for this provider
+   */
+  default_model?: string | null;
+  /**
+   * Models
+   *
+   * Selectable chat models
+   */
+  models: Array<LlmModelPublic>;
+};
+
+/**
+ * LLMModelPublic
+ */
+export type LlmModelPublic = {
+  /**
+   * Id
+   *
+   * Full LiteLLM routing id, e.g. openai/gpt-4o-mini
+   */
+  id: string;
+  /**
+   * Provider
+   *
+   * LiteLLM provider key, e.g. openai
+   */
+  provider: string;
+  /**
+   * Provider Label
+   *
+   * Human-readable provider label
+   */
+  provider_label: string;
+  /**
+   * Model
+   *
+   * Provider-local model id
+   */
+  model: string;
+  /**
+   * Label
+   *
+   * Human-readable model label
+   */
+  label: string;
+  /**
+   * Is Default
+   *
+   * Whether this is the default model for the provider
+   */
+  is_default: boolean;
+  /**
+   * Is Recommended
+   *
+   * Whether this model should be featured first
+   */
+  is_recommended: boolean;
+  /**
+   * Max Input Tokens
+   *
+   * Known input context window
+   */
+  max_input_tokens?: number | null;
+  /**
+   * Max Output Tokens
+   *
+   * Known output token limit
+   */
+  max_output_tokens?: number | null;
+};
+
+/**
+ * LLMModelsPublic
+ */
+export type LlmModelsPublic = {
+  /**
+   * Data
+   *
+   * Available LLM models by provider
+   */
+  data: Array<LlmModelProviderPublic>;
+  /**
+   * Count
+   *
+   * Total number of selectable models
+   */
+  count: number;
+  /**
+   * Default Model
+   *
+   * Global default full LiteLLM routing id
+   */
+  default_model: string;
 };
 
 /**
@@ -1920,6 +2276,16 @@ export const OnConflict = { SKIP: 'skip', OVERWRITE: 'overwrite' } as const;
  * OnConflict
  */
 export type OnConflict = (typeof OnConflict)[keyof typeof OnConflict];
+
+/**
+ * Platform
+ */
+export const Platform = { RETELL: 'retell' } as const;
+
+/**
+ * Platform
+ */
+export type Platform = (typeof Platform)[keyof typeof Platform];
 
 /**
  * PresetPublic
@@ -2305,6 +2671,28 @@ export type RegressionVerdict = {
    */
   reasons: Array<string>;
   thresholds_used: RegressionThresholds;
+};
+
+/**
+ * RetellAgentSummary
+ */
+export type RetellAgentSummary = {
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Name
+   */
+  agent_name?: string | null;
+  /**
+   * Is Published
+   */
+  is_published?: boolean;
+  /**
+   * Version
+   */
+  version?: number | null;
 };
 
 /**
@@ -2821,6 +3209,12 @@ export type TestCaseAgentRequest = {
    */
   test_case_id?: string | null;
   /**
+   * Source Call Id
+   *
+   * Call this test case is generated from; linked onto persisted rows
+   */
+  source_call_id?: string | null;
+  /**
    * Persist
    *
    * Default true for create/from_transcript; default false for edit
@@ -3002,6 +3396,12 @@ export type TestCaseCreate = {
    * Agent this test case belongs to (test suite pool for that agent)
    */
   agent_id?: string | null;
+  /**
+   * Source Call Id
+   *
+   * Call this test case was created from (Observer drawer)
+   */
+  source_call_id?: string | null;
 };
 
 /**
@@ -3082,6 +3482,12 @@ export type TestCaseImportItem = {
    * Agent this test case belongs to (test suite pool for that agent)
    */
   agent_id?: string | null;
+  /**
+   * Source Call Id
+   *
+   * Call this test case was created from (Observer drawer)
+   */
+  source_call_id?: string | null;
   /**
    * Id
    */
@@ -3192,6 +3598,12 @@ export type TestCasePublic = {
    * Agent this test case belongs to (test suite pool for that agent)
    */
   agent_id?: string | null;
+  /**
+   * Source Call Id
+   *
+   * Call this test case was created from (Observer drawer)
+   */
+  source_call_id?: string | null;
   /**
    * Id
    *
@@ -3596,6 +4008,12 @@ export type TestCaseUpdate = {
    * Agent this test case belongs to (test suite pool for that agent)
    */
   agent_id?: string | null;
+  /**
+   * Source Call Id
+   *
+   * Call this test case was created from (Observer drawer)
+   */
+  source_call_id?: string | null;
 };
 
 /**
@@ -3782,10 +4200,6 @@ export type UserPublic = {
    * Is Active
    */
   is_active?: boolean;
-  /**
-   * Is Superuser
-   */
-  is_superuser?: boolean;
   /**
    * Full Name
    */
@@ -4111,62 +4525,6 @@ export type LoginResetPasswordResponses = {
 
 export type LoginResetPasswordResponse =
   LoginResetPasswordResponses[keyof LoginResetPasswordResponses];
-
-export type LoginRecoverPasswordHtmlContentData = {
-  body?: never;
-  path: {
-    /**
-     * Email
-     */
-    email: string;
-  };
-  query?: never;
-  url: '/api/v1/password-recovery-html-content/{email}';
-};
-
-export type LoginRecoverPasswordHtmlContentErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type LoginRecoverPasswordHtmlContentError =
-  LoginRecoverPasswordHtmlContentErrors[keyof LoginRecoverPasswordHtmlContentErrors];
-
-export type LoginRecoverPasswordHtmlContentResponses = {
-  /**
-   * Successful Response
-   */
-  200: string;
-};
-
-export type LoginRecoverPasswordHtmlContentResponse =
-  LoginRecoverPasswordHtmlContentResponses[keyof LoginRecoverPasswordHtmlContentResponses];
 
 export type LoginLogoutData = {
   body?: never;
@@ -8351,3 +8709,736 @@ export type ConfigGetAvailableMetricsResponses = {
 
 export type ConfigGetAvailableMetricsResponse =
   ConfigGetAvailableMetricsResponses[keyof ConfigGetAvailableMetricsResponses];
+
+export type ConfigGetLlmModelsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/config/llm-models';
+};
+
+export type ConfigGetLlmModelsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ConfigGetLlmModelsError = ConfigGetLlmModelsErrors[keyof ConfigGetLlmModelsErrors];
+
+export type ConfigGetLlmModelsResponses = {
+  /**
+   * Successful Response
+   */
+  200: LlmModelsPublic;
+};
+
+export type ConfigGetLlmModelsResponse =
+  ConfigGetLlmModelsResponses[keyof ConfigGetLlmModelsResponses];
+
+export type IntegrationsListIntegrationsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Skip
+     */
+    skip?: number;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/integrations/';
+};
+
+export type IntegrationsListIntegrationsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type IntegrationsListIntegrationsError =
+  IntegrationsListIntegrationsErrors[keyof IntegrationsListIntegrationsErrors];
+
+export type IntegrationsListIntegrationsResponses = {
+  /**
+   * Successful Response
+   */
+  200: IntegrationsPublic;
+};
+
+export type IntegrationsListIntegrationsResponse =
+  IntegrationsListIntegrationsResponses[keyof IntegrationsListIntegrationsResponses];
+
+export type IntegrationsCreateIntegrationData = {
+  body: IntegrationCreate;
+  path?: never;
+  query?: never;
+  url: '/api/v1/integrations/';
+};
+
+export type IntegrationsCreateIntegrationErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type IntegrationsCreateIntegrationError =
+  IntegrationsCreateIntegrationErrors[keyof IntegrationsCreateIntegrationErrors];
+
+export type IntegrationsCreateIntegrationResponses = {
+  /**
+   * Successful Response
+   */
+  200: IntegrationPublic;
+};
+
+export type IntegrationsCreateIntegrationResponse =
+  IntegrationsCreateIntegrationResponses[keyof IntegrationsCreateIntegrationResponses];
+
+export type IntegrationsDeleteIntegrationData = {
+  body?: never;
+  path: {
+    /**
+     * Integration Id
+     */
+    integration_id: string;
+  };
+  query?: never;
+  url: '/api/v1/integrations/{integration_id}';
+};
+
+export type IntegrationsDeleteIntegrationErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type IntegrationsDeleteIntegrationError =
+  IntegrationsDeleteIntegrationErrors[keyof IntegrationsDeleteIntegrationErrors];
+
+export type IntegrationsDeleteIntegrationResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message;
+};
+
+export type IntegrationsDeleteIntegrationResponse =
+  IntegrationsDeleteIntegrationResponses[keyof IntegrationsDeleteIntegrationResponses];
+
+export type IntegrationsTestIntegrationData = {
+  body?: never;
+  path: {
+    /**
+     * Integration Id
+     */
+    integration_id: string;
+  };
+  query?: never;
+  url: '/api/v1/integrations/{integration_id}/test';
+};
+
+export type IntegrationsTestIntegrationErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type IntegrationsTestIntegrationError =
+  IntegrationsTestIntegrationErrors[keyof IntegrationsTestIntegrationErrors];
+
+export type IntegrationsTestIntegrationResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message;
+};
+
+export type IntegrationsTestIntegrationResponse =
+  IntegrationsTestIntegrationResponses[keyof IntegrationsTestIntegrationResponses];
+
+export type IntegrationsListIntegrationAgentsData = {
+  body?: never;
+  path: {
+    /**
+     * Integration Id
+     */
+    integration_id: string;
+  };
+  query?: never;
+  url: '/api/v1/integrations/{integration_id}/agents';
+};
+
+export type IntegrationsListIntegrationAgentsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type IntegrationsListIntegrationAgentsError =
+  IntegrationsListIntegrationAgentsErrors[keyof IntegrationsListIntegrationAgentsErrors];
+
+export type IntegrationsListIntegrationAgentsResponses = {
+  /**
+   * Response Integrations-List Integration Agents
+   *
+   * Successful Response
+   */
+  200: Array<RetellAgentSummary>;
+};
+
+export type IntegrationsListIntegrationAgentsResponse =
+  IntegrationsListIntegrationAgentsResponses[keyof IntegrationsListIntegrationAgentsResponses];
+
+export type EnvironmentsListEnvironmentsData = {
+  body?: never;
+  path?: never;
+  query: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  url: '/api/v1/environments/';
+};
+
+export type EnvironmentsListEnvironmentsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type EnvironmentsListEnvironmentsError =
+  EnvironmentsListEnvironmentsErrors[keyof EnvironmentsListEnvironmentsErrors];
+
+export type EnvironmentsListEnvironmentsResponses = {
+  /**
+   * Successful Response
+   */
+  200: EnvironmentsPublic;
+};
+
+export type EnvironmentsListEnvironmentsResponse =
+  EnvironmentsListEnvironmentsResponses[keyof EnvironmentsListEnvironmentsResponses];
+
+export type EnvironmentsCreateEnvironmentData = {
+  body: EnvironmentCreate;
+  path?: never;
+  query?: never;
+  url: '/api/v1/environments/';
+};
+
+export type EnvironmentsCreateEnvironmentErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type EnvironmentsCreateEnvironmentError =
+  EnvironmentsCreateEnvironmentErrors[keyof EnvironmentsCreateEnvironmentErrors];
+
+export type EnvironmentsCreateEnvironmentResponses = {
+  /**
+   * Successful Response
+   */
+  200: EnvironmentPublic;
+};
+
+export type EnvironmentsCreateEnvironmentResponse =
+  EnvironmentsCreateEnvironmentResponses[keyof EnvironmentsCreateEnvironmentResponses];
+
+export type EnvironmentsDeleteEnvironmentData = {
+  body?: never;
+  path: {
+    /**
+     * Environment Id
+     */
+    environment_id: string;
+  };
+  query?: never;
+  url: '/api/v1/environments/{environment_id}';
+};
+
+export type EnvironmentsDeleteEnvironmentErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type EnvironmentsDeleteEnvironmentError =
+  EnvironmentsDeleteEnvironmentErrors[keyof EnvironmentsDeleteEnvironmentErrors];
+
+export type EnvironmentsDeleteEnvironmentResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message;
+};
+
+export type EnvironmentsDeleteEnvironmentResponse =
+  EnvironmentsDeleteEnvironmentResponses[keyof EnvironmentsDeleteEnvironmentResponses];
+
+export type CallsListAgentCallsData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: {
+    /**
+     * Skip
+     */
+    skip?: number;
+    /**
+     * Limit
+     */
+    limit?: number;
+    /**
+     * Date From
+     */
+    date_from?: string | null;
+    /**
+     * Date To
+     */
+    date_to?: string | null;
+  };
+  url: '/api/v1/agents/{agent_id}/calls';
+};
+
+export type CallsListAgentCallsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CallsListAgentCallsError = CallsListAgentCallsErrors[keyof CallsListAgentCallsErrors];
+
+export type CallsListAgentCallsResponses = {
+  /**
+   * Successful Response
+   */
+  200: CallsPublic;
+};
+
+export type CallsListAgentCallsResponse =
+  CallsListAgentCallsResponses[keyof CallsListAgentCallsResponses];
+
+export type CallsRefreshAgentCallsData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/calls/refresh';
+};
+
+export type CallsRefreshAgentCallsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CallsRefreshAgentCallsError =
+  CallsRefreshAgentCallsErrors[keyof CallsRefreshAgentCallsErrors];
+
+export type CallsRefreshAgentCallsResponses = {
+  /**
+   * Successful Response
+   */
+  200: CallRefreshResult;
+};
+
+export type CallsRefreshAgentCallsResponse =
+  CallsRefreshAgentCallsResponses[keyof CallsRefreshAgentCallsResponses];
+
+export type CallsMarkCallSeenEndpointData = {
+  body?: never;
+  path: {
+    /**
+     * Call Id
+     */
+    call_id: string;
+  };
+  query?: never;
+  url: '/api/v1/calls/{call_id}/seen';
+};
+
+export type CallsMarkCallSeenEndpointErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CallsMarkCallSeenEndpointError =
+  CallsMarkCallSeenEndpointErrors[keyof CallsMarkCallSeenEndpointErrors];
+
+export type CallsMarkCallSeenEndpointResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message;
+};
+
+export type CallsMarkCallSeenEndpointResponse =
+  CallsMarkCallSeenEndpointResponses[keyof CallsMarkCallSeenEndpointResponses];
+
+export type CallsGetCallDetailData = {
+  body?: never;
+  path: {
+    /**
+     * Call Id
+     */
+    call_id: string;
+  };
+  query?: never;
+  url: '/api/v1/calls/{call_id}';
+};
+
+export type CallsGetCallDetailErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CallsGetCallDetailError = CallsGetCallDetailErrors[keyof CallsGetCallDetailErrors];
+
+export type CallsGetCallDetailResponses = {
+  /**
+   * Successful Response
+   */
+  200: CallPublic;
+};
+
+export type CallsGetCallDetailResponse =
+  CallsGetCallDetailResponses[keyof CallsGetCallDetailResponses];

@@ -1292,6 +1292,127 @@ export const Body_login_login_access_tokenSchema = {
   title: 'Body_login-login_access_token',
 } as const;
 
+export const CallPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    retell_call_id: {
+      type: 'string',
+      title: 'Retell Call Id',
+    },
+    retell_agent_id: {
+      type: 'string',
+      title: 'Retell Agent Id',
+    },
+    started_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Started At',
+    },
+    duration_seconds: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Duration Seconds',
+    },
+    status: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Status',
+    },
+    transcript: {
+      anyOf: [
+        {
+          items: {
+            type: 'object',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Transcript',
+    },
+    is_new: {
+      type: 'boolean',
+      title: 'Is New',
+      description: 'True when the requesting user has not opened this call yet',
+      default: true,
+    },
+    test_case_count: {
+      type: 'integer',
+      title: 'Test Case Count',
+      description: 'Number of test cases sourced from this call',
+      default: 0,
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+    },
+  },
+  type: 'object',
+  required: ['id', 'agent_id', 'retell_call_id', 'retell_agent_id', 'started_at', 'created_at'],
+  title: 'CallPublic',
+} as const;
+
+export const CallRefreshResultSchema = {
+  properties: {
+    created: {
+      type: 'integer',
+      title: 'Created',
+      description: 'Number of new call rows inserted from Retell',
+    },
+    total: {
+      type: 'integer',
+      title: 'Total',
+      description: 'Total call rows in DB for this agent after refresh',
+    },
+  },
+  type: 'object',
+  required: ['created', 'total'],
+  title: 'CallRefreshResult',
+} as const;
+
+export const CallsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/CallPublic',
+      },
+      type: 'array',
+      title: 'Data',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'CallsPublic',
+} as const;
+
 export const CauseAnalysisItemSchema = {
   properties: {
     metric: {
@@ -1768,6 +1889,124 @@ export const DifficultySchema = {
   title: 'Difficulty',
 } as const;
 
+export const EnvironmentCreateSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Name',
+    },
+    platform: {
+      $ref: '#/components/schemas/Platform',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    integration_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Integration Id',
+    },
+    platform_agent_id: {
+      type: 'string',
+      title: 'Platform Agent Id',
+    },
+    platform_agent_name: {
+      type: 'string',
+      title: 'Platform Agent Name',
+    },
+  },
+  type: 'object',
+  required: [
+    'name',
+    'platform',
+    'agent_id',
+    'integration_id',
+    'platform_agent_id',
+    'platform_agent_name',
+  ],
+  title: 'EnvironmentCreate',
+} as const;
+
+export const EnvironmentPublicSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Name',
+    },
+    platform: {
+      $ref: '#/components/schemas/Platform',
+    },
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    integration_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Integration Id',
+    },
+    integration_name: {
+      type: 'string',
+      title: 'Integration Name',
+    },
+    platform_agent_id: {
+      type: 'string',
+      title: 'Platform Agent Id',
+    },
+    platform_agent_name: {
+      type: 'string',
+      title: 'Platform Agent Name',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+    },
+  },
+  type: 'object',
+  required: [
+    'name',
+    'platform',
+    'id',
+    'agent_id',
+    'integration_id',
+    'integration_name',
+    'platform_agent_id',
+    'platform_agent_name',
+    'created_at',
+  ],
+  title: 'EnvironmentPublic',
+} as const;
+
+export const EnvironmentsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/EnvironmentPublic',
+      },
+      type: 'array',
+      title: 'Data',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'EnvironmentsPublic',
+} as const;
+
 export const ErrorResponseSchema = {
   properties: {
     detail: {
@@ -2029,6 +2268,12 @@ export const EvalConfigPublicSchema = {
       type: 'integer',
       title: 'Effective Test Case Count',
       description: 'Sum of per-test-case repetitions — total expanded executions',
+      default: 0,
+    },
+    total_runs: {
+      type: 'integer',
+      title: 'Total Runs',
+      description: 'Total number of runs for this eval config',
       default: 0,
     },
     created_at: {
@@ -2463,6 +2708,91 @@ export const ImprovementSuggestionsSchema = {
   title: 'ImprovementSuggestions',
 } as const;
 
+export const IntegrationCreateSchema = {
+  properties: {
+    provider: {
+      type: 'string',
+      enum: ['retell'],
+      const: 'retell',
+      maxLength: 64,
+      title: 'IntegrationProvider',
+    },
+    name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Name',
+    },
+    api_key: {
+      type: 'string',
+      title: 'Api Key',
+    },
+  },
+  type: 'object',
+  required: ['provider', 'name', 'api_key'],
+  title: 'IntegrationCreate',
+} as const;
+
+export const IntegrationProviderSchema = {
+  type: 'string',
+  enum: ['retell'],
+  const: 'retell',
+  maxLength: 64,
+  title: 'IntegrationProvider',
+} as const;
+
+export const IntegrationPublicSchema = {
+  properties: {
+    provider: {
+      type: 'string',
+      enum: ['retell'],
+      const: 'retell',
+      maxLength: 64,
+      title: 'IntegrationProvider',
+    },
+    name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Name',
+    },
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+    },
+    masked_api_key: {
+      type: 'string',
+      title: 'Masked Api Key',
+    },
+  },
+  type: 'object',
+  required: ['provider', 'name', 'id', 'created_at', 'masked_api_key'],
+  title: 'IntegrationPublic',
+} as const;
+
+export const IntegrationsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/IntegrationPublic',
+      },
+      type: 'array',
+      title: 'Data',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'IntegrationsPublic',
+} as const;
+
 export const JudgeConfigSchema = {
   properties: {
     metrics: {
@@ -2630,6 +2960,137 @@ export const JudgeVerdictSchema = {
   type: 'object',
   required: ['passed', 'overall_score', 'metric_scores', 'judge_model', 'judge_provider'],
   title: 'JudgeVerdict',
+} as const;
+
+export const LLMModelProviderPublicSchema = {
+  properties: {
+    provider: {
+      type: 'string',
+      title: 'Provider',
+      description: 'LiteLLM provider key',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+      description: 'Human-readable provider label',
+    },
+    default_model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Default Model',
+      description: 'Full LiteLLM routing id for this provider',
+    },
+    models: {
+      items: {
+        $ref: '#/components/schemas/LLMModelPublic',
+      },
+      type: 'array',
+      title: 'Models',
+      description: 'Selectable chat models',
+    },
+  },
+  type: 'object',
+  required: ['provider', 'label', 'models'],
+  title: 'LLMModelProviderPublic',
+} as const;
+
+export const LLMModelPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      title: 'Id',
+      description: 'Full LiteLLM routing id, e.g. openai/gpt-4o-mini',
+    },
+    provider: {
+      type: 'string',
+      title: 'Provider',
+      description: 'LiteLLM provider key, e.g. openai',
+    },
+    provider_label: {
+      type: 'string',
+      title: 'Provider Label',
+      description: 'Human-readable provider label',
+    },
+    model: {
+      type: 'string',
+      title: 'Model',
+      description: 'Provider-local model id',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+      description: 'Human-readable model label',
+    },
+    is_default: {
+      type: 'boolean',
+      title: 'Is Default',
+      description: 'Whether this is the default model for the provider',
+    },
+    is_recommended: {
+      type: 'boolean',
+      title: 'Is Recommended',
+      description: 'Whether this model should be featured first',
+    },
+    max_input_tokens: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Max Input Tokens',
+      description: 'Known input context window',
+    },
+    max_output_tokens: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Max Output Tokens',
+      description: 'Known output token limit',
+    },
+  },
+  type: 'object',
+  required: ['id', 'provider', 'provider_label', 'model', 'label', 'is_default', 'is_recommended'],
+  title: 'LLMModelPublic',
+} as const;
+
+export const LLMModelsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/LLMModelProviderPublic',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Available LLM models by provider',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+      description: 'Total number of selectable models',
+    },
+    default_model: {
+      type: 'string',
+      title: 'Default Model',
+      description: 'Global default full LiteLLM routing id',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count', 'default_model'],
+  title: 'LLMModelsPublic',
 } as const;
 
 export const MessageSchema = {
@@ -3075,6 +3536,13 @@ export const OnConflictSchema = {
   type: 'string',
   enum: ['skip', 'overwrite'],
   title: 'OnConflict',
+} as const;
+
+export const PlatformSchema = {
+  type: 'string',
+  enum: ['retell'],
+  const: 'retell',
+  title: 'Platform',
 } as const;
 
 export const PresetPublicSchema = {
@@ -3617,6 +4085,45 @@ export const RegressionVerdictSchema = {
   type: 'object',
   required: ['regression_detected', 'reasons', 'thresholds_used'],
   title: 'RegressionVerdict',
+} as const;
+
+export const RetellAgentSummarySchema = {
+  properties: {
+    agent_id: {
+      type: 'string',
+      title: 'Agent Id',
+    },
+    agent_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Name',
+    },
+    is_published: {
+      type: 'boolean',
+      title: 'Is Published',
+      default: false,
+    },
+    version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version',
+    },
+  },
+  type: 'object',
+  required: ['agent_id'],
+  title: 'RetellAgentSummary',
 } as const;
 
 export const RunComparisonSchema = {
@@ -4557,6 +5064,19 @@ export const TestCaseAgentRequestSchema = {
       title: 'Test Case Id',
       description: 'Required when mode=edit; must belong to agent_id',
     },
+    source_call_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Source Call Id',
+      description: 'Call this test case is generated from; linked onto persisted rows',
+    },
     persist: {
       anyOf: [
         {
@@ -4926,6 +5446,19 @@ export const TestCaseCreateSchema = {
       title: 'Agent Id',
       description: 'Agent this test case belongs to (test suite pool for that agent)',
     },
+    source_call_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Source Call Id',
+      description: 'Call this test case was created from (Observer drawer)',
+    },
   },
   type: 'object',
   required: ['name'],
@@ -5067,6 +5600,19 @@ export const TestCaseImportItemSchema = {
       ],
       title: 'Agent Id',
       description: 'Agent this test case belongs to (test suite pool for that agent)',
+    },
+    source_call_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Source Call Id',
+      description: 'Call this test case was created from (Observer drawer)',
     },
     id: {
       anyOf: [
@@ -5255,6 +5801,19 @@ export const TestCasePublicSchema = {
       ],
       title: 'Agent Id',
       description: 'Agent this test case belongs to (test suite pool for that agent)',
+    },
+    source_call_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Source Call Id',
+      description: 'Call this test case was created from (Observer drawer)',
     },
     id: {
       type: 'string',
@@ -6010,6 +6569,19 @@ export const TestCaseUpdateSchema = {
       title: 'Agent Id',
       description: 'Agent this test case belongs to (test suite pool for that agent)',
     },
+    source_call_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Source Call Id',
+      description: 'Call this test case was created from (Observer drawer)',
+    },
   },
   type: 'object',
   title: 'TestCaseUpdate',
@@ -6230,11 +6802,6 @@ export const UserPublicSchema = {
       type: 'boolean',
       title: 'Is Active',
       default: true,
-    },
-    is_superuser: {
-      type: 'boolean',
-      title: 'Is Superuser',
-      default: false,
     },
     full_name: {
       anyOf: [

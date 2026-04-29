@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { createTestCase } from '@/actions/test-cases';
-import { testCaseKeys } from '@/constants/query-keys';
+import { callKeys, testCaseKeys } from '@/constants/query-keys';
 import { isErrorApiResult } from '@/utils/api';
 import { getApiErrorMessage } from '@/utils/error';
 
@@ -23,6 +23,7 @@ export function useCreateTestCase(agentId: string) {
 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: testCaseKeys.list(agentId) });
+      queryClient.invalidateQueries({ queryKey: callKeys.all });
     },
   });
 

@@ -10,7 +10,6 @@ import { Separator } from '@workspace/ui/components/ui/separator';
 import { SidebarTrigger } from '@workspace/ui/components/ui/sidebar';
 
 import { useCreateDraftAgent } from '@/app/(app)/(agents)/_hooks/use-create-draft-agent';
-import { isSuccessApiResult } from '@/utils/api';
 import { PlatformHeader } from '@/components/common/platform-header';
 
 export const NewAgentHeader = () => {
@@ -28,17 +27,7 @@ const Leading = () => {
 };
 
 const Trailing = () => {
-  const router = useRouter();
-  const { mutate, isPending } = useCreateDraftAgent();
-
-  const handleCreate = () => {
-    mutate(undefined, {
-      onSuccess: (result) => {
-        if (!isSuccessApiResult(result)) return;
-        router.push(UrlGenerator.agentEdit(result.data.id));
-      },
-    });
-  };
+  const { handleCreate, isPending } = useCreateDraftAgent();
 
   return (
     <Button size="sm" onClick={handleCreate} disabled={isPending}>

@@ -49,11 +49,14 @@ export function usePromptEditorSession(agentId: string) {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (): Promise<PromptEditorSessionPublic> => {
+    mutationFn: async (args: { runId?: string | null } = {}): Promise<PromptEditorSessionPublic> => {
       await flushDraftSave();
 
       const created = await PromptEditorService.promptEditorCreateSession({
-        body: { agent_id: agentId },
+        body: {
+          agent_id: agentId,
+          run_id: args.runId ?? null,
+        },
       });
       if (created.error || !created.data) {
         throw new Error(`Failed to create session: ${getApiErrorMessage(created.error)}`);
@@ -66,10 +69,13 @@ export function usePromptEditorSession(agentId: string) {
     },
   });
 
-  const createSession = useCallback(async (): Promise<string> => {
-    const created = await createMutation.mutateAsync();
-    return created.id;
-  }, [createMutation]);
+  const createSession = useCallback(
+    async (args: { runId?: string | null } = {}): Promise<string> => {
+      const created = await createMutation.mutateAsync(args);
+      return created.id;
+    },
+    [createMutation],
+  );
 
   const updateBasePromptMutation = useMutation({
     mutationFn: async (params: {
@@ -124,6 +130,7 @@ export function usePromptEditorSession(agentId: string) {
 
   return {
     sessionId: effectiveSession?.id ?? null,
+    sessionRunId: effectiveSession?.run_id ?? null,
     basePrompt: effectiveSession?.base_prompt ?? null,
     editedPrompt: effectiveSession?.edited_prompt ?? null,
     isLoading: query.isLoading,

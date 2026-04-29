@@ -1,14 +1,21 @@
 import uuid
 
 from fastapi.testclient import TestClient
+from pytest import MonkeyPatch
 
+from app.api.routes import config as config_route
 from app.core.config import settings
+from app.services.llm_models import (
+    LLMModelProviderPublic,
+    LLMModelPublic,
+    LLMModelsPublic,
+)
 
 
-def test_get_config(client: TestClient, superuser_auth_cookies: dict[str, str]) -> None:
+def test_get_config(client: TestClient, auth_cookies: dict[str, str]) -> None:
     r = client.get(
         f"{settings.API_V1_STR}/config/",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -23,12 +30,61 @@ def test_get_config_requires_auth(client: TestClient) -> None:
     assert r.status_code == 401
 
 
+def test_llm_models_requires_auth(client: TestClient) -> None:
+    r = client.get(f"{settings.API_V1_STR}/config/llm-models")
+    assert r.status_code == 401
+
+
+def test_llm_models_returns_catalog(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    monkeypatch: MonkeyPatch,
+) -> None:
+    catalog = LLMModelsPublic(
+        default_model="openai/gpt-4o-mini",
+        count=1,
+        data=[
+            LLMModelProviderPublic(
+                provider="openai",
+                label="OpenAI",
+                default_model="openai/gpt-4o-mini",
+                models=[
+                    LLMModelPublic(
+                        id="openai/gpt-4o-mini",
+                        provider="openai",
+                        provider_label="OpenAI",
+                        model="gpt-4o-mini",
+                        label="GPT 4o mini",
+                        is_default=True,
+                        is_recommended=True,
+                        max_input_tokens=128000,
+                        max_output_tokens=16384,
+                    )
+                ],
+            )
+        ],
+    )
+    monkeypatch.setattr(config_route, "get_available_llm_models", lambda: catalog)
+
+    r = client.get(
+        f"{settings.API_V1_STR}/config/llm-models",
+        cookies=auth_cookies,
+    )
+
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["default_model"] == "openai/gpt-4o-mini"
+    assert payload["count"] == 1
+    assert payload["data"][0]["provider"] == "openai"
+    assert payload["data"][0]["models"][0]["id"] == "openai/gpt-4o-mini"
+
+
 def test_available_metrics_includes_custom_metrics(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     before = client.get(
         f"{settings.API_V1_STR}/config/available-metrics",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert before.status_code == 200
     count_before = before.json()["count"]
@@ -46,13 +102,13 @@ def test_available_metrics_includes_custom_metrics(
             "rubric": "Measures: test.\n5: ok.\n   Example: Agent replied.",
             "include_in_defaults": False,
         },
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert create_r.status_code == 200
 
     after = client.get(
         f"{settings.API_V1_STR}/config/available-metrics",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert after.status_code == 200
     payload = after.json()

@@ -13,7 +13,7 @@ from app.tests.utils.eval import (
 
 
 def test_create_eval_config(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     data = {
@@ -24,7 +24,7 @@ def test_create_eval_config(
     r = client.post(
         f"{settings.API_V1_STR}/eval-configs/",
         json=data,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -33,7 +33,7 @@ def test_create_eval_config(
 
 
 def test_create_eval_config_with_test_cases(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     s1 = create_test_case_fixture(db)
@@ -49,7 +49,7 @@ def test_create_eval_config_with_test_cases(
     r = client.post(
         f"{settings.API_V1_STR}/eval-configs/",
         json=data,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -59,7 +59,7 @@ def test_create_eval_config_with_test_cases(
     # Verify test cases are linked
     r2 = client.get(
         f"{settings.API_V1_STR}/eval-configs/{result['id']}/test-cases",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r2.status_code == 200
     body = r2.json()
@@ -69,7 +69,7 @@ def test_create_eval_config_with_test_cases(
 
 
 def test_create_eval_config_with_invalid_members(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     data = {
@@ -80,67 +80,67 @@ def test_create_eval_config_with_invalid_members(
     r = client.post(
         f"{settings.API_V1_STR}/eval-configs/",
         json=data,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 422
 
 
 def test_create_eval_config_always_starts_at_version_1(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     data = {"name": "Fresh Config", "agent_id": str(agent.id)}
     r = client.post(
         f"{settings.API_V1_STR}/eval-configs/",
         json=data,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["version"] == 1
 
 
 def test_list_eval_configs(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     create_test_eval_config(db)
     r = client.get(
         f"{settings.API_V1_STR}/eval-configs/",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["count"] >= 1
 
 
 def test_get_eval_config(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     eval_config = create_test_eval_config(db)
     r = client.get(
         f"{settings.API_V1_STR}/eval-configs/{eval_config.id}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["id"] == str(eval_config.id)
 
 
 def test_get_eval_config_not_found(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.get(
         f"{settings.API_V1_STR}/eval-configs/{uuid.uuid4()}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
 
 def test_update_eval_config(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     eval_config = create_test_eval_config(db)
     r = client.patch(
         f"{settings.API_V1_STR}/eval-configs/{eval_config.id}",
         json={"name": "Patched Config"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -149,25 +149,25 @@ def test_update_eval_config(
 
 
 def test_delete_eval_config(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     eval_config = create_test_eval_config(db)
     r = client.delete(
         f"{settings.API_V1_STR}/eval-configs/{eval_config.id}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
 
 
 def test_add_test_cases_to_config(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     eval_config = create_test_eval_config(db)
     s1 = create_test_case_fixture(db)
     r = client.post(
         f"{settings.API_V1_STR}/eval-configs/{eval_config.id}/test-cases",
         json={"members": [{"test_case_id": str(s1.id), "repetitions": 1}]},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -176,19 +176,19 @@ def test_add_test_cases_to_config(
 
 
 def test_add_invalid_test_cases_to_config(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     eval_config = create_test_eval_config(db)
     r = client.post(
         f"{settings.API_V1_STR}/eval-configs/{eval_config.id}/test-cases",
         json={"members": [{"test_case_id": str(uuid.uuid4()), "repetitions": 1}]},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 422
 
 
 def test_replace_test_cases_in_config(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     s1 = create_test_case_fixture(db)
     s2 = create_test_case_fixture(db)
@@ -196,7 +196,7 @@ def test_replace_test_cases_in_config(
     r = client.put(
         f"{settings.API_V1_STR}/eval-configs/{eval_config.id}/test-cases",
         json={"members": [{"test_case_id": str(s2.id), "repetitions": 1}]},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -206,33 +206,33 @@ def test_replace_test_cases_in_config(
     # Verify replacement
     r2 = client.get(
         f"{settings.API_V1_STR}/eval-configs/{eval_config.id}/test-cases",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r2.json()["count"] == 1
     assert r2.json()["data"][0]["test_case_id"] == str(s2.id)
 
 
 def test_replace_with_invalid_test_cases(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     s1 = create_test_case_fixture(db)
     eval_config = create_test_eval_config(db, members=eval_config_members(s1.id))
     r = client.put(
         f"{settings.API_V1_STR}/eval-configs/{eval_config.id}/test-cases",
         json={"members": [{"test_case_id": str(uuid.uuid4()), "repetitions": 1}]},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 422
 
 
 def test_remove_test_case_from_config(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     s1 = create_test_case_fixture(db)
     eval_config = create_test_eval_config(db, members=eval_config_members(s1.id))
     r = client.delete(
         f"{settings.API_V1_STR}/eval-configs/{eval_config.id}/test-cases/{s1.id}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -241,7 +241,7 @@ def test_remove_test_case_from_config(
 
 
 def test_test_case_count_in_response(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent = create_test_agent(db)
     s1 = create_test_case_fixture(db)
@@ -257,7 +257,7 @@ def test_test_case_count_in_response(
     r = client.post(
         f"{settings.API_V1_STR}/eval-configs/",
         json=data,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -266,7 +266,7 @@ def test_test_case_count_in_response(
 
 
 def test_list_test_cases_in_config_paginated(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     s1 = create_test_case_fixture(db)
     s2 = create_test_case_fixture(db)
@@ -278,7 +278,7 @@ def test_list_test_cases_in_config_paginated(
     r = client.get(
         f"{settings.API_V1_STR}/eval-configs/{eval_config.id}/test-cases",
         params={"skip": 0, "limit": 2},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     data = r.json()
@@ -288,7 +288,7 @@ def test_list_test_cases_in_config_paginated(
     r2 = client.get(
         f"{settings.API_V1_STR}/eval-configs/{eval_config.id}/test-cases",
         params={"skip": 2, "limit": 2},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r2.status_code == 200
     assert len(r2.json()["data"]) == 1

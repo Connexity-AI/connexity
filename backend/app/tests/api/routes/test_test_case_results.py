@@ -27,7 +27,7 @@ def _setup(db: Session) -> tuple:
 
 
 def test_create_test_case_result(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     run, test_case = _setup(db)
     data = {
@@ -37,7 +37,7 @@ def test_create_test_case_result(
     r = client.post(
         f"{settings.API_V1_STR}/test-case-results/",
         json=data,
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     result = r.json()
@@ -46,27 +46,27 @@ def test_create_test_case_result(
 
 
 def test_list_test_case_results(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     run, test_case = _setup(db)
     create_test_case_result_fixture(db, run_id=run.id, test_case_id=test_case.id)
     r = client.get(
         f"{settings.API_V1_STR}/test-case-results/",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["count"] >= 1
 
 
 def test_list_test_case_results_filter_by_run(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     run, test_case = _setup(db)
     create_test_case_result_fixture(db, run_id=run.id, test_case_id=test_case.id)
     r = client.get(
         f"{settings.API_V1_STR}/test-case-results/",
         params={"run_id": str(run.id)},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     data = r.json()
@@ -75,7 +75,7 @@ def test_list_test_case_results_filter_by_run(
 
 
 def test_list_test_case_results_filter_by_passed(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     run, test_case = _setup(db)
     passed_result = create_test_case_result_fixture(
@@ -98,7 +98,7 @@ def test_list_test_case_results_filter_by_passed(
     r = client.get(
         f"{settings.API_V1_STR}/test-case-results/",
         params={"run_id": str(run.id), "passed": "true"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     data = r.json()
@@ -108,7 +108,7 @@ def test_list_test_case_results_filter_by_passed(
     r = client.get(
         f"{settings.API_V1_STR}/test-case-results/",
         params={"run_id": str(run.id), "passed": "false"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     data = r.json()
@@ -117,7 +117,7 @@ def test_list_test_case_results_filter_by_passed(
 
 
 def test_get_test_case_result(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     run, test_case = _setup(db)
     result = create_test_case_result_fixture(
@@ -125,24 +125,24 @@ def test_get_test_case_result(
     )
     r = client.get(
         f"{settings.API_V1_STR}/test-case-results/{result.id}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["id"] == str(result.id)
 
 
 def test_get_test_case_result_not_found(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.get(
         f"{settings.API_V1_STR}/test-case-results/{uuid.uuid4()}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
 
 def test_update_test_case_result(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     run, test_case = _setup(db)
     result = create_test_case_result_fixture(
@@ -151,7 +151,7 @@ def test_update_test_case_result(
     r = client.patch(
         f"{settings.API_V1_STR}/test-case-results/{result.id}",
         json={"passed": True, "turn_count": 3, "total_latency_ms": 500},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     updated = r.json()
@@ -161,7 +161,7 @@ def test_update_test_case_result(
 
 
 def test_delete_test_case_result(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     run, test_case = _setup(db)
     result = create_test_case_result_fixture(
@@ -169,6 +169,6 @@ def test_delete_test_case_result(
     )
     r = client.delete(
         f"{settings.API_V1_STR}/test-case-results/{result.id}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
