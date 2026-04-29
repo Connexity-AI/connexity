@@ -3,7 +3,6 @@ import uuid
 from sqlmodel import Session
 
 from app import crud
-from app.core.config import settings
 from app.models import CustomMetricCreate, CustomMetricUpdate, MetricTier, ScoreType
 from app.tests.utils.user import create_random_user
 
@@ -22,8 +21,7 @@ def _sample_create(*, name: str) -> CustomMetricCreate:
 
 
 def test_create_and_get_custom_metric(db: Session) -> None:
-    owner = crud.get_user_by_email(session=db, email=settings.FIRST_SUPERUSER)
-    assert owner is not None
+    owner = create_random_user(db)
     name = f"crud_metric_{uuid.uuid4().hex[:10]}"
     created = crud.create_custom_metric(
         session=db,
@@ -38,8 +36,7 @@ def test_create_and_get_custom_metric(db: Session) -> None:
 
 
 def test_get_custom_metric_by_name_and_owner(db: Session) -> None:
-    owner = crud.get_user_by_email(session=db, email=settings.FIRST_SUPERUSER)
-    assert owner is not None
+    owner = create_random_user(db)
     name = f"by_name_{uuid.uuid4().hex[:10]}"
     crud.create_custom_metric(
         session=db,
@@ -60,9 +57,8 @@ def test_get_custom_metric_by_name_and_owner(db: Session) -> None:
 
 
 def test_list_custom_metrics_owner_scoped(db: Session) -> None:
-    owner_a = crud.get_user_by_email(session=db, email=settings.FIRST_SUPERUSER)
+    owner_a = create_random_user(db)
     owner_b = create_random_user(db)
-    assert owner_a is not None
     name_a = f"owner_a_{uuid.uuid4().hex[:10]}"
     name_b = f"owner_b_{uuid.uuid4().hex[:10]}"
     crud.create_custom_metric(
@@ -88,8 +84,7 @@ def test_list_custom_metrics_owner_scoped(db: Session) -> None:
 
 
 def test_update_custom_metric(db: Session) -> None:
-    owner = crud.get_user_by_email(session=db, email=settings.FIRST_SUPERUSER)
-    assert owner is not None
+    owner = create_random_user(db)
     name = f"update_{uuid.uuid4().hex[:10]}"
     m = crud.create_custom_metric(
         session=db,
@@ -106,8 +101,7 @@ def test_update_custom_metric(db: Session) -> None:
 
 
 def test_delete_custom_metric(db: Session) -> None:
-    owner = crud.get_user_by_email(session=db, email=settings.FIRST_SUPERUSER)
-    assert owner is not None
+    owner = create_random_user(db)
     name = f"delete_{uuid.uuid4().hex[:10]}"
     m = crud.create_custom_metric(
         session=db,

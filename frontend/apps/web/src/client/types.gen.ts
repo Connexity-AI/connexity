@@ -4316,10 +4316,6 @@ export type UserPublic = {
    */
   is_active?: boolean;
   /**
-   * Is Superuser
-   */
-  is_superuser?: boolean;
-  /**
    * Full Name
    */
   full_name?: string | null;
@@ -4644,62 +4640,6 @@ export type LoginResetPasswordResponses = {
 
 export type LoginResetPasswordResponse =
   LoginResetPasswordResponses[keyof LoginResetPasswordResponses];
-
-export type LoginRecoverPasswordHtmlContentData = {
-  body?: never;
-  path: {
-    /**
-     * Email
-     */
-    email: string;
-  };
-  query?: never;
-  url: '/api/v1/password-recovery-html-content/{email}';
-};
-
-export type LoginRecoverPasswordHtmlContentErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type LoginRecoverPasswordHtmlContentError =
-  LoginRecoverPasswordHtmlContentErrors[keyof LoginRecoverPasswordHtmlContentErrors];
-
-export type LoginRecoverPasswordHtmlContentResponses = {
-  /**
-   * Successful Response
-   */
-  200: string;
-};
-
-export type LoginRecoverPasswordHtmlContentResponse =
-  LoginRecoverPasswordHtmlContentResponses[keyof LoginRecoverPasswordHtmlContentResponses];
 
 export type LoginLogoutData = {
   body?: never;

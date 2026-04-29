@@ -1,13 +1,16 @@
+import json
 import logging
+import time
 import uuid
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app import crud
-from app.api.deps import CurrentUser, SessionDep, get_current_user
+from app.api.deps import SessionDep, get_current_user
 from app.core.db import engine
 from app.core.encryption import decrypt
 from app.models import (
@@ -25,16 +28,16 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["calls"], dependencies=[Depends(get_current_user)])
 
-# Retell returns at most _RETELL_PAGE_SIZE per request; when a page comes back
-# full we keep paging forward until the backlog is exhausted or we hit the cap.
 _RETELL_PAGE_SIZE = 100
 _MAX_FETCH_ITERATIONS = 20
 
-# Stale-while-revalidate window for the GET /calls endpoint. Pagination,
-# filtering, and React Query refetches inside this window all serve from DB
-# without touching Retell; outside it, the next GET schedules one background
-# sync. Doubles as a backoff after a failed sync (we don't reset the stamp).
 _SYNC_TTL = timedelta(seconds=15)
+
+
+def _emit(event: str, **fields: Any) -> None:
+    """Emit a single wide-event log line as JSON for Cloud Logging to ingest."""
+    payload = {"event": event, **fields}
+    logger.warning(json.dumps(payload, default=str))
 
 
 async def _fetch_and_store_from_retell(
@@ -47,70 +50,133 @@ async def _fetch_and_store_from_retell(
 
     Returns total number of newly-inserted rows.
     """
-    environments = crud.list_environments_by_agent(session=session, agent_id=agent.id)
-    retell_envs = [
-        (env, _integration_name)
-        for env, _integration_name in environments
-        if env.platform == Platform.RETELL
-    ]
-    if not retell_envs:
-        raise HTTPException(
-            status_code=400,
-            detail="Add a Retell environment on the Deploy tab first",
-        )
-
-    initial_start_after: datetime | None = None
-    if incremental:
-        initial_start_after = crud.get_latest_call_started_at(
+    started = time.monotonic()
+    event: dict[str, Any] = {
+        "agent_id": str(agent.id),
+        "incremental": incremental,
+        "envs_total": 0,
+        "retell_envs": 0,
+        "envs": [],
+        "created_total": 0,
+        "status": "ok",
+    }
+    try:
+        environments = crud.list_environments_by_agent(
             session=session, agent_id=agent.id
         )
+        retell_envs = [
+            (env, name) for env, name in environments if env.platform == Platform.RETELL
+        ]
+        event["envs_total"] = len(environments)
+        event["retell_envs"] = len(retell_envs)
 
-    created_total = 0
-    for env, _ in retell_envs:
-        integration = crud.get_integration(
-            session=session,
-            integration_id=env.integration_id,
-        )
-        if integration is None:
-            continue
-        api_key = decrypt(integration.encrypted_api_key)
-
-        start_after = initial_start_after
-        for _ in range(_MAX_FETCH_ITERATIONS):
-            batch = await list_retell_calls(
-                api_key,
-                agent_id=env.platform_agent_id,
-                start_after=start_after,
-                limit=_RETELL_PAGE_SIZE,
+        if not retell_envs:
+            event["status"] = "no_retell_env"
+            raise HTTPException(
+                status_code=400,
+                detail="Add a Retell environment on the Deploy tab first",
             )
-            if not batch:
-                break
-            created_total += crud.upsert_calls_from_retell(
+
+        created_total = 0
+        for env, _ in retell_envs:
+            env_event: dict[str, Any] = {
+                "env_id": str(env.id),
+                "platform_agent_id": env.platform_agent_id,
+                "integration_id": str(env.integration_id)
+                if env.integration_id
+                else None,
+                "iterations": 0,
+                "fetched": 0,
+                "inserted": 0,
+                "skipped_dupes": 0,
+                "start_after": None,
+                "status": "ok",
+            }
+            event["envs"].append(env_event)
+
+            integration = crud.get_integration(
                 session=session,
-                agent_id=agent.id,
-                integration_id=integration.id,
-                retell_calls=batch,
+                integration_id=env.integration_id,
             )
-            if len(batch) < _RETELL_PAGE_SIZE:
-                break
-            newest_ms = max(
-                (c.start_timestamp for c in batch if c.start_timestamp is not None),
-                default=None,
-            )
-            if newest_ms is None:
-                break
-            next_after = datetime.fromtimestamp(newest_ms / 1000, tz=UTC)
-            if start_after is not None and next_after <= start_after:
-                break
-            start_after = next_after
-    return created_total
+            if integration is None:
+                env_event["status"] = "missing_integration"
+                continue
+            try:
+                api_key = decrypt(integration.encrypted_api_key)
+            except Exception as exc:
+                env_event["status"] = "decrypt_failed"
+                env_event["error"] = repr(exc)
+                raise
+            env_event["api_key_len"] = len(api_key) if api_key else 0
+
+            # Per-environment watermark: the latest started_at of calls already
+            # stored for this (agent, retell_agent_id) pair. A brand-new env on
+            # an agent that has prior calls from a different env still gets a
+            # full backfill instead of inheriting the other env's cutoff.
+            start_after: datetime | None = None
+            if incremental:
+                start_after = crud.get_latest_call_started_at(
+                    session=session,
+                    agent_id=agent.id,
+                    retell_agent_id=env.platform_agent_id,
+                )
+            env_event["start_after"] = start_after
+            for iteration in range(_MAX_FETCH_ITERATIONS):
+                env_event["iterations"] = iteration + 1
+                try:
+                    batch = await list_retell_calls(
+                        api_key,
+                        agent_id=env.platform_agent_id,
+                        start_after=start_after,
+                        limit=_RETELL_PAGE_SIZE,
+                    )
+                except HTTPException as exc:
+                    env_event["status"] = "retell_error"
+                    env_event["error"] = f"{exc.status_code}: {exc.detail}"
+                    raise
+                if not batch:
+                    break
+                inserted = crud.upsert_calls_from_retell(
+                    session=session,
+                    agent_id=agent.id,
+                    integration_id=integration.id,
+                    retell_calls=batch,
+                )
+                env_event["fetched"] += len(batch)
+                env_event["inserted"] += inserted
+                env_event["skipped_dupes"] += len(batch) - inserted
+                created_total += inserted
+                if len(batch) < _RETELL_PAGE_SIZE:
+                    break
+                newest_ms = max(
+                    (c.start_timestamp for c in batch if c.start_timestamp is not None),
+                    default=None,
+                )
+                if newest_ms is None:
+                    break
+                next_after = datetime.fromtimestamp(newest_ms / 1000, tz=UTC)
+                if start_after is not None and next_after <= start_after:
+                    break
+                start_after = next_after
+        event["created_total"] = created_total
+        return created_total
+    except HTTPException as exc:
+        if event["status"] == "ok":
+            event["status"] = "http_error"
+        event["error"] = f"{exc.status_code}: {exc.detail}"
+        raise
+    except Exception as exc:
+        event["status"] = "unhandled_exception"
+        event["error"] = repr(exc)
+        raise
+    finally:
+        event["duration_ms"] = int((time.monotonic() - started) * 1000)
+        _emit("retell_sync", **event)
 
 
 def _is_sync_stale(last_synced_at: datetime | None) -> bool:
     if last_synced_at is None:
         return True
-    # The DB column is timezone-naive (sa.DateTime()) and we always write UTC,
-    # so treat naive reads as UTC for comparison with datetime.now(UTC).
     last = (
         last_synced_at.replace(tzinfo=UTC)
         if last_synced_at.tzinfo is None
@@ -123,31 +189,38 @@ async def _sync_calls_in_background(agent_id: uuid.UUID) -> None:
     """Run a Retell sync in a fresh DB session after the request response is sent.
 
     Errors are logged, never raised — there is no caller left to receive them.
-    The TTL stamp is set by the caller before scheduling; we do not reset it on
-    failure, so failures back off naturally for one ``_SYNC_TTL`` window.
     """
-    with Session(engine) as session:
-        agent = session.get(Agent, agent_id)
-        if agent is None:
-            return
-        try:
-            await _fetch_and_store_from_retell(
-                session=session, agent=agent, incremental=True
-            )
-        except HTTPException as exc:
-            logger.warning(
-                "background Retell sync for agent %s failed: %s", agent_id, exc.detail
-            )
-        except Exception:
-            logger.exception(
-                "unexpected error during background Retell sync for %s", agent_id
-            )
+    started = time.monotonic()
+    event: dict[str, Any] = {
+        "agent_id": str(agent_id),
+        "status": "ok",
+    }
+    try:
+        with Session(engine) as session:
+            agent = session.get(Agent, agent_id)
+            if agent is None:
+                event["status"] = "agent_not_found"
+                return
+            try:
+                created = await _fetch_and_store_from_retell(
+                    session=session, agent=agent, incremental=True
+                )
+                event["created"] = created
+            except HTTPException as exc:
+                event["status"] = "http_error"
+                event["error"] = f"{exc.status_code}: {exc.detail}"
+            except Exception as exc:
+                event["status"] = "unhandled_exception"
+                event["error"] = repr(exc)
+                logger.exception("[bg-sync] agent=%s UNEXPECTED ERROR", agent_id)
+    finally:
+        event["duration_ms"] = int((time.monotonic() - started) * 1000)
+        _emit("bg_sync", **event)
 
 
 @router.get("/agents/{agent_id}/calls", response_model=CallsPublic)
 async def list_agent_calls(
     session: SessionDep,
-    current_user: CurrentUser,
     background_tasks: BackgroundTasks,
     agent_id: uuid.UUID,
     skip: int = Query(default=0, ge=0),
@@ -155,53 +228,108 @@ async def list_agent_calls(
     date_from: datetime | None = Query(default=None),
     date_to: datetime | None = Query(default=None),
 ) -> CallsPublic:
-    agent = crud.get_agent(session=session, agent_id=agent_id)
-    if agent is None or agent.created_by != current_user.id:
-        raise HTTPException(status_code=404, detail="Agent not found")
+    started = time.monotonic()
+    event: dict[str, Any] = {
+        "agent_id": str(agent_id),
+        "skip": skip,
+        "limit": limit,
+        "date_from": date_from,
+        "date_to": date_to,
+        "agent_found": False,
+        "stale": False,
+        "scheduled_bg_sync": False,
+        "rows_returned": 0,
+        "total_count": 0,
+        "status": "ok",
+    }
+    try:
+        agent = crud.get_agent(session=session, agent_id=agent_id)
+        if agent is None:
+            event["status"] = "agent_not_found"
+            raise HTTPException(status_code=404, detail="Agent not found")
+        event["agent_found"] = True
+        event["last_synced_at"] = agent.calls_last_synced_at
 
-    # Stale-while-revalidate: always serve DB rows; outside _SYNC_TTL, schedule
-    # a background sync whose results land in time for the next refetch. Stamp
-    # the timestamp now (before scheduling) so concurrent in-window requests
-    # see a fresh marker and skip queueing duplicate syncs.
-    if _is_sync_stale(agent.calls_last_synced_at):
-        crud.touch_calls_last_synced_at(session=session, agent_id=agent_id)
-        background_tasks.add_task(_sync_calls_in_background, agent_id)
+        stale = _is_sync_stale(agent.calls_last_synced_at)
+        event["stale"] = stale
 
-    items, count = crud.list_calls_for_agent(
-        session=session,
-        agent_id=agent_id,
-        skip=skip,
-        limit=limit,
-        date_from=date_from,
-        date_to=date_to,
-    )
-    return CallsPublic(data=items, count=count)
+        if stale:
+            crud.touch_calls_last_synced_at(session=session, agent_id=agent_id)
+            background_tasks.add_task(_sync_calls_in_background, agent_id)
+            event["scheduled_bg_sync"] = True
+
+        items, count = crud.list_calls_for_agent(
+            session=session,
+            agent_id=agent_id,
+            skip=skip,
+            limit=limit,
+            date_from=date_from,
+            date_to=date_to,
+        )
+        event["rows_returned"] = len(items)
+        event["total_count"] = count
+        return CallsPublic(data=items, count=count)
+    except HTTPException as exc:
+        if event["status"] == "ok":
+            event["status"] = "http_error"
+        event["http_status"] = exc.status_code
+        event["error"] = str(exc.detail)
+        raise
+    except Exception as exc:
+        event["status"] = "unhandled_exception"
+        event["error"] = repr(exc)
+        logger.exception("[list-calls] agent=%s UNHANDLED EXCEPTION", agent_id)
+        raise
+    finally:
+        event["duration_ms"] = int((time.monotonic() - started) * 1000)
+        _emit("list_calls", **event)
 
 
 @router.post("/agents/{agent_id}/calls/refresh", response_model=CallRefreshResult)
 async def refresh_agent_calls(
     session: SessionDep,
-    current_user: CurrentUser,
     agent_id: uuid.UUID,
 ) -> CallRefreshResult:
-    agent = crud.get_agent(session=session, agent_id=agent_id)
-    if agent is None or agent.created_by != current_user.id:
-        raise HTTPException(status_code=404, detail="Agent not found")
+    started = time.monotonic()
+    event: dict[str, Any] = {
+        "agent_id": str(agent_id),
+        "status": "ok",
+        "created": 0,
+        "total": 0,
+    }
+    try:
+        agent = crud.get_agent(session=session, agent_id=agent_id)
+        if agent is None:
+            event["status"] = "agent_not_found"
+            raise HTTPException(status_code=404, detail="Agent not found")
 
-    created = await _fetch_and_store_from_retell(
-        session=session, agent=agent, incremental=True
-    )
-    crud.touch_calls_last_synced_at(session=session, agent_id=agent_id)
-    total = crud.count_calls_for_agent(session=session, agent_id=agent_id)
-    return CallRefreshResult(created=created, total=total)
+        created = await _fetch_and_store_from_retell(
+            session=session, agent=agent, incremental=True
+        )
+        crud.touch_calls_last_synced_at(session=session, agent_id=agent_id)
+        total = crud.count_calls_for_agent(session=session, agent_id=agent_id)
+        event["created"] = created
+        event["total"] = total
+        return CallRefreshResult(created=created, total=total)
+    except HTTPException as exc:
+        if event["status"] == "ok":
+            event["status"] = "http_error"
+        event["http_status"] = exc.status_code
+        event["error"] = str(exc.detail)
+        raise
+    except Exception as exc:
+        event["status"] = "unhandled_exception"
+        event["error"] = repr(exc)
+        logger.exception("[refresh-calls] agent=%s UNHANDLED EXCEPTION", agent_id)
+        raise
+    finally:
+        event["duration_ms"] = int((time.monotonic() - started) * 1000)
+        _emit("refresh_calls", **event)
 
 
-def _owned_call_or_404(*, session, current_user, call_id: uuid.UUID):
+def _call_or_404(*, session, call_id: uuid.UUID):
     call = crud.get_call(session=session, call_id=call_id)
     if call is None:
-        raise HTTPException(status_code=404, detail="Call not found")
-    agent = crud.get_agent(session=session, agent_id=call.agent_id)
-    if agent is None or agent.created_by != current_user.id:
         raise HTTPException(status_code=404, detail="Call not found")
     return call
 
@@ -209,10 +337,9 @@ def _owned_call_or_404(*, session, current_user, call_id: uuid.UUID):
 @router.post("/calls/{call_id}/seen", response_model=Message)
 def mark_call_seen_endpoint(
     session: SessionDep,
-    current_user: CurrentUser,
     call_id: uuid.UUID,
 ) -> Message:
-    _owned_call_or_404(session=session, current_user=current_user, call_id=call_id)
+    _call_or_404(session=session, call_id=call_id)
     crud.mark_call_seen(session=session, call_id=call_id)
     return Message(message="ok")
 
@@ -220,12 +347,9 @@ def mark_call_seen_endpoint(
 @router.get("/calls/{call_id}", response_model=CallPublic)
 def get_call_detail(
     session: SessionDep,
-    current_user: CurrentUser,
     call_id: uuid.UUID,
 ) -> CallPublic:
-    call = _owned_call_or_404(
-        session=session, current_user=current_user, call_id=call_id
-    )
+    call = _call_or_404(session=session, call_id=call_id)
     is_new = call.seen_at is None
     tc_count = int(
         session.exec(

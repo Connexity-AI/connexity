@@ -66,7 +66,7 @@ def upsert_calls_from_retell(
     stmt = (
         pg_insert(_CALL_TABLE)
         .values(rows)
-        .on_conflict_do_nothing(index_elements=["retell_call_id"])
+        .on_conflict_do_nothing(index_elements=["retell_call_id", "agent_id"])
         .returning(_CALL_TABLE.c.id)
     )
     result = session.execute(stmt)
@@ -76,13 +76,18 @@ def upsert_calls_from_retell(
 
 
 def get_latest_call_started_at(
-    *, session: Session, agent_id: uuid.UUID
+    *,
+    session: Session,
+    agent_id: uuid.UUID,
+    retell_agent_id: str | None = None,
 ) -> datetime | None:
     stmt = (
         select(func.max(Call.started_at))
         .where(Call.agent_id == agent_id)
         .where(Call.deleted_at.is_(None))  # type: ignore[union-attr]
     )
+    if retell_agent_id is not None:
+        stmt = stmt.where(Call.retell_agent_id == retell_agent_id)
     return session.exec(stmt).one_or_none()
 
 

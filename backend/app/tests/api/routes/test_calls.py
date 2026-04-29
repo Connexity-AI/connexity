@@ -19,6 +19,7 @@ from app.models import (
 )
 from app.services.retell import RetellCall
 from app.tests.utils.eval import create_test_agent
+from app.tests.utils.utils import AUTH_USER_EMAIL
 
 
 @pytest.fixture(autouse=True)
@@ -31,15 +32,15 @@ def _encryption_key(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, No
     encryption._fernet.cache_clear()
 
 
-def _superuser(db: Session) -> User:
+def _seed_user(db: Session) -> User:
     from sqlmodel import select
 
-    user = db.exec(select(User).where(User.email == settings.FIRST_SUPERUSER)).one()
+    user = db.exec(select(User).where(User.email == AUTH_USER_EMAIL)).one()
     return user
 
 
 def _owned_agent_with_environment(db: Session, retell_agent_id: str = "ret_a1"):
-    user = _superuser(db)
+    user = _seed_user(db)
     agent = create_test_agent(db)
     agent.created_by = user.id
     db.add(agent)
@@ -69,11 +70,14 @@ def _owned_agent_with_environment(db: Session, retell_agent_id: str = "ret_a1"):
 
 
 def _fake_retell_call(
-    call_id: str, start_ms: int, end_ms: int | None = None
+    call_id: str,
+    start_ms: int,
+    end_ms: int | None = None,
+    retell_agent_id: str = "ret_a1",
 ) -> RetellCall:
     return RetellCall(
         call_id=call_id,
-        agent_id="ret_a1",
+        agent_id=retell_agent_id,
         start_timestamp=start_ms,
         end_timestamp=end_ms,
         call_status="ended",
@@ -88,28 +92,28 @@ def test_list_calls_requires_auth(client: TestClient) -> None:
 
 
 def test_list_calls_unknown_agent(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.get(
         f"{settings.API_V1_STR}/agents/{uuid.uuid4()}/calls",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
 
 
 def test_list_calls_empty_when_no_integration(
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
-    user = _superuser(db)
+    user = _seed_user(db)
     agent = create_test_agent(db)
     agent.created_by = user.id
     db.add(agent)
     db.commit()
     r = client.get(
         f"{settings.API_V1_STR}/agents/{agent.id}/calls",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 200
     body = r.json()
@@ -119,7 +123,7 @@ def test_list_calls_empty_when_no_integration(
 
 def test_list_calls_fetches_from_retell_and_marks_new(
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
     agent, _integration, _user = _owned_agent_with_environment(db)
@@ -135,12 +139,12 @@ def test_list_calls_fetches_from_retell_and_marks_new(
         # keeps the second GET from queueing another sync.
         first = client.get(
             f"{settings.API_V1_STR}/agents/{agent.id}/calls",
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
         assert first.status_code == 200
         r = client.get(
             f"{settings.API_V1_STR}/agents/{agent.id}/calls",
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
     assert r.status_code == 200
     body = r.json()
@@ -154,7 +158,7 @@ def test_list_calls_fetches_from_retell_and_marks_new(
 
 def test_seen_endpoint_clears_new_badge(
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
     agent, _integration, _user = _owned_agent_with_environment(
@@ -168,25 +172,25 @@ def test_seen_endpoint_clears_new_badge(
         # Prime: kicks off the background sync.
         client.get(
             f"{settings.API_V1_STR}/agents/{agent.id}/calls",
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
         # Read populated state on the next call (TTL gate prevents a second sync).
         r = client.get(
             f"{settings.API_V1_STR}/agents/{agent.id}/calls",
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
     assert r.status_code == 200
     call_id = r.json()["data"][0]["id"]
 
     seen_r = client.post(
         f"{settings.API_V1_STR}/calls/{call_id}/seen",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert seen_r.status_code == 200
 
     r2 = client.get(
         f"{settings.API_V1_STR}/agents/{agent.id}/calls",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r2.status_code == 200
     target = next(c for c in r2.json()["data"] if c["id"] == call_id)
@@ -195,14 +199,19 @@ def test_seen_endpoint_clears_new_badge(
 
 def test_refresh_uses_incremental_fetch(
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
     agent, _integration, _user = _owned_agent_with_environment(
         db, retell_agent_id="ret_a_refresh"
     )
     initial = [
-        _fake_retell_call("ret_call_refresh_1", 1_700_002_000_000, 1_700_002_050_000),
+        _fake_retell_call(
+            "ret_call_refresh_1",
+            1_700_002_000_000,
+            1_700_002_050_000,
+            retell_agent_id="ret_a_refresh",
+        ),
     ]
     with patch(
         "app.api.routes.calls.list_retell_calls",
@@ -210,17 +219,22 @@ def test_refresh_uses_incremental_fetch(
     ):
         client.get(
             f"{settings.API_V1_STR}/agents/{agent.id}/calls",
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
 
     second_batch = [
-        _fake_retell_call("ret_call_refresh_2", 1_700_003_000_000, 1_700_003_050_000),
+        _fake_retell_call(
+            "ret_call_refresh_2",
+            1_700_003_000_000,
+            1_700_003_050_000,
+            retell_agent_id="ret_a_refresh",
+        ),
     ]
     mocked = AsyncMock(return_value=second_batch)
     with patch("app.api.routes.calls.list_retell_calls", mocked):
         r = client.post(
             f"{settings.API_V1_STR}/agents/{agent.id}/calls/refresh",
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
     assert r.status_code == 200
     body = r.json()
@@ -235,16 +249,16 @@ def test_refresh_uses_incremental_fetch(
 
 def test_refresh_requires_integration_configured(
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
-    user = _superuser(db)
+    user = _seed_user(db)
     agent = create_test_agent(db)
     agent.created_by = user.id
     db.add(agent)
     db.commit()
     r = client.post(
         f"{settings.API_V1_STR}/agents/{agent.id}/calls/refresh",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 400

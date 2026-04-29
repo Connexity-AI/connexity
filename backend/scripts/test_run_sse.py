@@ -7,7 +7,7 @@ Prerequisites:
   3. Database seeded:    cd backend && bash scripts/prestart.sh
 
 The script will:
-  - Log in as the superuser to obtain an auth cookie
+  - Log in as the user to obtain an auth cookie
   - Create (or reuse) an Agent pointing at the mock agent
   - Create test cases from examples/test-cases/ and bundle them into an EvalSet
   - Create a Run with auto_execute=true

@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
@@ -5,18 +6,23 @@ from app import crud
 from app.core.config import settings
 from app.core.security import verify_password
 from app.models import User, UserCreate
-from app.tests.utils.utils import extract_cookies, random_email, random_lower_string
+from app.tests.utils.utils import (
+    AUTH_USER_EMAIL,
+    AUTH_USER_PASSWORD,
+    extract_cookies,
+    random_email,
+    random_lower_string,
+)
 
 
-def test_get_users_superuser_me(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+def test_get_users_auth_user_me(
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
-    r = client.get(f"{settings.API_V1_STR}/users/me", cookies=superuser_auth_cookies)
+    r = client.get(f"{settings.API_V1_STR}/users/me", cookies=auth_cookies)
     current_user = r.json()
     assert current_user
     assert current_user["is_active"] is True
-    assert current_user["is_superuser"]
-    assert current_user["email"] == settings.FIRST_SUPERUSER
+    assert current_user["email"] == AUTH_USER_EMAIL
 
 
 def test_get_users_normal_user_me(
@@ -26,7 +32,6 @@ def test_get_users_normal_user_me(
     current_user = r.json()
     assert current_user
     assert current_user["is_active"] is True
-    assert current_user["is_superuser"] is False
     assert current_user["email"] == settings.EMAIL_TEST_USER
 
 
@@ -54,54 +59,54 @@ def test_update_user_me(
 
 
 def test_update_password_me(
-    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     new_password = random_lower_string()
     data = {
-        "current_password": settings.FIRST_SUPERUSER_PASSWORD,
+        "current_password": AUTH_USER_PASSWORD,
         "new_password": new_password,
     }
     r = client.patch(
         f"{settings.API_V1_STR}/users/me/password",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
         json=data,
     )
     assert r.status_code == 200
     updated_user = r.json()
     assert updated_user["message"] == "Password updated successfully"
 
-    user_query = select(User).where(User.email == settings.FIRST_SUPERUSER)
+    user_query = select(User).where(User.email == AUTH_USER_EMAIL)
     user_db = db.exec(user_query).first()
     assert user_db
-    assert user_db.email == settings.FIRST_SUPERUSER
+    assert user_db.email == AUTH_USER_EMAIL
     assert user_db.hashed_password is not None
     assert verify_password(new_password, user_db.hashed_password)
 
     # Revert to the old password to keep consistency in test
     old_data = {
         "current_password": new_password,
-        "new_password": settings.FIRST_SUPERUSER_PASSWORD,
+        "new_password": AUTH_USER_PASSWORD,
     }
     r = client.patch(
         f"{settings.API_V1_STR}/users/me/password",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
         json=old_data,
     )
     db.refresh(user_db)
 
     assert r.status_code == 200
     assert user_db.hashed_password is not None
-    assert verify_password(settings.FIRST_SUPERUSER_PASSWORD, user_db.hashed_password)
+    assert verify_password(AUTH_USER_PASSWORD, user_db.hashed_password)
 
 
 def test_update_password_me_incorrect_password(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     new_password = random_lower_string()
     data = {"current_password": new_password, "new_password": new_password}
     r = client.patch(
         f"{settings.API_V1_STR}/users/me/password",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
         json=data,
     )
     assert r.status_code == 400
@@ -128,15 +133,15 @@ def test_update_user_me_email_exists(
 
 
 def test_update_password_me_same_password_error(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     data = {
-        "current_password": settings.FIRST_SUPERUSER_PASSWORD,
-        "new_password": settings.FIRST_SUPERUSER_PASSWORD,
+        "current_password": AUTH_USER_PASSWORD,
+        "new_password": AUTH_USER_PASSWORD,
     }
     r = client.patch(
         f"{settings.API_V1_STR}/users/me/password",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
         json=data,
     )
     assert r.status_code == 400
@@ -169,11 +174,13 @@ def test_register_user(client: TestClient, db: Session) -> None:
     assert verify_password(password, user_db.hashed_password)
 
 
+@pytest.mark.usefixtures("auth_cookies")
 def test_register_user_already_exists_error(client: TestClient) -> None:
+    # auth_cookies fixture has already created the auth user with AUTH_USER_EMAIL
     password = random_lower_string()
     full_name = random_lower_string()
     data = {
-        "email": settings.FIRST_SUPERUSER,
+        "email": AUTH_USER_EMAIL,
         "password": password,
         "full_name": full_name,
     }
@@ -212,15 +219,3 @@ def test_delete_user_me(client: TestClient, db: Session) -> None:
     user_query = select(User).where(User.id == user_id)
     user_db = db.execute(user_query).first()
     assert user_db is None
-
-
-def test_delete_user_me_as_superuser(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
-) -> None:
-    r = client.delete(
-        f"{settings.API_V1_STR}/users/me",
-        cookies=superuser_auth_cookies,
-    )
-    assert r.status_code == 403
-    response = r.json()
-    assert response["detail"] == "Super users are not allowed to delete themselves"

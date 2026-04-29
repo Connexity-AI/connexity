@@ -2,20 +2,25 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import Column, text
+from sqlalchemy import Column, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
 
 class Call(SQLModel, table=True):
     __tablename__ = "call"
+    __table_args__ = (
+        UniqueConstraint(
+            "retell_call_id", "agent_id", name="uq_call_retell_call_agent"
+        ),
+    )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     agent_id: uuid.UUID = Field(foreign_key="agent.id", index=True)
     integration_id: uuid.UUID | None = Field(
         default=None, foreign_key="integration.id", index=True, nullable=True
     )
-    retell_call_id: str = Field(max_length=255, unique=True, index=True)
+    retell_call_id: str = Field(max_length=255, index=True)
     retell_agent_id: str = Field(max_length=255, index=True)
     started_at: datetime = Field(index=True)
     duration_seconds: int | None = Field(default=None)

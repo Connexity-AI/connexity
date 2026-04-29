@@ -6,11 +6,11 @@ from app.core.config import settings
 
 
 def test_404_consistent_format(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.get(
         f"{settings.API_V1_STR}/test-cases/{uuid.uuid4()}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 404
     result = r.json()
@@ -20,12 +20,12 @@ def test_404_consistent_format(
 
 
 def test_422_consistent_format(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.post(
         f"{settings.API_V1_STR}/test-cases/",
         json={},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 422
     result = r.json()

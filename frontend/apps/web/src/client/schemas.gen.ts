@@ -7002,11 +7002,6 @@ export const UserPublicSchema = {
       title: 'Is Active',
       default: true,
     },
-    is_superuser: {
-      type: 'boolean',
-      title: 'Is Superuser',
-      default: false,
-    },
     full_name: {
       anyOf: [
         {

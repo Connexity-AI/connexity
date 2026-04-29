@@ -12,7 +12,7 @@ connexity-evals --help
 
 # Database
 docker compose up -d database adminer
-cd backend && bash scripts/prestart.sh  # runs Alembic migrations + seed against POSTGRES_DB (dev)
+cd backend && bash scripts/prestart.sh  # runs Alembic migrations against POSTGRES_DB (dev)
 # Tests run against a separate `app_test` database in the same Postgres container.
 # `backend/conftest.py` creates it and applies migrations on first pytest run; safe to wipe.
 

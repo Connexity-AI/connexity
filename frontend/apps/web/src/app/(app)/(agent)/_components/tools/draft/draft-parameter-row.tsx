@@ -39,7 +39,7 @@ export function DraftParameterRow({
   return (
     <div
       className={cn(
-        'grid grid-cols-[1.2fr_2fr_100px_36px] items-start px-4 py-2.5 gap-3',
+        'grid grid-cols-[1.2fr_2fr_100px_72px_36px] items-start px-4 py-2.5 gap-3',
         !isFirst && 'border-t border-border/40'
       )}
     >
@@ -80,6 +80,20 @@ export function DraftParameterRow({
           ))}
         </SelectContent>
       </Select>
+
+      <Button
+        type="button"
+        variant="ghost"
+        onClick={() => onChange({ required: !param.required })}
+        className={cn(
+          'h-8 px-2 w-full rounded text-xs border transition-colors select-none',
+          param.required
+            ? 'bg-foreground text-background border-foreground hover:bg-foreground/90 hover:text-background'
+            : 'border-border text-muted-foreground hover:text-foreground hover:bg-accent/50'
+        )}
+      >
+        {param.required ? 'Yes' : 'No'}
+      </Button>
 
       <Button
         variant="ghost"

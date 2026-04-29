@@ -30,18 +30,18 @@ def test_integrations_require_auth(client: TestClient) -> None:
 
 
 def test_create_rejects_invalid_provider(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     r = client.post(
         f"{settings.API_V1_STR}/integrations/",
         json={"provider": "unknown", "name": "x", "api_key": "k"},
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert r.status_code == 422
 
 
 def test_create_returns_400_when_connection_fails(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     with patch.dict(
         "app.api.routes.integrations._CONNECTION_TESTERS",
@@ -51,13 +51,13 @@ def test_create_returns_400_when_connection_fails(
         r = client.post(
             f"{settings.API_V1_STR}/integrations/",
             json=_create_body("bad-key"),
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
     assert r.status_code == 400
 
 
 def test_create_list_get_test_delete_flow(
-    client: TestClient, superuser_auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     api_key = "sk_test_super_secret_value_xyz"
     with patch.dict(
@@ -68,7 +68,7 @@ def test_create_list_get_test_delete_flow(
         create_r = client.post(
             f"{settings.API_V1_STR}/integrations/",
             json=_create_body("retell-prod", api_key=api_key),
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
     assert create_r.status_code == 200
     body = create_r.json()
@@ -83,7 +83,7 @@ def test_create_list_get_test_delete_flow(
 
     list_r = client.get(
         f"{settings.API_V1_STR}/integrations/",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert list_r.status_code == 200
     listed = list_r.json()
@@ -99,26 +99,26 @@ def test_create_list_get_test_delete_flow(
     ):
         test_r = client.post(
             f"{settings.API_V1_STR}/integrations/{integration_id}/test",
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
     assert test_r.status_code == 200
 
     del_r = client.delete(
         f"{settings.API_V1_STR}/integrations/{integration_id}",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert del_r.status_code == 200
 
     list_after = client.get(
         f"{settings.API_V1_STR}/integrations/",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert all(i["id"] != integration_id for i in list_after.json()["data"])
 
 
 def test_integration_visible_to_all_authenticated_users(
     client: TestClient,
-    superuser_auth_cookies: dict[str, str],
+    auth_cookies: dict[str, str],
     normal_user_auth_cookies: dict[str, str],
 ) -> None:
     with patch.dict(
@@ -129,7 +129,7 @@ def test_integration_visible_to_all_authenticated_users(
         create_r = client.post(
             f"{settings.API_V1_STR}/integrations/",
             json=_create_body("shared"),
-            cookies=superuser_auth_cookies,
+            cookies=auth_cookies,
         )
     assert create_r.status_code == 200
     integration_id = create_r.json()["id"]
@@ -160,6 +160,6 @@ def test_integration_visible_to_all_authenticated_users(
 
     list_after = client.get(
         f"{settings.API_V1_STR}/integrations/",
-        cookies=superuser_auth_cookies,
+        cookies=auth_cookies,
     )
     assert all(i["id"] != integration_id for i in list_after.json()["data"])
