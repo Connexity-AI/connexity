@@ -29,7 +29,7 @@ dependencies = [
 ]
 
 [project.scripts]
-connexity-evals = "cli.main:app"
+connexity-cli = "cli.main:app"
 
 [dependency-groups]
 dev = [
@@ -40,6 +40,7 @@ dev = [
     "pre-commit<4.0.0,>=3.6.2",
     "coverage<8.0.0,>=7.4.3",
     "pytest-asyncio>=0.23.8",
+    "respx>=0.23.1",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -90,3 +91,7 @@ ignore = [
 [tool.ruff.lint.pyupgrade]
 # Avoid rewrites that assume annotations are never needed at runtime (e.g. Pydantic).
 keep-runtime-typing = true
+
+[tool.ruff.lint.per-file-ignores]
+# Pytest fixtures appear as "unused" arguments to ruff; that's intentional.
+"**/tests/**" = ["ARG001"]

@@ -7,8 +7,8 @@ import click
 import httpx
 
 from cli import output
-from cli.api_client import ApiClient
-from cli.context import get_output_format, open_client
+from cli.api import ApiClient
+from cli.context import ensure_auth, get_output_format, open_client
 
 
 def _resolve_baseline_for_candidate(
@@ -20,7 +20,7 @@ def _resolve_baseline_for_candidate(
         raise click.ClickException(
             "Candidate run has no agent_id — cannot resolve baseline."
         )
-    data = client.list_runs(
+    data = client.runs.list(
         params={
             "agent_id": agent_id,
             "status": "completed",
@@ -191,6 +191,7 @@ def compare_command(
         )
         sys.exit(2)
 
+    ensure_auth(ctx)
     fmt = get_output_format(ctx, output_override)
 
     try:
@@ -198,15 +199,19 @@ def compare_command(
             # Resolve baseline
             if against_baseline:
                 output.progress("Resolving baseline run for candidate's agent...")
-                candidate_run = client.get_run(candidate_id)
+                candidate_run = client.runs.get(candidate_id)
                 baseline_run = _resolve_baseline_for_candidate(client, candidate_run)
                 resolved_baseline_id = str(baseline_run["id"])
                 output.progress(f"Using baseline run: {resolved_baseline_id}")
             else:
-                resolved_baseline_id = baseline_id  # type: ignore[assignment]
+                if not baseline_id:
+                    raise click.ClickException(
+                        "Either --baseline or --against-baseline must be provided."
+                    )
+                resolved_baseline_id = baseline_id
 
             # Build API params
-            params: dict[str, str | float] = {
+            params: dict[str, Any] = {
                 "baseline_run_id": resolved_baseline_id,
                 "candidate_run_id": candidate_id,
             }
@@ -217,7 +222,7 @@ def compare_command(
             if max_latency_increase_pct is not None:
                 params["max_latency_increase_pct"] = max_latency_increase_pct
 
-            comparison = client.compare_runs(params)
+            comparison = client.runs.compare(params)
     except click.ClickException as exc:
         click.echo(f"Error: {exc.format_message()}", err=True)
         sys.exit(2)

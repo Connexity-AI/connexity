@@ -8,7 +8,9 @@ from typing import Any
 import click
 
 from cli import output
-from cli.context import get_output_format, open_client, root_obj
+from cli.context import ensure_auth, get_output_format, open_client
+from cli.payload import load_dict_payload, load_list_payload
+from cli.resolvers import resolve_agent
 
 
 @click.group("test-cases")
@@ -46,10 +48,7 @@ def test_cases_list(
     output_override: str | None,
 ) -> None:
     """List test cases with optional filters."""
-    if not root_obj(ctx).get("token"):
-        raise click.ClickException(
-            "Authentication required: set CONNEXITY_EVALS_API_TOKEN or pass --token."
-        )
+    ensure_auth(ctx)
     fmt = get_output_format(ctx, output_override)
 
     with open_client(ctx) as client:
@@ -64,7 +63,7 @@ def test_cases_list(
                 params["status"] = status
             if search:
                 params["search"] = search
-            data = client.list_test_cases(params=params)
+            data = client.test_cases.list(params=params)
         else:
             merged: dict[str, dict[str, Any]] = {}
             total = 0
@@ -80,7 +79,7 @@ def test_cases_list(
                     params["status"] = status
                 if search:
                     params["search"] = search
-                chunk = client.list_test_cases(params=params)
+                chunk = client.test_cases.list(params=params)
                 total += int(chunk.get("count") or 0)
                 for row in chunk.get("data") or []:
                     if isinstance(row, dict) and "id" in row:
@@ -126,10 +125,7 @@ def test_cases_import(
     output_override: str | None,
 ) -> None:
     """Bulk-import test cases from JSON."""
-    if not root_obj(ctx).get("token"):
-        raise click.ClickException(
-            "Authentication required: set CONNEXITY_EVALS_API_TOKEN or pass --token."
-        )
+    ensure_auth(ctx)
     fmt = get_output_format(ctx, output_override)
     raw = Path(file).read_text(encoding="utf-8")
     items = _load_import_payload(raw)
@@ -138,7 +134,7 @@ def test_cases_import(
 
     on_conflict = "overwrite" if overwrite else "skip"
     with open_client(ctx) as client:
-        result = client.import_test_cases(items, on_conflict=on_conflict)
+        result = client.test_cases.import_(items, on_conflict=on_conflict)
 
     output.emit(result, output_format=fmt)
     if result.get("errors"):
@@ -172,10 +168,7 @@ def test_cases_export(
     output_override: str | None,
 ) -> None:
     """Export test cases as JSON."""
-    if not root_obj(ctx).get("token"):
-        raise click.ClickException(
-            "Authentication required: set CONNEXITY_EVALS_API_TOKEN or pass --token."
-        )
+    ensure_auth(ctx)
     params: dict[str, Any] = {}
     if tag:
         params["tag"] = tag
@@ -185,7 +178,7 @@ def test_cases_export(
         params["status"] = status
 
     with open_client(ctx) as client:
-        data = client.export_test_cases(params=params)
+        data = client.test_cases.export(params=params)
 
     if out_path:
         Path(out_path).write_text(
@@ -251,10 +244,7 @@ def test_cases_generate(
     output_override: str | None,
 ) -> None:
     """Generate test cases via the API (POST /test-cases/generate)."""
-    if not root_obj(ctx).get("token"):
-        raise click.ClickException(
-            "Authentication required: set CONNEXITY_EVALS_API_TOKEN or pass --token."
-        )
+    ensure_auth(ctx)
     fmt = get_output_format(ctx, output_override)
 
     agent_prompt = Path(prompt_file).read_text(encoding="utf-8")
@@ -275,7 +265,7 @@ def test_cases_generate(
         body["model"] = model
 
     with open_client(ctx) as client:
-        result = client.generate_test_cases(body)
+        result = client.test_cases.generate(body)
 
     if write_file:
         test_cases = result.get("test_cases") or []
@@ -305,3 +295,200 @@ def test_cases_generate(
             if isinstance(s, dict)
         ]
         click.echo(output.format_dict_rows(rows))
+
+
+# ---------------------------------------------------------------------------
+# CRUD (single test cases)
+# ---------------------------------------------------------------------------
+
+
+@test_cases_group.command("show")
+@click.argument("test_case_id")
+@click.option(
+    "--output", "output_override", type=click.Choice(["json", "table"]), default=None
+)
+@click.pass_context
+def test_cases_show(
+    ctx: click.Context, test_case_id: str, output_override: str | None
+) -> None:
+    """Show one test case by UUID."""
+    ensure_auth(ctx)
+    fmt = get_output_format(ctx, output_override)
+    with open_client(ctx) as client:
+        tc = client.test_cases.get(test_case_id)
+    output.emit(tc, output_format=fmt)
+
+
+@test_cases_group.command("create")
+@click.option(
+    "--from-file",
+    "from_file",
+    required=True,
+    help="Path to TestCaseCreate JSON ('-' for stdin)",
+)
+@click.option(
+    "--output", "output_override", type=click.Choice(["json", "table"]), default=None
+)
+@click.pass_context
+def test_cases_create(
+    ctx: click.Context, from_file: str, output_override: str | None
+) -> None:
+    """Create a single test case from JSON."""
+    ensure_auth(ctx)
+    fmt = get_output_format(ctx, output_override)
+    body = load_dict_payload(from_file)
+    with open_client(ctx) as client:
+        tc = client.test_cases.create(body)
+    output.emit(tc, output_format=fmt)
+
+
+@test_cases_group.command("update")
+@click.argument("test_case_id")
+@click.option(
+    "--from-file",
+    "from_file",
+    required=True,
+    help="Path to TestCaseUpdate JSON ('-' for stdin)",
+)
+@click.option(
+    "--output", "output_override", type=click.Choice(["json", "table"]), default=None
+)
+@click.pass_context
+def test_cases_update(
+    ctx: click.Context,
+    test_case_id: str,
+    from_file: str,
+    output_override: str | None,
+) -> None:
+    """Patch a test case by UUID."""
+    ensure_auth(ctx)
+    fmt = get_output_format(ctx, output_override)
+    body = load_dict_payload(from_file)
+    with open_client(ctx) as client:
+        tc = client.test_cases.update(test_case_id, body)
+    output.emit(tc, output_format=fmt)
+
+
+@test_cases_group.command("delete")
+@click.argument("test_case_id")
+@click.option("--yes", "-y", is_flag=True, default=False)
+@click.pass_context
+def test_cases_delete(ctx: click.Context, test_case_id: str, yes: bool) -> None:
+    """Delete a test case by UUID."""
+    ensure_auth(ctx)
+    if not yes:
+        click.confirm(f"Delete test case {test_case_id}?", abort=True)
+    with open_client(ctx) as client:
+        result = client.test_cases.delete(test_case_id)
+    output.progress(str(result.get("message", "Deleted.")))
+
+
+# ---------------------------------------------------------------------------
+# AI agent (POST /test-cases/ai)
+# ---------------------------------------------------------------------------
+
+
+@test_cases_group.command("ai")
+@click.option(
+    "--mode",
+    type=click.Choice(["create", "from_transcript", "edit"]),
+    required=True,
+    help="AI agent mode",
+)
+@click.option(
+    "--message",
+    "user_message",
+    required=True,
+    help="Instruction for the AI agent",
+)
+@click.option("--agent", "agent_ref", required=True, help="Agent UUID, name, or URL")
+@click.option(
+    "--agent-version", type=int, default=None, help="Pin to a specific agent version"
+)
+@click.option(
+    "--transcript-file",
+    "transcript_file",
+    default=None,
+    help="JSON file with ConversationTurn list (required for mode=from_transcript)",
+)
+@click.option(
+    "--test-case",
+    "test_case_id",
+    default=None,
+    help="Test case UUID to edit (required for mode=edit)",
+)
+@click.option(
+    "--source-call",
+    "source_call_id",
+    default=None,
+    help="Call UUID this test case derives from (links the persisted row)",
+)
+@click.option(
+    "--persist/--no-persist",
+    default=None,
+    help="Override the default persist behavior (true for create/from_transcript, false for edit)",
+)
+@click.option("--model", default=None)
+@click.option("--provider", default=None)
+@click.option("--temperature", type=click.FloatRange(0.0, 2.0), default=None)
+@click.option(
+    "--output", "output_override", type=click.Choice(["json", "table"]), default=None
+)
+@click.pass_context
+def test_cases_ai(
+    ctx: click.Context,
+    mode: str,
+    user_message: str,
+    agent_ref: str,
+    agent_version: int | None,
+    transcript_file: str | None,
+    test_case_id: str | None,
+    source_call_id: str | None,
+    persist: bool | None,
+    model: str | None,
+    provider: str | None,
+    temperature: float | None,
+    output_override: str | None,
+) -> None:
+    """Run the test-case AI agent (single tool-calling turn)."""
+    ensure_auth(ctx)
+    fmt = get_output_format(ctx, output_override)
+
+    transcript: list[Any] | None = None
+    if mode == "from_transcript":
+        if not transcript_file:
+            raise click.ClickException(
+                "--transcript-file is required when --mode=from_transcript"
+            )
+        transcript = load_list_payload(transcript_file)
+
+    if mode == "edit" and not test_case_id:
+        raise click.ClickException("--test-case is required when --mode=edit")
+
+    with open_client(ctx) as client:
+        agent = resolve_agent(client, agent_ref)
+        body: dict[str, Any] = {
+            "mode": mode,
+            "user_message": user_message,
+            "agent_id": str(agent["id"]),
+        }
+        if agent_version is not None:
+            body["agent_version"] = agent_version
+        if transcript is not None:
+            body["transcript"] = transcript
+        if test_case_id:
+            body["test_case_id"] = test_case_id
+        if source_call_id:
+            body["source_call_id"] = source_call_id
+        if persist is not None:
+            body["persist"] = persist
+        if model:
+            body["model"] = model
+        if provider:
+            body["provider"] = provider
+        if temperature is not None:
+            body["temperature"] = temperature
+
+        result = client.test_cases.ai(body)
+
+    output.emit(result, output_format=fmt)

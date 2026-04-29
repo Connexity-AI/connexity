@@ -1,0 +1,16 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "python",
+      "package-name": "connexity-cli",
+      "include-component-in-tag": false,
+      "extra-files": ["pyproject.toml"],
+      "changelog-sections": [
+        { "type": "feat", "section": "Features" },
+        { "type": "fix", "section": "Bug Fixes" },
+        { "type": "perf", "section": "Performance" },
+        { "type": "docs", "section": "Documentation" }
+      ]
+    }
+  }
+}

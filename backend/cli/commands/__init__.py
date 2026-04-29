@@ -1,1 +1,1 @@
-"""CLI subcommands for connexity-evals."""
+"""CLI subcommands for connexity-cli."""

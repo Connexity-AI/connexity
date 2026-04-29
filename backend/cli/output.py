@@ -90,7 +90,8 @@ def format_run_detail(run: dict[str, Any]) -> str:
         f"  status:            {run.get('status')}",
         f"  agent_id:          {run.get('agent_id')}",
         f"  agent_mode:        {run.get('agent_mode', 'endpoint')}",
-        f"  eval_set_id:   {run.get('eval_set_id')}",
+        f"  eval_config_id:    {run.get('eval_config_id')}",
+        f"  eval_config_ver:   {run.get('eval_config_version')}",
         f"  started_at:        {run.get('started_at')}",
         f"  completed_at:      {run.get('completed_at')}",
     ]

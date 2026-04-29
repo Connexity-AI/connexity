@@ -1,10 +1,19 @@
-"""Shared Click context helpers."""
+"""Shared Click context helpers.
+
+The root ``app`` group stores ``api_url``, ``token``, and ``output_format``
+on ``ctx.obj``. Subcommands look these values up via :func:`root_obj` /
+:func:`get_output_format` and obtain a ready-to-use HTTP client via
+:func:`open_client`. ``ensure_auth`` raises a uniform error if no token is
+configured.
+"""
+
+from __future__ import annotations
 
 from typing import Any
 
 import click
 
-from cli.api_client import ApiClient
+from cli.api import ApiClient
 
 
 def root_obj(ctx: click.Context) -> dict[str, Any]:
@@ -24,6 +33,15 @@ def get_output_format(ctx: click.Context, override: str | None) -> str:
     if fmt not in ("json", "table"):
         raise click.BadParameter("output must be json or table")
     return fmt
+
+
+def ensure_auth(ctx: click.Context) -> None:
+    """Raise unless a token is present in the resolved context."""
+    if not root_obj(ctx).get("token"):
+        raise click.ClickException(
+            "Authentication required: run `connexity-cli login` or set "
+            "CONNEXITY_CLI_API_TOKEN."
+        )
 
 
 def open_client(ctx: click.Context) -> ApiClient:
