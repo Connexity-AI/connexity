@@ -96,16 +96,14 @@ def test_mock_response_null_params():
 # ── ToolPlatformConfig ────────────────────────────────────────────
 
 
-def test_tool_platform_config_mock_mode():
-    cfg = ToolPlatformConfig(mode="mock")
+def test_tool_platform_config_impl_only():
+    cfg = ToolPlatformConfig(implementation=None)
     restored = _round_trip(ToolPlatformConfig, cfg)
-    assert restored.mode == "mock"
     assert restored.implementation is None
 
 
 def test_tool_platform_config_live_python():
     cfg = ToolPlatformConfig(
-        mode="live",
         implementation=PythonImplementation(
             code="async def execute(a, c): return {}",
             config={"base_url": "https://example.com"},
@@ -113,7 +111,6 @@ def test_tool_platform_config_live_python():
         ),
     )
     restored = _round_trip(ToolPlatformConfig, cfg)
-    assert restored.mode == "live"
     assert restored.implementation is not None
     assert restored.implementation.type == "python"
     assert isinstance(restored.implementation, PythonImplementation)
@@ -123,7 +120,6 @@ def test_tool_platform_config_live_python():
 
 def test_tool_platform_config_live_webhook():
     cfg = ToolPlatformConfig(
-        mode="live",
         implementation=HttpWebhookImplementation(
             url="https://hook.example.com/endpoint",
             method="POST",
@@ -132,18 +128,16 @@ def test_tool_platform_config_live_webhook():
         ),
     )
     restored = _round_trip(ToolPlatformConfig, cfg)
-    assert restored.mode == "live"
     assert isinstance(restored.implementation, HttpWebhookImplementation)
     assert restored.implementation.url == "https://hook.example.com/endpoint"
     assert restored.implementation.headers["Authorization"] == "Bearer ${KEY}"
 
 
-def test_tool_platform_config_live_null_implementation():
-    """mode=live with implementation=None is valid at schema level."""
-    cfg = ToolPlatformConfig(mode="live", implementation=None)
-    restored = _round_trip(ToolPlatformConfig, cfg)
-    assert restored.mode == "live"
-    assert restored.implementation is None
+def test_tool_platform_config_unknown_extra_keys_do_not_break_validation():
+    """``mode`` on legacy payloads is ignored (not a field on :class:`ToolPlatformConfig`)."""
+    raw = {"mode": "mock", "implementation": None}
+    cfg = ToolPlatformConfig.model_validate(raw)
+    assert cfg.implementation is None
 
 
 # ── PythonImplementation ──────────────────────────────────────────
@@ -194,7 +188,6 @@ def test_tool_platform_config_json_round_trip():
     import json
 
     cfg = ToolPlatformConfig(
-        mode="live",
         implementation=PythonImplementation(
             code="async def execute(a, c): return {}",
             config={"url": "https://example.com"},
@@ -203,7 +196,6 @@ def test_tool_platform_config_json_round_trip():
     json_str = json.dumps(cfg.model_dump(), default=str)
     raw = json.loads(json_str)
     restored = ToolPlatformConfig.model_validate(raw)
-    assert restored.mode == "live"
     assert isinstance(restored.implementation, PythonImplementation)
 
 

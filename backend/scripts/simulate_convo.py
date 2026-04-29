@@ -191,29 +191,20 @@ _TOOL_PYTHON_IMPLEMENTATIONS: dict[str, str] = {
 }
 
 
-def _inject_platform_config(
-    tools: list[dict[str, Any]],
-    tool_mode: str,
-) -> None:
-    """Mutate tool dicts to add ``platform_config`` for mock or live dispatch."""
+def _inject_live_platform_python(tools: list[dict[str, Any]]) -> None:
+    """Ensure each tool has ``platform_config.implementation`` for live scripted runs."""
     for tool in tools:
         fn = tool.get("function", {})
         name = fn.get("name", "") if isinstance(fn, dict) else ""
-        if tool_mode == "mock":
-            tool["platform_config"] = {"mode": "mock"}
-        elif tool_mode == "live":
-            code = _TOOL_PYTHON_IMPLEMENTATIONS.get(name)
-            if code:
-                tool["platform_config"] = {
-                    "mode": "live",
-                    "implementation": {
-                        "type": "python",
-                        "code": code,
-                        "timeout_s": 30.0,
-                    },
+        code = _TOOL_PYTHON_IMPLEMENTATIONS.get(name)
+        if code:
+            tool["platform_config"] = {
+                "implementation": {
+                    "type": "python",
+                    "code": code,
+                    "timeout_s": 30.0,
                 }
-            else:
-                tool["platform_config"] = {"mode": "mock"}
+            }
 
 
 def _repo_root() -> Path:
@@ -297,8 +288,8 @@ async def _run(args: argparse.Namespace) -> int:
 
     if args.platform_agent:
         agent_system_prompt, agent_tools = _load_mock_agent_prompt_tools()
-        if args.tool_mode in ("mock", "live"):
-            _inject_platform_config(agent_tools, args.tool_mode)
+        if args.tool_mode == "live":
+            _inject_live_platform_python(agent_tools)
         agent_model = args.agent_model or os.getenv("MOCK_AGENT_MODEL", "gpt-4o-mini")
         agent_provider = args.agent_provider
         if args.agent_temperature is not None or args.agent_max_tokens is not None:
@@ -307,8 +298,11 @@ async def _run(args: argparse.Namespace) -> int:
                 max_tokens=args.agent_max_tokens,
             )
 
+    resolved_tool_mode = "live" if args.tool_mode == "live" else "mock"
+
     run_cfg = RunConfig(
         timeout_per_test_case_ms=args.timeout_ms,
+        tool_mode=resolved_tool_mode,
         judge=JudgeConfig(
             model=args.judge_model,
             provider=args.judge_provider,
@@ -324,6 +318,8 @@ async def _run(args: argparse.Namespace) -> int:
         "agent_system_prompt": agent_system_prompt,
         "agent_tools": agent_tools,
     }
+    if args.tool_mode == "synthetic":
+        run_kw["platform_tool_executor_mode"] = "synthetic"
 
     if args.judge:
         run_out, verdict = await run_test_case_with_evaluation(
@@ -422,10 +418,10 @@ def main() -> None:
         choices=["synthetic", "mock", "live"],
         default="synthetic",
         help=(
-            "How platform-agent tool calls are resolved (only with --platform-agent). "
-            "synthetic: placeholder results (default). "
-            "mock: canned responses from test case mock_responses. "
-            "live: execute Python implementations defined in this script."
+            "Runs as RunConfig.tool_mode for the platform simulator (only with "
+            "--platform-agent). synthetic: omit tool routing (SyntheticToolExecutor-like). "
+            "mock: use test-case mock_responses via MockToolExecutor. "
+            "live: attach Python stubs from this script and run implementations."
         ),
     )
     parser.add_argument(

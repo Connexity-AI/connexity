@@ -8,6 +8,7 @@ from app.crud import agent_version as agent_version_crud
 from app.models import Agent, EvalConfig, Run, RunCreate, RunStatus, RunUpdate
 from app.models.enums import AgentMode
 from app.models.schemas import RunConfig
+from app.services.tool_dispatch import validate_live_tool_snapshot
 
 
 def enrich_run_create_from_agent(
@@ -74,6 +75,9 @@ def enrich_run_create_from_agent(
         session=session, agent_id=agent.id, version=agent.version
     )
     data["agent_version_id"] = ver_row.id if ver_row else None
+
+    if agent.mode == AgentMode.PLATFORM and cfg.tool_mode == "live":
+        validate_live_tool_snapshot(data.get("agent_tools"))
 
     return RunCreate.model_validate(data)
 

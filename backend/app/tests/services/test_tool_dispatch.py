@@ -1,4 +1,4 @@
-"""Tests for :mod:`app.services.tool_dispatch` — mock, live, and composite routing."""
+"""Tests for :mod:`app.services.tool_dispatch` — mock vs live run-scoped routing."""
 
 import json
 from unittest.mock import AsyncMock, patch
@@ -13,10 +13,10 @@ from app.models.schemas import (
     ToolPlatformConfig,
 )
 from app.services.tool_dispatch import (
-    CompositeToolExecutor,
     LiveToolExecutor,
     MockToolExecutor,
     build_tool_executor,
+    validate_live_tool_snapshot,
 )
 from app.services.tool_executor import SyntheticToolExecutor
 
@@ -140,7 +140,6 @@ async def test_mock_unknown_tool() -> None:
 async def test_live_routes_python() -> None:
     configs = {
         "compute": ToolPlatformConfig(
-            mode="live",
             implementation=PythonImplementation(
                 code="async def execute(args, ctx): return {'sum': args['a'] + args['b']}",
             ),
@@ -167,7 +166,6 @@ async def test_live_routes_python() -> None:
 async def test_live_routes_webhook() -> None:
     configs = {
         "notify": ToolPlatformConfig(
-            mode="live",
             implementation=HttpWebhookImplementation(
                 url="https://hook.example.com",
                 method="POST",
@@ -197,58 +195,20 @@ async def test_live_unknown_tool_returns_error() -> None:
     assert "No live implementation" in result["error"]
 
 
-# ── CompositeToolExecutor ─────────────────────────────────────────
-
-
-@pytest.mark.asyncio
-async def test_composite_routes_mock_and_live() -> None:
-    mock_exec = MockToolExecutor(
-        [
-            ExpectedToolCall(
-                tool="check_balance",
-                mock_responses=[MockResponse(response={"balance": 100})],
-            ),
-        ]
-    )
-    live_exec = AsyncMock(spec=LiveToolExecutor)
-    live_exec.execute = AsyncMock(return_value=json.dumps({"notified": True}))
-
-    composite = CompositeToolExecutor(
-        tool_modes={"check_balance": "mock", "notify": "live"},
-        mock=mock_exec,
-        live=live_exec,
-    )
-
-    r_mock = json.loads(await composite.execute("check_balance", "c1", "{}"))
-    assert r_mock == {"balance": 100}
-
-    r_live = json.loads(await composite.execute("notify", "c2", "{}"))
-    assert r_live == {"notified": True}
-    live_exec.execute.assert_awaited_once_with("notify", "c2", "{}")
-
-
-@pytest.mark.asyncio
-async def test_composite_unknown_tool_falls_back_to_synthetic() -> None:
-    composite = CompositeToolExecutor(
-        tool_modes={},
-        mock=MockToolExecutor([]),
-        live=LiveToolExecutor({}, {}),
-    )
-    result = json.loads(await composite.execute("unknown", "c1", "{}"))
-    assert result.get("status") == "simulated"
-
-
 # ── build_tool_executor ───────────────────────────────────────────
 
 
 def test_build_no_tools_returns_synthetic() -> None:
     executor = build_tool_executor(
-        tools=None, expected_tool_calls=None, test_case_context={}
+        tools=None,
+        expected_tool_calls=None,
+        test_case_context={},
+        tool_mode="mock",
     )
     assert isinstance(executor, SyntheticToolExecutor)
 
 
-def test_build_no_platform_config_returns_synthetic() -> None:
+def test_build_mock_mode_returns_mock_even_without_platform_config() -> None:
     tools = [
         {
             "type": "function",
@@ -256,23 +216,42 @@ def test_build_no_platform_config_returns_synthetic() -> None:
         }
     ]
     executor = build_tool_executor(
-        tools=tools, expected_tool_calls=None, test_case_context={}
+        tools=tools,
+        expected_tool_calls=None,
+        test_case_context={},
+        tool_mode="mock",
     )
-    assert isinstance(executor, SyntheticToolExecutor)
+    assert isinstance(executor, MockToolExecutor)
 
 
-def test_build_mixed_modes_returns_composite() -> None:
+def test_build_live_mode_returns_live_when_implementations_present() -> None:
     tools = [
-        {
-            "type": "function",
-            "function": {"name": "lookup"},
-            "platform_config": {"mode": "mock"},
-        },
         {
             "type": "function",
             "function": {"name": "compute"},
             "platform_config": {
-                "mode": "live",
+                "implementation": {
+                    "type": "python",
+                    "code": "async def execute(a, c): return {}",
+                },
+            },
+        },
+    ]
+    executor = build_tool_executor(
+        tools=tools,
+        expected_tool_calls=None,
+        test_case_context={"key": "val"},
+        tool_mode="live",
+    )
+    assert isinstance(executor, LiveToolExecutor)
+
+
+def test_build_mock_mode_uses_expected_tool_calls() -> None:
+    tools = [
+        {
+            "type": "function",
+            "function": {"name": "lookup"},
+            "platform_config": {
                 "implementation": {
                     "type": "python",
                     "code": "async def execute(a, c): return {}",
@@ -289,6 +268,74 @@ def test_build_mixed_modes_returns_composite() -> None:
         }
     ]
     executor = build_tool_executor(
-        tools=tools, expected_tool_calls=expected, test_case_context={"key": "val"}
+        tools=tools,
+        expected_tool_calls=expected,
+        test_case_context={"key": "val"},
+        tool_mode="mock",
     )
-    assert isinstance(executor, CompositeToolExecutor)
+    assert isinstance(executor, MockToolExecutor)
+
+
+def test_build_synthetic_mode_returns_placeholder_executor() -> None:
+    tools = [
+        {"type": "function", "function": {"name": "x"}},
+    ]
+    executor = build_tool_executor(
+        tools=tools,
+        expected_tool_calls=None,
+        test_case_context={},
+        tool_mode="synthetic",
+    )
+    assert isinstance(executor, SyntheticToolExecutor)
+
+
+def test_validate_live_ok_with_webhook_impl() -> None:
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "get_x",
+                "parameters": {"type": "object", "properties": {}},
+            },
+            "platform_config": {
+                "implementation": {
+                    "type": "http_webhook",
+                    "url": "https://example.com/hook",
+                },
+            },
+        },
+    ]
+    validate_live_tool_snapshot(tools)
+
+
+def test_validate_live_rejects_missing_platform_config() -> None:
+    tools = [
+        {
+            "type": "function",
+            "function": {"name": "bare"},
+        },
+    ]
+    with pytest.raises(ValueError, match="bare"):
+        validate_live_tool_snapshot(tools)
+
+
+def test_validate_live_accepts_legacy_platform_config_with_extra_mode_key() -> None:
+    tools = [
+        {
+            "type": "function",
+            "function": {"name": "legacy"},
+            "platform_config": {
+                "mode": "live",
+                "implementation": {
+                    "type": "http_webhook",
+                    "url": "https://example.com",
+                },
+            },
+        },
+    ]
+    validate_live_tool_snapshot(tools)
+
+
+def test_validate_live_empty_tools_noop() -> None:
+    validate_live_tool_snapshot([])
+    validate_live_tool_snapshot(None)

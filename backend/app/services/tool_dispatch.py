@@ -1,11 +1,12 @@
-"""Tool dispatch: routes tool calls to mock, live, or synthetic executors."""
+"""Tool dispatch: routes platform tool calls mock vs live according to RunConfig."""
 
 import json
 import logging
 from collections import deque
-from typing import Any
+from typing import Any, Literal
 
 import httpx
+from pydantic import ValidationError
 
 from app.models.schemas import (
     ExpectedToolCall,
@@ -23,6 +24,59 @@ from app.services.tool_executor import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def extract_openai_function_tool_name(tool_def: dict[str, Any]) -> str | None:
+    fn = tool_def.get("function")
+    if isinstance(fn, dict):
+        name = fn.get("name")
+        if isinstance(name, str):
+            return name
+    return None
+
+
+def validate_live_tool_snapshot(agent_tools: list[dict[str, Any]] | None) -> None:
+    """Ensure every declared tool has ``platform_config`` with ``implementation``.
+
+    Used when ``RunConfig.tool_mode`` is ``live`` for platform-mode agents.
+
+    Raises:
+        ValueError: If any tool is missing ``platform_config``, missing
+            ``implementation``, or parsing fails.
+
+    Does nothing when *agent_tools* is None or empty.
+    """
+    if not agent_tools:
+        return
+
+    missing_reasons: dict[str, str] = {}
+
+    for tool_def in agent_tools:
+        name = extract_openai_function_tool_name(tool_def)
+        if not name:
+            continue
+
+        raw = tool_def.get("platform_config")
+        if raw is None:
+            missing_reasons[name] = "no platform_config"
+            continue
+        try:
+            cfg = ToolPlatformConfig.model_validate(raw)
+        except ValidationError:
+            missing_reasons[name] = "invalid platform_config"
+            continue
+        if cfg.implementation is None:
+            missing_reasons[name] = "no implementation on platform_config"
+
+    if not missing_reasons:
+        return
+
+    parts = [f"'{nm}' ({reason})" for nm, reason in sorted(missing_reasons.items())]
+    msg = (
+        "Live tool mode requires each tool to have platform_config with implementation; "
+        f"issues for: {', '.join(parts)}"
+    )
+    raise ValueError(msg)
 
 
 def _partial_match(expected: dict[str, Any], actual: dict[str, Any]) -> bool:
@@ -168,91 +222,53 @@ class LiveToolExecutor(ToolExecutor):
         )
 
 
-class CompositeToolExecutor(ToolExecutor):
-    """Routes each tool call to the correct executor based on platform_config.mode."""
-
-    def __init__(
-        self,
-        tool_modes: dict[str, str],
-        mock: MockToolExecutor,
-        live: LiveToolExecutor,
-    ) -> None:
-        self._tool_modes = tool_modes
-        self._mock = mock
-        self._live = live
-        self._synthetic = SyntheticToolExecutor()
-
-    async def execute(
-        self,
-        tool_name: str,
-        tool_call_id: str,
-        arguments: str,
-    ) -> str:
-        mode = self._tool_modes.get(tool_name)
-        if mode == "mock":
-            return await self._mock.execute(tool_name, tool_call_id, arguments)
-        if mode == "live":
-            return await self._live.execute(tool_name, tool_call_id, arguments)
-        return await self._synthetic.execute(tool_name, tool_call_id, arguments)
-
-
-def _extract_tool_name(tool_def: dict[str, Any]) -> str | None:
-    fn = tool_def.get("function")
-    if isinstance(fn, dict):
-        name = fn.get("name")
-        if isinstance(name, str):
-            return name
-    return None
+def _parse_expected_tool_calls(
+    raw: list[dict[str, Any]] | None,
+) -> list[ExpectedToolCall]:
+    parsed: list[ExpectedToolCall] = []
+    for item in raw or []:
+        if isinstance(item, dict):
+            parsed.append(ExpectedToolCall.model_validate(item))
+        elif isinstance(item, ExpectedToolCall):
+            parsed.append(item)
+    return parsed
 
 
 def build_tool_executor(
     tools: list[dict[str, Any]] | None,
     expected_tool_calls: list[dict[str, Any]] | None,
     test_case_context: dict[str, Any],
+    *,
+    tool_mode: Literal["mock", "live", "synthetic"] = "mock",
 ) -> ToolExecutor:
-    """Build the appropriate ToolExecutor from agent tools and test case data.
+    """Build the platform tool executor for one test case.
 
-    Returns :class:`CompositeToolExecutor` when any tool has ``platform_config``,
-    otherwise :class:`SyntheticToolExecutor` for CS-54 backward compatibility.
+    Normally ``tool_mode`` mirrors ``RunConfig.tool_mode`` (``mock`` or
+    ``live``). The value ``synthetic`` is reserved for internal/CLI use: it
+    always returns :class:`SyntheticToolExecutor`, matching legacy behavior when
+    tools had no ``platform_config``.
     """
+    if tool_mode == "synthetic":
+        return SyntheticToolExecutor()
+
     if not tools:
         return SyntheticToolExecutor()
 
-    tool_modes: dict[str, str] = {}
-    live_configs: dict[str, ToolPlatformConfig] = {}
-    has_platform_config = False
+    parsed_etc = _parse_expected_tool_calls(expected_tool_calls)
 
+    if tool_mode == "mock":
+        return MockToolExecutor(parsed_etc)
+
+    live_configs: dict[str, ToolPlatformConfig] = {}
     for tool_def in tools:
-        name = _extract_tool_name(tool_def)
+        name = extract_openai_function_tool_name(tool_def)
         if not name:
             continue
-
-        raw_config = tool_def.get("platform_config")
-        if raw_config is None:
+        raw_pc = tool_def.get("platform_config")
+        if raw_pc is None:
             continue
+        cfg = ToolPlatformConfig.model_validate(raw_pc)
+        if cfg.implementation is not None:
+            live_configs[name] = cfg
 
-        has_platform_config = True
-        parsed = ToolPlatformConfig.model_validate(raw_config)
-        tool_modes[name] = parsed.mode
-
-        if parsed.mode == "live":
-            live_configs[name] = parsed
-
-    if not has_platform_config:
-        return SyntheticToolExecutor()
-
-    parsed_etc: list[ExpectedToolCall] = []
-    for raw in expected_tool_calls or []:
-        if isinstance(raw, dict):
-            parsed_etc.append(ExpectedToolCall.model_validate(raw))
-        elif isinstance(raw, ExpectedToolCall):
-            parsed_etc.append(raw)
-
-    mock_executor = MockToolExecutor(parsed_etc)
-    live_executor = LiveToolExecutor(live_configs, test_case_context)
-
-    return CompositeToolExecutor(
-        tool_modes=tool_modes,
-        mock=mock_executor,
-        live=live_executor,
-    )
+    return LiveToolExecutor(live_configs, test_case_context)
