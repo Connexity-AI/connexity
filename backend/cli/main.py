@@ -1,4 +1,4 @@
-"""Connexity Evals CLI — thin wrapper over the REST API."""
+"""Connexity CLI — thin wrapper over the REST API."""
 
 from __future__ import annotations
 
@@ -56,7 +56,7 @@ def app(
     token: str,
     output_format: str,
 ) -> None:
-    """Connexity Evals CLI."""
+    """Connexity CLI."""
     stored = credentials.load()
 
     # Token: explicit flag/env wins; otherwise fall back to the stored token.

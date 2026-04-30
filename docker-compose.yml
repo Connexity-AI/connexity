@@ -1,4 +1,4 @@
-name: connexity-evals
+name: connexity
 
 # development environment
 
@@ -9,7 +9,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: connexity-evals-frontend
+    container_name: connexity-frontend
     restart: unless-stopped
     ports:
       - 3000:3000
@@ -22,7 +22,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
-    container_name: connexity-evals-backend
+    container_name: connexity-backend
     restart: unless-stopped
     # don't mount alembic as volume
     ports:
@@ -40,7 +40,7 @@ services:
 
   database:
     image: postgres:17.5-alpine3.22
-    container_name: connexity-evals-database
+    container_name: connexity-database
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
@@ -69,7 +69,7 @@ services:
   # so existing docs/scripts (e.g. CLAUDE.md) still compose up.
   adminer:
     image: sosedoff/pgweb:latest
-    container_name: connexity-evals-adminer
+    container_name: connexity-adminer
     restart: unless-stopped
     depends_on:
       - database

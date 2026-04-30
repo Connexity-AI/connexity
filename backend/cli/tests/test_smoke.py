@@ -20,7 +20,7 @@ from cli.main import app
 def test_cli_help_loads(runner) -> None:
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    assert "Connexity Evals CLI" in result.stdout
+    assert "Connexity CLI" in result.stdout
 
 
 def test_protected_command_requires_auth(runner, monkeypatch) -> None:

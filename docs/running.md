@@ -11,7 +11,7 @@ Clone the repository, create `.env` files for backend and frontend and populate 
 
 ```bash
 # Clone repository
-git clone git@github.com:space-step/connexity-evals.git
+git clone git@github.com:space-step/connexity.git
 
 # Create backend .env file
 cp .env.example .env
@@ -54,7 +54,7 @@ Run Postgres container and run migrations.
 
 ```bash
 # From project root
-cd ~/Desktop/connexity-evals
+cd ~/Desktop/connexity
 
 # Run just Postgres database service
 docker compose up -d database adminer
@@ -80,7 +80,7 @@ Generate OpenAPI client and run Next.js dev server.
 
 ```bash
 # From project root, with activated backend/ venv, fix this
-cd ~/Desktop/connexity-evals
+cd ~/Desktop/connexity
 
 # Generate client (needs activated venv)
 bash scripts/generate-client.sh
