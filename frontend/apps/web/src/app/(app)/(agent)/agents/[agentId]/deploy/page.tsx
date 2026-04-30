@@ -31,7 +31,7 @@ export default async function AgentDeployPage({ params }: Props) {
         <HydrateProvider state={dehydratedState}>
           <ErrorBoundary>
             <Suspense fallback={<EnvironmentsSectionSkeleton />}>
-              <EnvironmentsSection />
+              <EnvironmentsSection agentId={agentId} />
             </Suspense>
           </ErrorBoundary>
         </HydrateProvider>

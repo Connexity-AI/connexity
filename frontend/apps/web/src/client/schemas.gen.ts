@@ -516,6 +516,37 @@ export const AgentSimulatorConfigSchema = {
   description: 'Agent simulator LLM overrides (only used when agent mode is platform).',
 } as const;
 
+export const AgentToolDefinitionSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      minLength: 1,
+      title: 'Name',
+    },
+    description: {
+      type: 'string',
+      title: 'Description',
+      default: '',
+    },
+    parameters: {
+      anyOf: [
+        {
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Parameters',
+    },
+  },
+  type: 'object',
+  required: ['name'],
+  title: 'AgentToolDefinition',
+  description:
+    'Prompt-facing tool: ``parameters`` is a full JSON Schema (properties, required, ...).',
+} as const;
+
 export const AgentUpdateSchema = {
   properties: {
     name: {
@@ -1462,9 +1493,13 @@ export const ConfigPublicSchema = {
       type: 'string',
       title: 'Docs Url',
     },
+    default_llm_model: {
+      type: 'string',
+      title: 'Default Llm Model',
+    },
   },
   type: 'object',
-  required: ['project_name', 'api_version', 'environment', 'docs_url'],
+  required: ['project_name', 'api_version', 'environment', 'docs_url', 'default_llm_model'],
   title: 'ConfigPublic',
 } as const;
 
@@ -1883,6 +1918,140 @@ export const CustomMetricsPublicSchema = {
   title: 'CustomMetricsPublic',
 } as const;
 
+export const DeploymentCreateSchema = {
+  properties: {
+    agent_version: {
+      type: 'integer',
+      minimum: 1,
+      title: 'Agent Version',
+    },
+  },
+  type: 'object',
+  required: ['agent_version'],
+  title: 'DeploymentCreate',
+} as const;
+
+export const DeploymentPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    environment_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Environment Id',
+    },
+    environment_name: {
+      type: 'string',
+      title: 'Environment Name',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    agent_version: {
+      type: 'integer',
+      title: 'Agent Version',
+    },
+    retell_version_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Retell Version Name',
+    },
+    status: {
+      $ref: '#/components/schemas/DeploymentStatus',
+    },
+    error_message: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Error Message',
+    },
+    deployed_by_user_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Deployed By User Id',
+    },
+    deployed_by_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Deployed By Name',
+    },
+    deployed_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Deployed At',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'environment_id',
+    'environment_name',
+    'agent_id',
+    'agent_version',
+    'retell_version_name',
+    'status',
+    'error_message',
+    'deployed_by_user_id',
+    'deployed_by_name',
+    'deployed_at',
+  ],
+  title: 'DeploymentPublic',
+} as const;
+
+export const DeploymentStatusSchema = {
+  type: 'string',
+  enum: ['pending', 'deployed', 'failed'],
+  title: 'DeploymentStatus',
+} as const;
+
+export const DeploymentsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/DeploymentPublic',
+      },
+      type: 'array',
+      title: 'Data',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'DeploymentsPublic',
+} as const;
+
 export const DifficultySchema = {
   type: 'string',
   enum: ['normal', 'hard'],
@@ -1967,6 +2136,40 @@ export const EnvironmentPublicSchema = {
       type: 'string',
       title: 'Platform Agent Name',
     },
+    current_version_number: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Current Version Number',
+    },
+    current_version_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Current Version Name',
+    },
+    current_deployed_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Current Deployed At',
+    },
     created_at: {
       type: 'string',
       format: 'date-time',
@@ -1983,6 +2186,9 @@ export const EnvironmentPublicSchema = {
     'integration_name',
     'platform_agent_id',
     'platform_agent_name',
+    'current_version_number',
+    'current_version_name',
+    'current_deployed_at',
     'created_at',
   ],
   title: 'EnvironmentPublic',
@@ -2509,7 +2715,7 @@ export const GenerateRequestSchema = {
     },
     tools: {
       items: {
-        $ref: '#/components/schemas/ToolDefinition',
+        $ref: '#/components/schemas/AgentToolDefinition',
       },
       type: 'array',
       title: 'Tools',
@@ -4126,6 +4332,34 @@ export const RetellAgentSummarySchema = {
   title: 'RetellAgentSummary',
 } as const;
 
+export const RetellAgentVersionSchema = {
+  properties: {
+    version: {
+      type: 'integer',
+      title: 'Version',
+    },
+    version_title: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version Title',
+    },
+    is_published: {
+      type: 'boolean',
+      title: 'Is Published',
+      default: false,
+    },
+  },
+  type: 'object',
+  required: ['version'],
+  title: 'RetellAgentVersion',
+} as const;
+
 export const RunComparisonSchema = {
   properties: {
     baseline_run_id: {
@@ -5012,7 +5246,7 @@ export const SuggestionsRequestSchema = {
 export const TestCaseAgentRequestSchema = {
   properties: {
     mode: {
-      $ref: '#/components/schemas/app__services__test_case_generator__agent__schemas__AgentMode',
+      $ref: '#/components/schemas/app__services__test_case_generator__interactive__schemas__AgentMode',
     },
     user_message: {
       type: 'string',
@@ -5134,7 +5368,7 @@ export const TestCaseAgentRequestSchema = {
 export const TestCaseAgentResultSchema = {
   properties: {
     mode: {
-      $ref: '#/components/schemas/app__services__test_case_generator__agent__schemas__AgentMode',
+      $ref: '#/components/schemas/app__services__test_case_generator__interactive__schemas__AgentMode',
     },
     created: {
       items: {
@@ -6701,34 +6935,6 @@ export const ToolCallFunctionSchema = {
   title: 'ToolCallFunction',
 } as const;
 
-export const ToolDefinitionSchema = {
-  properties: {
-    name: {
-      type: 'string',
-      title: 'Name',
-    },
-    description: {
-      type: 'string',
-      title: 'Description',
-    },
-    parameters: {
-      anyOf: [
-        {
-          type: 'object',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Parameters',
-    },
-  },
-  type: 'object',
-  required: ['name', 'description'],
-  title: 'ToolDefinition',
-  description: 'A single tool/function definition the agent has access to.',
-} as const;
-
 export const ToolDiffSchema = {
   properties: {
     added: {
@@ -6955,7 +7161,7 @@ export const app__models__enums__AgentModeSchema = {
   title: 'AgentMode',
 } as const;
 
-export const app__services__test_case_generator__agent__schemas__AgentModeSchema = {
+export const app__services__test_case_generator__interactive__schemas__AgentModeSchema = {
   type: 'string',
   enum: ['create', 'from_transcript', 'edit'],
   title: 'AgentMode',

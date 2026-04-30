@@ -10,8 +10,8 @@ Model resolution (used after merging per-call config with
 3. Else returns ``model`` alone so LiteLLM can apply its default routing
    (e.g. bare ``gpt-4o``).
 
-If the effective ``model`` is missing after merging defaults, raises
-``ValueError``.
+If ``LLMCallConfig.model`` is omitted, :class:`~app.core.config.Settings.default_llm_id`
+is used after merging with provider defaults.
 
 Reasoning-related LiteLLM kwargs (see ``_finalize_litellm_reasoning_kwargs``) are
 normalized on every completion: overrides from :attr:`LLMCallConfig.extra` cannot
@@ -86,8 +86,9 @@ def _finalize_litellm_reasoning_kwargs(model: str, kwargs: dict[str, object]) ->
 class LLMSettingsView(Protocol):
     """Subset of :class:`~app.core.config.Settings` read by the LLM service."""
 
-    LLM_DEFAULT_MODEL: str | None
-    LLM_DEFAULT_PROVIDER: str | None
+    LLM_DEFAULT_MODEL: str
+    LLM_DEFAULT_PROVIDER: str
+    default_llm_id: str
     LLM_RETRY_MAX_ATTEMPTS: int
     LLM_RETRY_MIN_WAIT_SECONDS: float
     LLM_RETRY_MAX_WAIT_SECONDS: float
@@ -202,16 +203,14 @@ def _merge_effective_model_provider(
     app_settings: LLMSettingsView,
 ) -> tuple[str, str | None]:
     c = config or LLMCallConfig()
-    model = c.model if c.model is not None else app_settings.LLM_DEFAULT_MODEL
+    if c.model is None:
+        return app_settings.default_llm_id, (
+            c.provider if c.provider is not None else app_settings.LLM_DEFAULT_PROVIDER
+        )
+    model = c.model
     provider = (
         c.provider if c.provider is not None else app_settings.LLM_DEFAULT_PROVIDER
     )
-    if model is None:
-        msg = (
-            "No LLM model configured: set LLMCallConfig.model or "
-            "LLM_DEFAULT_MODEL in the environment"
-        )
-        raise ValueError(msg)
     resolved = resolve_litellm_model(model, provider)
     return resolved, provider
 

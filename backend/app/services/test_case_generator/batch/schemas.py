@@ -1,43 +1,11 @@
 import uuid
-from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
 
 from app.models.test_case import TestCasePublic
+from app.services.agent_tool_definitions import AgentToolDefinition
 
-
-class ToolDefinition(BaseModel):
-    """A single tool/function definition the agent has access to."""
-
-    name: str
-    description: str
-    parameters: dict[str, object] | None = None
-
-
-def tool_definitions_from_agent_tools(
-    raw: list[dict[str, Any]] | None,
-) -> list[ToolDefinition]:
-    """Map OpenAI-style tool dicts (type/function) to ToolDefinition for prompts."""
-    if not raw:
-        return []
-    out: list[ToolDefinition] = []
-    for item in raw:
-        if not isinstance(item, dict):
-            continue
-        fn = item.get("function")
-        if not isinstance(fn, dict):
-            continue
-        name = fn.get("name")
-        desc = fn.get("description")
-        params = fn.get("parameters")
-        out.append(
-            ToolDefinition(
-                name=str(name or ""),
-                description=str(desc or ""),
-                parameters=params if isinstance(params, dict) else None,
-            )
-        )
-    return out
+ToolDefinition = AgentToolDefinition
 
 
 class GenerateRequest(BaseModel):

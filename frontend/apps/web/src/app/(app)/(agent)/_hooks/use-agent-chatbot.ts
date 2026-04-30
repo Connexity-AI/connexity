@@ -1,16 +1,17 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useFormContext, useWatch } from 'react-hook-form';
 
 import { useAgentEditFormActions } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
 import { useAiSuggestion } from '@/app/(app)/(agent)/_context/ai-suggestion-context';
+import { useDefaultLlmRoutingId } from '@/app/(app)/(agent)/_hooks/use-default-llm-routing-id';
 import { useEmptyStateSuggestion } from '@/app/(app)/(agent)/_hooks/use-empty-state-suggestion';
 import { usePromptEditorChat } from '@/app/(app)/(agent)/_hooks/use-prompt-editor-chat';
 import { usePromptEditorSession } from '@/app/(app)/(agent)/_hooks/use-prompt-editor-session';
 import { useSuggestFixesHandoff } from '@/app/(app)/(agent)/_hooks/use-suggest-fixes-handoff';
-import { DEFAULT_LLM_MODEL_ID } from '@/constants/llm-models';
+import { BOOTSTRAP_DEFAULT_LLM_ROUTE } from '@/utils/split-default-llm-routing';
 
 import type { AgentFormValues } from '@/app/(app)/(agent)/_schemas/agent-form';
 
@@ -34,7 +35,14 @@ export function useAgentChatbot() {
 
   const handoff = useSuggestFixesHandoff({ sessionId, sessionRunId, startNewSession });
 
-  const [model, setModel] = useState<string>(DEFAULT_LLM_MODEL_ID);
+  const serverDefaultRouting = useDefaultLlmRoutingId();
+
+  const [model, setModel] = useState(serverDefaultRouting);
+  useEffect(() => {
+    setModel((prev) =>
+      prev === BOOTSTRAP_DEFAULT_LLM_ROUTE ? serverDefaultRouting : prev
+    );
+  }, [serverDefaultRouting]);
 
   const form = useFormContext<AgentFormValues>();
   const draftPrompt = useWatch({ control: form.control, name: 'prompt' }) ?? '';

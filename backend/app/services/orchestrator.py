@@ -329,7 +329,7 @@ async def _do_agent_turn(
                 agent_system_prompt=agent_system_prompt,
                 agent_tools=agent_tools,
                 model=response.model,
-                fallback_model=settings.LLM_DEFAULT_MODEL,
+                fallback_model=settings.default_llm_id,
             )
             acc.add_agent_usage(estimated)
             reported = estimated
@@ -444,7 +444,7 @@ async def run_test_case(
         agent_simulator = AgentSimulator(
             system_prompt=agent_system_prompt or "",
             tools=agent_tools,
-            agent_model=model_id or (settings.LLM_DEFAULT_MODEL or "gpt-4o"),
+            agent_model=model_id or settings.default_llm_id,
             agent_provider=agent_provider,
             config=config.agent_simulator,
             tool_executor=tool_executor,

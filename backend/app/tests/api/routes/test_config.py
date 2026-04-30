@@ -23,6 +23,7 @@ def test_get_config(client: TestClient, auth_cookies: dict[str, str]) -> None:
     assert result["api_version"] == settings.API_V1_STR
     assert result["environment"] in ("local", "staging", "production")
     assert result["docs_url"] == "/docs"
+    assert result["default_llm_model"] == settings.default_llm_id
 
 
 def test_get_config_requires_auth(client: TestClient) -> None:

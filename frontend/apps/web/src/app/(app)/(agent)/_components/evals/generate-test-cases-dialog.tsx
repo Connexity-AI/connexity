@@ -25,8 +25,10 @@ import {
 import { Input } from '@workspace/ui/components/ui/input';
 import { Label } from '@workspace/ui/components/ui/label';
 
+import { LlmModelPicker } from '@/app/(app)/(agent)/_components/llm/llm-model-picker';
 import { useAgent } from '@/app/(app)/(agent)/_hooks/use-agent';
 import { useAgentVersions } from '@/app/(app)/(agent)/_hooks/use-agent-versions';
+import { useDefaultLlmRoutingId } from '@/app/(app)/(agent)/_hooks/use-default-llm-routing-id';
 
 const MIN_COUNT = 1;
 const MAX_COUNT = 200;
@@ -38,6 +40,7 @@ const formSchema = z.object({
     .int()
     .min(MIN_COUNT, `Must be at least ${MIN_COUNT}`)
     .max(MAX_COUNT, `Must be at most ${MAX_COUNT}`),
+  model: z.string().min(1, 'Select a model'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -46,7 +49,7 @@ interface GenerateTestCasesDialogProps {
   agentId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onGenerate: (count: number) => void;
+  onGenerate: (payload: { count: number; model: string }) => void;
 }
 
 export function GenerateTestCasesDialog({
@@ -55,6 +58,7 @@ export function GenerateTestCasesDialog({
   onOpenChange,
   onGenerate,
 }: GenerateTestCasesDialogProps) {
+  const defaultLlmRouting = useDefaultLlmRoutingId();
   const { data: agent } = useAgent(agentId);
   const { data: versions, isLoading: versionsLoading } = useAgentVersions(agentId);
 
@@ -66,20 +70,26 @@ export function GenerateTestCasesDialog({
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { count: DEFAULT_COUNT },
+    defaultValues: {
+      count: DEFAULT_COUNT,
+      model: defaultLlmRouting,
+    },
   });
 
   useEffect(() => {
-    if (open) form.reset({ count: DEFAULT_COUNT });
-  }, [open, form]);
+    if (open) {
+      form.reset({
+        count: DEFAULT_COUNT,
+        model: defaultLlmRouting,
+      });
+    }
+  }, [open, form, defaultLlmRouting]);
 
   const onSubmit = (data: FormValues) => {
-    console.info('[gen-tc] dialog submit', { count: data.count, hasPublishedVersion });
     if (!hasPublishedVersion) {
-      console.warn('[gen-tc] blocked: no published version');
       return;
     }
-    onGenerate(data.count);
+    onGenerate({ count: data.count, model: data.model });
     onOpenChange(false);
   };
 
@@ -196,6 +206,23 @@ export function GenerateTestCasesDialog({
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="model"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2 mt-4">
+                      <Label className="text-xs text-muted-foreground">Model</Label>
+                      <FormControl>
+                        <LlmModelPicker
+                          value={field.value}
+                          onSelect={(modelOption) => field.onChange(modelOption.id)}
+                          disabled={!hasPublishedVersion}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
             </div>
 
@@ -214,17 +241,6 @@ export function GenerateTestCasesDialog({
                 size="sm"
                 className="h-8 text-xs gap-1.5"
                 disabled={!canSubmit}
-                onClick={() =>
-                  console.info('[gen-tc] submit click', {
-                    canSubmit,
-                    hasPublishedVersion,
-                    versionsLoading,
-                    count,
-                    min: MIN_COUNT,
-                    max: MAX_COUNT,
-                    errors: form.formState.errors,
-                  })
-                }
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 Generate {count || ''} test case{count === 1 ? '' : 's'}

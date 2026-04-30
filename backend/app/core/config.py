@@ -91,8 +91,14 @@ class Settings(BaseSettings):
     # LLM — shared across generator, judge, simulator, etc.
     OPENAI_API_KEY: str | None = None
     ANTHROPIC_API_KEY: str | None = None
-    LLM_DEFAULT_MODEL: str | None = None
-    LLM_DEFAULT_PROVIDER: str | None = None
+    LLM_DEFAULT_MODEL: str = Field(
+        default="gpt-4.1",
+        description="Provider-local default when LLM_DEFAULT_MODEL env is unset",
+    )
+    LLM_DEFAULT_PROVIDER: str = Field(
+        default="openai",
+        description="LiteLLM provider key when LLM_DEFAULT_PROVIDER env is unset",
+    )
     LLM_RETRY_MAX_ATTEMPTS: int = 5
     LLM_RETRY_MIN_WAIT_SECONDS: float = 1.0
     LLM_RETRY_MAX_WAIT_SECONDS: float = 60.0
@@ -161,12 +167,32 @@ class Settings(BaseSettings):
     def emails_enabled(self) -> bool:
         return bool(self.SMTP_HOST and self.EMAILS_FROM_EMAIL)
 
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def default_llm_id(self) -> str:
+        """Full LiteLLM routing id (e.g. openai/gpt-4.1)."""
+        from app.services.llm import resolve_litellm_model
+
+        return resolve_litellm_model(
+            self.LLM_DEFAULT_MODEL, self.LLM_DEFAULT_PROVIDER or None
+        )
+
     # ------- Validators -------
 
     @model_validator(mode="after")
     def _set_default_emails_from(self) -> Self:
         if not self.EMAILS_FROM_NAME:
             self.EMAILS_FROM_NAME = self.PROJECT_NAME
+        return self
+
+    # Must run at end
+    @model_validator(mode="after")
+    def _normalize_llm_defaults_from_env(self) -> Self:
+        """Treat empty strings from env overrides as missing defaults."""
+        if not (self.LLM_DEFAULT_MODEL or "").strip():
+            self.LLM_DEFAULT_MODEL = "gpt-4.1"
+        if not (self.LLM_DEFAULT_PROVIDER or "").strip():
+            self.LLM_DEFAULT_PROVIDER = "openai"
         return self
 
     # Must run at end

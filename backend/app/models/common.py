@@ -14,3 +14,4 @@ class ConfigPublic(SQLModel):
     api_version: str
     environment: Literal["local", "staging", "production"]
     docs_url: str
+    default_llm_model: str

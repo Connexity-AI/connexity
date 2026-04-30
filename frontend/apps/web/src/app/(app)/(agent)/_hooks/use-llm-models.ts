@@ -2,14 +2,18 @@
 
 import { useQuery } from '@tanstack/react-query';
 
-import { llmModelsQuery } from '@/app/(app)/(agent)/_queries/llm-models-query';
-import { FALLBACK_LLM_MODELS } from '@/constants/llm-models';
+import { llmModelsQueries } from '@/app/(app)/(agent)/_queries/llm-models-query';
+import {
+  BOOTSTRAP_DEFAULT_LLM_ROUTE,
+  minimalLlmModelsFromRoute,
+} from '@/utils/split-default-llm-routing';
 
 export function useLlmModels() {
-  const query = useQuery(llmModelsQuery());
+  const query = useQuery(llmModelsQueries.list);
 
   return {
     ...query,
-    data: query.data ?? FALLBACK_LLM_MODELS,
+    data:
+      query.data ?? minimalLlmModelsFromRoute(BOOTSTRAP_DEFAULT_LLM_ROUTE),
   };
 }

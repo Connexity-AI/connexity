@@ -25,20 +25,18 @@ from app.models import (
     TestCaseStatus,
     TestCaseUpdate,
 )
-from app.services.test_case_generator.agent import (
+from app.services.agent_tool_definitions import parse_agent_tool_definitions
+from app.services.test_case_generator import (
     AgentMode,
+    GenerateRequest,
+    GenerateResult,
     TestCaseAgent,
     TestCaseAgentContextError,
     TestCaseAgentInput,
     TestCaseAgentRequest,
     TestCaseAgentResult,
     build_agent_context,
-)
-from app.services.test_case_generator.core import generate_test_cases
-from app.services.test_case_generator.schemas import (
-    GenerateRequest,
-    GenerateResult,
-    tool_definitions_from_agent_tools,
+    generate_test_cases,
 )
 
 router = APIRouter(
@@ -179,7 +177,7 @@ def _resolve_generate_request(
 
     tools_in = list(request.tools)
     if not tools_in:
-        effective_tools = tool_definitions_from_agent_tools(version.tools)
+        effective_tools = parse_agent_tool_definitions(version.tools)
     else:
         effective_tools = tools_in
 

@@ -39,6 +39,13 @@ from app.crud.custom_metrics import (  # noqa: F401
     list_custom_metrics,
     update_custom_metric,
 )
+from app.crud.deployments import (  # noqa: F401
+    create_pending_deployment,
+    list_deployments_for_agent,
+    list_deployments_for_environment,
+    mark_deployment_failed,
+    mark_deployment_succeeded,
+)
 from app.crud.environments import (  # noqa: F401
     count_environments_for_integration,
     create_environment,

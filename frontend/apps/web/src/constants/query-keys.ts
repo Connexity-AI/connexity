@@ -39,6 +39,10 @@ export const metricKeys = {
   list: () => ['available-metrics'] as const,
 };
 
+export const appConfigKeys = {
+  root: () => ['app-config'] as const,
+};
+
 export const llmModelKeys = {
   list: () => ['llm-models'] as const,
 };
@@ -54,6 +58,10 @@ export const testCaseResultKeys = {
 
 export const environmentKeys = {
   list: (agentId: string) => ['environments', agentId] as const,
+  agentDeployments: (agentId: string) => ['agent-deployments', agentId] as const,
+  deployments: (environmentId: string) => ['environment-deployments', environmentId] as const,
+  retellVersions: (environmentId: string) =>
+    ['environment-retell-versions', environmentId] as const,
 };
 
 export const retellAgentKeys = {
