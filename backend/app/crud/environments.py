@@ -3,6 +3,7 @@ import uuid
 from sqlalchemy import func
 from sqlmodel import Session, col, select
 
+from app.models.deployment import Deployment
 from app.models.environment import Environment, EnvironmentCreate
 from app.models.integration import Integration
 
@@ -41,6 +42,11 @@ def list_environments_by_agent(
 
 
 def delete_environment(*, session: Session, db_environment: Environment) -> None:
+    deployments = session.exec(
+        select(Deployment).where(Deployment.environment_id == db_environment.id)
+    ).all()
+    for d in deployments:
+        session.delete(d)
     session.delete(db_environment)
     session.commit()
 

@@ -1121,6 +1121,91 @@ export type CustomMetricsPublic = {
 };
 
 /**
+ * DeploymentCreate
+ */
+export type DeploymentCreate = {
+  /**
+   * Agent Version
+   */
+  agent_version: number;
+};
+
+/**
+ * DeploymentPublic
+ */
+export type DeploymentPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Environment Id
+   */
+  environment_id: string;
+  /**
+   * Environment Name
+   */
+  environment_name: string;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Version
+   */
+  agent_version: number;
+  /**
+   * Retell Version Name
+   */
+  retell_version_name: string | null;
+  status: DeploymentStatus;
+  /**
+   * Error Message
+   */
+  error_message: string | null;
+  /**
+   * Deployed By User Id
+   */
+  deployed_by_user_id: string | null;
+  /**
+   * Deployed By Name
+   */
+  deployed_by_name: string | null;
+  /**
+   * Deployed At
+   */
+  deployed_at: string;
+};
+
+/**
+ * DeploymentStatus
+ */
+export const DeploymentStatus = {
+  PENDING: 'pending',
+  DEPLOYED: 'deployed',
+  FAILED: 'failed',
+} as const;
+
+/**
+ * DeploymentStatus
+ */
+export type DeploymentStatus = (typeof DeploymentStatus)[keyof typeof DeploymentStatus];
+
+/**
+ * DeploymentsPublic
+ */
+export type DeploymentsPublic = {
+  /**
+   * Data
+   */
+  data: Array<DeploymentPublic>;
+  /**
+   * Count
+   */
+  count: number;
+};
+
+/**
  * Difficulty
  */
 export const Difficulty = { NORMAL: 'normal', HARD: 'hard' } as const;
@@ -1190,6 +1275,18 @@ export type EnvironmentPublic = {
    * Platform Agent Name
    */
   platform_agent_name: string;
+  /**
+   * Current Version Number
+   */
+  current_version_number: number | null;
+  /**
+   * Current Version Name
+   */
+  current_version_name: string | null;
+  /**
+   * Current Deployed At
+   */
+  current_deployed_at: string | null;
   /**
    * Created At
    */
@@ -2719,6 +2816,24 @@ export type RetellAgentSummary = {
    * Version
    */
   version?: number | null;
+};
+
+/**
+ * RetellAgentVersion
+ */
+export type RetellAgentVersion = {
+  /**
+   * Version
+   */
+  version: number;
+  /**
+   * Version Title
+   */
+  version_title?: string | null;
+  /**
+   * Is Published
+   */
+  is_published?: boolean;
 };
 
 /**
@@ -9207,6 +9322,232 @@ export type EnvironmentsDeleteEnvironmentResponses = {
 
 export type EnvironmentsDeleteEnvironmentResponse =
   EnvironmentsDeleteEnvironmentResponses[keyof EnvironmentsDeleteEnvironmentResponses];
+
+export type EnvironmentsDeployEnvironmentData = {
+  body: DeploymentCreate;
+  path: {
+    /**
+     * Environment Id
+     */
+    environment_id: string;
+  };
+  query?: never;
+  url: '/api/v1/environments/{environment_id}/deploy';
+};
+
+export type EnvironmentsDeployEnvironmentErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type EnvironmentsDeployEnvironmentError =
+  EnvironmentsDeployEnvironmentErrors[keyof EnvironmentsDeployEnvironmentErrors];
+
+export type EnvironmentsDeployEnvironmentResponses = {
+  /**
+   * Successful Response
+   */
+  200: DeploymentPublic;
+};
+
+export type EnvironmentsDeployEnvironmentResponse =
+  EnvironmentsDeployEnvironmentResponses[keyof EnvironmentsDeployEnvironmentResponses];
+
+export type EnvironmentsListEnvironmentRetellVersionsData = {
+  body?: never;
+  path: {
+    /**
+     * Environment Id
+     */
+    environment_id: string;
+  };
+  query?: never;
+  url: '/api/v1/environments/{environment_id}/retell-versions';
+};
+
+export type EnvironmentsListEnvironmentRetellVersionsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type EnvironmentsListEnvironmentRetellVersionsError =
+  EnvironmentsListEnvironmentRetellVersionsErrors[keyof EnvironmentsListEnvironmentRetellVersionsErrors];
+
+export type EnvironmentsListEnvironmentRetellVersionsResponses = {
+  /**
+   * Response Environments-List Environment Retell Versions
+   *
+   * Successful Response
+   */
+  200: Array<RetellAgentVersion>;
+};
+
+export type EnvironmentsListEnvironmentRetellVersionsResponse =
+  EnvironmentsListEnvironmentRetellVersionsResponses[keyof EnvironmentsListEnvironmentRetellVersionsResponses];
+
+export type EnvironmentsListAgentDeploymentsData = {
+  body?: never;
+  path?: never;
+  query: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  url: '/api/v1/environments/deployments';
+};
+
+export type EnvironmentsListAgentDeploymentsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type EnvironmentsListAgentDeploymentsError =
+  EnvironmentsListAgentDeploymentsErrors[keyof EnvironmentsListAgentDeploymentsErrors];
+
+export type EnvironmentsListAgentDeploymentsResponses = {
+  /**
+   * Successful Response
+   */
+  200: DeploymentsPublic;
+};
+
+export type EnvironmentsListAgentDeploymentsResponse =
+  EnvironmentsListAgentDeploymentsResponses[keyof EnvironmentsListAgentDeploymentsResponses];
+
+export type EnvironmentsListEnvironmentDeploymentsData = {
+  body?: never;
+  path: {
+    /**
+     * Environment Id
+     */
+    environment_id: string;
+  };
+  query?: never;
+  url: '/api/v1/environments/{environment_id}/deployments';
+};
+
+export type EnvironmentsListEnvironmentDeploymentsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type EnvironmentsListEnvironmentDeploymentsError =
+  EnvironmentsListEnvironmentDeploymentsErrors[keyof EnvironmentsListEnvironmentDeploymentsErrors];
+
+export type EnvironmentsListEnvironmentDeploymentsResponses = {
+  /**
+   * Successful Response
+   */
+  200: DeploymentsPublic;
+};
+
+export type EnvironmentsListEnvironmentDeploymentsResponse =
+  EnvironmentsListEnvironmentDeploymentsResponses[keyof EnvironmentsListEnvironmentDeploymentsResponses];
 
 export type CallsListAgentCallsData = {
   body?: never;

@@ -9,7 +9,7 @@ function asUtc(iso: string): string {
 export function formatTimeAgo(iso: string | null | undefined): string {
   if (!iso) return '—';
 
-  return `${formatDistanceToNowStrict(new Date(iso))} ago`;
+  return `${formatDistanceToNowStrict(new Date(asUtc(iso)))} ago`;
 }
 
 export function formatAbsoluteLocal(iso: string | null | undefined): string {
