@@ -106,6 +106,24 @@ def parse_create_test_case_tool_calls(
     return out
 
 
+def parse_create_test_case_tool_call_slots(
+    tool_calls: list[dict[str, Any]] | None,
+) -> list[TestCaseCreate | None]:
+    """Return one slot per ``create_test_case`` call, preserving invalid positions."""
+    if not tool_calls:
+        return []
+    out: list[TestCaseCreate | None] = []
+    for tc in tool_calls:
+        fn = tc.get("function")
+        name = ""
+        if isinstance(fn, dict):
+            name = str(fn.get("name", ""))
+        if name != "create_test_case":
+            continue
+        out.append(_to_test_case_create(_arguments_dict(tc)))
+    return out
+
+
 def parse_edit_test_case_tool_call(
     tool_calls: list[dict[str, Any]] | None,
 ) -> TestCaseCreate | None:

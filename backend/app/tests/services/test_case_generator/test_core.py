@@ -38,6 +38,17 @@ def _test_tool() -> ToolDefinition:
     )
 
 
+def _no_param_tool() -> ToolDefinition:
+    return ToolDefinition(
+        name="test_tool",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    )
+
+
 def test_parse_test_cases_valid_json(mock_llm_response: str) -> None:
     parsed = _parse_test_cases(mock_llm_response, expected_count=10)
     assert len(parsed) == 10
@@ -158,6 +169,57 @@ def test_parse_test_cases_requires_mock_params_to_match_expected_params() -> Non
         )
     ]
     with pytest.raises(GenerationValidationError, match="must match expected_params"):
+        _parse_test_cases(
+            json.dumps({"test_cases": data}),
+            expected_count=1,
+            tools=[_test_tool()],
+        )
+
+
+def test_parse_test_cases_allows_null_mock_params_for_no_param_tools() -> None:
+    data = [
+        dict(
+            MOCK_TEST_CASES_RAW[1],
+            expected_tool_calls=[
+                {
+                    "tool": "test_tool",
+                    "expected_params": {},
+                    "mock_responses": [
+                        {"expected_params": None, "response": {"ok": True}}
+                    ],
+                }
+            ],
+        )
+    ]
+
+    parsed = _parse_test_cases(
+        json.dumps({"test_cases": data}),
+        expected_count=1,
+        tools=[_no_param_tool()],
+    )
+
+    assert parsed[0].expected_tool_calls is not None
+    assert parsed[0].expected_tool_calls[0].mock_responses is not None
+    assert parsed[0].expected_tool_calls[0].mock_responses[0].expected_params is None
+
+
+def test_parse_test_cases_rejects_null_mock_params_for_required_param_tools() -> None:
+    data = [
+        dict(
+            MOCK_TEST_CASES_RAW[1],
+            expected_tool_calls=[
+                {
+                    "tool": "test_tool",
+                    "expected_params": {"id": "1"},
+                    "mock_responses": [
+                        {"expected_params": None, "response": {"ok": True}}
+                    ],
+                }
+            ],
+        )
+    ]
+
+    with pytest.raises(GenerationValidationError, match="include required params"):
         _parse_test_cases(
             json.dumps({"test_cases": data}),
             expected_count=1,

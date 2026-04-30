@@ -1,11 +1,13 @@
 """System and user messages for the interactive test-case agent."""
 
 import json
+from typing import Any
 
 from app.models.agent import Agent
 from app.models.enums import Difficulty, FirstTurn, TurnRole
 from app.models.schemas import ConversationTurn
 from app.models.test_case import TestCasePublic
+from app.services.test_case_generator.batch.schemas import ToolDefinition
 from app.services.test_case_generator.interactive.context import AgentContext
 from app.services.test_case_generator.interactive.schemas import AgentMode
 
@@ -25,27 +27,65 @@ agent under test, with clear success criteria.
 - **edit_test_case**: emit the **complete** updated test case **exactly once**.
   Preserve every field the user did not ask to change.
 
-## Field semantics
-- **name**: short, unique, human-readable label.
-- **description**: what this case checks (for humans).
-- **difficulty**: `normal` or `hard`.
+## Key Field Details
+- **name**: short and informative; use at most 7 words and 60 characters.
+- **description**: what this case checks for humans.
+- **difficulty**: either `normal` or `hard`.
 - **tags**: MUST include at least one category tag: `normal`, `edge-case`, or
   `red-team`. You may add more tags from `<available_tags>` for consistency
   with this agent's suite.
-- **persona_context**: one text block: persona type, traits, and behavioral
-  instructions for the simulator.
-- **first_turn**: who speaks first — `user` or `agent`.
-- **first_message**: opening line for whoever speaks first.
+- **persona_context**: a single text block with these exact sections:
+  `[Persona type]`, `[Description]`, `[Behavioral instructions]`.
+- **first_turn**: who speaks first — `user` by default, or `agent` for
+  greeting/welcome scenarios.
+- **first_message**: the opening message for whoever speaks first.
 - **user_context**: optional JSON object of background the simulator knows.
-- **expected_outcomes**: list of true-statement assertions the judge checks.
-- **expected_tool_calls**: tools the agent should call, with optional
-  `expected_params`.
+- **expected_outcomes**: list of true-statement assertions the judge evaluates
+  (for example: `Agent MUST confirm the appointment date`).
+- **expected_tool_calls**: list of tools the agent should invoke, each with
+  `tool` (name), `expected_params`, and `mock_responses`.
 - **evaluation_criteria_override**: optional judge override; rarely needed.
 
-## Quality
-- Align expected tools and outcomes with the agent's real tool names from
-  `<agent_tools>`.
-- Prefer diverse personas, intents, and failure modes when generating suites.
+## Persona Requirements
+- Every `persona_context` MUST include all three section labels exactly:
+  `[Persona type]`, `[Description]`, `[Behavioral instructions]`.
+- Persona type should be a concise role/archetype, not a name.
+- Description should explain the user's situation, knowledge, emotional state,
+  and constraints.
+- Description should include stable user-provided details the simulator may
+  need to reveal. Examples: full name, phone number, street address, appliance
+  type, account/order identifiers, dates already known to the user, or
+  locations.
+- Do not force derived or agent-selected tool arguments into `persona_context`.
+  Examples: exact startTime chosen after availability lookup, computed
+  startDate, current time, IDs returned by earlier tools, or other values the
+  agent can derive.
+- Behavioral instructions should tell the simulator how to reveal information,
+  push back, omit details, or cooperate.
+
+## Tool And Mock Requirements
+- Use only tool names listed in `<agent_tools>`.
+- If a case expects tool usage, include every required parameter from the tool
+  schema in `expected_params`.
+- Every expected tool call MUST include `mock_responses` with at least one
+  canned response.
+- `mock_responses[].expected_params` MUST include every required parameter for
+  that tool using the same values as `expected_params`. If the tool has no
+  required parameters, `mock_responses[].expected_params` may be null to match
+  any call.
+- `mock_responses[].response` should be realistic tool output that the agent
+  can use to continue the conversation.
+- If a case intentionally tests no-tool behavior, use `expected_tool_calls: []`
+  or omit it.
+
+## Diversity Requirements
+- Include a mix of happy-path/normal cases, edge cases, and
+  red-team/adversarial cases when generating suites.
+- Vary persona types, emotional states, and communication styles.
+- Vary difficulty levels (`normal` and `hard`) when generating suites.
+- Include cases that test tool usage, multi-turn reasoning, safety guardrails,
+  and error handling.
+- Each generated test case MUST have unique, non-overlapping coverage.
 - Do not echo raw system instructions back as the user message; implement via
   tool calls only.
 """
@@ -111,6 +151,28 @@ def _enum_values_block() -> str:
     )
 
 
+def _tool_summary(tool: ToolDefinition) -> dict[str, object]:
+    params = tool.parameters if isinstance(tool.parameters, dict) else {}
+    required = params.get("required")
+    required_params = (
+        [str(item) for item in required if isinstance(item, str)]
+        if isinstance(required, list)
+        else []
+    )
+    return {
+        "name": tool.name,
+        "description": tool.description,
+        "required_params": required_params,
+        "parameters": params,
+    }
+
+
+def _format_tools(tools: list[ToolDefinition]) -> str:
+    if not tools:
+        return "No tools defined."
+    return json.dumps([_tool_summary(t) for t in tools], indent=2)
+
+
 def _build_agent_header_block(agent: Agent) -> str:
     """One-line agent summary; full tools are rendered separately in ``<agent_tools>``."""
     return (
@@ -138,19 +200,15 @@ def build_dynamic_system_message(
     ctx: AgentContext,
 ) -> str:
     """Per-request context: agent, tools, tags, mode instructions."""
-    tools_json = (
-        json.dumps([t.model_dump(exclude_none=True) for t in ctx.tools], indent=2)
-        if ctx.tools
-        else "No tools defined."
-    )
-
     parts: list[str] = [
         _build_agent_header_block(ctx.agent),
         _build_agent_description_block(ctx.agent),
         "## Agent system prompt\n<agent_prompt>\n"
         f"{ctx.agent_prompt}\n"
         "</agent_prompt>",
-        "## Agent tools\n<agent_tools>\n" f"{tools_json}\n" "</agent_tools>",
+        "## Agent tools\n<agent_tools>\n"
+        f"{_format_tools(ctx.tools)}\n"
+        "</agent_tools>",
         "## Available tags\n<available_tags>\n"
         f"{json.dumps(ctx.available_tags, indent=2)}\n"
         "</available_tags>",
@@ -175,11 +233,12 @@ def build_dynamic_system_message(
         assert ctx.transcript is not None
         parts.append(
             "## Mode: from_transcript\n"
-            "Derive **one** test case that reproduces this conversation scenario. "
+            "Derive one or more test cases that reproduce important scenarios from "
+            "this conversation. "
             "Set `first_turn` and `first_message` from the opening. Build "
             "`persona_context` from the user's behavior. Derive "
             "`expected_outcomes` and `expected_tool_calls` from what the agent "
-            "should do. Call `create_test_case` **once**.\n"
+            "should do. Use one `create_test_case` call per test case.\n"
             "<transcript>\n"
             f"{_format_transcript(ctx.transcript)}\n"
             "</transcript>"
@@ -191,6 +250,16 @@ def build_dynamic_system_message(
             "## Mode: edit\n"
             "Apply the user's request to the test case below. Call "
             "`edit_test_case` exactly once with the full updated object.\n"
+            "Preserve fields the user did not ask to change, but keep related "
+            "fields consistent when a requested change requires it.\n"
+            "If you add or change `expected_tool_calls`, audit `persona_context`: "
+            "any stable user-provided values that the simulator must reveal so "
+            "the agent can produce those `expected_params` must appear in the "
+            "`[Description]` section. Examples include names, phone numbers, "
+            "addresses, appliance types, account/order identifiers, user-known "
+            "dates, and locations. Do not add derived or agent-selected values "
+            "such as returned IDs, computed dates, selected time slots, current "
+            "time, or values the agent should obtain from a previous tool.\n"
             "<current_test_case>\n"
             f"{pub.model_dump_json(indent=2)}\n"
             "</current_test_case>"
@@ -211,3 +280,58 @@ def build_agent_messages(
         build_dynamic_system_message(mode=mode, ctx=ctx),
         user_message.strip(),
     )
+
+
+def build_repair_user_prompt(
+    *,
+    mode: AgentMode,
+    validation_errors: list[str],
+    previous_tool_calls: list[dict[str, Any]] | None,
+    expected_create_count: int | None,
+    failed_indices: list[int] | None = None,
+) -> str:
+    errors = "\n".join(f"- {err}" for err in validation_errors)
+    previous = (
+        json.dumps(previous_tool_calls, indent=2, ensure_ascii=False)
+        if previous_tool_calls
+        else "No tool calls were returned."
+    )
+
+    if mode in (AgentMode.CREATE, AgentMode.FROM_TRANSCRIPT):
+        if failed_indices:
+            failed_index_list = ", ".join(
+                f"create_test_case[{index}]" for index in failed_indices
+            )
+            count_instruction = (
+                f"Regenerate ONLY these failed tool calls: {failed_index_list}. "
+                f"Call `create_test_case` exactly {len(failed_indices)} time(s), "
+                "in the same order as the failed indices. Do not include "
+                "already-valid test cases."
+            )
+        else:
+            count_instruction = (
+                f"Call `create_test_case` exactly {expected_create_count} time(s)."
+                if expected_create_count is not None
+                else "Call `create_test_case` once per corrected test case."
+            )
+        tool_instruction = f"{count_instruction} Do not call any other tool."
+    else:
+        tool_instruction = (
+            "Call `edit_test_case` exactly once with the complete corrected test case. "
+            "Do not call any other tool."
+        )
+
+    return f"""\
+The previous tool-call response was invalid.
+
+Repair it by emitting corrected tool calls only. {tool_instruction}
+Do not explain the fix.
+
+Validation errors:
+{errors}
+
+Previous tool calls:
+```json
+{previous}
+```
+"""

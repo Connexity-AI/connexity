@@ -23,6 +23,11 @@ def test_static_system_mentions_tools() -> None:
     s = build_static_system_message()
     assert "create_test_case" in s
     assert "edit_test_case" in s
+    assert "mock_responses" in s
+    assert "[Persona type]" in s
+    assert "stable user-provided details" in s
+    assert "Do not force derived or agent-selected tool arguments" in s
+    assert "may be null to match" in s
 
 
 def test_static_system_does_not_mention_status() -> None:
@@ -151,6 +156,8 @@ def test_dynamic_from_transcript_includes_transcript(db: Session) -> None:
     dyn = build_dynamic_system_message(mode=AgentMode.FROM_TRANSCRIPT, ctx=ctx)
     assert "<transcript>" in dyn
     assert "Hello" in dyn
+    assert "one or more test cases" in dyn
+    assert "Call `create_test_case` **once**" not in dyn
 
 
 def test_dynamic_edit_includes_current_case(db: Session) -> None:
@@ -173,3 +180,6 @@ def test_dynamic_edit_includes_current_case(db: Session) -> None:
     dyn = build_dynamic_system_message(mode=AgentMode.EDIT, ctx=ctx)
     assert "<current_test_case>" in dyn
     assert "Case A" in dyn
+    assert "If you add or change `expected_tool_calls`" in dyn
+    assert "must appear in the `[Description]` section" in dyn
+    assert "Do not add derived or agent-selected values" in dyn
