@@ -139,19 +139,19 @@ function EvalRunDetailContent({
           >
             <ToggleGroupItem
               value="all"
-              className="h-6 px-2 text-[11px] data-[state=on]:bg-accent/60"
+              className="h-6 cursor-pointer px-2 text-[11px] data-[state=on]:bg-accent/60"
             >
               All ({results.length})
             </ToggleGroupItem>
             <ToggleGroupItem
               value="passed"
-              className="h-6 px-2 text-[11px] data-[state=on]:bg-green-500/15 data-[state=on]:text-green-400"
+              className="h-6 cursor-pointer px-2 text-[11px] data-[state=on]:bg-green-500/15 data-[state=on]:text-green-400"
             >
               Passed ({passedCount})
             </ToggleGroupItem>
             <ToggleGroupItem
               value="failed"
-              className="h-6 px-2 text-[11px] data-[state=on]:bg-red-500/15 data-[state=on]:text-red-400"
+              className="h-6 cursor-pointer px-2 text-[11px] data-[state=on]:bg-red-500/15 data-[state=on]:text-red-400"
             >
               Failed ({failedCount})
             </ToggleGroupItem>

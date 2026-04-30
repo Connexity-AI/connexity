@@ -106,8 +106,8 @@ export function VersionsDrawer() {
                         description && 'mb-1'
                       )}
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs font-medium text-foreground shrink-0">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="text-xs font-medium text-foreground truncate">
                           Version {version.version}
                           {name ? ` — ${name}` : ''}
                         </span>
