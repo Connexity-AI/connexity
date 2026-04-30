@@ -1,4 +1,4 @@
-FROM python:3.12.10-alpine3.22
+FROM python:3.12-alpine3.22
 
 # Install dependencies (tree and bash)
 RUN apk update
