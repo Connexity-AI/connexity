@@ -1,0 +1,65 @@
+[project]
+name = "connexity-cli"
+version = "0.0.0"
+description = "CLI for running and managing Connexity agent evaluations"
+readme = "CLI_README.md"
+license = { text = "MIT" }
+requires-python = ">=3.12"
+authors = [
+    { name = "Dmytro Ulyanets", email = "dmitry@spacestep.ca" },
+    { name = "Maksym Illin", email = "maksym@spacestep.ca" },
+    { name = "Mykhailo Kosovan", email = "mykhailo@spacestep.ca" },
+    { name = "Mykhailo Humeniuk", email = "mykhailo.humeniuk@spacestep.ca" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Software Development :: Quality Assurance",
+    "Typing :: Typed",
+]
+dependencies = [
+    "click>=8.1.7",
+    "httpx>=0.25.1",
+    "httpx-sse>=0.4.3",
+]
+
+[project.scripts]
+connexity-cli = "cli.main:app"
+
+[project.urls]
+Homepage = "https://github.com/Connexity-AI/connexity-evals"
+Repository = "https://github.com/Connexity-AI/connexity-evals"
+Issues = "https://github.com/Connexity-AI/connexity-evals/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# Ship only `cli/` from `backend/`. The `sources` rewrite makes `backend/cli`
+# import as the top-level `cli` package — matching how it works inside the
+# backend dev environment. Tests are excluded from the wheel.
+[tool.hatch.build.targets.wheel]
+packages = ["backend/cli"]
+sources = { "backend" = "" }
+exclude = [
+    "backend/cli/tests/**",
+    "**/__pycache__",
+    "**/*.pyc",
+]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "backend/cli/**",
+    "CLI_README.md",
+    "LICENSE",
+    "pyproject.toml",
+]
+exclude = [
+    "backend/cli/tests/**",
+    "**/__pycache__",
+    "**/*.pyc",
+]

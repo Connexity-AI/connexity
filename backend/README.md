@@ -121,6 +121,61 @@ docker compose exec backend bash scripts/tests-start.sh -x
 
 When the tests are run, a file `htmlcov/index.html` is generated, you can open it in your browser to see the coverage of the tests.
 
+## CLI (`connexity-cli`)
+
+The `cli/` package ships a Click-based CLI installed as `connexity-cli` (entry point in `pyproject.toml`). It is a thin, namespaced wrapper over the REST API and covers every backend route — auth, agents, eval configs, test cases, runs, custom metrics, prompt editor, integrations, environments, calls, config, health.
+
+### Configuration
+
+Tokens and the API URL are resolved in this order: `--token` / `--api-url` flag → `CONNEXITY_CLI_API_TOKEN` / `CONNEXITY_CLI_API_URL` env var → credentials file at `~/.config/connexity-cli/credentials.json` (mode `0600`, written only on `login --save`).
+
+### Quick start
+
+```bash
+# One-time login
+connexity-cli login --email me@example.com --save
+
+# Inspect resources
+connexity-cli agents list
+connexity-cli eval-configs list
+connexity-cli test-cases list --tag smoke
+
+# Author resources from JSON files (use "-" to read stdin)
+connexity-cli agents create --from-file ./agent.json
+connexity-cli eval-configs members replace <eval-config-id> --from-file ./members.json
+
+# End-to-end: trigger a run, wait for completion, set as baseline
+connexity-cli run \
+  --agent my-agent \
+  --eval-config smoke-suite \
+  --stream \
+  --set-baseline
+
+# CI gate: regression check
+connexity-cli compare --candidate <run-id> --against-baseline   # exit 1 on regression
+
+# Stream agent execution events
+connexity-cli runs stream <run-id>
+
+# AI-assisted prompt editing (streaming SSE → stderr, final → stdout)
+connexity-cli prompt-editor chat <session-id> --message "tighten the refusal prose"
+
+# Pure JSON mode for piping to jq
+connexity-cli --output json agents list | jq '.data[].name'
+```
+
+All authoring commands accept a single `--from-file PATH` (or `--from-file -` for stdin) carrying the JSON request body that matches the BE Pydantic schema (e.g. `AgentCreate`, `RunCreate`, `EvalConfigCreate`). The CLI does no schema duplication — the BE validates and returns clear errors.
+
+### Tests
+
+CLI smoke tests (HTTP-mocked via `respx`) live in `cli/tests/` and run independently of the app DB:
+
+```bash
+uv run pytest cli/tests
+```
+
+These tests pin URL/verb/payload shapes for every command group; they catch BE↔CLI drift the moment a route or model field is renamed.
+
 ## Migrations
 
 As during local development your app directory is mounted as a volume inside the container, you can also run the migrations with `alembic` commands inside the container and the migration code will be in your app directory (instead of being only inside the container). So you can add it to your git repository.
