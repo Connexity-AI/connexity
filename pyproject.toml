@@ -1,6 +1,6 @@
 [project]
 name = "connexity-cli"
-version = "0.0.0"
+version = "0.1.0"
 description = "CLI for running and managing Connexity agent evaluations"
 readme = "CLI_README.md"
 license = { text = "MIT" }
