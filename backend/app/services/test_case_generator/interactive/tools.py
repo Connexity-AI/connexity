@@ -1,4 +1,4 @@
-"""Tool definitions and parsers for the test-case AI agent."""
+"""Tool definitions and parsers for the interactive test-case agent."""
 
 import json
 import logging
@@ -103,6 +103,24 @@ def parse_create_test_case_tool_calls(
         created = _to_test_case_create(_arguments_dict(tc))
         if created is not None:
             out.append(created)
+    return out
+
+
+def parse_create_test_case_tool_call_slots(
+    tool_calls: list[dict[str, Any]] | None,
+) -> list[TestCaseCreate | None]:
+    """Return one slot per ``create_test_case`` call, preserving invalid positions."""
+    if not tool_calls:
+        return []
+    out: list[TestCaseCreate | None] = []
+    for tc in tool_calls:
+        fn = tc.get("function")
+        name = ""
+        if isinstance(fn, dict):
+            name = str(fn.get("name", ""))
+        if name != "create_test_case":
+            continue
+        out.append(_to_test_case_create(_arguments_dict(tc)))
     return out
 
 

@@ -207,7 +207,7 @@ def _parse_metric_json(raw: str) -> dict[str, object]:
 async def generate_metric(request: MetricGenerateRequest) -> MetricGenerateResult:
     """Call the LLM to draft a metric definition (not persisted)."""
     llm_config = LLMCallConfig(
-        model=request.model or settings.LLM_DEFAULT_MODEL,
+        model=request.model or settings.default_llm_id,
         max_tokens=settings.GENERATOR_MAX_TOKENS,
         temperature=settings.GENERATOR_TEMPERATURE,
         response_format=_metric_response_format(),

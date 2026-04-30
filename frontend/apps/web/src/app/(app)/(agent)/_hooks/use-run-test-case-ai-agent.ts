@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { runTestCaseAiAgent } from '@/actions/test-cases';
 import {
-  AppServicesTestCaseGeneratorAgentSchemasAgentMode,
+  AppServicesTestCaseGeneratorInteractiveSchemasAgentMode,
   type ConversationTurnInput,
 } from '@/client/types.gen';
 import { callKeys, testCaseKeys } from '@/constants/query-keys';
@@ -25,8 +25,8 @@ export function useRunTestCaseAiAgent(agentId: string) {
       const hasTranscript = !!transcript && transcript.length > 0;
       return runTestCaseAiAgent({
         mode: hasTranscript
-          ? AppServicesTestCaseGeneratorAgentSchemasAgentMode.FROM_TRANSCRIPT
-          : AppServicesTestCaseGeneratorAgentSchemasAgentMode.CREATE,
+          ? AppServicesTestCaseGeneratorInteractiveSchemasAgentMode.FROM_TRANSCRIPT
+          : AppServicesTestCaseGeneratorInteractiveSchemasAgentMode.CREATE,
         user_message: prompt,
         agent_id: agentId,
         persist: true,

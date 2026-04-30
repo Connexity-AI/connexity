@@ -82,10 +82,20 @@ from app.models.custom_metric import (  # noqa: F401
     CustomMetricUpdate,
 )
 
+# ── Deployment ─────────────────────────────────────────────────────
+from app.models.deployment import (  # noqa: F401
+    Deployment,
+    DeploymentBase,
+    DeploymentCreate,
+    DeploymentPublic,
+    DeploymentsPublic,
+)
+
 # ── Enums ──────────────────────────────────────────────────────────
 from app.models.enums import (  # noqa: F401
     AgentMode,
     AgentVersionStatus,
+    DeploymentStatus,
     Difficulty,
     FirstTurn,
     IntegrationProvider,

@@ -23,6 +23,14 @@ def test_cli_help_loads(runner) -> None:
     assert "Connexity CLI" in result.stdout
 
 
+def test_cli_version_flag(runner) -> None:
+    """--version prints the package version and exits cleanly."""
+    result = runner.invoke(app, ["--version"])
+    assert result.exit_code == 0
+    assert "connexity-cli" in result.stdout
+    assert any(c.isdigit() for c in result.stdout)
+
+
 def test_protected_command_requires_auth(runner, monkeypatch) -> None:
     """No env / file / flag → ensure_auth raises a clear error."""
     monkeypatch.delenv("CONNEXITY_CLI_API_TOKEN", raising=False)

@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import Generator
 from typing import Annotated
 
@@ -15,7 +16,7 @@ from sqlmodel import Session
 from app.core import security
 from app.core.config import settings
 from app.core.db import engine
-from app.models import TokenPayload, User
+from app.models import Agent, TokenPayload, User
 
 cookie_scheme = APIKeyCookie(name=settings.AUTH_COOKIE, auto_error=False)
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -60,3 +61,14 @@ def get_current_user(session: SessionDep, cookie: CookieDep, bearer: BearerDep) 
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def get_owned_agent(
+    *, agent_id: uuid.UUID, session: Session, current_user: User
+) -> Agent:
+    from app import crud
+
+    agent = crud.get_agent(session=session, agent_id=agent_id)
+    if not agent or agent.created_by != current_user.id:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return agent

@@ -6,7 +6,7 @@ import os
 
 import click
 
-from cli import credentials
+from cli import __version__, credentials
 from cli.api import DEFAULT_BASE_URL
 from cli.commands.agents import agents_group
 from cli.commands.auth import login_command, logout_command, whoami_command
@@ -27,6 +27,7 @@ from cli.commands.test_cases import test_cases_group
 
 
 @click.group()
+@click.version_option(__version__, "-V", "--version", prog_name="connexity-cli")
 @click.option(
     "--api-url",
     envvar="CONNEXITY_CLI_API_URL",

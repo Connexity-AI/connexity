@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
-import { DEFAULT_LLM_MODEL, DEFAULT_LLM_PROVIDER } from '@/constants/llm-models';
+import {
+  BOOTSTRAP_DEFAULT_LLM_ROUTE,
+  splitDefaultLlmRouting,
+} from '@/utils/split-default-llm-routing';
+
+const _bootstrapForm = splitDefaultLlmRouting(BOOTSTRAP_DEFAULT_LLM_ROUTE);
 
 // ─── Sub-schemas ─────────────────────────────────────────────────────────────
 
@@ -68,8 +73,8 @@ export type HttpMethod = (typeof HTTP_METHODS)[number];
 export const agentFormDefaults: AgentFormValues = {
   prompt: '',
   tools: [],
-  provider: DEFAULT_LLM_PROVIDER,
-  model: DEFAULT_LLM_MODEL,
+  provider: _bootstrapForm.provider,
+  model: _bootstrapForm.model,
   temperature: 0.7,
 };
 

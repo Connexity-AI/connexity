@@ -14,18 +14,34 @@ MOCK_TEST_CASES_RAW: list[dict] = [
             ["edge-case", "boundary"],
             ["red-team", "adversarial"],
         ][i % 3],
-        "persona_context": f"Test persona {i}. Behave as persona {i} would.",
+        "persona_context": (
+            "[Persona type]\n"
+            f"Test persona {i}\n"
+            "[Description]\n"
+            f"A realistic user for test case {i}. Their account id is {i}.\n"
+            "[Behavioral instructions]\n"
+            f"Behave as persona {i} would."
+        ),
         "first_message": f"Hello, this is test message {i}.",
         "user_context": {"test_case_index": i, "test": True},
         "expected_outcomes": [f"Agent MUST handle test case {i} successfully"],
         "expected_tool_calls": [
-            {"tool": "test_tool", "expected_params": {"id": str(i)}}
+            {
+                "tool": "test_tool",
+                "expected_params": {"id": str(i)},
+                "mock_responses": [
+                    {
+                        "expected_params": {"id": str(i)},
+                        "response": {"ok": True, "id": str(i)},
+                    }
+                ],
+            }
         ],
     }
     for i in range(10)
 ]
 
-MOCK_LLM_RESPONSE = json.dumps(MOCK_TEST_CASES_RAW)
+MOCK_LLM_RESPONSE = json.dumps({"test_cases": MOCK_TEST_CASES_RAW})
 
 
 @pytest.fixture()

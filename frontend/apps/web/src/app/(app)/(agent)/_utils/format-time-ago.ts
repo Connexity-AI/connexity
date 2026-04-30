@@ -18,7 +18,8 @@ const DAY = 24 * HOUR;
  * formatTimeAgo("2026-04-06T12:00:00Z", 2)  // "3/1/2026"      (>= 2 days)
  */
 export function formatTimeAgo(dateStr: string, absoluteAfterDays = 7): string {
-  const date = new Date(dateStr);
+  const utcStr = dateStr.endsWith('Z') || dateStr.includes('+') ? dateStr : `${dateStr}Z`;
+  const date = new Date(utcStr);
   const now = new Date();
   const diff = now.getTime() - date.getTime();
 

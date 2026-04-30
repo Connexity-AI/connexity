@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
-import { DEFAULT_LLM_MODEL, DEFAULT_LLM_PROVIDER } from '@/constants/llm-models';
+import {
+  BOOTSTRAP_DEFAULT_LLM_ROUTE,
+  splitDefaultLlmRouting,
+} from '@/utils/split-default-llm-routing';
 
 import type { EvalConfigCreate } from '@/client/types.gen';
 
@@ -46,7 +49,11 @@ export type CreateEvalFormValues = z.infer<typeof createEvalFormSchema>;
 export type CreateEvalTestCaseValue = CreateEvalFormValues['test_cases'][number];
 export type CreateEvalMetricValue = CreateEvalFormValues['judge']['metrics'][number];
 
-export function buildDefaults(name: string): CreateEvalFormValues {
+export function buildDefaults(
+  name: string,
+  defaultLlmRoute: string = BOOTSTRAP_DEFAULT_LLM_ROUTE
+): CreateEvalFormValues {
+  const { provider, model } = splitDefaultLlmRouting(defaultLlmRoute);
   return {
     name,
     run: {
@@ -56,13 +63,13 @@ export function buildDefaults(name: string): CreateEvalFormValues {
     },
     test_cases: [],
     judge: {
-      provider: DEFAULT_LLM_PROVIDER,
-      model: DEFAULT_LLM_MODEL,
+      provider,
+      model,
       metrics: [],
     },
     persona: {
-      provider: DEFAULT_LLM_PROVIDER,
-      model: DEFAULT_LLM_MODEL,
+      provider,
+      model,
       temperature: 0.7,
     },
   };

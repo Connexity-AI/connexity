@@ -70,3 +70,9 @@ class Platform(StrEnum):
 
 class IntegrationProvider(StrEnum):
     RETELL = "retell"
+
+
+class DeploymentStatus(StrEnum):
+    PENDING = "pending"
+    DEPLOYED = "deployed"
+    FAILED = "failed"

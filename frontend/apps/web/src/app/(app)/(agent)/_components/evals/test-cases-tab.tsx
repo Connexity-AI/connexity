@@ -20,9 +20,8 @@ export function TestCasesTab() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [justQueued, setJustQueued] = useState(false);
 
-  const handleGenerate = (count: number) => {
-    console.info('[gen-tc] tab.handleGenerate', { agentId, count });
-    generate(count);
+  const handleGenerate = (payload: { count: number; model: string }) => {
+    generate(payload);
     setJustQueued(true);
   };
 

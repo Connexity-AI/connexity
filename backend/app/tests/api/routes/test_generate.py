@@ -8,14 +8,14 @@ from app import crud
 from app.core.config import settings
 from app.models import Agent, AgentCreate, AgentUpdate
 from app.models.enums import AgentMode
-from app.services.test_case_generator.schemas import GenerateRequest
+from app.services.test_case_generator.batch.schemas import GenerateRequest
 from app.tests.services.test_case_generator.conftest import MOCK_LLM_RESPONSE
 from app.tests.utils.eval import create_test_agent
 
 
 async def _mock_generate(request):  # type: ignore[no-untyped-def]
     """Return pre-built TestCaseCreate objects from mock data."""
-    from app.services.test_case_generator.core import _parse_test_cases
+    from app.services.test_case_generator.batch.core import _parse_test_cases
 
     test_cases = _parse_test_cases(MOCK_LLM_RESPONSE, expected_count=request.count)
     return test_cases, "gpt-4o", 1500
