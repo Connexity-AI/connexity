@@ -26,7 +26,7 @@ const DIFFICULTY_OPTIONS: { value: DifficultyFilter; label: string }[] = [
 ];
 
 const pillItemClass =
-  'h-auto min-w-0 rounded px-2.5 py-1 text-xs text-muted-foreground transition-colors data-[state=on]:bg-foreground data-[state=on]:text-background hover:bg-accent hover:text-foreground';
+  'h-auto min-w-0 cursor-pointer rounded px-2.5 py-1 text-xs text-muted-foreground transition-colors data-[state=on]:bg-foreground data-[state=on]:text-background hover:bg-accent hover:text-foreground';
 
 interface TestCasesFilterBarProps {
   statusFilter: StatusFilter;
@@ -85,7 +85,7 @@ export function TestCasesFilterBar({
         variant="outline"
         pressed={groupByTags}
         onPressedChange={onToggleGroupByTags}
-        className="h-7 min-w-0 gap-1.5 rounded border-border px-2.5 text-xs text-muted-foreground data-[state=on]:border-foreground data-[state=on]:bg-foreground data-[state=on]:text-background hover:bg-accent/50 hover:text-foreground"
+        className="h-7 min-w-0 cursor-pointer gap-1.5 rounded border-border px-2.5 text-xs text-muted-foreground data-[state=on]:border-foreground data-[state=on]:bg-foreground data-[state=on]:text-background hover:bg-accent/50 hover:text-foreground"
       >
         <Tag className="h-3 w-3" />
         Group by tags

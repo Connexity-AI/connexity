@@ -50,7 +50,7 @@ export const IntegrationCard: FC<Props> = ({ integration }) => {
           </div>
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
-              className="h-8 w-8 flex items-center justify-center rounded text-muted-foreground hover:text-red-400 hover:bg-accent transition-colors"
+              className="h-8 w-8 flex cursor-pointer items-center justify-center rounded text-muted-foreground hover:text-red-400 hover:bg-accent transition-colors"
               title="Delete integration"
               onClick={() => setDeleteOpen(true)}
             >
