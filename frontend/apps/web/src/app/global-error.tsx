@@ -70,7 +70,7 @@ const AlertEnv: FC<AlertEnvProps> = ({ error }) => {
   if (!isEnvError) return null;
 
   const infoText = 'See the full list of environment variables on this link:';
-  const docsUrl = `https://github.com/space-step/connexity-evals/blob/main/README.md`;
+  const docsUrl = `https://github.com/space-step/connexity/blob/main/README.md`;
 
   const consoleMessage = `${error.message} ${infoText} ${docsUrl}`;
   console.error(consoleMessage);

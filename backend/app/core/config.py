@@ -72,7 +72,7 @@ class Settings(BaseSettings):
         list[AnyUrl] | str, BeforeValidator(parse_cors)
     ] = []
 
-    PROJECT_NAME: str = "connexity-evals"
+    PROJECT_NAME: str = "connexity"
     SENTRY_DSN: HttpUrl | None = None
 
     EMAIL_TEST_USER: EmailStr = "test@example.com"

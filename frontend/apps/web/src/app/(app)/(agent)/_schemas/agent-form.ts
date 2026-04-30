@@ -84,7 +84,7 @@ export function makeDefaultTool(overrides?: Partial<AgentToolValues>): AgentTool
     name: '',
     description: '',
     url: '',
-    method: 'GET',
+    method: 'POST',
     timeout: 3,
     authHeaders: [],
     parameters: [],

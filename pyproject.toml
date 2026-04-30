@@ -31,9 +31,9 @@ dependencies = [
 connexity-cli = "cli.main:app"
 
 [project.urls]
-Homepage = "https://github.com/Connexity-AI/connexity-evals"
-Repository = "https://github.com/Connexity-AI/connexity-evals"
-Issues = "https://github.com/Connexity-AI/connexity-evals/issues"
+Homepage = "https://github.com/Connexity-AI/connexity"
+Repository = "https://github.com/Connexity-AI/connexity"
+Issues = "https://github.com/Connexity-AI/connexity/issues"
 
 [build-system]
 requires = ["hatchling"]

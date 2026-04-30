@@ -73,7 +73,11 @@ function ToolCallParams({ index, tool }: ToolCallParamsProps) {
                 <div key={param.id}>
                   <label className="mb-1 block text-[10px] text-muted-foreground/60">
                     {param.name}
-                    <span className="ml-0.5 text-red-400">*</span>
+                    {param.required ? (
+                      <span className="ml-0.5 text-red-400">*</span>
+                    ) : (
+                      <span className="ml-1 text-muted-foreground/40">(optional)</span>
+                    )}
                     {param.description && (
                       <span className="ml-1 text-muted-foreground/40">— {param.description}</span>
                     )}
@@ -84,7 +88,7 @@ function ToolCallParams({ index, tool }: ToolCallParamsProps) {
                       field.onChange({ ...params, [param.name]: event.target.value })
                     }
                     placeholder={`Enter ${param.name}...`}
-                    aria-required="true"
+                    aria-required={param.required ? 'true' : undefined}
                     aria-invalid={errorMessage ? 'true' : undefined}
                     className={cn(
                       'h-7 font-mono text-xs',

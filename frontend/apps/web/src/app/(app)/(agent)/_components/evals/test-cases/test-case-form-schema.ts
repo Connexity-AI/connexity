@@ -25,7 +25,7 @@ export type TestCaseFormValues = z.infer<typeof testCaseFormSchema>;
 
 export interface ToolForValidation {
   name: string;
-  parameters: { name: string }[];
+  parameters: { name: string; required: boolean }[];
 }
 
 export function buildTestCaseFormSchema(availableTools: ToolForValidation[]) {
@@ -36,6 +36,7 @@ export function buildTestCaseFormSchema(availableTools: ToolForValidation[]) {
       if (!tool) return;
       const params = call.expected_params ?? {};
       tool.parameters.forEach((param) => {
+        if (!param.required) return;
         const value = params[param.name];
         const isEmpty =
           value === undefined ||
