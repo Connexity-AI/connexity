@@ -34,7 +34,7 @@ export function TestCaseDrawerHeader({ testCaseName, onOpenAiEdit }: TestCaseDra
           type="button"
           onClick={onOpenAiEdit}
           title="AI Assistant"
-          className="flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-violet-500/25 bg-violet-500/10 px-2 text-[11px] text-violet-300 transition-colors hover:bg-violet-500/20"
+          className="flex h-7 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-violet-500/25 bg-violet-500/10 px-2 text-[11px] text-violet-300 transition-colors hover:bg-violet-500/20"
         >
           <Sparkles className="h-3 w-3" />
           AI Assistant
