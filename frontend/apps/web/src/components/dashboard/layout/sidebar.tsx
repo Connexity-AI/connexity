@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
@@ -7,6 +8,7 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -39,6 +41,21 @@ const menuItems = [
 const Sidebar: FC<Props> = async ({ currentUser }) => {
   return (
     <UISidebar collapsible="icon" className="border-r bg-card dark:bg-zinc-900">
+      <SidebarHeader className="border-b px-3 py-4">
+        <Link href={UrlGenerator.agents()} className="flex items-center justify-center gap-2 overflow-hidden group-data-[collapsible=icon]:justify-center">
+          <Image
+            src="/connexity-logo.avif"
+            alt="Connexity"
+            width={32}
+            height={32}
+            className="shrink-0 rounded-md"
+          />
+          <span className="truncate text-lg font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
+            Connexity
+          </span>
+        </Link>
+      </SidebarHeader>
+
       {currentUser && (
         <SidebarContent>
           <SidebarGroup>

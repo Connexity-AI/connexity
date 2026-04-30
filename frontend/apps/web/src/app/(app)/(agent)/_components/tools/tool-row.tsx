@@ -47,15 +47,17 @@ export function ToolRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
           <span className="text-sm text-foreground font-mono truncate">{name || 'Untitled'}</span>
-          <span
-            className={cn(
-              'text-[10px] px-1.5 py-0.5 rounded border font-mono shrink-0',
-              METHOD_BG[method],
-              METHOD_COLOR[method]
-            )}
-          >
-            {method}
-          </span>
+          {url && (
+            <span
+              className={cn(
+                'text-[10px] px-1.5 py-0.5 rounded border font-mono shrink-0',
+                METHOD_BG[method],
+                METHOD_COLOR[method]
+              )}
+            >
+              {method}
+            </span>
+          )}
         </div>
         <p className="text-xs text-muted-foreground truncate pr-4">
           {description || <span className="italic text-muted-foreground/40">No description</span>}

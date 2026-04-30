@@ -23,7 +23,7 @@ Trusted Publishers use OpenID Connect (OIDC) so the GitHub Actions workflow can 
    - Under "Add a new pending publisher", fill in:
      - **PyPI project name**: `connexity-cli`
      - **Owner**: `Connexity-AI`
-     - **Repository**: `connexity-evals`
+     - **Repository**: `connexity`
      - **Workflow name**: `publish-pypi.yml`
      - **Environment name**: `pypi`
    - Click "Add"
@@ -37,7 +37,7 @@ Trusted Publishers use OpenID Connect (OIDC) so the GitHub Actions workflow can 
 
 The publish workflow references a GitHub environment called `pypi`. Create it:
 
-1. Go to https://github.com/Connexity-AI/connexity-evals/settings/environments
+1. Go to https://github.com/Connexity-AI/connexity/settings/environments
 2. Click "New environment"
 3. Name it `pypi`
 4. Optionally add deployment protection rules (e.g., required reviewers)

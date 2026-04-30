@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["health"])
 
-DOCS_URL = "https://github.com/space-step/connexity-evals/blob/main/README.md"
+DOCS_URL = "https://github.com/space-step/connexity/blob/main/README.md"
 
 
 @router.get("/", response_model=Message)

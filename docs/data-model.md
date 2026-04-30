@@ -1,4 +1,4 @@
-# Data Model — connexity-evals
+# Data Model — connexity
 
 ## Entity Relationship Diagram
 

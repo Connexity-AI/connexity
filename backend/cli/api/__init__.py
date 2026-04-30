@@ -1,4 +1,4 @@
-"""Resource-namespaced HTTP client for the Connexity Evals REST API.
+"""Resource-namespaced HTTP client for the Connexity REST API.
 
 Usage:
     >>> with ApiClient(base_url=..., token=...) as client:

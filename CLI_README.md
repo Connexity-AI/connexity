@@ -1,8 +1,8 @@
 # connexity-cli
 
-Command-line client for [Connexity Evals](https://github.com/Connexity-AI/connexity-evals) — drive eval runs, manage agents and test cases, and gate CI on regressions, all from the terminal.
+Command-line client for [Connexity](https://github.com/Connexity-AI/connexity) — drive eval runs, manage agents and test cases, and gate CI on regressions, all from the terminal.
 
-`connexity-cli` is a thin wrapper over the Connexity Evals REST API. It covers every backend route — auth, agents, eval configs, test cases, runs (with SSE streaming), custom metrics, prompt editor, integrations, environments, calls, config, and health — so you can fully automate eval workflows without touching the web UI.
+`connexity-cli` is a thin wrapper over the Connexity REST API. It covers every backend route — auth, agents, eval configs, test cases, runs (with SSE streaming), custom metrics, prompt editor, integrations, environments, calls, config, and health — so you can fully automate eval workflows without touching the web UI.
 
 ## Installation
 
@@ -14,7 +14,7 @@ The wheel pulls in only `click`, `httpx`, and `httpx-sse` — no FastAPI, no SQL
 
 ## Authentication
 
-The CLI authenticates against a Connexity Evals API server using a Bearer JWT.
+The CLI authenticates against a Connexity API server using a Bearer JWT.
 
 | Source                                                       | When used                                          |
 |--------------------------------------------------------------|----------------------------------------------------|

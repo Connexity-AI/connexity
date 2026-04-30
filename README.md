@@ -1,4 +1,4 @@
-# connexity-evals
+# connexity
 
 ## Prerequisites
 
