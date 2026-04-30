@@ -164,6 +164,4 @@ def run_command(
 
         if final == "completed":
             ctx.exit(0)
-        if final in ("failed", "cancelled"):
-            sys.exit(1)
         sys.exit(1)

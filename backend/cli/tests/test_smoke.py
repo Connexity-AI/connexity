@@ -288,3 +288,69 @@ def test_calls_refresh(api_env, runner, respx_mock_clean) -> None:
         app, ["calls", "refresh", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"]
     )
     assert result.exit_code == 0, result.stderr
+
+
+# ---------------------------------------------------------------------------
+# Error mapping (_Transport._raise_for_status)
+# ---------------------------------------------------------------------------
+
+
+def test_error_404_with_detail_string(api_env, runner, respx_mock_clean) -> None:
+    """FastAPI-style {'detail': '...'} → ClickException with status + detail."""
+    respx_mock_clean.get("/agents/").respond(404, json={"detail": "Agents not found"})
+    result = runner.invoke(app, ["agents", "list"])
+    assert result.exit_code != 0
+    combined = result.stderr + result.stdout
+    assert "API error 404" in combined
+    assert "Agents not found" in combined
+
+
+def test_error_422_with_detail_list(api_env, runner, respx_mock_clean) -> None:
+    """FastAPI validation errors come as a list under 'detail' — must be serialized."""
+    validation_errors = [
+        {"loc": ["body", "name"], "msg": "field required", "type": "value_error"}
+    ]
+    respx_mock_clean.get("/agents/").respond(422, json={"detail": validation_errors})
+    result = runner.invoke(app, ["agents", "list"])
+    assert result.exit_code != 0
+    combined = result.stderr + result.stdout
+    assert "API error 422" in combined
+    assert "field required" in combined
+
+
+def test_error_500_with_non_json_body(api_env, runner, respx_mock_clean) -> None:
+    """Non-JSON error body falls back to response.text / reason phrase."""
+    respx_mock_clean.get("/agents/").respond(
+        500,
+        content=b"<html><body>Internal Server Error</body></html>",
+        headers={"Content-Type": "text/html"},
+    )
+    result = runner.invoke(app, ["agents", "list"])
+    assert result.exit_code != 0
+    combined = result.stderr + result.stdout
+    assert "API error 500" in combined
+
+
+def test_error_401_unauthorized(api_env, runner, respx_mock_clean) -> None:
+    """Token rejected by the API → surfaces 401 detail to the user."""
+    respx_mock_clean.get("/agents/").respond(
+        401, json={"detail": "Could not validate credentials"}
+    )
+    result = runner.invoke(app, ["agents", "list"])
+    assert result.exit_code != 0
+    combined = result.stderr + result.stdout
+    assert "API error 401" in combined
+    assert "Could not validate credentials" in combined
+
+
+def test_error_dict_response_when_list_expected(
+    api_env, runner, respx_mock_clean
+) -> None:
+    """Endpoints that expect a list reject a dict response with a clear error."""
+    respx_mock_clean.get("/integrations/int-1/agents").respond(
+        200, json={"unexpected": "shape"}
+    )
+    result = runner.invoke(app, ["integrations", "agents", "int-1"])
+    assert result.exit_code != 0
+    combined = result.stderr + result.stdout
+    assert "Expected a JSON array" in combined
