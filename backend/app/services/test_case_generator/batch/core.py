@@ -5,11 +5,11 @@ import re
 from app.core.config import settings
 from app.models.test_case import TestCaseCreate
 from app.services.llm import LLMCallConfig, LLMMessage, LLMResponse, call_llm
-from app.services.test_case_generator.prompt import (
+from app.services.test_case_generator.batch.prompt import (
     build_system_prompt,
     build_user_prompt,
 )
-from app.services.test_case_generator.schemas import GenerateRequest
+from app.services.test_case_generator.batch.schemas import GenerateRequest
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ async def generate_test_cases(
     """
     system_prompt = build_system_prompt()
     user_prompt = build_user_prompt(
-        agent_prompt=request.agent_prompt,
+        agent_prompt=request.agent_prompt or "",
         tools=request.tools,
         count=request.count,
         focus_tags=request.focus_tags or None,

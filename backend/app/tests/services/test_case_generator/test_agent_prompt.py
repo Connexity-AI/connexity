@@ -9,13 +9,13 @@ from sqlmodel import Session
 from app.models.enums import TurnRole
 from app.models.schemas import ConversationTurn, ToolCall, ToolCallFunction
 from app.models.test_case import TestCase as TestCaseRow
-from app.services.test_case_generator.agent.context import AgentContext
-from app.services.test_case_generator.agent.prompt import (
+from app.services.test_case_generator.interactive.context import AgentContext
+from app.services.test_case_generator.interactive.prompt import (
     _format_transcript,
     build_dynamic_system_message,
     build_static_system_message,
 )
-from app.services.test_case_generator.agent.schemas import AgentMode
+from app.services.test_case_generator.interactive.schemas import AgentMode
 from app.tests.utils.eval import create_test_platform_agent
 
 

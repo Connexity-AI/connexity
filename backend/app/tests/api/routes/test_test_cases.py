@@ -535,7 +535,7 @@ def test_test_case_ai_create_preview(
         ],
     )
     with patch(
-        "app.services.test_case_generator.agent.core.call_llm",
+        "app.services.test_case_generator.interactive.core.call_llm",
         new_callable=AsyncMock,
         return_value=mock_resp,
     ):
@@ -586,7 +586,7 @@ def test_test_case_ai_edit_preview_default_no_db_write(
         ],
     )
     with patch(
-        "app.services.test_case_generator.agent.core.call_llm",
+        "app.services.test_case_generator.interactive.core.call_llm",
         new_callable=AsyncMock,
         return_value=mock_resp,
     ):
@@ -637,7 +637,7 @@ def test_test_case_ai_edit_persist_updates_db(
         ],
     )
     with patch(
-        "app.services.test_case_generator.agent.core.call_llm",
+        "app.services.test_case_generator.interactive.core.call_llm",
         new_callable=AsyncMock,
         return_value=mock_resp,
     ):

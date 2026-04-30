@@ -10,12 +10,12 @@ from sqlmodel import Session
 
 from app.models.test_case import TestCase as TestCaseRow
 from app.services.llm import LLMResponse
-from app.services.test_case_generator.agent.context import AgentContext
-from app.services.test_case_generator.agent.core import (
+from app.services.test_case_generator.interactive.context import AgentContext
+from app.services.test_case_generator.interactive.core import (
     TestCaseAgent,
     TestCaseAgentInput,
 )
-from app.services.test_case_generator.agent.schemas import AgentMode
+from app.services.test_case_generator.interactive.schemas import AgentMode
 from app.tests.utils.eval import create_test_platform_agent
 
 
@@ -60,7 +60,7 @@ async def test_run_create_mode(db: Session) -> None:
         ],
     )
     with patch(
-        "app.services.test_case_generator.agent.core.call_llm",
+        "app.services.test_case_generator.interactive.core.call_llm",
         new_callable=AsyncMock,
         return_value=mock_resp,
     ):
@@ -99,7 +99,7 @@ async def test_run_from_transcript_allows_multiple_creates(db: Session) -> None:
         ],
     )
     with patch(
-        "app.services.test_case_generator.agent.core.call_llm",
+        "app.services.test_case_generator.interactive.core.call_llm",
         new_callable=AsyncMock,
         return_value=mock_resp,
     ):
@@ -145,7 +145,7 @@ async def test_run_edit_mode(db: Session) -> None:
         tool_calls=[_tool_dict("edit_test_case", args)],
     )
     with patch(
-        "app.services.test_case_generator.agent.core.call_llm",
+        "app.services.test_case_generator.interactive.core.call_llm",
         new_callable=AsyncMock,
         return_value=mock_resp,
     ):

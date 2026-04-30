@@ -516,6 +516,37 @@ export const AgentSimulatorConfigSchema = {
   description: 'Agent simulator LLM overrides (only used when agent mode is platform).',
 } as const;
 
+export const AgentToolDefinitionSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      minLength: 1,
+      title: 'Name',
+    },
+    description: {
+      type: 'string',
+      title: 'Description',
+      default: '',
+    },
+    parameters: {
+      anyOf: [
+        {
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Parameters',
+    },
+  },
+  type: 'object',
+  required: ['name'],
+  title: 'AgentToolDefinition',
+  description:
+    'Prompt-facing tool: ``parameters`` is a full JSON Schema (properties, required, ...).',
+} as const;
+
 export const AgentUpdateSchema = {
   properties: {
     name: {
@@ -2513,7 +2544,7 @@ export const GenerateRequestSchema = {
     },
     tools: {
       items: {
-        $ref: '#/components/schemas/ToolDefinition',
+        $ref: '#/components/schemas/AgentToolDefinition',
       },
       type: 'array',
       title: 'Tools',
@@ -5016,7 +5047,7 @@ export const SuggestionsRequestSchema = {
 export const TestCaseAgentRequestSchema = {
   properties: {
     mode: {
-      $ref: '#/components/schemas/app__services__test_case_generator__agent__schemas__AgentMode',
+      $ref: '#/components/schemas/app__services__test_case_generator__interactive__schemas__AgentMode',
     },
     user_message: {
       type: 'string',
@@ -5138,7 +5169,7 @@ export const TestCaseAgentRequestSchema = {
 export const TestCaseAgentResultSchema = {
   properties: {
     mode: {
-      $ref: '#/components/schemas/app__services__test_case_generator__agent__schemas__AgentMode',
+      $ref: '#/components/schemas/app__services__test_case_generator__interactive__schemas__AgentMode',
     },
     created: {
       items: {
@@ -6705,34 +6736,6 @@ export const ToolCallFunctionSchema = {
   title: 'ToolCallFunction',
 } as const;
 
-export const ToolDefinitionSchema = {
-  properties: {
-    name: {
-      type: 'string',
-      title: 'Name',
-    },
-    description: {
-      type: 'string',
-      title: 'Description',
-    },
-    parameters: {
-      anyOf: [
-        {
-          type: 'object',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Parameters',
-    },
-  },
-  type: 'object',
-  required: ['name', 'description'],
-  title: 'ToolDefinition',
-  description: 'A single tool/function definition the agent has access to.',
-} as const;
-
 export const ToolDiffSchema = {
   properties: {
     added: {
@@ -6959,7 +6962,7 @@ export const app__models__enums__AgentModeSchema = {
   title: 'AgentMode',
 } as const;
 
-export const app__services__test_case_generator__agent__schemas__AgentModeSchema = {
+export const app__services__test_case_generator__interactive__schemas__AgentModeSchema = {
   type: 'string',
   enum: ['create', 'from_transcript', 'edit'],
   title: 'AgentMode',

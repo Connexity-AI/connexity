@@ -5,8 +5,11 @@ import pytest
 
 from app.models.test_case import TestCaseCreate
 from app.services.llm import LLMResponse
-from app.services.test_case_generator.core import _parse_test_cases, generate_test_cases
-from app.services.test_case_generator.schemas import GenerateRequest
+from app.services.test_case_generator.batch.core import (
+    _parse_test_cases,
+    generate_test_cases,
+)
+from app.services.test_case_generator.batch.schemas import GenerateRequest
 
 from .conftest import MOCK_LLM_RESPONSE, MOCK_TEST_CASES_RAW
 
@@ -61,7 +64,7 @@ def test_parse_test_cases_not_array_raises() -> None:
 def test_parse_test_cases_partial_results_logs_warning() -> None:
     # Only 1 test case but expecting 5
     data = [MOCK_TEST_CASES_RAW[0]]
-    with patch("app.services.test_case_generator.core.logger") as mock_logger:
+    with patch("app.services.test_case_generator.batch.core.logger") as mock_logger:
         parsed = _parse_test_cases(json.dumps(data), expected_count=5)
         assert len(parsed) == 1
         mock_logger.warning.assert_called_once()
@@ -75,7 +78,7 @@ async def test_generate_test_cases_calls_llm() -> None:
         count=10,
     )
     with patch(
-        "app.services.test_case_generator.core.call_llm",
+        "app.services.test_case_generator.batch.core.call_llm",
         new_callable=AsyncMock,
         return_value=_fake_llm_response(),
     ) as mock_call:
@@ -96,11 +99,11 @@ async def test_generate_test_cases_uses_config_default_model() -> None:
     )
     with (
         patch(
-            "app.services.test_case_generator.core.call_llm",
+            "app.services.test_case_generator.batch.core.call_llm",
             new_callable=AsyncMock,
             return_value=_fake_llm_response(),
         ),
-        patch("app.services.test_case_generator.core.settings") as mock_settings,
+        patch("app.services.test_case_generator.batch.core.settings") as mock_settings,
     ):
         mock_settings.default_llm_id = "openai/gpt-4o"
         mock_settings.GENERATOR_MAX_TOKENS = 16_000
@@ -121,11 +124,11 @@ async def test_generate_test_cases_respects_model_override() -> None:
     resp.model = "gpt-4o-mini"
     with (
         patch(
-            "app.services.test_case_generator.core.call_llm",
+            "app.services.test_case_generator.batch.core.call_llm",
             new_callable=AsyncMock,
             return_value=resp,
         ) as mock_call,
-        patch("app.services.test_case_generator.core.settings") as mock_settings,
+        patch("app.services.test_case_generator.batch.core.settings") as mock_settings,
     ):
         mock_settings.default_llm_id = "openai/gpt-4o"
         mock_settings.GENERATOR_MAX_TOKENS = 16_000

@@ -14,6 +14,7 @@ from typing import Any
 from app.models.agent import Agent
 from app.models.enums import AgentMode, TurnRole
 from app.models.prompt_editor import PromptEditorMessage
+from app.services.agent_tool_definitions import agent_tool_definitions_as_prompt_dicts
 from app.services.llm import LLMMessage, LLMToolCall
 
 logger = logging.getLogger(__name__)
@@ -251,45 +252,13 @@ def _apply_one_edit_lines(
 # ---------------------------------------------------------------------------
 
 
-def _extract_agent_tools(agent: Agent) -> list[dict[str, Any]]:
-    """Return OpenAI-style tool dicts defined on the agent (``type``/``function``).
-
-    Entries that do not match the expected shape are skipped so we never
-    surface malformed tools to the LLM.
-    """
-    tools: list[dict[str, Any]] = []
-    if not agent.tools:
-        return tools
-    for t in agent.tools:
-        if not isinstance(t, dict):
-            continue
-        fn = t.get("function") if "function" in t else None
-        if isinstance(fn, dict) and fn.get("name"):
-            tools.append(
-                {
-                    "name": str(fn.get("name", "")),
-                    "description": str(fn.get("description") or ""),
-                    "parameters": fn.get("parameters") or {},
-                }
-            )
-        elif t.get("name"):
-            tools.append(
-                {
-                    "name": str(t.get("name", "")),
-                    "description": str(t.get("description") or ""),
-                    "parameters": t.get("parameters") or {},
-                }
-            )
-    return tools
-
-
 def build_agent_config_block(agent: Agent) -> str:
     """Render ``<agent_config>`` with full tool schemas (not just names).
 
     The editor needs to see each tool's description and parameter schema so it
     can align prompt instructions with the actual tool surface the agent has.
     """
-    tools = _extract_agent_tools(agent)
+    tools = agent_tool_definitions_as_prompt_dicts(agent.tools)
     header = (
         f"Agent: {agent.name} | Mode: {agent.mode} "
         f"| Model: {agent.agent_model or ''} "

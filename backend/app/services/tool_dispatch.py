@@ -15,6 +15,7 @@ from app.models.schemas import (
     PythonImplementation,
     ToolPlatformConfig,
 )
+from app.services.agent_tool_definitions import raw_tool_entry_name
 from app.services.tool_executor import (
     SyntheticToolExecutor,
     ToolContext,
@@ -24,15 +25,6 @@ from app.services.tool_executor import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-def extract_openai_function_tool_name(tool_def: dict[str, Any]) -> str | None:
-    fn = tool_def.get("function")
-    if isinstance(fn, dict):
-        name = fn.get("name")
-        if isinstance(name, str):
-            return name
-    return None
 
 
 def validate_live_tool_snapshot(agent_tools: list[dict[str, Any]] | None) -> None:
@@ -52,7 +44,7 @@ def validate_live_tool_snapshot(agent_tools: list[dict[str, Any]] | None) -> Non
     missing_reasons: dict[str, str] = {}
 
     for tool_def in agent_tools:
-        name = extract_openai_function_tool_name(tool_def)
+        name = raw_tool_entry_name(tool_def)
         if not name:
             continue
 
@@ -261,7 +253,7 @@ def build_tool_executor(
 
     live_configs: dict[str, ToolPlatformConfig] = {}
     for tool_def in tools:
-        name = extract_openai_function_tool_name(tool_def)
+        name = raw_tool_entry_name(tool_def)
         if not name:
             continue
         raw_pc = tool_def.get("platform_config")

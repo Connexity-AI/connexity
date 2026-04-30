@@ -1,8 +1,8 @@
-from app.services.test_case_generator.prompt import (
+from app.services.test_case_generator.batch.prompt import (
     build_system_prompt,
     build_user_prompt,
 )
-from app.services.test_case_generator.schemas import ToolDefinition
+from app.services.test_case_generator.batch.schemas import ToolDefinition
 
 
 def test_build_system_prompt_contains_schema_fields() -> None:

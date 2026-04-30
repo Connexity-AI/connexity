@@ -1,4 +1,4 @@
-"""System and user messages for the test-case AI agent."""
+"""System and user messages for the interactive test-case agent."""
 
 import json
 
@@ -6,8 +6,8 @@ from app.models.agent import Agent
 from app.models.enums import Difficulty, FirstTurn, TurnRole
 from app.models.schemas import ConversationTurn
 from app.models.test_case import TestCasePublic
-from app.services.test_case_generator.agent.context import AgentContext
-from app.services.test_case_generator.agent.schemas import AgentMode
+from app.services.test_case_generator.interactive.context import AgentContext
+from app.services.test_case_generator.interactive.schemas import AgentMode
 
 
 def build_static_system_message() -> str:

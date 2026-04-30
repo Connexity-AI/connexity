@@ -1,4 +1,4 @@
-"""Tool definitions and parsers for the test-case AI agent."""
+"""Tool definitions and parsers for the interactive test-case agent."""
 
 import json
 import logging

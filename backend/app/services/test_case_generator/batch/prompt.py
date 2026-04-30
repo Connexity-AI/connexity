@@ -3,7 +3,7 @@ from copy import deepcopy
 from typing import Any
 
 from app.models.test_case import TestCaseCreate
-from app.services.test_case_generator.schemas import ToolDefinition
+from app.services.test_case_generator.batch.schemas import ToolDefinition
 
 
 def _test_case_schema_without_status() -> dict[str, Any]:

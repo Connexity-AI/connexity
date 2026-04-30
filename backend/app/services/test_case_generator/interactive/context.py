@@ -1,4 +1,4 @@
-"""Load DB-backed context for the test-case AI agent."""
+"""Load DB-backed context for the interactive test-case agent."""
 
 import uuid
 from dataclasses import dataclass
@@ -7,13 +7,11 @@ from sqlmodel import Session
 
 from app import crud
 from app.models import Agent, ConversationTurn, TestCase
-from app.services.test_case_generator.agent.schemas import (
+from app.services.agent_tool_definitions import parse_agent_tool_definitions
+from app.services.test_case_generator.batch.schemas import ToolDefinition
+from app.services.test_case_generator.interactive.schemas import (
     AgentMode,
     TestCaseAgentRequest,
-)
-from app.services.test_case_generator.schemas import (
-    ToolDefinition,
-    tool_definitions_from_agent_tools,
 )
 
 _CATEGORY_TAGS: tuple[str, ...] = ("normal", "edge-case", "red-team")
@@ -79,7 +77,7 @@ def build_agent_context(
         )
 
     agent_prompt = version.system_prompt or ""
-    tools = tool_definitions_from_agent_tools(version.tools)
+    tools = parse_agent_tool_definitions(version.tools)
 
     db_tags = crud.list_distinct_tags_for_agent(session=session, agent_id=agent.id)
     available_tags = merge_available_tags(

@@ -6,10 +6,10 @@ from typing import ClassVar
 from app.core.config import settings
 from app.models.test_case import TestCaseCreate
 from app.services.llm import LLMCallConfig, LLMMessage, LLMSettingsView, call_llm
-from app.services.test_case_generator.agent.context import AgentContext
-from app.services.test_case_generator.agent.prompt import build_agent_messages
-from app.services.test_case_generator.agent.schemas import AgentMode
-from app.services.test_case_generator.agent.tools import (
+from app.services.test_case_generator.interactive.context import AgentContext
+from app.services.test_case_generator.interactive.prompt import build_agent_messages
+from app.services.test_case_generator.interactive.schemas import AgentMode
+from app.services.test_case_generator.interactive.tools import (
     CREATE_TEST_CASE_TOOL,
     EDIT_TEST_CASE_TOOL,
     parse_create_test_case_tool_calls,

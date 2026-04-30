@@ -17,6 +17,7 @@ from app.models.schemas import (
     ToolCall,
 )
 from app.models.test_case import TestCase
+from app.services.agent_tool_definitions import agent_tool_definitions_as_prompt_dicts
 from app.services.judge_metrics import (
     MetricDefinition,
     ScoreType,
@@ -170,9 +171,10 @@ def _build_user_prompt(inp: JudgeInput, metric_names: list[str]) -> str:
         ensure_ascii=False,
     )
     agent_prompt = (inp.agent_system_prompt or "(not captured for this run)").strip()
+    tools_for_prompt = agent_tool_definitions_as_prompt_dicts(inp.agent_tools)
     tools_snapshot = (
-        json.dumps(inp.agent_tools or [], indent=2, ensure_ascii=False)
-        if inp.agent_tools
+        json.dumps(tools_for_prompt, indent=2, ensure_ascii=False)
+        if tools_for_prompt
         else "(not captured)"
     )
     override = (inp.test_case.evaluation_criteria_override or "").strip()
