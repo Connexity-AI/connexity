@@ -57,6 +57,7 @@ YOUR GOAL / SUCCESS CRITERIA (what you are trying to achieve in the conversation
 
 RULES:
 - Stay in character at all times. Write only the next message the user would send.
+- Do NOT use emojis, emoticons, or emoji-like unicode (e.g. 🙂, ^_^); this is a voice-call simulation—write plain spoken text only.
 - Be realistic: tone, length, and content should match the persona.
 - Keep replies short and conversational by default (usually 1-2 sentences) unless your persona clearly calls for more.
 - Do not dump all background context at once; reveal details only when it fits the persona and the flow of the conversation.
