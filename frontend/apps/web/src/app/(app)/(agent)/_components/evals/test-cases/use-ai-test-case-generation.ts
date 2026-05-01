@@ -1,13 +1,17 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import type { CarouselApi } from '@workspace/ui/components/ui/carousel';
+
 import { useRunTestCaseAiAgent } from '@/app/(app)/(agent)/_hooks/use-run-test-case-ai-agent';
 import { isErrorApiResult } from '@/utils/api';
+
+import type { TestCasePublic } from '@/client/types.gen';
 
 export const AI_GENERATION_STAGES = [
   { label: 'Reading agent prompt…', duration: 2625 },
@@ -23,7 +27,7 @@ export const addTestCaseAiSchema = z.object({
 
 export type AddTestCaseAiValues = z.infer<typeof addTestCaseAiSchema>;
 
-export type AiGenerationPhase = 'input' | 'generating';
+export type AiGenerationPhase = 'input' | 'generating' | 'results';
 
 const TICK_MS = 30;
 const COMPLETION_DELAY_MS = 200;
@@ -34,13 +38,36 @@ interface UseAiTestCaseGenerationOptions {
   onOpenChange: (open: boolean) => void;
 }
 
+export interface UseAiTestCaseGenerationReturn {
+  form: ReturnType<typeof useForm<AddTestCaseAiValues>>;
+  phase: AiGenerationPhase;
+  stageIndex: number;
+  progress: number;
+  error: string | null;
+  isPending: boolean;
+  handleSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onOpenChange: (open: boolean) => void;
+  generatedTestCases: TestCasePublic[];
+  setCarouselApi: (api: CarouselApi | undefined) => void;
+  currentIndex: number;
+  canScrollPrev: boolean;
+  canScrollNext: boolean;
+  scrollPrev: () => void;
+  scrollNext: () => void;
+}
+
 export function useAiTestCaseGeneration({
   agentId,
   onOpenChange,
-}: UseAiTestCaseGenerationOptions) {
+}: UseAiTestCaseGenerationOptions): UseAiTestCaseGenerationReturn {
   const [phase, setPhase] = useState<AiGenerationPhase>('input');
   const [stageIndex, setStageIndex] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [generatedTestCases, setGeneratedTestCases] = useState<TestCasePublic[]>([]);
+  const [carouselApi, setCarouselApi] = useState<CarouselApi | undefined>();
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
   const frameRef = useRef<number | null>(null);
 
   const { mutateAsync, isPending, error, reset } = useRunTestCaseAiAgent(agentId);
@@ -49,6 +76,22 @@ export function useAiTestCaseGeneration({
     resolver: zodResolver(addTestCaseAiSchema),
     defaultValues: { prompt: '' },
   });
+
+  useEffect(() => {
+    if (!carouselApi) return;
+    const sync = () => {
+      setCurrentIndex(carouselApi.selectedScrollSnap());
+      setCanScrollPrev(carouselApi.canScrollPrev());
+      setCanScrollNext(carouselApi.canScrollNext());
+    };
+    sync();
+    carouselApi.on('select', sync);
+    carouselApi.on('reInit', sync);
+    return () => {
+      carouselApi.off('select', sync);
+      carouselApi.off('reInit', sync);
+    };
+  }, [carouselApi]);
 
   const cancelAnimation = () => {
     if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
@@ -61,6 +104,8 @@ export function useAiTestCaseGeneration({
       setPhase('input');
       setStageIndex(0);
       setProgress(0);
+      setGeneratedTestCases([]);
+      setCurrentIndex(0);
       form.reset({ prompt: '' });
       reset();
     }
@@ -120,12 +165,26 @@ export function useAiTestCaseGeneration({
     }
 
     setProgress(100);
-    setTimeout(() => handleOpenChange(false), COMPLETION_DELAY_MS);
+
+    const created = result.data?.created ?? [];
+    if (created.length === 0) {
+      setTimeout(() => handleOpenChange(false), COMPLETION_DELAY_MS);
+      return;
+    }
+
+    setTimeout(() => {
+      setGeneratedTestCases(created);
+      setCurrentIndex(0);
+      setPhase('results');
+    }, COMPLETION_DELAY_MS);
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     void form.handleSubmit(runGeneration)(event);
   };
+
+  const scrollPrev = () => carouselApi?.scrollPrev();
+  const scrollNext = () => carouselApi?.scrollNext();
 
   return {
     form,
@@ -136,5 +195,12 @@ export function useAiTestCaseGeneration({
     isPending,
     handleSubmit,
     onOpenChange: handleOpenChange,
+    generatedTestCases,
+    setCarouselApi,
+    currentIndex,
+    canScrollPrev,
+    canScrollNext,
+    scrollPrev,
+    scrollNext,
   };
 }

@@ -3,6 +3,7 @@
 
 import { createContext, useContext, type ReactNode } from 'react';
 
+import { Button } from '@workspace/ui/components/ui/button';
 import { Form } from '@workspace/ui/components/ui/form';
 import { Sheet, SheetContent } from '@workspace/ui/components/ui/sheet';
 
@@ -10,9 +11,13 @@ import { AddTestCaseAiDrawerFooter } from './add-test-case-ai-drawer-footer';
 import { AddTestCaseAiDrawerHeader } from './add-test-case-ai-drawer-header';
 import { AddTestCaseAiGeneratingPhase } from './add-test-case-ai-generating-phase';
 import { AddTestCaseAiInputPhase } from './add-test-case-ai-input-phase';
-import { useAiTestCaseGeneration } from './use-ai-test-case-generation';
+import { AddTestCaseAiResultsPhase } from './add-test-case-ai-results-phase';
+import {
+  useAiTestCaseGeneration,
+  type UseAiTestCaseGenerationReturn,
+} from './use-ai-test-case-generation';
 
-type AiDrawerContextValue = ReturnType<typeof useAiTestCaseGeneration>;
+type AiDrawerContextValue = UseAiTestCaseGenerationReturn;
 
 const AiDrawerContext = createContext<AiDrawerContextValue | null>(null);
 
@@ -64,6 +69,32 @@ function Body({ children }: { children: ReactNode }) {
 }
 
 function Header() {
+  const {
+    phase,
+    generatedTestCases,
+    currentIndex,
+    canScrollPrev,
+    canScrollNext,
+    scrollPrev,
+    scrollNext,
+  } = useAiDrawerContext();
+
+  if (phase === 'results') {
+    return (
+      <AddTestCaseAiDrawerHeader
+        variant="results"
+        carousel={{
+          current: currentIndex,
+          total: generatedTestCases.length,
+          canScrollPrev,
+          canScrollNext,
+          onPrev: scrollPrev,
+          onNext: scrollNext,
+        }}
+      />
+    );
+  }
+
   return <AddTestCaseAiDrawerHeader />;
 }
 
@@ -79,8 +110,30 @@ function GeneratingPhase() {
   return <AddTestCaseAiGeneratingPhase stageIndex={stageIndex} progress={progress} />;
 }
 
+function ResultsPhase() {
+  const { phase, generatedTestCases, setCarouselApi } = useAiDrawerContext();
+  if (phase !== 'results') return null;
+  return <AddTestCaseAiResultsPhase testCases={generatedTestCases} setApi={setCarouselApi} />;
+}
+
 function Footer() {
   const { phase, onOpenChange } = useAiDrawerContext();
+
+  if (phase === 'results') {
+    return (
+      <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border px-5 py-4">
+        <Button
+          type="button"
+          size="sm"
+          className="h-8 border-0 bg-violet-600 text-xs text-white hover:bg-violet-500"
+          onClick={() => onOpenChange(false)}
+        >
+          Done
+        </Button>
+      </div>
+    );
+  }
+
   if (phase !== 'input') return null;
   return <AddTestCaseAiDrawerFooter onCancel={() => onOpenChange(false)} />;
 }
@@ -92,6 +145,7 @@ export const AiTestCaseDrawer = {
   Body,
   InputPhase,
   GeneratingPhase,
+  ResultsPhase,
   Footer,
 };
 
@@ -109,6 +163,7 @@ export function AddTestCaseAiDrawer({ agentId, open, onOpenChange }: AddTestCase
         <AiTestCaseDrawer.Body>
           <AiTestCaseDrawer.InputPhase />
           <AiTestCaseDrawer.GeneratingPhase />
+          <AiTestCaseDrawer.ResultsPhase />
         </AiTestCaseDrawer.Body>
         <AiTestCaseDrawer.Footer />
       </AiTestCaseDrawer.Content>
