@@ -1,6 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type KeyboardEvent,
+  type RefObject,
+  type SetStateAction,
+} from 'react';
 
 import { useRunTestCaseAiAgent } from '@/app/(app)/(agent)/_hooks/use-run-test-case-ai-agent';
 import {
@@ -32,6 +40,26 @@ interface UseCreateTestCaseAiPromptArgs {
   agentId: string;
   call: CallPublic;
   onClose: () => void;
+}
+
+export interface UseCreateTestCaseAiPromptReturn {
+  phase: AiPromptPhase;
+  userPrompt: string;
+  setUserPrompt: Dispatch<SetStateAction<string>>;
+  stageIndex: number;
+  progress: number;
+  error: string | null;
+  textareaRef: RefObject<HTMLTextAreaElement | null>;
+  isPending: boolean;
+  handleGenerate: () => Promise<void>;
+  handleKeyDown: (e: KeyboardEvent<HTMLTextAreaElement>) => void;
+  generatedTestCases: TestCasePublic[];
+  setCarouselApi: Dispatch<SetStateAction<CarouselApi | undefined>>;
+  currentIndex: number;
+  canScrollPrev: boolean;
+  canScrollNext: boolean;
+  scrollPrev: () => void;
+  scrollNext: () => void;
 }
 
 function normalizeRole(raw: unknown): TurnRole {
@@ -83,7 +111,7 @@ export function useCreateTestCaseAiPrompt({
   agentId,
   call,
   onClose,
-}: UseCreateTestCaseAiPromptArgs) {
+}: UseCreateTestCaseAiPromptArgs): UseCreateTestCaseAiPromptReturn {
   const [phase, setPhase] = useState<AiPromptPhase>('input');
   const [userPrompt, setUserPrompt] = useState('');
   const [stageIndex, setStageIndex] = useState(0);
