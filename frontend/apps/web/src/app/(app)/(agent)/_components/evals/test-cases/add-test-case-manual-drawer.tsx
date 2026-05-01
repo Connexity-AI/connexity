@@ -11,7 +11,6 @@ import {
 } from '@workspace/ui/components/ui/sheet';
 
 import { TestCaseBasicInfoSection } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-basic-info-section';
-import { StatusBadge } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-drawer-primitives';
 import { TestCaseEvaluationSection } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-evaluation-section';
 import { TestCaseUserSimulationSection } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-user-simulation-section';
 import { useManualTestCaseForm } from '@/app/(app)/(agent)/_components/evals/test-cases/use-manual-test-case-form';
@@ -32,7 +31,6 @@ export function AddTestCaseManualDrawer({
     availableTools,
     handleSubmit,
     name,
-    status,
     isPending,
     error,
     onOpenChange: handleOpenChange,
@@ -50,7 +48,6 @@ export function AddTestCaseManualDrawer({
               <SheetTitle className="truncate text-sm font-normal text-foreground">
                 {name?.trim() ? name : 'New test case'}
               </SheetTitle>
-              <StatusBadge status={status} />
             </div>
           </SheetHeader>
 

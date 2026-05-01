@@ -23,10 +23,10 @@ import {
   formatDuration,
   formatTimestamp,
   turnStartSeconds,
-  type TranscriptTurn,
 } from './observe-format';
 
 import type { CallPublic } from '@/client/types.gen';
+import type { TranscriptTurn } from './observe-format';
 
 interface CallPanelProps {
   call: CallPublic;
@@ -34,11 +34,7 @@ interface CallPanelProps {
   onCreateTestCaseAi?: (call: CallPublic) => void;
 }
 
-export function CallPanel({
-  call,
-  onCreateTestCaseManual,
-  onCreateTestCaseAi,
-}: CallPanelProps) {
+export function CallPanel({ call, onCreateTestCaseManual, onCreateTestCaseAi }: CallPanelProps) {
   const turns = extractTurns(call.transcript);
   const displayItems = buildTranscriptDisplayItems(turns);
   const showCreateButton = !!onCreateTestCaseManual || !!onCreateTestCaseAi;
@@ -46,7 +42,7 @@ export function CallPanel({
   return (
     <div className="flex h-full w-[480px] shrink-0 flex-col overflow-hidden">
       <div className="shrink-0 border-b border-border px-5 pb-4 pt-5">
-        <div className="flex items-start justify-between gap-3 pr-6">
+        <div className="flex items-start justify-between gap-3 pr-3">
           <p className="text-base text-foreground">{formatDate(call.started_at)}</p>
 
           {showCreateButton ? (
@@ -115,9 +111,7 @@ export function CallPanel({
           Transcript
         </p>
         {displayItems.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
-            No transcript available for this call.
-          </p>
+          <p className="text-xs text-muted-foreground">No transcript available for this call.</p>
         ) : (
           displayItems.map((item) => {
             if (item.kind === 'message') {
@@ -180,12 +174,7 @@ function ToolAccordionBubble({
           {timestamp}
         </span>
       ) : null}
-      <Accordion
-        type="single"
-        collapsible
-        defaultValue={itemKey}
-        className="w-full"
-      >
+      <Accordion type="single" collapsible defaultValue={itemKey} className="w-full">
         <AccordionItem
           value={itemKey}
           className="overflow-hidden rounded-lg border border-border bg-accent/10"
@@ -196,9 +185,7 @@ function ToolAccordionBubble({
               <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60">
                 {label}
               </span>
-              <span className="truncate font-mono text-[11px] text-foreground/80">
-                {tool}
-              </span>
+              <span className="truncate font-mono text-[11px] text-foreground/80">{tool}</span>
             </span>
           </AccordionTrigger>
           <AccordionContent className="px-3 pb-3 pt-3">
@@ -240,33 +227,26 @@ function TranscriptBubble({ turn }: { turn: TranscriptTurn }) {
       <div
         className={cn(
           'mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px]',
-          isAgent
-            ? 'bg-violet-500/20 text-violet-300'
-            : 'bg-accent/60 text-muted-foreground',
+          isAgent ? 'bg-violet-500/20 text-violet-300' : 'bg-accent/60 text-muted-foreground'
         )}
       >
         {isAgent ? 'AI' : 'C'}
       </div>
       <div
-        className={cn(
-          'max-w-[80%] space-y-1',
-          isAgent ? 'items-start' : 'flex flex-col items-end',
-        )}
+        className={cn('max-w-[80%] space-y-1', isAgent ? 'items-start' : 'flex flex-col items-end')}
       >
         <div
           className={cn(
             'whitespace-pre-wrap rounded-xl px-3 py-2 text-[11px] leading-relaxed',
             isAgent
               ? 'rounded-tl-sm bg-violet-500/10 text-foreground/90'
-              : 'rounded-tr-sm bg-accent/50 text-foreground/80',
+              : 'rounded-tr-sm bg-accent/50 text-foreground/80'
           )}
         >
           {content}
         </div>
         {timestamp ? (
-          <span className="px-1 text-[9px] tabular-nums text-muted-foreground/40">
-            {timestamp}
-          </span>
+          <span className="px-1 text-[9px] tabular-nums text-muted-foreground/40">{timestamp}</span>
         ) : null}
       </div>
     </div>

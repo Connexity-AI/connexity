@@ -17,7 +17,7 @@ import {
   type UseAiTestCaseGenerationReturn,
 } from './use-ai-test-case-generation';
 
-type AiDrawerContextValue = UseAiTestCaseGenerationReturn;
+type AiDrawerContextValue = UseAiTestCaseGenerationReturn & { agentId: string };
 
 const AiDrawerContext = createContext<AiDrawerContextValue | null>(null);
 
@@ -40,7 +40,7 @@ function Root({ agentId, open, onOpenChange, children }: RootProps) {
   const generation = useAiTestCaseGeneration({ agentId, onOpenChange });
 
   return (
-    <AiDrawerContext.Provider value={generation}>
+    <AiDrawerContext.Provider value={{ ...generation, agentId }}>
       <Sheet open={open} onOpenChange={generation.onOpenChange}>
         {children}
       </Sheet>
@@ -49,17 +49,21 @@ function Root({ agentId, open, onOpenChange, children }: RootProps) {
 }
 
 function Content({ children }: { children: ReactNode }) {
-  const { form, handleSubmit } = useAiDrawerContext();
+  const { form, handleSubmit, phase } = useAiDrawerContext();
   return (
     <SheetContent
       side="right"
       className="flex h-full w-full flex-col gap-0 overflow-hidden border-l border-border p-0 sm:max-w-105"
     >
-      <Form {...form}>
-        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-          {children}
-        </form>
-      </Form>
+      {phase === 'results' ? (
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      ) : (
+        <Form {...form}>
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            {children}
+          </form>
+        </Form>
+      )}
     </SheetContent>
   );
 }
@@ -111,9 +115,15 @@ function GeneratingPhase() {
 }
 
 function ResultsPhase() {
-  const { phase, generatedTestCases, setCarouselApi } = useAiDrawerContext();
+  const { phase, generatedTestCases, setCarouselApi, agentId } = useAiDrawerContext();
   if (phase !== 'results') return null;
-  return <AddTestCaseAiResultsPhase testCases={generatedTestCases} setApi={setCarouselApi} />;
+  return (
+    <AddTestCaseAiResultsPhase
+      agentId={agentId}
+      testCases={generatedTestCases}
+      setApi={setCarouselApi}
+    />
+  );
 }
 
 function Footer() {

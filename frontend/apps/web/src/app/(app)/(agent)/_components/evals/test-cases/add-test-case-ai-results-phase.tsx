@@ -1,21 +1,32 @@
 'use client';
+'use no memo';
 
+import { useMemo } from 'react';
+
+import { Loader2 } from 'lucide-react';
+import { useFormContext } from 'react-hook-form';
+
+import { Button } from '@workspace/ui/components/ui/button';
 import { Carousel, CarouselContent, CarouselItem } from '@workspace/ui/components/ui/carousel';
+import { Form } from '@workspace/ui/components/ui/form';
 
-import {
-  FieldLabel,
-  SectionLabel,
-} from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-drawer-primitives';
+import { TestCaseBasicInfoSection } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-basic-info-section';
+import { TestCaseEvaluationSection } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-evaluation-section';
+import { TestCaseUserSimulationSection } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-user-simulation-section';
+import { useTestCaseDetailForm } from '@/app/(app)/(agent)/_hooks/use-test-case-detail-form';
 
 import type { CarouselApi } from '@workspace/ui/components/ui/carousel';
+import type { AgentFormValues } from '@/app/(app)/(agent)/_schemas/agent-form';
 import type { TestCasePublic } from '@/client/types.gen';
 
 interface AddTestCaseAiResultsPhaseProps {
+  agentId: string;
   testCases: TestCasePublic[];
   setApi: (api: CarouselApi | undefined) => void;
 }
 
 export function AddTestCaseAiResultsPhase({
+  agentId,
   testCases,
   setApi,
 }: AddTestCaseAiResultsPhaseProps) {
@@ -28,7 +39,7 @@ export function AddTestCaseAiResultsPhase({
       <CarouselContent className="ml-0">
         {testCases.map((tc) => (
           <CarouselItem key={tc.id} className="pl-0">
-            <TestCaseSummary testCase={tc} />
+            <EditableSlide agentId={agentId} testCase={tc} />
           </CarouselItem>
         ))}
       </CarouselContent>
@@ -36,128 +47,32 @@ export function AddTestCaseAiResultsPhase({
   );
 }
 
-function TestCaseSummary({ testCase }: { testCase: TestCasePublic }) {
-  const tags = testCase.tags ?? [];
-  const expectedOutcomes = testCase.expected_outcomes ?? [];
-  const expectedToolCalls = testCase.expected_tool_calls ?? [];
+function EditableSlide({ agentId, testCase }: { agentId: string; testCase: TestCasePublic }) {
+  const agentForm = useFormContext<AgentFormValues>();
+  const watchedTools = agentForm?.watch('tools');
+  const availableTools = useMemo(() => watchedTools ?? [], [watchedTools]);
+
+  const { form, handleSubmit, isPending } = useTestCaseDetailForm({
+    agentId,
+    testCase,
+    availableTools,
+    onSuccess: () => {},
+  });
 
   return (
-    <div className="space-y-5">
-      <div>
-        <SectionLabel>Basic Info</SectionLabel>
-        <div className="space-y-3">
-          <div>
-            <FieldLabel>Name</FieldLabel>
-            <p className="text-sm text-foreground">{testCase.name}</p>
-          </div>
+    <Form {...form}>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        <TestCaseBasicInfoSection />
+        <TestCaseUserSimulationSection />
+        <TestCaseEvaluationSection availableTools={availableTools} />
 
-          {testCase.description && (
-            <div>
-              <FieldLabel>Description</FieldLabel>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                {testCase.description}
-              </p>
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-3">
-            {testCase.difficulty && (
-              <div>
-                <FieldLabel>Difficulty</FieldLabel>
-                <p className="text-xs capitalize text-foreground">{testCase.difficulty}</p>
-              </div>
-            )}
-            {testCase.status && (
-              <div>
-                <FieldLabel>Status</FieldLabel>
-                <p className="text-xs capitalize text-foreground">{testCase.status}</p>
-              </div>
-            )}
-          </div>
-
-          {tags.length > 0 && (
-            <div>
-              <FieldLabel>Tags</FieldLabel>
-              <div className="flex flex-wrap gap-1.5">
-                {tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded bg-accent px-2 py-0.5 text-xs text-muted-foreground"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+        <div className="flex justify-end">
+          <Button type="submit" size="sm" className="h-7 gap-1.5 text-xs" disabled={isPending}>
+            {isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+            Save changes
+          </Button>
         </div>
-      </div>
-
-      {(testCase.persona_context || testCase.first_message) && (
-        <div>
-          <SectionLabel>User Simulation</SectionLabel>
-          <div className="space-y-3">
-            {testCase.persona_context && (
-              <div>
-                <FieldLabel>Persona</FieldLabel>
-                <p className="whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
-                  {testCase.persona_context}
-                </p>
-              </div>
-            )}
-
-            {testCase.first_message && (
-              <div>
-                <FieldLabel>
-                  First message{testCase.first_turn ? ` (${testCase.first_turn})` : ''}
-                </FieldLabel>
-                <p className="whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
-                  {testCase.first_message}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {(expectedOutcomes.length > 0 || expectedToolCalls.length > 0) && (
-        <div>
-          <SectionLabel>Evaluation</SectionLabel>
-          <div className="space-y-3">
-            {expectedOutcomes.length > 0 && (
-              <div>
-                <FieldLabel>Expected outcomes</FieldLabel>
-                <ul className="space-y-1.5">
-                  {expectedOutcomes.map((outcome, idx) => (
-                    <li
-                      key={idx}
-                      className="rounded border border-border bg-accent/30 px-2.5 py-1.5 text-xs leading-relaxed text-muted-foreground"
-                    >
-                      {outcome}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {expectedToolCalls.length > 0 && (
-              <div>
-                <FieldLabel>Expected tool calls</FieldLabel>
-                <ul className="space-y-1.5">
-                  {expectedToolCalls.map((call, idx) => (
-                    <li
-                      key={idx}
-                      className="rounded border border-border bg-accent/30 px-2.5 py-1.5 text-xs text-muted-foreground"
-                    >
-                      <span className="font-mono text-foreground">{call.tool}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+      </form>
+    </Form>
   );
 }
