@@ -213,10 +213,10 @@ async def list_environment_retell_versions(
 @router.get("/deployments", response_model=DeploymentsPublic)
 def list_agent_deployments(
     session: SessionDep,
-    current_user: CurrentUser,
     agent_id: uuid.UUID = Query(...),
 ) -> DeploymentsPublic:
-    get_owned_agent(agent_id=agent_id, session=session, current_user=current_user)
+    if not crud.get_agent(session=session, agent_id=agent_id):
+        raise HTTPException(status_code=404, detail="Agent not found")
     rows = crud.list_deployments_for_agent(session=session, agent_id=agent_id)
     return DeploymentsPublic(
         data=[_deployment_to_public(d, name) for d, name in rows],
@@ -227,13 +227,11 @@ def list_agent_deployments(
 @router.get("/{environment_id}/deployments", response_model=DeploymentsPublic)
 def list_environment_deployments(
     session: SessionDep,
-    current_user: CurrentUser,
     environment_id: uuid.UUID,
 ) -> DeploymentsPublic:
     env = crud.get_environment(session=session, environment_id=environment_id)
     if not env:
         raise HTTPException(status_code=404, detail="Environment not found")
-    get_owned_agent(agent_id=env.agent_id, session=session, current_user=current_user)
 
     rows = crud.list_deployments_for_environment(
         session=session, environment_id=environment_id
