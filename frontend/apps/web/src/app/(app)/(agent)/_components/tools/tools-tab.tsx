@@ -83,7 +83,7 @@ export function ToolsTab() {
               name={tool?.name ?? ''}
               description={tool?.description ?? ''}
               url={tool?.url ?? ''}
-              method={tool?.method ?? 'GET'}
+              method={tool?.method ?? 'POST'}
               paramCount={tool?.parameters?.length ?? 0}
               onClick={() => openExisting(index)}
             />

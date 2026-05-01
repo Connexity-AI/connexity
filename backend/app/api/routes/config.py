@@ -31,6 +31,7 @@ def get_config(request: Request) -> ConfigPublic:
         api_version=settings.API_V1_STR,
         environment=settings.ENVIRONMENT,
         docs_url=request.app.docs_url or "/docs",
+        default_llm_model=settings.default_llm_id,
     )
 
 

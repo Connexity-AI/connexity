@@ -6,7 +6,7 @@ import { cn } from '@workspace/ui/lib/utils';
 import { useRunStream } from '@/app/(app)/(agent)/_hooks/use-run-stream';
 import { RunStatus } from '@/client/types.gen';
 
-import { formatTimeAgo } from './shared/format-time';
+import { formatAbsoluteLocal, formatLocalShort, formatTimeAgo } from './shared/format-time';
 import { RunStatusIcon } from './shared/run-status-icon';
 import { ScoreBar } from './shared/score-bar';
 import { roundScore, scoreColor } from './shared/score-utils';
@@ -121,8 +121,12 @@ export function EvalRunListRow({
         <ScoreBar value={passRate} />
       </div>
 
-      <div className="text-right text-[10px] text-muted-foreground/60 tabular-nums">
-        {formatTimeAgo(run.created_at)}
+      <div
+        className="flex flex-col items-end gap-0.5 text-right text-[10px] text-muted-foreground/60 tabular-nums"
+        title={formatAbsoluteLocal(run.created_at)}
+      >
+        <span>{formatLocalShort(run.created_at)}</span>
+        <span className="text-muted-foreground/40">{formatTimeAgo(run.created_at)}</span>
       </div>
     </li>
   );

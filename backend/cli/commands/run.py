@@ -1,97 +1,31 @@
-"""Create a run, wait for completion, print results."""
+"""Create a run, wait for completion, print results.
+
+Top-level convenience command — equivalent to ``runs create --auto-execute``
+plus polling/streaming and an optional ``--set-baseline`` step.
+"""
 
 import json
 import sys
 import time
-import uuid
 from typing import Any
 
 import click
 import httpx
 
 from cli import output
-from cli.api_client import ApiClient
-from cli.context import get_output_format, open_client, root_obj
+from cli.context import ensure_auth, get_output_format, open_client
+from cli.payload import load_optional_dict
+from cli.resolvers import resolve_agent, resolve_eval_config
 
 TERMINAL_STATUSES = frozenset({"completed", "failed", "cancelled"})
 
 
-def _try_uuid(value: str) -> str | None:
-    try:
-        return str(uuid.UUID(value.strip()))
-    except ValueError:
-        return None
-
-
-def _resolve_eval_set(client: ApiClient, ref: str) -> dict[str, Any]:
-    uid = _try_uuid(ref)
-    if uid:
-        return client.get_eval_set(uid)
-    data = client.list_eval_sets(params={"limit": 1000})
-    raw = data.get("data")
-    rows: list[dict[str, Any]] = (
-        [r for r in raw if isinstance(r, dict)] if isinstance(raw, list) else []
-    )
-    ref_l = ref.strip().casefold()
-    matches = [s for s in rows if str(s.get("name", "")).casefold() == ref_l]
-    if len(matches) == 1:
-        return matches[0]
-    if not matches:
-        raise click.ClickException(
-            f"No eval set found with name {ref!r}. Use a UUID or exact name."
-        )
-    names = ", ".join(str(m.get("name")) for m in matches[:5])
-    raise click.ClickException(
-        f"Multiple eval sets match {ref!r}: {names}. Use a UUID."
-    )
-
-
-def _resolve_agent(client: ApiClient, ref: str) -> dict[str, Any]:
-    """Return the full agent dict from the API."""
-    uid = _try_uuid(ref)
-    if uid:
-        return client.get_agent(uid)
-
-    ref_stripped = ref.strip()
-    if ref_stripped.lower().startswith(("http://", "https://")):
-        data = client.list_agents(params={"limit": 1000})
-        rows = data.get("data") or []
-        for a in rows:
-            if not isinstance(a, dict):
-                continue
-            if str(a.get("endpoint_url", "")).rstrip("/") == ref_stripped.rstrip("/"):
-                return a
-        raise click.ClickException(
-            f"No agent registered with endpoint_url matching {ref_stripped!r}. "
-            "Create an agent in the UI/API first, or pass an agent UUID."
-        )
-
-    data = client.list_agents(params={"limit": 1000})
-    rows = data.get("data") or []
-    ref_l = ref_stripped.casefold()
-    matches = [
-        a
-        for a in rows
-        if isinstance(a, dict) and str(a.get("name", "")).casefold() == ref_l
-    ]
-    if len(matches) == 1:
-        return matches[0]
-    if not matches:
-        raise click.ClickException(
-            f"No agent found with name {ref!r}. Use a UUID, exact name, or agent URL."
-        )
-    names = ", ".join(str(m.get("name")) for m in matches[:5])
-    raise click.ClickException(
-        f"Multiple agents match {ref!r}: {names}. Use a UUID or endpoint URL."
-    )
-
-
 @click.command("run")
 @click.option(
-    "--eval-set",
-    "eval_set_ref",
+    "--eval-config",
+    "eval_config_ref",
     required=True,
-    help="Eval set name or UUID",
+    help="Eval config name or UUID",
 )
 @click.option(
     "--agent",
@@ -104,6 +38,12 @@ def _resolve_agent(client: ApiClient, ref: str) -> dict[str, Any]:
     "run_name",
     default=None,
     help="Optional run label",
+)
+@click.option(
+    "--config-file",
+    "config_file",
+    default=None,
+    help="Path (or '-' for stdin) to JSON RunConfig — judge_config, simulator_config, etc.",
 )
 @click.option(
     "--timeout",
@@ -141,9 +81,10 @@ def _resolve_agent(client: ApiClient, ref: str) -> dict[str, Any]:
 @click.pass_context
 def run_command(
     ctx: click.Context,
-    eval_set_ref: str,
+    eval_config_ref: str,
     agent_ref: str,
     run_name: str | None,
+    config_file: str | None,
     timeout: float,
     poll_interval: float,
     stream: bool,
@@ -151,31 +92,30 @@ def run_command(
     output_override: str | None,
 ) -> None:
     """Trigger an eval run and wait until it finishes."""
-    root = root_obj(ctx)
-    if not root.get("token"):
-        raise click.ClickException(
-            "Authentication required: set CONNEXITY_EVALS_API_TOKEN or pass --token."
-        )
+    ensure_auth(ctx)
     fmt = get_output_format(ctx, output_override)
+    run_config = load_optional_dict(config_file)
 
     with open_client(ctx) as client:
-        eval_set = _resolve_eval_set(client, eval_set_ref)
-        agent = _resolve_agent(client, agent_ref)
+        eval_config = resolve_eval_config(client, eval_config_ref)
+        agent = resolve_agent(client, agent_ref)
         agent_id = str(agent["id"])
 
         body: dict[str, Any] = {
             "agent_id": agent_id,
-            "eval_set_id": str(eval_set["id"]),
-            "eval_set_version": int(eval_set.get("version", 1)),
+            "eval_config_id": str(eval_config["id"]),
+            "eval_config_version": int(eval_config.get("version", 1)),
         }
         endpoint_url = agent.get("endpoint_url")
         if endpoint_url:
             body["agent_endpoint_url"] = endpoint_url
         if run_name:
             body["name"] = run_name
+        if run_config is not None:
+            body["config"] = run_config
 
         output.progress("Creating run and starting execution...")
-        run = client.create_run(body, auto_execute=True)
+        run = client.runs.create(body, auto_execute=True)
         run_id = str(run["id"])
         output.progress(f"Run ID: {run_id}")
 
@@ -184,7 +124,7 @@ def run_command(
         if stream:
             output.progress("Streaming events (SSE)...")
             try:
-                for sse in client.iter_run_sse(run_id):
+                for sse in client.runs.stream(run_id):
                     data = json.loads(sse.data) if sse.data else {}
                     output.progress(f"  [{sse.event}] {json.dumps(data, default=str)}")
                     if sse.event in (
@@ -201,7 +141,7 @@ def run_command(
                 raise click.ClickException(f"SSE stream failed: {e}") from e
 
         while time.monotonic() <= deadline:
-            run = client.get_run(run_id)
+            run = client.runs.get(run_id)
             status = str(run.get("status", "")).lower()
             if status in TERMINAL_STATUSES:
                 break
@@ -215,7 +155,7 @@ def run_command(
 
         if set_baseline and final == "completed":
             output.progress("Marking run as baseline...")
-            run = client.update_run(run_id, {"is_baseline": True})
+            run = client.runs.update(run_id, {"is_baseline": True})
 
         if fmt == "json":
             output.emit(run, output_format="json")
@@ -224,6 +164,4 @@ def run_command(
 
         if final == "completed":
             ctx.exit(0)
-        if final in ("failed", "cancelled"):
-            sys.exit(1)
         sys.exit(1)

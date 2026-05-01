@@ -8,51 +8,8 @@ import { isErrorApiResult } from '@/utils/api';
 import { getApiErrorMessage } from '@/utils/error';
 
 import type { AgentUpdate } from '@/client/types.gen';
-import type {
-  AgentFormValues,
-  AgentToolValues,
-} from '@/app/(app)/(agent)/_schemas/agent-form';
-
-function mapToolToOpenAI(tool: AgentToolValues): Record<string, unknown> {
-  const hasEndpoint = tool.url.trim().length > 0;
-
-  const headers = tool.authHeaders.reduce<Record<string, string>>((accumulator, header) => {
-    if (header.key.trim()) accumulator[header.key] = header.value;
-    return accumulator;
-  }, {});
-
-  return {
-    type: 'function',
-    function: {
-      name: tool.name,
-      description: tool.description,
-      parameters: {
-        type: 'object',
-        properties: Object.fromEntries(
-          tool.parameters.map((parameter) => [
-            parameter.name,
-            { type: parameter.type, description: parameter.description },
-          ])
-        ),
-        required: tool.parameters
-          .filter((parameter) => parameter.required)
-          .map((parameter) => parameter.name),
-      },
-    },
-    ...(hasEndpoint && {
-      platform_config: {
-        mode: 'live',
-        implementation: {
-          type: 'http_webhook',
-          url: tool.url,
-          method: tool.method,
-          headers: Object.keys(headers).length > 0 ? headers : undefined,
-          timeout_ms: tool.timeout * 1000,
-        },
-      },
-    }),
-  };
-}
+import type { AgentFormValues } from '@/app/(app)/(agent)/_schemas/agent-form';
+import { mapToolToOpenAI } from '@/app/(app)/(agent)/_utils/map-tool-to-openai';
 
 export function useUpdateAgent(agentId: string, agentName: string) {
   const queryClient = useQueryClient();

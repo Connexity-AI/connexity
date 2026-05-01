@@ -16,11 +16,17 @@ from app.services.llm import (
 
 @dataclass
 class _FakeLLMSettings:
-    LLM_DEFAULT_MODEL: str | None = "gpt-4.1-nano"
+    LLM_DEFAULT_MODEL: str = "gpt-4.1-nano"
     LLM_DEFAULT_PROVIDER: str | None = None
     LLM_RETRY_MAX_ATTEMPTS: int = 5
     LLM_RETRY_MIN_WAIT_SECONDS: float = 0.01
     LLM_RETRY_MAX_WAIT_SECONDS: float = 0.05
+
+    @property
+    def default_llm_id(self) -> str:
+        from app.services.llm import resolve_litellm_model
+
+        return resolve_litellm_model(self.LLM_DEFAULT_MODEL, self.LLM_DEFAULT_PROVIDER)
 
 
 def _fake_response(
@@ -170,13 +176,20 @@ async def test_call_llm_merges_global_default_model() -> None:
 
 
 @pytest.mark.asyncio
-async def test_call_llm_raises_when_no_model_configured() -> None:
-    fake = _FakeLLMSettings(LLM_DEFAULT_MODEL=None)
-    with (
-        patch("app.services.llm.litellm.acompletion", new_callable=AsyncMock),
-        pytest.raises(ValueError, match="No LLM model configured"),
-    ):
-        await call_llm([LLMMessage(role="user", content="z")], app_settings=fake)
+async def test_call_llm_uses_default_llm_id_when_no_per_call_model() -> None:
+    fake = _FakeLLMSettings()
+    resp = _fake_response(model="gpt-4.1-nano")
+    with patch(
+        "app.services.llm.litellm.acompletion",
+        new_callable=AsyncMock,
+        return_value=resp,
+    ) as mock_completion:
+        await call_llm(
+            [LLMMessage(role="user", content="z")],
+            app_settings=fake,
+        )
+    assert mock_completion.await_args is not None
+    assert mock_completion.await_args.kwargs["model"] == fake.default_llm_id
 
 
 def _fake_response_with_tool_calls(

@@ -1,4 +1,4 @@
-# connexity-evals Makefile
+# connexity Makefile
 # Two modes: local (no Docker for app, just DB) and docker (everything in Docker)
 
 .PHONY: help install dev dashboard db db-upgrade db-migrate db-downgrade db-stop \

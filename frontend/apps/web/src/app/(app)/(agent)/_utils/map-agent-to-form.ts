@@ -144,7 +144,7 @@ function mapOpenAIToolToForm(rawTool: unknown): AgentToolValues {
     name: fn?.name ?? '',
     description: fn?.description ?? '',
     url: impl?.url ?? '',
-    method: impl?.method ?? 'GET',
+    method: impl?.method ?? 'POST',
     // API stores timeout in milliseconds; form displays it in seconds.
     timeout: impl?.timeout_ms ? Math.round(impl.timeout_ms / 1000) : 3,
     authHeaders,

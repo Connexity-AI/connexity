@@ -15,6 +15,7 @@ import { PersonaSection } from '@/app/(app)/(agent)/_components/evals/create-eva
 import { RunConfigSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-run-config-section';
 import { TestCasesSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-test-cases-section';
 import { useCreateEvalForm } from '@/app/(app)/(agent)/_components/evals/create-eval/use-create-eval-form';
+import { useAgent } from '@/app/(app)/(agent)/_hooks/use-agent';
 
 import type { EvalConfigMemberPublic, EvalConfigPublic } from '@/client/types.gen';
 
@@ -66,6 +67,8 @@ export function CreateEvalView({
       initialMembers,
     });
 
+  const { data: agent } = useAgent(agentId);
+
   const name = form.watch('name');
   const backHref = readOnly ? UrlGenerator.agentEvalsConfigs(agentId) : undefined;
 
@@ -113,7 +116,10 @@ export function CreateEvalView({
                   {submitError}
                 </p>
               ) : null}
-              <RunConfigSection />
+              <RunConfigSection
+                agentMode={agent?.mode ?? null}
+                agentTools={agent?.tools ?? null}
+              />
               <TestCasesSection agentId={agentId} />
               <JudgeSection metrics={metrics} />
               <PersonaSection />

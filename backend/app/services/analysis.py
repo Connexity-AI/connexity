@@ -21,6 +21,7 @@ from app.models.comparison import (
     TestCaseComparison,
 )
 from app.models.run import Run
+from app.services.agent_tool_definitions import parse_agent_tool_definitions
 from app.services.llm import LLMCallConfig, LLMMessage, call_llm
 
 logger = logging.getLogger(__name__)
@@ -30,7 +31,7 @@ _TOP_TEST_CASES_LIMIT = 10
 
 def _analysis_llm_config(max_tokens: int | None = None) -> LLMCallConfig:
     return LLMCallConfig(
-        model=settings.ANALYSIS_MODEL or settings.LLM_DEFAULT_MODEL,
+        model=settings.ANALYSIS_MODEL or settings.default_llm_id,
         provider=settings.ANALYSIS_PROVIDER or settings.LLM_DEFAULT_PROVIDER,
         temperature=settings.ANALYSIS_TEMPERATURE,
         max_tokens=max_tokens or settings.ANALYSIS_MAX_TOKENS,
@@ -319,16 +320,14 @@ def _format_metric_scores_for_suggestions(
 
 def _format_tools_summary(candidate_run: Run) -> str:
     """Summarize tool definitions from the candidate run."""
-    tools = candidate_run.agent_tools
-    if not tools:
+    parsed = parse_agent_tool_definitions(candidate_run.agent_tools)
+    if not parsed:
         return "(no tools defined)"
-    names: list[str] = []
-    for tool in tools:
-        fn = tool.get("function", {})
-        name = fn.get("name", "unknown") if isinstance(fn, dict) else "unknown"
-        desc = fn.get("description", "")[:80] if isinstance(fn, dict) else ""
-        names.append(f"- {name}: {desc}")
-    return "\n".join(names)
+    lines: list[str] = []
+    for t in parsed:
+        desc = t.description[:80] if t.description else ""
+        lines.append(f"- {t.name}: {desc}")
+    return "\n".join(lines)
 
 
 def _build_suggestions_prompt(

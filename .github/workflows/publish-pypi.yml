@@ -1,0 +1,75 @@
+name: Publish to PyPI
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tool
+        run: pip install hatch
+
+      - name: Build wheel and sdist
+        run: hatch build
+
+      - name: Pre-publish validation
+        run: |
+          python -m venv /tmp/test-venv
+          /tmp/test-venv/bin/pip install dist/*.whl
+
+          echo "--- Verify CLI entry point ---"
+          /tmp/test-venv/bin/connexity-cli --help
+
+          echo "--- Verify no heavy backend deps leaked in ---"
+          ! /tmp/test-venv/bin/pip show fastapi 2>/dev/null
+          ! /tmp/test-venv/bin/pip show sqlmodel 2>/dev/null
+          ! /tmp/test-venv/bin/pip show litellm 2>/dev/null
+          ! /tmp/test-venv/bin/pip show alembic 2>/dev/null
+          ! /tmp/test-venv/bin/pip show psycopg 2>/dev/null
+
+          echo "--- Installed packages ---"
+          /tmp/test-venv/bin/pip list --format=columns
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build-and-validate
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    environment: pypi
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  post-publish-smoke-test:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Wait for PyPI propagation
+        run: sleep 30
+
+      - name: Install from PyPI and verify
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          pip install "connexity-cli==${VERSION}"
+          connexity-cli --help

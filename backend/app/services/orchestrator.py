@@ -8,7 +8,7 @@ import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 from pydantic import ValidationError
@@ -329,7 +329,7 @@ async def _do_agent_turn(
                 agent_system_prompt=agent_system_prompt,
                 agent_tools=agent_tools,
                 model=response.model,
-                fallback_model=settings.LLM_DEFAULT_MODEL,
+                fallback_model=settings.default_llm_id,
             )
             acc.add_agent_usage(estimated)
             reported = estimated
@@ -399,6 +399,7 @@ async def run_test_case(
     agent_system_prompt: str | None = None,
     agent_tools: list[dict[str, Any]] | None = None,
     cancel_event: asyncio.Event | None = None,
+    platform_tool_executor_mode: Literal["mock", "live", "synthetic"] | None = None,
 ) -> TestCaseRunResult:
     """Execute one test_case conversation.
 
@@ -429,15 +430,21 @@ async def run_test_case(
                 "Platform agent mode requires agent_model on the run snapshot; test_case %s",
                 test_case.id,
             )
+        effective_tool_mode: Literal["mock", "live", "synthetic"] = (
+            platform_tool_executor_mode
+            if platform_tool_executor_mode is not None
+            else config.tool_mode
+        )
         tool_executor = build_tool_executor(
             tools=agent_tools,
             expected_tool_calls=test_case.expected_tool_calls,
             test_case_context=test_case.user_context or {},
+            tool_mode=effective_tool_mode,
         )
         agent_simulator = AgentSimulator(
             system_prompt=agent_system_prompt or "",
             tools=agent_tools,
-            agent_model=model_id or (settings.LLM_DEFAULT_MODEL or "gpt-4o"),
+            agent_model=model_id or settings.default_llm_id,
             agent_provider=agent_provider,
             config=config.agent_simulator,
             tool_executor=tool_executor,
@@ -644,6 +651,7 @@ async def run_test_case_with_evaluation(
     agent_tools: list[dict[str, Any]] | None = None,
     cancel_event: asyncio.Event | None = None,
     metrics_owner_id: uuid.UUID | None = None,
+    platform_tool_executor_mode: Literal["mock", "live", "synthetic"] | None = None,
 ) -> tuple[TestCaseRunResult, JudgeVerdict | None]:
     """Run simulation then judge the transcript.
 
@@ -660,6 +668,7 @@ async def run_test_case_with_evaluation(
         agent_system_prompt=agent_system_prompt,
         agent_tools=agent_tools,
         cancel_event=cancel_event,
+        platform_tool_executor_mode=platform_tool_executor_mode,
     )
     if not run_out.transcript:
         return run_out, None

@@ -1,6 +1,7 @@
 'use client';
 'use no memo';
 
+import { useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 
 import { FormControl, FormField, FormItem, FormMessage } from '@workspace/ui/components/ui/form';
@@ -13,6 +14,9 @@ import {
   FieldLabel,
   Section,
 } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-section-primitives';
+import { missingLiveImplementations } from '@/app/(app)/(agent)/_utils/platform-live-tools-feasible';
+
+import { AppModelsEnumsAgentMode } from '@/client/types.gen';
 
 import type { CreateEvalFormValues } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
 
@@ -86,10 +90,27 @@ function MaxTurnsField() {
 
 const TOOL_MODES = ['mock', 'live'] as const;
 
-function ToolModeField() {
+interface ToolModeFieldProps {
+  agentMode: string | null;
+  agentTools: unknown[] | null;
+}
+
+function ToolModeField({ agentMode, agentTools }: ToolModeFieldProps) {
   const form = useFormContext<CreateEvalFormValues>();
 
   const readOnly = useCreateEvalReadOnly();
+
+  const isPlatform = agentMode === AppModelsEnumsAgentMode.PLATFORM;
+  const missingImpl = isPlatform ? missingLiveImplementations(agentTools ?? undefined) : [];
+  const liveUnavailable = isPlatform && missingImpl.length > 0;
+
+  const toolMode = form.watch('run.tool_mode');
+
+  useEffect(() => {
+    if (liveUnavailable && toolMode === 'live') {
+      form.setValue('run.tool_mode', 'mock', { shouldValidate: true, shouldDirty: true });
+    }
+  }, [liveUnavailable, toolMode, form]);
 
   return (
     <FormField
@@ -102,11 +123,17 @@ function ToolModeField() {
           <div className="flex items-center gap-1 p-0.5 rounded-lg border border-border bg-accent/20 w-fit">
             {TOOL_MODES.map((mode) => {
               const selected = field.value === mode;
+              const liveDisabled = readOnly || (mode === 'live' && liveUnavailable);
               return (
                 <button
                   key={mode}
                   type="button"
-                  disabled={readOnly}
+                  disabled={liveDisabled}
+                  title={
+                    mode === 'live' && liveUnavailable
+                      ? `Add live webhook or Python implementations for: ${missingImpl.join(', ')}`
+                      : undefined
+                  }
                   onClick={() => field.onChange(mode)}
                   className={cn(
                     'px-4 py-1.5 rounded-md text-xs transition-all capitalize',
@@ -115,7 +142,7 @@ function ToolModeField() {
                         ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-sm'
                         : 'bg-accent text-foreground border border-border shadow-sm'
                       : 'text-muted-foreground hover:text-foreground',
-                    readOnly && 'cursor-not-allowed opacity-60'
+                    liveDisabled && 'cursor-not-allowed opacity-60'
                   )}
                 >
                   {mode === 'live' && (
@@ -127,9 +154,18 @@ function ToolModeField() {
             })}
           </div>
           <FieldHint>
-            {field.value === 'mock'
-              ? 'Tool responses are simulated using test case mock data'
-              : 'Tools are called against real endpoints during the eval run'}
+            {liveUnavailable ? (
+              <span className="text-amber-500/90">
+                Live tool calls unavailable: add HTTP endpoint (or Python) under each platform
+                tool ({missingImpl.join(', ')}) — or leave Mock selected.
+              </span>
+            ) : field.value === 'mock' ? (
+              'Tool responses are simulated using test case mock data'
+            ) : agentMode !== AppModelsEnumsAgentMode.PLATFORM ? (
+              'Live applies to platform simulated agents only; endpoint agents ignore this setting.'
+            ) : (
+              'Tools invoke stored implementations (HTTP / Python) during the eval run'
+            )}
           </FieldHint>
           <FormMessage />
         </FormItem>
@@ -138,7 +174,12 @@ function ToolModeField() {
   );
 }
 
-export function RunConfigSection() {
+interface RunConfigSectionProps {
+  agentMode?: string | null;
+  agentTools?: unknown[] | null;
+}
+
+export function RunConfigSection({ agentMode = null, agentTools = null }: RunConfigSectionProps) {
   return (
     <Section>
       <Section.Header title="Run Configuration" />
@@ -146,7 +187,7 @@ export function RunConfigSection() {
         <div className="grid grid-cols-2 gap-4">
           <ConcurrencyField />
           <MaxTurnsField />
-          <ToolModeField />
+          <ToolModeField agentMode={agentMode} agentTools={agentTools} />
         </div>
       </Section.Body>
     </Section>

@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { client } from '@/client/client.gen';
 import { promptEditorKeys } from '@/constants/query-keys';
+import { useDefaultLlmRoutingId } from '@/app/(app)/(agent)/_hooks/use-default-llm-routing-id';
 import { sseEventSchema } from '@/app/(app)/(agent)/_schemas/prompt-editor-chat-sse';
 import {
   appendTurnToMessagesCache,
@@ -50,6 +51,7 @@ export function usePromptEditorChat({
   onEditedPrompt,
 }: UsePromptEditorChatArgs) {
   const queryClient = useQueryClient();
+  const defaultLlmRoutingId = useDefaultLlmRoutingId();
   const messagesQuery = usePromptEditorMessages(sessionId);
 
   const [phase, setPhase] = useState<ChatPhase>('idle');
@@ -245,6 +247,9 @@ export function usePromptEditorChat({
               ? options.testCaseResultIds
               : null;
 
+          const routingModel =
+            model && model.trim() ? model.trim() : defaultLlmRoutingId;
+
           const { stream } = await client.sse.post({
             security: [
               { in: 'cookie', name: 'auth_cookie', type: 'apiKey' },
@@ -256,7 +261,7 @@ export function usePromptEditorChat({
             body: {
               content: trimmed,
               current_prompt: currentPrompt,
-              model: model && model.trim() ? model : null,
+              model: routingModel,
               test_case_result_ids: testCaseResultIds,
             },
             headers: { 'Content-Type': 'application/json' },
@@ -305,7 +310,15 @@ export function usePromptEditorChat({
         inFlightRef.current = false;
       }
     },
-    [sessionId, createSession, onSessionStale, onSuggestion, onEditedPrompt, queryClient]
+    [
+      sessionId,
+      createSession,
+      onSessionStale,
+      onSuggestion,
+      onEditedPrompt,
+      queryClient,
+      defaultLlmRoutingId,
+    ]
   );
 
   return {

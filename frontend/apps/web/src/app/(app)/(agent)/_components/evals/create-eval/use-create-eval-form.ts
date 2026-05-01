@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 
 import {
@@ -16,6 +17,8 @@ import { useAvailableMetrics } from '@/app/(app)/(agent)/_hooks/use-available-me
 import { useCreateEvalConfig } from '@/app/(app)/(agent)/_hooks/use-create-eval-config';
 import { useCreateRun } from '@/app/(app)/(agent)/_hooks/use-create-run';
 import { useSuspenseTestCases } from '@/app/(app)/(agent)/_hooks/use-test-cases';
+import { appConfigQueries } from '@/app/(app)/(agent)/_queries/app-config-query';
+import { BOOTSTRAP_DEFAULT_LLM_ROUTE } from '@/utils/split-default-llm-routing';
 
 import type {
   CreateEvalFormValues,
@@ -99,11 +102,15 @@ export function useCreateEvalForm({
   const { data: metricsData } = useAvailableMetrics();
   const metrics = metricsData.data;
 
+  const { data: appConfig } = useQuery(appConfigQueries.root);
+
   const { data: testCasesData } = useSuspenseTestCases(agentId);
   const testCases = testCasesData.data;
 
   const defaults = useMemo<CreateEvalFormValues>(() => {
-    const base = buildDefaults(initialName);
+    const routing =
+      appConfig?.default_llm_model ?? BOOTSTRAP_DEFAULT_LLM_ROUTE;
+    const base = buildDefaults(initialName, routing);
     const cfg = initialConfig?.config ?? null;
 
     const memberSpecs = initialMembers
@@ -133,7 +140,15 @@ export function useCreateEvalForm({
         temperature: cfg?.user_simulator?.temperature ?? base.persona.temperature,
       },
     };
-  }, [initialName, initialConfig, initialMembers, initialTestCaseIds, metrics, testCases]);
+  }, [
+    appConfig?.default_llm_model,
+    initialName,
+    initialConfig,
+    initialMembers,
+    initialTestCaseIds,
+    metrics,
+    testCases,
+  ]);
 
   const form = useForm<CreateEvalFormValues>({
     resolver: zodResolver(createEvalFormSchema),

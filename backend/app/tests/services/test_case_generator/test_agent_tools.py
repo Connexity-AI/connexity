@@ -2,7 +2,7 @@
 
 import json
 
-from app.services.test_case_generator.agent.tools import (
+from app.services.test_case_generator.interactive.tools import (
     CREATE_TEST_CASE_TOOL,
     EDIT_TEST_CASE_TOOL,
     parse_create_test_case_tool_calls,

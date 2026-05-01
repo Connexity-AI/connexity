@@ -89,13 +89,17 @@ ToolImplementation = PythonImplementation | HttpWebhookImplementation
 
 
 class ToolPlatformConfig(BaseModel):
-    mode: Literal["mock", "live"] = Field(
-        default="mock",
-        description="mock: use test-case mock_responses; live: execute real implementation",
-    )
+    """How the platform invokes a registered tool live (HTTP or Python sandbox).
+
+    Mock vs live for a run is decided by ``RunConfig.tool_mode``, not persisted here.
+    """
+
     implementation: ToolImplementation | None = Field(
         default=None,
-        description="Required when mode=live. Null for mock tools.",
+        description=(
+            "HTTP webhook or embedded Python runner. Required for runs with "
+            "``tool_mode=live``. Omitted when the tool definition has no runnable hook."
+        ),
     )
 
 

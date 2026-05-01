@@ -12,6 +12,7 @@ from app import crud
 from app.models import Agent, Run, RunStatus, TestCaseResult
 from app.models.comparison import RunComparison
 from app.models.schemas import AggregateMetrics, JudgeVerdict, MetricScore
+from app.services.agent_tool_definitions import parse_agent_tool_definitions
 from app.services.comparison import compare_runs
 
 _MAX_FAILING_TEST_CASES = 10
@@ -109,19 +110,6 @@ class EditorEvalContext(BaseModel):
     comparison: ComparisonSummary | None = None
     improvement_suggestions: list[dict[str, object]] | None = None
     detailed_results: list[DetailedTestCaseResult] | None = None
-
-
-def _extract_agent_tool_names(agent: Agent) -> list[str]:
-    tool_names: list[str] = []
-    if agent.tools:
-        for t in agent.tools:
-            if isinstance(t, dict) and "function" in t:
-                fn = t.get("function")
-                if isinstance(fn, dict) and "name" in fn:
-                    tool_names.append(str(fn["name"]))
-            elif isinstance(t, dict) and "name" in t:
-                tool_names.append(str(t["name"]))
-    return tool_names
 
 
 def _metric_display_name(metric_id: str) -> str:
@@ -365,7 +353,7 @@ async def build_eval_context(
         if aggregate_run is None:
             return None
 
-    tool_names = _extract_agent_tool_names(agent)
+    tool_names = [t.name for t in parse_agent_tool_definitions(agent.tools)]
 
     metric_breakdown: list[MetricBreakdown] | None = None
     failing_test_cases: list[FailingTestCaseSummary] | None = None

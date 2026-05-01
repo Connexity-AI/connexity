@@ -1,5 +1,6 @@
 from pytest import MonkeyPatch
 
+from app.core.config import settings
 from app.services import llm_models
 
 
@@ -44,6 +45,7 @@ def test_catalog_falls_back_to_static_models_and_filters_to_chat(
 
     assert calls == [True, False]
     assert catalog.count == 1
+    assert catalog.default_model == settings.default_llm_id
     assert catalog.data[0].provider == "openai"
     assert catalog.data[0].models[0].id == "openai/gpt-4o-mini"
     assert catalog.data[0].models[0].label == "gpt-4o-mini"

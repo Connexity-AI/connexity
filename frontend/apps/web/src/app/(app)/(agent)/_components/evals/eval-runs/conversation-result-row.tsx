@@ -73,7 +73,7 @@ export function ConversationResultRow({
       />
       <AccordionTrigger
         className={cn(
-          'grid grid-cols-[24px_24px_1fr_auto_auto_auto] items-center gap-3 py-3 pr-5 pl-5',
+          'grid cursor-pointer grid-cols-[24px_24px_1fr_auto_auto_auto] items-center gap-3 py-3 pr-5 pl-5',
           'font-normal text-foreground hover:no-underline',
           'hover:bg-accent/20 data-[state=open]:bg-accent/30',
           selected && 'bg-accent/30'

@@ -3,13 +3,13 @@
 import click
 
 from cli import output
-from cli.commands.run import _resolve_agent, _resolve_eval_set
-from cli.context import get_output_format, open_client, root_obj
+from cli.context import ensure_auth, get_output_format, open_client
+from cli.resolvers import resolve_agent, resolve_eval_config
 
 
 @click.group("baseline")
 def baseline_group() -> None:
-    """Manage baseline runs for agent + eval set pairs."""
+    """Manage baseline runs for agent + eval config pairs."""
 
 
 @baseline_group.command("set")
@@ -27,31 +27,27 @@ def baseline_set(
     run_id: str,
     output_override: str | None,
 ) -> None:
-    """Mark a completed run as the baseline for its agent + eval set."""
-    root = root_obj(ctx)
-    if not root.get("token"):
-        raise click.ClickException(
-            "Authentication required: set CONNEXITY_EVALS_API_TOKEN or pass --token."
-        )
+    """Mark a completed run as the baseline for its agent + eval config."""
+    ensure_auth(ctx)
     fmt = get_output_format(ctx, output_override)
 
     with open_client(ctx) as client:
         # Validate the run is completed before attempting to set baseline
-        existing = client.get_run(run_id)
+        existing = client.runs.get(run_id)
         if str(existing.get("status", "")).lower() != "completed":
             raise click.ClickException(
                 f"Only completed runs can be set as baseline "
                 f"(run {run_id} status={existing.get('status')})"
             )
 
-        run = client.update_run(run_id, {"is_baseline": True})
+        run = client.runs.update(run_id, {"is_baseline": True})
         if fmt == "json":
             output.emit(run, output_format="json")
         else:
             output.progress(
                 f"Baseline set: run {run['id']} "
                 f"(agent={run.get('agent_id')}, "
-                f"eval_set={run.get('eval_set_id')})"
+                f"eval_config={run.get('eval_config_id')})"
             )
 
 
@@ -63,10 +59,10 @@ def baseline_set(
     help="Agent UUID, name, or endpoint URL",
 )
 @click.option(
-    "--eval-set",
-    "eval_set_ref",
+    "--eval-config",
+    "eval_config_ref",
     required=True,
-    help="Eval set name or UUID",
+    help="Eval config name or UUID",
 )
 @click.option(
     "--output",
@@ -79,16 +75,20 @@ def baseline_set(
 def baseline_show(
     ctx: click.Context,
     agent_ref: str,
-    eval_set_ref: str,
+    eval_config_ref: str,
     output_override: str | None,
 ) -> None:
-    """Show the current baseline run for an agent + eval set."""
+    """Show the current baseline run for an agent + eval config."""
+    ensure_auth(ctx)
     fmt = get_output_format(ctx, output_override)
 
     with open_client(ctx) as client:
-        agent = _resolve_agent(client, agent_ref)
-        eval_set = _resolve_eval_set(client, eval_set_ref)
-        run = client.get_baseline_run(str(agent["id"]), str(eval_set["id"]))
+        agent = resolve_agent(client, agent_ref)
+        eval_config = resolve_eval_config(client, eval_config_ref)
+        run = client.runs.get_baseline(
+            agent_id=str(agent["id"]),
+            eval_config_id=str(eval_config["id"]),
+        )
         if fmt == "json":
             output.emit(run, output_format="json")
         else:

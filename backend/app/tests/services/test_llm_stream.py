@@ -18,11 +18,17 @@ from app.services.llm import (
 
 @dataclass
 class _FakeLLMSettings:
-    LLM_DEFAULT_MODEL: str | None = "gpt-4.1-nano"
+    LLM_DEFAULT_MODEL: str = "gpt-4.1-nano"
     LLM_DEFAULT_PROVIDER: str | None = None
     LLM_RETRY_MAX_ATTEMPTS: int = 5
     LLM_RETRY_MIN_WAIT_SECONDS: float = 0.01
     LLM_RETRY_MAX_WAIT_SECONDS: float = 0.05
+
+    @property
+    def default_llm_id(self) -> str:
+        from app.services.llm import resolve_litellm_model
+
+        return resolve_litellm_model(self.LLM_DEFAULT_MODEL, self.LLM_DEFAULT_PROVIDER)
 
 
 def _chunk(

@@ -3,11 +3,27 @@
 Routes local test runs to a dedicated `app_test` database so the test suite's
 TRUNCATE teardown can never wipe dev data. CI uses its own throwaway Postgres
 container and exports `CI=true`, so we skip the override there.
+
+Skipped automatically when the requested pytest targets are exclusively under
+``cli/tests/`` — those are pure HTTP-mock unit tests and don't need a DB.
 """
 
 import os
+import sys
 
-if not os.environ.get("CI"):
+
+def _needs_app_db() -> bool:
+    """True if any requested test path needs the app DB."""
+    if os.environ.get("CI"):
+        return False  # CI bootstraps the DB itself.
+    args = [a for a in sys.argv[1:] if a and not a.startswith("-")]
+    if not args:
+        return True  # whole-tree discovery — assume app tests are included.
+    # Setup is required unless every requested path is a pure CLI test path.
+    return not all(a.startswith("cli/tests") or a.startswith("./cli/tests") for a in args)
+
+
+if _needs_app_db() and not os.environ.get("CI"):
     os.environ["POSTGRES_DB"] = "app_test"
 
     from alembic import command

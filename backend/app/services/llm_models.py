@@ -7,6 +7,8 @@ import litellm
 from litellm.utils import get_valid_models
 from pydantic import BaseModel, Field
 
+from app.core.config import settings
+
 logger = logging.getLogger(__name__)
 
 LLM_MODELS_CACHE_TTL_SECONDS = 300
@@ -49,7 +51,6 @@ class LLMModelsPublic(BaseModel):
     default_model: str = Field(description="Global default full LiteLLM routing id")
 
 
-_GLOBAL_DEFAULT_MODEL = "openai/gpt-4.1"
 _MODEL_COST = cast("dict[str, dict[str, object]]", litellm.model_cost)
 _CatalogCache = tuple[float, LLMModelsPublic]
 _catalog_cache: _CatalogCache | None = None
@@ -78,7 +79,7 @@ def _build_model_catalog() -> LLMModelsPublic:
     providers = _group_models_by_provider(_get_available_model_ids())
     total = sum(len(provider.models) for provider in providers)
     return LLMModelsPublic(
-        data=providers, count=total, default_model=_GLOBAL_DEFAULT_MODEL
+        data=providers, count=total, default_model=settings.default_llm_id
     )
 
 
@@ -128,7 +129,7 @@ def _group_models_by_provider(raw_models: list[str]) -> list[LLMModelProviderPub
                 provider_label=_provider_label(provider),
                 model=bare_model,
                 label=bare_model,
-                is_default=full_id == _GLOBAL_DEFAULT_MODEL,
+                is_default=full_id == settings.default_llm_id,
                 is_recommended=False,
                 max_input_tokens=_int_metadata(metadata, "max_input_tokens"),
                 max_output_tokens=_int_metadata(metadata, "max_output_tokens")

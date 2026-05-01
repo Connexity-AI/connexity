@@ -31,7 +31,7 @@ function TagChip({ tag, onRemove }: { tag: string; onRemove: (tag: string) => vo
       <button
         type="button"
         onClick={() => onRemove(tag)}
-        className="text-muted-foreground/50 transition-colors hover:text-red-400"
+        className="cursor-pointer text-muted-foreground/50 transition-colors hover:text-red-400"
       >
         <X className="h-2.5 w-2.5" />
       </button>

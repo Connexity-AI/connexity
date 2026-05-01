@@ -12,6 +12,13 @@ from app.tests.utils.eval import (
     create_test_platform_agent,
 )
 
+# Matches PERSONA_SECTION_LABELS in test_case_generator.validation (required for AI agent path).
+_VALID_AI_PERSONA_CONTEXT = (
+    "[Persona type]\nTest user\n"
+    "[Description]\nA user in a test scenario.\n"
+    "[Behavioral instructions]\nBehave naturally.\n"
+)
+
 
 def test_create_test_case(client: TestClient, auth_cookies: dict[str, str]) -> None:
     data = {
@@ -526,7 +533,7 @@ def test_test_case_ai_create_preview(
                             "name": "AI Case",
                             "tags": ["normal"],
                             "difficulty": "normal",
-                            "persona_context": "p",
+                            "persona_context": _VALID_AI_PERSONA_CONTEXT,
                             "first_message": "hi",
                         }
                     ),
@@ -535,7 +542,7 @@ def test_test_case_ai_create_preview(
         ],
     )
     with patch(
-        "app.services.test_case_generator.agent.core.call_llm",
+        "app.services.test_case_generator.interactive.core.call_llm",
         new_callable=AsyncMock,
         return_value=mock_resp,
     ):
@@ -577,7 +584,7 @@ def test_test_case_ai_edit_preview_default_no_db_write(
                             "name": "Renamed By AI",
                             "tags": ["edge-case"],
                             "difficulty": "hard",
-                            "persona_context": "pc",
+                            "persona_context": _VALID_AI_PERSONA_CONTEXT,
                             "first_message": "yo",
                         }
                     ),
@@ -586,7 +593,7 @@ def test_test_case_ai_edit_preview_default_no_db_write(
         ],
     )
     with patch(
-        "app.services.test_case_generator.agent.core.call_llm",
+        "app.services.test_case_generator.interactive.core.call_llm",
         new_callable=AsyncMock,
         return_value=mock_resp,
     ):
@@ -628,7 +635,7 @@ def test_test_case_ai_edit_persist_updates_db(
                             "name": "After Persist",
                             "tags": ["normal"],
                             "difficulty": "normal",
-                            "persona_context": "pc",
+                            "persona_context": _VALID_AI_PERSONA_CONTEXT,
                             "first_message": "m",
                         }
                     ),
@@ -637,7 +644,7 @@ def test_test_case_ai_edit_persist_updates_db(
         ],
     )
     with patch(
-        "app.services.test_case_generator.agent.core.call_llm",
+        "app.services.test_case_generator.interactive.core.call_llm",
         new_callable=AsyncMock,
         return_value=mock_resp,
     ):
