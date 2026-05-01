@@ -213,7 +213,6 @@ async def list_environment_retell_versions(
 @router.get("/deployments", response_model=DeploymentsPublic)
 def list_agent_deployments(
     session: SessionDep,
-    current_user: CurrentUser,
     agent_id: uuid.UUID = Query(...),
 ) -> DeploymentsPublic:
     if not crud.get_agent(session=session, agent_id=agent_id):
@@ -228,7 +227,6 @@ def list_agent_deployments(
 @router.get("/{environment_id}/deployments", response_model=DeploymentsPublic)
 def list_environment_deployments(
     session: SessionDep,
-    current_user: CurrentUser,
     environment_id: uuid.UUID,
 ) -> DeploymentsPublic:
     env = crud.get_environment(session=session, environment_id=environment_id)
