@@ -3,6 +3,7 @@
 
 import { createContext, useContext, type ReactNode } from 'react';
 
+import { Button } from '@workspace/ui/components/ui/button';
 import { Form } from '@workspace/ui/components/ui/form';
 import { Sheet, SheetContent } from '@workspace/ui/components/ui/sheet';
 
@@ -10,9 +11,13 @@ import { AddTestCaseAiDrawerFooter } from './add-test-case-ai-drawer-footer';
 import { AddTestCaseAiDrawerHeader } from './add-test-case-ai-drawer-header';
 import { AddTestCaseAiGeneratingPhase } from './add-test-case-ai-generating-phase';
 import { AddTestCaseAiInputPhase } from './add-test-case-ai-input-phase';
-import { useAiTestCaseGeneration } from './use-ai-test-case-generation';
+import { AddTestCaseAiResultsPhase } from './add-test-case-ai-results-phase';
+import {
+  useAiTestCaseGeneration,
+  type UseAiTestCaseGenerationReturn,
+} from './use-ai-test-case-generation';
 
-type AiDrawerContextValue = ReturnType<typeof useAiTestCaseGeneration>;
+type AiDrawerContextValue = UseAiTestCaseGenerationReturn & { agentId: string };
 
 const AiDrawerContext = createContext<AiDrawerContextValue | null>(null);
 
@@ -35,7 +40,7 @@ function Root({ agentId, open, onOpenChange, children }: RootProps) {
   const generation = useAiTestCaseGeneration({ agentId, onOpenChange });
 
   return (
-    <AiDrawerContext.Provider value={generation}>
+    <AiDrawerContext.Provider value={{ ...generation, agentId }}>
       <Sheet open={open} onOpenChange={generation.onOpenChange}>
         {children}
       </Sheet>
@@ -44,17 +49,21 @@ function Root({ agentId, open, onOpenChange, children }: RootProps) {
 }
 
 function Content({ children }: { children: ReactNode }) {
-  const { form, handleSubmit } = useAiDrawerContext();
+  const { form, handleSubmit, phase } = useAiDrawerContext();
   return (
     <SheetContent
       side="right"
       className="flex h-full w-full flex-col gap-0 overflow-hidden border-l border-border p-0 sm:max-w-105"
     >
-      <Form {...form}>
-        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-          {children}
-        </form>
-      </Form>
+      {phase === 'results' ? (
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      ) : (
+        <Form {...form}>
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            {children}
+          </form>
+        </Form>
+      )}
     </SheetContent>
   );
 }
@@ -64,6 +73,32 @@ function Body({ children }: { children: ReactNode }) {
 }
 
 function Header() {
+  const {
+    phase,
+    generatedTestCases,
+    currentIndex,
+    canScrollPrev,
+    canScrollNext,
+    scrollPrev,
+    scrollNext,
+  } = useAiDrawerContext();
+
+  if (phase === 'results') {
+    return (
+      <AddTestCaseAiDrawerHeader
+        variant="results"
+        carousel={{
+          current: currentIndex,
+          total: generatedTestCases.length,
+          canScrollPrev,
+          canScrollNext,
+          onPrev: scrollPrev,
+          onNext: scrollNext,
+        }}
+      />
+    );
+  }
+
   return <AddTestCaseAiDrawerHeader />;
 }
 
@@ -79,8 +114,36 @@ function GeneratingPhase() {
   return <AddTestCaseAiGeneratingPhase stageIndex={stageIndex} progress={progress} />;
 }
 
+function ResultsPhase() {
+  const { phase, generatedTestCases, setCarouselApi, agentId } = useAiDrawerContext();
+  if (phase !== 'results') return null;
+  return (
+    <AddTestCaseAiResultsPhase
+      agentId={agentId}
+      testCases={generatedTestCases}
+      setApi={setCarouselApi}
+    />
+  );
+}
+
 function Footer() {
   const { phase, onOpenChange } = useAiDrawerContext();
+
+  if (phase === 'results') {
+    return (
+      <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border px-5 py-4">
+        <Button
+          type="button"
+          size="sm"
+          className="h-8 border-0 bg-violet-600 text-xs text-white hover:bg-violet-500"
+          onClick={() => onOpenChange(false)}
+        >
+          Done
+        </Button>
+      </div>
+    );
+  }
+
   if (phase !== 'input') return null;
   return <AddTestCaseAiDrawerFooter onCancel={() => onOpenChange(false)} />;
 }
@@ -92,6 +155,7 @@ export const AiTestCaseDrawer = {
   Body,
   InputPhase,
   GeneratingPhase,
+  ResultsPhase,
   Footer,
 };
 
@@ -109,6 +173,7 @@ export function AddTestCaseAiDrawer({ agentId, open, onOpenChange }: AddTestCase
         <AiTestCaseDrawer.Body>
           <AiTestCaseDrawer.InputPhase />
           <AiTestCaseDrawer.GeneratingPhase />
+          <AiTestCaseDrawer.ResultsPhase />
         </AiTestCaseDrawer.Body>
         <AiTestCaseDrawer.Footer />
       </AiTestCaseDrawer.Content>

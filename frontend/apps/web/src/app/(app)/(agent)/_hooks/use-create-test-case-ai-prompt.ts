@@ -1,10 +1,25 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type KeyboardEvent,
+  type RefObject,
+  type SetStateAction,
+} from 'react';
 
 import { useRunTestCaseAiAgent } from '@/app/(app)/(agent)/_hooks/use-run-test-case-ai-agent';
-import { TurnRole, type CallPublic, type ConversationTurnInput } from '@/client/types.gen';
+import {
+  TurnRole,
+  type CallPublic,
+  type ConversationTurnInput,
+  type TestCasePublic,
+} from '@/client/types.gen';
 import { isErrorApiResult } from '@/utils/api';
+
+import type { CarouselApi } from '@workspace/ui/components/ui/carousel';
 
 export const STAGES = [
   { label: 'Reading conversation transcript…', duration: 2000 },
@@ -19,13 +34,32 @@ const TICK_MS = 30;
 const HOLD_PROGRESS_AT = 95;
 const COMPLETION_DELAY_MS = 200;
 
-type Phase = 'input' | 'generating';
+export type AiPromptPhase = 'input' | 'generating' | 'results';
 
 interface UseCreateTestCaseAiPromptArgs {
   agentId: string;
   call: CallPublic;
   onClose: () => void;
-  onGenerated: (testCaseId: string) => void;
+}
+
+export interface UseCreateTestCaseAiPromptReturn {
+  phase: AiPromptPhase;
+  userPrompt: string;
+  setUserPrompt: Dispatch<SetStateAction<string>>;
+  stageIndex: number;
+  progress: number;
+  error: string | null;
+  textareaRef: RefObject<HTMLTextAreaElement | null>;
+  isPending: boolean;
+  handleGenerate: () => Promise<void>;
+  handleKeyDown: (e: KeyboardEvent<HTMLTextAreaElement>) => void;
+  generatedTestCases: TestCasePublic[];
+  setCarouselApi: Dispatch<SetStateAction<CarouselApi | undefined>>;
+  currentIndex: number;
+  canScrollPrev: boolean;
+  canScrollNext: boolean;
+  scrollPrev: () => void;
+  scrollNext: () => void;
 }
 
 function normalizeRole(raw: unknown): TurnRole {
@@ -77,13 +111,17 @@ export function useCreateTestCaseAiPrompt({
   agentId,
   call,
   onClose,
-  onGenerated,
-}: UseCreateTestCaseAiPromptArgs) {
-  const [phase, setPhase] = useState<Phase>('input');
+}: UseCreateTestCaseAiPromptArgs): UseCreateTestCaseAiPromptReturn {
+  const [phase, setPhase] = useState<AiPromptPhase>('input');
   const [userPrompt, setUserPrompt] = useState('');
   const [stageIndex, setStageIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [generatedTestCases, setGeneratedTestCases] = useState<TestCasePublic[]>([]);
+  const [carouselApi, setCarouselApi] = useState<CarouselApi | undefined>();
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const frameRef = useRef<number | null>(null);
 
@@ -98,6 +136,22 @@ export function useCreateTestCaseAiPrompt({
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!carouselApi) return;
+    const sync = () => {
+      setCurrentIndex(carouselApi.selectedScrollSnap());
+      setCanScrollPrev(carouselApi.canScrollPrev());
+      setCanScrollNext(carouselApi.canScrollNext());
+    };
+    sync();
+    carouselApi.on('select', sync);
+    carouselApi.on('reInit', sync);
+    return () => {
+      carouselApi.off('select', sync);
+      carouselApi.off('reInit', sync);
+    };
+  }, [carouselApi]);
 
   const startStageAnimation = () => {
     setStageIndex(0);
@@ -164,15 +218,20 @@ export function useCreateTestCaseAiPrompt({
 
     setProgress(100);
 
-    const created = result.data?.created?.[0] ?? result.data?.edited ?? null;
+    const created = result.data?.created ?? [];
     setTimeout(() => {
-      if (created?.id) {
-        onGenerated(created.id);
-      } else {
+      if (created.length === 0) {
         onClose();
+        return;
       }
+      setGeneratedTestCases(created);
+      setCurrentIndex(0);
+      setPhase('results');
     }, COMPLETION_DELAY_MS);
   };
+
+  const scrollPrev = () => carouselApi?.scrollPrev();
+  const scrollNext = () => carouselApi?.scrollNext();
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -192,5 +251,12 @@ export function useCreateTestCaseAiPrompt({
     isPending,
     handleGenerate,
     handleKeyDown,
+    generatedTestCases,
+    setCarouselApi,
+    currentIndex,
+    canScrollPrev,
+    canScrollNext,
+    scrollPrev,
+    scrollNext,
   };
 }

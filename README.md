@@ -70,53 +70,27 @@ Together these pieces form a **closed development loop**: connect or build → e
 
 ## 🛠 Deploy Connexity
 
-Run Connexity on your own infrastructure. Use Docker for a full self-hosted stack, or run the app locally while keeping the database in Docker for development.
+Run Connexity on your own infrastructure. Use Docker for a full self-hosted stack.
 
-### Local development
-
-**Option A** runs the app on your machine with the database and migrations wired through Make; **Option B** runs the full stack in Docker Compose. Pick one workflow below.
+### Local
 
 ```bash
-# Get a copy of the latest Connexity repository
-git clone https://github.com/Connexity-AI/connexity-evals.git
-cd connexity-evals
+git clone https://github.com/Connexity-AI/connexity.git
+cd connexity
 
-# Copy environment variables
 cp .env.example .env
-cp frontend/apps/web/.env.example frontend/apps/web/.env
+# Edit .env: set SITE_URL, JWT_SECRET_KEY, ENCRYPTION_KEY, POSTGRES_PASSWORD, optional API keys.
 
-# Install dependencies (Python + frontend)
-make install
-
-# Start database
-make db
-
-# Run migrations
-make db-upgrade
-
-# Start backend (in one terminal)
-make dev
-
-# Start frontend (in another terminal)
-make dashboard
+docker compose up
 ```
-
-### Option B — Everything in Docker
-
-```bash
-# 1. Copy environment variables
-cp .env.example .env
-cp frontend/apps/web/.env.example frontend/apps/web/.env
-
-# 2. Start all services (frontend, backend, database, database browser)
-make docker-up
-```
-
-Then open the dashboard at [http://localhost:3000](http://localhost:3000).
 
 ### VM
 
-Run Connexity on a single Virtual Machine using the same Docker Compose stack. Suitable for small teams and internal deployments — clone the repo on your VM, set production secrets in `.env`, and run `make docker-up`. The repository also includes Docker build and deploy workflows for teams that want to publish their own images. See the [`docs/`](./docs) folder for hardening and configuration tips.
+more info here
+
+### CLI against a hosted instance
+
+Point the CLI at the **public API base URL** (same host as the app if you reverse-proxy `/api/v1`, or a dedicated API host). See [`.env.example`](.env.example) (`CONNEXITY_CLI_API_URL` / `CONNEXITY_CLI_API_TOKEN`).
 
 ## 🪢 Integrations
 
@@ -151,32 +125,7 @@ The end-to-end developer loop in Connexity looks like this:
 
 ### 1️⃣ Run the platform
 
-The fastest way is the all-in-one Docker stack:
-
-```bash
-git clone https://github.com/Connexity-AI/connexity-evals.git
-cd connexity-evals
-
-cp .env.example .env
-cp frontend/apps/web/.env.example frontend/apps/web/.env
-
-make docker-up
-```
-
-| Service   | URL                                                            |
-| --------- | -------------------------------------------------------------- |
-| Dashboard | [http://localhost:3000](http://localhost:3000)                 |
-| API docs  | [http://localhost:8000/docs](http://localhost:8000/docs)       |
-| Database browser | [http://localhost:8083](http://localhost:8083)          |
-
-Sign in with the seeded superuser (configured in `.env`):
-
-| Field    | Value               |
-| -------- | ------------------- |
-| Email    | `admin@example.com` |
-| Password | `password`          |
-
-> Prefer running the app natively with the DB in Docker? Use `make install && make db && make db-upgrade && make dev` and `make dashboard` in another terminal. See `make help` for all targets.
+update here
 
 ### 2️⃣ Bring an agent into Connexity
 

@@ -81,7 +81,7 @@ This keeps the frontend TypeScript SDK in sync. CI will fail if the generated cl
 - **ALWAYS run `bash scripts/generate-client.sh`** after ANY backend route or model change.
 - Backend `response_model=` controls what gets exposed to frontend — never return raw DB models (table=True) directly.
 - The `openapi-ts.config.ts` strips method prefixes (e.g. `itemsCreateItem` → `createItem`).
-- Environment variables are validated at runtime — backend via Pydantic `BaseSettings`, frontend via Zod (`@next-public-env`). Add new env vars to both `.env.example` and the validation schema.
+- Environment variables are validated at runtime — backend via Pydantic `BaseSettings`, frontend via Zod (`@next-public-env`). Add new vars to the root `.env.example` and the validation schema. There is no separate `frontend/apps/web/.env` for normal setups; use repo root `.env` only.
 
 ## Architecture Decisions
 

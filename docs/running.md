@@ -4,20 +4,15 @@ Install and run project locally for development.
 
 ## Environment variables
 
-Clone the repository, create `.env` files for backend and frontend and populate them. Available environment variables: 
+Use a **single** file at the repo root. Copy [.env.example](../.env.example) to `.env` and edit. `docker compose` and `make dashboard` both read that file.
 
-- Backend: [.env.example](../.env.example).
-- Frontend: [frontend/apps/web/.env.example](../frontend/apps/web/.env.example).
+The [frontend env example](../frontend/apps/web/.env.example) only points to the root template; Next.js is not configured via a second secret `.env` path.
 
 ```bash
 # Clone repository
-git clone git@github.com:space-step/connexity.git
+git clone git@github.com:Connexity-AI/connexity.git
 
-# Create backend .env file
-cp .env.example .env
-
-# Create frontend .env file
-cd frontend/apps/web
+cd connexity
 cp .env.example .env
 ```
 

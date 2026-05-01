@@ -1,0 +1,14 @@
+# docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: connexity-frontend:local
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    image: connexity-backend:local

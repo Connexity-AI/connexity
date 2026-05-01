@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { useTestCasesDeletion } from '@/app/(app)/(agent)/_components/evals/test-cases/use-test-cases-deletion';
 import { useMarkCallSeen } from '@/app/(app)/(agent)/_hooks/use-calls';
@@ -25,7 +25,6 @@ interface UseObserveDrawerStateResult {
   onCloseRightPanel: () => void;
   onCreateTestCaseManual: () => void;
   onCreateTestCaseAi: () => void;
-  onAiGenerated: (testCaseId: string) => void;
   deletion: ReturnType<typeof useTestCasesDeletion>;
 }
 
@@ -36,7 +35,6 @@ export function useObserveDrawerState({
   const [selectedCallId, setSelectedCallId] = useState<string | null>(null);
   const [rightPanelMode, setRightPanelMode] = useState<ObserveRightPanelMode | null>(null);
   const [selectedTestCaseId, setSelectedTestCaseId] = useState<string | null>(null);
-  const [pendingTestCaseId, setPendingTestCaseId] = useState<string | null>(null);
 
   const markSeen = useMarkCallSeen(agentId);
 
@@ -77,17 +75,6 @@ export function useObserveDrawerState({
     return map;
   }, [testCases]);
 
-  // After AI generation, wait for the newly created test case to land in the
-  // list cache, then switch the right panel over to it.
-  useEffect(() => {
-    if (!pendingTestCaseId) return;
-    const found = testCases.find((tc) => tc.id === pendingTestCaseId);
-    if (!found) return;
-    setSelectedTestCaseId(found.id);
-    setRightPanelMode('test-case');
-    setPendingTestCaseId(null);
-  }, [pendingTestCaseId, testCases]);
-
   const onRowClick = useCallback(
     (call: CallPublic) => {
       setSelectedCallId(call.id);
@@ -101,7 +88,6 @@ export function useObserveDrawerState({
       setSelectedCallId(call.id);
       setSelectedTestCaseId(testCase.id);
       setRightPanelMode('test-case');
-      setPendingTestCaseId(null);
       if (call.is_new) markSeen.mutate(call.id);
     },
     [markSeen],
@@ -111,39 +97,22 @@ export function useObserveDrawerState({
     setSelectedCallId(null);
     setSelectedTestCaseId(null);
     setRightPanelMode(null);
-    setPendingTestCaseId(null);
   }, []);
 
   const onCloseRightPanel = useCallback(() => {
     setRightPanelMode(null);
     setSelectedTestCaseId(null);
-    setPendingTestCaseId(null);
   }, []);
 
   const onCreateTestCaseManual = useCallback(() => {
     setRightPanelMode('manual-create');
     setSelectedTestCaseId(null);
-    setPendingTestCaseId(null);
   }, []);
 
   const onCreateTestCaseAi = useCallback(() => {
     setRightPanelMode('ai-prompt');
     setSelectedTestCaseId(null);
   }, []);
-
-  const onAiGenerated = useCallback(
-    (testCaseId: string) => {
-      const found = testCases.find((tc) => tc.id === testCaseId);
-      if (found) {
-        setSelectedTestCaseId(testCaseId);
-        setRightPanelMode('test-case');
-        setPendingTestCaseId(null);
-      } else {
-        setPendingTestCaseId(testCaseId);
-      }
-    },
-    [testCases],
-  );
 
   return {
     selectedCall,
@@ -156,7 +125,6 @@ export function useObserveDrawerState({
     onCloseRightPanel,
     onCreateTestCaseManual,
     onCreateTestCaseAi,
-    onAiGenerated,
     deletion,
   };
 }

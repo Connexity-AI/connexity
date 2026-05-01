@@ -29,7 +29,6 @@ interface ObserveDrawerProps {
   onCloseRightPanel: () => void;
   onCreateTestCaseManual: (call: CallPublic) => void;
   onCreateTestCaseAi: (call: CallPublic) => void;
-  onAiGenerated: (testCaseId: string) => void;
   onRequestDeleteTestCase: (testCase: TestCasePublic) => void;
   batchPosition?: number;
   batchTotal?: number;
@@ -46,7 +45,6 @@ export function ObserveDrawer({
   onCloseRightPanel,
   onCreateTestCaseManual,
   onCreateTestCaseAi,
-  onAiGenerated,
   onRequestDeleteTestCase,
   batchPosition,
   batchTotal,
@@ -88,7 +86,6 @@ export function ObserveDrawer({
             agentId={agentId}
             call={call}
             onClose={onCloseRightPanel}
-            onGenerated={onAiGenerated}
           />
         ) : null}
 

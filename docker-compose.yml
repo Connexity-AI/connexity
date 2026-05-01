@@ -1,14 +1,10 @@
 name: connexity
 
-# development environment
+# GHCR images by default; use docker-compose.build.yml to build locally.
 
 services:
-
-  # Todo: improve frontend and test it
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ${CONNEXITY_FRONTEND_IMAGE:-ghcr.io/connexity-ai/connexity-frontend:latest}
     container_name: connexity-frontend
     restart: unless-stopped
     ports:
@@ -17,24 +13,30 @@ services:
       - backend
     networks:
       - default
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      API_URL: http://backend:8000
+      SITE_URL: ${SITE_URL?Variable not set}
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.dev
+    image: ${CONNEXITY_BACKEND_IMAGE:-ghcr.io/connexity-ai/connexity-backend:latest}
     container_name: connexity-backend
     restart: unless-stopped
-    # don't mount alembic as volume
     ports:
       - 8000:8000
     env_file:
       - .env
     environment:
-      # Override: inside Docker network, DB is at service name, not localhost
-      - POSTGRES_SERVER=database
-      - POSTGRES_PORT=5432
+      POSTGRES_SERVER: database
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD?Variable not set}
     depends_on:
-      - database
+      database:
+        condition: service_healthy
     networks:
       - default
 
@@ -43,40 +45,41 @@ services:
     container_name: connexity-database
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-app}",
+        ]
       interval: 10s
       retries: 5
       start_period: 30s
       timeout: 10s
-    # postgres user 999:999 must own the volume
-    # ok in dev, python watch will complain
-    # user: '${MY_UID}:${MY_GID}'  # Linux only, not needed on Windows/macOS
     ports:
-      - '${POSTGRES_PORT}:5432'
+      - "${POSTGRES_PORT:-5433}:5432"
     env_file:
       - .env
     environment:
-      - PGDATA=/var/lib/postgresql/data/pgdata
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
-      - POSTGRES_USER=${POSTGRES_USER?Variable not set}
-      - POSTGRES_DB=${POSTGRES_DB?Variable not set}
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD?Variable not set}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-app}
     volumes:
-      - ./backend/data/database:/var/lib/postgresql/data # !without /pgdata
+      - ./backend/data/database:/var/lib/postgresql/data
     networks:
       - default
 
-  # pgweb — zero-login Postgres browser for dev. Service name kept as `adminer`
-  # so existing docs/scripts (e.g. CLAUDE.md) still compose up.
+  # pgweb (service name `adminer` for existing docs/scripts)
   adminer:
     image: sosedoff/pgweb:latest
     container_name: connexity-adminer
     restart: unless-stopped
     depends_on:
-      - database
+      database:
+        condition: service_healthy
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?sslmode=disable
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB:-app}?sslmode=disable
     ports:
       - 8083:8081
     networks:

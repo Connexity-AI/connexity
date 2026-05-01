@@ -2,7 +2,7 @@
 # Two modes: local (no Docker for app, just DB) and docker (everything in Docker)
 
 .PHONY: help install dev dashboard db db-upgrade db-migrate db-downgrade db-stop \
-        docker-up docker-down docker-logs \
+        docker-up docker-down docker-logs docker-build-up docker-build-down \
         cli lint format test generate-client
 
 # ──────────────────────────────────────────────
@@ -19,15 +19,15 @@ help: ## Show available targets
 
 install: ## Install Python and frontend dependencies
 	@test -f .env || (cp .env.example .env && echo "Created .env from .env.example")
-	@test -f frontend/apps/web/.env || (cp frontend/apps/web/.env.example frontend/apps/web/.env && echo "Created frontend .env from .env.example")
 	cd backend && uv venv && uv sync
 	cd frontend && pnpm install
 
 dev: ## Start FastAPI backend (local, requires DB running)
 	cd backend && uv run uvicorn app.main:app --reload
 
-dashboard: ## Start Next.js dev server
-	cd frontend && pnpm dev
+dashboard: ## Start Next.js dev server (loads repo root .env)
+	@test -f .env || (echo "Missing .env; copy .env.example to .env first." >&2 && exit 1)
+	set -a && . ./.env && set +a && cd frontend && pnpm dev
 
 db: ## Start Postgres + Adminer in Docker
 	docker compose up -d database adminer
@@ -56,6 +56,12 @@ docker-down: ## Stop all Docker services
 
 docker-logs: ## Tail logs for all Docker services
 	docker compose logs -f
+
+docker-build-up: ## Build and start stack from local Dockerfiles
+	docker compose -f docker-compose.yml -f docker-compose.build.yml up --build -d
+
+docker-build-down: ## Stop stack started with docker-build-up
+	docker compose -f docker-compose.yml -f docker-compose.build.yml down
 
 # ──────────────────────────────────────────────
 # CLI
