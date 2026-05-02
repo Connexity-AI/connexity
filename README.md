@@ -1,63 +1,206 @@
-# connexity
+<p align="center">
+  <a href="https://connexity.ai">
+    <img src="./assets/logo.png" alt="Connexity" width="200" />
+  </a>
+</p>
 
-## Quick start (Docker)
+<div align="center">
+   <div>
+      <h3>
+         <a href="https://connexity.ai">
+            <strong>Website</strong>
+         </a> ·
+         <a href="https://github.com/Connexity-AI/connexity">
+            <strong>GitHub</strong>
+         </a> ·
+         <a href="./docs">
+            <strong>Docs</strong>
+         </a> ·
+         <a href="https://discord.gg/Gj47DqWq">
+            <strong>Discord</strong>
+         </a>
+      </h3>
+   </div>
 
-Prebuilt images live on [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry). Use a **public** package (or inherit visibility from a public repo) so pulls work without logging in.
+   <div>
+      <a href="./docs"><strong>Documentation</strong></a> ·
+      <a href="https://github.com/Connexity-AI/connexity/issues"><strong>Report Bug</strong></a> ·
+      <a href="https://github.com/Connexity-AI/connexity/discussions"><strong>Feature Request</strong></a> ·
+      <a href="https://github.com/Connexity-AI/connexity/commits/main"><strong>Changelog</strong></a>
+   </div>
+   <br/>
+   <span>Connexity uses <a href="https://github.com/Connexity-AI/connexity/discussions"><strong>GitHub Discussions</strong></a> and <a href="https://discord.gg/Gj47DqWq"><strong>Discord</strong></a> for support and feature requests.</span>
+   <br/>
+   <br/>
+</div>
+
+<p align="center">
+   <a href="https://pypi.org/project/connexity-cli/" target="_blank">
+      <img src="https://img.shields.io/pypi/v/connexity-cli.svg" alt="connexity-cli on PyPI">
+   </a>
+   <a href="./LICENSE">
+      <img src="https://img.shields.io/badge/License-MIT-orange.svg" alt="MIT License">
+   </a>
+   <a href="https://discord.gg/Gj47DqWq" target="_blank">
+      <img src="https://img.shields.io/badge/Discord-Join%20us-5865F2?logo=discord&logoColor=white" alt="Join us on Discord">
+   </a>
+   <a href="https://connexity.ai" target="_blank">
+      <img src="https://img.shields.io/badge/Made%20with%20%E2%9D%A4%20by-Connexity-orange" alt="Made with love by Connexity">
+   </a>
+</p>
+
+Connexity is an **open-source evaluation and observability platform for voice AI agents**. It closes the loop between development and production: build or connect an agent, refine prompts with an AI co-pilot, generate realistic test cases from the agent's own configuration and real conversations, run evaluations locally or in CI, inspect production calls, and promote better versions with confidence — all from one place.
+
+## 🌀 Core Features
+
+Connexity is built around a single closed loop for developing voice AI agents — **connect or build → edit → test → evaluate → observe → iterate**.
+
+- **Agent versioning** — work freely on a draft of your agent's prompt, tools, and configuration. When you're happy with the changes, capture them as an immutable version with an optional changelog. Past versions are kept so you can compare runs, roll back, or branch off them.
+
+- **AI-assisted prompt editor** — collaborate with an AI agent that knows your current prompt, tools, and past evaluation results to draft, critique, and rewrite prompts faster than you would by hand.
+
+- **Test case generation** — Connexity reads the agent's own system prompt, tool definitions, and production conversations to generate diverse multi-turn test cases. Each generated case ships with a persona, an opening message, expected outcomes for the judge, and the tool calls the agent is expected to make. You can also use AI to draft or refine individual test cases from natural-language instructions.
+
+- **Agent evaluation** — run multi-turn simulations against your agent, scored by an LLM-as-judge with custom metrics, full transcripts, tool-call traces, and per-turn cost / token accounting.
+
+- **Production observability** — connect real-world call sources, review production conversations alongside evaluation results, and turn missed edge cases into regression tests before they happen again.
+
+- **CLI for CI/CD** — automate evaluation in GitHub Actions and other pipelines: every PR can run a regression suite against your agent and fail the build on quality, cost, or latency regressions.
+
+- **Agent deployment workflow** — connect deployment environments, sync provider state, and deploy evaluated versions back to supported voice platforms.
+
+Together these pieces form a **closed development loop**: connect or build → edit → test → evaluate → observe, then start over with real-world data.
+
+## 🛠 Run Connexity
+
+Run Connexity on your own infrastructure. Use Docker for a full self-hosted stack.
+
+### Local
 
 ```bash
 git clone https://github.com/Connexity-AI/connexity.git
 cd connexity
 
 cp .env.example .env
-# Edit .env: set SITE_URL, JWT_SECRET_KEY, ENCRYPTION_KEY, POSTGRES_PASSWORD, optional API keys.
+# Edit .env: SITE_URL, JWT_SECRET_KEY, ENCRYPTION_KEY, POSTGRES_PASSWORD — and configure at least one LLM provider key (pick the integrations you need; see `.env.example`).
 
 docker compose up
 ```
 
-- **Frontend**: [http://localhost:3000](http://localhost:3000)
-- **API docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **DB UI (pgweb)**: [http://localhost:8083](http://localhost:8083)
+### VM
 
-The compose file sets **`API_URL=http://backend:8000`** inside the frontend container so the Next.js server talks to FastAPI over the Docker network. You usually only set **`SITE_URL`** to the URL people open in the browser (`http://localhost:3000` locally, or `https://…` when hosted).
+Use the **same Compose stack on a VM**: install Docker on the machine, clone the repo, set production **`SITE_URL`** and secrets in **`.env`**, then **`docker compose up`**. Walkthrough for local versus VM—including sizing, firewall, and shutdown—is in [Docker Compose: local & VM](./docs/vm-docker-compose.md).
 
-**Forks / custom images**: override in `.env`:
+### CLI against a hosted instance
 
-```env
-CONNEXITY_BACKEND_IMAGE=ghcr.io/your-org/connexity-backend:latest
-CONNEXITY_FRONTEND_IMAGE=ghcr.io/your-org/connexity-frontend:latest
-```
+When the Connexity API is **not** on your machine’s default URL, set **`CONNEXITY_CLI_API_URL`** (that deployment’s API base) and **`CONNEXITY_CLI_API_TOKEN`** (bearer token after `login` or from your automation). See [`CLI_README.md`](./CLI_README.md); commented examples in [`.env.example`](.env.example).
 
-**Build images locally** (contributors):
+## 🪢 Integrations
+
+Connexity is designed to live alongside the voice AI platforms you already use. Retell is implemented today, and more first-class adapters are in active development.
+
+### Voice platforms
+
+| Platform | Status | Description |
+|:---|:---:|:---|
+| <img src="https://www.google.com/s2/favicons?domain=retell.ai&sz=64" width="24" height="24" alt="" /> **Retell** | *Available* | Connect your Retell workspace, browse agents, link environments, sync production calls, and deploy evaluated versions. |
+| <img src="https://www.google.com/s2/favicons?domain=vapi.ai&sz=64" width="24" height="24" alt="" /> **Vapi** | *Planned* | Import agents from your Vapi workspace into Connexity, version and evaluate them, then push updates back to Vapi. |
+| <img src="https://cdn.simpleicons.org/elevenlabs" width="24" height="24" alt="" /> **ElevenLabs** | *Planned* | Two-way sync with ElevenLabs Conversational AI agents, including prompt, tools, and configuration. |
+
+> **Want one of these sooner?** Vote in [GitHub Discussions](https://github.com/Connexity-AI/connexity/discussions) or join us on [Discord](https://discord.gg/Gj47DqWq).
+
+### Bring your own agent
+
+When you are **not** connected to Retell (or another integrated platform), define the agent **in Connexity**—system prompt, tools, model, provider, and temperature—and run evaluations with the built-in simulator. No external agent service is required.
+
+### CLI
+
+The CLI is published on PyPI as [`connexity-cli`](https://pypi.org/project/connexity-cli/). Use it to drive evaluations from a terminal or CI pipeline without opening the web UI.
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
-# or: make docker-build-up
+pip install connexity-cli
+
+connexity-cli login --email me@example.com --save
+connexity-cli agents list
+connexity-cli run --agent my-agent --eval-config smoke-suite --stream --set-baseline
+connexity-cli compare --candidate <run-id> --against-baseline
 ```
 
-## Local development (DB in Docker, apps on host)
+Command reference: [`CLI_README.md`](./CLI_README.md).
 
-Prerequisites: [Docker Desktop](https://www.docker.com/products/docker-desktop/), [uv](https://docs.astral.sh/uv/), [Node.js](https://nodejs.org/) + [pnpm](https://pnpm.io/), [GNU Make](https://www.gnu.org/software/make/).
+## 🚀 Quickstart
 
-One env file at the repo root (same `.env` as Docker). It includes **`API_URL=http://localhost:8000`** and **`POSTGRES_SERVER=localhost`** so the backend and Next.js dev server reach Postgres on the host port.
+The end-to-end developer loop in Connexity looks like this:
 
-```bash
-cp .env.example .env
-make install
-make db
-make db-upgrade
-make dev          # terminal 1 — backend
-make dashboard    # terminal 2 — frontend (loads root .env)
-```
+> **Run the platform → Connect or build an agent → Generate test cases → Run an evaluation → Inspect results and production calls.**
 
-## CLI against a hosted instance
+### 1️⃣ Run the platform
 
-Point the CLI at the **public API base URL** (same host as the app if you reverse-proxy `/api/v1`, or a dedicated API host). See [`.env.example`](.env.example) (`CONNEXITY_CLI_API_URL` / `CONNEXITY_CLI_API_TOKEN`).
+Follow **Local** or **VM**, then open the app at **`SITE_URL`** from **`.env`** (e.g. [`http://localhost:3000`](http://localhost:3000) locally, or your deployed URL in production). If the database is new, create an account, then sign in.
 
-## Accounts
+### 2️⃣ Bring an agent into Connexity
 
-The database starts empty. Sign up in the UI or via `POST /api/v1/users/signup`.
+Pick one:
 
-## Further docs
+- **Connect Retell** — connect your Retell workspace, choose the agent/environment you want to observe or deploy to, and bring production calls into Connexity.
+- **Import from Vapi or ElevenLabs** *(planned)* — connect your account and pull an existing agent, including its prompt, tools, and configuration.
+- **Build from scratch with the AI prompt editor** — start a new agent and let the AI co-pilot help you draft the system prompt, tools, and persona.
 
-- [docs/running.md](docs/running.md) — detailed local setup
-- `make help` — Make targets
+Edits are kept as a draft on the agent. When you're ready, capture the draft as a new version with an optional changelog. That version is what evaluations and deployments are pinned to.
+
+### 3️⃣ Generate test cases
+
+From the dashboard, generate a batch of test cases for your agent. Connexity reads the agent's system prompt and tool definitions and produces diverse multi-turn scenarios — happy paths, edge cases, and adversarial / red-team cases — each with a persona, an opening message, expected outcomes, and the tool calls the agent is expected to make.
+
+You can also ask AI to create or refine individual test cases from natural-language instructions, including turning real production transcripts into repeatable regression tests.
+
+### 4️⃣ Run an evaluation
+
+Run the test cases against your agent. Connexity simulates the user side, lets your agent execute its own tool loop, and records full transcripts, tool calls, token usage, latency, and cost.
+
+For automation in CI, use [`connexity-cli`](https://pypi.org/project/connexity-cli/) in a GitHub Action or release pipeline to run a regression suite and fail the build on quality regressions.
+
+### 5️⃣ Inspect results and production calls
+
+In the dashboard you can:
+
+- Compare runs across agent versions and prompts
+- Drill into per-turn transcripts, tool calls, and judge verdicts
+- Track cost and latency trends
+- Review synced Retell calls and convert real-world misses into new tests
+- Promote and deploy evaluated versions to connected Retell environments
+
+## 🌟 Star Us
+
+If Connexity is useful to you, please star the repo on GitHub — it helps a lot.
+
+<a href="https://github.com/Connexity-AI/connexity">
+   <img src="https://img.shields.io/github/stars/Connexity-AI/connexity?style=social" alt="Star Connexity on GitHub">
+</a>
+
+## 💬 Support
+
+Finding an answer to your question:
+
+- The [`docs/`](./docs) folder is the best place to start.
+- [GitHub Discussions](https://github.com/Connexity-AI/connexity/discussions) — ask questions, share what you're building, and request features.
+- [Discord](https://discord.gg/Gj47DqWq) — chat with the team and other users in real time.
+
+Support channels:
+
+- **Ask any question in our [GitHub Discussions](https://github.com/Connexity-AI/connexity/discussions).** Please include as much detail as possible (code snippets, screenshots, logs) so we can help quickly.
+- [Request a feature](https://github.com/Connexity-AI/connexity/discussions) on GitHub Discussions.
+- [Report a bug](https://github.com/Connexity-AI/connexity/issues) on GitHub Issues.
+- For time-sensitive or private queries, email [dmitry@spacestep.ca](mailto:dmitry@spacestep.ca).
+
+## 🤝 Contributing
+
+Your contributions are welcome!
+
+- Vote on ideas in [GitHub Discussions](https://github.com/Connexity-AI/connexity/discussions).
+- Raise and comment on [Issues](https://github.com/Connexity-AI/connexity/issues).
+- Open a PR — see [CONTRIBUTING.md](./CONTRIBUTING.md) for how to set up a development environment and what we expect in pull requests.
+
+## 🥇 License
+
+This repository is [MIT licensed](./LICENSE).
