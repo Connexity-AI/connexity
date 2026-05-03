@@ -18,7 +18,12 @@ import { MetricsTable } from './metrics-table';
 
 export function MetricsPage() {
   const { data } = useCustomMetrics();
-  const rows = data.data;
+  const rows = [...data.data].sort((a, b) => {
+    if (a.is_predefined !== b.is_predefined) return a.is_predefined ? -1 : 1;
+    const created = a.created_at.localeCompare(b.created_at);
+    if (created !== 0) return created;
+    return a.name.localeCompare(b.name);
+  });
 
   const createMutation = useCreateCustomMetric();
   const updateMutation = useUpdateCustomMetric();

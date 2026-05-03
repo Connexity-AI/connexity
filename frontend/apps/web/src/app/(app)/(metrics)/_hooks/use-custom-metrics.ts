@@ -102,10 +102,11 @@ export function useUpdateCustomMetric() {
       return result.data;
     },
 
-    onSuccess: () => {
+    onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: customMetricKeys.all });
       // The create-eval judge picker reads /config/available-metrics, which
-      // mirrors the same active set; keep it in sync after any mutation.
+      // mirrors the same active set; keep it in sync after any mutation
+      // (including the Active toggle on the metrics page).
       void queryClient.invalidateQueries({ queryKey: metricKeys.list() });
     },
   });
