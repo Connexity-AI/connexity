@@ -4,6 +4,8 @@ import { useState } from 'react';
 
 import { useFieldArray, useFormContext } from 'react-hook-form';
 
+import { makeDefaultToolFromTemplate } from '@/app/(app)/(agent)/_schemas/agent-form';
+
 import type {
   AgentFormValues,
   AgentToolValues,
@@ -43,6 +45,10 @@ export function useToolsField() {
     setIsCreating(false);
   };
 
+  const addDefaultTool = (template: { name: string; description: string }) => {
+    append(makeDefaultToolFromTemplate(template));
+  };
+
   return {
     fields,
     tools,
@@ -53,5 +59,6 @@ export function useToolsField() {
     handleBack,
     handleDelete,
     handleSaveNew,
+    addDefaultTool,
   };
 }
