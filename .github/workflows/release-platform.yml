@@ -1,0 +1,122 @@
+name: Release Platform
+
+# Manual platform release: cuts a `vX.Y.Z` tag and a GitHub Release with
+# auto-generated notes from PRs since the last platform tag.
+#
+# CLI releases use a separate `cli-v*` tag namespace (see release-please.yml
+# and publish-pypi.yml) so the two artifact lines never collide.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      pre_release:
+        description: "Mark as pre-release on GitHub"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: platform-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify branch
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "Platform releases can only be cut from main."
+            echo "Current ref: ${GITHUB_REF}"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next version
+        id: bump
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUMP: ${{ inputs.bump }}
+        run: |
+          # Find the latest plain `vX.Y.Z` tag, excluding `cli-v*` and the legacy
+          # `v0.x.y` namespace (used by the pre-split CLI release `v0.1.0`).
+          # Platform releases live in the `v1.0.0+` range exclusively.
+          latest=$(git tag --list 'v*.*.*' --sort=-v:refname \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | grep -vE '^v0\.' \
+            | head -n1)
+          if [ -z "$latest" ]; then
+            # Bootstrap: first platform release is always v1.0.0, regardless of
+            # the bump input — the v0.x range is reserved for the legacy CLI tag.
+            new_version="1.0.0"
+            echo "No prior platform tag found — bootstrapping at v1.0.0 (bump input '$BUMP' ignored)."
+          else
+            current="${latest#v}"
+            echo "Latest platform tag: $latest"
+            IFS='.' read -r major minor patch <<< "$current"
+            case "$BUMP" in
+              major) major=$((major + 1)); minor=0; patch=0 ;;
+              minor) minor=$((minor + 1)); patch=0 ;;
+              patch) patch=$((patch + 1)) ;;
+              *) echo "Unknown bump type: $BUMP"; exit 1 ;;
+            esac
+            new_version="${major}.${minor}.${patch}"
+          fi
+
+          new_tag="v${new_version}"
+
+          if git rev-parse -q --verify "refs/tags/${new_tag}" >/dev/null; then
+            echo "Tag ${new_tag} already exists. Aborting."
+            exit 1
+          fi
+
+          echo "version=${new_version}" >> "$GITHUB_OUTPUT"
+          echo "tag=${new_tag}" >> "$GITHUB_OUTPUT"
+          echo "previous_tag=${latest}" >> "$GITHUB_OUTPUT"
+
+      - name: Create tag
+        env:
+          NEW_TAG: ${{ steps.bump.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$NEW_TAG" -m "Platform release $NEW_TAG"
+          git push origin "$NEW_TAG"
+
+      - name: Create GitHub Release with auto-generated notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEW_TAG: ${{ steps.bump.outputs.tag }}
+          PREV_TAG: ${{ steps.bump.outputs.previous_tag }}
+          PRERELEASE: ${{ inputs.pre_release }}
+        run: |
+          args=(--generate-notes --target main --title "$NEW_TAG")
+          if [ -n "$PREV_TAG" ]; then
+            args+=(--notes-start-tag "$PREV_TAG")
+          fi
+          if [ "$PRERELEASE" = "true" ]; then
+            args+=(--prerelease)
+          fi
+          gh release create "$NEW_TAG" "${args[@]}"
+
+      - name: Summary
+        env:
+          NEW_TAG: ${{ steps.bump.outputs.tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "Released ${NEW_TAG} for ${REPO}." >> "$GITHUB_STEP_SUMMARY"
+          echo "Release page: https://github.com/${REPO}/releases/tag/${NEW_TAG}" >> "$GITHUB_STEP_SUMMARY"
