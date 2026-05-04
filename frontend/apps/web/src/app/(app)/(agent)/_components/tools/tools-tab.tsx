@@ -6,6 +6,7 @@ import { TabsContent } from '@workspace/ui/components/ui/tabs';
 
 import { useToolsField } from '@/app/(app)/(agent)/_hooks/use-tools-field';
 import { useAgentEditFormActions } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
+import { DefaultToolEditor } from '@/app/(app)/(agent)/_components/tools/default-tool-editor';
 import { DefaultToolsSection } from '@/app/(app)/(agent)/_components/tools/default-tools-section';
 import { ToolEditor } from '@/app/(app)/(agent)/_components/tools/tool-editor';
 import { DraftToolEditor } from '@/app/(app)/(agent)/_components/tools/draft/draft-tool-editor';
@@ -42,15 +43,27 @@ export function ToolsTab() {
 
   // Editor for existing tools (in-place via field array)
   if (editingIndex !== null) {
+    const editingTool = tools[editingIndex];
+    const isDefaultTool = editingTool?.isDefault === true;
     return (
       <TabsContent value="tools" className="flex-1 mt-0 flex flex-col min-h-0">
-        <ToolEditor
-          toolIndex={editingIndex}
-          isNew={false}
-          onBack={handleBack}
-          onDelete={handleDelete}
-          readOnly={isReadOnly}
-        />
+        {isDefaultTool ? (
+          <DefaultToolEditor
+            toolIndex={editingIndex}
+            toolName={editingTool.name}
+            onBack={handleBack}
+            onDelete={handleDelete}
+            readOnly={isReadOnly}
+          />
+        ) : (
+          <ToolEditor
+            toolIndex={editingIndex}
+            isNew={false}
+            onBack={handleBack}
+            onDelete={handleDelete}
+            readOnly={isReadOnly}
+          />
+        )}
       </TabsContent>
     );
   }

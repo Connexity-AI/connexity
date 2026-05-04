@@ -2451,6 +2451,24 @@ export const Platform = { RETELL: 'retell' } as const;
 export type Platform = (typeof Platform)[keyof typeof Platform];
 
 /**
+ * PredefinedToolsPublic
+ *
+ * Predefined tool entries; each element matches one item in ``Agent.tools`` JSONB.
+ */
+export type PredefinedToolsPublic = {
+  /**
+   * Data
+   */
+  data: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Count
+   */
+  count: number;
+};
+
+/**
  * PresetPublic
  *
  * API shape for a preset (excludes internal ``requires`` gates).
@@ -8817,6 +8835,57 @@ export type ConfigGetConfigResponses = {
 };
 
 export type ConfigGetConfigResponse = ConfigGetConfigResponses[keyof ConfigGetConfigResponses];
+
+export type ConfigGetPredefinedToolsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/config/predefined-tools';
+};
+
+export type ConfigGetPredefinedToolsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ConfigGetPredefinedToolsError =
+  ConfigGetPredefinedToolsErrors[keyof ConfigGetPredefinedToolsErrors];
+
+export type ConfigGetPredefinedToolsResponses = {
+  /**
+   * Successful Response
+   */
+  200: PredefinedToolsPublic;
+};
+
+export type ConfigGetPredefinedToolsResponse =
+  ConfigGetPredefinedToolsResponses[keyof ConfigGetPredefinedToolsResponses];
 
 export type ConfigGetAvailableMetricsData = {
   body?: never;

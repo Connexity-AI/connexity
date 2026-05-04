@@ -8,6 +8,7 @@ from sqlmodel import Session, col, select
 from app.models import Agent, AgentVersion
 from app.models.agent import validate_agent_mode_requirements
 from app.models.enums import AgentVersionStatus
+from app.services.agent_tool_definitions import normalize_and_validate_agent_tools
 
 _VERSIONABLE_FIELDS = (
     "mode",
@@ -197,6 +198,11 @@ def create_or_update_draft(
     draft_data: dict[str, object],
     created_by: uuid.UUID | None,
 ) -> AgentVersion:
+    if "tools" in draft_data and draft_data["tools"] is not None:
+        draft_data["tools"] = normalize_and_validate_agent_tools(
+            draft_data["tools"],  # type: ignore[arg-type]
+        )
+
     locked = session.exec(
         select(Agent).where(Agent.id == agent.id).with_for_update()
     ).first()

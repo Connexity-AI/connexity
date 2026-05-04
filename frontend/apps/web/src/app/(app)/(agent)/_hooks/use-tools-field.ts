@@ -6,6 +6,7 @@ import { useFieldArray, useFormContext } from 'react-hook-form';
 
 import { makeDefaultToolFromTemplate } from '@/app/(app)/(agent)/_schemas/agent-form';
 
+import type { DefaultToolTemplate } from '@/app/(app)/(agent)/_queries/default-tool-templates-query';
 import type {
   AgentFormValues,
   AgentToolValues,
@@ -45,7 +46,7 @@ export function useToolsField() {
     setIsCreating(false);
   };
 
-  const addDefaultTool = (template: { name: string; description: string }) => {
+  const addDefaultTool = (template: DefaultToolTemplate) => {
     append(makeDefaultToolFromTemplate(template));
   };
 
