@@ -29,6 +29,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 ENV PYTHONPATH=/backend
 
 COPY ./scripts /backend/scripts
+RUN chmod +x /backend/scripts/*.sh
 COPY ./pyproject.toml ./uv.lock ./alembic.ini /backend/
 COPY ./app /backend/app
 
