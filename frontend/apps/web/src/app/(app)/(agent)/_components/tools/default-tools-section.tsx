@@ -13,12 +13,13 @@ import {
 import { ToolRow } from '@/app/(app)/(agent)/_components/tools/tool-row';
 import { useDefaultToolTemplates } from '@/app/(app)/(agent)/_hooks/use-default-tool-templates';
 
+import type { DefaultToolTemplate } from '@/app/(app)/(agent)/_queries/default-tool-templates-query';
 import type { AgentToolValues } from '@/app/(app)/(agent)/_schemas/agent-form';
 
 interface DefaultToolsSectionProps {
   defaultTools: { tool: AgentToolValues; index: number }[];
   isReadOnly: boolean;
-  onAddDefault: (template: { name: string; description: string }) => void;
+  onAddDefault: (template: DefaultToolTemplate) => void;
   onOpenExisting: (index: number) => void;
 }
 
@@ -60,9 +61,7 @@ export function DefaultToolsSection({
               {availableTemplates.map((template) => (
                 <DropdownMenuItem
                   key={template.id}
-                  onSelect={() =>
-                    onAddDefault({ name: template.name, description: template.description })
-                  }
+                  onSelect={() => onAddDefault(template)}
                   className="font-mono text-sm"
                 >
                   {template.name}

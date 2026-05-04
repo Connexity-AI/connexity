@@ -12,6 +12,19 @@ export function mapToolToOpenAI(tool: AgentToolValues): Record<string, unknown> 
     return accumulator;
   }, {});
 
+  const platformConfig: Record<string, unknown> = {};
+  if (tool.isDefault) platformConfig.predefined = true;
+  if (tool.isTerminating) platformConfig.terminating = true;
+  if (hasEndpoint) {
+    platformConfig.implementation = {
+      type: 'http_webhook',
+      url: tool.url,
+      method: tool.method,
+      headers: Object.keys(headers).length > 0 ? headers : undefined,
+      timeout_ms: tool.timeout * 1000,
+    };
+  }
+
   return {
     type: 'function',
     function: {
@@ -30,16 +43,6 @@ export function mapToolToOpenAI(tool: AgentToolValues): Record<string, unknown> 
           .map((parameter) => parameter.name),
       },
     },
-    ...(hasEndpoint && {
-      platform_config: {
-        implementation: {
-          type: 'http_webhook',
-          url: tool.url,
-          method: tool.method,
-          headers: Object.keys(headers).length > 0 ? headers : undefined,
-          timeout_ms: tool.timeout * 1000,
-        },
-      },
-    }),
+    ...(Object.keys(platformConfig).length > 0 && { platform_config: platformConfig }),
   };
 }

@@ -61,6 +61,8 @@ const implementationSchema = z.object({
 
 const platformConfigSchema = z.object({
   implementation: implementationSchema.optional(),
+  predefined: z.boolean().optional(),
+  terminating: z.boolean().optional(),
 });
 
 /**
@@ -118,7 +120,8 @@ function mapOpenAIToolToForm(rawTool: unknown): AgentToolValues {
   const properties = params?.properties ?? {};
   const required = params?.required ?? [];
 
-  const impl = tool.platform_config?.implementation;
+  const pc = tool.platform_config;
+  const impl = pc?.implementation;
   const headers = impl?.headers ?? {};
 
   // Convert the headers object { key: value } into an array of { id, key, value }
@@ -149,6 +152,8 @@ function mapOpenAIToolToForm(rawTool: unknown): AgentToolValues {
     timeout: impl?.timeout_ms ? Math.round(impl.timeout_ms / 1000) : 3,
     authHeaders,
     parameters,
+    isDefault: pc?.predefined === true ? true : undefined,
+    isTerminating: pc?.terminating === true ? true : undefined,
   };
 }
 

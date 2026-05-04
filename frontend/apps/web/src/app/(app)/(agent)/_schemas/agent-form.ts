@@ -36,6 +36,7 @@ const agentToolSchema = z
     authHeaders: z.array(authHeaderSchema),
     parameters: z.array(toolParameterSchema),
     isDefault: z.boolean().optional(),
+    isTerminating: z.boolean().optional(),
   })
   .superRefine((tool, ctx) => {
     const counts = new Map<string, number>();
@@ -101,7 +102,13 @@ export function makeDefaultTool(overrides?: Partial<AgentToolValues>): AgentTool
 export function makeDefaultToolFromTemplate(template: {
   name: string;
   description: string;
+  parameters?: ToolParameterValues[];
+  terminating?: boolean;
 }): AgentToolValues {
+  const clonedParameters = (template.parameters ?? []).map((parameter) => ({
+    ...parameter,
+    id: uid('param'),
+  }));
   return {
     id: uid('tool'),
     name: template.name,
@@ -110,8 +117,9 @@ export function makeDefaultToolFromTemplate(template: {
     method: 'POST',
     timeout: 3,
     authHeaders: [],
-    parameters: [],
+    parameters: clonedParameters,
     isDefault: true,
+    isTerminating: template.terminating ?? false,
   };
 }
 
