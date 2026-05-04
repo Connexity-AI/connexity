@@ -36,6 +36,32 @@ def test_llm_models_requires_auth(client: TestClient) -> None:
     assert r.status_code == 401
 
 
+def test_predefined_tools_requires_auth(client: TestClient) -> None:
+    r = client.get(f"{settings.API_V1_STR}/config/predefined-tools")
+    assert r.status_code == 401
+
+
+def test_predefined_tools_returns_end_and_transfer(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+) -> None:
+    r = client.get(
+        f"{settings.API_V1_STR}/config/predefined-tools",
+        cookies=auth_cookies,
+    )
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["count"] == 2
+    names = {row["function"]["name"] for row in payload["data"]}
+    assert names == {"end_call", "transfer_call"}
+    end = next(r for r in payload["data"] if r["function"]["name"] == "end_call")
+    assert end["platform_config"]["terminating"] is True
+    assert end["platform_config"]["predefined"] is True
+    xfer = next(r for r in payload["data"] if r["function"]["name"] == "transfer_call")
+    req = xfer["function"]["parameters"]["required"]
+    assert req == ["to_phone_number"]
+
+
 def test_llm_models_returns_catalog(
     client: TestClient,
     auth_cookies: dict[str, str],

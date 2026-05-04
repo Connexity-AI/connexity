@@ -8,6 +8,7 @@ from app import crud
 from app.models import AgentCreate, EvalConfigUpdate, RunCreate, RunStatus, RunUpdate
 from app.models.enums import AgentMode
 from app.models.schemas import AgentSimulatorConfig, JudgeConfig, RunConfig
+from app.services.agent_tool_definitions import canonical_end_call_tool_dict
 from app.tests.utils.eval import (
     create_test_agent,
     create_test_case_fixture,
@@ -194,7 +195,57 @@ def test_enrich_run_live_accepts_when_each_tool_has_implementation(
     assert enriched.config.tool_mode == "live"
 
 
-def test_enrich_run_create_snapshots_eval_config(db: Session) -> None:
+def test_enrich_run_live_accepts_terminating_tool_without_implementation(
+    db: Session,
+) -> None:
+    tools = [canonical_end_call_tool_dict()]
+    agent_in = AgentCreate(
+        name=f"plat-live-term-{uuid.uuid4().hex[:8]}",
+        mode=AgentMode.PLATFORM,
+        system_prompt="Be concise.",
+        agent_model="gpt-4o-mini",
+        agent_provider="openai",
+        tools=tools,
+    )
+    agent = crud.create_agent(session=db, agent_in=agent_in)
+    eval_config = create_test_eval_config(db, agent_id=agent.id)
+    crud.update_eval_config(
+        session=db,
+        db_eval_config=eval_config,
+        eval_config_in=EvalConfigUpdate(config=RunConfig(tool_mode="live")),
+    )
+    run_in = RunCreate(agent_id=agent.id, eval_config_id=eval_config.id)
+    enriched = crud.enrich_run_create_from_agent(
+        session=db,
+        run_in=run_in,
+        agent=agent,
+        eval_config=eval_config,
+    )
+    assert enriched.agent_tools is not None
+    assert enriched.agent_tools[0]["platform_config"]["terminating"] is True
+    assert enriched.agent_tools[0]["platform_config"]["predefined"] is True
+
+
+def test_enrich_run_create_endpoint_snapshots_normalized_agent_tools(
+    db: Session,
+) -> None:
+    agent_in = AgentCreate(
+        name=f"ep-tools-{uuid.uuid4().hex[:8]}",
+        endpoint_url="http://localhost:8080/agent",
+        tools=[canonical_end_call_tool_dict()],
+    )
+    agent = crud.create_agent(session=db, agent_in=agent_in)
+    eval_config = create_test_eval_config(db, agent_id=agent.id)
+    run_in = RunCreate(agent_id=agent.id, eval_config_id=eval_config.id)
+    enriched = crud.enrich_run_create_from_agent(
+        session=db,
+        run_in=run_in,
+        agent=agent,
+        eval_config=eval_config,
+    )
+    assert enriched.agent_tools is not None
+    assert enriched.agent_tools[0]["function"]["name"] == "end_call"
+    assert enriched.agent_tools[0]["platform_config"]["predefined"] is True
     agent, eval_config = _setup_run(db)
     crud.update_eval_config(
         session=db,
