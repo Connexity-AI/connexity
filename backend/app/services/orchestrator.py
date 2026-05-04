@@ -650,7 +650,6 @@ async def run_test_case_with_evaluation(
     agent_system_prompt: str | None = None,
     agent_tools: list[dict[str, Any]] | None = None,
     cancel_event: asyncio.Event | None = None,
-    metrics_owner_id: uuid.UUID | None = None,
     platform_tool_executor_mode: Literal["mock", "live", "synthetic"] | None = None,
 ) -> tuple[TestCaseRunResult, JudgeVerdict | None]:
     """Run simulation then judge the transcript.
@@ -680,7 +679,6 @@ async def run_test_case_with_evaluation(
             agent_system_prompt=agent_system_prompt,
             agent_tools=agent_tools,
             judge_config=config.judge,
-            metrics_owner_id=metrics_owner_id,
         )
     )
     return run_out, verdict
@@ -779,7 +777,6 @@ async def _execute_single_test_case(
     agent_tools: list[dict[str, Any]] | None,
     semaphore: asyncio.Semaphore,
     cancel_event: asyncio.Event,
-    metrics_owner_id: uuid.UUID | None = None,
     *,
     repetition_index: int = 0,
 ) -> TestCaseResult:
@@ -824,7 +821,6 @@ async def _execute_single_test_case(
                 agent_system_prompt=agent_system_prompt,
                 agent_tools=agent_tools,
                 cancel_event=cancel_event,
-                metrics_owner_id=metrics_owner_id,
             )
             transcript = run_out.transcript
             completed_at = datetime.now(UTC)
@@ -1051,7 +1047,6 @@ async def execute_run(run_id: uuid.UUID) -> None:
             agent_mode = _parse_run_agent_mode(run.agent_mode)
             agent_model = run.agent_model
             agent_provider = run.agent_provider
-            metrics_owner_id = run.created_by
 
         total_expanded = sum(entry.repetitions for entry in execution_plan)
         state.progress.total_test_cases = total_expanded
@@ -1075,7 +1070,6 @@ async def execute_run(run_id: uuid.UUID) -> None:
                 agent_tools=agent_tools,
                 semaphore=semaphore,
                 cancel_event=state.cancel_event,
-                metrics_owner_id=metrics_owner_id,
                 repetition_index=rep,
             )
             for entry in execution_plan

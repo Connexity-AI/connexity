@@ -1,23 +1,23 @@
 'use client';
 'use no memo';
 
-import type { RefObject } from 'react';
-
-import { ChevronLeft, ChevronRight, MessageSquare, Send, Sparkles, X } from 'lucide-react';
+import { MessageSquare, Send, Sparkles, X } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/ui/button';
 import { Textarea } from '@workspace/ui/components/ui/textarea';
 import { cn } from '@workspace/ui/lib/utils';
 
 import { AddTestCaseAiResultsPhase } from '@/app/(app)/(agent)/_components/evals/test-cases/add-test-case-ai-results-phase';
+import { BatchPagerNav } from '@/app/(app)/(agent)/_components/observe/batch-pager-nav';
 import {
   STAGES,
   useCreateTestCaseAiPrompt,
-  type AiPromptPhase,
 } from '@/app/(app)/(agent)/_hooks/use-create-test-case-ai-prompt';
 
-import type { CarouselApi } from '@workspace/ui/components/ui/carousel';
+import type { AiPromptPhase } from '@/app/(app)/(agent)/_hooks/use-create-test-case-ai-prompt';
 import type { CallPublic, TestCasePublic } from '@/client/types.gen';
+import type { CarouselApi } from '@workspace/ui/components/ui/carousel';
+import type { RefObject } from 'react';
 
 type StageStatus = 'done' | 'active' | 'pending';
 
@@ -184,36 +184,18 @@ function CarouselNav({
   scrollNext,
 }: CarouselNavProps) {
   if (phase !== 'results') return null;
-  if (count <= 1) return null;
 
   return (
-    <div className="flex items-center gap-0.5 rounded-md border border-border bg-accent/40 px-1 py-0.5">
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        onClick={scrollPrev}
-        disabled={!canScrollPrev}
-        aria-label="Previous test case"
-        className="h-5 w-5 rounded text-muted-foreground hover:bg-transparent hover:text-foreground disabled:opacity-30 [&_svg]:size-3.5"
-      >
-        <ChevronLeft />
-      </Button>
-      <span className="min-w-[34px] px-1 text-center text-[11px] tabular-nums text-foreground">
-        {currentIndex + 1} / {count}
-      </span>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        onClick={scrollNext}
-        disabled={!canScrollNext}
-        aria-label="Next test case"
-        className="h-5 w-5 rounded text-muted-foreground hover:bg-transparent hover:text-foreground disabled:opacity-30 [&_svg]:size-3.5"
-      >
-        <ChevronRight />
-      </Button>
-    </div>
+    <BatchPagerNav
+      current={currentIndex + 1}
+      total={count}
+      canPrev={canScrollPrev}
+      canNext={canScrollNext}
+      onPrev={scrollPrev}
+      onNext={scrollNext}
+      prevLabel="Previous test case"
+      nextLabel="Next test case"
+    />
   );
 }
 
@@ -368,7 +350,7 @@ function GeneratingBody({ stageIndex, progress }: GeneratingBodyProps) {
                 key={stage.label}
                 className={cn(
                   'flex items-center gap-2 text-[11px] transition-colors',
-                  STAGE_ROW_CLASSES[status],
+                  STAGE_ROW_CLASSES[status]
                 )}
               >
                 <span

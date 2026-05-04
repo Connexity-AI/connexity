@@ -1,15 +1,10 @@
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
-from app import crud
-from app.api.deps import CurrentUser, SessionDep, get_current_user
+from app.api.deps import SessionDep, get_current_user
 from app.core.config import settings
 from app.models import ConfigPublic
-from app.services.judge_metrics import (
-    MetricDefinition,
-    custom_metric_row_to_definition,
-    get_metrics_for_api,
-)
+from app.services.judge_metrics import MetricDefinition, get_metrics_for_api
 from app.services.llm_models import LLMModelsPublic, get_available_llm_models
 
 router = APIRouter(
@@ -38,18 +33,15 @@ def get_config(request: Request) -> ConfigPublic:
 @router.get("/available-metrics", response_model=AvailableMetricsPublic)
 def get_available_metrics(
     session: SessionDep,
-    current_user: CurrentUser,
 ) -> AvailableMetricsPublic:
-    builtin = get_metrics_for_api()
-    custom_rows, _ = crud.list_custom_metrics(
-        session=session,
-        owner_id=current_user.id,
-        skip=0,
-        limit=10_000,
-    )
-    custom_defs = [custom_metric_row_to_definition(r) for r in custom_rows]
-    merged = [*builtin, *custom_defs]
-    return AvailableMetricsPublic(data=merged, count=len(merged))
+    """All metrics available for use in eval configs (active, non-draft).
+
+    Both built-in (predefined) and user-created metrics live in the same
+    ``custom_metric`` table; ``is_draft`` rows are excluded so the create-eval
+    judge picker only shows metrics the user has marked active.
+    """
+    metrics = get_metrics_for_api(session)
+    return AvailableMetricsPublic(data=metrics, count=len(metrics))
 
 
 @router.get("/llm-models", response_model=LLMModelsPublic)

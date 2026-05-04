@@ -1681,7 +1681,7 @@ export const CustomMetricCreateSchema = {
       type: 'string',
       maxLength: 255,
       title: 'Name',
-      description: 'Unique slug per owner (snake_case)',
+      description: 'Globally-unique slug (snake_case)',
     },
     display_name: {
       type: 'string',
@@ -1699,6 +1699,7 @@ export const CustomMetricCreateSchema = {
       type: 'number',
       minimum: 0,
       title: 'Default Weight',
+      default: 1,
     },
     score_type: {
       $ref: '#/components/schemas/ScoreType',
@@ -1712,17 +1713,23 @@ export const CustomMetricCreateSchema = {
       title: 'Include In Defaults',
       default: false,
     },
+    is_predefined: {
+      type: 'boolean',
+      title: 'Is Predefined',
+      description:
+        'True for built-in metrics seeded from the registry; False for user-created metrics.',
+      default: false,
+    },
+    is_draft: {
+      type: 'boolean',
+      title: 'Is Draft',
+      description:
+        "When True, metric is hidden from eval-config selection (acts as the inverse of the UI 'active' toggle).",
+      default: false,
+    },
   },
   type: 'object',
-  required: [
-    'name',
-    'display_name',
-    'description',
-    'tier',
-    'default_weight',
-    'score_type',
-    'rubric',
-  ],
+  required: ['name', 'display_name', 'description', 'tier', 'score_type', 'rubric'],
   title: 'CustomMetricCreate',
 } as const;
 
@@ -1732,7 +1739,7 @@ export const CustomMetricPublicSchema = {
       type: 'string',
       maxLength: 255,
       title: 'Name',
-      description: 'Unique slug per owner (snake_case)',
+      description: 'Globally-unique slug (snake_case)',
     },
     display_name: {
       type: 'string',
@@ -1750,6 +1757,7 @@ export const CustomMetricPublicSchema = {
       type: 'number',
       minimum: 0,
       title: 'Default Weight',
+      default: 1,
     },
     score_type: {
       $ref: '#/components/schemas/ScoreType',
@@ -1763,14 +1771,35 @@ export const CustomMetricPublicSchema = {
       title: 'Include In Defaults',
       default: false,
     },
+    is_predefined: {
+      type: 'boolean',
+      title: 'Is Predefined',
+      description:
+        'True for built-in metrics seeded from the registry; False for user-created metrics.',
+      default: false,
+    },
+    is_draft: {
+      type: 'boolean',
+      title: 'Is Draft',
+      description:
+        "When True, metric is hidden from eval-config selection (acts as the inverse of the UI 'active' toggle).",
+      default: false,
+    },
     id: {
       type: 'string',
       format: 'uuid',
       title: 'Id',
     },
     created_by: {
-      type: 'string',
-      format: 'uuid',
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Created By',
     },
     created_at: {
@@ -1790,11 +1819,9 @@ export const CustomMetricPublicSchema = {
     'display_name',
     'description',
     'tier',
-    'default_weight',
     'score_type',
     'rubric',
     'id',
-    'created_by',
     'created_at',
     'updated_at',
   ],
@@ -1892,6 +1919,17 @@ export const CustomMetricUpdateSchema = {
       ],
       title: 'Include In Defaults',
     },
+    is_draft: {
+      anyOf: [
+        {
+          type: 'boolean',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Is Draft',
+    },
   },
   type: 'object',
   title: 'CustomMetricUpdate',
@@ -1910,7 +1948,7 @@ export const CustomMetricsPublicSchema = {
     count: {
       type: 'integer',
       title: 'Count',
-      description: 'Total number of custom metrics for the user',
+      description: 'Total number of custom metrics',
     },
   },
   type: 'object',

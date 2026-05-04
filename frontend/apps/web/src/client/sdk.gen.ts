@@ -2301,6 +2301,12 @@ export class ConfigService {
 
   /**
    * Get Available Metrics
+   *
+   * All metrics available for use in eval configs (active, non-draft).
+   *
+   * Both built-in (predefined) and user-created metrics live in the same
+   * ``custom_metric`` table; ``is_draft`` rows are excluded so the create-eval
+   * judge picker only shows metrics the user has marked active.
    */
   public static getAvailableMetrics<ThrowOnError extends boolean = false>(
     options?: Options<ConfigGetAvailableMetricsData, ThrowOnError>

@@ -17,7 +17,10 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.drop_column("user", "is_superuser")
+    # Idempotent: some dev DBs were already manually altered to drop this
+    # column before the migration was authored; ``IF EXISTS`` lets the chain
+    # advance regardless of starting state.
+    op.execute('ALTER TABLE "user" DROP COLUMN IF EXISTS is_superuser')
 
 
 def downgrade() -> None:

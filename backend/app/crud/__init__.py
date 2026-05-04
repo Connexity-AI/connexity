@@ -35,7 +35,7 @@ from app.crud.custom_metrics import (  # noqa: F401
     create_custom_metric,
     delete_custom_metric,
     get_custom_metric,
-    get_custom_metric_by_name_and_owner,
+    get_custom_metric_by_name,
     list_custom_metrics,
     update_custom_metric,
 )

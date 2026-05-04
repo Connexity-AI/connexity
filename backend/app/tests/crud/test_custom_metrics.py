@@ -3,7 +3,13 @@ import uuid
 from sqlmodel import Session
 
 from app import crud
-from app.models import CustomMetricCreate, CustomMetricUpdate, MetricTier, ScoreType
+from app.models import (
+    CustomMetric,
+    CustomMetricCreate,
+    CustomMetricUpdate,
+    MetricTier,
+    ScoreType,
+)
 from app.tests.utils.user import create_random_user
 
 
@@ -35,7 +41,7 @@ def test_create_and_get_custom_metric(db: Session) -> None:
     assert fetched.name == name
 
 
-def test_get_custom_metric_by_name_and_owner(db: Session) -> None:
+def test_get_custom_metric_by_name(db: Session) -> None:
     owner = create_random_user(db)
     name = f"by_name_{uuid.uuid4().hex[:10]}"
     crud.create_custom_metric(
@@ -43,24 +49,23 @@ def test_get_custom_metric_by_name_and_owner(db: Session) -> None:
         metric_in=_sample_create(name=name),
         owner_id=owner.id,
     )
-    row = crud.get_custom_metric_by_name_and_owner(
-        session=db, name=name, owner_id=owner.id
-    )
+    row = crud.get_custom_metric_by_name(session=db, name=name)
     assert row is not None
     assert row.name == name
     assert (
-        crud.get_custom_metric_by_name_and_owner(
-            session=db, name=name, owner_id=uuid.uuid4()
+        crud.get_custom_metric_by_name(
+            session=db, name=f"missing_{uuid.uuid4().hex[:10]}"
         )
         is None
     )
 
 
-def test_list_custom_metrics_owner_scoped(db: Session) -> None:
+def test_list_custom_metrics_is_global(db: Session) -> None:
+    """Metrics are global: listing returns rows regardless of who created them."""
     owner_a = create_random_user(db)
     owner_b = create_random_user(db)
-    name_a = f"owner_a_{uuid.uuid4().hex[:10]}"
-    name_b = f"owner_b_{uuid.uuid4().hex[:10]}"
+    name_a = f"global_a_{uuid.uuid4().hex[:10]}"
+    name_b = f"global_b_{uuid.uuid4().hex[:10]}"
     crud.create_custom_metric(
         session=db,
         metric_in=_sample_create(name=name_a),
@@ -71,16 +76,11 @@ def test_list_custom_metrics_owner_scoped(db: Session) -> None:
         metric_in=_sample_create(name=name_b),
         owner_id=owner_b.id,
     )
-    items_a, count_a = crud.list_custom_metrics(session=db, owner_id=owner_a.id)
-    items_b, count_b = crud.list_custom_metrics(session=db, owner_id=owner_b.id)
-    names_a = {m.name for m in items_a}
-    names_b = {m.name for m in items_b}
-    assert name_a in names_a
-    assert name_b not in names_a
-    assert name_b in names_b
-    assert name_a not in names_b
-    assert count_a >= 1
-    assert count_b >= 1
+    items, count = crud.list_custom_metrics(session=db)
+    names = {m.name for m in items}
+    assert name_a in names
+    assert name_b in names
+    assert count >= 2
 
 
 def test_update_custom_metric(db: Session) -> None:
@@ -100,7 +100,7 @@ def test_update_custom_metric(db: Session) -> None:
     assert updated.name == name
 
 
-def test_delete_custom_metric(db: Session) -> None:
+def test_delete_custom_metric_is_soft(db: Session) -> None:
     owner = create_random_user(db)
     name = f"delete_{uuid.uuid4().hex[:10]}"
     m = crud.create_custom_metric(
@@ -108,5 +108,36 @@ def test_delete_custom_metric(db: Session) -> None:
         metric_in=_sample_create(name=name),
         owner_id=owner.id,
     )
+    metric_id = m.id
     crud.delete_custom_metric(session=db, db_metric=m)
-    assert crud.get_custom_metric(session=db, metric_id=m.id) is None
+
+    # CRUD getters and listings hide soft-deleted rows.
+    assert crud.get_custom_metric(session=db, metric_id=metric_id) is None
+    assert crud.get_custom_metric_by_name(session=db, name=name) is None
+    items, _ = crud.list_custom_metrics(session=db)
+    assert all(item.id != metric_id for item in items)
+
+    # The row is still physically present with a non-null deleted_at.
+    raw = db.get(CustomMetric, metric_id)
+    assert raw is not None
+    assert raw.deleted_at is not None
+
+
+def test_create_after_soft_delete_reuses_name(db: Session) -> None:
+    owner = create_random_user(db)
+    name = f"reuse_{uuid.uuid4().hex[:10]}"
+
+    first = crud.create_custom_metric(
+        session=db,
+        metric_in=_sample_create(name=name),
+        owner_id=owner.id,
+    )
+    crud.delete_custom_metric(session=db, db_metric=first)
+
+    second = crud.create_custom_metric(
+        session=db,
+        metric_in=_sample_create(name=name),
+        owner_id=owner.id,
+    )
+    assert second.id != first.id
+    assert second.name == name

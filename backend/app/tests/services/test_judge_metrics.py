@@ -3,11 +3,13 @@ import pytest
 from app.models.schemas import JudgeConfig, MetricSelection
 from app.services.judge import build_judge_response_format
 from app.services.judge_metrics import (
-    METRIC_REGISTRY,
     ScoreType,
     get_default_metrics,
     resolve_metrics,
 )
+from app.services.predefined_metrics import PREDEFINED_METRICS
+
+_PREDEFINED_BY_NAME = {m.name: m for m in PREDEFINED_METRICS}
 
 
 def test_get_default_metrics_excludes_task_completion() -> None:
@@ -43,7 +45,10 @@ def test_task_completion_requires_explicit_weight() -> None:
 
 
 def test_build_judge_response_format_keys() -> None:
-    metrics = [METRIC_REGISTRY["tool_routing"], METRIC_REGISTRY["task_completion"]]
+    metrics = [
+        _PREDEFINED_BY_NAME["tool_routing"],
+        _PREDEFINED_BY_NAME["task_completion"],
+    ]
     fmt = build_judge_response_format(metrics)
     assert fmt["type"] == "json_schema"
     js = fmt["json_schema"]

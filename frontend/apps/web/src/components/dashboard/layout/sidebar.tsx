@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
-import { Bot, Plug } from 'lucide-react';
+import { BarChart3, Bot, Plug } from 'lucide-react';
 
 import {
   SidebarContent,
@@ -32,6 +32,11 @@ const menuItems = [
     icon: Bot,
   },
   {
+    title: 'Metrics',
+    url: UrlGenerator.metrics(),
+    icon: BarChart3,
+  },
+  {
     title: 'Integrations',
     url: UrlGenerator.integrations(),
     icon: Plug,
@@ -41,7 +46,7 @@ const menuItems = [
 const Sidebar: FC<Props> = async ({ currentUser }) => {
   return (
     <UISidebar collapsible="icon" className="border-r bg-card dark:bg-zinc-900">
-      <SidebarHeader className="border-b px-3 py-4">
+      <SidebarHeader className="h-16 border-b px-3 py-0 flex justify-center">
         <Link href={UrlGenerator.agents()} className="flex items-center justify-center gap-2 overflow-hidden group-data-[collapsible=icon]:justify-center">
           <Image
             src="/connexity-logo.avif"

@@ -82,9 +82,11 @@ def test_create_list_get_update_delete_custom_metric(
     assert get_again.status_code == 404
 
 
-def test_create_custom_metric_reserved_builtin_name_conflict(
+def test_create_custom_metric_with_predefined_name_conflicts(
     client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
+    """Predefined metrics are seeded into the same table, so attempting to
+    create one with a reserved name collides on the global unique-name index."""
     body = _create_body(name="tool_routing")
     r = client.post(
         f"{settings.API_V1_STR}/custom-metrics/",
@@ -92,10 +94,9 @@ def test_create_custom_metric_reserved_builtin_name_conflict(
         cookies=auth_cookies,
     )
     assert r.status_code == 409
-    assert "built-in" in r.json()["detail"].lower()
 
 
-def test_create_duplicate_name_same_user(
+def test_create_duplicate_name_conflicts(
     client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     name = f"dup_{uuid.uuid4().hex[:10]}"
@@ -116,12 +117,41 @@ def test_create_duplicate_name_same_user(
     assert r2.status_code == 409
 
 
-def test_custom_metric_other_owner_get_returns_404(
+def test_delete_then_recreate_with_same_name(
+    client: TestClient, auth_cookies: dict[str, str]
+) -> None:
+    """After soft-delete, the same name can be reused thanks to the partial unique index."""
+    name = f"reuse_api_{uuid.uuid4().hex[:10]}"
+    create_r = client.post(
+        f"{settings.API_V1_STR}/custom-metrics/",
+        json=_create_body(name=name),
+        cookies=auth_cookies,
+    )
+    assert create_r.status_code == 200
+    first_id = create_r.json()["id"]
+
+    del_r = client.delete(
+        f"{settings.API_V1_STR}/custom-metrics/{first_id}",
+        cookies=auth_cookies,
+    )
+    assert del_r.status_code == 200
+
+    recreate_r = client.post(
+        f"{settings.API_V1_STR}/custom-metrics/",
+        json=_create_body(name=name),
+        cookies=auth_cookies,
+    )
+    assert recreate_r.status_code == 200
+    assert recreate_r.json()["id"] != first_id
+
+
+def test_custom_metric_is_globally_editable_by_any_user(
     client: TestClient,
     auth_cookies: dict[str, str],
     normal_user_auth_cookies: dict[str, str],
 ) -> None:
-    name = f"isolated_{uuid.uuid4().hex[:10]}"
+    """Metrics are global: any authenticated user can read/update/delete any metric."""
+    name = f"shared_{uuid.uuid4().hex[:10]}"
     create_r = client.post(
         f"{settings.API_V1_STR}/custom-metrics/",
         json=_create_body(name=name),
@@ -134,27 +164,30 @@ def test_custom_metric_other_owner_get_returns_404(
         f"{settings.API_V1_STR}/custom-metrics/{metric_id}",
         cookies=normal_user_auth_cookies,
     )
-    assert other_get.status_code == 404
+    assert other_get.status_code == 200
+    assert other_get.json()["name"] == name
 
     other_put = client.put(
         f"{settings.API_V1_STR}/custom-metrics/{metric_id}",
-        json={"display_name": "Hijack"},
+        json={"display_name": "Edited by other user"},
         cookies=normal_user_auth_cookies,
     )
-    assert other_put.status_code == 404
+    assert other_put.status_code == 200
+    assert other_put.json()["display_name"] == "Edited by other user"
 
     other_del = client.delete(
         f"{settings.API_V1_STR}/custom-metrics/{metric_id}",
         cookies=normal_user_auth_cookies,
     )
-    assert other_del.status_code == 404
+    assert other_del.status_code == 200
 
 
-def test_list_custom_metrics_does_not_include_other_users(
+def test_list_custom_metrics_includes_metrics_from_all_users(
     client: TestClient,
     auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
+    """Listing returns metrics regardless of who created them."""
     other = create_random_user(db)
     name_other = f"other_user_{uuid.uuid4().hex[:10]}"
     crud.create_custom_metric(
@@ -178,7 +211,29 @@ def test_list_custom_metrics_does_not_include_other_users(
     )
     assert r.status_code == 200
     names = {m["name"] for m in r.json()["data"]}
-    assert name_other not in names
+    assert name_other in names
+
+
+def test_create_duplicate_name_across_users_conflicts(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    normal_user_auth_cookies: dict[str, str],
+) -> None:
+    """Names are globally unique — a different user can't reuse an existing name."""
+    name = f"shared_dup_{uuid.uuid4().hex[:10]}"
+    first = client.post(
+        f"{settings.API_V1_STR}/custom-metrics/",
+        json=_create_body(name=name),
+        cookies=auth_cookies,
+    )
+    assert first.status_code == 200
+
+    second = client.post(
+        f"{settings.API_V1_STR}/custom-metrics/",
+        json=_create_body(name=name),
+        cookies=normal_user_auth_cookies,
+    )
+    assert second.status_code == 409
 
 
 def test_create_custom_metric_invalid_slug(
