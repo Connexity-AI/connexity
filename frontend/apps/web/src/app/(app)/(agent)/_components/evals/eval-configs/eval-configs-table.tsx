@@ -1,14 +1,19 @@
 'use client';
 
-import { FlaskConical, Plus } from 'lucide-react';
 import Link from 'next/link';
+
+import { UrlGenerator } from '@/common/url-generator/url-generator';
+import { FlaskConical, Plus } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/ui/button';
 import { cn } from '@workspace/ui/lib/utils';
 
-import { useEvalConfigs } from '@/app/(app)/(agent)/_hooks/use-eval-configs';
+import {
+  readJudgeCasesThreshold,
+  readJudgeMetricsThreshold,
+} from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
 import { RunEvalConfigButton } from '@/app/(app)/(agent)/_components/evals/run-eval-config-button';
-import { UrlGenerator } from '@/common/url-generator/url-generator';
+import { useEvalConfigs } from '@/app/(app)/(agent)/_hooks/use-eval-configs';
 
 import type { EvalConfigPublic } from '@/client/types.gen';
 
@@ -85,13 +90,22 @@ function Header({ agentId, count }: { agentId: string; count: number }) {
   );
 }
 
+const ROW_GRID = 'grid-cols-[1fr_100px_120px_120px_110px_110px_180px_80px]';
+
 function ColumnHeaders() {
   return (
-    <div className="sticky top-0 z-10 grid grid-cols-[1fr_100px_120px_120px_180px_80px] items-center gap-4 border-b border-border bg-background px-5 py-2 text-[10px] uppercase tracking-wider text-muted-foreground/60">
+    <div
+      className={cn(
+        'sticky top-0 z-10 grid items-center gap-4 border-b border-border bg-background px-5 py-2 text-[10px] uppercase tracking-wider text-muted-foreground/60',
+        ROW_GRID
+      )}
+    >
       <span>Name</span>
       <span>Cases</span>
       <span>Total Runs</span>
       <span>Tool Calls</span>
+      <span>Metrics %</span>
+      <span>Cases %</span>
       <span>Created</span>
       <span />
     </div>
@@ -100,8 +114,15 @@ function ColumnHeaders() {
 
 function Row({ agentId, config }: { agentId: string; config: EvalConfigPublic }) {
   const toolMode = config.config?.tool_mode ?? 'mock';
+  const metricsThreshold = readJudgeMetricsThreshold(config.config?.judge);
+  const casesThreshold = readJudgeCasesThreshold(config.config?.judge);
   return (
-    <li className="group relative grid grid-cols-[1fr_100px_120px_120px_180px_80px] items-center gap-4 border-b border-border/40 px-5 py-2.5 hover:bg-accent/20">
+    <li
+      className={cn(
+        'group relative grid items-center gap-4 border-b border-border/40 px-5 py-2.5 hover:bg-accent/20',
+        ROW_GRID
+      )}
+    >
       <Link
         href={UrlGenerator.agentEvalsConfigDetail(agentId, config.id)}
         className="absolute inset-0"
@@ -117,22 +138,24 @@ function Row({ agentId, config }: { agentId: string; config: EvalConfigPublic })
       <span
         className={cn(
           'pointer-events-none relative w-fit rounded px-1.5 py-0.5 text-[10px]',
-          toolMode === 'mock'
-            ? 'bg-yellow-500/15 text-yellow-400'
-            : 'bg-blue-500/15 text-blue-400'
+          toolMode === 'mock' ? 'bg-yellow-500/15 text-yellow-400' : 'bg-blue-500/15 text-blue-400'
         )}
       >
         {toolMode === 'mock' ? 'Mock' : 'Live'}
       </span>
+      <span className="pointer-events-none relative font-mono text-xs tabular-nums text-violet-400">
+        {metricsThreshold}%
+      </span>
+
+      <span className="pointer-events-none relative font-mono text-xs tabular-nums text-emerald-400">
+        {casesThreshold}%
+      </span>
+
       <span className="pointer-events-none relative text-xs text-muted-foreground">
         {formatDate(config.created_at)}
       </span>
       <div className="relative flex justify-end">
-        <RunEvalConfigButton
-          agentId={agentId}
-          evalConfigId={config.id}
-          variant="row"
-        />
+        <RunEvalConfigButton agentId={agentId} evalConfigId={config.id} variant="row" />
       </div>
     </li>
   );

@@ -25,6 +25,7 @@ from app.models.enums import AgentMode, FirstTurn, SimulatorMode, TurnRole
 from app.models.schemas import (
     AggregateMetrics,
     ConversationTurn,
+    JudgeConfig,
     JudgeVerdict,
     RunConfig,
     ToolCall,
@@ -724,6 +725,7 @@ async def run_test_case_with_evaluation(
 
 def compute_aggregate_metrics(
     results: list[TestCaseResult],
+    cases_pass_threshold: float | None = None,
 ) -> AggregateMetrics:
     total_executions = len(results)
     if total_executions == 0:
@@ -734,6 +736,7 @@ def compute_aggregate_metrics(
             failed_count=0,
             error_count=0,
             pass_rate=0.0,
+            run_passed=None,
         )
 
     unique_test_case_count = len({r.test_case_id for r in results})
@@ -772,13 +775,21 @@ def compute_aggregate_metrics(
     ]
     total_cost_usd = sum(cost_values) if cost_values else None
 
+    pass_rate = passed / total_executions if total_executions > 0 else 0.0
+    run_passed = (
+        pass_rate * 100.0 >= cases_pass_threshold
+        if cases_pass_threshold is not None
+        else None
+    )
+
     return AggregateMetrics(
         unique_test_case_count=unique_test_case_count,
         total_executions=total_executions,
         passed_count=passed,
         failed_count=failed,
         error_count=errored,
-        pass_rate=passed / total_executions if total_executions > 0 else 0.0,
+        pass_rate=pass_rate,
+        run_passed=run_passed,
         latency_p50_ms=statistics.median(latencies) if latencies else None,
         latency_p95_ms=statistics.quantiles(latencies, n=20)[18]
         if len(latencies) >= 20
@@ -1129,7 +1140,12 @@ async def execute_run(run_id: uuid.UUID) -> None:
             else:
                 valid_results.append(r)
 
-        aggregate_metrics = compute_aggregate_metrics(valid_results)
+        cases_pass_threshold = (
+            config.judge.cases_pass_threshold if config.judge else JudgeConfig().cases_pass_threshold
+        )
+        aggregate_metrics = compute_aggregate_metrics(
+            valid_results, cases_pass_threshold=cases_pass_threshold
+        )
 
         with Session(engine) as session:
             db_run = crud.get_run(session=session, run_id=run_id)

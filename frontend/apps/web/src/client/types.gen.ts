@@ -619,6 +619,12 @@ export type AggregateMetrics = {
    */
   pass_rate: number;
   /**
+   * Run Passed
+   *
+   * True if pass_rate * 100 >= JudgeConfig.cases_pass_threshold; null when total_executions is 0
+   */
+  run_passed?: boolean | null;
+  /**
    * Latency P50 Ms
    *
    * Median agent latency across test cases
@@ -1904,9 +1910,15 @@ export type JudgeConfig = {
   /**
    * Pass Threshold
    *
-   * Minimum overall score (0-100) to pass
+   * Minimum overall score (0-100) for an individual test case to pass
    */
   pass_threshold?: number;
+  /**
+   * Cases Pass Threshold
+   *
+   * Minimum share of test cases (0-100) that must pass for the run to pass
+   */
+  cases_pass_threshold?: number;
   /**
    * Model
    *

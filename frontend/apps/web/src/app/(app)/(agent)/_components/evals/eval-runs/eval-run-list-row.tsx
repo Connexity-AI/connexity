@@ -3,13 +3,17 @@
 import { Checkbox } from '@workspace/ui/components/ui/checkbox';
 import { cn } from '@workspace/ui/lib/utils';
 
+import {
+  readJudgeCasesThreshold,
+  readJudgeMetricsThreshold,
+} from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
 import { useRunStream } from '@/app/(app)/(agent)/_hooks/use-run-stream';
 import { RunStatus } from '@/client/types.gen';
 
 import { formatAbsoluteLocal, formatLocalShort, formatTimeAgo } from './shared/format-time';
 import { RunStatusIcon } from './shared/run-status-icon';
 import { ScoreBar } from './shared/score-bar';
-import { roundScore, scoreColor } from './shared/score-utils';
+import { roundScore, thresholdColor } from './shared/score-utils';
 
 import type { RunPublic } from '@/client/types.gen';
 
@@ -46,8 +50,10 @@ export function EvalRunListRow({
       : null;
   const toolMode = run.config?.tool_mode ?? 'mock';
 
-  const scoreText = scoreColor(avgScore);
-  const passRateColor = scoreColor(passRate);
+  const metricsThreshold = readJudgeMetricsThreshold(run.config?.judge);
+  const casesThreshold = readJudgeCasesThreshold(run.config?.judge);
+  const scoreText = thresholdColor(avgScore, metricsThreshold);
+  const passRateColor = thresholdColor(passRate, casesThreshold);
 
   return (
     <li

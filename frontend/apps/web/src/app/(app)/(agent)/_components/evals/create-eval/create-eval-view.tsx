@@ -3,18 +3,20 @@
 
 import { useState } from 'react';
 
+import { UrlGenerator } from '@/common/url-generator/url-generator';
+
 import { Form } from '@workspace/ui/components/ui/form';
 
-import { CreateEvalReadOnlyProvider } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-readonly-context';
-import { CreateEvalSaveActions } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-save-actions';
-import { CreateEvalTopbar } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-topbar';
-import { RunEvalConfigButton } from '@/app/(app)/(agent)/_components/evals/run-eval-config-button';
-import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { JudgeSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-judge-section';
+import { PassThresholdsSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-pass-thresholds-section';
 import { PersonaSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-persona-section';
+import { CreateEvalReadOnlyProvider } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-readonly-context';
 import { RunConfigSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-run-config-section';
+import { CreateEvalSaveActions } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-save-actions';
 import { TestCasesSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-test-cases-section';
+import { CreateEvalTopbar } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-topbar';
 import { useCreateEvalForm } from '@/app/(app)/(agent)/_components/evals/create-eval/use-create-eval-form';
+import { RunEvalConfigButton } from '@/app/(app)/(agent)/_components/evals/run-eval-config-button';
 import { useAgent } from '@/app/(app)/(agent)/_hooks/use-agent';
 
 import type { EvalConfigMemberPublic, EvalConfigPublic } from '@/client/types.gen';
@@ -30,11 +32,7 @@ interface DetailPageRunButtonProps {
   agentId: string;
 }
 
-function DetailPageRunButton({
-  readOnly,
-  initialConfig,
-  agentId,
-}: DetailPageRunButtonProps) {
+function DetailPageRunButton({ readOnly, initialConfig, agentId }: DetailPageRunButtonProps) {
   if (!readOnly) return null;
   if (!initialConfig) return null;
 
@@ -58,14 +56,15 @@ export function CreateEvalView({
 }: CreateEvalViewProps) {
   const [initialName] = useState(() => initialConfig?.name ?? defaultConfigName());
 
-  const { form, metrics, submitSave, submitSaveAndRun, isPending, submitError } =
-    useCreateEvalForm({
+  const { form, metrics, submitSave, submitSaveAndRun, isPending, submitError } = useCreateEvalForm(
+    {
       agentId,
       initialName,
       initialTestCaseIds,
       initialConfig,
       initialMembers,
-    });
+    }
+  );
 
   const { data: agent } = useAgent(agentId);
 
@@ -116,12 +115,15 @@ export function CreateEvalView({
                   {submitError}
                 </p>
               ) : null}
-              <RunConfigSection
-                agentMode={agent?.mode ?? null}
-                agentTools={agent?.tools ?? null}
-              />
+
+              <RunConfigSection agentMode={agent?.mode ?? null} agentTools={agent?.tools ?? null} />
+
               <TestCasesSection agentId={agentId} />
+
               <JudgeSection metrics={metrics} />
+
+              <PassThresholdsSection />
+
               <PersonaSection />
             </div>
           </form>

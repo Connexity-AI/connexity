@@ -140,10 +140,16 @@ class JudgeConfig(BaseModel):
         description="Selected metrics; null = platform default scored metric set",
     )
     pass_threshold: float = Field(
-        default=75.0,
+        default=80.0,
         ge=0.0,
         le=100.0,
-        description="Minimum overall score (0-100) to pass",
+        description="Minimum overall score (0-100) for an individual test case to pass",
+    )
+    cases_pass_threshold: float = Field(
+        default=100.0,
+        ge=0.0,
+        le=100.0,
+        description="Minimum share of test cases (0-100) that must pass for the run to pass",
     )
     model: str | None = Field(
         default=None,
@@ -397,6 +403,13 @@ class AggregateMetrics(BaseModel):
     )
     pass_rate: float = Field(
         description="Fraction of executions that passed (0.0–1.0); denominator is total_executions"
+    )
+    run_passed: bool | None = Field(
+        default=None,
+        description=(
+            "True if pass_rate * 100 >= JudgeConfig.cases_pass_threshold; "
+            "null when total_executions is 0"
+        ),
     )
     latency_p50_ms: float | None = Field(
         default=None, description="Median agent latency across test cases"
