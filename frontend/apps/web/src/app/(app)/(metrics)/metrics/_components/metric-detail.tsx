@@ -29,6 +29,7 @@ export type MetricDraft = {
   tier: MetricTier;
   score_type: ScoreType;
   rubric: string;
+  default_weight: number;
   active: boolean;
   is_predefined: boolean;
 };
@@ -42,6 +43,7 @@ export function metricToDraft(metric: MetricRecord): MetricDraft {
     tier: metric.tier,
     score_type: metric.score_type,
     rubric: metric.rubric,
+    default_weight: metric.default_weight ?? 1.0,
     active: !metric.is_draft,
     is_predefined: !!metric.is_predefined,
   };
@@ -56,6 +58,7 @@ export function newDraft(): MetricDraft {
     tier: 'execution',
     score_type: 'scored',
     rubric: '',
+    default_weight: 1.0,
     active: true,
     is_predefined: false,
   };
@@ -82,6 +85,9 @@ export function MetricDetail({
   const [tier, setTier] = useState<MetricTier>(source.tier);
   const [scoreType, setScoreType] = useState<ScoreType>(source.score_type);
   const [rubric, setRubric] = useState(source.rubric);
+  // Stored as string so the user can type intermediate values like "0." while
+  // editing; parsed to a float on save and validated against the >= 0 backend rule.
+  const [defaultWeight, setDefaultWeight] = useState(String(source.default_weight));
   const [active, setActive] = useState(source.active);
 
   useEffect(() => {
@@ -91,11 +97,15 @@ export function MetricDetail({
     setTier(source.tier);
     setScoreType(source.score_type);
     setRubric(source.rubric);
+    setDefaultWeight(String(source.default_weight));
     setActive(source.active);
     // Reset only when switching to a different metric — re-syncing on every
     // field change would clobber unsaved edits.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source.id]);
+
+  const parsedWeight = Number.parseFloat(defaultWeight);
+  const weightValid = Number.isFinite(parsedWeight) && parsedWeight >= 0;
 
   const isDirty =
     name !== source.name ||
@@ -104,10 +114,11 @@ export function MetricDetail({
     tier !== source.tier ||
     scoreType !== source.score_type ||
     rubric !== source.rubric ||
+    (weightValid && parsedWeight !== source.default_weight) ||
     active !== source.active;
 
   const nameValid = isValidSnakeCase(name);
-  const canSave = nameValid && (source.id === null || isDirty) && !saving;
+  const canSave = nameValid && weightValid && (source.id === null || isDirty) && !saving;
 
   const discard = () => {
     setName(source.name);
@@ -116,6 +127,7 @@ export function MetricDetail({
     setTier(source.tier);
     setScoreType(source.score_type);
     setRubric(source.rubric);
+    setDefaultWeight(String(source.default_weight));
     setActive(source.active);
   };
 
@@ -129,6 +141,7 @@ export function MetricDetail({
       tier,
       score_type: scoreType,
       rubric,
+      default_weight: parsedWeight,
       is_draft: !active,
     };
     if (!source.is_predefined) patch.name = name;
@@ -140,6 +153,7 @@ export function MetricDetail({
       tier,
       score_type: scoreType,
       rubric,
+      default_weight: parsedWeight,
       active,
     });
   };
@@ -350,6 +364,35 @@ export function MetricDetail({
               );
             })}
           </div>
+        </div>
+
+        <div>
+          <label className="block text-[10px] text-muted-foreground/60 uppercase tracking-wider mb-1.5">
+            Default weight
+          </label>
+          <Input
+            type="number"
+            inputMode="decimal"
+            step="0.05"
+            min="0"
+            value={defaultWeight}
+            onChange={(e) => setDefaultWeight(e.target.value)}
+            placeholder="e.g. 0.15"
+            className={cn(
+              'h-8 text-xs font-mono bg-accent/40 border-border',
+              defaultWeight && !weightValid && 'border-red-500/50 focus-visible:ring-red-500/20'
+            )}
+          />
+          <p
+            className={cn(
+              'text-[10px] mt-1',
+              defaultWeight && !weightValid ? 'text-red-400' : 'text-muted-foreground/50'
+            )}
+          >
+            {defaultWeight && !weightValid
+              ? 'Must be a non-negative number.'
+              : 'Relative weight applied when this metric is included in an eval — weights are renormalized to sum to 1.'}
+          </p>
         </div>
 
         <div className="flex flex-col flex-1">
