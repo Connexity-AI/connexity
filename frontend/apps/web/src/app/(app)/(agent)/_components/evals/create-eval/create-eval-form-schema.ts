@@ -5,7 +5,18 @@ import {
   splitDefaultLlmRouting,
 } from '@/utils/split-default-llm-routing';
 
-import type { EvalConfigCreate } from '@/client/types.gen';
+import type { EvalConfigCreate, JudgeConfig } from '@/client/types.gen';
+
+export const DEFAULT_METRICS_PASS_THRESHOLD = 80;
+export const DEFAULT_CASES_PASS_THRESHOLD = 100;
+
+export function readJudgeMetricsThreshold(judge: JudgeConfig | null | undefined): number {
+  return judge?.pass_threshold ?? DEFAULT_METRICS_PASS_THRESHOLD;
+}
+
+export function readJudgeCasesThreshold(judge: JudgeConfig | null | undefined): number {
+  return judge?.cases_pass_threshold ?? DEFAULT_CASES_PASS_THRESHOLD;
+}
 
 export const createEvalFormSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(255),
@@ -38,6 +49,10 @@ export const createEvalFormSchema = z.object({
       )
       .refine((ms) => ms.some((m) => m.enabled), 'Enable at least one metric'),
   }),
+  thresholds: z.object({
+    metrics_pass_threshold: z.number().int().min(0).max(100),
+    cases_pass_threshold: z.number().int().min(0).max(100),
+  }),
   persona: z.object({
     provider: z.string().min(1),
     model: z.string().min(1),
@@ -67,6 +82,10 @@ export function buildDefaults(
       model,
       metrics: [],
     },
+    thresholds: {
+      metrics_pass_threshold: DEFAULT_METRICS_PASS_THRESHOLD,
+      cases_pass_threshold: DEFAULT_CASES_PASS_THRESHOLD,
+    },
     persona: {
       provider,
       model,
@@ -79,6 +98,16 @@ export function formValuesToCreatePayload(
   values: CreateEvalFormValues,
   agentId: string
 ): EvalConfigCreate {
+  const judge = {
+    provider: values.judge.provider,
+    model: values.judge.model,
+    metrics: values.judge.metrics
+      .filter((m) => m.enabled)
+      .map((m) => ({ metric: m.metric, weight: m.weight })),
+    pass_threshold: values.thresholds.metrics_pass_threshold,
+    cases_pass_threshold: values.thresholds.cases_pass_threshold,
+  };
+
   return {
     name: values.name,
     agent_id: agentId,
@@ -86,13 +115,7 @@ export function formValuesToCreatePayload(
       concurrency: values.run.concurrency,
       max_turns: values.run.max_turns,
       tool_mode: values.run.tool_mode,
-      judge: {
-        provider: values.judge.provider,
-        model: values.judge.model,
-        metrics: values.judge.metrics
-          .filter((m) => m.enabled)
-          .map((m) => ({ metric: m.metric, weight: m.weight })),
-      },
+      judge,
       user_simulator: {
         provider: values.persona.provider,
         model: values.persona.model,

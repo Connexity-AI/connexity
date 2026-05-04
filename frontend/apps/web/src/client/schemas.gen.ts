@@ -1095,6 +1095,19 @@ export const AggregateMetricsSchema = {
       title: 'Pass Rate',
       description: 'Fraction of executions that passed (0.0–1.0); denominator is total_executions',
     },
+    run_passed: {
+      anyOf: [
+        {
+          type: 'boolean',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Run Passed',
+      description:
+        'True if pass_rate * 100 >= JudgeConfig.cases_pass_threshold; null when total_executions is 0',
+    },
     latency_p50_ms: {
       anyOf: [
         {
@@ -3059,8 +3072,16 @@ export const JudgeConfigSchema = {
       maximum: 100,
       minimum: 0,
       title: 'Pass Threshold',
-      description: 'Minimum overall score (0-100) to pass',
-      default: 75,
+      description: 'Minimum overall score (0-100) for an individual test case to pass',
+      default: 80,
+    },
+    cases_pass_threshold: {
+      type: 'number',
+      maximum: 100,
+      minimum: 0,
+      title: 'Cases Pass Threshold',
+      description: 'Minimum share of test cases (0-100) that must pass for the run to pass',
+      default: 100,
     },
     model: {
       anyOf: [

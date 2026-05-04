@@ -13,6 +13,8 @@ import {
   buildDefaults,
   createEvalFormSchema,
   formValuesToCreatePayload,
+  readJudgeCasesThreshold,
+  readJudgeMetricsThreshold,
 } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
 import {
   buildMetricRows,
@@ -89,6 +91,14 @@ export function useCreateEvalForm({
       provider: cfg?.judge?.provider ?? base.judge.provider,
       model: cfg?.judge?.model ?? base.judge.model,
       metrics: buildMetricRows(metrics, cfg?.judge?.metrics ?? null),
+    },
+    thresholds: {
+      metrics_pass_threshold: cfg?.judge
+        ? readJudgeMetricsThreshold(cfg.judge)
+        : base.thresholds.metrics_pass_threshold,
+      cases_pass_threshold: cfg?.judge
+        ? readJudgeCasesThreshold(cfg.judge)
+        : base.thresholds.cases_pass_threshold,
     },
     persona: {
       provider: cfg?.user_simulator?.provider ?? base.persona.provider,
