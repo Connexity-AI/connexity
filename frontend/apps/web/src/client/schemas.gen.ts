@@ -3789,6 +3789,26 @@ export const PlatformSchema = {
   title: 'Platform',
 } as const;
 
+export const PredefinedToolsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        type: 'object',
+      },
+      type: 'array',
+      title: 'Data',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'PredefinedToolsPublic',
+  description: 'Predefined tool entries; each element matches one item in ``Agent.tools`` JSONB.',
+} as const;
+
 export const PresetPublicSchema = {
   properties: {
     id: {
