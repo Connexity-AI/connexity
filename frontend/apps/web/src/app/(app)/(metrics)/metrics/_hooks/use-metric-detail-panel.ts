@@ -68,7 +68,7 @@ export function useMetricDetailPanel({
           display_name: draft.display_name,
           description: draft.description,
           tier: draft.tier,
-          default_weight: 1.0,
+          default_weight: draft.default_weight,
           score_type: draft.score_type,
           rubric: draft.rubric,
 
