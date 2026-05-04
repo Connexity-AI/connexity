@@ -8,6 +8,7 @@ from app.crud import agent_version as agent_version_crud
 from app.models import Agent, EvalConfig, Run, RunCreate, RunStatus, RunUpdate
 from app.models.enums import AgentMode
 from app.models.schemas import RunConfig
+from app.services.agent_tool_definitions import normalize_and_validate_agent_tools
 from app.services.tool_dispatch import validate_live_tool_snapshot
 
 
@@ -69,12 +70,17 @@ def enrich_run_create_from_agent(
         if not ep or not str(ep).strip():
             msg = "agent_endpoint_url is required when the agent is in endpoint mode"
             raise ValueError(msg)
+        if data.get("agent_tools") is None and agent.tools:
+            data["agent_tools"] = agent.tools
 
     data["agent_version"] = agent.version
     ver_row = agent_version_crud.get_current_version_row(
         session=session, agent_id=agent.id, version=agent.version
     )
     data["agent_version_id"] = ver_row.id if ver_row else None
+
+    if data.get("agent_tools") is not None:
+        data["agent_tools"] = normalize_and_validate_agent_tools(data["agent_tools"])
 
     if agent.mode == AgentMode.PLATFORM and cfg.tool_mode == "live":
         validate_live_tool_snapshot(data.get("agent_tools"))

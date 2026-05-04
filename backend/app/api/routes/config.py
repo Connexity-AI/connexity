@@ -3,7 +3,8 @@ from pydantic import BaseModel, Field
 
 from app.api.deps import SessionDep, get_current_user
 from app.core.config import settings
-from app.models import ConfigPublic
+from app.models import ConfigPublic, PredefinedToolsPublic
+from app.services.agent_tool_definitions import list_predefined_tools_for_api
 from app.services.judge_metrics import MetricDefinition, get_metrics_for_api
 from app.services.llm_models import LLMModelsPublic, get_available_llm_models
 
@@ -28,6 +29,13 @@ def get_config(request: Request) -> ConfigPublic:
         docs_url=request.app.docs_url or "/docs",
         default_llm_model=settings.default_llm_id,
     )
+
+
+@router.get("/predefined-tools", response_model=PredefinedToolsPublic)
+def get_predefined_tools() -> PredefinedToolsPublic:
+    """Catalog tool rows (same JSON shape as ``Agent.tools``) for editors and forms."""
+    data = list_predefined_tools_for_api()
+    return PredefinedToolsPublic(data=data, count=len(data))
 
 
 @router.get("/available-metrics", response_model=AvailableMetricsPublic)

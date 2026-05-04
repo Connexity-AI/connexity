@@ -33,6 +33,7 @@ from app.models.schemas import (
 from app.models.test_case import TestCase
 from app.models.test_case_result import TestCaseResult
 from app.services.agent_simulator import AgentSimulator
+from app.services.agent_tool_definitions import snapshot_marks_tool_terminating
 from app.services.cost_tracker import (
     TestCaseTokenAccumulator,
     estimate_agent_cost,
@@ -89,6 +90,22 @@ class AgentCallError(Exception):
     def __init__(self, message: str, *, status_code: int | None = None) -> None:
         super().__init__(message)
         self.status_code = status_code
+
+
+def _turns_have_terminating_assistant_tool_call(
+    turns: list[ConversationTurn],
+    agent_tools: list[dict[str, Any]] | None,
+) -> bool:
+    """True if any assistant turn requests a tool marked terminating on the snapshot."""
+    if not agent_tools:
+        return False
+    for t in turns:
+        if t.role != TurnRole.ASSISTANT or not t.tool_calls:
+            continue
+        for tc in t.tool_calls:
+            if snapshot_marks_tool_terminating(tc.function.name, agent_tools):
+                return True
+    return False
 
 
 def build_conversation_turn(
@@ -408,7 +425,7 @@ async def run_test_case(
     whoever goes first; when absent, the opener is LLM-generated.
 
     Stops when ``config.max_turns`` agent rounds are done, scripted lines are
-    exhausted, timeout is hit, or the agent call fails.
+    exhausted, timeout is hit, a terminating tool call is invoked, or the agent call fails.
     """
     sim_cfg = config.user_simulator or UserSimulatorConfig()
     first_message_text = (test_case.first_message or "").strip()
@@ -520,6 +537,7 @@ async def run_test_case(
     async with _agent_http_client(agent_mode) as client:
         # For agent-first without first_message, generate the opening
         if first_turn == FirstTurn.AGENT and not first_message_text:
+            turn_before = len(transcript)
             ok = await _do_agent_turn(
                 transcript,
                 test_case,
@@ -534,6 +552,16 @@ async def run_test_case(
                 client,
             )
             if not ok:
+                return TestCaseRunResult(
+                    transcript=transcript,
+                    agent_token_usage=acc.agent_token_usage,
+                    platform_token_usage=acc.platform_token_usage,
+                    agent_cost_usd=acc.agent_cost_usd,
+                    platform_cost_usd=acc.platform_cost_usd,
+                )
+            if _turns_have_terminating_assistant_tool_call(
+                transcript[turn_before:], agent_tools
+            ):
                 return TestCaseRunResult(
                     transcript=transcript,
                     agent_token_usage=acc.agent_token_usage,
@@ -578,6 +606,7 @@ async def run_test_case(
 
             if first_turn == FirstTurn.USER:
                 # Persona-first: agent responds → user responds
+                turn_before = len(transcript)
                 ok = await _do_agent_turn(
                     transcript,
                     test_case,
@@ -592,6 +621,10 @@ async def run_test_case(
                     client,
                 )
                 if not ok:
+                    break
+                if _turns_have_terminating_assistant_tool_call(
+                    transcript[turn_before:], agent_tools
+                ):
                     break
                 agent_rounds += 1
 
@@ -613,6 +646,7 @@ async def run_test_case(
                 if max_agent_rounds is not None and agent_rounds >= max_agent_rounds:
                     break
 
+                turn_before = len(transcript)
                 ok = await _do_agent_turn(
                     transcript,
                     test_case,
@@ -627,6 +661,10 @@ async def run_test_case(
                     client,
                 )
                 if not ok:
+                    break
+                if _turns_have_terminating_assistant_tool_call(
+                    transcript[turn_before:], agent_tools
+                ):
                     break
                 agent_rounds += 1
 
