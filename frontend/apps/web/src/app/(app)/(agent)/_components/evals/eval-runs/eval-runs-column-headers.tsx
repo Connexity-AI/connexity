@@ -14,7 +14,7 @@ export function EvalRunsColumnHeaders({
   onToggleAll,
 }: EvalRunsColumnHeadersProps) {
   return (
-    <div className="sticky top-0 z-10 grid grid-cols-[32px_1fr_72px_110px_110px_96px] items-center gap-3 border-b border-border bg-background px-5 py-2 text-[10px] uppercase tracking-wider text-muted-foreground/60">
+    <div className="grid shrink-0 grid-cols-[32px_1fr_72px_110px_110px_96px] items-center gap-4 border-b border-border bg-background px-5 py-2 text-[10px] uppercase tracking-wider text-muted-foreground/60">
       <div className="flex items-center justify-start">
         <Checkbox
           aria-label="Select all runs"

@@ -59,8 +59,8 @@ export function EvalConfigsTable({ agentId }: EvalConfigsTableProps) {
   return (
     <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
       <Header agentId={agentId} count={configs.length} />
+      <ColumnHeaders />
       <div className="flex-1 overflow-auto">
-        <ColumnHeaders />
         <ul>
           {configs.map((config) => (
             <Row key={config.id} agentId={agentId} config={config} />
@@ -89,7 +89,7 @@ function Header({ agentId, count }: { agentId: string; count: number }) {
 
 function ColumnHeaders() {
   return (
-    <div className="sticky top-0 z-10 grid grid-cols-[1fr_100px_120px_90px_90px_120px_180px_80px] items-center gap-4 border-b border-border bg-background px-5 py-2 text-[10px] uppercase tracking-wider text-muted-foreground/60">
+    <div className="grid shrink-0 grid-cols-[1fr_100px_120px_90px_90px_120px_180px_80px] items-center gap-4 border-b border-border bg-background px-5 py-2 text-[10px] uppercase tracking-wider text-muted-foreground/60">
       <span>Name</span>
       <span>Cases</span>
       <span>Total Runs</span>

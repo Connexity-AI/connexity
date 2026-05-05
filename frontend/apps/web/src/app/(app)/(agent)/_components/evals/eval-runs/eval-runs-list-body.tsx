@@ -60,7 +60,7 @@ function FlatRuns({
 
 function GroupHeader({ name, count }: { name: string; count: number }) {
   return (
-    <div className="sticky top-0 z-[5] border-b border-border bg-background/95 px-5 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/70 backdrop-blur">
+    <div className="sticky top-0 z-5 border-b border-border bg-background/95 px-5 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/70 backdrop-blur">
       {name}
       <span className="ml-2 text-muted-foreground/50">
         {count} {count === 1 ? 'run' : 'runs'}
