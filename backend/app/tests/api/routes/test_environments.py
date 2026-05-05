@@ -182,6 +182,86 @@ def test_other_user_can_list_environment(
     assert any(item["id"] == str(env.id) for item in other_list.json()["data"])
 
 
+def test_create_environment_with_eval_gate_persists_field(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    db: Session,
+) -> None:
+    from app.tests.utils.eval import create_test_eval_config
+
+    agent, _ = _make_owned_agent(db)
+    integration = _make_integration(db)
+    gate_cfg = create_test_eval_config(db, agent_id=agent.id)
+
+    body = _create_env_body(agent_id=agent.id, integration_id=integration.id)
+    body["eval_gate_eval_config_id"] = str(gate_cfg.id)
+
+    r = client.post(
+        f"{settings.API_V1_STR}/environments/",
+        json=body,
+        cookies=auth_cookies,
+    )
+    assert r.status_code == 200
+    assert r.json()["eval_gate_eval_config_id"] == str(gate_cfg.id)
+
+
+def test_create_environment_rejects_gate_for_other_agent(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    db: Session,
+) -> None:
+    from app.tests.utils.eval import create_test_eval_config
+
+    agent, _ = _make_owned_agent(db)
+    other_agent, _ = _make_owned_agent(db)
+    integration = _make_integration(db)
+    foreign_cfg = create_test_eval_config(db, agent_id=other_agent.id)
+
+    body = _create_env_body(agent_id=agent.id, integration_id=integration.id)
+    body["eval_gate_eval_config_id"] = str(foreign_cfg.id)
+
+    r = client.post(
+        f"{settings.API_V1_STR}/environments/",
+        json=body,
+        cookies=auth_cookies,
+    )
+    assert r.status_code == 422
+
+
+def test_deploy_blocked_by_gate_when_no_run_for_version(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    db: Session,
+) -> None:
+    from app.tests.utils.eval import create_test_eval_config
+
+    agent, _ = _make_owned_agent(db)
+    integration = _make_integration(db)
+    gate_cfg = create_test_eval_config(db, agent_id=agent.id)
+
+    env = crud.create_environment(
+        session=db,
+        data=EnvironmentCreate(
+            name="prod",
+            platform=Platform.RETELL,
+            agent_id=agent.id,
+            integration_id=integration.id,
+            platform_agent_id="ret_a_gate",
+            platform_agent_name="ret_a_gate",
+            eval_gate_eval_config_id=gate_cfg.id,
+        ),
+    )
+
+    # Existing test_create_test_agent path leaves agent.version=1 and a published v1.
+    r = client.post(
+        f"{settings.API_V1_STR}/environments/{env.id}/deploy",
+        json={"agent_version": agent.version},
+        cookies=auth_cookies,
+    )
+    assert r.status_code == 409
+    assert "no completed eval run" in r.json()["detail"].lower()
+
+
 def test_delete_integration_returns_409_when_environment_depends_on_it(
     client: TestClient,
     auth_cookies: dict[str, str],

@@ -5,6 +5,7 @@ import { type ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
 
 import { type AgentRow } from '@/actions/agents';
+import { LastEvalCell } from '@/app/(app)/(agents)/agents/_components/last-eval-cell';
 
 export const getAgentsColumns = (): ColumnDef<AgentRow>[] => [
   {
@@ -19,6 +20,13 @@ export const getAgentsColumns = (): ColumnDef<AgentRow>[] => [
         {row.original.name}
       </Link>
     ),
+  },
+
+  {
+    id: 'last_eval',
+    header: 'Last Eval',
+    enableSorting: false,
+    cell: ({ row }) => <LastEvalCell agentId={row.original.id} />,
   },
 
   {

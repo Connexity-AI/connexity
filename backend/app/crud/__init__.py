@@ -110,6 +110,7 @@ from app.crud.run import (  # noqa: F401
     delete_run,
     enrich_run_create_from_agent,
     get_baseline_run,
+    get_latest_completed_run_for_version,
     get_run,
     list_runs,
     set_baseline,
