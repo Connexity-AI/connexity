@@ -176,11 +176,15 @@ class RunCreate(SQLModel):
     )
     agent_version: int | None = Field(
         default=None,
-        description="Agent behavioral config version at run creation (set by server)",
+        description=(
+            "Target agent version to evaluate. If omitted, defaults to the "
+            "agent's current version. If provided, the run is snapshotted from "
+            "that AgentVersion row (system_prompt, tools, model, etc.)."
+        ),
     )
     agent_version_id: uuid.UUID | None = Field(
         default=None,
-        description="FK to agent_version row at run creation (set by server)",
+        description="Resolved by the server from agent_version; ignored on input.",
     )
     config: RunConfig | None = Field(
         default=None,
