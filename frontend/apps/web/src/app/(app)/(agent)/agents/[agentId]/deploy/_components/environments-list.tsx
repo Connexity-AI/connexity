@@ -2,6 +2,8 @@
 
 import { Plus, Rocket } from 'lucide-react';
 
+import { Button } from '@workspace/ui/components/ui/button';
+
 import { EnvironmentCard } from './environment-card';
 
 import type { EnvironmentPublic } from '@/client/types.gen';
@@ -19,13 +21,14 @@ export const EnvironmentsList: FC<Props> = ({ environments, agentId, onAdd }) =>
       <div className="rounded-xl border border-dashed border-border flex flex-col items-center justify-center py-12 gap-3">
         <Rocket className="w-8 h-8 text-muted-foreground/30" />
         <p className="text-sm text-muted-foreground">No environments yet</p>
-        <button
-          className="flex items-center gap-1.5 text-xs text-foreground hover:underline cursor-pointer"
+        <Button
+          variant="link"
+          className="h-auto p-0 gap-1.5 text-xs font-normal text-foreground [&_svg]:size-3.5"
           onClick={onAdd}
         >
-          <Plus className="w-3.5 h-3.5" />
+          <Plus />
           Add your first environment
-        </button>
+        </Button>
       </div>
     );
   }

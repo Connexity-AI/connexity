@@ -1228,6 +1228,82 @@ export const AggregateMetricsSchema = {
       title: 'Avg Overall Score',
       description: 'Mean judge overall score across all test cases',
     },
+    weighted_metrics_score_pct: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Weighted Metrics Score Pct',
+      description:
+        'Run-level metrics score (0-100): mean of per-test-case weighted overall_score across results that have a verdict. None when no result produced a verdict.',
+    },
+    metrics_pass_threshold: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Metrics Pass Threshold',
+      description: 'Snapshot of metrics_pass_threshold used for this run (%)',
+    },
+    metrics_passed: {
+      anyOf: [
+        {
+          type: 'boolean',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Metrics Passed',
+      description:
+        'True when weighted_metrics_score_pct >= metrics_pass_threshold. None when threshold or score is unavailable.',
+    },
+    cases_pass_rate_pct: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Cases Pass Rate Pct',
+      description:
+        'Cases dimension score (0-100): pass_rate * 100. Errored test cases count as not-passed in the denominator.',
+    },
+    cases_pass_threshold: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Cases Pass Threshold',
+      description: 'Snapshot of cases_pass_threshold used for this run (%)',
+    },
+    cases_passed: {
+      anyOf: [
+        {
+          type: 'boolean',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Cases Passed',
+      description:
+        'True when cases_pass_rate_pct >= cases_pass_threshold. None when threshold or rate is unavailable.',
+    },
   },
   type: 'object',
   required: [
@@ -2124,6 +2200,20 @@ export const EnvironmentCreateSchema = {
       type: 'string',
       title: 'Platform Agent Name',
     },
+    eval_gate_eval_config_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Eval Gate Eval Config Id',
+      description:
+        'Optional: gate deploys on a passing run of this eval config for the requested agent version.',
+    },
   },
   type: 'object',
   required: [
@@ -2208,6 +2298,18 @@ export const EnvironmentPublicSchema = {
       ],
       title: 'Current Deployed At',
     },
+    eval_gate_eval_config_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Eval Gate Eval Config Id',
+    },
     created_at: {
       type: 'string',
       format: 'date-time',
@@ -2227,6 +2329,7 @@ export const EnvironmentPublicSchema = {
     'current_version_number',
     'current_version_name',
     'current_deployed_at',
+    'eval_gate_eval_config_id',
     'created_at',
   ],
   title: 'EnvironmentPublic',
@@ -4573,6 +4676,24 @@ export const RunConfig_InputSchema = {
         'Global tool execution mode: mock uses test-case mock_responses, live executes real implementations',
       default: 'mock',
     },
+    metrics_pass_threshold: {
+      type: 'number',
+      maximum: 100,
+      minimum: 0,
+      title: 'Metrics Pass Threshold',
+      description:
+        "Run-level threshold (%) for the weighted-average metric score across all test case executions. The run's metrics dimension passes when the average score is at or above this threshold.",
+      default: 80,
+    },
+    cases_pass_threshold: {
+      type: 'number',
+      maximum: 100,
+      minimum: 0,
+      title: 'Cases Pass Threshold',
+      description:
+        'Run-level threshold (%) for the fraction of test cases that pass. A test case passes when all of its expected_outcomes pass (or, for legacy test cases without expected_outcomes, when the judge verdict passes).',
+      default: 100,
+    },
     judge: {
       anyOf: [
         {
@@ -4645,6 +4766,24 @@ export const RunConfig_OutputSchema = {
       description:
         'Global tool execution mode: mock uses test-case mock_responses, live executes real implementations',
       default: 'mock',
+    },
+    metrics_pass_threshold: {
+      type: 'number',
+      maximum: 100,
+      minimum: 0,
+      title: 'Metrics Pass Threshold',
+      description:
+        "Run-level threshold (%) for the weighted-average metric score across all test case executions. The run's metrics dimension passes when the average score is at or above this threshold.",
+      default: 80,
+    },
+    cases_pass_threshold: {
+      type: 'number',
+      maximum: 100,
+      minimum: 0,
+      title: 'Cases Pass Threshold',
+      description:
+        'Run-level threshold (%) for the fraction of test cases that pass. A test case passes when all of its expected_outcomes pass (or, for legacy test cases without expected_outcomes, when the judge verdict passes).',
+      default: 100,
     },
     judge: {
       anyOf: [
@@ -4918,7 +5057,8 @@ export const RunCreateSchema = {
         },
       ],
       title: 'Agent Version',
-      description: 'Agent behavioral config version at run creation (set by server)',
+      description:
+        "Target agent version to evaluate. If omitted, defaults to the agent's current version. If provided, the run is snapshotted from that AgentVersion row (system_prompt, tools, model, etc.).",
     },
     agent_version_id: {
       anyOf: [
@@ -4931,7 +5071,7 @@ export const RunCreateSchema = {
         },
       ],
       title: 'Agent Version Id',
-      description: 'FK to agent_version row at run creation (set by server)',
+      description: 'Resolved by the server from agent_version; ignored on input.',
     },
     config: {
       anyOf: [

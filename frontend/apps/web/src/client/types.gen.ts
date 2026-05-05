@@ -682,6 +682,42 @@ export type AggregateMetrics = {
    * Mean judge overall score across all test cases
    */
   avg_overall_score?: number | null;
+  /**
+   * Weighted Metrics Score Pct
+   *
+   * Run-level metrics score (0-100): mean of per-test-case weighted overall_score across results that have a verdict. None when no result produced a verdict.
+   */
+  weighted_metrics_score_pct?: number | null;
+  /**
+   * Metrics Pass Threshold
+   *
+   * Snapshot of metrics_pass_threshold used for this run (%)
+   */
+  metrics_pass_threshold?: number | null;
+  /**
+   * Metrics Passed
+   *
+   * True when weighted_metrics_score_pct >= metrics_pass_threshold. None when threshold or score is unavailable.
+   */
+  metrics_passed?: boolean | null;
+  /**
+   * Cases Pass Rate Pct
+   *
+   * Cases dimension score (0-100): pass_rate * 100. Errored test cases count as not-passed in the denominator.
+   */
+  cases_pass_rate_pct?: number | null;
+  /**
+   * Cases Pass Threshold
+   *
+   * Snapshot of cases_pass_threshold used for this run (%)
+   */
+  cases_pass_threshold?: number | null;
+  /**
+   * Cases Passed
+   *
+   * True when cases_pass_rate_pct >= cases_pass_threshold. None when threshold or rate is unavailable.
+   */
+  cases_passed?: boolean | null;
 };
 
 /**
@@ -1268,6 +1304,12 @@ export type EnvironmentCreate = {
    * Platform Agent Name
    */
   platform_agent_name: string;
+  /**
+   * Eval Gate Eval Config Id
+   *
+   * Optional: gate deploys on a passing run of this eval config for the requested agent version.
+   */
+  eval_gate_eval_config_id?: string | null;
 };
 
 /**
@@ -1315,6 +1357,10 @@ export type EnvironmentPublic = {
    * Current Deployed At
    */
   current_deployed_at: string | null;
+  /**
+   * Eval Gate Eval Config Id
+   */
+  eval_gate_eval_config_id: string | null;
   /**
    * Created At
    */
@@ -2961,6 +3007,18 @@ export type RunConfigInput = {
    */
   tool_mode?: 'mock' | 'live';
   /**
+   * Metrics Pass Threshold
+   *
+   * Run-level threshold (%) for the weighted-average metric score across all test case executions. The run's metrics dimension passes when the average score is at or above this threshold.
+   */
+  metrics_pass_threshold?: number;
+  /**
+   * Cases Pass Threshold
+   *
+   * Run-level threshold (%) for the fraction of test cases that pass. A test case passes when all of its expected_outcomes pass (or, for legacy test cases without expected_outcomes, when the judge verdict passes).
+   */
+  cases_pass_threshold?: number;
+  /**
    * Judge metric selection, weights, pass threshold, and model overrides
    */
   judge?: JudgeConfig | null;
@@ -3002,6 +3060,18 @@ export type RunConfigOutput = {
    * Global tool execution mode: mock uses test-case mock_responses, live executes real implementations
    */
   tool_mode?: 'mock' | 'live';
+  /**
+   * Metrics Pass Threshold
+   *
+   * Run-level threshold (%) for the weighted-average metric score across all test case executions. The run's metrics dimension passes when the average score is at or above this threshold.
+   */
+  metrics_pass_threshold?: number;
+  /**
+   * Cases Pass Threshold
+   *
+   * Run-level threshold (%) for the fraction of test cases that pass. A test case passes when all of its expected_outcomes pass (or, for legacy test cases without expected_outcomes, when the judge verdict passes).
+   */
+  cases_pass_threshold?: number;
   /**
    * Judge metric selection, weights, pass threshold, and model overrides
    */
@@ -3117,13 +3187,13 @@ export type RunCreate = {
   /**
    * Agent Version
    *
-   * Agent behavioral config version at run creation (set by server)
+   * Target agent version to evaluate. If omitted, defaults to the agent's current version. If provided, the run is snapshotted from that AgentVersion row (system_prompt, tools, model, etc.).
    */
   agent_version?: number | null;
   /**
    * Agent Version Id
    *
-   * FK to agent_version row at run creation (set by server)
+   * Resolved by the server from agent_version; ignored on input.
    */
   agent_version_id?: string | null;
   /**

@@ -30,7 +30,9 @@ interface EvalConfigsTableProps {
 export function EvalConfigsTable({ agentId }: EvalConfigsTableProps) {
   const { data } = useEvalConfigs(agentId);
 
-  const configs = data?.data ?? [];
+  const configs = [...(data?.data ?? [])].sort((a, b) =>
+    b.created_at.localeCompare(a.created_at)
+  );
 
   if (configs.length === 0) {
     return (
@@ -87,10 +89,12 @@ function Header({ agentId, count }: { agentId: string; count: number }) {
 
 function ColumnHeaders() {
   return (
-    <div className="sticky top-0 z-10 grid grid-cols-[1fr_100px_120px_120px_180px_80px] items-center gap-4 border-b border-border bg-background px-5 py-2 text-[10px] uppercase tracking-wider text-muted-foreground/60">
+    <div className="sticky top-0 z-10 grid grid-cols-[1fr_100px_120px_90px_90px_120px_180px_80px] items-center gap-4 border-b border-border bg-background px-5 py-2 text-[10px] uppercase tracking-wider text-muted-foreground/60">
       <span>Name</span>
       <span>Cases</span>
       <span>Total Runs</span>
+      <span>Metrics %</span>
+      <span>Cases %</span>
       <span>Tool Calls</span>
       <span>Created</span>
       <span />
@@ -100,8 +104,10 @@ function ColumnHeaders() {
 
 function Row({ agentId, config }: { agentId: string; config: EvalConfigPublic }) {
   const toolMode = config.config?.tool_mode ?? 'mock';
+  const metricsPct = config.config?.metrics_pass_threshold ?? 80;
+  const casesPct = config.config?.cases_pass_threshold ?? 100;
   return (
-    <li className="group relative grid grid-cols-[1fr_100px_120px_120px_180px_80px] items-center gap-4 border-b border-border/40 px-5 py-2.5 hover:bg-accent/20">
+    <li className="group relative grid grid-cols-[1fr_100px_120px_90px_90px_120px_180px_80px] items-center gap-4 border-b border-border/40 px-5 py-2.5 hover:bg-accent/20">
       <Link
         href={UrlGenerator.agentEvalsConfigDetail(agentId, config.id)}
         className="absolute inset-0"
@@ -113,6 +119,12 @@ function Row({ agentId, config }: { agentId: string; config: EvalConfigPublic })
       </span>
       <span className="pointer-events-none relative font-mono text-xs tabular-nums text-muted-foreground">
         {config.total_runs ?? 0}
+      </span>
+      <span className="pointer-events-none relative font-mono text-xs tabular-nums text-emerald-400">
+        {metricsPct}%
+      </span>
+      <span className="pointer-events-none relative font-mono text-xs tabular-nums text-emerald-400">
+        {casesPct}%
       </span>
       <span
         className={cn(

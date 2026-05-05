@@ -722,8 +722,25 @@ async def run_test_case_with_evaluation(
     return run_out, verdict
 
 
+def _derive_test_case_passed(verdict: JudgeVerdict | None) -> bool:
+    """Compute whether a single test case execution passed.
+
+    Per CS-127: a test case passes when *all* of its expected_outcomes pass.
+    For legacy test cases without expected_outcomes (or when the judge could
+    not produce them), fall back to the judge's overall_score-based verdict.
+    """
+    if verdict is None:
+        return False
+    if verdict.expected_outcome_results:
+        return all(o.passed for o in verdict.expected_outcome_results)
+    return verdict.passed
+
+
 def compute_aggregate_metrics(
     results: list[TestCaseResult],
+    *,
+    metrics_pass_threshold: float | None = None,
+    cases_pass_threshold: float | None = None,
 ) -> AggregateMetrics:
     total_executions = len(results)
     if total_executions == 0:
@@ -734,6 +751,8 @@ def compute_aggregate_metrics(
             failed_count=0,
             error_count=0,
             pass_rate=0.0,
+            metrics_pass_threshold=metrics_pass_threshold,
+            cases_pass_threshold=cases_pass_threshold,
         )
 
     unique_test_case_count = len({r.test_case_id for r in results})
@@ -772,13 +791,29 @@ def compute_aggregate_metrics(
     ]
     total_cost_usd = sum(cost_values) if cost_values else None
 
+    pass_rate = passed / total_executions if total_executions > 0 else 0.0
+    weighted_metrics_score_pct = statistics.mean(scores) if scores else None
+    cases_pass_rate_pct = pass_rate * 100.0
+
+    metrics_passed: bool | None
+    if metrics_pass_threshold is not None and weighted_metrics_score_pct is not None:
+        metrics_passed = weighted_metrics_score_pct >= metrics_pass_threshold
+    else:
+        metrics_passed = None
+
+    cases_passed: bool | None
+    if cases_pass_threshold is not None:
+        cases_passed = cases_pass_rate_pct >= cases_pass_threshold
+    else:
+        cases_passed = None
+
     return AggregateMetrics(
         unique_test_case_count=unique_test_case_count,
         total_executions=total_executions,
         passed_count=passed,
         failed_count=failed,
         error_count=errored,
-        pass_rate=passed / total_executions if total_executions > 0 else 0.0,
+        pass_rate=pass_rate,
         latency_p50_ms=statistics.median(latencies) if latencies else None,
         latency_p95_ms=statistics.quantiles(latencies, n=20)[18]
         if len(latencies) >= 20
@@ -790,7 +825,13 @@ def compute_aggregate_metrics(
         total_agent_cost_usd=sum(agent_costs) if agent_costs else None,
         total_platform_cost_usd=sum(platform_costs) if platform_costs else None,
         total_estimated_cost_usd=total_cost_usd,
-        avg_overall_score=statistics.mean(scores) if scores else None,
+        avg_overall_score=weighted_metrics_score_pct,
+        weighted_metrics_score_pct=weighted_metrics_score_pct,
+        metrics_pass_threshold=metrics_pass_threshold,
+        metrics_passed=metrics_passed,
+        cases_pass_rate_pct=cases_pass_rate_pct,
+        cases_pass_threshold=cases_pass_threshold,
+        cases_passed=cases_passed,
     )
 
 
@@ -914,7 +955,7 @@ async def _execute_single_test_case(
                 agent_cost_usd=agent_cost or None,
                 platform_cost_usd=platform_cost or None,
                 estimated_cost_usd=total_cost or None,
-                passed=verdict.passed if verdict else False,
+                passed=_derive_test_case_passed(verdict),
                 started_at=started_at,
                 completed_at=completed_at,
             )
@@ -1129,7 +1170,11 @@ async def execute_run(run_id: uuid.UUID) -> None:
             else:
                 valid_results.append(r)
 
-        aggregate_metrics = compute_aggregate_metrics(valid_results)
+        aggregate_metrics = compute_aggregate_metrics(
+            valid_results,
+            metrics_pass_threshold=config.metrics_pass_threshold,
+            cases_pass_threshold=config.cases_pass_threshold,
+        )
 
         with Session(engine) as session:
             db_run = crud.get_run(session=session, run_id=run_id)
