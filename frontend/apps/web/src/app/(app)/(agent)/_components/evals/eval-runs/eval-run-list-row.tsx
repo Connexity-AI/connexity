@@ -1,5 +1,7 @@
 'use client';
 
+import { ListChecks, Target } from 'lucide-react';
+
 import { Checkbox } from '@workspace/ui/components/ui/checkbox';
 import { cn } from '@workspace/ui/lib/utils';
 
@@ -8,8 +10,7 @@ import { RunStatus } from '@/client/types.gen';
 
 import { formatAbsoluteLocal, formatLocalShort, formatTimeAgo } from './shared/format-time';
 import { RunStatusIcon } from './shared/run-status-icon';
-import { ScoreBar } from './shared/score-bar';
-import { roundScore, scoreColor } from './shared/score-utils';
+import { roundScore } from './shared/score-utils';
 
 import type { RunPublic } from '@/client/types.gen';
 
@@ -22,6 +23,11 @@ interface EvalRunListRowProps {
   onToggleSelected: (checked: boolean) => void;
   onOpen: () => void;
 }
+
+const PILL_BASE =
+  'inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-mono tabular-nums';
+const PILL_PASS = 'bg-green-500/10 text-green-400 border-green-500/20';
+const PILL_FAIL = 'bg-red-500/10 text-red-400 border-red-500/20';
 
 export function EvalRunListRow({
   run,
@@ -39,15 +45,13 @@ export function EvalRunListRow({
   });
 
   const metrics = run.aggregate_metrics;
-  const avgScore = roundScore(metrics?.avg_overall_score);
-  const passRate =
-    metrics && metrics.total_executions > 0
-      ? (metrics.passed_count / metrics.total_executions) * 100
-      : null;
+  const isCompleted = run.status === RunStatus.COMPLETED;
+  const metricsScore = roundScore(metrics?.weighted_metrics_score_pct);
+  const metricsPassed = metrics?.metrics_passed ?? null;
+  const casesPassed = metrics?.cases_passed ?? null;
+  const passedCount = metrics?.passed_count ?? 0;
+  const totalExecutions = metrics?.total_executions ?? 0;
   const toolMode = run.config?.tool_mode ?? 'mock';
-
-  const scoreText = scoreColor(avgScore);
-  const passRateColor = scoreColor(passRate);
 
   return (
     <li
@@ -105,20 +109,32 @@ export function EvalRunListRow({
         </span>
       </div>
 
-      <div className="flex flex-col gap-1">
-        <span className={cn('font-mono text-xs tabular-nums', scoreText.text)}>
-          {avgScore === null ? '—' : `${avgScore}/100`}
-        </span>
-        <ScoreBar value={avgScore} />
+      <div className="flex items-center">
+        {isCompleted && metricsScore !== null && metricsPassed !== null ? (
+          <span
+            className={cn(PILL_BASE, metricsPassed ? PILL_PASS : PILL_FAIL)}
+            title="Metrics score"
+          >
+            <Target className="w-2.5 h-2.5" />
+            {metricsScore}%
+          </span>
+        ) : (
+          <span className="text-xs text-muted-foreground/40 font-mono">—</span>
+        )}
       </div>
 
-      <div className="flex flex-col gap-1">
-        <span className={cn('font-mono text-xs tabular-nums', passRateColor.text)}>
-          {metrics
-            ? `${metrics.passed_count}/${metrics.total_executions}`
-            : '—'}
-        </span>
-        <ScoreBar value={passRate} />
+      <div className="flex items-center">
+        {isCompleted && casesPassed !== null ? (
+          <span
+            className={cn(PILL_BASE, casesPassed ? PILL_PASS : PILL_FAIL)}
+            title="Cases passed"
+          >
+            <ListChecks className="w-2.5 h-2.5" />
+            {passedCount}/{totalExecutions}
+          </span>
+        ) : (
+          <span className="text-xs text-muted-foreground/40 font-mono">—</span>
+        )}
       </div>
 
       <div

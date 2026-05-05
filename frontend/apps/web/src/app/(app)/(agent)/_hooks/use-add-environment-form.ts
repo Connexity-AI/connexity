@@ -15,6 +15,8 @@ const DEFAULT_VALUES: AddEnvironmentFormValues = {
   integration_id: '',
   platform_agent_id: '',
   platform_agent_name: '',
+  eval_gate_enabled: false,
+  eval_gate_eval_config_id: null,
 };
 
 interface UseAddEnvironmentFormOptions {
@@ -52,6 +54,9 @@ export function useAddEnvironmentForm({ agentId, onSuccess }: UseAddEnvironmentF
         integration_id: values.integration_id,
         platform_agent_id: values.platform_agent_id,
         platform_agent_name: values.platform_agent_name,
+        eval_gate_eval_config_id: values.eval_gate_enabled
+          ? values.eval_gate_eval_config_id
+          : null,
       });
       onSuccess();
     } catch {

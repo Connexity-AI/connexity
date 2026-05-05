@@ -13,6 +13,8 @@ export const createEvalFormSchema = z.object({
     concurrency: z.number().int().min(1).max(50),
     max_turns: z.number().int().min(1).max(200).nullable(),
     tool_mode: z.enum(['mock', 'live']),
+    metrics_pass_threshold: z.number().min(0).max(100),
+    cases_pass_threshold: z.number().min(0).max(100),
   }),
   test_cases: z
     .array(
@@ -60,6 +62,8 @@ export function buildDefaults(
       concurrency: 10,
       max_turns: 30,
       tool_mode: 'mock',
+      metrics_pass_threshold: 80,
+      cases_pass_threshold: 100,
     },
     test_cases: [],
     judge: {
@@ -86,6 +90,8 @@ export function formValuesToCreatePayload(
       concurrency: values.run.concurrency,
       max_turns: values.run.max_turns,
       tool_mode: values.run.tool_mode,
+      metrics_pass_threshold: values.run.metrics_pass_threshold,
+      cases_pass_threshold: values.run.cases_pass_threshold,
       judge: {
         provider: values.judge.provider,
         model: values.judge.model,

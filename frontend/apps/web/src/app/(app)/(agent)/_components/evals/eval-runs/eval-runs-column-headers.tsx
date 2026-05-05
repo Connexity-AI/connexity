@@ -24,7 +24,7 @@ export function EvalRunsColumnHeaders({
       </div>
       <span>Run</span>
       <span>Tool Calls</span>
-      <span>Score</span>
+      <span>Metrics</span>
       <span>Cases</span>
       <span aria-hidden="true" />
     </div>

@@ -231,6 +231,28 @@ def delete_run(*, session: Session, db_run: Run) -> None:
     session.commit()
 
 
+def get_latest_completed_run_for_version(
+    *,
+    session: Session,
+    agent_id: uuid.UUID,
+    eval_config_id: uuid.UUID,
+    agent_version: int,
+) -> Run | None:
+    """Latest completed run for the (agent, eval_config, agent_version) triple."""
+    statement = (
+        select(Run)
+        .where(
+            Run.agent_id == agent_id,
+            Run.eval_config_id == eval_config_id,
+            Run.agent_version == agent_version,
+            Run.status == RunStatus.COMPLETED,
+        )
+        .order_by(col(Run.created_at).desc())
+        .limit(1)
+    )
+    return session.exec(statement).first()
+
+
 def count_runs_for_eval_config(*, session: Session, eval_config_id: uuid.UUID) -> int:
     return session.exec(
         select(func.count()).where(Run.eval_config_id == eval_config_id)

@@ -11,6 +11,7 @@ import { CreateEvalTopbar } from '@/app/(app)/(agent)/_components/evals/create-e
 import { RunEvalConfigButton } from '@/app/(app)/(agent)/_components/evals/run-eval-config-button';
 import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { JudgeSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-judge-section';
+import { PassThresholdsSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-pass-thresholds-section';
 import { PersonaSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-persona-section';
 import { RunConfigSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-run-config-section';
 import { TestCasesSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-test-cases-section';
@@ -122,6 +123,7 @@ export function CreateEvalView({
               />
               <TestCasesSection agentId={agentId} />
               <JudgeSection metrics={metrics} />
+              <PassThresholdsSection />
               <PersonaSection />
             </div>
           </form>

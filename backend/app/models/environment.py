@@ -23,6 +23,15 @@ class Environment(EnvironmentBase, table=True):
     current_version_number: int | None = Field(default=None)
     current_version_name: str | None = Field(default=None, max_length=255)
     current_deployed_at: datetime | None = Field(default=None)
+    eval_gate_eval_config_id: uuid.UUID | None = Field(
+        default=None,
+        foreign_key="eval_config.id",
+        index=True,
+        description=(
+            "When set, deploys to this environment are gated on a passing run "
+            "of this eval config for the requested agent version."
+        ),
+    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"server_default": text("now()")},
@@ -41,6 +50,13 @@ class EnvironmentCreate(EnvironmentBase):
     integration_id: uuid.UUID
     platform_agent_id: str
     platform_agent_name: str
+    eval_gate_eval_config_id: uuid.UUID | None = Field(
+        default=None,
+        description=(
+            "Optional: gate deploys on a passing run of this eval config for "
+            "the requested agent version."
+        ),
+    )
 
 
 class EnvironmentPublic(EnvironmentBase):
@@ -53,6 +69,7 @@ class EnvironmentPublic(EnvironmentBase):
     current_version_number: int | None
     current_version_name: str | None
     current_deployed_at: datetime | None
+    eval_gate_eval_config_id: uuid.UUID | None
     created_at: datetime
 
 

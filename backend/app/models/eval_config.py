@@ -108,6 +108,7 @@ class EvalConfig(EvalConfigBase, table=True):
             "onupdate": lambda: datetime.now(UTC),
         },
     )
+    deleted_at: datetime | None = Field(default=None, index=True)
 
     # Relationships
     agent: "Agent" = Relationship(back_populates="eval_configs")

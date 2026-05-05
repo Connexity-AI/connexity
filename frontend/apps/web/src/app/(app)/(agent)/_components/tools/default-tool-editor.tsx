@@ -1,16 +1,15 @@
 'use client';
 
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, useWatch } from 'react-hook-form';
 
 import { Input } from '@workspace/ui/components/ui/input';
 import { Textarea } from '@workspace/ui/components/ui/textarea';
 
 import { Field, SectionHeading } from '@/app/(app)/(agent)/_components/tools/tool-editor-field';
 import { ToolEditorHeader } from '@/app/(app)/(agent)/_components/tools/tool-editor-header';
+import { ToolParameters } from '@/app/(app)/(agent)/_components/tools/tool-parameters';
 
 import type { AgentFormValues } from '@/app/(app)/(agent)/_schemas/agent-form';
-
-const DEFAULT_TOOLS_WITH_URL = new Set(['transfer_call']);
 
 interface DefaultToolEditorProps {
   toolIndex: number;
@@ -27,8 +26,9 @@ export function DefaultToolEditor({
   onDelete,
   readOnly,
 }: DefaultToolEditorProps) {
-  const { register } = useFormContext<AgentFormValues>();
-  const showUrl = DEFAULT_TOOLS_WITH_URL.has(toolName);
+  const { register, control } = useFormContext<AgentFormValues>();
+  const parameters = useWatch({ control, name: `tools.${toolIndex}.parameters` });
+  const hasParameters = (parameters?.length ?? 0) > 0;
 
   return (
     <div className="flex flex-col h-full w-full bg-background">
@@ -68,19 +68,13 @@ export function DefaultToolEditor({
             </div>
           </div>
 
-          {showUrl && (
+          {hasParameters && (
             <div>
-              <SectionHeading>Endpoint</SectionHeading>
-              <Field
-                label="URL"
-                hint="Webhook called when the model invokes this tool."
-              >
-                <Input
-                  {...register(`tools.${toolIndex}.url`)}
-                  placeholder="https://api.example.com/transfer"
-                  className="h-9 text-sm font-mono w-full"
-                />
-              </Field>
+              <SectionHeading>Parameters</SectionHeading>
+              <p className="text-xs text-muted-foreground/50 mb-4 leading-relaxed">
+                Arguments the model collects and passes when invoking this tool.
+              </p>
+              <ToolParameters toolIndex={toolIndex} />
             </div>
           )}
         </fieldset>
