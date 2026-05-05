@@ -5,7 +5,15 @@ from sqlalchemy import func
 from sqlmodel import Session, col, select
 
 from app.crud import agent_version as agent_version_crud
-from app.models import Agent, AgentVersion, EvalConfig, Run, RunCreate, RunStatus, RunUpdate
+from app.models import (
+    Agent,
+    AgentVersion,
+    EvalConfig,
+    Run,
+    RunCreate,
+    RunStatus,
+    RunUpdate,
+)
 from app.models.enums import AgentMode
 from app.models.schemas import RunConfig
 from app.services.agent_tool_definitions import normalize_and_validate_agent_tools
