@@ -5,7 +5,7 @@ from sqlalchemy import func
 from sqlmodel import Session, col, select
 
 from app.crud import agent_version as agent_version_crud
-from app.models import Agent, EvalConfig, Run, RunCreate, RunStatus, RunUpdate
+from app.models import Agent, AgentVersion, EvalConfig, Run, RunCreate, RunStatus, RunUpdate
 from app.models.enums import AgentMode
 from app.models.schemas import RunConfig
 from app.services.agent_tool_definitions import normalize_and_validate_agent_tools
@@ -19,10 +19,36 @@ def enrich_run_create_from_agent(
     agent: Agent,
     eval_config: EvalConfig,
 ) -> RunCreate:
-    """Fill run snapshot fields from the agent and eval config; validate endpoint mode."""
+    """Fill run snapshot fields from the agent and eval config; validate endpoint mode.
+
+    If `run_in.agent_version` is provided and differs from the agent's current
+    version, snapshot fields (system_prompt, tools, model, etc.) are taken from
+    that AgentVersion row so the eval actually tests the requested version's
+    behavior. Otherwise fields are taken from the live agent.
+    """
     data = run_in.model_dump()
-    data.pop("agent_version", None)
+    requested_version = data.pop("agent_version", None)
     data.pop("agent_version_id", None)
+
+    source: Agent | AgentVersion
+    target_version: int | None
+    ver_row: AgentVersion | None
+
+    if requested_version is not None and requested_version != agent.version:
+        ver_row = agent_version_crud.get_current_version_row(
+            session=session, agent_id=agent.id, version=requested_version
+        )
+        if ver_row is None:
+            msg = f"Agent version {requested_version} not found for agent {agent.id}"
+            raise ValueError(msg)
+        source = ver_row
+        target_version = requested_version
+    else:
+        source = agent
+        target_version = agent.version
+        ver_row = agent_version_crud.get_current_version_row(
+            session=session, agent_id=agent.id, version=agent.version
+        )
 
     # Snapshot the eval config's run config when the caller didn't override it,
     # so max_turns / concurrency / judge / tool_mode set on the eval config are
@@ -40,21 +66,22 @@ def enrich_run_create_from_agent(
 
     asim = cfg.agent_simulator
 
-    if not data.get("agent_endpoint_url") and agent.endpoint_url:
-        data["agent_endpoint_url"] = agent.endpoint_url
+    if not data.get("agent_endpoint_url") and source.endpoint_url:
+        data["agent_endpoint_url"] = source.endpoint_url
 
+    source_mode = source.mode if isinstance(source.mode, AgentMode) else AgentMode(source.mode)
     if data.get("agent_mode") is None:
-        data["agent_mode"] = agent.mode.value
+        data["agent_mode"] = source_mode.value
 
-    if agent.mode == AgentMode.PLATFORM:
+    if source_mode == AgentMode.PLATFORM:
         if data.get("agent_system_prompt") is None:
-            data["agent_system_prompt"] = agent.system_prompt
+            data["agent_system_prompt"] = source.system_prompt
         if data.get("agent_tools") is None:
-            data["agent_tools"] = agent.tools
-        eff_model = (asim.model if asim and asim.model else None) or agent.agent_model
+            data["agent_tools"] = source.tools
+        eff_model = (asim.model if asim and asim.model else None) or source.agent_model
         eff_prov = (
             asim.provider if asim and asim.provider else None
-        ) or agent.agent_provider
+        ) or source.agent_provider
         if data.get("agent_model") is None:
             data["agent_model"] = eff_model
         if data.get("agent_provider") is None:
@@ -65,18 +92,15 @@ def enrich_run_create_from_agent(
         if not data.get("agent_model"):
             msg = "agent_model is required for platform-mode agents (set on agent or in run config agent_simulator.model)"
             raise ValueError(msg)
-    elif agent.mode == AgentMode.ENDPOINT:
+    elif source_mode == AgentMode.ENDPOINT:
         ep = data.get("agent_endpoint_url")
         if not ep or not str(ep).strip():
             msg = "agent_endpoint_url is required when the agent is in endpoint mode"
             raise ValueError(msg)
-        if data.get("agent_tools") is None and agent.tools:
-            data["agent_tools"] = agent.tools
+        if data.get("agent_tools") is None and source.tools:
+            data["agent_tools"] = source.tools
 
-    data["agent_version"] = agent.version
-    ver_row = agent_version_crud.get_current_version_row(
-        session=session, agent_id=agent.id, version=agent.version
-    )
+    data["agent_version"] = target_version
     data["agent_version_id"] = ver_row.id if ver_row else None
 
     if data.get("agent_tools") is not None:
