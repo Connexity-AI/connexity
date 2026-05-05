@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy import func, text
 from sqlmodel import Session, col, select
@@ -29,8 +30,24 @@ def create_test_case(*, session: Session, test_case_in: TestCaseCreate) -> TestC
     return db_obj
 
 
-def get_test_case(*, session: Session, test_case_id: uuid.UUID) -> TestCase | None:
-    return session.get(TestCase, test_case_id)
+def get_test_case(
+    *,
+    session: Session,
+    test_case_id: uuid.UUID,
+    include_deleted: bool = False,
+) -> TestCase | None:
+    """Fetch a test case by id.
+
+    Soft-deleted rows are hidden by default; pass ``include_deleted=True``
+    to look up an already-deleted test case (e.g. when rendering a historical
+    eval run that referenced it).
+    """
+    tc = session.get(TestCase, test_case_id)
+    if tc is None:
+        return None
+    if tc.deleted_at is not None and not include_deleted:
+        return None
+    return tc
 
 
 def list_distinct_tags_for_agent(*, session: Session, agent_id: uuid.UUID) -> list[str]:
@@ -38,7 +55,7 @@ def list_distinct_tags_for_agent(*, session: Session, agent_id: uuid.UUID) -> li
     statement = text(
         "SELECT DISTINCT t FROM test_case "
         "CROSS JOIN LATERAL unnest(tags) AS t "
-        "WHERE agent_id = :aid AND cardinality(tags) > 0 "
+        "WHERE agent_id = :aid AND deleted_at IS NULL AND cardinality(tags) > 0 "
         "ORDER BY t"
     )
     rows = session.execute(statement, {"aid": agent_id}).fetchall()
@@ -51,7 +68,10 @@ def list_recent_test_cases_for_agent(
     """Most recently created test cases for an agent (for prompt context)."""
     statement = (
         select(TestCase)
-        .where(TestCase.agent_id == agent_id)
+        .where(
+            TestCase.agent_id == agent_id,
+            col(TestCase.deleted_at).is_(None),
+        )
         .order_by(col(TestCase.created_at).desc())
         .limit(limit)
     )
@@ -70,9 +90,14 @@ def list_test_cases(
     sort_by: str = "created_at",
     sort_order: str = "desc",
     agent_id: uuid.UUID | None = None,
+    include_deleted: bool = False,
 ) -> tuple[list[TestCase], int]:
     statement = select(TestCase)
     count_statement = select(func.count()).select_from(TestCase)
+
+    if not include_deleted:
+        statement = statement.where(col(TestCase.deleted_at).is_(None))
+        count_statement = count_statement.where(col(TestCase.deleted_at).is_(None))
 
     if tag is not None:
         statement = statement.where(col(TestCase.tags).any(tag))
@@ -123,7 +148,11 @@ def update_test_case(
 
 
 def delete_test_case(*, session: Session, db_test_case: TestCase) -> None:
-    session.delete(db_test_case)
+    """Soft-delete: stamp ``deleted_at`` so historical eval runs that
+    reference this test case keep working while it's hidden from lists.
+    """
+    db_test_case.deleted_at = datetime.now(UTC)
+    session.add(db_test_case)
     session.commit()
 
 
@@ -139,7 +168,7 @@ def export_test_cases(
     agent_id: uuid.UUID | None = None,
 ) -> list[TestCase]:
     """Export test cases matching optional filters (capped at EXPORT_MAX_ROWS)."""
-    statement = select(TestCase)
+    statement = select(TestCase).where(col(TestCase.deleted_at).is_(None))
 
     if tag is not None:
         statement = statement.where(col(TestCase.tags).any(tag))
@@ -194,6 +223,7 @@ def bulk_import_test_cases(
                     skipped += 1
                 else:
                     existing[item.id].sqlmodel_update(data)
+                    existing[item.id].deleted_at = None
                     session.add(existing[item.id])
                     overwritten += 1
             else:

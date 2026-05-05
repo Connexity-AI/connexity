@@ -21,12 +21,15 @@ from app.models.schemas import TestCaseExecution
 def validate_test_case_ids(
     *, session: Session, test_case_ids: list[uuid.UUID]
 ) -> list[uuid.UUID]:
-    """Return any test case IDs that do not exist in the database."""
+    """Return any test case IDs that do not exist (or are soft-deleted)."""
     if not test_case_ids:
         return []
     existing_ids = set(
         session.exec(
-            select(TestCase.id).where(col(TestCase.id).in_(test_case_ids))
+            select(TestCase.id).where(
+                col(TestCase.id).in_(test_case_ids),
+                col(TestCase.deleted_at).is_(None),
+            )
         ).all()
     )
     return [tid for tid in test_case_ids if tid not in existing_ids]
@@ -336,6 +339,7 @@ def get_test_cases_for_config(
         .where(
             EvalConfigMember.eval_config_id == eval_config_id,
             TestCase.status == TestCaseStatus.ACTIVE,
+            col(TestCase.deleted_at).is_(None),
         )
         .order_by(EvalConfigMember.position)
     )

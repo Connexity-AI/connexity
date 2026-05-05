@@ -23,6 +23,7 @@ export const promptEditorKeys = {
 
 export const testCaseKeys = {
   list: (agentId: string) => ['test-cases', agentId] as const,
+  listWithDeleted: (agentId: string) => ['test-cases', agentId, 'with-deleted'] as const,
 };
 
 export const integrationKeys = {

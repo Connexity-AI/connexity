@@ -12,10 +12,7 @@ import { Skeleton } from '@workspace/ui/components/ui/skeleton';
 
 import { TablePaginationSkeleton } from '@/components/common/data-table/table-pagination-skeleton';
 
-// Row height matches the real AgentsTable row (measured at 52.8px). Fixing the
-// height here keeps the skeleton from jumping vertically when real data
-// arrives and the rows settle to their final measurements.
-const ROW_HEIGHT = '52.8px';
+const ROW_HEIGHT = '40px';
 
 interface AgentsTableSkeletonProps {
   rows?: number;
@@ -28,12 +25,12 @@ export function AgentsTableSkeleton({ rows = 8 }: AgentsTableSkeletonProps) {
         <div className="overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead>
-                  <Skeleton className="h-4 w-20" />
+              <TableRow className="border-border hover:bg-transparent">
+                <TableHead className="h-auto px-5 py-2 text-[10px] font-normal uppercase tracking-wider text-muted-foreground/60">
+                  <Skeleton className="h-2 w-12" />
                 </TableHead>
-                <TableHead>
-                  <Skeleton className="h-4 w-24" />
+                <TableHead className="h-auto px-5 py-2 text-[10px] font-normal uppercase tracking-wider text-muted-foreground/60">
+                  <Skeleton className="h-2 w-16" />
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -41,14 +38,14 @@ export function AgentsTableSkeleton({ rows = 8 }: AgentsTableSkeletonProps) {
               {Array.from({ length: rows }).map((_, index) => (
                 <TableRow
                   key={index}
-                  className="hover:bg-transparent"
+                  className="border-border/40 hover:bg-transparent"
                   style={{ height: ROW_HEIGHT }}
                 >
-                  <TableCell>
-                    <Skeleton className="h-4 w-40" />
+                  <TableCell className="px-5 py-2.5">
+                    <Skeleton className="h-3.5 w-40" />
                   </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-36" />
+                  <TableCell className="px-5 py-2.5">
+                    <Skeleton className="h-3.5 w-36" />
                   </TableCell>
                 </TableRow>
               ))}

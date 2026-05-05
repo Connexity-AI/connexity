@@ -73,6 +73,13 @@ def list_test_cases(
     agent_id: uuid.UUID | None = Query(
         default=None, description="Filter test cases bound to this agent"
     ),
+    include_deleted: bool = Query(
+        default=False,
+        description=(
+            "Include soft-deleted test cases — used by the eval-run detail "
+            "view so historical results can still resolve test-case metadata."
+        ),
+    ),
 ) -> TestCasesPublic:
     items, count = crud.list_test_cases(
         session=session,
@@ -85,6 +92,7 @@ def list_test_cases(
         sort_by=sort_by,
         sort_order=sort_order,
         agent_id=agent_id,
+        include_deleted=include_deleted,
     )
     return TestCasesPublic(data=items, count=count)  # type: ignore[arg-type]
 

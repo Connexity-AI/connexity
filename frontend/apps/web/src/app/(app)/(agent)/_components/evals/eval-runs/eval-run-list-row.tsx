@@ -56,8 +56,8 @@ export function EvalRunListRow({
   return (
     <li
       className={cn(
-        'group grid cursor-pointer grid-cols-[32px_1fr_72px_110px_110px_96px] items-center gap-3 border-b border-border/40 px-5 py-3 transition-colors select-none',
-        selected ? 'bg-accent/50' : 'hover:bg-accent/25'
+        'group grid cursor-pointer grid-cols-[32px_1fr_72px_110px_110px_96px] items-center gap-4 border-b border-border/40 px-5 py-2.5 transition-colors select-none',
+        selected ? 'bg-accent/50' : 'hover:bg-accent/20'
       )}
       onClick={onOpen}
     >

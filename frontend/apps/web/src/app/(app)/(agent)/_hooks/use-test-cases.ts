@@ -11,3 +11,7 @@ export function useTestCases(agentId: string) {
 export function useSuspenseTestCases(agentId: string) {
   return useSuspenseQuery(testCasesListQuery(agentId));
 }
+
+export function useSuspenseTestCasesWithDeleted(agentId: string) {
+  return useSuspenseQuery(testCasesListQuery(agentId, { includeDeleted: true }));
+}

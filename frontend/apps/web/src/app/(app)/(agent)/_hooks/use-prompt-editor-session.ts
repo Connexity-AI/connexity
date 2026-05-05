@@ -19,10 +19,14 @@ import type { PromptEditorSessionPublic } from '@/client/types.gen';
  * panel renders empty and a session is created lazily when the user
  * sends their first message.
  *
- * `startNewSession` is a purely local clear — it hides the current
- * session from the UI so the next `sendMessage` call falls through to
- * `createSession`, which then writes a fresh row to the database.
- * Previous sessions are preserved.
+ * Two ways to start a fresh chat:
+ * - `startNewSession`: purely local clear — hides the current session
+ *   from the UI so the next `sendMessage` call falls through to
+ *   `createSession`. Used by the suggest-fixes handoff so the new
+ *   session can be bound to a `runId` on first send.
+ * - `resetSession`: eagerly writes a fresh empty session row to the
+ *   database so it survives a page reload (the new session is then
+ *   the newest by `updated_at` and is what the on-mount query returns).
  */
 export function usePromptEditorSession(agentId: string) {
   const queryClient = useQueryClient();
@@ -121,6 +125,10 @@ export function usePromptEditorSession(agentId: string) {
     setPendingNew(true);
   }, []);
 
+  const resetSession = useCallback(async (): Promise<void> => {
+    await createMutation.mutateAsync({ runId: null });
+  }, [createMutation]);
+
   const clearStaleSession = useCallback(() => {
     queryClient.removeQueries({ queryKey: promptEditorKeys.session(agentId) });
     setPendingNew(true);
@@ -137,6 +145,7 @@ export function usePromptEditorSession(agentId: string) {
     error: query.error,
     createSession,
     startNewSession,
+    resetSession,
     clearStaleSession,
     updateBasePrompt,
     isCreating: createMutation.isPending,

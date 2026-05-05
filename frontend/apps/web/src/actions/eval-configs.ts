@@ -8,6 +8,7 @@ import type {
   EvalConfigMembersPublic,
   EvalConfigPublic,
   EvalConfigsPublic,
+  EvalConfigUpdate,
   RunCreate,
   RunPublic,
 } from '@/client/types.gen';
@@ -52,6 +53,18 @@ export const createEvalConfig = async (
   body: EvalConfigCreate
 ): Promise<ApiResult<EvalConfigPublic>> => {
   const apiResponse = await EvalConfigsService.evalConfigsCreateEvalConfig({ body });
+  const { response: _, ...result } = apiResponse;
+  return result;
+};
+
+export const updateEvalConfig = async (
+  evalConfigId: string,
+  body: EvalConfigUpdate
+): Promise<ApiResult<EvalConfigPublic>> => {
+  const apiResponse = await EvalConfigsService.evalConfigsUpdateEvalConfig({
+    path: { eval_config_id: evalConfigId },
+    body,
+  });
   const { response: _, ...result } = apiResponse;
   return result;
 };

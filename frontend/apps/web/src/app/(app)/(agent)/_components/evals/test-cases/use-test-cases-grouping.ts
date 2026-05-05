@@ -2,8 +2,12 @@
 
 import { useMemo, useState } from 'react';
 
-import type { TestCasesTagGroup } from '@/app/(app)/(agent)/_components/evals/test-cases/grouped-test-cases-table';
 import type { TestCasePublic } from '@/client/types.gen';
+
+export interface TestCasesTagGroup {
+  tag: string;
+  items: TestCasePublic[];
+}
 
 export function useTestCasesGrouping(filtered: TestCasePublic[]) {
   const [groupByTags, setGroupByTags] = useState(false);

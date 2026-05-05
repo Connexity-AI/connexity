@@ -174,7 +174,7 @@ function ToolAccordionBubble({
           {timestamp}
         </span>
       ) : null}
-      <Accordion type="single" collapsible defaultValue={itemKey} className="w-full">
+      <Accordion type="single" collapsible className="w-full">
         <AccordionItem
           value={itemKey}
           className="overflow-hidden rounded-lg border border-border bg-accent/10"
