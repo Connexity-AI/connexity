@@ -6265,6 +6265,19 @@ export const TestCasePublicSchema = {
       title: 'Updated At',
       description: 'When the test case was last updated',
     },
+    deleted_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Deleted At',
+      description: 'When the test case was soft-deleted (null = active)',
+    },
   },
   type: 'object',
   required: ['name', 'id', 'created_at', 'updated_at'],

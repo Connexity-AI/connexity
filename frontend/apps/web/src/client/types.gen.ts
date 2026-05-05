@@ -6018,8 +6018,7 @@ export type TestCasesListTestCasesData = {
     /**
      * Include Deleted
      *
-     * Include soft-deleted test cases — used by the eval-run detail view so
-     * historical results can still resolve test-case metadata.
+     * Include soft-deleted test cases — used by the eval-run detail view so historical results can still resolve test-case metadata.
      */
     include_deleted?: boolean;
   };
