@@ -3879,6 +3879,12 @@ export type TestCasePublic = {
    * When the test case was last updated
    */
   updated_at: string;
+  /**
+   * Deleted At
+   *
+   * When the test case was soft-deleted (null = active)
+   */
+  deleted_at?: string | null;
 };
 
 /**
@@ -6009,6 +6015,13 @@ export type TestCasesListTestCasesData = {
      * Filter test cases bound to this agent
      */
     agent_id?: string | null;
+    /**
+     * Include Deleted
+     *
+     * Include soft-deleted test cases — used by the eval-run detail view so
+     * historical results can still resolve test-case metadata.
+     */
+    include_deleted?: boolean;
   };
   url: '/api/v1/test-cases/';
 };

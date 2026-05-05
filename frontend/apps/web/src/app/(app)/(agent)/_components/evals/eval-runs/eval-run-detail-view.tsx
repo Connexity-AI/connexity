@@ -15,7 +15,7 @@ import { useAgent } from '@/app/(app)/(agent)/_hooks/use-agent';
 import { useEvalConfigs } from '@/app/(app)/(agent)/_hooks/use-eval-configs';
 import { useEvalResultsSelection } from '@/app/(app)/(agent)/_hooks/use-eval-results-selection';
 import { useEvalRunDetail, type ResultFilter } from '@/app/(app)/(agent)/_hooks/use-eval-run-detail';
-import { useSuspenseTestCases } from '@/app/(app)/(agent)/_hooks/use-test-cases';
+import { useSuspenseTestCasesWithDeleted } from '@/app/(app)/(agent)/_hooks/use-test-cases';
 import { useTriggerSuggestFixes } from '@/app/(app)/(agent)/_hooks/use-trigger-suggest-fixes';
 import { UrlGenerator } from '@/common/url-generator/url-generator';
 
@@ -49,7 +49,7 @@ function EvalRunDetailContent({
   backHref,
 }: EvalRunDetailViewProps & { backHref: string }) {
   const { data: configsData } = useEvalConfigs(agentId);
-  const { data: testCasesData } = useSuspenseTestCases(agentId);
+  const { data: testCasesData } = useSuspenseTestCasesWithDeleted(agentId);
   const { data: agent } = useAgent(agentId);
   const configs = configsData?.data ?? [];
   const testCases = testCasesData?.data ?? [];
@@ -179,6 +179,7 @@ function EvalRunDetailContent({
                   testCaseName={testCase?.name ?? 'Unknown test case'}
                   tags={testCase?.tags}
                   difficulty={testCase?.difficulty}
+                  isDeleted={Boolean(testCase?.deleted_at)}
                   onOpenTrace={() => setDrawerResultId(result.id)}
                   selected={selectedIds.has(result.id)}
                   onSelectChange={toggleRow}

@@ -24,6 +24,7 @@ interface ConversationResultRowProps {
   testCaseName: string;
   tags?: string[];
   difficulty?: Difficulty;
+  isDeleted?: boolean;
   onOpenTrace: () => void;
   selected: boolean;
   onSelectChange: (id: string, checked: boolean) => void;
@@ -48,6 +49,7 @@ export function ConversationResultRow({
   testCaseName,
   tags,
   difficulty,
+  isDeleted = false,
   onOpenTrace,
   selected,
   onSelectChange,
@@ -85,7 +87,12 @@ export function ConversationResultRow({
         </div>
 
         <div className="min-w-0 text-left">
-          <div className="truncate text-sm text-foreground">{testCaseName}</div>
+          <div className="truncate text-sm text-foreground">
+            {testCaseName}
+            {isDeleted ? (
+              <span className="ml-1.5 text-[11px] text-muted-foreground/70">(deleted)</span>
+            ) : null}
+          </div>
           <TagRow tags={tags} difficulty={difficulty} />
           <ErrorMessage message={result.error_message} />
         </div>
