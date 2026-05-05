@@ -3,9 +3,12 @@
     ".": {
       "release-type": "python",
       "package-name": "connexity-cli",
-      "include-component-in-tag": false,
+      "component": "cli",
+      "include-component-in-tag": true,
+      "tag-separator": "-",
       "extra-files": ["pyproject.toml"],
       "include-paths": ["backend/cli", "pyproject.toml"],
+      "changelog-path": "backend/cli/CHANGELOG.md",
       "changelog-sections": [
         { "type": "feat", "section": "Features" },
         { "type": "fix", "section": "Bug Fixes" },

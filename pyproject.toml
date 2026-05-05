@@ -34,6 +34,8 @@ connexity-cli = "cli.main:app"
 Homepage = "https://github.com/Connexity-AI/connexity"
 Repository = "https://github.com/Connexity-AI/connexity"
 Issues = "https://github.com/Connexity-AI/connexity/issues"
+Changelog = "https://github.com/Connexity-AI/connexity/blob/main/backend/cli/CHANGELOG.md"
+Releases = "https://github.com/Connexity-AI/connexity/releases?q=cli-v"
 
 [build-system]
 requires = ["hatchling"]

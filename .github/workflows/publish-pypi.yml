@@ -2,7 +2,9 @@ name: Publish to PyPI
 
 on:
   push:
-    tags: ["v*"]
+    # Component-prefixed CLI tag — e.g. cli-v0.2.0.
+    # Plain v* tags are reserved for platform releases (see release-platform.yml).
+    tags: ["cli-v*"]
 
 jobs:
   build-and-validate:
@@ -70,6 +72,6 @@ jobs:
 
       - name: Install from PyPI and verify
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${GITHUB_REF_NAME#cli-v}"
           pip install "connexity-cli==${VERSION}"
           connexity-cli --help
