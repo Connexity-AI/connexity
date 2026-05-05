@@ -5,7 +5,15 @@ from sqlalchemy import func
 from sqlmodel import Session, col, select
 
 from app.crud import agent_version as agent_version_crud
-from app.models import Agent, AgentVersion, EvalConfig, Run, RunCreate, RunStatus, RunUpdate
+from app.models import (
+    Agent,
+    AgentVersion,
+    EvalConfig,
+    Run,
+    RunCreate,
+    RunStatus,
+    RunUpdate,
+)
 from app.models.enums import AgentMode
 from app.models.schemas import RunConfig
 from app.services.agent_tool_definitions import normalize_and_validate_agent_tools
@@ -69,7 +77,9 @@ def enrich_run_create_from_agent(
     if not data.get("agent_endpoint_url") and source.endpoint_url:
         data["agent_endpoint_url"] = source.endpoint_url
 
-    source_mode = source.mode if isinstance(source.mode, AgentMode) else AgentMode(source.mode)
+    source_mode = (
+        source.mode if isinstance(source.mode, AgentMode) else AgentMode(source.mode)
+    )
     if data.get("agent_mode") is None:
         data["agent_mode"] = source_mode.value
 

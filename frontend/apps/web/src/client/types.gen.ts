@@ -3187,13 +3187,13 @@ export type RunCreate = {
   /**
    * Agent Version
    *
-   * Agent behavioral config version at run creation (set by server)
+   * Target agent version to evaluate. If omitted, defaults to the agent's current version. If provided, the run is snapshotted from that AgentVersion row (system_prompt, tools, model, etc.).
    */
   agent_version?: number | null;
   /**
    * Agent Version Id
    *
-   * FK to agent_version row at run creation (set by server)
+   * Resolved by the server from agent_version; ignored on input.
    */
   agent_version_id?: string | null;
   /**
