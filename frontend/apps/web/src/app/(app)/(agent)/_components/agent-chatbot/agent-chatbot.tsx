@@ -25,7 +25,7 @@ export function AgentChatbot() {
     sendMessage,
     isHistoryLoading,
     suggestion,
-    createNewSession,
+    resetChat,
     isCreatingSession,
   } = useAgentChatbot();
 
@@ -42,11 +42,11 @@ export function AgentChatbot() {
           type="button"
           variant="ghost"
           size="sm"
-          onClick={() => void createNewSession()}
-          disabled={isCreatingSession || isStreaming}
+          onClick={() => void resetChat()}
+          disabled={isCreatingSession || isStreaming || messages.length === 0}
           className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
         >
-          New Chat
+          Reset Chat
         </Button>
       </div>
 
