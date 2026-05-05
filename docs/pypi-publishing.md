@@ -8,7 +8,12 @@ The publishing pipeline uses two GitHub Actions workflows:
 
 1. **Release Please** (`.github/workflows/release-please.yml`) — Watches merges to `main` that touch `backend/cli/` or the root `pyproject.toml`. Automatically opens and maintains a Release PR with changelog and version bumps. When merged, creates a git tag and GitHub Release.
 
-2. **Publish to PyPI** (`.github/workflows/publish-pypi.yml`) — Triggered by `v*` tags. Builds the wheel, validates it, publishes to PyPI via Trusted Publisher (OIDC), and runs a post-publish smoke test.
+2. **Publish to PyPI** (`.github/workflows/publish-pypi.yml`) — Triggered by `cli-v*` tags (component-prefixed so they don't collide with the platform's plain `v*` tags). Builds the wheel, validates it, publishes to PyPI via Trusted Publisher (OIDC), and runs a post-publish smoke test.
+
+> **Tag namespaces in this repo**
+> - `cli-vX.Y.Z` — CLI package release (this doc)
+> - `vX.Y.Z` — platform release, see [`platform-releases.md`](./platform-releases.md)
+> - `v0.1.0` (no prefix) — historical CLI release predating the namespace split; do not reuse.
 
 ## One-Time Setup: PyPI Trusted Publisher
 
@@ -66,13 +71,19 @@ Commits that don't match these patterns (or don't touch `backend/cli/`) are igno
 1. Merge PRs to main
    └── (Release Please detects changes to backend/cli/)
 2. Release Please creates/updates a "Release PR"
-   └── Contains: version bump in pyproject.toml, CHANGELOG.md updates
+   └── Contains: version bump in pyproject.toml, backend/cli/CHANGELOG.md updates
 3. Developer reviews and merges the Release PR
-   └── Release Please creates git tag (v0.2.0) and GitHub Release
+   └── Release Please creates git tag (cli-v0.2.0) and GitHub Release
 4. Tag push triggers publish-pypi.yml
    └── Build → Pre-publish validation → Publish → Post-publish smoke test
 5. pip install connexity-cli gets the new version
 ```
+
+### Where the changelog lives
+
+- **In the repo:** [`backend/cli/CHANGELOG.md`](../backend/cli/CHANGELOG.md) — release-please writes to it on every Release PR.
+- **On GitHub:** the [Releases page](https://github.com/Connexity-AI/connexity/releases?q=cli-v) auto-mirrors each Release PR's CHANGELOG entry.
+- **On PyPI:** PyPI does not natively render per-release changelogs. The `[project.urls]` section in `pyproject.toml` exposes `Changelog` and `Releases` links in the project's PyPI sidebar — clicking them sends users to the locations above.
 
 ### Manual Override
 
@@ -82,7 +93,7 @@ If you need to publish outside the Release Please flow:
 # Bump version in pyproject.toml manually, then:
 git add pyproject.toml
 git commit -m "chore: release 0.3.0"
-git tag v0.3.0
+git tag cli-v0.3.0
 git push && git push --tags
 ```
 
@@ -93,10 +104,10 @@ After a publish completes:
 ```bash
 # Check the version on PyPI
 pip install connexity-cli==<version>
-connexity-cli --help
+connexity-cli --version
 
 # Check the GitHub Release
-gh release view v<version>
+gh release view cli-v<version>
 ```
 
 ## Troubleshooting
