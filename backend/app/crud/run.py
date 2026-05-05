@@ -77,7 +77,9 @@ def enrich_run_create_from_agent(
     if not data.get("agent_endpoint_url") and source.endpoint_url:
         data["agent_endpoint_url"] = source.endpoint_url
 
-    source_mode = source.mode if isinstance(source.mode, AgentMode) else AgentMode(source.mode)
+    source_mode = (
+        source.mode if isinstance(source.mode, AgentMode) else AgentMode(source.mode)
+    )
     if data.get("agent_mode") is None:
         data["agent_mode"] = source_mode.value
 
