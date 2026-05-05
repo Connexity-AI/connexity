@@ -179,7 +179,6 @@ from app.models.schemas import (  # noqa: F401
     JudgeVerdict,
     MetricScore,
     MetricSelection,
-    MockResponse,
     PredefinedToolsPublic,
     PythonImplementation,
     RunConfig,

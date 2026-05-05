@@ -26,6 +26,10 @@ from app.services.test_case_generator.interactive.tools import (
     parse_create_test_case_tool_calls,
     parse_edit_test_case_tool_call,
 )
+from app.services.test_case_generator.strip_terminating_mock_responses import (
+    strip_mock_responses_for_terminating_tools,
+    strip_mock_responses_for_terminating_tools_in_list,
+)
 from app.services.test_case_generator.validation import (
     GenerationValidationError,
     validate_generated_cases,
@@ -119,6 +123,22 @@ class TestCaseAgent:
     def __init__(self, inp: TestCaseAgentInput) -> None:
         self._inp = inp
 
+    def _finalize_agent_cases(
+        self,
+        created: list[TestCaseCreate],
+        edited: TestCaseCreate | None,
+    ) -> tuple[list[TestCaseCreate], TestCaseCreate | None]:
+        tools = self._inp.context.tools
+        out_created = strip_mock_responses_for_terminating_tools_in_list(
+            created, tools=tools
+        )
+        out_edited = (
+            strip_mock_responses_for_terminating_tools(edited, tools=tools)
+            if edited is not None
+            else None
+        )
+        return out_created, out_edited
+
     async def run(
         self, *, app_settings: LLMSettingsView | None = None
     ) -> TestCaseAgentOutput:
@@ -200,6 +220,7 @@ class TestCaseAgent:
                 )
                 raise
 
+            created, edited = self._finalize_agent_cases(created, edited)
             return TestCaseAgentOutput(
                 mode=self._inp.mode,
                 created=created,
@@ -215,6 +236,7 @@ class TestCaseAgent:
                 ),
             )
 
+        created, edited = self._finalize_agent_cases(created, edited)
         return TestCaseAgentOutput(
             mode=self._inp.mode,
             created=created,

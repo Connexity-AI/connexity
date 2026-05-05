@@ -1,8 +1,41 @@
 import { z } from 'zod';
 
-import { Difficulty, FirstTurn, TestCaseStatus } from '@/client/types.gen';
+import { Difficulty, FirstTurn, type TestCasePublic, TestCaseStatus } from '@/client/types.gen';
 
-import type { TestCasePublic } from '@/client/types.gen';
+/** Parse mock response textarea for API payloads (after client-side validation). */
+export function parseMockResponseJsonField(raw: string): Record<string, unknown> | null {
+  const t = raw.trim();
+  if (t === '') {
+    return null;
+  }
+  const parsed: unknown = JSON.parse(t);
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('mock_response_json must deserialize to a JSON object');
+  }
+  return parsed as Record<string, unknown>;
+}
+
+export function validateMockResponseJson(raw: string | undefined): {
+  ok: true;
+  value: Record<string, unknown> | null;
+} | { ok: false; message: string } {
+  const t = (raw ?? '').trim();
+  if (t === '') {
+    return { ok: true, value: null };
+  }
+  try {
+    const parsed: unknown = JSON.parse(t);
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return {
+        ok: false,
+        message: 'Must be a JSON object ({ ... }), not an array or primitive',
+      };
+    }
+    return { ok: true, value: parsed as Record<string, unknown> };
+  } catch {
+    return { ok: false, message: 'Invalid JSON' };
+  }
+}
 
 export const testCaseFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -17,6 +50,7 @@ export const testCaseFormSchema = z.object({
     z.object({
       tool: z.string(),
       expected_params: z.record(z.string(), z.unknown()).nullable(),
+      mock_response_json: z.string(),
     })
   ),
 });
@@ -32,6 +66,24 @@ export function buildTestCaseFormSchema(availableTools: ToolForValidation[]) {
   return testCaseFormSchema.superRefine((values, ctx) => {
     const toolByName = new Map(availableTools.map((tool) => [tool.name, tool]));
     values.expected_tool_calls.forEach((call, callIndex) => {
+      if (!call.tool.trim()) {
+        return;
+      }
+      const mockCheck = validateMockResponseJson(call.mock_response_json);
+      if (!mockCheck.ok) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['expected_tool_calls', callIndex, 'mock_response_json'],
+          message: mockCheck.message,
+        });
+      } else if (mockCheck.value === null) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['expected_tool_calls', callIndex, 'mock_response_json'],
+          message: 'Mock response is required — use {} for an empty object',
+        });
+      }
+
       const tool = toolByName.get(call.tool);
       if (!tool) return;
       const params = call.expected_params ?? {};
@@ -91,6 +143,8 @@ export function testCaseToFormValues(testCase: TestCasePublic): TestCaseFormValu
       testCase.expected_tool_calls?.map((call) => ({
         tool: call.tool,
         expected_params: (call.expected_params ?? null) as Record<string, unknown> | null,
+        mock_response_json:
+          call.mock_response != null ? JSON.stringify(call.mock_response, null, 2) : '{}',
       })) ?? [],
   };
 }

@@ -13,11 +13,21 @@ from pydantic import BaseModel, Field
 
 
 class AgentToolDefinition(BaseModel):
-    """Prompt-facing tool: ``parameters`` is a full JSON Schema (properties, required, ...)."""
+    """Prompt-facing tool: ``parameters`` is a full JSON Schema (properties, required, ...).
+
+    ``terminating`` mirrors ``platform_config.terminating`` from stored agent tools.
+    It is excluded from :meth:`to_prompt_dict` and from batch/interactive tool
+    summaries so prompts stay unchanged; consumers (e.g. test-case validation) use
+    it to treat hangup/transfer tools differently.
+    """
 
     name: str = Field(min_length=1)
     description: str = ""
     parameters: dict[str, Any] | None = None
+    terminating: bool = Field(
+        default=False,
+        description="True when the raw tool row has platform_config.terminating.",
+    )
 
     def to_prompt_dict(self) -> dict[str, Any]:
         """Shape for JSON serialization in user/system prompts."""
@@ -162,10 +172,11 @@ def raw_tool_entry_name(item: dict[str, Any]) -> str | None:
 def parse_agent_tool_definitions(
     raw: list[dict[str, Any]] | None,
 ) -> list[AgentToolDefinition]:
-    """Map stored tool list to prompt-facing definitions (schema-only, no platform_config).
+    """Map stored tool list to definitions (schema + ``terminating`` from platform_config).
 
     Preserves the full ``parameters`` object, including ``required``, ``properties``,
-    ``$defs``, etc.
+    ``$defs``, etc. ``platform_config`` is not exposed on the model except via
+    :attr:`AgentToolDefinition.terminating`.
     """
     if not raw:
         return []
@@ -182,7 +193,14 @@ def parse_agent_tool_definitions(
         desc = str(fn.get("description") or "")
         p = fn.get("parameters")
         params = copy.deepcopy(p) if isinstance(p, dict) else None
-        out.append(AgentToolDefinition(name=name, description=desc, parameters=params))
+        out.append(
+            AgentToolDefinition(
+                name=name,
+                description=desc,
+                parameters=params,
+                terminating=raw_tool_entry_terminating(item),
+            )
+        )
     return out
 
 

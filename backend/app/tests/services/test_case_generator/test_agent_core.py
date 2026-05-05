@@ -9,6 +9,10 @@ import pytest
 from sqlmodel import Session
 
 from app.models.test_case import TestCase as TestCaseRow
+from app.services.agent_tool_definitions import (
+    canonical_end_call_tool_dict,
+    parse_agent_tool_definitions,
+)
 from app.services.llm import LLMResponse
 from app.services.test_case_generator.interactive.context import AgentContext
 from app.services.test_case_generator.interactive.core import (
@@ -166,6 +170,117 @@ async def test_run_edit_mode(db: Session) -> None:
     assert out.edited is not None
     assert out.edited.name == "After"
     assert out.created == []
+
+
+@pytest.mark.asyncio
+async def test_run_create_strips_mock_for_terminating_expected_tool(db: Session) -> None:
+    agent = create_test_platform_agent(db)
+    terminating_tools = parse_agent_tool_definitions(
+        [canonical_end_call_tool_dict()]
+    )
+    ctx = AgentContext(
+        agent=agent,
+        agent_prompt="Sys",
+        tools=terminating_tools,
+        available_tags=["normal"],
+        existing_cases_summary=None,
+        target_test_case=None,
+        transcript=None,
+    )
+    args = dict(
+        _tc_args(name="HangupCase"),
+        expected_tool_calls=[
+            {
+                "tool": "end_call",
+                "expected_params": {},
+                "mock_response": {"should_strip": True},
+            },
+        ],
+    )
+    mock_resp = LLMResponse(
+        content="",
+        model="gpt-4o",
+        usage={},
+        latency_ms=1,
+        tool_calls=[_tool_dict("create_test_case", args)],
+    )
+    with patch(
+        "app.services.test_case_generator.interactive.core.call_llm",
+        new_callable=AsyncMock,
+        return_value=mock_resp,
+    ):
+        out = await TestCaseAgent(
+            TestCaseAgentInput(
+                mode=AgentMode.CREATE,
+                user_message="Make one case",
+                context=ctx,
+            )
+        ).run()
+    assert len(out.created) == 1
+    calls = out.created[0].expected_tool_calls
+    assert calls is not None
+    assert calls[0].tool == "end_call"
+    assert calls[0].mock_response is None
+
+
+@pytest.mark.asyncio
+async def test_run_edit_strips_mock_for_terminating_expected_tool(db: Session) -> None:
+    plat = create_test_platform_agent(db)
+    now = datetime.now(UTC)
+    tc = TestCaseRow(
+        id=uuid4(),
+        name="Before",
+        tags=["test"],
+        agent_id=plat.id,
+        created_at=now,
+        updated_at=now,
+    )
+    terminating_tools = parse_agent_tool_definitions(
+        [canonical_end_call_tool_dict()]
+    )
+    ctx = AgentContext(
+        agent=plat,
+        agent_prompt="Sys",
+        tools=terminating_tools,
+        available_tags=["normal"],
+        existing_cases_summary=None,
+        target_test_case=tc,
+        transcript=None,
+    )
+    args = dict(
+        _tc_args(name="After"),
+        expected_tool_calls=[
+            {
+                "tool": "end_call",
+                "expected_params": {},
+                "mock_response": {"strip_in_edit": True},
+            },
+        ],
+    )
+    mock_resp = LLMResponse(
+        content="",
+        model="gpt-4o",
+        usage={},
+        latency_ms=1,
+        tool_calls=[_tool_dict("edit_test_case", args)],
+    )
+    with patch(
+        "app.services.test_case_generator.interactive.core.call_llm",
+        new_callable=AsyncMock,
+        return_value=mock_resp,
+    ):
+        out = await TestCaseAgent(
+            TestCaseAgentInput(
+                mode=AgentMode.EDIT,
+                user_message="Add hangup expectation",
+                context=ctx,
+            )
+        ).run()
+    assert out.edited is not None
+    calls = out.edited.expected_tool_calls
+    assert calls is not None
+    assert calls[0].tool == "end_call"
+    assert calls[0].mock_response is None
 
 
 @pytest.mark.asyncio

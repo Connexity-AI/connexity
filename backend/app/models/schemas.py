@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, Self
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.models.enums import SimulatorMode, TurnRole
 
@@ -21,28 +21,24 @@ if TYPE_CHECKING:
 # ── Test case nested types ──────────────────────────────────────────
 
 
-class MockResponse(BaseModel):
-    expected_params: dict[str, Any] | None = Field(
-        default=None,
-        description="Partial-match filter on tool arguments; null = match any call",
-    )
-    response: dict[str, Any] = Field(
-        description="Canned return value sent back to the LLM as the tool result",
-    )
-
-
 class ExpectedToolCall(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     tool: str = Field(description="Tool/function name the agent should invoke")
     expected_params: dict[str, Any] | None = Field(
         default=None,
-        description="Key parameters the judge verifies; null = any params acceptable",
+        description=(
+            "Used for mock routing (required argument keys must be present in the live "
+            "call; values ignored) and generator alignment; null matches any invocation. "
+            "Use {{paramName}} tokens for simulator- or agent-varying values."
+        ),
     )
-    mock_responses: list[MockResponse] | None = Field(
+    mock_response: dict[str, Any] | None = Field(
         default=None,
         description=(
-            "Ordered mock responses consumed sequentially during platform agent "
-            "simulation. First entry whose expected_params partially matches is "
-            "popped and returned."
+            "Canned JSON object returned as the tool result in mock mode. "
+            "Use one expected_tool_calls row per mocked invocation when the same "
+            "tool is called multiple times."
         ),
     )
 
@@ -225,7 +221,7 @@ class RunConfig(BaseModel):
     )
     tool_mode: Literal["mock", "live"] = Field(
         default="mock",
-        description="Global tool execution mode: mock uses test-case mock_responses, live executes real implementations",
+        description="Global tool execution mode: mock uses test-case expected_tool_calls.mock_response payloads, live executes real implementations",
     )
     judge: JudgeConfig | None = Field(
         default=None,

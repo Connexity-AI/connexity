@@ -23,11 +23,12 @@ def test_static_system_mentions_tools() -> None:
     s = build_static_system_message()
     assert "create_test_case" in s
     assert "edit_test_case" in s
-    assert "mock_responses" in s
+    assert "mock_response" in s
     assert "[Persona type]" in s
     assert "stable user-provided details" in s
     assert "Do not force derived or agent-selected tool arguments" in s
-    assert "may be null to match" in s
+    assert "mock mode" in s
+    assert "Placeholder tokens" in s
 
 
 def test_static_system_does_not_mention_status() -> None:
@@ -182,4 +183,4 @@ def test_dynamic_edit_includes_current_case(db: Session) -> None:
     assert "Case A" in dyn
     assert "If you add or change `expected_tool_calls`" in dyn
     assert "must appear in the `[Description]` section" in dyn
-    assert "Do not add derived or agent-selected values" in dyn
+    assert "use placeholders for those" in dyn

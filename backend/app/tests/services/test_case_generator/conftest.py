@@ -29,12 +29,7 @@ MOCK_TEST_CASES_RAW: list[dict] = [
             {
                 "tool": "test_tool",
                 "expected_params": {"id": str(i)},
-                "mock_responses": [
-                    {
-                        "expected_params": {"id": str(i)},
-                        "response": {"ok": True, "id": str(i)},
-                    }
-                ],
+                "mock_response": {"ok": True, "id": str(i)},
             }
         ],
     }

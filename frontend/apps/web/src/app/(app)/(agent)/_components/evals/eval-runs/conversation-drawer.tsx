@@ -221,12 +221,14 @@ function buildDisplayItems(turns: ConversationTurnOutput[]): DisplayItem[] {
           rawResult !== undefined
             ? (tryParseJson(rawResult) ?? rawResult)
             : call.tool_result;
-        items.push({
-          kind: 'tool_result',
-          tool: call.function.name,
-          result: resultValue,
-          key: `tr-${call.id}`,
-        });
+        if (hasRenderableToolResult(resultValue)) {
+          items.push({
+            kind: 'tool_result',
+            tool: call.function.name,
+            result: resultValue,
+            key: `tr-${call.id}`,
+          });
+        }
       }
     }
   }
@@ -236,6 +238,12 @@ function buildDisplayItems(turns: ConversationTurnOutput[]): DisplayItem[] {
 
 function isPlatformMessage(content: string | null | undefined): boolean {
   return typeof content === 'string' && content.trimStart().startsWith('[platform:');
+}
+
+function hasRenderableToolResult(value: unknown): boolean {
+  if (value === undefined || value === null) return false;
+  if (typeof value === 'string' && value.trim() === '') return false;
+  return true;
 }
 
 function tryParseJson(raw: unknown): unknown {

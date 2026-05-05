@@ -26,62 +26,42 @@
     {
       "tool": "lookup_order",
       "expected_params": { "order_id": "ORD-55555" },
-      "mock_responses": [
-        {
-          "expected_params": { "order_id": "ORD-55555" },
-          "response": {
-            "order_id": "ORD-55555",
-            "status": "processing",
-            "order_total": 129.99,
-            "shipping_address": "123 Main St, Chicago, IL 60601",
-            "items": [{ "name": "Primary item", "qty": 1 }]
-          }
-        }
-      ]
+      "mock_response": {
+        "order_id": "ORD-55555",
+        "status": "processing",
+        "order_total": 129.99,
+        "shipping_address": "123 Main St, Chicago, IL 60601",
+        "items": [{ "name": "Primary item", "qty": 1 }]
+      }
     },
     {
       "tool": "update_shipping_address",
-      "expected_params": { "order_id": "ORD-55555", "address": "742 Evergreen Terrace, Springfield, IL 62704" },
-      "mock_responses": [
-        {
-          "expected_params": { "order_id": "ORD-55555" },
-          "response": {
-            "order_id": "ORD-55555",
-            "address": "742 Evergreen Terrace, Springfield, IL 62704",
-            "updated": true
-          }
-        }
-      ]
+      "expected_params": { "order_id": "ORD-55555" },
+      "mock_response": {
+        "order_id": "ORD-55555",
+        "address": "742 Evergreen Terrace, Springfield, IL 62704",
+        "updated": true
+      }
     },
     {
       "tool": "apply_discount",
-      "expected_params": { "order_id": "ORD-55555", "code": "SAVE20" },
-      "mock_responses": [
-        {
-          "expected_params": { "order_id": "ORD-55555" },
-          "response": {
-            "order_id": "ORD-55555",
-            "code": "SAVE20",
-            "applied": true,
-            "percent_off": 20
-          }
-        }
-      ]
+      "expected_params": { "order_id": "ORD-55555" },
+      "mock_response": {
+        "order_id": "ORD-55555",
+        "code": "SAVE20",
+        "applied": true,
+        "percent_off": 20
+      }
     },
     {
       "tool": "add_order_item",
-      "expected_params": { "order_id": "ORD-55555", "item_name": "USB-C Cable" },
-      "mock_responses": [
-        {
-          "expected_params": { "order_id": "ORD-55555" },
-          "response": {
-            "order_id": "ORD-55555",
-            "item_name": "USB-C Cable",
-            "added": true,
-            "line_id": "LINE-MOCK"
-          }
-        }
-      ]
+      "expected_params": { "order_id": "ORD-55555" },
+      "mock_response": {
+        "order_id": "ORD-55555",
+        "item_name": "USB-C Cable",
+        "added": true,
+        "line_id": "LINE-MOCK"
+      }
     }
   ]
 }
