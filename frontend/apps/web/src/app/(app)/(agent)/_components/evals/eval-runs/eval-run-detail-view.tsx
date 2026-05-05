@@ -183,6 +183,7 @@ function EvalRunDetailContent({
                   onOpenTrace={() => setDrawerResultId(result.id)}
                   selected={selectedIds.has(result.id)}
                   onSelectChange={toggleRow}
+                  runStatus={run.status as RunStatus}
                 />
               );
             })}
