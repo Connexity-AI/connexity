@@ -1,6 +1,8 @@
 'use client';
 'use no memo';
 
+import Link from 'next/link';
+
 import { useFormContext, useWatch } from 'react-hook-form';
 
 import { Checkbox } from '@workspace/ui/components/ui/checkbox';
@@ -14,8 +16,8 @@ import {
   FieldLabel,
   Section,
 } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-section-primitives';
-import { LlmModelPicker } from '@/app/(app)/(agent)/_components/llm/llm-model-picker';
 import { useJudgeMetrics } from '@/app/(app)/(agent)/_components/evals/create-eval/use-judge-metrics';
+import { LlmModelPicker } from '@/app/(app)/(agent)/_components/llm/llm-model-picker';
 
 import type { CreateEvalFormValues } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
 import type { MetricDefinition, MetricTier } from '@/client/types.gen';
@@ -56,10 +58,22 @@ interface MetricsTableProps {
 
 function MetricsTable({ metrics }: MetricsTableProps) {
   const readOnly = useCreateEvalReadOnly();
+
   const { fields, rows, byName, enabledCount, allEnabled, toggleAll, updateRow, rootError } =
     useJudgeMetrics({ metrics });
 
   if (rows.length === 0) {
+    if (metrics.length === 0) {
+      return (
+        <div className="rounded-md border border-border bg-accent/5 px-4 py-6 text-center text-xs text-muted-foreground/60">
+          No metrics selected. Adjust active metrics in the{' '}
+          <Link href="/metrics" className="text-foreground underline-offset-4 hover:underline">
+            Metrics tab
+          </Link>
+          .
+        </div>
+      );
+    }
     return (
       <div className="rounded-md border border-border bg-accent/5 px-4 py-6 text-center text-xs text-muted-foreground/60">
         Loading metrics…
@@ -160,6 +174,7 @@ export function JudgeSection({ metrics }: JudgeSectionProps) {
       <Section.Body>
         <div className="space-y-4">
           <ProviderAndModel />
+
           <MetricsTable metrics={metrics} />
         </div>
       </Section.Body>

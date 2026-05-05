@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from app.models.agent_contract import ChatMessage
 from app.models.enums import TurnRole
 from app.models.schemas import AgentSimulatorConfig, ToolCall, ToolCallFunction
+from app.services.agent_tool_definitions import snapshot_marks_tool_terminating
 from app.services.cost_tracker import sum_usage_dicts
 from app.services.llm import LLMCallConfig, LLMMessage, call_llm
 from app.services.tool_executor import SyntheticToolExecutor, ToolExecutor
@@ -108,6 +109,7 @@ class AgentSimulator:
         tool_executor: ToolExecutor | None = None,
     ) -> None:
         self._system_prompt = system_prompt
+        self._raw_tools = tools
         self._tools = _strip_platform_keys(tools) if tools else tools
         self._tool_executor = tool_executor or SyntheticToolExecutor()
         cfg = config
@@ -175,6 +177,12 @@ class AgentSimulator:
                     name=None,
                 )
             )
+
+            if any(
+                snapshot_marks_tool_terminating(tc.function.name, self._raw_tools)
+                for tc in tool_models
+            ):
+                break
 
             llm_messages.append(
                 LLMMessage(

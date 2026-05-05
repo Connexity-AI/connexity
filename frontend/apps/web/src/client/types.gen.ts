@@ -993,7 +993,7 @@ export type CustomMetricCreate = {
   /**
    * Name
    *
-   * Unique slug per owner (snake_case)
+   * Globally-unique slug (snake_case)
    */
   name: string;
   /**
@@ -1008,7 +1008,7 @@ export type CustomMetricCreate = {
   /**
    * Default Weight
    */
-  default_weight: number;
+  default_weight?: number;
   score_type: ScoreType;
   /**
    * Rubric
@@ -1018,6 +1018,18 @@ export type CustomMetricCreate = {
    * Include In Defaults
    */
   include_in_defaults?: boolean;
+  /**
+   * Is Predefined
+   *
+   * True for built-in metrics seeded from the registry; False for user-created metrics.
+   */
+  is_predefined?: boolean;
+  /**
+   * Is Draft
+   *
+   * When True, metric is hidden from eval-config selection (acts as the inverse of the UI 'active' toggle).
+   */
+  is_draft?: boolean;
 };
 
 /**
@@ -1027,7 +1039,7 @@ export type CustomMetricPublic = {
   /**
    * Name
    *
-   * Unique slug per owner (snake_case)
+   * Globally-unique slug (snake_case)
    */
   name: string;
   /**
@@ -1042,7 +1054,7 @@ export type CustomMetricPublic = {
   /**
    * Default Weight
    */
-  default_weight: number;
+  default_weight?: number;
   score_type: ScoreType;
   /**
    * Rubric
@@ -1053,13 +1065,25 @@ export type CustomMetricPublic = {
    */
   include_in_defaults?: boolean;
   /**
+   * Is Predefined
+   *
+   * True for built-in metrics seeded from the registry; False for user-created metrics.
+   */
+  is_predefined?: boolean;
+  /**
+   * Is Draft
+   *
+   * When True, metric is hidden from eval-config selection (acts as the inverse of the UI 'active' toggle).
+   */
+  is_draft?: boolean;
+  /**
    * Id
    */
   id: string;
   /**
    * Created By
    */
-  created_by: string;
+  created_by?: string | null;
   /**
    * Created At
    */
@@ -1100,6 +1124,10 @@ export type CustomMetricUpdate = {
    * Include In Defaults
    */
   include_in_defaults?: boolean | null;
+  /**
+   * Is Draft
+   */
+  is_draft?: boolean | null;
 };
 
 /**
@@ -1115,7 +1143,7 @@ export type CustomMetricsPublic = {
   /**
    * Count
    *
-   * Total number of custom metrics for the user
+   * Total number of custom metrics
    */
   count: number;
 };
@@ -2409,6 +2437,24 @@ export const Platform = { RETELL: 'retell' } as const;
  * Platform
  */
 export type Platform = (typeof Platform)[keyof typeof Platform];
+
+/**
+ * PredefinedToolsPublic
+ *
+ * Predefined tool entries; each element matches one item in ``Agent.tools`` JSONB.
+ */
+export type PredefinedToolsPublic = {
+  /**
+   * Data
+   */
+  data: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Count
+   */
+  count: number;
+};
 
 /**
  * PresetPublic
@@ -8777,6 +8823,57 @@ export type ConfigGetConfigResponses = {
 };
 
 export type ConfigGetConfigResponse = ConfigGetConfigResponses[keyof ConfigGetConfigResponses];
+
+export type ConfigGetPredefinedToolsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/config/predefined-tools';
+};
+
+export type ConfigGetPredefinedToolsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ConfigGetPredefinedToolsError =
+  ConfigGetPredefinedToolsErrors[keyof ConfigGetPredefinedToolsErrors];
+
+export type ConfigGetPredefinedToolsResponses = {
+  /**
+   * Successful Response
+   */
+  200: PredefinedToolsPublic;
+};
+
+export type ConfigGetPredefinedToolsResponse =
+  ConfigGetPredefinedToolsResponses[keyof ConfigGetPredefinedToolsResponses];
 
 export type ConfigGetAvailableMetricsData = {
   body?: never;

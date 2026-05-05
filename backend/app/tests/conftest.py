@@ -8,6 +8,8 @@ from sqlmodel import Session
 from app.core.config import settings
 from app.core.db import engine
 from app.main import app
+from app.models.custom_metric import CustomMetric
+from app.services.predefined_metrics import PREDEFINED_METRICS
 from app.tests.utils.user import (
     authentication_token_from_email,
     authentication_token_with_password,
@@ -15,9 +17,52 @@ from app.tests.utils.user import (
 from app.tests.utils.utils import AUTH_USER_EMAIL, AUTH_USER_PASSWORD
 
 
+def _ensure_predefined_metrics(session: Session) -> None:
+    """Seed predefined metrics into the test DB if missing.
+
+    The session-end TRUNCATE cascades through the ``custom_metric.created_by``
+    FK and wipes the rows seeded by the migration. Production never hits this
+    because nothing TRUNCATEs ``user`` there; but the test suite needs the
+    rows present at every session start, so we re-seed from the canonical
+    list whenever they're missing.
+    """
+    existing = (
+        session.execute(
+            text(
+                "SELECT name FROM custom_metric "
+                "WHERE is_predefined = TRUE AND deleted_at IS NULL"
+            )
+        )
+        .scalars()
+        .all()
+    )
+    existing_names = set(existing)
+    missing = [m for m in PREDEFINED_METRICS if m.name not in existing_names]
+    if not missing:
+        return
+    for definition in missing:
+        session.add(
+            CustomMetric(
+                name=definition.name,
+                display_name=definition.display_name,
+                description=definition.description,
+                tier=definition.tier,
+                default_weight=definition.default_weight,
+                score_type=definition.score_type,
+                rubric=definition.rubric,
+                include_in_defaults=definition.include_in_defaults,
+                is_predefined=True,
+                is_draft=False,
+                created_by=None,
+            )
+        )
+    session.commit()
+
+
 @pytest.fixture(scope="session", autouse=True)
 def db() -> Generator[Session, None, None]:
     with Session(engine) as session:
+        _ensure_predefined_metrics(session)
         yield session
         # Wipe every application table so tables without an FK to "user"
         # (agent, eval_config, test_case, ...) don't accumulate orphans

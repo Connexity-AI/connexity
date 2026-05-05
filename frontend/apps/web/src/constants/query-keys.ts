@@ -39,12 +39,22 @@ export const metricKeys = {
   list: () => ['available-metrics'] as const,
 };
 
+export const customMetricKeys = {
+  all: ['custom-metrics'] as const,
+  list: () => ['custom-metrics', 'list'] as const,
+  detail: (metricId: string) => ['custom-metrics', metricId] as const,
+};
+
 export const appConfigKeys = {
   root: () => ['app-config'] as const,
 };
 
 export const llmModelKeys = {
   list: () => ['llm-models'] as const,
+};
+
+export const defaultToolTemplateKeys = {
+  list: () => ['default-tool-templates'] as const,
 };
 
 export const runKeys = {

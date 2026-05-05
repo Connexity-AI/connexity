@@ -94,6 +94,17 @@ class ToolPlatformConfig(BaseModel):
     Mock vs live for a run is decided by ``RunConfig.tool_mode``, not persisted here.
     """
 
+    predefined: bool = Field(
+        default=False,
+        description="True when this tool is supplied by the platform catalog (GET /config/predefined-tools).",
+    )
+    terminating: bool = Field(
+        default=False,
+        description=(
+            "When true, a tool call with this name ends the simulation turn loop "
+            "successfully without executing an implementation (voice-style hangup / transfer)."
+        ),
+    )
     implementation: ToolImplementation | None = Field(
         default=None,
         description=(
@@ -101,6 +112,13 @@ class ToolPlatformConfig(BaseModel):
             "``tool_mode=live``. Omitted when the tool definition has no runnable hook."
         ),
     )
+
+
+class PredefinedToolsPublic(BaseModel):
+    """Predefined tool entries; each element matches one item in ``Agent.tools`` JSONB."""
+
+    data: list[dict[str, Any]]
+    count: int
 
 
 # ── Run nested types ───────────────────────────────────────────────

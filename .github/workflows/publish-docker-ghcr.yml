@@ -1,8 +1,6 @@
 name: Build and push Docker images
 
 on:
-  push:
-    branches: [main]
   release:
     types: [published]
   workflow_dispatch:
@@ -54,7 +52,7 @@ jobs:
         with:
           images: ${{ steps.image_base.outputs.value }}-${{ matrix.image_suffix }}
           tags: |
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable=${{ github.event_name == 'release' }}
             type=sha,format=long
             type=raw,value=${{ github.event.release.tag_name }},enable=${{ github.event_name == 'release' }}
 

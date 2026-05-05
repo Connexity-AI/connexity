@@ -1,7 +1,11 @@
 """Tests for centralized agent tool normalization."""
 
+import pytest
+
 from app.services.agent_tool_definitions import (
     agent_tool_definitions_as_prompt_dicts,
+    canonical_end_call_tool_dict,
+    normalize_and_validate_agent_tools,
     parse_agent_tool_definitions,
     raw_tool_entry_name,
 )
@@ -67,3 +71,34 @@ def test_deep_copy_parameters_no_aliasing() -> None:
     parsed = parse_agent_tool_definitions(raw)
     parsed[0].parameters["required"].append("b")  # type: ignore[union-attr]
     assert params["required"] == ["a"]
+
+
+def test_normalize_preserves_edits_to_named_predefined_tools() -> None:
+    """Users may change description/parameters for catalog tools; we do not rewrite."""
+    raw = [
+        {
+            "type": "function",
+            "function": {
+                "name": "end_call",
+                "description": "Custom hangup copy",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"reason": {"type": "string"}},
+                    "required": [],
+                },
+            },
+            "platform_config": {"terminating": True, "predefined": True},
+        },
+    ]
+    out = normalize_and_validate_agent_tools(raw)
+    assert out is not None
+    assert len(out) == 1
+    assert out[0]["function"]["description"] == "Custom hangup copy"
+    assert out[0]["function"]["parameters"]["properties"]["reason"]["type"] == "string"
+    assert out[0]["platform_config"]["terminating"] is True
+
+
+def test_normalize_rejects_duplicate_tool_names() -> None:
+    t = canonical_end_call_tool_dict()
+    with pytest.raises(ValueError, match="Duplicate"):
+        normalize_and_validate_agent_tools([t, t])

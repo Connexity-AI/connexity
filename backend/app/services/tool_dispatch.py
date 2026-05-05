@@ -28,12 +28,14 @@ logger = logging.getLogger(__name__)
 
 
 def validate_live_tool_snapshot(agent_tools: list[dict[str, Any]] | None) -> None:
-    """Ensure every declared tool has ``platform_config`` with ``implementation``.
+    """Ensure every non-terminating declared tool has ``platform_config.implementation``.
+
+    Tools with ``platform_config.terminating: true`` need no implementation.
 
     Used when ``RunConfig.tool_mode`` is ``live`` for platform-mode agents.
 
     Raises:
-        ValueError: If any tool is missing ``platform_config``, missing
+        ValueError: If any non-terminating tool is missing ``platform_config``, missing
             ``implementation``, or parsing fails.
 
     Does nothing when *agent_tools* is None or empty.
@@ -56,6 +58,8 @@ def validate_live_tool_snapshot(agent_tools: list[dict[str, Any]] | None) -> Non
             cfg = ToolPlatformConfig.model_validate(raw)
         except ValidationError:
             missing_reasons[name] = "invalid platform_config"
+            continue
+        if cfg.terminating:
             continue
         if cfg.implementation is None:
             missing_reasons[name] = "no implementation on platform_config"

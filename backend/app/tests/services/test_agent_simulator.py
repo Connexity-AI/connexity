@@ -8,6 +8,7 @@ from app.models.agent_contract import ChatMessage
 from app.models.enums import TurnRole
 from app.models.schemas import AgentSimulatorConfig
 from app.services.agent_simulator import AgentSimulator
+from app.services.agent_tool_definitions import canonical_end_call_tool_dict
 from app.services.llm import LLMCallConfig, LLMMessage, LLMResponse
 from app.services.tool_executor import SyntheticToolExecutor, ToolExecutor
 
@@ -167,6 +168,42 @@ async def test_custom_tool_executor() -> None:
         )
 
     assert '"custom": true' in (out.messages[1].content or "")
+
+
+@pytest.mark.asyncio
+async def test_generate_response_terminating_tool_short_circuits_no_executor_round() -> (
+    None
+):
+    tool_calls = [
+        {
+            "id": "c_end",
+            "type": "function",
+            "function": {"name": "end_call", "arguments": "{}"},
+        }
+    ]
+    llm_only = _llm_resp(content="", tool_calls=tool_calls)
+
+    sim = AgentSimulator(
+        system_prompt="Sys",
+        tools=[canonical_end_call_tool_dict()],
+        agent_model="gpt-4o-mini",
+        agent_provider=None,
+    )
+
+    with patch(
+        "app.services.agent_simulator.call_llm",
+        new_callable=AsyncMock,
+        return_value=llm_only,
+    ) as mock_llm:
+        out = await sim.generate_response(
+            [ChatMessage(role=TurnRole.USER, content="Bye")]
+        )
+
+    mock_llm.assert_awaited_once()
+    assert len(out.messages) == 1
+    assert out.messages[0].role == TurnRole.ASSISTANT
+    assert out.messages[0].tool_calls is not None
+    assert out.messages[0].tool_calls[0].function.name == "end_call"
 
 
 @pytest.mark.asyncio

@@ -33,7 +33,7 @@ export function AddTestCaseAiResultsPhase({
   return (
     <Carousel
       setApi={setApi}
-      opts={{ align: 'start', containScroll: 'trimSnaps' }}
+      opts={{ align: 'start', containScroll: 'trimSnaps', duration: 15 }}
       className="w-full"
     >
       <CarouselContent className="ml-0">

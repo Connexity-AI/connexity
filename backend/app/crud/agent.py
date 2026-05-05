@@ -6,6 +6,7 @@ from sqlmodel import Session, col, select
 from app.crud import agent_version as agent_version_crud
 from app.models import Agent, AgentCreate, AgentGuidelinesPublic, AgentUpdate
 from app.models.enums import AgentMode, AgentVersionStatus
+from app.services.agent_tool_definitions import normalize_and_validate_agent_tools
 
 _VERSIONABLE_FIELDS = frozenset(
     {
@@ -35,7 +36,10 @@ def _versionable_fields_changed(*, before: Agent, patch: dict[str, object]) -> b
 def create_agent(
     *, session: Session, agent_in: AgentCreate, created_by: uuid.UUID | None = None
 ) -> Agent:
-    db_obj = Agent.model_validate(agent_in)
+    data = agent_in.model_dump()
+    if data.get("tools") is not None:
+        data["tools"] = normalize_and_validate_agent_tools(data["tools"])
+    db_obj = Agent.model_validate(data)
     db_obj.version = 1
     db_obj.created_by = created_by
     session.add(db_obj)
