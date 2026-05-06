@@ -99,8 +99,62 @@ def format_run_detail(run: dict[str, Any]) -> str:
         lines.append(f"  agent_model:       {run.get('agent_model')}")
     if run.get("agent_provider"):
         lines.append(f"  agent_provider:    {run.get('agent_provider')}")
+
     metrics = run.get("aggregate_metrics")
-    if metrics:
+    if isinstance(metrics, dict):
+        lines.append("  thresholds:")
+        lines.extend(_format_threshold_rows(metrics))
         lines.append("  aggregate_metrics:")
         lines.append(json.dumps(metrics, indent=4, default=str))
     return "\n".join(lines)
+
+
+def _format_threshold_rows(metrics: dict[str, Any]) -> list[str]:
+    """Render the CS-127 pass/fail dimensions as named rows.
+
+    Skips rows where the value is None — typical when no test case
+    produced a verdict (run errored before scoring).
+    """
+    rows: list[str] = []
+
+    metrics_score = metrics.get("weighted_metrics_score_pct")
+    metrics_threshold = metrics.get("metrics_pass_threshold")
+    metrics_passed = metrics.get("metrics_passed")
+    if metrics_score is not None or metrics_threshold is not None:
+        score_str = (
+            f"{metrics_score:.1f}%" if isinstance(metrics_score, int | float) else "—"
+        )
+        thr_str = (
+            f"{metrics_threshold:.1f}%"
+            if isinstance(metrics_threshold, int | float)
+            else "—"
+        )
+        verdict = _bool_verdict(metrics_passed)
+        rows.append(
+            f"    metrics:           score {score_str}  /  threshold {thr_str}  →  {verdict}"
+        )
+
+    cases_rate = metrics.get("cases_pass_rate_pct")
+    cases_threshold = metrics.get("cases_pass_threshold")
+    cases_passed = metrics.get("cases_passed")
+    if cases_rate is not None or cases_threshold is not None:
+        rate_str = f"{cases_rate:.1f}%" if isinstance(cases_rate, int | float) else "—"
+        thr_str = (
+            f"{cases_threshold:.1f}%"
+            if isinstance(cases_threshold, int | float)
+            else "—"
+        )
+        verdict = _bool_verdict(cases_passed)
+        rows.append(
+            f"    cases:             rate  {rate_str}  /  threshold {thr_str}  →  {verdict}"
+        )
+
+    return rows
+
+
+def _bool_verdict(value: Any) -> str:
+    if value is True:
+        return "PASS"
+    if value is False:
+        return "FAIL"
+    return "—"

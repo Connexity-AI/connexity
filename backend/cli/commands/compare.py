@@ -52,8 +52,8 @@ def _format_comparison_table(data: dict[str, Any]) -> str:
     b_metrics = agg.get("baseline_metrics", {})
     c_metrics = agg.get("candidate_metrics", {})
 
-    lines.append("  Metric               Baseline    Candidate   Delta")
-    lines.append("  ───────────────────── ─────────── ─────────── ───────────")
+    lines.append("  Metric                Baseline     Candidate    Delta")
+    lines.append("  ───────────────────── ──────────── ──────────── ────────────")
 
     pr_b = b_metrics.get("pass_rate")
     pr_c = c_metrics.get("pass_rate")
@@ -74,6 +74,32 @@ def _format_comparison_table(data: dict[str, Any]) -> str:
     la_d = agg.get("latency_avg_delta_ms")
     lines.append(
         f"  latency_avg_ms        {_fmt_f(la_b)}  {_fmt_f(la_c)}  {_fmt_delta_f(la_d)}"
+    )
+
+    lines.append("")
+    lines.append("  CS-127 thresholds")
+    lines.append("  ───────────────────── ──────────── ──────────── ────────────")
+    lines.append(
+        "  weighted_metrics_%    "
+        f"{_fmt_pct100(b_metrics.get('weighted_metrics_score_pct'))}  "
+        f"{_fmt_pct100(c_metrics.get('weighted_metrics_score_pct'))}  "
+        f"thr {_fmt_pct100(c_metrics.get('metrics_pass_threshold'))}"
+    )
+    lines.append(
+        "  cases_pass_rate_%     "
+        f"{_fmt_pct100(b_metrics.get('cases_pass_rate_pct'))}  "
+        f"{_fmt_pct100(c_metrics.get('cases_pass_rate_pct'))}  "
+        f"thr {_fmt_pct100(c_metrics.get('cases_pass_threshold'))}"
+    )
+    lines.append(
+        "  metrics_passed        "
+        f"{_fmt_bool(b_metrics.get('metrics_passed'))}  "
+        f"{_fmt_bool(c_metrics.get('metrics_passed'))}"
+    )
+    lines.append(
+        "  cases_passed          "
+        f"{_fmt_bool(b_metrics.get('cases_passed'))}  "
+        f"{_fmt_bool(c_metrics.get('cases_passed'))}"
     )
 
     lines.append("")
@@ -101,12 +127,32 @@ def _format_comparison_table(data: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _candidate_threshold_failures(data: dict[str, Any]) -> list[str]:
+    """List CS-127 dimensions where the candidate run failed.
+
+    Returns an empty list when the candidate passed both dimensions, or when
+    the values are unknown (None) — we don't gate on missing data.
+    """
+    c = data.get("aggregate", {}).get("candidate_metrics") or {}
+    failures: list[str] = []
+    if c.get("metrics_passed") is False:
+        failures.append("metrics_passed")
+    if c.get("cases_passed") is False:
+        failures.append("cases_passed")
+    return failures
+
+
 def _fmt_pct(v: float | None) -> str:
-    return f"{v:.1%}".ljust(11) if v is not None else "—".ljust(11)
+    return f"{v:.1%}".ljust(12) if v is not None else "—".ljust(12)
+
+
+def _fmt_pct100(v: float | None) -> str:
+    """Render a 0-100 scale percentage (CS-127 fields)."""
+    return f"{v:.1f}%".ljust(12) if v is not None else "—".ljust(12)
 
 
 def _fmt_f(v: float | None) -> str:
-    return f"{v:.1f}".ljust(11) if v is not None else "—".ljust(11)
+    return f"{v:.1f}".ljust(12) if v is not None else "—".ljust(12)
 
 
 def _fmt_delta_pct(v: float | None) -> str:
@@ -121,6 +167,14 @@ def _fmt_delta_f(v: float | None) -> str:
         return "—"
     sign = "+" if v > 0 else ""
     return f"{sign}{v:.1f}"
+
+
+def _fmt_bool(v: Any) -> str:
+    if v is True:
+        return "PASS        "
+    if v is False:
+        return "FAIL        "
+    return "—           "
 
 
 @click.command("compare")
@@ -162,6 +216,13 @@ def _fmt_delta_f(v: float | None) -> str:
     help="Override max latency increase fraction (default 0.2 = 20%)",
 )
 @click.option(
+    "--fail-on-thresholds/--no-fail-on-thresholds",
+    "fail_on_thresholds",
+    default=True,
+    show_default=True,
+    help="Fail (exit 1) when the candidate fails its CS-127 metrics or cases threshold",
+)
+@click.option(
     "--output",
     "output_override",
     type=click.Choice(["json", "table"]),
@@ -177,9 +238,10 @@ def compare_command(
     max_pass_rate_drop: float | None,
     max_avg_score_drop: float | None,
     max_latency_increase_pct: float | None,
+    fail_on_thresholds: bool,
     output_override: str | None,
 ) -> None:
-    """Compare two runs and exit 0 (pass), 1 (regression), or 2 (error)."""
+    """Compare two runs and exit 0 (pass), 1 (regression / threshold fail), or 2 (error)."""
     if not baseline_id and not against_baseline:
         click.echo(
             "Error: Provide --baseline <run-id> or use --against-baseline.", err=True
@@ -244,4 +306,9 @@ def compare_command(
     verdict = comparison.get("verdict", {})
     if verdict.get("regression_detected"):
         sys.exit(1)
+    if fail_on_thresholds:
+        failures = _candidate_threshold_failures(comparison)
+        if failures:
+            output.progress(f"Candidate failed threshold gate: {', '.join(failures)}.")
+            sys.exit(1)
     ctx.exit(0)
