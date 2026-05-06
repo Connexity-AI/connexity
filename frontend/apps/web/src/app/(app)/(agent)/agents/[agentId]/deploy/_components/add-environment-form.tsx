@@ -22,6 +22,7 @@ import {
 
 import { useAddEnvironmentForm } from '@/app/(app)/(agent)/_hooks/use-add-environment-form';
 import { AgentSelectField } from './agent-select-field';
+import { EvalGateFormSection } from './eval-gate-form-section';
 
 import type { FC } from 'react';
 import type { IntegrationPublic } from '@/client/types.gen';
@@ -130,6 +131,8 @@ export const AddEnvironmentForm: FC<Props> = ({ agentId, integrations, onCancel,
                 </FormItem>
               )}
             />
+
+            <EvalGateFormSection agentId={agentId} disabled={isPending} />
           </div>
         </div>
 

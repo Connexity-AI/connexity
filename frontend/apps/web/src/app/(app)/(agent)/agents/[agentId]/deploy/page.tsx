@@ -20,6 +20,7 @@ export default async function AgentDeployPage({ params }: Props) {
   const { agentId } = await params;
 
   const queryClient = getQueryClient();
+
   queryClient.prefetchQuery(environmentsListQuery(agentId));
   queryClient.prefetchQuery(integrationsListQuery());
 

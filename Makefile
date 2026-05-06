@@ -1,6 +1,12 @@
 # connexity Makefile
 # Two modes: local (no Docker for app, just DB) and docker (everything in Docker)
 
+ifeq ($(OS),Windows_NT)
+  BASH := C:/PROGRA~1/Git/bin/bash.exe
+else
+  BASH := bash
+endif
+
 .PHONY: help install dev dashboard db db-upgrade db-migrate db-downgrade db-stop \
         docker-up docker-down docker-logs docker-build-up docker-build-down \
         cli lint format test generate-client
@@ -26,8 +32,8 @@ dev: ## Start FastAPI backend (local, requires DB running)
 	cd backend && uv run uvicorn app.main:app --reload
 
 dashboard: ## Start Next.js dev server (loads repo root .env)
-	@test -f .env || (echo "Missing .env; copy .env.example to .env first." >&2 && exit 1)
-	set -a && . ./.env && set +a && cd frontend && pnpm dev
+	@$(BASH) -c '[ -f .env ] || { echo "Missing .env; copy .env.example to .env first." >&2; exit 1; }'
+	@$(BASH) -c 'set -a && source <(tr -d "\r" < .env) && set +a && cd frontend && pnpm dev'
 
 db: ## Start Postgres + Adminer in Docker
 	docker compose up -d database adminer

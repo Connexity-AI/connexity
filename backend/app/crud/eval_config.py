@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy import func
 from sqlalchemy import update as sa_update
@@ -20,12 +21,15 @@ from app.models.schemas import TestCaseExecution
 def validate_test_case_ids(
     *, session: Session, test_case_ids: list[uuid.UUID]
 ) -> list[uuid.UUID]:
-    """Return any test case IDs that do not exist in the database."""
+    """Return any test case IDs that do not exist (or are soft-deleted)."""
     if not test_case_ids:
         return []
     existing_ids = set(
         session.exec(
-            select(TestCase.id).where(col(TestCase.id).in_(test_case_ids))
+            select(TestCase.id).where(
+                col(TestCase.id).in_(test_case_ids),
+                col(TestCase.deleted_at).is_(None),
+            )
         ).all()
     )
     return [tid for tid in test_case_ids if tid not in existing_ids]
@@ -61,9 +65,23 @@ def create_eval_config(
 
 
 def get_eval_config(
-    *, session: Session, eval_config_id: uuid.UUID
+    *,
+    session: Session,
+    eval_config_id: uuid.UUID,
+    include_deleted: bool = False,
 ) -> EvalConfig | None:
-    return session.get(EvalConfig, eval_config_id)
+    """Fetch an eval config by id.
+
+    Soft-deleted rows are hidden by default; pass ``include_deleted=True``
+    to look up an already-deleted config (e.g. when rendering an
+    environment's gate strip after the gated config was deleted).
+    """
+    cfg = session.get(EvalConfig, eval_config_id)
+    if cfg is None:
+        return None
+    if cfg.deleted_at is not None and not include_deleted:
+        return None
+    return cfg
 
 
 def list_eval_configs(
@@ -73,8 +91,12 @@ def list_eval_configs(
     limit: int = 100,
     agent_id: uuid.UUID | None = None,
 ) -> tuple[list[EvalConfig], int]:
-    statement = select(EvalConfig)
-    count_statement = select(func.count()).select_from(EvalConfig)
+    statement = select(EvalConfig).where(col(EvalConfig.deleted_at).is_(None))
+    count_statement = (
+        select(func.count())
+        .select_from(EvalConfig)
+        .where(col(EvalConfig.deleted_at).is_(None))
+    )
 
     if agent_id is not None:
         statement = statement.where(EvalConfig.agent_id == agent_id)
@@ -103,7 +125,11 @@ def update_eval_config(
 
 
 def delete_eval_config(*, session: Session, db_eval_config: EvalConfig) -> None:
-    session.delete(db_eval_config)
+    """Soft-delete: stamp ``deleted_at`` so historical runs and environments
+    that reference this config keep working while it's hidden from lists.
+    """
+    db_eval_config.deleted_at = datetime.now(UTC)
+    session.add(db_eval_config)
     session.commit()
 
 
@@ -313,6 +339,7 @@ def get_test_cases_for_config(
         .where(
             EvalConfigMember.eval_config_id == eval_config_id,
             TestCase.status == TestCaseStatus.ACTIVE,
+            col(TestCase.deleted_at).is_(None),
         )
         .order_by(EvalConfigMember.position)
     )
