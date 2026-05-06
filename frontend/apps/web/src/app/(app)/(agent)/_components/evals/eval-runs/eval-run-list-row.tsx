@@ -138,11 +138,11 @@ export function EvalRunListRow({
       </div>
 
       <div
-        className="flex flex-col items-end gap-0.5 text-right text-[10px] text-muted-foreground/60 tabular-nums"
+        className="flex flex-col items-end gap-0.5 text-right text-xs text-muted-foreground tabular-nums"
         title={formatAbsoluteLocal(run.created_at)}
       >
         <span>{formatLocalShort(run.created_at)}</span>
-        <span className="text-muted-foreground/40">{formatTimeAgo(run.created_at)}</span>
+        <span className="text-[10px] text-muted-foreground/50">{formatTimeAgo(run.created_at)}</span>
       </div>
     </li>
   );

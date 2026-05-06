@@ -41,11 +41,11 @@ export const getCallsColumns = ({
     enableSorting: false,
     cell: ({ row }) => (
       <div className="flex min-w-0 items-center gap-2">
-        <span className="truncate text-sm text-foreground tabular-nums">
+        <span className="truncate text-xs text-muted-foreground tabular-nums">
           {formatCallDate(row.original.started_at)}
         </span>
         {row.original.is_new ? (
-          <span className="inline-flex items-center rounded border border-violet-500/25 bg-violet-500/15 px-1.5 py-px align-middle text-[9px] text-violet-300">
+          <span className="inline-flex items-center rounded border border-violet-500/25 bg-violet-500/15 px-1.5 py-px align-middle text-[10px] text-violet-300">
             New
           </span>
         ) : null}
@@ -57,7 +57,7 @@ export const getCallsColumns = ({
     header: 'Duration',
     enableSorting: false,
     cell: ({ row }) => (
-      <div className="flex items-center gap-1.5 text-xs tabular-nums text-muted-foreground">
+      <div className="flex items-center gap-1.5 font-mono text-xs tabular-nums text-muted-foreground">
         <Clock className="h-3 w-3" />
         {formatDuration(row.original.duration_seconds)}
       </div>

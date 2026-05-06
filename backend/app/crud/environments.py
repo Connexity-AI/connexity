@@ -16,6 +16,7 @@ def create_environment(*, session: Session, data: EnvironmentCreate) -> Environm
         integration_id=data.integration_id,
         platform_agent_id=data.platform_agent_id,
         platform_agent_name=data.platform_agent_name,
+        endpoint_url=data.endpoint_url,
         eval_gate_eval_config_id=data.eval_gate_eval_config_id,
     )
     session.add(db_obj)
@@ -32,10 +33,10 @@ def get_environment(
 
 def list_environments_by_agent(
     *, session: Session, agent_id: uuid.UUID
-) -> list[tuple[Environment, str]]:
+) -> list[tuple[Environment, str | None]]:
     statement = (
         select(Environment, Integration.name)
-        .join(Integration, Environment.integration_id == Integration.id)
+        .outerjoin(Integration, Environment.integration_id == Integration.id)
         .where(Environment.agent_id == agent_id)
         .order_by(col(Environment.created_at).desc())
     )

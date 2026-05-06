@@ -17,6 +17,7 @@ from app.models import (
     Platform,
     User,
 )
+from app.services.webhook_deploy import WebhookDeployResult
 from app.tests.utils.eval import create_test_agent
 from app.tests.utils.utils import AUTH_USER_EMAIL
 
@@ -61,16 +62,24 @@ def _make_integration(db: Session):
 
 
 def _create_env_body(
-    *, agent_id: uuid.UUID, integration_id: uuid.UUID, name: str = "prod"
+    *,
+    agent_id: uuid.UUID,
+    integration_id: uuid.UUID | None,
+    name: str = "prod",
+    platform: str = "retell",
 ) -> dict:
-    return {
+    body: dict[str, str] = {
         "name": name,
-        "platform": "retell",
+        "platform": platform,
         "agent_id": str(agent_id),
-        "integration_id": str(integration_id),
-        "platform_agent_id": "ret_agent_x",
-        "platform_agent_name": "Retell Agent X",
     }
+    if platform == "retell" and integration_id is not None:
+        body["integration_id"] = str(integration_id)
+        body["platform_agent_id"] = "ret_agent_x"
+        body["platform_agent_name"] = "Retell Agent X"
+    if platform == "webhook":
+        body["endpoint_url"] = "https://example.com/hooks/deploy"
+    return body
 
 
 def test_environments_require_auth(client: TestClient) -> None:
@@ -180,6 +189,30 @@ def test_other_user_can_list_environment(
     )
     assert other_list.status_code == 200
     assert any(item["id"] == str(env.id) for item in other_list.json()["data"])
+
+
+def test_create_webhook_environment_without_integration(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    db: Session,
+) -> None:
+    agent, _ = _make_owned_agent(db)
+    create_r = client.post(
+        f"{settings.API_V1_STR}/environments/",
+        json=_create_env_body(
+            agent_id=agent.id,
+            integration_id=None,
+            name="internal webhook",
+            platform="webhook",
+        ),
+        cookies=auth_cookies,
+    )
+    assert create_r.status_code == 200
+    body = create_r.json()
+    assert body["platform"] == "webhook"
+    assert body["integration_id"] is None
+    assert body["integration_name"] is None
+    assert body["endpoint_url"] == "https://example.com/hooks/deploy"
 
 
 def test_create_environment_with_eval_gate_persists_field(
@@ -292,3 +325,67 @@ def test_delete_integration_returns_409_when_environment_depends_on_it(
         )
     assert del_r.status_code == 409
     assert "environment" in del_r.json()["detail"].lower()
+
+
+def test_deploy_webhook_environment_marks_success_on_2xx(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    db: Session,
+) -> None:
+    agent, _ = _make_owned_agent(db)
+    env = crud.create_environment(
+        session=db,
+        data=EnvironmentCreate(
+            name="webhook env",
+            platform=Platform.WEBHOOK,
+            agent_id=agent.id,
+            endpoint_url="https://example.com/hooks/deploy",
+        ),
+    )
+
+    with patch(
+        "app.api.routes.environments.deliver_webhook_deployment",
+        new=AsyncMock(return_value=WebhookDeployResult(success=True)),
+    ) as mock_deliver:
+        r = client.post(
+            f"{settings.API_V1_STR}/environments/{env.id}/deploy",
+            json={"agent_version": agent.version},
+            cookies=auth_cookies,
+        )
+    assert r.status_code == 200
+    assert r.json()["status"] == "deployed"
+    assert mock_deliver.await_count == 1
+
+
+def test_deploy_webhook_environment_returns_failure_message(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    db: Session,
+) -> None:
+    agent, _ = _make_owned_agent(db)
+    env = crud.create_environment(
+        session=db,
+        data=EnvironmentCreate(
+            name="webhook env",
+            platform=Platform.WEBHOOK,
+            agent_id=agent.id,
+            endpoint_url="https://example.com/hooks/deploy",
+        ),
+    )
+    with patch(
+        "app.api.routes.environments.deliver_webhook_deployment",
+        new=AsyncMock(
+            return_value=WebhookDeployResult(
+                success=False,
+                error_message="Webhook responded with 500. Response body: boom",
+            )
+        ),
+    ):
+        r = client.post(
+            f"{settings.API_V1_STR}/environments/{env.id}/deploy",
+            json={"agent_version": agent.version},
+            cookies=auth_cookies,
+        )
+    assert r.status_code == 200
+    assert r.json()["status"] == "failed"
+    assert "Webhook responded with 500" in (r.json()["error_message"] or "")

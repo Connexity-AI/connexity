@@ -2188,17 +2188,50 @@ export const EnvironmentCreateSchema = {
       title: 'Agent Id',
     },
     integration_id: {
-      type: 'string',
-      format: 'uuid',
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Integration Id',
     },
     platform_agent_id: {
-      type: 'string',
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Platform Agent Id',
     },
     platform_agent_name: {
-      type: 'string',
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Platform Agent Name',
+    },
+    endpoint_url: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 2048,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Endpoint Url',
     },
     eval_gate_eval_config_id: {
       anyOf: [
@@ -2216,14 +2249,7 @@ export const EnvironmentCreateSchema = {
     },
   },
   type: 'object',
-  required: [
-    'name',
-    'platform',
-    'agent_id',
-    'integration_id',
-    'platform_agent_id',
-    'platform_agent_name',
-  ],
+  required: ['name', 'platform', 'agent_id'],
   title: 'EnvironmentCreate',
 } as const;
 
@@ -2248,21 +2274,60 @@ export const EnvironmentPublicSchema = {
       title: 'Agent Id',
     },
     integration_id: {
-      type: 'string',
-      format: 'uuid',
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Integration Id',
     },
     integration_name: {
-      type: 'string',
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Integration Name',
     },
     platform_agent_id: {
-      type: 'string',
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Platform Agent Id',
     },
     platform_agent_name: {
-      type: 'string',
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Platform Agent Name',
+    },
+    endpoint_url: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Endpoint Url',
     },
     current_version_number: {
       anyOf: [
@@ -2326,6 +2391,7 @@ export const EnvironmentPublicSchema = {
     'integration_name',
     'platform_agent_id',
     'platform_agent_name',
+    'endpoint_url',
     'current_version_number',
     'current_version_name',
     'current_deployed_at',
@@ -3887,8 +3953,7 @@ export const OnConflictSchema = {
 
 export const PlatformSchema = {
   type: 'string',
-  enum: ['retell'],
-  const: 'retell',
+  enum: ['retell', 'webhook'],
   title: 'Platform',
 } as const;
 

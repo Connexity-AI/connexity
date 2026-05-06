@@ -27,6 +27,8 @@ interface Props {
 export const EnvironmentCard: FC<Props> = ({ environment, agentId }) => {
   const c = useEnvironmentCard({ environment, agentId });
   const { Icon } = c.button;
+  const isWebhook = environment.platform === 'webhook';
+  const platformLabel = isWebhook ? 'Webhook' : 'Retell';
 
   return (
     <>
@@ -37,7 +39,7 @@ export const EnvironmentCard: FC<Props> = ({ environment, agentId }) => {
             <div className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)] shrink-0" />
             <span className="text-sm text-foreground">{environment.name}</span>
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400">
-              Retell
+              {platformLabel}
             </span>
             {c.hasGate && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400 border border-violet-500/20 inline-flex items-center gap-1">
@@ -60,22 +62,33 @@ export const EnvironmentCard: FC<Props> = ({ environment, agentId }) => {
           </button>
         </div>
 
-        {/* Integration / Retell Agent */}
+        {/* destination details */}
         <div className="px-5 py-4 border-b border-border bg-accent/5 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-              Integration
-            </span>
-            <span className="text-xs text-foreground">{environment.integration_name}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-              Retell Agent
-            </span>
-            <span className="text-xs text-foreground">
-              {environment.platform_agent_name || environment.platform_agent_id}
-            </span>
-          </div>
+          {isWebhook ? (
+            <div className="space-y-1">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                Webhook URL
+              </span>
+              <p className="text-xs text-foreground break-all">{environment.endpoint_url ?? '—'}</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  Integration
+                </span>
+                <span className="text-xs text-foreground">{environment.integration_name ?? '—'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  Retell Agent
+                </span>
+                <span className="text-xs text-foreground">
+                  {environment.platform_agent_name || environment.platform_agent_id || '—'}
+                </span>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Previously Deployed */}

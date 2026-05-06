@@ -1295,15 +1295,19 @@ export type EnvironmentCreate = {
   /**
    * Integration Id
    */
-  integration_id: string;
+  integration_id?: string | null;
   /**
    * Platform Agent Id
    */
-  platform_agent_id: string;
+  platform_agent_id?: string | null;
   /**
    * Platform Agent Name
    */
-  platform_agent_name: string;
+  platform_agent_name?: string | null;
+  /**
+   * Endpoint Url
+   */
+  endpoint_url?: string | null;
   /**
    * Eval Gate Eval Config Id
    *
@@ -1332,19 +1336,23 @@ export type EnvironmentPublic = {
   /**
    * Integration Id
    */
-  integration_id: string;
+  integration_id: string | null;
   /**
    * Integration Name
    */
-  integration_name: string;
+  integration_name: string | null;
   /**
    * Platform Agent Id
    */
-  platform_agent_id: string;
+  platform_agent_id: string | null;
   /**
    * Platform Agent Name
    */
-  platform_agent_name: string;
+  platform_agent_name: string | null;
+  /**
+   * Endpoint Url
+   */
+  endpoint_url: string | null;
   /**
    * Current Version Number
    */
@@ -2477,7 +2485,7 @@ export type OnConflict = (typeof OnConflict)[keyof typeof OnConflict];
 /**
  * Platform
  */
-export const Platform = { RETELL: 'retell' } as const;
+export const Platform = { RETELL: 'retell', WEBHOOK: 'webhook' } as const;
 
 /**
  * Platform

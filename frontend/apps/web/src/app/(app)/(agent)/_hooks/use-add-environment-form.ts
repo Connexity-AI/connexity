@@ -12,9 +12,10 @@ import {
 const DEFAULT_VALUES: AddEnvironmentFormValues = {
   name: '',
   platform: 'retell',
-  integration_id: '',
-  platform_agent_id: '',
-  platform_agent_name: '',
+  integration_id: null,
+  platform_agent_id: null,
+  platform_agent_name: null,
+  endpoint_url: null,
   eval_gate_enabled: false,
   eval_gate_eval_config_id: null,
 };
@@ -33,16 +34,28 @@ export function useAddEnvironmentForm({ agentId, onSuccess }: UseAddEnvironmentF
   });
 
   const integrationId = form.watch('integration_id');
+  const platform = form.watch('platform');
+
+  const handlePlatformChange = (value: AddEnvironmentFormValues['platform']) => {
+    form.setValue('platform', value);
+    if (value === 'retell') {
+      form.setValue('endpoint_url', null);
+      return;
+    }
+    form.setValue('integration_id', null);
+    form.setValue('platform_agent_id', null);
+    form.setValue('platform_agent_name', null);
+  };
 
   const handleIntegrationChange = (id: string) => {
-    form.setValue('integration_id', id);
-    form.setValue('platform_agent_id', '');
-    form.setValue('platform_agent_name', '');
+    form.setValue('integration_id', id || null);
+    form.setValue('platform_agent_id', null);
+    form.setValue('platform_agent_name', null);
   };
 
   const handleAgentChange = (id: string, name: string) => {
-    form.setValue('platform_agent_id', id);
-    form.setValue('platform_agent_name', name);
+    form.setValue('platform_agent_id', id || null);
+    form.setValue('platform_agent_name', name || null);
   };
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -53,7 +66,11 @@ export function useAddEnvironmentForm({ agentId, onSuccess }: UseAddEnvironmentF
         agent_id: agentId,
         integration_id: values.integration_id,
         platform_agent_id: values.platform_agent_id,
-        platform_agent_name: values.platform_agent_name,
+        platform_agent_name:
+          values.platform === 'retell'
+            ? (values.platform_agent_name ?? values.platform_agent_id)
+            : values.platform_agent_name,
+        endpoint_url: values.endpoint_url,
         eval_gate_eval_config_id: values.eval_gate_enabled
           ? values.eval_gate_eval_config_id
           : null,
@@ -67,7 +84,9 @@ export function useAddEnvironmentForm({ agentId, onSuccess }: UseAddEnvironmentF
   return {
     form,
     onSubmit,
+    platform,
     integrationId,
+    handlePlatformChange,
     handleIntegrationChange,
     handleAgentChange,
     isPending,
