@@ -1,5 +1,18 @@
 # connexity
 
+Open-source eval platform for voice and text agents. You bring an agent (your own HTTP endpoint or one authored on the platform), define test cases and scenarios, and get pass/fail verdicts, regression checks against a baseline, and AI-powered suggestions for fixing failures.
+
+What's in the box:
+
+- **Eval runs** — orchestrated multi-turn conversations against your agent, scored by an LLM judge across 8 default metrics plus any custom metrics you define
+- **CS-127 pass/fail thresholds** — every run is gated on `metrics_pass_threshold` (weighted score) and `cases_pass_threshold` (fraction of cases passing); see [docs/scoring-and-thresholds.md](docs/scoring-and-thresholds.md)
+- **Agent versioning** — draft / publish lifecycle, immutable history, version-pinned runs, side-by-side prompt diffs
+- **Run-to-run comparison** — regression verdict with overridable thresholds, plus optional AI cause-analysis (CS-29)
+- **Prompt editor** — chat-driven prompt iteration with live diffs, AI suggestions, and per-agent guidelines
+- **Platform-side agent simulator** — build a Connexity-hosted agent (system prompt + tools) without standing up your own HTTP service
+- **Retell integration** — sync recorded calls, deploy agent versions to Retell with an optional eval-gate that blocks deploys when thresholds fail
+- **`connexity-cli`** — a thin Python CLI covering the public REST surface; ideal for CI gates ([CLI_README.md](CLI_README.md))
+
 ## Quick start (Docker)
 
 Prebuilt images live on [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry). Use a **public** package (or inherit visibility from a public repo) so pulls work without logging in.
@@ -60,4 +73,11 @@ The database starts empty. Sign up in the UI or via `POST /api/v1/users/signup`.
 ## Further docs
 
 - [docs/running.md](docs/running.md) — detailed local setup
+- [docs/scoring-and-thresholds.md](docs/scoring-and-thresholds.md) — judge scoring formula and CS-127 pass/fail thresholds
+- [docs/judge-criteria.md](docs/judge-criteria.md) — default and custom metric definitions
+- [docs/data-model.md](docs/data-model.md) — agent / eval-config / run / test-case relationships
+- [docs/agent-contract.md](docs/agent-contract.md) — HTTP contract for bring-your-own-agent
+- [docs/test-case-schema.md](docs/test-case-schema.md) — scenario v2 schema with personas
+- [docs/migrations.md](docs/migrations.md) — Alembic workflow
+- [CLI_README.md](CLI_README.md) — `connexity-cli` reference
 - `make help` — Make targets
