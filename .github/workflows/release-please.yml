@@ -6,6 +6,10 @@ on:
     paths:
       - "backend/cli/**"
       - "pyproject.toml"
+      - "release-please-config.json"
+      - ".release-please-manifest.json"
+      - ".github/workflows/release-please.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
