@@ -7,13 +7,7 @@
       "include-component-in-tag": true,
       "tag-separator": "-",
       "include-paths": ["backend/cli", "pyproject.toml"],
-      "extra-files": [
-        {
-          "type": "generic",
-          "path": "**/pyproject.toml",
-          "glob": true
-        }
-      ],
+      "extra-files": ["_version.py"],
       "changelog-path": "CHANGELOG.md",
       "changelog-sections": [
         { "type": "feat", "section": "Features" },

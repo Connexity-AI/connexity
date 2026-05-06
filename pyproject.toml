@@ -1,6 +1,6 @@
 [project]
 name = "connexity-cli"
-version = "0.1.1" # x-release-please-version
+dynamic = ["version"]
 description = "CLI for running and managing Connexity agent evaluations"
 keywords = ["connexity", "evaluation", "evals", "llm", "agents", "cli", "testing"]
 readme = "CLI_README.md"
@@ -43,6 +43,10 @@ Releases = "https://github.com/Connexity-AI/connexity/releases?q=cli-v"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+# Single source of truth for the CLI version — release-please owns this file.
+[tool.hatch.version]
+path = "backend/cli/_version.py"
 
 # Ship only `cli/` from `backend/`. The `sources` rewrite makes `backend/cli`
 # import as the top-level `cli` package — matching how it works inside the
