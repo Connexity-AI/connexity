@@ -12,6 +12,7 @@ from app.models.schemas import (
     PythonImplementation,
     ToolPlatformConfig,
 )
+from app.services.agent_tool_definitions import canonical_end_call_tool_dict
 from app.services.tool_dispatch import (
     LiveToolExecutor,
     MockToolExecutor,
@@ -339,3 +340,7 @@ def test_validate_live_accepts_legacy_platform_config_with_extra_mode_key() -> N
 def test_validate_live_empty_tools_noop() -> None:
     validate_live_tool_snapshot([])
     validate_live_tool_snapshot(None)
+
+
+def test_validate_live_accepts_terminating_tool_without_implementation() -> None:
+    validate_live_tool_snapshot([canonical_end_call_tool_dict()])

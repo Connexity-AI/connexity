@@ -72,6 +72,9 @@ import type {
   ConfigGetLlmModelsData,
   ConfigGetLlmModelsErrors,
   ConfigGetLlmModelsResponses,
+  ConfigGetPredefinedToolsData,
+  ConfigGetPredefinedToolsErrors,
+  ConfigGetPredefinedToolsResponses,
   CustomMetricsCreateCustomMetricData,
   CustomMetricsCreateCustomMetricErrors,
   CustomMetricsCreateCustomMetricResponses,
@@ -2300,7 +2303,39 @@ export class ConfigService {
   }
 
   /**
+   * Get Predefined Tools
+   *
+   * Catalog tool rows (same JSON shape as ``Agent.tools``) for editors and forms.
+   */
+  public static getPredefinedTools<ThrowOnError extends boolean = false>(
+    options?: Options<ConfigGetPredefinedToolsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      ConfigGetPredefinedToolsResponses,
+      ConfigGetPredefinedToolsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/config/predefined-tools',
+      ...options,
+    });
+  }
+
+  /**
    * Get Available Metrics
+   *
+   * All metrics available for use in eval configs (active, non-draft).
+   *
+   * Both built-in (predefined) and user-created metrics live in the same
+   * ``custom_metric`` table; ``is_draft`` rows are excluded so the create-eval
+   * judge picker only shows metrics the user has marked active.
    */
   public static getAvailableMetrics<ThrowOnError extends boolean = false>(
     options?: Options<ConfigGetAvailableMetricsData, ThrowOnError>

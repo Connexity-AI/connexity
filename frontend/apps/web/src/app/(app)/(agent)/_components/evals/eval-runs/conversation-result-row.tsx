@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, MessageSquare, X } from 'lucide-react';
+import { Check, Loader2, MessageSquare, X } from 'lucide-react';
 
 import {
   AccordionContent,
@@ -13,7 +13,7 @@ import { SelectionCheckbox } from './selection-checkbox';
 
 import { roundScore, scoreColor } from './shared/score-utils';
 
-import type { Difficulty, TestCaseResultPublic } from '@/client/types.gen';
+import { RunStatus, type Difficulty, type TestCaseResultPublic } from '@/client/types.gen';
 
 type Verdict = NonNullable<TestCaseResultPublic['verdict']>;
 type Outcome = NonNullable<Verdict['expected_outcome_results']>[number];
@@ -24,9 +24,11 @@ interface ConversationResultRowProps {
   testCaseName: string;
   tags?: string[];
   difficulty?: Difficulty;
+  isDeleted?: boolean;
   onOpenTrace: () => void;
   selected: boolean;
   onSelectChange: (id: string, checked: boolean) => void;
+  runStatus: RunStatus;
 }
 
 const TIER_COLORS: Record<string, string> = {
@@ -48,9 +50,11 @@ export function ConversationResultRow({
   testCaseName,
   tags,
   difficulty,
+  isDeleted = false,
   onOpenTrace,
   selected,
   onSelectChange,
+  runStatus,
 }: ConversationResultRowProps) {
   const verdict = result.verdict;
   const score = roundScore(verdict?.overall_score);
@@ -59,6 +63,8 @@ export function ConversationResultRow({
   const metrics = verdict?.metric_scores ?? [];
   const passedOutcomes = outcomes.filter((o) => o.passed).length;
   const passedMetrics = metrics.filter(isMetricPass).length;
+  const runInProgress = runStatus === RunStatus.PENDING || runStatus === RunStatus.RUNNING;
+  const caseInProgress = runInProgress && result.passed == null;
 
   return (
     <AccordionItem
@@ -81,11 +87,20 @@ export function ConversationResultRow({
       >
         <span aria-hidden className="h-6 w-6" />
         <div className="flex h-6 w-6 items-center justify-center">
-          <StatusIcon passed={result.passed} className="h-4 w-4" />
+          <StatusIcon
+            passed={result.passed}
+            inProgress={caseInProgress}
+            className="h-4 w-4"
+          />
         </div>
 
         <div className="min-w-0 text-left">
-          <div className="truncate text-sm text-foreground">{testCaseName}</div>
+          <div className="truncate text-sm text-foreground">
+            {testCaseName}
+            {isDeleted ? (
+              <span className="ml-1.5 text-[11px] text-muted-foreground/70">(deleted)</span>
+            ) : null}
+          </div>
           <TagRow tags={tags} difficulty={difficulty} />
           <ErrorMessage message={result.error_message} />
         </div>
@@ -112,8 +127,14 @@ export function ConversationResultRow({
 
       <AccordionContent className="p-0">
         <div className="border-t border-border/40">
-          <OutcomesSection outcomes={outcomes} passedCount={passedOutcomes} />
-          <MetricsSection metrics={metrics} passedCount={passedMetrics} />
+          {caseInProgress ? (
+            <RunningPlaceholder />
+          ) : (
+            <>
+              <OutcomesSection outcomes={outcomes} passedCount={passedOutcomes} />
+              <MetricsSection metrics={metrics} passedCount={passedMetrics} />
+            </>
+          )}
         </div>
       </AccordionContent>
     </AccordionItem>
@@ -219,13 +240,27 @@ function ScoreBarInline({ value }: { value: number | null }) {
 
 function StatusIcon({
   passed,
+  inProgress,
   className,
 }: {
   passed: boolean | null | undefined;
+  inProgress: boolean;
   className?: string;
 }) {
+  if (inProgress) {
+    return <Loader2 className={cn('animate-spin text-blue-400', className)} />;
+  }
   if (passed) return <Check className={cn('text-green-400', className)} />;
   return <X className={cn('text-red-400', className)} />;
+}
+
+function RunningPlaceholder() {
+  return (
+    <div className="flex items-center justify-center gap-2 bg-accent/5 px-8 py-6 text-xs text-muted-foreground">
+      <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-400" />
+      <span>Eval is still running for this test case…</span>
+    </div>
+  );
 }
 
 function ErrorMessage({ message }: { message: string | null | undefined }) {

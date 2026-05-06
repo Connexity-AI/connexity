@@ -35,7 +35,7 @@ from app.crud.custom_metrics import (  # noqa: F401
     create_custom_metric,
     delete_custom_metric,
     get_custom_metric,
-    get_custom_metric_by_name_and_owner,
+    get_custom_metric_by_name,
     list_custom_metrics,
     update_custom_metric,
 )
@@ -110,6 +110,7 @@ from app.crud.run import (  # noqa: F401
     delete_run,
     enrich_run_create_from_agent,
     get_baseline_run,
+    get_latest_completed_run_for_version,
     get_run,
     list_runs,
     set_baseline,

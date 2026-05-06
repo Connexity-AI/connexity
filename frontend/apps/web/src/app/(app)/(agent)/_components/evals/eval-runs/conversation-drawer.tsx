@@ -278,12 +278,7 @@ function ToolAccordion({ itemKey, variant, tool, body }: ToolAccordionProps) {
 
   return (
     <div className="flex justify-center">
-      <Accordion
-        type="single"
-        collapsible
-        defaultValue={itemKey}
-        className="w-full"
-      >
+      <Accordion type="single" collapsible className="w-full">
         <AccordionItem
           value={itemKey}
           className="overflow-hidden rounded-lg border border-border bg-accent/10"

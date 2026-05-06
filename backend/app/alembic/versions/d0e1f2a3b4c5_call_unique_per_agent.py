@@ -19,10 +19,15 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # The original migration created the unique via `create_index(..., unique=True)`,
-    # so it lives as a unique index named ix_call_retell_call_id, not a constraint.
-    op.drop_index("ix_call_retell_call_id", table_name="call")
-    op.create_index("ix_call_retell_call_id", "call", ["retell_call_id"], unique=False)
+    # Idempotent: dev DBs that were rebuilt from current models may already
+    # have the post-migration shape (non-unique index + composite unique).
+    op.execute("DROP INDEX IF EXISTS ix_call_retell_call_id")
+    op.create_index(
+        "ix_call_retell_call_id", "call", ["retell_call_id"], unique=False
+    )
+    op.execute(
+        "ALTER TABLE call DROP CONSTRAINT IF EXISTS uq_call_retell_call_agent"
+    )
     op.create_unique_constraint(
         "uq_call_retell_call_agent", "call", ["retell_call_id", "agent_id"]
     )

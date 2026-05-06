@@ -1,9 +1,10 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
-import { Button } from '@workspace/ui/components/ui/button';
 import { SheetDescription, SheetHeader, SheetTitle } from '@workspace/ui/components/ui/sheet';
+
+import { BatchPagerNav } from '@/app/(app)/(agent)/_components/observe/batch-pager-nav';
 
 interface CarouselNav {
   current: number;
@@ -43,37 +44,20 @@ export function AddTestCaseAiDrawerHeader({
           </div>
         </div>
 
-        {carousel && carousel.total > 1 && (
-          <div className="flex shrink-0 items-center gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={carousel.onPrev}
-              disabled={!carousel.canScrollPrev}
-              aria-label="Previous test case"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-
-            <span className="min-w-10 text-center text-[11px] tabular-nums text-muted-foreground">
-              {carousel.current + 1} of {carousel.total}
-            </span>
-
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={carousel.onNext}
-              disabled={!carousel.canScrollNext}
-              aria-label="Next test case"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+        {carousel ? (
+          <div className="shrink-0 pr-4">
+            <BatchPagerNav
+              current={carousel.current + 1}
+              total={carousel.total}
+              canPrev={carousel.canScrollPrev}
+              canNext={carousel.canScrollNext}
+              onPrev={carousel.onPrev}
+              onNext={carousel.onNext}
+              prevLabel="Previous test case"
+              nextLabel="Next test case"
+            />
           </div>
-        )}
+        ) : null}
       </div>
     </SheetHeader>
   );

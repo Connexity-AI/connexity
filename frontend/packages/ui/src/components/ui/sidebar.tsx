@@ -6,7 +6,7 @@ import { Slot } from '@radix-ui/react-slot';
 import { cva, VariantProps } from 'class-variance-authority';
 import { PanelLeft } from 'lucide-react';
 
-import { Button, type ButtonProps } from '@workspace/ui/components/ui/button';
+import { Button } from '@workspace/ui/components/ui/button';
 import { Input } from '@workspace/ui/components/ui/input';
 import { Separator } from '@workspace/ui/components/ui/separator';
 import { Sheet, SheetContent } from '@workspace/ui/components/ui/sheet';
@@ -19,6 +19,8 @@ import {
 } from '@workspace/ui/components/ui/tooltip';
 import { useIsMobile } from '@workspace/ui/hooks/use-mobile';
 import { cn } from '@workspace/ui/lib/utils';
+
+import type { ButtonProps } from '@workspace/ui/components/ui/button';
 
 const SIDEBAR_COOKIE_NAME = 'sidebar:state';
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -412,7 +414,7 @@ const SidebarGroup = React.forwardRef<HTMLDivElement, React.ComponentProps<'div'
       <div
         ref={ref}
         data-sidebar="group"
-        className={cn('relative flex w-full min-w-0 flex-col p-2', className)}
+        className={cn('relative flex w-full min-w-0 flex-col p-2 pt-0', className)}
         {...props}
       />
     );
@@ -639,9 +641,7 @@ const SidebarMenuSkeleton = React.forwardRef<
   }
 >(({ className, showIcon = false, ...props }, ref) => {
   // Random width between 50 to 90% (stable per mount — skeleton placeholder).
-  const [width] = React.useState(
-    () => `${Math.floor(Math.random() * 40) + 50}%`,
-  );
+  const [width] = React.useState(() => `${Math.floor(Math.random() * 40) + 50}%`);
 
   return (
     <div

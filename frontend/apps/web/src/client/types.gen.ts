@@ -682,6 +682,42 @@ export type AggregateMetrics = {
    * Mean judge overall score across all test cases
    */
   avg_overall_score?: number | null;
+  /**
+   * Weighted Metrics Score Pct
+   *
+   * Run-level metrics score (0-100): mean of per-test-case weighted overall_score across results that have a verdict. None when no result produced a verdict.
+   */
+  weighted_metrics_score_pct?: number | null;
+  /**
+   * Metrics Pass Threshold
+   *
+   * Snapshot of metrics_pass_threshold used for this run (%)
+   */
+  metrics_pass_threshold?: number | null;
+  /**
+   * Metrics Passed
+   *
+   * True when weighted_metrics_score_pct >= metrics_pass_threshold. None when threshold or score is unavailable.
+   */
+  metrics_passed?: boolean | null;
+  /**
+   * Cases Pass Rate Pct
+   *
+   * Cases dimension score (0-100): pass_rate * 100. Errored test cases count as not-passed in the denominator.
+   */
+  cases_pass_rate_pct?: number | null;
+  /**
+   * Cases Pass Threshold
+   *
+   * Snapshot of cases_pass_threshold used for this run (%)
+   */
+  cases_pass_threshold?: number | null;
+  /**
+   * Cases Passed
+   *
+   * True when cases_pass_rate_pct >= cases_pass_threshold. None when threshold or rate is unavailable.
+   */
+  cases_passed?: boolean | null;
 };
 
 /**
@@ -993,7 +1029,7 @@ export type CustomMetricCreate = {
   /**
    * Name
    *
-   * Unique slug per owner (snake_case)
+   * Globally-unique slug (snake_case)
    */
   name: string;
   /**
@@ -1008,7 +1044,7 @@ export type CustomMetricCreate = {
   /**
    * Default Weight
    */
-  default_weight: number;
+  default_weight?: number;
   score_type: ScoreType;
   /**
    * Rubric
@@ -1018,6 +1054,18 @@ export type CustomMetricCreate = {
    * Include In Defaults
    */
   include_in_defaults?: boolean;
+  /**
+   * Is Predefined
+   *
+   * True for built-in metrics seeded from the registry; False for user-created metrics.
+   */
+  is_predefined?: boolean;
+  /**
+   * Is Draft
+   *
+   * When True, metric is hidden from eval-config selection (acts as the inverse of the UI 'active' toggle).
+   */
+  is_draft?: boolean;
 };
 
 /**
@@ -1027,7 +1075,7 @@ export type CustomMetricPublic = {
   /**
    * Name
    *
-   * Unique slug per owner (snake_case)
+   * Globally-unique slug (snake_case)
    */
   name: string;
   /**
@@ -1042,7 +1090,7 @@ export type CustomMetricPublic = {
   /**
    * Default Weight
    */
-  default_weight: number;
+  default_weight?: number;
   score_type: ScoreType;
   /**
    * Rubric
@@ -1053,13 +1101,25 @@ export type CustomMetricPublic = {
    */
   include_in_defaults?: boolean;
   /**
+   * Is Predefined
+   *
+   * True for built-in metrics seeded from the registry; False for user-created metrics.
+   */
+  is_predefined?: boolean;
+  /**
+   * Is Draft
+   *
+   * When True, metric is hidden from eval-config selection (acts as the inverse of the UI 'active' toggle).
+   */
+  is_draft?: boolean;
+  /**
    * Id
    */
   id: string;
   /**
    * Created By
    */
-  created_by: string;
+  created_by?: string | null;
   /**
    * Created At
    */
@@ -1100,6 +1160,10 @@ export type CustomMetricUpdate = {
    * Include In Defaults
    */
   include_in_defaults?: boolean | null;
+  /**
+   * Is Draft
+   */
+  is_draft?: boolean | null;
 };
 
 /**
@@ -1115,7 +1179,7 @@ export type CustomMetricsPublic = {
   /**
    * Count
    *
-   * Total number of custom metrics for the user
+   * Total number of custom metrics
    */
   count: number;
 };
@@ -1240,6 +1304,12 @@ export type EnvironmentCreate = {
    * Platform Agent Name
    */
   platform_agent_name: string;
+  /**
+   * Eval Gate Eval Config Id
+   *
+   * Optional: gate deploys on a passing run of this eval config for the requested agent version.
+   */
+  eval_gate_eval_config_id?: string | null;
 };
 
 /**
@@ -1287,6 +1357,10 @@ export type EnvironmentPublic = {
    * Current Deployed At
    */
   current_deployed_at: string | null;
+  /**
+   * Eval Gate Eval Config Id
+   */
+  eval_gate_eval_config_id: string | null;
   /**
    * Created At
    */
@@ -2411,6 +2485,24 @@ export const Platform = { RETELL: 'retell' } as const;
 export type Platform = (typeof Platform)[keyof typeof Platform];
 
 /**
+ * PredefinedToolsPublic
+ *
+ * Predefined tool entries; each element matches one item in ``Agent.tools`` JSONB.
+ */
+export type PredefinedToolsPublic = {
+  /**
+   * Data
+   */
+  data: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Count
+   */
+  count: number;
+};
+
+/**
  * PresetPublic
  *
  * API shape for a preset (excludes internal ``requires`` gates).
@@ -2915,6 +3007,18 @@ export type RunConfigInput = {
    */
   tool_mode?: 'mock' | 'live';
   /**
+   * Metrics Pass Threshold
+   *
+   * Run-level threshold (%) for the weighted-average metric score across all test case executions. The run's metrics dimension passes when the average score is at or above this threshold.
+   */
+  metrics_pass_threshold?: number;
+  /**
+   * Cases Pass Threshold
+   *
+   * Run-level threshold (%) for the fraction of test cases that pass. A test case passes when all of its expected_outcomes pass (or, for legacy test cases without expected_outcomes, when the judge verdict passes).
+   */
+  cases_pass_threshold?: number;
+  /**
    * Judge metric selection, weights, pass threshold, and model overrides
    */
   judge?: JudgeConfig | null;
@@ -2956,6 +3060,18 @@ export type RunConfigOutput = {
    * Global tool execution mode: mock uses test-case mock_responses, live executes real implementations
    */
   tool_mode?: 'mock' | 'live';
+  /**
+   * Metrics Pass Threshold
+   *
+   * Run-level threshold (%) for the weighted-average metric score across all test case executions. The run's metrics dimension passes when the average score is at or above this threshold.
+   */
+  metrics_pass_threshold?: number;
+  /**
+   * Cases Pass Threshold
+   *
+   * Run-level threshold (%) for the fraction of test cases that pass. A test case passes when all of its expected_outcomes pass (or, for legacy test cases without expected_outcomes, when the judge verdict passes).
+   */
+  cases_pass_threshold?: number;
   /**
    * Judge metric selection, weights, pass threshold, and model overrides
    */
@@ -3071,13 +3187,13 @@ export type RunCreate = {
   /**
    * Agent Version
    *
-   * Agent behavioral config version at run creation (set by server)
+   * Target agent version to evaluate. If omitted, defaults to the agent's current version. If provided, the run is snapshotted from that AgentVersion row (system_prompt, tools, model, etc.).
    */
   agent_version?: number | null;
   /**
    * Agent Version Id
    *
-   * FK to agent_version row at run creation (set by server)
+   * Resolved by the server from agent_version; ignored on input.
    */
   agent_version_id?: string | null;
   /**
@@ -3763,6 +3879,12 @@ export type TestCasePublic = {
    * When the test case was last updated
    */
   updated_at: string;
+  /**
+   * Deleted At
+   *
+   * When the test case was soft-deleted (null = active)
+   */
+  deleted_at?: string | null;
 };
 
 /**
@@ -5893,6 +6015,12 @@ export type TestCasesListTestCasesData = {
      * Filter test cases bound to this agent
      */
     agent_id?: string | null;
+    /**
+     * Include Deleted
+     *
+     * Include soft-deleted test cases — used by the eval-run detail view so historical results can still resolve test-case metadata.
+     */
+    include_deleted?: boolean;
   };
   url: '/api/v1/test-cases/';
 };
@@ -8777,6 +8905,57 @@ export type ConfigGetConfigResponses = {
 };
 
 export type ConfigGetConfigResponse = ConfigGetConfigResponses[keyof ConfigGetConfigResponses];
+
+export type ConfigGetPredefinedToolsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/config/predefined-tools';
+};
+
+export type ConfigGetPredefinedToolsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ConfigGetPredefinedToolsError =
+  ConfigGetPredefinedToolsErrors[keyof ConfigGetPredefinedToolsErrors];
+
+export type ConfigGetPredefinedToolsResponses = {
+  /**
+   * Successful Response
+   */
+  200: PredefinedToolsPublic;
+};
+
+export type ConfigGetPredefinedToolsResponse =
+  ConfigGetPredefinedToolsResponses[keyof ConfigGetPredefinedToolsResponses];
 
 export type ConfigGetAvailableMetricsData = {
   body?: never;

@@ -190,11 +190,17 @@ def _map_tools_for_retell(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Map Connexity tools to Retell ``general_tools`` (type=custom).
 
     Only HTTP webhook tools are forwarded — Retell cannot execute Python or
-    mock-mode tools, so they're dropped silently.
+    mock-mode tools, so they're dropped silently. Predefined tools
+    (``end_call``, ``transfer_call``) are also skipped: Retell handles them
+    natively via its own tool types and would mis-treat them as generic
+    custom webhooks if forwarded.
     """
     retell_tools: list[dict[str, Any]] = []
     for tool in tools:
-        impl = (tool.get("platform_config") or {}).get("implementation") or {}
+        platform_config = tool.get("platform_config") or {}
+        if platform_config.get("predefined"):
+            continue
+        impl = platform_config.get("implementation") or {}
         if impl.get("type") != "http_webhook":
             continue
 

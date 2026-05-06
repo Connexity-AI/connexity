@@ -68,7 +68,7 @@ def test_resolve_metrics_custom_from_db(db: Session) -> None:
         owner_id=owner.id,
     )
     cfg = JudgeConfig(metrics=[MetricSelection(metric=name, weight=2.0)])
-    resolved = resolve_metrics(cfg, session=db, owner_id=owner.id)
+    resolved = resolve_metrics(cfg, session=db)
     assert len(resolved) == 1
     assert resolved[0][0].name == name
     assert abs(resolved[0][1] - 1.0) < 1e-9
@@ -97,33 +97,10 @@ def test_resolve_metrics_mixed_builtin_and_custom(db: Session) -> None:
             MetricSelection(metric=name, weight=1.0),
         ]
     )
-    resolved = resolve_metrics(cfg, session=db, owner_id=owner.id)
+    resolved = resolve_metrics(cfg, session=db)
     names = {m.name for m, _ in resolved}
     assert names == {"tool_routing", name}
     assert abs(sum(w for _, w in resolved) - 1.0) < 1e-9
-
-
-def test_resolve_metrics_custom_wrong_owner(db: Session) -> None:
-    owner = create_random_user(db)
-    name = f"wrong_owner_{uuid.uuid4().hex[:10]}"
-    crud.create_custom_metric(
-        session=db,
-        metric_in=CustomMetricCreate(
-            name=name,
-            display_name="X",
-            description="d",
-            tier=MetricTier.KNOWLEDGE,
-            default_weight=0.1,
-            score_type=ScoreType.BINARY,
-            rubric="Measures: x.\n\nPass: a\nExample: b\nFail: c\nExample: d",
-            include_in_defaults=False,
-        ),
-        owner_id=owner.id,
-    )
-    cfg = JudgeConfig(metrics=[MetricSelection(metric=name, weight=1.0)])
-    wrong_id = uuid.uuid4()
-    with pytest.raises(ValueError, match="Unknown metric"):
-        resolve_metrics(cfg, session=db, owner_id=wrong_id)
 
 
 def _minimal_transcript() -> list[ConversationTurn]:
@@ -199,7 +176,6 @@ async def test_evaluate_transcript_with_custom_metric(db: Session) -> None:
         agent_system_prompt=None,
         agent_tools=None,
         judge_config=JudgeConfig(metrics=[MetricSelection(metric=name, weight=1.0)]),
-        metrics_owner_id=owner.id,
     )
 
     with patch("app.services.judge.call_llm", mock_llm_response):
@@ -212,11 +188,9 @@ async def test_evaluate_transcript_with_custom_metric(db: Session) -> None:
 
 
 @pytest.mark.asyncio
-async def test_evaluate_transcript_unknown_metric_no_owner_returns_failed_verdict() -> (
-    None
-):
-    """When owner_id is None and a non-builtin metric is requested, return a
-    failed verdict instead of raising."""
+async def test_evaluate_transcript_unknown_metric_returns_failed_verdict() -> None:
+    """When a non-existent metric name is requested, return a failed verdict
+    instead of raising."""
     inp = JudgeInput(
         transcript=_minimal_transcript(),
         test_case=_minimal_test_case(),
@@ -225,7 +199,6 @@ async def test_evaluate_transcript_unknown_metric_no_owner_returns_failed_verdic
         judge_config=JudgeConfig(
             metrics=[MetricSelection(metric="nonexistent_metric", weight=1.0)]
         ),
-        metrics_owner_id=None,
     )
     verdict = await evaluate_transcript(inp)
     assert verdict.passed is False

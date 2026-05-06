@@ -33,6 +33,7 @@ from app.models.schemas import (
 from app.models.test_case import TestCase
 from app.models.test_case_result import TestCaseResult
 from app.services.agent_simulator import AgentSimulator
+from app.services.agent_tool_definitions import snapshot_marks_tool_terminating
 from app.services.cost_tracker import (
     TestCaseTokenAccumulator,
     estimate_agent_cost,
@@ -89,6 +90,22 @@ class AgentCallError(Exception):
     def __init__(self, message: str, *, status_code: int | None = None) -> None:
         super().__init__(message)
         self.status_code = status_code
+
+
+def _turns_have_terminating_assistant_tool_call(
+    turns: list[ConversationTurn],
+    agent_tools: list[dict[str, Any]] | None,
+) -> bool:
+    """True if any assistant turn requests a tool marked terminating on the snapshot."""
+    if not agent_tools:
+        return False
+    for t in turns:
+        if t.role != TurnRole.ASSISTANT or not t.tool_calls:
+            continue
+        for tc in t.tool_calls:
+            if snapshot_marks_tool_terminating(tc.function.name, agent_tools):
+                return True
+    return False
 
 
 def build_conversation_turn(
@@ -408,7 +425,7 @@ async def run_test_case(
     whoever goes first; when absent, the opener is LLM-generated.
 
     Stops when ``config.max_turns`` agent rounds are done, scripted lines are
-    exhausted, timeout is hit, or the agent call fails.
+    exhausted, timeout is hit, a terminating tool call is invoked, or the agent call fails.
     """
     sim_cfg = config.user_simulator or UserSimulatorConfig()
     first_message_text = (test_case.first_message or "").strip()
@@ -520,6 +537,7 @@ async def run_test_case(
     async with _agent_http_client(agent_mode) as client:
         # For agent-first without first_message, generate the opening
         if first_turn == FirstTurn.AGENT and not first_message_text:
+            turn_before = len(transcript)
             ok = await _do_agent_turn(
                 transcript,
                 test_case,
@@ -534,6 +552,16 @@ async def run_test_case(
                 client,
             )
             if not ok:
+                return TestCaseRunResult(
+                    transcript=transcript,
+                    agent_token_usage=acc.agent_token_usage,
+                    platform_token_usage=acc.platform_token_usage,
+                    agent_cost_usd=acc.agent_cost_usd,
+                    platform_cost_usd=acc.platform_cost_usd,
+                )
+            if _turns_have_terminating_assistant_tool_call(
+                transcript[turn_before:], agent_tools
+            ):
                 return TestCaseRunResult(
                     transcript=transcript,
                     agent_token_usage=acc.agent_token_usage,
@@ -578,6 +606,7 @@ async def run_test_case(
 
             if first_turn == FirstTurn.USER:
                 # Persona-first: agent responds → user responds
+                turn_before = len(transcript)
                 ok = await _do_agent_turn(
                     transcript,
                     test_case,
@@ -592,6 +621,10 @@ async def run_test_case(
                     client,
                 )
                 if not ok:
+                    break
+                if _turns_have_terminating_assistant_tool_call(
+                    transcript[turn_before:], agent_tools
+                ):
                     break
                 agent_rounds += 1
 
@@ -613,6 +646,7 @@ async def run_test_case(
                 if max_agent_rounds is not None and agent_rounds >= max_agent_rounds:
                     break
 
+                turn_before = len(transcript)
                 ok = await _do_agent_turn(
                     transcript,
                     test_case,
@@ -627,6 +661,10 @@ async def run_test_case(
                     client,
                 )
                 if not ok:
+                    break
+                if _turns_have_terminating_assistant_tool_call(
+                    transcript[turn_before:], agent_tools
+                ):
                     break
                 agent_rounds += 1
 
@@ -650,7 +688,6 @@ async def run_test_case_with_evaluation(
     agent_system_prompt: str | None = None,
     agent_tools: list[dict[str, Any]] | None = None,
     cancel_event: asyncio.Event | None = None,
-    metrics_owner_id: uuid.UUID | None = None,
     platform_tool_executor_mode: Literal["mock", "live", "synthetic"] | None = None,
 ) -> tuple[TestCaseRunResult, JudgeVerdict | None]:
     """Run simulation then judge the transcript.
@@ -680,14 +717,30 @@ async def run_test_case_with_evaluation(
             agent_system_prompt=agent_system_prompt,
             agent_tools=agent_tools,
             judge_config=config.judge,
-            metrics_owner_id=metrics_owner_id,
         )
     )
     return run_out, verdict
 
 
+def _derive_test_case_passed(verdict: JudgeVerdict | None) -> bool:
+    """Compute whether a single test case execution passed.
+
+    Per CS-127: a test case passes when *all* of its expected_outcomes pass.
+    For legacy test cases without expected_outcomes (or when the judge could
+    not produce them), fall back to the judge's overall_score-based verdict.
+    """
+    if verdict is None:
+        return False
+    if verdict.expected_outcome_results:
+        return all(o.passed for o in verdict.expected_outcome_results)
+    return verdict.passed
+
+
 def compute_aggregate_metrics(
     results: list[TestCaseResult],
+    *,
+    metrics_pass_threshold: float | None = None,
+    cases_pass_threshold: float | None = None,
 ) -> AggregateMetrics:
     total_executions = len(results)
     if total_executions == 0:
@@ -698,6 +751,8 @@ def compute_aggregate_metrics(
             failed_count=0,
             error_count=0,
             pass_rate=0.0,
+            metrics_pass_threshold=metrics_pass_threshold,
+            cases_pass_threshold=cases_pass_threshold,
         )
 
     unique_test_case_count = len({r.test_case_id for r in results})
@@ -736,13 +791,29 @@ def compute_aggregate_metrics(
     ]
     total_cost_usd = sum(cost_values) if cost_values else None
 
+    pass_rate = passed / total_executions if total_executions > 0 else 0.0
+    weighted_metrics_score_pct = statistics.mean(scores) if scores else None
+    cases_pass_rate_pct = pass_rate * 100.0
+
+    metrics_passed: bool | None
+    if metrics_pass_threshold is not None and weighted_metrics_score_pct is not None:
+        metrics_passed = weighted_metrics_score_pct >= metrics_pass_threshold
+    else:
+        metrics_passed = None
+
+    cases_passed: bool | None
+    if cases_pass_threshold is not None:
+        cases_passed = cases_pass_rate_pct >= cases_pass_threshold
+    else:
+        cases_passed = None
+
     return AggregateMetrics(
         unique_test_case_count=unique_test_case_count,
         total_executions=total_executions,
         passed_count=passed,
         failed_count=failed,
         error_count=errored,
-        pass_rate=passed / total_executions if total_executions > 0 else 0.0,
+        pass_rate=pass_rate,
         latency_p50_ms=statistics.median(latencies) if latencies else None,
         latency_p95_ms=statistics.quantiles(latencies, n=20)[18]
         if len(latencies) >= 20
@@ -754,7 +825,13 @@ def compute_aggregate_metrics(
         total_agent_cost_usd=sum(agent_costs) if agent_costs else None,
         total_platform_cost_usd=sum(platform_costs) if platform_costs else None,
         total_estimated_cost_usd=total_cost_usd,
-        avg_overall_score=statistics.mean(scores) if scores else None,
+        avg_overall_score=weighted_metrics_score_pct,
+        weighted_metrics_score_pct=weighted_metrics_score_pct,
+        metrics_pass_threshold=metrics_pass_threshold,
+        metrics_passed=metrics_passed,
+        cases_pass_rate_pct=cases_pass_rate_pct,
+        cases_pass_threshold=cases_pass_threshold,
+        cases_passed=cases_passed,
     )
 
 
@@ -779,7 +856,6 @@ async def _execute_single_test_case(
     agent_tools: list[dict[str, Any]] | None,
     semaphore: asyncio.Semaphore,
     cancel_event: asyncio.Event,
-    metrics_owner_id: uuid.UUID | None = None,
     *,
     repetition_index: int = 0,
 ) -> TestCaseResult:
@@ -824,7 +900,6 @@ async def _execute_single_test_case(
                 agent_system_prompt=agent_system_prompt,
                 agent_tools=agent_tools,
                 cancel_event=cancel_event,
-                metrics_owner_id=metrics_owner_id,
             )
             transcript = run_out.transcript
             completed_at = datetime.now(UTC)
@@ -880,7 +955,7 @@ async def _execute_single_test_case(
                 agent_cost_usd=agent_cost or None,
                 platform_cost_usd=platform_cost or None,
                 estimated_cost_usd=total_cost or None,
-                passed=verdict.passed if verdict else False,
+                passed=_derive_test_case_passed(verdict),
                 started_at=started_at,
                 completed_at=completed_at,
             )
@@ -1051,7 +1126,6 @@ async def execute_run(run_id: uuid.UUID) -> None:
             agent_mode = _parse_run_agent_mode(run.agent_mode)
             agent_model = run.agent_model
             agent_provider = run.agent_provider
-            metrics_owner_id = run.created_by
 
         total_expanded = sum(entry.repetitions for entry in execution_plan)
         state.progress.total_test_cases = total_expanded
@@ -1075,7 +1149,6 @@ async def execute_run(run_id: uuid.UUID) -> None:
                 agent_tools=agent_tools,
                 semaphore=semaphore,
                 cancel_event=state.cancel_event,
-                metrics_owner_id=metrics_owner_id,
                 repetition_index=rep,
             )
             for entry in execution_plan
@@ -1097,7 +1170,11 @@ async def execute_run(run_id: uuid.UUID) -> None:
             else:
                 valid_results.append(r)
 
-        aggregate_metrics = compute_aggregate_metrics(valid_results)
+        aggregate_metrics = compute_aggregate_metrics(
+            valid_results,
+            metrics_pass_threshold=config.metrics_pass_threshold,
+            cases_pass_threshold=config.cases_pass_threshold,
+        )
 
         with Session(engine) as session:
             db_run = crud.get_run(session=session, run_id=run_id)

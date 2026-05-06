@@ -5,8 +5,8 @@ import { useState } from 'react';
 import { AddTestCaseAiDrawer } from '@/app/(app)/(agent)/_components/evals/test-cases/add-test-case-ai-drawer';
 import { AddTestCaseManualDrawer } from '@/app/(app)/(agent)/_components/evals/test-cases/add-test-case-manual-drawer';
 import { DeleteTestCasesDialog } from '@/app/(app)/(agent)/_components/evals/test-cases/delete-test-cases-dialog';
-import { getTestCasesColumns } from '@/app/(app)/(agent)/_components/evals/test-cases/get-test-cases-columns';
 import { TestCaseDetailDrawer } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-detail-drawer';
+import { TestCasesColumnHeaders } from '@/app/(app)/(agent)/_components/evals/test-cases/test-cases-column-headers';
 import { TestCasesFilterBar } from '@/app/(app)/(agent)/_components/evals/test-cases/test-cases-filter-bar';
 import { TestCasesList } from '@/app/(app)/(agent)/_components/evals/test-cases/test-cases-list';
 import { TestCasesToolbar } from '@/app/(app)/(agent)/_components/evals/test-cases/test-cases-toolbar';
@@ -43,14 +43,6 @@ export function TestCasesTable({ agentId, testCases }: TestCasesTableProps) {
         drawer.close();
       }
     },
-  });
-
-  const columns = getTestCasesColumns({
-    selectedIds: selection.selectedIds,
-    allSelected: selection.allSelected,
-    someSelected: selection.someSelected,
-    onToggleRow: selection.toggleRow,
-    onToggleAll: selection.toggleAll,
   });
 
   const requestBatchDelete = () => {
@@ -90,10 +82,15 @@ export function TestCasesTable({ agentId, testCases }: TestCasesTableProps) {
           onToggleGroupByTags={grouping.toggle}
         />
 
+        <TestCasesColumnHeaders
+          allSelected={selection.allSelected}
+          someSelected={selection.someSelected}
+          onToggleAll={selection.toggleAll}
+        />
+
         <div className="flex-1 overflow-auto">
           <TestCasesList
             groupByTags={grouping.groupByTags}
-            columns={columns}
             filtered={filtered}
             tagGroups={grouping.tagGroups}
             collapsedGroups={grouping.collapsedGroups}

@@ -1,4 +1,11 @@
-/** Which tool names lack a runnable `platform_config.implementation`. */
+/**
+ * Which tool names lack a runnable `platform_config.implementation`.
+ *
+ * Mirrors backend `validate_live_tool_snapshot`: tools flagged
+ * `platform_config.terminating` (e.g. predefined `end_call` / `transfer_call`)
+ * end the simulation loop without executing an implementation, so they're
+ * skipped here.
+ */
 export function missingLiveImplementations(agentTools: unknown[] | null | undefined): string[] {
   if (!agentTools?.length) {
     return [];
@@ -26,6 +33,8 @@ export function missingLiveImplementations(agentTools: unknown[] | null | undefi
       missing.push(name);
       continue;
     }
+
+    if ('terminating' in pc && pc.terminating === true) continue;
 
     const impl = (pc as { implementation?: unknown }).implementation;
     if (impl === null || impl === undefined) {

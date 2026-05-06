@@ -16,6 +16,7 @@ def create_environment(*, session: Session, data: EnvironmentCreate) -> Environm
         integration_id=data.integration_id,
         platform_agent_id=data.platform_agent_id,
         platform_agent_name=data.platform_agent_name,
+        eval_gate_eval_config_id=data.eval_gate_eval_config_id,
     )
     session.add(db_obj)
     session.commit()

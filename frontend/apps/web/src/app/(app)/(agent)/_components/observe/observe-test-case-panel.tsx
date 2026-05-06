@@ -1,9 +1,10 @@
 'use client';
 'use no memo';
 
-import { ChevronLeft, ChevronRight, Sparkles, X } from 'lucide-react';
+import { Sparkles, X } from 'lucide-react';
 import { useFormContext } from 'react-hook-form';
 
+import { Button } from '@workspace/ui/components/ui/button';
 import { Form } from '@workspace/ui/components/ui/form';
 
 import { TestCaseBasicInfoSection } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-basic-info-section';
@@ -11,6 +12,7 @@ import { TestCaseDrawerFooter } from '@/app/(app)/(agent)/_components/evals/test
 import { TestCaseEvaluationSection } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-evaluation-section';
 import { TestCaseUserSimulationSection } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-user-simulation-section';
 import { StatusBadge } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-drawer-primitives';
+import { BatchPagerNav } from '@/app/(app)/(agent)/_components/observe/batch-pager-nav';
 import { useTestCaseDetailForm } from '@/app/(app)/(agent)/_hooks/use-test-case-detail-form';
 
 import type { AgentFormValues } from '@/app/(app)/(agent)/_schemas/agent-form';
@@ -50,7 +52,6 @@ export function ObserveTestCasePanel({
   });
 
   const status = form.watch('status');
-  const showBatchNav = total !== undefined && total > 1;
 
   if (!testCase) return null;
 
@@ -63,46 +64,35 @@ export function ObserveTestCasePanel({
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {onOpenAiAssistant ? (
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={onOpenAiAssistant}
               title="AI Assistant"
-              className="flex h-7 items-center gap-1.5 rounded-md border border-violet-500/25 bg-violet-500/10 px-2 text-[11px] text-violet-300 transition-colors hover:bg-violet-500/20"
+              className="h-7 gap-1.5 rounded-md border-violet-500/25 bg-violet-500/10 px-2 text-[11px] font-normal text-violet-300 hover:bg-violet-500/20 hover:text-violet-300 [&_svg]:size-3"
             >
-              <Sparkles className="h-3 w-3" />
+              <Sparkles />
               AI Assistant
-            </button>
+            </Button>
           ) : null}
-          {showBatchNav ? (
-            <div className="flex items-center gap-0.5 rounded-md border border-border bg-accent/40 px-1 py-0.5">
-              <button
-                type="button"
-                onClick={onPrev}
-                disabled={!onPrev}
-                className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />
-              </button>
-              <span className="min-w-[34px] px-1 text-center text-[11px] tabular-nums text-foreground">
-                {position} / {total}
-              </span>
-              <button
-                type="button"
-                onClick={onNext}
-                disabled={!onNext}
-                className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
-              >
-                <ChevronRight className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ) : null}
-          <button
+          <BatchPagerNav
+            current={position ?? 0}
+            total={total ?? 0}
+            canPrev={Boolean(onPrev)}
+            canNext={Boolean(onNext)}
+            onPrev={onPrev}
+            onNext={onNext}
+            prevLabel="Previous test case"
+            nextLabel="Next test case"
+          />
+          <Button
             type="button"
+            variant="ghost"
             onClick={onClose}
-            className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
+            className="h-auto w-auto rounded p-1 text-muted-foreground hover:bg-transparent hover:text-foreground"
           >
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       </div>
 

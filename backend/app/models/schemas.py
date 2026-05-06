@@ -94,6 +94,17 @@ class ToolPlatformConfig(BaseModel):
     Mock vs live for a run is decided by ``RunConfig.tool_mode``, not persisted here.
     """
 
+    predefined: bool = Field(
+        default=False,
+        description="True when this tool is supplied by the platform catalog (GET /config/predefined-tools).",
+    )
+    terminating: bool = Field(
+        default=False,
+        description=(
+            "When true, a tool call with this name ends the simulation turn loop "
+            "successfully without executing an implementation (voice-style hangup / transfer)."
+        ),
+    )
     implementation: ToolImplementation | None = Field(
         default=None,
         description=(
@@ -101,6 +112,13 @@ class ToolPlatformConfig(BaseModel):
             "``tool_mode=live``. Omitted when the tool definition has no runnable hook."
         ),
     )
+
+
+class PredefinedToolsPublic(BaseModel):
+    """Predefined tool entries; each element matches one item in ``Agent.tools`` JSONB."""
+
+    data: list[dict[str, Any]]
+    count: int
 
 
 # ── Run nested types ───────────────────────────────────────────────
@@ -208,6 +226,26 @@ class RunConfig(BaseModel):
     tool_mode: Literal["mock", "live"] = Field(
         default="mock",
         description="Global tool execution mode: mock uses test-case mock_responses, live executes real implementations",
+    )
+    metrics_pass_threshold: float = Field(
+        default=80.0,
+        ge=0.0,
+        le=100.0,
+        description=(
+            "Run-level threshold (%) for the weighted-average metric score across all "
+            "test case executions. The run's metrics dimension passes when the average "
+            "score is at or above this threshold."
+        ),
+    )
+    cases_pass_threshold: float = Field(
+        default=100.0,
+        ge=0.0,
+        le=100.0,
+        description=(
+            "Run-level threshold (%) for the fraction of test cases that pass. A test "
+            "case passes when all of its expected_outcomes pass (or, for legacy test "
+            "cases without expected_outcomes, when the judge verdict passes)."
+        ),
     )
     judge: JudgeConfig | None = Field(
         default=None,
@@ -413,6 +451,43 @@ class AggregateMetrics(BaseModel):
     avg_overall_score: float | None = Field(
         default=None,
         description="Mean judge overall score across all test cases",
+    )
+    weighted_metrics_score_pct: float | None = Field(
+        default=None,
+        description=(
+            "Run-level metrics score (0-100): mean of per-test-case weighted "
+            "overall_score across results that have a verdict. None when no result "
+            "produced a verdict."
+        ),
+    )
+    metrics_pass_threshold: float | None = Field(
+        default=None,
+        description="Snapshot of metrics_pass_threshold used for this run (%)",
+    )
+    metrics_passed: bool | None = Field(
+        default=None,
+        description=(
+            "True when weighted_metrics_score_pct >= metrics_pass_threshold. "
+            "None when threshold or score is unavailable."
+        ),
+    )
+    cases_pass_rate_pct: float | None = Field(
+        default=None,
+        description=(
+            "Cases dimension score (0-100): pass_rate * 100. Errored test cases "
+            "count as not-passed in the denominator."
+        ),
+    )
+    cases_pass_threshold: float | None = Field(
+        default=None,
+        description="Snapshot of cases_pass_threshold used for this run (%)",
+    )
+    cases_passed: bool | None = Field(
+        default=None,
+        description=(
+            "True when cases_pass_rate_pct >= cases_pass_threshold. None when "
+            "threshold or rate is unavailable."
+        ),
     )
 
 

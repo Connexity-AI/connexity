@@ -180,6 +180,7 @@ from app.models.schemas import (  # noqa: F401
     MetricScore,
     MetricSelection,
     MockResponse,
+    PredefinedToolsPublic,
     PythonImplementation,
     RunConfig,
     TestCaseExecution,

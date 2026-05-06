@@ -3,7 +3,7 @@ import uuid
 from datetime import UTC, datetime
 
 from pydantic import field_validator
-from sqlalchemy import Column, Text, UniqueConstraint, text
+from sqlalchemy import Column, Text, text
 from sqlalchemy import Enum as SAEnum
 from sqlmodel import Field, SQLModel
 
@@ -13,7 +13,7 @@ _SLUG_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 
 
 class CustomMetricBase(SQLModel):
-    name: str = Field(max_length=255, description="Unique slug per owner (snake_case)")
+    name: str = Field(max_length=255, description="Globally-unique slug (snake_case)")
     display_name: str = Field(max_length=255)
     description: str = Field(sa_column=Column(Text, nullable=False))
     tier: MetricTier = Field(
@@ -27,7 +27,7 @@ class CustomMetricBase(SQLModel):
             nullable=False,
         )
     )
-    default_weight: float = Field(ge=0.0)
+    default_weight: float = Field(default=1.0, ge=0.0)
     score_type: ScoreType = Field(
         sa_column=Column(
             SAEnum(
@@ -41,6 +41,14 @@ class CustomMetricBase(SQLModel):
     )
     rubric: str = Field(sa_column=Column(Text, nullable=False))
     include_in_defaults: bool = Field(default=False)
+    is_predefined: bool = Field(
+        default=False,
+        description="True for built-in metrics seeded from the registry; False for user-created metrics.",
+    )
+    is_draft: bool = Field(
+        default=False,
+        description="When True, metric is hidden from eval-config selection (acts as the inverse of the UI 'active' toggle).",
+    )
 
     @field_validator("name")
     @classmethod
@@ -56,12 +64,12 @@ class CustomMetricBase(SQLModel):
 
 class CustomMetric(CustomMetricBase, table=True):
     __tablename__ = "custom_metric"
-    __table_args__ = (
-        UniqueConstraint("created_by", "name", name="uq_custom_metric_owner_name"),
-    )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    created_by: uuid.UUID = Field(foreign_key="user.id", index=True)
+    # NULL for predefined (system-seeded) metrics that have no human owner.
+    created_by: uuid.UUID | None = Field(
+        default=None, foreign_key="user.id", index=True, nullable=True
+    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"server_default": text("now()")},
@@ -73,6 +81,7 @@ class CustomMetric(CustomMetricBase, table=True):
             "onupdate": lambda: datetime.now(UTC),
         },
     )
+    deleted_at: datetime | None = Field(default=None, index=True)
 
 
 class CustomMetricCreate(CustomMetricBase):
@@ -88,6 +97,7 @@ class CustomMetricUpdate(SQLModel):
     score_type: ScoreType | None = None
     rubric: str | None = None
     include_in_defaults: bool | None = None
+    is_draft: bool | None = None
 
     @field_validator("name")
     @classmethod
@@ -105,11 +115,11 @@ class CustomMetricUpdate(SQLModel):
 
 class CustomMetricPublic(CustomMetricBase):
     id: uuid.UUID
-    created_by: uuid.UUID
+    created_by: uuid.UUID | None = None
     created_at: datetime
     updated_at: datetime
 
 
 class CustomMetricsPublic(SQLModel):
     data: list[CustomMetricPublic] = Field(description="List of custom metrics")
-    count: int = Field(description="Total number of custom metrics for the user")
+    count: int = Field(description="Total number of custom metrics")

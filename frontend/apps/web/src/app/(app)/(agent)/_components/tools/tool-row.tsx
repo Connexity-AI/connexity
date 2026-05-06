@@ -26,6 +26,7 @@ export function ToolRow({
   url,
   method,
   paramCount,
+  isDefault,
   onClick,
 }: {
   name: string;
@@ -33,6 +34,7 @@ export function ToolRow({
   url: string;
   method: HttpMethod;
   paramCount: number;
+  isDefault?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -47,7 +49,7 @@ export function ToolRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
           <span className="text-sm text-foreground font-mono truncate">{name || 'Untitled'}</span>
-          {url && (
+          {!isDefault && url && (
             <span
               className={cn(
                 'text-[10px] px-1.5 py-0.5 rounded border font-mono shrink-0',
@@ -65,7 +67,7 @@ export function ToolRow({
       </div>
 
       <div className="flex items-center gap-3 shrink-0">
-        {url && (
+        {!isDefault && url && (
           <span className="hidden group-hover:flex items-center gap-1 text-[10px] text-muted-foreground/40 max-w-45">
             <Globe className="w-3 h-3 shrink-0" />
             <span className="truncate font-mono">{url.replace(/^https?:\/\//, '')}</span>
