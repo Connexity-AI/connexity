@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCircle, ShieldCheck, Trash2 } from 'lucide-react';
+import { AlertCircle, Pencil, ShieldCheck, Trash2 } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/ui/button';
 import {
@@ -22,9 +22,10 @@ import type { FC } from 'react';
 interface Props {
   environment: EnvironmentPublic;
   agentId: string;
+  onEdit: (environment: EnvironmentPublic) => void;
 }
 
-export const EnvironmentCard: FC<Props> = ({ environment, agentId }) => {
+export const EnvironmentCard: FC<Props> = ({ environment, agentId, onEdit }) => {
   const c = useEnvironmentCard({ environment, agentId });
   const { Icon } = c.button;
   const isWebhook = environment.platform === 'webhook';
@@ -53,13 +54,22 @@ export const EnvironmentCard: FC<Props> = ({ environment, agentId }) => {
               </span>
             )}
           </div>
-          <button
-            className="text-muted-foreground/40 hover:text-red-400 transition-colors cursor-pointer"
-            title="Remove environment"
-            onClick={() => c.setDeleteOpen(true)}
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              className="text-muted-foreground/40 hover:text-foreground transition-colors cursor-pointer"
+              title="Edit environment"
+              onClick={() => onEdit(environment)}
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <button
+              className="text-muted-foreground/40 hover:text-red-400 transition-colors cursor-pointer"
+              title="Remove environment"
+              onClick={() => c.setDeleteOpen(true)}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
         {/* destination details */}

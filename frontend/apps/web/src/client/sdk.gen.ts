@@ -114,6 +114,9 @@ import type {
   EnvironmentsListEnvironmentsData,
   EnvironmentsListEnvironmentsErrors,
   EnvironmentsListEnvironmentsResponses,
+  EnvironmentsUpdateEnvironmentData,
+  EnvironmentsUpdateEnvironmentErrors,
+  EnvironmentsUpdateEnvironmentResponses,
   EvalConfigsAddTestCasesToConfigData,
   EvalConfigsAddTestCasesToConfigErrors,
   EvalConfigsAddTestCasesToConfigResponses,
@@ -2583,6 +2586,34 @@ export class EnvironmentsService {
       ],
       url: '/api/v1/environments/{environment_id}',
       ...options,
+    });
+  }
+
+  /**
+   * Update Environment
+   */
+  public static updateEnvironment<ThrowOnError extends boolean = false>(
+    options: Options<EnvironmentsUpdateEnvironmentData, ThrowOnError>
+  ) {
+    return (options.client ?? client).patch<
+      EnvironmentsUpdateEnvironmentResponses,
+      EnvironmentsUpdateEnvironmentErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/environments/{environment_id}',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
     });
   }
 

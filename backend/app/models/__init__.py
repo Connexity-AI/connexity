@@ -115,6 +115,7 @@ from app.models.environment import (  # noqa: F401
     EnvironmentCreate,
     EnvironmentPublic,
     EnvironmentsPublic,
+    EnvironmentUpdate,
 )
 
 # ── Eval config ────────────────────────────────────────────────────

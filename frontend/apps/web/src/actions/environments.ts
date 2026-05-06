@@ -8,6 +8,7 @@ import type {
   DeploymentsPublic,
   EnvironmentCreate,
   EnvironmentPublic,
+  EnvironmentUpdate,
   EnvironmentsPublic,
   RetellAgentVersion,
 } from '@/client/types.gen';
@@ -17,6 +18,18 @@ export const createEnvironment = async (
   body: EnvironmentCreate
 ): Promise<ApiResult<EnvironmentPublic>> => {
   const apiResponse = await EnvironmentsService.createEnvironment({ body });
+  const { response: _, ...result } = apiResponse;
+  return result;
+};
+
+export const updateEnvironment = async (
+  environmentId: string,
+  body: EnvironmentUpdate
+): Promise<ApiResult<EnvironmentPublic>> => {
+  const apiResponse = await EnvironmentsService.updateEnvironment({
+    path: { environment_id: environmentId },
+    body,
+  });
   const { response: _, ...result } = apiResponse;
   return result;
 };

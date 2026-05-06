@@ -12,17 +12,20 @@ import { useIntegrations } from '@/app/(app)/(agent)/_hooks/use-integrations';
 import { AddEnvironmentForm } from './add-environment-form';
 
 import type { FC } from 'react';
+import type { EnvironmentPublic } from '@/client/types.gen';
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  environment: EnvironmentPublic | null;
 }
 
-export const AddEnvironmentDialog: FC<Props> = ({ open, onOpenChange }) => {
+export const AddEnvironmentDialog: FC<Props> = ({ open, onOpenChange, environment }) => {
   const { agentId } = useParams<{ agentId: string }>();
   const { data: integrationsData } = useIntegrations();
 
   const retellIntegrations = integrationsData.data.filter((i) => i.provider === 'retell');
+  const title = environment === null ? 'Add environment' : 'Edit environment';
 
   const close = () => onOpenChange(false);
 
@@ -30,13 +33,14 @@ export const AddEnvironmentDialog: FC<Props> = ({ open, onOpenChange }) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-w-lg flex flex-col max-h-[90vh] p-6 gap-4">
         <DialogHeader className="shrink-0">
-          <DialogTitle className="text-lg leading-none font-semibold">Add environment</DialogTitle>
+          <DialogTitle className="text-lg leading-none font-semibold">{title}</DialogTitle>
         </DialogHeader>
 
         {open && (
           <AddEnvironmentForm
             agentId={agentId}
             integrations={retellIntegrations}
+            environment={environment}
             onCancel={close}
             onSuccess={close}
           />

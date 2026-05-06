@@ -2,6 +2,7 @@ import uuid
 from datetime import UTC, datetime
 
 from pydantic import model_validator
+from pydantic.json_schema import SkipJsonSchema
 from sqlalchemy import text
 from sqlmodel import Field, SQLModel
 
@@ -110,6 +111,32 @@ class EnvironmentCreate(EnvironmentBase):
             platform_agent_id=self.platform_agent_id,
             endpoint_url=self.endpoint_url,
         )
+        return self
+
+
+class EnvironmentUpdate(SQLModel):
+    name: str | SkipJsonSchema[None] = Field(default=None, max_length=255)
+    platform: Platform | SkipJsonSchema[None] = None
+    integration_id: uuid.UUID | None = None
+    platform_agent_id: str | None = None
+    platform_agent_name: str | None = None
+    endpoint_url: str | None = Field(default=None, max_length=2048)
+    eval_gate_eval_config_id: uuid.UUID | None = Field(
+        default=None,
+        description=(
+            "Optional: gate deploys on a passing run of this eval config for "
+            "the requested agent version."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def validate_required_update_fields(self) -> "EnvironmentUpdate":
+        if "name" in self.model_fields_set and self.name is None:
+            msg = "name cannot be null"
+            raise ValueError(msg)
+        if "platform" in self.model_fields_set and self.platform is None:
+            msg = "platform cannot be null"
+            raise ValueError(msg)
         return self
 
 

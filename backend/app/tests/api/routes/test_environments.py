@@ -261,6 +261,118 @@ def test_create_environment_rejects_gate_for_other_agent(
     assert r.status_code == 422
 
 
+def test_update_environment_changes_configuration_fields(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    db: Session,
+) -> None:
+    agent, _ = _make_owned_agent(db)
+    integration = _make_integration(db)
+    env = crud.create_environment(
+        session=db,
+        data=EnvironmentCreate(
+            name="prod",
+            platform=Platform.RETELL,
+            agent_id=agent.id,
+            integration_id=integration.id,
+            platform_agent_id="ret_a_old",
+            platform_agent_name="Old Retell Agent",
+        ),
+    )
+    env.current_version_number = 3
+    env.current_version_name = "Guardrail tightening"
+    db.add(env)
+    db.commit()
+
+    r = client.patch(
+        f"{settings.API_V1_STR}/environments/{env.id}",
+        json={
+            "name": "Internal Webhook",
+            "platform": "webhook",
+            "integration_id": None,
+            "platform_agent_id": None,
+            "platform_agent_name": None,
+            "endpoint_url": "https://example.com/hooks/new-deploy",
+            "eval_gate_eval_config_id": None,
+        },
+        cookies=auth_cookies,
+    )
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["name"] == "Internal Webhook"
+    assert body["platform"] == "webhook"
+    assert body["integration_id"] is None
+    assert body["integration_name"] is None
+    assert body["platform_agent_id"] is None
+    assert body["platform_agent_name"] is None
+    assert body["endpoint_url"] == "https://example.com/hooks/new-deploy"
+    assert body["current_version_number"] == 3
+    assert body["current_version_name"] == "Guardrail tightening"
+
+
+def test_update_environment_rejects_gate_for_other_agent(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    db: Session,
+) -> None:
+    from app.tests.utils.eval import create_test_eval_config
+
+    agent, _ = _make_owned_agent(db)
+    other_agent, _ = _make_owned_agent(db)
+    integration = _make_integration(db)
+    foreign_cfg = create_test_eval_config(db, agent_id=other_agent.id)
+    env = crud.create_environment(
+        session=db,
+        data=EnvironmentCreate(
+            name="prod",
+            platform=Platform.RETELL,
+            agent_id=agent.id,
+            integration_id=integration.id,
+            platform_agent_id="ret_a_old",
+            platform_agent_name="Old Retell Agent",
+        ),
+    )
+
+    r = client.patch(
+        f"{settings.API_V1_STR}/environments/{env.id}",
+        json={
+            "eval_gate_eval_config_id": str(foreign_cfg.id),
+        },
+        cookies=auth_cookies,
+    )
+
+    assert r.status_code == 422
+
+
+def test_update_environment_rejects_null_required_fields(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    db: Session,
+) -> None:
+    agent, _ = _make_owned_agent(db)
+    integration = _make_integration(db)
+    env = crud.create_environment(
+        session=db,
+        data=EnvironmentCreate(
+            name="prod",
+            platform=Platform.RETELL,
+            agent_id=agent.id,
+            integration_id=integration.id,
+            platform_agent_id="ret_a_old",
+            platform_agent_name="Old Retell Agent",
+        ),
+    )
+
+    r = client.patch(
+        f"{settings.API_V1_STR}/environments/{env.id}",
+        json={"name": None},
+        cookies=auth_cookies,
+    )
+
+    assert r.status_code == 422
+
+
 def test_deploy_blocked_by_gate_when_no_run_for_version(
     client: TestClient,
     auth_cookies: dict[str, str],

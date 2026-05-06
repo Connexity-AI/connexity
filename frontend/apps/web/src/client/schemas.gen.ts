@@ -2401,6 +2401,81 @@ export const EnvironmentPublicSchema = {
   title: 'EnvironmentPublic',
 } as const;
 
+export const EnvironmentUpdateSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Name',
+    },
+    platform: {
+      $ref: '#/components/schemas/Platform',
+    },
+    integration_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Integration Id',
+    },
+    platform_agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Id',
+    },
+    platform_agent_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Name',
+    },
+    endpoint_url: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 2048,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Endpoint Url',
+    },
+    eval_gate_eval_config_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Eval Gate Eval Config Id',
+      description:
+        'Optional: gate deploys on a passing run of this eval config for the requested agent version.',
+    },
+  },
+  type: 'object',
+  title: 'EnvironmentUpdate',
+} as const;
+
 export const EnvironmentsPublicSchema = {
   properties: {
     data: {

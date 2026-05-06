@@ -13,9 +13,10 @@ interface Props {
   environments: EnvironmentPublic[];
   agentId: string;
   onAdd: () => void;
+  onEdit: (environment: EnvironmentPublic) => void;
 }
 
-export const EnvironmentsList: FC<Props> = ({ environments, agentId, onAdd }) => {
+export const EnvironmentsList: FC<Props> = ({ environments, agentId, onAdd, onEdit }) => {
   if (environments.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-border flex flex-col items-center justify-center py-12 gap-3">
@@ -36,7 +37,7 @@ export const EnvironmentsList: FC<Props> = ({ environments, agentId, onAdd }) =>
   return (
     <div className="space-y-3">
       {environments.map((env) => (
-        <EnvironmentCard key={env.id} environment={env} agentId={agentId} />
+        <EnvironmentCard key={env.id} environment={env} agentId={agentId} onEdit={onEdit} />
       ))}
     </div>
   );

@@ -1,40 +1,50 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { useCreateEnvironment } from '@/app/(app)/(agent)/_hooks/use-create-environment';
+import { useUpdateEnvironment } from '@/app/(app)/(agent)/_hooks/use-update-environment';
 import {
   addEnvironmentFormSchema,
   type AddEnvironmentFormValues,
 } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_components/add-environment-form-schema';
+import {
+  getEnvironmentCreateBody,
+  getEnvironmentFormValues,
+  getEnvironmentUpdateBody,
+} from '@/app/(app)/(agent)/agents/[agentId]/deploy/_utils/environment-form-values';
 
-const DEFAULT_VALUES: AddEnvironmentFormValues = {
-  name: '',
-  platform: 'retell',
-  integration_id: null,
-  platform_agent_id: null,
-  platform_agent_name: null,
-  endpoint_url: null,
-  eval_gate_enabled: false,
-  eval_gate_eval_config_id: null,
-};
+import type { EnvironmentPublic } from '@/client/types.gen';
 
 interface UseAddEnvironmentFormOptions {
   agentId: string;
+  environment: EnvironmentPublic | null;
   onSuccess: () => void;
 }
 
-export function useAddEnvironmentForm({ agentId, onSuccess }: UseAddEnvironmentFormOptions) {
-  const { mutateAsync, isPending, error } = useCreateEnvironment(agentId);
+export function useAddEnvironmentForm({
+  agentId,
+  environment,
+  onSuccess,
+}: UseAddEnvironmentFormOptions) {
+  const createEnvironment = useCreateEnvironment(agentId);
+  const updateEnvironment = useUpdateEnvironment(agentId);
 
   const form = useForm<AddEnvironmentFormValues>({
     resolver: zodResolver(addEnvironmentFormSchema),
-    defaultValues: DEFAULT_VALUES,
+    defaultValues: getEnvironmentFormValues(environment),
   });
+
+  useEffect(() => {
+    form.reset(getEnvironmentFormValues(environment));
+  }, [environment, form]);
 
   const integrationId = form.watch('integration_id');
   const platform = form.watch('platform');
+  const isPending = createEnvironment.isPending || updateEnvironment.isPending;
+  const error = createEnvironment.error ?? updateEnvironment.error;
 
   const handlePlatformChange = (value: AddEnvironmentFormValues['platform']) => {
     form.setValue('platform', value);
@@ -60,24 +70,17 @@ export function useAddEnvironmentForm({ agentId, onSuccess }: UseAddEnvironmentF
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      await mutateAsync({
-        name: values.name,
-        platform: values.platform,
-        agent_id: agentId,
-        integration_id: values.integration_id,
-        platform_agent_id: values.platform_agent_id,
-        platform_agent_name:
-          values.platform === 'retell'
-            ? (values.platform_agent_name ?? values.platform_agent_id)
-            : values.platform_agent_name,
-        endpoint_url: values.endpoint_url,
-        eval_gate_eval_config_id: values.eval_gate_enabled
-          ? values.eval_gate_eval_config_id
-          : null,
-      });
+      if (environment === null) {
+        await createEnvironment.mutateAsync(getEnvironmentCreateBody(values, agentId));
+      } else {
+        await updateEnvironment.mutateAsync({
+          environmentId: environment.id,
+          body: getEnvironmentUpdateBody(values),
+        });
+      }
       onSuccess();
     } catch {
-      // Error surfaced via `error` and rendered by the form.
+      // error surfaced via `error` and rendered by the form.
     }
   });
 

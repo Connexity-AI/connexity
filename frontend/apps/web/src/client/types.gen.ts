@@ -1376,6 +1376,39 @@ export type EnvironmentPublic = {
 };
 
 /**
+ * EnvironmentUpdate
+ */
+export type EnvironmentUpdate = {
+  /**
+   * Name
+   */
+  name?: string;
+  platform?: Platform;
+  /**
+   * Integration Id
+   */
+  integration_id?: string | null;
+  /**
+   * Platform Agent Id
+   */
+  platform_agent_id?: string | null;
+  /**
+   * Platform Agent Name
+   */
+  platform_agent_name?: string | null;
+  /**
+   * Endpoint Url
+   */
+  endpoint_url?: string | null;
+  /**
+   * Eval Gate Eval Config Id
+   *
+   * Optional: gate deploys on a passing run of this eval config for the requested agent version.
+   */
+  eval_gate_eval_config_id?: string | null;
+};
+
+/**
  * EnvironmentsPublic
  */
 export type EnvironmentsPublic = {
@@ -9509,6 +9542,62 @@ export type EnvironmentsDeleteEnvironmentResponses = {
 
 export type EnvironmentsDeleteEnvironmentResponse =
   EnvironmentsDeleteEnvironmentResponses[keyof EnvironmentsDeleteEnvironmentResponses];
+
+export type EnvironmentsUpdateEnvironmentData = {
+  body: EnvironmentUpdate;
+  path: {
+    /**
+     * Environment Id
+     */
+    environment_id: string;
+  };
+  query?: never;
+  url: '/api/v1/environments/{environment_id}';
+};
+
+export type EnvironmentsUpdateEnvironmentErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type EnvironmentsUpdateEnvironmentError =
+  EnvironmentsUpdateEnvironmentErrors[keyof EnvironmentsUpdateEnvironmentErrors];
+
+export type EnvironmentsUpdateEnvironmentResponses = {
+  /**
+   * Successful Response
+   */
+  200: EnvironmentPublic;
+};
+
+export type EnvironmentsUpdateEnvironmentResponse =
+  EnvironmentsUpdateEnvironmentResponses[keyof EnvironmentsUpdateEnvironmentResponses];
 
 export type EnvironmentsDeployEnvironmentData = {
   body: DeploymentCreate;

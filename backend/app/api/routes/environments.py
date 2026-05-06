@@ -14,9 +14,11 @@ from app.models import (
     EnvironmentCreate,
     EnvironmentPublic,
     EnvironmentsPublic,
+    EnvironmentUpdate,
     Message,
 )
 from app.models.enums import Platform
+from app.models.environment import validate_environment_platform_fields
 from app.models.schemas import AggregateMetrics
 from app.services.retell import (
     RetellAgentVersion,
@@ -72,6 +74,32 @@ def _deployment_to_public(
     )
 
 
+def _validate_gate_config(
+    session: SessionDep, *, agent_id: uuid.UUID, eval_config_id: uuid.UUID | None
+) -> None:
+    if eval_config_id is None:
+        return
+    gate_cfg = crud.get_eval_config(session=session, eval_config_id=eval_config_id)
+    if not gate_cfg or gate_cfg.agent_id != agent_id:
+        raise HTTPException(
+            status_code=422,
+            detail="Eval gate config not found or belongs to a different agent",
+        )
+
+
+def _get_environment_integration_name(
+    session: SessionDep, *, platform: Platform, integration_id: uuid.UUID | None
+) -> str | None:
+    if platform != Platform.RETELL:
+        return None
+    if integration_id is None:
+        raise HTTPException(status_code=422, detail="Integration is required")
+    integration = crud.get_integration(session=session, integration_id=integration_id)
+    if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    return integration.name
+
+
 @router.post("/", response_model=EnvironmentPublic)
 def create_environment(
     session: SessionDep,
@@ -80,27 +108,16 @@ def create_environment(
     agent = crud.get_agent(session=session, agent_id=environment_in.agent_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
-    integration_name: str | None = None
-    if environment_in.platform == Platform.RETELL:
-        integration_id = environment_in.integration_id
-        if integration_id is None:
-            raise HTTPException(status_code=422, detail="Integration is required")
-        integration = crud.get_integration(
-            session=session,
-            integration_id=integration_id,
-        )
-        if not integration:
-            raise HTTPException(status_code=404, detail="Integration not found")
-        integration_name = integration.name
-    if environment_in.eval_gate_eval_config_id is not None:
-        gate_cfg = crud.get_eval_config(
-            session=session, eval_config_id=environment_in.eval_gate_eval_config_id
-        )
-        if not gate_cfg or gate_cfg.agent_id != environment_in.agent_id:
-            raise HTTPException(
-                status_code=422,
-                detail="Eval gate config not found or belongs to a different agent",
-            )
+    integration_name = _get_environment_integration_name(
+        session=session,
+        platform=environment_in.platform,
+        integration_id=environment_in.integration_id,
+    )
+    _validate_gate_config(
+        session=session,
+        agent_id=environment_in.agent_id,
+        eval_config_id=environment_in.eval_gate_eval_config_id,
+    )
     db_obj = crud.create_environment(session=session, data=environment_in)
     return _to_public(db_obj, integration_name)
 
@@ -118,6 +135,53 @@ def list_environments(
         data=[_to_public(env, name) for env, name in rows],
         count=len(rows),
     )
+
+
+@router.patch("/{environment_id}", response_model=EnvironmentPublic)
+def update_environment(
+    session: SessionDep,
+    environment_id: uuid.UUID,
+    environment_in: EnvironmentUpdate,
+) -> EnvironmentPublic:
+    env = crud.get_environment(session=session, environment_id=environment_id)
+    if not env:
+        raise HTTPException(status_code=404, detail="Environment not found")
+
+    update_data = environment_in.model_dump(exclude_unset=True)
+    platform = update_data.get("platform", env.platform)
+    integration_id = update_data.get("integration_id", env.integration_id)
+    platform_agent_id = update_data.get("platform_agent_id", env.platform_agent_id)
+    endpoint_url = update_data.get("endpoint_url", env.endpoint_url)
+
+    try:
+        validate_environment_platform_fields(
+            platform=platform,
+            integration_id=integration_id,
+            platform_agent_id=platform_agent_id,
+            endpoint_url=endpoint_url,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    integration_name = _get_environment_integration_name(
+        session=session,
+        platform=platform,
+        integration_id=integration_id,
+    )
+    _validate_gate_config(
+        session=session,
+        agent_id=env.agent_id,
+        eval_config_id=update_data.get(
+            "eval_gate_eval_config_id", env.eval_gate_eval_config_id
+        ),
+    )
+
+    updated = crud.update_environment(
+        session=session,
+        db_environment=env,
+        data=environment_in,
+    )
+    return _to_public(updated, integration_name)
 
 
 @router.delete("/{environment_id}", response_model=Message)
@@ -259,7 +323,9 @@ async def deploy_environment(
                     if gate_metrics is not None
                     else None
                 ),
-                "cases_passed": gate_metrics.passed_count if gate_metrics is not None else None,
+                "cases_passed": gate_metrics.passed_count
+                if gate_metrics is not None
+                else None,
                 "cases_total": (
                     gate_metrics.total_executions if gate_metrics is not None else None
                 ),

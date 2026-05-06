@@ -4,7 +4,7 @@ from sqlalchemy import func
 from sqlmodel import Session, col, select
 
 from app.models.deployment import Deployment
-from app.models.environment import Environment, EnvironmentCreate
+from app.models.environment import Environment, EnvironmentCreate, EnvironmentUpdate
 from app.models.integration import Integration
 
 
@@ -29,6 +29,17 @@ def get_environment(
     *, session: Session, environment_id: uuid.UUID
 ) -> Environment | None:
     return session.get(Environment, environment_id)
+
+
+def update_environment(
+    *, session: Session, db_environment: Environment, data: EnvironmentUpdate
+) -> Environment:
+    update_data = data.model_dump(exclude_unset=True)
+    db_environment.sqlmodel_update(update_data)
+    session.add(db_environment)
+    session.commit()
+    session.refresh(db_environment)
+    return db_environment
 
 
 def list_environments_by_agent(

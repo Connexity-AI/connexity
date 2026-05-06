@@ -52,6 +52,7 @@ from app.crud.environments import (  # noqa: F401
     delete_environment,
     get_environment,
     list_environments_by_agent,
+    update_environment,
 )
 from app.crud.eval_config import (  # noqa: F401
     add_test_cases_to_config,

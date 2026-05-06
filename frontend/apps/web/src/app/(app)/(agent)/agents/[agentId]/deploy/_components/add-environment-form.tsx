@@ -29,16 +29,23 @@ import { AgentSelectField } from './agent-select-field';
 import { EvalGateFormSection } from './eval-gate-form-section';
 
 import type { FC } from 'react';
-import type { IntegrationPublic } from '@/client/types.gen';
+import type { EnvironmentPublic, IntegrationPublic } from '@/client/types.gen';
 
 interface Props {
   agentId: string;
   integrations: IntegrationPublic[];
+  environment: EnvironmentPublic | null;
   onCancel: () => void;
   onSuccess: () => void;
 }
 
-export const AddEnvironmentForm: FC<Props> = ({ agentId, integrations, onCancel, onSuccess }) => {
+export const AddEnvironmentForm: FC<Props> = ({
+  agentId,
+  integrations,
+  environment,
+  onCancel,
+  onSuccess,
+}) => {
   const {
     form,
     onSubmit,
@@ -49,8 +56,10 @@ export const AddEnvironmentForm: FC<Props> = ({ agentId, integrations, onCancel,
     handleAgentChange,
     isPending,
     error,
-  } = useAddEnvironmentForm({ agentId, onSuccess });
+  } = useAddEnvironmentForm({ agentId, environment, onSuccess });
   const [payloadOpen, setPayloadOpen] = useState(false);
+  const isEditing = environment !== null;
+  const submitLabel = isEditing ? 'Save changes' : 'Add environment';
   const name = form.watch('name');
   const payloadPreview = useMemo(
     () => getWebhookPayloadPreview({ environmentName: name }),
@@ -262,7 +271,7 @@ export const AddEnvironmentForm: FC<Props> = ({ agentId, integrations, onCancel,
                 Saving…
               </>
             ) : (
-              'Add environment'
+              submitLabel
             )}
           </Button>
         </div>
