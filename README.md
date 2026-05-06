@@ -61,13 +61,15 @@ Connexity is built around a single closed loop for developing voice AI agents �
 
 - **Test case generation** — Connexity reads the agent's own system prompt, tool definitions, and production conversations to generate diverse multi-turn test cases. Each generated case ships with a persona, an opening message, expected outcomes for the judge, and the tool calls the agent is expected to make. You can also use AI to draft or refine individual test cases from natural-language instructions.
 
-- **Agent evaluation** — run multi-turn simulations against your agent, scored by an LLM-as-judge with custom metrics, full transcripts, tool-call traces, and per-turn cost / token accounting.
+- **Agent evaluation** — run multi-turn simulations against your agent, scored by an LLM-as-judge with custom metrics, full transcripts, tool-call traces, and per-turn cost / token accounting. Every run finishes with a clear pass/fail verdict gated on two configurable thresholds — a weighted-metrics pass rate and a per-test-case pass rate (see [scoring & thresholds](./docs/scoring-and-thresholds.md)).
+
+- **Run-to-run comparison** — pick any two completed runs and Connexity computes a regression verdict across per-metric deltas, pass/fail dimensions, and latency / cost shifts. Optional AI cause-analysis reads the failed transcripts and surfaces the most likely root cause for any regression so you don't have to guess.
 
 - **Production observability** — connect real-world call sources, review production conversations alongside evaluation results, and turn missed edge cases into regression tests before they happen again.
 
-- **CLI for CI/CD** — automate evaluation in GitHub Actions and other pipelines: every PR can run a regression suite against your agent and fail the build on quality, cost, or latency regressions.
+- **CLI for CI/CD** — automate evaluation in GitHub Actions and other pipelines: every PR can run a regression suite, fail the build when the run misses its metrics or cases threshold, and gate against a registered baseline for regression checks. See [`CLI_README.md`](./CLI_README.md).
 
-- **Agent deployment workflow** — connect deployment environments, sync provider state, and deploy evaluated versions back to supported voice platforms.
+- **Agent deployment workflow** — connect deployment environments, sync provider state, and deploy evaluated versions back to supported voice platforms. Optional eval gates on each environment block deploys when the gated eval-config doesn't pass its thresholds, so a regressed version never reaches users.
 
 Together these pieces form a **closed development loop**: connect or build → edit → test → evaluate → observe, then start over with real-world data.
 
@@ -126,6 +128,8 @@ connexity-cli run --agent my-agent --eval-config smoke-suite --stream --set-base
 connexity-cli compare --candidate <run-id> --against-baseline
 ```
 
+The `run` command exits non-zero when the run misses its metrics or cases threshold (default-on, opt out with `--no-fail-on-thresholds`), and `compare --against-baseline` does the same on regression — so dropping either one into a CI step is enough to gate merges. The same `environments deploy <env-id> --agent-version N` command can promote evaluated versions back to a connected platform from the terminal.
+
 Command reference: [`CLI_README.md`](./CLI_README.md).
 
 ## 🚀 Quickstart
@@ -156,9 +160,9 @@ You can also ask AI to create or refine individual test cases from natural-langu
 
 ### 4️⃣ Run an evaluation
 
-Run the test cases against your agent. Connexity simulates the user side, lets your agent execute its own tool loop, and records full transcripts, tool calls, token usage, latency, and cost.
+Run the test cases against your agent. Connexity simulates the user side, lets your agent execute its own tool loop, and records full transcripts, tool calls, token usage, latency, and cost. Each run finishes with a pass/fail verdict against two configurable thresholds — the weighted-metrics score and the per-test-case pass rate — so you can answer "did the agent clear the bar?" with one number.
 
-For automation in CI, use [`connexity-cli`](https://pypi.org/project/connexity-cli/) in a GitHub Action or release pipeline to run a regression suite and fail the build on quality regressions.
+For automation in CI, use [`connexity-cli`](https://pypi.org/project/connexity-cli/) in a GitHub Action or release pipeline to run a regression suite and fail the build on missed thresholds or regressions against a registered baseline.
 
 ### 5️⃣ Inspect results and production calls
 
@@ -168,7 +172,7 @@ In the dashboard you can:
 - Drill into per-turn transcripts, tool calls, and judge verdicts
 - Track cost and latency trends
 - Review synced Retell calls and convert real-world misses into new tests
-- Promote and deploy evaluated versions to connected Retell environments
+- Promote and deploy evaluated versions to connected Retell environments — with optional eval gates that refuse to ship a version that didn't pass its thresholds
 
 ## 🌟 Star Us
 
@@ -182,7 +186,7 @@ If Connexity is useful to you, please star the repo on GitHub — it helps a lot
 
 Finding an answer to your question:
 
-- The [`docs/`](./docs) folder is the best place to start.
+- The [`docs/`](./docs) folder is the best place to start. Topic-specific guides: [scoring & thresholds](./docs/scoring-and-thresholds.md), [judge criteria](./docs/judge-criteria.md), [test case schema](./docs/test-case-schema.md), [agent contract](./docs/agent-contract.md), [data model](./docs/data-model.md), [Docker Compose: local & VM](./docs/vm-docker-compose.md), [migrations](./docs/migrations.md), and the [`connexity-cli` reference](./CLI_README.md).
 - [GitHub Discussions](https://github.com/Connexity-AI/connexity/discussions) — ask questions, share what you're building, and request features.
 - [Discord](https://discord.gg/Gj47DqWq) — chat with the team and other users in real time.
 
