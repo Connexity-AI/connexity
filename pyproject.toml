@@ -1,6 +1,6 @@
 [project]
 name = "connexity-cli"
-version = "0.1.0" # x-release-please-version
+version = "0.1.1" # x-release-please-version
 description = "CLI for running and managing Connexity agent evaluations"
 keywords = ["connexity", "evaluation", "evals", "llm", "agents", "cli", "testing"]
 readme = "CLI_README.md"
