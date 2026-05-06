@@ -47,7 +47,6 @@ wheels = [
 
 [[package]]
 name = "connexity-cli"
-version = "0.1.1"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
