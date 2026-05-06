@@ -5,9 +5,9 @@ Open-source eval platform for voice and text agents. You bring an agent (your ow
 What's in the box:
 
 - **Eval runs** — orchestrated multi-turn conversations against your agent, scored by an LLM judge across 8 default metrics plus any custom metrics you define
-- **CS-127 pass/fail thresholds** — every run is gated on `metrics_pass_threshold` (weighted score) and `cases_pass_threshold` (fraction of cases passing); see [docs/scoring-and-thresholds.md](docs/scoring-and-thresholds.md)
+- **Pass/fail thresholds** — every run is gated on `metrics_pass_threshold` (weighted score) and `cases_pass_threshold` (fraction of cases passing); see [docs/scoring-and-thresholds.md](docs/scoring-and-thresholds.md)
 - **Agent versioning** — draft / publish lifecycle, immutable history, version-pinned runs, side-by-side prompt diffs
-- **Run-to-run comparison** — regression verdict with overridable thresholds, plus optional AI cause-analysis (CS-29)
+- **Run-to-run comparison** — regression verdict with overridable thresholds, plus optional AI cause-analysis
 - **Prompt editor** — chat-driven prompt iteration with live diffs, AI suggestions, and per-agent guidelines
 - **Platform-side agent simulator** — build a Connexity-hosted agent (system prompt + tools) without standing up your own HTTP service
 - **Retell integration** — sync recorded calls, deploy agent versions to Retell with an optional eval-gate that blocks deploys when thresholds fail
@@ -73,7 +73,7 @@ The database starts empty. Sign up in the UI or via `POST /api/v1/users/signup`.
 ## Further docs
 
 - [docs/running.md](docs/running.md) — detailed local setup
-- [docs/scoring-and-thresholds.md](docs/scoring-and-thresholds.md) — judge scoring formula and CS-127 pass/fail thresholds
+- [docs/scoring-and-thresholds.md](docs/scoring-and-thresholds.md) — judge scoring formula and run-level pass/fail thresholds
 - [docs/judge-criteria.md](docs/judge-criteria.md) — default and custom metric definitions
 - [docs/data-model.md](docs/data-model.md) — agent / eval-config / run / test-case relationships
 - [docs/agent-contract.md](docs/agent-contract.md) — HTTP contract for bring-your-own-agent

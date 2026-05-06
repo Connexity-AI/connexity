@@ -59,7 +59,7 @@ connexity-cli run \
   --cases-pass-threshold 100
 
 # CI gate: regression check against the baseline (exits 1 on regression
-# OR when the candidate fails its own CS-127 thresholds)
+# OR when the candidate fails its own metrics or cases threshold)
 connexity-cli compare --candidate <run-id> --against-baseline
 
 # Deploy a pre-validated agent version to Retell via a configured environment
@@ -93,7 +93,7 @@ connexity-cli eval-configs update smoke-suite --from-file ./patch.json
 connexity-cli runs create --from-file ./run.json --auto-execute
 ```
 
-## Pass/fail thresholds (CS-127)
+## Pass/fail thresholds
 
 Every run carries two run-level pass/fail dimensions, snapshotted from the eval config and overridable per run:
 
@@ -179,7 +179,7 @@ baseline    get | set <id>
 ## Exit codes
 
 - `0` — success
-- `1` — operation completed but indicates failure: run failed / cancelled, regression detected, candidate failed its CS-127 thresholds (default-on, opt out with `--no-fail-on-thresholds`), deploy returned `status=failed`, or `import` returned errors
+- `1` — operation completed but indicates failure: run failed / cancelled, regression detected, candidate failed its metrics or cases threshold (default-on, opt out with `--no-fail-on-thresholds`), deploy returned `status=failed`, or `import` returned errors
 - `2` — argument / configuration error, timeout, network failure
 
 ## License
