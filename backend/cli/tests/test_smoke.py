@@ -10,6 +10,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import respx
+
 from cli.main import app
 
 # ---------------------------------------------------------------------------
@@ -283,6 +285,268 @@ def test_environments_list_requires_agent(api_env, runner, respx_mock_clean) -> 
     assert result.exit_code == 0, result.stderr
     qs = route.calls.last.request.url.params
     assert qs["agent_id"] == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+
+
+def test_environments_deploy_posts_agent_version(
+    api_env, runner, respx_mock_clean
+) -> None:
+    """environments deploy posts {agent_version} to /environments/{id}/deploy."""
+    route = respx_mock_clean.post("/environments/env-1/deploy").respond(
+        200, json={"id": "d-1", "status": "succeeded", "environment_id": "env-1"}
+    )
+    result = runner.invoke(
+        app,
+        ["--output", "json", "environments", "deploy", "env-1", "--agent-version", "3"],
+    )
+    assert result.exit_code == 0, result.stderr
+    sent = json.loads(route.calls.last.request.content)
+    assert sent == {"agent_version": 3}
+
+
+def test_environments_deploy_failed_status_exits_non_zero(
+    api_env, runner, respx_mock_clean
+) -> None:
+    """A 200 OK with status='failed' should still exit non-zero for CI use."""
+    respx_mock_clean.post("/environments/env-1/deploy").respond(
+        200,
+        json={
+            "id": "d-1",
+            "status": "failed",
+            "environment_id": "env-1",
+            "error_message": "boom",
+        },
+    )
+    result = runner.invoke(
+        app,
+        ["--output", "json", "environments", "deploy", "env-1", "--agent-version", "3"],
+    )
+    assert result.exit_code == 1
+
+
+def test_environments_retell_versions(api_env, runner, respx_mock_clean) -> None:
+    respx_mock_clean.get("/environments/env-1/retell-versions").respond(
+        200, json=[{"version": 5, "is_published": True}]
+    )
+    result = runner.invoke(
+        app, ["--output", "json", "environments", "retell-versions", "env-1"]
+    )
+    assert result.exit_code == 0, result.stderr
+
+
+def test_environments_deployments_list_by_agent(
+    api_env, runner, respx_mock_clean
+) -> None:
+    respx_mock_clean.get("/agents/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa").respond(
+        200, json={"id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "name": "A"}
+    )
+    route = respx_mock_clean.get("/environments/deployments").respond(
+        200, json={"data": [], "count": 0}
+    )
+    result = runner.invoke(
+        app,
+        [
+            "environments",
+            "deployments",
+            "list",
+            "--agent",
+            "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        ],
+    )
+    assert result.exit_code == 0, result.stderr
+    assert (
+        route.calls.last.request.url.params["agent_id"]
+        == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    )
+
+
+def test_environments_deployments_list_by_env_id(
+    api_env, runner, respx_mock_clean
+) -> None:
+    respx_mock_clean.get("/environments/env-1/deployments").respond(
+        200, json={"data": [], "count": 0}
+    )
+    result = runner.invoke(
+        app, ["environments", "deployments", "list", "--env-id", "env-1"]
+    )
+    assert result.exit_code == 0, result.stderr
+
+
+def test_environments_deployments_list_requires_one_filter(api_env, runner) -> None:
+    """Either --agent or --env-id is required, but not both."""
+    result = runner.invoke(app, ["environments", "deployments", "list"])
+    assert result.exit_code != 0
+    assert "Provide exactly one" in (result.stderr + result.stdout)
+
+    result = runner.invoke(
+        app,
+        [
+            "environments",
+            "deployments",
+            "list",
+            "--agent",
+            "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+            "--env-id",
+            "env-1",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "Provide exactly one" in (result.stderr + result.stdout)
+
+
+_AGENT_UUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+_EVAL_UUID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+
+
+def _mock_run_resolvers(respx_mock_clean: respx.MockRouter) -> None:
+    respx_mock_clean.get(f"/agents/{_AGENT_UUID}").respond(
+        200, json={"id": _AGENT_UUID, "name": "agent-x"}
+    )
+    respx_mock_clean.get(f"/eval-configs/{_EVAL_UUID}").respond(
+        200, json={"id": _EVAL_UUID, "version": 1, "name": "smoke"}
+    )
+
+
+def test_run_threshold_flags_overlay_into_config(
+    api_env, runner, respx_mock_clean
+) -> None:
+    """--metrics-pass-threshold and --cases-pass-threshold land in body.config."""
+    _mock_run_resolvers(respx_mock_clean)
+    create = respx_mock_clean.post("/runs/").respond(
+        200, json={"id": "r-1", "status": "completed"}
+    )
+    respx_mock_clean.get("/runs/r-1").respond(
+        200,
+        json={
+            "id": "r-1",
+            "status": "completed",
+            "aggregate_metrics": {
+                "metrics_passed": True,
+                "cases_passed": True,
+                "weighted_metrics_score_pct": 90.0,
+                "cases_pass_rate_pct": 100.0,
+                "metrics_pass_threshold": 70.0,
+                "cases_pass_threshold": 95.0,
+            },
+        },
+    )
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--eval-config",
+            _EVAL_UUID,
+            "--agent",
+            _AGENT_UUID,
+            "--metrics-pass-threshold",
+            "70",
+            "--cases-pass-threshold",
+            "95",
+            "--poll-interval",
+            "0",
+        ],
+    )
+    assert result.exit_code == 0, result.stderr
+    sent = json.loads(create.calls.last.request.content)
+    assert sent["config"]["metrics_pass_threshold"] == 70.0
+    assert sent["config"]["cases_pass_threshold"] == 95.0
+
+
+def test_run_exits_non_zero_on_threshold_failure(
+    api_env, runner, respx_mock_clean
+) -> None:
+    """Default fail-on-thresholds gates the exit code on metrics_passed/cases_passed."""
+    _mock_run_resolvers(respx_mock_clean)
+    respx_mock_clean.post("/runs/").respond(
+        200, json={"id": "r-1", "status": "completed"}
+    )
+    respx_mock_clean.get("/runs/r-1").respond(
+        200,
+        json={
+            "id": "r-1",
+            "status": "completed",
+            "aggregate_metrics": {
+                "metrics_passed": False,
+                "cases_passed": True,
+            },
+        },
+    )
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--eval-config",
+            _EVAL_UUID,
+            "--agent",
+            _AGENT_UUID,
+            "--poll-interval",
+            "0",
+        ],
+    )
+    assert result.exit_code == 1
+
+
+def test_run_no_fail_on_thresholds_opts_out(api_env, runner, respx_mock_clean) -> None:
+    """--no-fail-on-thresholds preserves exit code on threshold failure."""
+    _mock_run_resolvers(respx_mock_clean)
+    respx_mock_clean.post("/runs/").respond(
+        200, json={"id": "r-1", "status": "completed"}
+    )
+    respx_mock_clean.get("/runs/r-1").respond(
+        200,
+        json={
+            "id": "r-1",
+            "status": "completed",
+            "aggregate_metrics": {
+                "metrics_passed": False,
+                "cases_passed": False,
+            },
+        },
+    )
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--eval-config",
+            _EVAL_UUID,
+            "--agent",
+            _AGENT_UUID,
+            "--no-fail-on-thresholds",
+            "--poll-interval",
+            "0",
+        ],
+    )
+    assert result.exit_code == 0, result.stderr
+
+
+def test_compare_fails_on_candidate_threshold_failure(
+    api_env, runner, respx_mock_clean
+) -> None:
+    """Top-level compare command exits 1 when candidate fails CS-127 thresholds."""
+    respx_mock_clean.get("/runs/compare").respond(
+        200,
+        json={
+            "verdict": {"regression_detected": False, "reasons": []},
+            "aggregate": {
+                "baseline_metrics": {
+                    "pass_rate": 1.0,
+                    "metrics_passed": True,
+                    "cases_passed": True,
+                },
+                "candidate_metrics": {
+                    "pass_rate": 1.0,
+                    "metrics_passed": False,
+                    "cases_passed": True,
+                },
+            },
+            "warnings": [],
+        },
+    )
+    result = runner.invoke(
+        app,
+        ["compare", "--baseline", "r-base", "--candidate", "r-cand"],
+    )
+    assert result.exit_code == 1
+    assert "metrics_passed" in (result.stderr + result.stdout)
 
 
 def test_calls_refresh(api_env, runner, respx_mock_clean) -> None:

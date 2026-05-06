@@ -1,14 +1,14 @@
 {
   "packages": {
-    ".": {
-      "release-type": "python",
+    "backend/cli": {
+      "release-type": "simple",
       "package-name": "connexity-cli",
       "component": "cli",
       "include-component-in-tag": true,
       "tag-separator": "-",
-      "extra-files": ["pyproject.toml"],
       "include-paths": ["backend/cli", "pyproject.toml"],
-      "changelog-path": "backend/cli/CHANGELOG.md",
+      "extra-files": ["_version.py"],
+      "changelog-path": "CHANGELOG.md",
       "changelog-sections": [
         { "type": "feat", "section": "Features" },
         { "type": "fix", "section": "Bug Fixes" },

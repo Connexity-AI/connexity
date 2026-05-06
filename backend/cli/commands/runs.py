@@ -299,6 +299,13 @@ def runs_baseline_set(
     help="Compute LLM-backed regression analysis",
 )
 @click.option(
+    "--fail-on-thresholds/--no-fail-on-thresholds",
+    "fail_on_thresholds",
+    default=True,
+    show_default=True,
+    help="Fail when candidate fails its CS-127 metrics or cases threshold",
+)
+@click.option(
     "--output", "output_override", type=click.Choice(["json", "table"]), default=None
 )
 @click.pass_context
@@ -310,9 +317,15 @@ def runs_compare(
     max_avg_score_drop: float | None,
     max_latency_increase_pct: float | None,
     include_analysis: bool,
+    fail_on_thresholds: bool,
     output_override: str | None,
 ) -> None:
     """Compare two runs (mirrors the convenience top-level `compare`)."""
+    from cli.commands.compare import (
+        _candidate_threshold_failures,
+        _format_comparison_table,
+    )
+
     ensure_auth(ctx)
     fmt = get_output_format(ctx, output_override)
     params: dict[str, Any] = {
@@ -328,9 +341,17 @@ def runs_compare(
         params["max_latency_increase_pct"] = max_latency_increase_pct
     with open_client(ctx) as client:
         result = client.runs.compare(params)
-    output.emit(result, output_format=fmt)
+    if fmt == "json":
+        output.emit(result, output_format="json")
+    else:
+        click.echo(_format_comparison_table(result))
     if result.get("verdict", {}).get("regression_detected"):
         sys.exit(1)
+    if fail_on_thresholds:
+        failures = _candidate_threshold_failures(result)
+        if failures:
+            output.progress(f"Candidate failed threshold gate: {', '.join(failures)}.")
+            sys.exit(1)
 
 
 @runs_group.command("compare-suggestions")

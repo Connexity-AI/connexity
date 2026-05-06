@@ -46,6 +46,25 @@ TERMINAL_STATUSES = frozenset({"completed", "failed", "cancelled"})
     help="Path (or '-' for stdin) to JSON RunConfig — judge_config, simulator_config, etc.",
 )
 @click.option(
+    "--metrics-pass-threshold",
+    type=click.FloatRange(0.0, 100.0),
+    default=None,
+    help="Override RunConfig.metrics_pass_threshold (0-100). Wins over --config-file.",
+)
+@click.option(
+    "--cases-pass-threshold",
+    type=click.FloatRange(0.0, 100.0),
+    default=None,
+    help="Override RunConfig.cases_pass_threshold (0-100). Wins over --config-file.",
+)
+@click.option(
+    "--fail-on-thresholds/--no-fail-on-thresholds",
+    "fail_on_thresholds",
+    default=True,
+    show_default=True,
+    help="Exit non-zero if the run's metrics_passed or cases_passed is False",
+)
+@click.option(
     "--timeout",
     default=600.0,
     type=float,
@@ -85,16 +104,31 @@ def run_command(
     agent_ref: str,
     run_name: str | None,
     config_file: str | None,
+    metrics_pass_threshold: float | None,
+    cases_pass_threshold: float | None,
+    fail_on_thresholds: bool,
     timeout: float,
     poll_interval: float,
     stream: bool,
     set_baseline: bool,
     output_override: str | None,
 ) -> None:
-    """Trigger an eval run and wait until it finishes."""
+    """Trigger an eval run and wait until it finishes.
+
+    Exits non-zero when the run does not complete, or — by default — when the
+    completed run fails its metrics or cases threshold. Pass
+    ``--no-fail-on-thresholds`` to gate purely on run status.
+    """
     ensure_auth(ctx)
     fmt = get_output_format(ctx, output_override)
     run_config = load_optional_dict(config_file)
+
+    if metrics_pass_threshold is not None or cases_pass_threshold is not None:
+        run_config = dict(run_config) if run_config is not None else {}
+        if metrics_pass_threshold is not None:
+            run_config["metrics_pass_threshold"] = metrics_pass_threshold
+        if cases_pass_threshold is not None:
+            run_config["cases_pass_threshold"] = cases_pass_threshold
 
     with open_client(ctx) as client:
         eval_config = resolve_eval_config(client, eval_config_ref)
@@ -162,6 +196,18 @@ def run_command(
         else:
             click.echo(output.format_run_detail(run))
 
-        if final == "completed":
-            ctx.exit(0)
-        sys.exit(1)
+        if final != "completed":
+            sys.exit(1)
+
+        if fail_on_thresholds:
+            metrics = run.get("aggregate_metrics") or {}
+            metrics_passed = metrics.get("metrics_passed")
+            cases_passed = metrics.get("cases_passed")
+            if metrics_passed is False or cases_passed is False:
+                output.progress(
+                    "Run completed but failed threshold gating "
+                    f"(metrics_passed={metrics_passed}, cases_passed={cases_passed})."
+                )
+                sys.exit(1)
+
+        ctx.exit(0)
