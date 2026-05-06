@@ -36,7 +36,7 @@ The only pass/fail gate is at the **test case level**: `overall_score >= pass_th
 
 ### Pass/fail per test case
 
-A test case passes when **all of its `expected_outcomes` pass** (CS-127).
+A test case passes when **all of its `expected_outcomes` pass**.
 
 - `expected_outcome_results` — produced by the judge per statement (pass/fail + justification)
 - A test case passes ⇔ every entry in `expected_outcome_results` has `passed: true`
@@ -57,7 +57,7 @@ The checkmark/X list in the UI. The judge checks each statement independently an
 
 They are now the **primary pass/fail gate at the test-case level** (see above). They still do not factor into the `overall_score` calculation — that score remains the weighted metrics number used at the run level.
 
-## Run-level pass thresholds (CS-127)
+## Run-level pass thresholds
 
 Each eval run produces two independent pass/fail dimensions, evaluated against thresholds stored on the eval config (`eval_config.config.metrics_pass_threshold` and `eval_config.config.cases_pass_threshold`).
 
