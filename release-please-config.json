@@ -10,7 +10,8 @@
       "extra-files": [
         {
           "type": "generic",
-          "path": "../../pyproject.toml"
+          "path": "**/pyproject.toml",
+          "glob": true
         }
       ],
       "changelog-path": "CHANGELOG.md",
