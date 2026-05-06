@@ -2,6 +2,7 @@
 name = "connexity-cli"
 version = "0.1.0"
 description = "CLI for running and managing Connexity agent evaluations"
+keywords = ["connexity", "evaluation", "evals", "llm", "agents", "cli", "testing"]
 readme = "CLI_README.md"
 license = { text = "MIT" }
 requires-python = ">=3.12"
@@ -13,8 +14,10 @@ authors = [
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
+    "Environment :: Console",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Testing",
