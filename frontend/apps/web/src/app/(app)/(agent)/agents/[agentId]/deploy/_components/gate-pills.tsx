@@ -70,7 +70,7 @@ export const GatePills: FC<Props> = ({ run, agentId }) => {
           <CircleX className="w-3.5 h-3.5 text-red-400 shrink-0" />
         ))}
       <Link
-        href={UrlGenerator.agentEvalsRuns(agentId)}
+        href={UrlGenerator.agentEvalsRunDetail(agentId, run.id)}
         className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground transition-colors ml-1"
       >
         View
