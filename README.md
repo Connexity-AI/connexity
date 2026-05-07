@@ -23,6 +23,7 @@
    </div>
 
    <div>
+      <a href="https://connexity.ai/roadmap"><strong>Roadmap</strong></a> ·
       <a href="./docs"><strong>Documentation</strong></a> ·
       <a href="https://github.com/Connexity-AI/connexity/issues"><strong>Report Bug</strong></a> ·
       <a href="https://github.com/Connexity-AI/connexity/discussions"><strong>Feature Request</strong></a> ·
