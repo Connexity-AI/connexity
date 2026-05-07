@@ -111,6 +111,7 @@ export const AddEnvironmentForm: FC<Props> = ({
                     <Input
                       {...field}
                       id="env-name"
+                      className="h-9 text-xs"
                       placeholder="e.g. Production, Staging, Dev"
                       disabled={isPending}
                     />
@@ -127,22 +128,6 @@ export const AddEnvironmentForm: FC<Props> = ({
                   type="button"
                   className={cn(
                     'flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-lg border text-left transition-all cursor-pointer',
-                    platform === 'retell'
-                      ? 'border-foreground/40 bg-accent'
-                      : 'border-border hover:bg-accent/40'
-                  )}
-                  onClick={() => handlePlatformChange('retell')}
-                  disabled={isPending}
-                >
-                  <span className="text-xs text-foreground">Retell</span>
-                  <span className="text-[10px] text-muted-foreground leading-tight">
-                    Push directly via Retell API (requires integration)
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className={cn(
-                    'flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-lg border text-left transition-all cursor-pointer',
                     platform === 'webhook'
                       ? 'border-foreground/40 bg-accent'
                       : 'border-border hover:bg-accent/40'
@@ -153,6 +138,22 @@ export const AddEnvironmentForm: FC<Props> = ({
                   <span className="text-xs text-foreground">Webhook</span>
                   <span className="text-[10px] text-muted-foreground leading-tight">
                     Send deployment payload to your custom endpoint
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    'flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-lg border text-left transition-all cursor-pointer',
+                    platform === 'retell'
+                      ? 'border-foreground/40 bg-accent'
+                      : 'border-border hover:bg-accent/40'
+                  )}
+                  onClick={() => handlePlatformChange('retell')}
+                  disabled={isPending}
+                >
+                  <span className="text-xs text-foreground">Retell</span>
+                  <span className="text-[10px] text-muted-foreground leading-tight">
+                    Push directly via Retell API (requires integration)
                   </span>
                 </button>
               </div>
@@ -236,7 +237,7 @@ export const AddEnvironmentForm: FC<Props> = ({
                           <Input
                             id="endpoint-url"
                             placeholder="https://your-server.com/deploy/:agent_id"
-                            className="pl-8"
+                            className="pl-8 h-9 text-xs"
                             value={field.value ?? ''}
                             onChange={(event) =>
                               field.onChange(event.target.value.trim() || null)
