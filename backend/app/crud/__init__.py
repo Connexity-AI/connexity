@@ -33,6 +33,7 @@ from app.crud.call import (  # noqa: F401
     soft_delete_calls_for_integration,
     touch_calls_last_synced_at,
     upsert_calls_from_retell,
+    upsert_calls_from_vapi,
 )
 from app.crud.custom_metrics import (  # noqa: F401
     create_custom_metric,
