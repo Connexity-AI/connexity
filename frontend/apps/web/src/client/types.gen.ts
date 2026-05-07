@@ -2492,6 +2492,24 @@ export type MockResponse = {
 };
 
 /**
+ * MockWebhookResponse
+ */
+export type MockWebhookResponse = {
+  /**
+   * Message
+   */
+  message: string;
+  /**
+   * Received Event Type
+   */
+  received_event_type?: string | null;
+  /**
+   * Payload Received
+   */
+  payload_received: boolean;
+};
+
+/**
  * OnConflict
  */
 export const OnConflict = { SKIP: 'skip', OVERWRITE: 'overwrite' } as const;
@@ -4551,6 +4569,183 @@ export type UserUpdateMe = {
 };
 
 /**
+ * WebhookAgent
+ */
+export type WebhookAgent = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Version
+   */
+  version: number;
+  /**
+   * Version Name
+   */
+  version_name?: string | null;
+  /**
+   * Version Description
+   */
+  version_description?: string | null;
+  /**
+   * Prompt
+   */
+  prompt: string;
+  llm: WebhookLlm;
+  /**
+   * Tool Calls
+   */
+  tool_calls?: Array<WebhookToolCall>;
+};
+
+/**
+ * WebhookDeployPayload
+ */
+export type WebhookDeployPayload = {
+  /**
+   * Event
+   */
+  event: string;
+  agent: WebhookAgent;
+  /**
+   * Environment
+   */
+  environment: string;
+  /**
+   * Deployed At
+   */
+  deployed_at: string;
+  /**
+   * Deployed By
+   */
+  deployed_by?: string | null;
+  eval: WebhookEval;
+};
+
+/**
+ * WebhookEval
+ */
+export type WebhookEval = {
+  /**
+   * Config Id
+   */
+  config_id?: string | null;
+  /**
+   * Config Name
+   */
+  config_name?: string | null;
+  /**
+   * Run At
+   */
+  run_at?: string | null;
+  /**
+   * Passed
+   */
+  passed?: boolean | null;
+  /**
+   * Metrics Score
+   */
+  metrics_score?: number | null;
+  /**
+   * Metrics Pass Threshold
+   */
+  metrics_pass_threshold?: number | null;
+  /**
+   * Cases Passed
+   */
+  cases_passed?: number | null;
+  /**
+   * Cases Total
+   */
+  cases_total?: number | null;
+  /**
+   * Cases Pass Threshold
+   */
+  cases_pass_threshold?: number | null;
+  /**
+   * Results Link
+   */
+  results_link?: string | null;
+};
+
+/**
+ * WebhookLlm
+ */
+export type WebhookLlm = {
+  /**
+   * Provider
+   */
+  provider?: string | null;
+  /**
+   * Model
+   */
+  model?: string | null;
+  /**
+   * Temperature
+   */
+  temperature?: number | null;
+};
+
+/**
+ * WebhookToolCall
+ */
+export type WebhookToolCall = {
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Description
+   */
+  description?: string | null;
+  /**
+   * Method
+   */
+  method?: string | null;
+  /**
+   * Url
+   */
+  url?: string | null;
+  /**
+   * Headers
+   */
+  headers?: {
+    [key: string]: string;
+  };
+  /**
+   * Parameters
+   */
+  parameters?: Array<WebhookToolCallParameter>;
+};
+
+/**
+ * WebhookToolCallParameter
+ */
+export type WebhookToolCallParameter = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Type
+   */
+  type?: string | null;
+  /**
+   * Required
+   */
+  required?: boolean;
+  /**
+   * Description
+   */
+  description?: string | null;
+};
+
+/**
  * AgentMode
  */
 export const AppModelsEnumsAgentMode = { ENDPOINT: 'endpoint', PLATFORM: 'platform' } as const;
@@ -4591,6 +4786,23 @@ export type HealthHealthResponses = {
 };
 
 export type HealthHealthResponse = HealthHealthResponses[keyof HealthHealthResponses];
+
+export type HealthMockWebhookData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/mock-webhook';
+};
+
+export type HealthMockWebhookResponses = {
+  /**
+   * Successful Response
+   */
+  200: MockWebhookResponse;
+};
+
+export type HealthMockWebhookResponse =
+  HealthMockWebhookResponses[keyof HealthMockWebhookResponses];
 
 export type LoginLoginAccessTokenData = {
   body: BodyLoginLoginAccessToken;
@@ -9427,13 +9639,9 @@ export type EnvironmentsGetWebhookPayloadPreviewError =
 
 export type EnvironmentsGetWebhookPayloadPreviewResponses = {
   /**
-   * Response Environments-Get Webhook Payload Preview
-   *
    * Successful Response
    */
-  200: {
-    [key: string]: unknown;
-  };
+  200: WebhookDeployPayload;
 };
 
 export type EnvironmentsGetWebhookPayloadPreviewResponse =

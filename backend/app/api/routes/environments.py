@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app import crud
 from app.api.deps import CurrentUser, SessionDep, get_current_user
+from app.core.config import settings
 from app.core.encryption import decrypt
 from app.models import (
     Deployment,
@@ -16,6 +17,8 @@ from app.models import (
     EnvironmentsPublic,
     EnvironmentUpdate,
     Message,
+    WebhookDeployPayload,
+    WebhookEval,
 )
 from app.models.agent_version import AgentVersion
 from app.models.enums import Platform
@@ -147,9 +150,18 @@ def _get_eval_payload_for_gate(
     agent_version: int,
     eval_config_id: uuid.UUID | None,
     enforce_gate: bool,
-) -> dict[str, object] | None:
+) -> WebhookEval:
     if eval_config_id is None:
-        return None
+        return WebhookEval()
+
+    gate_cfg = crud.get_eval_config(session=session, eval_config_id=eval_config_id)
+    config_name = gate_cfg.name if gate_cfg is not None else None
+
+    def _results_link(run_id: uuid.UUID) -> str | None:
+        if not settings.SITE_URL:
+            return None
+        base_url = settings.SITE_URL.rstrip("/")
+        return f"{base_url}/agents/{agent_id}/evals/eval-runs/{run_id}"
 
     gate_run = crud.get_latest_completed_run_for_version(
         session=session,
@@ -166,16 +178,10 @@ def _get_eval_payload_for_gate(
                     "gated config. Run the eval first."
                 ),
             )
-        return {
-            "config_id": str(eval_config_id),
-            "run_at": None,
-            "passed": None,
-            "metrics_score": None,
-            "metrics_pass_threshold": None,
-            "cases_passed": None,
-            "cases_total": None,
-            "cases_pass_threshold": None,
-        }
+        return WebhookEval(
+            config_id=str(eval_config_id),
+            config_name=config_name,
+        )
 
     gate_metrics = (
         AggregateMetrics.model_validate(gate_run.aggregate_metrics)
@@ -196,26 +202,24 @@ def _get_eval_payload_for_gate(
             ),
         )
 
-    return {
-        "config_id": str(eval_config_id),
-        "run_at": gate_run.completed_at or gate_run.updated_at,
-        "passed": passed,
-        "metrics_score": (
-            gate_metrics.weighted_metrics_score_pct
-            if gate_metrics is not None
-            else None
+    return WebhookEval(
+        config_id=str(eval_config_id),
+        config_name=config_name,
+        run_at=gate_run.completed_at or gate_run.updated_at,
+        passed=passed,
+        metrics_score=(
+            gate_metrics.weighted_metrics_score_pct if gate_metrics is not None else None
         ),
-        "metrics_pass_threshold": (
+        metrics_pass_threshold=(
             gate_metrics.metrics_pass_threshold if gate_metrics is not None else None
         ),
-        "cases_passed": gate_metrics.passed_count if gate_metrics is not None else None,
-        "cases_total": (
-            gate_metrics.total_executions if gate_metrics is not None else None
-        ),
-        "cases_pass_threshold": (
+        cases_passed=gate_metrics.passed_count if gate_metrics is not None else None,
+        cases_total=gate_metrics.total_executions if gate_metrics is not None else None,
+        cases_pass_threshold=(
             gate_metrics.cases_pass_threshold if gate_metrics is not None else None
         ),
-    }
+        results_link=_results_link(gate_run.id),
+    )
 
 
 @router.post("/", response_model=EnvironmentPublic)
@@ -255,14 +259,14 @@ def list_environments(
     )
 
 
-@router.get("/webhook-payload-preview", response_model=dict[str, object])
+@router.get("/webhook-payload-preview", response_model=WebhookDeployPayload)
 def get_webhook_payload_preview(
     session: SessionDep,
     current_user: CurrentUser,
     agent_id: uuid.UUID = Query(...),
     environment_name: str = Query(..., min_length=1, max_length=255),
     eval_gate_eval_config_id: uuid.UUID | None = Query(default=None),
-) -> dict[str, object]:
+) -> WebhookDeployPayload:
     agent = crud.get_agent(session=session, agent_id=agent_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")

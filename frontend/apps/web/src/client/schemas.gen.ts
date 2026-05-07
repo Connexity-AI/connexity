@@ -4027,6 +4027,33 @@ export const MockResponseSchema = {
   title: 'MockResponse',
 } as const;
 
+export const MockWebhookResponseSchema = {
+  properties: {
+    message: {
+      type: 'string',
+      title: 'Message',
+    },
+    received_event_type: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Received Event Type',
+    },
+    payload_received: {
+      type: 'boolean',
+      title: 'Payload Received',
+    },
+  },
+  type: 'object',
+  required: ['message', 'payload_received'],
+  title: 'MockWebhookResponse',
+} as const;
+
 export const OnConflictSchema = {
   type: 'string',
   enum: ['skip', 'overwrite'],
@@ -7522,6 +7549,362 @@ export const UserUpdateMeSchema = {
   },
   type: 'object',
   title: 'UserUpdateMe',
+} as const;
+
+export const WebhookAgentSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      title: 'Id',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    version: {
+      type: 'integer',
+      title: 'Version',
+    },
+    version_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version Name',
+    },
+    version_description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version Description',
+    },
+    prompt: {
+      type: 'string',
+      title: 'Prompt',
+    },
+    llm: {
+      $ref: '#/components/schemas/WebhookLlm',
+    },
+    tool_calls: {
+      items: {
+        $ref: '#/components/schemas/WebhookToolCall',
+      },
+      type: 'array',
+      title: 'Tool Calls',
+    },
+  },
+  type: 'object',
+  required: ['id', 'name', 'version', 'prompt', 'llm'],
+  title: 'WebhookAgent',
+} as const;
+
+export const WebhookDeployPayloadSchema = {
+  properties: {
+    event: {
+      type: 'string',
+      title: 'Event',
+    },
+    agent: {
+      $ref: '#/components/schemas/WebhookAgent',
+    },
+    environment: {
+      type: 'string',
+      title: 'Environment',
+    },
+    deployed_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Deployed At',
+    },
+    deployed_by: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Deployed By',
+    },
+    eval: {
+      $ref: '#/components/schemas/WebhookEval',
+    },
+  },
+  type: 'object',
+  required: ['event', 'agent', 'environment', 'deployed_at', 'eval'],
+  title: 'WebhookDeployPayload',
+} as const;
+
+export const WebhookEvalSchema = {
+  properties: {
+    config_id: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Config Id',
+    },
+    config_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Config Name',
+    },
+    run_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Run At',
+    },
+    passed: {
+      anyOf: [
+        {
+          type: 'boolean',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Passed',
+    },
+    metrics_score: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Metrics Score',
+    },
+    metrics_pass_threshold: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Metrics Pass Threshold',
+    },
+    cases_passed: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Cases Passed',
+    },
+    cases_total: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Cases Total',
+    },
+    cases_pass_threshold: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Cases Pass Threshold',
+    },
+    results_link: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Results Link',
+    },
+  },
+  type: 'object',
+  title: 'WebhookEval',
+} as const;
+
+export const WebhookLlmSchema = {
+  properties: {
+    provider: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Provider',
+    },
+    model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Model',
+    },
+    temperature: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Temperature',
+    },
+  },
+  type: 'object',
+  title: 'WebhookLlm',
+} as const;
+
+export const WebhookToolCallSchema = {
+  properties: {
+    name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Name',
+    },
+    description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Description',
+    },
+    method: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Method',
+    },
+    url: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Url',
+    },
+    headers: {
+      additionalProperties: {
+        type: 'string',
+      },
+      type: 'object',
+      title: 'Headers',
+    },
+    parameters: {
+      items: {
+        $ref: '#/components/schemas/WebhookToolCallParameter',
+      },
+      type: 'array',
+      title: 'Parameters',
+    },
+  },
+  type: 'object',
+  title: 'WebhookToolCall',
+} as const;
+
+export const WebhookToolCallParameterSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    type: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Type',
+    },
+    required: {
+      type: 'boolean',
+      title: 'Required',
+      default: false,
+    },
+    description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Description',
+    },
+  },
+  type: 'object',
+  required: ['name'],
+  title: 'WebhookToolCallParameter',
 } as const;
 
 export const app__models__enums__AgentModeSchema = {

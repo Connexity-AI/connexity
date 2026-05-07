@@ -28,6 +28,7 @@ import { useAddEnvironmentForm } from '@/app/(app)/(agent)/_hooks/use-add-enviro
 import { webhookPayloadPreviewQuery } from '@/app/(app)/(agent)/_queries/webhook-payload-preview-query';
 import { AgentSelectField } from './agent-select-field';
 import { EvalGateFormSection } from './eval-gate-form-section';
+import { PayloadCopyButton } from './payload-copy-button';
 
 import type { FC } from 'react';
 import type { EnvironmentPublic, IntegrationPublic } from '@/client/types.gen';
@@ -115,7 +116,7 @@ export const AddEnvironmentForm: FC<Props> = ({
                 <button
                   type="button"
                   className={cn(
-                    'flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-lg border text-left transition-all',
+                    'flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-lg border text-left transition-all cursor-pointer',
                     platform === 'retell'
                       ? 'border-foreground/40 bg-accent'
                       : 'border-border hover:bg-accent/40'
@@ -131,7 +132,7 @@ export const AddEnvironmentForm: FC<Props> = ({
                 <button
                   type="button"
                   className={cn(
-                    'flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-lg border text-left transition-all',
+                    'flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-lg border text-left transition-all cursor-pointer',
                     platform === 'webhook'
                       ? 'border-foreground/40 bg-accent'
                       : 'border-border hover:bg-accent/40'
@@ -259,9 +260,12 @@ export const AddEnvironmentForm: FC<Props> = ({
                   </button>
                   {payloadOpen && (
                     <div className="px-3 pb-3 border-t border-border">
-                      <div className="rounded-md bg-muted/30 border border-border overflow-hidden mt-2">
-                        <pre className="text-[10px] text-muted-foreground font-mono px-3 py-2.5 overflow-auto max-h-44 leading-relaxed">
-                        {isPayloadPreviewLoading ? 'Loading payload preview…' : payloadPreview}
+                      <div className="rounded-md bg-muted/30 border border-border overflow-hidden mt-2 relative">
+                        <div className="absolute top-2 right-4">
+                          <PayloadCopyButton text={payloadPreview} />
+                        </div>
+                        <pre className="text-[10px] text-muted-foreground font-mono px-3 py-2.5 pr-10 overflow-auto max-h-44 leading-relaxed">
+                          {isPayloadPreviewLoading ? 'Loading payload preview…' : payloadPreview}
                         </pre>
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-1.5">

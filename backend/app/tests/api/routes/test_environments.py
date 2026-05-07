@@ -531,11 +531,13 @@ def test_get_webhook_payload_preview_returns_real_agent_payload(
     assert r.status_code == 200
     payload = r.json()
     assert payload["event"] == "agent.deploy"
-    assert payload["event_type"] == "agent.deployed"
-    assert payload["platform"] == "webhook"
     assert payload["environment"] == "Production"
     assert payload["agent"]["id"] == str(agent.id)
     assert payload["agent"]["version"] == active_prev.version
+    assert "eval" in payload
+    assert payload["eval"]["config_id"] is None
+    assert payload["eval"]["config_name"] is None
+    assert payload["eval"]["results_link"] is None
 
 
 def test_get_webhook_payload_preview_with_eval_gate_without_run_returns_payload(
@@ -562,4 +564,5 @@ def test_get_webhook_payload_preview_with_eval_gate_without_run_returns_payload(
     payload = r.json()
     assert payload["environment"] == "Staging"
     assert payload["eval"]["config_id"] == str(gate_cfg.id)
+    assert payload["eval"]["config_name"] == gate_cfg.name
     assert payload["eval"]["passed"] is None

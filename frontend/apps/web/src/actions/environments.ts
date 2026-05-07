@@ -6,6 +6,7 @@ import type {
   DeploymentCreate,
   DeploymentPublic,
   DeploymentsPublic,
+  EnvironmentsGetWebhookPayloadPreviewResponse,
   EnvironmentCreate,
   EnvironmentPublic,
   EnvironmentUpdate,
@@ -48,7 +49,7 @@ export const getWebhookPayloadPreview = async (
   agentId: string,
   environmentName: string,
   evalGateEvalConfigId: string | null
-): Promise<ApiResult<Record<string, unknown>>> => {
+): Promise<ApiResult<EnvironmentsGetWebhookPayloadPreviewResponse>> => {
   const apiResponse = await EnvironmentsService.getWebhookPayloadPreview({
     query: {
       agent_id: agentId,
@@ -57,7 +58,7 @@ export const getWebhookPayloadPreview = async (
     },
   });
   const { response: _, ...result } = apiResponse;
-  return result as ApiResult<Record<string, unknown>>;
+  return result;
 };
 
 export const deleteEnvironment = async (id: string): Promise<ApiResult<void>> => {

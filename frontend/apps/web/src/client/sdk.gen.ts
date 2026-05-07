@@ -149,6 +149,8 @@ import type {
   EvalConfigsUpdateEvalConfigResponses,
   HealthHealthData,
   HealthHealthResponses,
+  HealthMockWebhookData,
+  HealthMockWebhookResponses,
   IntegrationsCreateIntegrationData,
   IntegrationsCreateIntegrationErrors,
   IntegrationsCreateIntegrationResponses,
@@ -320,6 +322,18 @@ export class HealthService {
   ) {
     return (options?.client ?? client).get<HealthHealthResponses, unknown, ThrowOnError>({
       url: '/',
+      ...options,
+    });
+  }
+
+  /**
+   * Mock Webhook
+   */
+  public static mockWebhook<ThrowOnError extends boolean = false>(
+    options?: Options<HealthMockWebhookData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).post<HealthMockWebhookResponses, unknown, ThrowOnError>({
+      url: '/mock-webhook',
       ...options,
     });
   }
