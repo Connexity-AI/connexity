@@ -144,7 +144,7 @@ def build_webhook_payload(
             version=version_number,
             version_name=version_row.version_name,
             version_description=version_row.version_description,
-            prompt=version_row.system_prompt,
+            prompt=version_row.system_prompt or "",
             llm=WebhookLlm(
                 provider=version_row.agent_provider,
                 model=version_row.agent_model,

@@ -208,7 +208,9 @@ def _get_eval_payload_for_gate(
         run_at=gate_run.completed_at or gate_run.updated_at,
         passed=passed,
         metrics_score=(
-            gate_metrics.weighted_metrics_score_pct if gate_metrics is not None else None
+            gate_metrics.weighted_metrics_score_pct
+            if gate_metrics is not None
+            else None
         ),
         metrics_pass_threshold=(
             gate_metrics.metrics_pass_threshold if gate_metrics is not None else None

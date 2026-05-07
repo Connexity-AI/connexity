@@ -32,7 +32,7 @@ class WebhookAgent(SQLModel):
     version: int
     version_name: str | None = None
     version_description: str | None = None
-    prompt: str | None = None
+    prompt: str
     llm: WebhookLlm
     tool_calls: list[WebhookToolCall] = Field(default_factory=list)
 

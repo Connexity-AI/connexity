@@ -2,8 +2,8 @@ import { AlertCircle } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/ui/button';
 
-import type { useEnvironmentCard } from '../_hooks/use-environment-card';
 import type { FC } from 'react';
+import type { useEnvironmentCard } from '../_hooks/use-environment-card';
 
 type EnvironmentCardState = ReturnType<typeof useEnvironmentCard>;
 
@@ -53,6 +53,7 @@ export const EnvironmentCardDeployFooter: FC<Props> = ({ cardState }) => {
   return (
     <div className={`px-5 py-4 flex items-center gap-3 mt-auto ${layoutClass}`}>
       <DeployError error={cardState.error} />
+
       <Button
         type="button"
         size="sm"
