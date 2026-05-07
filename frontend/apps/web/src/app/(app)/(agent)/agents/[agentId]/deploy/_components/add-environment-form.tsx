@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
-import { Check, ChevronDown, Loader2, Webhook } from 'lucide-react';
+import { AlertTriangle, Check, ChevronDown, Loader2, Webhook } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/ui/button';
 import {
@@ -25,6 +25,7 @@ import {
 import { cn } from '@workspace/ui/lib/utils';
 
 import { useAddEnvironmentForm } from '@/app/(app)/(agent)/_hooks/use-add-environment-form';
+import { useAgentVersions } from '@/app/(app)/(agent)/_hooks/use-agent-versions';
 import { webhookPayloadPreviewQuery } from '@/app/(app)/(agent)/_queries/webhook-payload-preview-query';
 import { AgentSelectField } from './agent-select-field';
 import { EvalGateFormSection } from './eval-gate-form-section';
@@ -66,24 +67,33 @@ export const AddEnvironmentForm: FC<Props> = ({
   const evalGateEnabled = form.watch('eval_gate_enabled');
   const evalGateEvalConfigId = form.watch('eval_gate_eval_config_id');
   const environmentNameForPreview = name.trim() || 'production';
+  const { data: agentVersionsData, isLoading: isAgentVersionsLoading } = useAgentVersions(agentId);
+  const hasPublishedAgentVersion =
+    (agentVersionsData?.count ?? agentVersionsData?.data.length ?? 0) > 0;
+  const showMissingPublishedVersionInfo = !isAgentVersionsLoading && !hasPublishedAgentVersion;
   const {
     data: payloadPreviewData,
     isLoading: isPayloadPreviewLoading,
     isError: isPayloadPreviewError,
+    error: payloadPreviewError,
   } = useQuery({
       ...webhookPayloadPreviewQuery({
         agentId,
         environmentName: environmentNameForPreview,
         evalGateEvalConfigId: evalGateEnabled ? evalGateEvalConfigId : null,
       }),
-      enabled: platform === 'webhook' && payloadOpen,
+      enabled: platform === 'webhook' && hasPublishedAgentVersion,
     });
+  const payloadPreviewErrorMessage =
+    payloadPreviewError instanceof Error
+      ? payloadPreviewError.message
+      : 'unable to load payload preview right now';
   const payloadPreview = useMemo(
     () =>
       isPayloadPreviewError
-        ? 'unable to load payload preview right now'
+        ? payloadPreviewErrorMessage
         : JSON.stringify(payloadPreviewData ?? {}, null, 2),
-    [isPayloadPreviewError, payloadPreviewData]
+    [isPayloadPreviewError, payloadPreviewData, payloadPreviewErrorMessage]
   );
 
   return (
@@ -244,37 +254,44 @@ export const AddEnvironmentForm: FC<Props> = ({
                   )}
                 />
 
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setPayloadOpen((open) => !open)}
-                    className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-accent/30 transition-colors"
-                  >
-                    <span className="text-[11px] text-muted-foreground">Payload preview</span>
-                    <ChevronDown
-                      className={cn(
-                        'w-3.5 h-3.5 text-muted-foreground transition-transform',
-                        payloadOpen && 'rotate-180'
-                      )}
-                    />
-                  </button>
-                  {payloadOpen && (
-                    <div className="px-3 pb-3 border-t border-border">
-                      <div className="rounded-md bg-muted/30 border border-border overflow-hidden mt-2 relative">
-                        <div className="absolute top-2 right-4">
-                          <PayloadCopyButton text={payloadPreview} />
+                {showMissingPublishedVersionInfo ? (
+                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-border text-[11px] text-muted-foreground">
+                    <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+                    No published agent version yet — publish your first version, then return here.
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-border overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setPayloadOpen((open) => !open)}
+                      className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-accent/30 transition-colors"
+                    >
+                      <span className="text-[11px] text-muted-foreground">Payload preview</span>
+                      <ChevronDown
+                        className={cn(
+                          'w-3.5 h-3.5 text-muted-foreground transition-transform',
+                          payloadOpen && 'rotate-180'
+                        )}
+                      />
+                    </button>
+                    {payloadOpen && (
+                      <div className="px-3 pb-3 border-t border-border">
+                        <div className="rounded-md bg-muted/30 border border-border overflow-hidden mt-2 relative">
+                          <div className="absolute top-2 right-4">
+                            <PayloadCopyButton text={payloadPreview} />
+                          </div>
+                          <pre className="text-[10px] text-muted-foreground font-mono px-3 py-2.5 pr-10 overflow-auto max-h-44 leading-relaxed">
+                            {isPayloadPreviewLoading ? 'Loading payload preview…' : payloadPreview}
+                          </pre>
                         </div>
-                        <pre className="text-[10px] text-muted-foreground font-mono px-3 py-2.5 pr-10 overflow-auto max-h-44 leading-relaxed">
-                          {isPayloadPreviewLoading ? 'Loading payload preview…' : payloadPreview}
-                        </pre>
+                        <p className="text-[10px] text-muted-foreground mt-1.5">
+                          Sent as <code className="text-foreground/70">POST</code> with{' '}
+                          <code className="text-foreground/70">Content-Type: application/json</code>
+                        </p>
                       </div>
-                      <p className="text-[10px] text-muted-foreground mt-1.5">
-                        Sent as <code className="text-foreground/70">POST</code> with{' '}
-                        <code className="text-foreground/70">Content-Type: application/json</code>
-                      </p>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
               </>
             )}
 
