@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { CheckCheck, Copy } from 'lucide-react';
+import { Button } from '@workspace/ui/components/ui/button';
 
 import type { FC } from 'react';
 
@@ -20,14 +21,16 @@ export const PayloadCopyButton: FC<Props> = ({ text }) => {
   };
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="icon"
       onClick={handleCopy}
-      className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+      className="h-auto w-auto text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
       title="Copy payload"
       aria-label="Copy payload"
     >
       {copied ? <CheckCheck className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
-    </button>
+    </Button>
   );
 };

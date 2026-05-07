@@ -117,14 +117,6 @@ from app.models.environment import (  # noqa: F401
     EnvironmentsPublic,
     EnvironmentUpdate,
 )
-from app.models.webhook_payload import (  # noqa: F401
-    WebhookAgent,
-    WebhookDeployPayload,
-    WebhookEval,
-    WebhookLlm,
-    WebhookToolCall,
-    WebhookToolCallParameter,
-)
 
 # ── Eval config ────────────────────────────────────────────────────
 from app.models.eval_config import (  # noqa: F401
@@ -237,4 +229,12 @@ from app.models.user import (  # noqa: F401
     UserRegister,
     UserUpdate,
     UserUpdateMe,
+)
+from app.models.webhook_payload import (  # noqa: F401
+    WebhookAgent,
+    WebhookDeployPayload,
+    WebhookEval,
+    WebhookLlm,
+    WebhookToolCall,
+    WebhookToolCallParameter,
 )

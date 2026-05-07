@@ -23,6 +23,13 @@ class WebhookDeployResult(BaseModel):
     error_message: str | None = None
 
 
+def _published_version_number(version_row: AgentVersion) -> int:
+    if version_row.version is None:
+        msg = "Agent version is required for webhook payloads"
+        raise ValueError(msg)
+    return version_row.version
+
+
 def _extract_tool_parameters(
     parameters_block: dict[str, Any] | None,
 ) -> list[WebhookToolCallParameter]:
@@ -128,12 +135,13 @@ def build_webhook_payload(
     deployed_by: str | None,
     eval_gate: WebhookEval,
 ) -> WebhookDeployPayload:
+    version_number = _published_version_number(version_row)
     return WebhookDeployPayload(
         event="agent.deploy",
         agent=WebhookAgent(
             id=str(agent.id),
             name=agent.name,
-            version=version_row.version,
+            version=version_number,
             version_name=version_row.version_name,
             version_description=version_row.version_description,
             prompt=version_row.system_prompt,
