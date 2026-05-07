@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 import httpx
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 
 from app.models.agent import Agent
@@ -30,7 +31,9 @@ def _extract_tool_calls(tools: list[dict[str, Any]] | None) -> list[dict[str, An
             "parameters": function_block.get("parameters"),
         }
 
-        platform_config = tool.get("platform_config") if isinstance(tool, dict) else None
+        platform_config = (
+            tool.get("platform_config") if isinstance(tool, dict) else None
+        )
         implementation = (
             platform_config.get("implementation")
             if isinstance(platform_config, dict)
@@ -65,8 +68,8 @@ def build_webhook_payload(
             "id": str(agent.id),
             "name": agent.name,
             "version": version_row.version,
-            "version_name": version_row.change_description,
-            "version_description": version_row.change_description,
+            "version_name": version_row.version_name,
+            "version_description": version_row.version_description,
             "prompt": version_row.system_prompt,
             "llm": {
                 "provider": version_row.agent_provider,
@@ -91,11 +94,13 @@ async def deliver_webhook_deployment(
     endpoint_url: str,
     payload: dict[str, Any],
 ) -> WebhookDeployResult:
+    encoded_payload = jsonable_encoder(payload)
+
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 endpoint_url,
-                json=payload,
+                json=encoded_payload,
                 headers={"Content-Type": "application/json"},
                 timeout=15.0,
             )

@@ -2,7 +2,6 @@ import uuid
 from datetime import UTC, datetime
 
 from pydantic import model_validator
-from pydantic.json_schema import SkipJsonSchema
 from sqlalchemy import text
 from sqlmodel import Field, SQLModel
 
@@ -115,8 +114,8 @@ class EnvironmentCreate(EnvironmentBase):
 
 
 class EnvironmentUpdate(SQLModel):
-    name: str | SkipJsonSchema[None] = Field(default=None, max_length=255)
-    platform: Platform | SkipJsonSchema[None] = None
+    name: str | None = Field(default=None, max_length=255)
+    platform: Platform | None = None
     integration_id: uuid.UUID | None = None
     platform_agent_id: str | None = None
     platform_agent_name: str | None = None

@@ -27,12 +27,3 @@ class AuthApi(_BaseApi):
     def logout(self) -> dict[str, Any]:
         """Best-effort server-side logout (clears auth cookie if any)."""
         return self._t.post_dict("logout")
-
-    def recover_password(self, email: str) -> dict[str, Any]:
-        return self._t.post_dict(f"password-recovery/{email}")
-
-    def reset_password(self, *, token: str, new_password: str) -> dict[str, Any]:
-        return self._t.post_dict(
-            "reset-password/",
-            json_body={"token": token, "new_password": new_password},
-        )

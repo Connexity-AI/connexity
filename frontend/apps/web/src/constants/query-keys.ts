@@ -69,6 +69,17 @@ export const testCaseResultKeys = {
 
 export const environmentKeys = {
   list: (agentId: string) => ['environments', agentId] as const,
+  webhookPayloadPreview: (
+    agentId: string,
+    environmentName: string,
+    evalGateEvalConfigId: string | null,
+  ) =>
+    [
+      'environment-webhook-payload-preview',
+      agentId,
+      environmentName,
+      evalGateEvalConfigId,
+    ] as const,
   agentDeployments: (agentId: string) => ['agent-deployments', agentId] as const,
   deployments: (environmentId: string) => ['environment-deployments', environmentId] as const,
   retellVersions: (environmentId: string) =>

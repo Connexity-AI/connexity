@@ -26,7 +26,6 @@ import { Input } from '@workspace/ui/components/ui/input';
 import { Label } from '@workspace/ui/components/ui/label';
 
 import { LlmModelPicker } from '@/app/(app)/(agent)/_components/llm/llm-model-picker';
-import { useAgent } from '@/app/(app)/(agent)/_hooks/use-agent';
 import { useAgentVersions } from '@/app/(app)/(agent)/_hooks/use-agent-versions';
 import { useDefaultLlmRoutingId } from '@/app/(app)/(agent)/_hooks/use-default-llm-routing-id';
 
@@ -59,14 +58,18 @@ export function GenerateTestCasesDialog({
   onGenerate,
 }: GenerateTestCasesDialogProps) {
   const defaultLlmRouting = useDefaultLlmRoutingId();
-  const { data: agent } = useAgent(agentId);
   const { data: versions, isLoading: versionsLoading } = useAgentVersions(agentId);
 
   const hasPublishedVersion = !versionsLoading && (versions?.count ?? 0) > 0;
 
-  const currentVersionName = agent
-    ? (versions?.data.find((v) => v.version === agent.version)?.change_description ?? null)
-    : null;
+  const activeVersionRow = versions?.data.find((v) => v.is_active);
+  const activeVersionNum = activeVersionRow?.version ?? null;
+  const currentVersionName =
+    activeVersionRow != null
+      ? [activeVersionRow.version_name, activeVersionRow.version_description].filter(Boolean).join(
+          ' — ',
+        ) || null
+      : null;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -128,17 +131,17 @@ export function GenerateTestCasesDialog({
                     <span
                       className="text-xs font-mono text-foreground truncate max-w-44"
                       title={
-                        agent
+                        activeVersionNum != null
                           ? currentVersionName
-                            ? `v${agent.version} | ${currentVersionName}`
-                            : `v${agent.version}`
+                            ? `v${activeVersionNum} | ${currentVersionName}`
+                            : `v${activeVersionNum}`
                           : undefined
                       }
                     >
-                      {agent
+                      {activeVersionNum != null
                         ? currentVersionName
-                          ? `v${agent.version} | ${currentVersionName}`
-                          : `v${agent.version}`
+                          ? `v${activeVersionNum} | ${currentVersionName}`
+                          : `v${activeVersionNum}`
                         : '—'}
                     </span>
                   </div>

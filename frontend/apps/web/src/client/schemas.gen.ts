@@ -405,11 +405,6 @@ export const AgentPublicSchema = {
       title: 'Id',
       description: 'Unique agent identifier',
     },
-    version: {
-      type: 'integer',
-      title: 'Version',
-      description: 'Current behavioral config version',
-    },
     has_draft: {
       type: 'boolean',
       title: 'Has Draft',
@@ -429,7 +424,7 @@ export const AgentPublicSchema = {
     },
   },
   type: 'object',
-  required: ['name', 'id', 'version', 'has_draft', 'created_at', 'updated_at'],
+  required: ['name', 'id', 'has_draft', 'created_at', 'updated_at'],
   title: 'AgentPublic',
 } as const;
 
@@ -440,7 +435,7 @@ export const AgentRollbackRequestSchema = {
       minimum: 1,
       title: 'Version',
     },
-    change_description: {
+    version_name: {
       anyOf: [
         {
           type: 'string',
@@ -449,7 +444,18 @@ export const AgentRollbackRequestSchema = {
           type: 'null',
         },
       ],
-      title: 'Change Description',
+      title: 'Version Name',
+    },
+    version_description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version Description',
     },
   },
   type: 'object',
@@ -687,18 +693,6 @@ export const AgentUpdateSchema = {
       title: 'Editor Guidelines',
       description: 'Custom prompting guidelines for the prompt editor agent (None = use default)',
     },
-    change_description: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Change Description',
-      description: 'Optional changelog when a versionable field changes',
-    },
   },
   type: 'object',
   title: 'AgentUpdate',
@@ -874,7 +868,11 @@ export const AgentVersionPublicSchema = {
       ],
       title: 'Agent Temperature',
     },
-    change_description: {
+    is_active: {
+      type: 'boolean',
+      title: 'Is Active',
+    },
+    version_name: {
       anyOf: [
         {
           type: 'string',
@@ -883,7 +881,18 @@ export const AgentVersionPublicSchema = {
           type: 'null',
         },
       ],
-      title: 'Change Description',
+      title: 'Version Name',
+    },
+    version_description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version Description',
     },
     created_by: {
       anyOf: [
@@ -916,7 +925,9 @@ export const AgentVersionPublicSchema = {
     'agent_model',
     'agent_provider',
     'agent_temperature',
-    'change_description',
+    'is_active',
+    'version_name',
+    'version_description',
     'created_by',
     'created_at',
   ],
@@ -2107,7 +2118,7 @@ export const DeploymentPublicSchema = {
       ],
       title: 'Deployed By User Id',
     },
-    deployed_by_name: {
+    deployed_by_display_name: {
       anyOf: [
         {
           type: 'string',
@@ -2116,7 +2127,7 @@ export const DeploymentPublicSchema = {
           type: 'null',
         },
       ],
-      title: 'Deployed By Name',
+      title: 'Deployed By Display Name',
     },
     deployed_at: {
       type: 'string',
@@ -2135,7 +2146,7 @@ export const DeploymentPublicSchema = {
     'status',
     'error_message',
     'deployed_by_user_id',
-    'deployed_by_name',
+    'deployed_by_display_name',
     'deployed_at',
   ],
   title: 'DeploymentPublic',
@@ -2404,12 +2415,26 @@ export const EnvironmentPublicSchema = {
 export const EnvironmentUpdateSchema = {
   properties: {
     name: {
-      type: 'string',
-      maxLength: 255,
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Name',
     },
     platform: {
-      $ref: '#/components/schemas/Platform',
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Platform',
+        },
+        {
+          type: 'null',
+        },
+      ],
     },
     integration_id: {
       anyOf: [
@@ -4002,24 +4027,6 @@ export const MockResponseSchema = {
   title: 'MockResponse',
 } as const;
 
-export const NewPasswordSchema = {
-  properties: {
-    token: {
-      type: 'string',
-      title: 'Token',
-    },
-    new_password: {
-      type: 'string',
-      maxLength: 40,
-      minLength: 6,
-      title: 'New Password',
-    },
-  },
-  type: 'object',
-  required: ['token', 'new_password'],
-  title: 'NewPassword',
-} as const;
-
 export const OnConflictSchema = {
   type: 'string',
   enum: ['skip', 'overwrite'],
@@ -4478,7 +4485,7 @@ export const PromptEditorSessionsPublicSchema = {
 
 export const PublishRequestSchema = {
   properties: {
-    change_description: {
+    version_name: {
       anyOf: [
         {
           type: 'string',
@@ -4487,7 +4494,18 @@ export const PublishRequestSchema = {
           type: 'null',
         },
       ],
-      title: 'Change Description',
+      title: 'Version Name',
+    },
+    version_description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version Description',
     },
   },
   type: 'object',

@@ -102,6 +102,9 @@ import type {
   EnvironmentsDeployEnvironmentData,
   EnvironmentsDeployEnvironmentErrors,
   EnvironmentsDeployEnvironmentResponses,
+  EnvironmentsGetWebhookPayloadPreviewData,
+  EnvironmentsGetWebhookPayloadPreviewErrors,
+  EnvironmentsGetWebhookPayloadPreviewResponses,
   EnvironmentsListAgentDeploymentsData,
   EnvironmentsListAgentDeploymentsErrors,
   EnvironmentsListAgentDeploymentsResponses,
@@ -167,12 +170,6 @@ import type {
   LoginLogoutData,
   LoginLogoutErrors,
   LoginLogoutResponses,
-  LoginRecoverPasswordData,
-  LoginRecoverPasswordErrors,
-  LoginRecoverPasswordResponses,
-  LoginResetPasswordData,
-  LoginResetPasswordErrors,
-  LoginResetPasswordResponses,
   LoginTestTokenData,
   LoginTestTokenErrors,
   LoginTestTokenResponses,
@@ -375,43 +372,6 @@ export class LoginService {
       ],
       url: '/api/v1/login/test-token',
       ...options,
-    });
-  }
-
-  /**
-   * Recover Password
-   *
-   * Password Recovery
-   */
-  public static recoverPassword<ThrowOnError extends boolean = false>(
-    options: Options<LoginRecoverPasswordData, ThrowOnError>
-  ) {
-    return (options.client ?? client).post<
-      LoginRecoverPasswordResponses,
-      LoginRecoverPasswordErrors,
-      ThrowOnError
-    >({ url: '/api/v1/password-recovery/{email}', ...options });
-  }
-
-  /**
-   * Reset Password
-   *
-   * Reset password
-   */
-  public static resetPassword<ThrowOnError extends boolean = false>(
-    options: Options<LoginResetPasswordData, ThrowOnError>
-  ) {
-    return (options.client ?? client).post<
-      LoginResetPasswordResponses,
-      LoginResetPasswordErrors,
-      ThrowOnError
-    >({
-      url: '/api/v1/reset-password/',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
     });
   }
 
@@ -2562,6 +2522,30 @@ export class EnvironmentsService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+    });
+  }
+
+  /**
+   * Get Webhook Payload Preview
+   */
+  public static getWebhookPayloadPreview<ThrowOnError extends boolean = false>(
+    options: Options<EnvironmentsGetWebhookPayloadPreviewData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      EnvironmentsGetWebhookPayloadPreviewResponses,
+      EnvironmentsGetWebhookPayloadPreviewErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/environments/webhook-payload-preview',
+      ...options,
     });
   }
 

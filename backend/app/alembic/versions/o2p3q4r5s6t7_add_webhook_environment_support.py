@@ -16,7 +16,16 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.execute("ALTER TYPE platform ADD VALUE IF NOT EXISTS 'webhook'")
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'platform') THEN
+                ALTER TYPE platform ADD VALUE IF NOT EXISTS 'webhook';
+            END IF;
+        END $$;
+        """
+    )
     op.add_column("environment", sa.Column("endpoint_url", sa.String(length=2048), nullable=True))
     op.alter_column("environment", "integration_id", existing_type=sa.Uuid(), nullable=True)
     op.alter_column(

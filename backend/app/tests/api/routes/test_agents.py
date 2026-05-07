@@ -3,6 +3,7 @@ import uuid
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
+from app import crud
 from app.core.config import settings
 from app.services.prompt_editor.agent_prompt import DEFAULT_EDITOR_GUIDELINES
 from app.tests.utils.eval import create_test_agent
@@ -171,8 +172,8 @@ def test_update_agent_versionable_creates_draft(
     )
     assert r.status_code == 200
     body = r.json()
-    # Agent version should NOT bump (changes are in draft)
-    assert body["version"] == 1
+    active = crud.get_active_agent_version(session=db, agent_id=agent.id)
+    assert active is not None and active.version == 1
     assert body["has_draft"] is True
     # Published agent fields should still reflect original config
     assert body["mode"] == "endpoint"

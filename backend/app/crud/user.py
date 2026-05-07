@@ -1,6 +1,7 @@
+import uuid
 from typing import Any
 
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.core.security import get_password_hash, verify_password
 from app.models import User, UserCreate, UserUpdate
@@ -34,6 +35,16 @@ def get_user_by_email(*, session: Session, email: str) -> User | None:
     statement = select(User).where(User.email == email)
     session_user = session.exec(statement).first()
     return session_user
+
+
+def list_users_by_ids(
+    *, session: Session, user_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, User]:
+    if not user_ids:
+        return {}
+    statement = select(User).where(col(User.id).in_(user_ids))
+    rows = list(session.exec(statement).all())
+    return {u.id: u for u in rows}
 
 
 def authenticate(*, session: Session, email: str, password: str) -> User | None:

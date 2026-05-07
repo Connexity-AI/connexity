@@ -232,12 +232,6 @@ export type AgentPublic = {
    */
   id: string;
   /**
-   * Version
-   *
-   * Current behavioral config version
-   */
-  version: number;
-  /**
    * Has Draft
    *
    * True when an unpublished draft version exists
@@ -266,9 +260,13 @@ export type AgentRollbackRequest = {
    */
   version: number;
   /**
-   * Change Description
+   * Version Name
    */
-  change_description?: string | null;
+  version_name?: string | null;
+  /**
+   * Version Description
+   */
+  version_description?: string | null;
 };
 
 /**
@@ -397,12 +395,6 @@ export type AgentUpdate = {
    * Custom prompting guidelines for the prompt editor agent (None = use default)
    */
   editor_guidelines?: string | null;
-  /**
-   * Change Description
-   *
-   * Optional changelog when a versionable field changes
-   */
-  change_description?: string | null;
 };
 
 /**
@@ -475,9 +467,17 @@ export type AgentVersionPublic = {
    */
   agent_temperature: number | null;
   /**
-   * Change Description
+   * Is Active
    */
-  change_description: string | null;
+  is_active: boolean;
+  /**
+   * Version Name
+   */
+  version_name: string | null;
+  /**
+   * Version Description
+   */
+  version_description: string | null;
   /**
    * Created By
    */
@@ -1232,9 +1232,9 @@ export type DeploymentPublic = {
    */
   deployed_by_user_id: string | null;
   /**
-   * Deployed By Name
+   * Deployed By Display Name
    */
-  deployed_by_name: string | null;
+  deployed_by_display_name: string | null;
   /**
    * Deployed At
    */
@@ -1382,8 +1382,8 @@ export type EnvironmentUpdate = {
   /**
    * Name
    */
-  name?: string;
-  platform?: Platform;
+  name?: string | null;
+  platform?: Platform | null;
   /**
    * Integration Id
    */
@@ -2492,20 +2492,6 @@ export type MockResponse = {
 };
 
 /**
- * NewPassword
- */
-export type NewPassword = {
-  /**
-   * Token
-   */
-  token: string;
-  /**
-   * New Password
-   */
-  new_password: string;
-};
-
-/**
  * OnConflict
  */
 export const OnConflict = { SKIP: 'skip', OVERWRITE: 'overwrite' } as const;
@@ -2853,9 +2839,13 @@ export type PromptEditorSessionsPublic = {
  */
 export type PublishRequest = {
   /**
-   * Change Description
+   * Version Name
    */
-  change_description?: string | null;
+  version_name?: string | null;
+  /**
+   * Version Description
+   */
+  version_description?: string | null;
 };
 
 /**
@@ -4701,112 +4691,6 @@ export type LoginTestTokenResponses = {
 };
 
 export type LoginTestTokenResponse = LoginTestTokenResponses[keyof LoginTestTokenResponses];
-
-export type LoginRecoverPasswordData = {
-  body?: never;
-  path: {
-    /**
-     * Email
-     */
-    email: string;
-  };
-  query?: never;
-  url: '/api/v1/password-recovery/{email}';
-};
-
-export type LoginRecoverPasswordErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type LoginRecoverPasswordError =
-  LoginRecoverPasswordErrors[keyof LoginRecoverPasswordErrors];
-
-export type LoginRecoverPasswordResponses = {
-  /**
-   * Successful Response
-   */
-  200: Message;
-};
-
-export type LoginRecoverPasswordResponse =
-  LoginRecoverPasswordResponses[keyof LoginRecoverPasswordResponses];
-
-export type LoginResetPasswordData = {
-  body: NewPassword;
-  path?: never;
-  query?: never;
-  url: '/api/v1/reset-password/';
-};
-
-export type LoginResetPasswordErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type LoginResetPasswordError = LoginResetPasswordErrors[keyof LoginResetPasswordErrors];
-
-export type LoginResetPasswordResponses = {
-  /**
-   * Successful Response
-   */
-  200: Message;
-};
-
-export type LoginResetPasswordResponse =
-  LoginResetPasswordResponses[keyof LoginResetPasswordResponses];
 
 export type LoginLogoutData = {
   body?: never;
@@ -9486,6 +9370,74 @@ export type EnvironmentsCreateEnvironmentResponses = {
 
 export type EnvironmentsCreateEnvironmentResponse =
   EnvironmentsCreateEnvironmentResponses[keyof EnvironmentsCreateEnvironmentResponses];
+
+export type EnvironmentsGetWebhookPayloadPreviewData = {
+  body?: never;
+  path?: never;
+  query: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+    /**
+     * Environment Name
+     */
+    environment_name: string;
+    /**
+     * Eval Gate Eval Config Id
+     */
+    eval_gate_eval_config_id?: string | null;
+  };
+  url: '/api/v1/environments/webhook-payload-preview';
+};
+
+export type EnvironmentsGetWebhookPayloadPreviewErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type EnvironmentsGetWebhookPayloadPreviewError =
+  EnvironmentsGetWebhookPayloadPreviewErrors[keyof EnvironmentsGetWebhookPayloadPreviewErrors];
+
+export type EnvironmentsGetWebhookPayloadPreviewResponses = {
+  /**
+   * Response Environments-Get Webhook Payload Preview
+   *
+   * Successful Response
+   */
+  200: {
+    [key: string]: unknown;
+  };
+};
+
+export type EnvironmentsGetWebhookPayloadPreviewResponse =
+  EnvironmentsGetWebhookPayloadPreviewResponses[keyof EnvironmentsGetWebhookPayloadPreviewResponses];
 
 export type EnvironmentsDeleteEnvironmentData = {
   body?: never;

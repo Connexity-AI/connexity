@@ -25,11 +25,6 @@ export class UrlGenerator {
     return createTypedLink(route, emptyParser, options)(values);
   }
 
-  static forgotPassword({ options, values }: AuthType = {}) {
-    const route = '/forgot-password/' as Route;
-    return createTypedLink(route, emptyParser, options)(values);
-  }
-
   // ── Dashboard ──
 
   static dashboard({ options, values }: DashboardType = {}) {

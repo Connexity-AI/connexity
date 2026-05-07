@@ -158,7 +158,7 @@ const DeploymentHistoryRow: FC<{ deployment: DeploymentPublic }> = ({ deployment
           <span className="text-muted-foreground"> · {deployment.retell_version_name}</span>
         )}
       </td>
-      <td className="px-5 py-3 text-muted-foreground">{deployment.deployed_by_name ?? '—'}</td>
+      <td className="px-5 py-3 text-muted-foreground">{deployment.deployed_by_display_name ?? '—'}</td>
       <td className="px-5 py-3 text-muted-foreground">{formatTimeAgo(deployment.deployed_at)}</td>
       <td className="px-5 py-3">
         {isFailed ? (

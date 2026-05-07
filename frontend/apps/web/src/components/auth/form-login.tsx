@@ -86,16 +86,6 @@ const FormLogin: FC = () => {
         </form>
       </Form>
 
-      <div className="text-center">
-        <Link
-          href={UrlGenerator.forgotPassword()}
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          prefetch={false}
-        >
-          Forgot your password?
-        </Link>
-      </div>
-
       <p className="text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{' '}
         <Link

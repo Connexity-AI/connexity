@@ -30,6 +30,9 @@ export const EnvironmentCard: FC<Props> = ({ environment, agentId, onEdit }) => 
   const { Icon } = c.button;
   const isWebhook = environment.platform === 'webhook';
   const platformLabel = isWebhook ? 'Webhook' : 'Retell';
+  const platformBadgeClass = isWebhook
+    ? 'text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400'
+    : 'text-[10px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400';
 
   return (
     <>
@@ -39,7 +42,7 @@ export const EnvironmentCard: FC<Props> = ({ environment, agentId, onEdit }) => 
           <div className="flex items-center gap-2.5">
             <div className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)] shrink-0" />
             <span className="text-sm text-foreground">{environment.name}</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400">
+            <span className={platformBadgeClass}>
               {platformLabel}
             </span>
             {c.hasGate && (

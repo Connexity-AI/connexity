@@ -44,6 +44,22 @@ export const listEnvironments = async (
   return result;
 };
 
+export const getWebhookPayloadPreview = async (
+  agentId: string,
+  environmentName: string,
+  evalGateEvalConfigId: string | null
+): Promise<ApiResult<Record<string, unknown>>> => {
+  const apiResponse = await EnvironmentsService.getWebhookPayloadPreview({
+    query: {
+      agent_id: agentId,
+      environment_name: environmentName,
+      eval_gate_eval_config_id: evalGateEvalConfigId ?? undefined,
+    },
+  });
+  const { response: _, ...result } = apiResponse;
+  return result as ApiResult<Record<string, unknown>>;
+};
+
 export const deleteEnvironment = async (id: string): Promise<ApiResult<void>> => {
   const apiResponse = await EnvironmentsService.deleteEnvironment({
     path: { environment_id: id },

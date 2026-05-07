@@ -307,8 +307,9 @@ def test_update_environment_changes_configuration_fields(
     assert body["platform_agent_id"] is None
     assert body["platform_agent_name"] is None
     assert body["endpoint_url"] == "https://example.com/hooks/new-deploy"
-    assert body["current_version_number"] == 3
-    assert body["current_version_name"] == "Guardrail tightening"
+    assert body["current_version_number"] is None
+    assert body["current_version_name"] is None
+    assert body["current_deployed_at"] is None
 
 
 def test_update_environment_rejects_gate_for_other_agent(
@@ -397,10 +398,11 @@ def test_deploy_blocked_by_gate_when_no_run_for_version(
         ),
     )
 
-    # Existing test_create_test_agent path leaves agent.version=1 and a published v1.
+    active = crud.get_active_agent_version(session=db, agent_id=agent.id)
+    assert active is not None
     r = client.post(
         f"{settings.API_V1_STR}/environments/{env.id}/deploy",
-        json={"agent_version": agent.version},
+        json={"agent_version": active.version},
         cookies=auth_cookies,
     )
     assert r.status_code == 409
@@ -459,9 +461,11 @@ def test_deploy_webhook_environment_marks_success_on_2xx(
         "app.api.routes.environments.deliver_webhook_deployment",
         new=AsyncMock(return_value=WebhookDeployResult(success=True)),
     ) as mock_deliver:
+        active_d = crud.get_active_agent_version(session=db, agent_id=agent.id)
+        assert active_d is not None
         r = client.post(
             f"{settings.API_V1_STR}/environments/{env.id}/deploy",
-            json={"agent_version": agent.version},
+            json={"agent_version": active_d.version},
             cookies=auth_cookies,
         )
     assert r.status_code == 200
@@ -493,11 +497,69 @@ def test_deploy_webhook_environment_returns_failure_message(
             )
         ),
     ):
+        active_f = crud.get_active_agent_version(session=db, agent_id=agent.id)
+        assert active_f is not None
         r = client.post(
             f"{settings.API_V1_STR}/environments/{env.id}/deploy",
-            json={"agent_version": agent.version},
+            json={"agent_version": active_f.version},
             cookies=auth_cookies,
         )
     assert r.status_code == 200
     assert r.json()["status"] == "failed"
     assert "Webhook responded with 500" in (r.json()["error_message"] or "")
+
+
+def test_get_webhook_payload_preview_returns_real_agent_payload(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    db: Session,
+) -> None:
+    agent, _ = _make_owned_agent(db)
+
+    active_prev = crud.get_active_agent_version(session=db, agent_id=agent.id)
+    assert active_prev is not None
+
+    r = client.get(
+        f"{settings.API_V1_STR}/environments/webhook-payload-preview",
+        params={
+            "agent_id": str(agent.id),
+            "environment_name": "Production",
+        },
+        cookies=auth_cookies,
+    )
+
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["event"] == "agent.deploy"
+    assert payload["event_type"] == "agent.deployed"
+    assert payload["platform"] == "webhook"
+    assert payload["environment"] == "Production"
+    assert payload["agent"]["id"] == str(agent.id)
+    assert payload["agent"]["version"] == active_prev.version
+
+
+def test_get_webhook_payload_preview_with_eval_gate_without_run_returns_payload(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    db: Session,
+) -> None:
+    from app.tests.utils.eval import create_test_eval_config
+
+    agent, _ = _make_owned_agent(db)
+    gate_cfg = create_test_eval_config(db, agent_id=agent.id)
+
+    r = client.get(
+        f"{settings.API_V1_STR}/environments/webhook-payload-preview",
+        params={
+            "agent_id": str(agent.id),
+            "environment_name": "Staging",
+            "eval_gate_eval_config_id": str(gate_cfg.id),
+        },
+        cookies=auth_cookies,
+    )
+
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["environment"] == "Staging"
+    assert payload["eval"]["config_id"] == str(gate_cfg.id)
+    assert payload["eval"]["passed"] is None

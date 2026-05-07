@@ -21,14 +21,49 @@ _VERSIONABLE_FIELDS = (
 )
 
 
+def next_published_version_number(*, session: Session, agent_id: uuid.UUID) -> int:
+    m = session.exec(
+        select(func.max(AgentVersion.version)).where(
+            AgentVersion.agent_id == agent_id,
+            AgentVersion.status == AgentVersionStatus.PUBLISHED,
+            col(AgentVersion.version).is_not(None),
+        )
+    ).one()
+    return int(m or 0) + 1
+
+
+def _deactivate_published_active(*, session: Session, agent_id: uuid.UUID) -> None:
+    session.execute(
+        sa_update(AgentVersion)
+        .where(
+            AgentVersion.agent_id == agent_id,
+            col(AgentVersion.is_active).is_(True),
+        )
+        .values(is_active=False)
+    )
+
+
+def get_active_published_version(
+    *, session: Session, agent_id: uuid.UUID
+) -> AgentVersion | None:
+    statement = select(AgentVersion).where(
+        AgentVersion.agent_id == agent_id,
+        AgentVersion.status == AgentVersionStatus.PUBLISHED,
+        col(AgentVersion.is_active).is_(True),
+    )
+    return session.exec(statement).first()
+
+
 def build_version_row(
     *,
     agent_id: uuid.UUID,
     version: int | None,
     status: AgentVersionStatus,
     source: Agent | AgentVersion,
-    change_description: str | None,
     created_by: uuid.UUID | None,
+    is_active: bool = False,
+    version_name: str | None = None,
+    version_description: str | None = None,
 ) -> AgentVersion:
     return AgentVersion(
         agent_id=agent_id,
@@ -41,7 +76,9 @@ def build_version_row(
         agent_model=source.agent_model,
         agent_provider=source.agent_provider,
         agent_temperature=source.agent_temperature,
-        change_description=change_description,
+        is_active=is_active,
+        version_name=version_name,
+        version_description=version_description,
         created_by=created_by,
     )
 
@@ -57,8 +94,10 @@ def create_initial_version(
         version=1,
         status=AgentVersionStatus.PUBLISHED,
         source=agent,
-        change_description=None,
         created_by=created_by,
+        is_active=True,
+        version_name=None,
+        version_description=None,
     )
     session.add(row)
     session.flush()
@@ -106,7 +145,8 @@ def rollback_to_version(
     session: Session,
     db_agent: Agent,
     target_version: int,
-    change_description: str | None,
+    version_name: str | None,
+    version_description: str | None,
     created_by: uuid.UUID | None,
 ) -> tuple[Agent, AgentVersion]:
     locked = session.exec(
@@ -128,11 +168,13 @@ def rollback_to_version(
         agent_model=target.agent_model,
     )
 
+    new_version_num = next_published_version_number(session=session, agent_id=locked.id)
+    _deactivate_published_active(session=session, agent_id=locked.id)
+
     session.execute(
         sa_update(Agent)
         .where(Agent.id == locked.id)
         .values(
-            version=Agent.version + 1,
             mode=target.mode,
             endpoint_url=target.endpoint_url,
             system_prompt=target.system_prompt,
@@ -145,17 +187,19 @@ def rollback_to_version(
     )
     session.flush()
     session.refresh(locked)
+
     new_row = build_version_row(
         agent_id=locked.id,
-        version=locked.version,
+        version=new_version_num,
         status=AgentVersionStatus.PUBLISHED,
         source=locked,
-        change_description=change_description,
         created_by=created_by,
+        is_active=True,
+        version_name=version_name,
+        version_description=version_description,
     )
     session.add(new_row)
 
-    # Update the draft row to match the rollback target (discard existing draft changes)
     draft = get_draft(session=session, agent_id=locked.id)
     if draft is not None:
         for field in _VERSIONABLE_FIELDS:
@@ -167,8 +211,10 @@ def rollback_to_version(
             version=None,
             status=AgentVersionStatus.DRAFT,
             source=target,
-            change_description=None,
             created_by=created_by,
+            is_active=False,
+            version_name=None,
+            version_description=None,
         )
         session.add(new_draft)
         locked.has_draft = True
@@ -178,9 +224,6 @@ def rollback_to_version(
     session.refresh(locked)
     session.refresh(new_row)
     return locked, new_row
-
-
-# ── Draft/Publish lifecycle ──────────────────────────────────────────
 
 
 def get_draft(*, session: Session, agent_id: uuid.UUID) -> AgentVersion | None:
@@ -213,7 +256,6 @@ def create_or_update_draft(
     existing_draft = get_draft(session=session, agent_id=locked.id)
 
     if existing_draft is not None:
-        # Merge provided fields into existing draft
         for key, value in draft_data.items():
             setattr(existing_draft, key, value)
         session.add(existing_draft)
@@ -221,14 +263,15 @@ def create_or_update_draft(
         session.refresh(existing_draft)
         return existing_draft
 
-    # Create new draft from current published config + provided changes
     draft = build_version_row(
         agent_id=locked.id,
         version=None,
         status=AgentVersionStatus.DRAFT,
         source=locked,
-        change_description=None,
         created_by=created_by,
+        is_active=False,
+        version_name=None,
+        version_description=None,
     )
     for key, value in draft_data.items():
         setattr(draft, key, value)
@@ -246,7 +289,8 @@ def publish_draft(
     *,
     session: Session,
     agent: Agent,
-    change_description: str | None,
+    version_name: str | None,
+    version_description: str | None,
     created_by: uuid.UUID | None,
 ) -> AgentVersion:
     locked = session.exec(
@@ -268,25 +312,25 @@ def publish_draft(
         agent_model=draft.agent_model,
     )
 
-    new_version = locked.version + 1
+    new_version = next_published_version_number(session=session, agent_id=locked.id)
+    _deactivate_published_active(session=session, agent_id=locked.id)
 
-    # Create a new published row from the draft (draft stays unchanged)
     published_row = build_version_row(
         agent_id=locked.id,
         version=new_version,
         status=AgentVersionStatus.PUBLISHED,
         source=draft,
-        change_description=change_description,
         created_by=created_by,
+        is_active=True,
+        version_name=version_name,
+        version_description=version_description,
     )
     session.add(published_row)
 
-    # Update agent's live config from draft (has_draft stays True)
     session.execute(
         sa_update(Agent)
         .where(Agent.id == locked.id)
         .values(
-            version=new_version,
             has_draft=False,
             mode=draft.mode,
             endpoint_url=draft.endpoint_url,

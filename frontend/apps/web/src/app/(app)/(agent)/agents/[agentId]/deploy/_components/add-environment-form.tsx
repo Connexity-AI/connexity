@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 
+import { useQuery } from '@tanstack/react-query';
 import { Check, ChevronDown, Loader2, Webhook } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/ui/button';
@@ -24,7 +25,7 @@ import {
 import { cn } from '@workspace/ui/lib/utils';
 
 import { useAddEnvironmentForm } from '@/app/(app)/(agent)/_hooks/use-add-environment-form';
-import { getWebhookPayloadPreview } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_utils/get-webhook-payload-preview';
+import { webhookPayloadPreviewQuery } from '@/app/(app)/(agent)/_queries/webhook-payload-preview-query';
 import { AgentSelectField } from './agent-select-field';
 import { EvalGateFormSection } from './eval-gate-form-section';
 
@@ -61,9 +62,27 @@ export const AddEnvironmentForm: FC<Props> = ({
   const isEditing = environment !== null;
   const submitLabel = isEditing ? 'Save changes' : 'Add environment';
   const name = form.watch('name');
+  const evalGateEnabled = form.watch('eval_gate_enabled');
+  const evalGateEvalConfigId = form.watch('eval_gate_eval_config_id');
+  const environmentNameForPreview = name.trim() || 'production';
+  const {
+    data: payloadPreviewData,
+    isLoading: isPayloadPreviewLoading,
+    isError: isPayloadPreviewError,
+  } = useQuery({
+      ...webhookPayloadPreviewQuery({
+        agentId,
+        environmentName: environmentNameForPreview,
+        evalGateEvalConfigId: evalGateEnabled ? evalGateEvalConfigId : null,
+      }),
+      enabled: platform === 'webhook' && payloadOpen,
+    });
   const payloadPreview = useMemo(
-    () => getWebhookPayloadPreview({ environmentName: name }),
-    [name]
+    () =>
+      isPayloadPreviewError
+        ? 'unable to load payload preview right now'
+        : JSON.stringify(payloadPreviewData ?? {}, null, 2),
+    [isPayloadPreviewError, payloadPreviewData]
   );
 
   return (
@@ -216,7 +235,8 @@ export const AddEnvironmentForm: FC<Props> = ({
                         </div>
                       </FormControl>
                       <p className="text-[11px] text-muted-foreground">
-                        We send a POST request with JSON payload. Any 2xx response means success.
+                        We POST to this URL on deploy. A 200 response is a success; any other
+                        status is treated as a failure and the response body will be shown.
                       </p>
                       <FormMessage />
                     </FormItem>
@@ -241,7 +261,7 @@ export const AddEnvironmentForm: FC<Props> = ({
                     <div className="px-3 pb-3 border-t border-border">
                       <div className="rounded-md bg-muted/30 border border-border overflow-hidden mt-2">
                         <pre className="text-[10px] text-muted-foreground font-mono px-3 py-2.5 overflow-auto max-h-44 leading-relaxed">
-                          {payloadPreview}
+                        {isPayloadPreviewLoading ? 'Loading payload preview…' : payloadPreview}
                         </pre>
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-1.5">

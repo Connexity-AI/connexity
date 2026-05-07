@@ -115,11 +115,6 @@ class Agent(AgentBase, table=True):
     created_by: uuid.UUID | None = Field(
         default=None, foreign_key="user.id", index=True
     )
-    version: int = Field(
-        default=1,
-        nullable=False,
-        description="Current config version number (denormalized; see agent_version history)",
-    )
     has_draft: bool = Field(
         default=False,
         nullable=False,
@@ -225,15 +220,10 @@ class AgentUpdate(SQLModel):
         default=None,
         description="Custom prompting guidelines for the prompt editor agent (None = use default)",
     )
-    change_description: str | None = Field(
-        default=None,
-        description="Optional changelog when a versionable field changes",
-    )
 
 
 class AgentPublic(AgentBase):
     id: uuid.UUID = Field(description="Unique agent identifier")
-    version: int = Field(description="Current behavioral config version")
     has_draft: bool = Field(description="True when an unpublished draft version exists")
     created_at: datetime = Field(description="When the agent was created")
     updated_at: datetime = Field(description="When the agent was last updated")
