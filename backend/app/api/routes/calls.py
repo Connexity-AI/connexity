@@ -23,15 +23,34 @@ from app.models.agent import Agent
 from app.models.enums import Platform
 from app.models.test_case import TestCase
 from app.services.retell import list_retell_calls
+from app.services.telnyx import list_telnyx_calls
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["calls"], dependencies=[Depends(get_current_user)])
 
-_RETELL_PAGE_SIZE = 100
+_PAGE_SIZE = 100
 _MAX_FETCH_ITERATIONS = 20
 
 _SYNC_TTL = timedelta(seconds=15)
+
+# Map platform to its call-listing function
+_PLATFORM_CALL_LISTERS = {
+    Platform.RETELL: list_retell_calls,
+    Platform.TELNYX: list_telnyx_calls,
+}
+
+# Map platform to its upsert function
+_PLATFORM_UPSERTERS = {
+    Platform.RETELL: crud.upsert_calls_from_retell,
+    Platform.TELNYX: crud.upsert_calls_from_telnyx,
+}
+
+# Map platform to its watermark function
+_PLATFORM_WATERMARKERS = {
+    Platform.RETELL: crud.get_latest_call_started_at,
+    Platform.TELNYX: crud.get_latest_telnyx_call_started_at,
+}
 
 
 def _emit(event: str, **fields: Any) -> None:
@@ -40,22 +59,31 @@ def _emit(event: str, **fields: Any) -> None:
     logger.warning(json.dumps(payload, default=str))
 
 
-async def _fetch_and_store_from_retell(
+async def _fetch_and_store_from_platform(
     *,
     session,
     agent,
     incremental: bool,
+    platform: Platform,
 ) -> int:
-    """Pull calls from Retell into the DB across every Retell environment on the agent.
+    """Pull calls from a voice platform into the DB across every matching environment.
 
     Returns total number of newly-inserted rows.
     """
+    list_calls = _PLATFORM_CALL_LISTERS.get(platform)
+    upsert_fn = _PLATFORM_UPSERTERS.get(platform)
+    watermark_fn = _PLATFORM_WATERMARKERS.get(platform)
+    if any(fn is None for fn in (list_calls, upsert_fn, watermark_fn)):
+        return 0
+
     started = time.monotonic()
+    platform_name = platform.value
     event: dict[str, Any] = {
         "agent_id": str(agent.id),
+        "platform": platform_name,
         "incremental": incremental,
         "envs_total": 0,
-        "retell_envs": 0,
+        "platform_envs": 0,
         "envs": [],
         "created_total": 0,
         "status": "ok",
@@ -64,21 +92,23 @@ async def _fetch_and_store_from_retell(
         environments = crud.list_environments_by_agent(
             session=session, agent_id=agent.id
         )
-        retell_envs = [
-            (env, name) for env, name in environments if env.platform == Platform.RETELL
+        platform_envs = [
+            (env, name)
+            for env, name in environments
+            if env.platform == platform
         ]
         event["envs_total"] = len(environments)
-        event["retell_envs"] = len(retell_envs)
+        event["platform_envs"] = len(platform_envs)
 
-        if not retell_envs:
-            event["status"] = "no_retell_env"
+        if not platform_envs:
+            event["status"] = f"no_{platform_name}_env"
             raise HTTPException(
                 status_code=400,
-                detail="Add a Retell environment on the Deploy tab first",
+                detail=f"Add a {platform_name.title()} environment on the Deploy tab first",
             )
 
         created_total = 0
-        for env, _ in retell_envs:
+        for env, _ in platform_envs:
             if env.integration_id is None or env.platform_agent_id is None:
                 continue
             env_event: dict[str, Any] = {
@@ -112,43 +142,48 @@ async def _fetch_and_store_from_retell(
             env_event["api_key_len"] = len(api_key) if api_key else 0
 
             # Per-environment watermark: the latest started_at of calls already
-            # stored for this (agent, retell_agent_id) pair. A brand-new env on
-            # an agent that has prior calls from a different env still gets a
-            # full backfill instead of inheriting the other env's cutoff.
+            # stored for this (agent, platform_agent_id) pair.
             start_after: datetime | None = None
             if incremental:
-                start_after = crud.get_latest_call_started_at(
-                    session=session,
-                    agent_id=agent.id,
-                    retell_agent_id=env.platform_agent_id,
-                )
+                if platform == Platform.TELNYX:
+                    start_after = watermark_fn(
+                        session=session,
+                        agent_id=agent.id,
+                        telnyx_agent_id=env.platform_agent_id,
+                    )
+                else:
+                    start_after = watermark_fn(
+                        session=session,
+                        agent_id=agent.id,
+                        retell_agent_id=env.platform_agent_id,
+                    )
             env_event["start_after"] = start_after
             for iteration in range(_MAX_FETCH_ITERATIONS):
                 env_event["iterations"] = iteration + 1
                 try:
-                    batch = await list_retell_calls(
+                    batch = await list_calls(
                         api_key,
                         agent_id=env.platform_agent_id,
                         start_after=start_after,
-                        limit=_RETELL_PAGE_SIZE,
+                        limit=_PAGE_SIZE,
                     )
                 except HTTPException as exc:
-                    env_event["status"] = "retell_error"
+                    env_event["status"] = f"{platform_name}_error"
                     env_event["error"] = f"{exc.status_code}: {exc.detail}"
                     raise
                 if not batch:
                     break
-                inserted = crud.upsert_calls_from_retell(
+                inserted = upsert_fn(
                     session=session,
                     agent_id=agent.id,
                     integration_id=integration.id,
-                    retell_calls=batch,
+                    **({"retell_calls": batch} if platform == Platform.RETELL else {"telnyx_calls": batch}),
                 )
                 env_event["fetched"] += len(batch)
                 env_event["inserted"] += inserted
                 env_event["skipped_dupes"] += len(batch) - inserted
                 created_total += inserted
-                if len(batch) < _RETELL_PAGE_SIZE:
+                if len(batch) < _PAGE_SIZE:
                     break
                 newest_ms = max(
                     (c.start_timestamp for c in batch if c.start_timestamp is not None),
@@ -173,7 +208,32 @@ async def _fetch_and_store_from_retell(
         raise
     finally:
         event["duration_ms"] = int((time.monotonic() - started) * 1000)
-        _emit("retell_sync", **event)
+        _emit(f"{platform_name}_sync", **event)
+
+
+async def _fetch_and_store_for_all_platforms(
+    *,
+    session,
+    agent,
+    incremental: bool,
+) -> int:
+    """Pull calls from all supported voice platforms.
+
+    Returns total number of newly-inserted rows across all platforms.
+    """
+    created_total = 0
+    for platform in (Platform.RETELL, Platform.TELNYX):
+        try:
+            created = await _fetch_and_store_from_platform(
+                session=session,
+                agent=agent,
+                incremental=incremental,
+                platform=platform,
+            )
+            created_total += created
+        except HTTPException:
+            pass
+    return created_total
 
 
 def _is_sync_stale(last_synced_at: datetime | None) -> bool:
@@ -188,7 +248,7 @@ def _is_sync_stale(last_synced_at: datetime | None) -> bool:
 
 
 async def _sync_calls_in_background(agent_id: uuid.UUID) -> None:
-    """Run a Retell sync in a fresh DB session after the request response is sent.
+    """Run a platform sync in a fresh DB session after the request response is sent.
 
     Errors are logged, never raised — there is no caller left to receive them.
     """
@@ -204,7 +264,7 @@ async def _sync_calls_in_background(agent_id: uuid.UUID) -> None:
                 event["status"] = "agent_not_found"
                 return
             try:
-                created = await _fetch_and_store_from_retell(
+                created = await _fetch_and_store_for_all_platforms(
                     session=session, agent=agent, incremental=True
                 )
                 event["created"] = created
@@ -305,7 +365,7 @@ async def refresh_agent_calls(
             event["status"] = "agent_not_found"
             raise HTTPException(status_code=404, detail="Agent not found")
 
-        created = await _fetch_and_store_from_retell(
+        created = await _fetch_and_store_for_all_platforms(
             session=session, agent=agent, incremental=True
         )
         crud.touch_calls_last_synced_at(session=session, agent_id=agent_id)
@@ -361,8 +421,10 @@ def get_call_detail(
     return CallPublic(
         id=call.id,
         agent_id=call.agent_id,
-        retell_call_id=call.retell_call_id,
-        retell_agent_id=call.retell_agent_id,
+        retell_call_id=call.retell_call_id or "",
+        retell_agent_id=call.retell_agent_id or "",
+        telnyx_call_id=call.telnyx_call_id,
+        telnyx_agent_id=call.telnyx_agent_id,
         started_at=call.started_at,
         duration_seconds=call.duration_seconds,
         status=call.status,

@@ -17,9 +17,15 @@ from app.services.retell import (
     list_retell_agents,
     test_retell_connection,
 )
+from app.services.telnyx import (
+    TelnyxAgentSummary,
+    list_telnyx_agents,
+    test_telnyx_connection as test_telnyx_connection,
+)
 
 _CONNECTION_TESTERS = {
     IntegrationProvider.RETELL: test_retell_connection,
+    IntegrationProvider.TELNYX: test_telnyx_connection,
 }
 
 
@@ -28,6 +34,12 @@ async def _test_connection(provider: IntegrationProvider, api_key: str) -> bool:
     if tester is None:
         return False
     return await tester(api_key)
+
+
+_AGENT_LISTERS = {
+    IntegrationProvider.RETELL: list_retell_agents,
+    IntegrationProvider.TELNYX: list_telnyx_agents,
+}
 
 
 router = APIRouter(
@@ -100,13 +112,19 @@ async def test_integration(
     return Message(message="Connection successful")
 
 
-@router.get("/{integration_id}/agents", response_model=list[RetellAgentSummary])
+@router.get("/{integration_id}/agents", response_model=list[RetellAgentSummary | TelnyxAgentSummary])
 async def list_integration_agents(
     session: SessionDep,
     integration_id: uuid.UUID,
-) -> list[RetellAgentSummary]:
+) -> list[RetellAgentSummary | TelnyxAgentSummary]:
     integration = crud.get_integration(session=session, integration_id=integration_id)
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
     api_key = decrypt(integration.encrypted_api_key)
-    return await list_retell_agents(api_key)
+    lister = _AGENT_LISTERS.get(integration.provider)
+    if lister is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Agent listing not supported for provider {integration.provider}",
+        )
+    return await lister(api_key)

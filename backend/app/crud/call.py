@@ -9,6 +9,7 @@ from app.models.agent import Agent
 from app.models.call import Call, CallPublic
 from app.models.test_case import TestCase
 from app.services.retell import RetellCall
+from app.services.telnyx import TelnyxCall
 
 # SQLModel's declarative metaclass sets ``__table__`` at class creation, but
 # pyright's stubs don't expose it on ``type[Call]``; bind it once with an
@@ -73,6 +74,81 @@ def upsert_calls_from_retell(
     inserted = len(list(result))
     session.commit()
     return inserted
+
+
+def _telnyx_call_to_row(
+    call: TelnyxCall, *, agent_id: uuid.UUID, integration_id: uuid.UUID
+) -> dict:
+    started_at = (
+        datetime.fromtimestamp(call.start_timestamp / 1000, tz=UTC)
+        if call.start_timestamp
+        else datetime.now(UTC)
+    )
+    duration: int | None = None
+    if call.start_timestamp and call.end_timestamp:
+        duration = max(0, (call.end_timestamp - call.start_timestamp) // 1000)
+    return {
+        "agent_id": agent_id,
+        "integration_id": integration_id,
+        "telnyx_call_id": call.call_id,
+        "telnyx_agent_id": call.agent_id or "",
+        "started_at": started_at,
+        "duration_seconds": duration,
+        "status": call.call_status,
+        "transcript": call.transcript_object,
+        "raw": call.raw,
+    }
+
+
+def upsert_calls_from_telnyx(
+    *,
+    session: Session,
+    agent_id: uuid.UUID,
+    integration_id: uuid.UUID,
+    telnyx_calls: list[TelnyxCall],
+) -> int:
+    """Insert telnyx calls, skipping rows whose ``telnyx_call_id`` already exists.
+
+    Returns the number of newly-inserted rows.
+    """
+    if not telnyx_calls:
+        return 0
+
+    rows = [
+        _telnyx_call_to_row(c, agent_id=agent_id, integration_id=integration_id)
+        for c in telnyx_calls
+        if c.call_id
+    ]
+    if not rows:
+        return 0
+
+    stmt = (
+        pg_insert(_CALL_TABLE)
+        .values(rows)
+        .on_conflict_do_nothing(index_elements=["telnyx_call_id", "agent_id"])
+        .returning(_CALL_TABLE.c.id)
+    )
+    result = session.execute(stmt)
+    inserted = len(list(result))
+    session.commit()
+    return inserted
+
+
+def get_latest_telnyx_call_started_at(
+    *,
+    session: Session,
+    agent_id: uuid.UUID,
+    telnyx_agent_id: str | None = None,
+) -> datetime | None:
+    stmt = (
+        select(func.max(Call.started_at))
+        .where(Call.agent_id == agent_id)
+        .where(Call.telnyx_call_id.is_not(None))  # type: ignore[union-attr]
+        .where(Call.deleted_at.is_(None))  # type: ignore[union-attr]
+    )
+    if telnyx_agent_id is not None:
+        stmt = stmt.where(Call.telnyx_agent_id == telnyx_agent_id)
+    return session.exec(stmt).one_or_none()
 
 
 def get_latest_call_started_at(

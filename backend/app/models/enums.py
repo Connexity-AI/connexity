@@ -66,11 +66,13 @@ class PromptEditorSessionStatus(StrEnum):
 
 class Platform(StrEnum):
     RETELL = "retell"
+    TELNYX = "telnyx"
     WEBHOOK = "webhook"
 
 
 class IntegrationProvider(StrEnum):
     RETELL = "retell"
+    TELNYX = "telnyx"
 
 
 class DeploymentStatus(StrEnum):
