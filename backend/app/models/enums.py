@@ -66,6 +66,7 @@ class PromptEditorSessionStatus(StrEnum):
 
 class Platform(StrEnum):
     RETELL = "retell"
+    WEBHOOK = "webhook"
 
 
 class IntegrationProvider(StrEnum):

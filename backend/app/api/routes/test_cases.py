@@ -165,9 +165,18 @@ def _resolve_generate_request(
             status_code=404, detail=f"Agent not found: {request.agent_id}"
         )
 
-    version_num = (
-        request.agent_version if request.agent_version is not None else agent.version
+    active = agent_version_crud.get_active_published_version(
+        session=session, agent_id=agent.id
     )
+    default_num = active.version if active is not None else None
+    version_num = (
+        request.agent_version if request.agent_version is not None else default_num
+    )
+    if version_num is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Agent has no published version: {agent.id}",
+        )
     version = agent_version_crud.get_version(
         session=session, agent_id=agent.id, version=version_num
     )

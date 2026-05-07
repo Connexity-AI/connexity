@@ -136,7 +136,7 @@ function Row({ agentId, config }: { agentId: string; config: EvalConfigPublic })
       >
         {toolMode === 'mock' ? 'Mock' : 'Live'}
       </span>
-      <span className="pointer-events-none relative text-xs text-muted-foreground">
+      <span className="pointer-events-none relative text-xs text-muted-foreground tabular-nums">
         {formatDate(config.created_at)}
       </span>
       <div className="relative flex justify-end">

@@ -140,7 +140,8 @@ def rollback_agent(
             session=session,
             db_agent=agent,
             target_version=body.version,
-            change_description=body.change_description,
+            version_name=body.version_name,
+            version_description=body.version_description,
             created_by=current_user.id,
         )
     except ValueError as e:
@@ -204,7 +205,8 @@ def publish_draft(
         published = crud.publish_agent_draft(
             session=session,
             agent=agent,
-            change_description=body.change_description,
+            version_name=body.version_name,
+            version_description=body.version_description,
             created_by=current_user.id,
         )
     except ValueError as e:

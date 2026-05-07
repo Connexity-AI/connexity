@@ -29,7 +29,7 @@ def enrich_run_create_from_agent(
 ) -> RunCreate:
     """Fill run snapshot fields from the agent and eval config; validate endpoint mode.
 
-    If `run_in.agent_version` is provided and differs from the agent's current
+    If `run_in.agent_version` is provided and differs from the active published
     version, snapshot fields (system_prompt, tools, model, etc.) are taken from
     that AgentVersion row so the eval actually tests the requested version's
     behavior. Otherwise fields are taken from the live agent.
@@ -38,11 +38,18 @@ def enrich_run_create_from_agent(
     requested_version = data.pop("agent_version", None)
     data.pop("agent_version_id", None)
 
+    active_row = agent_version_crud.get_active_published_version(
+        session=session, agent_id=agent.id
+    )
+    current_version_num = active_row.version if active_row is not None else None
+
     source: Agent | AgentVersion
     target_version: int | None
     ver_row: AgentVersion | None
 
-    if requested_version is not None and requested_version != agent.version:
+    if requested_version is not None and (
+        current_version_num is None or requested_version != current_version_num
+    ):
         ver_row = agent_version_crud.get_current_version_row(
             session=session, agent_id=agent.id, version=requested_version
         )
@@ -52,11 +59,12 @@ def enrich_run_create_from_agent(
         source = ver_row
         target_version = requested_version
     else:
+        if current_version_num is None:
+            msg = f"Agent {agent.id} has no published version"
+            raise ValueError(msg)
         source = agent
-        target_version = agent.version
-        ver_row = agent_version_crud.get_current_version_row(
-            session=session, agent_id=agent.id, version=agent.version
-        )
+        target_version = current_version_num
+        ver_row = active_row
 
     # Snapshot the eval config's run config when the caller didn't override it,
     # so max_turns / concurrency / judge / tool_mode set on the eval config are
@@ -241,8 +249,8 @@ def get_baseline_run(
 ) -> Run | None:
     """Return baseline for (agent, eval_config), optionally scoped to a version.
 
-    If *agent_version* is None, returns the baseline for the agent's current
-    version (``Agent.version``).
+    If *agent_version* is None, returns the baseline for the active published
+    version.
     """
     statement = select(Run).where(
         Run.agent_id == agent_id,
@@ -252,10 +260,12 @@ def get_baseline_run(
     if agent_version is not None:
         statement = statement.where(Run.agent_version == agent_version)
     else:
-        agent = session.exec(select(Agent).where(Agent.id == agent_id)).first()
-        if agent is None:
+        active = agent_version_crud.get_active_published_version(
+            session=session, agent_id=agent_id
+        )
+        if active is None or active.version is None:
             return None
-        statement = statement.where(Run.agent_version == agent.version)
+        statement = statement.where(Run.agent_version == active.version)
     statement = statement.order_by(col(Run.created_at).desc()).limit(1)
     return session.exec(statement).first()
 

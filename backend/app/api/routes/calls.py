@@ -79,6 +79,8 @@ async def _fetch_and_store_from_retell(
 
         created_total = 0
         for env, _ in retell_envs:
+            if env.integration_id is None or env.platform_agent_id is None:
+                continue
             env_event: dict[str, Any] = {
                 "env_id": str(env.id),
                 "platform_agent_id": env.platform_agent_id,

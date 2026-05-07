@@ -14,7 +14,6 @@ const sitemap = (): MetadataRoute.Sitemap => {
     UrlGenerator.home(),
     UrlGenerator.login(),
     UrlGenerator.register(),
-    UrlGenerator.forgotPassword(),
     UrlGenerator.dashboard(),
     UrlGenerator.agents(),
     UrlGenerator.metrics(),

@@ -23,7 +23,6 @@ class Deployment(DeploymentBase, table=True):
     deployed_by_user_id: uuid.UUID | None = Field(
         default=None, foreign_key="user.id", index=True
     )
-    deployed_by_name: str | None = Field(default=None, max_length=255)
     deployed_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"server_default": text("now()")},
@@ -55,7 +54,7 @@ class DeploymentPublic(SQLModel):
     status: DeploymentStatus
     error_message: str | None
     deployed_by_user_id: uuid.UUID | None
-    deployed_by_name: str | None
+    deployed_by_display_name: str | None
     deployed_at: datetime
 
 

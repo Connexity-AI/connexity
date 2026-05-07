@@ -405,11 +405,6 @@ export const AgentPublicSchema = {
       title: 'Id',
       description: 'Unique agent identifier',
     },
-    version: {
-      type: 'integer',
-      title: 'Version',
-      description: 'Current behavioral config version',
-    },
     has_draft: {
       type: 'boolean',
       title: 'Has Draft',
@@ -429,7 +424,7 @@ export const AgentPublicSchema = {
     },
   },
   type: 'object',
-  required: ['name', 'id', 'version', 'has_draft', 'created_at', 'updated_at'],
+  required: ['name', 'id', 'has_draft', 'created_at', 'updated_at'],
   title: 'AgentPublic',
 } as const;
 
@@ -440,7 +435,7 @@ export const AgentRollbackRequestSchema = {
       minimum: 1,
       title: 'Version',
     },
-    change_description: {
+    version_name: {
       anyOf: [
         {
           type: 'string',
@@ -449,7 +444,18 @@ export const AgentRollbackRequestSchema = {
           type: 'null',
         },
       ],
-      title: 'Change Description',
+      title: 'Version Name',
+    },
+    version_description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version Description',
     },
   },
   type: 'object',
@@ -687,18 +693,6 @@ export const AgentUpdateSchema = {
       title: 'Editor Guidelines',
       description: 'Custom prompting guidelines for the prompt editor agent (None = use default)',
     },
-    change_description: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Change Description',
-      description: 'Optional changelog when a versionable field changes',
-    },
   },
   type: 'object',
   title: 'AgentUpdate',
@@ -874,7 +868,11 @@ export const AgentVersionPublicSchema = {
       ],
       title: 'Agent Temperature',
     },
-    change_description: {
+    is_active: {
+      type: 'boolean',
+      title: 'Is Active',
+    },
+    version_name: {
       anyOf: [
         {
           type: 'string',
@@ -883,7 +881,18 @@ export const AgentVersionPublicSchema = {
           type: 'null',
         },
       ],
-      title: 'Change Description',
+      title: 'Version Name',
+    },
+    version_description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version Description',
     },
     created_by: {
       anyOf: [
@@ -916,7 +925,9 @@ export const AgentVersionPublicSchema = {
     'agent_model',
     'agent_provider',
     'agent_temperature',
-    'change_description',
+    'is_active',
+    'version_name',
+    'version_description',
     'created_by',
     'created_at',
   ],
@@ -2107,7 +2118,7 @@ export const DeploymentPublicSchema = {
       ],
       title: 'Deployed By User Id',
     },
-    deployed_by_name: {
+    deployed_by_display_name: {
       anyOf: [
         {
           type: 'string',
@@ -2116,7 +2127,7 @@ export const DeploymentPublicSchema = {
           type: 'null',
         },
       ],
-      title: 'Deployed By Name',
+      title: 'Deployed By Display Name',
     },
     deployed_at: {
       type: 'string',
@@ -2135,7 +2146,7 @@ export const DeploymentPublicSchema = {
     'status',
     'error_message',
     'deployed_by_user_id',
-    'deployed_by_name',
+    'deployed_by_display_name',
     'deployed_at',
   ],
   title: 'DeploymentPublic',
@@ -2188,17 +2199,50 @@ export const EnvironmentCreateSchema = {
       title: 'Agent Id',
     },
     integration_id: {
-      type: 'string',
-      format: 'uuid',
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Integration Id',
     },
     platform_agent_id: {
-      type: 'string',
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Platform Agent Id',
     },
     platform_agent_name: {
-      type: 'string',
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Platform Agent Name',
+    },
+    endpoint_url: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 2048,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Endpoint Url',
     },
     eval_gate_eval_config_id: {
       anyOf: [
@@ -2216,14 +2260,7 @@ export const EnvironmentCreateSchema = {
     },
   },
   type: 'object',
-  required: [
-    'name',
-    'platform',
-    'agent_id',
-    'integration_id',
-    'platform_agent_id',
-    'platform_agent_name',
-  ],
+  required: ['name', 'platform', 'agent_id'],
   title: 'EnvironmentCreate',
 } as const;
 
@@ -2248,21 +2285,60 @@ export const EnvironmentPublicSchema = {
       title: 'Agent Id',
     },
     integration_id: {
-      type: 'string',
-      format: 'uuid',
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Integration Id',
     },
     integration_name: {
-      type: 'string',
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Integration Name',
     },
     platform_agent_id: {
-      type: 'string',
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Platform Agent Id',
     },
     platform_agent_name: {
-      type: 'string',
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Platform Agent Name',
+    },
+    endpoint_url: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Endpoint Url',
     },
     current_version_number: {
       anyOf: [
@@ -2326,6 +2402,7 @@ export const EnvironmentPublicSchema = {
     'integration_name',
     'platform_agent_id',
     'platform_agent_name',
+    'endpoint_url',
     'current_version_number',
     'current_version_name',
     'current_deployed_at',
@@ -2333,6 +2410,95 @@ export const EnvironmentPublicSchema = {
     'created_at',
   ],
   title: 'EnvironmentPublic',
+} as const;
+
+export const EnvironmentUpdateSchema = {
+  properties: {
+    name: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Name',
+    },
+    platform: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Platform',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    integration_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Integration Id',
+    },
+    platform_agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Id',
+    },
+    platform_agent_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Name',
+    },
+    endpoint_url: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 2048,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Endpoint Url',
+    },
+    eval_gate_eval_config_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Eval Gate Eval Config Id',
+      description:
+        'Optional: gate deploys on a passing run of this eval config for the requested agent version.',
+    },
+  },
+  type: 'object',
+  title: 'EnvironmentUpdate',
 } as const;
 
 export const EnvironmentsPublicSchema = {
@@ -3861,22 +4027,31 @@ export const MockResponseSchema = {
   title: 'MockResponse',
 } as const;
 
-export const NewPasswordSchema = {
+export const MockWebhookResponseSchema = {
   properties: {
-    token: {
+    message: {
       type: 'string',
-      title: 'Token',
+      title: 'Message',
     },
-    new_password: {
-      type: 'string',
-      maxLength: 40,
-      minLength: 6,
-      title: 'New Password',
+    received_event_type: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Received Event Type',
+    },
+    payload_received: {
+      type: 'boolean',
+      title: 'Payload Received',
     },
   },
   type: 'object',
-  required: ['token', 'new_password'],
-  title: 'NewPassword',
+  required: ['message', 'payload_received'],
+  title: 'MockWebhookResponse',
 } as const;
 
 export const OnConflictSchema = {
@@ -3887,8 +4062,7 @@ export const OnConflictSchema = {
 
 export const PlatformSchema = {
   type: 'string',
-  enum: ['retell'],
-  const: 'retell',
+  enum: ['retell', 'webhook'],
   title: 'Platform',
 } as const;
 
@@ -4338,7 +4512,7 @@ export const PromptEditorSessionsPublicSchema = {
 
 export const PublishRequestSchema = {
   properties: {
-    change_description: {
+    version_name: {
       anyOf: [
         {
           type: 'string',
@@ -4347,7 +4521,18 @@ export const PublishRequestSchema = {
           type: 'null',
         },
       ],
-      title: 'Change Description',
+      title: 'Version Name',
+    },
+    version_description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version Description',
     },
   },
   type: 'object',
@@ -7364,6 +7549,362 @@ export const UserUpdateMeSchema = {
   },
   type: 'object',
   title: 'UserUpdateMe',
+} as const;
+
+export const WebhookAgentSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      title: 'Id',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    version: {
+      type: 'integer',
+      title: 'Version',
+    },
+    version_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version Name',
+    },
+    version_description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version Description',
+    },
+    prompt: {
+      type: 'string',
+      title: 'Prompt',
+    },
+    llm: {
+      $ref: '#/components/schemas/WebhookLlm',
+    },
+    tool_calls: {
+      items: {
+        $ref: '#/components/schemas/WebhookToolCall',
+      },
+      type: 'array',
+      title: 'Tool Calls',
+    },
+  },
+  type: 'object',
+  required: ['id', 'name', 'version', 'prompt', 'llm'],
+  title: 'WebhookAgent',
+} as const;
+
+export const WebhookDeployPayloadSchema = {
+  properties: {
+    event: {
+      type: 'string',
+      title: 'Event',
+    },
+    agent: {
+      $ref: '#/components/schemas/WebhookAgent',
+    },
+    environment: {
+      type: 'string',
+      title: 'Environment',
+    },
+    deployed_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Deployed At',
+    },
+    deployed_by: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Deployed By',
+    },
+    eval: {
+      $ref: '#/components/schemas/WebhookEval',
+    },
+  },
+  type: 'object',
+  required: ['event', 'agent', 'environment', 'deployed_at', 'eval'],
+  title: 'WebhookDeployPayload',
+} as const;
+
+export const WebhookEvalSchema = {
+  properties: {
+    config_id: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Config Id',
+    },
+    config_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Config Name',
+    },
+    run_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Run At',
+    },
+    passed: {
+      anyOf: [
+        {
+          type: 'boolean',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Passed',
+    },
+    metrics_score: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Metrics Score',
+    },
+    metrics_pass_threshold: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Metrics Pass Threshold',
+    },
+    cases_passed: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Cases Passed',
+    },
+    cases_total: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Cases Total',
+    },
+    cases_pass_threshold: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Cases Pass Threshold',
+    },
+    results_link: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Results Link',
+    },
+  },
+  type: 'object',
+  title: 'WebhookEval',
+} as const;
+
+export const WebhookLlmSchema = {
+  properties: {
+    provider: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Provider',
+    },
+    model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Model',
+    },
+    temperature: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Temperature',
+    },
+  },
+  type: 'object',
+  title: 'WebhookLlm',
+} as const;
+
+export const WebhookToolCallSchema = {
+  properties: {
+    name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Name',
+    },
+    description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Description',
+    },
+    method: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Method',
+    },
+    url: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Url',
+    },
+    headers: {
+      additionalProperties: {
+        type: 'string',
+      },
+      type: 'object',
+      title: 'Headers',
+    },
+    parameters: {
+      items: {
+        $ref: '#/components/schemas/WebhookToolCallParameter',
+      },
+      type: 'array',
+      title: 'Parameters',
+    },
+  },
+  type: 'object',
+  title: 'WebhookToolCall',
+} as const;
+
+export const WebhookToolCallParameterSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    type: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Type',
+    },
+    required: {
+      type: 'boolean',
+      title: 'Required',
+      default: false,
+    },
+    description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Description',
+    },
+  },
+  type: 'object',
+  required: ['name'],
+  title: 'WebhookToolCallParameter',
 } as const;
 
 export const app__models__enums__AgentModeSchema = {

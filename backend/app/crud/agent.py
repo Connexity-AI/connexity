@@ -40,7 +40,6 @@ def create_agent(
     if data.get("tools") is not None:
         data["tools"] = normalize_and_validate_agent_tools(data["tools"])
     db_obj = Agent.model_validate(data)
-    db_obj.version = 1
     db_obj.created_by = created_by
     session.add(db_obj)
     session.flush()
@@ -61,7 +60,6 @@ def create_draft_agent(
     db_obj = Agent(
         name=name,
         mode=AgentMode.PLATFORM,
-        version=0,
         has_draft=True,
         created_by=created_by,
     )
@@ -117,7 +115,6 @@ def update_agent(
         raise ValueError(msg)
 
     update_data = agent_in.model_dump(exclude_unset=True)
-    update_data.pop("change_description", None)
 
     if not update_data:
         return locked

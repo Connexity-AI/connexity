@@ -199,7 +199,6 @@ def test_generate_from_specific_historical_version(
         db_agent=agent,
         agent_in=AgentUpdate(
             system_prompt="Prompt from agent version two.",
-            change_description="v2",
         ),
     )
     captured: list[GenerateRequest] = []

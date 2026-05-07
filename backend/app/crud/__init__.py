@@ -14,6 +14,9 @@ from app.crud.agent_version import (  # noqa: F401
     create_or_update_draft as create_or_update_agent_draft,
 )
 from app.crud.agent_version import discard_draft as discard_agent_draft  # noqa: F401
+from app.crud.agent_version import (  # noqa: F401
+    get_active_published_version as get_active_agent_version,
+)
 from app.crud.agent_version import get_draft as get_agent_draft  # noqa: F401
 from app.crud.agent_version import get_version as get_agent_version  # noqa: F401
 from app.crud.agent_version import list_versions as list_agent_versions  # noqa: F401
@@ -52,6 +55,7 @@ from app.crud.environments import (  # noqa: F401
     delete_environment,
     get_environment,
     list_environments_by_agent,
+    update_environment,
 )
 from app.crud.eval_config import (  # noqa: F401
     add_test_cases_to_config,
@@ -138,5 +142,6 @@ from app.crud.user import (  # noqa: F401
     authenticate,
     create_user,
     get_user_by_email,
+    list_users_by_ids,
     update_user,
 )

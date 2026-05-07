@@ -168,9 +168,16 @@ def test_get_baseline_filters_by_agent_version(
         draft_data={"endpoint_url": "http://v2.example.com/agent"},
         created_by=None,
     )
-    publish_draft(session=db, agent=agent, change_description=None, created_by=None)
+    publish_draft(
+        session=db,
+        agent=agent,
+        version_name=None,
+        version_description=None,
+        created_by=None,
+    )
     db.refresh(agent)
-    assert agent.version == 2
+    active_v2 = crud.get_active_agent_version(session=db, agent_id=agent.id)
+    assert active_v2 is not None and active_v2.version == 2
 
     run_v2 = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     _mark_completed(db, run_v2)
@@ -219,9 +226,16 @@ def test_set_baseline_scoped_per_agent_version(db: Session) -> None:
         db_agent=agent,
         agent_in=AgentUpdate(endpoint_url="http://localhost:9001/agent"),
     )
-    publish_draft(session=db, agent=agent, change_description=None, created_by=None)
+    publish_draft(
+        session=db,
+        agent=agent,
+        version_name=None,
+        version_description=None,
+        created_by=None,
+    )
     db.refresh(agent)
-    assert agent.version == 2
+    active_pub = crud.get_active_agent_version(session=db, agent_id=agent.id)
+    assert active_pub is not None and active_pub.version == 2
     run_v2a = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     run_v2b = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     _mark_completed(db, run_v2a)
@@ -248,9 +262,16 @@ def test_get_baseline_run_defaults_to_current_agent_version(db: Session) -> None
         db_agent=agent,
         agent_in=AgentUpdate(endpoint_url="http://localhost:9002/agent"),
     )
-    publish_draft(session=db, agent=agent, change_description=None, created_by=None)
+    publish_draft(
+        session=db,
+        agent=agent,
+        version_name=None,
+        version_description=None,
+        created_by=None,
+    )
     db.refresh(agent)
-    assert agent.version == 2
+    active_pub2 = crud.get_active_agent_version(session=db, agent_id=agent.id)
+    assert active_pub2 is not None and active_pub2.version == 2
     assert (
         crud.get_baseline_run(
             session=db, agent_id=agent.id, eval_config_id=eval_config.id
@@ -289,9 +310,16 @@ def test_get_baseline_omitted_agent_version_resolves_current(
         db_agent=agent,
         agent_in=AgentUpdate(endpoint_url="http://localhost:7201/agent"),
     )
-    publish_draft(session=db, agent=agent, change_description=None, created_by=None)
+    publish_draft(
+        session=db,
+        agent=agent,
+        version_name=None,
+        version_description=None,
+        created_by=None,
+    )
     db.refresh(agent)
-    assert agent.version == 2
+    active_pub3 = crud.get_active_agent_version(session=db, agent_id=agent.id)
+    assert active_pub3 is not None and active_pub3.version == 2
 
     # Default: resolve baseline for agent's *current* version (v2) — none stored
     r_current = client.get(

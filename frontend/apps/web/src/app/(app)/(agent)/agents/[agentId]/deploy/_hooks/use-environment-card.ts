@@ -6,7 +6,6 @@ import { CheckCircle2, FlaskConical, Loader2, Rocket } from 'lucide-react';
 
 import { useAgentDeployments } from '@/app/(app)/(agent)/_hooks/use-agent-deployments';
 import { useAgentVersions } from '@/app/(app)/(agent)/_hooks/use-agent-versions';
-import { parseVersionName } from '@/app/(app)/(agent)/_utils/parse-version-name';
 import { DeploymentStatus } from '@/client/types.gen';
 
 import { useDeployWithFlash } from './use-deploy-with-flash';
@@ -124,7 +123,7 @@ export function useEnvironmentCard({ environment, agentId }: UseEnvironmentCardA
       .filter((v): v is typeof v & { version: number } => v.version != null)
       .map((v) => ({
         version: v.version,
-        title: parseVersionName(v.change_description).name,
+        title: v.version_name ?? undefined,
       }))
       .sort((a, b) => b.version - a.version);
   }, [versionsData]);

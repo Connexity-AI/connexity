@@ -115,6 +115,7 @@ from app.models.environment import (  # noqa: F401
     EnvironmentCreate,
     EnvironmentPublic,
     EnvironmentsPublic,
+    EnvironmentUpdate,
 )
 
 # ── Eval config ────────────────────────────────────────────────────
@@ -218,7 +219,6 @@ from app.models.test_case_result import (  # noqa: F401
 # ── Existing user models ──────────────────────────────────────────
 from app.models.user import (  # noqa: F401
     Message,
-    NewPassword,
     Token,
     TokenPayload,
     UpdatePassword,
@@ -229,4 +229,12 @@ from app.models.user import (  # noqa: F401
     UserRegister,
     UserUpdate,
     UserUpdateMe,
+)
+from app.models.webhook_payload import (  # noqa: F401
+    WebhookAgent,
+    WebhookDeployPayload,
+    WebhookEval,
+    WebhookLlm,
+    WebhookToolCall,
+    WebhookToolCallParameter,
 )

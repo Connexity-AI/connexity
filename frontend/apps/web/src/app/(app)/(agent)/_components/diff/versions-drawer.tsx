@@ -22,7 +22,6 @@ import { useAgentDeployments } from '@/app/(app)/(agent)/_hooks/use-agent-deploy
 import { useAgentVersions } from '@/app/(app)/(agent)/_hooks/use-agent-versions';
 import { evalRunsListQuery } from '@/app/(app)/(agent)/_queries/eval-runs-list-query';
 import { formatTimeAgo } from '@/app/(app)/(agent)/_utils/format-time-ago';
-import { parseVersionName } from '@/app/(app)/(agent)/_utils/parse-version-name';
 
 import type { RunPublic } from '@/client/types.gen';
 
@@ -143,7 +142,8 @@ export function VersionsDrawer() {
 
             {sorted.map((version) => {
               const isSelected = selectedVersion === version.version;
-              const { name, description } = parseVersionName(version.change_description);
+              const name = version.version_name ?? '';
+              const description = version.version_description ?? '';
               const deployedAt =
                 version.version != null
                   ? deployedAtByVersion.get(version.version)

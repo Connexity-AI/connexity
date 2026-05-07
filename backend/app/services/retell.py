@@ -235,7 +235,7 @@ async def deploy_retell_agent(
     agent_model: str | None,
     agent_temperature: float | None,
     tools: list[dict[str, Any]] | None,
-    change_description: str | None,
+    version_description: str | None,
 ) -> RetellDeployResult:
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -317,7 +317,7 @@ async def deploy_retell_agent(
             resp = await client.patch(
                 f"https://api.retellai.com/update-agent/{retell_agent_id}",
                 headers=headers,
-                json={"version_description": change_description},
+                json={"version_description": version_description},
                 timeout=30.0,
             )
         except httpx.HTTPError as exc:

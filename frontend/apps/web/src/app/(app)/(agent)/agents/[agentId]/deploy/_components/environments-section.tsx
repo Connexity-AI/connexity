@@ -12,7 +12,7 @@ import { useEnvironments } from '@/app/(app)/(agent)/_hooks/use-environments';
 import { AddEnvironmentDialog } from './add-environment-dialog';
 import { EnvironmentsList } from './environments-list';
 
-import type { DeploymentPublic } from '@/client/types.gen';
+import type { DeploymentPublic, EnvironmentPublic } from '@/client/types.gen';
 import type { FC } from 'react';
 
 interface Props {
@@ -21,8 +21,19 @@ interface Props {
 
 export const EnvironmentsSection: FC<Props> = ({ agentId }) => {
   const [addOpen, setAddOpen] = useState(false);
+  const [editingEnvironment, setEditingEnvironment] = useState<EnvironmentPublic | null>(null);
   const { data } = useEnvironments(agentId);
   const environments = data?.data ?? [];
+
+  const openAddDialog = () => {
+    setEditingEnvironment(null);
+    setAddOpen(true);
+  };
+
+  const openEditDialog = (environment: EnvironmentPublic) => {
+    setEditingEnvironment(environment);
+    setAddOpen(true);
+  };
 
   return (
     <>
@@ -36,7 +47,7 @@ export const EnvironmentsSection: FC<Props> = ({ agentId }) => {
           <Button
             variant="ghost"
             className="h-auto px-2 py-1 gap-1.5 text-xs font-normal text-muted-foreground hover:text-foreground hover:bg-transparent [&_svg]:size-3.5"
-            onClick={() => setAddOpen(true)}
+            onClick={openAddDialog}
           >
             <Plus />
             Add environment
@@ -46,10 +57,15 @@ export const EnvironmentsSection: FC<Props> = ({ agentId }) => {
         <EnvironmentsList
           environments={environments}
           agentId={agentId}
-          onAdd={() => setAddOpen(true)}
+          onAdd={openAddDialog}
+          onEdit={openEditDialog}
         />
 
-        <AddEnvironmentDialog open={addOpen} onOpenChange={setAddOpen} />
+        <AddEnvironmentDialog
+          open={addOpen}
+          onOpenChange={setAddOpen}
+          environment={editingEnvironment}
+        />
       </section>
 
       <DeploymentHistorySection agentId={agentId} />
@@ -142,7 +158,7 @@ const DeploymentHistoryRow: FC<{ deployment: DeploymentPublic }> = ({ deployment
           <span className="text-muted-foreground"> · {deployment.retell_version_name}</span>
         )}
       </td>
-      <td className="px-5 py-3 text-muted-foreground">{deployment.deployed_by_name ?? '—'}</td>
+      <td className="px-5 py-3 text-muted-foreground">{deployment.deployed_by_display_name ?? '—'}</td>
       <td className="px-5 py-3 text-muted-foreground">{formatTimeAgo(deployment.deployed_at)}</td>
       <td className="px-5 py-3">
         {isFailed ? (

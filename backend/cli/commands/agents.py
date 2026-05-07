@@ -225,10 +225,16 @@ def agents_draft_discard(ctx: click.Context, agent_ref: str, yes: bool) -> None:
 @agents_group.command("publish")
 @click.argument("agent_ref")
 @click.option(
-    "--description",
-    "change_description",
+    "--version-name",
+    "version_name",
     default=None,
-    help="Optional changelog entry for this version",
+    help="Optional short label for this version",
+)
+@click.option(
+    "--version-description",
+    "version_description",
+    default=None,
+    help="Optional longer description for this version",
 )
 @click.option(
     "--output", "output_override", type=click.Choice(["json", "table"]), default=None
@@ -237,7 +243,8 @@ def agents_draft_discard(ctx: click.Context, agent_ref: str, yes: bool) -> None:
 def agents_publish(
     ctx: click.Context,
     agent_ref: str,
-    change_description: str | None,
+    version_name: str | None,
+    version_description: str | None,
     output_override: str | None,
 ) -> None:
     """Promote the draft to a new published version."""
@@ -245,7 +252,9 @@ def agents_publish(
     with open_client(ctx) as client:
         agent = resolve_agent(client, agent_ref)
         version = client.agents.publish(
-            str(agent["id"]), change_description=change_description
+            str(agent["id"]),
+            version_name=version_name,
+            version_description=version_description,
         )
     _emit(ctx, version, output_override)
 
@@ -256,7 +265,16 @@ def agents_publish(
     "--version", "version", required=True, type=int, help="Version to revert to"
 )
 @click.option(
-    "--description", "change_description", default=None, help="Optional changelog"
+    "--version-name",
+    "version_name",
+    default=None,
+    help="Optional short label for the rollback snapshot",
+)
+@click.option(
+    "--version-description",
+    "version_description",
+    default=None,
+    help="Optional longer description for the rollback snapshot",
 )
 @click.option(
     "--output", "output_override", type=click.Choice(["json", "table"]), default=None
@@ -266,7 +284,8 @@ def agents_rollback(
     ctx: click.Context,
     agent_ref: str,
     version: int,
-    change_description: str | None,
+    version_name: str | None,
+    version_description: str | None,
     output_override: str | None,
 ) -> None:
     """Roll back to a prior version (creates a new version snapshot)."""
@@ -276,7 +295,8 @@ def agents_rollback(
         result = client.agents.rollback(
             str(agent["id"]),
             version=version,
-            change_description=change_description,
+            version_name=version_name,
+            version_description=version_description,
         )
     _emit(ctx, result, output_override)
 
