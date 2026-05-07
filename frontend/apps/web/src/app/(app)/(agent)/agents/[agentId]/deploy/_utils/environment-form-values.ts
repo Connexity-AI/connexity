@@ -12,6 +12,10 @@ export const DEFAULT_ENVIRONMENT_FORM_VALUES: AddEnvironmentFormValues = {
   eval_gate_eval_config_id: null,
 };
 
+function isIntegrationPlatform(platform: AddEnvironmentFormValues['platform']): boolean {
+  return platform === 'retell' || platform === 'vapi';
+}
+
 export function getEnvironmentFormValues(
   environment: EnvironmentPublic | null
 ): AddEnvironmentFormValues {
@@ -52,16 +56,16 @@ export function getEnvironmentCreateBody(
 export function getEnvironmentUpdateBody(
   values: AddEnvironmentFormValues
 ): EnvironmentUpdate {
-  const platformAgentName =
-    values.platform === 'retell'
-      ? (values.platform_agent_name ?? values.platform_agent_id)
-      : null;
+  const usesIntegration = isIntegrationPlatform(values.platform);
+  const platformAgentName = usesIntegration
+    ? (values.platform_agent_name ?? values.platform_agent_id)
+    : null;
 
   return {
     name: values.name,
     platform: values.platform,
-    integration_id: values.platform === 'retell' ? values.integration_id : null,
-    platform_agent_id: values.platform === 'retell' ? values.platform_agent_id : null,
+    integration_id: usesIntegration ? values.integration_id : null,
+    platform_agent_id: usesIntegration ? values.platform_agent_id : null,
     platform_agent_name: platformAgentName,
     endpoint_url: values.platform === 'webhook' ? values.endpoint_url : null,
     eval_gate_eval_config_id: values.eval_gate_enabled

@@ -3225,8 +3225,7 @@ export const IntegrationCreateSchema = {
   properties: {
     provider: {
       type: 'string',
-      enum: ['retell'],
-      const: 'retell',
+      enum: ['retell', 'vapi'],
       maxLength: 64,
       title: 'IntegrationProvider',
     },
@@ -3247,8 +3246,7 @@ export const IntegrationCreateSchema = {
 
 export const IntegrationProviderSchema = {
   type: 'string',
-  enum: ['retell'],
-  const: 'retell',
+  enum: ['retell', 'vapi'],
   maxLength: 64,
   title: 'IntegrationProvider',
 } as const;
@@ -3257,8 +3255,7 @@ export const IntegrationPublicSchema = {
   properties: {
     provider: {
       type: 'string',
-      enum: ['retell'],
-      const: 'retell',
+      enum: ['retell', 'vapi'],
       maxLength: 64,
       title: 'IntegrationProvider',
     },
@@ -4062,7 +4059,7 @@ export const OnConflictSchema = {
 
 export const PlatformSchema = {
   type: 'string',
-  enum: ['retell', 'webhook'],
+  enum: ['retell', 'vapi', 'webhook'],
   title: 'Platform',
 } as const;
 

@@ -41,15 +41,15 @@ export function ObserveContent({ agentId }: ObserveContentProps) {
     [drawer.testCasesByCallId, drawer.onTestCaseClick],
   );
 
-  const hasRetellEnvironment = (environmentsData?.data ?? []).some(
-    (env) => env.platform === 'retell',
+  const hasProductionCallEnvironment = (environmentsData?.data ?? []).some(
+    (env) => env.platform === 'retell' || env.platform === 'vapi',
   );
 
   if (calls.isLoading) {
     return <ObserveTableSkeleton />;
   }
 
-  if (!hasRetellEnvironment) {
+  if (!hasProductionCallEnvironment) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center p-10 text-center">
         <p className="text-sm text-muted-foreground">
@@ -105,7 +105,7 @@ export function ObserveContent({ agentId }: ObserveContentProps) {
           onRowClick={drawer.onRowClick}
           emptyState={
             <p className="text-sm text-muted-foreground">
-              No calls yet. Click Refresh to fetch from Retell.
+              No calls yet. Click Refresh to fetch from Retell or Vapi.
             </p>
           }
           footer={

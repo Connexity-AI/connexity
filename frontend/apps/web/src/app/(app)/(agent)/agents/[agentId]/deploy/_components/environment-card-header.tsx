@@ -23,6 +23,12 @@ function getPlatformBadgeInfo(platform: EnvironmentPublic['platform']): Platform
       className: 'text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400',
     };
   }
+  if (platform === 'vapi') {
+    return {
+      label: 'Vapi',
+      className: 'text-[10px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400',
+    };
+  }
 
   return {
     label: 'Retell',

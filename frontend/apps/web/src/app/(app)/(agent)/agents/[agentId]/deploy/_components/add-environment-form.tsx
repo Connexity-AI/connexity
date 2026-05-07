@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
-import { Check, ChevronDown, Loader2, Webhook } from 'lucide-react';
+import { Check, Loader2, Webhook } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/ui/button';
 import {
@@ -25,10 +25,11 @@ import {
 import { cn } from '@workspace/ui/lib/utils';
 
 import { useAddEnvironmentForm } from '@/app/(app)/(agent)/_hooks/use-add-environment-form';
+import { useAgentVersions } from '@/app/(app)/(agent)/_hooks/use-agent-versions';
 import { webhookPayloadPreviewQuery } from '@/app/(app)/(agent)/_queries/webhook-payload-preview-query';
 import { AgentSelectField } from './agent-select-field';
 import { EvalGateFormSection } from './eval-gate-form-section';
-import { PayloadCopyButton } from './payload-copy-button';
+import { PayloadPreviewSection } from './payload-preview-section';
 
 import type { FC } from 'react';
 import type { EnvironmentPublic, IntegrationPublic } from '@/client/types.gen';
@@ -66,25 +67,34 @@ export const AddEnvironmentForm: FC<Props> = ({
   const evalGateEnabled = form.watch('eval_gate_enabled');
   const evalGateEvalConfigId = form.watch('eval_gate_eval_config_id');
   const environmentNameForPreview = name.trim() || 'production';
+  const platformIntegrations = integrations.filter((integration) => integration.provider === platform);
+  const integrationEmptyLabel =
+    platform === 'vapi' ? 'No Vapi integrations found' : 'No Retell integrations found';
+  const agentLabel = platform === 'vapi' ? 'Assistant' : 'Agent';
+  const { data: agentVersionsData, isLoading: isAgentVersionsLoading } = useAgentVersions(agentId);
+  const hasPublishedAgentVersion =
+    (agentVersionsData?.count ?? agentVersionsData?.data.length ?? 0) > 0;
+  const showMissingPublishedVersionInfo = !isAgentVersionsLoading && !hasPublishedAgentVersion;
   const {
     data: payloadPreviewData,
     isLoading: isPayloadPreviewLoading,
     isError: isPayloadPreviewError,
+    error: payloadPreviewError,
   } = useQuery({
       ...webhookPayloadPreviewQuery({
         agentId,
         environmentName: environmentNameForPreview,
         evalGateEvalConfigId: evalGateEnabled ? evalGateEvalConfigId : null,
       }),
-      enabled: platform === 'webhook' && payloadOpen,
+      enabled: platform === 'webhook' && hasPublishedAgentVersion,
     });
-  const payloadPreview = useMemo(
-    () =>
-      isPayloadPreviewError
-        ? 'unable to load payload preview right now'
-        : JSON.stringify(payloadPreviewData ?? {}, null, 2),
-    [isPayloadPreviewError, payloadPreviewData]
-  );
+  const payloadPreviewErrorMessage =
+    payloadPreviewError instanceof Error
+      ? payloadPreviewError.message
+      : 'unable to load payload preview right now';
+  const payloadPreview = isPayloadPreviewError
+    ? payloadPreviewErrorMessage
+    : JSON.stringify(payloadPreviewData ?? {}, null, 2);
 
   return (
     <Form {...form}>
@@ -112,11 +122,12 @@ export const AddEnvironmentForm: FC<Props> = ({
 
             <div className="space-y-1.5">
               <FormLabel>Platform</FormLabel>
-              <div className="grid grid-cols-2 gap-2">
-                <button
+              <div className="grid grid-cols-3 gap-2">
+                <Button
                   type="button"
+                  variant="ghost"
                   className={cn(
-                    'flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-lg border text-left transition-all cursor-pointer',
+                    'h-auto flex-col items-start justify-start gap-0.5 px-3 py-2.5 rounded-lg border text-left transition-all cursor-pointer whitespace-normal',
                     platform === 'retell'
                       ? 'border-foreground/40 bg-accent'
                       : 'border-border hover:bg-accent/40'
@@ -128,11 +139,29 @@ export const AddEnvironmentForm: FC<Props> = ({
                   <span className="text-[10px] text-muted-foreground leading-tight">
                     Push directly via Retell API (requires integration)
                   </span>
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="ghost"
                   className={cn(
-                    'flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-lg border text-left transition-all cursor-pointer',
+                    'h-auto flex-col items-start justify-start gap-0.5 px-3 py-2.5 rounded-lg border text-left transition-all cursor-pointer whitespace-normal',
+                    platform === 'vapi'
+                      ? 'border-foreground/40 bg-accent'
+                      : 'border-border hover:bg-accent/40'
+                  )}
+                  onClick={() => handlePlatformChange('vapi')}
+                  disabled={isPending}
+                >
+                  <span className="text-xs text-foreground">Vapi</span>
+                  <span className="text-[10px] text-muted-foreground leading-tight">
+                    Push directly via Vapi API (requires integration)
+                  </span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className={cn(
+                    'h-auto flex-col items-start justify-start gap-0.5 px-3 py-2.5 rounded-lg border text-left transition-all cursor-pointer whitespace-normal',
                     platform === 'webhook'
                       ? 'border-foreground/40 bg-accent'
                       : 'border-border hover:bg-accent/40'
@@ -144,11 +173,11 @@ export const AddEnvironmentForm: FC<Props> = ({
                   <span className="text-[10px] text-muted-foreground leading-tight">
                     Send deployment payload to your custom endpoint
                   </span>
-                </button>
+                </Button>
               </div>
             </div>
 
-            {platform === 'retell' && (
+            {(platform === 'retell' || platform === 'vapi') && (
               <>
                 <FormField
                   control={form.control}
@@ -167,7 +196,7 @@ export const AddEnvironmentForm: FC<Props> = ({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {integrations.map((i) => (
+                          {platformIntegrations.map((i) => (
                             <SelectItem
                               key={i.id}
                               value={i.id}
@@ -179,9 +208,9 @@ export const AddEnvironmentForm: FC<Props> = ({
                               </span>
                             </SelectItem>
                           ))}
-                          {integrations.length === 0 && (
+                          {platformIntegrations.length === 0 && (
                             <div className="px-3 py-2 text-xs text-muted-foreground">
-                              No Retell integrations found
+                              {integrationEmptyLabel}
                             </div>
                           )}
                         </SelectContent>
@@ -196,9 +225,10 @@ export const AddEnvironmentForm: FC<Props> = ({
                   name="platform_agent_id"
                   render={({ field }) => (
                     <FormItem className="space-y-1.5">
-                      <FormLabel>Agent</FormLabel>
+                      <FormLabel>{agentLabel}</FormLabel>
                       <FormControl>
                         <AgentSelectField
+                          platform={platform}
                           integrationId={integrationId || null}
                           value={field.value ?? ''}
                           onChange={handleAgentChange}
@@ -244,37 +274,13 @@ export const AddEnvironmentForm: FC<Props> = ({
                   )}
                 />
 
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setPayloadOpen((open) => !open)}
-                    className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-accent/30 transition-colors"
-                  >
-                    <span className="text-[11px] text-muted-foreground">Payload preview</span>
-                    <ChevronDown
-                      className={cn(
-                        'w-3.5 h-3.5 text-muted-foreground transition-transform',
-                        payloadOpen && 'rotate-180'
-                      )}
-                    />
-                  </button>
-                  {payloadOpen && (
-                    <div className="px-3 pb-3 border-t border-border">
-                      <div className="rounded-md bg-muted/30 border border-border overflow-hidden mt-2 relative">
-                        <div className="absolute top-2 right-4">
-                          <PayloadCopyButton text={payloadPreview} />
-                        </div>
-                        <pre className="text-[10px] text-muted-foreground font-mono px-3 py-2.5 pr-10 overflow-auto max-h-44 leading-relaxed">
-                          {isPayloadPreviewLoading ? 'Loading payload preview…' : payloadPreview}
-                        </pre>
-                      </div>
-                      <p className="text-[10px] text-muted-foreground mt-1.5">
-                        Sent as <code className="text-foreground/70">POST</code> with{' '}
-                        <code className="text-foreground/70">Content-Type: application/json</code>
-                      </p>
-                    </div>
-                  )}
-                </div>
+                <PayloadPreviewSection
+                  showMissingPublishedVersionInfo={showMissingPublishedVersionInfo}
+                  payloadOpen={payloadOpen}
+                  onTogglePayloadOpen={() => setPayloadOpen((open) => !open)}
+                  payloadPreview={payloadPreview}
+                  isPayloadPreviewLoading={isPayloadPreviewLoading}
+                />
               </>
             )}
 

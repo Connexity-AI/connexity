@@ -1915,7 +1915,7 @@ export type IntegrationCreate = {
   /**
    * IntegrationProvider
    */
-  provider: 'retell';
+  provider: 'retell' | 'vapi';
   /**
    * Name
    */
@@ -1929,7 +1929,7 @@ export type IntegrationCreate = {
 /**
  * IntegrationProvider
  */
-export const IntegrationProvider = { RETELL: 'retell' } as const;
+export const IntegrationProvider = { RETELL: 'retell', VAPI: 'vapi' } as const;
 
 /**
  * IntegrationProvider
@@ -1943,7 +1943,7 @@ export type IntegrationPublic = {
   /**
    * IntegrationProvider
    */
-  provider: 'retell';
+  provider: 'retell' | 'vapi';
   /**
    * Name
    */
@@ -2522,7 +2522,11 @@ export type OnConflict = (typeof OnConflict)[keyof typeof OnConflict];
 /**
  * Platform
  */
-export const Platform = { RETELL: 'retell', WEBHOOK: 'webhook' } as const;
+export const Platform = {
+  RETELL: 'retell',
+  VAPI: 'vapi',
+  WEBHOOK: 'webhook',
+} as const;
 
 /**
  * Platform

@@ -5,7 +5,7 @@ interface Props {
   environment: EnvironmentPublic;
 }
 
-function getRetellAgentLabel(environment: EnvironmentPublic): string {
+function getPlatformAgentLabel(environment: EnvironmentPublic): string {
   if (environment.platform_agent_name) {
     return environment.platform_agent_name;
   }
@@ -47,7 +47,22 @@ const RetellDestination: FC<Props> = ({ environment }) => {
       </div>
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Retell Agent</span>
-        <span className="text-xs text-foreground">{getRetellAgentLabel(environment)}</span>
+        <span className="text-xs text-foreground">{getPlatformAgentLabel(environment)}</span>
+      </div>
+    </>
+  );
+};
+
+const VapiDestination: FC<Props> = ({ environment }) => {
+  return (
+    <>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Integration</span>
+        <span className="text-xs text-foreground">{getIntegrationName(environment)}</span>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Vapi Assistant</span>
+        <span className="text-xs text-foreground">{getPlatformAgentLabel(environment)}</span>
       </div>
     </>
   );
@@ -58,6 +73,13 @@ export const EnvironmentCardDestinationDetails: FC<Props> = ({ environment }) =>
     return (
       <div className="px-5 py-4 border-b border-border bg-accent/5 space-y-3">
         <WebhookDestination environment={environment} />
+      </div>
+    );
+  }
+  if (environment.platform === 'vapi') {
+    return (
+      <div className="px-5 py-4 border-b border-border bg-accent/5 space-y-3">
+        <VapiDestination environment={environment} />
       </div>
     );
   }

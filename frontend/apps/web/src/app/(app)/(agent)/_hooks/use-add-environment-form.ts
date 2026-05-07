@@ -1,21 +1,18 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { useCreateEnvironment } from '@/app/(app)/(agent)/_hooks/use-create-environment';
 import { useUpdateEnvironment } from '@/app/(app)/(agent)/_hooks/use-update-environment';
-import {
-  addEnvironmentFormSchema,
-  type AddEnvironmentFormValues,
-} from '@/app/(app)/(agent)/agents/[agentId]/deploy/_components/add-environment-form-schema';
+import { addEnvironmentFormSchema } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_components/add-environment-form-schema';
 import {
   getEnvironmentCreateBody,
   getEnvironmentFormValues,
   getEnvironmentUpdateBody,
 } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_utils/environment-form-values';
 
+import type { AddEnvironmentFormValues } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_components/add-environment-form-schema';
 import type { EnvironmentPublic } from '@/client/types.gen';
 
 interface UseAddEnvironmentFormOptions {
@@ -35,11 +32,8 @@ export function useAddEnvironmentForm({
   const form = useForm<AddEnvironmentFormValues>({
     resolver: zodResolver(addEnvironmentFormSchema),
     defaultValues: getEnvironmentFormValues(environment),
+    values: getEnvironmentFormValues(environment),
   });
-
-  useEffect(() => {
-    form.reset(getEnvironmentFormValues(environment));
-  }, [environment, form]);
 
   const integrationId = form.watch('integration_id');
   const platform = form.watch('platform');
@@ -48,8 +42,14 @@ export function useAddEnvironmentForm({
 
   const handlePlatformChange = (value: AddEnvironmentFormValues['platform']) => {
     form.setValue('platform', value);
-    if (value === 'retell') {
+    if (value === 'retell' || value === 'vapi') {
       form.setValue('endpoint_url', null);
+
+      if (platform !== value) {
+        form.setValue('integration_id', null);
+        form.setValue('platform_agent_id', null);
+        form.setValue('platform_agent_name', null);
+      }
       return;
     }
     form.setValue('integration_id', null);
