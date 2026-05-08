@@ -9,6 +9,10 @@ from app.models.agent import Agent
 from app.models.call import Call, CallPublic
 from app.models.integration import Integration
 from app.models.test_case import TestCase
+from app.services.elevenlabs import (
+    ElevenLabsConversationDetails,
+    ElevenLabsConversationSummary,
+)
 from app.services.retell import RetellCall
 from app.services.vapi import VapiCall
 
@@ -57,6 +61,46 @@ def _vapi_call_to_row(
         "retell_agent_id": call.assistant_id or "",
         "started_at": started_at,
         "duration_seconds": duration,
+        "status": call.status,
+        "transcript": call.transcript,
+        "raw": call.raw,
+    }
+
+
+def _elevenlabs_summary_to_row(
+    call: ElevenLabsConversationSummary,
+    *,
+    agent_id: uuid.UUID,
+    integration_id: uuid.UUID,
+) -> dict:
+    started_at = datetime.fromtimestamp(call.start_time_unix_secs, tz=UTC)
+    return {
+        "agent_id": agent_id,
+        "integration_id": integration_id,
+        "retell_call_id": call.conversation_id,
+        "retell_agent_id": call.agent_id,
+        "started_at": started_at,
+        "duration_seconds": call.call_duration_secs,
+        "status": call.status,
+        "transcript": None,
+        "raw": call.raw,
+    }
+
+
+def _elevenlabs_details_to_row(
+    call: ElevenLabsConversationDetails,
+    *,
+    agent_id: uuid.UUID,
+    integration_id: uuid.UUID,
+) -> dict:
+    started_at = datetime.fromtimestamp(call.start_time_unix_secs, tz=UTC)
+    return {
+        "agent_id": agent_id,
+        "integration_id": integration_id,
+        "retell_call_id": call.conversation_id,
+        "retell_agent_id": call.agent_id or "",
+        "started_at": started_at,
+        "duration_seconds": call.call_duration_secs,
         "status": call.status,
         "transcript": call.transcript,
         "raw": call.raw,
@@ -118,6 +162,62 @@ def upsert_calls_from_vapi(
         for c in vapi_calls
         if c.call_id
     ]
+    if not rows:
+        return 0
+
+    insert_stmt = pg_insert(_CALL_TABLE).values(rows)
+    stmt = insert_stmt.on_conflict_do_update(
+        index_elements=["retell_call_id", "agent_id"],
+        set_={
+            "retell_agent_id": insert_stmt.excluded.retell_agent_id,
+            "started_at": insert_stmt.excluded.started_at,
+            "status": insert_stmt.excluded.status,
+            "duration_seconds": func.coalesce(
+                insert_stmt.excluded.duration_seconds,
+                _CALL_TABLE.c.duration_seconds,
+            ),
+            "transcript": func.coalesce(
+                insert_stmt.excluded.transcript,
+                _CALL_TABLE.c.transcript,
+            ),
+            "raw": func.coalesce(
+                insert_stmt.excluded.raw,
+                _CALL_TABLE.c.raw,
+            ),
+            "integration_id": insert_stmt.excluded.integration_id,
+        },
+    ).returning(_CALL_TABLE.c.id)
+    result = session.execute(stmt)
+    inserted = len(list(result))
+    session.commit()
+    return inserted
+
+
+def upsert_calls_from_elevenlabs(
+    *,
+    session: Session,
+    agent_id: uuid.UUID,
+    integration_id: uuid.UUID,
+    conversations: list[ElevenLabsConversationDetails | ElevenLabsConversationSummary],
+) -> int:
+    if not conversations:
+        return 0
+
+    rows: list[dict] = []
+    for c in conversations:
+        if isinstance(c, ElevenLabsConversationDetails):
+            rows.append(
+                _elevenlabs_details_to_row(
+                    c, agent_id=agent_id, integration_id=integration_id
+                )
+            )
+        else:
+            rows.append(
+                _elevenlabs_summary_to_row(
+                    c, agent_id=agent_id, integration_id=integration_id
+                )
+            )
+    rows = [r for r in rows if r.get("retell_call_id")]
     if not rows:
         return 0
 

@@ -12,6 +12,7 @@ import { useIntegrations } from '@/app/(app)/(agent)/_hooks/use-integrations';
 import { AddEnvironmentForm } from './add-environment-form';
 
 import type { FC } from 'react';
+import { IntegrationProviderInput } from '@/client/types.gen';
 import type { EnvironmentPublic } from '@/client/types.gen';
 
 interface Props {
@@ -25,7 +26,10 @@ export const AddEnvironmentDialog: FC<Props> = ({ open, onOpenChange, environmen
   const { data: integrationsData } = useIntegrations();
 
   const platformIntegrations = integrationsData.data.filter(
-    (i) => i.provider === 'retell' || i.provider === 'vapi'
+    (i) =>
+      i.provider === IntegrationProviderInput.RETELL ||
+      i.provider === IntegrationProviderInput.VAPI ||
+      i.provider === IntegrationProviderInput.ELEVENLABS
   );
   const title = environment === null ? 'Add environment' : 'Edit environment';
 

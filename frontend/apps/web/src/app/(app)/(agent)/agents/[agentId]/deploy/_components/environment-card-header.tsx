@@ -1,5 +1,6 @@
 import { Pencil, ShieldCheck, Trash2 } from 'lucide-react';
 
+import { Platform } from '@/client/types.gen';
 import type { EnvironmentPublic } from '@/client/types.gen';
 import type { FC } from 'react';
 
@@ -17,16 +18,22 @@ interface PlatformBadgeInfo {
 }
 
 function getPlatformBadgeInfo(platform: EnvironmentPublic['platform']): PlatformBadgeInfo {
-  if (platform === 'webhook') {
+  if (platform === Platform.WEBHOOK) {
     return {
       label: 'Webhook',
       className: 'text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400',
     };
   }
-  if (platform === 'vapi') {
+  if (platform === Platform.VAPI) {
     return {
       label: 'Vapi',
       className: 'text-[10px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400',
+    };
+  }
+  if (platform === Platform.ELEVENLABS) {
+    return {
+      label: 'ElevenLabs',
+      className: 'text-[10px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400',
     };
   }
 

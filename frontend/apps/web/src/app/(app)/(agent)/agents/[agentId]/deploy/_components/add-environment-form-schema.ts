@@ -1,9 +1,12 @@
 import { z } from 'zod';
 
+import { Platform } from '@/client/types.gen';
+import { isIntegrationPlatform } from '../_utils/environment-platform-utils';
+
 export const addEnvironmentFormSchema = z
   .object({
     name: z.string().trim().min(1, 'Name is required').max(255),
-    platform: z.enum(['retell', 'vapi', 'webhook']),
+    platform: z.enum([Platform.RETELL, Platform.VAPI, Platform.ELEVENLABS, Platform.WEBHOOK]),
     integration_id: z.string().uuid('Select an integration').nullable(),
     platform_agent_id: z.string().nullable(),
     platform_agent_name: z.string().nullable(),
@@ -25,7 +28,7 @@ export const addEnvironmentFormSchema = z
   )
   .refine(
     (v) => {
-      if (v.platform === 'retell' || v.platform === 'vapi') {
+      if (isIntegrationPlatform(v.platform)) {
         return Boolean(v.integration_id && v.platform_agent_id);
       }
       return true;
@@ -37,7 +40,7 @@ export const addEnvironmentFormSchema = z
   )
   .refine(
     (v) => {
-      if (v.platform === 'webhook') {
+      if (v.platform === Platform.WEBHOOK) {
         return Boolean(v.endpoint_url);
       }
       return true;

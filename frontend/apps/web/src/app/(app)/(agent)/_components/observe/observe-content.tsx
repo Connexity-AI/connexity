@@ -14,6 +14,7 @@ import { DeleteTestCasesDialog } from '@/app/(app)/(agent)/_components/evals/tes
 import { useEnvironments } from '@/app/(app)/(agent)/_hooks/use-environments';
 import { DataTable } from '@/components/common/data-table/data-table';
 import { TablePagination } from '@/components/common/data-table/table-pagination';
+import { Platform } from '@/client/types.gen';
 
 import { DateRangePicker } from './date-range-picker';
 import { getCallsColumns } from './get-calls-columns';
@@ -42,7 +43,10 @@ export function ObserveContent({ agentId }: ObserveContentProps) {
   );
 
   const hasProductionCallEnvironment = (environmentsData?.data ?? []).some(
-    (env) => env.platform === 'retell' || env.platform === 'vapi',
+    (env) =>
+      env.platform === Platform.RETELL ||
+      env.platform === Platform.VAPI ||
+      env.platform === Platform.ELEVENLABS,
   );
 
   if (calls.isLoading) {
@@ -105,7 +109,7 @@ export function ObserveContent({ agentId }: ObserveContentProps) {
           onRowClick={drawer.onRowClick}
           emptyState={
             <p className="text-sm text-muted-foreground">
-              No calls yet. Click Refresh to fetch from Retell or Vapi.
+              No calls yet. Click Refresh to fetch from Retell, Vapi, or ElevenLabs.
             </p>
           }
           footer={

@@ -1,9 +1,12 @@
 import type { AddEnvironmentFormValues } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_components/add-environment-form-schema';
+import { Platform } from '@/client/types.gen';
 import type { EnvironmentCreate, EnvironmentPublic, EnvironmentUpdate } from '@/client/types.gen';
+
+import { isIntegrationPlatform } from './environment-platform-utils';
 
 export const DEFAULT_ENVIRONMENT_FORM_VALUES: AddEnvironmentFormValues = {
   name: '',
-  platform: 'webhook',
+  platform: Platform.WEBHOOK,
   integration_id: null,
   platform_agent_id: null,
   platform_agent_name: null,
@@ -11,10 +14,6 @@ export const DEFAULT_ENVIRONMENT_FORM_VALUES: AddEnvironmentFormValues = {
   eval_gate_enabled: false,
   eval_gate_eval_config_id: null,
 };
-
-function isIntegrationPlatform(platform: AddEnvironmentFormValues['platform']): boolean {
-  return platform === 'retell' || platform === 'vapi';
-}
 
 export function getEnvironmentFormValues(
   environment: EnvironmentPublic | null
@@ -67,7 +66,7 @@ export function getEnvironmentUpdateBody(
     integration_id: usesIntegration ? values.integration_id : null,
     platform_agent_id: usesIntegration ? values.platform_agent_id : null,
     platform_agent_name: platformAgentName,
-    endpoint_url: values.platform === 'webhook' ? values.endpoint_url : null,
+    endpoint_url: values.platform === Platform.WEBHOOK ? values.endpoint_url : null,
     eval_gate_eval_config_id: values.eval_gate_enabled
       ? values.eval_gate_eval_config_id
       : null,

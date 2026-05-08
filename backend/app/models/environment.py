@@ -25,7 +25,7 @@ def validate_environment_platform_fields(
     platform_agent_id: str | None,
     endpoint_url: str | None,
 ) -> None:
-    if platform in {Platform.RETELL, Platform.VAPI}:
+    if platform in {Platform.RETELL, Platform.VAPI, Platform.ELEVENLABS}:
         platform_value = platform.value
         if integration_id is None:
             msg = f"integration_id is required when platform is '{platform_value}'"
