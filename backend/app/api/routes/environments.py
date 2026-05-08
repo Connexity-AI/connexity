@@ -472,6 +472,7 @@ async def deploy_environment(
             assistant_id=env.platform_agent_id,
             system_prompt=version_row.system_prompt,
             agent_model=version_row.agent_model,
+            agent_provider=version_row.agent_provider,
             agent_temperature=version_row.agent_temperature,
             tools=version_row.tools,
             version_description=combined_description,

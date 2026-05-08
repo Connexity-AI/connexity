@@ -31,7 +31,6 @@ class VapiCall(BaseModel):
 
 
 _VAPI_API_BASE_URL = "https://api.vapi.ai"
-_VAPI_ALLOWED_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE"}
 
 
 def _headers(api_key: str) -> dict[str, str]:
@@ -115,10 +114,6 @@ def _map_tools_for_vapi(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not url:
             continue
 
-        method = str(impl.get("method") or "POST").upper()
-        if method not in _VAPI_ALLOWED_METHODS:
-            method = "POST"
-
         func = tool.get("function") or {}
         function_payload: dict[str, Any] = {
             "name": func.get("name", ""),
@@ -134,7 +129,6 @@ def _map_tools_for_vapi(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "function": function_payload,
                 "server": {
                     "url": url,
-                    "method": method,
                 },
             }
         )
@@ -147,6 +141,7 @@ async def deploy_vapi_assistant(
     assistant_id: str,
     system_prompt: str | None,
     agent_model: str | None,
+    agent_provider: str | None,
     agent_temperature: float | None,
     tools: list[dict[str, Any]] | None,
     version_description: str | None,
@@ -154,6 +149,8 @@ async def deploy_vapi_assistant(
     model_payload: dict[str, Any] = {}
     if agent_model is not None:
         model_payload["model"] = agent_model
+    if agent_provider is not None:
+        model_payload["provider"] = agent_provider
     if agent_temperature is not None:
         model_payload["temperature"] = agent_temperature
     if system_prompt is not None:

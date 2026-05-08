@@ -66,6 +66,7 @@ export const AddEnvironmentForm: FC<Props> = ({
   const name = form.watch('name');
   const evalGateEnabled = form.watch('eval_gate_enabled');
   const evalGateEvalConfigId = form.watch('eval_gate_eval_config_id');
+  const isSubmitDisabled = isPending || (evalGateEnabled && evalGateEvalConfigId === null);
   const environmentNameForPreview = name.trim() || 'production';
   const platformIntegrations = integrations.filter((integration) => integration.provider === platform);
   const integrationEmptyLabel =
@@ -294,7 +295,7 @@ export const AddEnvironmentForm: FC<Props> = ({
           <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={isPending}>
             Cancel
           </Button>
-          <Button type="submit" size="sm" disabled={isPending}>
+          <Button type="submit" size="sm" disabled={isSubmitDisabled}>
             {isPending ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
