@@ -95,7 +95,7 @@ export const AddEnvironmentForm: FC<Props> = ({
 
             <div className="space-y-1.5">
               <FormLabel>Platform</FormLabel>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Button
                   type="button"
                   variant="ghost"
