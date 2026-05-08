@@ -7,6 +7,7 @@ from sqlmodel import Session, col, select
 
 from app.models.agent import Agent
 from app.models.call import Call, CallPublic
+from app.models.integration import Integration
 from app.models.test_case import TestCase
 from app.services.retell import RetellCall
 from app.services.vapi import VapiCall
@@ -103,7 +104,12 @@ def upsert_calls_from_vapi(
     integration_id: uuid.UUID,
     vapi_calls: list[VapiCall],
 ) -> int:
-    """Insert Vapi calls using the existing call observer storage contract."""
+    """Upsert Vapi calls, refreshing existing rows as calls evolve.
+
+    Vapi calls can first arrive as in-progress and later transition to ended with
+    transcript + duration populated. Use conflict-update semantics so refresh
+    syncs can enrich existing rows instead of dropping updates as duplicates.
+    """
     if not vapi_calls:
         return 0
 
@@ -115,10 +121,30 @@ def upsert_calls_from_vapi(
     if not rows:
         return 0
 
+    insert_stmt = pg_insert(_CALL_TABLE).values(rows)
     stmt = (
-        pg_insert(_CALL_TABLE)
-        .values(rows)
-        .on_conflict_do_nothing(index_elements=["retell_call_id", "agent_id"])
+        insert_stmt
+        .on_conflict_do_update(
+            index_elements=["retell_call_id", "agent_id"],
+            set_={
+                "retell_agent_id": insert_stmt.excluded.retell_agent_id,
+                "started_at": insert_stmt.excluded.started_at,
+                "status": insert_stmt.excluded.status,
+                "duration_seconds": func.coalesce(
+                    insert_stmt.excluded.duration_seconds,
+                    _CALL_TABLE.c.duration_seconds,
+                ),
+                "transcript": func.coalesce(
+                    insert_stmt.excluded.transcript,
+                    _CALL_TABLE.c.transcript,
+                ),
+                "raw": func.coalesce(
+                    insert_stmt.excluded.raw,
+                    _CALL_TABLE.c.raw,
+                ),
+                "integration_id": insert_stmt.excluded.integration_id,
+            },
+        )
         .returning(_CALL_TABLE.c.id)
     )
     result = session.execute(stmt)
@@ -153,7 +179,10 @@ def list_calls_for_agent(
     date_to: datetime | None = None,
 ) -> tuple[list[CallPublic], int]:
     base = (
-        select(Call).where(Call.agent_id == agent_id).where(Call.deleted_at.is_(None))  # type: ignore[union-attr]
+        select(Call, Integration.provider)
+        .outerjoin(Integration, Call.integration_id == Integration.id)
+        .where(Call.agent_id == agent_id)
+        .where(Call.deleted_at.is_(None))  # type: ignore[union-attr]
     )
     count_stmt = (
         select(func.count())
@@ -177,7 +206,9 @@ def list_calls_for_agent(
     if not rows:
         return [], total
 
-    call_ids = [r.id for r in rows]
+    calls = [call for call, _ in rows]
+    call_ids = [c.id for c in calls]
+    provider_by_call_id = {call.id: provider for call, provider in rows}
 
     tc_counts = dict(
         session.exec(
@@ -196,12 +227,13 @@ def list_calls_for_agent(
             started_at=r.started_at,
             duration_seconds=r.duration_seconds,
             status=r.status,
+            provider=provider_by_call_id.get(r.id),
             transcript=r.transcript,
             is_new=r.seen_at is None,
             test_case_count=int(tc_counts.get(r.id, 0)),
             created_at=r.created_at,
         )
-        for r in rows
+        for r in calls
     ]
     return items, total
 

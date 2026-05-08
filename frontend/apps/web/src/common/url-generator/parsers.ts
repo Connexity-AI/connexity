@@ -28,7 +28,7 @@ export const callsPresetValues = [
 export const callsObserveParser = {
   page: parseAsInteger.withDefault(1),
   pageSize: parseAsInteger.withDefault(25),
-  preset: parseAsStringLiteral(callsPresetValues).withDefault('7d'),
+  preset: parseAsStringLiteral(callsPresetValues).withDefault('90d'),
   from: parseAsString.withDefault(''),
   to: parseAsString.withDefault(''),
 };

@@ -810,6 +810,7 @@ export type CallPublic = {
    * Status
    */
   status?: string | null;
+  provider?: AppModelsEnumsIntegrationProvider2 | null;
   /**
    * Transcript
    */
@@ -1929,12 +1930,13 @@ export type IntegrationCreate = {
 /**
  * IntegrationProvider
  */
-export const IntegrationProvider = { RETELL: 'retell', VAPI: 'vapi' } as const;
+export const IntegrationProviderInput = { RETELL: 'retell', VAPI: 'vapi' } as const;
 
 /**
  * IntegrationProvider
  */
-export type IntegrationProvider = (typeof IntegrationProvider)[keyof typeof IntegrationProvider];
+export type IntegrationProviderInput =
+  (typeof IntegrationProviderInput)[keyof typeof IntegrationProviderInput];
 
 /**
  * IntegrationPublic
@@ -4759,6 +4761,28 @@ export const AppModelsEnumsAgentMode = { ENDPOINT: 'endpoint', PLATFORM: 'platfo
  */
 export type AppModelsEnumsAgentMode =
   (typeof AppModelsEnumsAgentMode)[keyof typeof AppModelsEnumsAgentMode];
+
+/**
+ * IntegrationProvider
+ */
+export const AppModelsEnumsIntegrationProvider1 = { RETELL: 'retell', VAPI: 'vapi' } as const;
+
+/**
+ * IntegrationProvider
+ */
+export type AppModelsEnumsIntegrationProvider1 =
+  (typeof AppModelsEnumsIntegrationProvider1)[keyof typeof AppModelsEnumsIntegrationProvider1];
+
+/**
+ * IntegrationProvider
+ */
+export const AppModelsEnumsIntegrationProvider2 = { RETELL: 'retell', VAPI: 'vapi' } as const;
+
+/**
+ * IntegrationProvider
+ */
+export type AppModelsEnumsIntegrationProvider2 =
+  (typeof AppModelsEnumsIntegrationProvider2)[keyof typeof AppModelsEnumsIntegrationProvider2];
 
 /**
  * AgentMode

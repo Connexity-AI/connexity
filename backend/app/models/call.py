@@ -6,6 +6,8 @@ from sqlalchemy import Column, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
+from app.models.enums import IntegrationProvider
+
 
 class Call(SQLModel, table=True):
     __tablename__ = "call"
@@ -47,6 +49,7 @@ class CallPublic(SQLModel):
     started_at: datetime
     duration_seconds: int | None = None
     status: str | None = None
+    provider: IntegrationProvider | None = None
     transcript: list[dict[str, Any]] | None = None
     is_new: bool = Field(
         default=True,

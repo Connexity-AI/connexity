@@ -302,6 +302,12 @@ async def list_agent_calls(
             date_from=date_from,
             date_to=date_to,
         )
+        logger.warning(
+            "frontend calls payload agent=%s count=%s items=%s",
+            agent_id,
+            count,
+            [item.model_dump(mode="json") for item in items],
+        )
         event["rows_returned"] = len(items)
         event["total_count"] = count
         return CallsPublic(data=items, count=count)
@@ -386,6 +392,13 @@ def get_call_detail(
     call_id: uuid.UUID,
 ) -> CallPublic:
     call = _call_or_404(session=session, call_id=call_id)
+    provider = None
+    if call.integration_id is not None:
+        integration = crud.get_integration(
+            session=session,
+            integration_id=call.integration_id,
+        )
+        provider = integration.provider if integration is not None else None
     is_new = call.seen_at is None
     tc_count = int(
         session.exec(
@@ -400,6 +413,7 @@ def get_call_detail(
         started_at=call.started_at,
         duration_seconds=call.duration_seconds,
         status=call.status,
+        provider=provider,
         transcript=call.transcript,
         is_new=is_new,
         test_case_count=tc_count,
