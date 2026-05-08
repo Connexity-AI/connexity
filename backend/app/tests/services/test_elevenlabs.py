@@ -87,3 +87,87 @@ async def test_deploy_elevenlabs_agent_sends_prompt_model_and_temperature() -> N
     )
     assert patched_json["conversation_config"]["agent"]["prompt"]["temperature"] == 0.2
     assert patched_json["version_description"] == "Connexity Agent v1"
+
+
+@pytest.mark.asyncio
+async def test_deploy_elevenlabs_agent_creates_tools_and_attaches_tool_ids() -> None:
+    create_tool_response_1 = httpx.Response(
+        status_code=200,
+        json={"tool_id": "tool_1"},
+        request=httpx.Request("POST", "https://api.elevenlabs.io/v1/convai/tools"),
+    )
+    create_tool_response_2 = httpx.Response(
+        status_code=200,
+        json={"tool_id": "tool_2"},
+        request=httpx.Request("POST", "https://api.elevenlabs.io/v1/convai/tools"),
+    )
+    deploy_response = httpx.Response(
+        status_code=200,
+        json={"version_id": "ver_456"},
+        request=httpx.Request(
+            "PATCH", "https://api.elevenlabs.io/v1/convai/agents/ag_1"
+        ),
+    )
+    with patch("app.services.elevenlabs.httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.post.side_effect = [create_tool_response_1, create_tool_response_2]
+        mock_client.patch.return_value = deploy_response
+        mock_client_cls.return_value = mock_client
+
+        result = await deploy_elevenlabs_agent(
+            api_key="eleven-key",
+            agent_id="ag_1",
+            system_prompt="You are helpful.",
+            agent_model="gpt-4o-mini",
+            agent_temperature=0.2,
+            tools=[
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "create_service_ticket",
+                        "description": "Creates service ticket.",
+                        "parameters": {
+                            "type": "object",
+                            "required": [],
+                            "properties": {},
+                        },
+                    },
+                    "platform_config": {
+                        "implementation": {
+                            "type": "http_webhook",
+                            "url": "https://example.com/tool-1",
+                            "method": "POST",
+                        }
+                    },
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "find_spare_part",
+                        "description": "Finds spare part.",
+                        "parameters": {
+                            "type": "object",
+                            "required": [],
+                            "properties": {},
+                        },
+                    },
+                    "platform_config": {
+                        "implementation": {
+                            "type": "http_webhook",
+                            "url": "https://example.com/tool-2",
+                            "method": "POST",
+                        }
+                    },
+                },
+            ],
+            version_description="Connexity Agent v2",
+        )
+
+    assert result.success is True
+    assert mock_client.post.await_count == 2
+    deploy_json = mock_client.patch.call_args.kwargs["json"]
+    assert deploy_json["conversation_config"]["agent"]["prompt"]["tool_ids"] == [
+        "tool_1",
+        "tool_2",
+    ]

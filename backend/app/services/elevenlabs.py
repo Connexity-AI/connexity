@@ -121,8 +121,8 @@ def _coerce_elevenlabs_llm(value: str | None) -> str | None:
     return normalized
 
 
-def _map_tools_for_elevenlabs(tools: list[dict[str, Any]]) -> list[str]:
-    tool_ids: list[str] = []
+def _map_tools_for_elevenlabs(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    mapped_tools: list[dict[str, Any]] = []
     for tool in tools:
         platform_config = tool.get("platform_config") or {}
         if platform_config.get("predefined"):
@@ -130,10 +130,45 @@ def _map_tools_for_elevenlabs(tools: list[dict[str, Any]]) -> list[str]:
         impl = platform_config.get("implementation") or {}
         if impl.get("type") != "http_webhook":
             continue
-        maybe_id = tool.get("id") or tool.get("tool_id")
-        if maybe_id:
-            tool_ids.append(str(maybe_id))
-    return tool_ids
+        url = impl.get("url") or ""
+        if not url:
+            continue
+        method = str(impl.get("method") or "POST").upper()
+        if method not in {"GET", "POST", "PUT", "PATCH", "DELETE"}:
+            method = "POST"
+
+        func = tool.get("function") or {}
+        parameters = func.get("parameters")
+
+        tool_config: dict[str, Any] = {
+            "type": "webhook",
+            "name": func.get("name", ""),
+            "description": func.get("description", ""),
+            "api_schema": {
+                "url": url,
+                "method": method,
+            },
+        }
+        if isinstance(parameters, dict) and parameters:
+            tool_config["api_schema"]["request_body_schema"] = parameters
+        mapped_tools.append(tool_config)
+    return mapped_tools
+
+
+def _extract_elevenlabs_tool_id(payload: Any) -> str | None:
+    if not isinstance(payload, dict):
+        return None
+    for key in ("tool_id", "id"):
+        value = payload.get(key)
+        if value:
+            return str(value)
+    nested = payload.get("tool")
+    if isinstance(nested, dict):
+        for key in ("tool_id", "id"):
+            value = nested.get(key)
+            if value:
+                return str(value)
+    return None
 
 
 async def deploy_elevenlabs_agent(
@@ -146,6 +181,45 @@ async def deploy_elevenlabs_agent(
     tools: list[dict[str, Any]] | None,
     version_description: str | None,
 ) -> ElevenLabsDeployResult:
+    mapped_tools = _map_tools_for_elevenlabs(tools or [])
+    created_tool_ids: list[str] = []
+
+    if mapped_tools:
+        try:
+            async with httpx.AsyncClient() as client:
+                for tool_config in mapped_tools:
+                    response = await client.post(
+                        f"{_ELEVENLABS_API_BASE_URL}/v1/convai/tools",
+                        headers=_headers(api_key),
+                        json={"tool_config": tool_config},
+                        timeout=30.0,
+                    )
+                    if response.status_code >= 400:
+                        try:
+                            detail = response.json()
+                        except ValueError:
+                            detail = response.text
+                        return ElevenLabsDeployResult(
+                            success=False,
+                            error_message=f"ElevenLabs create tool returned {response.status_code}: {detail}",
+                        )
+                    try:
+                        body = response.json()
+                    except ValueError:
+                        body = None
+                    tool_id = _extract_elevenlabs_tool_id(body)
+                    if tool_id is None:
+                        return ElevenLabsDeployResult(
+                            success=False,
+                            error_message="ElevenLabs create tool returned no tool id",
+                        )
+                    created_tool_ids.append(tool_id)
+        except httpx.HTTPError as exc:
+            return ElevenLabsDeployResult(
+                success=False,
+                error_message=f"Failed to reach ElevenLabs API: {exc}",
+            )
+
     llm = _coerce_elevenlabs_llm(agent_model)
     payload: dict[str, Any] = {
         "conversation_config": {
@@ -158,7 +232,7 @@ async def deploy_elevenlabs_agent(
                         if agent_temperature is not None
                         else {}
                     ),
-                    **({"tool_ids": _map_tools_for_elevenlabs(tools)} if tools else {}),
+                    **({"tool_ids": created_tool_ids} if tools else {}),
                 }
             }
         }
@@ -326,9 +400,8 @@ async def get_elevenlabs_conversation(
         else None
     )
 
-    metadata = (
-        payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
-    )
+    metadata_raw = payload.get("metadata")
+    metadata: dict[str, Any] = metadata_raw if isinstance(metadata_raw, dict) else {}
     start_time_unix_secs = metadata.get("start_time_unix_secs") or payload.get(
         "start_time_unix_secs"
     )
