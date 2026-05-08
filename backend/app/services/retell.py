@@ -1,9 +1,12 @@
+import logging
 from datetime import datetime
 from typing import Any
 
 import httpx
 from fastapi import HTTPException
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 
 class RetellAgentSummary(BaseModel):
@@ -322,6 +325,13 @@ async def deploy_retell_agent(
         if tools:
             llm_payload["general_tools"] = _map_tools_for_retell(tools)
 
+        logger.info(
+            "Retell deploy payload prepared for update-retell-llm: retell_agent_id=%s llm_id=%s payload=%s",
+            retell_agent_id,
+            llm_id,
+            llm_payload,
+        )
+
         try:
             resp = await client.patch(
                 f"https://api.retellai.com/update-retell-llm/{llm_id}",
@@ -344,6 +354,13 @@ async def deploy_retell_agent(
                 success=False,
                 error_message=f"Retell update-retell-llm returned {resp.status_code}: {detail}",
             )
+
+        logger.info(
+            "Retell update-retell-llm succeeded: retell_agent_id=%s llm_id=%s status_code=%s",
+            retell_agent_id,
+            llm_id,
+            resp.status_code,
+        )
 
         # Step 3: patch the agent with version description
         try:

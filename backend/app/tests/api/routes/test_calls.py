@@ -17,6 +17,10 @@ from app.models import (
     Platform,
     User,
 )
+from app.services.elevenlabs import (
+    ElevenLabsConversationDetails,
+    ElevenLabsConversationSummary,
+)
 from app.services.retell import RetellCall
 from app.tests.utils.eval import create_test_agent
 from app.tests.utils.utils import AUTH_USER_EMAIL
@@ -69,6 +73,38 @@ def _owned_agent_with_environment(db: Session, retell_agent_id: str = "ret_a1"):
     return agent, integration, user
 
 
+def _owned_agent_with_elevenlabs_environment(
+    db: Session, elevenlabs_agent_id: str = "el_a1"
+):
+    user = _seed_user(db)
+    agent = create_test_agent(db)
+    agent.created_by = user.id
+    db.add(agent)
+    db.commit()
+    db.refresh(agent)
+
+    integration = crud.create_integration(
+        session=db,
+        data=IntegrationCreate(
+            provider=IntegrationProvider.ELEVENLABS,
+            name=f"int-{uuid.uuid4().hex[:6]}",
+            api_key="sk_eleven_test_key",
+        ),
+    )
+    crud.create_environment(
+        session=db,
+        data=EnvironmentCreate(
+            name=f"env-{uuid.uuid4().hex[:6]}",
+            platform=Platform.ELEVENLABS,
+            agent_id=agent.id,
+            integration_id=integration.id,
+            platform_agent_id=elevenlabs_agent_id,
+            platform_agent_name=elevenlabs_agent_id,
+        ),
+    )
+    return agent, integration, user
+
+
 def _fake_retell_call(
     call_id: str,
     start_ms: int,
@@ -83,6 +119,34 @@ def _fake_retell_call(
         call_status="ended",
         transcript_object=[{"role": "agent", "content": "Hello"}],
         raw={"call_id": call_id},
+    )
+
+
+def _fake_elevenlabs_summary(
+    conversation_id: str, start_unix: int
+) -> ElevenLabsConversationSummary:
+    return ElevenLabsConversationSummary(
+        conversation_id=conversation_id,
+        agent_id="el_a1",
+        start_time_unix_secs=start_unix,
+        call_duration_secs=10,
+        status="done",
+        transcript_summary=None,
+        raw={"conversation_id": conversation_id},
+    )
+
+
+def _fake_elevenlabs_details(
+    conversation_id: str, start_unix: int
+) -> ElevenLabsConversationDetails:
+    return ElevenLabsConversationDetails(
+        conversation_id=conversation_id,
+        agent_id="el_a1",
+        start_time_unix_secs=start_unix,
+        call_duration_secs=10,
+        status="done",
+        transcript=[{"role": "agent", "time_in_call_secs": 1, "message": "Hello"}],
+        raw={"conversation_id": conversation_id, "transcript": [{"message": "Hello"}]},
     )
 
 
@@ -262,3 +326,39 @@ def test_refresh_requires_integration_configured(
         cookies=auth_cookies,
     )
     assert r.status_code == 400
+
+
+def test_list_calls_fetches_from_elevenlabs(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    db: Session,
+) -> None:
+    agent, _integration, _user = _owned_agent_with_elevenlabs_environment(db)
+    summaries = [_fake_elevenlabs_summary("conv_1", 1_700_000_000)]
+    details = _fake_elevenlabs_details("conv_1", 1_700_000_000)
+
+    with (
+        patch(
+            "app.api.routes.calls.list_elevenlabs_conversations",
+            AsyncMock(return_value=summaries),
+        ) as mock_list,
+        patch(
+            "app.api.routes.calls.get_elevenlabs_conversation",
+            AsyncMock(return_value=details),
+        ) as mock_get,
+    ):
+        client.get(
+            f"{settings.API_V1_STR}/agents/{agent.id}/calls",
+            cookies=auth_cookies,
+        )
+        r = client.get(
+            f"{settings.API_V1_STR}/agents/{agent.id}/calls",
+            cookies=auth_cookies,
+        )
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["count"] == 1
+    assert body["data"][0]["retell_call_id"] == "conv_1"
+    assert mock_list.await_count >= 1
+    assert mock_get.await_count == 1

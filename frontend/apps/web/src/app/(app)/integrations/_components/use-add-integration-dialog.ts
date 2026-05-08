@@ -8,13 +8,18 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { createIntegration } from '@/actions/integrations';
+import { IntegrationProviderInput } from '@/client/types.gen';
 import { integrationKeys } from '@/constants/query-keys';
 import { isSuccessApiResult } from '@/utils/api';
 
 import { getCreateIntegrationErrorMessage } from './add-integration-dialog.utils';
 
 const formSchema = z.object({
-  provider: z.enum(['retell', 'vapi']),
+  provider: z.enum([
+    IntegrationProviderInput.RETELL,
+    IntegrationProviderInput.VAPI,
+    IntegrationProviderInput.ELEVENLABS,
+  ]),
   name: z.string().min(1, 'Name is required'),
   api_key: z.string().min(1, 'API key is required'),
 });
@@ -25,18 +30,25 @@ export type DialogState = 'form' | 'testing' | 'success' | 'error';
 
 export const PROVIDERS = [
   {
-    value: 'retell',
+    value: IntegrationProviderInput.RETELL,
     label: 'Retell',
     placeholder: 'e.g., Production Retell',
     docsHref: 'https://dashboard.retellai.com/settings/api-keys',
     docsLabel: 'Get Retell API Key',
   },
   {
-    value: 'vapi',
+    value: IntegrationProviderInput.VAPI,
     label: 'Vapi',
     placeholder: 'e.g., Production Vapi',
     docsHref: 'https://dashboard.vapi.ai/org/api-keys',
     docsLabel: 'Get Vapi API Key',
+  },
+  {
+    value: IntegrationProviderInput.ELEVENLABS,
+    label: 'ElevenLabs',
+    placeholder: 'e.g., Production ElevenLabs',
+    docsHref: 'https://elevenlabs.io/app/settings/api-keys',
+    docsLabel: 'Get ElevenLabs API Key',
   },
 ] as const;
 
@@ -54,8 +66,8 @@ export const useAddIntegrationDialog = ({
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { provider: 'retell', name: '', api_key: '' },
-    values: { provider: 'retell', name: '', api_key: '' },
+    defaultValues: { provider: IntegrationProviderInput.RETELL, name: '', api_key: '' },
+    values: { provider: IntegrationProviderInput.RETELL, name: '', api_key: '' },
   });
 
   const mutation = useMutation({

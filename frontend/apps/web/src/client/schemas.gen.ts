@@ -3235,7 +3235,7 @@ export const IntegrationCreateSchema = {
   properties: {
     provider: {
       type: 'string',
-      enum: ['retell', 'vapi'],
+      enum: ['retell', 'vapi', 'elevenlabs'],
       maxLength: 64,
       title: 'IntegrationProvider',
     },
@@ -3256,7 +3256,7 @@ export const IntegrationCreateSchema = {
 
 export const IntegrationProvider_InputSchema = {
   type: 'string',
-  enum: ['retell', 'vapi'],
+  enum: ['retell', 'vapi', 'elevenlabs'],
   maxLength: 64,
   title: 'IntegrationProvider',
 } as const;
@@ -3265,7 +3265,7 @@ export const IntegrationPublicSchema = {
   properties: {
     provider: {
       type: 'string',
-      enum: ['retell', 'vapi'],
+      enum: ['retell', 'vapi', 'elevenlabs'],
       maxLength: 64,
       title: 'IntegrationProvider',
     },
@@ -4069,7 +4069,7 @@ export const OnConflictSchema = {
 
 export const PlatformSchema = {
   type: 'string',
-  enum: ['retell', 'vapi', 'webhook'],
+  enum: ['retell', 'vapi', 'elevenlabs', 'webhook'],
   title: 'Platform',
 } as const;
 
@@ -7922,14 +7922,14 @@ export const app__models__enums__AgentModeSchema = {
 
 export const app__models__enums__IntegrationProvider__1Schema = {
   type: 'string',
-  enum: ['retell', 'vapi'],
+  enum: ['retell', 'vapi', 'elevenlabs'],
   maxLength: 64,
   title: 'IntegrationProvider',
 } as const;
 
 export const app__models__enums__IntegrationProvider__2Schema = {
   type: 'string',
-  enum: ['retell', 'vapi'],
+  enum: ['retell', 'vapi', 'elevenlabs'],
   title: 'IntegrationProvider',
 } as const;
 

@@ -1916,7 +1916,7 @@ export type IntegrationCreate = {
   /**
    * IntegrationProvider
    */
-  provider: 'retell' | 'vapi';
+  provider: 'retell' | 'vapi' | 'elevenlabs';
   /**
    * Name
    */
@@ -1930,7 +1930,11 @@ export type IntegrationCreate = {
 /**
  * IntegrationProvider
  */
-export const IntegrationProviderInput = { RETELL: 'retell', VAPI: 'vapi' } as const;
+export const IntegrationProviderInput = {
+  RETELL: 'retell',
+  VAPI: 'vapi',
+  ELEVENLABS: 'elevenlabs',
+} as const;
 
 /**
  * IntegrationProvider
@@ -1945,7 +1949,7 @@ export type IntegrationPublic = {
   /**
    * IntegrationProvider
    */
-  provider: 'retell' | 'vapi';
+  provider: 'retell' | 'vapi' | 'elevenlabs';
   /**
    * Name
    */
@@ -2527,6 +2531,7 @@ export type OnConflict = (typeof OnConflict)[keyof typeof OnConflict];
 export const Platform = {
   RETELL: 'retell',
   VAPI: 'vapi',
+  ELEVENLABS: 'elevenlabs',
   WEBHOOK: 'webhook',
 } as const;
 
@@ -4765,7 +4770,11 @@ export type AppModelsEnumsAgentMode =
 /**
  * IntegrationProvider
  */
-export const AppModelsEnumsIntegrationProvider1 = { RETELL: 'retell', VAPI: 'vapi' } as const;
+export const AppModelsEnumsIntegrationProvider1 = {
+  RETELL: 'retell',
+  VAPI: 'vapi',
+  ELEVENLABS: 'elevenlabs',
+} as const;
 
 /**
  * IntegrationProvider
@@ -4776,7 +4785,11 @@ export type AppModelsEnumsIntegrationProvider1 =
 /**
  * IntegrationProvider
  */
-export const AppModelsEnumsIntegrationProvider2 = { RETELL: 'retell', VAPI: 'vapi' } as const;
+export const AppModelsEnumsIntegrationProvider2 = {
+  RETELL: 'retell',
+  VAPI: 'vapi',
+  ELEVENLABS: 'elevenlabs',
+} as const;
 
 /**
  * IntegrationProvider

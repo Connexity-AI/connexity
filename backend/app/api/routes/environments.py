@@ -25,6 +25,7 @@ from app.models.enums import Platform
 from app.models.environment import validate_environment_platform_fields
 from app.models.schemas import AggregateMetrics
 from app.models.user import User
+from app.services.elevenlabs import deploy_elevenlabs_agent
 from app.services.retell import (
     RetellAgentVersion,
     deploy_retell_agent,
@@ -134,7 +135,7 @@ def _validate_gate_config(
 def _get_environment_integration_name(
     session: SessionDep, *, platform: Platform, integration_id: uuid.UUID | None
 ) -> str | None:
-    if platform not in {Platform.RETELL, Platform.VAPI}:
+    if platform not in {Platform.RETELL, Platform.VAPI, Platform.ELEVENLABS}:
         return None
     if integration_id is None:
         raise HTTPException(status_code=422, detail="Integration is required")
@@ -478,6 +479,34 @@ async def deploy_environment(
             version_description=combined_description,
         )
         deployed_version_name = result.vapi_version_name
+    elif env.platform == Platform.ELEVENLABS:
+        if env.integration_id is None or env.platform_agent_id is None:
+            raise HTTPException(
+                status_code=422,
+                detail="ElevenLabs environment is missing integration or agent id",
+            )
+        integration = crud.get_integration(
+            session=session,
+            integration_id=env.integration_id,
+        )
+        if not integration:
+            raise HTTPException(status_code=404, detail="Integration not found")
+        api_key = decrypt(integration.encrypted_api_key)
+        connexity_label = f"Connexity Agent v{body.agent_version}"
+        notes = _version_notes_for_retell(version_row).strip()
+        combined_description = (
+            f"{connexity_label} — {notes}" if notes else connexity_label
+        )
+
+        result = await deploy_elevenlabs_agent(
+            api_key=api_key,
+            agent_id=env.platform_agent_id,
+            system_prompt=version_row.system_prompt,
+            agent_model=version_row.agent_model,
+            agent_temperature=version_row.agent_temperature,
+            tools=version_row.tools,
+            version_description=combined_description,
+        )
     elif env.platform == Platform.WEBHOOK:
         if env.endpoint_url is None:
             raise HTTPException(

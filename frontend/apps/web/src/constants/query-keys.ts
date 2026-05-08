@@ -94,6 +94,10 @@ export const vapiAssistantKeys = {
   byIntegration: (integrationId: string) => ['vapi-assistants', integrationId] as const,
 };
 
+export const elevenlabsAgentKeys = {
+  byIntegration: (integrationId: string) => ['elevenlabs-agents', integrationId] as const,
+};
+
 export type CallFilters = {
   page?: number;
   pageSize?: number;

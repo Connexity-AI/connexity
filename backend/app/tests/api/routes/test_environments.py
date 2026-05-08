@@ -61,6 +61,17 @@ def _make_integration(db: Session):
     )
 
 
+def _make_elevenlabs_integration(db: Session):
+    return crud.create_integration(
+        session=db,
+        data=IntegrationCreate(
+            provider=IntegrationProvider.ELEVENLABS,
+            name=f"int-{uuid.uuid4().hex[:6]}",
+            api_key="sk_test_eleven_env_routes",
+        ),
+    )
+
+
 def _create_env_body(
     *,
     agent_id: uuid.UUID,
@@ -77,9 +88,52 @@ def _create_env_body(
         body["integration_id"] = str(integration_id)
         body["platform_agent_id"] = "ret_agent_x"
         body["platform_agent_name"] = "Retell Agent X"
+    if platform == "elevenlabs" and integration_id is not None:
+        body["integration_id"] = str(integration_id)
+        body["platform_agent_id"] = "el_agent_x"
+        body["platform_agent_name"] = "ElevenLabs Agent X"
     if platform == "webhook":
         body["endpoint_url"] = "https://example.com/hooks/deploy"
     return body
+
+
+def test_create_list_delete_elevenlabs_environment_flow(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    db: Session,
+) -> None:
+    agent, _user = _make_owned_agent(db)
+    integration = _make_elevenlabs_integration(db)
+
+    create_r = client.post(
+        f"{settings.API_V1_STR}/environments/",
+        json=_create_env_body(
+            agent_id=agent.id,
+            integration_id=integration.id,
+            name="prod",
+            platform="elevenlabs",
+        ),
+        cookies=auth_cookies,
+    )
+    assert create_r.status_code == 200
+    body = create_r.json()
+    env_id = body["id"]
+    assert body["platform"] == "elevenlabs"
+    assert body["integration_id"] == str(integration.id)
+
+    list_r = client.get(
+        f"{settings.API_V1_STR}/environments/",
+        params={"agent_id": str(agent.id)},
+        cookies=auth_cookies,
+    )
+    assert list_r.status_code == 200
+    assert any(item["id"] == env_id for item in list_r.json()["data"])
+
+    del_r = client.delete(
+        f"{settings.API_V1_STR}/environments/{env_id}",
+        cookies=auth_cookies,
+    )
+    assert del_r.status_code == 200
 
 
 def test_environments_require_auth(client: TestClient) -> None:

@@ -12,6 +12,7 @@ from app.models import (
     IntegrationsPublic,
     Message,
 )
+from app.services.elevenlabs import check_elevenlabs_connection, list_elevenlabs_agents
 from app.services.retell import (
     RetellAgentSummary,
     list_retell_agents,
@@ -22,6 +23,7 @@ from app.services.vapi import list_vapi_assistants, test_vapi_connection
 _CONNECTION_TESTERS = {
     IntegrationProvider.RETELL: test_retell_connection,
     IntegrationProvider.VAPI: test_vapi_connection,
+    IntegrationProvider.ELEVENLABS: check_elevenlabs_connection,
 }
 
 
@@ -123,5 +125,16 @@ async def list_integration_agents(
                 version=assistant.version,
             )
             for assistant in assistants
+        ]
+    if integration.provider == IntegrationProvider.ELEVENLABS:
+        agents = await list_elevenlabs_agents(api_key)
+        return [
+            RetellAgentSummary(
+                agent_id=agent.agent_id,
+                agent_name=agent.agent_name,
+                is_published=agent.is_published,
+                version=agent.version,
+            )
+            for agent in agents
         ]
     raise HTTPException(status_code=400, detail="Provider does not expose agents")

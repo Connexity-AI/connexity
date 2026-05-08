@@ -7,11 +7,15 @@ import { Button } from '@workspace/ui/components/ui/button';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import type { CallRow } from '@/actions/calls';
+import { AppModelsEnumsIntegrationProvider2 } from '@/client/types.gen';
 import type { TestCasePublic } from '@/client/types.gen';
 
 function getProviderBadgeClassName(provider: CallRow['provider']): string {
-  if (provider === 'vapi') {
+  if (provider === AppModelsEnumsIntegrationProvider2.VAPI) {
     return 'text-[10px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 uppercase tracking-wide';
+  }
+  if (provider === AppModelsEnumsIntegrationProvider2.ELEVENLABS) {
+    return 'text-[10px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 uppercase tracking-wide';
   }
 
   return 'text-[10px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 uppercase tracking-wide';

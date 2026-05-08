@@ -1,8 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-
-import { useQuery } from '@tanstack/react-query';
 import { Check, Loader2, Webhook } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/ui/button';
@@ -25,8 +22,7 @@ import {
 import { cn } from '@workspace/ui/lib/utils';
 
 import { useAddEnvironmentForm } from '@/app/(app)/(agent)/_hooks/use-add-environment-form';
-import { useAgentVersions } from '@/app/(app)/(agent)/_hooks/use-agent-versions';
-import { webhookPayloadPreviewQuery } from '@/app/(app)/(agent)/_queries/webhook-payload-preview-query';
+import { Platform } from '@/client/types.gen';
 import { AgentSelectField } from './agent-select-field';
 import { EvalGateFormSection } from './eval-gate-form-section';
 import { PayloadPreviewSection } from './payload-preview-section';
@@ -53,49 +49,24 @@ export const AddEnvironmentForm: FC<Props> = ({
     form,
     onSubmit,
     platform,
+    integrationPlatform,
     integrationId,
+    platformIntegrations,
+    integrationEmptyLabel,
+    agentLabel,
+    payloadOpen,
+    onTogglePayloadOpen,
+    payloadPreview,
+    isPayloadPreviewLoading,
+    showMissingPublishedVersionInfo,
+    submitLabel,
+    isSubmitDisabled,
     handlePlatformChange,
     handleIntegrationChange,
     handleAgentChange,
     isPending,
     error,
-  } = useAddEnvironmentForm({ agentId, environment, onSuccess });
-  const [payloadOpen, setPayloadOpen] = useState(false);
-  const isEditing = environment !== null;
-  const submitLabel = isEditing ? 'Save changes' : 'Add environment';
-  const name = form.watch('name');
-  const evalGateEnabled = form.watch('eval_gate_enabled');
-  const evalGateEvalConfigId = form.watch('eval_gate_eval_config_id');
-  const isSubmitDisabled = isPending || (evalGateEnabled && evalGateEvalConfigId === null);
-  const environmentNameForPreview = name.trim() || 'production';
-  const platformIntegrations = integrations.filter((integration) => integration.provider === platform);
-  const integrationEmptyLabel =
-    platform === 'vapi' ? 'No Vapi integrations found' : 'No Retell integrations found';
-  const agentLabel = platform === 'vapi' ? 'Assistant' : 'Agent';
-  const { data: agentVersionsData, isLoading: isAgentVersionsLoading } = useAgentVersions(agentId);
-  const hasPublishedAgentVersion =
-    (agentVersionsData?.count ?? agentVersionsData?.data.length ?? 0) > 0;
-  const showMissingPublishedVersionInfo = !isAgentVersionsLoading && !hasPublishedAgentVersion;
-  const {
-    data: payloadPreviewData,
-    isLoading: isPayloadPreviewLoading,
-    isError: isPayloadPreviewError,
-    error: payloadPreviewError,
-  } = useQuery({
-      ...webhookPayloadPreviewQuery({
-        agentId,
-        environmentName: environmentNameForPreview,
-        evalGateEvalConfigId: evalGateEnabled ? evalGateEvalConfigId : null,
-      }),
-      enabled: platform === 'webhook' && hasPublishedAgentVersion,
-    });
-  const payloadPreviewErrorMessage =
-    payloadPreviewError instanceof Error
-      ? payloadPreviewError.message
-      : 'unable to load payload preview right now';
-  const payloadPreview = isPayloadPreviewError
-    ? payloadPreviewErrorMessage
-    : JSON.stringify(payloadPreviewData ?? {}, null, 2);
+  } = useAddEnvironmentForm({ agentId, integrations, environment, onSuccess });
 
   return (
     <Form {...form}>
@@ -124,17 +95,17 @@ export const AddEnvironmentForm: FC<Props> = ({
 
             <div className="space-y-1.5">
               <FormLabel>Platform</FormLabel>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Button
                   type="button"
                   variant="ghost"
                   className={cn(
                     'h-auto flex-col items-start justify-start gap-0.5 px-3 py-2.5 rounded-lg border text-left transition-all cursor-pointer whitespace-normal',
-                    platform === 'retell'
+                    platform === Platform.RETELL
                       ? 'border-foreground/40 bg-accent'
                       : 'border-border hover:bg-accent/40'
                   )}
-                  onClick={() => handlePlatformChange('retell')}
+                  onClick={() => handlePlatformChange(Platform.RETELL)}
                   disabled={isPending}
                 >
                   <span className="text-xs text-foreground">Retell</span>
@@ -147,11 +118,11 @@ export const AddEnvironmentForm: FC<Props> = ({
                   variant="ghost"
                   className={cn(
                     'h-auto flex-col items-start justify-start gap-0.5 px-3 py-2.5 rounded-lg border text-left transition-all cursor-pointer whitespace-normal',
-                    platform === 'vapi'
+                    platform === Platform.VAPI
                       ? 'border-foreground/40 bg-accent'
                       : 'border-border hover:bg-accent/40'
                   )}
-                  onClick={() => handlePlatformChange('vapi')}
+                  onClick={() => handlePlatformChange(Platform.VAPI)}
                   disabled={isPending}
                 >
                   <span className="text-xs text-foreground">Vapi</span>
@@ -164,11 +135,28 @@ export const AddEnvironmentForm: FC<Props> = ({
                   variant="ghost"
                   className={cn(
                     'h-auto flex-col items-start justify-start gap-0.5 px-3 py-2.5 rounded-lg border text-left transition-all cursor-pointer whitespace-normal',
-                    platform === 'webhook'
+                    platform === Platform.ELEVENLABS
                       ? 'border-foreground/40 bg-accent'
                       : 'border-border hover:bg-accent/40'
                   )}
-                  onClick={() => handlePlatformChange('webhook')}
+                  onClick={() => handlePlatformChange(Platform.ELEVENLABS)}
+                  disabled={isPending}
+                >
+                  <span className="text-xs text-foreground">ElevenLabs</span>
+                  <span className="text-[10px] text-muted-foreground leading-tight">
+                    Push directly via ElevenLabs API (requires integration)
+                  </span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className={cn(
+                    'h-auto flex-col items-start justify-start gap-0.5 px-3 py-2.5 rounded-lg border text-left transition-all cursor-pointer whitespace-normal',
+                    platform === Platform.WEBHOOK
+                      ? 'border-foreground/40 bg-accent'
+                      : 'border-border hover:bg-accent/40'
+                  )}
+                  onClick={() => handlePlatformChange(Platform.WEBHOOK)}
                   disabled={isPending}
                 >
                   <span className="text-xs text-foreground">Webhook</span>
@@ -179,7 +167,7 @@ export const AddEnvironmentForm: FC<Props> = ({
               </div>
             </div>
 
-            {(platform === 'retell' || platform === 'vapi') && (
+            {integrationPlatform !== null && (
               <>
                 <FormField
                   control={form.control}
@@ -230,7 +218,7 @@ export const AddEnvironmentForm: FC<Props> = ({
                       <FormLabel>{agentLabel}</FormLabel>
                       <FormControl>
                         <AgentSelectField
-                          platform={platform}
+                          platform={integrationPlatform}
                           integrationId={integrationId || null}
                           value={field.value ?? ''}
                           onChange={handleAgentChange}
@@ -244,7 +232,7 @@ export const AddEnvironmentForm: FC<Props> = ({
               </>
             )}
 
-            {platform === 'webhook' && (
+            {platform === Platform.WEBHOOK && (
               <>
                 <FormField
                   control={form.control}
@@ -279,7 +267,7 @@ export const AddEnvironmentForm: FC<Props> = ({
                 <PayloadPreviewSection
                   showMissingPublishedVersionInfo={showMissingPublishedVersionInfo}
                   payloadOpen={payloadOpen}
-                  onTogglePayloadOpen={() => setPayloadOpen((open) => !open)}
+                  onTogglePayloadOpen={onTogglePayloadOpen}
                   payloadPreview={payloadPreview}
                   isPayloadPreviewLoading={isPayloadPreviewLoading}
                 />

@@ -32,6 +32,7 @@ from app.crud.call import (  # noqa: F401
     mark_call_seen,
     soft_delete_calls_for_integration,
     touch_calls_last_synced_at,
+    upsert_calls_from_elevenlabs,
     upsert_calls_from_retell,
     upsert_calls_from_vapi,
 )
