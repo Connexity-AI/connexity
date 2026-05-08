@@ -122,31 +122,27 @@ def upsert_calls_from_vapi(
         return 0
 
     insert_stmt = pg_insert(_CALL_TABLE).values(rows)
-    stmt = (
-        insert_stmt
-        .on_conflict_do_update(
-            index_elements=["retell_call_id", "agent_id"],
-            set_={
-                "retell_agent_id": insert_stmt.excluded.retell_agent_id,
-                "started_at": insert_stmt.excluded.started_at,
-                "status": insert_stmt.excluded.status,
-                "duration_seconds": func.coalesce(
-                    insert_stmt.excluded.duration_seconds,
-                    _CALL_TABLE.c.duration_seconds,
-                ),
-                "transcript": func.coalesce(
-                    insert_stmt.excluded.transcript,
-                    _CALL_TABLE.c.transcript,
-                ),
-                "raw": func.coalesce(
-                    insert_stmt.excluded.raw,
-                    _CALL_TABLE.c.raw,
-                ),
-                "integration_id": insert_stmt.excluded.integration_id,
-            },
-        )
-        .returning(_CALL_TABLE.c.id)
-    )
+    stmt = insert_stmt.on_conflict_do_update(
+        index_elements=["retell_call_id", "agent_id"],
+        set_={
+            "retell_agent_id": insert_stmt.excluded.retell_agent_id,
+            "started_at": insert_stmt.excluded.started_at,
+            "status": insert_stmt.excluded.status,
+            "duration_seconds": func.coalesce(
+                insert_stmt.excluded.duration_seconds,
+                _CALL_TABLE.c.duration_seconds,
+            ),
+            "transcript": func.coalesce(
+                insert_stmt.excluded.transcript,
+                _CALL_TABLE.c.transcript,
+            ),
+            "raw": func.coalesce(
+                insert_stmt.excluded.raw,
+                _CALL_TABLE.c.raw,
+            ),
+            "integration_id": insert_stmt.excluded.integration_id,
+        },
+    ).returning(_CALL_TABLE.c.id)
     result = session.execute(stmt)
     inserted = len(list(result))
     session.commit()
