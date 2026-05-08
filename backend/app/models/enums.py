@@ -66,11 +66,13 @@ class PromptEditorSessionStatus(StrEnum):
 
 class Platform(StrEnum):
     RETELL = "retell"
+    VAPI = "vapi"
     WEBHOOK = "webhook"
 
 
 class IntegrationProvider(StrEnum):
     RETELL = "retell"
+    VAPI = "vapi"
 
 
 class DeploymentStatus(StrEnum):

@@ -24,7 +24,9 @@ export const AddEnvironmentDialog: FC<Props> = ({ open, onOpenChange, environmen
   const { agentId } = useParams<{ agentId: string }>();
   const { data: integrationsData } = useIntegrations();
 
-  const retellIntegrations = integrationsData.data.filter((i) => i.provider === 'retell');
+  const platformIntegrations = integrationsData.data.filter(
+    (i) => i.provider === 'retell' || i.provider === 'vapi'
+  );
   const title = environment === null ? 'Add environment' : 'Edit environment';
 
   const close = () => onOpenChange(false);
@@ -39,7 +41,7 @@ export const AddEnvironmentDialog: FC<Props> = ({ open, onOpenChange, environmen
         {open && (
           <AddEnvironmentForm
             agentId={agentId}
-            integrations={retellIntegrations}
+            integrations={platformIntegrations}
             environment={environment}
             onCancel={close}
             onSuccess={close}

@@ -1,7 +1,6 @@
 import { getWebhookPayloadPreview } from '@/actions/environments';
-import type { ErrorResponse } from '@/client/types.gen';
-import { environmentKeys } from '@/constants/query-keys';
 import { isErrorApiResult, isSuccessApiResult } from '@/utils/api';
+import { environmentKeys } from '@/constants/query-keys';
 
 interface WebhookPayloadPreviewQueryArgs {
   agentId: string;
@@ -27,8 +26,12 @@ export function webhookPayloadPreviewQuery({
         evalGateEvalConfigId
       );
       if (!isSuccessApiResult(result)) {
-        if (isErrorApiResult<ErrorResponse>(result) && typeof result.error.detail === 'string') {
-          throw new Error(result.error.detail);
+        const error = isErrorApiResult(result) ? result.error : null;
+        if (typeof error === 'object' && error !== null && 'detail' in error) {
+          const detail = error.detail;
+          if (typeof detail === 'string') {
+            throw new Error(detail);
+          }
         }
         throw new Error('Failed to fetch webhook payload preview');
       }

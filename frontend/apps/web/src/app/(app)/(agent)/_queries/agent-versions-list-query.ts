@@ -1,6 +1,6 @@
 import { getAgentVersions } from '@/actions/agents';
-import { agentKeys } from '@/constants/query-keys';
 import { isSuccessApiResult } from '@/utils/api';
+import { agentKeys } from '@/constants/query-keys';
 
 export function agentVersionsListQuery(agentId: string) {
   return {

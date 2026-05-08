@@ -90,6 +90,10 @@ export const retellAgentKeys = {
   byIntegration: (integrationId: string) => ['retell-agents', integrationId] as const,
 };
 
+export const vapiAssistantKeys = {
+  byIntegration: (integrationId: string) => ['vapi-assistants', integrationId] as const,
+};
+
 export type CallFilters = {
   page?: number;
   pageSize?: number;

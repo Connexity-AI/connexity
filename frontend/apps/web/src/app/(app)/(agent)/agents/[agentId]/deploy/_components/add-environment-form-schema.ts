@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const addEnvironmentFormSchema = z
   .object({
     name: z.string().trim().min(1, 'Name is required').max(255),
-    platform: z.enum(['retell', 'webhook']),
+    platform: z.enum(['retell', 'vapi', 'webhook']),
     integration_id: z.string().uuid('Select an integration').nullable(),
     platform_agent_id: z.string().nullable(),
     platform_agent_name: z.string().nullable(),
@@ -25,13 +25,13 @@ export const addEnvironmentFormSchema = z
   )
   .refine(
     (v) => {
-      if (v.platform === 'retell') {
+      if (v.platform === 'retell' || v.platform === 'vapi') {
         return Boolean(v.integration_id && v.platform_agent_id);
       }
       return true;
     },
     {
-      message: 'Select integration and agent for Retell',
+      message: 'Select integration and agent',
       path: ['platform_agent_id'],
     }
   )

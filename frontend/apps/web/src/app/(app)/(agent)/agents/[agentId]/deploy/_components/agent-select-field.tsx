@@ -9,25 +9,38 @@ import {
 } from '@workspace/ui/components/ui/select';
 
 import { useRetellAgents } from '@/app/(app)/(agent)/_hooks/use-retell-agents';
+import { useVapiAssistants } from '@/app/(app)/(agent)/_hooks/use-vapi-assistants';
 
 import type { FC } from 'react';
+import type { AddEnvironmentFormValues } from './add-environment-form-schema';
 
 interface Props {
+  platform: Extract<AddEnvironmentFormValues['platform'], 'retell' | 'vapi'>;
   integrationId: string | null;
   value: string;
   onChange: (id: string, name: string) => void;
   disabled: boolean;
 }
 
-export const AgentSelectField: FC<Props> = ({ integrationId, value, onChange, disabled }) => {
-  const { data: rawAgents, isLoading } = useRetellAgents(integrationId);
+export const AgentSelectField: FC<Props> = ({
+  platform,
+  integrationId,
+  value,
+  onChange,
+  disabled,
+}) => {
+  const retellAgents = useRetellAgents(platform === 'retell' ? integrationId : null);
+  const vapiAssistants = useVapiAssistants(platform === 'vapi' ? integrationId : null);
+  const rawAgents = platform === 'retell' ? retellAgents.data : vapiAssistants.data;
+  const isLoading = platform === 'retell' ? retellAgents.isLoading : vapiAssistants.isLoading;
   const agents = rawAgents ? dedupeAgents(rawAgents) : undefined;
 
-  const placeholder = isLoading
-    ? 'Loading agents…'
-    : !integrationId
-      ? 'Select integration first…'
-      : 'Select a Retell agent…';
+  let placeholder = 'Select integration first…';
+  if (isLoading) {
+    placeholder = platform === 'retell' ? 'Loading agents…' : 'Loading assistants…';
+  } else if (integrationId) {
+    placeholder = platform === 'retell' ? 'Select a Retell agent…' : 'Select a Vapi assistant…';
+  }
 
   return (
     <Select
@@ -55,10 +68,10 @@ export const AgentSelectField: FC<Props> = ({ integrationId, value, onChange, di
   );
 };
 
-type RetellAgent = NonNullable<ReturnType<typeof useRetellAgents>['data']>[number];
+type AgentOption = NonNullable<ReturnType<typeof useRetellAgents>['data']>[number];
 
-function dedupeAgents(agents: RetellAgent[]): RetellAgent[] {
-  const byId = agents.reduce<Record<string, RetellAgent>>((acc, agent) => {
+function dedupeAgents(agents: AgentOption[]): AgentOption[] {
+  const byId = agents.reduce<Record<string, AgentOption>>((acc, agent) => {
     const prev = acc[agent.agent_id];
     if (!prev) {
       acc[agent.agent_id] = agent;

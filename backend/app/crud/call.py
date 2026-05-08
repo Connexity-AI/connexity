@@ -9,6 +9,7 @@ from app.models.agent import Agent
 from app.models.call import Call, CallPublic
 from app.models.test_case import TestCase
 from app.services.retell import RetellCall
+from app.services.vapi import VapiCall
 
 # SQLModel's declarative metaclass sets ``__table__`` at class creation, but
 # pyright's stubs don't expose it on ``type[Call]``; bind it once with an
@@ -41,6 +42,26 @@ def _retell_call_to_row(
     }
 
 
+def _vapi_call_to_row(
+    call: VapiCall, *, agent_id: uuid.UUID, integration_id: uuid.UUID
+) -> dict:
+    started_at = call.started_at or call.created_at or datetime.now(UTC)
+    duration: int | None = None
+    if call.started_at and call.ended_at:
+        duration = max(0, int((call.ended_at - call.started_at).total_seconds()))
+    return {
+        "agent_id": agent_id,
+        "integration_id": integration_id,
+        "retell_call_id": call.call_id,
+        "retell_agent_id": call.assistant_id or "",
+        "started_at": started_at,
+        "duration_seconds": duration,
+        "status": call.status,
+        "transcript": call.transcript,
+        "raw": call.raw,
+    }
+
+
 def upsert_calls_from_retell(
     *,
     session: Session,
@@ -58,6 +79,37 @@ def upsert_calls_from_retell(
     rows = [
         _retell_call_to_row(c, agent_id=agent_id, integration_id=integration_id)
         for c in retell_calls
+        if c.call_id
+    ]
+    if not rows:
+        return 0
+
+    stmt = (
+        pg_insert(_CALL_TABLE)
+        .values(rows)
+        .on_conflict_do_nothing(index_elements=["retell_call_id", "agent_id"])
+        .returning(_CALL_TABLE.c.id)
+    )
+    result = session.execute(stmt)
+    inserted = len(list(result))
+    session.commit()
+    return inserted
+
+
+def upsert_calls_from_vapi(
+    *,
+    session: Session,
+    agent_id: uuid.UUID,
+    integration_id: uuid.UUID,
+    vapi_calls: list[VapiCall],
+) -> int:
+    """Insert Vapi calls using the existing call observer storage contract."""
+    if not vapi_calls:
+        return 0
+
+    rows = [
+        _vapi_call_to_row(c, agent_id=agent_id, integration_id=integration_id)
+        for c in vapi_calls
         if c.call_id
     ]
     if not rows:

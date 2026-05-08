@@ -25,15 +25,16 @@ def validate_environment_platform_fields(
     platform_agent_id: str | None,
     endpoint_url: str | None,
 ) -> None:
-    if platform == Platform.RETELL:
+    if platform in {Platform.RETELL, Platform.VAPI}:
+        platform_value = platform.value
         if integration_id is None:
-            msg = "integration_id is required when platform is 'retell'"
+            msg = f"integration_id is required when platform is '{platform_value}'"
             raise ValueError(msg)
         if platform_agent_id is None or not platform_agent_id.strip():
-            msg = "platform_agent_id is required when platform is 'retell'"
+            msg = f"platform_agent_id is required when platform is '{platform_value}'"
             raise ValueError(msg)
         if endpoint_url is not None:
-            msg = "endpoint_url must be null when platform is 'retell'"
+            msg = f"endpoint_url must be null when platform is '{platform_value}'"
             raise ValueError(msg)
         return
 
