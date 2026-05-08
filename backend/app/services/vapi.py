@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, datetime
 from typing import Any
 
@@ -31,6 +32,7 @@ class VapiCall(BaseModel):
 
 
 _VAPI_API_BASE_URL = "https://api.vapi.ai"
+logger = logging.getLogger(__name__)
 
 
 def _headers(api_key: str) -> dict[str, str]:
@@ -98,6 +100,24 @@ def _parse_datetime(value: str | None) -> datetime | None:
     if parsed.tzinfo is None:
         return parsed.replace(tzinfo=UTC)
     return parsed
+
+
+def _vapi_duration_seconds(
+    *, started_at: datetime | None, ended_at: datetime | None
+) -> int | None:
+    if started_at is None or ended_at is None:
+        return None
+    return int((ended_at - started_at).total_seconds())
+
+
+def _is_finished_vapi_call(
+    *, status: str | None, started_at: datetime | None, ended_at: datetime | None
+) -> bool:
+    duration_seconds = _vapi_duration_seconds(started_at=started_at, ended_at=ended_at)
+    if duration_seconds is None or duration_seconds <= 0:
+        return False
+    normalized_status = (status or "").lower()
+    return normalized_status in {"ended", "completed", "finished"}
 
 
 def _map_tools_for_vapi(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -229,9 +249,23 @@ async def list_vapi_calls(
         ended_at = _parse_datetime(item.get("endedAt")) or _parse_datetime(
             item.get("ended_at")
         )
+        status = item.get("status")
+        if not _is_finished_vapi_call(
+            status=status,
+            started_at=started_at,
+            ended_at=ended_at,
+        ):
+            continue
         transcript = item.get("messages")
         if not isinstance(transcript, list):
+            logger.warning(
+                "vapi call %s has non-list messages payload: %r",
+                call_id,
+                transcript,
+            )
             transcript = None
+        else:
+            logger.warning("vapi call %s messages payload: %s", call_id, transcript)
         calls.append(
             VapiCall(
                 call_id=str(call_id),
@@ -239,7 +273,7 @@ async def list_vapi_calls(
                 created_at=_parse_datetime(item.get("createdAt")),
                 started_at=started_at,
                 ended_at=ended_at,
-                status=item.get("status"),
+                status=status,
                 transcript=transcript,
                 raw=item,
             )

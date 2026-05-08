@@ -217,7 +217,7 @@ function safeStringify(value: unknown): string {
 
 function TranscriptBubble({ turn }: { turn: TranscriptTurn }) {
   const role = (turn.role ?? '').toLowerCase();
-  const isAgent = role === 'agent' || role === 'assistant';
+  const isAgent = role === 'agent' || role === 'assistant' || role === 'bot';
   const content = turn.content ?? '';
   const start = turnStartSeconds(turn);
   const timestamp = start !== null ? formatTimestamp(start) : null;

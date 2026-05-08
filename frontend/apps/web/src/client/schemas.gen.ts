@@ -1457,6 +1457,16 @@ export const CallPublicSchema = {
       ],
       title: 'Status',
     },
+    provider: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/app__models__enums__IntegrationProvider__2',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
     transcript: {
       anyOf: [
         {
@@ -3244,7 +3254,7 @@ export const IntegrationCreateSchema = {
   title: 'IntegrationCreate',
 } as const;
 
-export const IntegrationProviderSchema = {
+export const IntegrationProvider_InputSchema = {
   type: 'string',
   enum: ['retell', 'vapi'],
   maxLength: 64,
@@ -7908,6 +7918,19 @@ export const app__models__enums__AgentModeSchema = {
   type: 'string',
   enum: ['endpoint', 'platform'],
   title: 'AgentMode',
+} as const;
+
+export const app__models__enums__IntegrationProvider__1Schema = {
+  type: 'string',
+  enum: ['retell', 'vapi'],
+  maxLength: 64,
+  title: 'IntegrationProvider',
+} as const;
+
+export const app__models__enums__IntegrationProvider__2Schema = {
+  type: 'string',
+  enum: ['retell', 'vapi'],
+  title: 'IntegrationProvider',
 } as const;
 
 export const app__services__test_case_generator__interactive__schemas__AgentModeSchema = {

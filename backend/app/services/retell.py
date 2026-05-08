@@ -35,6 +35,30 @@ class RetellCall(BaseModel):
     raw: dict[str, Any] | None = None
 
 
+def _retell_duration_seconds(
+    *, start_timestamp: int | None, end_timestamp: int | None
+) -> int | None:
+    if start_timestamp is None or end_timestamp is None:
+        return None
+    return (end_timestamp - start_timestamp) // 1000
+
+
+def _is_finished_retell_call(
+    *,
+    status: str | None,
+    start_timestamp: int | None,
+    end_timestamp: int | None,
+) -> bool:
+    duration_seconds = _retell_duration_seconds(
+        start_timestamp=start_timestamp,
+        end_timestamp=end_timestamp,
+    )
+    if duration_seconds is None or duration_seconds <= 0:
+        return False
+    normalized_status = (status or "").lower()
+    return normalized_status in {"ended", "completed", "finished"}
+
+
 async def test_retell_connection(api_key: str) -> bool:
     try:
         async with httpx.AsyncClient() as client:
@@ -169,13 +193,22 @@ async def list_retell_calls(
     for item in items:
         if not isinstance(item, dict):
             continue
+        status = item.get("call_status")
+        start_timestamp = item.get("start_timestamp")
+        end_timestamp = item.get("end_timestamp")
+        if not _is_finished_retell_call(
+            status=status,
+            start_timestamp=start_timestamp,
+            end_timestamp=end_timestamp,
+        ):
+            continue
         calls.append(
             RetellCall(
                 call_id=item.get("call_id", ""),
                 agent_id=item.get("agent_id"),
-                start_timestamp=item.get("start_timestamp"),
-                end_timestamp=item.get("end_timestamp"),
-                call_status=item.get("call_status"),
+                start_timestamp=start_timestamp,
+                end_timestamp=end_timestamp,
+                call_status=status,
                 transcript_object=item.get("transcript_object"),
                 raw=item,
             )
