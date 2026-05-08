@@ -3,7 +3,7 @@ import type { EnvironmentCreate, EnvironmentPublic, EnvironmentUpdate } from '@/
 
 export const DEFAULT_ENVIRONMENT_FORM_VALUES: AddEnvironmentFormValues = {
   name: '',
-  platform: 'retell',
+  platform: 'webhook',
   integration_id: null,
   platform_agent_id: null,
   platform_agent_name: null,

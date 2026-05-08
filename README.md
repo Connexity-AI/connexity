@@ -16,20 +16,21 @@
          <a href="./docs">
             <strong>Docs</strong>
          </a> ·
-         <a href="https://discord.gg/Gj47DqWq">
+         <a href="https://discord.gg/QvWCX96J6K">
             <strong>Discord</strong>
          </a>
       </h3>
    </div>
 
    <div>
+      <a href="https://connexity.ai/roadmap"><strong>Roadmap</strong></a> ·
       <a href="./docs"><strong>Documentation</strong></a> ·
       <a href="https://github.com/Connexity-AI/connexity/issues"><strong>Report Bug</strong></a> ·
       <a href="https://github.com/Connexity-AI/connexity/discussions"><strong>Feature Request</strong></a> ·
       <a href="https://github.com/Connexity-AI/connexity/commits/main"><strong>Changelog</strong></a>
    </div>
    <br/>
-   <span>Connexity uses <a href="https://github.com/Connexity-AI/connexity/discussions"><strong>GitHub Discussions</strong></a> and <a href="https://discord.gg/Gj47DqWq"><strong>Discord</strong></a> for support and feature requests.</span>
+   <span>Connexity uses <a href="https://github.com/Connexity-AI/connexity/discussions"><strong>GitHub Discussions</strong></a> and <a href="https://discord.gg/QvWCX96J6K"><strong>Discord</strong></a> for support and feature requests.</span>
    <br/>
    <br/>
 </div>
@@ -41,7 +42,7 @@
    <a href="./LICENSE">
       <img src="https://img.shields.io/badge/License-MIT-orange.svg" alt="MIT License">
    </a>
-   <a href="https://discord.gg/Gj47DqWq" target="_blank">
+   <a href="https://discord.gg/QvWCX96J6K" target="_blank">
       <img src="https://img.shields.io/badge/Discord-Join%20us-5865F2?logo=discord&logoColor=white" alt="Join us on Discord">
    </a>
    <a href="https://connexity.ai" target="_blank">
@@ -109,7 +110,7 @@ Connexity is designed to live alongside the voice AI platforms you already use. 
 | <img src="https://www.google.com/s2/favicons?domain=vapi.ai&sz=64" width="24" height="24" alt="" /> **Vapi** | *Planned* | Import agents from your Vapi workspace into Connexity, version and evaluate them, then push updates back to Vapi. |
 | <img src="https://cdn.simpleicons.org/elevenlabs" width="24" height="24" alt="" /> **ElevenLabs** | *Planned* | Two-way sync with ElevenLabs Conversational AI agents, including prompt, tools, and configuration. |
 
-> **Want one of these sooner?** Vote in [GitHub Discussions](https://github.com/Connexity-AI/connexity/discussions) or join us on [Discord](https://discord.gg/Gj47DqWq).
+> **Want one of these sooner?** Vote in [GitHub Discussions](https://github.com/Connexity-AI/connexity/discussions) or join us on [Discord](https://discord.gg/QvWCX96J6K).
 
 ### Bring your own agent
 

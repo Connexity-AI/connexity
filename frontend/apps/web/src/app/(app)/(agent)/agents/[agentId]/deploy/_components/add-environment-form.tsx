@@ -112,6 +112,7 @@ export const AddEnvironmentForm: FC<Props> = ({
                     <Input
                       {...field}
                       id="env-name"
+                      className="h-9 text-xs"
                       placeholder="e.g. Production, Staging, Dev"
                       disabled={isPending}
                     />
@@ -257,7 +258,7 @@ export const AddEnvironmentForm: FC<Props> = ({
                           <Input
                             id="endpoint-url"
                             placeholder="https://your-server.com/deploy/:agent_id"
-                            className="pl-8"
+                            className="pl-8 h-9 text-xs"
                             value={field.value ?? ''}
                             onChange={(event) =>
                               field.onChange(event.target.value.trim() || null)
