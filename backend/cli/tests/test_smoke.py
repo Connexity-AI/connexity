@@ -111,6 +111,76 @@ def test_eval_configs_list_uses_correct_path(api_env, runner, respx_mock_clean) 
     assert result.exit_code == 0, result.stderr
 
 
+def test_agents_evaluation_engines(api_env, runner, respx_mock_clean) -> None:
+    """`agents evaluation-engines` hits GET /agents/{id}/evaluation-engines."""
+    agent_uuid = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    respx_mock_clean.get(f"/agents/{agent_uuid}").respond(
+        200, json={"id": agent_uuid, "name": "agent-x"}
+    )
+    route = respx_mock_clean.get(f"/agents/{agent_uuid}/evaluation-engines").respond(
+        200,
+        json={
+            "data": [
+                {
+                    "kind": "connexity",
+                    "label": "Connexity",
+                    "description": "...",
+                    "is_default": True,
+                },
+                {
+                    "kind": "retell",
+                    "label": "Retell",
+                    "description": "...",
+                    "is_default": False,
+                },
+            ]
+        },
+    )
+    result = runner.invoke(
+        app,
+        ["--output", "json", "agents", "evaluation-engines", agent_uuid],
+    )
+    assert result.exit_code == 0, result.stderr
+    assert route.called
+
+
+def test_eval_configs_test_engine_posts_payload(
+    api_env, runner, respx_mock_clean, tmp_path: Path
+) -> None:
+    """`eval-configs test-engine` wraps the engine config under {agent_id, evaluation_engine}."""
+    agent_uuid = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    engine_config = {"kind": "custom_url", "url": "https://your-agent.com/v1"}
+    file = tmp_path / "engine.json"
+    file.write_text(json.dumps(engine_config))
+
+    respx_mock_clean.get(f"/agents/{agent_uuid}").respond(
+        200, json={"id": agent_uuid, "name": "agent-x"}
+    )
+    route = respx_mock_clean.post("/eval-configs/test-evaluation-engine").respond(
+        200, json={"ok": True, "message": "looks good"}
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "--output",
+            "json",
+            "eval-configs",
+            "test-engine",
+            "--agent",
+            agent_uuid,
+            "--from-file",
+            str(file),
+        ],
+    )
+    assert result.exit_code == 0, result.stderr
+    sent = json.loads(route.calls.last.request.content)
+    assert sent == {
+        "agent_id": agent_uuid,
+        "evaluation_engine": engine_config,
+    }
+
+
 def test_runs_baseline_uses_eval_config_id_param(
     api_env, runner, respx_mock_clean
 ) -> None:
