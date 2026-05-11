@@ -10,6 +10,7 @@ export const agentKeys = {
   list: (filters: AgentFilters) => ['agents', filters] as const,
   detail: (agentId: string) => ['agent', agentId] as const,
   draft: (agentId: string) => ['agent-draft', agentId] as const,
+  evaluationEngines: (agentId: string) => ['agent-evaluation-engines', agentId] as const,
   versions: (agentId: string) => ['agent-versions', agentId] as const,
   version: (agentId: string, version: number | null) =>
     ['agent-version', agentId, version] as const,

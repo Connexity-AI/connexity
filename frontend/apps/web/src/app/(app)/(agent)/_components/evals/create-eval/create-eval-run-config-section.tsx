@@ -1,9 +1,6 @@
 'use client';
 'use no memo';
 
-import { useEffect } from 'react';
-
-import { Bot, FlaskConical } from 'lucide-react';
 import { useFormContext } from 'react-hook-form';
 
 import { Button } from '@workspace/ui/components/ui/button';
@@ -17,10 +14,14 @@ import {
   FieldLabel,
   Section,
 } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-section-primitives';
+import { useEvaluationEngineField } from '@/app/(app)/(agent)/_hooks/use-evaluation-engine-field';
+import { useToolModeLiveGuard } from '@/app/(app)/(agent)/_hooks/use-tool-mode-live-guard';
+import { engineIconForKind } from '@/app/(app)/(agent)/_utils/evaluation-engine-field-helpers';
 import { missingLiveImplementations } from '@/app/(app)/(agent)/_utils/platform-live-tools-feasible';
-import { AppModelsEnumsAgentMode } from '@/client/types.gen';
+import { AppModelsEnumsAgentMode, EvaluationEngineKind } from '@/client/types.gen';
 
 import type { CreateEvalFormValues } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
+import type { EvaluationEngineKind as EvaluationEngineKindType } from '@/client/types.gen';
 
 function ConcurrencyField() {
   const form = useFormContext<CreateEvalFormValues>();
@@ -184,53 +185,192 @@ function ToolModeField({ agentMode, agentTools }: ToolModeFieldProps) {
   const missingImpl = isPlatform ? missingLiveImplementations(agentTools ?? undefined) : [];
   const liveUnavailable = isPlatform && missingImpl.length > 0;
 
-  const toolMode = form.watch('run.tool_mode');
-
-  useEffect(() => {
-    if (liveUnavailable && toolMode === 'live') {
-      form.setValue('run.tool_mode', 'mock', { shouldValidate: true, shouldDirty: true });
-    }
-  }, [liveUnavailable, toolMode, form]);
+  useToolModeLiveGuard(form, liveUnavailable);
 
   return (
     <FormField
       control={form.control}
       name="run.tool_mode"
-      render={({ field }) => (
-        <FormItem className="col-span-2">
-          <FieldLabel>Tool Calls</FieldLabel>
-
-          <div className="flex items-center gap-1 p-0.5 rounded-lg border border-border bg-accent/20 w-fit">
-            {TOOL_MODES.map((mode) => {
-              const selected = field.value === mode;
-              const liveDisabled = readOnly || (mode === 'live' && liveUnavailable);
-              return (
-                <ToolModeToggleButton
-                  key={mode}
-                  mode={mode}
-                  selected={selected}
-                  liveDisabled={liveDisabled}
-                  liveUnavailable={liveUnavailable}
-                  missingImpl={missingImpl}
-                  onSelect={field.onChange}
-                />
-              );
-            })}
-          </div>
-          <FieldHint>
-            {liveUnavailable ? (
+      render={({ field }) => {
+        const renderHint = () => {
+          if (liveUnavailable) {
+            return (
               <span className="text-amber-500/90">
                 Live tool calls unavailable: add HTTP endpoint (or Python) under each platform tool
-                ({missingImpl.join(', ')}) — or leave Mock selected.
+                ({missingImpl.join(', ')}) - or leave Mock selected.
               </span>
-            ) : field.value === 'mock' ? (
-              'Tool responses are simulated using test case mock data'
-            ) : agentMode !== AppModelsEnumsAgentMode.PLATFORM ? (
-              'Live applies to platform simulated agents only; endpoint agents ignore this setting.'
-            ) : (
-              'Tools invoke stored implementations (HTTP / Python) during the eval run'
-            )}
-          </FieldHint>
+            );
+          }
+
+          if (field.value === 'mock') {
+            return 'Tool responses are simulated using test case mock data';
+          }
+
+          if (agentMode !== AppModelsEnumsAgentMode.PLATFORM) {
+            return 'Live applies to platform simulated agents only; endpoint agents ignore this setting.';
+          }
+
+          return 'Tools invoke stored implementations (HTTP / Python) during the eval run';
+        };
+
+        return (
+          <FormItem className="col-span-2">
+            <FieldLabel>Tool Calls</FieldLabel>
+
+            <div className="flex items-center gap-1 p-0.5 rounded-lg border border-border bg-accent/20 w-fit">
+              {TOOL_MODES.map((mode) => {
+                const selected = field.value === mode;
+                const liveDisabled = readOnly || (mode === 'live' && liveUnavailable);
+                return (
+                  <ToolModeToggleButton
+                    key={mode}
+                    mode={mode}
+                    selected={selected}
+                    liveDisabled={liveDisabled}
+                    liveUnavailable={liveUnavailable}
+                    missingImpl={missingImpl}
+                    onSelect={field.onChange}
+                  />
+                );
+              })}
+            </div>
+            <FieldHint>{renderHint()}</FieldHint>
+            <FormMessage />
+          </FormItem>
+        );
+      }}
+    />
+  );
+}
+
+function EvaluationEngineField({
+  agentId,
+  defaultToBackendOption,
+}: {
+  agentId: string;
+  defaultToBackendOption: boolean;
+}) {
+  const {
+    form,
+    readOnly,
+    error,
+    isLoading,
+    engineOptions,
+    selectedEngine,
+    customUrl,
+    testResult,
+    testEvaluationEngine,
+    selectEngine,
+    setCustomUrl,
+    testCustomUrl,
+    testDisabled,
+  } = useEvaluationEngineField({ agentId, defaultToBackendOption });
+
+  return (
+    <FormField
+      control={form.control}
+      name="run.evaluation_engine"
+      render={({ field }) => (
+        <FormItem className="col-span-2">
+          <FieldLabel>Evaluation Engine</FieldLabel>
+
+          {error ? (
+            <FieldHint>Failed to load Evaluation Engine options.</FieldHint>
+          ) : (
+            <div className="grid grid-cols-1 gap-2">
+              {engineOptions.map((option) => {
+                const Icon = engineIconForKind(option.kind);
+                const active = field.value.kind === option.kind;
+                return (
+                  <button
+                    key={option.kind}
+                    type="button"
+                    disabled={readOnly || isLoading}
+                    onClick={() => selectEngine(option.kind)}
+                    className={cn(
+                      'flex items-start gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-all',
+                      active ? 'border-foreground/40 bg-accent' : 'border-border bg-transparent',
+                      !readOnly && !active && 'hover:bg-accent/40',
+                      readOnly && 'cursor-default'
+                    )}
+                  >
+                    <Icon
+                      className={cn(
+                        'mt-0.5 h-4 w-4 shrink-0',
+                        active ? 'text-foreground' : 'text-muted-foreground'
+                      )}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-xs text-foreground">{option.label}</p>
+                        {option.is_default ? (
+                          <span className="rounded bg-accent px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-muted-foreground">
+                            Default
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-0.5 text-[10px] leading-tight text-muted-foreground">
+                        {option.description}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {selectedEngine.kind === EvaluationEngineKind.CUSTOM_URL ? (
+            <div className="mt-4">
+              <FieldLabel>Custom URL</FieldLabel>
+              <div className="flex items-start gap-2">
+                <FormField
+                  control={form.control}
+                  name="run.evaluation_engine.url"
+                  render={({ field: urlField }) => (
+                    <FormItem className="flex-1">
+                      <FormControl>
+                        <Input
+                          value={customUrl}
+                          onBlur={urlField.onBlur}
+                          onChange={(e) => setCustomUrl(e.target.value)}
+                          disabled={readOnly}
+                          placeholder="https://your-agent.com/v1/chat/completions"
+                          className="h-8 text-sm"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={testDisabled}
+                  onClick={() => void testCustomUrl()}
+                  className="h-8 shrink-0 text-xs"
+                >
+                  {testEvaluationEngine.isPending ? 'Testing...' : 'Test URL'}
+                </Button>
+              </div>
+              <FieldHint>
+                Connexity sends OpenAI-compatible chat completion requests to this endpoint
+                during evals.
+              </FieldHint>
+              {testResult ? (
+                <p
+                  className={cn(
+                    'mt-1 text-[11px]',
+                    testResult.ok ? 'text-emerald-500' : 'text-destructive'
+                  )}
+                  role="status"
+                >
+                  {testResult.message}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           <FormMessage />
         </FormItem>
       )}
@@ -238,97 +378,28 @@ function ToolModeField({ agentMode, agentTools }: ToolModeFieldProps) {
   );
 }
 
-function EvaluationEngineField({
-  agentMode,
-  endpointUrl,
-}: {
-  agentMode: string | null;
-  endpointUrl: string | null;
-}) {
-  const evalEngine = agentMode === AppModelsEnumsAgentMode.ENDPOINT ? 'agent' : 'connexity';
-
-  const cards = [
-    {
-      value: 'connexity',
-      label: 'Connexity',
-      description: 'Run evaluations using Connexity',
-      icon: FlaskConical,
-    },
-    {
-      value: 'agent',
-      label: 'Your Agent',
-      description: 'Run evaluations against your own agent',
-      icon: Bot,
-    },
-  ] as const;
-
-  return (
-    <div className="col-span-2">
-      <FieldLabel>Evaluation Engine</FieldLabel>
-      <div className="grid grid-cols-1 gap-2">
-        {cards.map((card) => {
-          const Icon = card.icon;
-          const active = evalEngine === card.value;
-          return (
-            <button
-              key={card.value}
-              type="button"
-              disabled
-              className={cn(
-                'flex cursor-default items-start gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-all',
-                active ? 'border-foreground/40 bg-accent' : 'border-border bg-transparent'
-              )}
-            >
-              <Icon
-                className={cn(
-                  'mt-0.5 h-4 w-4 shrink-0',
-                  active ? 'text-foreground' : 'text-muted-foreground'
-                )}
-              />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-foreground">{card.label}</p>
-                <p className="mt-0.5 text-[10px] leading-tight text-muted-foreground">
-                  {card.description}
-                </p>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-      {evalEngine === 'agent' ? (
-        <div className="mt-4">
-          <FieldLabel>Chat completions URL</FieldLabel>
-          <Input
-            value={endpointUrl ?? ''}
-            readOnly
-            disabled
-            placeholder="https://your-agent.com/v1/chat/completions"
-            className="h-8 text-sm"
-          />
-          <FieldHint>
-            Connexity sends OpenAI-compatible chat completion requests to this endpoint during
-            evals.
-          </FieldHint>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 interface RunConfigSectionProps {
+  agentId: string;
   agentMode?: string | null;
   agentTools?: unknown[] | null;
+  defaultToBackendOption?: boolean;
   endpointUrl?: string | null;
 }
 
 function RunConfigToolModeSection({
   agentMode,
   agentTools,
+  evaluationEngineKind,
 }: {
   agentMode: string | null;
   agentTools: unknown[] | null;
+  evaluationEngineKind: EvaluationEngineKindType;
 }) {
   if (agentMode !== AppModelsEnumsAgentMode.PLATFORM) {
+    return null;
+  }
+
+  if (evaluationEngineKind !== EvaluationEngineKind.CONNEXITY) {
     return null;
   }
 
@@ -336,10 +407,14 @@ function RunConfigToolModeSection({
 }
 
 export function RunConfigSection({
+  agentId,
   agentMode = null,
   agentTools = null,
-  endpointUrl = null,
+  defaultToBackendOption = true,
 }: RunConfigSectionProps) {
+  const form = useFormContext<CreateEvalFormValues>();
+  const evaluationEngineKind = form.watch('run.evaluation_engine.kind');
+
   return (
     <Section>
       <Section.Header title="Run Configuration" />
@@ -349,9 +424,16 @@ export function RunConfigSection({
 
           <MaxTurnsField />
 
-          <EvaluationEngineField agentMode={agentMode} endpointUrl={endpointUrl ?? ''} />
+          <EvaluationEngineField
+            agentId={agentId}
+            defaultToBackendOption={defaultToBackendOption}
+          />
 
-          <RunConfigToolModeSection agentMode={agentMode} agentTools={agentTools} />
+          <RunConfigToolModeSection
+            agentMode={agentMode}
+            agentTools={agentTools}
+            evaluationEngineKind={evaluationEngineKind}
+          />
         </div>
       </Section.Body>
     </Section>

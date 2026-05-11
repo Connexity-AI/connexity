@@ -9,6 +9,8 @@ import type {
   EvalConfigPublic,
   EvalConfigsPublic,
   EvalConfigUpdate,
+  EvaluationEngineTestRequest,
+  EvaluationEngineTestResult,
   RunCreate,
   RunPublic,
 } from '@/client/types.gen';
@@ -53,6 +55,14 @@ export const createEvalConfig = async (
   body: EvalConfigCreate
 ): Promise<ApiResult<EvalConfigPublic>> => {
   const apiResponse = await EvalConfigsService.evalConfigsCreateEvalConfig({ body });
+  const { response: _, ...result } = apiResponse;
+  return result;
+};
+
+export const testEvaluationEngine = async (
+  body: EvaluationEngineTestRequest
+): Promise<ApiResult<EvaluationEngineTestResult>> => {
+  const apiResponse = await EvalConfigsService.evalConfigsTestEvaluationEngine({ body });
   const { response: _, ...result } = apiResponse;
   return result;
 };

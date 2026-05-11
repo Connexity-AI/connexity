@@ -132,8 +132,10 @@ export function CreateEvalView({
               <PassThresholdsSection />
               <PersonaSection />
               <RunConfigSection
+                agentId={agentId}
                 agentMode={agent?.mode ?? null}
                 agentTools={agent?.tools ?? null}
+                defaultToBackendOption={!initialConfig}
                 endpointUrl={agent?.endpoint_url ?? null}
               />
             </div>
