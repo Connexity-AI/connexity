@@ -14,7 +14,12 @@ from app.models.eval_config import (
     EvalConfigsPublic,
     EvalConfigUpdate,
 )
-from app.models.schemas import RunConfig
+from app.models.schemas import (
+    EvaluationEngineTestRequest,
+    EvaluationEngineTestResult,
+    RunConfig,
+)
+from app.services.eval_engines import get_engine
 
 
 def _to_public(
@@ -67,6 +72,41 @@ router = APIRouter(
     tags=["eval-configs"],
     dependencies=[Depends(get_current_user)],
 )
+
+
+@router.post(
+    "/test-evaluation-engine",
+    response_model=EvaluationEngineTestResult,
+)
+async def test_evaluation_engine(
+    session: SessionDep, body: EvaluationEngineTestRequest
+) -> EvaluationEngineTestResult:
+    """Smoke-test an evaluation engine config against an agent (Test URL button)."""
+    agent = crud.get_agent(session=session, agent_id=body.agent_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    try:
+        engine = get_engine(body.evaluation_engine.kind)
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unknown evaluation engine: {body.evaluation_engine.kind}",
+        ) from exc
+    if not engine.supported_for_platform(agent.platform):
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Evaluation engine '{body.evaluation_engine.kind.value}' is "
+                f"not available for this agent."
+            ),
+        )
+    try:
+        engine.validate_config(body.evaluation_engine, agent, session)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    result = await engine.test_connection(body.evaluation_engine, agent, session)
+    return EvaluationEngineTestResult(ok=result.ok, message=result.message)
 
 
 @router.post("/", response_model=EvalConfigPublic)

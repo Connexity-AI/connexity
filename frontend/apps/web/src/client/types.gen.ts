@@ -25,6 +25,10 @@ export type AgentCreate = {
    */
   mode?: AppModelsEnumsAgentMode;
   /**
+   * Voice/agent platform this agent targets. Drives which evaluation engines are available. Null for legacy rows; use 'webhook' for custom HTTP agents.
+   */
+  platform?: Platform | null;
+  /**
    * Endpoint Url
    *
    * URL of the agent's API endpoint (required when mode=endpoint)
@@ -173,6 +177,10 @@ export type AgentPublic = {
    * endpoint: HTTP agent; platform: LLM simulated on the platform
    */
   mode?: AppModelsEnumsAgentMode;
+  /**
+   * Voice/agent platform this agent targets. Drives which evaluation engines are available. Null for legacy rows; use 'webhook' for custom HTTP agents.
+   */
+  platform?: Platform | null;
   /**
    * Endpoint Url
    *
@@ -343,6 +351,10 @@ export type AgentUpdate = {
    * endpoint: HTTP agent; platform: LLM simulated on the platform
    */
   mode?: AppModelsEnumsAgentMode | null;
+  /**
+   * Voice/agent platform this agent targets
+   */
+  platform?: Platform | null;
   /**
    * Endpoint Url
    *
@@ -920,6 +932,18 @@ export type ConfigPublic = {
 };
 
 /**
+ * ConnexityEngineConfig
+ *
+ * Native Connexity evaluation engine: in-process simulator + judge.
+ */
+export type ConnexityEngineConfig = {
+  /**
+   * Kind
+   */
+  kind?: 'connexity';
+};
+
+/**
  * ConversationTurn
  */
 export type ConversationTurnInput = {
@@ -1183,6 +1207,28 @@ export type CustomMetricsPublic = {
    * Total number of custom metrics
    */
   count: number;
+};
+
+/**
+ * CustomUrlEngineConfig
+ *
+ * Run evals against a user-provided HTTP endpoint.
+ *
+ * The endpoint must follow Connexity's OpenAI-compatible chat completions
+ * contract (see ``app.models.agent_contract``): POST ``AgentRequest`` →
+ * ``AgentResponse``.
+ */
+export type CustomUrlEngineConfig = {
+  /**
+   * Kind
+   */
+  kind?: 'custom_url';
+  /**
+   * Url
+   *
+   * Chat-completions URL that receives AgentRequest payloads
+   */
+  url: string;
 };
 
 /**
@@ -1681,6 +1727,109 @@ export type EvalConfigsPublic = {
    * Total number of configs matching the query
    */
   count: number;
+};
+
+/**
+ * EvaluationEngineKind
+ */
+export const EvaluationEngineKind = {
+  CONNEXITY: 'connexity',
+  RETELL: 'retell',
+  CUSTOM_URL: 'custom_url',
+} as const;
+
+/**
+ * EvaluationEngineKind
+ */
+export type EvaluationEngineKind = (typeof EvaluationEngineKind)[keyof typeof EvaluationEngineKind];
+
+/**
+ * EvaluationEngineOption
+ *
+ * One engine choice exposed to the UI dropdown.
+ */
+export type EvaluationEngineOption = {
+  /**
+   * Engine identifier
+   */
+  kind: EvaluationEngineKind;
+  /**
+   * Label
+   *
+   * Human-readable name
+   */
+  label: string;
+  /**
+   * Description
+   *
+   * Short marketing tagline
+   */
+  description: string;
+  /**
+   * Is Default
+   *
+   * True when this is the platform-recommended default for the agent
+   */
+  is_default?: boolean;
+};
+
+/**
+ * EvaluationEngineOptionsPublic
+ */
+export type EvaluationEngineOptionsPublic = {
+  /**
+   * Data
+   *
+   * Engines available for the agent, in stable display order
+   */
+  data: Array<EvaluationEngineOption>;
+};
+
+/**
+ * EvaluationEngineTestRequest
+ */
+export type EvaluationEngineTestRequest = {
+  /**
+   * Agent Id
+   *
+   * Agent the engine will run against
+   */
+  agent_id: string;
+  /**
+   * Evaluation Engine
+   *
+   * Engine config under test
+   */
+  evaluation_engine:
+    | ({
+        kind: 'connexity';
+      } & ConnexityEngineConfig)
+    | ({
+        kind: 'retell';
+      } & RetellEngineConfig)
+    | ({
+        kind: 'custom_url';
+      } & CustomUrlEngineConfig);
+};
+
+/**
+ * EvaluationEngineTestResult
+ *
+ * Outcome of POST /eval-configs/test-evaluation-engine.
+ */
+export type EvaluationEngineTestResult = {
+  /**
+   * Ok
+   *
+   * True when the engine config passed the smoke test
+   */
+  ok: boolean;
+  /**
+   * Message
+   *
+   * Human-readable detail
+   */
+  message: string;
 };
 
 /**
@@ -2989,6 +3138,22 @@ export type RetellAgentVersion = {
 };
 
 /**
+ * RetellEngineConfig
+ *
+ * Retell evaluation engine: drives a Retell web call, judges the transcript.
+ *
+ * Credentials and Retell agent id come from the agent's Retell integration
+ * setup (see Environment + Integration). No engine-level configuration is
+ * required.
+ */
+export type RetellEngineConfig = {
+  /**
+   * Kind
+   */
+  kind?: 'retell';
+};
+
+/**
  * RunComparison
  */
 export type RunComparison = {
@@ -3090,6 +3255,21 @@ export type RunConfigInput = {
    * Agent simulator LLM overrides. Only applies when the agent mode is platform.
    */
   agent_simulator?: AgentSimulatorConfig | null;
+  /**
+   * Evaluation Engine
+   *
+   * Engine that drives the eval: connexity (in-process simulator + judge), retell (Retell web call), or custom_url (user-provided endpoint).
+   */
+  evaluation_engine?:
+    | ({
+        kind: 'connexity';
+      } & ConnexityEngineConfig)
+    | ({
+        kind: 'retell';
+      } & RetellEngineConfig)
+    | ({
+        kind: 'custom_url';
+      } & CustomUrlEngineConfig);
 };
 
 /**
@@ -3144,6 +3324,21 @@ export type RunConfigOutput = {
    * Agent simulator LLM overrides. Only applies when the agent mode is platform.
    */
   agent_simulator?: AgentSimulatorConfig | null;
+  /**
+   * Evaluation Engine
+   *
+   * Engine that drives the eval: connexity (in-process simulator + judge), retell (Retell web call), or custom_url (user-provided endpoint).
+   */
+  evaluation_engine?:
+    | ({
+        kind: 'connexity';
+      } & ConnexityEngineConfig)
+    | ({
+        kind: 'retell';
+      } & RetellEngineConfig)
+    | ({
+        kind: 'custom_url';
+      } & CustomUrlEngineConfig);
 };
 
 /**
@@ -5869,6 +6064,62 @@ export type AgentsPublishDraftResponses = {
 export type AgentsPublishDraftResponse =
   AgentsPublishDraftResponses[keyof AgentsPublishDraftResponses];
 
+export type AgentsListAgentEvaluationEnginesData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/evaluation-engines';
+};
+
+export type AgentsListAgentEvaluationEnginesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsListAgentEvaluationEnginesError =
+  AgentsListAgentEvaluationEnginesErrors[keyof AgentsListAgentEvaluationEnginesErrors];
+
+export type AgentsListAgentEvaluationEnginesResponses = {
+  /**
+   * Successful Response
+   */
+  200: EvaluationEngineOptionsPublic;
+};
+
+export type AgentsListAgentEvaluationEnginesResponse =
+  AgentsListAgentEvaluationEnginesResponses[keyof AgentsListAgentEvaluationEnginesResponses];
+
 export type AgentsGetAgentGuidelinesData = {
   body?: never;
   path: {
@@ -7023,6 +7274,57 @@ export type CustomMetricsUpdateCustomMetricResponses = {
 
 export type CustomMetricsUpdateCustomMetricResponse =
   CustomMetricsUpdateCustomMetricResponses[keyof CustomMetricsUpdateCustomMetricResponses];
+
+export type EvalConfigsTestEvaluationEngineData = {
+  body: EvaluationEngineTestRequest;
+  path?: never;
+  query?: never;
+  url: '/api/v1/eval-configs/test-evaluation-engine';
+};
+
+export type EvalConfigsTestEvaluationEngineErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type EvalConfigsTestEvaluationEngineError =
+  EvalConfigsTestEvaluationEngineErrors[keyof EvalConfigsTestEvaluationEngineErrors];
+
+export type EvalConfigsTestEvaluationEngineResponses = {
+  /**
+   * Successful Response
+   */
+  200: EvaluationEngineTestResult;
+};
+
+export type EvalConfigsTestEvaluationEngineResponse =
+  EvalConfigsTestEvaluationEngineResponses[keyof EvalConfigsTestEvaluationEngineResponses];
 
 export type EvalConfigsListEvalConfigsData = {
   body?: never;

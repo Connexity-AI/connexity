@@ -25,6 +25,18 @@ export const AgentCreateSchema = {
       description: 'endpoint: HTTP agent; platform: LLM simulated on the platform',
       default: 'endpoint',
     },
+    platform: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Platform',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description:
+        "Voice/agent platform this agent targets. Drives which evaluation engines are available. Null for legacy rows; use 'webhook' for custom HTTP agents.",
+    },
     endpoint_url: {
       anyOf: [
         {
@@ -295,6 +307,18 @@ export const AgentPublicSchema = {
       $ref: '#/components/schemas/app__models__enums__AgentMode',
       description: 'endpoint: HTTP agent; platform: LLM simulated on the platform',
       default: 'endpoint',
+    },
+    platform: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Platform',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description:
+        "Voice/agent platform this agent targets. Drives which evaluation engines are available. Null for legacy rows; use 'webhook' for custom HTTP agents.",
     },
     endpoint_url: {
       anyOf: [
@@ -590,6 +614,17 @@ export const AgentUpdateSchema = {
         },
       ],
       description: 'endpoint: HTTP agent; platform: LLM simulated on the platform',
+    },
+    platform: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Platform',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Voice/agent platform this agent targets',
     },
     endpoint_url: {
       anyOf: [
@@ -1600,6 +1635,21 @@ export const ConfigPublicSchema = {
   title: 'ConfigPublic',
 } as const;
 
+export const ConnexityEngineConfigSchema = {
+  properties: {
+    kind: {
+      type: 'string',
+      enum: ['connexity'],
+      const: 'connexity',
+      title: 'Kind',
+      default: 'connexity',
+    },
+  },
+  type: 'object',
+  title: 'ConnexityEngineConfig',
+  description: 'Native Connexity evaluation engine: in-process simulator + judge.',
+} as const;
+
 export const ConversationTurn_InputSchema = {
   properties: {
     index: {
@@ -2051,6 +2101,30 @@ export const CustomMetricsPublicSchema = {
   type: 'object',
   required: ['data', 'count'],
   title: 'CustomMetricsPublic',
+} as const;
+
+export const CustomUrlEngineConfigSchema = {
+  properties: {
+    kind: {
+      type: 'string',
+      enum: ['custom_url'],
+      const: 'custom_url',
+      title: 'Kind',
+      default: 'custom_url',
+    },
+    url: {
+      type: 'string',
+      maxLength: 2048,
+      minLength: 1,
+      title: 'Url',
+      description: 'Chat-completions URL that receives AgentRequest payloads',
+    },
+  },
+  type: 'object',
+  required: ['url'],
+  title: 'CustomUrlEngineConfig',
+  description:
+    "Run evals against a user-provided HTTP endpoint.\n\nThe endpoint must follow Connexity's OpenAI-compatible chat completions\ncontract (see ``app.models.agent_contract``): POST ``AgentRequest`` →\n``AgentResponse``.",
 } as const;
 
 export const DeploymentCreateSchema = {
@@ -2878,6 +2952,113 @@ export const EvalConfigsPublicSchema = {
   type: 'object',
   required: ['data', 'count'],
   title: 'EvalConfigsPublic',
+} as const;
+
+export const EvaluationEngineKindSchema = {
+  type: 'string',
+  enum: ['connexity', 'retell', 'custom_url'],
+  title: 'EvaluationEngineKind',
+} as const;
+
+export const EvaluationEngineOptionSchema = {
+  properties: {
+    kind: {
+      $ref: '#/components/schemas/EvaluationEngineKind',
+      description: 'Engine identifier',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+      description: 'Human-readable name',
+    },
+    description: {
+      type: 'string',
+      title: 'Description',
+      description: 'Short marketing tagline',
+    },
+    is_default: {
+      type: 'boolean',
+      title: 'Is Default',
+      description: 'True when this is the platform-recommended default for the agent',
+      default: false,
+    },
+  },
+  type: 'object',
+  required: ['kind', 'label', 'description'],
+  title: 'EvaluationEngineOption',
+  description: 'One engine choice exposed to the UI dropdown.',
+} as const;
+
+export const EvaluationEngineOptionsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/EvaluationEngineOption',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Engines available for the agent, in stable display order',
+    },
+  },
+  type: 'object',
+  required: ['data'],
+  title: 'EvaluationEngineOptionsPublic',
+} as const;
+
+export const EvaluationEngineTestRequestSchema = {
+  properties: {
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+      description: 'Agent the engine will run against',
+    },
+    evaluation_engine: {
+      oneOf: [
+        {
+          $ref: '#/components/schemas/ConnexityEngineConfig',
+        },
+        {
+          $ref: '#/components/schemas/RetellEngineConfig',
+        },
+        {
+          $ref: '#/components/schemas/CustomUrlEngineConfig',
+        },
+      ],
+      title: 'Evaluation Engine',
+      description: 'Engine config under test',
+      discriminator: {
+        propertyName: 'kind',
+        mapping: {
+          connexity: '#/components/schemas/ConnexityEngineConfig',
+          custom_url: '#/components/schemas/CustomUrlEngineConfig',
+          retell: '#/components/schemas/RetellEngineConfig',
+        },
+      },
+    },
+  },
+  type: 'object',
+  required: ['agent_id', 'evaluation_engine'],
+  title: 'EvaluationEngineTestRequest',
+} as const;
+
+export const EvaluationEngineTestResultSchema = {
+  properties: {
+    ok: {
+      type: 'boolean',
+      title: 'Ok',
+      description: 'True when the engine config passed the smoke test',
+    },
+    message: {
+      type: 'string',
+      title: 'Message',
+      description: 'Human-readable detail',
+    },
+  },
+  type: 'object',
+  required: ['ok', 'message'],
+  title: 'EvaluationEngineTestResult',
+  description: 'Outcome of POST /eval-configs/test-evaluation-engine.',
 } as const;
 
 export const ExpectedOutcomeResultSchema = {
@@ -4713,6 +4894,22 @@ export const RetellAgentVersionSchema = {
   title: 'RetellAgentVersion',
 } as const;
 
+export const RetellEngineConfigSchema = {
+  properties: {
+    kind: {
+      type: 'string',
+      enum: ['retell'],
+      const: 'retell',
+      title: 'Kind',
+      default: 'retell',
+    },
+  },
+  type: 'object',
+  title: 'RetellEngineConfig',
+  description:
+    "Retell evaluation engine: drives a Retell web call, judges the transcript.\n\nCredentials and Retell agent id come from the agent's Retell integration\nsetup (see Environment + Integration). No engine-level configuration is\nrequired.",
+} as const;
+
 export const RunComparisonSchema = {
   properties: {
     baseline_run_id: {
@@ -4920,6 +5117,30 @@ export const RunConfig_InputSchema = {
       ],
       description: 'Agent simulator LLM overrides. Only applies when the agent mode is platform.',
     },
+    evaluation_engine: {
+      oneOf: [
+        {
+          $ref: '#/components/schemas/ConnexityEngineConfig',
+        },
+        {
+          $ref: '#/components/schemas/RetellEngineConfig',
+        },
+        {
+          $ref: '#/components/schemas/CustomUrlEngineConfig',
+        },
+      ],
+      title: 'Evaluation Engine',
+      description:
+        'Engine that drives the eval: connexity (in-process simulator + judge), retell (Retell web call), or custom_url (user-provided endpoint).',
+      discriminator: {
+        propertyName: 'kind',
+        mapping: {
+          connexity: '#/components/schemas/ConnexityEngineConfig',
+          custom_url: '#/components/schemas/CustomUrlEngineConfig',
+          retell: '#/components/schemas/RetellEngineConfig',
+        },
+      },
+    },
   },
   type: 'object',
   title: 'RunConfig',
@@ -5010,6 +5231,30 @@ export const RunConfig_OutputSchema = {
         },
       ],
       description: 'Agent simulator LLM overrides. Only applies when the agent mode is platform.',
+    },
+    evaluation_engine: {
+      oneOf: [
+        {
+          $ref: '#/components/schemas/ConnexityEngineConfig',
+        },
+        {
+          $ref: '#/components/schemas/RetellEngineConfig',
+        },
+        {
+          $ref: '#/components/schemas/CustomUrlEngineConfig',
+        },
+      ],
+      title: 'Evaluation Engine',
+      description:
+        'Engine that drives the eval: connexity (in-process simulator + judge), retell (Retell web call), or custom_url (user-provided endpoint).',
+      discriminator: {
+        propertyName: 'kind',
+        mapping: {
+          connexity: '#/components/schemas/ConnexityEngineConfig',
+          custom_url: '#/components/schemas/CustomUrlEngineConfig',
+          retell: '#/components/schemas/RetellEngineConfig',
+        },
+      },
     },
   },
   type: 'object',

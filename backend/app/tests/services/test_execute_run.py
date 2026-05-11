@@ -7,6 +7,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import app as app_pkg
+from app.models.agent import Agent
 from app.models.enums import AgentMode, RunStatus, TestCaseStatus, TurnRole
 from app.models.run import Run
 from app.models.schemas import (
@@ -24,6 +25,16 @@ from app.services.orchestrator import (
     execute_run,
 )
 from app.services.run_manager import RunManager
+
+
+def _make_agent(*, name: str = "test-agent") -> Agent:
+    return Agent(
+        id=uuid.uuid4(),
+        name=name,
+        mode=AgentMode.ENDPOINT,
+        endpoint_url="http://localhost:8080/agent",
+        platform=None,
+    )
 
 
 def _make_test_case(*, name: str = "test-case") -> TestCase:
@@ -167,6 +178,7 @@ class TestExecuteSingleTestCase:
             result = await _execute_single_test_case(
                 run_id=run_id,
                 test_case=test_case,
+                agent=_make_agent(),
                 agent_endpoint_url="http://localhost:8080/agent",
                 config=RunConfig(),
                 agent_mode=AgentMode.ENDPOINT,
@@ -211,6 +223,7 @@ class TestExecuteSingleTestCase:
             result = await _execute_single_test_case(
                 run_id=run_id,
                 test_case=test_case,
+                agent=_make_agent(),
                 agent_endpoint_url="http://localhost:8080/agent",
                 config=RunConfig(),
                 agent_mode=AgentMode.ENDPOINT,
@@ -252,6 +265,7 @@ class TestExecuteSingleTestCase:
             result = await _execute_single_test_case(
                 run_id=run_id,
                 test_case=test_case,
+                agent=_make_agent(),
                 agent_endpoint_url="http://localhost:8080/agent",
                 config=RunConfig(),
                 agent_mode=AgentMode.ENDPOINT,

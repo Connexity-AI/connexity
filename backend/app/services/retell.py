@@ -424,3 +424,102 @@ async def deploy_retell_agent(
         retell_version_name = None
 
     return RetellDeployResult(success=True, retell_version_name=retell_version_name)
+
+
+# ── Web call initiation (eval engine) ─────────────────────────────
+
+
+class RetellCreateWebCallResult(BaseModel):
+    success: bool
+    call_id: str | None = None
+    error_message: str | None = None
+
+
+async def create_retell_web_call(
+    *,
+    api_key: str,
+    retell_agent_id: str,
+    dynamic_variables: dict[str, Any] | None = None,
+) -> RetellCreateWebCallResult:
+    """Create a Retell web call for the given agent. Returns the new ``call_id``."""
+    body: dict[str, Any] = {"agent_id": retell_agent_id}
+    if dynamic_variables:
+        body["retell_llm_dynamic_variables"] = dynamic_variables
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.retellai.com/v2/create-web-call",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=body,
+                timeout=15.0,
+            )
+    except httpx.HTTPError as exc:
+        return RetellCreateWebCallResult(
+            success=False, error_message=f"Network error: {exc}"
+        )
+
+    if response.status_code >= 400:
+        try:
+            detail = response.json()
+        except ValueError:
+            detail = response.text
+        return RetellCreateWebCallResult(
+            success=False,
+            error_message=f"Retell create-web-call returned {response.status_code}: {detail}",
+        )
+
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        return RetellCreateWebCallResult(
+            success=False,
+            error_message=f"Malformed Retell response: {exc}",
+        )
+
+    call_id = payload.get("call_id") if isinstance(payload, dict) else None
+    if not call_id:
+        return RetellCreateWebCallResult(
+            success=False,
+            error_message="Retell response did not contain a call_id",
+        )
+    return RetellCreateWebCallResult(success=True, call_id=str(call_id))
+
+
+async def get_retell_call(api_key: str, call_id: str) -> RetellCall | None:
+    """Fetch a single Retell call by id (used for polling). Returns ``None`` on 404."""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"https://api.retellai.com/v2/get-call/{call_id}",
+                headers={"Authorization": f"Bearer {api_key}"},
+                timeout=10.0,
+            )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502, detail=f"Failed to reach Retell API: {exc}"
+        ) from exc
+
+    if response.status_code == 404:
+        return None
+    if response.status_code >= 400:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Retell get-call returned {response.status_code}",
+        )
+
+    item = response.json()
+    if not isinstance(item, dict):
+        return None
+    return RetellCall(
+        call_id=item.get("call_id", call_id),
+        agent_id=item.get("agent_id"),
+        start_timestamp=item.get("start_timestamp"),
+        end_timestamp=item.get("end_timestamp"),
+        call_status=item.get("call_status"),
+        transcript_object=item.get("transcript_object"),
+        raw=item,
+    )

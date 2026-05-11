@@ -9,11 +9,11 @@ live here so API and services share one definition.
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, Self
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.models.enums import SimulatorMode, TurnRole
+from app.models.enums import EvaluationEngineKind, SimulatorMode, TurnRole
 
 if TYPE_CHECKING:
     from app.models.test_case import TestCase
@@ -213,6 +213,83 @@ class AgentSimulatorConfig(BaseModel):
     )
 
 
+# ── Evaluation engine configs (discriminated union) ───────────────
+
+
+class ConnexityEngineConfig(BaseModel):
+    """Native Connexity evaluation engine: in-process simulator + judge."""
+
+    kind: Literal[EvaluationEngineKind.CONNEXITY] = EvaluationEngineKind.CONNEXITY
+
+
+class RetellEngineConfig(BaseModel):
+    """Retell evaluation engine: drives a Retell web call, judges the transcript.
+
+    Credentials and Retell agent id come from the agent's Retell integration
+    setup (see Environment + Integration). No engine-level configuration is
+    required.
+    """
+
+    kind: Literal[EvaluationEngineKind.RETELL] = EvaluationEngineKind.RETELL
+
+
+class CustomUrlEngineConfig(BaseModel):
+    """Run evals against a user-provided HTTP endpoint.
+
+    The endpoint must follow Connexity's OpenAI-compatible chat completions
+    contract (see ``app.models.agent_contract``): POST ``AgentRequest`` →
+    ``AgentResponse``.
+    """
+
+    kind: Literal[EvaluationEngineKind.CUSTOM_URL] = EvaluationEngineKind.CUSTOM_URL
+    url: str = Field(
+        min_length=1,
+        max_length=2048,
+        description="Chat-completions URL that receives AgentRequest payloads",
+    )
+
+
+EvaluationEngineConfig = Annotated[
+    ConnexityEngineConfig | RetellEngineConfig | CustomUrlEngineConfig,
+    Field(discriminator="kind"),
+]
+
+
+# ── Public engine descriptors (API responses) ─────────────────────
+
+
+class EvaluationEngineOption(BaseModel):
+    """One engine choice exposed to the UI dropdown."""
+
+    kind: EvaluationEngineKind = Field(description="Engine identifier")
+    label: str = Field(description="Human-readable name")
+    description: str = Field(description="Short marketing tagline")
+    is_default: bool = Field(
+        default=False,
+        description="True when this is the platform-recommended default for the agent",
+    )
+
+
+class EvaluationEngineOptionsPublic(BaseModel):
+    data: list[EvaluationEngineOption] = Field(
+        description="Engines available for the agent, in stable display order"
+    )
+
+
+class EvaluationEngineTestResult(BaseModel):
+    """Outcome of POST /eval-configs/test-evaluation-engine."""
+
+    ok: bool = Field(description="True when the engine config passed the smoke test")
+    message: str = Field(description="Human-readable detail")
+
+
+class EvaluationEngineTestRequest(BaseModel):
+    agent_id: uuid.UUID = Field(description="Agent the engine will run against")
+    evaluation_engine: EvaluationEngineConfig = Field(
+        description="Engine config under test"
+    )
+
+
 class RunConfig(BaseModel):
     concurrency: int = Field(default=5, description="Max parallel test case executions")
     timeout_per_test_case_ms: int = Field(
@@ -262,6 +339,13 @@ class RunConfig(BaseModel):
         default=None,
         description=(
             "Agent simulator LLM overrides. Only applies when the agent mode is platform."
+        ),
+    )
+    evaluation_engine: EvaluationEngineConfig = Field(
+        default_factory=ConnexityEngineConfig,
+        description=(
+            "Engine that drives the eval: connexity (in-process simulator + judge), "
+            "retell (Retell web call), or custom_url (user-provided endpoint)."
         ),
     )
 

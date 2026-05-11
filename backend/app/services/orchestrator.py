@@ -14,6 +14,7 @@ import httpx
 from pydantic import ValidationError
 
 from app.core.config import settings
+from app.models.agent import Agent
 from app.models.agent_contract import (
     AgentRequest,
     AgentRequestMetadata,
@@ -847,6 +848,7 @@ def _parse_run_agent_mode(raw: str | None) -> AgentMode:
 async def _execute_single_test_case(
     run_id: uuid.UUID,
     test_case: TestCase,
+    agent: Agent,
     agent_endpoint_url: str | None,
     config: RunConfig,
     agent_mode: AgentMode,
@@ -865,6 +867,7 @@ async def _execute_single_test_case(
     from app.core.db import engine
     from app.models import TestCaseResultCreate, TestCaseResultUpdate
     from app.models.schemas import TestCaseProgressData
+    from app.services.eval_engines import EngineRunArgs, get_engine
     from app.services.run_manager import run_manager
 
     with Session(engine) as session:
@@ -890,17 +893,25 @@ async def _execute_single_test_case(
 
         started_at = datetime.now(UTC)
         try:
-            run_out, verdict = await run_test_case_with_evaluation(
+            engine_impl = get_engine(config.evaluation_engine.kind)
+            engine_args = EngineRunArgs(
                 test_case=test_case,
+                run_config=config,
+                agent=agent,
                 agent_endpoint_url=agent_endpoint_url,
-                config=config,
+                agent_system_prompt=agent_system_prompt,
+                agent_tools=agent_tools,
                 agent_mode=agent_mode,
                 agent_model=agent_model,
                 agent_provider=agent_provider,
-                agent_system_prompt=agent_system_prompt,
-                agent_tools=agent_tools,
                 cancel_event=cancel_event,
             )
+            with Session(engine) as engine_session:
+                run_out, verdict = await engine_impl.run_test_case(
+                    config.evaluation_engine,
+                    engine_args,
+                    engine_session,
+                )
             transcript = run_out.transcript
             completed_at = datetime.now(UTC)
 
@@ -1107,6 +1118,19 @@ async def execute_run(run_id: uuid.UUID) -> None:
                 )
                 return
 
+            agent = crud.get_agent(session=session, agent_id=run.agent_id)
+            if not agent:
+                logger.error("Run %s references missing agent", run_id)
+                crud.update_run(
+                    session=session,
+                    db_run=run,
+                    run_in=RunUpdate(
+                        status=RunStatus.FAILED,
+                        completed_at=datetime.now(UTC),
+                    ),
+                )
+                return
+
             crud.update_run(
                 session=session,
                 db_run=run,
@@ -1126,6 +1150,9 @@ async def execute_run(run_id: uuid.UUID) -> None:
             agent_mode = _parse_run_agent_mode(run.agent_mode)
             agent_model = run.agent_model
             agent_provider = run.agent_provider
+            # Detach from session so background tasks can read attrs without an
+            # open Session — only the snapshot fields are touched by engines.
+            session.expunge(agent)
 
         total_expanded = sum(entry.repetitions for entry in execution_plan)
         state.progress.total_test_cases = total_expanded
@@ -1140,6 +1167,7 @@ async def execute_run(run_id: uuid.UUID) -> None:
             _execute_single_test_case(
                 run_id=run_id,
                 test_case=entry.test_case,
+                agent=agent,
                 agent_endpoint_url=agent_endpoint_url,
                 config=config,
                 agent_mode=agent_mode,

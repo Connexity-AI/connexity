@@ -7,7 +7,7 @@ from sqlalchemy import Column, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
-from app.models.enums import AgentMode
+from app.models.enums import AgentMode, Platform
 
 if TYPE_CHECKING:
     from app.models.agent_version import AgentVersion
@@ -48,6 +48,14 @@ class AgentBase(SQLModel):
     mode: AgentMode = Field(
         default=AgentMode.ENDPOINT,
         description="endpoint: HTTP agent; platform: LLM simulated on the platform",
+    )
+    platform: Platform | None = Field(
+        default=None,
+        description=(
+            "Voice/agent platform this agent targets. Drives which evaluation "
+            "engines are available. Null for legacy rows; use 'webhook' for "
+            "custom HTTP agents."
+        ),
     )
     endpoint_url: str | None = Field(
         default=None,
@@ -187,6 +195,10 @@ class AgentUpdate(SQLModel):
     mode: AgentMode | None = Field(
         default=None,
         description="endpoint: HTTP agent; platform: LLM simulated on the platform",
+    )
+    platform: Platform | None = Field(
+        default=None,
+        description="Voice/agent platform this agent targets",
     )
     endpoint_url: str | None = Field(
         default=None, max_length=2048, description="URL of the agent's API endpoint"

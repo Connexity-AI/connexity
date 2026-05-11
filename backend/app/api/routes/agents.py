@@ -18,10 +18,16 @@ from app.models import (
     AgentVersionDiff,
     AgentVersionPublic,
     AgentVersionsPublic,
+    EvaluationEngineOption,
+    EvaluationEngineOptionsPublic,
     Message,
     PublishRequest,
 )
 from app.services.diff import compute_agent_version_diff
+from app.services.eval_engines import (
+    default_engine_kind_for_platform,
+    engines_for_platform,
+)
 
 router = APIRouter(
     prefix="/agents", tags=["agents"], dependencies=[Depends(get_current_user)]
@@ -229,6 +235,30 @@ def discard_draft(
 
 
 # ── Agent CRUD endpoints ─────────────────────────────────────────────
+
+
+@router.get(
+    "/{agent_id}/evaluation-engines",
+    response_model=EvaluationEngineOptionsPublic,
+)
+def list_agent_evaluation_engines(
+    session: SessionDep, agent_id: uuid.UUID
+) -> EvaluationEngineOptionsPublic:
+    """Engines available for ``agent_id``'s platform, with the recommended default."""
+    agent = crud.get_agent(session=session, agent_id=agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    default_kind = default_engine_kind_for_platform(agent.platform)
+    options = [
+        EvaluationEngineOption(
+            kind=engine.KIND,
+            label=engine.LABEL,
+            description=engine.DESCRIPTION,
+            is_default=engine.KIND == default_kind,
+        )
+        for engine in engines_for_platform(agent.platform)
+    ]
+    return EvaluationEngineOptionsPublic(data=options)
 
 
 @router.get("/{agent_id}/guidelines", response_model=AgentGuidelinesPublic)

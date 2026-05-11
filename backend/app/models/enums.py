@@ -71,6 +71,12 @@ class Platform(StrEnum):
     WEBHOOK = "webhook"
 
 
+class EvaluationEngineKind(StrEnum):
+    CONNEXITY = "connexity"
+    RETELL = "retell"
+    CUSTOM_URL = "custom_url"
+
+
 class IntegrationProvider(StrEnum):
     RETELL = "retell"
     VAPI = "vapi"

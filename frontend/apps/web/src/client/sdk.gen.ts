@@ -27,6 +27,9 @@ import type {
   AgentsGetDraftData,
   AgentsGetDraftErrors,
   AgentsGetDraftResponses,
+  AgentsListAgentEvaluationEnginesData,
+  AgentsListAgentEvaluationEnginesErrors,
+  AgentsListAgentEvaluationEnginesResponses,
   AgentsListAgentsData,
   AgentsListAgentsErrors,
   AgentsListAgentsResponses,
@@ -144,6 +147,9 @@ import type {
   EvalConfigsReplaceTestCasesInConfigData,
   EvalConfigsReplaceTestCasesInConfigErrors,
   EvalConfigsReplaceTestCasesInConfigResponses,
+  EvalConfigsTestEvaluationEngineData,
+  EvalConfigsTestEvaluationEngineErrors,
+  EvalConfigsTestEvaluationEngineResponses,
   EvalConfigsUpdateEvalConfigData,
   EvalConfigsUpdateEvalConfigErrors,
   EvalConfigsUpdateEvalConfigResponses,
@@ -834,6 +840,32 @@ export class AgentsService {
   }
 
   /**
+   * List Agent Evaluation Engines
+   *
+   * Engines available for ``agent_id``'s platform, with the recommended default.
+   */
+  public static listAgentEvaluationEngines<ThrowOnError extends boolean = false>(
+    options: Options<AgentsListAgentEvaluationEnginesData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      AgentsListAgentEvaluationEnginesResponses,
+      AgentsListAgentEvaluationEnginesErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/evaluation-engines',
+      ...options,
+    });
+  }
+
+  /**
    * Get Agent Guidelines
    */
   public static getAgentGuidelines<ThrowOnError extends boolean = false>(
@@ -1363,6 +1395,36 @@ export class CustomMetricsService {
 }
 
 export class EvalConfigsService {
+  /**
+   * Test Evaluation Engine
+   *
+   * Smoke-test an evaluation engine config against an agent (Test URL button).
+   */
+  public static evalConfigsTestEvaluationEngine<ThrowOnError extends boolean = false>(
+    options: Options<EvalConfigsTestEvaluationEngineData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      EvalConfigsTestEvaluationEngineResponses,
+      EvalConfigsTestEvaluationEngineErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/eval-configs/test-evaluation-engine',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
   /**
    * List Eval Configs
    */
