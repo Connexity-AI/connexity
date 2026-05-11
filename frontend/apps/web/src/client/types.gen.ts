@@ -154,6 +154,28 @@ export type AgentGuidelinesUpdate = {
 };
 
 /**
+ * AgentLastEvalSummary
+ */
+export type AgentLastEvalSummary = {
+  /**
+   * Run Id
+   *
+   * Latest completed run id
+   */
+  run_id: string;
+  /**
+   * Created At
+   *
+   * When the latest completed run was created
+   */
+  created_at: string;
+  /**
+   * Aggregate metrics snapshot from the latest completed run
+   */
+  aggregate_metrics?: AggregateMetrics | null;
+};
+
+/**
  * AgentPublic
  */
 export type AgentPublic = {
@@ -249,6 +271,10 @@ export type AgentPublic = {
    * When the agent was last updated
    */
   updated_at: string;
+  /**
+   * Latest completed eval run summary for this agent, if any
+   */
+  last_eval?: AgentLastEvalSummary | null;
 };
 
 /**

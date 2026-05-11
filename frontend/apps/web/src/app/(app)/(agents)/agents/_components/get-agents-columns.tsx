@@ -26,7 +26,7 @@ export const getAgentsColumns = (): ColumnDef<AgentRow>[] => [
     id: 'last_eval',
     header: 'Last Eval',
     enableSorting: false,
-    cell: ({ row }) => <LastEvalCell agentId={row.original.id} />,
+    cell: ({ row }) => <LastEvalCell lastEval={row.original.last_eval} />,
   },
 
   {
