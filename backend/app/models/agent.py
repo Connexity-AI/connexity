@@ -248,7 +248,9 @@ class AgentsPublic(SQLModel):
 
 class AgentLastEvalSummary(SQLModel):
     run_id: uuid.UUID = Field(description="Latest completed run id")
-    created_at: datetime = Field(description="When the latest completed run was created")
+    created_at: datetime = Field(
+        description="When the latest completed run was created"
+    )
     aggregate_metrics: AggregateMetrics | None = Field(
         default=None,
         description="Aggregate metrics snapshot from the latest completed run",
