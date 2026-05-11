@@ -1,5 +1,6 @@
 import logging
 from datetime import UTC, datetime
+from time import monotonic
 from typing import Any
 
 import httpx
@@ -32,7 +33,46 @@ class VapiCall(BaseModel):
 
 
 _VAPI_API_BASE_URL = "https://api.vapi.ai"
+_VAPI_OPENAPI_JSON_URL = f"{_VAPI_API_BASE_URL}/api-json"
+_VAPI_PROVIDER_CACHE_TTL_SECONDS = 300
 logger = logging.getLogger(__name__)
+_VAPI_MODEL_PROVIDERS = {
+    "openai",
+    "azure-openai",
+    "together-ai",
+    "anyscale",
+    "openrouter",
+    "perplexity-ai",
+    "deepinfra",
+    "custom-llm",
+    "baseten",
+    "runpod",
+    "groq",
+    "vapi",
+    "anthropic",
+    "anthropic-bedrock",
+    "anthropic-vertex",
+    "minimax",
+    "google",
+    "xai",
+    "inflection-ai",
+    "cerebras",
+    "deep-seek",
+    "mistral",
+}
+_VAPI_PROVIDER_ALIASES = {
+    "azure": "azure-openai",
+    "azure_openai": "azure-openai",
+    "deep_seek": "deep-seek",
+    "deepseek": "deep-seek",
+    "gemini": "google",
+    "perplexity": "perplexity-ai",
+    "perplexity_ai": "perplexity-ai",
+    "together": "together-ai",
+    "together_ai": "together-ai",
+}
+_VapiProviderCache = tuple[float, set[str]]
+_vapi_provider_cache: _VapiProviderCache | None = None
 
 
 def _headers(api_key: str) -> dict[str, str]:
@@ -40,6 +80,92 @@ def _headers(api_key: str) -> dict[str, str]:
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
+
+
+def _normalize_provider_token(provider: str) -> str:
+    return provider.strip().lower().replace(" ", "-").replace("_", "-")
+
+
+def _extract_vapi_model_providers(schema: object) -> set[str]:
+    collected: set[str] = set()
+
+    def walk(node: object, path: tuple[str, ...]) -> None:
+        if isinstance(node, dict):
+            for key, value in node.items():
+                next_path = (*path, key)
+                if (
+                    key == "provider"
+                    and isinstance(value, dict)
+                    and isinstance(value.get("enum"), list)
+                    and "model" in path
+                ):
+                    enum_values = [
+                        _normalize_provider_token(candidate)
+                        for candidate in value["enum"]
+                        if isinstance(candidate, str) and candidate.strip()
+                    ]
+                    collected.update(enum_values)
+                walk(value, next_path)
+            return
+        if isinstance(node, list):
+            for item in node:
+                walk(item, path)
+
+    walk(schema, ())
+    return collected
+
+
+async def _fetch_vapi_model_providers() -> set[str]:
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(_VAPI_OPENAPI_JSON_URL, timeout=10.0)
+    except httpx.HTTPError as exc:
+        logger.warning("failed to fetch vapi openapi schema: %s", exc)
+        return set()
+
+    if response.status_code != 200:
+        logger.warning(
+            "vapi openapi schema request returned status %s",
+            response.status_code,
+        )
+        return set()
+
+    try:
+        schema = response.json()
+    except ValueError:
+        logger.warning("vapi openapi schema response was not valid json")
+        return set()
+
+    return _extract_vapi_model_providers(schema)
+
+
+async def _get_vapi_model_providers() -> set[str]:
+    global _vapi_provider_cache
+
+    now = monotonic()
+    if _vapi_provider_cache is not None:
+        cached_at, providers = _vapi_provider_cache
+        if now - cached_at < _VAPI_PROVIDER_CACHE_TTL_SECONDS:
+            return providers
+
+    providers = await _fetch_vapi_model_providers()
+    if providers:
+        _vapi_provider_cache = (now, providers)
+        return providers
+
+    fallback = set(_VAPI_MODEL_PROVIDERS)
+    _vapi_provider_cache = (now, fallback)
+    return fallback
+
+
+def _resolve_vapi_provider(provider: str, allowed: set[str]) -> str:
+    normalized = _normalize_provider_token(provider)
+    if normalized in allowed:
+        return normalized
+    alias = _VAPI_PROVIDER_ALIASES.get(normalized)
+    if alias is not None and alias in allowed:
+        return alias
+    return alias or normalized
 
 
 async def test_vapi_connection(api_key: str) -> bool:
@@ -166,11 +292,15 @@ async def deploy_vapi_assistant(
     tools: list[dict[str, Any]] | None,
     version_description: str | None,
 ) -> VapiDeployResult:
+    allowed_providers = await _get_vapi_model_providers()
     model_payload: dict[str, Any] = {}
     if agent_model is not None:
         model_payload["model"] = agent_model
     if agent_provider is not None:
-        model_payload["provider"] = agent_provider
+        model_payload["provider"] = _resolve_vapi_provider(
+            agent_provider,
+            allowed_providers,
+        )
     if agent_temperature is not None:
         model_payload["temperature"] = agent_temperature
     if system_prompt is not None:
