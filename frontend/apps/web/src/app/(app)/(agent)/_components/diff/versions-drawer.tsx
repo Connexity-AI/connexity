@@ -62,10 +62,13 @@ function pickLatestCompletedByVersion(runs: RunPublic[]): Map<number, RunPublic>
 export function VersionsDrawer() {
   const { isDrawerOpen, closeDrawer, selectedVersion, selectVersion } = useVersions();
   const { agentId } = useAgentEditFormActions();
-  const { data: versionsData } = useAgentVersions(agentId);
-  const { data: deploymentsData } = useAgentDeployments(agentId);
-  const { data: draft } = useAgentDraft(agentId, true);
-  const { data: runsData } = useQuery(evalRunsListQuery(agentId));
+  const { data: versionsData } = useAgentVersions(agentId, isDrawerOpen);
+  const { data: deploymentsData } = useAgentDeployments(agentId, isDrawerOpen);
+  const { data: draft } = useAgentDraft(agentId, isDrawerOpen);
+  const { data: runsData } = useQuery({
+    ...evalRunsListQuery(agentId),
+    enabled: isDrawerOpen,
+  });
   const versions = versionsData?.data ?? [];
   const sorted = [...versions].sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
 

@@ -127,14 +127,15 @@ export function CreateEvalView({
                   {submitError}
                 </p>
               ) : null}
-              <RunConfigSection
-                agentMode={agent?.mode ?? null}
-                agentTools={agent?.tools ?? null}
-              />
               <TestCasesSection agentId={agentId} />
               <JudgeSection metrics={metrics} />
               <PassThresholdsSection />
               <PersonaSection />
+              <RunConfigSection
+                agentMode={agent?.mode ?? null}
+                agentTools={agent?.tools ?? null}
+                endpointUrl={agent?.endpoint_url ?? null}
+              />
             </div>
           </form>
         </div>

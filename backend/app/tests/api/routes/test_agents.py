@@ -5,8 +5,13 @@ from sqlmodel import Session
 
 from app import crud
 from app.core.config import settings
+from app.models import RunStatus
 from app.services.prompt_editor.agent_prompt import DEFAULT_EDITOR_GUIDELINES
-from app.tests.utils.eval import create_test_agent
+from app.tests.utils.eval import (
+    create_test_agent,
+    create_test_eval_config,
+    create_test_run,
+)
 
 
 def test_create_agent(client: TestClient, auth_cookies: dict[str, str]) -> None:
@@ -37,6 +42,29 @@ def test_list_agents(
     result = r.json()
     assert result["count"] >= 1
     assert len(result["data"]) >= 1
+
+
+def test_list_agents_includes_last_eval_summary(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = create_test_agent(db)
+    eval_config = create_test_eval_config(db, agent_id=agent.id)
+    run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
+    run.status = RunStatus.COMPLETED
+    db.add(run)
+    db.commit()
+    db.refresh(run)
+
+    response = client.get(
+        f"{settings.API_V1_STR}/agents/",
+        cookies=auth_cookies,
+    )
+    assert response.status_code == 200
+    body = response.json()
+    listed = next((item for item in body["data"] if item["id"] == str(agent.id)), None)
+    assert listed is not None
+    assert listed["last_eval"] is not None
+    assert listed["last_eval"]["run_id"] == str(run.id)
 
 
 def test_get_agent(
