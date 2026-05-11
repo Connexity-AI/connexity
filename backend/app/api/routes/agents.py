@@ -63,7 +63,15 @@ def list_agents(
     limit: int = Query(default=100, ge=1, le=1000),
 ) -> AgentsPublic:
     items, count = crud.list_agents(session=session, skip=skip, limit=limit)
-    return AgentsPublic(data=items, count=count)  # type: ignore[arg-type]
+    summaries_by_agent_id = crud.latest_completed_eval_summaries_by_agent(
+        session=session, agent_ids=[agent.id for agent in items]
+    )
+    data: list[AgentPublic] = []
+    for agent in items:
+        serialized = AgentPublic.model_validate(agent)
+        serialized.last_eval = summaries_by_agent_id.get(agent.id)
+        data.append(serialized)
+    return AgentsPublic(data=data, count=count)
 
 
 @router.get("/{agent_id}/versions/diff", response_model=AgentVersionDiff)

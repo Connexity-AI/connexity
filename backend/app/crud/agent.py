@@ -4,8 +4,16 @@ from sqlalchemy import func
 from sqlmodel import Session, col, select
 
 from app.crud import agent_version as agent_version_crud
-from app.models import Agent, AgentCreate, AgentGuidelinesPublic, AgentUpdate
-from app.models.enums import AgentMode, AgentVersionStatus
+from app.models import (
+    Agent,
+    AgentCreate,
+    AgentGuidelinesPublic,
+    AgentLastEvalSummary,
+    AgentUpdate,
+    AggregateMetrics,
+    Run,
+)
+from app.models.enums import AgentMode, AgentVersionStatus, RunStatus
 from app.services.agent_tool_definitions import normalize_and_validate_agent_tools
 
 _VERSIONABLE_FIELDS = frozenset(
@@ -98,6 +106,38 @@ def list_agents(
         ).all()
     )
     return items, count
+
+
+def latest_completed_eval_summaries_by_agent(
+    *, session: Session, agent_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, AgentLastEvalSummary]:
+    if not agent_ids:
+        return {}
+
+    summaries: dict[uuid.UUID, AgentLastEvalSummary] = {}
+    completed_runs = session.exec(
+        select(Run)
+        .where(
+            col(Run.status) == RunStatus.COMPLETED,
+            col(Run.agent_id).in_(agent_ids),
+        )
+        .order_by(col(Run.created_at).desc())
+    ).all()
+
+    for run in completed_runs:
+        if run.agent_id in summaries:
+            continue
+        aggregate_metrics = (
+            AggregateMetrics.model_validate(run.aggregate_metrics)
+            if run.aggregate_metrics is not None
+            else None
+        )
+        summaries[run.agent_id] = AgentLastEvalSummary(
+            run_id=run.id,
+            created_at=run.created_at,
+            aggregate_metrics=aggregate_metrics,
+        )
+    return summaries
 
 
 def update_agent(

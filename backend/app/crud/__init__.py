@@ -6,6 +6,7 @@ from app.crud.agent import (  # noqa: F401
     create_draft_agent,
     delete_agent,
     get_agent,
+    latest_completed_eval_summaries_by_agent,
     list_agents,
     set_agent_editor_guidelines,
     update_agent,

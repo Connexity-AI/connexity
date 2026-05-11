@@ -15,8 +15,6 @@ import { PromptTabSkeleton } from '@/app/(app)/(agent)/_components/prompt/prompt
 import { useAgentEditFormActions } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
 import { useAiSuggestion } from '@/app/(app)/(agent)/_context/ai-suggestion-context';
 import { useDiff } from '@/app/(app)/(agent)/_context/diff-context';
-import { useAgent } from '@/app/(app)/(agent)/_hooks/use-agent';
-import { useAgentDraft } from '@/app/(app)/(agent)/_hooks/use-agent-draft';
 import { useAgentVersions } from '@/app/(app)/(agent)/_hooks/use-agent-versions';
 import { usePromptEditorSession } from '@/app/(app)/(agent)/_hooks/use-prompt-editor-session';
 
@@ -25,13 +23,11 @@ import type { AgentFormValues } from '@/app/(app)/(agent)/_schemas/agent-form';
 
 export function PromptTab() {
   const form = useFormContext<AgentFormValues>();
-  const { isReadOnly, agentId, isLoading } = useAgentEditFormActions();
+  const { isReadOnly, agentId, isLoading, agent, draft } = useAgentEditFormActions();
   const { showDiff, diffFromVersion, diffToVersion, setDiffFromVersion, setDiffToVersion } =
     useDiff();
   const { data: versionsData } = useAgentVersions(agentId);
   const versions = versionsData?.data ?? [];
-  const { data: agent } = useAgent(agentId);
-  const { data: draft } = useAgentDraft(agentId, agent?.has_draft === true);
   const { suggestedPrompt, clearSuggestion } = useAiSuggestion();
   const { basePrompt, updateBasePrompt } = usePromptEditorSession(agentId);
   const diffScrollRef = useRef<HTMLDivElement>(null);

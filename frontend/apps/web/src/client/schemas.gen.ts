@@ -283,6 +283,37 @@ export const AgentGuidelinesUpdateSchema = {
   title: 'AgentGuidelinesUpdate',
 } as const;
 
+export const AgentLastEvalSummarySchema = {
+  properties: {
+    run_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Run Id',
+      description: 'Latest completed run id',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+      description: 'When the latest completed run was created',
+    },
+    aggregate_metrics: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/AggregateMetrics',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Aggregate metrics snapshot from the latest completed run',
+    },
+  },
+  type: 'object',
+  required: ['run_id', 'created_at'],
+  title: 'AgentLastEvalSummary',
+} as const;
+
 export const AgentPublicSchema = {
   properties: {
     name: {
@@ -445,6 +476,17 @@ export const AgentPublicSchema = {
       format: 'date-time',
       title: 'Updated At',
       description: 'When the agent was last updated',
+    },
+    last_eval: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/AgentLastEvalSummary',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Latest completed eval run summary for this agent, if any',
     },
   },
   type: 'object',

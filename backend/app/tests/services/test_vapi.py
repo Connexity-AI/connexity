@@ -3,11 +3,50 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
+from app.services import vapi
 from app.services.vapi import deploy_vapi_assistant
 
 
+def _vapi_openapi_response(*providers: str) -> httpx.Response:
+    payload = {
+        "components": {
+            "schemas": {
+                "CreateAssistantModel": {
+                    "properties": {
+                        "model": {
+                            "properties": {
+                                "provider": {"enum": list(providers)},
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return httpx.Response(
+        status_code=200,
+        json=payload,
+        request=httpx.Request("GET", "https://api.vapi.ai/api-json"),
+    )
+
+
 @pytest.mark.asyncio
-async def test_deploy_vapi_assistant_sends_model_provider() -> None:
+@pytest.mark.parametrize(
+    ("agent_provider", "vapi_provider"),
+    [
+        ("gemini", "google"),
+        ("azure", "azure-openai"),
+        ("deepseek", "deep-seek"),
+        ("perplexity", "perplexity-ai"),
+        ("together", "together-ai"),
+        ("openai", "openai"),
+    ],
+)
+async def test_deploy_vapi_assistant_normalizes_model_provider(
+    agent_provider: str,
+    vapi_provider: str,
+) -> None:
+    vapi._vapi_provider_cache = None
     response = httpx.Response(
         status_code=200,
         request=httpx.Request("PATCH", "https://api.vapi.ai/assistant/assistant-id"),
@@ -15,6 +54,44 @@ async def test_deploy_vapi_assistant_sends_model_provider() -> None:
     with patch("app.services.vapi.httpx.AsyncClient") as mock_client_cls:
         mock_client = AsyncMock()
         mock_client.__aenter__.return_value = mock_client
+        mock_client.get.return_value = _vapi_openapi_response(
+            "openai",
+            "google",
+            "azure-openai",
+            "deep-seek",
+            "perplexity-ai",
+            "together-ai",
+        )
+        mock_client.patch.return_value = response
+        mock_client_cls.return_value = mock_client
+
+        result = await deploy_vapi_assistant(
+            api_key="vapi-key",
+            assistant_id="assistant-id",
+            system_prompt=None,
+            agent_model="provider-model",
+            agent_provider=agent_provider,
+            agent_temperature=None,
+            tools=None,
+            version_description="Connexity Agent v1",
+        )
+
+    assert result.success is True
+    patched_json = mock_client.patch.call_args.kwargs["json"]
+    assert patched_json["model"]["provider"] == vapi_provider
+
+
+@pytest.mark.asyncio
+async def test_deploy_vapi_assistant_sends_model_provider() -> None:
+    vapi._vapi_provider_cache = None
+    response = httpx.Response(
+        status_code=200,
+        request=httpx.Request("PATCH", "https://api.vapi.ai/assistant/assistant-id"),
+    )
+    with patch("app.services.vapi.httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.get.return_value = _vapi_openapi_response("openai")
         mock_client.patch.return_value = response
         mock_client_cls.return_value = mock_client
 
@@ -37,6 +114,7 @@ async def test_deploy_vapi_assistant_sends_model_provider() -> None:
 
 @pytest.mark.asyncio
 async def test_deploy_vapi_assistant_omits_tool_server_method() -> None:
+    vapi._vapi_provider_cache = None
     response = httpx.Response(
         status_code=200,
         request=httpx.Request("PATCH", "https://api.vapi.ai/assistant/assistant-id"),
@@ -44,6 +122,7 @@ async def test_deploy_vapi_assistant_omits_tool_server_method() -> None:
     with patch("app.services.vapi.httpx.AsyncClient") as mock_client_cls:
         mock_client = AsyncMock()
         mock_client.__aenter__.return_value = mock_client
+        mock_client.get.return_value = _vapi_openapi_response("openai")
         mock_client.patch.return_value = response
         mock_client_cls.return_value = mock_client
 
@@ -82,3 +161,35 @@ async def test_deploy_vapi_assistant_omits_tool_server_method() -> None:
     patched_json = mock_client.patch.call_args.kwargs["json"]
     server = patched_json["model"]["tools"][0]["server"]
     assert server == {"url": "https://example.com/tools/create-service-ticket"}
+
+
+@pytest.mark.asyncio
+async def test_deploy_vapi_assistant_uses_static_provider_fallback_when_openapi_fails() -> (
+    None
+):
+    vapi._vapi_provider_cache = None
+    response = httpx.Response(
+        status_code=200,
+        request=httpx.Request("PATCH", "https://api.vapi.ai/assistant/assistant-id"),
+    )
+    with patch("app.services.vapi.httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.get.side_effect = httpx.HTTPError("network error")
+        mock_client.patch.return_value = response
+        mock_client_cls.return_value = mock_client
+
+        result = await deploy_vapi_assistant(
+            api_key="vapi-key",
+            assistant_id="assistant-id",
+            system_prompt=None,
+            agent_model="gpt-4o-mini",
+            agent_provider="gemini",
+            agent_temperature=None,
+            tools=None,
+            version_description="Connexity Agent v1",
+        )
+
+    assert result.success is True
+    patched_json = mock_client.patch.call_args.kwargs["json"]
+    assert patched_json["model"]["provider"] == "google"
