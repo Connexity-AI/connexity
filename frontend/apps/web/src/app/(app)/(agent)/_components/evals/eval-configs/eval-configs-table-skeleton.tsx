@@ -9,14 +9,14 @@ export function EvalConfigsTableSkeleton() {
         <Skeleton className="h-3 w-24" />
         <Skeleton className="h-7 w-36 rounded-md" />
       </div>
+      <div className="grid shrink-0 grid-cols-[1fr_100px_120px_120px_180px] items-center gap-4 border-b border-border bg-background px-5 py-2 text-[10px] uppercase tracking-wider text-muted-foreground/60">
+        <span>Name</span>
+        <span>Cases</span>
+        <span>Total Runs</span>
+        <span>Tool Calls</span>
+        <span>Created</span>
+      </div>
       <div className="flex-1 overflow-auto">
-        <div className="sticky top-0 z-10 grid grid-cols-[1fr_100px_120px_120px_180px] items-center gap-4 border-b border-border bg-background px-5 py-2 text-[10px] uppercase tracking-wider text-muted-foreground/60">
-          <span>Name</span>
-          <span>Cases</span>
-          <span>Total Runs</span>
-          <span>Tool Calls</span>
-          <span>Created</span>
-        </div>
         <ul>
           {Array.from({ length: 6 }).map((_, index) => (
             <li

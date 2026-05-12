@@ -54,3 +54,23 @@ export const listRetellAgents = async (
   const { response: _, ...result } = apiResponse;
   return result;
 };
+
+export const listVapiAssistants = async (
+  integrationId: string
+): Promise<ApiResult<RetellAgentSummary[]>> => {
+  const apiResponse = await IntegrationsService.listIntegrationAgents({
+    path: { integration_id: integrationId },
+  });
+  const { response: _, ...result } = apiResponse;
+  return result;
+};
+
+export const listElevenlabsAgents = async (
+  integrationId: string
+): Promise<ApiResult<RetellAgentSummary[]>> => {
+  const apiResponse = await IntegrationsService.listIntegrationAgents({
+    path: { integration_id: integrationId },
+  });
+  const { response: _, ...result } = apiResponse;
+  return result;
+};

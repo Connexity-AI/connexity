@@ -15,7 +15,6 @@ def create_pending_deployment(
     agent_id: uuid.UUID,
     agent_version: int,
     deployed_by_user_id: uuid.UUID | None,
-    deployed_by_name: str | None,
 ) -> Deployment:
     db_obj = Deployment(
         environment_id=environment_id,
@@ -23,7 +22,6 @@ def create_pending_deployment(
         agent_version=agent_version,
         status=DeploymentStatus.PENDING,
         deployed_by_user_id=deployed_by_user_id,
-        deployed_by_name=deployed_by_name,
     )
     session.add(db_obj)
     session.commit()

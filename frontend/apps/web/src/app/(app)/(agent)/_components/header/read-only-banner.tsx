@@ -21,7 +21,11 @@ export function ReadOnlyBanner() {
 
   const handleRollback = () => {
     rollback(
-      { version: selectedVersion, change_description: `Rollback to V${selectedVersion}` },
+      {
+        version: selectedVersion,
+        version_name: `Rollback to V${selectedVersion}`,
+        version_description: null,
+      },
       {
         onSuccess: () => selectVersion(null),
       }

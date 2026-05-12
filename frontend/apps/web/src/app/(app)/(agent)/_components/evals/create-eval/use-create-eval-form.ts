@@ -83,6 +83,10 @@ export function useCreateEvalForm({
       concurrency: cfg?.concurrency ?? base.run.concurrency,
       max_turns: cfg?.max_turns ?? base.run.max_turns,
       tool_mode: cfg?.tool_mode ?? base.run.tool_mode,
+      metrics_pass_threshold:
+        cfg?.metrics_pass_threshold ?? base.run.metrics_pass_threshold,
+      cases_pass_threshold:
+        cfg?.cases_pass_threshold ?? base.run.cases_pass_threshold,
     },
     test_cases: buildTestCaseRows(testCases, memberSpecs),
     judge: {

@@ -26,6 +26,7 @@ export function useAgentChatbot() {
     error: sessionError,
     createSession,
     startNewSession,
+    resetSession,
     clearStaleSession,
     updateBasePrompt,
     isCreating: isCreatingSession,
@@ -138,7 +139,7 @@ export function useAgentChatbot() {
     sendMessage,
     isHistoryLoading,
     suggestion,
-    createNewSession: startNewSession,
+    resetChat: resetSession,
     isCreatingSession,
   };
 }

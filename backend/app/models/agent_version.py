@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from pydantic import ConfigDict
-from sqlalchemy import Column, Index, UniqueConstraint, text
+from sqlalchemy import CheckConstraint, Column, Index, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -26,6 +26,16 @@ class AgentVersion(SQLModel, table=True):
             "agent_id",
             unique=True,
             postgresql_where=text("status = 'draft'"),
+        ),
+        Index(
+            "ix_agent_version_one_active_published_per_agent",
+            "agent_id",
+            unique=True,
+            postgresql_where=text("is_active AND version IS NOT NULL"),
+        ),
+        CheckConstraint(
+            "NOT is_active OR version IS NOT NULL",
+            name="ck_agent_version_active_rules",
         ),
     )
     model_config = ConfigDict(use_enum_values=True)
@@ -58,7 +68,9 @@ class AgentVersion(SQLModel, table=True):
     agent_model: str | None = Field(default=None, max_length=255)
     agent_provider: str | None = Field(default=None, max_length=64)
     agent_temperature: float | None = Field(default=None)
-    change_description: str | None = Field(default=None)
+    is_active: bool = Field(default=False, nullable=False)
+    version_name: str | None = Field(default=None)
+    version_description: str | None = Field(default=None)
     created_by: uuid.UUID | None = Field(
         default=None,
         foreign_key="user.id",
@@ -86,7 +98,9 @@ class AgentVersionPublic(SQLModel):
     agent_model: str | None
     agent_provider: str | None
     agent_temperature: float | None
-    change_description: str | None
+    is_active: bool
+    version_name: str | None
+    version_description: str | None
     created_by: uuid.UUID | None
     created_at: datetime
 
@@ -98,7 +112,8 @@ class AgentVersionsPublic(SQLModel):
 
 class AgentRollbackRequest(SQLModel):
     version: int = Field(ge=1)
-    change_description: str | None = None
+    version_name: str | None = None
+    version_description: str | None = None
 
 
 class AgentDraftUpdate(SQLModel):
@@ -114,4 +129,5 @@ class AgentDraftUpdate(SQLModel):
 
 
 class PublishRequest(SQLModel):
-    change_description: str | None = None
+    version_name: str | None = None
+    version_description: str | None = None

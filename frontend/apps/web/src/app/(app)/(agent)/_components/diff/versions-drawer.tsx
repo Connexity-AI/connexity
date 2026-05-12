@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
-import { History, Rocket, X } from 'lucide-react';
+import { CircleCheck, CircleX, History, ListChecks, Rocket, Target, X } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/ui/button';
 import {
@@ -22,7 +22,6 @@ import { useAgentDeployments } from '@/app/(app)/(agent)/_hooks/use-agent-deploy
 import { useAgentVersions } from '@/app/(app)/(agent)/_hooks/use-agent-versions';
 import { evalRunsListQuery } from '@/app/(app)/(agent)/_queries/eval-runs-list-query';
 import { formatTimeAgo } from '@/app/(app)/(agent)/_utils/format-time-ago';
-import { parseVersionName } from '@/app/(app)/(agent)/_utils/parse-version-name';
 
 import type { RunPublic } from '@/client/types.gen';
 
@@ -63,10 +62,13 @@ function pickLatestCompletedByVersion(runs: RunPublic[]): Map<number, RunPublic>
 export function VersionsDrawer() {
   const { isDrawerOpen, closeDrawer, selectedVersion, selectVersion } = useVersions();
   const { agentId } = useAgentEditFormActions();
-  const { data: versionsData } = useAgentVersions(agentId);
-  const { data: deploymentsData } = useAgentDeployments(agentId);
-  const { data: draft } = useAgentDraft(agentId, true);
-  const { data: runsData } = useQuery(evalRunsListQuery(agentId));
+  const { data: versionsData } = useAgentVersions(agentId, isDrawerOpen);
+  const { data: deploymentsData } = useAgentDeployments(agentId, isDrawerOpen);
+  const { data: draft } = useAgentDraft(agentId, isDrawerOpen);
+  const { data: runsData } = useQuery({
+    ...evalRunsListQuery(agentId),
+    enabled: isDrawerOpen,
+  });
   const versions = versionsData?.data ?? [];
   const sorted = [...versions].sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
 
@@ -143,7 +145,8 @@ export function VersionsDrawer() {
 
             {sorted.map((version) => {
               const isSelected = selectedVersion === version.version;
-              const { name, description } = parseVersionName(version.change_description);
+              const name = version.version_name ?? '';
+              const description = version.version_description ?? '';
               const deployedAt =
                 version.version != null
                   ? deployedAtByVersion.get(version.version)
@@ -152,10 +155,13 @@ export function VersionsDrawer() {
               const latestRun =
                 version.version != null ? latestRunByVersion.get(version.version) : undefined;
               const metrics = latestRun?.aggregate_metrics ?? null;
-              const score = roundScore(metrics?.avg_overall_score);
+              const metricsScore = roundScore(metrics?.weighted_metrics_score_pct);
+              const metricsPassed = metrics?.metrics_passed ?? null;
+              const casesPassed = metrics?.cases_passed ?? null;
               const totalExecutions = metrics?.total_executions ?? 0;
               const passedCount = metrics?.passed_count ?? 0;
-              const allPassed = totalExecutions > 0 && passedCount === totalExecutions;
+              const overallPassed =
+                metricsPassed === true && casesPassed === true;
 
               return (
                 <div key={version.id}>
@@ -209,42 +215,56 @@ export function VersionsDrawer() {
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
                             Evaluation
                           </span>
-                          <span className="text-[10px] text-muted-foreground/60">
-                            {formatShortDate(runDateIso(latestRun))}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-0 divide-x divide-border">
-                          <div className="flex-1 px-2.5 py-2">
-                            <p className="text-[10px] text-muted-foreground mb-0.5">Score</p>
-                            <p className="text-xs text-foreground font-mono tabular-nums">
-                              {score === null ? '—' : score}
-                              <span className="text-muted-foreground/40">/100</span>
-                            </p>
-                          </div>
-                          <div className="flex-1 px-2.5 py-2">
-                            <p className="text-[10px] text-muted-foreground mb-0.5">Test Cases</p>
-                            <p
-                              className={cn(
-                                'text-xs font-mono tabular-nums',
-                                totalExecutions === 0
-                                  ? 'text-foreground'
-                                  : allPassed
-                                    ? 'text-green-400'
-                                    : 'text-red-400'
-                              )}
-                            >
-                              {totalExecutions === 0 ? (
-                                '—'
+                          <div className="flex items-center gap-1.5">
+                            {metricsPassed !== null && casesPassed !== null ? (
+                              overallPassed ? (
+                                <CircleCheck className="w-3 h-3 text-green-400" />
                               ) : (
-                                <>
-                                  {passedCount}
-                                  <span className="text-muted-foreground/40">
-                                    /{totalExecutions}
-                                  </span>
-                                </>
-                              )}
-                            </p>
+                                <CircleX className="w-3 h-3 text-red-400" />
+                              )
+                            ) : null}
+                            <span className="text-[10px] text-muted-foreground/60">
+                              {formatShortDate(runDateIso(latestRun))}
+                            </span>
                           </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2.5 py-2">
+                          {metricsScore !== null && metricsPassed !== null ? (
+                            <span
+                              className={cn(
+                                'inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-mono tabular-nums',
+                                metricsPassed
+                                  ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                                  : 'bg-red-500/10 text-red-400 border-red-500/20'
+                              )}
+                              title="Metrics score"
+                            >
+                              <Target className="w-2.5 h-2.5" />
+                              {metricsScore}%
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground/40 font-mono">
+                              —
+                            </span>
+                          )}
+                          {casesPassed !== null && totalExecutions > 0 ? (
+                            <span
+                              className={cn(
+                                'inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-mono tabular-nums',
+                                casesPassed
+                                  ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                                  : 'bg-red-500/10 text-red-400 border-red-500/20'
+                              )}
+                              title="Cases passed"
+                            >
+                              <ListChecks className="w-2.5 h-2.5" />
+                              {passedCount}/{totalExecutions}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground/40 font-mono">
+                              —
+                            </span>
+                          )}
                         </div>
                       </div>
                     )}

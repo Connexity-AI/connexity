@@ -39,7 +39,9 @@ def test_enrich_run_create_fills_endpoint_snapshot(db: Session) -> None:
     )
     assert enriched.agent_endpoint_url == "http://localhost:8080/agent"
     assert enriched.agent_mode == AgentMode.ENDPOINT.value
-    assert enriched.agent_version == agent.version
+    active = crud.get_active_agent_version(session=db, agent_id=agent.id)
+    assert active is not None
+    assert enriched.agent_version == active.version
     assert enriched.agent_version_id is not None
 
 

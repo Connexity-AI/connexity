@@ -154,6 +154,28 @@ export type AgentGuidelinesUpdate = {
 };
 
 /**
+ * AgentLastEvalSummary
+ */
+export type AgentLastEvalSummary = {
+  /**
+   * Run Id
+   *
+   * Latest completed run id
+   */
+  run_id: string;
+  /**
+   * Created At
+   *
+   * When the latest completed run was created
+   */
+  created_at: string;
+  /**
+   * Aggregate metrics snapshot from the latest completed run
+   */
+  aggregate_metrics?: AggregateMetrics | null;
+};
+
+/**
  * AgentPublic
  */
 export type AgentPublic = {
@@ -232,12 +254,6 @@ export type AgentPublic = {
    */
   id: string;
   /**
-   * Version
-   *
-   * Current behavioral config version
-   */
-  version: number;
-  /**
    * Has Draft
    *
    * True when an unpublished draft version exists
@@ -255,6 +271,10 @@ export type AgentPublic = {
    * When the agent was last updated
    */
   updated_at: string;
+  /**
+   * Latest completed eval run summary for this agent, if any
+   */
+  last_eval?: AgentLastEvalSummary | null;
 };
 
 /**
@@ -266,9 +286,13 @@ export type AgentRollbackRequest = {
    */
   version: number;
   /**
-   * Change Description
+   * Version Name
    */
-  change_description?: string | null;
+  version_name?: string | null;
+  /**
+   * Version Description
+   */
+  version_description?: string | null;
 };
 
 /**
@@ -408,12 +432,6 @@ export type AgentUpdate = {
    * Custom prompting guidelines for the prompt editor agent (None = use default)
    */
   editor_guidelines?: string | null;
-  /**
-   * Change Description
-   *
-   * Optional changelog when a versionable field changes
-   */
-  change_description?: string | null;
 };
 
 /**
@@ -486,9 +504,17 @@ export type AgentVersionPublic = {
    */
   agent_temperature: number | null;
   /**
-   * Change Description
+   * Is Active
    */
-  change_description: string | null;
+  is_active: boolean;
+  /**
+   * Version Name
+   */
+  version_name: string | null;
+  /**
+   * Version Description
+   */
+  version_description: string | null;
   /**
    * Created By
    */
@@ -693,6 +719,42 @@ export type AggregateMetrics = {
    * Mean judge overall score across all test cases
    */
   avg_overall_score?: number | null;
+  /**
+   * Weighted Metrics Score Pct
+   *
+   * Run-level metrics score (0-100): mean of per-test-case weighted overall_score across results that have a verdict. None when no result produced a verdict.
+   */
+  weighted_metrics_score_pct?: number | null;
+  /**
+   * Metrics Pass Threshold
+   *
+   * Snapshot of metrics_pass_threshold used for this run (%)
+   */
+  metrics_pass_threshold?: number | null;
+  /**
+   * Metrics Passed
+   *
+   * True when weighted_metrics_score_pct >= metrics_pass_threshold. None when threshold or score is unavailable.
+   */
+  metrics_passed?: boolean | null;
+  /**
+   * Cases Pass Rate Pct
+   *
+   * Cases dimension score (0-100): pass_rate * 100. Errored test cases count as not-passed in the denominator.
+   */
+  cases_pass_rate_pct?: number | null;
+  /**
+   * Cases Pass Threshold
+   *
+   * Snapshot of cases_pass_threshold used for this run (%)
+   */
+  cases_pass_threshold?: number | null;
+  /**
+   * Cases Passed
+   *
+   * True when cases_pass_rate_pct >= cases_pass_threshold. None when threshold or rate is unavailable.
+   */
+  cases_passed?: boolean | null;
 };
 
 /**
@@ -785,6 +847,7 @@ export type CallPublic = {
    * Status
    */
   status?: string | null;
+  provider?: AppModelsEnumsIntegrationProvider2 | null;
   /**
    * Transcript
    */
@@ -1207,9 +1270,9 @@ export type DeploymentPublic = {
    */
   deployed_by_user_id: string | null;
   /**
-   * Deployed By Name
+   * Deployed By Display Name
    */
-  deployed_by_name: string | null;
+  deployed_by_display_name: string | null;
   /**
    * Deployed At
    */
@@ -1270,15 +1333,25 @@ export type EnvironmentCreate = {
   /**
    * Integration Id
    */
-  integration_id: string;
+  integration_id?: string | null;
   /**
    * Platform Agent Id
    */
-  platform_agent_id: string;
+  platform_agent_id?: string | null;
   /**
    * Platform Agent Name
    */
-  platform_agent_name: string;
+  platform_agent_name?: string | null;
+  /**
+   * Endpoint Url
+   */
+  endpoint_url?: string | null;
+  /**
+   * Eval Gate Eval Config Id
+   *
+   * Optional: gate deploys on a passing run of this eval config for the requested agent version.
+   */
+  eval_gate_eval_config_id?: string | null;
 };
 
 /**
@@ -1301,19 +1374,23 @@ export type EnvironmentPublic = {
   /**
    * Integration Id
    */
-  integration_id: string;
+  integration_id: string | null;
   /**
    * Integration Name
    */
-  integration_name: string;
+  integration_name: string | null;
   /**
    * Platform Agent Id
    */
-  platform_agent_id: string;
+  platform_agent_id: string | null;
   /**
    * Platform Agent Name
    */
-  platform_agent_name: string;
+  platform_agent_name: string | null;
+  /**
+   * Endpoint Url
+   */
+  endpoint_url: string | null;
   /**
    * Current Version Number
    */
@@ -1327,9 +1404,46 @@ export type EnvironmentPublic = {
    */
   current_deployed_at: string | null;
   /**
+   * Eval Gate Eval Config Id
+   */
+  eval_gate_eval_config_id: string | null;
+  /**
    * Created At
    */
   created_at: string;
+};
+
+/**
+ * EnvironmentUpdate
+ */
+export type EnvironmentUpdate = {
+  /**
+   * Name
+   */
+  name?: string | null;
+  platform?: Platform | null;
+  /**
+   * Integration Id
+   */
+  integration_id?: string | null;
+  /**
+   * Platform Agent Id
+   */
+  platform_agent_id?: string | null;
+  /**
+   * Platform Agent Name
+   */
+  platform_agent_name?: string | null;
+  /**
+   * Endpoint Url
+   */
+  endpoint_url?: string | null;
+  /**
+   * Eval Gate Eval Config Id
+   *
+   * Optional: gate deploys on a passing run of this eval config for the requested agent version.
+   */
+  eval_gate_eval_config_id?: string | null;
 };
 
 /**
@@ -1841,7 +1955,7 @@ export type IntegrationCreate = {
   /**
    * IntegrationProvider
    */
-  provider: 'retell';
+  provider: 'retell' | 'vapi' | 'elevenlabs';
   /**
    * Name
    */
@@ -1855,12 +1969,17 @@ export type IntegrationCreate = {
 /**
  * IntegrationProvider
  */
-export const IntegrationProvider = { RETELL: 'retell' } as const;
+export const IntegrationProviderInput = {
+  RETELL: 'retell',
+  VAPI: 'vapi',
+  ELEVENLABS: 'elevenlabs',
+} as const;
 
 /**
  * IntegrationProvider
  */
-export type IntegrationProvider = (typeof IntegrationProvider)[keyof typeof IntegrationProvider];
+export type IntegrationProviderInput =
+  (typeof IntegrationProviderInput)[keyof typeof IntegrationProviderInput];
 
 /**
  * IntegrationPublic
@@ -1869,7 +1988,7 @@ export type IntegrationPublic = {
   /**
    * IntegrationProvider
    */
-  provider: 'retell';
+  provider: 'retell' | 'vapi' | 'elevenlabs';
   /**
    * Name
    */
@@ -2396,17 +2515,21 @@ export const MetricTier = {
 export type MetricTier = (typeof MetricTier)[keyof typeof MetricTier];
 
 /**
- * NewPassword
+ * MockWebhookResponse
  */
-export type NewPassword = {
+export type MockWebhookResponse = {
   /**
-   * Token
+   * Message
    */
-  token: string;
+  message: string;
   /**
-   * New Password
+   * Received Event Type
    */
-  new_password: string;
+  received_event_type?: string | null;
+  /**
+   * Payload Received
+   */
+  payload_received: boolean;
 };
 
 /**
@@ -2422,7 +2545,12 @@ export type OnConflict = (typeof OnConflict)[keyof typeof OnConflict];
 /**
  * Platform
  */
-export const Platform = { RETELL: 'retell' } as const;
+export const Platform = {
+  RETELL: 'retell',
+  VAPI: 'vapi',
+  ELEVENLABS: 'elevenlabs',
+  WEBHOOK: 'webhook',
+} as const;
 
 /**
  * Platform
@@ -2757,9 +2885,13 @@ export type PromptEditorSessionsPublic = {
  */
 export type PublishRequest = {
   /**
-   * Change Description
+   * Version Name
    */
-  change_description?: string | null;
+  version_name?: string | null;
+  /**
+   * Version Description
+   */
+  version_description?: string | null;
 };
 
 /**
@@ -2952,6 +3084,18 @@ export type RunConfigInput = {
    */
   tool_mode?: 'mock' | 'live';
   /**
+   * Metrics Pass Threshold
+   *
+   * Run-level threshold (%) for the weighted-average metric score across all test case executions. The run's metrics dimension passes when the average score is at or above this threshold.
+   */
+  metrics_pass_threshold?: number;
+  /**
+   * Cases Pass Threshold
+   *
+   * Run-level threshold (%) for the fraction of test cases that pass. A test case passes when all of its expected_outcomes pass (or, for legacy test cases without expected_outcomes, when the judge verdict passes).
+   */
+  cases_pass_threshold?: number;
+  /**
    * Judge metric selection, weights, pass threshold, and model overrides
    */
   judge?: JudgeConfig | null;
@@ -2993,6 +3137,18 @@ export type RunConfigOutput = {
    * Global tool execution mode: mock uses test-case expected_tool_calls.mock_response payloads, live executes real implementations
    */
   tool_mode?: 'mock' | 'live';
+  /**
+   * Metrics Pass Threshold
+   *
+   * Run-level threshold (%) for the weighted-average metric score across all test case executions. The run's metrics dimension passes when the average score is at or above this threshold.
+   */
+  metrics_pass_threshold?: number;
+  /**
+   * Cases Pass Threshold
+   *
+   * Run-level threshold (%) for the fraction of test cases that pass. A test case passes when all of its expected_outcomes pass (or, for legacy test cases without expected_outcomes, when the judge verdict passes).
+   */
+  cases_pass_threshold?: number;
   /**
    * Judge metric selection, weights, pass threshold, and model overrides
    */
@@ -3108,13 +3264,13 @@ export type RunCreate = {
   /**
    * Agent Version
    *
-   * Agent behavioral config version at run creation (set by server)
+   * Target agent version to evaluate. If omitted, defaults to the agent's current version. If provided, the run is snapshotted from that AgentVersion row (system_prompt, tools, model, etc.).
    */
   agent_version?: number | null;
   /**
    * Agent Version Id
    *
-   * FK to agent_version row at run creation (set by server)
+   * Resolved by the server from agent_version; ignored on input.
    */
   agent_version_id?: string | null;
   /**
@@ -3800,6 +3956,12 @@ export type TestCasePublic = {
    * When the test case was last updated
    */
   updated_at: string;
+  /**
+   * Deleted At
+   *
+   * When the test case was soft-deleted (null = active)
+   */
+  deleted_at?: string | null;
 };
 
 /**
@@ -4435,6 +4597,183 @@ export type UserUpdateMe = {
 };
 
 /**
+ * WebhookAgent
+ */
+export type WebhookAgent = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Version
+   */
+  version: number;
+  /**
+   * Version Name
+   */
+  version_name?: string | null;
+  /**
+   * Version Description
+   */
+  version_description?: string | null;
+  /**
+   * Prompt
+   */
+  prompt: string;
+  llm: WebhookLlm;
+  /**
+   * Tool Calls
+   */
+  tool_calls?: Array<WebhookToolCall>;
+};
+
+/**
+ * WebhookDeployPayload
+ */
+export type WebhookDeployPayload = {
+  /**
+   * Event
+   */
+  event: string;
+  agent: WebhookAgent;
+  /**
+   * Environment
+   */
+  environment: string;
+  /**
+   * Deployed At
+   */
+  deployed_at: string;
+  /**
+   * Deployed By
+   */
+  deployed_by?: string | null;
+  eval: WebhookEval;
+};
+
+/**
+ * WebhookEval
+ */
+export type WebhookEval = {
+  /**
+   * Config Id
+   */
+  config_id?: string | null;
+  /**
+   * Config Name
+   */
+  config_name?: string | null;
+  /**
+   * Run At
+   */
+  run_at?: string | null;
+  /**
+   * Passed
+   */
+  passed?: boolean | null;
+  /**
+   * Metrics Score
+   */
+  metrics_score?: number | null;
+  /**
+   * Metrics Pass Threshold
+   */
+  metrics_pass_threshold?: number | null;
+  /**
+   * Cases Passed
+   */
+  cases_passed?: number | null;
+  /**
+   * Cases Total
+   */
+  cases_total?: number | null;
+  /**
+   * Cases Pass Threshold
+   */
+  cases_pass_threshold?: number | null;
+  /**
+   * Results Link
+   */
+  results_link?: string | null;
+};
+
+/**
+ * WebhookLlm
+ */
+export type WebhookLlm = {
+  /**
+   * Provider
+   */
+  provider?: string | null;
+  /**
+   * Model
+   */
+  model?: string | null;
+  /**
+   * Temperature
+   */
+  temperature?: number | null;
+};
+
+/**
+ * WebhookToolCall
+ */
+export type WebhookToolCall = {
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Description
+   */
+  description?: string | null;
+  /**
+   * Method
+   */
+  method?: string | null;
+  /**
+   * Url
+   */
+  url?: string | null;
+  /**
+   * Headers
+   */
+  headers?: {
+    [key: string]: string;
+  };
+  /**
+   * Parameters
+   */
+  parameters?: Array<WebhookToolCallParameter>;
+};
+
+/**
+ * WebhookToolCallParameter
+ */
+export type WebhookToolCallParameter = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Type
+   */
+  type?: string | null;
+  /**
+   * Required
+   */
+  required?: boolean;
+  /**
+   * Description
+   */
+  description?: string | null;
+};
+
+/**
  * AgentMode
  */
 export const AppModelsEnumsAgentMode = { ENDPOINT: 'endpoint', PLATFORM: 'platform' } as const;
@@ -4444,6 +4783,36 @@ export const AppModelsEnumsAgentMode = { ENDPOINT: 'endpoint', PLATFORM: 'platfo
  */
 export type AppModelsEnumsAgentMode =
   (typeof AppModelsEnumsAgentMode)[keyof typeof AppModelsEnumsAgentMode];
+
+/**
+ * IntegrationProvider
+ */
+export const AppModelsEnumsIntegrationProvider1 = {
+  RETELL: 'retell',
+  VAPI: 'vapi',
+  ELEVENLABS: 'elevenlabs',
+} as const;
+
+/**
+ * IntegrationProvider
+ */
+export type AppModelsEnumsIntegrationProvider1 =
+  (typeof AppModelsEnumsIntegrationProvider1)[keyof typeof AppModelsEnumsIntegrationProvider1];
+
+/**
+ * IntegrationProvider
+ */
+export const AppModelsEnumsIntegrationProvider2 = {
+  RETELL: 'retell',
+  VAPI: 'vapi',
+  ELEVENLABS: 'elevenlabs',
+} as const;
+
+/**
+ * IntegrationProvider
+ */
+export type AppModelsEnumsIntegrationProvider2 =
+  (typeof AppModelsEnumsIntegrationProvider2)[keyof typeof AppModelsEnumsIntegrationProvider2];
 
 /**
  * AgentMode
@@ -4475,6 +4844,23 @@ export type HealthHealthResponses = {
 };
 
 export type HealthHealthResponse = HealthHealthResponses[keyof HealthHealthResponses];
+
+export type HealthMockWebhookData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/mock-webhook';
+};
+
+export type HealthMockWebhookResponses = {
+  /**
+   * Successful Response
+   */
+  200: MockWebhookResponse;
+};
+
+export type HealthMockWebhookResponse =
+  HealthMockWebhookResponses[keyof HealthMockWebhookResponses];
 
 export type LoginLoginAccessTokenData = {
   body: BodyLoginLoginAccessToken;
@@ -4575,112 +4961,6 @@ export type LoginTestTokenResponses = {
 };
 
 export type LoginTestTokenResponse = LoginTestTokenResponses[keyof LoginTestTokenResponses];
-
-export type LoginRecoverPasswordData = {
-  body?: never;
-  path: {
-    /**
-     * Email
-     */
-    email: string;
-  };
-  query?: never;
-  url: '/api/v1/password-recovery/{email}';
-};
-
-export type LoginRecoverPasswordErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type LoginRecoverPasswordError =
-  LoginRecoverPasswordErrors[keyof LoginRecoverPasswordErrors];
-
-export type LoginRecoverPasswordResponses = {
-  /**
-   * Successful Response
-   */
-  200: Message;
-};
-
-export type LoginRecoverPasswordResponse =
-  LoginRecoverPasswordResponses[keyof LoginRecoverPasswordResponses];
-
-export type LoginResetPasswordData = {
-  body: NewPassword;
-  path?: never;
-  query?: never;
-  url: '/api/v1/reset-password/';
-};
-
-export type LoginResetPasswordErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type LoginResetPasswordError = LoginResetPasswordErrors[keyof LoginResetPasswordErrors];
-
-export type LoginResetPasswordResponses = {
-  /**
-   * Successful Response
-   */
-  200: Message;
-};
-
-export type LoginResetPasswordResponse =
-  LoginResetPasswordResponses[keyof LoginResetPasswordResponses];
 
 export type LoginLogoutData = {
   body?: never;
@@ -5930,6 +6210,12 @@ export type TestCasesListTestCasesData = {
      * Filter test cases bound to this agent
      */
     agent_id?: string | null;
+    /**
+     * Include Deleted
+     *
+     * Include soft-deleted test cases — used by the eval-run detail view so historical results can still resolve test-case metadata.
+     */
+    include_deleted?: boolean;
   };
   url: '/api/v1/test-cases/';
 };
@@ -9355,6 +9641,70 @@ export type EnvironmentsCreateEnvironmentResponses = {
 export type EnvironmentsCreateEnvironmentResponse =
   EnvironmentsCreateEnvironmentResponses[keyof EnvironmentsCreateEnvironmentResponses];
 
+export type EnvironmentsGetWebhookPayloadPreviewData = {
+  body?: never;
+  path?: never;
+  query: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+    /**
+     * Environment Name
+     */
+    environment_name: string;
+    /**
+     * Eval Gate Eval Config Id
+     */
+    eval_gate_eval_config_id?: string | null;
+  };
+  url: '/api/v1/environments/webhook-payload-preview';
+};
+
+export type EnvironmentsGetWebhookPayloadPreviewErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type EnvironmentsGetWebhookPayloadPreviewError =
+  EnvironmentsGetWebhookPayloadPreviewErrors[keyof EnvironmentsGetWebhookPayloadPreviewErrors];
+
+export type EnvironmentsGetWebhookPayloadPreviewResponses = {
+  /**
+   * Successful Response
+   */
+  200: WebhookDeployPayload;
+};
+
+export type EnvironmentsGetWebhookPayloadPreviewResponse =
+  EnvironmentsGetWebhookPayloadPreviewResponses[keyof EnvironmentsGetWebhookPayloadPreviewResponses];
+
 export type EnvironmentsDeleteEnvironmentData = {
   body?: never;
   path: {
@@ -9410,6 +9760,62 @@ export type EnvironmentsDeleteEnvironmentResponses = {
 
 export type EnvironmentsDeleteEnvironmentResponse =
   EnvironmentsDeleteEnvironmentResponses[keyof EnvironmentsDeleteEnvironmentResponses];
+
+export type EnvironmentsUpdateEnvironmentData = {
+  body: EnvironmentUpdate;
+  path: {
+    /**
+     * Environment Id
+     */
+    environment_id: string;
+  };
+  query?: never;
+  url: '/api/v1/environments/{environment_id}';
+};
+
+export type EnvironmentsUpdateEnvironmentErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type EnvironmentsUpdateEnvironmentError =
+  EnvironmentsUpdateEnvironmentErrors[keyof EnvironmentsUpdateEnvironmentErrors];
+
+export type EnvironmentsUpdateEnvironmentResponses = {
+  /**
+   * Successful Response
+   */
+  200: EnvironmentPublic;
+};
+
+export type EnvironmentsUpdateEnvironmentResponse =
+  EnvironmentsUpdateEnvironmentResponses[keyof EnvironmentsUpdateEnvironmentResponses];
 
 export type EnvironmentsDeployEnvironmentData = {
   body: DeploymentCreate;

@@ -243,7 +243,9 @@ def _build_failing_summaries(
 
     out: list[FailingTestCaseSummary] = []
     for _score, row, v in candidates[:_MAX_FAILING_TEST_CASES]:
-        tc = crud.get_test_case(session=db_session, test_case_id=row.test_case_id)
+        tc = crud.get_test_case(
+            session=db_session, test_case_id=row.test_case_id, include_deleted=True
+        )
         name = tc.name if tc else None
         failing_metrics: list[str] = _failing_metric_names(v) if v else []
         judge_summary: str | None = None
@@ -300,7 +302,9 @@ def _build_detailed_result(
     run = crud.get_run(session=db_session, run_id=row.run_id)
     if run is None:
         return None
-    tc = crud.get_test_case(session=db_session, test_case_id=row.test_case_id)
+    tc = crud.get_test_case(
+        session=db_session, test_case_id=row.test_case_id, include_deleted=True
+    )
     v = _parse_verdict(cast(dict[str, object] | None, row.verdict))
     raw_tr = row.transcript
     transcript_dicts: list[dict[str, object]] | None

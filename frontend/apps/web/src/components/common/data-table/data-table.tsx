@@ -57,9 +57,12 @@ export function DataTable<TData, TValue>({
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id} className="hover:bg-transparent">
+            <TableRow key={headerGroup.id} className="border-border hover:bg-transparent">
               {headerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
+                <TableHead
+                  key={header.id}
+                  className="h-auto px-5 py-2 text-[10px] font-normal uppercase tracking-wider text-muted-foreground/60"
+                >
                   {header.isPlaceholder
                     ? null
                     : flexRender(header.column.columnDef.header, header.getContext())}
@@ -74,20 +77,20 @@ export function DataTable<TData, TValue>({
               <TableRow
                 key={row.id}
                 className={cn(
-                  'hover:bg-transparent',
-                  onRowClick && 'cursor-pointer hover:bg-muted/50'
+                  'border-border/40 hover:bg-accent/20',
+                  onRowClick && 'cursor-pointer'
                 )}
                 onClick={() => onRowClick?.(row.original)}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
+                  <TableCell key={cell.id} className="px-5 py-2.5">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
               </TableRow>
             ))
           ) : (
-            <TableRow className="hover:bg-transparent">
+            <TableRow className="border-border hover:bg-transparent">
               <TableCell colSpan={columns.length} className="h-64 text-center">
                 {emptyState ?? <p className="text-sm text-muted-foreground">No results found.</p>}
               </TableCell>

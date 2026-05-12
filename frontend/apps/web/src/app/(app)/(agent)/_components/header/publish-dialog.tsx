@@ -45,13 +45,11 @@ export function PublishDialog() {
   });
 
   const onSubmit = (data: PublishFormValues) => {
-    const parts: string[] = [];
-    if (data.name?.trim()) parts.push(data.name.trim());
-    if (data.description?.trim()) parts.push(data.description.trim());
-    const changeDescription = parts.join('\n') || undefined;
-
     publish(
-      { change_description: changeDescription ?? null },
+      {
+        version_name: data.name?.trim() ? data.name.trim() : null,
+        version_description: data.description?.trim() ? data.description.trim() : null,
+      },
       {
         onSuccess: () => {
           form.reset();

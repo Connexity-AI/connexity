@@ -102,6 +102,9 @@ import type {
   EnvironmentsDeployEnvironmentData,
   EnvironmentsDeployEnvironmentErrors,
   EnvironmentsDeployEnvironmentResponses,
+  EnvironmentsGetWebhookPayloadPreviewData,
+  EnvironmentsGetWebhookPayloadPreviewErrors,
+  EnvironmentsGetWebhookPayloadPreviewResponses,
   EnvironmentsListAgentDeploymentsData,
   EnvironmentsListAgentDeploymentsErrors,
   EnvironmentsListAgentDeploymentsResponses,
@@ -114,6 +117,9 @@ import type {
   EnvironmentsListEnvironmentsData,
   EnvironmentsListEnvironmentsErrors,
   EnvironmentsListEnvironmentsResponses,
+  EnvironmentsUpdateEnvironmentData,
+  EnvironmentsUpdateEnvironmentErrors,
+  EnvironmentsUpdateEnvironmentResponses,
   EvalConfigsAddTestCasesToConfigData,
   EvalConfigsAddTestCasesToConfigErrors,
   EvalConfigsAddTestCasesToConfigResponses,
@@ -143,6 +149,8 @@ import type {
   EvalConfigsUpdateEvalConfigResponses,
   HealthHealthData,
   HealthHealthResponses,
+  HealthMockWebhookData,
+  HealthMockWebhookResponses,
   IntegrationsCreateIntegrationData,
   IntegrationsCreateIntegrationErrors,
   IntegrationsCreateIntegrationResponses,
@@ -164,12 +172,6 @@ import type {
   LoginLogoutData,
   LoginLogoutErrors,
   LoginLogoutResponses,
-  LoginRecoverPasswordData,
-  LoginRecoverPasswordErrors,
-  LoginRecoverPasswordResponses,
-  LoginResetPasswordData,
-  LoginResetPasswordErrors,
-  LoginResetPasswordResponses,
   LoginTestTokenData,
   LoginTestTokenErrors,
   LoginTestTokenResponses,
@@ -323,6 +325,18 @@ export class HealthService {
       ...options,
     });
   }
+
+  /**
+   * Mock Webhook
+   */
+  public static mockWebhook<ThrowOnError extends boolean = false>(
+    options?: Options<HealthMockWebhookData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).post<HealthMockWebhookResponses, unknown, ThrowOnError>({
+      url: '/mock-webhook',
+      ...options,
+    });
+  }
 }
 
 export class LoginService {
@@ -372,43 +386,6 @@ export class LoginService {
       ],
       url: '/api/v1/login/test-token',
       ...options,
-    });
-  }
-
-  /**
-   * Recover Password
-   *
-   * Password Recovery
-   */
-  public static recoverPassword<ThrowOnError extends boolean = false>(
-    options: Options<LoginRecoverPasswordData, ThrowOnError>
-  ) {
-    return (options.client ?? client).post<
-      LoginRecoverPasswordResponses,
-      LoginRecoverPasswordErrors,
-      ThrowOnError
-    >({ url: '/api/v1/password-recovery/{email}', ...options });
-  }
-
-  /**
-   * Reset Password
-   *
-   * Reset password
-   */
-  public static resetPassword<ThrowOnError extends boolean = false>(
-    options: Options<LoginResetPasswordData, ThrowOnError>
-  ) {
-    return (options.client ?? client).post<
-      LoginResetPasswordResponses,
-      LoginResetPasswordErrors,
-      ThrowOnError
-    >({
-      url: '/api/v1/reset-password/',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
     });
   }
 
@@ -2563,6 +2540,30 @@ export class EnvironmentsService {
   }
 
   /**
+   * Get Webhook Payload Preview
+   */
+  public static getWebhookPayloadPreview<ThrowOnError extends boolean = false>(
+    options: Options<EnvironmentsGetWebhookPayloadPreviewData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      EnvironmentsGetWebhookPayloadPreviewResponses,
+      EnvironmentsGetWebhookPayloadPreviewErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/environments/webhook-payload-preview',
+      ...options,
+    });
+  }
+
+  /**
    * Delete Environment
    */
   public static deleteEnvironment<ThrowOnError extends boolean = false>(
@@ -2583,6 +2584,34 @@ export class EnvironmentsService {
       ],
       url: '/api/v1/environments/{environment_id}',
       ...options,
+    });
+  }
+
+  /**
+   * Update Environment
+   */
+  public static updateEnvironment<ThrowOnError extends boolean = false>(
+    options: Options<EnvironmentsUpdateEnvironmentData, ThrowOnError>
+  ) {
+    return (options.client ?? client).patch<
+      EnvironmentsUpdateEnvironmentResponses,
+      EnvironmentsUpdateEnvironmentErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/environments/{environment_id}',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
     });
   }
 

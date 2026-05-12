@@ -8,6 +8,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
 from app.models.enums import AgentMode
+from app.models.schemas import AggregateMetrics
 
 if TYPE_CHECKING:
     from app.models.agent_version import AgentVersion
@@ -115,11 +116,6 @@ class Agent(AgentBase, table=True):
     created_by: uuid.UUID | None = Field(
         default=None, foreign_key="user.id", index=True
     )
-    version: int = Field(
-        default=1,
-        nullable=False,
-        description="Current config version number (denormalized; see agent_version history)",
-    )
     has_draft: bool = Field(
         default=False,
         nullable=False,
@@ -225,18 +221,17 @@ class AgentUpdate(SQLModel):
         default=None,
         description="Custom prompting guidelines for the prompt editor agent (None = use default)",
     )
-    change_description: str | None = Field(
-        default=None,
-        description="Optional changelog when a versionable field changes",
-    )
 
 
 class AgentPublic(AgentBase):
     id: uuid.UUID = Field(description="Unique agent identifier")
-    version: int = Field(description="Current behavioral config version")
     has_draft: bool = Field(description="True when an unpublished draft version exists")
     created_at: datetime = Field(description="When the agent was created")
     updated_at: datetime = Field(description="When the agent was last updated")
+    last_eval: "AgentLastEvalSummary | None" = Field(
+        default=None,
+        description="Latest completed eval run summary for this agent, if any",
+    )
 
     @model_validator(mode="after")
     def validate_mode_fields(self) -> "AgentPublic":
@@ -249,6 +244,17 @@ class AgentPublic(AgentBase):
 class AgentsPublic(SQLModel):
     data: list[AgentPublic] = Field(description="List of agents")
     count: int = Field(description="Total number of agents matching the query")
+
+
+class AgentLastEvalSummary(SQLModel):
+    run_id: uuid.UUID = Field(description="Latest completed run id")
+    created_at: datetime = Field(
+        description="When the latest completed run was created"
+    )
+    aggregate_metrics: AggregateMetrics | None = Field(
+        default=None,
+        description="Aggregate metrics snapshot from the latest completed run",
+    )
 
 
 class AgentGuidelinesPublic(SQLModel):

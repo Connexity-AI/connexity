@@ -2,18 +2,11 @@
 
 import { useQuery } from '@tanstack/react-query';
 
-import { getAgentVersions } from '@/actions/agents';
-import { agentKeys } from '@/constants/query-keys';
-import { isSuccessApiResult } from '@/utils/api';
+import { agentVersionsListQuery } from '@/app/(app)/(agent)/_queries/agent-versions-list-query';
 
-export function useAgentVersions(agentId: string) {
+export function useAgentVersions(agentId: string, enabled: boolean = true) {
   return useQuery({
-    queryKey: agentKeys.versions(agentId),
-    queryFn: async () => {
-      const result = await getAgentVersions(agentId);
-      if (!isSuccessApiResult(result)) throw new Error('Failed to fetch agent versions');
-      return result.data;
-    },
-    staleTime: 30 * 1000,
+    ...agentVersionsListQuery(agentId),
+    enabled,
   });
 }

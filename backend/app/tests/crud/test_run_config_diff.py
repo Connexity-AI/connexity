@@ -66,7 +66,13 @@ def test_compute_run_config_diff_model_swap(db: Session) -> None:
         db_agent=agent,
         agent_in=AgentUpdate(agent_model="gpt-4o-mini"),
     )
-    publish_draft(session=db, agent=agent, change_description=None, created_by=None)
+    publish_draft(
+        session=db,
+        agent=agent,
+        version_name=None,
+        version_description=None,
+        created_by=None,
+    )
     r2 = create_test_run(db, agent.id, es.id)
     sids = {tc.id}
     diff = compute_run_config_diff(r1, r2, sids, sids, session=db)
@@ -99,7 +105,13 @@ def test_compute_run_config_diff_prompt_and_tools(db: Session) -> None:
             tools=[_tool("search"), _tool("weather")],
         ),
     )
-    publish_draft(session=db, agent=agent, change_description=None, created_by=None)
+    publish_draft(
+        session=db,
+        agent=agent,
+        version_name=None,
+        version_description=None,
+        created_by=None,
+    )
     r2 = create_test_run(db, agent.id, es.id)
     sids = {tc.id}
     diff = compute_run_config_diff(r1, r2, sids, sids, session=db)

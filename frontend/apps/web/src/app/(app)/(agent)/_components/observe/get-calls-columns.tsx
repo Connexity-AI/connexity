@@ -7,7 +7,19 @@ import { Button } from '@workspace/ui/components/ui/button';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import type { CallRow } from '@/actions/calls';
+import { AppModelsEnumsIntegrationProvider2 } from '@/client/types.gen';
 import type { TestCasePublic } from '@/client/types.gen';
+
+function getProviderBadgeClassName(provider: CallRow['provider']): string {
+  if (provider === AppModelsEnumsIntegrationProvider2.VAPI) {
+    return 'text-[10px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 uppercase tracking-wide';
+  }
+  if (provider === AppModelsEnumsIntegrationProvider2.ELEVENLABS) {
+    return 'text-[10px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 uppercase tracking-wide';
+  }
+
+  return 'text-[10px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 uppercase tracking-wide';
+}
 
 function formatCallDate(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
@@ -41,11 +53,16 @@ export const getCallsColumns = ({
     enableSorting: false,
     cell: ({ row }) => (
       <div className="flex min-w-0 items-center gap-2">
-        <span className="truncate text-sm text-foreground tabular-nums">
+        <span className="truncate text-xs text-muted-foreground tabular-nums">
           {formatCallDate(row.original.started_at)}
         </span>
+        {row.original.provider ? (
+          <span className={getProviderBadgeClassName(row.original.provider)}>
+            {row.original.provider}
+          </span>
+        ) : null}
         {row.original.is_new ? (
-          <span className="inline-flex items-center rounded border border-violet-500/25 bg-violet-500/15 px-1.5 py-px align-middle text-[9px] text-violet-300">
+          <span className="inline-flex items-center rounded border border-violet-500/25 bg-violet-500/15 px-1.5 py-px align-middle text-[10px] text-violet-300">
             New
           </span>
         ) : null}
@@ -57,7 +74,7 @@ export const getCallsColumns = ({
     header: 'Duration',
     enableSorting: false,
     cell: ({ row }) => (
-      <div className="flex items-center gap-1.5 text-xs tabular-nums text-muted-foreground">
+      <div className="flex items-center gap-1.5 font-mono text-xs tabular-nums text-muted-foreground">
         <Clock className="h-3 w-3" />
         {formatDuration(row.original.duration_seconds)}
       </div>

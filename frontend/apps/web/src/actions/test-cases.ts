@@ -18,10 +18,16 @@ import type { ApiResult } from '@/types/api';
 export const listTestCases = async (
   agentId: string,
   skip: number = 0,
-  limit: number = 100
+  limit: number = 100,
+  options?: { includeDeleted?: boolean }
 ): Promise<ApiResult<TestCasesPublic>> => {
   const apiResponse = await TestCasesService.testCasesListTestCases({
-    query: { agent_id: agentId, skip, limit },
+    query: {
+      agent_id: agentId,
+      skip,
+      limit,
+      ...(options?.includeDeleted ? { include_deleted: true } : {}),
+    },
   });
   const { response: _, ...result } = apiResponse;
   return result;

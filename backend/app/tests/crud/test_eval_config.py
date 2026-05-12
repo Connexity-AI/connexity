@@ -308,6 +308,23 @@ def test_delete_eval_config(db: Session) -> None:
     assert fetched is None
 
 
+def test_delete_eval_config_is_soft(db: Session) -> None:
+    """delete_eval_config stamps deleted_at and excludes the row from list/get."""
+    eval_config = create_test_eval_config(db)
+    config_id = eval_config.id
+    crud.delete_eval_config(session=db, db_eval_config=eval_config)
+
+    listed, count = crud.list_eval_configs(session=db, agent_id=eval_config.agent_id)
+    assert all(item.id != config_id for item in listed)
+    assert count == 0
+
+    still_there = crud.get_eval_config(
+        session=db, eval_config_id=config_id, include_deleted=True
+    )
+    assert still_there is not None
+    assert still_there.deleted_at is not None
+
+
 def test_get_test_cases_for_config_returns_active_only(db: Session) -> None:
     active = create_test_case_fixture(db, status="active")
     draft = create_test_case_fixture(db, status="draft")

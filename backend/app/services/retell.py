@@ -1,9 +1,12 @@
+import logging
 from datetime import datetime
 from typing import Any
 
 import httpx
 from fastapi import HTTPException
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 
 class RetellAgentSummary(BaseModel):
@@ -33,6 +36,30 @@ class RetellCall(BaseModel):
     call_status: str | None = None
     transcript_object: list[dict[str, Any]] | None = None
     raw: dict[str, Any] | None = None
+
+
+def _retell_duration_seconds(
+    *, start_timestamp: int | None, end_timestamp: int | None
+) -> int | None:
+    if start_timestamp is None or end_timestamp is None:
+        return None
+    return (end_timestamp - start_timestamp) // 1000
+
+
+def _is_finished_retell_call(
+    *,
+    status: str | None,
+    start_timestamp: int | None,
+    end_timestamp: int | None,
+) -> bool:
+    duration_seconds = _retell_duration_seconds(
+        start_timestamp=start_timestamp,
+        end_timestamp=end_timestamp,
+    )
+    if duration_seconds is None or duration_seconds <= 0:
+        return False
+    normalized_status = (status or "").lower()
+    return normalized_status in {"ended", "completed", "finished"}
 
 
 async def test_retell_connection(api_key: str) -> bool:
@@ -169,13 +196,22 @@ async def list_retell_calls(
     for item in items:
         if not isinstance(item, dict):
             continue
+        status = item.get("call_status")
+        start_timestamp = item.get("start_timestamp")
+        end_timestamp = item.get("end_timestamp")
+        if not _is_finished_retell_call(
+            status=status,
+            start_timestamp=start_timestamp,
+            end_timestamp=end_timestamp,
+        ):
+            continue
         calls.append(
             RetellCall(
                 call_id=item.get("call_id", ""),
                 agent_id=item.get("agent_id"),
-                start_timestamp=item.get("start_timestamp"),
-                end_timestamp=item.get("end_timestamp"),
-                call_status=item.get("call_status"),
+                start_timestamp=start_timestamp,
+                end_timestamp=end_timestamp,
+                call_status=status,
                 transcript_object=item.get("transcript_object"),
                 raw=item,
             )
@@ -235,7 +271,7 @@ async def deploy_retell_agent(
     agent_model: str | None,
     agent_temperature: float | None,
     tools: list[dict[str, Any]] | None,
-    change_description: str | None,
+    version_description: str | None,
 ) -> RetellDeployResult:
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -289,6 +325,13 @@ async def deploy_retell_agent(
         if tools:
             llm_payload["general_tools"] = _map_tools_for_retell(tools)
 
+        logger.info(
+            "Retell deploy payload prepared for update-retell-llm: retell_agent_id=%s llm_id=%s payload=%s",
+            retell_agent_id,
+            llm_id,
+            llm_payload,
+        )
+
         try:
             resp = await client.patch(
                 f"https://api.retellai.com/update-retell-llm/{llm_id}",
@@ -312,12 +355,19 @@ async def deploy_retell_agent(
                 error_message=f"Retell update-retell-llm returned {resp.status_code}: {detail}",
             )
 
+        logger.info(
+            "Retell update-retell-llm succeeded: retell_agent_id=%s llm_id=%s status_code=%s",
+            retell_agent_id,
+            llm_id,
+            resp.status_code,
+        )
+
         # Step 3: patch the agent with version description
         try:
             resp = await client.patch(
                 f"https://api.retellai.com/update-agent/{retell_agent_id}",
                 headers=headers,
-                json={"version_description": change_description},
+                json={"version_description": version_description},
                 timeout=30.0,
             )
         except httpx.HTTPError as exc:

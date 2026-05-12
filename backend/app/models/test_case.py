@@ -146,6 +146,7 @@ class TestCase(TestCaseBase, table=True):
             "onupdate": lambda: datetime.now(UTC),
         },
     )
+    deleted_at: datetime | None = Field(default=None, index=True)
 
     # Relationships
     agent: Agent | None = Relationship(back_populates="test_cases")
@@ -224,6 +225,10 @@ class TestCasePublic(TestCaseBase):
     id: uuid.UUID = Field(description="Unique test case identifier")
     created_at: datetime = Field(description="When the test case was created")
     updated_at: datetime = Field(description="When the test case was last updated")
+    deleted_at: datetime | None = Field(
+        default=None,
+        description="When the test case was soft-deleted (null = active)",
+    )
     expected_tool_calls: list[ExpectedToolCall] | None = None  # type: ignore[assignment]
 
 

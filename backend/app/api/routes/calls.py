@@ -22,7 +22,12 @@ from app.models import (
 from app.models.agent import Agent
 from app.models.enums import Platform
 from app.models.test_case import TestCase
+from app.services.elevenlabs import (
+    get_elevenlabs_conversation,
+    list_elevenlabs_conversations,
+)
 from app.services.retell import list_retell_calls
+from app.services.vapi import list_vapi_calls
 
 logger = logging.getLogger(__name__)
 
@@ -40,13 +45,13 @@ def _emit(event: str, **fields: Any) -> None:
     logger.warning(json.dumps(payload, default=str))
 
 
-async def _fetch_and_store_from_retell(
+async def _fetch_and_store_production_calls(
     *,
     session,
     agent,
     incremental: bool,
 ) -> int:
-    """Pull calls from Retell into the DB across every Retell environment on the agent.
+    """Pull calls into the DB across every production-call provider environment.
 
     Returns total number of newly-inserted rows.
     """
@@ -55,7 +60,7 @@ async def _fetch_and_store_from_retell(
         "agent_id": str(agent.id),
         "incremental": incremental,
         "envs_total": 0,
-        "retell_envs": 0,
+        "provider_envs": 0,
         "envs": [],
         "created_total": 0,
         "status": "ok",
@@ -64,23 +69,28 @@ async def _fetch_and_store_from_retell(
         environments = crud.list_environments_by_agent(
             session=session, agent_id=agent.id
         )
-        retell_envs = [
-            (env, name) for env, name in environments if env.platform == Platform.RETELL
+        provider_envs = [
+            (env, name)
+            for env, name in environments
+            if env.platform in {Platform.RETELL, Platform.VAPI, Platform.ELEVENLABS}
         ]
         event["envs_total"] = len(environments)
-        event["retell_envs"] = len(retell_envs)
+        event["provider_envs"] = len(provider_envs)
 
-        if not retell_envs:
-            event["status"] = "no_retell_env"
+        if not provider_envs:
+            event["status"] = "no_production_call_env"
             raise HTTPException(
                 status_code=400,
-                detail="Add a Retell environment on the Deploy tab first",
+                detail="Add a Retell, Vapi, or ElevenLabs environment on the Deploy tab first",
             )
 
         created_total = 0
-        for env, _ in retell_envs:
+        for env, _ in provider_envs:
+            if env.integration_id is None or env.platform_agent_id is None:
+                continue
             env_event: dict[str, Any] = {
                 "env_id": str(env.id),
+                "platform": env.platform,
                 "platform_agent_id": env.platform_agent_id,
                 "integration_id": str(env.integration_id)
                 if env.integration_id
@@ -124,37 +134,102 @@ async def _fetch_and_store_from_retell(
             for iteration in range(_MAX_FETCH_ITERATIONS):
                 env_event["iterations"] = iteration + 1
                 try:
-                    batch = await list_retell_calls(
-                        api_key,
-                        agent_id=env.platform_agent_id,
-                        start_after=start_after,
-                        limit=_RETELL_PAGE_SIZE,
-                    )
+                    if env.platform == Platform.RETELL:
+                        batch = await list_retell_calls(
+                            api_key,
+                            agent_id=env.platform_agent_id,
+                            start_after=start_after,
+                            limit=_RETELL_PAGE_SIZE,
+                        )
+                        inserted = crud.upsert_calls_from_retell(
+                            session=session,
+                            agent_id=agent.id,
+                            integration_id=integration.id,
+                            retell_calls=batch,
+                        )
+                        newest = max(
+                            (
+                                c.start_timestamp
+                                for c in batch
+                                if c.start_timestamp is not None
+                            ),
+                            default=None,
+                        )
+                        next_after = (
+                            datetime.fromtimestamp(newest / 1000, tz=UTC)
+                            if newest is not None
+                            else None
+                        )
+                    else:
+                        if env.platform == Platform.VAPI:
+                            batch = await list_vapi_calls(
+                                api_key,
+                                assistant_id=env.platform_agent_id,
+                                start_after=start_after,
+                                limit=_RETELL_PAGE_SIZE,
+                            )
+                            inserted = crud.upsert_calls_from_vapi(
+                                session=session,
+                                agent_id=agent.id,
+                                integration_id=integration.id,
+                                vapi_calls=batch,
+                            )
+                            next_after = max(
+                                (
+                                    c.started_at or c.created_at
+                                    for c in batch
+                                    if c.started_at is not None
+                                    or c.created_at is not None
+                                ),
+                                default=None,
+                            )
+                        else:
+                            summaries = await list_elevenlabs_conversations(
+                                api_key,
+                                agent_id=env.platform_agent_id,
+                                start_after=start_after,
+                                page_size=_RETELL_PAGE_SIZE,
+                                max_pages=1,
+                            )
+                            batch = [
+                                await get_elevenlabs_conversation(
+                                    api_key, conversation_id=s.conversation_id
+                                )
+                                for s in summaries
+                            ]
+                            inserted = crud.upsert_calls_from_elevenlabs(
+                                session=session,
+                                agent_id=agent.id,
+                                integration_id=integration.id,
+                                conversations=batch,
+                            )
+                            newest_unix = max(
+                                (
+                                    c.start_time_unix_secs
+                                    for c in batch
+                                    if c.start_time_unix_secs
+                                ),
+                                default=None,
+                            )
+                            next_after = (
+                                datetime.fromtimestamp(newest_unix, tz=UTC)
+                                if newest_unix is not None
+                                else None
+                            )
                 except HTTPException as exc:
-                    env_event["status"] = "retell_error"
+                    env_event["status"] = "provider_error"
                     env_event["error"] = f"{exc.status_code}: {exc.detail}"
                     raise
                 if not batch:
                     break
-                inserted = crud.upsert_calls_from_retell(
-                    session=session,
-                    agent_id=agent.id,
-                    integration_id=integration.id,
-                    retell_calls=batch,
-                )
                 env_event["fetched"] += len(batch)
                 env_event["inserted"] += inserted
                 env_event["skipped_dupes"] += len(batch) - inserted
                 created_total += inserted
                 if len(batch) < _RETELL_PAGE_SIZE:
                     break
-                newest_ms = max(
-                    (c.start_timestamp for c in batch if c.start_timestamp is not None),
-                    default=None,
-                )
-                if newest_ms is None:
+                if next_after is None:
                     break
-                next_after = datetime.fromtimestamp(newest_ms / 1000, tz=UTC)
                 if start_after is not None and next_after <= start_after:
                     break
                 start_after = next_after
@@ -171,7 +246,7 @@ async def _fetch_and_store_from_retell(
         raise
     finally:
         event["duration_ms"] = int((time.monotonic() - started) * 1000)
-        _emit("retell_sync", **event)
+        _emit("production_calls_sync", **event)
 
 
 def _is_sync_stale(last_synced_at: datetime | None) -> bool:
@@ -186,7 +261,7 @@ def _is_sync_stale(last_synced_at: datetime | None) -> bool:
 
 
 async def _sync_calls_in_background(agent_id: uuid.UUID) -> None:
-    """Run a Retell sync in a fresh DB session after the request response is sent.
+    """Run a production call sync in a fresh DB session after the response is sent.
 
     Errors are logged, never raised — there is no caller left to receive them.
     """
@@ -202,7 +277,7 @@ async def _sync_calls_in_background(agent_id: uuid.UUID) -> None:
                 event["status"] = "agent_not_found"
                 return
             try:
-                created = await _fetch_and_store_from_retell(
+                created = await _fetch_and_store_production_calls(
                     session=session, agent=agent, incremental=True
                 )
                 event["created"] = created
@@ -266,6 +341,12 @@ async def list_agent_calls(
             date_from=date_from,
             date_to=date_to,
         )
+        logger.warning(
+            "frontend calls payload agent=%s count=%s items=%s",
+            agent_id,
+            count,
+            [item.model_dump(mode="json") for item in items],
+        )
         event["rows_returned"] = len(items)
         event["total_count"] = count
         return CallsPublic(data=items, count=count)
@@ -303,7 +384,7 @@ async def refresh_agent_calls(
             event["status"] = "agent_not_found"
             raise HTTPException(status_code=404, detail="Agent not found")
 
-        created = await _fetch_and_store_from_retell(
+        created = await _fetch_and_store_production_calls(
             session=session, agent=agent, incremental=True
         )
         crud.touch_calls_last_synced_at(session=session, agent_id=agent_id)
@@ -350,6 +431,13 @@ def get_call_detail(
     call_id: uuid.UUID,
 ) -> CallPublic:
     call = _call_or_404(session=session, call_id=call_id)
+    provider = None
+    if call.integration_id is not None:
+        integration = crud.get_integration(
+            session=session,
+            integration_id=call.integration_id,
+        )
+        provider = integration.provider if integration is not None else None
     is_new = call.seen_at is None
     tc_count = int(
         session.exec(
@@ -364,6 +452,7 @@ def get_call_detail(
         started_at=call.started_at,
         duration_seconds=call.duration_seconds,
         status=call.status,
+        provider=provider,
         transcript=call.transcript,
         is_new=is_new,
         test_case_count=tc_count,

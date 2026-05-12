@@ -2,16 +2,17 @@
 
 import { useState } from 'react';
 
-import { Activity, AlertCircle, CheckCheck, Loader2, Plus, Rocket, Zap } from 'lucide-react';
+import { Activity, AlertCircle, CheckCheck, Loader2, Plus, Zap } from 'lucide-react';
 
+import { Button } from '@workspace/ui/components/ui/button';
+
+import { formatTimeAgo } from '@/app/(app)/(agent)/_components/evals/eval-runs/shared/format-time';
 import { useAgentDeployments } from '@/app/(app)/(agent)/_hooks/use-agent-deployments';
 import { useEnvironments } from '@/app/(app)/(agent)/_hooks/use-environments';
-import { formatTimeAgo } from '@/app/(app)/(agent)/_components/evals/eval-runs/shared/format-time';
-
 import { AddEnvironmentDialog } from './add-environment-dialog';
-import { EnvironmentCard } from './environment-card';
+import { EnvironmentsList } from './environments-list';
 
-import type { DeploymentPublic } from '@/client/types.gen';
+import type { DeploymentPublic, EnvironmentPublic } from '@/client/types.gen';
 import type { FC } from 'react';
 
 interface Props {
@@ -20,8 +21,19 @@ interface Props {
 
 export const EnvironmentsSection: FC<Props> = ({ agentId }) => {
   const [addOpen, setAddOpen] = useState(false);
+  const [editingEnvironment, setEditingEnvironment] = useState<EnvironmentPublic | null>(null);
   const { data } = useEnvironments(agentId);
   const environments = data?.data ?? [];
+
+  const openAddDialog = () => {
+    setEditingEnvironment(null);
+    setAddOpen(true);
+  };
+
+  const openEditDialog = (environment: EnvironmentPublic) => {
+    setEditingEnvironment(environment);
+    setAddOpen(true);
+  };
 
   return (
     <>
@@ -31,38 +43,28 @@ export const EnvironmentsSection: FC<Props> = ({ agentId }) => {
             <Zap className="w-4 h-4 text-muted-foreground" />
             <h2 className="text-xs text-muted-foreground uppercase tracking-wider">Environments</h2>
           </div>
-          <button
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            onClick={() => setAddOpen(true)}
+
+          <Button
+            variant="ghost"
+            className="h-auto px-2 py-1 gap-1.5 text-xs font-normal text-muted-foreground hover:text-foreground hover:bg-transparent [&_svg]:size-3.5"
+            onClick={openAddDialog}
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus />
             Add environment
-          </button>
+          </Button>
         </div>
 
-        {environments.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border flex flex-col items-center justify-center py-12 gap-3">
-            <Rocket className="w-8 h-8 text-muted-foreground/30" />
-            <p className="text-sm text-muted-foreground">No environments yet</p>
-            <button
-              className="flex items-center gap-1.5 text-xs text-foreground hover:underline cursor-pointer"
-              onClick={() => setAddOpen(true)}
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add your first environment
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {environments.map((env) => (
-              <EnvironmentCard key={env.id} environment={env} agentId={agentId} />
-            ))}
-          </div>
-        )}
+        <EnvironmentsList
+          environments={environments}
+          agentId={agentId}
+          onAdd={openAddDialog}
+          onEdit={openEditDialog}
+        />
 
         <AddEnvironmentDialog
           open={addOpen}
           onOpenChange={setAddOpen}
+          environment={editingEnvironment}
         />
       </section>
 
@@ -75,51 +77,71 @@ const DeploymentHistorySection: FC<{ agentId: string }> = ({ agentId }) => {
   const { data, isLoading, isError } = useAgentDeployments(agentId);
   const rows = data?.data ?? [];
 
+  const header = (
+    <div className="flex items-center gap-2 mb-4">
+      <Activity className="w-4 h-4 text-muted-foreground" />
+      <h2 className="text-xs text-muted-foreground uppercase tracking-wider">Deployment history</h2>
+    </div>
+  );
+
+  if (isLoading) {
+    return (
+      <section>
+        {header}
+        <div className="text-xs text-muted-foreground">Loading history…</div>
+      </section>
+    );
+  }
+
+  if (isError) {
+    return (
+      <section>
+        {header}
+        <div className="text-xs text-red-400">Failed to load history</div>
+      </section>
+    );
+  }
+
+  if (rows.length === 0) {
+    return (
+      <section>
+        {header}
+        <div className="text-xs text-muted-foreground italic">No deployments yet</div>
+      </section>
+    );
+  }
+
   return (
     <section>
-      <div className="flex items-center gap-2 mb-4">
-        <Activity className="w-4 h-4 text-muted-foreground" />
-        <h2 className="text-xs text-muted-foreground uppercase tracking-wider">
-          Deployment history
-        </h2>
+      {header}
+      <div className="rounded-xl border border-border bg-background overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="text-left px-5 py-3 text-[10px] text-muted-foreground uppercase tracking-wider font-normal">
+                Environment
+              </th>
+              <th className="text-left px-5 py-3 text-[10px] text-muted-foreground uppercase tracking-wider font-normal">
+                Version
+              </th>
+              <th className="text-left px-5 py-3 text-[10px] text-muted-foreground uppercase tracking-wider font-normal">
+                By
+              </th>
+              <th className="text-left px-5 py-3 text-[10px] text-muted-foreground uppercase tracking-wider font-normal">
+                When
+              </th>
+              <th className="text-left px-5 py-3 text-[10px] text-muted-foreground uppercase tracking-wider font-normal">
+                Status
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((d) => (
+              <DeploymentHistoryRow key={d.id} deployment={d} />
+            ))}
+          </tbody>
+        </table>
       </div>
-
-      {isLoading ? (
-        <div className="text-xs text-muted-foreground">Loading history…</div>
-      ) : isError ? (
-        <div className="text-xs text-red-400">Failed to load history</div>
-      ) : rows.length === 0 ? (
-        <div className="text-xs text-muted-foreground italic">No deployments yet</div>
-      ) : (
-        <div className="rounded-xl border border-border bg-background overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left px-5 py-3 text-[10px] text-muted-foreground uppercase tracking-wider font-normal">
-                  Environment
-                </th>
-                <th className="text-left px-5 py-3 text-[10px] text-muted-foreground uppercase tracking-wider font-normal">
-                  Version
-                </th>
-                <th className="text-left px-5 py-3 text-[10px] text-muted-foreground uppercase tracking-wider font-normal">
-                  By
-                </th>
-                <th className="text-left px-5 py-3 text-[10px] text-muted-foreground uppercase tracking-wider font-normal">
-                  When
-                </th>
-                <th className="text-left px-5 py-3 text-[10px] text-muted-foreground uppercase tracking-wider font-normal">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((d) => (
-                <DeploymentHistoryRow key={d.id} deployment={d} />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
     </section>
   );
 };
@@ -136,7 +158,7 @@ const DeploymentHistoryRow: FC<{ deployment: DeploymentPublic }> = ({ deployment
           <span className="text-muted-foreground"> · {deployment.retell_version_name}</span>
         )}
       </td>
-      <td className="px-5 py-3 text-muted-foreground">{deployment.deployed_by_name ?? '—'}</td>
+      <td className="px-5 py-3 text-muted-foreground">{deployment.deployed_by_display_name ?? '—'}</td>
       <td className="px-5 py-3 text-muted-foreground">{formatTimeAgo(deployment.deployed_at)}</td>
       <td className="px-5 py-3">
         {isFailed ? (

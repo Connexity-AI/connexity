@@ -8,9 +8,11 @@ import { Form } from '@workspace/ui/components/ui/form';
 import { CreateEvalReadOnlyProvider } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-readonly-context';
 import { CreateEvalSaveActions } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-save-actions';
 import { CreateEvalTopbar } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-topbar';
+import { EditableEvalConfigName } from '@/app/(app)/(agent)/_components/evals/eval-configs/editable-eval-config-name';
 import { RunEvalConfigButton } from '@/app/(app)/(agent)/_components/evals/run-eval-config-button';
 import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { JudgeSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-judge-section';
+import { PassThresholdsSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-pass-thresholds-section';
 import { PersonaSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-persona-section';
 import { RunConfigSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-run-config-section';
 import { TestCasesSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-test-cases-section';
@@ -82,11 +84,20 @@ export function CreateEvalView({
 
               <CreateEvalTopbar.Separator />
 
-              <CreateEvalTopbar.NameInput
-                value={name}
-                disabled={readOnly}
-                onChange={(v) => form.setValue('name', v, { shouldDirty: true })}
-              />
+              {readOnly && initialConfig ? (
+                <EditableEvalConfigName
+                  evalConfigId={initialConfig.id}
+                  agentId={agentId}
+                  name={name}
+                  onRenamed={(n) => form.setValue('name', n, { shouldDirty: false })}
+                />
+              ) : (
+                <CreateEvalTopbar.NameInput
+                  value={name}
+                  disabled={readOnly}
+                  onChange={(v) => form.setValue('name', v, { shouldDirty: true })}
+                />
+              )}
             </CreateEvalTopbar.Leading>
 
             <CreateEvalTopbar.Actions>
@@ -116,13 +127,15 @@ export function CreateEvalView({
                   {submitError}
                 </p>
               ) : null}
+              <TestCasesSection agentId={agentId} />
+              <JudgeSection metrics={metrics} />
+              <PassThresholdsSection />
+              <PersonaSection />
               <RunConfigSection
                 agentMode={agent?.mode ?? null}
                 agentTools={agent?.tools ?? null}
+                endpointUrl={agent?.endpoint_url ?? null}
               />
-              <TestCasesSection agentId={agentId} />
-              <JudgeSection metrics={metrics} />
-              <PersonaSection />
             </div>
           </form>
         </div>

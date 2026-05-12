@@ -6,8 +6,10 @@ import type {
   DeploymentCreate,
   DeploymentPublic,
   DeploymentsPublic,
+  EnvironmentsGetWebhookPayloadPreviewResponse,
   EnvironmentCreate,
   EnvironmentPublic,
+  EnvironmentUpdate,
   EnvironmentsPublic,
   RetellAgentVersion,
 } from '@/client/types.gen';
@@ -21,11 +23,39 @@ export const createEnvironment = async (
   return result;
 };
 
+export const updateEnvironment = async (
+  environmentId: string,
+  body: EnvironmentUpdate
+): Promise<ApiResult<EnvironmentPublic>> => {
+  const apiResponse = await EnvironmentsService.updateEnvironment({
+    path: { environment_id: environmentId },
+    body,
+  });
+  const { response: _, ...result } = apiResponse;
+  return result;
+};
+
 export const listEnvironments = async (
   agentId: string
 ): Promise<ApiResult<EnvironmentsPublic>> => {
   const apiResponse = await EnvironmentsService.listEnvironments({
     query: { agent_id: agentId },
+  });
+  const { response: _, ...result } = apiResponse;
+  return result;
+};
+
+export const getWebhookPayloadPreview = async (
+  agentId: string,
+  environmentName: string,
+  evalGateEvalConfigId: string | null
+): Promise<ApiResult<EnvironmentsGetWebhookPayloadPreviewResponse>> => {
+  const apiResponse = await EnvironmentsService.getWebhookPayloadPreview({
+    query: {
+      agent_id: agentId,
+      environment_name: environmentName,
+      eval_gate_eval_config_id: evalGateEvalConfigId ?? undefined,
+    },
   });
   const { response: _, ...result } = apiResponse;
   return result;

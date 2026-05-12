@@ -6,6 +6,7 @@ from app.crud.agent import (  # noqa: F401
     create_draft_agent,
     delete_agent,
     get_agent,
+    latest_completed_eval_summaries_by_agent,
     list_agents,
     set_agent_editor_guidelines,
     update_agent,
@@ -14,6 +15,9 @@ from app.crud.agent_version import (  # noqa: F401
     create_or_update_draft as create_or_update_agent_draft,
 )
 from app.crud.agent_version import discard_draft as discard_agent_draft  # noqa: F401
+from app.crud.agent_version import (  # noqa: F401
+    get_active_published_version as get_active_agent_version,
+)
 from app.crud.agent_version import get_draft as get_agent_draft  # noqa: F401
 from app.crud.agent_version import get_version as get_agent_version  # noqa: F401
 from app.crud.agent_version import list_versions as list_agent_versions  # noqa: F401
@@ -29,7 +33,9 @@ from app.crud.call import (  # noqa: F401
     mark_call_seen,
     soft_delete_calls_for_integration,
     touch_calls_last_synced_at,
+    upsert_calls_from_elevenlabs,
     upsert_calls_from_retell,
+    upsert_calls_from_vapi,
 )
 from app.crud.custom_metrics import (  # noqa: F401
     create_custom_metric,
@@ -52,6 +58,7 @@ from app.crud.environments import (  # noqa: F401
     delete_environment,
     get_environment,
     list_environments_by_agent,
+    update_environment,
 )
 from app.crud.eval_config import (  # noqa: F401
     add_test_cases_to_config,
@@ -110,6 +117,7 @@ from app.crud.run import (  # noqa: F401
     delete_run,
     enrich_run_create_from_agent,
     get_baseline_run,
+    get_latest_completed_run_for_version,
     get_run,
     list_runs,
     set_baseline,
@@ -137,5 +145,6 @@ from app.crud.user import (  # noqa: F401
     authenticate,
     create_user,
     get_user_by_email,
+    list_users_by_ids,
     update_user,
 )

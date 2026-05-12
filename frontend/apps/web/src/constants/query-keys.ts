@@ -23,6 +23,7 @@ export const promptEditorKeys = {
 
 export const testCaseKeys = {
   list: (agentId: string) => ['test-cases', agentId] as const,
+  listWithDeleted: (agentId: string) => ['test-cases', agentId, 'with-deleted'] as const,
 };
 
 export const integrationKeys = {
@@ -68,6 +69,17 @@ export const testCaseResultKeys = {
 
 export const environmentKeys = {
   list: (agentId: string) => ['environments', agentId] as const,
+  webhookPayloadPreview: (
+    agentId: string,
+    environmentName: string,
+    evalGateEvalConfigId: string | null,
+  ) =>
+    [
+      'environment-webhook-payload-preview',
+      agentId,
+      environmentName,
+      evalGateEvalConfigId,
+    ] as const,
   agentDeployments: (agentId: string) => ['agent-deployments', agentId] as const,
   deployments: (environmentId: string) => ['environment-deployments', environmentId] as const,
   retellVersions: (environmentId: string) =>
@@ -76,6 +88,14 @@ export const environmentKeys = {
 
 export const retellAgentKeys = {
   byIntegration: (integrationId: string) => ['retell-agents', integrationId] as const,
+};
+
+export const vapiAssistantKeys = {
+  byIntegration: (integrationId: string) => ['vapi-assistants', integrationId] as const,
+};
+
+export const elevenlabsAgentKeys = {
+  byIntegration: (integrationId: string) => ['elevenlabs-agents', integrationId] as const,
 };
 
 export type CallFilters = {

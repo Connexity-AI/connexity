@@ -20,7 +20,7 @@ from app.tests.utils.eval import (
 
 
 def test_create_agent_has_version_one(
-    client: TestClient, auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     data = {"name": "V1 Agent", "endpoint_url": "http://example.com/agent"}
     r = client.post(
@@ -30,7 +30,11 @@ def test_create_agent_has_version_one(
     )
     assert r.status_code == 200
     body = r.json()
-    assert body["version"] == 1
+    aid = uuid.UUID(body["id"])
+    active = crud.get_active_agent_version(session=db, agent_id=aid)
+    assert active is not None
+    assert active.version == 1
+    assert active.is_active is True
     assert body["has_draft"] is False
 
 
@@ -43,16 +47,14 @@ def test_patch_versionable_field_creates_draft(
         f"{settings.API_V1_STR}/agents/{agent.id}",
         json={
             "endpoint_url": "http://new.example/agent",
-            "change_description": "new endpoint",
         },
         cookies=auth_cookies,
     )
     assert r.status_code == 200
     body = r.json()
-    # Version should stay at 1 (draft, not published)
-    assert body["version"] == 1
     assert body["has_draft"] is True
-    # Only 1 published version still exists
+    active = crud.get_active_agent_version(session=db, agent_id=agent.id)
+    assert active is not None and active.version == 1
     items, count = crud.list_agent_versions(session=db, agent_id=agent.id)
     assert count == 1
 
@@ -67,8 +69,9 @@ def test_patch_identity_only_no_version_bump(
         cookies=auth_cookies,
     )
     assert r.status_code == 200
-    assert r.json()["version"] == 1
     assert r.json()["has_draft"] is False
+    active = crud.get_active_agent_version(session=db, agent_id=agent.id)
+    assert active is not None and active.version == 1
     _items, count = crud.list_agent_versions(session=db, agent_id=agent.id)
     assert count == 1
 
@@ -152,7 +155,11 @@ def test_rollback_creates_new_version(
     # Rollback to version 1
     r = client.post(
         f"{settings.API_V1_STR}/agents/{agent.id}/rollback",
-        json={"version": 1, "change_description": "back to v1"},
+        json={
+            "version": 1,
+            "version_name": "back to v1",
+            "version_description": None,
+        },
         cookies=auth_cookies,
     )
     assert r.status_code == 200
@@ -162,7 +169,8 @@ def test_rollback_creates_new_version(
     db.expire_all()
     agent_db = crud.get_agent(session=db, agent_id=agent.id)
     assert agent_db is not None
-    assert agent_db.version == 3
+    active_rb = crud.get_active_agent_version(session=db, agent_id=agent.id)
+    assert active_rb is not None and active_rb.version == 3
     _items, count = crud.list_agent_versions(session=db, agent_id=agent.id)
     assert count == 3
 
@@ -220,13 +228,13 @@ def test_concurrent_updates_distinct_drafts(db: Session) -> None:
     with Session(engine) as session:
         final = crud.get_agent(session=session, agent_id=aid)
         assert final is not None
-        # Version should still be 1 (changes are in draft)
-        assert final.version == 1
+        av = crud.get_active_agent_version(session=session, agent_id=aid)
+        assert av is not None and av.version == 1
         assert final.has_draft is True
 
 
 def test_platform_agent_version_on_prompt_change(
-    client: TestClient, auth_cookies: dict[str, str]
+    client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     r = client.post(
         f"{settings.API_V1_STR}/agents/",
@@ -248,12 +256,13 @@ def test_platform_agent_version_on_prompt_change(
         cookies=auth_cookies,
     )
     assert r2.status_code == 200
-    assert r2.json()["version"] == 1
     assert r2.json()["has_draft"] is True
-    # Publish to get version 2
+    aid_uuid = uuid.UUID(aid)
+    av1 = crud.get_active_agent_version(session=db, agent_id=aid_uuid)
+    assert av1 is not None and av1.version == 1
     r3 = client.post(
         f"{settings.API_V1_STR}/agents/{aid}/publish",
-        json={"change_description": "Updated prompt to B"},
+        json={"version_name": "Updated prompt to B", "version_description": None},
         cookies=auth_cookies,
     )
     assert r3.status_code == 200
@@ -343,7 +352,7 @@ def test_publish_draft(
     # Publish
     r = client.post(
         f"{settings.API_V1_STR}/agents/{agent.id}/publish",
-        json={"change_description": "Updated endpoint"},
+        json={"version_name": "Updated endpoint", "version_description": None},
         cookies=auth_cookies,
     )
     assert r.status_code == 200
@@ -351,13 +360,13 @@ def test_publish_draft(
     assert published["status"] == "published"
     assert published["version"] == 2
     assert published["endpoint_url"] == "http://published.example/agent"
-    assert published["change_description"] == "Updated endpoint"
+    assert published["version_name"] == "Updated endpoint"
 
-    # Agent should reflect published config
     db.expire_all()
     agent_db = crud.get_agent(session=db, agent_id=agent.id)
     assert agent_db is not None
-    assert agent_db.version == 2
+    active_pub = crud.get_active_agent_version(session=db, agent_id=agent.id)
+    assert active_pub is not None and active_pub.version == 2
     assert agent_db.has_draft is False
     assert agent_db.endpoint_url == "http://published.example/agent"
 
@@ -513,20 +522,18 @@ def test_full_draft_publish_cycle(
     # Step 3: Publish
     r = client.post(
         f"{settings.API_V1_STR}/agents/{aid}/publish",
-        json={"change_description": "Finalized v2 endpoint"},
+        json={"version_name": "Finalized v2 endpoint", "version_description": None},
         cookies=auth_cookies,
     )
     assert r.status_code == 200
     assert r.json()["version"] == 2
     assert r.json()["status"] == "published"
 
-    # Verify agent reflects published config
     r = client.get(
         f"{settings.API_V1_STR}/agents/{aid}",
         cookies=auth_cookies,
     )
     assert r.status_code == 200
-    assert r.json()["version"] == 2
     assert r.json()["has_draft"] is False
     assert r.json()["endpoint_url"] == "http://v2.example/agent"
 
@@ -548,4 +555,6 @@ def test_version_public_includes_status(
         cookies=auth_cookies,
     )
     assert r.status_code == 200
-    assert r.json()["status"] == "published"
+    body = r.json()
+    assert body["status"] == "published"
+    assert body["is_active"] is True

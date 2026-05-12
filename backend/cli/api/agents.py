@@ -42,11 +42,17 @@ class AgentsApi(_BaseApi):
         self._t.delete_any(f"agents/{agent_id}/draft")
 
     def publish(
-        self, agent_id: str, *, change_description: str | None = None
+        self,
+        agent_id: str,
+        *,
+        version_name: str | None = None,
+        version_description: str | None = None,
     ) -> dict[str, Any]:
         body: dict[str, Any] = {}
-        if change_description is not None:
-            body["change_description"] = change_description
+        if version_name is not None:
+            body["version_name"] = version_name
+        if version_description is not None:
+            body["version_description"] = version_description
         return self._t.post_dict(f"agents/{agent_id}/publish", json_body=body)
 
     def rollback(
@@ -54,11 +60,14 @@ class AgentsApi(_BaseApi):
         agent_id: str,
         *,
         version: int,
-        change_description: str | None = None,
+        version_name: str | None = None,
+        version_description: str | None = None,
     ) -> dict[str, Any]:
         body: dict[str, Any] = {"version": version}
-        if change_description is not None:
-            body["change_description"] = change_description
+        if version_name is not None:
+            body["version_name"] = version_name
+        if version_description is not None:
+            body["version_description"] = version_description
         return self._t.post_dict(f"agents/{agent_id}/rollback", json_body=body)
 
     # --- versions ---------------------------------------------------------
