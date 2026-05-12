@@ -24,8 +24,9 @@ agent under test, with clear success criteria.
   parallel tool calls in a single assistant turn. You decide how many cases to
   create based on the user's request and coverage needs (typically 2–10 when
   generating a suite).
-- **edit_test_case**: emit the **complete** updated test case **exactly once**.
-  Preserve every field the user did not ask to change.
+- **edit_test_case**: emit a partial update **exactly once**, containing only
+  the smallest localized set of fields needed for the requested change.
+  Omitted fields are preserved.
 
 ## Key Field Details
 - **name**: short and informative; use at most 7 words and 60 characters.
@@ -250,9 +251,16 @@ def build_dynamic_system_message(
         parts.append(
             "## Mode: edit\n"
             "Apply the user's request to the test case below. Call "
-            "`edit_test_case` exactly once with the full updated object.\n"
-            "Preserve fields the user did not ask to change, but keep related "
-            "fields consistent when a requested change requires it.\n"
+            "`edit_test_case` exactly once with the smallest localized patch "
+            "that satisfies the request.\n"
+            "Only edit fields the user explicitly asked to change, or fields "
+            "that must change to keep the requested edit valid and internally "
+            "consistent. Do not improve, rewrite, rephrase, reorder, normalize, "
+            "or regenerate unrelated parts of the test case. Do not include "
+            "unchanged fields.\n"
+            "Keep related fields consistent when a requested change requires it: "
+            "for example, if an expected tool call changes, include any needed "
+            "persona, outcome, or first-message updates in the same patch.\n"
             "If you add or change `expected_tool_calls`, audit `persona_context`: "
             "any stable user-provided values that the simulator must reveal so "
             "the agent can produce literal `expected_params` must appear in the "
@@ -321,7 +329,9 @@ def build_repair_user_prompt(
         tool_instruction = f"{count_instruction} Do not call any other tool."
     else:
         tool_instruction = (
-            "Call `edit_test_case` exactly once with the complete corrected test case. "
+            "Call `edit_test_case` exactly once with the corrected partial update. "
+            "Include only the smallest localized set of fields needed to fix the "
+            "validation errors without rewriting unrelated content. "
             "Do not call any other tool."
         )
 

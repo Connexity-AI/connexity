@@ -5,7 +5,7 @@ import logging
 from copy import deepcopy
 from typing import Any
 
-from app.models.test_case import TestCaseCreate
+from app.models.test_case import TestCaseCreate, TestCaseUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,27 @@ def _test_case_tool_parameters_schema() -> dict[str, Any]:
     return schema
 
 
+def _test_case_edit_tool_parameters_schema() -> dict[str, Any]:
+    """OpenAI-style JSON schema for partial edit tool arguments."""
+    schema = deepcopy(TestCaseUpdate.model_json_schema(mode="serialization"))
+    props = schema.get("properties")
+    if isinstance(props, dict):
+        for field in ("status", "agent_id", "source_call_id"):
+            props.pop(field, None)
+    required = schema.get("required")
+    if isinstance(required, list):
+        schema["required"] = [
+            r for r in required if r not in {"status", "agent_id", "source_call_id"}
+        ]
+    defs = schema.get("$defs")
+    if isinstance(defs, dict):
+        defs.pop("TestCaseStatus", None)
+    schema["minProperties"] = 1
+    return schema
+
+
 _TEST_CASE_PARAMS = _test_case_tool_parameters_schema()
+_TEST_CASE_EDIT_PARAMS = _test_case_edit_tool_parameters_schema()
 
 CREATE_TEST_CASE_TOOL: dict[str, Any] = {
     "type": "function",
@@ -50,10 +70,9 @@ EDIT_TEST_CASE_TOOL: dict[str, Any] = {
     "function": {
         "name": "edit_test_case",
         "description": (
-            "Emit the COMPLETE updated test case exactly once. Preserve fields the "
-            "user did not ask to change."
+            "Emit only the fields that should change. Omitted fields are preserved."
         ),
-        "parameters": _TEST_CASE_PARAMS,
+        "parameters": _TEST_CASE_EDIT_PARAMS,
     },
 }
 
@@ -83,6 +102,22 @@ def _to_test_case_create(args: dict[str, Any]) -> TestCaseCreate | None:
         return TestCaseCreate.model_validate(cleaned)
     except Exception as exc:
         logger.warning("Invalid create_test_case payload: %s", exc)
+        return None
+
+
+def _to_test_case_update(args: dict[str, Any]) -> TestCaseUpdate | None:
+    try:
+        cleaned = {
+            k: v
+            for k, v in args.items()
+            if k not in {"status", "agent_id", "source_call_id"}
+        }
+        if not cleaned:
+            return None
+        update = TestCaseUpdate.model_validate(cleaned)
+        return update if update.model_fields_set else None
+    except Exception as exc:
+        logger.warning("Invalid edit_test_case payload: %s", exc)
         return None
 
 
@@ -126,7 +161,7 @@ def parse_create_test_case_tool_call_slots(
 
 def parse_edit_test_case_tool_call(
     tool_calls: list[dict[str, Any]] | None,
-) -> TestCaseCreate | None:
+) -> TestCaseUpdate | None:
     """Return the first valid ``edit_test_case`` payload."""
     if not tool_calls:
         return None
@@ -137,7 +172,7 @@ def parse_edit_test_case_tool_call(
             name = str(fn.get("name", ""))
         if name != "edit_test_case":
             continue
-        edited = _to_test_case_create(_arguments_dict(tc))
+        edited = _to_test_case_update(_arguments_dict(tc))
         if edited is not None:
             return edited
     return None

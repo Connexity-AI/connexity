@@ -134,6 +134,10 @@ async def test_run_edit_mode(db: Session) -> None:
         id=uuid4(),
         name="Before",
         tags=["test"],
+        description="Original description",
+        persona_context=_tc_args()["persona_context"],
+        first_message="Hello",
+        expected_outcomes=["Agent MUST greet the user"],
         agent_id=plat.id,
         created_at=now,
         updated_at=now,
@@ -147,7 +151,7 @@ async def test_run_edit_mode(db: Session) -> None:
         target_test_case=tc,
         transcript=None,
     )
-    args = _tc_args(name="After")
+    args = {"name": "After"}
     mock_resp = LLMResponse(
         content="",
         model="gpt-4o",
@@ -169,15 +173,70 @@ async def test_run_edit_mode(db: Session) -> None:
         ).run()
     assert out.edited is not None
     assert out.edited.name == "After"
+    assert out.edited.description == "Original description"
+    assert out.edited.tags == ["test"]
+    assert out.edited.persona_context == _tc_args()["persona_context"]
+    assert out.edited.expected_outcomes == ["Agent MUST greet the user"]
     assert out.created == []
 
 
 @pytest.mark.asyncio
-async def test_run_create_strips_mock_for_terminating_expected_tool(db: Session) -> None:
-    agent = create_test_platform_agent(db)
-    terminating_tools = parse_agent_tool_definitions(
-        [canonical_end_call_tool_dict()]
+async def test_run_edit_mode_can_clear_nullable_field(db: Session) -> None:
+    plat = create_test_platform_agent(db)
+    now = datetime.now(UTC)
+    tc = TestCaseRow(
+        id=uuid4(),
+        name="Before",
+        tags=["normal"],
+        persona_context=_tc_args()["persona_context"],
+        first_message="Hello",
+        evaluation_criteria_override="Use stricter judging.",
+        agent_id=plat.id,
+        created_at=now,
+        updated_at=now,
     )
+    ctx = AgentContext(
+        agent=plat,
+        agent_prompt="Sys",
+        tools=[],
+        available_tags=["normal"],
+        existing_cases_summary=None,
+        target_test_case=tc,
+        transcript=None,
+    )
+    mock_resp = LLMResponse(
+        content="",
+        model="gpt-4o",
+        usage={},
+        latency_ms=1,
+        tool_calls=[
+            _tool_dict("edit_test_case", {"evaluation_criteria_override": None})
+        ],
+    )
+    with patch(
+        "app.services.test_case_generator.interactive.core.call_llm",
+        new_callable=AsyncMock,
+        return_value=mock_resp,
+    ):
+        out = await TestCaseAgent(
+            TestCaseAgentInput(
+                mode=AgentMode.EDIT,
+                user_message="Remove custom criteria",
+                context=ctx,
+            )
+        ).run()
+
+    assert out.edited is not None
+    assert out.edited.evaluation_criteria_override is None
+    assert out.edited.name == "Before"
+
+
+@pytest.mark.asyncio
+async def test_run_create_strips_mock_for_terminating_expected_tool(
+    db: Session,
+) -> None:
+    agent = create_test_platform_agent(db)
+    terminating_tools = parse_agent_tool_definitions([canonical_end_call_tool_dict()])
     ctx = AgentContext(
         agent=agent,
         agent_prompt="Sys",
@@ -231,13 +290,13 @@ async def test_run_edit_strips_mock_for_terminating_expected_tool(db: Session) -
         id=uuid4(),
         name="Before",
         tags=["test"],
+        persona_context=_tc_args()["persona_context"],
+        first_message="Hello",
         agent_id=plat.id,
         created_at=now,
         updated_at=now,
     )
-    terminating_tools = parse_agent_tool_definitions(
-        [canonical_end_call_tool_dict()]
-    )
+    terminating_tools = parse_agent_tool_definitions([canonical_end_call_tool_dict()])
     ctx = AgentContext(
         agent=plat,
         agent_prompt="Sys",
@@ -247,16 +306,15 @@ async def test_run_edit_strips_mock_for_terminating_expected_tool(db: Session) -
         target_test_case=tc,
         transcript=None,
     )
-    args = dict(
-        _tc_args(name="After"),
-        expected_tool_calls=[
+    args = {
+        "expected_tool_calls": [
             {
                 "tool": "end_call",
                 "expected_params": {},
                 "mock_response": {"strip_in_edit": True},
             },
-        ],
-    )
+        ]
+    }
     mock_resp = LLMResponse(
         content="",
         model="gpt-4o",

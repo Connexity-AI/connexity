@@ -23,6 +23,7 @@ def test_static_system_mentions_tools() -> None:
     s = build_static_system_message()
     assert "create_test_case" in s
     assert "edit_test_case" in s
+    assert "smallest localized set of fields" in s
     assert "mock_response" in s
     assert "[Persona type]" in s
     assert "stable user-provided details" in s
@@ -181,6 +182,10 @@ def test_dynamic_edit_includes_current_case(db: Session) -> None:
     dyn = build_dynamic_system_message(mode=AgentMode.EDIT, ctx=ctx)
     assert "<current_test_case>" in dyn
     assert "Case A" in dyn
+    assert "smallest localized patch" in dyn
+    assert "Only edit fields the user explicitly asked to change" in dyn
+    assert "Do not improve, rewrite, rephrase, reorder, normalize" in dyn
+    assert "Do not include unchanged fields" in dyn
     assert "If you add or change `expected_tool_calls`" in dyn
     assert "must appear in the `[Description]` section" in dyn
     assert "use placeholders for those" in dyn
