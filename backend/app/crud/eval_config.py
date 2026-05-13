@@ -47,7 +47,7 @@ def _validate_evaluation_engine(
     """Raise ``ValueError`` if ``run_config.evaluation_engine`` is invalid for ``agent``.
 
     Checks engine availability for the agent's platform, delegates to the
-    engine's own validator, and forbids tool calls on non-Connexity engines.
+    engine's own validator, and forbids tool calls on custom URL engines.
     """
     from app.services.eval_engines import get_engine  # local import to avoid cycle
 
@@ -68,7 +68,7 @@ def _validate_evaluation_engine(
 
     engine.validate_config(engine_config, agent, session)
 
-    if engine_config.kind != EvaluationEngineKind.CONNEXITY:
+    if engine_config.kind == EvaluationEngineKind.CUSTOM_URL:
         # Tool calls can only be exercised by the in-process Connexity simulator.
         # Reject configs that link test cases declaring expected_tool_calls.
         test_case_filter = (

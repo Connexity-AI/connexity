@@ -9,10 +9,12 @@ import pytest
 from app.models.agent import Agent
 from app.models.enums import AgentMode, Platform, TurnRole
 from app.models.schemas import RetellEngineConfig, RunConfig
+from app.models.test_case import TestCase
 from app.services.eval_engines.base import EngineRunArgs
 from app.services.eval_engines.retell import (
     RetellEngine,
     _map_retell_transcript,
+    _test_case_without_expected_tool_calls,
 )
 from app.services.retell import RetellCall
 
@@ -60,6 +62,18 @@ def test_transcript_mapping_skips_unknown_roles() -> None:
         TurnRole.ASSISTANT,
     ]
     assert [t.content for t in turns] == ["Hello there", "Hi", "How can I help?"]
+
+
+def test_retell_judge_test_case_ignores_expected_tool_calls() -> None:
+    test_case = TestCase(
+        name="tool case",
+        expected_tool_calls=[{"tool": "book_appointment", "expected_params": None}],
+    )
+
+    judge_test_case = _test_case_without_expected_tool_calls(test_case)
+
+    assert judge_test_case.expected_tool_calls is None
+    assert test_case.expected_tool_calls is not None
 
 
 def test_validate_config_raises_when_no_integration() -> None:

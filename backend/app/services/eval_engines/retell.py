@@ -19,6 +19,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, ClassVar
 
 if TYPE_CHECKING:
+    from app.models.test_case import TestCase
     from app.services.orchestrator import TestCaseRunResult
 
 from sqlmodel import Session
@@ -237,6 +238,11 @@ async def wait_for_retell_test_run_completion(
         await asyncio.sleep(_POLL_INTERVAL_SECONDS)
 
 
+def _test_case_without_expected_tool_calls(test_case: TestCase) -> TestCase:
+    # retell simulations do not support connexity expected tool-call assertions yet.
+    return test_case.model_copy(update={"expected_tool_calls": None})
+
+
 class RetellEngine(EvalEngine):
     KIND: ClassVar[EvaluationEngineKind] = EvaluationEngineKind.RETELL
     LABEL: ClassVar[str] = "Retell"
@@ -385,7 +391,7 @@ class RetellEngine(EvalEngine):
         verdict = await evaluate_transcript(
             JudgeInput(
                 transcript=transcript,
-                test_case=args.test_case,
+                test_case=_test_case_without_expected_tool_calls(args.test_case),
                 agent_system_prompt=args.agent_system_prompt,
                 agent_tools=args.agent_tools,
                 judge_config=args.run_config.judge,
