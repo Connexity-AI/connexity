@@ -1,6 +1,5 @@
 import { Platform } from '@/client/types.gen';
 import { useAgent } from '@/app/(app)/(agent)/_hooks/use-agent';
-import { useIntegrations } from '@/app/(app)/(agent)/_hooks/use-integrations';
 import type { AgentCanonicalDeployTarget } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_utils/agent-canonical-deploy-target';
 import type { EnvironmentPublic } from '@/client/types.gen';
 import type { FC } from 'react';
@@ -20,24 +19,21 @@ function getPlatformAgentLabel(
   if (platformAgentId) {
     return platformAgentId;
   }
-  return '—';
+  return '-';
 }
 
 function getWebhookUrl(environment: EnvironmentPublic): string {
   if (environment.endpoint_url) {
     return environment.endpoint_url;
   }
-  return '—';
+  return '-';
 }
 
-function getIntegrationName(
-  integrationId: string | null | undefined,
-  integrationNameMap: Map<string, string>
-): string {
-  if (integrationId) {
-    return integrationNameMap.get(integrationId) ?? integrationId;
+function getIntegrationName(integrationName: string | null | undefined): string {
+  if (integrationName) {
+    return integrationName;
   }
-  return '—';
+  return '-';
 }
 
 const WebhookDestination: FC<{ environment: EnvironmentPublic }> = ({ environment }) => {
@@ -108,11 +104,7 @@ const ElevenLabsDestination: FC<{
 export const EnvironmentCardDestinationDetails: FC<Props> = ({ agentId, environment }) => {
   const { data: agent } = useAgent(agentId);
   const agentTarget = agent as AgentCanonicalDeployTarget | undefined;
-  const { data: integrationsData } = useIntegrations();
-  const integrationNameMap = new Map(
-    integrationsData?.data.map((integration) => [integration.id, integration.name]) ?? []
-  );
-  const integrationName = getIntegrationName(agentTarget?.integration_id, integrationNameMap);
+  const integrationName = getIntegrationName(environment.integration_name);
   const platformAgentLabel = getPlatformAgentLabel(
     agentTarget?.platform_agent_name,
     agentTarget?.platform_agent_id
