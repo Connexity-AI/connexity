@@ -158,7 +158,15 @@ def test_dynamic_from_transcript_includes_transcript(db: Session) -> None:
     dyn = build_dynamic_system_message(mode=AgentMode.FROM_TRANSCRIPT, ctx=ctx)
     assert "<transcript>" in dyn
     assert "Hello" in dyn
-    assert "one or more test cases" in dyn
+    assert "one or more regression test cases" in dyn
+    assert (
+        "assume the user selected this transcript because the call was problematic"
+        in dyn
+    )
+    assert "do not preserve bad assistant behavior as expected behavior" in dyn
+    assert "Generate the opposite passing behavior" in dyn
+    assert "copy observed tool calls only when they were correct" in dyn
+    assert "If the user's request explicitly says the call was successful" in dyn
     assert "Call `create_test_case` **once**" not in dyn
 
 
