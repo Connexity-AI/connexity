@@ -2739,46 +2739,6 @@ export const MetricTier = {
 export type MetricTier = (typeof MetricTier)[keyof typeof MetricTier];
 
 /**
- * MockResponse
- */
-export type MockResponse = {
-  /**
-   * Expected Params
-   *
-   * Partial-match filter on tool arguments; null = match any call
-   */
-  expected_params?: {
-    [key: string]: unknown;
-  } | null;
-  /**
-   * Response
-   *
-   * Canned return value sent back to the LLM as the tool result
-   */
-  response: {
-    [key: string]: unknown;
-  };
-};
-
-/**
- * MockWebhookResponse
- */
-export type MockWebhookResponse = {
-  /**
-   * Message
-   */
-  message: string;
-  /**
-   * Received Event Type
-   */
-  received_event_type?: string | null;
-  /**
-   * Payload Received
-   */
-  payload_received: boolean;
-};
-
-/**
  * OnConflict
  */
 export const OnConflict = { SKIP: 'skip', OVERWRITE: 'overwrite' } as const;

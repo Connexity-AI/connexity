@@ -4368,58 +4368,6 @@ export const MetricTierSchema = {
   title: 'MetricTier',
 } as const;
 
-export const MockResponseSchema = {
-  properties: {
-    expected_params: {
-      anyOf: [
-        {
-          type: 'object',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Expected Params',
-      description: 'Partial-match filter on tool arguments; null = match any call',
-    },
-    response: {
-      type: 'object',
-      title: 'Response',
-      description: 'Canned return value sent back to the LLM as the tool result',
-    },
-  },
-  type: 'object',
-  required: ['response'],
-  title: 'MockResponse',
-} as const;
-
-export const MockWebhookResponseSchema = {
-  properties: {
-    message: {
-      type: 'string',
-      title: 'Message',
-    },
-    received_event_type: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Received Event Type',
-    },
-    payload_received: {
-      type: 'boolean',
-      title: 'Payload Received',
-    },
-  },
-  type: 'object',
-  required: ['message', 'payload_received'],
-  title: 'MockWebhookResponse',
-} as const;
-
 export const OnConflictSchema = {
   type: 'string',
   enum: ['skip', 'overwrite'],
