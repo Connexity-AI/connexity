@@ -44,10 +44,16 @@ def test_build_system_prompt_contains_persona_sections() -> None:
     assert "[Behavioral instructions]" in prompt
 
 
-def test_build_system_prompt_requires_mock_responses() -> None:
+def test_build_system_prompt_requires_mock_response_payloads() -> None:
     prompt = build_system_prompt()
-    assert "mock_responses" in prompt
-    assert "canned response" in prompt
+    assert "mock_response" in prompt
+    assert "mock mode" in prompt
+
+
+def test_build_system_prompt_documents_placeholders() -> None:
+    prompt = build_system_prompt()
+    assert "PLACEHOLDER TOKENS" in prompt
+    assert "{{startDate}}" in prompt
 
 
 def test_build_system_prompt_requires_short_names_and_personal_tool_details() -> None:

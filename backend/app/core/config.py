@@ -1,6 +1,7 @@
 import warnings
 from typing import Annotated, Any, Literal, Self
 
+from cryptography.fernet import Fernet
 from pydantic import (
     AnyUrl,
     BeforeValidator,
@@ -9,6 +10,7 @@ from pydantic import (
     HttpUrl,
     PostgresDsn,
     computed_field,
+    field_validator,
     model_validator,
 )
 from pydantic_core import MultiHostUrl
@@ -59,6 +61,24 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = DEFAULT_SECRET_VALUE
     # Fernet key for encrypting integration API keys — generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
     ENCRYPTION_KEY: str = DEFAULT_SECRET_VALUE
+
+    @field_validator("ENCRYPTION_KEY")
+    @classmethod
+    def _encryption_key_must_be_valid_fernet_when_set(cls, v: str) -> str:
+        """Reject malformed keys early; placeholder ``changethis`` skips check (warn-only)."""
+        if v == DEFAULT_SECRET_VALUE:
+            return v
+        try:
+            Fernet(v.encode())
+        except (ValueError, TypeError) as exc:
+            msg = (
+                "ENCRYPTION_KEY must be a valid Fernet key (url-safe base64 encoding "
+                "of 32 bytes). Generate one with: "
+                'python -c "from cryptography.fernet import Fernet; '
+                'print(Fernet.generate_key().decode())"'
+            )
+            raise ValueError(msg) from exc
+        return v
 
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
 

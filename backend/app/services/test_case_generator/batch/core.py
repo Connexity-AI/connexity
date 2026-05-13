@@ -19,6 +19,9 @@ from app.services.test_case_generator.batch.schemas import (
     GenerateRequest,
     ToolDefinition,
 )
+from app.services.test_case_generator.strip_terminating_mock_responses import (
+    strip_mock_responses_for_terminating_tools_in_list,
+)
 from app.services.test_case_generator.validation import (
     GenerationValidationError,
     validation_errors_from_exception,
@@ -33,6 +36,13 @@ from app.services.test_case_generator.validation import (
 logger = logging.getLogger(__name__)
 
 _FENCE_RE = re.compile(r"^\s*```\w*\s*\n(.*?)\n\s*```\s*$", re.DOTALL)
+
+
+def _finalize_batch_output(
+    cases: list[TestCaseCreate],
+    tools: list[ToolDefinition] | None,
+) -> list[TestCaseCreate]:
+    return strip_mock_responses_for_terminating_tools_in_list(cases, tools=tools)
 
 
 @dataclass(frozen=True)
@@ -85,7 +95,11 @@ async def generate_test_cases(
             tools=request.tools,
         )
         latency_ms = response.latency_ms or 0
-        return test_cases, response.model, latency_ms
+        return (
+            _finalize_batch_output(test_cases, request.tools),
+            response.model,
+            latency_ms,
+        )
     except (json.JSONDecodeError, ValidationError, ValueError) as exc:
         validation_errors = validation_errors_from_exception(exc)
         logger.warning(
@@ -146,7 +160,11 @@ async def generate_test_cases(
             tools=request.tools,
         )
         latency_ms = (response.latency_ms or 0) + (repair_response.latency_ms or 0)
-        return merged, repair_response.model, latency_ms
+        return (
+            _finalize_batch_output(merged, request.tools),
+            repair_response.model,
+            latency_ms,
+        )
 
     repair_response: LLMResponse = await call_llm(
         messages=[
@@ -180,7 +198,11 @@ async def generate_test_cases(
         raise
 
     latency_ms = (response.latency_ms or 0) + (repair_response.latency_ms or 0)
-    return repaired, repair_response.model, latency_ms
+    return (
+        _finalize_batch_output(repaired, request.tools),
+        repair_response.model,
+        latency_ms,
+    )
 
 
 def _merge_partial_generation(

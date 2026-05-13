@@ -4,6 +4,10 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from app.models.test_case import TestCaseCreate
+from app.services.agent_tool_definitions import (
+    canonical_end_call_tool_dict,
+    parse_agent_tool_definitions,
+)
 from app.services.llm import LLMResponse
 from app.services.test_case_generator.batch.core import (
     GenerationValidationError,
@@ -13,6 +17,9 @@ from app.services.test_case_generator.batch.core import (
 from app.services.test_case_generator.batch.schemas import (
     GenerateRequest,
     ToolDefinition,
+)
+from app.services.test_case_generator.strip_terminating_mock_responses import (
+    strip_mock_responses_for_terminating_tools_in_list,
 )
 
 from .conftest import MOCK_LLM_RESPONSE, MOCK_TEST_CASES_RAW
@@ -47,6 +54,10 @@ def _no_param_tool() -> ToolDefinition:
             "required": [],
         },
     )
+
+
+def _terminating_end_call_tools_only() -> list[ToolDefinition]:
+    return parse_agent_tool_definitions([canonical_end_call_tool_dict()])
 
 
 def test_parse_test_cases_valid_json(mock_llm_response: str) -> None:
@@ -119,15 +130,62 @@ def test_parse_test_cases_requires_short_name() -> None:
         _parse_test_cases(json.dumps({"test_cases": data}), expected_count=1)
 
 
-def test_parse_test_cases_requires_tool_mock_responses() -> None:
+def test_parse_test_cases_requires_tool_mock_response() -> None:
     data = [
         dict(
             MOCK_TEST_CASES_RAW[0],
             expected_tool_calls=[{"tool": "test_tool", "expected_params": {"id": "1"}}],
         )
     ]
-    with pytest.raises(GenerationValidationError, match="mock_responses"):
+    with pytest.raises(GenerationValidationError, match="mock_response"):
         _parse_test_cases(json.dumps({"test_cases": data}), expected_count=1)
+
+
+def test_parse_test_cases_allows_missing_mock_for_terminating_tool() -> None:
+    data = [
+        dict(
+            MOCK_TEST_CASES_RAW[0],
+            expected_tool_calls=[{"tool": "end_call", "expected_params": {}}],
+        )
+    ]
+    parsed = _parse_test_cases(
+        json.dumps({"test_cases": data}),
+        expected_count=1,
+        tools=_terminating_end_call_tools_only(),
+    )
+    row = parsed[0].expected_tool_calls
+    assert row is not None
+    assert row[0].tool == "end_call"
+    assert row[0].mock_response is None
+
+
+def test_strip_mock_responses_clears_terminating_tool_payload() -> None:
+    data = [
+        dict(
+            MOCK_TEST_CASES_RAW[0],
+            expected_tool_calls=[
+                {
+                    "tool": "end_call",
+                    "expected_params": {},
+                    "mock_response": {"strip_me": True},
+                },
+            ],
+        )
+    ]
+    parsed = _parse_test_cases(
+        json.dumps({"test_cases": data}),
+        expected_count=1,
+        tools=_terminating_end_call_tools_only(),
+    )
+    assert parsed[0].expected_tool_calls is not None
+    assert parsed[0].expected_tool_calls[0].mock_response == {"strip_me": True}
+
+    finalized = strip_mock_responses_for_terminating_tools_in_list(
+        parsed,
+        tools=_terminating_end_call_tools_only(),
+    )
+    assert finalized[0].expected_tool_calls is not None
+    assert finalized[0].expected_tool_calls[0].mock_response is None
 
 
 def test_parse_test_cases_validates_required_tool_params() -> None:
@@ -138,9 +196,7 @@ def test_parse_test_cases_validates_required_tool_params() -> None:
                 {
                     "tool": "test_tool",
                     "expected_params": {},
-                    "mock_responses": [
-                        {"expected_params": {}, "response": {"ok": True}}
-                    ],
+                    "mock_response": {"ok": True},
                 }
             ],
         )
@@ -153,30 +209,7 @@ def test_parse_test_cases_validates_required_tool_params() -> None:
         )
 
 
-def test_parse_test_cases_requires_mock_params_to_match_expected_params() -> None:
-    data = [
-        dict(
-            MOCK_TEST_CASES_RAW[1],
-            expected_tool_calls=[
-                {
-                    "tool": "test_tool",
-                    "expected_params": {"id": "1"},
-                    "mock_responses": [
-                        {"expected_params": {"id": "2"}, "response": {"ok": True}}
-                    ],
-                }
-            ],
-        )
-    ]
-    with pytest.raises(GenerationValidationError, match="must match expected_params"):
-        _parse_test_cases(
-            json.dumps({"test_cases": data}),
-            expected_count=1,
-            tools=[_test_tool()],
-        )
-
-
-def test_parse_test_cases_allows_null_mock_params_for_no_param_tools() -> None:
+def test_parse_test_cases_allows_mock_for_no_param_tools() -> None:
     data = [
         dict(
             MOCK_TEST_CASES_RAW[1],
@@ -184,9 +217,7 @@ def test_parse_test_cases_allows_null_mock_params_for_no_param_tools() -> None:
                 {
                     "tool": "test_tool",
                     "expected_params": {},
-                    "mock_responses": [
-                        {"expected_params": None, "response": {"ok": True}}
-                    ],
+                    "mock_response": {"ok": True},
                 }
             ],
         )
@@ -199,32 +230,31 @@ def test_parse_test_cases_allows_null_mock_params_for_no_param_tools() -> None:
     )
 
     assert parsed[0].expected_tool_calls is not None
-    assert parsed[0].expected_tool_calls[0].mock_responses is not None
-    assert parsed[0].expected_tool_calls[0].mock_responses[0].expected_params is None
+    assert parsed[0].expected_tool_calls[0].mock_response == {"ok": True}
 
 
-def test_parse_test_cases_rejects_null_mock_params_for_required_param_tools() -> None:
+def test_parse_expected_tool_calls_respects_per_row_expected_params() -> None:
+    """Each expected_tool_calls row carries its own expected_params for validation."""
     data = [
         dict(
             MOCK_TEST_CASES_RAW[1],
             expected_tool_calls=[
                 {
                     "tool": "test_tool",
-                    "expected_params": {"id": "1"},
-                    "mock_responses": [
-                        {"expected_params": None, "response": {"ok": True}}
-                    ],
+                    "expected_params": {"id": "2"},
+                    "mock_response": {"ok": True},
                 }
             ],
         )
     ]
-
-    with pytest.raises(GenerationValidationError, match="include required params"):
-        _parse_test_cases(
-            json.dumps({"test_cases": data}),
-            expected_count=1,
-            tools=[_test_tool()],
-        )
+    parsed = _parse_test_cases(
+        json.dumps({"test_cases": data}),
+        expected_count=1,
+        tools=[_test_tool()],
+    )
+    assert parsed[0].expected_tool_calls is not None
+    assert len(parsed[0].expected_tool_calls) == 1
+    assert parsed[0].expected_tool_calls[0].expected_params == {"id": "2"}
 
 
 def test_parse_test_cases_rejects_tool_calls_without_tools() -> None:
@@ -253,6 +283,38 @@ async def test_generate_test_cases_calls_llm() -> None:
     assert mock_call.await_args is not None
     call_config = mock_call.await_args.kwargs["config"]
     assert call_config.response_format is not None
+
+
+@pytest.mark.asyncio
+async def test_generate_test_cases_strips_terminating_tool_mock_response() -> None:
+    payload = [
+        dict(
+            MOCK_TEST_CASES_RAW[0],
+            expected_tool_calls=[
+                {
+                    "tool": "end_call",
+                    "expected_params": {},
+                    "mock_response": {"should_not_persist": True},
+                },
+            ],
+        )
+    ]
+    request = GenerateRequest(
+        agent_prompt="You are a voice agent.",
+        tools=_terminating_end_call_tools_only(),
+        count=1,
+    )
+    with patch(
+        "app.services.test_case_generator.batch.core.call_llm",
+        new_callable=AsyncMock,
+        return_value=_fake_llm_response(json.dumps({"test_cases": payload})),
+    ):
+        created, _, _ = await generate_test_cases(request)
+
+    assert len(created) == 1
+    assert created[0].expected_tool_calls is not None
+    assert created[0].expected_tool_calls[0].tool == "end_call"
+    assert created[0].expected_tool_calls[0].mock_response is None
 
 
 @pytest.mark.asyncio

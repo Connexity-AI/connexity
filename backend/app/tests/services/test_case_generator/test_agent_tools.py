@@ -17,6 +17,16 @@ def test_tool_schemas_omit_status_from_required() -> None:
         assert "status" not in (params.get("required") or [])
 
 
+def test_edit_tool_schema_is_partial_and_omits_platform_fields() -> None:
+    params = EDIT_TEST_CASE_TOOL["function"]["parameters"]
+    props = params.get("properties", {})
+    assert params.get("minProperties") == 1
+    assert "name" in props
+    assert "agent_id" not in props
+    assert "source_call_id" not in props
+    assert params.get("required") in (None, [])
+
+
 def test_parse_create_defaults_status_to_active() -> None:
     # ``status`` is not in the tool schema; if the LLM emits one anyway, it is
     # stripped and the model default (ACTIVE) applies.
@@ -86,7 +96,34 @@ def test_parse_edit_returns_first_valid() -> None:
     out = parse_edit_test_case_tool_call(raw)
     assert out is not None
     assert out.name == "patched"
-    assert out.status.value == "active"
+    assert out.tags == ["edge-case"]
+    assert out.status is None
+
+
+def test_parse_edit_drops_platform_fields() -> None:
+    raw = [
+        {
+            "id": "1",
+            "type": "function",
+            "function": {
+                "name": "edit_test_case",
+                "arguments": json.dumps(
+                    {
+                        "name": "patched",
+                        "status": "inactive",
+                        "agent_id": "00000000-0000-0000-0000-000000000000",
+                        "source_call_id": "00000000-0000-0000-0000-000000000000",
+                    }
+                ),
+            },
+        }
+    ]
+    out = parse_edit_test_case_tool_call(raw)
+    assert out is not None
+    assert out.name == "patched"
+    assert out.status is None
+    assert out.agent_id is None
+    assert out.source_call_id is None
 
 
 def test_invalid_payload_dropped() -> None:

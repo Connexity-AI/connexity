@@ -121,11 +121,14 @@ class TestCaseBase(SQLModel):
     @field_validator("expected_tool_calls", mode="before")
     @classmethod
     def _serialize_expected_tool_calls(cls, v: Any) -> list[dict[str, Any]] | None:
-        if isinstance(v, list):
-            return [
-                item.model_dump() if isinstance(item, BaseModel) else item for item in v
-            ]
-        return v
+        if v is None:
+            return None
+        if not isinstance(v, list):
+            return v  # type: ignore[return-value]
+        return [
+            item.model_dump(mode="json") if isinstance(item, BaseModel) else item
+            for item in v
+        ]
 
 
 class TestCase(TestCaseBase, table=True):
@@ -202,6 +205,20 @@ class TestCaseUpdate(SQLModel):
         default=None,
         description="Call this test case was created from (Observer drawer)",
     )
+
+    @field_validator("expected_tool_calls", mode="before")
+    @classmethod
+    def _serialize_expected_tool_calls_update(
+        cls, v: Any
+    ) -> list[dict[str, Any]] | None:
+        if v is None:
+            return None
+        if not isinstance(v, list):
+            return v  # type: ignore[return-value]
+        return [
+            item.model_dump(mode="json") if isinstance(item, BaseModel) else item
+            for item in v
+        ]
 
 
 class TestCasePublic(TestCaseBase):

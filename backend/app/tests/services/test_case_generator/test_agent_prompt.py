@@ -23,11 +23,13 @@ def test_static_system_mentions_tools() -> None:
     s = build_static_system_message()
     assert "create_test_case" in s
     assert "edit_test_case" in s
-    assert "mock_responses" in s
+    assert "smallest localized set of fields" in s
+    assert "mock_response" in s
     assert "[Persona type]" in s
     assert "stable user-provided details" in s
     assert "Do not force derived or agent-selected tool arguments" in s
-    assert "may be null to match" in s
+    assert "mock mode" in s
+    assert "Placeholder tokens" in s
 
 
 def test_static_system_does_not_mention_status() -> None:
@@ -156,7 +158,15 @@ def test_dynamic_from_transcript_includes_transcript(db: Session) -> None:
     dyn = build_dynamic_system_message(mode=AgentMode.FROM_TRANSCRIPT, ctx=ctx)
     assert "<transcript>" in dyn
     assert "Hello" in dyn
-    assert "one or more test cases" in dyn
+    assert "one or more regression test cases" in dyn
+    assert (
+        "assume the user selected this transcript because the call was problematic"
+        in dyn
+    )
+    assert "do not preserve bad assistant behavior as expected behavior" in dyn
+    assert "Generate the opposite passing behavior" in dyn
+    assert "copy observed tool calls only when they were correct" in dyn
+    assert "If the user's request explicitly says the call was successful" in dyn
     assert "Call `create_test_case` **once**" not in dyn
 
 
@@ -180,6 +190,10 @@ def test_dynamic_edit_includes_current_case(db: Session) -> None:
     dyn = build_dynamic_system_message(mode=AgentMode.EDIT, ctx=ctx)
     assert "<current_test_case>" in dyn
     assert "Case A" in dyn
+    assert "smallest localized patch" in dyn
+    assert "Only edit fields the user explicitly asked to change" in dyn
+    assert "Do not improve, rewrite, rephrase, reorder, normalize" in dyn
+    assert "Do not include unchanged fields" in dyn
     assert "If you add or change `expected_tool_calls`" in dyn
     assert "must appear in the `[Description]` section" in dyn
-    assert "Do not add derived or agent-selected values" in dyn
+    assert "use placeholders for those" in dyn

@@ -9,7 +9,7 @@
 to control how tool calls are resolved:
 
 * ``synthetic`` (default) — placeholder acknowledgement (no real data).
-* ``mock`` — canned responses from each test case's ``mock_responses``.
+* ``mock`` — canned JSON from each row's ``mock_response`` on ``expected_tool_calls``.
 * ``live`` — Python sandbox execution with hardcoded logic and
   ``context.test_case_context`` (mirrors ``mock_agent`` tool registry).
 
@@ -420,7 +420,7 @@ def main() -> None:
         help=(
             "Runs as RunConfig.tool_mode for the platform simulator (only with "
             "--platform-agent). synthetic: omit tool routing (SyntheticToolExecutor-like). "
-            "mock: use test-case mock_responses via MockToolExecutor. "
+            "mock: use test-case expected_tool_calls.mock_response via MockToolExecutor. "
             "live: attach Python stubs from this script and run implementations."
         ),
     )
