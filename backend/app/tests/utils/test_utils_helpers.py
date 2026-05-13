@@ -33,9 +33,7 @@ def test_extract_cookies_reads_httpx_cookie_header() -> None:
 
 def test_extract_cookies_reads_httpx_json_fallback() -> None:
     request = httpx.Request("POST", "https://example.com/login")
-    response = httpx.Response(
-        200, request=request, json={"access_token": "token-123"}
-    )
+    response = httpx.Response(200, request=request, json={"access_token": "token-123"})
 
     assert extract_cookies(response) == {settings.AUTH_COOKIE: "token-123"}
 
