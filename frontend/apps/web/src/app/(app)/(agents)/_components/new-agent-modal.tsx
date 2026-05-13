@@ -326,7 +326,9 @@ export const NewAgentModal: FC<Props> = ({ open, onOpenChange }) => {
                           let agentSelect: React.ReactNode;
                           if (catalogQuery.isLoading) {
                             agentSelect = (
-                              <p className="text-[11px] text-muted-foreground">Loading agents…</p>
+                              <FormControl>
+                                <Input value="Loading ..." className="h-9 text-xs" disabled readOnly />
+                              </FormControl>
                             );
                           } else if (catalog.length === 0) {
                             agentSelect = (

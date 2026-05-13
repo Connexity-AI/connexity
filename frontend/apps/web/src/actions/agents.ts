@@ -103,7 +103,7 @@ export const createDraftAgent = async (
 };
 
 export const getAgent = async (agentId: string): Promise<ApiResult<AgentPublic>> => {
-  const apiResponse = await AgentsService.getAgent({
+  const apiResponse = await AgentsService.readAgent({
     path: { agent_id: agentId },
   });
   const { response: _, ...result } = apiResponse;
