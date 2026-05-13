@@ -370,6 +370,7 @@ async def test_wait_for_retell_test_run_completion_raises_terminal_error() -> No
         test_case_definition_id="definition_123",
         status="error",
         result_explanation="Tool mock failed",
+        transcript_snapshot=None,
     )
 
     with (
@@ -384,6 +385,38 @@ async def test_wait_for_retell_test_run_completion_raises_terminal_error() -> No
                 timeout_seconds=10.0,
                 cancel_event=None,
             )
+
+
+async def test_wait_for_retell_test_run_completion_returns_error_job_with_transcript() -> None:
+    from app.services.eval_engines import retell as retell_mod
+
+    complete_batch = MagicMock(status="complete")
+    errored_job = MagicMock(
+        test_case_job_id="job_123",
+        test_case_definition_id="definition_123",
+        status="error",
+        result_explanation="Ending the conversation early as there might be a loop.",
+        transcript_snapshot={
+            "transcript": [
+                {"role": "user", "content": "I have a hydraulic leak."},
+                {"role": "agent", "content": "Stop operating and call a technician."},
+            ]
+        },
+    )
+
+    with (
+        patch.object(retell_mod, "get_retell_batch_test", new=AsyncMock(return_value=complete_batch), create=True),
+        patch.object(retell_mod, "list_retell_test_runs", new=AsyncMock(return_value=[errored_job]), create=True),
+    ):
+        job = await retell_mod.wait_for_retell_test_run_completion(
+            api_key="api-key",
+            batch_test_id="batch_123",
+            test_case_definition_id="definition_123",
+            timeout_seconds=10.0,
+            cancel_event=None,
+        )
+
+    assert job.status == "error"
 
 
 def test_dummy_datetime_compat() -> None:

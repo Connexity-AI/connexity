@@ -40,6 +40,33 @@ class RetellCall(BaseModel):
     raw: dict[str, Any] | None = None
 
 
+class RetellBatchTest(BaseModel):
+    test_case_batch_job_id: str
+    status: str
+    pass_count: int = 0
+    fail_count: int = 0
+    error_count: int = 0
+    total_count: int = 0
+    raw: dict[str, Any] | None = None
+
+
+class RetellTestCaseJob(BaseModel):
+    test_case_job_id: str
+    status: str
+    test_case_definition_id: str
+    transcript_snapshot: dict[str, Any] | None = None
+    result_explanation: str | None = None
+    raw: dict[str, Any] | None = None
+
+
+def _retell_response_detail(response: httpx.Response) -> str:
+    try:
+        detail = response.json()
+    except ValueError:
+        detail = response.text
+    return str(detail)
+
+
 def _retell_duration_seconds(
     *, start_timestamp: int | None, end_timestamp: int | None
 ) -> int | None:
@@ -143,6 +170,286 @@ async def list_retell_agent_versions(
             )
         )
     return versions
+
+
+async def get_retell_agent_response_engine(
+    *, api_key: str, retell_agent_id: str
+) -> dict[str, Any]:
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"https://api.retellai.com/get-agent/{retell_agent_id}",
+                headers={"Authorization": f"Bearer {api_key}"},
+                timeout=15.0,
+            )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502, detail=f"Failed to reach Retell API: {exc}"
+        ) from exc
+
+    if response.status_code >= 400:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                f"Retell get-agent returned {response.status_code}: "
+                f"{_retell_response_detail(response)}"
+            ),
+        )
+
+    body = response.json()
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=502, detail="Retell get-agent returned invalid JSON")
+
+    response_engine = body.get("response_engine")
+    if not isinstance(response_engine, dict):
+        raise HTTPException(
+            status_code=422,
+            detail="Retell agent is missing response_engine for simulation testing",
+        )
+
+    engine_type = response_engine.get("type")
+    if engine_type == "retell-llm" and response_engine.get("llm_id"):
+        out: dict[str, Any] = {
+            "type": "retell-llm",
+            "llm_id": str(response_engine["llm_id"]),
+        }
+        if response_engine.get("version") is not None:
+            out["version"] = response_engine["version"]
+        return out
+
+    if engine_type == "conversation-flow" and response_engine.get("conversation_flow_id"):
+        out = {
+            "type": "conversation-flow",
+            "conversation_flow_id": str(response_engine["conversation_flow_id"]),
+        }
+        if response_engine.get("version") is not None:
+            out["version"] = response_engine["version"]
+        return out
+
+    raise HTTPException(
+        status_code=422,
+        detail="Retell agent response_engine is not supported for simulation testing",
+    )
+
+
+async def create_retell_test_case_definition(
+    *,
+    api_key: str,
+    response_engine: dict[str, Any],
+    name: str,
+    user_prompt: str,
+    metrics: list[str],
+    dynamic_variables: dict[str, str],
+) -> str:
+    body: dict[str, Any] = {
+        "name": name,
+        "response_engine": response_engine,
+        "user_prompt": user_prompt,
+        "metrics": metrics,
+        "dynamic_variables": dynamic_variables,
+    }
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.retellai.com/create-test-case-definition",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=body,
+                timeout=15.0,
+            )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502, detail=f"Failed to reach Retell API: {exc}"
+        ) from exc
+
+    if response.status_code >= 400:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Retell create-test-case-definition returned "
+                f"{response.status_code}: {_retell_response_detail(response)}"
+            ),
+        )
+
+    payload = response.json()
+    if not isinstance(payload, dict):
+        raise HTTPException(
+            status_code=502,
+            detail="Retell create-test-case-definition returned invalid JSON",
+        )
+    test_case_definition_id = payload.get("test_case_definition_id")
+    if not test_case_definition_id:
+        raise HTTPException(
+            status_code=502,
+            detail="Retell create-test-case-definition response did not contain test_case_definition_id",
+        )
+    return str(test_case_definition_id)
+
+
+async def create_retell_batch_test(
+    *,
+    api_key: str,
+    response_engine: dict[str, Any],
+    test_case_definition_ids: list[str],
+) -> str:
+    body = {
+        "response_engine": response_engine,
+        "test_case_definition_ids": test_case_definition_ids,
+    }
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.retellai.com/create-batch-test",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=body,
+                timeout=15.0,
+            )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502, detail=f"Failed to reach Retell API: {exc}"
+        ) from exc
+
+    if response.status_code >= 400:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                f"Retell create-batch-test returned {response.status_code}: "
+                f"{_retell_response_detail(response)}"
+            ),
+        )
+
+    payload = response.json()
+    if not isinstance(payload, dict):
+        raise HTTPException(
+            status_code=502, detail="Retell create-batch-test returned invalid JSON"
+        )
+    batch_id = payload.get("test_case_batch_job_id")
+    if not batch_id:
+        raise HTTPException(
+            status_code=502,
+            detail="Retell create-batch-test response did not contain test_case_batch_job_id",
+        )
+    return str(batch_id)
+
+
+async def get_retell_batch_test(
+    *, api_key: str, batch_test_id: str
+) -> RetellBatchTest:
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"https://api.retellai.com/get-batch-test/{batch_test_id}",
+                headers={"Authorization": f"Bearer {api_key}"},
+                timeout=10.0,
+            )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502, detail=f"Failed to reach Retell API: {exc}"
+        ) from exc
+
+    if response.status_code >= 400:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                f"Retell get-batch-test returned {response.status_code}: "
+                f"{_retell_response_detail(response)}"
+            ),
+        )
+
+    payload = response.json()
+    if not isinstance(payload, dict):
+        raise HTTPException(
+            status_code=502, detail="Retell get-batch-test returned invalid JSON"
+        )
+    return RetellBatchTest(
+        test_case_batch_job_id=str(
+            payload.get("test_case_batch_job_id") or batch_test_id
+        ),
+        status=str(payload.get("status") or ""),
+        pass_count=int(payload.get("pass_count") or 0),
+        fail_count=int(payload.get("fail_count") or 0),
+        error_count=int(payload.get("error_count") or 0),
+        total_count=int(payload.get("total_count") or 0),
+        raw=payload,
+    )
+
+
+async def list_retell_test_runs(
+    *, api_key: str, batch_test_id: str
+) -> list[RetellTestCaseJob]:
+    items: list[dict[str, Any]] = []
+    pagination_key: str | None = None
+
+    while True:
+        params: dict[str, Any] = {"limit": 1000}
+        if pagination_key:
+            params["pagination_key"] = pagination_key
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"https://api.retellai.com/v2/list-test-runs/{batch_test_id}",
+                    headers={"Authorization": f"Bearer {api_key}"},
+                    params=params,
+                    timeout=10.0,
+                )
+        except httpx.HTTPError as exc:
+            raise HTTPException(
+                status_code=502, detail=f"Failed to reach Retell API: {exc}"
+            ) from exc
+
+        if response.status_code >= 400:
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    f"Retell list-test-runs returned {response.status_code}: "
+                    f"{_retell_response_detail(response)}"
+                ),
+            )
+
+        payload = response.json()
+        if isinstance(payload, list):
+            raw_items = payload
+            has_more = False
+            next_key = None
+        elif isinstance(payload, dict):
+            raw_items = payload.get("items") or []
+            has_more = bool(payload.get("has_more"))
+            next_key = payload.get("pagination_key")
+        else:
+            raise HTTPException(
+                status_code=502, detail="Retell list-test-runs returned invalid JSON"
+            )
+
+        items.extend(item for item in raw_items if isinstance(item, dict))
+        if not has_more or not isinstance(next_key, str) or not next_key:
+            break
+        pagination_key = next_key
+
+    jobs: list[RetellTestCaseJob] = []
+    for item in items:
+        transcript_snapshot = item.get("transcript_snapshot")
+        if not isinstance(transcript_snapshot, dict):
+            transcript_snapshot = None
+        jobs.append(
+            RetellTestCaseJob(
+                test_case_job_id=str(item.get("test_case_job_id") or ""),
+                status=str(item.get("status") or ""),
+                test_case_definition_id=str(item.get("test_case_definition_id") or ""),
+                transcript_snapshot=transcript_snapshot,
+                result_explanation=(
+                    str(item["result_explanation"])
+                    if item.get("result_explanation") is not None
+                    else None
+                ),
+                raw=item,
+            )
+        )
+    return jobs
 
 
 async def list_retell_calls(

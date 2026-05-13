@@ -1,8 +1,8 @@
 """Retell evaluation engine.
 
-Drives a Retell web call for each test case, polls until the call ends, then
-maps the Retell transcript into Connexity's :class:`ConversationTurn` shape and
-runs the existing Connexity judge over it.
+Runs Retell simulation tests for each test case, maps the generated transcript
+into Connexity's :class:`ConversationTurn` shape, and runs the existing
+Connexity judge over it.
 
 Retell credentials and the Retell agent id come from the eval-config agent's
 Retell integration setup (see ``Agent`` + ``Integration``). The engine
@@ -38,11 +38,22 @@ from app.services.eval_engines.base import (
     EngineTestResult,
     EvalEngine,
 )
+from app.services.eval_engines.retell_mapping import (
+    build_retell_dynamic_variables,
+    build_retell_metrics,
+    build_retell_user_prompt,
+    map_retell_transcript_snapshot,
+)
 from app.services.judge import JudgeInput, evaluate_transcript
 from app.services.retell import (
     RetellCall,
-    create_retell_web_call,
+    RetellTestCaseJob,
+    create_retell_batch_test,
+    create_retell_test_case_definition,
+    get_retell_agent_response_engine,
+    get_retell_batch_test,
     get_retell_call,
+    list_retell_test_runs,
     test_retell_connection,
 )
 
@@ -50,6 +61,7 @@ logger = logging.getLogger(__name__)
 
 _POLL_INTERVAL_SECONDS = 2.0
 _DEFAULT_POLL_TIMEOUT_SECONDS = 120.0
+_PROMPT_LOG_MAX_CHARS = 1200
 
 
 class RetellEngineError(Exception):
@@ -153,6 +165,76 @@ async def _wait_for_call_completion(
         await asyncio.sleep(_POLL_INTERVAL_SECONDS)
 
 
+async def wait_for_retell_test_run_completion(
+    *,
+    api_key: str,
+    batch_test_id: str,
+    test_case_definition_id: str,
+    timeout_seconds: float,
+    cancel_event: asyncio.Event | None,
+) -> RetellTestCaseJob:
+    deadline = time.monotonic() + timeout_seconds
+    while True:
+        if cancel_event is not None and cancel_event.is_set():
+            raise RetellEngineError("Run cancelled while waiting on Retell simulation")
+
+        batch = await get_retell_batch_test(
+            api_key=api_key, batch_test_id=batch_test_id
+        )
+        logger.info(
+            "Retell simulation batch poll: batch_id=%s status=%s pass=%s fail=%s error=%s total=%s",
+            batch_test_id,
+            batch.status,
+            batch.pass_count,
+            batch.fail_count,
+            batch.error_count,
+            batch.total_count,
+        )
+        if batch.status == "complete":
+            jobs = await list_retell_test_runs(
+                api_key=api_key, batch_test_id=batch_test_id
+            )
+            for job in jobs:
+                if job.test_case_definition_id != test_case_definition_id:
+                    continue
+                logger.info(
+                    "Retell simulation job terminal state: batch_id=%s test_definition_id=%s job_id=%s status=%s explanation=%s",
+                    batch_test_id,
+                    test_case_definition_id,
+                    job.test_case_job_id,
+                    job.status,
+                    job.result_explanation,
+                )
+                if job.status == "error":
+                    detail = job.result_explanation or "Retell simulation returned error"
+                    if job.transcript_snapshot:
+                        logger.info(
+                            "Retell simulation error transcript snapshot: batch_id=%s job_id=%s transcript_snapshot=%s",
+                            batch_test_id,
+                            job.test_case_job_id,
+                            job.transcript_snapshot,
+                        )
+                        logger.warning(
+                            "Retell simulation job returned error with transcript; continuing to Connexity judge: batch_id=%s job_id=%s explanation=%s",
+                            batch_test_id,
+                            job.test_case_job_id,
+                            detail,
+                        )
+                        return job
+                    raise RetellEngineError(
+                        f"Retell simulation job {job.test_case_job_id} failed: {detail}"
+                    )
+                if job.status in {"pass", "fail"}:
+                    return job
+
+        if time.monotonic() >= deadline:
+            raise RetellEngineError(
+                "Retell simulation did not finish within "
+                f"{timeout_seconds:.0f}s for batch {batch_test_id}"
+            )
+        await asyncio.sleep(_POLL_INTERVAL_SECONDS)
+
+
 class RetellEngine(EvalEngine):
     KIND: ClassVar[EvaluationEngineKind] = EvaluationEngineKind.RETELL
     LABEL: ClassVar[str] = "Retell"
@@ -236,31 +318,59 @@ class RetellEngine(EvalEngine):
             )
             raise
 
-        dynamic_vars: dict[str, str] = {
-            "test_case_id": str(args.test_case.id),
-            "test_case_name": args.test_case.name or "",
-            "persona_context": args.test_case.persona_context or "",
-            "first_message": args.test_case.first_message or "",
-        }
-        create_result = await create_retell_web_call(
+        response_engine = await get_retell_agent_response_engine(
             api_key=api_key,
             retell_agent_id=retell_agent_id,
-            dynamic_variables=dynamic_vars,
         )
-        if not create_result.success or not create_result.call_id:
-            raise RetellEngineError(
-                create_result.error_message or "Failed to create Retell web call"
-            )
-
-        timeout_seconds = max(10.0, args.run_config.timeout_per_test_case_ms / 1000.0)
-        call = await _wait_for_call_completion(
+        user_prompt = build_retell_user_prompt(
+            args.test_case, max_turns=args.run_config.max_turns
+        )
+        metrics = build_retell_metrics(args.test_case)
+        dynamic_variables = build_retell_dynamic_variables(args.test_case)
+        logger.info(
+            "Retell simulation setup: agent_id=%s retell_agent_id=%s test_case_id=%s response_engine=%s metrics=%s prompt_chars=%s prompt_preview=%s",
+            args.agent_id,
+            retell_agent_id,
+            args.test_case.id,
+            response_engine,
+            metrics,
+            len(user_prompt),
+            user_prompt[:_PROMPT_LOG_MAX_CHARS],
+        )
+        test_case_definition_id = await create_retell_test_case_definition(
             api_key=api_key,
-            call_id=create_result.call_id,
+            response_engine=response_engine,
+            name=args.test_case.name or str(args.test_case.id),
+            user_prompt=user_prompt,
+            metrics=metrics,
+            dynamic_variables=dynamic_variables,
+        )
+        logger.info(
+            "Retell simulation test definition created: test_case_id=%s test_definition_id=%s",
+            args.test_case.id,
+            test_case_definition_id,
+        )
+        batch_test_id = await create_retell_batch_test(
+            api_key=api_key,
+            response_engine=response_engine,
+            test_case_definition_ids=[test_case_definition_id],
+        )
+        logger.info(
+            "Retell simulation batch created: test_case_id=%s test_definition_id=%s batch_id=%s",
+            args.test_case.id,
+            test_case_definition_id,
+            batch_test_id,
+        )
+        timeout_seconds = max(10.0, args.run_config.timeout_per_test_case_ms / 1000.0)
+        job = await wait_for_retell_test_run_completion(
+            api_key=api_key,
+            batch_test_id=batch_test_id,
+            test_case_definition_id=test_case_definition_id,
             timeout_seconds=timeout_seconds,
             cancel_event=args.cancel_event,
         )
 
-        transcript = _map_retell_transcript(call)
+        transcript = map_retell_transcript_snapshot(job.transcript_snapshot)
         run_result = TestCaseRunResult(
             transcript=transcript,
             agent_token_usage={},
