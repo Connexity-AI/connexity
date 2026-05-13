@@ -36,6 +36,13 @@ logger = logging.getLogger(__name__)
 _TEST_TIMEOUT_SECONDS = 10.0
 
 
+async def run_test_case_with_evaluation(*args, **kwargs):
+    """defer orchestrator import to runtime to avoid cycles"""
+    from app.services.orchestrator import run_test_case_with_evaluation as _impl
+
+    return await _impl(*args, **kwargs)
+
+
 class CustomUrlEngine(EvalEngine):
     KIND: ClassVar[EvaluationEngineKind] = EvaluationEngineKind.CUSTOM_URL
     LABEL: ClassVar[str] = "Your Agent"
@@ -107,10 +114,6 @@ class CustomUrlEngine(EvalEngine):
         args: EngineRunArgs,
         session: Session,
     ) -> tuple[TestCaseRunResult, JudgeVerdict | None]:
-        from app.services.orchestrator import (  # local import to avoid cycle
-            run_test_case_with_evaluation,
-        )
-
         if not isinstance(engine_config, CustomUrlEngineConfig):
             msg = "custom_url engine requires a CustomUrlEngineConfig"
             raise ValueError(msg)

@@ -24,6 +24,13 @@ if TYPE_CHECKING:
     from app.services.orchestrator import TestCaseRunResult
 
 
+async def run_test_case_with_evaluation(*args, **kwargs):
+    """defer orchestrator import to runtime to avoid cycles"""
+    from app.services.orchestrator import run_test_case_with_evaluation as _impl
+
+    return await _impl(*args, **kwargs)
+
+
 class ConnexityEngine(EvalEngine):
     KIND: ClassVar[EvaluationEngineKind] = EvaluationEngineKind.CONNEXITY
     LABEL: ClassVar[str] = "Connexity"
@@ -56,10 +63,6 @@ class ConnexityEngine(EvalEngine):
         args: EngineRunArgs,
         session: Session,
     ) -> tuple[TestCaseRunResult, JudgeVerdict | None]:
-        from app.services.orchestrator import (  # local import to avoid cycle
-            run_test_case_with_evaluation,
-        )
-
         return await run_test_case_with_evaluation(
             args.test_case,
             args.agent_endpoint_url,

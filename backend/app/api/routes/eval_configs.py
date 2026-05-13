@@ -170,11 +170,14 @@ def update_eval_config(
     eval_config = crud.get_eval_config(session=session, eval_config_id=eval_config_id)
     if not eval_config:
         raise HTTPException(status_code=404, detail="Eval config not found")
-    updated = crud.update_eval_config(
-        session=session,
-        db_eval_config=eval_config,
-        eval_config_in=eval_config_in,
-    )
+    try:
+        updated = crud.update_eval_config(
+            session=session,
+            db_eval_config=eval_config,
+            eval_config_in=eval_config_in,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return _to_public(session, updated)
 
 
