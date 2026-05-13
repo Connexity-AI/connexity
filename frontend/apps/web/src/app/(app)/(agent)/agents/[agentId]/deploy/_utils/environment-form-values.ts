@@ -18,6 +18,19 @@ export const DEFAULT_ENVIRONMENT_FORM_VALUES: AddEnvironmentFormInputValues = {
   eval_gate_eval_config_id: null,
 };
 
+function getAgentProviderTargetValues(
+  agent?: AgentCanonicalDeployTarget | null
+): Pick<
+  AddEnvironmentFormInputValues,
+  'integration_id' | 'platform_agent_id' | 'platform_agent_name'
+> {
+  return {
+    integration_id: agent?.integration_id ?? null,
+    platform_agent_id: agent?.platform_agent_id ?? null,
+    platform_agent_name: agent?.platform_agent_name ?? null,
+  };
+}
+
 function defaultFormValuesForNewEnvironment(
   agent?: AgentCanonicalDeployTarget | null
 ): AddEnvironmentFormInputValues {
@@ -30,9 +43,7 @@ function defaultFormValuesForNewEnvironment(
   return {
     name: '',
     platform: agent.platform,
-    integration_id: agent.integration_id ?? null,
-    platform_agent_id: agent.platform_agent_id ?? null,
-    platform_agent_name: agent.platform_agent_name ?? null,
+    ...getAgentProviderTargetValues(agent),
     endpoint_url: null,
     eval_gate_enabled: false,
     eval_gate_eval_config_id: null,
@@ -50,9 +61,7 @@ export function getEnvironmentFormValues(
   return {
     name: environment.name,
     platform: environment.platform,
-    integration_id: environment.integration_id ?? null,
-    platform_agent_id: environment.platform_agent_id ?? null,
-    platform_agent_name: environment.platform_agent_name ?? null,
+    ...getAgentProviderTargetValues(agent),
     endpoint_url: environment.endpoint_url ?? null,
     eval_gate_enabled: environment.eval_gate_eval_config_id !== null,
     eval_gate_eval_config_id: environment.eval_gate_eval_config_id ?? null,
@@ -69,9 +78,6 @@ export function getEnvironmentCreateBody(
     name: values.name,
     platform: values.platform,
     agent_id: agentId,
-    integration_id: values.integration_id,
-    platform_agent_id: values.platform_agent_id,
-    platform_agent_name: values.platform_agent_name,
     endpoint_url: body.endpoint_url,
     eval_gate_eval_config_id: body.eval_gate_eval_config_id,
   };
@@ -83,11 +89,6 @@ export function getEnvironmentUpdateBody(
   return {
     name: values.name,
     platform: values.platform,
-    integration_id: values.platform === Platform.WEBHOOK ? null : values.integration_id,
-    platform_agent_id:
-      values.platform === Platform.WEBHOOK ? null : values.platform_agent_id,
-    platform_agent_name:
-      values.platform === Platform.WEBHOOK ? null : values.platform_agent_name,
     endpoint_url: values.platform === Platform.WEBHOOK ? values.endpoint_url : null,
     eval_gate_eval_config_id: values.eval_gate_enabled
       ? values.eval_gate_eval_config_id
