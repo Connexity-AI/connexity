@@ -12,11 +12,29 @@ import type {
   AgentVersionPublic,
   AgentVersionsPublic,
   EvaluationEngineOptionsPublic,
+  Platform,
   PublishRequest,
 } from '@/client/types.gen';
 import type { ApiResult } from '@/types/api';
 
-export type AgentRow = AgentPublic;
+export type AgentLatestPublishedVersionRow = {
+  version: number;
+  version_name?: string | null;
+  version_description?: string | null;
+};
+
+export type AgentRow = AgentPublic & {
+  latest_published_version?: AgentLatestPublishedVersionRow | null;
+};
+
+export type CreateAgentDraftPayload = {
+  name?: string;
+  platform?: Platform | null;
+  prompt_type?: 'single_prompt' | 'multi_prompt';
+  integration_id?: string | null;
+  platform_agent_id?: string | null;
+  platform_agent_name?: string | null;
+};
 
 export type AgentFilters = {
   name?: string;
@@ -67,12 +85,16 @@ export const createAgent = async (body: AgentCreate): Promise<ApiResult<AgentPub
 };
 
 export const createDraftAgent = async (
-  name: string = 'Untitled Agent'
+  payload: CreateAgentDraftPayload = {}
 ): Promise<ApiResult<AgentPublic>> => {
+  const merged: CreateAgentDraftPayload = {
+    name: 'Untitled Agent',
+    ...payload,
+  };
   const { client } = await import('@/client/client.gen');
   const apiResponse = await client.post({
     url: '/api/v1/agents/draft',
-    body: { name },
+    body: merged,
     headers: { 'Content-Type': 'application/json' },
   });
   const { response: _, ...result } = apiResponse;

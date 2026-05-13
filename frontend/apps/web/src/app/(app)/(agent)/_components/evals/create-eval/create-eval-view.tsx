@@ -2,7 +2,9 @@
 'use no memo';
 
 import { useState } from 'react';
+import { AlertCircle } from 'lucide-react';
 
+import { Alert, AlertDescription, AlertTitle } from '@workspace/ui/components/ui/alert';
 import { Form } from '@workspace/ui/components/ui/form';
 
 import { CreateEvalReadOnlyProvider } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-readonly-context';
@@ -14,7 +16,10 @@ import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { JudgeSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-judge-section';
 import { PassThresholdsSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-pass-thresholds-section';
 import { PersonaSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-persona-section';
-import { RunConfigSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-run-config-section';
+import {
+  EvaluationEngineSection,
+  RunConfigSection,
+} from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-run-config-section';
 import { TestCasesSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-test-cases-section';
 import { useCreateEvalForm } from '@/app/(app)/(agent)/_components/evals/create-eval/use-create-eval-form';
 import { useAgent } from '@/app/(app)/(agent)/_hooks/use-agent';
@@ -49,6 +54,44 @@ interface CreateEvalViewProps {
   readOnly?: boolean;
   initialConfig?: EvalConfigPublic;
   initialMembers?: EvalConfigMemberPublic[];
+}
+
+const TOOL_CALLS_ENGINE_ERROR =
+  "Tool calls are only supported with the Connexity evaluation engine. Remove expected_tool_calls from the linked test cases, or switch the engine to 'connexity'.";
+
+function SubmitErrorAlert({ message }: { message: string | null }) {
+  if (message === null) {
+    return null;
+  }
+
+  if (message === '') {
+    return null;
+  }
+
+  if (message === TOOL_CALLS_ENGINE_ERROR) {
+    return (
+      <Alert
+        variant="default"
+        className="border border-dashed border-yellow-400! bg-yellow-500/5 text-yellow-300"
+      >
+        <AlertCircle className="h-4 w-4 text-yellow-300!" />
+        <AlertTitle>Tool calls require Connexity engine</AlertTitle>
+        <AlertDescription>
+          This config includes test cases with expected tool calls. Switch evaluation engine to
+          <span className="font-medium"> Connexity</span>, or remove expected tool calls from the
+          selected test cases.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  return (
+    <Alert variant="destructive">
+      <AlertCircle className="h-4 w-4" />
+      <AlertTitle>Could not save eval config</AlertTitle>
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
+  );
 }
 
 export function CreateEvalView({
@@ -122,21 +165,17 @@ export function CreateEvalView({
 
           <form onSubmit={(e) => e.preventDefault()} className="flex-1 overflow-auto">
             <div className="mx-auto max-w-2xl space-y-4 px-6 py-6">
-              {submitError ? (
-                <p className="text-xs text-destructive" role="alert">
-                  {submitError}
-                </p>
-              ) : null}
+              <SubmitErrorAlert message={submitError} />
+              <RunConfigSection />
               <TestCasesSection agentId={agentId} />
               <JudgeSection metrics={metrics} />
               <PassThresholdsSection />
               <PersonaSection />
-              <RunConfigSection
+              <EvaluationEngineSection
                 agentId={agentId}
                 agentMode={agent?.mode ?? null}
                 agentTools={agent?.tools ?? null}
                 defaultToBackendOption={!initialConfig}
-                endpointUrl={agent?.endpoint_url ?? null}
               />
             </div>
           </form>

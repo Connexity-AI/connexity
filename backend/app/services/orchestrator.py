@@ -22,7 +22,7 @@ from app.models.agent_contract import (
     ChatMessage,
     TokenUsage,
 )
-from app.models.enums import AgentMode, FirstTurn, SimulatorMode, TurnRole
+from app.models.enums import AgentMode, FirstTurn, Platform, SimulatorMode, TurnRole
 from app.models.schemas import (
     AggregateMetrics,
     ConversationTurn,
@@ -859,6 +859,10 @@ async def _execute_single_test_case(
     semaphore: asyncio.Semaphore,
     cancel_event: asyncio.Event,
     *,
+    agent_id_snapshot: uuid.UUID | None = None,
+    agent_platform_snapshot: Platform | None = None,
+    agent_integration_id_snapshot: uuid.UUID | None = None,
+    agent_platform_agent_id_snapshot: str | None = None,
     repetition_index: int = 0,
 ) -> TestCaseResult:
     from sqlmodel import Session
@@ -894,10 +898,32 @@ async def _execute_single_test_case(
         started_at = datetime.now(UTC)
         try:
             engine_impl = get_engine(config.evaluation_engine.kind)
+            resolved_agent_id = (
+                agent_id_snapshot if agent_id_snapshot is not None else agent.id
+            )
+            resolved_agent_platform = (
+                agent_platform_snapshot
+                if agent_platform_snapshot is not None
+                else agent.platform
+            )
+            resolved_agent_integration_id = (
+                agent_integration_id_snapshot
+                if agent_integration_id_snapshot is not None
+                else agent.integration_id
+            )
+            resolved_agent_platform_agent_id = (
+                agent_platform_agent_id_snapshot
+                if agent_platform_agent_id_snapshot is not None
+                else agent.platform_agent_id
+            )
             engine_args = EngineRunArgs(
                 test_case=test_case,
                 run_config=config,
                 agent=agent,
+                agent_id=resolved_agent_id,
+                agent_platform=resolved_agent_platform,
+                agent_integration_id=resolved_agent_integration_id,
+                agent_platform_agent_id=resolved_agent_platform_agent_id,
                 agent_endpoint_url=agent_endpoint_url,
                 agent_system_prompt=agent_system_prompt,
                 agent_tools=agent_tools,
@@ -1150,6 +1176,10 @@ async def execute_run(run_id: uuid.UUID) -> None:
             agent_mode = _parse_run_agent_mode(run.agent_mode)
             agent_model = run.agent_model
             agent_provider = run.agent_provider
+            agent_id_snapshot = agent.id
+            agent_platform_snapshot = agent.platform
+            agent_integration_id_snapshot = agent.integration_id
+            agent_platform_agent_id_snapshot = agent.platform_agent_id
             # Detach from session so background tasks can read attrs without an
             # open Session — only the snapshot fields are touched by engines.
             session.expunge(agent)
@@ -1177,6 +1207,10 @@ async def execute_run(run_id: uuid.UUID) -> None:
                 agent_tools=agent_tools,
                 semaphore=semaphore,
                 cancel_event=state.cancel_event,
+                agent_id_snapshot=agent_id_snapshot,
+                agent_platform_snapshot=agent_platform_snapshot,
+                agent_integration_id_snapshot=agent_integration_id_snapshot,
+                agent_platform_agent_id_snapshot=agent_platform_agent_id_snapshot,
                 repetition_index=rep,
             )
             for entry in execution_plan

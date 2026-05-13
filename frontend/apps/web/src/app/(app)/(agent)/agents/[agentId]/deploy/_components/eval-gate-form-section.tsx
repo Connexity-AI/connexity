@@ -23,7 +23,7 @@ import {
 import { cn } from '@workspace/ui/lib/utils';
 
 import { evalConfigsListQuery } from '@/app/(app)/(agent)/_queries/eval-configs-list-query';
-import type { AddEnvironmentFormValues } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_components/add-environment-form-schema';
+import type { AddEnvironmentFormInputValues } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_components/add-environment-form-schema';
 import type { EvalConfigPublic } from '@/client/types.gen';
 
 interface Props {
@@ -32,7 +32,7 @@ interface Props {
 }
 
 export function EvalGateFormSection({ agentId, disabled = false }: Props) {
-  const form = useFormContext<AddEnvironmentFormValues>();
+  const form = useFormContext<AddEnvironmentFormInputValues>();
   const { data, isLoading } = useQuery(evalConfigsListQuery(agentId));
   const configs: EvalConfigPublic[] = useMemo(
     () =>
@@ -90,7 +90,7 @@ export function EvalGateFormSection({ agentId, disabled = false }: Props) {
             </span>
           </div>
           <p className="text-[10px] text-muted-foreground mt-0.5">
-            Block deployments until the selected eval config passes its
+            Block deployments until the selected eval config passes your
             thresholds.
           </p>
         </div>

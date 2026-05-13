@@ -19,6 +19,26 @@ interface UseEvaluationEngineFieldArgs {
   defaultToBackendOption: boolean;
 }
 
+function normalizeTestMessage(message: unknown, fallback: string): string {
+  if (typeof message !== 'string') {
+    return fallback;
+  }
+  const normalized = message.trim();
+  const lowered = normalized.toLowerCase();
+  if (
+    !normalized ||
+    lowered === 'undefined' ||
+    lowered === 'null' ||
+    lowered.includes('undefined') ||
+    lowered.includes('null') ||
+    lowered === 'network error:' ||
+    lowered === 'network error'
+  ) {
+    return fallback;
+  }
+  return normalized;
+}
+
 export function useEvaluationEngineField({
   agentId,
   defaultToBackendOption,
@@ -85,52 +105,90 @@ export function useEvaluationEngineField({
     const nextUrl = kind === EvaluationEngineKind.CUSTOM_URL ? customUrl : '';
     form.setValue('run.evaluation_engine', engineConfigForKind(kind, nextUrl), {
       shouldDirty: true,
-      shouldValidate: true,
+      shouldValidate: false,
     });
-    form.setValue('run.evaluation_engine_test', { ok: false, url: null }, {
-      shouldDirty: true,
-      shouldValidate: true,
-    });
+    form.setValue(
+      'run.evaluation_engine_test',
+      { ok: false, url: null },
+      {
+        shouldDirty: true,
+        shouldValidate: false,
+      }
+    );
     setTestResult(null);
   };
 
   const setCustomUrl = (url: string) => {
-    form.setValue('run.evaluation_engine', { kind: EvaluationEngineKind.CUSTOM_URL, url }, {
-      shouldDirty: true,
-      shouldValidate: true,
-    });
-    form.setValue('run.evaluation_engine_test', { ok: false, url: null }, {
-      shouldDirty: true,
-      shouldValidate: true,
-    });
+    form.setValue(
+      'run.evaluation_engine',
+      { kind: EvaluationEngineKind.CUSTOM_URL, url },
+      {
+        shouldDirty: true,
+        shouldValidate: false,
+      }
+    );
+    form.setValue(
+      'run.evaluation_engine_test',
+      { ok: false, url: null },
+      {
+        shouldDirty: true,
+        shouldValidate: false,
+      }
+    );
     setTestResult(null);
   };
 
   const testCustomUrl = async () => {
     const url = customUrl.trim();
+    setTestResult(null);
+
     try {
       const result = await testEvaluationEngine.mutateAsync({
         agent_id: agentId,
         evaluation_engine: { kind: EvaluationEngineKind.CUSTOM_URL, url },
       });
-      setTestResult(result);
-      form.setValue('run.evaluation_engine_test', { ok: result.ok, url: result.ok ? url : null }, {
-        shouldDirty: true,
-        shouldValidate: true,
+
+      setTestResult({
+        ok: result.ok,
+        message: normalizeTestMessage(
+          result.message,
+          result.ok ? 'URL responded successfully.' : 'URL test failed.'
+        ),
       });
-      if (result.ok) {
-        form.setValue('run.evaluation_engine', { kind: EvaluationEngineKind.CUSTOM_URL, url }, {
+      form.setValue(
+        'run.evaluation_engine_test',
+        { ok: result.ok, url: result.ok ? url : null },
+        {
           shouldDirty: true,
           shouldValidate: true,
-        });
+        }
+      );
+
+      if (result.ok) {
+        form.setValue(
+          'run.evaluation_engine',
+          { kind: EvaluationEngineKind.CUSTOM_URL, url },
+          {
+            shouldDirty: true,
+            shouldValidate: true,
+          }
+        );
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to test URL';
+      const message = normalizeTestMessage(
+        err instanceof Error ? err.message : null,
+        'Failed to test URL. Please verify the endpoint is reachable.'
+      );
       setTestResult({ ok: false, message });
-      form.setValue('run.evaluation_engine_test', { ok: false, url: null }, {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
+
+      form.setValue(
+        'run.evaluation_engine_test',
+        { ok: false, url: null },
+        {
+          shouldDirty: true,
+          shouldValidate: true,
+        }
+      );
     }
   };
 

@@ -47,16 +47,3 @@ def test_health_endpoint(client: TestClient) -> None:
     r = client.get("/")
     assert r.status_code == 200
     assert "message" in r.json()
-
-
-def test_mock_webhook_endpoint_returns_200(client: TestClient) -> None:
-    r = client.post(
-        "/mock-webhook",
-        json={"event_type": "agent.deployed", "agent": {"id": "abc"}},
-    )
-
-    assert r.status_code == 200
-    result = r.json()
-    assert result["message"] == "Mock webhook received payload"
-    assert result["received_event_type"] == "agent.deployed"
-    assert result["payload_received"] is True

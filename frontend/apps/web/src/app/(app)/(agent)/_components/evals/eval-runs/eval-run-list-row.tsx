@@ -6,6 +6,7 @@ import { Checkbox } from '@workspace/ui/components/ui/checkbox';
 import { cn } from '@workspace/ui/lib/utils';
 
 import { useRunStream } from '@/app/(app)/(agent)/_hooks/use-run-stream';
+import { getToolCallModeBadge } from '@/app/(app)/(agent)/_utils/tool-call-mode-badge';
 import { RunStatus } from '@/client/types.gen';
 
 import { formatAbsoluteLocal, formatLocalShort, formatTimeAgo } from './shared/format-time';
@@ -51,7 +52,7 @@ export function EvalRunListRow({
   const casesPassed = metrics?.cases_passed ?? null;
   const passedCount = metrics?.passed_count ?? 0;
   const totalExecutions = metrics?.total_executions ?? 0;
-  const toolMode = run.config?.tool_mode ?? 'mock';
+  const toolCallModeBadge = getToolCallModeBadge(run.config);
 
   return (
     <li
@@ -100,12 +101,12 @@ export function EvalRunListRow({
         <span
           className={cn(
             'rounded px-1.5 py-0.5 text-[10px]',
-            toolMode === 'mock'
-              ? 'bg-yellow-500/15 text-yellow-400'
-              : 'bg-blue-500/15 text-blue-400'
+            toolCallModeBadge.tone === 'mock' && 'bg-yellow-500/15 text-yellow-400',
+            toolCallModeBadge.tone === 'live' && 'bg-blue-500/15 text-blue-400',
+            toolCallModeBadge.tone === 'na' && 'bg-muted text-muted-foreground'
           )}
         >
-          {toolMode === 'mock' ? 'Mock' : 'Live'}
+          {toolCallModeBadge.label}
         </span>
       </div>
 

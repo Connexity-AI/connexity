@@ -85,12 +85,12 @@ def _validate_evaluation_engine(
             candidate_ids.update(existing)
 
         if candidate_ids:
-            offenders = session.exec(
-                select(TestCase.id).where(
-                    col(TestCase.id).in_(candidate_ids),
-                    col(TestCase.expected_tool_calls).is_not(None),
+            rows = session.exec(
+                select(TestCase.id, TestCase.expected_tool_calls).where(
+                    col(TestCase.id).in_(candidate_ids)
                 )
             ).all()
+            offenders = [test_case_id for test_case_id, expected_calls in rows if expected_calls]
             if offenders:
                 msg = (
                     "Tool calls are only supported with the Connexity evaluation "

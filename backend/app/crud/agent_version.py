@@ -54,6 +54,21 @@ def get_active_published_version(
     return session.exec(statement).first()
 
 
+def active_published_versions_by_agent_ids(
+    *, session: Session, agent_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, AgentVersion]:
+    if not agent_ids:
+        return {}
+    rows = session.exec(
+        select(AgentVersion).where(
+            col(AgentVersion.agent_id).in_(agent_ids),
+            AgentVersion.status == AgentVersionStatus.PUBLISHED,
+            col(AgentVersion.is_active).is_(True),
+        )
+    ).all()
+    return {row.agent_id: row for row in rows}
+
+
 def build_version_row(
     *,
     agent_id: uuid.UUID,

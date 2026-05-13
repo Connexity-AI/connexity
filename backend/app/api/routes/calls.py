@@ -70,8 +70,8 @@ async def _fetch_and_store_production_calls(
             session=session, agent_id=agent.id
         )
         provider_envs = [
-            (env, name)
-            for env, name in environments
+            env
+            for env in environments
             if env.platform in {Platform.RETELL, Platform.VAPI, Platform.ELEVENLABS}
         ]
         event["envs_total"] = len(environments)
@@ -85,15 +85,21 @@ async def _fetch_and_store_production_calls(
             )
 
         created_total = 0
-        for env, _ in provider_envs:
-            if env.integration_id is None or env.platform_agent_id is None:
+        for env in provider_envs:
+            if agent.integration_id is None or agent.platform_agent_id is None:
+                env_event = {
+                    "env_id": str(env.id),
+                    "platform": env.platform,
+                    "status": "missing_agent_target",
+                }
+                event["envs"].append(env_event)
                 continue
             env_event: dict[str, Any] = {
                 "env_id": str(env.id),
                 "platform": env.platform,
-                "platform_agent_id": env.platform_agent_id,
-                "integration_id": str(env.integration_id)
-                if env.integration_id
+                "platform_agent_id": agent.platform_agent_id,
+                "integration_id": str(agent.integration_id)
+                if agent.integration_id
                 else None,
                 "iterations": 0,
                 "fetched": 0,
@@ -106,7 +112,7 @@ async def _fetch_and_store_production_calls(
 
             integration = crud.get_integration(
                 session=session,
-                integration_id=env.integration_id,
+                integration_id=agent.integration_id,
             )
             if integration is None:
                 env_event["status"] = "missing_integration"
@@ -128,7 +134,7 @@ async def _fetch_and_store_production_calls(
                 start_after = crud.get_latest_call_started_at(
                     session=session,
                     agent_id=agent.id,
-                    retell_agent_id=env.platform_agent_id,
+                    retell_agent_id=agent.platform_agent_id,
                 )
             env_event["start_after"] = start_after
             for iteration in range(_MAX_FETCH_ITERATIONS):
@@ -137,7 +143,7 @@ async def _fetch_and_store_production_calls(
                     if env.platform == Platform.RETELL:
                         batch = await list_retell_calls(
                             api_key,
-                            agent_id=env.platform_agent_id,
+                            agent_id=agent.platform_agent_id,
                             start_after=start_after,
                             limit=_RETELL_PAGE_SIZE,
                         )
@@ -164,7 +170,7 @@ async def _fetch_and_store_production_calls(
                         if env.platform == Platform.VAPI:
                             batch = await list_vapi_calls(
                                 api_key,
-                                assistant_id=env.platform_agent_id,
+                                assistant_id=agent.platform_agent_id,
                                 start_after=start_after,
                                 limit=_RETELL_PAGE_SIZE,
                             )
@@ -186,7 +192,7 @@ async def _fetch_and_store_production_calls(
                         else:
                             summaries = await list_elevenlabs_conversations(
                                 api_key,
-                                agent_id=env.platform_agent_id,
+                                agent_id=agent.platform_agent_id,
                                 start_after=start_after,
                                 page_size=_RETELL_PAGE_SIZE,
                                 max_pages=1,

@@ -17,6 +17,7 @@ from app.models.agent import (  # noqa: F401
     AgentGuidelinesPublic,
     AgentGuidelinesUpdate,
     AgentLastEvalSummary,
+    AgentLatestPublishedVersionPublic,
     AgentPublic,
     AgentsPublic,
     AgentUpdate,
@@ -95,6 +96,7 @@ from app.models.deployment import (  # noqa: F401
 # ── Enums ──────────────────────────────────────────────────────────
 from app.models.enums import (  # noqa: F401
     AgentMode,
+    AgentPromptType,
     AgentVersionStatus,
     DeploymentStatus,
     Difficulty,

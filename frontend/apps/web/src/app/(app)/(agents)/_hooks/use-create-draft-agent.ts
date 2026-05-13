@@ -10,12 +10,14 @@ import { isErrorApiResult } from '@/utils/api';
 import { getApiErrorMessage } from '@/utils/error';
 import { agentKeys } from '@/constants/query-keys';
 
+import type { CreateAgentDraftPayload } from '@/actions/agents';
+
 export function useCreateDraftAgent() {
   const queryClient = useQueryClient();
   const router = useRouter();
 
   const mutation = useMutation({
-    mutationFn: (name?: string) => createDraftAgent(name),
+    mutationFn: (payload: CreateAgentDraftPayload) => createDraftAgent(payload),
 
     onSuccess: (result) => {
       if (isErrorApiResult(result)) return;
@@ -30,12 +32,7 @@ export function useCreateDraftAgent() {
       ? getApiErrorMessage(mutation.data.error)
       : null;
 
-  const handleCreate = () => {
-    mutation.mutate(undefined);
-  };
-
   return {
-    handleCreate,
     mutateAsync: mutation.mutateAsync,
     isPending: mutation.isPending,
     error,

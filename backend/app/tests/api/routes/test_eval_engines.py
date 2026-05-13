@@ -183,6 +183,34 @@ def test_create_eval_config_allows_connexity_engine_with_tool_calls(
     assert r.status_code == 200
 
 
+def test_create_eval_config_allows_non_connexity_engine_with_empty_tool_calls(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent_id = _create_agent(db, Platform.WEBHOOK)
+    tc = crud.create_test_case(
+        session=db,
+        test_case_in=TestCaseCreate(
+            name=f"tc-{uuid.uuid4().hex[:6]}",
+            expected_tool_calls=[],
+        ),
+    )
+
+    payload = {
+        "name": "without-tools",
+        "agent_id": str(agent_id),
+        "config": RunConfig(
+            evaluation_engine=CustomUrlEngineConfig(url="https://x/v1")
+        ).model_dump(),
+        "members": [{"test_case_id": str(tc.id), "repetitions": 1}],
+    }
+    r = client.post(
+        f"{settings.API_V1_STR}/eval-configs/",
+        json=payload,
+        cookies=auth_cookies,
+    )
+    assert r.status_code == 200
+
+
 def test_update_eval_config_switching_engine_rejects_existing_tool_calls(
     client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:

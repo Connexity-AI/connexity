@@ -12,6 +12,7 @@ the full how-to-add-an-engine guide.
 from __future__ import annotations
 
 import asyncio
+import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, ClassVar
@@ -50,6 +51,10 @@ class EngineRunArgs:
     test_case: TestCase
     run_config: RunConfig
     agent: Agent
+    agent_id: uuid.UUID
+    agent_platform: Platform | None
+    agent_integration_id: uuid.UUID | None
+    agent_platform_agent_id: str | None
     agent_endpoint_url: str | None
     agent_system_prompt: str | None
     agent_tools: list[dict[str, Any]] | None

@@ -37,6 +37,50 @@ export const AgentCreateSchema = {
       description:
         "Voice/agent platform this agent targets. Drives which evaluation engines are available. Null for legacy rows; use 'webhook' for custom HTTP agents.",
     },
+    prompt_type: {
+      $ref: '#/components/schemas/AgentPromptType',
+      description: 'single_prompt: one system prompt; multi_prompt reserved for future use',
+      default: 'single_prompt',
+    },
+    integration_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Integration Id',
+      description: 'Integration used for Retell, Vapi, or ElevenLabs provider agent',
+    },
+    platform_agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Id',
+      description: 'Provider agent or assistant id when bound to an integration',
+    },
+    platform_agent_name: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Name',
+      description: 'Display name of the provider agent at bind time',
+    },
     endpoint_url: {
       anyOf: [
         {
@@ -153,6 +197,57 @@ export const AgentCreateDraftSchema = {
       maxLength: 255,
       title: 'Name',
       default: 'Untitled Agent',
+    },
+    platform: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Platform',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'When set with integration and platform_agent_id, imports config from provider',
+    },
+    prompt_type: {
+      $ref: '#/components/schemas/AgentPromptType',
+      default: 'single_prompt',
+    },
+    integration_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Integration Id',
+    },
+    platform_agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Id',
+    },
+    platform_agent_name: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Name',
     },
   },
   type: 'object',
@@ -314,6 +409,47 @@ export const AgentLastEvalSummarySchema = {
   title: 'AgentLastEvalSummary',
 } as const;
 
+export const AgentLatestPublishedVersionPublicSchema = {
+  properties: {
+    version: {
+      type: 'integer',
+      title: 'Version',
+      description: 'Active published version number',
+    },
+    version_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version Name',
+    },
+    version_description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version Description',
+    },
+  },
+  type: 'object',
+  required: ['version'],
+  title: 'AgentLatestPublishedVersionPublic',
+} as const;
+
+export const AgentPromptTypeSchema = {
+  type: 'string',
+  enum: ['single_prompt', 'multi_prompt'],
+  title: 'AgentPromptType',
+} as const;
+
 export const AgentPublicSchema = {
   properties: {
     name: {
@@ -350,6 +486,50 @@ export const AgentPublicSchema = {
       ],
       description:
         "Voice/agent platform this agent targets. Drives which evaluation engines are available. Null for legacy rows; use 'webhook' for custom HTTP agents.",
+    },
+    prompt_type: {
+      $ref: '#/components/schemas/AgentPromptType',
+      description: 'single_prompt: one system prompt; multi_prompt reserved for future use',
+      default: 'single_prompt',
+    },
+    integration_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Integration Id',
+      description: 'Integration used for Retell, Vapi, or ElevenLabs provider agent',
+    },
+    platform_agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Id',
+      description: 'Provider agent or assistant id when bound to an integration',
+    },
+    platform_agent_name: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Name',
+      description: 'Display name of the provider agent at bind time',
     },
     endpoint_url: {
       anyOf: [
@@ -476,6 +656,17 @@ export const AgentPublicSchema = {
       format: 'date-time',
       title: 'Updated At',
       description: 'When the agent was last updated',
+    },
+    latest_published_version: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/AgentLatestPublishedVersionPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Summary of the active published version for list UI',
     },
     last_eval: {
       anyOf: [
@@ -667,6 +858,52 @@ export const AgentUpdateSchema = {
         },
       ],
       description: 'Voice/agent platform this agent targets',
+    },
+    prompt_type: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/AgentPromptType',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    integration_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Integration Id',
+    },
+    platform_agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Id',
+    },
+    platform_agent_name: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Name',
     },
     endpoint_url: {
       anyOf: [
@@ -2324,40 +2561,6 @@ export const EnvironmentCreateSchema = {
       format: 'uuid',
       title: 'Agent Id',
     },
-    integration_id: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'uuid',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Integration Id',
-    },
-    platform_agent_id: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Platform Agent Id',
-    },
-    platform_agent_name: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Platform Agent Name',
-    },
     endpoint_url: {
       anyOf: [
         {
@@ -2410,18 +2613,6 @@ export const EnvironmentPublicSchema = {
       format: 'uuid',
       title: 'Agent Id',
     },
-    integration_id: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'uuid',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Integration Id',
-    },
     integration_name: {
       anyOf: [
         {
@@ -2432,28 +2623,6 @@ export const EnvironmentPublicSchema = {
         },
       ],
       title: 'Integration Name',
-    },
-    platform_agent_id: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Platform Agent Id',
-    },
-    platform_agent_name: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Platform Agent Name',
     },
     endpoint_url: {
       anyOf: [
@@ -2524,10 +2693,7 @@ export const EnvironmentPublicSchema = {
     'platform',
     'id',
     'agent_id',
-    'integration_id',
     'integration_name',
-    'platform_agent_id',
-    'platform_agent_name',
     'endpoint_url',
     'current_version_number',
     'current_version_name',
@@ -2561,40 +2727,6 @@ export const EnvironmentUpdateSchema = {
           type: 'null',
         },
       ],
-    },
-    integration_id: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'uuid',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Integration Id',
-    },
-    platform_agent_id: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Platform Agent Id',
-    },
-    platform_agent_name: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Platform Agent Name',
     },
     endpoint_url: {
       anyOf: [
@@ -4255,33 +4387,6 @@ export const MockResponseSchema = {
   type: 'object',
   required: ['response'],
   title: 'MockResponse',
-} as const;
-
-export const MockWebhookResponseSchema = {
-  properties: {
-    message: {
-      type: 'string',
-      title: 'Message',
-    },
-    received_event_type: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Received Event Type',
-    },
-    payload_received: {
-      type: 'boolean',
-      title: 'Payload Received',
-    },
-  },
-  type: 'object',
-  required: ['message', 'payload_received'],
-  title: 'MockWebhookResponse',
 } as const;
 
 export const OnConflictSchema = {

@@ -6,6 +6,8 @@ import httpx
 from fastapi import HTTPException
 from pydantic import BaseModel
 
+from app.models.imported_platform_config import ImportedPlatformConfig
+
 logger = logging.getLogger(__name__)
 
 
@@ -81,6 +83,7 @@ async def list_retell_agents(api_key: str) -> list[RetellAgentSummary]:
             response = await client.get(
                 "https://api.retellai.com/list-agents",
                 headers={"Authorization": f"Bearer {api_key}"},
+                params={"is_latest": "true"},
                 timeout=10.0,
             )
     except httpx.HTTPError as exc:
@@ -261,6 +264,141 @@ def _map_tools_for_retell(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
             retell_tool["parameters"] = params
         retell_tools.append(retell_tool)
     return retell_tools
+
+
+def _map_retell_general_tools_to_openai(
+    general_tools: list[Any],
+) -> list[dict[str, Any]]:
+    """Best-effort reverse of ``_map_tools_for_retell`` for imports."""
+    out: list[dict[str, Any]] = []
+    for raw in general_tools:
+        if not isinstance(raw, dict):
+            continue
+        if raw.get("type") != "custom":
+            continue
+        url = raw.get("url") or ""
+        if not url:
+            continue
+        method = str(raw.get("method") or "POST").upper()
+        if method not in _RETELL_ALLOWED_METHODS:
+            method = "POST"
+        name = str(raw.get("name") or "")
+        desc = str(raw.get("description") or "")
+        params = raw.get("parameters")
+        if not isinstance(params, dict):
+            params = {}
+        out.append(
+            {
+                "type": "function",
+                "function": {
+                    "name": name,
+                    "description": desc,
+                    "parameters": params,
+                },
+                "platform_config": {
+                    "implementation": {
+                        "type": "http_webhook",
+                        "url": url,
+                        "method": method,
+                    },
+                },
+            }
+        )
+    return out
+
+
+async def import_retell_agent_config(
+    *, api_key: str, retell_agent_id: str
+) -> ImportedPlatformConfig:
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"https://api.retellai.com/get-agent/{retell_agent_id}",
+                headers=headers,
+                timeout=30.0,
+            )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502, detail=f"Failed to reach Retell API: {exc}"
+        ) from exc
+
+    if resp.status_code >= 400:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Retell get-agent failed with status {resp.status_code}",
+        )
+
+    agent_data = resp.json()
+    if not isinstance(agent_data, dict):
+        raise HTTPException(
+            status_code=422, detail="Retell get-agent returned invalid JSON"
+        )
+
+    llm_id = (agent_data.get("response_engine") or {}).get("llm_id")
+    if not llm_id:
+        raise HTTPException(
+            status_code=422,
+            detail="Retell agent has no associated LLM (response_engine.llm_id missing)",
+        )
+
+    try:
+        async with httpx.AsyncClient() as client:
+            llm_resp = await client.get(
+                f"https://api.retellai.com/get-retell-llm/{llm_id}",
+                headers=headers,
+                timeout=30.0,
+            )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502, detail=f"Failed to reach Retell API: {exc}"
+        ) from exc
+
+    if llm_resp.status_code >= 400:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Retell get-retell-llm failed with status {llm_resp.status_code}",
+        )
+
+    llm_body = llm_resp.json()
+    if not isinstance(llm_body, dict):
+        raise HTTPException(
+            status_code=422, detail="Retell LLM response was not an object"
+        )
+
+    system_prompt = (llm_body.get("general_prompt") or "").strip()
+    agent_model = (llm_body.get("model") or "").strip()
+    if not system_prompt or not agent_model:
+        raise HTTPException(
+            status_code=422,
+            detail="Retell LLM is missing general_prompt or model — cannot import",
+        )
+
+    raw_temp = llm_body.get("model_temperature")
+    agent_temperature: float | None
+    if raw_temp is None:
+        agent_temperature = None
+    else:
+        try:
+            agent_temperature = float(raw_temp)
+        except (TypeError, ValueError):
+            agent_temperature = None
+
+    general_tools = llm_body.get("general_tools")
+    tools: list[dict[str, Any]] | None = None
+    if isinstance(general_tools, list) and general_tools:
+        tools = _map_retell_general_tools_to_openai(general_tools)
+
+    return ImportedPlatformConfig(
+        system_prompt=system_prompt,
+        agent_model=agent_model,
+        agent_provider=None,
+        agent_temperature=agent_temperature,
+        tools=tools,
+    )
 
 
 async def deploy_retell_agent(

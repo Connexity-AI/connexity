@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from sqlalchemy import func
 from sqlmodel import Session, col, select
@@ -7,13 +8,15 @@ from app.crud import agent_version as agent_version_crud
 from app.models import (
     Agent,
     AgentCreate,
+    AgentCreateDraft,
     AgentGuidelinesPublic,
     AgentLastEvalSummary,
     AgentUpdate,
     AggregateMetrics,
     Run,
 )
-from app.models.enums import AgentMode, AgentVersionStatus, RunStatus
+from app.models.enums import AgentMode, AgentVersionStatus, Platform, RunStatus
+from app.models.imported_platform_config import ImportedPlatformConfig
 from app.services.agent_tool_definitions import normalize_and_validate_agent_tools
 
 _VERSIONABLE_FIELDS = frozenset(
@@ -24,6 +27,7 @@ _VERSIONABLE_FIELDS = frozenset(
         "tools",
         "agent_model",
         "agent_provider",
+        "agent_temperature",
     }
 )
 
@@ -62,14 +66,66 @@ def create_agent(
 def create_draft_agent(
     *,
     session: Session,
-    name: str = "Untitled Agent",
+    body: AgentCreateDraft,
     created_by: uuid.UUID | None = None,
+    imported: ImportedPlatformConfig | None = None,
 ) -> Agent:
+    name = body.name.strip() if body.name else "Untitled Agent"
+    prompt_type = body.prompt_type
+
+    if imported is not None:
+        tools_norm: list[dict[str, Any]] | None = None
+        if imported.tools:
+            tools_norm = normalize_and_validate_agent_tools(imported.tools)
+        db_obj = Agent(
+            name=name,
+            mode=AgentMode.PLATFORM,
+            has_draft=False,
+            created_by=created_by,
+            platform=body.platform,
+            prompt_type=prompt_type,
+            integration_id=body.integration_id,
+            platform_agent_id=body.platform_agent_id,
+            platform_agent_name=body.platform_agent_name,
+            system_prompt=imported.system_prompt,
+            tools=tools_norm,
+            agent_model=imported.agent_model,
+            agent_provider=imported.agent_provider,
+            agent_temperature=imported.agent_temperature,
+        )
+        session.add(db_obj)
+        session.flush()
+        agent_version_crud.create_initial_version(
+            session=session, agent=db_obj, created_by=created_by
+        )
+        session.commit()
+        session.refresh(db_obj)
+        return db_obj
+
+    integration_id = (
+        body.integration_id if body.platform not in (None, Platform.WEBHOOK) else None
+    )
+    platform_agent_id = (
+        body.platform_agent_id
+        if body.platform not in (None, Platform.WEBHOOK)
+        else None
+    )
+    platform_agent_name = (
+        body.platform_agent_name
+        if body.platform not in (None, Platform.WEBHOOK)
+        else None
+    )
+
     db_obj = Agent(
         name=name,
         mode=AgentMode.PLATFORM,
         has_draft=True,
         created_by=created_by,
+        platform=body.platform,
+        prompt_type=prompt_type,
+        integration_id=integration_id,
+        platform_agent_id=platform_agent_id,
+        platform_agent_name=platform_agent_name,
     )
     session.add(db_obj)
     session.flush()

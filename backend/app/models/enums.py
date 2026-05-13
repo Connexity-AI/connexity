@@ -25,6 +25,11 @@ class AgentMode(StrEnum):
     PLATFORM = "platform"
 
 
+class AgentPromptType(StrEnum):
+    SINGLE_PROMPT = "single_prompt"
+    MULTI_PROMPT = "multi_prompt"
+
+
 class AgentVersionStatus(StrEnum):
     DRAFT = "draft"
     PUBLISHED = "published"

@@ -29,6 +29,28 @@ export type AgentCreate = {
    */
   platform?: Platform | null;
   /**
+   * single_prompt: one system prompt; multi_prompt reserved for future use
+   */
+  prompt_type?: AgentPromptType;
+  /**
+   * Integration Id
+   *
+   * Integration used for Retell, Vapi, or ElevenLabs provider agent
+   */
+  integration_id?: string | null;
+  /**
+   * Platform Agent Id
+   *
+   * Provider agent or assistant id when bound to an integration
+   */
+  platform_agent_id?: string | null;
+  /**
+   * Platform Agent Name
+   *
+   * Display name of the provider agent at bind time
+   */
+  platform_agent_name?: string | null;
+  /**
    * Endpoint Url
    *
    * URL of the agent's API endpoint (required when mode=endpoint)
@@ -90,6 +112,23 @@ export type AgentCreateDraft = {
    * Name
    */
   name?: string;
+  /**
+   * When set with integration and platform_agent_id, imports config from provider
+   */
+  platform?: Platform | null;
+  prompt_type?: AgentPromptType;
+  /**
+   * Integration Id
+   */
+  integration_id?: string | null;
+  /**
+   * Platform Agent Id
+   */
+  platform_agent_id?: string | null;
+  /**
+   * Platform Agent Name
+   */
+  platform_agent_name?: string | null;
 };
 
 /**
@@ -180,6 +219,39 @@ export type AgentLastEvalSummary = {
 };
 
 /**
+ * AgentLatestPublishedVersionPublic
+ */
+export type AgentLatestPublishedVersionPublic = {
+  /**
+   * Version
+   *
+   * Active published version number
+   */
+  version: number;
+  /**
+   * Version Name
+   */
+  version_name?: string | null;
+  /**
+   * Version Description
+   */
+  version_description?: string | null;
+};
+
+/**
+ * AgentPromptType
+ */
+export const AgentPromptType = {
+  SINGLE_PROMPT: 'single_prompt',
+  MULTI_PROMPT: 'multi_prompt',
+} as const;
+
+/**
+ * AgentPromptType
+ */
+export type AgentPromptType = (typeof AgentPromptType)[keyof typeof AgentPromptType];
+
+/**
  * AgentPublic
  */
 export type AgentPublic = {
@@ -203,6 +275,28 @@ export type AgentPublic = {
    * Voice/agent platform this agent targets. Drives which evaluation engines are available. Null for legacy rows; use 'webhook' for custom HTTP agents.
    */
   platform?: Platform | null;
+  /**
+   * single_prompt: one system prompt; multi_prompt reserved for future use
+   */
+  prompt_type?: AgentPromptType;
+  /**
+   * Integration Id
+   *
+   * Integration used for Retell, Vapi, or ElevenLabs provider agent
+   */
+  integration_id?: string | null;
+  /**
+   * Platform Agent Id
+   *
+   * Provider agent or assistant id when bound to an integration
+   */
+  platform_agent_id?: string | null;
+  /**
+   * Platform Agent Name
+   *
+   * Display name of the provider agent at bind time
+   */
+  platform_agent_name?: string | null;
   /**
    * Endpoint Url
    *
@@ -279,6 +373,10 @@ export type AgentPublic = {
    * When the agent was last updated
    */
   updated_at: string;
+  /**
+   * Summary of the active published version for list UI
+   */
+  latest_published_version?: AgentLatestPublishedVersionPublic | null;
   /**
    * Latest completed eval run summary for this agent, if any
    */
@@ -381,6 +479,19 @@ export type AgentUpdate = {
    * Voice/agent platform this agent targets
    */
   platform?: Platform | null;
+  prompt_type?: AgentPromptType | null;
+  /**
+   * Integration Id
+   */
+  integration_id?: string | null;
+  /**
+   * Platform Agent Id
+   */
+  platform_agent_id?: string | null;
+  /**
+   * Platform Agent Name
+   */
+  platform_agent_name?: string | null;
   /**
    * Endpoint Url
    *
@@ -1366,18 +1477,6 @@ export type EnvironmentCreate = {
    */
   agent_id: string;
   /**
-   * Integration Id
-   */
-  integration_id?: string | null;
-  /**
-   * Platform Agent Id
-   */
-  platform_agent_id?: string | null;
-  /**
-   * Platform Agent Name
-   */
-  platform_agent_name?: string | null;
-  /**
    * Endpoint Url
    */
   endpoint_url?: string | null;
@@ -1407,21 +1506,9 @@ export type EnvironmentPublic = {
    */
   agent_id: string;
   /**
-   * Integration Id
-   */
-  integration_id: string | null;
-  /**
    * Integration Name
    */
   integration_name: string | null;
-  /**
-   * Platform Agent Id
-   */
-  platform_agent_id: string | null;
-  /**
-   * Platform Agent Name
-   */
-  platform_agent_name: string | null;
   /**
    * Endpoint Url
    */
@@ -1457,18 +1544,6 @@ export type EnvironmentUpdate = {
    */
   name?: string | null;
   platform?: Platform | null;
-  /**
-   * Integration Id
-   */
-  integration_id?: string | null;
-  /**
-   * Platform Agent Id
-   */
-  platform_agent_id?: string | null;
-  /**
-   * Platform Agent Name
-   */
-  platform_agent_name?: string | null;
   /**
    * Endpoint Url
    */
@@ -2670,24 +2745,6 @@ export type MockResponse = {
   response: {
     [key: string]: unknown;
   };
-};
-
-/**
- * MockWebhookResponse
- */
-export type MockWebhookResponse = {
-  /**
-   * Message
-   */
-  message: string;
-  /**
-   * Received Event Type
-   */
-  received_event_type?: string | null;
-  /**
-   * Payload Received
-   */
-  payload_received: boolean;
 };
 
 /**
@@ -5049,23 +5106,6 @@ export type HealthHealthResponses = {
 
 export type HealthHealthResponse = HealthHealthResponses[keyof HealthHealthResponses];
 
-export type HealthMockWebhookData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/mock-webhook';
-};
-
-export type HealthMockWebhookResponses = {
-  /**
-   * Successful Response
-   */
-  200: MockWebhookResponse;
-};
-
-export type HealthMockWebhookResponse =
-  HealthMockWebhookResponses[keyof HealthMockWebhookResponses];
-
 export type LoginLoginAccessTokenData = {
   body: BodyLoginLoginAccessToken;
   path?: never;
@@ -6313,7 +6353,7 @@ export type AgentsDeleteAgentResponses = {
 export type AgentsDeleteAgentResponse =
   AgentsDeleteAgentResponses[keyof AgentsDeleteAgentResponses];
 
-export type AgentsGetAgentData = {
+export type AgentsReadAgentData = {
   body?: never;
   path: {
     /**
@@ -6325,7 +6365,7 @@ export type AgentsGetAgentData = {
   url: '/api/v1/agents/{agent_id}';
 };
 
-export type AgentsGetAgentErrors = {
+export type AgentsReadAgentErrors = {
   /**
    * Bad Request
    */
@@ -6356,16 +6396,16 @@ export type AgentsGetAgentErrors = {
   500: ErrorResponse;
 };
 
-export type AgentsGetAgentError = AgentsGetAgentErrors[keyof AgentsGetAgentErrors];
+export type AgentsReadAgentError = AgentsReadAgentErrors[keyof AgentsReadAgentErrors];
 
-export type AgentsGetAgentResponses = {
+export type AgentsReadAgentResponses = {
   /**
    * Successful Response
    */
   200: AgentPublic;
 };
 
-export type AgentsGetAgentResponse = AgentsGetAgentResponses[keyof AgentsGetAgentResponses];
+export type AgentsReadAgentResponse = AgentsReadAgentResponses[keyof AgentsReadAgentResponses];
 
 export type AgentsUpdateAgentData = {
   body: AgentUpdate;

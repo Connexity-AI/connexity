@@ -18,12 +18,9 @@ import type {
   AgentsDiscardDraftData,
   AgentsDiscardDraftErrors,
   AgentsDiscardDraftResponses,
-  AgentsGetAgentData,
-  AgentsGetAgentErrors,
   AgentsGetAgentGuidelinesData,
   AgentsGetAgentGuidelinesErrors,
   AgentsGetAgentGuidelinesResponses,
-  AgentsGetAgentResponses,
   AgentsGetDraftData,
   AgentsGetDraftErrors,
   AgentsGetDraftResponses,
@@ -42,6 +39,9 @@ import type {
   AgentsPutAgentGuidelinesData,
   AgentsPutAgentGuidelinesErrors,
   AgentsPutAgentGuidelinesResponses,
+  AgentsReadAgentData,
+  AgentsReadAgentErrors,
+  AgentsReadAgentResponses,
   AgentsReadAgentVersionData,
   AgentsReadAgentVersionErrors,
   AgentsReadAgentVersionResponses,
@@ -155,8 +155,6 @@ import type {
   EvalConfigsUpdateEvalConfigResponses,
   HealthHealthData,
   HealthHealthResponses,
-  HealthMockWebhookData,
-  HealthMockWebhookResponses,
   IntegrationsCreateIntegrationData,
   IntegrationsCreateIntegrationErrors,
   IntegrationsCreateIntegrationResponses,
@@ -328,18 +326,6 @@ export class HealthService {
   ) {
     return (options?.client ?? client).get<HealthHealthResponses, unknown, ThrowOnError>({
       url: '/',
-      ...options,
-    });
-  }
-
-  /**
-   * Mock Webhook
-   */
-  public static mockWebhook<ThrowOnError extends boolean = false>(
-    options?: Options<HealthMockWebhookData, ThrowOnError>
-  ) {
-    return (options?.client ?? client).post<HealthMockWebhookResponses, unknown, ThrowOnError>({
-      url: '/mock-webhook',
       ...options,
     });
   }
@@ -942,14 +928,14 @@ export class AgentsService {
   }
 
   /**
-   * Get Agent
+   * Read Agent
    */
-  public static getAgent<ThrowOnError extends boolean = false>(
-    options: Options<AgentsGetAgentData, ThrowOnError>
+  public static readAgent<ThrowOnError extends boolean = false>(
+    options: Options<AgentsReadAgentData, ThrowOnError>
   ) {
     return (options.client ?? client).get<
-      AgentsGetAgentResponses,
-      AgentsGetAgentErrors,
+      AgentsReadAgentResponses,
+      AgentsReadAgentErrors,
       ThrowOnError
     >({
       security: [

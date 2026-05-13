@@ -11,6 +11,7 @@ from app.models import (
     AgentDraftUpdate,
     AgentGuidelinesPublic,
     AgentGuidelinesUpdate,
+    AgentLatestPublishedVersionPublic,
     AgentPublic,
     AgentRollbackRequest,
     AgentsPublic,
@@ -46,13 +47,19 @@ def create_agent(
 
 
 @router.post("/draft", response_model=AgentPublic)
-def create_draft_agent(
+async def create_draft_agent(
     session: SessionDep,
     current_user: CurrentUser,
     body: AgentCreateDraft,
 ) -> Agent:
+    from app.services.provider_agent_import import import_config_for_new_agent
+
+    imported = await import_config_for_new_agent(session=session, body=body)
     return crud.create_draft_agent(
-        session=session, name=body.name, created_by=current_user.id
+        session=session,
+        body=body,
+        created_by=current_user.id,
+        imported=imported,
     )
 
 
@@ -66,10 +73,20 @@ def list_agents(
     summaries_by_agent_id = crud.latest_completed_eval_summaries_by_agent(
         session=session, agent_ids=[agent.id for agent in items]
     )
+    active_versions = crud.list_active_published_versions_by_agent_ids(
+        session=session, agent_ids=[agent.id for agent in items]
+    )
     data: list[AgentPublic] = []
     for agent in items:
         serialized = AgentPublic.model_validate(agent)
         serialized.last_eval = summaries_by_agent_id.get(agent.id)
+        active = active_versions.get(agent.id)
+        if active is not None and active.version is not None:
+            serialized.latest_published_version = AgentLatestPublishedVersionPublic(
+                version=active.version,
+                version_name=active.version_name,
+                version_description=active.version_description,
+            )
         data.append(serialized)
     return AgentsPublic(data=data, count=count)
 
@@ -295,11 +312,23 @@ def put_agent_guidelines(
 
 
 @router.get("/{agent_id}", response_model=AgentPublic)
-def get_agent(session: SessionDep, agent_id: uuid.UUID) -> Agent:
+def read_agent(session: SessionDep, agent_id: uuid.UUID) -> AgentPublic:
     agent = crud.get_agent(session=session, agent_id=agent_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
-    return agent
+    serialized = AgentPublic.model_validate(agent)
+    active = crud.get_active_agent_version(session=session, agent_id=agent_id)
+    if active is not None and active.version is not None:
+        serialized.latest_published_version = AgentLatestPublishedVersionPublic(
+            version=active.version,
+            version_name=active.version_name,
+            version_description=active.version_description,
+        )
+    summaries = crud.latest_completed_eval_summaries_by_agent(
+        session=session, agent_ids=[agent_id]
+    )
+    serialized.last_eval = summaries.get(agent_id)
+    return serialized
 
 
 @router.patch("/{agent_id}", response_model=AgentPublic)

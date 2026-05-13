@@ -14,6 +14,8 @@ import {
   FieldLabel,
   Section,
 } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-section-primitives';
+import { resolveCustomUrlTestStatusMessage } from '@/app/(app)/(agent)/_components/evals/create-eval/is-present-user-facing-form-message';
+import { SubmittedCustomUrlFieldFormMessage } from '@/app/(app)/(agent)/_components/evals/create-eval/submitted-custom-url-field-form-message';
 import { useEvaluationEngineField } from '@/app/(app)/(agent)/_hooks/use-evaluation-engine-field';
 import { useToolModeLiveGuard } from '@/app/(app)/(agent)/_hooks/use-tool-mode-live-guard';
 import { engineIconForKind } from '@/app/(app)/(agent)/_utils/evaluation-engine-field-helpers';
@@ -48,7 +50,6 @@ function ConcurrencyField() {
             />
           </FormControl>
           <FieldHint>Parallel scenarios at once</FieldHint>
-          <FormMessage />
         </FormItem>
       )}
     />
@@ -326,7 +327,7 @@ function EvaluationEngineField({
                 <FormField
                   control={form.control}
                   name="run.evaluation_engine.url"
-                  render={({ field: urlField }) => (
+                  render={({ field: urlField, fieldState }) => (
                     <FormItem className="flex-1">
                       <FormControl>
                         <Input
@@ -338,7 +339,10 @@ function EvaluationEngineField({
                           className="h-8 text-sm"
                         />
                       </FormControl>
-                      <FormMessage />
+                      <SubmittedCustomUrlFieldFormMessage
+                        isSubmitted={form.formState.isSubmitted}
+                        message={fieldState.error?.message}
+                      />
                     </FormItem>
                   )}
                 />
@@ -365,7 +369,7 @@ function EvaluationEngineField({
                   )}
                   role="status"
                 >
-                  {testResult.message}
+                  {resolveCustomUrlTestStatusMessage(testResult.message)}
                 </p>
               ) : null}
             </div>
@@ -378,14 +382,6 @@ function EvaluationEngineField({
   );
 }
 
-interface RunConfigSectionProps {
-  agentId: string;
-  agentMode?: string | null;
-  agentTools?: unknown[] | null;
-  defaultToBackendOption?: boolean;
-  endpointUrl?: string | null;
-}
-
 function RunConfigToolModeSection({
   agentMode,
   agentTools,
@@ -395,26 +391,23 @@ function RunConfigToolModeSection({
   agentTools: unknown[] | null;
   evaluationEngineKind: EvaluationEngineKindType;
 }) {
-  if (agentMode !== AppModelsEnumsAgentMode.PLATFORM) {
-    return null;
-  }
+  const form = useFormContext<CreateEvalFormValues>();
+  const isToolModeApplicable =
+    agentMode === AppModelsEnumsAgentMode.PLATFORM &&
+    evaluationEngineKind === EvaluationEngineKind.CONNEXITY;
 
-  if (evaluationEngineKind !== EvaluationEngineKind.CONNEXITY) {
+  // keep persisted config aligned with backend behavior: tool mode only applies
+  // to Connexity engine on platform-mode agents.
+  useToolModeLiveGuard(form, !isToolModeApplicable);
+
+  if (!isToolModeApplicable) {
     return null;
   }
 
   return <ToolModeField agentMode={agentMode} agentTools={agentTools} />;
 }
 
-export function RunConfigSection({
-  agentId,
-  agentMode = null,
-  agentTools = null,
-  defaultToBackendOption = true,
-}: RunConfigSectionProps) {
-  const form = useFormContext<CreateEvalFormValues>();
-  const evaluationEngineKind = form.watch('run.evaluation_engine.kind');
-
+export function RunConfigSection() {
   return (
     <Section>
       <Section.Header title="Run Configuration" />
@@ -423,12 +416,37 @@ export function RunConfigSection({
           <ConcurrencyField />
 
           <MaxTurnsField />
+        </div>
+      </Section.Body>
+    </Section>
+  );
+}
 
+interface EvaluationEngineSectionProps {
+  agentId: string;
+  agentMode?: string | null;
+  agentTools?: unknown[] | null;
+  defaultToBackendOption?: boolean;
+}
+
+export function EvaluationEngineSection({
+  agentId,
+  agentMode = null,
+  agentTools = null,
+  defaultToBackendOption = true,
+}: EvaluationEngineSectionProps) {
+  const form = useFormContext<CreateEvalFormValues>();
+  const evaluationEngineKind = form.watch('run.evaluation_engine.kind');
+
+  return (
+    <Section>
+      <Section.Header title="Evaluation Engine" />
+      <Section.Body>
+        <div className="grid grid-cols-2 gap-4">
           <EvaluationEngineField
             agentId={agentId}
             defaultToBackendOption={defaultToBackendOption}
           />
-
           <RunConfigToolModeSection
             agentMode={agentMode}
             agentTools={agentTools}

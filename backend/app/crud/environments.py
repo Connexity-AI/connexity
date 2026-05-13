@@ -3,9 +3,9 @@ import uuid
 from sqlalchemy import func
 from sqlmodel import Session, col, select
 
+from app.models.agent import Agent
 from app.models.deployment import Deployment
 from app.models.environment import Environment, EnvironmentCreate, EnvironmentUpdate
-from app.models.integration import Integration
 
 
 def create_environment(*, session: Session, data: EnvironmentCreate) -> Environment:
@@ -13,9 +13,6 @@ def create_environment(*, session: Session, data: EnvironmentCreate) -> Environm
         name=data.name,
         platform=data.platform,
         agent_id=data.agent_id,
-        integration_id=data.integration_id,
-        platform_agent_id=data.platform_agent_id,
-        platform_agent_name=data.platform_agent_name,
         endpoint_url=data.endpoint_url,
         eval_gate_eval_config_id=data.eval_gate_eval_config_id,
     )
@@ -44,10 +41,9 @@ def update_environment(
 
 def list_environments_by_agent(
     *, session: Session, agent_id: uuid.UUID
-) -> list[tuple[Environment, str | None]]:
+) -> list[Environment]:
     statement = (
-        select(Environment, Integration.name)
-        .outerjoin(Integration, Environment.integration_id == Integration.id)
+        select(Environment)
         .where(Environment.agent_id == agent_id)
         .order_by(col(Environment.created_at).desc())
     )
@@ -70,6 +66,7 @@ def count_environments_for_integration(
     statement = (
         select(func.count())
         .select_from(Environment)
-        .where(Environment.integration_id == integration_id)
+        .join(Agent, Agent.id == Environment.agent_id)
+        .where(Agent.integration_id == integration_id)
     )
     return session.exec(statement).one()

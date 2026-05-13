@@ -7,6 +7,8 @@ import httpx
 from fastapi import HTTPException
 from pydantic import BaseModel
 
+from app.models.imported_platform_config import ImportedPlatformConfig
+
 
 class VapiAssistantSummary(BaseModel):
     agent_id: str
@@ -213,6 +215,124 @@ async def list_vapi_assistants(api_key: str) -> list[VapiAssistantSummary]:
             )
         )
     return assistants
+
+
+async def import_vapi_assistant_config(
+    *, api_key: str, assistant_id: str
+) -> ImportedPlatformConfig:
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{_VAPI_API_BASE_URL}/assistant/{assistant_id}",
+                headers=_headers(api_key),
+                timeout=30.0,
+            )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502, detail=f"Failed to reach Vapi API: {exc}"
+        ) from exc
+
+    if response.status_code >= 400:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Vapi get assistant failed with status {response.status_code}",
+        )
+
+    item = response.json()
+    if not isinstance(item, dict):
+        raise HTTPException(
+            status_code=422, detail="Vapi assistant response was not an object"
+        )
+
+    model_obj = item.get("model")
+    if not isinstance(model_obj, dict):
+        raise HTTPException(
+            status_code=422,
+            detail="Vapi assistant has no model configuration to import",
+        )
+
+    system_prompt = ""
+    messages = model_obj.get("messages")
+    if isinstance(messages, list):
+        for m in messages:
+            if isinstance(m, dict) and m.get("role") == "system":
+                content = m.get("content")
+                if isinstance(content, str) and content.strip():
+                    system_prompt = content.strip()
+                    break
+
+    agent_model_raw = model_obj.get("model")
+    agent_model = str(agent_model_raw).strip() if agent_model_raw is not None else ""
+    agent_provider_raw = model_obj.get("provider")
+    agent_provider = (
+        str(agent_provider_raw).strip()
+        if isinstance(agent_provider_raw, str) and agent_provider_raw.strip()
+        else None
+    )
+
+    raw_temp = model_obj.get("temperature")
+    agent_temperature: float | None
+    if raw_temp is None:
+        agent_temperature = None
+    else:
+        try:
+            agent_temperature = float(raw_temp)
+        except (TypeError, ValueError):
+            agent_temperature = None
+
+    raw_tools = model_obj.get("tools")
+    tools: list[dict[str, Any]] | None = None
+    if isinstance(raw_tools, list) and raw_tools:
+        tools = _map_vapi_tools_to_openai(raw_tools)
+
+    if not system_prompt or not agent_model:
+        raise HTTPException(
+            status_code=422,
+            detail="Vapi assistant is missing system message or model — cannot import",
+        )
+
+    return ImportedPlatformConfig(
+        system_prompt=system_prompt,
+        agent_model=agent_model,
+        agent_provider=agent_provider,
+        agent_temperature=agent_temperature,
+        tools=tools,
+    )
+
+
+def _map_vapi_tools_to_openai(raw_tools: list[Any]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for t in raw_tools:
+        if not isinstance(t, dict) or t.get("type") != "function":
+            continue
+        fn = t.get("function") or {}
+        srv = t.get("server") or {}
+        url = srv.get("url") if isinstance(srv, dict) else None
+        if not url:
+            continue
+        name = str(fn.get("name") or "")
+        desc = str(fn.get("description") or "")
+        parameters = fn.get("parameters")
+        if not isinstance(parameters, dict):
+            parameters = {}
+        out.append(
+            {
+                "type": "function",
+                "function": {
+                    "name": name,
+                    "description": desc,
+                    "parameters": parameters,
+                },
+                "platform_config": {
+                    "implementation": {
+                        "type": "http_webhook",
+                        "url": str(url),
+                        "method": "POST",
+                    },
+                },
+            }
+        )
+    return out
 
 
 def _parse_datetime(value: str | None) -> datetime | None:

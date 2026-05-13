@@ -5,7 +5,7 @@ maps the Retell transcript into Connexity's :class:`ConversationTurn` shape and
 runs the existing Connexity judge over it.
 
 Retell credentials and the Retell agent id come from the eval-config agent's
-Retell integration setup (see ``Environment`` + ``Integration``). The engine
+Retell integration setup (see ``Agent`` + ``Integration``). The engine
 fails the test case with a clear error if that setup is missing or stale.
 """
 
@@ -14,18 +14,18 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+import uuid
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, ClassVar
 
 if TYPE_CHECKING:
     from app.services.orchestrator import TestCaseRunResult
 
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from app.core.encryption import decrypt
 from app.models.agent import Agent
 from app.models.enums import EvaluationEngineKind, Platform, TurnRole
-from app.models.environment import Environment
 from app.models.integration import Integration
 from app.models.schemas import (
     ConversationTurn,
@@ -57,32 +57,30 @@ class RetellEngineError(Exception):
 
 
 def _resolve_retell_integration(
-    *, session: Session, agent: Agent
+    *,
+    session: Session,
+    agent_platform: Platform | None,
+    agent_integration_id: uuid.UUID | None,
+    agent_platform_agent_id: str | None,
 ) -> tuple[Integration, str]:
-    """Return ``(integration, retell_agent_id)`` for ``agent``'s Retell env.
+    """Return ``(integration, retell_agent_id)`` for ``agent``'s Retell target.
 
-    Raises :class:`RetellEngineError` if the agent has no Retell environment or
+    Raises :class:`RetellEngineError` if the agent has no Retell target or
     the linked integration is missing.
     """
-    env = session.exec(
-        select(Environment).where(
-            Environment.agent_id == agent.id,
-            Environment.platform == Platform.RETELL,
-        )
-    ).first()
-    if env is None:
+    if agent_platform != Platform.RETELL:
         raise RetellEngineError(
-            "Agent has no Retell environment configured. "
+            "Agent has no Retell target configured. "
             "Add a Retell integration on the agent setup page first."
         )
-    if env.integration_id is None or env.platform_agent_id is None:
+    if agent_integration_id is None or agent_platform_agent_id is None:
         raise RetellEngineError(
-            "Retell environment is missing an integration or platform agent id."
+            "Retell target is missing an integration or platform agent id."
         )
-    integration = session.get(Integration, env.integration_id)
+    integration = session.get(Integration, agent_integration_id)
     if integration is None:
         raise RetellEngineError("Linked Retell integration not found.")
-    return integration, env.platform_agent_id
+    return integration, agent_platform_agent_id
 
 
 def _map_retell_transcript(call: RetellCall) -> list[ConversationTurn]:
@@ -133,6 +131,18 @@ async def _wait_for_call_completion(
         call = await get_retell_call(api_key, call_id)
         if call is not None:
             status = (call.call_status or "").lower()
+            if status == "error":
+                disconnection_reason = (
+                    str(call.raw.get("disconnection_reason"))
+                    if isinstance(call.raw, dict)
+                    and call.raw.get("disconnection_reason") is not None
+                    else None
+                )
+                if disconnection_reason:
+                    raise RetellEngineError(
+                        f"Retell call {call_id} ended with error: {disconnection_reason}"
+                    )
+                raise RetellEngineError(f"Retell call {call_id} ended with error")
             if status in {"ended", "completed", "finished"}:
                 return call
 
@@ -161,7 +171,12 @@ class RetellEngine(EvalEngine):
             msg = "retell engine requires a RetellEngineConfig"
             raise ValueError(msg)
         try:
-            _resolve_retell_integration(session=session, agent=agent)
+            _resolve_retell_integration(
+                session=session,
+                agent_platform=agent.platform,
+                agent_integration_id=agent.integration_id,
+                agent_platform_agent_id=agent.platform_agent_id,
+            )
         except RetellEngineError as exc:
             raise ValueError(str(exc)) from exc
 
@@ -172,7 +187,12 @@ class RetellEngine(EvalEngine):
         session: Session,
     ) -> EngineTestResult:
         try:
-            integration, _ = _resolve_retell_integration(session=session, agent=agent)
+            integration, _ = _resolve_retell_integration(
+                session=session,
+                agent_platform=agent.platform,
+                agent_integration_id=agent.integration_id,
+                agent_platform_agent_id=agent.platform_agent_id,
+            )
         except RetellEngineError as exc:
             return EngineTestResult(ok=False, message=str(exc))
         try:
@@ -204,12 +224,15 @@ class RetellEngine(EvalEngine):
 
         try:
             integration, retell_agent_id = _resolve_retell_integration(
-                session=session, agent=args.agent
+                session=session,
+                agent_platform=args.agent_platform,
+                agent_integration_id=args.agent_integration_id,
+                agent_platform_agent_id=args.agent_platform_agent_id,
             )
             api_key = decrypt(integration.encrypted_api_key)
         except (RetellEngineError, Exception) as exc:  # noqa: BLE001
             logger.warning(
-                "Retell engine setup failed for agent %s: %s", args.agent.id, exc
+                "Retell engine setup failed for agent %s: %s", args.agent_id, exc
             )
             raise
 
