@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from app.core import encryption
 from app.core.config import settings
 from app.models import IntegrationProvider
+from app.services.retell import RetellAgentSummary
 
 
 @pytest.fixture(autouse=True)
@@ -163,3 +164,66 @@ def test_integration_visible_to_all_authenticated_users(
         cookies=auth_cookies,
     )
     assert all(i["id"] != integration_id for i in list_after.json()["data"])
+
+
+def test_list_integration_agents_deduplicates_by_agent_id(
+    client: TestClient, auth_cookies: dict[str, str]
+) -> None:
+    with patch.dict(
+        "app.api.routes.integrations._CONNECTION_TESTERS",
+        {IntegrationProvider.RETELL: AsyncMock(return_value=True)},
+        clear=False,
+    ):
+        create_r = client.post(
+            f"{settings.API_V1_STR}/integrations/",
+            json=_create_body("retell-dedupe"),
+            cookies=auth_cookies,
+        )
+    assert create_r.status_code == 200
+    integration_id = create_r.json()["id"]
+
+    mock_agents = [
+        RetellAgentSummary(
+            agent_id="agent-1",
+            agent_name="Agent One Draft",
+            is_published=False,
+            version=6,
+        ),
+        RetellAgentSummary(
+            agent_id="agent-1",
+            agent_name="Agent One Published",
+            is_published=True,
+            version=5,
+        ),
+        RetellAgentSummary(
+            agent_id="agent-2",
+            agent_name="Agent Two v1",
+            is_published=True,
+            version=1,
+        ),
+        RetellAgentSummary(
+            agent_id="agent-2",
+            agent_name="Agent Two v2",
+            is_published=True,
+            version=2,
+        ),
+    ]
+
+    with patch(
+        "app.api.routes.integrations.list_retell_agents",
+        AsyncMock(return_value=mock_agents),
+    ):
+        list_agents_r = client.get(
+            f"{settings.API_V1_STR}/integrations/{integration_id}/agents",
+            cookies=auth_cookies,
+        )
+
+    assert list_agents_r.status_code == 200
+    body = list_agents_r.json()
+    assert len(body) == 2
+    by_id = {row["agent_id"]: row for row in body}
+    assert by_id["agent-1"]["agent_name"] == "Agent One Published"
+    assert by_id["agent-1"]["version"] == 5
+    assert by_id["agent-1"]["is_published"] is True
+    assert by_id["agent-2"]["agent_name"] == "Agent Two v2"
+    assert by_id["agent-2"]["version"] == 2

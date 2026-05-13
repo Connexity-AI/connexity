@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Loader2, Webhook } from 'lucide-react';
+import { AlertTriangle, Loader2, Webhook } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/ui/button';
 import {
@@ -19,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@workspace/ui/components/ui/select';
-import { cn } from '@workspace/ui/lib/utils';
 
 import { useAddEnvironmentForm } from '@/app/(app)/(agent)/_hooks/use-add-environment-form';
 import { Platform } from '@/client/types.gen';
@@ -28,6 +27,7 @@ import { EvalGateFormSection } from './eval-gate-form-section';
 import { PayloadPreviewSection } from './payload-preview-section';
 
 import type { FC } from 'react';
+
 import type { EnvironmentPublic, IntegrationPublic } from '@/client/types.gen';
 
 interface Props {
@@ -50,10 +50,6 @@ export const AddEnvironmentForm: FC<Props> = ({
     onSubmit,
     platform,
     integrationPlatform,
-    integrationId,
-    platformIntegrations,
-    integrationEmptyLabel,
-    agentLabel,
     payloadOpen,
     onTogglePayloadOpen,
     payloadPreview,
@@ -61,12 +57,14 @@ export const AddEnvironmentForm: FC<Props> = ({
     showMissingPublishedVersionInfo,
     submitLabel,
     isSubmitDisabled,
-    handlePlatformChange,
-    handleIntegrationChange,
-    handleAgentChange,
     isPending,
     error,
-  } = useAddEnvironmentForm({ agentId, integrations, environment, onSuccess });
+  } = useAddEnvironmentForm({ agentId, environment, onSuccess });
+
+  const availableIntegrations =
+    integrationPlatform === null
+      ? []
+      : integrations.filter((integration) => integration.provider === integrationPlatform);
 
   return (
     <Form {...form}>
@@ -93,143 +91,71 @@ export const AddEnvironmentForm: FC<Props> = ({
               )}
             />
 
-            <div className="space-y-1.5">
-              <FormLabel>Platform</FormLabel>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className={cn(
-                    'h-auto flex-col items-start justify-start gap-0.5 px-3 py-2.5 rounded-lg border text-left transition-all cursor-pointer whitespace-normal',
-                    platform === Platform.RETELL
-                      ? 'border-foreground/40 bg-accent'
-                      : 'border-border hover:bg-accent/40'
-                  )}
-                  onClick={() => handlePlatformChange(Platform.RETELL)}
-                  disabled={isPending}
-                >
-                  <span className="text-xs text-foreground">Retell</span>
-                  <span className="text-[10px] text-muted-foreground leading-tight">
-                    Push directly via Retell API (requires integration)
-                  </span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className={cn(
-                    'h-auto flex-col items-start justify-start gap-0.5 px-3 py-2.5 rounded-lg border text-left transition-all cursor-pointer whitespace-normal',
-                    platform === Platform.VAPI
-                      ? 'border-foreground/40 bg-accent'
-                      : 'border-border hover:bg-accent/40'
-                  )}
-                  onClick={() => handlePlatformChange(Platform.VAPI)}
-                  disabled={isPending}
-                >
-                  <span className="text-xs text-foreground">Vapi</span>
-                  <span className="text-[10px] text-muted-foreground leading-tight">
-                    Push directly via Vapi API (requires integration)
-                  </span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className={cn(
-                    'h-auto flex-col items-start justify-start gap-0.5 px-3 py-2.5 rounded-lg border text-left transition-all cursor-pointer whitespace-normal',
-                    platform === Platform.ELEVENLABS
-                      ? 'border-foreground/40 bg-accent'
-                      : 'border-border hover:bg-accent/40'
-                  )}
-                  onClick={() => handlePlatformChange(Platform.ELEVENLABS)}
-                  disabled={isPending}
-                >
-                  <span className="text-xs text-foreground">ElevenLabs</span>
-                  <span className="text-[10px] text-muted-foreground leading-tight">
-                    Push directly via ElevenLabs API (requires integration)
-                  </span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className={cn(
-                    'h-auto flex-col items-start justify-start gap-0.5 px-3 py-2.5 rounded-lg border text-left transition-all cursor-pointer whitespace-normal',
-                    platform === Platform.WEBHOOK
-                      ? 'border-foreground/40 bg-accent'
-                      : 'border-border hover:bg-accent/40'
-                  )}
-                  onClick={() => handlePlatformChange(Platform.WEBHOOK)}
-                  disabled={isPending}
-                >
-                  <span className="text-xs text-foreground">Webhook</span>
-                  <span className="text-[10px] text-muted-foreground leading-tight">
-                    Send deployment payload to your custom endpoint
-                  </span>
-                </Button>
-              </div>
-            </div>
-
             {integrationPlatform !== null && (
-              <>
-                <FormField
-                  control={form.control}
-                  name="integration_id"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1.5">
-                      <FormLabel>Integration</FormLabel>
-                      <Select
-                        value={field.value ?? undefined}
-                        onValueChange={handleIntegrationChange}
-                        disabled={isPending}
-                      >
-                        <FormControl>
+              <FormField
+                control={form.control}
+                name="integration_id"
+                render={({ field }) => (
+                  <FormItem className="space-y-1.5">
+                    <FormLabel>Integration</FormLabel>
+                    <FormControl>
+                      {availableIntegrations.length === 0 ? (
+                        <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-border text-[11px] text-muted-foreground">
+                          <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+                          No integrations found. Add one in Integrations first.
+                        </div>
+                      ) : (
+                        <Select
+                          value={field.value ?? undefined}
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            form.setValue('platform_agent_id', null);
+                            form.setValue('platform_agent_name', null);
+                          }}
+                          disabled={isPending}
+                        >
                           <SelectTrigger className="h-9 text-xs">
                             <SelectValue placeholder="Select an integration…" />
                           </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {platformIntegrations.map((i) => (
-                            <SelectItem
-                              key={i.id}
-                              value={i.id}
-                              className="text-xs pl-3 pr-3 [&>span:first-child]:hidden"
-                            >
-                              <span className="flex w-full items-center justify-between gap-2">
-                                {i.name}
-                                {field.value === i.id && <Check className="h-3.5 w-3.5 shrink-0" />}
-                              </span>
-                            </SelectItem>
-                          ))}
-                          {platformIntegrations.length === 0 && (
-                            <div className="px-3 py-2 text-xs text-muted-foreground">
-                              {integrationEmptyLabel}
-                            </div>
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                          <SelectContent>
+                            {availableIntegrations.map((integration) => (
+                              <SelectItem key={integration.id} value={integration.id} className="text-xs">
+                                {integration.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
-                <FormField
-                  control={form.control}
-                  name="platform_agent_id"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1.5">
-                      <FormLabel>{agentLabel}</FormLabel>
-                      <FormControl>
-                        <AgentSelectField
-                          platform={integrationPlatform}
-                          integrationId={integrationId || null}
-                          value={field.value ?? ''}
-                          onChange={handleAgentChange}
-                          disabled={isPending}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </>
+            {integrationPlatform !== null && (
+              <FormField
+                control={form.control}
+                name="platform_agent_id"
+                render={({ field }) => (
+                  <FormItem className="space-y-1.5">
+                    <FormLabel>Agent</FormLabel>
+                    <FormControl>
+                      <AgentSelectField
+                        platform={integrationPlatform}
+                        integrationId={form.watch('integration_id') ?? null}
+                        value={field.value ?? ''}
+                        onChange={(id, name) => {
+                          field.onChange(id);
+                          form.setValue('platform_agent_name', name);
+                        }}
+                        disabled={isPending}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             )}
 
             {platform === Platform.WEBHOOK && (
@@ -256,8 +182,8 @@ export const AddEnvironmentForm: FC<Props> = ({
                         </div>
                       </FormControl>
                       <p className="text-[11px] text-muted-foreground">
-                        We POST to this URL on deploy. A 200 response is a success; any other
-                        status is treated as a failure and the response body will be shown.
+                        We POST to this URL on deploy. A 200 response is a success; any other status
+                        is treated as a failure and the response body will be shown.
                       </p>
                       <FormMessage />
                     </FormItem>
@@ -278,7 +204,7 @@ export const AddEnvironmentForm: FC<Props> = ({
           </div>
         </div>
 
-        {error && <p className="text-sm text-destructive px-1 pt-1 shrink-0">{error}</p>}
+        {error && <p className="text-[11px] text-red-400 px-1 pt-1 shrink-0">{error}</p>}
 
         <div className="flex justify-end gap-2 pt-1 shrink-0">
           <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={isPending}>

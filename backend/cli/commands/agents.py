@@ -434,3 +434,25 @@ def agents_guidelines_set(
         agent = resolve_agent(client, agent_ref)
         data = client.agents.put_guidelines(str(agent["id"]), body)
     _emit(ctx, data, output_override)
+
+
+# ---------------------------------------------------------------------------
+# evaluation engines
+# ---------------------------------------------------------------------------
+
+
+@agents_group.command("evaluation-engines")
+@click.argument("agent_ref")
+@click.option(
+    "--output", "output_override", type=click.Choice(["json", "table"]), default=None
+)
+@click.pass_context
+def agents_evaluation_engines(
+    ctx: click.Context, agent_ref: str, output_override: str | None
+) -> None:
+    """List evaluation engines available for AGENT_REF (with the recommended default)."""
+    ensure_auth(ctx)
+    with open_client(ctx) as client:
+        agent = resolve_agent(client, agent_ref)
+        data = client.agents.list_evaluation_engines(str(agent["id"]))
+    _emit(ctx, data, output_override)

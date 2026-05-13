@@ -340,3 +340,43 @@ def test_put_guidelines_unauthenticated(client: TestClient, db: Session) -> None
         json={"guidelines": "x"},
     )
     assert r.status_code in (401, 403)
+
+
+def test_post_agents_draft_defaults(
+    client: TestClient, auth_cookies: dict[str, str]
+) -> None:
+    r = client.post(
+        f"{settings.API_V1_STR}/agents/draft",
+        json={},
+        cookies=auth_cookies,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["name"] == "Untitled Agent"
+    assert body["id"]
+
+
+def test_list_agents_includes_latest_published_version(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = create_test_agent(db)
+    client.put(
+        f"{settings.API_V1_STR}/agents/{agent.id}/draft",
+        json={"endpoint_url": "http://v2.example/agent"},
+        cookies=auth_cookies,
+    )
+    pub = client.post(
+        f"{settings.API_V1_STR}/agents/{agent.id}/publish",
+        json={},
+        cookies=auth_cookies,
+    )
+    assert pub.status_code == 200
+
+    r = client.get(f"{settings.API_V1_STR}/agents/", cookies=auth_cookies)
+    assert r.status_code == 200
+    listed = next(
+        (item for item in r.json()["data"] if item["id"] == str(agent.id)), None
+    )
+    assert listed is not None
+    assert listed["latest_published_version"] is not None
+    assert listed["latest_published_version"]["version"] == 2

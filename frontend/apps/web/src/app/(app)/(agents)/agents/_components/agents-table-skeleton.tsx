@@ -12,7 +12,7 @@ import { Skeleton } from '@workspace/ui/components/ui/skeleton';
 
 import { TablePaginationSkeleton } from '@/components/common/data-table/table-pagination-skeleton';
 
-const ROW_HEIGHT = '40px';
+const ROW_HEIGHT = '59px';
 
 interface AgentsTableSkeletonProps {
   rows?: number;
@@ -30,6 +30,12 @@ export function AgentsTableSkeleton({ rows = 8 }: AgentsTableSkeletonProps) {
                   <Skeleton className="h-2 w-12" />
                 </TableHead>
                 <TableHead className="h-auto px-5 py-2 text-[10px] font-normal uppercase tracking-wider text-muted-foreground/60">
+                  <Skeleton className="h-2 w-14" />
+                </TableHead>
+                <TableHead className="h-auto px-5 py-2 text-[10px] font-normal uppercase tracking-wider text-muted-foreground/60">
+                  <Skeleton className="h-2 w-14" />
+                </TableHead>
+                <TableHead className="h-auto px-5 py-2 text-[10px] font-normal uppercase tracking-wider text-muted-foreground/60">
                   <Skeleton className="h-2 w-16" />
                 </TableHead>
               </TableRow>
@@ -42,10 +48,19 @@ export function AgentsTableSkeleton({ rows = 8 }: AgentsTableSkeletonProps) {
                   style={{ height: ROW_HEIGHT }}
                 >
                   <TableCell className="px-5 py-2.5">
-                    <Skeleton className="h-3.5 w-40" />
+                    <div className="flex flex-col gap-1">
+                      <Skeleton className="h-3.5 w-40" />
+                      <Skeleton className="h-3 w-28" />
+                    </div>
                   </TableCell>
                   <TableCell className="px-5 py-2.5">
-                    <Skeleton className="h-3.5 w-36" />
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                  </TableCell>
+                  <TableCell className="px-5 py-2.5">
+                    <Skeleton className="h-3.5 w-24" />
+                  </TableCell>
+                  <TableCell className="px-5 py-2.5">
+                    <Skeleton className="h-3.5 w-20" />
                   </TableCell>
                 </TableRow>
               ))}

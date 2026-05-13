@@ -12,6 +12,9 @@ from app.crud.agent import (  # noqa: F401
     update_agent,
 )
 from app.crud.agent_version import (  # noqa: F401
+    active_published_versions_by_agent_ids as list_active_published_versions_by_agent_ids,
+)
+from app.crud.agent_version import (  # noqa: F401
     create_or_update_draft as create_or_update_agent_draft,
 )
 from app.crud.agent_version import discard_draft as discard_agent_draft  # noqa: F401

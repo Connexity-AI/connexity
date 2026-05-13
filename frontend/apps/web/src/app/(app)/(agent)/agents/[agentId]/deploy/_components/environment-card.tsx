@@ -30,7 +30,7 @@ export const EnvironmentCard: FC<Props> = ({ environment, agentId, onEdit }) => 
           onEdit={onEdit}
           onDelete={() => c.setDeleteOpen(true)}
         />
-        <EnvironmentCardDestinationDetails environment={environment} />
+        <EnvironmentCardDestinationDetails agentId={agentId} environment={environment} />
         <EnvironmentCardPreviousDeployment cardState={c} agentId={agentId} />
         <EnvironmentCardSelectedVersion cardState={c} agentId={agentId} />
         <EnvironmentCardDeployFooter cardState={c} />

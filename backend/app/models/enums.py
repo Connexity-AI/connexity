@@ -25,6 +25,11 @@ class AgentMode(StrEnum):
     PLATFORM = "platform"
 
 
+class AgentPromptType(StrEnum):
+    SINGLE_PROMPT = "single_prompt"
+    MULTI_PROMPT = "multi_prompt"
+
+
 class AgentVersionStatus(StrEnum):
     DRAFT = "draft"
     PUBLISHED = "published"
@@ -69,6 +74,12 @@ class Platform(StrEnum):
     VAPI = "vapi"
     ELEVENLABS = "elevenlabs"
     WEBHOOK = "webhook"
+
+
+class EvaluationEngineKind(StrEnum):
+    CONNEXITY = "connexity"
+    RETELL = "retell"
+    CUSTOM_URL = "custom_url"
 
 
 class IntegrationProvider(StrEnum):

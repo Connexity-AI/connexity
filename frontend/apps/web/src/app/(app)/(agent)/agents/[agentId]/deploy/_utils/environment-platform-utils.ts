@@ -6,14 +6,20 @@ export type IntegrationPlatform = Extract<
   typeof Platform.RETELL | typeof Platform.VAPI | typeof Platform.ELEVENLABS
 >;
 
-export function isIntegrationPlatform(
-  platform: AddEnvironmentFormValues['platform']
+export function isPlatformIntegration(
+  platform: Platform | null | undefined
 ): platform is IntegrationPlatform {
   return (
     platform === Platform.RETELL ||
     platform === Platform.VAPI ||
     platform === Platform.ELEVENLABS
   );
+}
+
+export function isIntegrationPlatform(
+  platform: AddEnvironmentFormValues['platform']
+): platform is IntegrationPlatform {
+  return isPlatformIntegration(platform);
 }
 
 export function getIntegrationEmptyLabel(platform: IntegrationPlatform): string {

@@ -14,6 +14,7 @@ import httpx
 from pydantic import ValidationError
 
 from app.core.config import settings
+from app.models.agent import Agent
 from app.models.agent_contract import (
     AgentRequest,
     AgentRequestMetadata,
@@ -21,7 +22,7 @@ from app.models.agent_contract import (
     ChatMessage,
     TokenUsage,
 )
-from app.models.enums import AgentMode, FirstTurn, SimulatorMode, TurnRole
+from app.models.enums import AgentMode, FirstTurn, Platform, SimulatorMode, TurnRole
 from app.models.schemas import (
     AggregateMetrics,
     ConversationTurn,
@@ -847,6 +848,7 @@ def _parse_run_agent_mode(raw: str | None) -> AgentMode:
 async def _execute_single_test_case(
     run_id: uuid.UUID,
     test_case: TestCase,
+    agent: Agent,
     agent_endpoint_url: str | None,
     config: RunConfig,
     agent_mode: AgentMode,
@@ -857,6 +859,10 @@ async def _execute_single_test_case(
     semaphore: asyncio.Semaphore,
     cancel_event: asyncio.Event,
     *,
+    agent_id_snapshot: uuid.UUID | None = None,
+    agent_platform_snapshot: Platform | None = None,
+    agent_integration_id_snapshot: uuid.UUID | None = None,
+    agent_platform_agent_id_snapshot: str | None = None,
     repetition_index: int = 0,
 ) -> TestCaseResult:
     from sqlmodel import Session
@@ -865,6 +871,7 @@ async def _execute_single_test_case(
     from app.core.db import engine
     from app.models import TestCaseResultCreate, TestCaseResultUpdate
     from app.models.schemas import TestCaseProgressData
+    from app.services.eval_engines import EngineRunArgs, get_engine
     from app.services.run_manager import run_manager
 
     with Session(engine) as session:
@@ -890,17 +897,47 @@ async def _execute_single_test_case(
 
         started_at = datetime.now(UTC)
         try:
-            run_out, verdict = await run_test_case_with_evaluation(
+            engine_impl = get_engine(config.evaluation_engine.kind)
+            resolved_agent_id = (
+                agent_id_snapshot if agent_id_snapshot is not None else agent.id
+            )
+            resolved_agent_platform = (
+                agent_platform_snapshot
+                if agent_platform_snapshot is not None
+                else agent.platform
+            )
+            resolved_agent_integration_id = (
+                agent_integration_id_snapshot
+                if agent_integration_id_snapshot is not None
+                else agent.integration_id
+            )
+            resolved_agent_platform_agent_id = (
+                agent_platform_agent_id_snapshot
+                if agent_platform_agent_id_snapshot is not None
+                else agent.platform_agent_id
+            )
+            engine_args = EngineRunArgs(
                 test_case=test_case,
+                run_config=config,
+                agent=agent,
+                agent_id=resolved_agent_id,
+                agent_platform=resolved_agent_platform,
+                agent_integration_id=resolved_agent_integration_id,
+                agent_platform_agent_id=resolved_agent_platform_agent_id,
                 agent_endpoint_url=agent_endpoint_url,
-                config=config,
+                agent_system_prompt=agent_system_prompt,
+                agent_tools=agent_tools,
                 agent_mode=agent_mode,
                 agent_model=agent_model,
                 agent_provider=agent_provider,
-                agent_system_prompt=agent_system_prompt,
-                agent_tools=agent_tools,
                 cancel_event=cancel_event,
             )
+            with Session(engine) as engine_session:
+                run_out, verdict = await engine_impl.run_test_case(
+                    config.evaluation_engine,
+                    engine_args,
+                    engine_session,
+                )
             transcript = run_out.transcript
             completed_at = datetime.now(UTC)
 
@@ -1107,6 +1144,19 @@ async def execute_run(run_id: uuid.UUID) -> None:
                 )
                 return
 
+            agent = crud.get_agent(session=session, agent_id=run.agent_id)
+            if not agent:
+                logger.error("Run %s references missing agent", run_id)
+                crud.update_run(
+                    session=session,
+                    db_run=run,
+                    run_in=RunUpdate(
+                        status=RunStatus.FAILED,
+                        completed_at=datetime.now(UTC),
+                    ),
+                )
+                return
+
             crud.update_run(
                 session=session,
                 db_run=run,
@@ -1126,6 +1176,13 @@ async def execute_run(run_id: uuid.UUID) -> None:
             agent_mode = _parse_run_agent_mode(run.agent_mode)
             agent_model = run.agent_model
             agent_provider = run.agent_provider
+            agent_id_snapshot = agent.id
+            agent_platform_snapshot = agent.platform
+            agent_integration_id_snapshot = agent.integration_id
+            agent_platform_agent_id_snapshot = agent.platform_agent_id
+            # Detach from session so background tasks can read attrs without an
+            # open Session — only the snapshot fields are touched by engines.
+            session.expunge(agent)
 
         total_expanded = sum(entry.repetitions for entry in execution_plan)
         state.progress.total_test_cases = total_expanded
@@ -1140,6 +1197,7 @@ async def execute_run(run_id: uuid.UUID) -> None:
             _execute_single_test_case(
                 run_id=run_id,
                 test_case=entry.test_case,
+                agent=agent,
                 agent_endpoint_url=agent_endpoint_url,
                 config=config,
                 agent_mode=agent_mode,
@@ -1149,6 +1207,10 @@ async def execute_run(run_id: uuid.UUID) -> None:
                 agent_tools=agent_tools,
                 semaphore=semaphore,
                 cancel_event=state.cancel_event,
+                agent_id_snapshot=agent_id_snapshot,
+                agent_platform_snapshot=agent_platform_snapshot,
+                agent_integration_id_snapshot=agent_integration_id_snapshot,
+                agent_platform_agent_id_snapshot=agent_platform_agent_id_snapshot,
                 repetition_index=rep,
             )
             for entry in execution_plan

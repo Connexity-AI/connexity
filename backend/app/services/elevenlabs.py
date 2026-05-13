@@ -6,6 +6,8 @@ import httpx
 from fastapi import HTTPException
 from pydantic import BaseModel
 
+from app.models.imported_platform_config import ImportedPlatformConfig
+
 logger = logging.getLogger(__name__)
 
 _ELEVENLABS_API_BASE_URL = "https://api.elevenlabs.io"
@@ -110,6 +112,76 @@ async def list_elevenlabs_agents(api_key: str) -> list[ElevenLabsAgentSummary]:
             )
         )
     return agents
+
+
+async def import_elevenlabs_agent_config(
+    *, api_key: str, agent_id: str
+) -> ImportedPlatformConfig:
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{_ELEVENLABS_API_BASE_URL}/v1/convai/agents/{agent_id}",
+                headers=_headers(api_key),
+                timeout=30.0,
+            )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502, detail=f"Failed to reach ElevenLabs API: {exc}"
+        ) from exc
+
+    if response.status_code >= 400:
+        raise HTTPException(
+            status_code=422,
+            detail=f"ElevenLabs get agent failed with status {response.status_code}",
+        )
+
+    body = response.json()
+    if not isinstance(body, dict):
+        raise HTTPException(
+            status_code=422, detail="ElevenLabs agent response was not an object"
+        )
+
+    conv = body.get("conversation_config")
+    if not isinstance(conv, dict):
+        conv = {}
+    agent_cfg = conv.get("agent")
+    if not isinstance(agent_cfg, dict):
+        agent_cfg = {}
+    prompt_cfg = agent_cfg.get("prompt")
+    if not isinstance(prompt_cfg, dict):
+        prompt_cfg = {}
+
+    system_prompt = (prompt_cfg.get("prompt") or "").strip()
+    llm_raw = prompt_cfg.get("llm")
+    agent_model = ""
+    if isinstance(llm_raw, str):
+        agent_model = _coerce_elevenlabs_llm(llm_raw) or ""
+    elif llm_raw is not None:
+        agent_model = _coerce_elevenlabs_llm(str(llm_raw)) or ""
+
+    raw_temp = prompt_cfg.get("temperature")
+    agent_temperature: float | None
+    if raw_temp is None:
+        agent_temperature = None
+    else:
+        try:
+            agent_temperature = float(raw_temp)
+        except (TypeError, ValueError):
+            agent_temperature = None
+
+    if not system_prompt or not agent_model:
+        raise HTTPException(
+            status_code=422,
+            detail="ElevenLabs agent is missing prompt text or llm — cannot import",
+        )
+
+    return ImportedPlatformConfig(
+        system_prompt=system_prompt,
+        agent_model=agent_model,
+        agent_provider=None,
+        agent_temperature=agent_temperature,
+        tools=None,
+    )
 
 
 def _coerce_elevenlabs_llm(value: str | None) -> str | None:

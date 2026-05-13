@@ -1,5 +1,6 @@
 import uuid
 from collections.abc import Generator
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -11,6 +12,7 @@ from app import crud
 from app.core import encryption
 from app.core.config import settings
 from app.models import (
+    Agent,
     EnvironmentCreate,
     IntegrationCreate,
     IntegrationProvider,
@@ -75,7 +77,6 @@ def _make_elevenlabs_integration(db: Session):
 def _create_env_body(
     *,
     agent_id: uuid.UUID,
-    integration_id: uuid.UUID | None,
     name: str = "prod",
     platform: str = "retell",
 ) -> dict:
@@ -84,17 +85,27 @@ def _create_env_body(
         "platform": platform,
         "agent_id": str(agent_id),
     }
-    if platform == "retell" and integration_id is not None:
-        body["integration_id"] = str(integration_id)
-        body["platform_agent_id"] = "ret_agent_x"
-        body["platform_agent_name"] = "Retell Agent X"
-    if platform == "elevenlabs" and integration_id is not None:
-        body["integration_id"] = str(integration_id)
-        body["platform_agent_id"] = "el_agent_x"
-        body["platform_agent_name"] = "ElevenLabs Agent X"
     if platform == "webhook":
         body["endpoint_url"] = "https://example.com/hooks/deploy"
     return body
+
+
+def _bind_agent_provider_target(
+    db: Session,
+    *,
+    agent: Agent,
+    platform: Platform,
+    integration_id: uuid.UUID,
+    platform_agent_id: str,
+    platform_agent_name: str,
+) -> None:
+    agent.platform = platform
+    agent.integration_id = integration_id
+    agent.platform_agent_id = platform_agent_id
+    agent.platform_agent_name = platform_agent_name
+    db.add(agent)
+    db.commit()
+    db.refresh(agent)
 
 
 def test_create_list_delete_elevenlabs_environment_flow(
@@ -104,12 +115,19 @@ def test_create_list_delete_elevenlabs_environment_flow(
 ) -> None:
     agent, _user = _make_owned_agent(db)
     integration = _make_elevenlabs_integration(db)
+    _bind_agent_provider_target(
+        db,
+        agent=agent,
+        platform=Platform.ELEVENLABS,
+        integration_id=integration.id,
+        platform_agent_id="el_agent_x",
+        platform_agent_name="ElevenLabs Agent X",
+    )
 
     create_r = client.post(
         f"{settings.API_V1_STR}/environments/",
         json=_create_env_body(
             agent_id=agent.id,
-            integration_id=integration.id,
             name="prod",
             platform="elevenlabs",
         ),
@@ -119,7 +137,7 @@ def test_create_list_delete_elevenlabs_environment_flow(
     body = create_r.json()
     env_id = body["id"]
     assert body["platform"] == "elevenlabs"
-    assert body["integration_id"] == str(integration.id)
+    assert body["integration_name"] == integration.name
 
     list_r = client.get(
         f"{settings.API_V1_STR}/environments/",
@@ -149,11 +167,24 @@ def test_create_environment_returns_404_when_integration_missing(
     db: Session,
 ) -> None:
     agent, _ = _make_owned_agent(db)
-    r = client.post(
-        f"{settings.API_V1_STR}/environments/",
-        json=_create_env_body(agent_id=agent.id, integration_id=uuid.uuid4()),
-        cookies=auth_cookies,
+    integration = _make_integration(db)
+    _bind_agent_provider_target(
+        db,
+        agent=agent,
+        platform=Platform.RETELL,
+        integration_id=integration.id,
+        platform_agent_id="ret_agent_x",
+        platform_agent_name="Retell Agent X",
     )
+    with patch(
+        "app.api.routes.environments.crud.get_integration",
+        return_value=None,
+    ):
+        r = client.post(
+            f"{settings.API_V1_STR}/environments/",
+            json=_create_env_body(agent_id=agent.id),
+            cookies=auth_cookies,
+        )
     assert r.status_code == 404
 
 
@@ -164,12 +195,18 @@ def test_create_list_delete_environment_flow(
 ) -> None:
     agent, user = _make_owned_agent(db)
     integration = _make_integration(db)
+    _bind_agent_provider_target(
+        db,
+        agent=agent,
+        platform=Platform.RETELL,
+        integration_id=integration.id,
+        platform_agent_id="ret_agent_x",
+        platform_agent_name="Retell Agent X",
+    )
 
     create_r = client.post(
         f"{settings.API_V1_STR}/environments/",
-        json=_create_env_body(
-            agent_id=agent.id, integration_id=integration.id, name="prod"
-        ),
+        json=_create_env_body(agent_id=agent.id, name="prod"),
         cookies=auth_cookies,
     )
     assert create_r.status_code == 200
@@ -177,7 +214,6 @@ def test_create_list_delete_environment_flow(
     env_id = body["id"]
     assert body["name"] == "prod"
     assert body["platform"] == "retell"
-    assert body["integration_id"] == str(integration.id)
     assert body["integration_name"] == integration.name
 
     list_r = client.get(
@@ -224,15 +260,20 @@ def test_other_user_can_list_environment(
 ) -> None:
     agent, user = _make_owned_agent(db)
     integration = _make_integration(db)
+    _bind_agent_provider_target(
+        db,
+        agent=agent,
+        platform=Platform.RETELL,
+        integration_id=integration.id,
+        platform_agent_id="ret_a_other",
+        platform_agent_name="ret_a_other",
+    )
     env = crud.create_environment(
         session=db,
         data=EnvironmentCreate(
             name=f"env-{uuid.uuid4().hex[:6]}",
             platform=Platform.RETELL,
             agent_id=agent.id,
-            integration_id=integration.id,
-            platform_agent_id="ret_a_other",
-            platform_agent_name="ret_a_other",
         ),
     )
 
@@ -255,7 +296,6 @@ def test_create_webhook_environment_without_integration(
         f"{settings.API_V1_STR}/environments/",
         json=_create_env_body(
             agent_id=agent.id,
-            integration_id=None,
             name="internal webhook",
             platform="webhook",
         ),
@@ -264,7 +304,6 @@ def test_create_webhook_environment_without_integration(
     assert create_r.status_code == 200
     body = create_r.json()
     assert body["platform"] == "webhook"
-    assert body["integration_id"] is None
     assert body["integration_name"] is None
     assert body["endpoint_url"] == "https://example.com/hooks/deploy"
 
@@ -278,9 +317,17 @@ def test_create_environment_with_eval_gate_persists_field(
 
     agent, _ = _make_owned_agent(db)
     integration = _make_integration(db)
+    _bind_agent_provider_target(
+        db,
+        agent=agent,
+        platform=Platform.RETELL,
+        integration_id=integration.id,
+        platform_agent_id="ret_agent_x",
+        platform_agent_name="Retell Agent X",
+    )
     gate_cfg = create_test_eval_config(db, agent_id=agent.id)
 
-    body = _create_env_body(agent_id=agent.id, integration_id=integration.id)
+    body = _create_env_body(agent_id=agent.id)
     body["eval_gate_eval_config_id"] = str(gate_cfg.id)
 
     r = client.post(
@@ -302,9 +349,17 @@ def test_create_environment_rejects_gate_for_other_agent(
     agent, _ = _make_owned_agent(db)
     other_agent, _ = _make_owned_agent(db)
     integration = _make_integration(db)
+    _bind_agent_provider_target(
+        db,
+        agent=agent,
+        platform=Platform.RETELL,
+        integration_id=integration.id,
+        platform_agent_id="ret_agent_x",
+        platform_agent_name="Retell Agent X",
+    )
     foreign_cfg = create_test_eval_config(db, agent_id=other_agent.id)
 
-    body = _create_env_body(agent_id=agent.id, integration_id=integration.id)
+    body = _create_env_body(agent_id=agent.id)
     body["eval_gate_eval_config_id"] = str(foreign_cfg.id)
 
     r = client.post(
@@ -322,15 +377,20 @@ def test_update_environment_changes_configuration_fields(
 ) -> None:
     agent, _ = _make_owned_agent(db)
     integration = _make_integration(db)
+    _bind_agent_provider_target(
+        db,
+        agent=agent,
+        platform=Platform.RETELL,
+        integration_id=integration.id,
+        platform_agent_id="ret_a_old",
+        platform_agent_name="Old Retell Agent",
+    )
     env = crud.create_environment(
         session=db,
         data=EnvironmentCreate(
             name="prod",
             platform=Platform.RETELL,
             agent_id=agent.id,
-            integration_id=integration.id,
-            platform_agent_id="ret_a_old",
-            platform_agent_name="Old Retell Agent",
         ),
     )
     env.current_version_number = 3
@@ -343,9 +403,6 @@ def test_update_environment_changes_configuration_fields(
         json={
             "name": "Internal Webhook",
             "platform": "webhook",
-            "integration_id": None,
-            "platform_agent_id": None,
-            "platform_agent_name": None,
             "endpoint_url": "https://example.com/hooks/new-deploy",
             "eval_gate_eval_config_id": None,
         },
@@ -355,12 +412,9 @@ def test_update_environment_changes_configuration_fields(
     assert r.status_code == 200
     body = r.json()
     assert body["name"] == "Internal Webhook"
-    assert body["platform"] == "webhook"
-    assert body["integration_id"] is None
-    assert body["integration_name"] is None
-    assert body["platform_agent_id"] is None
-    assert body["platform_agent_name"] is None
-    assert body["endpoint_url"] == "https://example.com/hooks/new-deploy"
+    assert body["platform"] == "retell"
+    assert body["integration_name"] == integration.name
+    assert body["endpoint_url"] is None
     assert body["current_version_number"] is None
     assert body["current_version_name"] is None
     assert body["current_deployed_at"] is None
@@ -376,6 +430,14 @@ def test_update_environment_rejects_gate_for_other_agent(
     agent, _ = _make_owned_agent(db)
     other_agent, _ = _make_owned_agent(db)
     integration = _make_integration(db)
+    _bind_agent_provider_target(
+        db,
+        agent=agent,
+        platform=Platform.RETELL,
+        integration_id=integration.id,
+        platform_agent_id="ret_a_old",
+        platform_agent_name="Old Retell Agent",
+    )
     foreign_cfg = create_test_eval_config(db, agent_id=other_agent.id)
     env = crud.create_environment(
         session=db,
@@ -383,9 +445,6 @@ def test_update_environment_rejects_gate_for_other_agent(
             name="prod",
             platform=Platform.RETELL,
             agent_id=agent.id,
-            integration_id=integration.id,
-            platform_agent_id="ret_a_old",
-            platform_agent_name="Old Retell Agent",
         ),
     )
 
@@ -407,15 +466,20 @@ def test_update_environment_rejects_null_required_fields(
 ) -> None:
     agent, _ = _make_owned_agent(db)
     integration = _make_integration(db)
+    _bind_agent_provider_target(
+        db,
+        agent=agent,
+        platform=Platform.RETELL,
+        integration_id=integration.id,
+        platform_agent_id="ret_a_old",
+        platform_agent_name="Old Retell Agent",
+    )
     env = crud.create_environment(
         session=db,
         data=EnvironmentCreate(
             name="prod",
             platform=Platform.RETELL,
             agent_id=agent.id,
-            integration_id=integration.id,
-            platform_agent_id="ret_a_old",
-            platform_agent_name="Old Retell Agent",
         ),
     )
 
@@ -428,6 +492,54 @@ def test_update_environment_rejects_null_required_fields(
     assert r.status_code == 422
 
 
+def test_update_webhook_endpoint_url_resets_current_deployed_version(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    db: Session,
+) -> None:
+    agent, _ = _make_owned_agent(db)
+    agent.platform = Platform.WEBHOOK
+    agent.integration_id = None
+    agent.platform_agent_id = None
+    agent.platform_agent_name = None
+    db.add(agent)
+    db.commit()
+    db.refresh(agent)
+
+    env = crud.create_environment(
+        session=db,
+        data=EnvironmentCreate(
+            name="custom webhook",
+            platform=Platform.WEBHOOK,
+            agent_id=agent.id,
+            endpoint_url="http://localhost:8000/webhook-receiver",
+        ),
+    )
+    env.current_version_number = 3
+    env.current_version_name = "Guardrail tightening"
+    env.current_deployed_at = datetime.now(UTC)
+    db.add(env)
+    db.commit()
+
+    r = client.patch(
+        f"{settings.API_V1_STR}/environments/{env.id}",
+        json={
+            "endpoint_url": "http://localhost:8000/webhook-receiver?force_status=400"
+        },
+        cookies=auth_cookies,
+    )
+
+    assert r.status_code == 200
+    body = r.json()
+    assert (
+        body["endpoint_url"]
+        == "http://localhost:8000/webhook-receiver?force_status=400"
+    )
+    assert body["current_version_number"] is None
+    assert body["current_version_name"] is None
+    assert body["current_deployed_at"] is None
+
+
 def test_deploy_blocked_by_gate_when_no_run_for_version(
     client: TestClient,
     auth_cookies: dict[str, str],
@@ -437,6 +549,14 @@ def test_deploy_blocked_by_gate_when_no_run_for_version(
 
     agent, _ = _make_owned_agent(db)
     integration = _make_integration(db)
+    _bind_agent_provider_target(
+        db,
+        agent=agent,
+        platform=Platform.RETELL,
+        integration_id=integration.id,
+        platform_agent_id="ret_a_gate",
+        platform_agent_name="ret_a_gate",
+    )
     gate_cfg = create_test_eval_config(db, agent_id=agent.id)
 
     env = crud.create_environment(
@@ -445,9 +565,6 @@ def test_deploy_blocked_by_gate_when_no_run_for_version(
             name="prod",
             platform=Platform.RETELL,
             agent_id=agent.id,
-            integration_id=integration.id,
-            platform_agent_id="ret_a_gate",
-            platform_agent_name="ret_a_gate",
             eval_gate_eval_config_id=gate_cfg.id,
         ),
     )
@@ -470,15 +587,20 @@ def test_delete_integration_returns_409_when_environment_depends_on_it(
 ) -> None:
     agent, user = _make_owned_agent(db)
     integration = _make_integration(db)
+    _bind_agent_provider_target(
+        db,
+        agent=agent,
+        platform=Platform.RETELL,
+        integration_id=integration.id,
+        platform_agent_id="ret_a_409",
+        platform_agent_name="ret_a_409",
+    )
     crud.create_environment(
         session=db,
         data=EnvironmentCreate(
             name=f"env-{uuid.uuid4().hex[:6]}",
             platform=Platform.RETELL,
             agent_id=agent.id,
-            integration_id=integration.id,
-            platform_agent_id="ret_a_409",
-            platform_agent_name="ret_a_409",
         ),
     )
 
@@ -620,3 +742,34 @@ def test_get_webhook_payload_preview_with_eval_gate_without_run_returns_payload(
     assert payload["eval"]["config_id"] == str(gate_cfg.id)
     assert payload["eval"]["config_name"] == gate_cfg.name
     assert payload["eval"]["passed"] is None
+
+
+def test_environment_create_derives_platform_from_retell_agent(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    db: Session,
+) -> None:
+    agent, _user = _make_owned_agent(db)
+    integration = _make_integration(db)
+    agent.platform = Platform.RETELL
+    agent.integration_id = integration.id
+    agent.platform_agent_id = "retell-bound-1"
+    agent.platform_agent_name = "Bound Retell"
+    db.add(agent)
+    db.commit()
+
+    create_r = client.post(
+        f"{settings.API_V1_STR}/environments/",
+        json={
+            "name": "prod",
+            "platform": "webhook",
+            "agent_id": str(agent.id),
+            "endpoint_url": "https://example.com/ignored-for-retell-agent",
+        },
+        cookies=auth_cookies,
+    )
+    assert create_r.status_code == 200
+    body = create_r.json()
+    assert body["platform"] == "retell"
+    assert body["integration_name"] == integration.name
+    assert body["endpoint_url"] is None

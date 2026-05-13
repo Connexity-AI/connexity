@@ -25,6 +25,62 @@ export const AgentCreateSchema = {
       description: 'endpoint: HTTP agent; platform: LLM simulated on the platform',
       default: 'endpoint',
     },
+    platform: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Platform',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description:
+        "Voice/agent platform this agent targets. Drives which evaluation engines are available. Null for legacy rows; use 'webhook' for custom HTTP agents.",
+    },
+    prompt_type: {
+      $ref: '#/components/schemas/AgentPromptType',
+      description: 'single_prompt: one system prompt; multi_prompt reserved for future use',
+      default: 'single_prompt',
+    },
+    integration_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Integration Id',
+      description: 'Integration used for Retell, Vapi, or ElevenLabs provider agent',
+    },
+    platform_agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Id',
+      description: 'Provider agent or assistant id when bound to an integration',
+    },
+    platform_agent_name: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Name',
+      description: 'Display name of the provider agent at bind time',
+    },
     endpoint_url: {
       anyOf: [
         {
@@ -141,6 +197,57 @@ export const AgentCreateDraftSchema = {
       maxLength: 255,
       title: 'Name',
       default: 'Untitled Agent',
+    },
+    platform: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Platform',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'When set with integration and platform_agent_id, imports config from provider',
+    },
+    prompt_type: {
+      $ref: '#/components/schemas/AgentPromptType',
+      default: 'single_prompt',
+    },
+    integration_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Integration Id',
+    },
+    platform_agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Id',
+    },
+    platform_agent_name: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Name',
     },
   },
   type: 'object',
@@ -302,6 +409,47 @@ export const AgentLastEvalSummarySchema = {
   title: 'AgentLastEvalSummary',
 } as const;
 
+export const AgentLatestPublishedVersionPublicSchema = {
+  properties: {
+    version: {
+      type: 'integer',
+      title: 'Version',
+      description: 'Active published version number',
+    },
+    version_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version Name',
+    },
+    version_description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version Description',
+    },
+  },
+  type: 'object',
+  required: ['version'],
+  title: 'AgentLatestPublishedVersionPublic',
+} as const;
+
+export const AgentPromptTypeSchema = {
+  type: 'string',
+  enum: ['single_prompt', 'multi_prompt'],
+  title: 'AgentPromptType',
+} as const;
+
 export const AgentPublicSchema = {
   properties: {
     name: {
@@ -326,6 +474,62 @@ export const AgentPublicSchema = {
       $ref: '#/components/schemas/app__models__enums__AgentMode',
       description: 'endpoint: HTTP agent; platform: LLM simulated on the platform',
       default: 'endpoint',
+    },
+    platform: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Platform',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description:
+        "Voice/agent platform this agent targets. Drives which evaluation engines are available. Null for legacy rows; use 'webhook' for custom HTTP agents.",
+    },
+    prompt_type: {
+      $ref: '#/components/schemas/AgentPromptType',
+      description: 'single_prompt: one system prompt; multi_prompt reserved for future use',
+      default: 'single_prompt',
+    },
+    integration_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Integration Id',
+      description: 'Integration used for Retell, Vapi, or ElevenLabs provider agent',
+    },
+    platform_agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Id',
+      description: 'Provider agent or assistant id when bound to an integration',
+    },
+    platform_agent_name: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Name',
+      description: 'Display name of the provider agent at bind time',
     },
     endpoint_url: {
       anyOf: [
@@ -452,6 +656,17 @@ export const AgentPublicSchema = {
       format: 'date-time',
       title: 'Updated At',
       description: 'When the agent was last updated',
+    },
+    latest_published_version: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/AgentLatestPublishedVersionPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Summary of the active published version for list UI',
     },
     last_eval: {
       anyOf: [
@@ -638,6 +853,63 @@ export const AgentUpdateSchema = {
         },
       ],
       description: 'endpoint: HTTP agent; platform: LLM simulated on the platform',
+    },
+    platform: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Platform',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Voice/agent platform this agent targets',
+    },
+    prompt_type: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/AgentPromptType',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    integration_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Integration Id',
+    },
+    platform_agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Id',
+    },
+    platform_agent_name: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Name',
     },
     endpoint_url: {
       anyOf: [
@@ -1648,6 +1920,21 @@ export const ConfigPublicSchema = {
   title: 'ConfigPublic',
 } as const;
 
+export const ConnexityEngineConfigSchema = {
+  properties: {
+    kind: {
+      type: 'string',
+      enum: ['connexity'],
+      const: 'connexity',
+      title: 'Kind',
+      default: 'connexity',
+    },
+  },
+  type: 'object',
+  title: 'ConnexityEngineConfig',
+  description: 'Native Connexity evaluation engine: in-process simulator + judge.',
+} as const;
+
 export const ConversationTurn_InputSchema = {
   properties: {
     index: {
@@ -2101,6 +2388,30 @@ export const CustomMetricsPublicSchema = {
   title: 'CustomMetricsPublic',
 } as const;
 
+export const CustomUrlEngineConfigSchema = {
+  properties: {
+    kind: {
+      type: 'string',
+      enum: ['custom_url'],
+      const: 'custom_url',
+      title: 'Kind',
+      default: 'custom_url',
+    },
+    url: {
+      type: 'string',
+      maxLength: 2048,
+      minLength: 1,
+      title: 'Url',
+      description: 'Chat-completions URL that receives AgentRequest payloads',
+    },
+  },
+  type: 'object',
+  required: ['url'],
+  title: 'CustomUrlEngineConfig',
+  description:
+    "Run evals against a user-provided HTTP endpoint.\n\nThe endpoint must follow Connexity's OpenAI-compatible chat completions\ncontract (see ``app.models.agent_contract``): POST ``AgentRequest`` →\n``AgentResponse``.",
+} as const;
+
 export const DeploymentCreateSchema = {
   properties: {
     agent_version: {
@@ -2256,40 +2567,6 @@ export const EnvironmentCreateSchema = {
       format: 'uuid',
       title: 'Agent Id',
     },
-    integration_id: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'uuid',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Integration Id',
-    },
-    platform_agent_id: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Platform Agent Id',
-    },
-    platform_agent_name: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Platform Agent Name',
-    },
     endpoint_url: {
       anyOf: [
         {
@@ -2342,18 +2619,6 @@ export const EnvironmentPublicSchema = {
       format: 'uuid',
       title: 'Agent Id',
     },
-    integration_id: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'uuid',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Integration Id',
-    },
     integration_name: {
       anyOf: [
         {
@@ -2364,28 +2629,6 @@ export const EnvironmentPublicSchema = {
         },
       ],
       title: 'Integration Name',
-    },
-    platform_agent_id: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Platform Agent Id',
-    },
-    platform_agent_name: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Platform Agent Name',
     },
     endpoint_url: {
       anyOf: [
@@ -2456,10 +2699,7 @@ export const EnvironmentPublicSchema = {
     'platform',
     'id',
     'agent_id',
-    'integration_id',
     'integration_name',
-    'platform_agent_id',
-    'platform_agent_name',
     'endpoint_url',
     'current_version_number',
     'current_version_name',
@@ -2493,40 +2733,6 @@ export const EnvironmentUpdateSchema = {
           type: 'null',
         },
       ],
-    },
-    integration_id: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'uuid',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Integration Id',
-    },
-    platform_agent_id: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Platform Agent Id',
-    },
-    platform_agent_name: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Platform Agent Name',
     },
     endpoint_url: {
       anyOf: [
@@ -2926,6 +3132,113 @@ export const EvalConfigsPublicSchema = {
   type: 'object',
   required: ['data', 'count'],
   title: 'EvalConfigsPublic',
+} as const;
+
+export const EvaluationEngineKindSchema = {
+  type: 'string',
+  enum: ['connexity', 'retell', 'custom_url'],
+  title: 'EvaluationEngineKind',
+} as const;
+
+export const EvaluationEngineOptionSchema = {
+  properties: {
+    kind: {
+      $ref: '#/components/schemas/EvaluationEngineKind',
+      description: 'Engine identifier',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+      description: 'Human-readable name',
+    },
+    description: {
+      type: 'string',
+      title: 'Description',
+      description: 'Short marketing tagline',
+    },
+    is_default: {
+      type: 'boolean',
+      title: 'Is Default',
+      description: 'True when this is the platform-recommended default for the agent',
+      default: false,
+    },
+  },
+  type: 'object',
+  required: ['kind', 'label', 'description'],
+  title: 'EvaluationEngineOption',
+  description: 'One engine choice exposed to the UI dropdown.',
+} as const;
+
+export const EvaluationEngineOptionsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/EvaluationEngineOption',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Engines available for the agent, in stable display order',
+    },
+  },
+  type: 'object',
+  required: ['data'],
+  title: 'EvaluationEngineOptionsPublic',
+} as const;
+
+export const EvaluationEngineTestRequestSchema = {
+  properties: {
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+      description: 'Agent the engine will run against',
+    },
+    evaluation_engine: {
+      oneOf: [
+        {
+          $ref: '#/components/schemas/ConnexityEngineConfig',
+        },
+        {
+          $ref: '#/components/schemas/RetellEngineConfig',
+        },
+        {
+          $ref: '#/components/schemas/CustomUrlEngineConfig',
+        },
+      ],
+      title: 'Evaluation Engine',
+      description: 'Engine config under test',
+      discriminator: {
+        propertyName: 'kind',
+        mapping: {
+          connexity: '#/components/schemas/ConnexityEngineConfig',
+          custom_url: '#/components/schemas/CustomUrlEngineConfig',
+          retell: '#/components/schemas/RetellEngineConfig',
+        },
+      },
+    },
+  },
+  type: 'object',
+  required: ['agent_id', 'evaluation_engine'],
+  title: 'EvaluationEngineTestRequest',
+} as const;
+
+export const EvaluationEngineTestResultSchema = {
+  properties: {
+    ok: {
+      type: 'boolean',
+      title: 'Ok',
+      description: 'True when the engine config passed the smoke test',
+    },
+    message: {
+      type: 'string',
+      title: 'Message',
+      description: 'Human-readable detail',
+    },
+  },
+  type: 'object',
+  required: ['ok', 'message'],
+  title: 'EvaluationEngineTestResult',
+  description: 'Outcome of POST /eval-configs/test-evaluation-engine.',
 } as const;
 
 export const ExpectedOutcomeResultSchema = {
@@ -4055,33 +4368,6 @@ export const MetricTierSchema = {
   title: 'MetricTier',
 } as const;
 
-export const MockWebhookResponseSchema = {
-  properties: {
-    message: {
-      type: 'string',
-      title: 'Message',
-    },
-    received_event_type: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Received Event Type',
-    },
-    payload_received: {
-      type: 'boolean',
-      title: 'Payload Received',
-    },
-  },
-  type: 'object',
-  required: ['message', 'payload_received'],
-  title: 'MockWebhookResponse',
-} as const;
-
 export const OnConflictSchema = {
   type: 'string',
   enum: ['skip', 'overwrite'],
@@ -4734,6 +5020,22 @@ export const RetellAgentVersionSchema = {
   title: 'RetellAgentVersion',
 } as const;
 
+export const RetellEngineConfigSchema = {
+  properties: {
+    kind: {
+      type: 'string',
+      enum: ['retell'],
+      const: 'retell',
+      title: 'Kind',
+      default: 'retell',
+    },
+  },
+  type: 'object',
+  title: 'RetellEngineConfig',
+  description:
+    "Retell evaluation engine: drives a Retell web call, judges the transcript.\n\nCredentials and Retell agent id come from the agent's Retell integration\nsetup (see Environment + Integration). No engine-level configuration is\nrequired.",
+} as const;
+
 export const RunComparisonSchema = {
   properties: {
     baseline_run_id: {
@@ -4941,6 +5243,30 @@ export const RunConfig_InputSchema = {
       ],
       description: 'Agent simulator LLM overrides. Only applies when the agent mode is platform.',
     },
+    evaluation_engine: {
+      oneOf: [
+        {
+          $ref: '#/components/schemas/ConnexityEngineConfig',
+        },
+        {
+          $ref: '#/components/schemas/RetellEngineConfig',
+        },
+        {
+          $ref: '#/components/schemas/CustomUrlEngineConfig',
+        },
+      ],
+      title: 'Evaluation Engine',
+      description:
+        'Engine that drives the eval: connexity (in-process simulator + judge), retell (Retell web call), or custom_url (user-provided endpoint).',
+      discriminator: {
+        propertyName: 'kind',
+        mapping: {
+          connexity: '#/components/schemas/ConnexityEngineConfig',
+          custom_url: '#/components/schemas/CustomUrlEngineConfig',
+          retell: '#/components/schemas/RetellEngineConfig',
+        },
+      },
+    },
   },
   type: 'object',
   title: 'RunConfig',
@@ -5031,6 +5357,30 @@ export const RunConfig_OutputSchema = {
         },
       ],
       description: 'Agent simulator LLM overrides. Only applies when the agent mode is platform.',
+    },
+    evaluation_engine: {
+      oneOf: [
+        {
+          $ref: '#/components/schemas/ConnexityEngineConfig',
+        },
+        {
+          $ref: '#/components/schemas/RetellEngineConfig',
+        },
+        {
+          $ref: '#/components/schemas/CustomUrlEngineConfig',
+        },
+      ],
+      title: 'Evaluation Engine',
+      description:
+        'Engine that drives the eval: connexity (in-process simulator + judge), retell (Retell web call), or custom_url (user-provided endpoint).',
+      discriminator: {
+        propertyName: 'kind',
+        mapping: {
+          connexity: '#/components/schemas/ConnexityEngineConfig',
+          custom_url: '#/components/schemas/CustomUrlEngineConfig',
+          retell: '#/components/schemas/RetellEngineConfig',
+        },
+      },
     },
   },
   type: 'object',

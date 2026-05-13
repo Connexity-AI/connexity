@@ -59,15 +59,19 @@ def _owned_agent_with_environment(db: Session, retell_agent_id: str = "ret_a1"):
             api_key="sk_test_key_abcdef",
         ),
     )
+    agent.platform = Platform.RETELL
+    agent.integration_id = integration.id
+    agent.platform_agent_id = retell_agent_id
+    agent.platform_agent_name = retell_agent_id
+    db.add(agent)
+    db.commit()
+    db.refresh(agent)
     crud.create_environment(
         session=db,
         data=EnvironmentCreate(
             name=f"env-{uuid.uuid4().hex[:6]}",
             platform=Platform.RETELL,
             agent_id=agent.id,
-            integration_id=integration.id,
-            platform_agent_id=retell_agent_id,
-            platform_agent_name=retell_agent_id,
         ),
     )
     return agent, integration, user
@@ -91,15 +95,19 @@ def _owned_agent_with_elevenlabs_environment(
             api_key="sk_eleven_test_key",
         ),
     )
+    agent.platform = Platform.ELEVENLABS
+    agent.integration_id = integration.id
+    agent.platform_agent_id = elevenlabs_agent_id
+    agent.platform_agent_name = elevenlabs_agent_id
+    db.add(agent)
+    db.commit()
+    db.refresh(agent)
     crud.create_environment(
         session=db,
         data=EnvironmentCreate(
             name=f"env-{uuid.uuid4().hex[:6]}",
             platform=Platform.ELEVENLABS,
             agent_id=agent.id,
-            integration_id=integration.id,
-            platform_agent_id=elevenlabs_agent_id,
-            platform_agent_name=elevenlabs_agent_id,
         ),
     )
     return agent, integration, user
