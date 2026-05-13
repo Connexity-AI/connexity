@@ -206,7 +206,9 @@ async def wait_for_retell_test_run_completion(
                     job.result_explanation,
                 )
                 if job.status == "error":
-                    detail = job.result_explanation or "Retell simulation returned error"
+                    detail = (
+                        job.result_explanation or "Retell simulation returned error"
+                    )
                     if job.transcript_snapshot:
                         logger.info(
                             "Retell simulation error transcript snapshot: batch_id=%s job_id=%s transcript_snapshot=%s",

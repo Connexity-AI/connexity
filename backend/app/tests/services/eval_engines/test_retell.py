@@ -250,7 +250,11 @@ async def test_run_test_case_propagates_retell_simulation_error() -> None:
         patch.object(
             retell_mod,
             "wait_for_retell_test_run_completion",
-            new=AsyncMock(side_effect=Exception("Retell simulation job job_123 failed: tool crashed")),
+            new=AsyncMock(
+                side_effect=Exception(
+                    "Retell simulation job job_123 failed: tool crashed"
+                )
+            ),
             create=True,
         ),
     ):
@@ -346,8 +350,18 @@ async def test_wait_for_retell_test_run_completion_returns_terminal_job() -> Non
     )
 
     with (
-        patch.object(retell_mod, "get_retell_batch_test", new=AsyncMock(side_effect=[in_progress_batch, complete_batch]), create=True),
-        patch.object(retell_mod, "list_retell_test_runs", new=AsyncMock(return_value=[completed_job]), create=True),
+        patch.object(
+            retell_mod,
+            "get_retell_batch_test",
+            new=AsyncMock(side_effect=[in_progress_batch, complete_batch]),
+            create=True,
+        ),
+        patch.object(
+            retell_mod,
+            "list_retell_test_runs",
+            new=AsyncMock(return_value=[completed_job]),
+            create=True,
+        ),
         patch.object(retell_mod.asyncio, "sleep", new=AsyncMock()),
     ):
         job = await retell_mod.wait_for_retell_test_run_completion(
@@ -374,8 +388,18 @@ async def test_wait_for_retell_test_run_completion_raises_terminal_error() -> No
     )
 
     with (
-        patch.object(retell_mod, "get_retell_batch_test", new=AsyncMock(return_value=complete_batch), create=True),
-        patch.object(retell_mod, "list_retell_test_runs", new=AsyncMock(return_value=[errored_job]), create=True),
+        patch.object(
+            retell_mod,
+            "get_retell_batch_test",
+            new=AsyncMock(return_value=complete_batch),
+            create=True,
+        ),
+        patch.object(
+            retell_mod,
+            "list_retell_test_runs",
+            new=AsyncMock(return_value=[errored_job]),
+            create=True,
+        ),
     ):
         with pytest.raises(Exception, match="Tool mock failed"):
             await retell_mod.wait_for_retell_test_run_completion(
@@ -387,7 +411,9 @@ async def test_wait_for_retell_test_run_completion_raises_terminal_error() -> No
             )
 
 
-async def test_wait_for_retell_test_run_completion_returns_error_job_with_transcript() -> None:
+async def test_wait_for_retell_test_run_completion_returns_error_job_with_transcript() -> (
+    None
+):
     from app.services.eval_engines import retell as retell_mod
 
     complete_batch = MagicMock(status="complete")
@@ -405,8 +431,18 @@ async def test_wait_for_retell_test_run_completion_returns_error_job_with_transc
     )
 
     with (
-        patch.object(retell_mod, "get_retell_batch_test", new=AsyncMock(return_value=complete_batch), create=True),
-        patch.object(retell_mod, "list_retell_test_runs", new=AsyncMock(return_value=[errored_job]), create=True),
+        patch.object(
+            retell_mod,
+            "get_retell_batch_test",
+            new=AsyncMock(return_value=complete_batch),
+            create=True,
+        ),
+        patch.object(
+            retell_mod,
+            "list_retell_test_runs",
+            new=AsyncMock(return_value=[errored_job]),
+            create=True,
+        ),
     ):
         job = await retell_mod.wait_for_retell_test_run_completion(
             api_key="api-key",

@@ -523,13 +523,18 @@ def test_update_webhook_endpoint_url_resets_current_deployed_version(
 
     r = client.patch(
         f"{settings.API_V1_STR}/environments/{env.id}",
-        json={"endpoint_url": "http://localhost:8000/webhook-receiver?force_status=400"},
+        json={
+            "endpoint_url": "http://localhost:8000/webhook-receiver?force_status=400"
+        },
         cookies=auth_cookies,
     )
 
     assert r.status_code == 200
     body = r.json()
-    assert body["endpoint_url"] == "http://localhost:8000/webhook-receiver?force_status=400"
+    assert (
+        body["endpoint_url"]
+        == "http://localhost:8000/webhook-receiver?force_status=400"
+    )
     assert body["current_version_number"] is None
     assert body["current_version_name"] is None
     assert body["current_deployed_at"] is None

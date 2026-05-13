@@ -90,7 +90,9 @@ def _validate_evaluation_engine(
                     col(TestCase.id).in_(candidate_ids)
                 )
             ).all()
-            offenders = [test_case_id for test_case_id, expected_calls in rows if expected_calls]
+            offenders = [
+                test_case_id for test_case_id, expected_calls in rows if expected_calls
+            ]
             if offenders:
                 msg = (
                     "Tool calls are only supported with the Connexity evaluation "

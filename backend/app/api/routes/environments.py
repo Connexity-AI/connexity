@@ -391,7 +391,9 @@ def update_environment(
     platform = update_data.get("platform", env.platform)
     endpoint_url = update_data.get("endpoint_url", env.endpoint_url)
     platform_changed = "platform" in update_data and platform != env.platform
-    endpoint_changed = "endpoint_url" in update_data and endpoint_url != env.endpoint_url
+    endpoint_changed = (
+        "endpoint_url" in update_data and endpoint_url != env.endpoint_url
+    )
 
     try:
         validate_environment_platform_fields(

@@ -198,7 +198,9 @@ async def get_retell_agent_response_engine(
 
     body = response.json()
     if not isinstance(body, dict):
-        raise HTTPException(status_code=502, detail="Retell get-agent returned invalid JSON")
+        raise HTTPException(
+            status_code=502, detail="Retell get-agent returned invalid JSON"
+        )
 
     response_engine = body.get("response_engine")
     if not isinstance(response_engine, dict):
@@ -217,7 +219,9 @@ async def get_retell_agent_response_engine(
             out["version"] = response_engine["version"]
         return out
 
-    if engine_type == "conversation-flow" and response_engine.get("conversation_flow_id"):
+    if engine_type == "conversation-flow" and response_engine.get(
+        "conversation_flow_id"
+    ):
         out = {
             "type": "conversation-flow",
             "conversation_flow_id": str(response_engine["conversation_flow_id"]),
@@ -337,9 +341,7 @@ async def create_retell_batch_test(
     return str(batch_id)
 
 
-async def get_retell_batch_test(
-    *, api_key: str, batch_test_id: str
-) -> RetellBatchTest:
+async def get_retell_batch_test(*, api_key: str, batch_test_id: str) -> RetellBatchTest:
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(

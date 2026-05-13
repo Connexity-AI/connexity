@@ -29,7 +29,9 @@ def build_retell_user_prompt(
         "If the conversation is not progressing, give one final useful detail and then end the conversation.",
         f"Keep the simulation under {turn_limit} total turns.",
     ]
-    sections.append("Simulation rules:\n" + "\n".join(f"- {rule}" for rule in simulation_rules))
+    sections.append(
+        "Simulation rules:\n" + "\n".join(f"- {rule}" for rule in simulation_rules)
+    )
 
     if test_case.name:
         sections.append(f"Test case: {test_case.name}")
@@ -117,6 +119,8 @@ def _map_retell_role(raw_role: object) -> TurnRole | None:
 
 def _map_retell_timestamp(raw_timestamp: object) -> datetime:
     if isinstance(raw_timestamp, int | float):
-        timestamp_seconds = raw_timestamp / 1000 if raw_timestamp > 10_000_000_000 else raw_timestamp
+        timestamp_seconds = (
+            raw_timestamp / 1000 if raw_timestamp > 10_000_000_000 else raw_timestamp
+        )
         return datetime.fromtimestamp(timestamp_seconds, tz=UTC)
     return datetime.fromtimestamp(time.time(), tz=UTC)

@@ -63,7 +63,9 @@ class AgentBase(SQLModel):
         sa_column=Column(
             Enum(
                 AgentPromptType,
-                values_callable=lambda enum_type: [member.value for member in enum_type],
+                values_callable=lambda enum_type: [
+                    member.value for member in enum_type
+                ],
                 native_enum=False,
                 validate_strings=True,
                 name="agentprompttype",
