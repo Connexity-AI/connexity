@@ -167,20 +167,24 @@ def test_create_environment_returns_404_when_integration_missing(
     db: Session,
 ) -> None:
     agent, _ = _make_owned_agent(db)
-    missing_integration_id = uuid.uuid4()
+    integration = _make_integration(db)
     _bind_agent_provider_target(
         db,
         agent=agent,
         platform=Platform.RETELL,
-        integration_id=missing_integration_id,
+        integration_id=integration.id,
         platform_agent_id="ret_agent_x",
         platform_agent_name="Retell Agent X",
     )
-    r = client.post(
-        f"{settings.API_V1_STR}/environments/",
-        json=_create_env_body(agent_id=agent.id),
-        cookies=auth_cookies,
-    )
+    with patch(
+        "app.api.routes.environments.crud.get_integration",
+        return_value=None,
+    ):
+        r = client.post(
+            f"{settings.API_V1_STR}/environments/",
+            json=_create_env_body(agent_id=agent.id),
+            cookies=auth_cookies,
+        )
     assert r.status_code == 404
 
 
