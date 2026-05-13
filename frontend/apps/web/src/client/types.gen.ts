@@ -437,6 +437,11 @@ export type AgentSimulatorConfig = {
  * AgentToolDefinition
  *
  * Prompt-facing tool: ``parameters`` is a full JSON Schema (properties, required, ...).
+ *
+ * ``terminating`` mirrors ``platform_config.terminating`` from stored agent tools.
+ * It is excluded from :meth:`to_prompt_dict` and from batch/interactive tool
+ * summaries so prompts stay unchanged; consumers (e.g. test-case validation) use
+ * it to treat hangup/transfer tools differently.
  */
 export type AgentToolDefinition = {
   /**
@@ -453,6 +458,12 @@ export type AgentToolDefinition = {
   parameters?: {
     [key: string]: unknown;
   } | null;
+  /**
+   * Terminating
+   *
+   * True when the raw tool row has platform_config.terminating.
+   */
+  terminating?: boolean;
 };
 
 /**
@@ -1970,17 +1981,19 @@ export type ExpectedToolCall = {
   /**
    * Expected Params
    *
-   * Key parameters the judge verifies; null = any params acceptable
+   * Used for mock routing (required argument keys must be present in the live call; values ignored) and generator alignment; null matches any invocation. Use {{paramName}} tokens for simulator- or agent-varying values.
    */
   expected_params?: {
     [key: string]: unknown;
   } | null;
   /**
-   * Mock Responses
+   * Mock Response
    *
-   * Ordered mock responses consumed sequentially during platform agent simulation. First entry whose expected_params partially matches is popped and returned.
+   * Canned JSON object returned as the tool result in mock mode. Use one expected_tool_calls row per mocked invocation when the same tool is called multiple times.
    */
-  mock_responses?: Array<MockResponse> | null;
+  mock_response?: {
+    [key: string]: unknown;
+  } | null;
 };
 
 /**
@@ -2748,6 +2761,24 @@ export type MockResponse = {
 };
 
 /**
+ * MockWebhookResponse
+ */
+export type MockWebhookResponse = {
+  /**
+   * Message
+   */
+  message: string;
+  /**
+   * Received Event Type
+   */
+  received_event_type?: string | null;
+  /**
+   * Payload Received
+   */
+  payload_received: boolean;
+};
+
+/**
  * OnConflict
  */
 export const OnConflict = { SKIP: 'skip', OVERWRITE: 'overwrite' } as const;
@@ -3311,7 +3342,7 @@ export type RunConfigInput = {
   /**
    * Tool Mode
    *
-   * Global tool execution mode: mock uses test-case mock_responses, live executes real implementations
+   * Global tool execution mode: mock uses test-case expected_tool_calls.mock_response payloads, live executes real implementations
    */
   tool_mode?: 'mock' | 'live';
   /**
@@ -3380,7 +3411,7 @@ export type RunConfigOutput = {
   /**
    * Tool Mode
    *
-   * Global tool execution mode: mock uses test-case mock_responses, live executes real implementations
+   * Global tool execution mode: mock uses test-case expected_tool_calls.mock_response payloads, live executes real implementations
    */
   tool_mode?: 'mock' | 'live';
   /**

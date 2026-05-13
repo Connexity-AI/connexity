@@ -9,6 +9,7 @@ import {
   buildTestCaseFormSchema,
   computeFormDefaults,
   computeFormValues,
+  parseMockResponseJsonField,
   type TestCaseFormValues,
   type ToolForValidation,
 } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-form-schema';
@@ -46,7 +47,11 @@ export function useTestCaseDetailForm({
       .filter((outcome) => outcome.trim() !== '');
     const toolCalls: ExpectedToolCall[] = values.expected_tool_calls
       .filter((call) => call.tool)
-      .map((call) => ({ tool: call.tool, expected_params: call.expected_params }));
+      .map((call) => ({
+        tool: call.tool,
+        expected_params: call.expected_params,
+        mock_response: parseMockResponseJsonField(call.mock_response_json),
+      }));
     await mutateAsync({
       testCaseId: testCase.id,
       body: {

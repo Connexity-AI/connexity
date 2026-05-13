@@ -24,8 +24,9 @@ agent under test, with clear success criteria.
   parallel tool calls in a single assistant turn. You decide how many cases to
   create based on the user's request and coverage needs (typically 2–10 when
   generating a suite).
-- **edit_test_case**: emit the **complete** updated test case **exactly once**.
-  Preserve every field the user did not ask to change.
+- **edit_test_case**: emit a partial update **exactly once**, containing only
+  the smallest localized set of fields needed for the requested change.
+  Omitted fields are preserved.
 
 ## Key Field Details
 - **name**: short and informative; use at most 7 words and 60 characters.
@@ -42,8 +43,7 @@ agent under test, with clear success criteria.
 - **user_context**: optional JSON object of background the simulator knows.
 - **expected_outcomes**: list of true-statement assertions the judge evaluates
   (for example: `Agent MUST confirm the appointment date`).
-- **expected_tool_calls**: list of tools the agent should invoke, each with
-  `tool` (name), `expected_params`, and `mock_responses`.
+- **expected_tool_calls**: planned tool uses; each item has `tool`, `expected_params`, and `mock_response` (concrete JSON returned to the agent in mock mode — add one row per mocked invocation).
 - **evaluation_criteria_override**: optional judge override; rarely needed.
 
 ## Persona Requirements
@@ -66,17 +66,19 @@ agent under test, with clear success criteria.
 ## Tool And Mock Requirements
 - Use only tool names listed in `<agent_tools>`.
 - If a case expects tool usage, include every required parameter from the tool
-  schema in `expected_params`.
-- Every expected tool call MUST include `mock_responses` with at least one
-  canned response.
-- `mock_responses[].expected_params` MUST include every required parameter for
-  that tool using the same values as `expected_params`. If the tool has no
-  required parameters, `mock_responses[].expected_params` may be null to match
-  any call.
-- `mock_responses[].response` should be realistic tool output that the agent
-  can use to continue the conversation.
+  schema in `expected_params` for that entry.
+- Every expected tool call MUST include `mock_response`: realistic JSON the
+  platform returns as the tool result in mock mode.
+- Use one `expected_tool_calls` row per mocked invocation; repeat the same
+  `tool` name when the agent should call it multiple times.
 - If a case intentionally tests no-tool behavior, use `expected_tool_calls: []`
   or omit it.
+
+## Placeholder tokens (variable tool arguments)
+- For agent-derived or run-varying arguments, use **double-brace tokens** in `expected_params` only, e.g. `"startDate": "{{startDate}}"`.
+- Use **concrete literals** when the persona or opening message fixes the value.
+- Keep `mock_response` as realistic **concrete** JSON; do not put `{{...}}` placeholders there.
+- Shape: exactly `{{paramName}}` — letters, digits, underscore only; one token per string, no spaces or mixed prose.
 
 ## Diversity Requirements
 - Include a mix of happy-path/normal cases, edge cases, and
@@ -233,12 +235,24 @@ def build_dynamic_system_message(
         assert ctx.transcript is not None
         parts.append(
             "## Mode: from_transcript\n"
-            "Derive one or more test cases that reproduce important scenarios from "
-            "this conversation. "
-            "Set `first_turn` and `first_message` from the opening. Build "
-            "`persona_context` from the user's behavior. Derive "
-            "`expected_outcomes` and `expected_tool_calls` from what the agent "
-            "should do. Use one `create_test_case` call per test case.\n"
+            "Derive one or more regression test cases from this observed live "
+            "conversation. By default, assume the user selected this transcript "
+            "because the call was problematic. Preserve the user's scenario, "
+            "facts, constraints, tone, and opening message, but do not preserve "
+            "bad assistant behavior as expected behavior.\n"
+            "Treat the observed assistant responses and tool calls as evidence "
+            "for what went wrong. Generate the opposite passing behavior in "
+            "`expected_outcomes`: what the agent should do to resolve or avoid "
+            "the failure next time. Set `first_turn` and `first_message` from "
+            "the opening. Build `persona_context` from the user's behavior and "
+            "stable facts. Build `expected_tool_calls` normatively from the "
+            "available tools: copy observed tool calls only when they were "
+            "correct, fix wrong parameters, add missing calls, and omit calls "
+            "that caused the failure.\n"
+            "If the user's request explicitly says the call was successful or "
+            "asks to preserve the observed behavior, create a coverage test for "
+            "that successful path instead. Use one `create_test_case` call per "
+            "test case.\n"
             "<transcript>\n"
             f"{_format_transcript(ctx.transcript)}\n"
             "</transcript>"
@@ -249,17 +263,27 @@ def build_dynamic_system_message(
         parts.append(
             "## Mode: edit\n"
             "Apply the user's request to the test case below. Call "
-            "`edit_test_case` exactly once with the full updated object.\n"
-            "Preserve fields the user did not ask to change, but keep related "
-            "fields consistent when a requested change requires it.\n"
+            "`edit_test_case` exactly once with the smallest localized patch "
+            "that satisfies the request.\n"
+            "Only edit fields the user explicitly asked to change, or fields "
+            "that must change to keep the requested edit valid and internally "
+            "consistent. Do not improve, rewrite, rephrase, reorder, normalize, "
+            "or regenerate unrelated parts of the test case. Do not include "
+            "unchanged fields.\n"
+            "Keep related fields consistent when a requested change requires it: "
+            "for example, if an expected tool call changes, include any needed "
+            "persona, outcome, or first-message updates in the same patch.\n"
             "If you add or change `expected_tool_calls`, audit `persona_context`: "
             "any stable user-provided values that the simulator must reveal so "
-            "the agent can produce those `expected_params` must appear in the "
-            "`[Description]` section. Examples include names, phone numbers, "
-            "addresses, appliance types, account/order identifiers, user-known "
-            "dates, and locations. Do not add derived or agent-selected values "
-            "such as returned IDs, computed dates, selected time slots, current "
-            "time, or values the agent should obtain from a previous tool.\n"
+            "the agent can produce literal `expected_params` must appear in the "
+            "`[Description]` section. For derived or runtime-varying arguments "
+            "use `{{paramName}}` tokens in `expected_params` instead of literals. "
+            "Ensure each entry has a realistic `mock_response` object. Examples of "
+            "stable values: names, phone numbers, addresses, appliance types, "
+            "account/order identifiers, user-known dates, and locations. Do not "
+            "add literals for returned IDs, computed dates, selected time slots, "
+            "current time, or values the agent should obtain from a previous tool "
+            "(use placeholders for those).\n"
             "<current_test_case>\n"
             f"{pub.model_dump_json(indent=2)}\n"
             "</current_test_case>"
@@ -317,7 +341,9 @@ def build_repair_user_prompt(
         tool_instruction = f"{count_instruction} Do not call any other tool."
     else:
         tool_instruction = (
-            "Call `edit_test_case` exactly once with the complete corrected test case. "
+            "Call `edit_test_case` exactly once with the corrected partial update. "
+            "Include only the smallest localized set of fields needed to fix the "
+            "validation errors without rewriting unrelated content. "
             "Do not call any other tool."
         )
 

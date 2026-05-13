@@ -802,12 +802,18 @@ export const AgentToolDefinitionSchema = {
       ],
       title: 'Parameters',
     },
+    terminating: {
+      type: 'boolean',
+      title: 'Terminating',
+      description: 'True when the raw tool row has platform_config.terminating.',
+      default: false,
+    },
   },
   type: 'object',
   required: ['name'],
   title: 'AgentToolDefinition',
   description:
-    'Prompt-facing tool: ``parameters`` is a full JSON Schema (properties, required, ...).',
+    'Prompt-facing tool: ``parameters`` is a full JSON Schema (properties, required, ...).\n\n``terminating`` mirrors ``platform_config.terminating`` from stored agent tools.\nIt is excluded from :meth:`to_prompt_dict` and from batch/interactive tool\nsummaries so prompts stay unchanged; consumers (e.g. test-case validation) use\nit to treat hangup/transfer tools differently.',
 } as const;
 
 export const AgentUpdateSchema = {
@@ -3275,23 +3281,21 @@ export const ExpectedToolCallSchema = {
         },
       ],
       title: 'Expected Params',
-      description: 'Key parameters the judge verifies; null = any params acceptable',
+      description:
+        'Used for mock routing (required argument keys must be present in the live call; values ignored) and generator alignment; null matches any invocation. Use {{paramName}} tokens for simulator- or agent-varying values.',
     },
-    mock_responses: {
+    mock_response: {
       anyOf: [
         {
-          items: {
-            $ref: '#/components/schemas/MockResponse',
-          },
-          type: 'array',
+          type: 'object',
         },
         {
           type: 'null',
         },
       ],
-      title: 'Mock Responses',
+      title: 'Mock Response',
       description:
-        'Ordered mock responses consumed sequentially during platform agent simulation. First entry whose expected_params partially matches is popped and returned.',
+        'Canned JSON object returned as the tool result in mock mode. Use one expected_tool_calls row per mocked invocation when the same tool is called multiple times.',
     },
   },
   type: 'object',
@@ -4389,6 +4393,33 @@ export const MockResponseSchema = {
   title: 'MockResponse',
 } as const;
 
+export const MockWebhookResponseSchema = {
+  properties: {
+    message: {
+      type: 'string',
+      title: 'Message',
+    },
+    received_event_type: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Received Event Type',
+    },
+    payload_received: {
+      type: 'boolean',
+      title: 'Payload Received',
+    },
+  },
+  type: 'object',
+  required: ['message', 'payload_received'],
+  title: 'MockWebhookResponse',
+} as const;
+
 export const OnConflictSchema = {
   type: 'string',
   enum: ['skip', 'overwrite'],
@@ -5209,7 +5240,7 @@ export const RunConfig_InputSchema = {
       enum: ['mock', 'live'],
       title: 'Tool Mode',
       description:
-        'Global tool execution mode: mock uses test-case mock_responses, live executes real implementations',
+        'Global tool execution mode: mock uses test-case expected_tool_calls.mock_response payloads, live executes real implementations',
       default: 'mock',
     },
     metrics_pass_threshold: {
@@ -5324,7 +5355,7 @@ export const RunConfig_OutputSchema = {
       enum: ['mock', 'live'],
       title: 'Tool Mode',
       description:
-        'Global tool execution mode: mock uses test-case mock_responses, live executes real implementations',
+        'Global tool execution mode: mock uses test-case expected_tool_calls.mock_response payloads, live executes real implementations',
       default: 'mock',
     },
     metrics_pass_threshold: {

@@ -66,7 +66,7 @@ KEY FIELD DETAILS:
 - "first_turn": who speaks first — "user" (default) or "agent". Use "agent" for greeting/welcome scenarios.
 - "first_message": the opening message for whoever speaks first
 - "expected_outcomes": list of true-statement assertions the judge evaluates (e.g. "Agent MUST confirm the appointment date")
-- "expected_tool_calls": list of tools the agent should invoke, each with "tool" (name), "expected_params", and "mock_responses"
+- "expected_tool_calls": list of planned tool invocations, each with "tool" (name), "expected_params", and "mock_response" (JSON the platform returns to the agent in mock mode)
 
 PERSONA REQUIREMENTS:
 - Every persona_context MUST include all three section labels exactly:
@@ -84,11 +84,16 @@ PERSONA REQUIREMENTS:
 TOOL AND MOCK REQUIREMENTS:
 - Use only tool names listed in AGENT TOOLS.
 - If a case expects tool usage, include every required parameter from the tool schema in expected_params.
-- Every expected tool call MUST include mock_responses with at least one canned response.
-- mock_responses[].expected_params MUST include every required parameter for that tool
-  using the same values as expected_params.
-- mock_responses[].response should be realistic tool output that the agent can use to continue the conversation.
+- Every expected tool call MUST include mock_response: a concrete JSON object the platform returns as the tool result in mock mode.
+- Use one expected_tool_calls entry per time the tool should be mocked; repeat the tool name for multiple invocations in order.
+- Include every required parameter from the tool schema in expected_params for that entry (use double-brace placeholders for variable arguments; see below).
+- mock_response must be realistic tool output the agent can use; do not use {{...}} tokens inside mock_response.
 - If a case intentionally tests no-tool behavior, use expected_tool_calls: [] or omit it.
+
+PLACEHOLDER TOKENS (variable tool arguments):
+- For agent-derived or run-varying values (e.g. dates from context, IDs from a prior tool, availability windows), put double-brace tokens in expected_params only, e.g. "startDate": "{{startDate}}".
+- Use concrete literals in expected_params when the persona or first_message fixes the value (e.g. the user names a specific date).
+- Token shape: exactly {{paramName}} where paramName is letters, digits, or underscore; one token per string, no surrounding prose or spaces.
 
 DIVERSITY REQUIREMENTS:
 - Include a mix of: happy-path/normal cases, edge cases, and red-team/adversarial cases
@@ -155,8 +160,8 @@ def build_user_prompt(
         "- Include judge-checkable expected_outcomes written as true statements.",
         "- Format every persona_context with [Persona type], [Description], and [Behavioral instructions].",
         "- Put stable user-provided details in persona_context, but do not force derived tool arguments there.",
-        "- For every expected tool call, include all required params in expected_params and mock_responses[].expected_params.",
-        "- Mock responses should be plausible domain data, not placeholders.",
+        "- For every expected tool call, include all required params in expected_params; use {{paramName}} placeholders when values are agent-derived or run-varying, literals when the persona fixes them.",
+        "- mock_response must be plausible concrete JSON (no {{...}} tokens in the mocked body).",
     ]
 
     if focus_tags:

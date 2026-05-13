@@ -8,6 +8,7 @@ import { Controller, useFieldArray, useFormContext } from 'react-hook-form';
 
 import { Button } from '@workspace/ui/components/ui/button';
 import { Input } from '@workspace/ui/components/ui/input';
+import { Textarea } from '@workspace/ui/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -119,6 +120,11 @@ function ToolCallCard({ index, availableTools, toolByName, onRemove }: ToolCallC
   const form = useFormContext<TestCaseFormValues>();
   const toolName = form.watch(`expected_tool_calls.${index}.tool`);
   const selectedTool = toolByName.get(toolName);
+  const mockError = (
+    form.formState.errors.expected_tool_calls as
+      | Record<number, { mock_response_json?: { message?: string } }>
+      | undefined
+  )?.[index]?.mock_response_json?.message;
 
   return (
     <div className="group relative rounded-lg border border-border bg-accent/10 p-3">
@@ -145,6 +151,7 @@ function ToolCallCard({ index, availableTools, toolByName, onRemove }: ToolCallC
                 onValueChange={(value) => {
                   field.onChange(value);
                   form.setValue(`expected_tool_calls.${index}.expected_params`, {});
+                  form.setValue(`expected_tool_calls.${index}.mock_response_json`, '{}');
                 }}
               >
                 <SelectTrigger className="h-7 font-mono text-xs">
@@ -159,6 +166,31 @@ function ToolCallCard({ index, availableTools, toolByName, onRemove }: ToolCallC
           />
         </div>
         {selectedTool && <ToolCallParams index={index} tool={selectedTool} />}
+        {selectedTool && (
+          <div className="space-y-1 border-t border-border/50 pt-2">
+            <label className="block text-[10px] text-muted-foreground/60">
+              Mock response (JSON)<span className="ml-0.5 text-red-400">*</span>
+            </label>
+            <Controller
+              control={form.control}
+              name={`expected_tool_calls.${index}.mock_response_json`}
+              render={({ field }) => (
+                <Textarea
+                  {...field}
+                  rows={6}
+                  spellCheck={false}
+                  placeholder={'{\n  "example": true\n}'}
+                  aria-invalid={mockError ? 'true' : undefined}
+                  className={cn(
+                    'min-h-[100px] font-mono text-xs',
+                    mockError && 'border-red-400 focus-visible:ring-red-400'
+                  )}
+                />
+              )}
+            />
+            {mockError && <p className="mt-1 text-[10px] text-red-400">{mockError}</p>}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -207,7 +239,7 @@ export function TestCaseExpectedToolCallsField({
     [availableTools]
   );
 
-  const handleAdd = () => append({ tool: '', expected_params: null });
+  const handleAdd = () => append({ tool: '', expected_params: null, mock_response_json: '{}' });
 
   return (
     <div>

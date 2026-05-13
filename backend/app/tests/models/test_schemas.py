@@ -11,7 +11,6 @@ from app.models.schemas import (
     JudgeVerdict,
     MetricScore,
     MetricSelection,
-    MockResponse,
     PythonImplementation,
     RunConfig,
     ToolCall,
@@ -48,49 +47,20 @@ def test_expected_tool_call_with_params():
     assert restored.expected_params["order_id"] == "ORD-12345"
 
 
-def test_expected_tool_call_with_mock_responses():
+def test_expected_tool_call_with_mock_response():
     tc = ExpectedToolCall(
         tool="lookup_order",
-        mock_responses=[
-            MockResponse(
-                expected_params={"order_id": "INVALID"},
-                response={"success": False, "error": "Not found"},
-            ),
-            MockResponse(
-                expected_params={"order_id": "ORD-1"},
-                response={"success": True, "order": {"id": "ORD-1", "amount": 49.99}},
-            ),
-        ],
+        expected_params={"order_id": "ORD-1"},
+        mock_response={"success": True, "order": {"id": "ORD-1", "amount": 49.99}},
     )
     restored = _round_trip(ExpectedToolCall, tc)
-    assert restored.mock_responses is not None
-    assert len(restored.mock_responses) == 2
-    assert restored.mock_responses[0].response["success"] is False
-    assert restored.mock_responses[1].expected_params["order_id"] == "ORD-1"
+    assert restored.mock_response is not None
+    assert restored.mock_response["success"] is True
 
 
-def test_expected_tool_call_mock_responses_default_none():
+def test_expected_tool_call_mock_response_default_none():
     tc = ExpectedToolCall(tool="search")
-    assert tc.mock_responses is None
-
-
-# ── MockResponse ──────────────────────────────────────────────────
-
-
-def test_mock_response_round_trip():
-    mr = MockResponse(
-        expected_params={"q": "test"},
-        response={"results": [1, 2, 3]},
-    )
-    restored = _round_trip(MockResponse, mr)
-    assert restored.expected_params == {"q": "test"}
-    assert restored.response["results"] == [1, 2, 3]
-
-
-def test_mock_response_null_params():
-    mr = MockResponse(response={"ok": True})
-    restored = _round_trip(MockResponse, mr)
-    assert restored.expected_params is None
+    assert tc.mock_response is None
 
 
 # ── ToolPlatformConfig ────────────────────────────────────────────
