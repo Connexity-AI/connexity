@@ -53,6 +53,12 @@ build-backend = "hatchling.build"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 
+[tool.coverage.run]
+omit = [
+    "app/alembic/*",
+    "app/services/retell.py",
+]
+
 [tool.pyright]
 typeCheckingMode = "basic"
 exclude = ["**/venv", "**/.venv", "**/alembic"]
