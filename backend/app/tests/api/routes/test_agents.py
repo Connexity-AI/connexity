@@ -7,9 +7,8 @@ from sqlmodel import Session
 
 from app import crud
 from app.core.config import settings
-from app.models import Integration
+from app.models import Integration, RunStatus
 from app.models.enums import IntegrationProvider
-from app.models import RunStatus
 from app.services.prompt_editor.agent_prompt import DEFAULT_EDITOR_GUIDELINES
 from app.tests.utils.eval import (
     create_test_agent,

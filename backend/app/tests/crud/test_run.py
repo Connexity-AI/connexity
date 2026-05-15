@@ -13,8 +13,6 @@ from app.models.schemas import (
     JudgeConfig,
     RunConfig,
 )
-
-_EP_AGENT_URL = "http://localhost:8080/agent"
 from app.services.agent_tool_definitions import canonical_end_call_tool_dict
 from app.tests.utils.eval import (
     create_test_agent,
@@ -23,6 +21,8 @@ from app.tests.utils.eval import (
     create_test_run,
     eval_config_members,
 )
+
+_EP_AGENT_URL = "http://localhost:8080/agent"
 
 
 def _setup_run(db: Session) -> tuple:

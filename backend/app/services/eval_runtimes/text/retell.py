@@ -10,7 +10,7 @@ import json
 import logging
 import time
 from dataclasses import dataclass, replace
-from typing import Any, ClassVar
+from typing import ClassVar
 
 from fastapi import HTTPException
 from sqlmodel import Session
@@ -42,10 +42,11 @@ from app.services.eval_runtimes.text.base import (
     TextAgentTurnContext,
     TextRuntimeBase,
 )
+from app.services.eval_runtimes.types import TestCaseRunResult
 from app.services.retell import (
     RetellChatMessage,
-    create_retell_chat_agent_from_existing_agent,
     create_retell_chat,
+    create_retell_chat_agent_from_existing_agent,
     create_retell_chat_completion,
     delete_retell_chat_agent,
     end_retell_chat,
@@ -138,9 +139,6 @@ class RetellRuntime(TextRuntimeBase):
                 ok=True,
                 message="Retell voice agent is reachable and can be bridged for chat evals.",
             )
-        except HTTPException as exc:
-            detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
-            return RuntimeTestResult(ok=False, message=detail)
 
         return RuntimeTestResult(
             ok=True,
@@ -193,7 +191,7 @@ class RetellRuntime(TextRuntimeBase):
         runtime_config: RuntimeConfig,
         args: RuntimeRunArgs,
         session: Session,
-    ) -> "TestCaseRunResult":
+    ) -> TestCaseRunResult:
         agent_config = self.build_text_agent_config(runtime_config, args, session)
         assert isinstance(agent_config, RetellTextAgentConfig)
 
@@ -293,7 +291,7 @@ class RetellRuntime(TextRuntimeBase):
         initial_messages: list[RetellChatMessage],
         initial_latency_ms: int | None,
         cancel_event: asyncio.Event | None,
-    ) -> "TestCaseRunResult":
+    ) -> TestCaseRunResult:
         sim_cfg = config.user_simulator or UserSimulatorConfig()
         first_message_text = (test_case.first_message or "").strip()
         first_turn = test_case.first_turn or FirstTurn.USER
@@ -552,7 +550,7 @@ class RetellRuntime(TextRuntimeBase):
                 continue
             if isinstance(value, str):
                 out[key] = value
-            elif isinstance(value, (int, float, bool)):
+            elif isinstance(value, int | float | bool):
                 out[key] = str(value)
             else:
                 out[key] = json.dumps(value, ensure_ascii=False)

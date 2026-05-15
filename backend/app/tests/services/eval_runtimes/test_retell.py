@@ -12,12 +12,12 @@ from app.models.enums import AgentMode, FirstTurn, Platform
 from app.models.schemas import RetellRuntimeConfig, RunConfig
 from app.services.eval_runtimes import AgentSnapshot, RunSnapshot
 from app.services.eval_runtimes.base import RuntimeRunArgs
+from app.services.eval_runtimes.text.retell import RetellRuntime
 from app.services.retell import (
     RetellChatCompletionResult,
     RetellChatMessage,
     RetellCreateChatResult,
 )
-from app.services.eval_runtimes.text.retell import RetellRuntime
 
 
 def _make_agent(platform: Platform | None = Platform.RETELL) -> Agent:
