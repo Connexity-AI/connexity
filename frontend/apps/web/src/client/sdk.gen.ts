@@ -24,9 +24,9 @@ import type {
   AgentsGetDraftData,
   AgentsGetDraftErrors,
   AgentsGetDraftResponses,
-  AgentsListAgentEvaluationEnginesData,
-  AgentsListAgentEvaluationEnginesErrors,
-  AgentsListAgentEvaluationEnginesResponses,
+  AgentsListAgentRuntimesData,
+  AgentsListAgentRuntimesErrors,
+  AgentsListAgentRuntimesResponses,
   AgentsListAgentsData,
   AgentsListAgentsErrors,
   AgentsListAgentsResponses,
@@ -147,9 +147,9 @@ import type {
   EvalConfigsReplaceTestCasesInConfigData,
   EvalConfigsReplaceTestCasesInConfigErrors,
   EvalConfigsReplaceTestCasesInConfigResponses,
-  EvalConfigsTestEvaluationEngineData,
-  EvalConfigsTestEvaluationEngineErrors,
-  EvalConfigsTestEvaluationEngineResponses,
+  EvalConfigsTestRuntimeData,
+  EvalConfigsTestRuntimeErrors,
+  EvalConfigsTestRuntimeResponses,
   EvalConfigsUpdateEvalConfigData,
   EvalConfigsUpdateEvalConfigErrors,
   EvalConfigsUpdateEvalConfigResponses,
@@ -826,16 +826,16 @@ export class AgentsService {
   }
 
   /**
-   * List Agent Evaluation Engines
+   * List Agent Runtimes
    *
-   * Engines available for ``agent_id``'s platform, with the recommended default.
+   * Runtimes available for ``agent_id``'s platform, with the recommended default.
    */
-  public static listAgentEvaluationEngines<ThrowOnError extends boolean = false>(
-    options: Options<AgentsListAgentEvaluationEnginesData, ThrowOnError>
+  public static listAgentRuntimes<ThrowOnError extends boolean = false>(
+    options: Options<AgentsListAgentRuntimesData, ThrowOnError>
   ) {
     return (options.client ?? client).get<
-      AgentsListAgentEvaluationEnginesResponses,
-      AgentsListAgentEvaluationEnginesErrors,
+      AgentsListAgentRuntimesResponses,
+      AgentsListAgentRuntimesErrors,
       ThrowOnError
     >({
       security: [
@@ -846,7 +846,7 @@ export class AgentsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/agents/{agent_id}/evaluation-engines',
+      url: '/api/v1/agents/{agent_id}/runtimes',
       ...options,
     });
   }
@@ -1382,16 +1382,16 @@ export class CustomMetricsService {
 
 export class EvalConfigsService {
   /**
-   * Test Evaluation Engine
+   * Test Runtime
    *
-   * Smoke-test an evaluation engine config against an agent (Test URL button).
+   * Smoke-test a runtime config against an agent.
    */
-  public static evalConfigsTestEvaluationEngine<ThrowOnError extends boolean = false>(
-    options: Options<EvalConfigsTestEvaluationEngineData, ThrowOnError>
+  public static evalConfigsTestRuntime<ThrowOnError extends boolean = false>(
+    options: Options<EvalConfigsTestRuntimeData, ThrowOnError>
   ) {
     return (options.client ?? client).post<
-      EvalConfigsTestEvaluationEngineResponses,
-      EvalConfigsTestEvaluationEngineErrors,
+      EvalConfigsTestRuntimeResponses,
+      EvalConfigsTestRuntimeErrors,
       ThrowOnError
     >({
       security: [
@@ -1402,7 +1402,7 @@ export class EvalConfigsService {
         },
         { scheme: 'bearer', type: 'http' },
       ],
-      url: '/api/v1/eval-configs/test-evaluation-engine',
+      url: '/api/v1/eval-configs/test-runtime',
       ...options,
       headers: {
         'Content-Type': 'application/json',

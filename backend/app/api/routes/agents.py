@@ -19,15 +19,15 @@ from app.models import (
     AgentVersionDiff,
     AgentVersionPublic,
     AgentVersionsPublic,
-    EvaluationEngineOption,
-    EvaluationEngineOptionsPublic,
     Message,
     PublishRequest,
+    RuntimeOption,
+    RuntimeOptionsPublic,
 )
 from app.services.diff import compute_agent_version_diff
-from app.services.eval_engines import (
-    default_engine_kind_for_platform,
-    engines_for_platform,
+from app.services.eval_runtimes import (
+    default_runtime_for_platform,
+    runtimes_for_platform,
 )
 
 router = APIRouter(
@@ -263,27 +263,27 @@ def discard_draft(
 
 
 @router.get(
-    "/{agent_id}/evaluation-engines",
-    response_model=EvaluationEngineOptionsPublic,
+    "/{agent_id}/runtimes",
+    response_model=RuntimeOptionsPublic,
 )
-def list_agent_evaluation_engines(
+def list_agent_runtimes(
     session: SessionDep, agent_id: uuid.UUID
-) -> EvaluationEngineOptionsPublic:
-    """Engines available for ``agent_id``'s platform, with the recommended default."""
+) -> RuntimeOptionsPublic:
+    """Runtimes available for ``agent_id``'s platform, with the recommended default."""
     agent = crud.get_agent(session=session, agent_id=agent_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
-    default_kind = default_engine_kind_for_platform(agent.platform)
+    default_kind = default_runtime_for_platform(agent.platform)
     options = [
-        EvaluationEngineOption(
-            kind=engine.KIND,
-            label=engine.LABEL,
-            description=engine.DESCRIPTION,
-            is_default=engine.KIND == default_kind,
+        RuntimeOption(
+            kind=runtime.KIND,
+            label=runtime.LABEL,
+            description=runtime.DESCRIPTION,
+            is_default=runtime.KIND == default_kind,
         )
-        for engine in engines_for_platform(agent.platform)
+        for runtime in runtimes_for_platform(agent.platform)
     ]
-    return EvaluationEngineOptionsPublic(data=options)
+    return RuntimeOptionsPublic(data=options)
 
 
 @router.get("/{agent_id}/guidelines", response_model=AgentGuidelinesPublic)

@@ -1,4 +1,4 @@
-"""Orchestrator dispatches each test case to the engine selected in RunConfig."""
+"""Orchestrator dispatches each test case to the runtime selected in RunConfig."""
 
 import asyncio
 import uuid
@@ -13,13 +13,15 @@ from app.models.enums import (
     TestCaseStatus,
 )
 from app.models.schemas import (
-    ConnexityEngineConfig,
-    CustomUrlEngineConfig,
+    ConnexityRuntimeConfig,
+    CustomEndpointRuntimeConfig,
     RunConfig,
 )
 from app.models.test_case import TestCase
 from app.models.test_case_result import TestCaseResult
-from app.services.orchestrator import TestCaseRunResult, _execute_single_test_case
+from app.services.eval_runtimes import AgentSnapshot, RunSnapshot
+from app.services.eval_runtimes.types import TestCaseRunResult
+from app.services.orchestrator import _execute_single_test_case
 from app.services.run_manager import RunManager
 
 
@@ -53,6 +55,30 @@ def _make_result(run_id: uuid.UUID, test_case_id: uuid.UUID) -> TestCaseResult:
     )
 
 
+def _make_snapshots(
+    agent: Agent, *, endpoint_url: str | None
+) -> tuple[AgentSnapshot, RunSnapshot]:
+    agent_snapshot = AgentSnapshot(
+        agent=agent,
+        agent_id=agent.id,
+        platform=agent.platform,
+        integration_id=agent.integration_id,
+        platform_agent_id=agent.platform_agent_id,
+        endpoint_url=endpoint_url,
+        system_prompt=None,
+        tools=None,
+        mode=AgentMode.ENDPOINT,
+        model=None,
+        provider=None,
+    )
+    run_snapshot = RunSnapshot(
+        run_id=uuid.uuid4(),
+        run_config=RunConfig(),
+        cancel_event=asyncio.Event(),
+    )
+    return agent_snapshot, run_snapshot
+
+
 def _patch_db_and_crud(mock_crud: MagicMock, manager: RunManager):
     ctx = MagicMock()
     ctx.__enter__ = MagicMock(return_value=MagicMock())
@@ -65,7 +91,7 @@ def _patch_db_and_crud(mock_crud: MagicMock, manager: RunManager):
     )
 
 
-async def test_dispatch_picks_connexity_engine_by_default() -> None:
+async def test_dispatch_picks_connexity_runtime_by_default() -> None:
     run_id = uuid.uuid4()
     test_case = _make_test_case()
     result_obj = _make_result(run_id, test_case.id)
@@ -78,6 +104,16 @@ async def test_dispatch_picks_connexity_engine_by_default() -> None:
     manager = RunManager()
     manager.register(run_id)
 
+    agent = _make_agent()
+    agent_snapshot, run_snapshot = _make_snapshots(
+        agent, endpoint_url="http://localhost:8080/agent"
+    )
+    run_snapshot = RunSnapshot(
+        run_id=run_id,
+        run_config=RunConfig(runtime=ConnexityRuntimeConfig()),
+        cancel_event=asyncio.Event(),
+    )
+
     p1, p2, p3, p4 = _patch_db_and_crud(mock_crud, manager)
     with (
         p1,
@@ -85,44 +121,33 @@ async def test_dispatch_picks_connexity_engine_by_default() -> None:
         p3,
         p4,
         patch(
-            "app.services.eval_engines.connexity.run_test_case_with_evaluation",
+            "app.services.eval_runtimes.text.connexity.ConnexityRuntime.run_test_case",
             new_callable=AsyncMock,
         ) as mock_connexity,
         patch(
-            "app.services.eval_engines.custom_url.run_test_case_with_evaluation",
+            "app.services.eval_runtimes.text.custom_endpoint.CustomEndpointRuntime.run_test_case",
             new_callable=AsyncMock,
         ) as mock_custom,
     ):
-        mock_connexity.return_value = (
-            TestCaseRunResult(
-                transcript=[],
-                agent_token_usage={},
-                platform_token_usage={},
-            ),
-            None,
+        mock_connexity.return_value = TestCaseRunResult(
+            transcript=[],
+            agent_token_usage={},
+            platform_token_usage={},
         )
 
-        config = RunConfig(evaluation_engine=ConnexityEngineConfig())
         await _execute_single_test_case(
             run_id=run_id,
             test_case=test_case,
-            agent=_make_agent(),
-            agent_endpoint_url="http://localhost:8080/agent",
-            config=config,
-            agent_mode=AgentMode.ENDPOINT,
-            agent_model=None,
-            agent_provider=None,
-            agent_system_prompt=None,
-            agent_tools=None,
+            agent_snapshot=agent_snapshot,
+            run_snapshot=run_snapshot,
             semaphore=asyncio.Semaphore(5),
-            cancel_event=asyncio.Event(),
         )
 
     mock_connexity.assert_awaited_once()
     mock_custom.assert_not_awaited()
 
 
-async def test_dispatch_picks_custom_url_engine() -> None:
+async def test_dispatch_picks_custom_endpoint_runtime() -> None:
     run_id = uuid.uuid4()
     test_case = _make_test_case()
     result_obj = _make_result(run_id, test_case.id)
@@ -135,6 +160,16 @@ async def test_dispatch_picks_custom_url_engine() -> None:
     manager = RunManager()
     manager.register(run_id)
 
+    agent = _make_agent()
+    agent_snapshot, _ = _make_snapshots(agent, endpoint_url="http://stale/agent")
+    run_snapshot = RunSnapshot(
+        run_id=run_id,
+        run_config=RunConfig(
+            runtime=CustomEndpointRuntimeConfig(url="https://override/v1")
+        ),
+        cancel_event=asyncio.Event(),
+    )
+
     p1, p2, p3, p4 = _patch_db_and_crud(mock_crud, manager)
     with (
         p1,
@@ -142,42 +177,30 @@ async def test_dispatch_picks_custom_url_engine() -> None:
         p3,
         p4,
         patch(
-            "app.services.eval_engines.connexity.run_test_case_with_evaluation",
+            "app.services.eval_runtimes.text.connexity.ConnexityRuntime.run_test_case",
             new_callable=AsyncMock,
         ) as mock_connexity,
         patch(
-            "app.services.eval_engines.custom_url.run_test_case_with_evaluation",
+            "app.services.eval_runtimes.text.custom_endpoint.CustomEndpointRuntime.run_test_case",
             new_callable=AsyncMock,
         ) as mock_custom,
     ):
-        mock_custom.return_value = (
-            TestCaseRunResult(
-                transcript=[],
-                agent_token_usage={},
-                platform_token_usage={},
-            ),
-            None,
+        mock_custom.return_value = TestCaseRunResult(
+            transcript=[],
+            agent_token_usage={},
+            platform_token_usage={},
         )
 
-        config = RunConfig(
-            evaluation_engine=CustomUrlEngineConfig(url="https://override/v1")
-        )
         await _execute_single_test_case(
             run_id=run_id,
             test_case=test_case,
-            agent=_make_agent(),
-            agent_endpoint_url="http://stale/agent",
-            config=config,
-            agent_mode=AgentMode.ENDPOINT,
-            agent_model=None,
-            agent_provider=None,
-            agent_system_prompt=None,
-            agent_tools=None,
+            agent_snapshot=agent_snapshot,
+            run_snapshot=run_snapshot,
             semaphore=asyncio.Semaphore(5),
-            cancel_event=asyncio.Event(),
         )
 
     mock_custom.assert_awaited_once()
     mock_connexity.assert_not_awaited()
-    # The forwarded URL is the engine's url, not the agent endpoint.
-    assert mock_custom.await_args.args[1] == "https://override/v1"
+    forwarded_cfg = mock_custom.await_args.args[0]
+    assert isinstance(forwarded_cfg, CustomEndpointRuntimeConfig)
+    assert forwarded_cfg.url == "https://override/v1"

@@ -6,15 +6,15 @@ import { useQuery } from '@tanstack/react-query';
 import { useFormContext } from 'react-hook-form';
 
 import { useCreateEvalReadOnly } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-readonly-context';
-import { useTestEvaluationEngine } from '@/app/(app)/(agent)/_hooks/use-test-evaluation-engine';
-import { evaluationEnginesQuery } from '@/app/(app)/(agent)/_queries/evaluation-engines-query';
-import { engineConfigForKind } from '@/app/(app)/(agent)/_utils/evaluation-engine-field-helpers';
-import { EvaluationEngineKind } from '@/client/types.gen';
+import { useTestRuntime } from '@/app/(app)/(agent)/_hooks/use-test-runtime';
+import { runtimesQuery } from '@/app/(app)/(agent)/_queries/runtimes-query';
+import { runtimeConfigForKind } from '@/app/(app)/(agent)/_utils/runtime-field-helpers';
+import { TextRuntimeKind } from '@/client/types.gen';
 
 import type { CreateEvalFormValues } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
-import type { EvaluationEngineKind as EvaluationEngineKindType } from '@/client/types.gen';
+import type { TextRuntimeKind as TextRuntimeKindType } from '@/client/types.gen';
 
-interface UseEvaluationEngineFieldArgs {
+interface UseRuntimeFieldArgs {
   agentId: string;
   defaultToBackendOption: boolean;
 }
@@ -39,76 +39,76 @@ function normalizeTestMessage(message: unknown, fallback: string): string {
   return normalized;
 }
 
-export function useEvaluationEngineField({
+export function useRuntimeField({
   agentId,
   defaultToBackendOption,
-}: UseEvaluationEngineFieldArgs) {
+}: UseRuntimeFieldArgs) {
   const form = useFormContext<CreateEvalFormValues>();
   const readOnly = useCreateEvalReadOnly();
-  const { data, isLoading, error } = useQuery(evaluationEnginesQuery(agentId));
+  const { data, isLoading, error } = useQuery(runtimesQuery(agentId));
   const [defaultApplied, setDefaultApplied] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
-  const testEvaluationEngine = useTestEvaluationEngine();
+  const testRuntime = useTestRuntime();
 
-  const selectedEngine = form.watch('run.evaluation_engine');
-  const engineOptions = useMemo(() => data?.data ?? [], [data?.data]);
-  const selectedKind = selectedEngine.kind;
-  const customUrl =
-    selectedEngine.kind === EvaluationEngineKind.CUSTOM_URL ? selectedEngine.url : '';
+  const selectedRuntime = form.watch('run.runtime');
+  const runtimeOptions = useMemo(() => data?.data ?? [], [data?.data]);
+  const selectedKind = selectedRuntime.kind;
+  const customEndpointUrl =
+    selectedRuntime.kind === TextRuntimeKind.CUSTOM_ENDPOINT ? selectedRuntime.url : '';
 
   useEffect(() => {
-    if (engineOptions.length === 0) {
+    if (runtimeOptions.length === 0) {
       return;
     }
 
-    const selectedAvailable = engineOptions.some((option) => option.kind === selectedKind);
+    const selectedAvailable = runtimeOptions.some((option) => option.kind === selectedKind);
     if (selectedAvailable) {
       return;
     }
 
-    const fallback = engineOptions.find((option) => option.is_default) ?? engineOptions[0];
+    const fallback = runtimeOptions.find((option) => option.is_default) ?? runtimeOptions[0];
     if (!fallback) {
       return;
     }
 
-    form.setValue('run.evaluation_engine', engineConfigForKind(fallback.kind), {
+    form.setValue('run.runtime', runtimeConfigForKind(fallback.kind), {
       shouldDirty: true,
       shouldValidate: true,
     });
-  }, [engineOptions, form, selectedKind]);
+  }, [runtimeOptions, form, selectedKind]);
 
   useEffect(() => {
-    if (defaultApplied || !defaultToBackendOption || engineOptions.length === 0) {
+    if (defaultApplied || !defaultToBackendOption || runtimeOptions.length === 0) {
       return;
     }
 
-    const defaultOption = engineOptions.find((option) => option.is_default) ?? engineOptions[0];
+    const defaultOption = runtimeOptions.find((option) => option.is_default) ?? runtimeOptions[0];
     if (!defaultOption) {
       return;
     }
 
-    if (selectedKind === EvaluationEngineKind.CONNEXITY && defaultOption.kind !== selectedKind) {
-      form.setValue('run.evaluation_engine', engineConfigForKind(defaultOption.kind), {
+    if (selectedKind === TextRuntimeKind.CONNEXITY && defaultOption.kind !== selectedKind) {
+      form.setValue('run.runtime', runtimeConfigForKind(defaultOption.kind), {
         shouldDirty: false,
         shouldValidate: true,
       });
     }
 
     setDefaultApplied(true);
-  }, [defaultApplied, defaultToBackendOption, engineOptions, form, selectedKind]);
+  }, [defaultApplied, defaultToBackendOption, runtimeOptions, form, selectedKind]);
 
-  const selectEngine = (kind: EvaluationEngineKindType) => {
+  const selectRuntime = (kind: TextRuntimeKindType) => {
     if (readOnly) {
       return;
     }
 
-    const nextUrl = kind === EvaluationEngineKind.CUSTOM_URL ? customUrl : '';
-    form.setValue('run.evaluation_engine', engineConfigForKind(kind, nextUrl), {
+    const nextUrl = kind === TextRuntimeKind.CUSTOM_ENDPOINT ? customEndpointUrl : '';
+    form.setValue('run.runtime', runtimeConfigForKind(kind, nextUrl), {
       shouldDirty: true,
       shouldValidate: false,
     });
     form.setValue(
-      'run.evaluation_engine_test',
+      'run.runtime_test',
       { ok: false, url: null },
       {
         shouldDirty: true,
@@ -118,17 +118,17 @@ export function useEvaluationEngineField({
     setTestResult(null);
   };
 
-  const setCustomUrl = (url: string) => {
+  const setCustomEndpointUrl = (url: string) => {
     form.setValue(
-      'run.evaluation_engine',
-      { kind: EvaluationEngineKind.CUSTOM_URL, url },
+      'run.runtime',
+      { kind: TextRuntimeKind.CUSTOM_ENDPOINT, url },
       {
         shouldDirty: true,
         shouldValidate: false,
       }
     );
     form.setValue(
-      'run.evaluation_engine_test',
+      'run.runtime_test',
       { ok: false, url: null },
       {
         shouldDirty: true,
@@ -138,14 +138,15 @@ export function useEvaluationEngineField({
     setTestResult(null);
   };
 
-  const testCustomUrl = async () => {
-    const url = customUrl.trim();
+  const testCustomEndpoint = async () => {
+    const url = customEndpointUrl.trim();
     setTestResult(null);
 
     try {
-      const result = await testEvaluationEngine.mutateAsync({
+      const result = await testRuntime.mutateAsync({
         agent_id: agentId,
-        evaluation_engine: { kind: EvaluationEngineKind.CUSTOM_URL, url },
+        mode: 'text',
+        runtime: { kind: TextRuntimeKind.CUSTOM_ENDPOINT, url },
       });
 
       setTestResult({
@@ -156,7 +157,7 @@ export function useEvaluationEngineField({
         ),
       });
       form.setValue(
-        'run.evaluation_engine_test',
+        'run.runtime_test',
         { ok: result.ok, url: result.ok ? url : null },
         {
           shouldDirty: true,
@@ -166,8 +167,8 @@ export function useEvaluationEngineField({
 
       if (result.ok) {
         form.setValue(
-          'run.evaluation_engine',
-          { kind: EvaluationEngineKind.CUSTOM_URL, url },
+          'run.runtime',
+          { kind: TextRuntimeKind.CUSTOM_ENDPOINT, url },
           {
             shouldDirty: true,
             shouldValidate: true,
@@ -182,7 +183,7 @@ export function useEvaluationEngineField({
       setTestResult({ ok: false, message });
 
       form.setValue(
-        'run.evaluation_engine_test',
+        'run.runtime_test',
         { ok: false, url: null },
         {
           shouldDirty: true,
@@ -194,23 +195,24 @@ export function useEvaluationEngineField({
 
   const testDisabled =
     readOnly ||
-    testEvaluationEngine.isPending ||
-    customUrl.trim().length === 0 ||
-    (!customUrl.trim().startsWith('http://') && !customUrl.trim().startsWith('https://'));
+    testRuntime.isPending ||
+    customEndpointUrl.trim().length === 0 ||
+    (!customEndpointUrl.trim().startsWith('http://') &&
+      !customEndpointUrl.trim().startsWith('https://'));
 
   return {
     form,
     readOnly,
     error,
     isLoading,
-    engineOptions,
-    selectedEngine,
-    customUrl,
+    runtimeOptions,
+    selectedRuntime,
+    customEndpointUrl,
     testResult,
-    testEvaluationEngine,
-    selectEngine,
-    setCustomUrl,
-    testCustomUrl,
+    testRuntime,
+    selectRuntime,
+    setCustomEndpointUrl,
+    testCustomEndpoint,
     testDisabled,
   };
 }

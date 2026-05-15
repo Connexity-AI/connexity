@@ -1,4 +1,4 @@
-"""Routes that surface evaluation-engine selection and testing."""
+"""Routes that surface runtime selection and testing."""
 
 import uuid
 from unittest.mock import AsyncMock, patch
@@ -12,88 +12,104 @@ from app.models import (
     AgentCreate,
     AgentMode,
     EvalConfigCreate,
-    EvaluationEngineKind,
     ExpectedToolCall,
     Platform,
     TestCaseCreate,
+    TextRuntimeKind,
 )
 from app.models.eval_config import EvalConfigMemberEntry
 from app.models.schemas import (
-    ConnexityEngineConfig,
-    CustomUrlEngineConfig,
-    RetellEngineConfig,
+    ConnexityRuntimeConfig,
+    CustomEndpointRuntimeConfig,
+    RetellRuntimeConfig,
     RunConfig,
 )
 
 
-def _create_agent(db: Session, platform: Platform | None) -> uuid.UUID:
-    agent = crud.create_agent(
-        session=db,
-        agent_in=AgentCreate(
-            name=f"agent-{uuid.uuid4().hex[:6]}",
+def _create_agent(
+    db: Session,
+    platform: Platform | None,
+    *,
+    mode: AgentMode = AgentMode.ENDPOINT,
+) -> uuid.UUID:
+    name = f"agent-{uuid.uuid4().hex[:6]}"
+    if mode == AgentMode.PLATFORM:
+        agent_in = AgentCreate(
+            name=name,
+            mode=AgentMode.PLATFORM,
+            system_prompt="You are a test agent.",
+            agent_model="gpt-4o-mini",
+            platform=platform,
+        )
+    else:
+        agent_in = AgentCreate(
+            name=name,
             mode=AgentMode.ENDPOINT,
             endpoint_url="http://localhost:8080/agent",
             platform=platform,
-        ),
-    )
+        )
+    agent = crud.create_agent(session=db, agent_in=agent_in)
     return agent.id
 
 
-def test_list_evaluation_engines_for_retell_agent(
+def test_list_runtimes_for_retell_agent(
     client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent_id = _create_agent(db, Platform.RETELL)
     r = client.get(
-        f"{settings.API_V1_STR}/agents/{agent_id}/evaluation-engines",
+        f"{settings.API_V1_STR}/agents/{agent_id}/runtimes",
         cookies=auth_cookies,
     )
     assert r.status_code == 200
     body = r.json()
     kinds = [opt["kind"] for opt in body["data"]]
-    assert EvaluationEngineKind.CONNEXITY in kinds
-    assert EvaluationEngineKind.RETELL in kinds
-    assert EvaluationEngineKind.CUSTOM_URL not in kinds
+    assert TextRuntimeKind.CONNEXITY in kinds
+    assert TextRuntimeKind.RETELL in kinds
+    assert TextRuntimeKind.CUSTOM_ENDPOINT not in kinds
     default = next(opt for opt in body["data"] if opt["is_default"])
-    assert default["kind"] == EvaluationEngineKind.RETELL
+    assert default["kind"] == TextRuntimeKind.RETELL
 
 
-def test_list_evaluation_engines_for_vapi_agent(
+def test_list_runtimes_for_vapi_agent(
     client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent_id = _create_agent(db, Platform.VAPI)
     r = client.get(
-        f"{settings.API_V1_STR}/agents/{agent_id}/evaluation-engines",
+        f"{settings.API_V1_STR}/agents/{agent_id}/runtimes",
         cookies=auth_cookies,
     )
     assert r.status_code == 200
     body = r.json()
     kinds = [opt["kind"] for opt in body["data"]]
-    assert kinds == [EvaluationEngineKind.CONNEXITY]
+    assert kinds == [
+        TextRuntimeKind.CONNEXITY,
+        TextRuntimeKind.CUSTOM_ENDPOINT,
+    ]
 
 
-def test_list_evaluation_engines_for_custom_agent(
+def test_list_runtimes_for_custom_agent(
     client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent_id = _create_agent(db, Platform.WEBHOOK)
     r = client.get(
-        f"{settings.API_V1_STR}/agents/{agent_id}/evaluation-engines",
+        f"{settings.API_V1_STR}/agents/{agent_id}/runtimes",
         cookies=auth_cookies,
     )
     assert r.status_code == 200
     body = r.json()
     kinds = [opt["kind"] for opt in body["data"]]
-    assert EvaluationEngineKind.CONNEXITY in kinds
-    assert EvaluationEngineKind.CUSTOM_URL in kinds
+    assert TextRuntimeKind.CONNEXITY in kinds
+    assert TextRuntimeKind.CUSTOM_ENDPOINT in kinds
 
 
-def test_create_eval_config_rejects_retell_engine_on_vapi_agent(
+def test_create_eval_config_rejects_retell_runtime_on_vapi_agent(
     client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent_id = _create_agent(db, Platform.VAPI)
     payload = {
         "name": "bad",
         "agent_id": str(agent_id),
-        "config": RunConfig(evaluation_engine=RetellEngineConfig()).model_dump(),
+        "config": RunConfig(runtime=RetellRuntimeConfig()).model_dump(),
     }
     r = client.post(
         f"{settings.API_V1_STR}/eval-configs/",
@@ -104,7 +120,7 @@ def test_create_eval_config_rejects_retell_engine_on_vapi_agent(
     assert "not available" in r.json()["detail"]
 
 
-def test_create_eval_config_rejects_custom_url_for_retell_agent(
+def test_create_eval_config_rejects_custom_endpoint_for_retell_agent(
     client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent_id = _create_agent(db, Platform.RETELL)
@@ -112,7 +128,7 @@ def test_create_eval_config_rejects_custom_url_for_retell_agent(
         "name": "bad",
         "agent_id": str(agent_id),
         "config": RunConfig(
-            evaluation_engine=CustomUrlEngineConfig(url="https://x/v1")
+            runtime=CustomEndpointRuntimeConfig(url="https://x/v1")
         ).model_dump(),
     }
     r = client.post(
@@ -123,7 +139,7 @@ def test_create_eval_config_rejects_custom_url_for_retell_agent(
     assert r.status_code == 422
 
 
-def test_create_eval_config_rejects_tool_calls_with_non_connexity_engine(
+def test_create_eval_config_rejects_tool_calls_with_non_connexity_runtime(
     client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent_id = _create_agent(db, Platform.WEBHOOK)
@@ -142,7 +158,7 @@ def test_create_eval_config_rejects_tool_calls_with_non_connexity_engine(
         "name": "with-tools",
         "agent_id": str(agent_id),
         "config": RunConfig(
-            evaluation_engine=CustomUrlEngineConfig(url="https://x/v1")
+            runtime=CustomEndpointRuntimeConfig(url="https://x/v1")
         ).model_dump(),
         "members": [{"test_case_id": str(tc.id), "repetitions": 1}],
     }
@@ -155,10 +171,10 @@ def test_create_eval_config_rejects_tool_calls_with_non_connexity_engine(
     assert "Tool calls" in r.json()["detail"]
 
 
-def test_create_eval_config_allows_connexity_engine_with_tool_calls(
+def test_create_eval_config_allows_connexity_runtime_with_tool_calls(
     client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
-    agent_id = _create_agent(db, Platform.WEBHOOK)
+    agent_id = _create_agent(db, Platform.WEBHOOK, mode=AgentMode.PLATFORM)
     tc = crud.create_test_case(
         session=db,
         test_case_in=TestCaseCreate(
@@ -172,7 +188,7 @@ def test_create_eval_config_allows_connexity_engine_with_tool_calls(
     payload = {
         "name": "with-tools-connexity",
         "agent_id": str(agent_id),
-        "config": RunConfig(evaluation_engine=ConnexityEngineConfig()).model_dump(),
+        "config": RunConfig(runtime=ConnexityRuntimeConfig()).model_dump(),
         "members": [{"test_case_id": str(tc.id), "repetitions": 1}],
     }
     r = client.post(
@@ -183,7 +199,7 @@ def test_create_eval_config_allows_connexity_engine_with_tool_calls(
     assert r.status_code == 200
 
 
-def test_create_eval_config_allows_non_connexity_engine_with_empty_tool_calls(
+def test_create_eval_config_allows_non_connexity_runtime_with_empty_tool_calls(
     client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent_id = _create_agent(db, Platform.WEBHOOK)
@@ -199,7 +215,7 @@ def test_create_eval_config_allows_non_connexity_engine_with_empty_tool_calls(
         "name": "without-tools",
         "agent_id": str(agent_id),
         "config": RunConfig(
-            evaluation_engine=CustomUrlEngineConfig(url="https://x/v1")
+            runtime=CustomEndpointRuntimeConfig(url="https://x/v1")
         ).model_dump(),
         "members": [{"test_case_id": str(tc.id), "repetitions": 1}],
     }
@@ -211,10 +227,10 @@ def test_create_eval_config_allows_non_connexity_engine_with_empty_tool_calls(
     assert r.status_code == 200
 
 
-def test_update_eval_config_switching_engine_rejects_existing_tool_calls(
+def test_update_eval_config_switching_runtime_rejects_existing_tool_calls(
     client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
-    agent_id = _create_agent(db, Platform.WEBHOOK)
+    agent_id = _create_agent(db, Platform.WEBHOOK, mode=AgentMode.PLATFORM)
     tc = crud.create_test_case(
         session=db,
         test_case_in=TestCaseCreate(
@@ -231,15 +247,15 @@ def test_update_eval_config_switching_engine_rejects_existing_tool_calls(
         eval_config_in=EvalConfigCreate(
             name="cfg",
             agent_id=agent_id,
-            config=RunConfig(evaluation_engine=ConnexityEngineConfig()),
+            config=RunConfig(runtime=ConnexityRuntimeConfig()),
             members=[EvalConfigMemberEntry(test_case_id=tc.id)],
         ),
     )
 
-    # Now try to switch the engine — must be rejected.
+    # Now try to switch the runtime — must be rejected.
     update_payload = {
         "config": RunConfig(
-            evaluation_engine=CustomUrlEngineConfig(url="https://x/v1")
+            runtime=CustomEndpointRuntimeConfig(url="https://x/v1")
         ).model_dump(),
     }
     r = client.patch(
@@ -250,29 +266,31 @@ def test_update_eval_config_switching_engine_rejects_existing_tool_calls(
     assert r.status_code == 422
 
 
-def test_test_evaluation_engine_endpoint_returns_404_for_missing_agent(
+def test_test_runtime_endpoint_returns_404_for_missing_agent(
     client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     r = client.post(
-        f"{settings.API_V1_STR}/eval-configs/test-evaluation-engine",
+        f"{settings.API_V1_STR}/eval-configs/test-runtime",
         json={
             "agent_id": str(uuid.uuid4()),
-            "evaluation_engine": {"kind": "connexity"},
+            "mode": "text",
+            "runtime": {"kind": "connexity"},
         },
         cookies=auth_cookies,
     )
     assert r.status_code == 404
 
 
-def test_test_evaluation_engine_endpoint_for_connexity(
+def test_test_runtime_endpoint_for_connexity(
     client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
-    agent_id = _create_agent(db, Platform.WEBHOOK)
+    agent_id = _create_agent(db, Platform.WEBHOOK, mode=AgentMode.PLATFORM)
     r = client.post(
-        f"{settings.API_V1_STR}/eval-configs/test-evaluation-engine",
+        f"{settings.API_V1_STR}/eval-configs/test-runtime",
         json={
             "agent_id": str(agent_id),
-            "evaluation_engine": {"kind": "connexity"},
+            "mode": "text",
+            "runtime": {"kind": "connexity"},
         },
         cookies=auth_cookies,
     )
@@ -281,22 +299,23 @@ def test_test_evaluation_engine_endpoint_for_connexity(
     assert body["ok"] is True
 
 
-def test_test_evaluation_engine_endpoint_unsupported_combo(
+def test_test_runtime_endpoint_unsupported_combo(
     client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent_id = _create_agent(db, Platform.VAPI)
     r = client.post(
-        f"{settings.API_V1_STR}/eval-configs/test-evaluation-engine",
+        f"{settings.API_V1_STR}/eval-configs/test-runtime",
         json={
             "agent_id": str(agent_id),
-            "evaluation_engine": {"kind": "retell"},
+            "mode": "text",
+            "runtime": {"kind": "retell"},
         },
         cookies=auth_cookies,
     )
     assert r.status_code == 422
 
 
-def test_test_evaluation_engine_custom_url_calls_endpoint(
+def test_test_runtime_custom_endpoint_calls_endpoint(
     client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent_id = _create_agent(db, Platform.WEBHOOK)
@@ -309,18 +328,19 @@ def test_test_evaluation_engine_custom_url_calls_endpoint(
             return {"messages": [{"role": "assistant", "content": "ok"}]}
 
     with patch(
-        "app.services.eval_engines.custom_url.httpx.AsyncClient"
+        "app.services.eval_runtimes.text.custom_endpoint.httpx.AsyncClient"
     ) as mock_client_cls:
         mock_client = AsyncMock()
         mock_client.post.return_value = _MockResponse()
         mock_client_cls.return_value.__aenter__.return_value = mock_client
 
         r = client.post(
-            f"{settings.API_V1_STR}/eval-configs/test-evaluation-engine",
+            f"{settings.API_V1_STR}/eval-configs/test-runtime",
             json={
                 "agent_id": str(agent_id),
-                "evaluation_engine": {
-                    "kind": "custom_url",
+                "mode": "text",
+                "runtime": {
+                    "kind": "custom_endpoint",
                     "url": "https://example.com/v1",
                 },
             },

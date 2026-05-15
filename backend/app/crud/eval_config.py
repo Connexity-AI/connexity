@@ -7,7 +7,7 @@ from sqlmodel import Session, col, select
 
 from app.models import TestCase
 from app.models.agent import Agent
-from app.models.enums import EvaluationEngineKind, TestCaseStatus
+from app.models.enums import TestCaseStatus, TextRuntimeKind
 from app.models.eval_config import (
     EvalConfig,
     EvalConfigCreate,
@@ -36,7 +36,7 @@ def validate_test_case_ids(
     return [tid for tid in test_case_ids if tid not in existing_ids]
 
 
-def _validate_evaluation_engine(
+def _validate_runtime(
     *,
     session: Session,
     agent: Agent,
@@ -44,31 +44,32 @@ def _validate_evaluation_engine(
     config_id: uuid.UUID | None,
     extra_test_case_ids: list[uuid.UUID] | None = None,
 ) -> None:
-    """Raise ``ValueError`` if ``run_config.evaluation_engine`` is invalid for ``agent``.
+    """Raise ``ValueError`` if ``run_config.runtime`` is invalid for ``agent``.
 
-    Checks engine availability for the agent's platform, delegates to the
-    engine's own validator, and forbids tool calls on custom URL engines.
+    Checks runtime availability for the agent's platform, delegates to the
+    runtime's validator (requirements are expressed in terms of runtime + agent
+    fields, not ``Agent.mode``), and forbids tool calls on custom endpoint runtimes.
     """
-    from app.services.eval_engines import get_engine  # local import to avoid cycle
+    from app.services.eval_runtimes import get_runtime  # local import to avoid cycle
 
-    engine_config = run_config.evaluation_engine
+    runtime_config = run_config.runtime
     try:
-        engine = get_engine(engine_config.kind)
+        runtime = get_runtime(run_config.mode, runtime_config.kind)
     except KeyError as exc:
-        msg = f"Unknown evaluation engine: {engine_config.kind}"
+        msg = f"Unknown runtime: {runtime_config.kind}"
         raise ValueError(msg) from exc
 
-    if not engine.supported_for_platform(agent.platform):
+    if not runtime.supported_for_platform(agent.platform):
         platform_label = agent.platform.value if agent.platform else "this agent"
         msg = (
-            f"Evaluation engine '{engine_config.kind.value}' is not available "
+            f"Runtime '{runtime_config.kind.value}' is not available "
             f"for {platform_label}."
         )
         raise ValueError(msg)
 
-    engine.validate_config(engine_config, agent, session)
+    runtime.validate_config(runtime_config, agent, session)
 
-    if engine_config.kind == EvaluationEngineKind.CUSTOM_URL:
+    if runtime_config.kind == TextRuntimeKind.CUSTOM_ENDPOINT:
         # Tool calls can only be exercised by the in-process Connexity simulator.
         # Reject configs that link test cases declaring expected_tool_calls.
         test_case_filter = (
@@ -95,9 +96,9 @@ def _validate_evaluation_engine(
             ]
             if offenders:
                 msg = (
-                    "Tool calls are only supported with the Connexity evaluation "
-                    "engine. Remove expected_tool_calls from the linked test "
-                    "cases, or switch the engine to 'connexity'."
+                    "Tool calls are only supported with the Connexity runtime. "
+                    "Remove expected_tool_calls from the linked test cases, "
+                    "or switch the runtime to 'connexity'."
                 )
                 raise ValueError(msg)
 
@@ -116,7 +117,7 @@ def create_eval_config(
         if eval_config_in.members
         else []
     )
-    _validate_evaluation_engine(
+    _validate_runtime(
         session=session,
         agent=agent,
         run_config=run_config,
@@ -203,7 +204,7 @@ def update_eval_config(
         if agent is None:
             msg = f"Agent {db_eval_config.agent_id} not found"
             raise ValueError(msg)
-        _validate_evaluation_engine(
+        _validate_runtime(
             session=session,
             agent=agent,
             run_config=eval_config_in.config,
@@ -267,7 +268,7 @@ def add_test_cases_to_config(
         if agent is None:
             msg = f"Agent {db_eval_config.agent_id} not found"
             raise ValueError(msg)
-        _validate_evaluation_engine(
+        _validate_runtime(
             session=session,
             agent=agent,
             run_config=RunConfig.model_validate(db_eval_config.config),
@@ -336,7 +337,7 @@ def replace_test_cases_in_config(
             raise ValueError(msg)
         # Replace path: only the new ids count; pass them explicitly and pretend
         # there's no existing config to avoid double-counting old members.
-        _validate_evaluation_engine(
+        _validate_runtime(
             session=session,
             agent=agent,
             run_config=RunConfig.model_validate(db_eval_config.config),

@@ -22,6 +22,7 @@ from app.models import (
     TestCaseResultCreate,
     TurnRole,
 )
+from app.models.schemas import CustomEndpointRuntimeConfig, RunConfig
 
 
 def create_test_agent(session: Session) -> Agent:
@@ -70,15 +71,29 @@ def create_test_eval_config(
     *,
     agent_id: uuid.UUID | None = None,
     members: list[EvalConfigMemberEntry] | None = None,
+    config: RunConfig | None = None,
 ) -> EvalConfig:
     if agent_id is None:
         agent = create_test_agent(session)
         agent_id = agent.id
+    else:
+        agent = crud.get_agent(session=session, agent_id=agent_id)
+        if agent is None:
+            raise ValueError(f"Agent {agent_id} not found")
+
+    resolved_config = config
+    if resolved_config is None and not (agent.system_prompt or "").strip():
+        ep = (agent.endpoint_url or "").strip() or "http://localhost:8080/agent"
+        resolved_config = RunConfig(
+            runtime=CustomEndpointRuntimeConfig(url=ep),
+        )
+
     eval_config_in = EvalConfigCreate(
         name=f"test-config-{uuid.uuid4().hex[:8]}",
         description="Test eval config",
         agent_id=agent_id,
         members=members,
+        config=resolved_config,
     )
     return crud.create_eval_config(session=session, eval_config_in=eval_config_in)
 

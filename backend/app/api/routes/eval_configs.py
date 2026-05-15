@@ -15,11 +15,11 @@ from app.models.eval_config import (
     EvalConfigUpdate,
 )
 from app.models.schemas import (
-    EvaluationEngineTestRequest,
-    EvaluationEngineTestResult,
     RunConfig,
+    RuntimeTestRequest,
+    RuntimeTestResult,
 )
-from app.services.eval_engines import get_engine
+from app.services.eval_runtimes import get_runtime
 
 
 def _to_public(
@@ -75,38 +75,37 @@ router = APIRouter(
 
 
 @router.post(
-    "/test-evaluation-engine",
-    response_model=EvaluationEngineTestResult,
+    "/test-runtime",
+    response_model=RuntimeTestResult,
 )
-async def test_evaluation_engine(
-    session: SessionDep, body: EvaluationEngineTestRequest
-) -> EvaluationEngineTestResult:
-    """Smoke-test an evaluation engine config against an agent (Test URL button)."""
+async def test_runtime(
+    session: SessionDep, body: RuntimeTestRequest
+) -> RuntimeTestResult:
+    """Smoke-test a runtime config against an agent."""
     agent = crud.get_agent(session=session, agent_id=body.agent_id)
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
     try:
-        engine = get_engine(body.evaluation_engine.kind)
+        runtime = get_runtime(body.mode, body.runtime.kind)
     except KeyError as exc:
         raise HTTPException(
             status_code=422,
-            detail=f"Unknown evaluation engine: {body.evaluation_engine.kind}",
+            detail=f"Unknown runtime: {body.runtime.kind}",
         ) from exc
-    if not engine.supported_for_platform(agent.platform):
+    if not runtime.supported_for_platform(agent.platform):
         raise HTTPException(
             status_code=422,
             detail=(
-                f"Evaluation engine '{body.evaluation_engine.kind.value}' is "
-                f"not available for this agent."
+                f"Runtime '{body.runtime.kind.value}' is not available for this agent."
             ),
         )
     try:
-        engine.validate_config(body.evaluation_engine, agent, session)
+        runtime.validate_config(body.runtime, agent, session)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    result = await engine.test_connection(body.evaluation_engine, agent, session)
-    return EvaluationEngineTestResult(ok=result.ok, message=result.message)
+    result = await runtime.test_connection(body.runtime, agent, session)
+    return RuntimeTestResult(ok=result.ok, message=result.message)
 
 
 @router.post("/", response_model=EvalConfigPublic)

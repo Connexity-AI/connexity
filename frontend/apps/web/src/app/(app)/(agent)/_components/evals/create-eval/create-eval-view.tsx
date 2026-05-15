@@ -17,7 +17,7 @@ import { JudgeSection } from '@/app/(app)/(agent)/_components/evals/create-eval/
 import { PassThresholdsSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-pass-thresholds-section';
 import { PersonaSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-persona-section';
 import {
-  EvaluationEngineSection,
+  RuntimeSection,
   RunConfigSection,
 } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-run-config-section';
 import { TestCasesSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-test-cases-section';
@@ -57,7 +57,7 @@ interface CreateEvalViewProps {
 }
 
 const TOOL_CALLS_ENGINE_ERROR =
-  "Tool calls are only supported with the Connexity evaluation engine. Remove expected_tool_calls from the linked test cases, or switch the engine to 'connexity'.";
+  "Tool calls are only supported with the Connexity runtime. Remove expected_tool_calls from the linked test cases, or switch the runtime to 'connexity'.";
 
 function SubmitErrorAlert({ message }: { message: string | null }) {
   if (message === null) {
@@ -75,9 +75,9 @@ function SubmitErrorAlert({ message }: { message: string | null }) {
         className="border border-dashed border-yellow-400! bg-yellow-500/5 text-yellow-300"
       >
         <AlertCircle className="h-4 w-4 text-yellow-300!" />
-        <AlertTitle>Tool calls require Connexity engine</AlertTitle>
+        <AlertTitle>Tool calls require Connexity runtime</AlertTitle>
         <AlertDescription>
-          This config includes test cases with expected tool calls. Switch evaluation engine to
+          This config includes test cases with expected tool calls. Switch runtime to
           <span className="font-medium"> Connexity</span>, or remove expected tool calls from the
           selected test cases.
         </AlertDescription>
@@ -171,7 +171,7 @@ export function CreateEvalView({
               <JudgeSection metrics={metrics} />
               <PassThresholdsSection />
               <PersonaSection />
-              <EvaluationEngineSection
+              <RuntimeSection
                 agentId={agentId}
                 agentMode={agent?.mode ?? null}
                 agentTools={agent?.tools ?? null}

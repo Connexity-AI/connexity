@@ -64,11 +64,11 @@ from app.models.schemas import (
     UserSimulatorConfig,
 )
 from app.models.test_case import TestCase
-from app.services.orchestrator import (
-    TestCaseRunResult,
-    run_test_case,
-    run_test_case_with_evaluation,
-)
+from app.services.eval_runtimes.text.base import TextAgentTurnConfig
+from app.services.eval_runtimes.text.connexity import ConnexityRuntime
+from app.services.eval_runtimes.text.custom_endpoint import CustomEndpointRuntime
+from app.services.eval_runtimes.types import TestCaseRunResult
+from app.services.judge import JudgeInput, evaluate_transcript
 
 # ---------------------------------------------------------------------------
 # Python tool implementations for --tool-mode live
@@ -311,32 +311,40 @@ async def _run(args: argparse.Namespace) -> int:
         agent_simulator=agent_sim_cfg,
     )
 
-    run_kw: dict[str, Any] = {
-        "agent_mode": agent_mode,
-        "agent_model": agent_model,
-        "agent_provider": agent_provider,
-        "agent_system_prompt": agent_system_prompt,
-        "agent_tools": agent_tools,
-    }
+    platform_tool_executor_mode = None
     if args.tool_mode == "synthetic":
-        run_kw["platform_tool_executor_mode"] = "synthetic"
+        platform_tool_executor_mode = "synthetic"
 
-    if args.judge:
-        run_out, verdict = await run_test_case_with_evaluation(
-            test_case,
-            agent_url,
-            run_cfg,
-            **run_kw,
-        )
-        transcript = run_out.transcript
+    if args.platform_agent:
+        runtime = ConnexityRuntime()
     else:
-        run_out = await run_test_case(
-            test_case,
-            agent_url,
-            run_cfg,
-            **run_kw,
+        runtime = CustomEndpointRuntime()
+    run_out = await runtime.run_text_test_case(
+        test_case,
+        TextAgentTurnConfig(
+            endpoint_url=agent_url,
+            agent_mode=agent_mode,
+            model=agent_model,
+            provider=agent_provider,
+            system_prompt=agent_system_prompt,
+            tools=agent_tools,
+            platform_tool_executor_mode=platform_tool_executor_mode,
+        ),
+        run_cfg,
+    )
+    transcript = run_out.transcript
+    verdict: JudgeVerdict | None
+    if args.judge and transcript:
+        verdict = await evaluate_transcript(
+            JudgeInput(
+                transcript=transcript,
+                test_case=test_case,
+                agent_system_prompt=agent_system_prompt,
+                agent_tools=agent_tools,
+                judge_config=run_cfg.judge,
+            )
         )
-        transcript = run_out.transcript
+    else:
         verdict = None
 
     tool_label = (
