@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.0](https://github.com/Connexity-AI/connexity/compare/cli-v0.2.0...cli-v0.3.0) (2026-05-15)
+
+
+### Features
+
+* add OpenAPI specification and enhance agent version management ([920753f](https://github.com/Connexity-AI/connexity/commit/920753f9ad6d5287b434d5bb24ca44e909fdfeb9))
+* **cli:** add evaluation-engine commands ([cf073c6](https://github.com/Connexity-AI/connexity/commit/cf073c6f14540e4f9105e4e8ecdcb9c2923d3e21))
+* **eval:** pluggable evaluation engine framework (Connexity / Retell / Custom URL) ([1802af7](https://github.com/Connexity-AI/connexity/commit/1802af78c7dfc2cab0b0d7e9676662d213c1f54a))
+
 ## [0.2.0](https://github.com/Connexity-AI/connexity/compare/cli-v0.1.1...cli-v0.2.0) (2026-05-06)
 
 
