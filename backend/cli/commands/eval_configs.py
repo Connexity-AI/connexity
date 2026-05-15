@@ -241,42 +241,43 @@ def eval_configs_members_remove(
 
 
 # ---------------------------------------------------------------------------
-# evaluation engine smoke-test (Test URL button)
+# runtime smoke-test
 # ---------------------------------------------------------------------------
 
 
-@eval_configs_group.command("test-engine")
+@eval_configs_group.command("test-runtime")
 @click.option(
     "--agent",
     "agent_ref",
     required=True,
-    help="Agent UUID or name the engine will run against",
+    help="Agent UUID or name the runtime will run against",
 )
 @click.option(
     "--from-file",
     "from_file",
     required=True,
-    help="Path to EvaluationEngineConfig JSON ('-' for stdin), e.g. "
-    '{"kind":"custom_url","url":"https://..."}',
+    help="Path to runtime config JSON ('-' for stdin), e.g. "
+    '{"kind":"custom_endpoint","url":"https://..."}',
 )
 @click.option(
     "--output", "output_override", type=click.Choice(["json", "table"]), default=None
 )
 @click.pass_context
-def eval_configs_test_engine(
+def eval_configs_test_runtime(
     ctx: click.Context,
     agent_ref: str,
     from_file: str,
     output_override: str | None,
 ) -> None:
-    """Smoke-test an evaluation engine config against an agent."""
+    """Smoke-test a runtime config against an agent."""
     ensure_auth(ctx)
-    engine_config = load_dict_payload(from_file)
+    runtime_config = load_dict_payload(from_file)
     with open_client(ctx) as client:
         agent = resolve_agent(client, agent_ref)
         body = {
             "agent_id": str(agent["id"]),
-            "evaluation_engine": engine_config,
+            "mode": "text",
+            "runtime": runtime_config,
         }
-        result = client.eval_configs.test_evaluation_engine(body)
+        result = client.eval_configs.test_runtime(body)
     _emit(ctx, result, output_override)
