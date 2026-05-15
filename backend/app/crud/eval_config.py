@@ -7,7 +7,7 @@ from sqlmodel import Session, col, select
 
 from app.models import TestCase
 from app.models.agent import Agent
-from app.models.enums import TestCaseStatus, TextRuntimeKind
+from app.models.enums import Platform, TestCaseStatus, TextRuntimeKind
 from app.models.eval_config import (
     EvalConfig,
     EvalConfigCreate,
@@ -16,7 +16,31 @@ from app.models.eval_config import (
     EvalConfigMemberPublic,
     EvalConfigUpdate,
 )
-from app.models.schemas import RunConfig, TestCaseExecution
+from app.models.schemas import (
+    CustomEndpointRuntimeConfig,
+    RetellRuntimeConfig,
+    RunConfig,
+    TestCaseExecution,
+)
+
+
+def _default_run_config_for_agent(agent: Agent) -> RunConfig:
+    """Choose a practical default runtime for a newly created eval config.
+
+    Connexity stays the global default, but endpoint-style agents without a
+    platform prompt need a concrete HTTP URL to be runnable. Retell agents
+    should default to the Retell runtime even if their imported prompt/model is
+    incomplete.
+    """
+    if agent.platform == Platform.RETELL:
+        return RunConfig(runtime=RetellRuntimeConfig())
+
+    if not (agent.system_prompt or "").strip():
+        endpoint_url = (agent.endpoint_url or "").strip()
+        if endpoint_url:
+            return RunConfig(runtime=CustomEndpointRuntimeConfig(url=endpoint_url))
+
+    return RunConfig()
 
 
 def validate_test_case_ids(
@@ -111,7 +135,7 @@ def create_eval_config(
         msg = f"Agent {eval_config_in.agent_id} not found"
         raise ValueError(msg)
 
-    run_config = eval_config_in.config or RunConfig()
+    run_config = eval_config_in.config or _default_run_config_for_agent(agent)
     member_ids = (
         [m.test_case_id for m in eval_config_in.members]
         if eval_config_in.members
@@ -129,6 +153,8 @@ def create_eval_config(
     db_obj = EvalConfig.model_validate(create_data)
     if eval_config_in.config is not None:
         db_obj.config = eval_config_in.config.model_dump()
+    else:
+        db_obj.config = run_config.model_dump()
     session.add(db_obj)
     session.flush()
 

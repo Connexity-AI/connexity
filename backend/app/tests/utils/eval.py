@@ -22,7 +22,8 @@ from app.models import (
     TestCaseResultCreate,
     TurnRole,
 )
-from app.models.schemas import CustomEndpointRuntimeConfig, RunConfig
+from app.models.enums import Platform
+from app.models.schemas import CustomEndpointRuntimeConfig, RetellRuntimeConfig, RunConfig
 
 
 def create_test_agent(session: Session) -> Agent:
@@ -83,10 +84,13 @@ def create_test_eval_config(
 
     resolved_config = config
     if resolved_config is None and not (agent.system_prompt or "").strip():
-        ep = (agent.endpoint_url or "").strip() or "http://localhost:8080/agent"
-        resolved_config = RunConfig(
-            runtime=CustomEndpointRuntimeConfig(url=ep),
-        )
+        if agent.platform == Platform.RETELL:
+            resolved_config = RunConfig(runtime=RetellRuntimeConfig())
+        else:
+            ep = (agent.endpoint_url or "").strip() or "http://localhost:8080/agent"
+            resolved_config = RunConfig(
+                runtime=CustomEndpointRuntimeConfig(url=ep),
+            )
 
     eval_config_in = EvalConfigCreate(
         name=f"test-config-{uuid.uuid4().hex[:8]}",
