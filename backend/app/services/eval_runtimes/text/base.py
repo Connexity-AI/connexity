@@ -142,7 +142,9 @@ class TextRuntimeBase(EvalRuntime):
             if turn.role != TurnRole.ASSISTANT or not turn.tool_calls:
                 continue
             for tool_call in turn.tool_calls:
-                if snapshot_marks_tool_terminating(tool_call.function.name, agent_tools):
+                if snapshot_marks_tool_terminating(
+                    tool_call.function.name, agent_tools
+                ):
                     return True
         return False
 
@@ -213,7 +215,9 @@ class TextRuntimeBase(EvalRuntime):
                     index=len(transcript),
                     role=message.role,
                     content=message.content,
-                    latency_ms=round_latency_ms if message_index == last_index else None,
+                    latency_ms=round_latency_ms
+                    if message_index == last_index
+                    else None,
                     tool_calls=message.tool_calls,
                     tool_call_id=message.tool_call_id,
                     token_count=total_tokens if message_index == last_index else None,
@@ -392,11 +396,15 @@ class TextRuntimeBase(EvalRuntime):
                 if max_agent_rounds is not None and agent_rounds >= max_agent_rounds:
                     break
 
-                ok = await self._do_user_turn(transcript, simulator, sim_cfg, accumulator)
+                ok = await self._do_user_turn(
+                    transcript, simulator, sim_cfg, accumulator
+                )
                 if not ok:
                     break
             else:
-                ok = await self._do_user_turn(transcript, simulator, sim_cfg, accumulator)
+                ok = await self._do_user_turn(
+                    transcript, simulator, sim_cfg, accumulator
+                )
                 if not ok:
                     break
 

@@ -6,7 +6,9 @@ import pytest
 from app.services.retell import _map_tools_for_retell, deploy_retell_agent
 
 
-def _response(method: str, url: str, *, status_code: int = 200, json=None) -> httpx.Response:
+def _response(
+    method: str, url: str, *, status_code: int = 200, json=None
+) -> httpx.Response:
     return httpx.Response(
         status_code=status_code,
         json=json,

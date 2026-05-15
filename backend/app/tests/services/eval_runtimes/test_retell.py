@@ -106,7 +106,9 @@ async def test_test_connection_checks_chat_agent() -> None:
     session.get.return_value = SimpleNamespace(encrypted_api_key="ciphertext")
 
     with (
-        patch("app.services.eval_runtimes.text.retell.decrypt", return_value="retell-key"),
+        patch(
+            "app.services.eval_runtimes.text.retell.decrypt", return_value="retell-key"
+        ),
         patch(
             "app.services.eval_runtimes.text.retell.get_retell_chat_agent",
             new=AsyncMock(return_value={"agent_id": "retell_chat_agent_123"}),
@@ -126,16 +128,22 @@ async def test_test_connection_bridges_voice_agents_via_temporary_chat_agent() -
     session.get.return_value = SimpleNamespace(encrypted_api_key="ciphertext")
 
     with (
-        patch("app.services.eval_runtimes.text.retell.decrypt", return_value="retell-key"),
+        patch(
+            "app.services.eval_runtimes.text.retell.decrypt", return_value="retell-key"
+        ),
         patch(
             "app.services.eval_runtimes.text.retell.get_retell_chat_agent",
             new=AsyncMock(
-                side_effect=HTTPException(status_code=400, detail="Invalid agent channel")
+                side_effect=HTTPException(
+                    status_code=400, detail="Invalid agent channel"
+                )
             ),
         ),
         patch(
             "app.services.eval_runtimes.text.retell.create_retell_chat_agent_from_existing_agent",
-            new=AsyncMock(return_value=SimpleNamespace(success=True, agent_id="temp_chat_123")),
+            new=AsyncMock(
+                return_value=SimpleNamespace(success=True, agent_id="temp_chat_123")
+            ),
         ) as mock_create_temp,
         patch(
             "app.services.eval_runtimes.text.retell.delete_retell_chat_agent",
@@ -166,7 +174,9 @@ async def test_run_test_case_uses_retell_chat_completion() -> None:
     session.get.return_value = SimpleNamespace(encrypted_api_key="ciphertext")
 
     with (
-        patch("app.services.eval_runtimes.text.retell.decrypt", return_value="retell-key"),
+        patch(
+            "app.services.eval_runtimes.text.retell.decrypt", return_value="retell-key"
+        ),
         patch(
             "app.services.eval_runtimes.text.retell.get_retell_chat_agent",
             new=AsyncMock(return_value={"agent_id": "retell_chat_agent_123"}),
@@ -229,7 +239,9 @@ async def test_run_test_case_preserves_retell_opening_message() -> None:
     session.get.return_value = SimpleNamespace(encrypted_api_key="ciphertext")
 
     with (
-        patch("app.services.eval_runtimes.text.retell.decrypt", return_value="retell-key"),
+        patch(
+            "app.services.eval_runtimes.text.retell.decrypt", return_value="retell-key"
+        ),
         patch(
             "app.services.eval_runtimes.text.retell.get_retell_chat_agent",
             new=AsyncMock(return_value={"agent_id": "retell_chat_agent_123"}),
@@ -272,16 +284,22 @@ async def test_run_test_case_bridges_voice_agent_into_temporary_chat_agent() -> 
     session.get.return_value = SimpleNamespace(encrypted_api_key="ciphertext")
 
     with (
-        patch("app.services.eval_runtimes.text.retell.decrypt", return_value="retell-key"),
+        patch(
+            "app.services.eval_runtimes.text.retell.decrypt", return_value="retell-key"
+        ),
         patch(
             "app.services.eval_runtimes.text.retell.get_retell_chat_agent",
             new=AsyncMock(
-                side_effect=HTTPException(status_code=400, detail="Invalid agent channel")
+                side_effect=HTTPException(
+                    status_code=400, detail="Invalid agent channel"
+                )
             ),
         ),
         patch(
             "app.services.eval_runtimes.text.retell.create_retell_chat_agent_from_existing_agent",
-            new=AsyncMock(return_value=SimpleNamespace(success=True, agent_id="temp_chat_123")),
+            new=AsyncMock(
+                return_value=SimpleNamespace(success=True, agent_id="temp_chat_123")
+            ),
         ) as mock_create_temp,
         patch(
             "app.services.eval_runtimes.text.retell.create_retell_chat",
@@ -297,7 +315,11 @@ async def test_run_test_case_bridges_voice_agent_into_temporary_chat_agent() -> 
             new=AsyncMock(
                 return_value=RetellChatCompletionResult(
                     success=True,
-                    messages=[RetellChatMessage(role="agent", content="How is the PTO being operated?")],
+                    messages=[
+                        RetellChatMessage(
+                            role="agent", content="How is the PTO being operated?"
+                        )
+                    ],
                 )
             ),
         ),

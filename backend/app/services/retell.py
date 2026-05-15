@@ -1055,7 +1055,9 @@ def _parse_retell_chat_messages(raw_messages: Any) -> list[RetellChatMessage]:
                 ),
                 name=str(item["name"]) if item.get("name") is not None else None,
                 arguments=(
-                    str(item["arguments"]) if item.get("arguments") is not None else None
+                    str(item["arguments"])
+                    if item.get("arguments") is not None
+                    else None
                 ),
                 raw=item,
             )
@@ -1165,7 +1167,9 @@ async def create_retell_chat(
         success=True,
         chat_id=str(chat_id),
         chat_status=(
-            str(payload["chat_status"]) if payload.get("chat_status") is not None else None
+            str(payload["chat_status"])
+            if payload.get("chat_status") is not None
+            else None
         ),
         version=(
             int(payload["version"]) if payload.get("version") is not None else None

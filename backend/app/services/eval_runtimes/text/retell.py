@@ -229,7 +229,9 @@ class RetellRuntime(TextRuntimeBase):
             )
             return self._build_result(transcript, accumulator)
 
-        runtime_agent_config = replace(prepared_agent_config, retell_chat_id=chat.chat_id)
+        runtime_agent_config = replace(
+            prepared_agent_config, retell_chat_id=chat.chat_id
+        )
         try:
             return await self._run_retell_text_case(
                 test_case=args.test_case,
@@ -256,7 +258,9 @@ class RetellRuntime(TextRuntimeBase):
         args: RuntimeRunArgs,
     ) -> RetellTextAgentConfig:
         try:
-            await get_retell_chat_agent(agent_config.api_key, agent_config.retell_agent_id)
+            await get_retell_chat_agent(
+                agent_config.api_key, agent_config.retell_agent_id
+            )
             return agent_config
         except HTTPException as exc:
             detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
@@ -372,7 +376,11 @@ class RetellRuntime(TextRuntimeBase):
 
         max_agent_rounds = config.max_turns
         agent_rounds = 1 if opening_agent_turn else 0
-        if not opening_agent_turn and first_turn == FirstTurn.AGENT and first_message_text:
+        if (
+            not opening_agent_turn
+            and first_turn == FirstTurn.AGENT
+            and first_message_text
+        ):
             agent_rounds = 1
 
         started = time.perf_counter()
@@ -433,11 +441,15 @@ class RetellRuntime(TextRuntimeBase):
                 if max_agent_rounds is not None and agent_rounds >= max_agent_rounds:
                     break
 
-                ok = await self._do_user_turn(transcript, simulator, sim_cfg, accumulator)
+                ok = await self._do_user_turn(
+                    transcript, simulator, sim_cfg, accumulator
+                )
                 if not ok:
                     break
             else:
-                ok = await self._do_user_turn(transcript, simulator, sim_cfg, accumulator)
+                ok = await self._do_user_turn(
+                    transcript, simulator, sim_cfg, accumulator
+                )
                 if not ok:
                     break
 
@@ -565,7 +577,9 @@ class RetellRuntime(TextRuntimeBase):
         appended_agent_turn = False
         last_message_index = len(messages) - 1
         for message_index, message in enumerate(messages):
-            latency_ms = round_latency_ms if message_index == last_message_index else None
+            latency_ms = (
+                round_latency_ms if message_index == last_message_index else None
+            )
             role = message.role.strip().lower()
             if role == "agent":
                 transcript.append(
