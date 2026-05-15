@@ -2,16 +2,16 @@
 
 import { useMutation } from '@tanstack/react-query';
 
-import { testEvaluationEngine } from '@/actions/eval-configs';
+import { testRuntime } from '@/actions/eval-configs';
 import { isErrorApiResult } from '@/utils/api';
 import { getApiErrorMessage } from '@/utils/error';
 
-import type { EvaluationEngineTestRequest } from '@/client/types.gen';
+import type { RuntimeTestRequest } from '@/client/types.gen';
 
-export function useTestEvaluationEngine() {
+export function useTestRuntime() {
   const mutation = useMutation({
-    mutationFn: async (body: EvaluationEngineTestRequest) => {
-      const result = await testEvaluationEngine(body);
+    mutationFn: async (body: RuntimeTestRequest) => {
+      const result = await testRuntime(body);
       if (isErrorApiResult(result)) {
         throw new Error(getApiErrorMessage(result.error));
       }

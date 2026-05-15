@@ -51,7 +51,7 @@ class EvalConfigsApi(_BaseApi):
             f"eval-configs/{eval_config_id}/test-cases/{test_case_id}"
         )
 
-    # --- evaluation engines ----------------------------------------------
+    # --- runtimes ---------------------------------------------------------
 
-    def test_evaluation_engine(self, body: dict[str, Any]) -> dict[str, Any]:
-        return self._t.post_dict("eval-configs/test-evaluation-engine", json_body=body)
+    def test_runtime(self, body: dict[str, Any]) -> dict[str, Any]:
+        return self._t.post_dict("eval-configs/test-runtime", json_body=body)

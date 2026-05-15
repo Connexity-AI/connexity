@@ -14,16 +14,16 @@ import {
   FieldLabel,
   Section,
 } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-section-primitives';
-import { resolveCustomUrlTestStatusMessage } from '@/app/(app)/(agent)/_components/evals/create-eval/is-present-user-facing-form-message';
-import { SubmittedCustomUrlFieldFormMessage } from '@/app/(app)/(agent)/_components/evals/create-eval/submitted-custom-url-field-form-message';
-import { useEvaluationEngineField } from '@/app/(app)/(agent)/_hooks/use-evaluation-engine-field';
+import { resolveRuntimeTestStatusMessage } from '@/app/(app)/(agent)/_components/evals/create-eval/runtime-test-status-message';
+import { SubmittedCustomEndpointFieldFormMessage } from '@/app/(app)/(agent)/_components/evals/create-eval/submitted-custom-endpoint-field-form-message';
+import { useRuntimeField } from '@/app/(app)/(agent)/_hooks/use-runtime-field';
 import { useToolModeLiveGuard } from '@/app/(app)/(agent)/_hooks/use-tool-mode-live-guard';
-import { engineIconForKind } from '@/app/(app)/(agent)/_utils/evaluation-engine-field-helpers';
+import { runtimeIconForKind } from '@/app/(app)/(agent)/_utils/runtime-field-helpers';
 import { missingLiveImplementations } from '@/app/(app)/(agent)/_utils/platform-live-tools-feasible';
-import { AppModelsEnumsAgentMode, EvaluationEngineKind } from '@/client/types.gen';
+import { AppModelsEnumsAgentMode, TextRuntimeKind } from '@/client/types.gen';
 
 import type { CreateEvalFormValues } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
-import type { EvaluationEngineKind as EvaluationEngineKindType } from '@/client/types.gen';
+import type { TextRuntimeKind as TextRuntimeKindType } from '@/client/types.gen';
 
 function ConcurrencyField() {
   const form = useFormContext<CreateEvalFormValues>();
@@ -244,7 +244,7 @@ function ToolModeField({ agentMode, agentTools }: ToolModeFieldProps) {
   );
 }
 
-function EvaluationEngineField({
+function RuntimeField({
   agentId,
   defaultToBackendOption,
 }: {
@@ -256,38 +256,38 @@ function EvaluationEngineField({
     readOnly,
     error,
     isLoading,
-    engineOptions,
-    selectedEngine,
-    customUrl,
+    runtimeOptions,
+    selectedRuntime,
+    customEndpointUrl,
     testResult,
-    testEvaluationEngine,
-    selectEngine,
-    setCustomUrl,
-    testCustomUrl,
+    testRuntime,
+    selectRuntime,
+    setCustomEndpointUrl,
+    testCustomEndpoint,
     testDisabled,
-  } = useEvaluationEngineField({ agentId, defaultToBackendOption });
+  } = useRuntimeField({ agentId, defaultToBackendOption });
 
   return (
     <FormField
       control={form.control}
-      name="run.evaluation_engine"
+      name="run.runtime"
       render={({ field }) => (
         <FormItem className="col-span-2">
-          <FieldLabel>Evaluation Engine</FieldLabel>
+          <FieldLabel>Runtime</FieldLabel>
 
           {error ? (
-            <FieldHint>Failed to load Evaluation Engine options.</FieldHint>
+            <FieldHint>Failed to load runtime options.</FieldHint>
           ) : (
             <div className="grid grid-cols-1 gap-2">
-              {engineOptions.map((option) => {
-                const Icon = engineIconForKind(option.kind);
+              {runtimeOptions.map((option) => {
+                const Icon = runtimeIconForKind(option.kind);
                 const active = field.value.kind === option.kind;
                 return (
                   <button
                     key={option.kind}
                     type="button"
                     disabled={readOnly || isLoading}
-                    onClick={() => selectEngine(option.kind)}
+                    onClick={() => selectRuntime(option.kind)}
                     className={cn(
                       'flex items-start gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-all',
                       active ? 'border-foreground/40 bg-accent' : 'border-border bg-transparent',
@@ -320,26 +320,26 @@ function EvaluationEngineField({
             </div>
           )}
 
-          {selectedEngine.kind === EvaluationEngineKind.CUSTOM_URL ? (
+          {selectedRuntime.kind === TextRuntimeKind.CUSTOM_ENDPOINT ? (
             <div className="mt-4">
-              <FieldLabel>Custom URL</FieldLabel>
+              <FieldLabel>Custom Endpoint URL</FieldLabel>
               <div className="flex items-start gap-2">
                 <FormField
                   control={form.control}
-                  name="run.evaluation_engine.url"
+                  name="run.runtime.url"
                   render={({ field: urlField, fieldState }) => (
                     <FormItem className="flex-1">
                       <FormControl>
                         <Input
-                          value={customUrl}
+                          value={customEndpointUrl}
                           onBlur={urlField.onBlur}
-                          onChange={(e) => setCustomUrl(e.target.value)}
+                          onChange={(e) => setCustomEndpointUrl(e.target.value)}
                           disabled={readOnly}
                           placeholder="https://your-agent.com/v1/chat/completions"
                           className="h-8 text-sm"
                         />
                       </FormControl>
-                      <SubmittedCustomUrlFieldFormMessage
+                      <SubmittedCustomEndpointFieldFormMessage
                         isSubmitted={form.formState.isSubmitted}
                         message={fieldState.error?.message}
                       />
@@ -351,10 +351,10 @@ function EvaluationEngineField({
                   variant="outline"
                   size="sm"
                   disabled={testDisabled}
-                  onClick={() => void testCustomUrl()}
+                  onClick={() => void testCustomEndpoint()}
                   className="h-8 shrink-0 text-xs"
                 >
-                  {testEvaluationEngine.isPending ? 'Testing...' : 'Test URL'}
+                  {testRuntime.isPending ? 'Testing...' : 'Test URL'}
                 </Button>
               </div>
               <FieldHint>
@@ -369,7 +369,7 @@ function EvaluationEngineField({
                   )}
                   role="status"
                 >
-                  {resolveCustomUrlTestStatusMessage(testResult.message)}
+                  {resolveRuntimeTestStatusMessage(testResult.message)}
                 </p>
               ) : null}
             </div>
@@ -385,19 +385,19 @@ function EvaluationEngineField({
 function RunConfigToolModeSection({
   agentMode,
   agentTools,
-  evaluationEngineKind,
+  runtimeKind,
 }: {
   agentMode: string | null;
   agentTools: unknown[] | null;
-  evaluationEngineKind: EvaluationEngineKindType;
+  runtimeKind: TextRuntimeKindType;
 }) {
   const form = useFormContext<CreateEvalFormValues>();
   const isToolModeApplicable =
     agentMode === AppModelsEnumsAgentMode.PLATFORM &&
-    evaluationEngineKind === EvaluationEngineKind.CONNEXITY;
+    runtimeKind === TextRuntimeKind.CONNEXITY;
 
   // keep persisted config aligned with backend behavior: tool mode only applies
-  // to Connexity engine on platform-mode agents.
+  // to Connexity runtime on platform-mode agents.
   useToolModeLiveGuard(form, !isToolModeApplicable);
 
   if (!isToolModeApplicable) {
@@ -422,35 +422,35 @@ export function RunConfigSection() {
   );
 }
 
-interface EvaluationEngineSectionProps {
+interface RuntimeSectionProps {
   agentId: string;
   agentMode?: string | null;
   agentTools?: unknown[] | null;
   defaultToBackendOption?: boolean;
 }
 
-export function EvaluationEngineSection({
+export function RuntimeSection({
   agentId,
   agentMode = null,
   agentTools = null,
   defaultToBackendOption = true,
-}: EvaluationEngineSectionProps) {
+}: RuntimeSectionProps) {
   const form = useFormContext<CreateEvalFormValues>();
-  const evaluationEngineKind = form.watch('run.evaluation_engine.kind');
+  const runtimeKind = form.watch('run.runtime.kind');
 
   return (
     <Section>
-      <Section.Header title="Evaluation Engine" />
+      <Section.Header title="Runtime" />
       <Section.Body>
         <div className="grid grid-cols-2 gap-4">
-          <EvaluationEngineField
+          <RuntimeField
             agentId={agentId}
             defaultToBackendOption={defaultToBackendOption}
           />
           <RunConfigToolModeSection
             agentMode={agentMode}
             agentTools={agentTools}
-            evaluationEngineKind={evaluationEngineKind}
+            runtimeKind={runtimeKind}
           />
         </div>
       </Section.Body>

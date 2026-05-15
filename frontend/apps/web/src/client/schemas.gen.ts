@@ -1920,7 +1920,7 @@ export const ConfigPublicSchema = {
   title: 'ConfigPublic',
 } as const;
 
-export const ConnexityEngineConfigSchema = {
+export const ConnexityRuntimeConfigSchema = {
   properties: {
     kind: {
       type: 'string',
@@ -1931,8 +1931,9 @@ export const ConnexityEngineConfigSchema = {
     },
   },
   type: 'object',
-  title: 'ConnexityEngineConfig',
-  description: 'Native Connexity evaluation engine: in-process simulator + judge.',
+  title: 'ConnexityRuntimeConfig',
+  description:
+    'Connexity text runtime: in-process user simulator + platform AgentSimulator.\n\nRequires a non-empty ``system_prompt`` on the agent for validation at eval-config\ntime. For HTTP agents without platform prompts, use ``CustomEndpointRuntimeConfig``.',
 } as const;
 
 export const ConversationTurn_InputSchema = {
@@ -2105,6 +2106,30 @@ export const ConversationTurn_OutputSchema = {
   type: 'object',
   required: ['index', 'role', 'timestamp'],
   title: 'ConversationTurn',
+} as const;
+
+export const CustomEndpointRuntimeConfigSchema = {
+  properties: {
+    kind: {
+      type: 'string',
+      enum: ['custom_endpoint'],
+      const: 'custom_endpoint',
+      title: 'Kind',
+      default: 'custom_endpoint',
+    },
+    url: {
+      type: 'string',
+      maxLength: 2048,
+      minLength: 1,
+      title: 'Url',
+      description: 'Chat-completions URL that receives AgentRequest payloads',
+    },
+  },
+  type: 'object',
+  required: ['url'],
+  title: 'CustomEndpointRuntimeConfig',
+  description:
+    "Run evals against a user-provided HTTP endpoint.\n\nThe configured ``url`` must follow Connexity's OpenAI-compatible chat\ncompletions contract (see ``app.models.agent_contract``): POST\n``AgentRequest`` → ``AgentResponse``.",
 } as const;
 
 export const CustomMetricCreateSchema = {
@@ -2386,30 +2411,6 @@ export const CustomMetricsPublicSchema = {
   type: 'object',
   required: ['data', 'count'],
   title: 'CustomMetricsPublic',
-} as const;
-
-export const CustomUrlEngineConfigSchema = {
-  properties: {
-    kind: {
-      type: 'string',
-      enum: ['custom_url'],
-      const: 'custom_url',
-      title: 'Kind',
-      default: 'custom_url',
-    },
-    url: {
-      type: 'string',
-      maxLength: 2048,
-      minLength: 1,
-      title: 'Url',
-      description: 'Chat-completions URL that receives AgentRequest payloads',
-    },
-  },
-  type: 'object',
-  required: ['url'],
-  title: 'CustomUrlEngineConfig',
-  description:
-    "Run evals against a user-provided HTTP endpoint.\n\nThe endpoint must follow Connexity's OpenAI-compatible chat completions\ncontract (see ``app.models.agent_contract``): POST ``AgentRequest`` →\n``AgentResponse``.",
 } as const;
 
 export const DeploymentCreateSchema = {
@@ -3132,113 +3133,6 @@ export const EvalConfigsPublicSchema = {
   type: 'object',
   required: ['data', 'count'],
   title: 'EvalConfigsPublic',
-} as const;
-
-export const EvaluationEngineKindSchema = {
-  type: 'string',
-  enum: ['connexity', 'retell', 'custom_url'],
-  title: 'EvaluationEngineKind',
-} as const;
-
-export const EvaluationEngineOptionSchema = {
-  properties: {
-    kind: {
-      $ref: '#/components/schemas/EvaluationEngineKind',
-      description: 'Engine identifier',
-    },
-    label: {
-      type: 'string',
-      title: 'Label',
-      description: 'Human-readable name',
-    },
-    description: {
-      type: 'string',
-      title: 'Description',
-      description: 'Short marketing tagline',
-    },
-    is_default: {
-      type: 'boolean',
-      title: 'Is Default',
-      description: 'True when this is the platform-recommended default for the agent',
-      default: false,
-    },
-  },
-  type: 'object',
-  required: ['kind', 'label', 'description'],
-  title: 'EvaluationEngineOption',
-  description: 'One engine choice exposed to the UI dropdown.',
-} as const;
-
-export const EvaluationEngineOptionsPublicSchema = {
-  properties: {
-    data: {
-      items: {
-        $ref: '#/components/schemas/EvaluationEngineOption',
-      },
-      type: 'array',
-      title: 'Data',
-      description: 'Engines available for the agent, in stable display order',
-    },
-  },
-  type: 'object',
-  required: ['data'],
-  title: 'EvaluationEngineOptionsPublic',
-} as const;
-
-export const EvaluationEngineTestRequestSchema = {
-  properties: {
-    agent_id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Agent Id',
-      description: 'Agent the engine will run against',
-    },
-    evaluation_engine: {
-      oneOf: [
-        {
-          $ref: '#/components/schemas/ConnexityEngineConfig',
-        },
-        {
-          $ref: '#/components/schemas/RetellEngineConfig',
-        },
-        {
-          $ref: '#/components/schemas/CustomUrlEngineConfig',
-        },
-      ],
-      title: 'Evaluation Engine',
-      description: 'Engine config under test',
-      discriminator: {
-        propertyName: 'kind',
-        mapping: {
-          connexity: '#/components/schemas/ConnexityEngineConfig',
-          custom_url: '#/components/schemas/CustomUrlEngineConfig',
-          retell: '#/components/schemas/RetellEngineConfig',
-        },
-      },
-    },
-  },
-  type: 'object',
-  required: ['agent_id', 'evaluation_engine'],
-  title: 'EvaluationEngineTestRequest',
-} as const;
-
-export const EvaluationEngineTestResultSchema = {
-  properties: {
-    ok: {
-      type: 'boolean',
-      title: 'Ok',
-      description: 'True when the engine config passed the smoke test',
-    },
-    message: {
-      type: 'string',
-      title: 'Message',
-      description: 'Human-readable detail',
-    },
-  },
-  type: 'object',
-  required: ['ok', 'message'],
-  title: 'EvaluationEngineTestResult',
-  description: 'Outcome of POST /eval-configs/test-evaluation-engine.',
 } as const;
 
 export const ExpectedOutcomeResultSchema = {
@@ -5020,7 +4914,7 @@ export const RetellAgentVersionSchema = {
   title: 'RetellAgentVersion',
 } as const;
 
-export const RetellEngineConfigSchema = {
+export const RetellRuntimeConfigSchema = {
   properties: {
     kind: {
       type: 'string',
@@ -5031,9 +4925,9 @@ export const RetellEngineConfigSchema = {
     },
   },
   type: 'object',
-  title: 'RetellEngineConfig',
+  title: 'RetellRuntimeConfig',
   description:
-    "Retell evaluation engine: drives a Retell web call, judges the transcript.\n\nCredentials and Retell agent id come from the agent's Retell integration\nsetup (see Environment + Integration). No engine-level configuration is\nrequired.",
+    'Retell text runtime.\n\nConnexity owns the user simulator and judge. The Retell runtime will call\nRetell as the agent side via chat APIs once implemented.',
 } as const;
 
 export const RunComparisonSchema = {
@@ -5241,29 +5135,34 @@ export const RunConfig_InputSchema = {
           type: 'null',
         },
       ],
-      description: 'Agent simulator LLM overrides. Only applies when the agent mode is platform.',
+      description:
+        'Agent simulator LLM overrides. Applies when the selected text runtime uses AgentSimulator (Connexity).',
     },
-    evaluation_engine: {
+    mode: {
+      $ref: '#/components/schemas/RunMode',
+      description: 'Run modality: text today, voice for future realtime simulations.',
+      default: 'text',
+    },
+    runtime: {
       oneOf: [
         {
-          $ref: '#/components/schemas/ConnexityEngineConfig',
+          $ref: '#/components/schemas/ConnexityRuntimeConfig',
         },
         {
-          $ref: '#/components/schemas/RetellEngineConfig',
+          $ref: '#/components/schemas/RetellRuntimeConfig',
         },
         {
-          $ref: '#/components/schemas/CustomUrlEngineConfig',
+          $ref: '#/components/schemas/CustomEndpointRuntimeConfig',
         },
       ],
-      title: 'Evaluation Engine',
-      description:
-        'Engine that drives the eval: connexity (in-process simulator + judge), retell (Retell web call), or custom_url (user-provided endpoint).',
+      title: 'Runtime',
+      description: 'Runtime that drives the eval for the selected mode.',
       discriminator: {
         propertyName: 'kind',
         mapping: {
-          connexity: '#/components/schemas/ConnexityEngineConfig',
-          custom_url: '#/components/schemas/CustomUrlEngineConfig',
-          retell: '#/components/schemas/RetellEngineConfig',
+          connexity: '#/components/schemas/ConnexityRuntimeConfig',
+          custom_endpoint: '#/components/schemas/CustomEndpointRuntimeConfig',
+          retell: '#/components/schemas/RetellRuntimeConfig',
         },
       },
     },
@@ -5356,29 +5255,34 @@ export const RunConfig_OutputSchema = {
           type: 'null',
         },
       ],
-      description: 'Agent simulator LLM overrides. Only applies when the agent mode is platform.',
+      description:
+        'Agent simulator LLM overrides. Applies when the selected text runtime uses AgentSimulator (Connexity).',
     },
-    evaluation_engine: {
+    mode: {
+      $ref: '#/components/schemas/RunMode',
+      description: 'Run modality: text today, voice for future realtime simulations.',
+      default: 'text',
+    },
+    runtime: {
       oneOf: [
         {
-          $ref: '#/components/schemas/ConnexityEngineConfig',
+          $ref: '#/components/schemas/ConnexityRuntimeConfig',
         },
         {
-          $ref: '#/components/schemas/RetellEngineConfig',
+          $ref: '#/components/schemas/RetellRuntimeConfig',
         },
         {
-          $ref: '#/components/schemas/CustomUrlEngineConfig',
+          $ref: '#/components/schemas/CustomEndpointRuntimeConfig',
         },
       ],
-      title: 'Evaluation Engine',
-      description:
-        'Engine that drives the eval: connexity (in-process simulator + judge), retell (Retell web call), or custom_url (user-provided endpoint).',
+      title: 'Runtime',
+      description: 'Runtime that drives the eval for the selected mode.',
       discriminator: {
         propertyName: 'kind',
         mapping: {
-          connexity: '#/components/schemas/ConnexityEngineConfig',
-          custom_url: '#/components/schemas/CustomUrlEngineConfig',
-          retell: '#/components/schemas/RetellEngineConfig',
+          connexity: '#/components/schemas/ConnexityRuntimeConfig',
+          custom_endpoint: '#/components/schemas/CustomEndpointRuntimeConfig',
+          retell: '#/components/schemas/RetellRuntimeConfig',
         },
       },
     },
@@ -5657,6 +5561,12 @@ export const RunCreateSchema = {
   type: 'object',
   required: ['agent_id', 'eval_config_id'],
   title: 'RunCreate',
+} as const;
+
+export const RunModeSchema = {
+  type: 'string',
+  enum: ['text', 'voice'],
+  title: 'RunMode',
 } as const;
 
 export const RunPublicSchema = {
@@ -5972,6 +5882,112 @@ export const RunsPublicSchema = {
   type: 'object',
   required: ['data', 'count'],
   title: 'RunsPublic',
+} as const;
+
+export const RuntimeOptionSchema = {
+  properties: {
+    kind: {
+      $ref: '#/components/schemas/TextRuntimeKind',
+      description: 'Runtime identifier',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+      description: 'Human-readable name',
+    },
+    description: {
+      type: 'string',
+      title: 'Description',
+      description: 'Short marketing tagline',
+    },
+    is_default: {
+      type: 'boolean',
+      title: 'Is Default',
+      description: 'True when this is the recommended default',
+      default: false,
+    },
+  },
+  type: 'object',
+  required: ['kind', 'label', 'description'],
+  title: 'RuntimeOption',
+  description: 'One runtime choice exposed to the UI dropdown.',
+} as const;
+
+export const RuntimeOptionsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/RuntimeOption',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Runtimes available for the agent, in stable display order',
+    },
+  },
+  type: 'object',
+  required: ['data'],
+  title: 'RuntimeOptionsPublic',
+} as const;
+
+export const RuntimeTestRequestSchema = {
+  properties: {
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+      description: 'Agent the runtime will run against',
+    },
+    mode: {
+      $ref: '#/components/schemas/RunMode',
+      description: 'Run mode for this runtime',
+      default: 'text',
+    },
+    runtime: {
+      oneOf: [
+        {
+          $ref: '#/components/schemas/ConnexityRuntimeConfig',
+        },
+        {
+          $ref: '#/components/schemas/RetellRuntimeConfig',
+        },
+        {
+          $ref: '#/components/schemas/CustomEndpointRuntimeConfig',
+        },
+      ],
+      title: 'Runtime',
+      description: 'Runtime config under test',
+      discriminator: {
+        propertyName: 'kind',
+        mapping: {
+          connexity: '#/components/schemas/ConnexityRuntimeConfig',
+          custom_endpoint: '#/components/schemas/CustomEndpointRuntimeConfig',
+          retell: '#/components/schemas/RetellRuntimeConfig',
+        },
+      },
+    },
+  },
+  type: 'object',
+  required: ['agent_id', 'runtime'],
+  title: 'RuntimeTestRequest',
+} as const;
+
+export const RuntimeTestResultSchema = {
+  properties: {
+    ok: {
+      type: 'boolean',
+      title: 'Ok',
+      description: 'True when the runtime config passed the smoke test',
+    },
+    message: {
+      type: 'string',
+      title: 'Message',
+      description: 'Human-readable detail',
+    },
+  },
+  type: 'object',
+  required: ['ok', 'message'],
+  title: 'RuntimeTestResult',
+  description: 'Outcome of POST /eval-configs/test-runtime.',
 } as const;
 
 export const ScoreTypeSchema = {
@@ -7638,6 +7654,12 @@ export const TestCasesPublicSchema = {
   type: 'object',
   required: ['data', 'count'],
   title: 'TestCasesPublic',
+} as const;
+
+export const TextRuntimeKindSchema = {
+  type: 'string',
+  enum: ['connexity', 'retell', 'custom_endpoint'],
+  title: 'TextRuntimeKind',
 } as const;
 
 export const TokenSchema = {

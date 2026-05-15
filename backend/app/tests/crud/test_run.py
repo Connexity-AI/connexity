@@ -7,7 +7,12 @@ from sqlmodel import Session
 from app import crud
 from app.models import AgentCreate, EvalConfigUpdate, RunCreate, RunStatus, RunUpdate
 from app.models.enums import AgentMode
-from app.models.schemas import AgentSimulatorConfig, JudgeConfig, RunConfig
+from app.models.schemas import (
+    AgentSimulatorConfig,
+    CustomEndpointRuntimeConfig,
+    JudgeConfig,
+    RunConfig,
+)
 from app.services.agent_tool_definitions import canonical_end_call_tool_dict
 from app.tests.utils.eval import (
     create_test_agent,
@@ -16,6 +21,8 @@ from app.tests.utils.eval import (
     create_test_run,
     eval_config_members,
 )
+
+_EP_AGENT_URL = "http://localhost:8080/agent"
 
 
 def _setup_run(db: Session) -> tuple:
@@ -253,7 +260,12 @@ def test_enrich_run_create_endpoint_snapshots_normalized_agent_tools(
         session=db,
         db_eval_config=eval_config,
         eval_config_in=EvalConfigUpdate(
-            config=RunConfig(max_turns=7, concurrency=4, tool_mode="live"),
+            config=RunConfig(
+                max_turns=7,
+                concurrency=4,
+                tool_mode="live",
+                runtime=CustomEndpointRuntimeConfig(url=_EP_AGENT_URL),
+            ),
         ),
     )
     run_in = RunCreate(agent_id=agent.id, eval_config_id=eval_config.id)
@@ -272,12 +284,21 @@ def test_enrich_run_create_explicit_config_overrides_eval_config(db: Session) ->
     crud.update_eval_config(
         session=db,
         db_eval_config=eval_config,
-        eval_config_in=EvalConfigUpdate(config=RunConfig(max_turns=7, concurrency=4)),
+        eval_config_in=EvalConfigUpdate(
+            config=RunConfig(
+                max_turns=7,
+                concurrency=4,
+                runtime=CustomEndpointRuntimeConfig(url=_EP_AGENT_URL),
+            ),
+        ),
     )
     run_in = RunCreate(
         agent_id=agent.id,
         eval_config_id=eval_config.id,
-        config=RunConfig(max_turns=15),
+        config=RunConfig(
+            max_turns=15,
+            runtime=CustomEndpointRuntimeConfig(url=_EP_AGENT_URL),
+        ),
     )
     enriched = crud.enrich_run_create_from_agent(
         session=db, run_in=run_in, agent=agent, eval_config=eval_config
@@ -299,7 +320,11 @@ def test_create_run(db: Session) -> None:
 
 def test_create_run_with_config(db: Session) -> None:
     agent, eval_config = _setup_run(db)
-    config = RunConfig(judge=JudgeConfig(model="claude-3-5-sonnet"), concurrency=3)
+    config = RunConfig(
+        judge=JudgeConfig(model="claude-3-5-sonnet"),
+        concurrency=3,
+        runtime=CustomEndpointRuntimeConfig(url=_EP_AGENT_URL),
+    )
     run_in = RunCreate(
         agent_id=agent.id,
         agent_endpoint_url="http://localhost:8080/agent",

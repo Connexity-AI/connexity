@@ -1,4 +1,4 @@
-import { EvaluationEngineKind } from '@/client/types.gen';
+import { TextRuntimeKind } from '@/client/types.gen';
 
 import type { RunConfigOutput } from '@/client/types.gen';
 
@@ -12,8 +12,8 @@ export interface ToolCallModeBadge {
 export function getToolCallModeBadge(
   runConfig: RunConfigOutput | null | undefined
 ): ToolCallModeBadge {
-  const engineKind = runConfig?.evaluation_engine?.kind ?? EvaluationEngineKind.CONNEXITY;
-  if (engineKind !== EvaluationEngineKind.CONNEXITY) {
+  const runtimeKind = runConfig?.runtime?.kind ?? TextRuntimeKind.CONNEXITY;
+  if (runtimeKind !== TextRuntimeKind.CONNEXITY) {
     return { label: 'N/A', tone: 'na' };
   }
 

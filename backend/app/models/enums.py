@@ -76,10 +76,15 @@ class Platform(StrEnum):
     WEBHOOK = "webhook"
 
 
-class EvaluationEngineKind(StrEnum):
+class RunMode(StrEnum):
+    TEXT = "text"
+    VOICE = "voice"
+
+
+class TextRuntimeKind(StrEnum):
     CONNEXITY = "connexity"
     RETELL = "retell"
-    CUSTOM_URL = "custom_url"
+    CUSTOM_ENDPOINT = "custom_endpoint"
 
 
 class IntegrationProvider(StrEnum):

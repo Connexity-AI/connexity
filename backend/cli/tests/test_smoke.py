@@ -111,13 +111,13 @@ def test_eval_configs_list_uses_correct_path(api_env, runner, respx_mock_clean) 
     assert result.exit_code == 0, result.stderr
 
 
-def test_agents_evaluation_engines(api_env, runner, respx_mock_clean) -> None:
-    """`agents evaluation-engines` hits GET /agents/{id}/evaluation-engines."""
+def test_agents_runtimes(api_env, runner, respx_mock_clean) -> None:
+    """`agents runtimes` hits GET /agents/{id}/runtimes."""
     agent_uuid = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
     respx_mock_clean.get(f"/agents/{agent_uuid}").respond(
         200, json={"id": agent_uuid, "name": "agent-x"}
     )
-    route = respx_mock_clean.get(f"/agents/{agent_uuid}/evaluation-engines").respond(
+    route = respx_mock_clean.get(f"/agents/{agent_uuid}/runtimes").respond(
         200,
         json={
             "data": [
@@ -138,25 +138,25 @@ def test_agents_evaluation_engines(api_env, runner, respx_mock_clean) -> None:
     )
     result = runner.invoke(
         app,
-        ["--output", "json", "agents", "evaluation-engines", agent_uuid],
+        ["--output", "json", "agents", "runtimes", agent_uuid],
     )
     assert result.exit_code == 0, result.stderr
     assert route.called
 
 
-def test_eval_configs_test_engine_posts_payload(
+def test_eval_configs_test_runtime_posts_payload(
     api_env, runner, respx_mock_clean, tmp_path: Path
 ) -> None:
-    """`eval-configs test-engine` wraps the engine config under {agent_id, evaluation_engine}."""
+    """`eval-configs test-runtime` posts {agent_id, mode, runtime}."""
     agent_uuid = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
-    engine_config = {"kind": "custom_url", "url": "https://your-agent.com/v1"}
-    file = tmp_path / "engine.json"
-    file.write_text(json.dumps(engine_config))
+    runtime_config = {"kind": "custom_endpoint", "url": "https://your-agent.com/v1"}
+    file = tmp_path / "runtime.json"
+    file.write_text(json.dumps(runtime_config))
 
     respx_mock_clean.get(f"/agents/{agent_uuid}").respond(
         200, json={"id": agent_uuid, "name": "agent-x"}
     )
-    route = respx_mock_clean.post("/eval-configs/test-evaluation-engine").respond(
+    route = respx_mock_clean.post("/eval-configs/test-runtime").respond(
         200, json={"ok": True, "message": "looks good"}
     )
 
@@ -166,7 +166,7 @@ def test_eval_configs_test_engine_posts_payload(
             "--output",
             "json",
             "eval-configs",
-            "test-engine",
+            "test-runtime",
             "--agent",
             agent_uuid,
             "--from-file",
@@ -177,7 +177,8 @@ def test_eval_configs_test_engine_posts_payload(
     sent = json.loads(route.calls.last.request.content)
     assert sent == {
         "agent_id": agent_uuid,
-        "evaluation_engine": engine_config,
+        "mode": "text",
+        "runtime": runtime_config,
     }
 
 

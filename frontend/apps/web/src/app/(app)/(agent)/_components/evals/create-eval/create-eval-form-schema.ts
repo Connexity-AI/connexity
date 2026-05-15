@@ -4,17 +4,17 @@ import {
   BOOTSTRAP_DEFAULT_LLM_ROUTE,
   splitDefaultLlmRouting,
 } from '@/utils/split-default-llm-routing';
-import { EvaluationEngineKind } from '@/client/types.gen';
+import { TextRuntimeKind } from '@/client/types.gen';
 
 import type { EvalConfigCreate, RunConfigInput } from '@/client/types.gen';
 
-export type CreateEvalEvaluationEngine = NonNullable<RunConfigInput['evaluation_engine']>;
+export type CreateEvalRuntime = NonNullable<RunConfigInput['runtime']>;
 
-const evaluationEngineSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal(EvaluationEngineKind.CONNEXITY) }),
-  z.object({ kind: z.literal(EvaluationEngineKind.RETELL) }),
+const runtimeSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal(TextRuntimeKind.CONNEXITY) }),
+  z.object({ kind: z.literal(TextRuntimeKind.RETELL) }),
   z.object({
-    kind: z.literal(EvaluationEngineKind.CUSTOM_URL),
+    kind: z.literal(TextRuntimeKind.CUSTOM_ENDPOINT),
     url: z
       .string()
       .trim()
@@ -32,8 +32,8 @@ export const createEvalFormSchema = z.object({
     concurrency: z.number().int().min(1).max(50),
     max_turns: z.number().int().min(1).max(200).nullable(),
     tool_mode: z.enum(['mock', 'live']),
-    evaluation_engine: evaluationEngineSchema,
-    evaluation_engine_test: z.object({
+    runtime: runtimeSchema,
+    runtime_test: z.object({
       ok: z.boolean(),
       url: z.string().nullable(),
     }),
@@ -70,19 +70,19 @@ export const createEvalFormSchema = z.object({
     temperature: z.number().min(0).max(2),
   }),
 }).superRefine((values, ctx) => {
-  if (values.run.evaluation_engine.kind !== EvaluationEngineKind.CUSTOM_URL) {
+  if (values.run.runtime.kind !== TextRuntimeKind.CUSTOM_ENDPOINT) {
     return;
   }
 
-  const testedUrl = values.run.evaluation_engine_test.url;
-  const currentUrl = values.run.evaluation_engine.url.trim();
-  if (values.run.evaluation_engine_test.ok && testedUrl === currentUrl) {
+  const testedUrl = values.run.runtime_test.url;
+  const currentUrl = values.run.runtime.url.trim();
+  if (values.run.runtime_test.ok && testedUrl === currentUrl) {
     return;
   }
 
   ctx.addIssue({
     code: 'custom',
-    path: ['run', 'evaluation_engine', 'url'],
+    path: ['run', 'runtime', 'url'],
     message: 'Test URL successfully before saving this eval config',
   });
 });
@@ -102,8 +102,8 @@ export function buildDefaults(
       concurrency: 10,
       max_turns: 30,
       tool_mode: 'mock',
-      evaluation_engine: { kind: EvaluationEngineKind.CONNEXITY },
-      evaluation_engine_test: { ok: false, url: null },
+      runtime: { kind: TextRuntimeKind.CONNEXITY },
+      runtime_test: { ok: false, url: null },
       metrics_pass_threshold: 80,
       cases_pass_threshold: 100,
     },
@@ -125,9 +125,9 @@ export function formValuesToCreatePayload(
   values: CreateEvalFormValues,
   agentId: string
 ): EvalConfigCreate {
-  const evaluationEngine = values.run.evaluation_engine;
+  const runtime = values.run.runtime;
   const toolMode =
-    evaluationEngine.kind === EvaluationEngineKind.CONNEXITY ? values.run.tool_mode : 'mock';
+    runtime.kind === TextRuntimeKind.CONNEXITY ? values.run.tool_mode : 'mock';
 
   return {
     name: values.name,
@@ -136,7 +136,8 @@ export function formValuesToCreatePayload(
       concurrency: values.run.concurrency,
       max_turns: values.run.max_turns,
       tool_mode: toolMode,
-      evaluation_engine: evaluationEngine,
+      mode: 'text',
+      runtime,
       metrics_pass_threshold: values.run.metrics_pass_threshold,
       cases_pass_threshold: values.run.cases_pass_threshold,
       judge: {

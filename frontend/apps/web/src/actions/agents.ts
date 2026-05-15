@@ -11,7 +11,7 @@ import type {
   AgentUpdate,
   AgentVersionPublic,
   AgentVersionsPublic,
-  EvaluationEngineOptionsPublic,
+  RuntimeOptionsPublic,
   Platform,
   PublishRequest,
 } from '@/client/types.gen';
@@ -110,10 +110,10 @@ export const getAgent = async (agentId: string): Promise<ApiResult<AgentPublic>>
   return result;
 };
 
-export const listAgentEvaluationEngines = async (
+export const listAgentRuntimes = async (
   agentId: string
-): Promise<ApiResult<EvaluationEngineOptionsPublic>> => {
-  const apiResponse = await AgentsService.listAgentEvaluationEngines({
+): Promise<ApiResult<RuntimeOptionsPublic>> => {
+  const apiResponse = await AgentsService.listAgentRuntimes({
     path: { agent_id: agentId },
   });
   const { response: _, ...result } = apiResponse;

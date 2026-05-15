@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.models.enums import EvaluationEngineKind, SimulatorMode, TurnRole
+from app.models.enums import RunMode, SimulatorMode, TextRuntimeKind, TurnRole
 
 if TYPE_CHECKING:
     from app.models.test_case import TestCase
@@ -209,35 +209,38 @@ class AgentSimulatorConfig(BaseModel):
     )
 
 
-# ── Evaluation engine configs (discriminated union) ───────────────
+# ── Runtime configs (discriminated union) ─────────────────────────
 
 
-class ConnexityEngineConfig(BaseModel):
-    """Native Connexity evaluation engine: in-process simulator + judge."""
+class ConnexityRuntimeConfig(BaseModel):
+    """Connexity text runtime: in-process user simulator + platform AgentSimulator.
 
-    kind: Literal[EvaluationEngineKind.CONNEXITY] = EvaluationEngineKind.CONNEXITY
-
-
-class RetellEngineConfig(BaseModel):
-    """Retell evaluation engine: drives a Retell web call, judges the transcript.
-
-    Credentials and Retell agent id come from the agent's Retell integration
-    setup (see Environment + Integration). No engine-level configuration is
-    required.
+    Requires a non-empty ``system_prompt`` on the agent for validation at eval-config
+    time. For HTTP agents without platform prompts, use ``CustomEndpointRuntimeConfig``.
     """
 
-    kind: Literal[EvaluationEngineKind.RETELL] = EvaluationEngineKind.RETELL
+    kind: Literal[TextRuntimeKind.CONNEXITY] = TextRuntimeKind.CONNEXITY
 
 
-class CustomUrlEngineConfig(BaseModel):
+class RetellRuntimeConfig(BaseModel):
+    """Retell text runtime.
+
+    Connexity owns the user simulator and judge. The Retell runtime will call
+    Retell as the agent side via chat APIs once implemented.
+    """
+
+    kind: Literal[TextRuntimeKind.RETELL] = TextRuntimeKind.RETELL
+
+
+class CustomEndpointRuntimeConfig(BaseModel):
     """Run evals against a user-provided HTTP endpoint.
 
-    The endpoint must follow Connexity's OpenAI-compatible chat completions
-    contract (see ``app.models.agent_contract``): POST ``AgentRequest`` →
-    ``AgentResponse``.
+    The configured ``url`` must follow Connexity's OpenAI-compatible chat
+    completions contract (see ``app.models.agent_contract``): POST
+    ``AgentRequest`` → ``AgentResponse``.
     """
 
-    kind: Literal[EvaluationEngineKind.CUSTOM_URL] = EvaluationEngineKind.CUSTOM_URL
+    kind: Literal[TextRuntimeKind.CUSTOM_ENDPOINT] = TextRuntimeKind.CUSTOM_ENDPOINT
     url: str = Field(
         min_length=1,
         max_length=2048,
@@ -245,45 +248,43 @@ class CustomUrlEngineConfig(BaseModel):
     )
 
 
-EvaluationEngineConfig = Annotated[
-    ConnexityEngineConfig | RetellEngineConfig | CustomUrlEngineConfig,
+RuntimeConfig = Annotated[
+    ConnexityRuntimeConfig | RetellRuntimeConfig | CustomEndpointRuntimeConfig,
     Field(discriminator="kind"),
 ]
 
 
-# ── Public engine descriptors (API responses) ─────────────────────
+# ── Public runtime descriptors (API responses) ────────────────────
 
 
-class EvaluationEngineOption(BaseModel):
-    """One engine choice exposed to the UI dropdown."""
+class RuntimeOption(BaseModel):
+    """One runtime choice exposed to the UI dropdown."""
 
-    kind: EvaluationEngineKind = Field(description="Engine identifier")
+    kind: TextRuntimeKind = Field(description="Runtime identifier")
     label: str = Field(description="Human-readable name")
     description: str = Field(description="Short marketing tagline")
     is_default: bool = Field(
-        default=False,
-        description="True when this is the platform-recommended default for the agent",
+        default=False, description="True when this is the recommended default"
     )
 
 
-class EvaluationEngineOptionsPublic(BaseModel):
-    data: list[EvaluationEngineOption] = Field(
-        description="Engines available for the agent, in stable display order"
+class RuntimeOptionsPublic(BaseModel):
+    data: list[RuntimeOption] = Field(
+        description="Runtimes available for the agent, in stable display order"
     )
 
 
-class EvaluationEngineTestResult(BaseModel):
-    """Outcome of POST /eval-configs/test-evaluation-engine."""
+class RuntimeTestResult(BaseModel):
+    """Outcome of POST /eval-configs/test-runtime."""
 
-    ok: bool = Field(description="True when the engine config passed the smoke test")
+    ok: bool = Field(description="True when the runtime config passed the smoke test")
     message: str = Field(description="Human-readable detail")
 
 
-class EvaluationEngineTestRequest(BaseModel):
-    agent_id: uuid.UUID = Field(description="Agent the engine will run against")
-    evaluation_engine: EvaluationEngineConfig = Field(
-        description="Engine config under test"
-    )
+class RuntimeTestRequest(BaseModel):
+    agent_id: uuid.UUID = Field(description="Agent the runtime will run against")
+    mode: RunMode = Field(default=RunMode.TEXT, description="Run mode for this runtime")
+    runtime: RuntimeConfig = Field(description="Runtime config under test")
 
 
 class RunConfig(BaseModel):
@@ -334,15 +335,17 @@ class RunConfig(BaseModel):
     agent_simulator: AgentSimulatorConfig | None = Field(
         default=None,
         description=(
-            "Agent simulator LLM overrides. Only applies when the agent mode is platform."
+            "Agent simulator LLM overrides. Applies when the selected text runtime "
+            "uses AgentSimulator (Connexity)."
         ),
     )
-    evaluation_engine: EvaluationEngineConfig = Field(
-        default_factory=ConnexityEngineConfig,
-        description=(
-            "Engine that drives the eval: connexity (in-process simulator + judge), "
-            "retell (Retell web call), or custom_url (user-provided endpoint)."
-        ),
+    mode: RunMode = Field(
+        default=RunMode.TEXT,
+        description="Run modality: text today, voice for future realtime simulations.",
+    )
+    runtime: RuntimeConfig = Field(
+        default_factory=ConnexityRuntimeConfig,
+        description="Runtime that drives the eval for the selected mode.",
     )
 
 

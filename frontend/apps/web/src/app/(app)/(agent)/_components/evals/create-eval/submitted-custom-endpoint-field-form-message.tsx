@@ -2,17 +2,17 @@
 
 import { FormMessage } from '@workspace/ui/components/ui/form';
 
-import { isPresentUserFacingFormMessage } from '@/app/(app)/(agent)/_components/evals/create-eval/is-present-user-facing-form-message';
+import { isPresentUserFacingFormMessage } from '@/app/(app)/(agent)/_components/evals/create-eval/runtime-test-status-message';
 
-interface SubmittedCustomUrlFieldFormMessageProps {
+interface SubmittedCustomEndpointFieldFormMessageProps {
   isSubmitted: boolean;
   message: unknown;
 }
 
-export function SubmittedCustomUrlFieldFormMessage({
+export function SubmittedCustomEndpointFieldFormMessage({
   isSubmitted,
   message,
-}: SubmittedCustomUrlFieldFormMessageProps) {
+}: SubmittedCustomEndpointFieldFormMessageProps) {
   if (!isSubmitted) {
     return null;
   }

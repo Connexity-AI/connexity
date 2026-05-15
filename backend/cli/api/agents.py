@@ -96,7 +96,7 @@ class AgentsApi(_BaseApi):
     def put_guidelines(self, agent_id: str, body: dict[str, Any]) -> dict[str, Any]:
         return self._t.put_dict(f"agents/{agent_id}/guidelines", json_body=body)
 
-    # --- evaluation engines ----------------------------------------------
+    # --- runtimes ---------------------------------------------------------
 
-    def list_evaluation_engines(self, agent_id: str) -> dict[str, Any]:
-        return self._t.get_dict(f"agents/{agent_id}/evaluation-engines")
+    def list_runtimes(self, agent_id: str) -> dict[str, Any]:
+        return self._t.get_dict(f"agents/{agent_id}/runtimes")

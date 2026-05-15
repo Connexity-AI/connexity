@@ -15,7 +15,7 @@ export function isPresentUserFacingFormMessage(message: unknown): message is str
   return true;
 }
 
-export function resolveCustomUrlTestStatusMessage(message: unknown): string {
+export function resolveRuntimeTestStatusMessage(message: unknown): string {
   if (isPresentUserFacingFormMessage(message)) {
     return message;
   }

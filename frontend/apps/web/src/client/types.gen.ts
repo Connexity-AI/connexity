@@ -1080,11 +1080,14 @@ export type ConfigPublic = {
 };
 
 /**
- * ConnexityEngineConfig
+ * ConnexityRuntimeConfig
  *
- * Native Connexity evaluation engine: in-process simulator + judge.
+ * Connexity text runtime: in-process user simulator + platform AgentSimulator.
+ *
+ * Requires a non-empty ``system_prompt`` on the agent for validation at eval-config
+ * time. For HTTP agents without platform prompts, use ``CustomEndpointRuntimeConfig``.
  */
-export type ConnexityEngineConfig = {
+export type ConnexityRuntimeConfig = {
   /**
    * Kind
    */
@@ -1193,6 +1196,28 @@ export type ConversationTurnOutput = {
    * When this turn occurred
    */
   timestamp: string;
+};
+
+/**
+ * CustomEndpointRuntimeConfig
+ *
+ * Run evals against a user-provided HTTP endpoint.
+ *
+ * The configured ``url`` must follow Connexity's OpenAI-compatible chat
+ * completions contract (see ``app.models.agent_contract``): POST
+ * ``AgentRequest`` → ``AgentResponse``.
+ */
+export type CustomEndpointRuntimeConfig = {
+  /**
+   * Kind
+   */
+  kind?: 'custom_endpoint';
+  /**
+   * Url
+   *
+   * Chat-completions URL that receives AgentRequest payloads
+   */
+  url: string;
 };
 
 /**
@@ -1355,28 +1380,6 @@ export type CustomMetricsPublic = {
    * Total number of custom metrics
    */
   count: number;
-};
-
-/**
- * CustomUrlEngineConfig
- *
- * Run evals against a user-provided HTTP endpoint.
- *
- * The endpoint must follow Connexity's OpenAI-compatible chat completions
- * contract (see ``app.models.agent_contract``): POST ``AgentRequest`` →
- * ``AgentResponse``.
- */
-export type CustomUrlEngineConfig = {
-  /**
-   * Kind
-   */
-  kind?: 'custom_url';
-  /**
-   * Url
-   *
-   * Chat-completions URL that receives AgentRequest payloads
-   */
-  url: string;
 };
 
 /**
@@ -1839,109 +1842,6 @@ export type EvalConfigsPublic = {
    * Total number of configs matching the query
    */
   count: number;
-};
-
-/**
- * EvaluationEngineKind
- */
-export const EvaluationEngineKind = {
-  CONNEXITY: 'connexity',
-  RETELL: 'retell',
-  CUSTOM_URL: 'custom_url',
-} as const;
-
-/**
- * EvaluationEngineKind
- */
-export type EvaluationEngineKind = (typeof EvaluationEngineKind)[keyof typeof EvaluationEngineKind];
-
-/**
- * EvaluationEngineOption
- *
- * One engine choice exposed to the UI dropdown.
- */
-export type EvaluationEngineOption = {
-  /**
-   * Engine identifier
-   */
-  kind: EvaluationEngineKind;
-  /**
-   * Label
-   *
-   * Human-readable name
-   */
-  label: string;
-  /**
-   * Description
-   *
-   * Short marketing tagline
-   */
-  description: string;
-  /**
-   * Is Default
-   *
-   * True when this is the platform-recommended default for the agent
-   */
-  is_default?: boolean;
-};
-
-/**
- * EvaluationEngineOptionsPublic
- */
-export type EvaluationEngineOptionsPublic = {
-  /**
-   * Data
-   *
-   * Engines available for the agent, in stable display order
-   */
-  data: Array<EvaluationEngineOption>;
-};
-
-/**
- * EvaluationEngineTestRequest
- */
-export type EvaluationEngineTestRequest = {
-  /**
-   * Agent Id
-   *
-   * Agent the engine will run against
-   */
-  agent_id: string;
-  /**
-   * Evaluation Engine
-   *
-   * Engine config under test
-   */
-  evaluation_engine:
-    | ({
-        kind: 'connexity';
-      } & ConnexityEngineConfig)
-    | ({
-        kind: 'retell';
-      } & RetellEngineConfig)
-    | ({
-        kind: 'custom_url';
-      } & CustomUrlEngineConfig);
-};
-
-/**
- * EvaluationEngineTestResult
- *
- * Outcome of POST /eval-configs/test-evaluation-engine.
- */
-export type EvaluationEngineTestResult = {
-  /**
-   * Ok
-   *
-   * True when the engine config passed the smoke test
-   */
-  ok: boolean;
-  /**
-   * Message
-   *
-   * Human-readable detail
-   */
-  message: string;
 };
 
 /**
@@ -3212,15 +3112,14 @@ export type RetellAgentVersion = {
 };
 
 /**
- * RetellEngineConfig
+ * RetellRuntimeConfig
  *
- * Retell evaluation engine: drives a Retell web call, judges the transcript.
+ * Retell text runtime.
  *
- * Credentials and Retell agent id come from the agent's Retell integration
- * setup (see Environment + Integration). No engine-level configuration is
- * required.
+ * Connexity owns the user simulator and judge. The Retell runtime will call
+ * Retell as the agent side via chat APIs once implemented.
  */
-export type RetellEngineConfig = {
+export type RetellRuntimeConfig = {
   /**
    * Kind
    */
@@ -3326,24 +3225,28 @@ export type RunConfigInput = {
    */
   user_simulator?: UserSimulatorConfig | null;
   /**
-   * Agent simulator LLM overrides. Only applies when the agent mode is platform.
+   * Agent simulator LLM overrides. Applies when the selected text runtime uses AgentSimulator (Connexity).
    */
   agent_simulator?: AgentSimulatorConfig | null;
   /**
-   * Evaluation Engine
-   *
-   * Engine that drives the eval: connexity (in-process simulator + judge), retell (Retell web call), or custom_url (user-provided endpoint).
+   * Run modality: text today, voice for future realtime simulations.
    */
-  evaluation_engine?:
+  mode?: RunMode;
+  /**
+   * Runtime
+   *
+   * Runtime that drives the eval for the selected mode.
+   */
+  runtime?:
     | ({
         kind: 'connexity';
-      } & ConnexityEngineConfig)
+      } & ConnexityRuntimeConfig)
     | ({
         kind: 'retell';
-      } & RetellEngineConfig)
+      } & RetellRuntimeConfig)
     | ({
-        kind: 'custom_url';
-      } & CustomUrlEngineConfig);
+        kind: 'custom_endpoint';
+      } & CustomEndpointRuntimeConfig);
 };
 
 /**
@@ -3395,24 +3298,28 @@ export type RunConfigOutput = {
    */
   user_simulator?: UserSimulatorConfig | null;
   /**
-   * Agent simulator LLM overrides. Only applies when the agent mode is platform.
+   * Agent simulator LLM overrides. Applies when the selected text runtime uses AgentSimulator (Connexity).
    */
   agent_simulator?: AgentSimulatorConfig | null;
   /**
-   * Evaluation Engine
-   *
-   * Engine that drives the eval: connexity (in-process simulator + judge), retell (Retell web call), or custom_url (user-provided endpoint).
+   * Run modality: text today, voice for future realtime simulations.
    */
-  evaluation_engine?:
+  mode?: RunMode;
+  /**
+   * Runtime
+   *
+   * Runtime that drives the eval for the selected mode.
+   */
+  runtime?:
     | ({
         kind: 'connexity';
-      } & ConnexityEngineConfig)
+      } & ConnexityRuntimeConfig)
     | ({
         kind: 'retell';
-      } & RetellEngineConfig)
+      } & RetellRuntimeConfig)
     | ({
-        kind: 'custom_url';
-      } & CustomUrlEngineConfig);
+        kind: 'custom_endpoint';
+      } & CustomEndpointRuntimeConfig);
 };
 
 /**
@@ -3536,6 +3443,16 @@ export type RunCreate = {
    */
   is_baseline?: boolean;
 };
+
+/**
+ * RunMode
+ */
+export const RunMode = { TEXT: 'text', VOICE: 'voice' } as const;
+
+/**
+ * RunMode
+ */
+export type RunMode = (typeof RunMode)[keyof typeof RunMode];
 
 /**
  * RunPublic
@@ -3727,6 +3644,99 @@ export type RunsPublic = {
    * Total number of runs matching the query
    */
   count: number;
+};
+
+/**
+ * RuntimeOption
+ *
+ * One runtime choice exposed to the UI dropdown.
+ */
+export type RuntimeOption = {
+  /**
+   * Runtime identifier
+   */
+  kind: TextRuntimeKind;
+  /**
+   * Label
+   *
+   * Human-readable name
+   */
+  label: string;
+  /**
+   * Description
+   *
+   * Short marketing tagline
+   */
+  description: string;
+  /**
+   * Is Default
+   *
+   * True when this is the recommended default
+   */
+  is_default?: boolean;
+};
+
+/**
+ * RuntimeOptionsPublic
+ */
+export type RuntimeOptionsPublic = {
+  /**
+   * Data
+   *
+   * Runtimes available for the agent, in stable display order
+   */
+  data: Array<RuntimeOption>;
+};
+
+/**
+ * RuntimeTestRequest
+ */
+export type RuntimeTestRequest = {
+  /**
+   * Agent Id
+   *
+   * Agent the runtime will run against
+   */
+  agent_id: string;
+  /**
+   * Run mode for this runtime
+   */
+  mode?: RunMode;
+  /**
+   * Runtime
+   *
+   * Runtime config under test
+   */
+  runtime:
+    | ({
+        kind: 'connexity';
+      } & ConnexityRuntimeConfig)
+    | ({
+        kind: 'retell';
+      } & RetellRuntimeConfig)
+    | ({
+        kind: 'custom_endpoint';
+      } & CustomEndpointRuntimeConfig);
+};
+
+/**
+ * RuntimeTestResult
+ *
+ * Outcome of POST /eval-configs/test-runtime.
+ */
+export type RuntimeTestResult = {
+  /**
+   * Ok
+   *
+   * True when the runtime config passed the smoke test
+   */
+  ok: boolean;
+  /**
+   * Message
+   *
+   * Human-readable detail
+   */
+  message: string;
 };
 
 /**
@@ -4643,6 +4653,20 @@ export type TestCasesPublic = {
    */
   count: number;
 };
+
+/**
+ * TextRuntimeKind
+ */
+export const TextRuntimeKind = {
+  CONNEXITY: 'connexity',
+  RETELL: 'retell',
+  CUSTOM_ENDPOINT: 'custom_endpoint',
+} as const;
+
+/**
+ * TextRuntimeKind
+ */
+export type TextRuntimeKind = (typeof TextRuntimeKind)[keyof typeof TextRuntimeKind];
 
 /**
  * Token
@@ -6121,7 +6145,7 @@ export type AgentsPublishDraftResponses = {
 export type AgentsPublishDraftResponse =
   AgentsPublishDraftResponses[keyof AgentsPublishDraftResponses];
 
-export type AgentsListAgentEvaluationEnginesData = {
+export type AgentsListAgentRuntimesData = {
   body?: never;
   path: {
     /**
@@ -6130,10 +6154,10 @@ export type AgentsListAgentEvaluationEnginesData = {
     agent_id: string;
   };
   query?: never;
-  url: '/api/v1/agents/{agent_id}/evaluation-engines';
+  url: '/api/v1/agents/{agent_id}/runtimes';
 };
 
-export type AgentsListAgentEvaluationEnginesErrors = {
+export type AgentsListAgentRuntimesErrors = {
   /**
    * Bad Request
    */
@@ -6164,18 +6188,18 @@ export type AgentsListAgentEvaluationEnginesErrors = {
   500: ErrorResponse;
 };
 
-export type AgentsListAgentEvaluationEnginesError =
-  AgentsListAgentEvaluationEnginesErrors[keyof AgentsListAgentEvaluationEnginesErrors];
+export type AgentsListAgentRuntimesError =
+  AgentsListAgentRuntimesErrors[keyof AgentsListAgentRuntimesErrors];
 
-export type AgentsListAgentEvaluationEnginesResponses = {
+export type AgentsListAgentRuntimesResponses = {
   /**
    * Successful Response
    */
-  200: EvaluationEngineOptionsPublic;
+  200: RuntimeOptionsPublic;
 };
 
-export type AgentsListAgentEvaluationEnginesResponse =
-  AgentsListAgentEvaluationEnginesResponses[keyof AgentsListAgentEvaluationEnginesResponses];
+export type AgentsListAgentRuntimesResponse =
+  AgentsListAgentRuntimesResponses[keyof AgentsListAgentRuntimesResponses];
 
 export type AgentsGetAgentGuidelinesData = {
   body?: never;
@@ -7332,14 +7356,14 @@ export type CustomMetricsUpdateCustomMetricResponses = {
 export type CustomMetricsUpdateCustomMetricResponse =
   CustomMetricsUpdateCustomMetricResponses[keyof CustomMetricsUpdateCustomMetricResponses];
 
-export type EvalConfigsTestEvaluationEngineData = {
-  body: EvaluationEngineTestRequest;
+export type EvalConfigsTestRuntimeData = {
+  body: RuntimeTestRequest;
   path?: never;
   query?: never;
-  url: '/api/v1/eval-configs/test-evaluation-engine';
+  url: '/api/v1/eval-configs/test-runtime';
 };
 
-export type EvalConfigsTestEvaluationEngineErrors = {
+export type EvalConfigsTestRuntimeErrors = {
   /**
    * Bad Request
    */
@@ -7370,18 +7394,18 @@ export type EvalConfigsTestEvaluationEngineErrors = {
   500: ErrorResponse;
 };
 
-export type EvalConfigsTestEvaluationEngineError =
-  EvalConfigsTestEvaluationEngineErrors[keyof EvalConfigsTestEvaluationEngineErrors];
+export type EvalConfigsTestRuntimeError =
+  EvalConfigsTestRuntimeErrors[keyof EvalConfigsTestRuntimeErrors];
 
-export type EvalConfigsTestEvaluationEngineResponses = {
+export type EvalConfigsTestRuntimeResponses = {
   /**
    * Successful Response
    */
-  200: EvaluationEngineTestResult;
+  200: RuntimeTestResult;
 };
 
-export type EvalConfigsTestEvaluationEngineResponse =
-  EvalConfigsTestEvaluationEngineResponses[keyof EvalConfigsTestEvaluationEngineResponses];
+export type EvalConfigsTestRuntimeResponse =
+  EvalConfigsTestRuntimeResponses[keyof EvalConfigsTestRuntimeResponses];
 
 export type EvalConfigsListEvalConfigsData = {
   body?: never;

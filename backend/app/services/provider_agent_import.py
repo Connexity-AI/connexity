@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import HTTPException
 from sqlmodel import Session
 
@@ -10,6 +12,18 @@ from app.core.encryption import decrypt
 from app.models import AgentCreateDraft
 from app.models.enums import AgentPromptType, IntegrationProvider, Platform
 from app.models.imported_platform_config import ImportedPlatformConfig
+
+logger = logging.getLogger(__name__)
+
+
+def _is_non_blocking_retell_import_error(exc: HTTPException) -> bool:
+    if exc.status_code != 422:
+        return False
+    detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
+    return (
+        detail == "Retell agent has no associated LLM (response_engine.llm_id missing)"
+        or "Retell LLM is missing general_prompt or model" in detail
+    )
 
 
 def _provider_for_platform(platform: Platform) -> IntegrationProvider:
@@ -58,9 +72,19 @@ async def import_config_for_new_agent(
     if body.platform == Platform.RETELL:
         from app.services.retell import import_retell_agent_config
 
-        return await import_retell_agent_config(
-            api_key=api_key, retell_agent_id=body.platform_agent_id
-        )
+        try:
+            return await import_retell_agent_config(
+                api_key=api_key, retell_agent_id=body.platform_agent_id
+            )
+        except HTTPException as exc:
+            if not _is_non_blocking_retell_import_error(exc):
+                raise
+            logger.info(
+                "Skipping Retell config import for new agent retell_agent_id=%s: %s",
+                body.platform_agent_id,
+                exc.detail,
+            )
+            return None
     if body.platform == Platform.VAPI:
         from app.services.vapi import import_vapi_assistant_config
 
