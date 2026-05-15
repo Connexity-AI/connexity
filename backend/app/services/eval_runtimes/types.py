@@ -31,6 +31,7 @@ class AgentSnapshot:
     mode: AgentMode
     model: str | None
     provider: str | None
+    version: int | None = None
 
 
 @dataclass(frozen=True)

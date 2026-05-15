@@ -1,10 +1,14 @@
 import uuid
+from unittest.mock import AsyncMock, patch
 
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from app import crud
 from app.core.config import settings
+from app.models import Integration
+from app.models.enums import IntegrationProvider
 from app.models import RunStatus
 from app.services.prompt_editor.agent_prompt import DEFAULT_EDITOR_GUIDELINES
 from app.tests.utils.eval import (
@@ -354,6 +358,58 @@ def test_post_agents_draft_defaults(
     body = r.json()
     assert body["name"] == "Untitled Agent"
     assert body["id"]
+
+
+def test_post_agents_draft_retell_missing_importable_llm_still_creates_agent(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    integration = Integration(
+        provider=IntegrationProvider.RETELL,
+        name="retell-import-fallback",
+        encrypted_api_key="ciphertext",
+        masked_api_key="sk_t...1234",
+    )
+    db.add(integration)
+    db.commit()
+    db.refresh(integration)
+
+    with (
+        patch(
+            "app.services.provider_agent_import.decrypt",
+            return_value="retell-key",
+        ),
+        patch(
+            "app.services.retell.import_retell_agent_config",
+            new=AsyncMock(
+                side_effect=HTTPException(
+                    status_code=422,
+                    detail="Retell LLM is missing general_prompt or model â€” cannot import",
+                )
+            ),
+        ),
+    ):
+        r = client.post(
+            f"{settings.API_V1_STR}/agents/draft",
+            json={
+                "name": "Retell Shell Agent",
+                "platform": "retell",
+                "integration_id": str(integration.id),
+                "platform_agent_id": "agent_retell_123",
+                "platform_agent_name": "Retell Provider Agent",
+            },
+            cookies=auth_cookies,
+        )
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["name"] == "Retell Shell Agent"
+    assert body["platform"] == "retell"
+    assert body["integration_id"] == str(integration.id)
+    assert body["platform_agent_id"] == "agent_retell_123"
+    assert body["platform_agent_name"] == "Retell Provider Agent"
+    assert body["has_draft"] is True
+    assert body["system_prompt"] is None
+    assert body["agent_model"] is None
 
 
 def test_list_agents_includes_latest_published_version(

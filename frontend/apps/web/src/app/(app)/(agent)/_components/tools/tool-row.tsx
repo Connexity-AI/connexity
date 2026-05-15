@@ -40,15 +40,17 @@ export function ToolRow({
   return (
     <div
       onClick={onClick}
-      className="flex items-center gap-4 px-5 py-4 border-b border-border cursor-pointer transition-colors group hover:bg-accent/30"
+      className="flex w-full max-w-full min-w-0 items-center gap-4 overflow-hidden px-5 py-4 border-b border-border cursor-pointer transition-colors group hover:bg-accent/30"
     >
       <div className="w-8 h-8 rounded-md bg-accent/60 border border-border flex items-center justify-center shrink-0">
         <Wrench className="w-3.5 h-3.5 text-muted-foreground" />
       </div>
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
-          <span className="text-sm text-foreground font-mono truncate">{name || 'Untitled'}</span>
+      <div className="w-0 flex-1 min-w-0">
+        <div className="mb-0.5 flex w-full min-w-0 items-center gap-2">
+          <span className="min-w-0 flex-1 truncate text-sm text-foreground font-mono">
+            {name || 'Untitled'}
+          </span>
           {!isDefault && url && (
             <span
               className={cn(
@@ -61,16 +63,16 @@ export function ToolRow({
             </span>
           )}
         </div>
-        <p className="text-xs text-muted-foreground truncate pr-4">
+        <p className="w-full min-w-0 truncate pr-4 text-xs text-muted-foreground">
           {description || <span className="italic text-muted-foreground/40">No description</span>}
         </p>
       </div>
 
-      <div className="flex items-center gap-3 shrink-0">
+      <div className="ml-auto flex min-w-0 items-center gap-3">
         {!isDefault && url && (
-          <span className="hidden group-hover:flex items-center gap-1 text-[10px] text-muted-foreground/40 max-w-45">
+          <span className="hidden min-w-0 max-w-45 overflow-hidden items-center gap-1 text-[10px] text-muted-foreground/40 group-hover:flex">
             <Globe className="w-3 h-3 shrink-0" />
-            <span className="truncate font-mono">{url.replace(/^https?:\/\//, '')}</span>
+            <span className="min-w-0 truncate font-mono">{url.replace(/^https?:\/\//, '')}</span>
           </span>
         )}
         {paramCount > 0 && (

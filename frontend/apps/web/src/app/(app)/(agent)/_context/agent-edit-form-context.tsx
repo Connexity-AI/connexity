@@ -73,10 +73,8 @@ export function AgentEditFormProvider({ agentId, children }: AgentEditFormProvid
   const { data: agent, isLoading: isAgentLoading } = useAgent(agentId);
   const { selectedVersion, isReadOnly, openPublishDialog } = useVersions();
 
-  const { data: draft, isLoading: isDraftLoading } = useAgentDraft(
-    agentId,
-    agent?.has_draft === true
-  );
+  const { data: draftData, isLoading: isDraftLoading } = useAgentDraft(agentId);
+  const draft = draftData ?? undefined;
 
   const { data: versionData, isLoading: isVersionLoading } = useAgentVersion(
     agentId,

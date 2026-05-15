@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getPublicEnv } from '@/config/process-env';
+import { fetchWithDevBackendRetry } from '@/lib/backend-fetch';
 
 // Proxies authenticated client-side requests to the FastAPI backend so the
 // browser can attach the HttpOnly `auth_cookie`. Preserves the full pathname
@@ -35,7 +36,7 @@ const proxyHandler = async (request: NextRequest) => {
   const { method } = request;
   const body = ['GET', 'HEAD'].includes(method) ? undefined : await request.arrayBuffer();
 
-  const apiResponse = await fetch(backendUrl, { method, headers, body });
+  const apiResponse = await fetchWithDevBackendRetry(backendUrl, { method, headers, body });
 
   if (!apiResponse.ok) {
     console.warn('Client proxy returned error:', apiResponse.status, backendUrl);

@@ -190,6 +190,7 @@ def _build_agent_snapshot(agent: Agent, run, run_config: RunConfig) -> AgentSnap
         mode=_agent_mode_from_run_config(run_config),
         model=run.agent_model,
         provider=run.agent_provider,
+        version=run.agent_version,
     )
 
 
