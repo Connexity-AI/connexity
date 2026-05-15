@@ -23,7 +23,11 @@ from app.models import (
     TurnRole,
 )
 from app.models.enums import Platform
-from app.models.schemas import CustomEndpointRuntimeConfig, RetellRuntimeConfig, RunConfig
+from app.models.schemas import (
+    CustomEndpointRuntimeConfig,
+    RetellRuntimeConfig,
+    RunConfig,
+)
 
 
 def create_test_agent(session: Session) -> Agent:
