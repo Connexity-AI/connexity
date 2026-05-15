@@ -13,75 +13,92 @@ down_revision = "t9u0v1w2x3y4"
 branch_labels = None
 depends_on = None
 
+NORMALIZED_CONFIG = """
+CASE
+    WHEN jsonb_typeof(config) = 'object' THEN config
+    ELSE '{}'::jsonb
+END
+"""
+
 
 def upgrade() -> None:
     op.execute(
         """
         UPDATE eval_config
         SET config = jsonb_set(
-            COALESCE(config, '{}'::jsonb),
+            __CONFIG__,
             '{mode}',
             '"text"'::jsonb,
             true
         )
-        """
+        """.replace("__CONFIG__", NORMALIZED_CONFIG)
     )
     op.execute(
         """
         UPDATE eval_config
         SET config = jsonb_set(
-            config,
+            __CONFIG__,
             '{runtime}',
             CASE
-                WHEN config ? 'runtime' THEN config->'runtime'
-                WHEN config->'evaluation_engine'->>'kind' = 'custom_url'
+                WHEN __CONFIG__ ? 'runtime' THEN __CONFIG__->'runtime'
+                WHEN __CONFIG__->'evaluation_engine'->>'kind' = 'custom_url'
                     THEN jsonb_build_object(
                         'kind', 'custom_endpoint',
-                        'url', config->'evaluation_engine'->>'url'
+                        'url', __CONFIG__->'evaluation_engine'->>'url'
                     )
-                WHEN config->'evaluation_engine'->>'kind' = 'retell'
+                WHEN __CONFIG__->'evaluation_engine'->>'kind' = 'retell'
                     THEN '{"kind":"retell"}'::jsonb
                 ELSE '{"kind":"connexity"}'::jsonb
             END,
             true
         )
-        """
+        """.replace("__CONFIG__", NORMALIZED_CONFIG)
     )
-    op.execute("UPDATE eval_config SET config = config - 'evaluation_engine'")
+    op.execute(
+        """
+        UPDATE eval_config
+        SET config = __CONFIG__ - 'evaluation_engine'
+        """.replace("__CONFIG__", NORMALIZED_CONFIG)
+    )
 
     op.execute(
         """
         UPDATE run
         SET config = jsonb_set(
-            COALESCE(config, '{}'::jsonb),
+            __CONFIG__,
             '{mode}',
             '"text"'::jsonb,
             true
         )
-        """
+        """.replace("__CONFIG__", NORMALIZED_CONFIG)
     )
     op.execute(
         """
         UPDATE run
         SET config = jsonb_set(
-            config,
+            __CONFIG__,
             '{runtime}',
             CASE
-                WHEN config ? 'runtime' THEN config->'runtime'
-                WHEN config->'evaluation_engine'->>'kind' = 'custom_url'
+                WHEN __CONFIG__ ? 'runtime' THEN __CONFIG__->'runtime'
+                WHEN __CONFIG__->'evaluation_engine'->>'kind' = 'custom_url'
                     THEN jsonb_build_object(
                         'kind', 'custom_endpoint',
-                        'url', config->'evaluation_engine'->>'url'
+                        'url', __CONFIG__->'evaluation_engine'->>'url'
                     )
-                WHEN config->'evaluation_engine'->>'kind' = 'retell'
+                WHEN __CONFIG__->'evaluation_engine'->>'kind' = 'retell'
                     THEN '{"kind":"retell"}'::jsonb
                 ELSE '{"kind":"connexity"}'::jsonb
             END,
             true
         )
-        """
+        """.replace("__CONFIG__", NORMALIZED_CONFIG)
     )
-    op.execute("UPDATE run SET config = config - 'evaluation_engine'")
+    op.execute(
+        """
+        UPDATE run
+        SET config = __CONFIG__ - 'evaluation_engine'
+        """.replace("__CONFIG__", NORMALIZED_CONFIG)
+    )
 
 
 def downgrade() -> None:
@@ -89,39 +106,39 @@ def downgrade() -> None:
         """
         UPDATE eval_config
         SET config = jsonb_set(
-            COALESCE(config, '{}'::jsonb) - 'mode' - 'runtime',
+            __CONFIG__ - 'mode' - 'runtime',
             '{evaluation_engine}',
             CASE
-                WHEN config->'runtime'->>'kind' = 'custom_endpoint'
+                WHEN __CONFIG__->'runtime'->>'kind' = 'custom_endpoint'
                     THEN jsonb_build_object(
                         'kind', 'custom_url',
-                        'url', config->'runtime'->>'url'
+                        'url', __CONFIG__->'runtime'->>'url'
                     )
-                WHEN config->'runtime'->>'kind' = 'retell'
+                WHEN __CONFIG__->'runtime'->>'kind' = 'retell'
                     THEN '{"kind":"retell"}'::jsonb
                 ELSE '{"kind":"connexity"}'::jsonb
             END,
             true
         )
-        """
+        """.replace("__CONFIG__", NORMALIZED_CONFIG)
     )
     op.execute(
         """
         UPDATE run
         SET config = jsonb_set(
-            COALESCE(config, '{}'::jsonb) - 'mode' - 'runtime',
+            __CONFIG__ - 'mode' - 'runtime',
             '{evaluation_engine}',
             CASE
-                WHEN config->'runtime'->>'kind' = 'custom_endpoint'
+                WHEN __CONFIG__->'runtime'->>'kind' = 'custom_endpoint'
                     THEN jsonb_build_object(
                         'kind', 'custom_url',
-                        'url', config->'runtime'->>'url'
+                        'url', __CONFIG__->'runtime'->>'url'
                     )
-                WHEN config->'runtime'->>'kind' = 'retell'
+                WHEN __CONFIG__->'runtime'->>'kind' = 'retell'
                     THEN '{"kind":"retell"}'::jsonb
                 ELSE '{"kind":"connexity"}'::jsonb
             END,
             true
         )
-        """
+        """.replace("__CONFIG__", NORMALIZED_CONFIG)
     )
