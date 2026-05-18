@@ -9,6 +9,7 @@ Each implementation lives in its own module and registers itself in
 :mod:`app.services.eval_runtimes.registry`.
 """
 
+import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import ClassVar
