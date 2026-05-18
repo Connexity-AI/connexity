@@ -13,6 +13,20 @@ from app.models.imported_platform_config import ImportedPlatformConfig
 logger = logging.getLogger(__name__)
 
 
+RETELL_RATE_LIMIT_HEADER_NAMES = (
+    "retry-after",
+    "ratelimit-limit",
+    "ratelimit-remaining",
+    "ratelimit-reset",
+    "x-ratelimit-limit",
+    "x-ratelimit-remaining",
+    "x-ratelimit-reset",
+    "x-ratelimit-limit-requests",
+    "x-ratelimit-remaining-requests",
+    "x-ratelimit-reset-requests",
+)
+
+
 class RetellAgentSummary(BaseModel):
     agent_id: str
     agent_name: str | None = None
@@ -101,6 +115,78 @@ def _retell_response_detail(response: httpx.Response) -> str:
     except ValueError:
         detail = response.text
     return str(detail)
+
+
+def _retell_response_headers(response: httpx.Response) -> dict[str, str]:
+    headers: dict[str, str] = {}
+    request_id = (
+        response.headers.get("x-request-id")
+        or response.headers.get("request-id")
+        or response.headers.get("cf-ray")
+    )
+    if request_id:
+        headers["request_id"] = request_id
+    for name in RETELL_RATE_LIMIT_HEADER_NAMES:
+        value = response.headers.get(name)
+        if value is not None:
+            headers[name] = value
+    return headers
+
+
+def _retell_min_remaining(headers: dict[str, str]) -> int | None:
+    remaining_values: list[int] = []
+    for name, value in headers.items():
+        if "remaining" not in name:
+            continue
+        try:
+            remaining_values.append(int(value))
+        except ValueError:
+            continue
+    if not remaining_values:
+        return None
+    return min(remaining_values)
+
+
+def _log_retell_response(
+    *,
+    endpoint: str,
+    response: httpx.Response,
+    latency_ms: int | None = None,
+    log_success_near_limit: bool = False,
+) -> None:
+    headers = _retell_response_headers(response)
+    min_remaining = _retell_min_remaining(headers)
+
+    if response.status_code == 429:
+        logger.warning(
+            "Retell API rate limit hit: endpoint=%s status_code=%s latency_ms=%s headers=%s detail=%s",
+            endpoint,
+            response.status_code,
+            latency_ms,
+            headers,
+            _retell_response_detail(response),
+        )
+        return
+
+    if response.status_code >= 400:
+        logger.warning(
+            "Retell API error: endpoint=%s status_code=%s latency_ms=%s headers=%s detail=%s",
+            endpoint,
+            response.status_code,
+            latency_ms,
+            headers,
+            _retell_response_detail(response),
+        )
+        return
+
+    if log_success_near_limit and min_remaining is not None and min_remaining <= 5:
+        logger.info(
+            "Retell API near rate limit: endpoint=%s status_code=%s latency_ms=%s headers=%s",
+            endpoint,
+            response.status_code,
+            latency_ms,
+            headers,
+        )
 
 
 def _retell_duration_seconds(
@@ -1066,6 +1152,7 @@ def _parse_retell_chat_messages(raw_messages: Any) -> list[RetellChatMessage]:
 
 
 async def get_retell_chat_agent(api_key: str, agent_id: str) -> dict[str, Any]:
+    started = time.perf_counter()
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(
@@ -1077,6 +1164,14 @@ async def get_retell_chat_agent(api_key: str, agent_id: str) -> dict[str, Any]:
         raise HTTPException(
             status_code=502, detail=f"Failed to reach Retell API: {exc}"
         ) from exc
+    latency_ms = int((time.perf_counter() - started) * 1000)
+
+    _log_retell_response(
+        endpoint="get-chat-agent",
+        response=response,
+        latency_ms=latency_ms,
+        log_success_near_limit=True,
+    )
 
     if response.status_code >= 400:
         raise HTTPException(
@@ -1128,6 +1223,13 @@ async def create_retell_chat(
             success=False, error_message=f"Network error: {exc}"
         )
     latency_ms = int((time.perf_counter() - started) * 1000)
+
+    _log_retell_response(
+        endpoint="create-chat",
+        response=response,
+        latency_ms=latency_ms,
+        log_success_near_limit=True,
+    )
 
     if response.status_code >= 400:
         return RetellCreateChatResult(
@@ -1199,6 +1301,7 @@ async def create_retell_chat_agent(
     if agent_name is not None:
         body["agent_name"] = agent_name
 
+    started = time.perf_counter()
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -1214,6 +1317,14 @@ async def create_retell_chat_agent(
         return RetellCreateChatAgentResult(
             success=False, error_message=f"Network error: {exc}"
         )
+    latency_ms = int((time.perf_counter() - started) * 1000)
+
+    _log_retell_response(
+        endpoint="create-chat-agent",
+        response=response,
+        latency_ms=latency_ms,
+        log_success_near_limit=True,
+    )
 
     if response.status_code >= 400:
         return RetellCreateChatAgentResult(
@@ -1293,6 +1404,13 @@ async def create_retell_chat_completion(
             success=False, error_message=f"Network error: {exc}"
         )
     latency_ms = int((time.perf_counter() - started) * 1000)
+
+    _log_retell_response(
+        endpoint="create-chat-completion",
+        response=response,
+        latency_ms=latency_ms,
+        log_success_near_limit=True,
+    )
 
     if response.status_code >= 400:
         return RetellChatCompletionResult(

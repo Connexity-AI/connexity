@@ -77,6 +77,32 @@ def update_test_case_result(
     return db_result
 
 
+def set_retell_runtime_state(
+    *,
+    session: Session,
+    result_id: uuid.UUID,
+    retell_chat_id: str | None = None,
+    retell_chat_ended_at=None,
+    retell_temp_chat_agent_id: str | None = None,
+    retell_temp_chat_agent_deleted_at=None,
+) -> TestCaseResult | None:
+    db_result = session.get(TestCaseResult, result_id)
+    if db_result is None:
+        return None
+    if retell_chat_id is not None:
+        db_result.retell_chat_id = retell_chat_id
+    if retell_chat_ended_at is not None:
+        db_result.retell_chat_ended_at = retell_chat_ended_at
+    if retell_temp_chat_agent_id is not None:
+        db_result.retell_temp_chat_agent_id = retell_temp_chat_agent_id
+    if retell_temp_chat_agent_deleted_at is not None:
+        db_result.retell_temp_chat_agent_deleted_at = retell_temp_chat_agent_deleted_at
+    session.add(db_result)
+    session.commit()
+    session.refresh(db_result)
+    return db_result
+
+
 def delete_test_case_result(*, session: Session, db_result: TestCaseResult) -> None:
     session.delete(db_result)
     session.commit()

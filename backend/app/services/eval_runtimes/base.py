@@ -11,6 +11,7 @@ Each implementation lives in its own module and registers itself in
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+import uuid
 from typing import ClassVar
 
 from sqlmodel import Session
@@ -41,6 +42,8 @@ class RuntimeRunArgs:
     test_case: TestCase
     agent_snapshot: AgentSnapshot
     run_snapshot: RunSnapshot
+    result_id: uuid.UUID | None = None
+    repetition_index: int = 0
 
 
 class EvalRuntime(ABC):

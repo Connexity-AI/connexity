@@ -100,15 +100,15 @@ When the Connexity API is **not** on your machine’s default URL, set **`CONNEX
 
 ## 🪢 Integrations
 
-Connexity is designed to live alongside the voice AI platforms you already use. Retell is implemented today, and more first-class adapters are in active development.
+Connexity is designed to live alongside the voice AI platforms you already use. Retell, Vapi, and ElevenLabs are implemented today, with more first-class adapters in active development.
 
 ### Voice platforms
 
 | Platform | Status | Description |
 |:---|:---:|:---|
 | <img src="https://www.google.com/s2/favicons?domain=retell.ai&sz=64" width="24" height="24" alt="" /> **Retell** | *Available* | Connect your Retell workspace, browse agents, link environments, sync production calls, and deploy evaluated versions. |
-| <img src="https://www.google.com/s2/favicons?domain=vapi.ai&sz=64" width="24" height="24" alt="" /> **Vapi** | *Planned* | Import agents from your Vapi workspace into Connexity, version and evaluate them, then push updates back to Vapi. |
-| <img src="https://cdn.simpleicons.org/elevenlabs" width="24" height="24" alt="" /> **ElevenLabs** | *Planned* | Two-way sync with ElevenLabs Conversational AI agents, including prompt, tools, and configuration. |
+| <img src="https://www.google.com/s2/favicons?domain=vapi.ai&sz=64" width="24" height="24" alt="" /> **Vapi** | *Available* | Import agents from your Vapi workspace into Connexity, version and evaluate them, then push updates back to Vapi. |
+| <img src="https://cdn.simpleicons.org/elevenlabs" width="24" height="24" alt="" /> **ElevenLabs** | *Available* | Two-way sync with ElevenLabs Conversational AI agents, including prompt, tools, and configuration. |
 
 > **Want one of these sooner?** Vote in [GitHub Discussions](https://github.com/Connexity-AI/connexity/discussions) or join us on [Discord](https://discord.gg/QvWCX96J6K).
 
@@ -148,7 +148,7 @@ Follow **Local** or **VM**, then open the app at **`SITE_URL`** from **`.env`** 
 Pick one:
 
 - **Connect Retell** — connect your Retell workspace, choose the agent/environment you want to observe or deploy to, and bring production calls into Connexity.
-- **Import from Vapi or ElevenLabs** *(planned)* — connect your account and pull an existing agent, including its prompt, tools, and configuration.
+- **Import from Vapi or ElevenLabs** — connect your account and pull an existing agent, including its prompt, tools, and configuration.
 - **Build from scratch with the AI prompt editor** — start a new agent and let the AI co-pilot help you draft the system prompt, tools, and persona.
 
 Edits are kept as a draft on the agent. When you're ready, capture the draft as a new version with an optional changelog. That version is what evaluations and deployments are pinned to.

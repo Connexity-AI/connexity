@@ -263,6 +263,15 @@ async def _execute_single_test_case(
                 test_case=test_case,
                 agent_snapshot=agent_snapshot,
                 run_snapshot=run_snapshot,
+                result_id=result_id,
+                repetition_index=repetition_index,
+            )
+            logger.info(
+                "Dispatching eval execution: run_id=%s runtime=%s test_case_id=%s repetition_index=%s",
+                run_id,
+                config.runtime.kind.value,
+                test_case.id,
+                repetition_index,
             )
             with Session(engine) as engine_session:
                 run_out = await runtime_impl.run_test_case(
@@ -519,6 +528,21 @@ async def execute_run(run_id: uuid.UUID) -> None:
 
         total_expanded = sum(entry.repetitions for entry in execution_plan)
         state.progress.total_test_cases = total_expanded
+        logger.info(
+            "Run %s execution plan prepared: runtime=%s unique_test_cases=%s total_executions=%s members=%s",
+            run_id,
+            config.runtime.kind.value,
+            len(execution_plan),
+            total_expanded,
+            [
+                {
+                    "test_case_id": str(entry.test_case.id),
+                    "repetitions": entry.repetitions,
+                    "position": entry.position,
+                }
+                for entry in execution_plan
+            ],
+        )
         run_manager.emit(
             run_id,
             "run_started",
@@ -558,6 +582,16 @@ async def execute_run(run_id: uuid.UUID) -> None:
             valid_results,
             metrics_pass_threshold=config.metrics_pass_threshold,
             cases_pass_threshold=config.cases_pass_threshold,
+        )
+        logger.info(
+            "Run %s completed: persisted_results=%s total_executions=%s unique_test_cases=%s passed=%s failed=%s errored=%s",
+            run_id,
+            len(valid_results),
+            aggregate_metrics.total_executions,
+            aggregate_metrics.unique_test_case_count,
+            aggregate_metrics.passed_count,
+            aggregate_metrics.failed_count,
+            aggregate_metrics.error_count,
         )
 
         with Session(engine) as session:

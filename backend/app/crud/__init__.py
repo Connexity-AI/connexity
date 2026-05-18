@@ -142,6 +142,7 @@ from app.crud.test_case_result import (  # noqa: F401
     delete_test_case_result,
     get_test_case_result,
     list_test_case_results,
+    set_retell_runtime_state,
     update_test_case_result,
 )
 from app.crud.user import (  # noqa: F401

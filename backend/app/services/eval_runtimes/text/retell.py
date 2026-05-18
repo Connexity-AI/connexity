@@ -10,11 +10,13 @@ import json
 import logging
 import time
 from dataclasses import dataclass, replace
+from datetime import UTC, datetime
 from typing import ClassVar
 
 from fastapi import HTTPException
 from sqlmodel import Session
 
+from app import crud
 from app.core.encryption import decrypt
 from app.models.agent import Agent
 from app.models.enums import (
@@ -198,6 +200,13 @@ class RetellRuntime(TextRuntimeBase):
         try:
             prepared_agent_config = await self._prepare_chat_agent(agent_config, args)
         except ValueError as exc:
+            logger.warning(
+                "Retell runtime setup failed before create-chat: run_id=%s test_case_id=%s repetition_index=%s error=%s",
+                args.run_snapshot.run_id,
+                args.test_case.id,
+                args.repetition_index,
+                exc,
+            )
             transcript = [
                 self.build_conversation_turn(
                     index=0,
@@ -207,6 +216,20 @@ class RetellRuntime(TextRuntimeBase):
             ]
             return self._build_result(transcript, TestCaseTokenAccumulator())
 
+        self._persist_retell_runtime_state(
+            session,
+            args,
+            retell_temp_chat_agent_id=prepared_agent_config.temporary_chat_agent_id,
+        )
+
+        logger.info(
+            "Retell runtime create-chat request: run_id=%s test_case_id=%s repetition_index=%s retell_agent_id=%s dynamic_variable_keys=%s",
+            args.run_snapshot.run_id,
+            args.test_case.id,
+            args.repetition_index,
+            prepared_agent_config.retell_agent_id,
+            sorted(self._dynamic_variables_for_test_case(args.test_case).keys()),
+        )
         chat = await create_retell_chat(
             api_key=prepared_agent_config.api_key,
             retell_agent_id=prepared_agent_config.retell_agent_id,
@@ -232,6 +255,20 @@ class RetellRuntime(TextRuntimeBase):
         runtime_agent_config = replace(
             prepared_agent_config, retell_chat_id=chat.chat_id
         )
+        logger.info(
+            "Retell runtime chat created: run_id=%s test_case_id=%s repetition_index=%s chat_id=%s temp_chat_agent_id=%s",
+            args.run_snapshot.run_id,
+            args.test_case.id,
+            args.repetition_index,
+            chat.chat_id,
+            runtime_agent_config.temporary_chat_agent_id,
+        )
+        self._persist_retell_runtime_state(
+            session,
+            args,
+            retell_chat_id=chat.chat_id,
+            retell_temp_chat_agent_id=runtime_agent_config.temporary_chat_agent_id,
+        )
         try:
             return await self._run_retell_text_case(
                 test_case=args.test_case,
@@ -240,17 +277,86 @@ class RetellRuntime(TextRuntimeBase):
                 initial_messages=chat.messages,
                 initial_latency_ms=chat.latency_ms,
                 cancel_event=args.run_snapshot.cancel_event,
+                run_id=args.run_snapshot.run_id,
+                repetition_index=args.repetition_index,
             )
         finally:
-            await end_retell_chat(
+            chat_closed = await end_retell_chat(
                 api_key=runtime_agent_config.api_key,
                 chat_id=chat.chat_id,
             )
+            if chat_closed:
+                self._persist_retell_runtime_state(
+                    session,
+                    args,
+                    retell_chat_ended_at=datetime.now(UTC),
+                )
+            else:
+                logger.warning(
+                    "Retell runtime failed to close chat: run_id=%s test_case_id=%s repetition_index=%s chat_id=%s",
+                    args.run_snapshot.run_id,
+                    args.test_case.id,
+                    args.repetition_index,
+                    chat.chat_id,
+                )
             if runtime_agent_config.temporary_chat_agent_id:
-                await delete_retell_chat_agent(
+                temp_deleted = await delete_retell_chat_agent(
                     api_key=runtime_agent_config.api_key,
                     agent_id=runtime_agent_config.temporary_chat_agent_id,
                 )
+                if temp_deleted:
+                    self._persist_retell_runtime_state(
+                        session,
+                        args,
+                        retell_temp_chat_agent_deleted_at=datetime.now(UTC),
+                    )
+                else:
+                    logger.warning(
+                        "Retell runtime failed to delete temp chat agent: run_id=%s test_case_id=%s repetition_index=%s temp_chat_agent_id=%s",
+                        args.run_snapshot.run_id,
+                        args.test_case.id,
+                        args.repetition_index,
+                        runtime_agent_config.temporary_chat_agent_id,
+                    )
+
+    def _persist_retell_runtime_state(
+        self,
+        session: Session,
+        args: RuntimeRunArgs,
+        *,
+        retell_chat_id: str | None = None,
+        retell_chat_ended_at: datetime | None = None,
+        retell_temp_chat_agent_id: str | None = None,
+        retell_temp_chat_agent_deleted_at: datetime | None = None,
+    ) -> None:
+        if args.result_id is None:
+            return
+        if (
+            retell_chat_id is None
+            and retell_chat_ended_at is None
+            and retell_temp_chat_agent_id is None
+            and retell_temp_chat_agent_deleted_at is None
+        ):
+            return
+        try:
+            crud.set_retell_runtime_state(
+                session=session,
+                result_id=args.result_id,
+                retell_chat_id=retell_chat_id,
+                retell_chat_ended_at=retell_chat_ended_at,
+                retell_temp_chat_agent_id=retell_temp_chat_agent_id,
+                retell_temp_chat_agent_deleted_at=retell_temp_chat_agent_deleted_at,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to persist Retell runtime state: run_id=%s test_case_id=%s repetition_index=%s result_id=%s chat_id=%s temp_chat_agent_id=%s",
+                args.run_snapshot.run_id,
+                args.test_case.id,
+                args.repetition_index,
+                args.result_id,
+                retell_chat_id,
+                retell_temp_chat_agent_id,
+            )
 
     async def _prepare_chat_agent(
         self,
@@ -295,6 +401,8 @@ class RetellRuntime(TextRuntimeBase):
         initial_messages: list[RetellChatMessage],
         initial_latency_ms: int | None,
         cancel_event: asyncio.Event | None,
+        run_id,
+        repetition_index: int,
     ) -> TestCaseRunResult:
         sim_cfg = config.user_simulator or UserSimulatorConfig()
         first_message_text = (test_case.first_message or "").strip()
@@ -428,6 +536,8 @@ class RetellRuntime(TextRuntimeBase):
                         accumulator=accumulator,
                         timeout_ms=timeout_ms,
                         started=started,
+                        run_id=run_id,
+                        repetition_index=repetition_index,
                     )
                 )
                 if not ok:
@@ -466,6 +576,8 @@ class RetellRuntime(TextRuntimeBase):
                         accumulator=accumulator,
                         timeout_ms=timeout_ms,
                         started=started,
+                        run_id=run_id,
+                        repetition_index=repetition_index,
                     )
                 )
                 if not ok:
@@ -516,6 +628,14 @@ class RetellRuntime(TextRuntimeBase):
             )
             return False
 
+        logger.info(
+            "Retell runtime create-chat-completion request: run_id=%s test_case_id=%s repetition_index=%s chat_id=%s transcript_turns=%s",
+            context.run_id,
+            context.test_case.id,
+            context.repetition_index,
+            agent_config.retell_chat_id,
+            len(context.transcript),
+        )
         result = await create_retell_chat_completion(
             api_key=agent_config.api_key,
             chat_id=agent_config.retell_chat_id,
