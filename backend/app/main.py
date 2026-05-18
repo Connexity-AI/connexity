@@ -2,7 +2,6 @@ import logging
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
 
 import sentry_sdk
 from fastapi import FastAPI, HTTPException, Request
@@ -11,7 +10,6 @@ from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 
-from app import crud
 from app.api.main import api_router, root_router
 from app.core.config import settings
 

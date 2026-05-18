@@ -1,12 +1,9 @@
 """Test crash-recovery logic that runs during app lifespan startup."""
 
-import pytest
-from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from app import crud
-from app.core import encryption
 from app.main import app
 from app.models import RunStatus, RunUpdate
 from app.tests.utils.eval import (
