@@ -91,6 +91,16 @@ class ConnexityRuntime(TextRuntimeBase):
     async def do_agent_turn(self, context: TextAgentTurnContext) -> bool:
         agent_messages = self.transcript_to_agent_messages(context.transcript)
         simulator = self._make_agent_simulator(context)
+        logger.info(
+            "Connexity runtime request: run_id=%s test_case_id=%s repetition_index=%s transcript_turns=%s model=%s provider=%s tool_mode=%s",
+            context.run_id,
+            context.test_case.id,
+            context.repetition_index,
+            len(context.transcript),
+            context.agent_config.model,
+            context.agent_config.provider,
+            context.run_config.tool_mode,
+        )
         try:
             platform_result = await simulator.generate_response(agent_messages)
         except Exception as exc:

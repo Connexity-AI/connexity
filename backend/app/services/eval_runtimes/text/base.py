@@ -8,6 +8,7 @@ assembly. Concrete runtimes own the agent turn.
 import asyncio
 import logging
 import time
+import uuid
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -59,6 +60,8 @@ class TextAgentTurnContext:
     accumulator: TestCaseTokenAccumulator
     timeout_ms: int
     started: float
+    run_id: uuid.UUID | None = None
+    repetition_index: int = 0
 
     @property
     def remaining_ms(self) -> int:
@@ -246,6 +249,8 @@ class TextRuntimeBase(EvalRuntime):
             agent_config,
             args.run_snapshot.run_config,
             cancel_event=args.run_snapshot.cancel_event,
+            run_id=args.run_snapshot.run_id,
+            repetition_index=args.repetition_index,
         )
 
     async def run_text_test_case(
@@ -255,6 +260,8 @@ class TextRuntimeBase(EvalRuntime):
         config: RunConfig,
         *,
         cancel_event: asyncio.Event | None = None,
+        run_id: uuid.UUID | None = None,
+        repetition_index: int = 0,
     ) -> TestCaseRunResult:
         """Execute one test case using the shared text conversation loop."""
         sim_cfg = config.user_simulator or UserSimulatorConfig()
@@ -329,6 +336,8 @@ class TextRuntimeBase(EvalRuntime):
                     accumulator=accumulator,
                     timeout_ms=timeout_ms,
                     started=started,
+                    run_id=run_id,
+                    repetition_index=repetition_index,
                 )
             )
             if not ok:
@@ -383,6 +392,8 @@ class TextRuntimeBase(EvalRuntime):
                         accumulator=accumulator,
                         timeout_ms=timeout_ms,
                         started=started,
+                        run_id=run_id,
+                        repetition_index=repetition_index,
                     )
                 )
                 if not ok:
@@ -421,6 +432,8 @@ class TextRuntimeBase(EvalRuntime):
                         accumulator=accumulator,
                         timeout_ms=timeout_ms,
                         started=started,
+                        run_id=run_id,
+                        repetition_index=repetition_index,
                     )
                 )
                 if not ok:

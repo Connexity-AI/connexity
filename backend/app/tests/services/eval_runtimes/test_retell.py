@@ -69,6 +69,7 @@ def _make_args(agent: Agent, test_case, *, max_turns: int | None = 1) -> Runtime
             run_config=RunConfig(max_turns=max_turns),
             cancel_event=None,
         ),
+        result_id=uuid.uuid4(),
     )
 
 
@@ -206,6 +207,9 @@ async def test_run_test_case_uses_retell_chat_completion() -> None:
             "app.services.eval_runtimes.text.retell.end_retell_chat",
             new=AsyncMock(return_value=True),
         ) as mock_end_chat,
+        patch(
+            "app.services.eval_runtimes.text.retell.crud.set_retell_runtime_state"
+        ) as mock_set_state,
     ):
         result = await runtime.run_test_case(RetellRuntimeConfig(), args, session)
 
@@ -228,6 +232,13 @@ async def test_run_test_case_uses_retell_chat_completion() -> None:
         content="Hello there",
     )
     mock_end_chat.assert_awaited_once_with(api_key="retell-key", chat_id="chat_123")
+    assert mock_set_state.call_count == 2
+    first_call = mock_set_state.call_args_list[0].kwargs
+    assert first_call["result_id"] == args.result_id
+    assert first_call["retell_chat_id"] == "chat_123"
+    second_call = mock_set_state.call_args_list[1].kwargs
+    assert second_call["result_id"] == args.result_id
+    assert second_call["retell_chat_ended_at"] is not None
 
 
 async def test_run_test_case_preserves_retell_opening_message() -> None:
@@ -331,6 +342,9 @@ async def test_run_test_case_bridges_voice_agent_into_temporary_chat_agent() -> 
             "app.services.eval_runtimes.text.retell.delete_retell_chat_agent",
             new=AsyncMock(return_value=True),
         ) as mock_delete_temp,
+        patch(
+            "app.services.eval_runtimes.text.retell.crud.set_retell_runtime_state"
+        ) as mock_set_state,
     ):
         result = await runtime.run_test_case(RetellRuntimeConfig(), args, session)
 
@@ -355,3 +369,4 @@ async def test_run_test_case_bridges_voice_agent_into_temporary_chat_agent() -> 
         api_key="retell-key",
         agent_id="temp_chat_123",
     )
+    assert mock_set_state.call_count == 4

@@ -90,6 +90,25 @@ class TestCaseResultBase(SQLModel):
     error_message: str | None = Field(
         default=None, description="Human-readable error message if applicable"
     )
+    retell_chat_id: str | None = Field(
+        default=None,
+        max_length=255,
+        index=True,
+        description="Retell chat id for crash recovery and cleanup",
+    )
+    retell_chat_ended_at: datetime | None = Field(
+        default=None,
+        description="When the Retell chat was successfully closed",
+    )
+    retell_temp_chat_agent_id: str | None = Field(
+        default=None,
+        max_length=255,
+        description="Temporary Retell chat agent created for bridging voice agents",
+    )
+    retell_temp_chat_agent_deleted_at: datetime | None = Field(
+        default=None,
+        description="When the temporary Retell chat agent was successfully deleted",
+    )
     # Timing
     started_at: datetime | None = Field(
         default=None, description="When test case execution began"
