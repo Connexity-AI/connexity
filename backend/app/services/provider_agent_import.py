@@ -29,6 +29,8 @@ def _is_non_blocking_retell_import_error(exc: HTTPException) -> bool:
 def _provider_for_platform(platform: Platform) -> IntegrationProvider:
     if platform == Platform.RETELL:
         return IntegrationProvider.RETELL
+    if platform == Platform.TELNYX:
+        return IntegrationProvider.TELNYX
     if platform == Platform.VAPI:
         return IntegrationProvider.VAPI
     if platform == Platform.ELEVENLABS:
@@ -66,6 +68,8 @@ async def import_config_for_new_agent(
             status_code=422,
             detail="Integration provider does not match selected platform",
         )
+    if body.platform == Platform.TELNYX:
+        return None
 
     api_key = decrypt(integration.encrypted_api_key)
 

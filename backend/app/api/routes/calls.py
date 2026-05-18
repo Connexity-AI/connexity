@@ -27,6 +27,7 @@ from app.services.elevenlabs import (
     list_elevenlabs_conversations,
 )
 from app.services.retell import list_retell_calls
+from app.services.telnyx import list_telnyx_calls
 from app.services.vapi import list_vapi_calls
 
 logger = logging.getLogger(__name__)
@@ -72,7 +73,8 @@ async def _fetch_and_store_production_calls(
         provider_envs = [
             env
             for env in environments
-            if env.platform in {Platform.RETELL, Platform.VAPI, Platform.ELEVENLABS}
+            if env.platform
+            in {Platform.RETELL, Platform.TELNYX, Platform.VAPI, Platform.ELEVENLABS}
         ]
         event["envs_total"] = len(environments)
         event["provider_envs"] = len(provider_envs)
@@ -81,7 +83,7 @@ async def _fetch_and_store_production_calls(
             event["status"] = "no_production_call_env"
             raise HTTPException(
                 status_code=400,
-                detail="Add a Retell, Vapi, or ElevenLabs environment on the Deploy tab first",
+                detail="Add a Retell, Telnyx, Vapi, or ElevenLabs environment on the Deploy tab first",
             )
 
         created_total = 0
@@ -131,11 +133,18 @@ async def _fetch_and_store_production_calls(
             # full backfill instead of inheriting the other env's cutoff.
             start_after: datetime | None = None
             if incremental:
-                start_after = crud.get_latest_call_started_at(
-                    session=session,
-                    agent_id=agent.id,
-                    retell_agent_id=agent.platform_agent_id,
-                )
+                if env.platform == Platform.TELNYX:
+                    start_after = crud.get_latest_telnyx_call_started_at(
+                        session=session,
+                        agent_id=agent.id,
+                        telnyx_agent_id=agent.platform_agent_id,
+                    )
+                else:
+                    start_after = crud.get_latest_call_started_at(
+                        session=session,
+                        agent_id=agent.id,
+                        retell_agent_id=agent.platform_agent_id,
+                    )
             env_event["start_after"] = start_after
             for iteration in range(_MAX_FETCH_ITERATIONS):
                 env_event["iterations"] = iteration + 1
@@ -152,6 +161,32 @@ async def _fetch_and_store_production_calls(
                             agent_id=agent.id,
                             integration_id=integration.id,
                             retell_calls=batch,
+                        )
+                        newest = max(
+                            (
+                                c.start_timestamp
+                                for c in batch
+                                if c.start_timestamp is not None
+                            ),
+                            default=None,
+                        )
+                        next_after = (
+                            datetime.fromtimestamp(newest / 1000, tz=UTC)
+                            if newest is not None
+                            else None
+                        )
+                    elif env.platform == Platform.TELNYX:
+                        batch = await list_telnyx_calls(
+                            api_key,
+                            agent_id=agent.platform_agent_id,
+                            start_after=start_after,
+                            limit=_RETELL_PAGE_SIZE,
+                        )
+                        inserted = crud.upsert_calls_from_telnyx(
+                            session=session,
+                            agent_id=agent.id,
+                            integration_id=integration.id,
+                            telnyx_calls=batch,
                         )
                         newest = max(
                             (
@@ -455,6 +490,8 @@ def get_call_detail(
         agent_id=call.agent_id,
         retell_call_id=call.retell_call_id,
         retell_agent_id=call.retell_agent_id,
+        telnyx_call_id=call.telnyx_call_id,
+        telnyx_agent_id=call.telnyx_agent_id,
         started_at=call.started_at,
         duration_seconds=call.duration_seconds,
         status=call.status,

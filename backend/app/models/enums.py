@@ -71,6 +71,7 @@ class PromptEditorSessionStatus(StrEnum):
 
 class Platform(StrEnum):
     RETELL = "retell"
+    TELNYX = "telnyx"
     VAPI = "vapi"
     ELEVENLABS = "elevenlabs"
     WEBHOOK = "webhook"
@@ -89,6 +90,7 @@ class TextRuntimeKind(StrEnum):
 
 class IntegrationProvider(StrEnum):
     RETELL = "retell"
+    TELNYX = "telnyx"
     VAPI = "vapi"
     ELEVENLABS = "elevenlabs"
 
