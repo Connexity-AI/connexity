@@ -1,8 +1,6 @@
 import logging
-from typing import Any
 
-from fastapi import APIRouter, Request
-from pydantic import BaseModel
+from fastapi import APIRouter
 
 from app.core.config import settings
 from app.models import Message
@@ -12,12 +10,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["health"])
 
 DOCS_URL = "https://github.com/Connexity-AI/connexity/blob/main/README.md"
-
-
-class MockWebhookResponse(BaseModel):
-    message: str
-    received_event_type: str | None = None
-    payload_received: bool
 
 
 @router.get("/", response_model=Message)
@@ -40,27 +32,3 @@ def health() -> Message:
         logger.error(message)
 
     return Message(message=message)
-
-
-@router.post("/mock-webhook", response_model=MockWebhookResponse)
-async def mock_webhook(request: Request) -> MockWebhookResponse:
-    payload: dict[str, Any] | None = None
-
-    try:
-        body = await request.json()
-        if isinstance(body, dict):
-            payload = body
-    except ValueError:
-        payload = None
-
-    event_type = None
-    if payload is not None:
-        candidate = payload.get("event_type")
-        if isinstance(candidate, str):
-            event_type = candidate
-
-    return MockWebhookResponse(
-        message="Mock webhook received payload",
-        received_event_type=event_type,
-        payload_received=payload is not None,
-    )

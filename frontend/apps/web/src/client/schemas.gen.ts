@@ -25,6 +25,62 @@ export const AgentCreateSchema = {
       description: 'endpoint: HTTP agent; platform: LLM simulated on the platform',
       default: 'endpoint',
     },
+    platform: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Platform',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description:
+        "Voice/agent platform this agent targets. Drives which evaluation engines are available. Null for legacy rows; use 'webhook' for custom HTTP agents.",
+    },
+    prompt_type: {
+      $ref: '#/components/schemas/AgentPromptType',
+      description: 'single_prompt: one system prompt; multi_prompt reserved for future use',
+      default: 'single_prompt',
+    },
+    integration_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Integration Id',
+      description: 'Integration used for Retell, Vapi, or ElevenLabs provider agent',
+    },
+    platform_agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Id',
+      description: 'Provider agent or assistant id when bound to an integration',
+    },
+    platform_agent_name: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Name',
+      description: 'Display name of the provider agent at bind time',
+    },
     endpoint_url: {
       anyOf: [
         {
@@ -141,6 +197,57 @@ export const AgentCreateDraftSchema = {
       maxLength: 255,
       title: 'Name',
       default: 'Untitled Agent',
+    },
+    platform: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Platform',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'When set with integration and platform_agent_id, imports config from provider',
+    },
+    prompt_type: {
+      $ref: '#/components/schemas/AgentPromptType',
+      default: 'single_prompt',
+    },
+    integration_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Integration Id',
+    },
+    platform_agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Id',
+    },
+    platform_agent_name: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Name',
     },
   },
   type: 'object',
@@ -271,6 +378,78 @@ export const AgentGuidelinesUpdateSchema = {
   title: 'AgentGuidelinesUpdate',
 } as const;
 
+export const AgentLastEvalSummarySchema = {
+  properties: {
+    run_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Run Id',
+      description: 'Latest completed run id',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+      description: 'When the latest completed run was created',
+    },
+    aggregate_metrics: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/AggregateMetrics',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Aggregate metrics snapshot from the latest completed run',
+    },
+  },
+  type: 'object',
+  required: ['run_id', 'created_at'],
+  title: 'AgentLastEvalSummary',
+} as const;
+
+export const AgentLatestPublishedVersionPublicSchema = {
+  properties: {
+    version: {
+      type: 'integer',
+      title: 'Version',
+      description: 'Active published version number',
+    },
+    version_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version Name',
+    },
+    version_description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version Description',
+    },
+  },
+  type: 'object',
+  required: ['version'],
+  title: 'AgentLatestPublishedVersionPublic',
+} as const;
+
+export const AgentPromptTypeSchema = {
+  type: 'string',
+  enum: ['single_prompt', 'multi_prompt'],
+  title: 'AgentPromptType',
+} as const;
+
 export const AgentPublicSchema = {
   properties: {
     name: {
@@ -295,6 +474,62 @@ export const AgentPublicSchema = {
       $ref: '#/components/schemas/app__models__enums__AgentMode',
       description: 'endpoint: HTTP agent; platform: LLM simulated on the platform',
       default: 'endpoint',
+    },
+    platform: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Platform',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description:
+        "Voice/agent platform this agent targets. Drives which evaluation engines are available. Null for legacy rows; use 'webhook' for custom HTTP agents.",
+    },
+    prompt_type: {
+      $ref: '#/components/schemas/AgentPromptType',
+      description: 'single_prompt: one system prompt; multi_prompt reserved for future use',
+      default: 'single_prompt',
+    },
+    integration_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Integration Id',
+      description: 'Integration used for Retell, Vapi, or ElevenLabs provider agent',
+    },
+    platform_agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Id',
+      description: 'Provider agent or assistant id when bound to an integration',
+    },
+    platform_agent_name: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Name',
+      description: 'Display name of the provider agent at bind time',
     },
     endpoint_url: {
       anyOf: [
@@ -422,6 +657,28 @@ export const AgentPublicSchema = {
       title: 'Updated At',
       description: 'When the agent was last updated',
     },
+    latest_published_version: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/AgentLatestPublishedVersionPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Summary of the active published version for list UI',
+    },
+    last_eval: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/AgentLastEvalSummary',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Latest completed eval run summary for this agent, if any',
+    },
   },
   type: 'object',
   required: ['name', 'id', 'has_draft', 'created_at', 'updated_at'],
@@ -545,12 +802,18 @@ export const AgentToolDefinitionSchema = {
       ],
       title: 'Parameters',
     },
+    terminating: {
+      type: 'boolean',
+      title: 'Terminating',
+      description: 'True when the raw tool row has platform_config.terminating.',
+      default: false,
+    },
   },
   type: 'object',
   required: ['name'],
   title: 'AgentToolDefinition',
   description:
-    'Prompt-facing tool: ``parameters`` is a full JSON Schema (properties, required, ...).',
+    'Prompt-facing tool: ``parameters`` is a full JSON Schema (properties, required, ...).\n\n``terminating`` mirrors ``platform_config.terminating`` from stored agent tools.\nIt is excluded from :meth:`to_prompt_dict` and from batch/interactive tool\nsummaries so prompts stay unchanged; consumers (e.g. test-case validation) use\nit to treat hangup/transfer tools differently.',
 } as const;
 
 export const AgentUpdateSchema = {
@@ -590,6 +853,63 @@ export const AgentUpdateSchema = {
         },
       ],
       description: 'endpoint: HTTP agent; platform: LLM simulated on the platform',
+    },
+    platform: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Platform',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Voice/agent platform this agent targets',
+    },
+    prompt_type: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/AgentPromptType',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    integration_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Integration Id',
+    },
+    platform_agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Id',
+    },
+    platform_agent_name: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Name',
     },
     endpoint_url: {
       anyOf: [
@@ -1457,6 +1777,16 @@ export const CallPublicSchema = {
       ],
       title: 'Status',
     },
+    provider: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/app__models__enums__IntegrationProvider__2',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
     transcript: {
       anyOf: [
         {
@@ -1588,6 +1918,22 @@ export const ConfigPublicSchema = {
   type: 'object',
   required: ['project_name', 'api_version', 'environment', 'docs_url', 'default_llm_model'],
   title: 'ConfigPublic',
+} as const;
+
+export const ConnexityRuntimeConfigSchema = {
+  properties: {
+    kind: {
+      type: 'string',
+      enum: ['connexity'],
+      const: 'connexity',
+      title: 'Kind',
+      default: 'connexity',
+    },
+  },
+  type: 'object',
+  title: 'ConnexityRuntimeConfig',
+  description:
+    'Connexity text runtime: in-process user simulator + platform AgentSimulator.\n\nRequires a non-empty ``system_prompt`` on the agent for validation at eval-config\ntime. For HTTP agents without platform prompts, use ``CustomEndpointRuntimeConfig``.',
 } as const;
 
 export const ConversationTurn_InputSchema = {
@@ -1760,6 +2106,30 @@ export const ConversationTurn_OutputSchema = {
   type: 'object',
   required: ['index', 'role', 'timestamp'],
   title: 'ConversationTurn',
+} as const;
+
+export const CustomEndpointRuntimeConfigSchema = {
+  properties: {
+    kind: {
+      type: 'string',
+      enum: ['custom_endpoint'],
+      const: 'custom_endpoint',
+      title: 'Kind',
+      default: 'custom_endpoint',
+    },
+    url: {
+      type: 'string',
+      maxLength: 2048,
+      minLength: 1,
+      title: 'Url',
+      description: 'Chat-completions URL that receives AgentRequest payloads',
+    },
+  },
+  type: 'object',
+  required: ['url'],
+  title: 'CustomEndpointRuntimeConfig',
+  description:
+    "Run evals against a user-provided HTTP endpoint.\n\nThe configured ``url`` must follow Connexity's OpenAI-compatible chat\ncompletions contract (see ``app.models.agent_contract``): POST\n``AgentRequest`` → ``AgentResponse``.",
 } as const;
 
 export const CustomMetricCreateSchema = {
@@ -2198,40 +2568,6 @@ export const EnvironmentCreateSchema = {
       format: 'uuid',
       title: 'Agent Id',
     },
-    integration_id: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'uuid',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Integration Id',
-    },
-    platform_agent_id: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Platform Agent Id',
-    },
-    platform_agent_name: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Platform Agent Name',
-    },
     endpoint_url: {
       anyOf: [
         {
@@ -2284,18 +2620,6 @@ export const EnvironmentPublicSchema = {
       format: 'uuid',
       title: 'Agent Id',
     },
-    integration_id: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'uuid',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Integration Id',
-    },
     integration_name: {
       anyOf: [
         {
@@ -2306,28 +2630,6 @@ export const EnvironmentPublicSchema = {
         },
       ],
       title: 'Integration Name',
-    },
-    platform_agent_id: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Platform Agent Id',
-    },
-    platform_agent_name: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Platform Agent Name',
     },
     endpoint_url: {
       anyOf: [
@@ -2398,10 +2700,7 @@ export const EnvironmentPublicSchema = {
     'platform',
     'id',
     'agent_id',
-    'integration_id',
     'integration_name',
-    'platform_agent_id',
-    'platform_agent_name',
     'endpoint_url',
     'current_version_number',
     'current_version_name',
@@ -2435,40 +2734,6 @@ export const EnvironmentUpdateSchema = {
           type: 'null',
         },
       ],
-    },
-    integration_id: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'uuid',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Integration Id',
-    },
-    platform_agent_id: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Platform Agent Id',
-    },
-    platform_agent_name: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Platform Agent Name',
     },
     endpoint_url: {
       anyOf: [
@@ -2910,23 +3175,21 @@ export const ExpectedToolCallSchema = {
         },
       ],
       title: 'Expected Params',
-      description: 'Key parameters the judge verifies; null = any params acceptable',
+      description:
+        'Used for mock routing (required argument keys must be present in the live call; values ignored) and generator alignment; null matches any invocation. Use {{paramName}} tokens for simulator- or agent-varying values.',
     },
-    mock_responses: {
+    mock_response: {
       anyOf: [
         {
-          items: {
-            $ref: '#/components/schemas/MockResponse',
-          },
-          type: 'array',
+          type: 'object',
         },
         {
           type: 'null',
         },
       ],
-      title: 'Mock Responses',
+      title: 'Mock Response',
       description:
-        'Ordered mock responses consumed sequentially during platform agent simulation. First entry whose expected_params partially matches is popped and returned.',
+        'Canned JSON object returned as the tool result in mock mode. Use one expected_tool_calls row per mocked invocation when the same tool is called multiple times.',
     },
   },
   type: 'object',
@@ -3225,8 +3488,7 @@ export const IntegrationCreateSchema = {
   properties: {
     provider: {
       type: 'string',
-      enum: ['retell'],
-      const: 'retell',
+      enum: ['retell', 'vapi', 'elevenlabs'],
       maxLength: 64,
       title: 'IntegrationProvider',
     },
@@ -3245,10 +3507,9 @@ export const IntegrationCreateSchema = {
   title: 'IntegrationCreate',
 } as const;
 
-export const IntegrationProviderSchema = {
+export const IntegrationProvider_InputSchema = {
   type: 'string',
-  enum: ['retell'],
-  const: 'retell',
+  enum: ['retell', 'vapi', 'elevenlabs'],
   maxLength: 64,
   title: 'IntegrationProvider',
 } as const;
@@ -3257,8 +3518,7 @@ export const IntegrationPublicSchema = {
   properties: {
     provider: {
       type: 'string',
-      enum: ['retell'],
-      const: 'retell',
+      enum: ['retell', 'vapi', 'elevenlabs'],
       maxLength: 64,
       title: 'IntegrationProvider',
     },
@@ -4002,58 +4262,6 @@ export const MetricTierSchema = {
   title: 'MetricTier',
 } as const;
 
-export const MockResponseSchema = {
-  properties: {
-    expected_params: {
-      anyOf: [
-        {
-          type: 'object',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Expected Params',
-      description: 'Partial-match filter on tool arguments; null = match any call',
-    },
-    response: {
-      type: 'object',
-      title: 'Response',
-      description: 'Canned return value sent back to the LLM as the tool result',
-    },
-  },
-  type: 'object',
-  required: ['response'],
-  title: 'MockResponse',
-} as const;
-
-export const MockWebhookResponseSchema = {
-  properties: {
-    message: {
-      type: 'string',
-      title: 'Message',
-    },
-    received_event_type: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Received Event Type',
-    },
-    payload_received: {
-      type: 'boolean',
-      title: 'Payload Received',
-    },
-  },
-  type: 'object',
-  required: ['message', 'payload_received'],
-  title: 'MockWebhookResponse',
-} as const;
-
 export const OnConflictSchema = {
   type: 'string',
   enum: ['skip', 'overwrite'],
@@ -4062,7 +4270,7 @@ export const OnConflictSchema = {
 
 export const PlatformSchema = {
   type: 'string',
-  enum: ['retell', 'webhook'],
+  enum: ['retell', 'vapi', 'elevenlabs', 'webhook'],
   title: 'Platform',
 } as const;
 
@@ -4706,6 +4914,22 @@ export const RetellAgentVersionSchema = {
   title: 'RetellAgentVersion',
 } as const;
 
+export const RetellRuntimeConfigSchema = {
+  properties: {
+    kind: {
+      type: 'string',
+      enum: ['retell'],
+      const: 'retell',
+      title: 'Kind',
+      default: 'retell',
+    },
+  },
+  type: 'object',
+  title: 'RetellRuntimeConfig',
+  description:
+    'Retell text runtime.\n\nConnexity owns the user simulator and judge. The Retell runtime will call\nRetell as the agent side via chat APIs once implemented.',
+} as const;
+
 export const RunComparisonSchema = {
   properties: {
     baseline_run_id: {
@@ -4858,7 +5082,7 @@ export const RunConfig_InputSchema = {
       enum: ['mock', 'live'],
       title: 'Tool Mode',
       description:
-        'Global tool execution mode: mock uses test-case mock_responses, live executes real implementations',
+        'Global tool execution mode: mock uses test-case expected_tool_calls.mock_response payloads, live executes real implementations',
       default: 'mock',
     },
     metrics_pass_threshold: {
@@ -4911,7 +5135,36 @@ export const RunConfig_InputSchema = {
           type: 'null',
         },
       ],
-      description: 'Agent simulator LLM overrides. Only applies when the agent mode is platform.',
+      description:
+        'Agent simulator LLM overrides. Applies when the selected text runtime uses AgentSimulator (Connexity).',
+    },
+    mode: {
+      $ref: '#/components/schemas/RunMode',
+      description: 'Run modality: text today, voice for future realtime simulations.',
+      default: 'text',
+    },
+    runtime: {
+      oneOf: [
+        {
+          $ref: '#/components/schemas/ConnexityRuntimeConfig',
+        },
+        {
+          $ref: '#/components/schemas/RetellRuntimeConfig',
+        },
+        {
+          $ref: '#/components/schemas/CustomEndpointRuntimeConfig',
+        },
+      ],
+      title: 'Runtime',
+      description: 'Runtime that drives the eval for the selected mode.',
+      discriminator: {
+        propertyName: 'kind',
+        mapping: {
+          connexity: '#/components/schemas/ConnexityRuntimeConfig',
+          custom_endpoint: '#/components/schemas/CustomEndpointRuntimeConfig',
+          retell: '#/components/schemas/RetellRuntimeConfig',
+        },
+      },
     },
   },
   type: 'object',
@@ -4949,7 +5202,7 @@ export const RunConfig_OutputSchema = {
       enum: ['mock', 'live'],
       title: 'Tool Mode',
       description:
-        'Global tool execution mode: mock uses test-case mock_responses, live executes real implementations',
+        'Global tool execution mode: mock uses test-case expected_tool_calls.mock_response payloads, live executes real implementations',
       default: 'mock',
     },
     metrics_pass_threshold: {
@@ -5002,7 +5255,36 @@ export const RunConfig_OutputSchema = {
           type: 'null',
         },
       ],
-      description: 'Agent simulator LLM overrides. Only applies when the agent mode is platform.',
+      description:
+        'Agent simulator LLM overrides. Applies when the selected text runtime uses AgentSimulator (Connexity).',
+    },
+    mode: {
+      $ref: '#/components/schemas/RunMode',
+      description: 'Run modality: text today, voice for future realtime simulations.',
+      default: 'text',
+    },
+    runtime: {
+      oneOf: [
+        {
+          $ref: '#/components/schemas/ConnexityRuntimeConfig',
+        },
+        {
+          $ref: '#/components/schemas/RetellRuntimeConfig',
+        },
+        {
+          $ref: '#/components/schemas/CustomEndpointRuntimeConfig',
+        },
+      ],
+      title: 'Runtime',
+      description: 'Runtime that drives the eval for the selected mode.',
+      discriminator: {
+        propertyName: 'kind',
+        mapping: {
+          connexity: '#/components/schemas/ConnexityRuntimeConfig',
+          custom_endpoint: '#/components/schemas/CustomEndpointRuntimeConfig',
+          retell: '#/components/schemas/RetellRuntimeConfig',
+        },
+      },
     },
   },
   type: 'object',
@@ -5279,6 +5561,12 @@ export const RunCreateSchema = {
   type: 'object',
   required: ['agent_id', 'eval_config_id'],
   title: 'RunCreate',
+} as const;
+
+export const RunModeSchema = {
+  type: 'string',
+  enum: ['text', 'voice'],
+  title: 'RunMode',
 } as const;
 
 export const RunPublicSchema = {
@@ -5594,6 +5882,112 @@ export const RunsPublicSchema = {
   type: 'object',
   required: ['data', 'count'],
   title: 'RunsPublic',
+} as const;
+
+export const RuntimeOptionSchema = {
+  properties: {
+    kind: {
+      $ref: '#/components/schemas/TextRuntimeKind',
+      description: 'Runtime identifier',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+      description: 'Human-readable name',
+    },
+    description: {
+      type: 'string',
+      title: 'Description',
+      description: 'Short marketing tagline',
+    },
+    is_default: {
+      type: 'boolean',
+      title: 'Is Default',
+      description: 'True when this is the recommended default',
+      default: false,
+    },
+  },
+  type: 'object',
+  required: ['kind', 'label', 'description'],
+  title: 'RuntimeOption',
+  description: 'One runtime choice exposed to the UI dropdown.',
+} as const;
+
+export const RuntimeOptionsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/RuntimeOption',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Runtimes available for the agent, in stable display order',
+    },
+  },
+  type: 'object',
+  required: ['data'],
+  title: 'RuntimeOptionsPublic',
+} as const;
+
+export const RuntimeTestRequestSchema = {
+  properties: {
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+      description: 'Agent the runtime will run against',
+    },
+    mode: {
+      $ref: '#/components/schemas/RunMode',
+      description: 'Run mode for this runtime',
+      default: 'text',
+    },
+    runtime: {
+      oneOf: [
+        {
+          $ref: '#/components/schemas/ConnexityRuntimeConfig',
+        },
+        {
+          $ref: '#/components/schemas/RetellRuntimeConfig',
+        },
+        {
+          $ref: '#/components/schemas/CustomEndpointRuntimeConfig',
+        },
+      ],
+      title: 'Runtime',
+      description: 'Runtime config under test',
+      discriminator: {
+        propertyName: 'kind',
+        mapping: {
+          connexity: '#/components/schemas/ConnexityRuntimeConfig',
+          custom_endpoint: '#/components/schemas/CustomEndpointRuntimeConfig',
+          retell: '#/components/schemas/RetellRuntimeConfig',
+        },
+      },
+    },
+  },
+  type: 'object',
+  required: ['agent_id', 'runtime'],
+  title: 'RuntimeTestRequest',
+} as const;
+
+export const RuntimeTestResultSchema = {
+  properties: {
+    ok: {
+      type: 'boolean',
+      title: 'Ok',
+      description: 'True when the runtime config passed the smoke test',
+    },
+    message: {
+      type: 'string',
+      title: 'Message',
+      description: 'Human-readable detail',
+    },
+  },
+  type: 'object',
+  required: ['ok', 'message'],
+  title: 'RuntimeTestResult',
+  description: 'Outcome of POST /eval-configs/test-runtime.',
 } as const;
 
 export const ScoreTypeSchema = {
@@ -7262,6 +7656,12 @@ export const TestCasesPublicSchema = {
   title: 'TestCasesPublic',
 } as const;
 
+export const TextRuntimeKindSchema = {
+  type: 'string',
+  enum: ['connexity', 'retell', 'custom_endpoint'],
+  title: 'TextRuntimeKind',
+} as const;
+
 export const TokenSchema = {
   properties: {
     access_token: {
@@ -7911,6 +8311,19 @@ export const app__models__enums__AgentModeSchema = {
   type: 'string',
   enum: ['endpoint', 'platform'],
   title: 'AgentMode',
+} as const;
+
+export const app__models__enums__IntegrationProvider__1Schema = {
+  type: 'string',
+  enum: ['retell', 'vapi', 'elevenlabs'],
+  maxLength: 64,
+  title: 'IntegrationProvider',
+} as const;
+
+export const app__models__enums__IntegrationProvider__2Schema = {
+  type: 'string',
+  enum: ['retell', 'vapi', 'elevenlabs'],
+  title: 'IntegrationProvider',
 } as const;
 
 export const app__services__test_case_generator__interactive__schemas__AgentModeSchema = {

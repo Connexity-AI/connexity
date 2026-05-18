@@ -134,12 +134,20 @@ const FormDescription = React.forwardRef<
 });
 FormDescription.displayName = 'FormDescription';
 
+function resolveFormMessageBody(errorMessage: unknown, children: React.ReactNode): React.ReactNode {
+  if (typeof errorMessage === 'string' && errorMessage.trim().length > 0) {
+    return errorMessage;
+  }
+
+  return children;
+}
+
 const FormMessage = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, children, ...props }, ref) => {
   const { error, formMessageId } = useFormField();
-  const body = error ? String(error?.message) : children;
+  const body = resolveFormMessageBody(error?.message, children);
 
   if (!body) {
     return null;

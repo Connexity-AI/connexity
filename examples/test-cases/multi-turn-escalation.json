@@ -28,52 +28,38 @@
     {
       "tool": "lookup_account",
       "expected_params": { "account_id": "ACC-77777" },
-      "mock_responses": [
-        {
-          "expected_params": { "account_id": "ACC-77777" },
-          "response": {
-            "account_id": "ACC-77777",
-            "subscription_plan": "Business Pro",
-            "customer_since": "2024-01-15",
-            "lifetime_value": 3600.0,
-            "support_notes": "Customer reported recurring billing overcharge; 3 prior contacts logged"
-          }
-        }
-      ]
+      "mock_response": {
+        "account_id": "ACC-77777",
+        "subscription_plan": "Business Pro",
+        "customer_since": "2024-01-15",
+        "lifetime_value": 3600.0,
+        "support_notes": "Customer reported recurring billing overcharge; 3 prior contacts logged"
+      }
     },
     {
       "tool": "get_billing_history",
       "expected_params": { "account_id": "ACC-77777" },
-      "mock_responses": [
-        {
-          "expected_params": { "account_id": "ACC-77777" },
-          "response": {
-            "account_id": "ACC-77777",
-            "charges": [
-              { "period": "2025-12", "billed": 99.0, "plan_expected": 49.0, "variance": 50.0 },
-              { "period": "2026-01", "billed": 99.0, "plan_expected": 49.0, "variance": 50.0 },
-              { "period": "2026-02", "billed": 99.0, "plan_expected": 49.0, "variance": 50.0 }
-            ],
-            "total_overcharge": 150.0,
-            "summary": "Three consecutive months show $50 overcharge vs plan"
-          }
-        }
-      ]
+      "mock_response": {
+        "account_id": "ACC-77777",
+        "charges": [
+          { "period": "2025-12", "billed": 99.0, "plan_expected": 49.0, "variance": 50.0 },
+          { "period": "2026-01", "billed": 99.0, "plan_expected": 49.0, "variance": 50.0 },
+          { "period": "2026-02", "billed": 99.0, "plan_expected": 49.0, "variance": 50.0 }
+        ],
+        "total_overcharge": 150.0,
+        "summary": "Three consecutive months show $50 overcharge vs plan"
+      }
     },
     {
       "tool": "escalate_to_supervisor",
       "expected_params": null,
-      "mock_responses": [
-        {
-          "response": {
-            "ticket_id": "ESC-MOCK-001",
-            "status": "queued",
-            "eta_minutes": 15,
-            "reason": "customer_requested",
-            "account_id": null
-          }
-        }
-      ]
+      "mock_response": {
+        "ticket_id": "ESC-MOCK-001",
+        "status": "queued",
+        "eta_minutes": 15,
+        "reason": "customer_requested",
+        "account_id": null
+      }
     }
   ]
 }

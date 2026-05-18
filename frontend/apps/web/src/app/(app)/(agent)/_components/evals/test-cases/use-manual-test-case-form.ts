@@ -8,6 +8,7 @@ import { useForm, useFormContext } from 'react-hook-form';
 
 import {
   buildTestCaseFormSchema,
+  parseMockResponseJsonField,
   TEST_CASE_FORM_EMPTY_DEFAULTS,
   type TestCaseFormValues,
 } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-form-schema';
@@ -44,10 +45,13 @@ function formValuesToCreatePayload(
     first_message: values.first_message,
     persona_context: values.persona_context,
     expected_outcomes: values.expected_outcomes.map((o) => o.value),
-    expected_tool_calls: values.expected_tool_calls.map((call) => ({
-      tool: call.tool,
-      expected_params: call.expected_params,
-    })),
+    expected_tool_calls: values.expected_tool_calls
+      .filter((call) => call.tool.trim())
+      .map((call) => ({
+        tool: call.tool,
+        expected_params: call.expected_params,
+        mock_response: parseMockResponseJsonField(call.mock_response_json),
+      })),
     agent_id: agentId,
     source_call_id: sourceCallId ?? null,
   };

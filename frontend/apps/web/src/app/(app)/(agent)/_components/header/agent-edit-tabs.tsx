@@ -40,14 +40,26 @@ export function AgentEditTabs() {
           ))}
         </TabsList>
 
-        <PromptTab />
-
-        <ToolsTab />
-
-        <SettingsTab />
+        <ActiveTabContent tab={tab} />
       </Tabs>
     </main>
   );
+}
+
+function ActiveTabContent({ tab }: { tab: TabId }) {
+  if (tab === 'prompt') {
+    return <PromptTab />;
+  }
+
+  if (tab === 'tools') {
+    return <ToolsTab />;
+  }
+
+  if (tab === 'settings') {
+    return <SettingsTab />;
+  }
+
+  return <PromptTab />;
 }
 
 function AgentTabTrigger({ tab }: { tab: (typeof TABS)[number] }) {

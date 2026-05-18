@@ -23,36 +23,26 @@
     {
       "tool": "lookup_order",
       "expected_params": { "order_id": "ORD-12345" },
-      "mock_responses": [
-        {
-          "expected_params": { "order_id": "ORD-12345" },
-          "response": {
-            "order_id": "ORD-12345",
-            "status": "delivered",
-            "amount": 49.99,
-            "product": "Wireless Mouse Pro",
-            "purchase_date": "2026-03-15",
-            "payment_method": "credit_card",
-            "eligible_refund": true
-          }
-        }
-      ]
+      "mock_response": {
+        "order_id": "ORD-12345",
+        "status": "delivered",
+        "amount": 49.99,
+        "product": "Wireless Mouse Pro",
+        "purchase_date": "2026-03-15",
+        "payment_method": "credit_card",
+        "eligible_refund": true
+      }
     },
     {
       "tool": "process_refund",
-      "expected_params": { "order_id": "ORD-12345", "amount": 49.99 },
-      "mock_responses": [
-        {
-          "expected_params": { "order_id": "ORD-12345" },
-          "response": {
-            "status": "completed",
-            "refund_id": "RF-MOCK-001",
-            "order_id": "ORD-12345",
-            "amount": 49.99,
-            "message": "Refund submitted to payment provider; 5-7 business days"
-          }
-        }
-      ]
+      "expected_params": { "order_id": "ORD-12345" },
+      "mock_response": {
+        "status": "completed",
+        "refund_id": "RF-MOCK-001",
+        "order_id": "ORD-12345",
+        "amount": 49.99,
+        "message": "Refund submitted to payment provider; 5-7 business days"
+      }
     }
   ]
 }

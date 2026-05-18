@@ -25,6 +25,32 @@ export type AgentCreate = {
    */
   mode?: AppModelsEnumsAgentMode;
   /**
+   * Voice/agent platform this agent targets. Drives which evaluation engines are available. Null for legacy rows; use 'webhook' for custom HTTP agents.
+   */
+  platform?: Platform | null;
+  /**
+   * single_prompt: one system prompt; multi_prompt reserved for future use
+   */
+  prompt_type?: AgentPromptType;
+  /**
+   * Integration Id
+   *
+   * Integration used for Retell, Vapi, or ElevenLabs provider agent
+   */
+  integration_id?: string | null;
+  /**
+   * Platform Agent Id
+   *
+   * Provider agent or assistant id when bound to an integration
+   */
+  platform_agent_id?: string | null;
+  /**
+   * Platform Agent Name
+   *
+   * Display name of the provider agent at bind time
+   */
+  platform_agent_name?: string | null;
+  /**
    * Endpoint Url
    *
    * URL of the agent's API endpoint (required when mode=endpoint)
@@ -86,6 +112,23 @@ export type AgentCreateDraft = {
    * Name
    */
   name?: string;
+  /**
+   * When set with integration and platform_agent_id, imports config from provider
+   */
+  platform?: Platform | null;
+  prompt_type?: AgentPromptType;
+  /**
+   * Integration Id
+   */
+  integration_id?: string | null;
+  /**
+   * Platform Agent Id
+   */
+  platform_agent_id?: string | null;
+  /**
+   * Platform Agent Name
+   */
+  platform_agent_name?: string | null;
 };
 
 /**
@@ -154,6 +197,61 @@ export type AgentGuidelinesUpdate = {
 };
 
 /**
+ * AgentLastEvalSummary
+ */
+export type AgentLastEvalSummary = {
+  /**
+   * Run Id
+   *
+   * Latest completed run id
+   */
+  run_id: string;
+  /**
+   * Created At
+   *
+   * When the latest completed run was created
+   */
+  created_at: string;
+  /**
+   * Aggregate metrics snapshot from the latest completed run
+   */
+  aggregate_metrics?: AggregateMetrics | null;
+};
+
+/**
+ * AgentLatestPublishedVersionPublic
+ */
+export type AgentLatestPublishedVersionPublic = {
+  /**
+   * Version
+   *
+   * Active published version number
+   */
+  version: number;
+  /**
+   * Version Name
+   */
+  version_name?: string | null;
+  /**
+   * Version Description
+   */
+  version_description?: string | null;
+};
+
+/**
+ * AgentPromptType
+ */
+export const AgentPromptType = {
+  SINGLE_PROMPT: 'single_prompt',
+  MULTI_PROMPT: 'multi_prompt',
+} as const;
+
+/**
+ * AgentPromptType
+ */
+export type AgentPromptType = (typeof AgentPromptType)[keyof typeof AgentPromptType];
+
+/**
  * AgentPublic
  */
 export type AgentPublic = {
@@ -173,6 +271,32 @@ export type AgentPublic = {
    * endpoint: HTTP agent; platform: LLM simulated on the platform
    */
   mode?: AppModelsEnumsAgentMode;
+  /**
+   * Voice/agent platform this agent targets. Drives which evaluation engines are available. Null for legacy rows; use 'webhook' for custom HTTP agents.
+   */
+  platform?: Platform | null;
+  /**
+   * single_prompt: one system prompt; multi_prompt reserved for future use
+   */
+  prompt_type?: AgentPromptType;
+  /**
+   * Integration Id
+   *
+   * Integration used for Retell, Vapi, or ElevenLabs provider agent
+   */
+  integration_id?: string | null;
+  /**
+   * Platform Agent Id
+   *
+   * Provider agent or assistant id when bound to an integration
+   */
+  platform_agent_id?: string | null;
+  /**
+   * Platform Agent Name
+   *
+   * Display name of the provider agent at bind time
+   */
+  platform_agent_name?: string | null;
   /**
    * Endpoint Url
    *
@@ -249,6 +373,14 @@ export type AgentPublic = {
    * When the agent was last updated
    */
   updated_at: string;
+  /**
+   * Summary of the active published version for list UI
+   */
+  latest_published_version?: AgentLatestPublishedVersionPublic | null;
+  /**
+   * Latest completed eval run summary for this agent, if any
+   */
+  last_eval?: AgentLastEvalSummary | null;
 };
 
 /**
@@ -305,6 +437,11 @@ export type AgentSimulatorConfig = {
  * AgentToolDefinition
  *
  * Prompt-facing tool: ``parameters`` is a full JSON Schema (properties, required, ...).
+ *
+ * ``terminating`` mirrors ``platform_config.terminating`` from stored agent tools.
+ * It is excluded from :meth:`to_prompt_dict` and from batch/interactive tool
+ * summaries so prompts stay unchanged; consumers (e.g. test-case validation) use
+ * it to treat hangup/transfer tools differently.
  */
 export type AgentToolDefinition = {
   /**
@@ -321,6 +458,12 @@ export type AgentToolDefinition = {
   parameters?: {
     [key: string]: unknown;
   } | null;
+  /**
+   * Terminating
+   *
+   * True when the raw tool row has platform_config.terminating.
+   */
+  terminating?: boolean;
 };
 
 /**
@@ -343,6 +486,23 @@ export type AgentUpdate = {
    * endpoint: HTTP agent; platform: LLM simulated on the platform
    */
   mode?: AppModelsEnumsAgentMode | null;
+  /**
+   * Voice/agent platform this agent targets
+   */
+  platform?: Platform | null;
+  prompt_type?: AgentPromptType | null;
+  /**
+   * Integration Id
+   */
+  integration_id?: string | null;
+  /**
+   * Platform Agent Id
+   */
+  platform_agent_id?: string | null;
+  /**
+   * Platform Agent Name
+   */
+  platform_agent_name?: string | null;
   /**
    * Endpoint Url
    *
@@ -810,6 +970,7 @@ export type CallPublic = {
    * Status
    */
   status?: string | null;
+  provider?: AppModelsEnumsIntegrationProvider2 | null;
   /**
    * Transcript
    */
@@ -919,6 +1080,21 @@ export type ConfigPublic = {
 };
 
 /**
+ * ConnexityRuntimeConfig
+ *
+ * Connexity text runtime: in-process user simulator + platform AgentSimulator.
+ *
+ * Requires a non-empty ``system_prompt`` on the agent for validation at eval-config
+ * time. For HTTP agents without platform prompts, use ``CustomEndpointRuntimeConfig``.
+ */
+export type ConnexityRuntimeConfig = {
+  /**
+   * Kind
+   */
+  kind?: 'connexity';
+};
+
+/**
  * ConversationTurn
  */
 export type ConversationTurnInput = {
@@ -1020,6 +1196,28 @@ export type ConversationTurnOutput = {
    * When this turn occurred
    */
   timestamp: string;
+};
+
+/**
+ * CustomEndpointRuntimeConfig
+ *
+ * Run evals against a user-provided HTTP endpoint.
+ *
+ * The configured ``url`` must follow Connexity's OpenAI-compatible chat
+ * completions contract (see ``app.models.agent_contract``): POST
+ * ``AgentRequest`` → ``AgentResponse``.
+ */
+export type CustomEndpointRuntimeConfig = {
+  /**
+   * Kind
+   */
+  kind?: 'custom_endpoint';
+  /**
+   * Url
+   *
+   * Chat-completions URL that receives AgentRequest payloads
+   */
+  url: string;
 };
 
 /**
@@ -1293,18 +1491,6 @@ export type EnvironmentCreate = {
    */
   agent_id: string;
   /**
-   * Integration Id
-   */
-  integration_id?: string | null;
-  /**
-   * Platform Agent Id
-   */
-  platform_agent_id?: string | null;
-  /**
-   * Platform Agent Name
-   */
-  platform_agent_name?: string | null;
-  /**
    * Endpoint Url
    */
   endpoint_url?: string | null;
@@ -1334,21 +1520,9 @@ export type EnvironmentPublic = {
    */
   agent_id: string;
   /**
-   * Integration Id
-   */
-  integration_id: string | null;
-  /**
    * Integration Name
    */
   integration_name: string | null;
-  /**
-   * Platform Agent Id
-   */
-  platform_agent_id: string | null;
-  /**
-   * Platform Agent Name
-   */
-  platform_agent_name: string | null;
   /**
    * Endpoint Url
    */
@@ -1384,18 +1558,6 @@ export type EnvironmentUpdate = {
    */
   name?: string | null;
   platform?: Platform | null;
-  /**
-   * Integration Id
-   */
-  integration_id?: string | null;
-  /**
-   * Platform Agent Id
-   */
-  platform_agent_id?: string | null;
-  /**
-   * Platform Agent Name
-   */
-  platform_agent_name?: string | null;
   /**
    * Endpoint Url
    */
@@ -1719,17 +1881,19 @@ export type ExpectedToolCall = {
   /**
    * Expected Params
    *
-   * Key parameters the judge verifies; null = any params acceptable
+   * Used for mock routing (required argument keys must be present in the live call; values ignored) and generator alignment; null matches any invocation. Use {{paramName}} tokens for simulator- or agent-varying values.
    */
   expected_params?: {
     [key: string]: unknown;
   } | null;
   /**
-   * Mock Responses
+   * Mock Response
    *
-   * Ordered mock responses consumed sequentially during platform agent simulation. First entry whose expected_params partially matches is popped and returned.
+   * Canned JSON object returned as the tool result in mock mode. Use one expected_tool_calls row per mocked invocation when the same tool is called multiple times.
    */
-  mock_responses?: Array<MockResponse> | null;
+  mock_response?: {
+    [key: string]: unknown;
+  } | null;
 };
 
 /**
@@ -1915,7 +2079,7 @@ export type IntegrationCreate = {
   /**
    * IntegrationProvider
    */
-  provider: 'retell';
+  provider: 'retell' | 'vapi' | 'elevenlabs';
   /**
    * Name
    */
@@ -1929,12 +2093,17 @@ export type IntegrationCreate = {
 /**
  * IntegrationProvider
  */
-export const IntegrationProvider = { RETELL: 'retell' } as const;
+export const IntegrationProviderInput = {
+  RETELL: 'retell',
+  VAPI: 'vapi',
+  ELEVENLABS: 'elevenlabs',
+} as const;
 
 /**
  * IntegrationProvider
  */
-export type IntegrationProvider = (typeof IntegrationProvider)[keyof typeof IntegrationProvider];
+export type IntegrationProviderInput =
+  (typeof IntegrationProviderInput)[keyof typeof IntegrationProviderInput];
 
 /**
  * IntegrationPublic
@@ -1943,7 +2112,7 @@ export type IntegrationPublic = {
   /**
    * IntegrationProvider
    */
-  provider: 'retell';
+  provider: 'retell' | 'vapi' | 'elevenlabs';
   /**
    * Name
    */
@@ -2470,46 +2639,6 @@ export const MetricTier = {
 export type MetricTier = (typeof MetricTier)[keyof typeof MetricTier];
 
 /**
- * MockResponse
- */
-export type MockResponse = {
-  /**
-   * Expected Params
-   *
-   * Partial-match filter on tool arguments; null = match any call
-   */
-  expected_params?: {
-    [key: string]: unknown;
-  } | null;
-  /**
-   * Response
-   *
-   * Canned return value sent back to the LLM as the tool result
-   */
-  response: {
-    [key: string]: unknown;
-  };
-};
-
-/**
- * MockWebhookResponse
- */
-export type MockWebhookResponse = {
-  /**
-   * Message
-   */
-  message: string;
-  /**
-   * Received Event Type
-   */
-  received_event_type?: string | null;
-  /**
-   * Payload Received
-   */
-  payload_received: boolean;
-};
-
-/**
  * OnConflict
  */
 export const OnConflict = { SKIP: 'skip', OVERWRITE: 'overwrite' } as const;
@@ -2522,7 +2651,12 @@ export type OnConflict = (typeof OnConflict)[keyof typeof OnConflict];
 /**
  * Platform
  */
-export const Platform = { RETELL: 'retell', WEBHOOK: 'webhook' } as const;
+export const Platform = {
+  RETELL: 'retell',
+  VAPI: 'vapi',
+  ELEVENLABS: 'elevenlabs',
+  WEBHOOK: 'webhook',
+} as const;
 
 /**
  * Platform
@@ -2978,6 +3112,21 @@ export type RetellAgentVersion = {
 };
 
 /**
+ * RetellRuntimeConfig
+ *
+ * Retell text runtime.
+ *
+ * Connexity owns the user simulator and judge. The Retell runtime will call
+ * Retell as the agent side via chat APIs once implemented.
+ */
+export type RetellRuntimeConfig = {
+  /**
+   * Kind
+   */
+  kind?: 'retell';
+};
+
+/**
  * RunComparison
  */
 export type RunComparison = {
@@ -3052,7 +3201,7 @@ export type RunConfigInput = {
   /**
    * Tool Mode
    *
-   * Global tool execution mode: mock uses test-case mock_responses, live executes real implementations
+   * Global tool execution mode: mock uses test-case expected_tool_calls.mock_response payloads, live executes real implementations
    */
   tool_mode?: 'mock' | 'live';
   /**
@@ -3076,9 +3225,28 @@ export type RunConfigInput = {
    */
   user_simulator?: UserSimulatorConfig | null;
   /**
-   * Agent simulator LLM overrides. Only applies when the agent mode is platform.
+   * Agent simulator LLM overrides. Applies when the selected text runtime uses AgentSimulator (Connexity).
    */
   agent_simulator?: AgentSimulatorConfig | null;
+  /**
+   * Run modality: text today, voice for future realtime simulations.
+   */
+  mode?: RunMode;
+  /**
+   * Runtime
+   *
+   * Runtime that drives the eval for the selected mode.
+   */
+  runtime?:
+    | ({
+        kind: 'connexity';
+      } & ConnexityRuntimeConfig)
+    | ({
+        kind: 'retell';
+      } & RetellRuntimeConfig)
+    | ({
+        kind: 'custom_endpoint';
+      } & CustomEndpointRuntimeConfig);
 };
 
 /**
@@ -3106,7 +3274,7 @@ export type RunConfigOutput = {
   /**
    * Tool Mode
    *
-   * Global tool execution mode: mock uses test-case mock_responses, live executes real implementations
+   * Global tool execution mode: mock uses test-case expected_tool_calls.mock_response payloads, live executes real implementations
    */
   tool_mode?: 'mock' | 'live';
   /**
@@ -3130,9 +3298,28 @@ export type RunConfigOutput = {
    */
   user_simulator?: UserSimulatorConfig | null;
   /**
-   * Agent simulator LLM overrides. Only applies when the agent mode is platform.
+   * Agent simulator LLM overrides. Applies when the selected text runtime uses AgentSimulator (Connexity).
    */
   agent_simulator?: AgentSimulatorConfig | null;
+  /**
+   * Run modality: text today, voice for future realtime simulations.
+   */
+  mode?: RunMode;
+  /**
+   * Runtime
+   *
+   * Runtime that drives the eval for the selected mode.
+   */
+  runtime?:
+    | ({
+        kind: 'connexity';
+      } & ConnexityRuntimeConfig)
+    | ({
+        kind: 'retell';
+      } & RetellRuntimeConfig)
+    | ({
+        kind: 'custom_endpoint';
+      } & CustomEndpointRuntimeConfig);
 };
 
 /**
@@ -3256,6 +3443,16 @@ export type RunCreate = {
    */
   is_baseline?: boolean;
 };
+
+/**
+ * RunMode
+ */
+export const RunMode = { TEXT: 'text', VOICE: 'voice' } as const;
+
+/**
+ * RunMode
+ */
+export type RunMode = (typeof RunMode)[keyof typeof RunMode];
 
 /**
  * RunPublic
@@ -3447,6 +3644,99 @@ export type RunsPublic = {
    * Total number of runs matching the query
    */
   count: number;
+};
+
+/**
+ * RuntimeOption
+ *
+ * One runtime choice exposed to the UI dropdown.
+ */
+export type RuntimeOption = {
+  /**
+   * Runtime identifier
+   */
+  kind: TextRuntimeKind;
+  /**
+   * Label
+   *
+   * Human-readable name
+   */
+  label: string;
+  /**
+   * Description
+   *
+   * Short marketing tagline
+   */
+  description: string;
+  /**
+   * Is Default
+   *
+   * True when this is the recommended default
+   */
+  is_default?: boolean;
+};
+
+/**
+ * RuntimeOptionsPublic
+ */
+export type RuntimeOptionsPublic = {
+  /**
+   * Data
+   *
+   * Runtimes available for the agent, in stable display order
+   */
+  data: Array<RuntimeOption>;
+};
+
+/**
+ * RuntimeTestRequest
+ */
+export type RuntimeTestRequest = {
+  /**
+   * Agent Id
+   *
+   * Agent the runtime will run against
+   */
+  agent_id: string;
+  /**
+   * Run mode for this runtime
+   */
+  mode?: RunMode;
+  /**
+   * Runtime
+   *
+   * Runtime config under test
+   */
+  runtime:
+    | ({
+        kind: 'connexity';
+      } & ConnexityRuntimeConfig)
+    | ({
+        kind: 'retell';
+      } & RetellRuntimeConfig)
+    | ({
+        kind: 'custom_endpoint';
+      } & CustomEndpointRuntimeConfig);
+};
+
+/**
+ * RuntimeTestResult
+ *
+ * Outcome of POST /eval-configs/test-runtime.
+ */
+export type RuntimeTestResult = {
+  /**
+   * Ok
+   *
+   * True when the runtime config passed the smoke test
+   */
+  ok: boolean;
+  /**
+   * Message
+   *
+   * Human-readable detail
+   */
+  message: string;
 };
 
 /**
@@ -4365,6 +4655,20 @@ export type TestCasesPublic = {
 };
 
 /**
+ * TextRuntimeKind
+ */
+export const TextRuntimeKind = {
+  CONNEXITY: 'connexity',
+  RETELL: 'retell',
+  CUSTOM_ENDPOINT: 'custom_endpoint',
+} as const;
+
+/**
+ * TextRuntimeKind
+ */
+export type TextRuntimeKind = (typeof TextRuntimeKind)[keyof typeof TextRuntimeKind];
+
+/**
  * Token
  */
 export type Token = {
@@ -4757,6 +5061,36 @@ export type AppModelsEnumsAgentMode =
   (typeof AppModelsEnumsAgentMode)[keyof typeof AppModelsEnumsAgentMode];
 
 /**
+ * IntegrationProvider
+ */
+export const AppModelsEnumsIntegrationProvider1 = {
+  RETELL: 'retell',
+  VAPI: 'vapi',
+  ELEVENLABS: 'elevenlabs',
+} as const;
+
+/**
+ * IntegrationProvider
+ */
+export type AppModelsEnumsIntegrationProvider1 =
+  (typeof AppModelsEnumsIntegrationProvider1)[keyof typeof AppModelsEnumsIntegrationProvider1];
+
+/**
+ * IntegrationProvider
+ */
+export const AppModelsEnumsIntegrationProvider2 = {
+  RETELL: 'retell',
+  VAPI: 'vapi',
+  ELEVENLABS: 'elevenlabs',
+} as const;
+
+/**
+ * IntegrationProvider
+ */
+export type AppModelsEnumsIntegrationProvider2 =
+  (typeof AppModelsEnumsIntegrationProvider2)[keyof typeof AppModelsEnumsIntegrationProvider2];
+
+/**
  * AgentMode
  */
 export const AppServicesTestCaseGeneratorInteractiveSchemasAgentMode = {
@@ -4786,23 +5120,6 @@ export type HealthHealthResponses = {
 };
 
 export type HealthHealthResponse = HealthHealthResponses[keyof HealthHealthResponses];
-
-export type HealthMockWebhookData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/mock-webhook';
-};
-
-export type HealthMockWebhookResponses = {
-  /**
-   * Successful Response
-   */
-  200: MockWebhookResponse;
-};
-
-export type HealthMockWebhookResponse =
-  HealthMockWebhookResponses[keyof HealthMockWebhookResponses];
 
 export type LoginLoginAccessTokenData = {
   body: BodyLoginLoginAccessToken;
@@ -5828,6 +6145,62 @@ export type AgentsPublishDraftResponses = {
 export type AgentsPublishDraftResponse =
   AgentsPublishDraftResponses[keyof AgentsPublishDraftResponses];
 
+export type AgentsListAgentRuntimesData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/runtimes';
+};
+
+export type AgentsListAgentRuntimesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsListAgentRuntimesError =
+  AgentsListAgentRuntimesErrors[keyof AgentsListAgentRuntimesErrors];
+
+export type AgentsListAgentRuntimesResponses = {
+  /**
+   * Successful Response
+   */
+  200: RuntimeOptionsPublic;
+};
+
+export type AgentsListAgentRuntimesResponse =
+  AgentsListAgentRuntimesResponses[keyof AgentsListAgentRuntimesResponses];
+
 export type AgentsGetAgentGuidelinesData = {
   body?: never;
   path: {
@@ -5995,7 +6368,7 @@ export type AgentsDeleteAgentResponses = {
 export type AgentsDeleteAgentResponse =
   AgentsDeleteAgentResponses[keyof AgentsDeleteAgentResponses];
 
-export type AgentsGetAgentData = {
+export type AgentsReadAgentData = {
   body?: never;
   path: {
     /**
@@ -6007,7 +6380,7 @@ export type AgentsGetAgentData = {
   url: '/api/v1/agents/{agent_id}';
 };
 
-export type AgentsGetAgentErrors = {
+export type AgentsReadAgentErrors = {
   /**
    * Bad Request
    */
@@ -6038,16 +6411,16 @@ export type AgentsGetAgentErrors = {
   500: ErrorResponse;
 };
 
-export type AgentsGetAgentError = AgentsGetAgentErrors[keyof AgentsGetAgentErrors];
+export type AgentsReadAgentError = AgentsReadAgentErrors[keyof AgentsReadAgentErrors];
 
-export type AgentsGetAgentResponses = {
+export type AgentsReadAgentResponses = {
   /**
    * Successful Response
    */
   200: AgentPublic;
 };
 
-export type AgentsGetAgentResponse = AgentsGetAgentResponses[keyof AgentsGetAgentResponses];
+export type AgentsReadAgentResponse = AgentsReadAgentResponses[keyof AgentsReadAgentResponses];
 
 export type AgentsUpdateAgentData = {
   body: AgentUpdate;
@@ -6982,6 +7355,57 @@ export type CustomMetricsUpdateCustomMetricResponses = {
 
 export type CustomMetricsUpdateCustomMetricResponse =
   CustomMetricsUpdateCustomMetricResponses[keyof CustomMetricsUpdateCustomMetricResponses];
+
+export type EvalConfigsTestRuntimeData = {
+  body: RuntimeTestRequest;
+  path?: never;
+  query?: never;
+  url: '/api/v1/eval-configs/test-runtime';
+};
+
+export type EvalConfigsTestRuntimeErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type EvalConfigsTestRuntimeError =
+  EvalConfigsTestRuntimeErrors[keyof EvalConfigsTestRuntimeErrors];
+
+export type EvalConfigsTestRuntimeResponses = {
+  /**
+   * Successful Response
+   */
+  200: RuntimeTestResult;
+};
+
+export type EvalConfigsTestRuntimeResponse =
+  EvalConfigsTestRuntimeResponses[keyof EvalConfigsTestRuntimeResponses];
 
 export type EvalConfigsListEvalConfigsData = {
   body?: never;

@@ -18,15 +18,15 @@ import type {
   AgentsDiscardDraftData,
   AgentsDiscardDraftErrors,
   AgentsDiscardDraftResponses,
-  AgentsGetAgentData,
-  AgentsGetAgentErrors,
   AgentsGetAgentGuidelinesData,
   AgentsGetAgentGuidelinesErrors,
   AgentsGetAgentGuidelinesResponses,
-  AgentsGetAgentResponses,
   AgentsGetDraftData,
   AgentsGetDraftErrors,
   AgentsGetDraftResponses,
+  AgentsListAgentRuntimesData,
+  AgentsListAgentRuntimesErrors,
+  AgentsListAgentRuntimesResponses,
   AgentsListAgentsData,
   AgentsListAgentsErrors,
   AgentsListAgentsResponses,
@@ -39,6 +39,9 @@ import type {
   AgentsPutAgentGuidelinesData,
   AgentsPutAgentGuidelinesErrors,
   AgentsPutAgentGuidelinesResponses,
+  AgentsReadAgentData,
+  AgentsReadAgentErrors,
+  AgentsReadAgentResponses,
   AgentsReadAgentVersionData,
   AgentsReadAgentVersionErrors,
   AgentsReadAgentVersionResponses,
@@ -144,13 +147,14 @@ import type {
   EvalConfigsReplaceTestCasesInConfigData,
   EvalConfigsReplaceTestCasesInConfigErrors,
   EvalConfigsReplaceTestCasesInConfigResponses,
+  EvalConfigsTestRuntimeData,
+  EvalConfigsTestRuntimeErrors,
+  EvalConfigsTestRuntimeResponses,
   EvalConfigsUpdateEvalConfigData,
   EvalConfigsUpdateEvalConfigErrors,
   EvalConfigsUpdateEvalConfigResponses,
   HealthHealthData,
   HealthHealthResponses,
-  HealthMockWebhookData,
-  HealthMockWebhookResponses,
   IntegrationsCreateIntegrationData,
   IntegrationsCreateIntegrationErrors,
   IntegrationsCreateIntegrationResponses,
@@ -322,18 +326,6 @@ export class HealthService {
   ) {
     return (options?.client ?? client).get<HealthHealthResponses, unknown, ThrowOnError>({
       url: '/',
-      ...options,
-    });
-  }
-
-  /**
-   * Mock Webhook
-   */
-  public static mockWebhook<ThrowOnError extends boolean = false>(
-    options?: Options<HealthMockWebhookData, ThrowOnError>
-  ) {
-    return (options?.client ?? client).post<HealthMockWebhookResponses, unknown, ThrowOnError>({
-      url: '/mock-webhook',
       ...options,
     });
   }
@@ -834,6 +826,32 @@ export class AgentsService {
   }
 
   /**
+   * List Agent Runtimes
+   *
+   * Runtimes available for ``agent_id``'s platform, with the recommended default.
+   */
+  public static listAgentRuntimes<ThrowOnError extends boolean = false>(
+    options: Options<AgentsListAgentRuntimesData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      AgentsListAgentRuntimesResponses,
+      AgentsListAgentRuntimesErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/runtimes',
+      ...options,
+    });
+  }
+
+  /**
    * Get Agent Guidelines
    */
   public static getAgentGuidelines<ThrowOnError extends boolean = false>(
@@ -910,14 +928,14 @@ export class AgentsService {
   }
 
   /**
-   * Get Agent
+   * Read Agent
    */
-  public static getAgent<ThrowOnError extends boolean = false>(
-    options: Options<AgentsGetAgentData, ThrowOnError>
+  public static readAgent<ThrowOnError extends boolean = false>(
+    options: Options<AgentsReadAgentData, ThrowOnError>
   ) {
     return (options.client ?? client).get<
-      AgentsGetAgentResponses,
-      AgentsGetAgentErrors,
+      AgentsReadAgentResponses,
+      AgentsReadAgentErrors,
       ThrowOnError
     >({
       security: [
@@ -1363,6 +1381,36 @@ export class CustomMetricsService {
 }
 
 export class EvalConfigsService {
+  /**
+   * Test Runtime
+   *
+   * Smoke-test a runtime config against an agent.
+   */
+  public static evalConfigsTestRuntime<ThrowOnError extends boolean = false>(
+    options: Options<EvalConfigsTestRuntimeData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      EvalConfigsTestRuntimeResponses,
+      EvalConfigsTestRuntimeErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/eval-configs/test-runtime',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
   /**
    * List Eval Configs
    */

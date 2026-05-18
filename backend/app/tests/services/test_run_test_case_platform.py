@@ -1,4 +1,4 @@
-"""Integration-style tests for :func:`run_test_case` in platform agent mode."""
+"""Integration-style tests for the text loop's ``run_test_case`` in platform agent mode."""
 
 import uuid
 from unittest.mock import AsyncMock, patch
@@ -9,8 +9,10 @@ from app.models.enums import AgentMode, SimulatorMode, TestCaseStatus, TurnRole
 from app.models.schemas import RunConfig, UserSimulatorConfig
 from app.models.test_case import TestCase
 from app.services.agent_tool_definitions import canonical_end_call_tool_dict
+from app.services.eval_runtimes.text.base import TextAgentTurnConfig
+from app.services.eval_runtimes.text.connexity import ConnexityRuntime
+from app.services.eval_runtimes.text.custom_endpoint import CustomEndpointRuntime
 from app.services.llm import LLMResponse
-from app.services.orchestrator import run_test_case
 
 
 def _platform_test_case() -> TestCase:
@@ -47,15 +49,17 @@ async def test_run_test_case_platform_uses_agent_simulator_and_tracks_cost() -> 
         new_callable=AsyncMock,
         return_value=llm_reply,
     ) as mock_agent_llm:
-        result = await run_test_case(
+        result = await ConnexityRuntime().run_text_test_case(
             test_case,
-            None,
+            TextAgentTurnConfig(
+                endpoint_url=None,
+                agent_mode=AgentMode.PLATFORM,
+                model="gpt-4o-mini",
+                provider="openai",
+                system_prompt="You are the evaluated agent.",
+                tools=None,
+            ),
             config,
-            agent_mode=AgentMode.PLATFORM,
-            agent_model="gpt-4o-mini",
-            agent_provider="openai",
-            agent_system_prompt="You are the evaluated agent.",
-            agent_tools=None,
         )
 
     mock_agent_llm.assert_awaited_once()
@@ -99,15 +103,17 @@ async def test_run_test_case_persona_first_max_turns_ends_on_agent() -> None:
         new_callable=AsyncMock,
         return_value=llm_reply,
     ) as mock_agent_llm:
-        result = await run_test_case(
+        result = await ConnexityRuntime().run_text_test_case(
             test_case,
-            None,
+            TextAgentTurnConfig(
+                endpoint_url=None,
+                agent_mode=AgentMode.PLATFORM,
+                model="gpt-4o-mini",
+                provider="openai",
+                system_prompt="You are the evaluated agent.",
+                tools=None,
+            ),
             config,
-            agent_mode=AgentMode.PLATFORM,
-            agent_model="gpt-4o-mini",
-            agent_provider="openai",
-            agent_system_prompt="You are the evaluated agent.",
-            agent_tools=None,
         )
 
     # Exactly max_turns agent calls, no extras.
@@ -152,15 +158,17 @@ async def test_run_test_case_platform_stops_after_end_call_tool() -> None:
         new_callable=AsyncMock,
         return_value=llm_reply,
     ) as mock_agent_llm:
-        result = await run_test_case(
+        result = await ConnexityRuntime().run_text_test_case(
             test_case,
-            None,
+            TextAgentTurnConfig(
+                endpoint_url=None,
+                agent_mode=AgentMode.PLATFORM,
+                model="gpt-4o-mini",
+                provider="openai",
+                system_prompt="You are the evaluated agent.",
+                tools=[term_tool],
+            ),
             config,
-            agent_mode=AgentMode.PLATFORM,
-            agent_model="gpt-4o-mini",
-            agent_provider="openai",
-            agent_system_prompt="You are the evaluated agent.",
-            agent_tools=[term_tool],
         )
 
     mock_agent_llm.assert_awaited_once()
@@ -198,17 +206,20 @@ async def test_run_test_case_endpoint_stops_on_end_call_without_scripted_user() 
         ]
     )
     term_tool = canonical_end_call_tool_dict()
-    with patch(
-        "app.services.orchestrator.call_agent",
+    with patch.object(
+        CustomEndpointRuntime,
+        "_post_agent_request",
         new_callable=AsyncMock,
         return_value=(resp, 12),
     ) as mock_call:
-        result = await run_test_case(
+        result = await CustomEndpointRuntime().run_text_test_case(
             test_case,
-            "http://agent.test/respond",
+            TextAgentTurnConfig(
+                endpoint_url="http://agent.test/respond",
+                agent_mode=AgentMode.ENDPOINT,
+                tools=[term_tool],
+            ),
             config,
-            agent_mode=AgentMode.ENDPOINT,
-            agent_tools=[term_tool],
         )
 
     mock_call.assert_awaited_once()

@@ -8,7 +8,6 @@ import pytest
 from app.models.schemas import (
     ExpectedToolCall,
     HttpWebhookImplementation,
-    MockResponse,
     PythonImplementation,
     ToolPlatformConfig,
 )
@@ -29,17 +28,14 @@ async def test_mock_sequential_consumption() -> None:
     etc = [
         ExpectedToolCall(
             tool="lookup",
-            mock_responses=[
-                MockResponse(
-                    expected_params=None,
-                    response={"result": "first"},
-                ),
-                MockResponse(
-                    expected_params=None,
-                    response={"result": "second"},
-                ),
-            ],
-        )
+            expected_params=None,
+            mock_response={"result": "first"},
+        ),
+        ExpectedToolCall(
+            tool="lookup",
+            expected_params=None,
+            mock_response={"result": "second"},
+        ),
     ]
     executor = MockToolExecutor(etc)
 
@@ -58,17 +54,14 @@ async def test_mock_partial_param_matching() -> None:
     etc = [
         ExpectedToolCall(
             tool="search",
-            mock_responses=[
-                MockResponse(
-                    expected_params={"query": "weather"},
-                    response={"temp": 72},
-                ),
-                MockResponse(
-                    expected_params={"query": "news"},
-                    response={"headline": "Breaking"},
-                ),
-            ],
-        )
+            expected_params={"query": "weather"},
+            mock_response={"temp": 72},
+        ),
+        ExpectedToolCall(
+            tool="search",
+            expected_params={"query": "news"},
+            mock_response={"headline": "Breaking"},
+        ),
     ]
     executor = MockToolExecutor(etc)
 
@@ -86,22 +79,39 @@ async def test_mock_partial_param_matching() -> None:
 
 
 @pytest.mark.asyncio
-async def test_mock_case_insensitive_string_match() -> None:
+async def test_mock_same_keys_multiple_entries_first_still_wins() -> None:
+    """Key-only matching: entries that share the same routing keys dequeue in order."""
+    etc = [
+        ExpectedToolCall(
+            tool="search",
+            mock_response={"temp": 72},
+        ),
+        ExpectedToolCall(
+            tool="search",
+            mock_response={"headline": "Breaking"},
+        ),
+    ]
+    executor = MockToolExecutor(etc)
+
+    r = json.loads(
+        await executor.execute("search", "c1", json.dumps({"query": "news"}))
+    )
+    assert r == {"temp": 72}
+
+
+@pytest.mark.asyncio
+async def test_mock_expected_param_keys_only() -> None:
     etc = [
         ExpectedToolCall(
             tool="greet",
-            mock_responses=[
-                MockResponse(
-                    expected_params={"name": "Alice"},
-                    response={"greeting": "Hello Alice"},
-                ),
-            ],
+            expected_params={"name": "Alice"},
+            mock_response={"greeting": "Hello Alice"},
         )
     ]
     executor = MockToolExecutor(etc)
 
     r = json.loads(
-        await executor.execute("greet", "c1", json.dumps({"name": "  alice  "}))
+        await executor.execute("greet", "c1", json.dumps({"name": "any value"}))
     )
     assert r == {"greeting": "Hello Alice"}
 
@@ -111,17 +121,13 @@ async def test_mock_no_match_returns_error() -> None:
     etc = [
         ExpectedToolCall(
             tool="lookup",
-            mock_responses=[
-                MockResponse(
-                    expected_params={"id": "X"},
-                    response={"found": True},
-                ),
-            ],
+            expected_params={"id": "X"},
+            mock_response={"found": True},
         )
     ]
     executor = MockToolExecutor(etc)
 
-    r = json.loads(await executor.execute("lookup", "c1", json.dumps({"id": "Y"})))
+    r = json.loads(await executor.execute("lookup", "c1", json.dumps({"other": "Y"})))
     assert "error" in r
     assert "No mock response matched" in r["error"]
 
@@ -132,6 +138,37 @@ async def test_mock_unknown_tool() -> None:
     r = json.loads(await executor.execute("unknown_tool", "c1", "{}"))
     assert "error" in r
     assert "No mock response configured" in r["error"]
+
+
+@pytest.mark.asyncio
+async def test_build_tool_executor_parses_expected_dict() -> None:
+    tools = [
+        {
+            "type": "function",
+            "function": {"name": "lookup"},
+            "platform_config": {
+                "implementation": {
+                    "type": "python",
+                    "code": "async def execute(a, c): return {}",
+                },
+            },
+        },
+    ]
+    expected = [
+        {
+            "tool": "lookup",
+            "mock_response": {"found": True},
+        },
+    ]
+    executor = build_tool_executor(
+        tools=tools,
+        expected_tool_calls=expected,
+        test_case_context={"key": "val"},
+        tool_mode="mock",
+    )
+    assert isinstance(executor, MockToolExecutor)
+    r = json.loads(await executor.execute("lookup", "c1", "{}"))
+    assert r == {"found": True}
 
 
 # ── LiveToolExecutor ──────────────────────────────────────────────
@@ -263,9 +300,7 @@ def test_build_mock_mode_uses_expected_tool_calls() -> None:
     expected = [
         {
             "tool": "lookup",
-            "mock_responses": [
-                {"expected_params": None, "response": {"found": True}},
-            ],
+            "mock_response": {"found": True},
         }
     ]
     executor = build_tool_executor(

@@ -12,6 +12,7 @@ from app.models import (
     IntegrationsPublic,
     Message,
 )
+from app.services.elevenlabs import check_elevenlabs_connection, list_elevenlabs_agents
 from app.services.retell import (
     RetellAgentSummary,
     list_retell_agents,
@@ -20,12 +21,15 @@ from app.services.retell import (
 from app.services.telnyx import (
     TelnyxAgentSummary,
     list_telnyx_agents,
-    test_telnyx_connection as test_telnyx_connection,
+    test_telnyx_connection,
 )
+from app.services.vapi import list_vapi_assistants, test_vapi_connection
 
 _CONNECTION_TESTERS = {
     IntegrationProvider.RETELL: test_retell_connection,
     IntegrationProvider.TELNYX: test_telnyx_connection,
+    IntegrationProvider.VAPI: test_vapi_connection,
+    IntegrationProvider.ELEVENLABS: check_elevenlabs_connection,
 }
 
 
@@ -36,10 +40,22 @@ async def _test_connection(provider: IntegrationProvider, api_key: str) -> bool:
     return await tester(api_key)
 
 
-_AGENT_LISTERS = {
-    IntegrationProvider.RETELL: list_retell_agents,
-    IntegrationProvider.TELNYX: list_telnyx_agents,
-}
+def _agent_priority(agent: RetellAgentSummary) -> tuple[int, int]:
+    published_rank = 1 if agent.is_published else 0
+    version_rank = agent.version if agent.version is not None else -1
+    return (published_rank, version_rank)
+
+
+def _dedupe_agents(agents: list[RetellAgentSummary]) -> list[RetellAgentSummary]:
+    by_id: dict[str, RetellAgentSummary] = {}
+    for agent in agents:
+        existing = by_id.get(agent.agent_id)
+        if existing is None:
+            by_id[agent.agent_id] = agent
+            continue
+        if _agent_priority(agent) > _agent_priority(existing):
+            by_id[agent.agent_id] = agent
+    return list(by_id.values())
 
 
 router = APIRouter(
@@ -112,7 +128,10 @@ async def test_integration(
     return Message(message="Connection successful")
 
 
-@router.get("/{integration_id}/agents", response_model=list[RetellAgentSummary | TelnyxAgentSummary])
+@router.get(
+    "/{integration_id}/agents",
+    response_model=list[RetellAgentSummary | TelnyxAgentSummary],
+)
 async def list_integration_agents(
     session: SessionDep,
     integration_id: uuid.UUID,
@@ -121,10 +140,33 @@ async def list_integration_agents(
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
     api_key = decrypt(integration.encrypted_api_key)
-    lister = _AGENT_LISTERS.get(integration.provider)
-    if lister is None:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Agent listing not supported for provider {integration.provider}",
-        )
-    return await lister(api_key)
+    if integration.provider == IntegrationProvider.RETELL:
+        agents = await list_retell_agents(api_key)
+        return _dedupe_agents(agents)
+    if integration.provider == IntegrationProvider.TELNYX:
+        return await list_telnyx_agents(api_key)
+    if integration.provider == IntegrationProvider.VAPI:
+        assistants = await list_vapi_assistants(api_key)
+        mapped = [
+            RetellAgentSummary(
+                agent_id=assistant.agent_id,
+                agent_name=assistant.agent_name,
+                is_published=assistant.is_published,
+                version=assistant.version,
+            )
+            for assistant in assistants
+        ]
+        return _dedupe_agents(mapped)
+    if integration.provider == IntegrationProvider.ELEVENLABS:
+        agents = await list_elevenlabs_agents(api_key)
+        mapped = [
+            RetellAgentSummary(
+                agent_id=agent.agent_id,
+                agent_name=agent.agent_name,
+                is_published=agent.is_published,
+                version=agent.version,
+            )
+            for agent in agents
+        ]
+        return _dedupe_agents(mapped)
+    raise HTTPException(status_code=400, detail="Provider does not expose agents")

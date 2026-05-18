@@ -1,4 +1,4 @@
-"""Tests for execute_run() and _execute_single_test_case() with mocked DB and agent."""
+"""Tests for execute_run() and _execute_single_test_case() with mocked DB and runtime."""
 
 import asyncio
 import uuid
@@ -7,6 +7,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import app as app_pkg
+from app.models.agent import Agent
 from app.models.enums import AgentMode, RunStatus, TestCaseStatus, TurnRole
 from app.models.run import Run
 from app.models.schemas import (
@@ -18,12 +19,23 @@ from app.models.schemas import (
 )
 from app.models.test_case import TestCase
 from app.models.test_case_result import TestCaseResult
+from app.services.eval_runtimes import AgentSnapshot, RunSnapshot
+from app.services.eval_runtimes.types import TestCaseRunResult
 from app.services.orchestrator import (
-    TestCaseRunResult,
     _execute_single_test_case,
     execute_run,
 )
 from app.services.run_manager import RunManager
+
+
+def _make_agent(*, name: str = "test-agent") -> Agent:
+    return Agent(
+        id=uuid.uuid4(),
+        name=name,
+        mode=AgentMode.ENDPOINT,
+        endpoint_url="http://localhost:8080/agent",
+        platform=None,
+    )
 
 
 def _make_test_case(*, name: str = "test-case") -> TestCase:
@@ -72,6 +84,35 @@ def _make_result(
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
     )
+
+
+def _make_snapshots(
+    agent: Agent | None = None,
+    *,
+    run_id: uuid.UUID | None = None,
+    config: RunConfig | None = None,
+    cancel_event: asyncio.Event | None = None,
+) -> tuple[AgentSnapshot, RunSnapshot]:
+    a = agent or _make_agent()
+    agent_snapshot = AgentSnapshot(
+        agent=a,
+        agent_id=a.id,
+        platform=a.platform,
+        integration_id=a.integration_id,
+        platform_agent_id=a.platform_agent_id,
+        endpoint_url="http://localhost:8080/agent",
+        system_prompt=None,
+        tools=None,
+        mode=AgentMode.ENDPOINT,
+        model=None,
+        provider=None,
+    )
+    run_snapshot = RunSnapshot(
+        run_id=run_id or uuid.uuid4(),
+        run_config=config or RunConfig(),
+        cancel_event=cancel_event or asyncio.Event(),
+    )
+    return agent_snapshot, run_snapshot
 
 
 def _mock_transcript() -> list[ConversationTurn]:
@@ -129,29 +170,38 @@ def _patch_db_and_crud(mock_crud: MagicMock, manager: RunManager):
     )
 
 
+def _fake_runtime(run_out: TestCaseRunResult) -> MagicMock:
+    """Mock runtime that returns the supplied run output."""
+    runtime = MagicMock()
+    runtime.run_test_case = AsyncMock(return_value=run_out)
+    return runtime
+
+
 class TestExecuteSingleTestCase:
     """Tests for _execute_single_test_case with mocked dependencies."""
 
-    @patch(
-        "app.services.orchestrator.run_test_case_with_evaluation",
-        new_callable=AsyncMock,
-    )
-    async def test_happy_path(self, mock_run_eval: AsyncMock) -> None:
+    @patch("app.services.orchestrator._judge_transcript", new_callable=AsyncMock)
+    @patch("app.services.orchestrator.get_runtime")
+    async def test_happy_path(
+        self,
+        mock_get_runtime: MagicMock,
+        mock_judge: AsyncMock,
+    ) -> None:
         run_id = uuid.uuid4()
         test_case = _make_test_case()
         result_obj = _make_result(run_id, test_case.id)
         updated_result = _make_result(run_id, test_case.id, passed=True)
         updated_result.verdict = {"overall_score": 0.85}
 
-        mock_run_eval.return_value = (
-            TestCaseRunResult(
-                transcript=_mock_transcript(),
-                agent_token_usage={},
-                platform_token_usage={},
-                platform_cost_usd=0.0,
-            ),
-            _mock_verdict(),
+        run_out = TestCaseRunResult(
+            transcript=_mock_transcript(),
+            agent_token_usage={},
+            platform_token_usage={},
+            platform_cost_usd=0.0,
         )
+        runtime = _fake_runtime(run_out)
+        mock_get_runtime.return_value = runtime
+        mock_judge.return_value = _mock_verdict()
 
         mock_crud = MagicMock()
         mock_crud.create_test_case_result.return_value = result_obj
@@ -162,20 +212,16 @@ class TestExecuteSingleTestCase:
         state = manager.register(run_id)
         state.progress.total_test_cases = 1
 
+        agent_snapshot, run_snapshot = _make_snapshots(run_id=run_id)
+
         p1, p2, p3, p4 = _patch_db_and_crud(mock_crud, manager)
         with p1, p2, p3, p4:
             result = await _execute_single_test_case(
                 run_id=run_id,
                 test_case=test_case,
-                agent_endpoint_url="http://localhost:8080/agent",
-                config=RunConfig(),
-                agent_mode=AgentMode.ENDPOINT,
-                agent_model=None,
-                agent_provider=None,
-                agent_system_prompt=None,
-                agent_tools=None,
+                agent_snapshot=agent_snapshot,
+                run_snapshot=run_snapshot,
                 semaphore=asyncio.Semaphore(5),
-                cancel_event=asyncio.Event(),
                 repetition_index=2,
             )
 
@@ -184,18 +230,28 @@ class TestExecuteSingleTestCase:
         assert result_in.repetition_index == 2
 
         assert result.passed is True
-        mock_run_eval.assert_awaited_once()
+        runtime.run_test_case.assert_awaited_once()
+        mock_judge.assert_awaited_once()
         assert state.progress.completed_count == 1
         assert state.progress.passed_count == 1
 
-    @patch(
-        "app.services.orchestrator.run_test_case_with_evaluation",
-        new_callable=AsyncMock,
-    )
-    async def test_skips_when_cancelled(self, mock_run_eval: AsyncMock) -> None:
+    @patch("app.services.orchestrator._judge_transcript", new_callable=AsyncMock)
+    @patch("app.services.orchestrator.get_runtime")
+    async def test_skips_when_cancelled(
+        self,
+        mock_get_runtime: MagicMock,
+        mock_judge: AsyncMock,
+    ) -> None:
         run_id = uuid.uuid4()
         test_case = _make_test_case()
         result_obj = _make_result(run_id, test_case.id)
+
+        runtime = _fake_runtime(
+            TestCaseRunResult(
+                transcript=[], agent_token_usage={}, platform_token_usage={}
+            )
+        )
+        mock_get_runtime.return_value = runtime
 
         mock_crud = MagicMock()
         mock_crud.create_test_case_result.return_value = result_obj
@@ -206,37 +262,40 @@ class TestExecuteSingleTestCase:
         manager = RunManager()
         manager.register(run_id)
 
+        agent_snapshot, run_snapshot = _make_snapshots(
+            run_id=run_id, cancel_event=cancel_event
+        )
+
         p1, p2, p3, p4 = _patch_db_and_crud(mock_crud, manager)
         with p1, p2, p3, p4:
             result = await _execute_single_test_case(
                 run_id=run_id,
                 test_case=test_case,
-                agent_endpoint_url="http://localhost:8080/agent",
-                config=RunConfig(),
-                agent_mode=AgentMode.ENDPOINT,
-                agent_model=None,
-                agent_provider=None,
-                agent_system_prompt=None,
-                agent_tools=None,
+                agent_snapshot=agent_snapshot,
+                run_snapshot=run_snapshot,
                 semaphore=asyncio.Semaphore(5),
-                cancel_event=cancel_event,
             )
 
-        mock_run_eval.assert_not_awaited()
+        runtime.run_test_case.assert_not_awaited()
+        mock_judge.assert_not_awaited()
         assert result is result_obj
 
-    @patch(
-        "app.services.orchestrator.run_test_case_with_evaluation",
-        new_callable=AsyncMock,
-    )
-    async def test_handles_exception(self, mock_run_eval: AsyncMock) -> None:
+    @patch("app.services.orchestrator._judge_transcript", new_callable=AsyncMock)
+    @patch("app.services.orchestrator.get_runtime")
+    async def test_handles_exception(
+        self,
+        mock_get_runtime: MagicMock,
+        mock_judge: AsyncMock,
+    ) -> None:
         run_id = uuid.uuid4()
         test_case = _make_test_case()
         result_obj = _make_result(run_id, test_case.id)
         updated_result = _make_result(run_id, test_case.id, passed=False)
         updated_result.error_message = "boom"
 
-        mock_run_eval.side_effect = RuntimeError("boom")
+        runtime = MagicMock()
+        runtime.run_test_case = AsyncMock(side_effect=RuntimeError("boom"))
+        mock_get_runtime.return_value = runtime
 
         mock_crud = MagicMock()
         mock_crud.create_test_case_result.return_value = result_obj
@@ -247,20 +306,16 @@ class TestExecuteSingleTestCase:
         state = manager.register(run_id)
         state.progress.total_test_cases = 1
 
+        agent_snapshot, run_snapshot = _make_snapshots(run_id=run_id)
+
         p1, p2, p3, p4 = _patch_db_and_crud(mock_crud, manager)
         with p1, p2, p3, p4:
             result = await _execute_single_test_case(
                 run_id=run_id,
                 test_case=test_case,
-                agent_endpoint_url="http://localhost:8080/agent",
-                config=RunConfig(),
-                agent_mode=AgentMode.ENDPOINT,
-                agent_model=None,
-                agent_provider=None,
-                agent_system_prompt=None,
-                agent_tools=None,
+                agent_snapshot=agent_snapshot,
+                run_snapshot=run_snapshot,
                 semaphore=asyncio.Semaphore(5),
-                cancel_event=asyncio.Event(),
             )
 
         assert result.error_message == "boom"
@@ -269,6 +324,7 @@ class TestExecuteSingleTestCase:
             "result_in", update_call[1].get("result_in")
         )
         assert update_data.error_message == "boom"
+        mock_judge.assert_not_awaited()
 
 
 class TestExecuteRun:
@@ -291,6 +347,7 @@ class TestExecuteRun:
         mock_crud.get_test_cases_for_config.return_value = [
             TestCaseExecution(test_case=test_case, repetitions=1, position=0)
         ]
+        mock_crud.get_agent.return_value = _make_agent()
 
         completed_result = _make_result(run.id, test_case.id, passed=True)
         completed_result.agent_latency_p50_ms = 100
@@ -329,6 +386,7 @@ class TestExecuteRun:
             TestCaseExecution(test_case=s1, repetitions=2, position=0),
             TestCaseExecution(test_case=s2, repetitions=1, position=1),
         ]
+        mock_crud.get_agent.return_value = _make_agent()
 
         mock_single.return_value = _make_result(run.id, s1.id, passed=True)
 
@@ -401,6 +459,7 @@ class TestExecuteRun:
         mock_crud.get_test_cases_for_config.return_value = [
             TestCaseExecution(test_case=test_case, repetitions=1, position=0)
         ]
+        mock_crud.get_agent.return_value = _make_agent()
 
         result = _make_result(run.id, test_case.id, passed=False)
         manager = RunManager()
@@ -433,6 +492,7 @@ class TestExecuteRun:
         mock_crud.get_eval_config.return_value = _mock_eval_config(
             eval_config_id=run.eval_config_id
         )
+        mock_crud.get_agent.return_value = _make_agent()
         mock_crud.get_test_cases_for_config.side_effect = RuntimeError("db error")
 
         manager = RunManager()

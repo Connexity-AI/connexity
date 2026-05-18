@@ -142,6 +142,8 @@ async def list_telnyx_calls(
         record_type = item.get("record_type", "")
         if record_type != "voice":
             continue
+        if item.get("connection_id") != agent_id:
+            continue
 
         start_date = item.get("start_date")
         end_date = item.get("end_date")
@@ -195,4 +197,13 @@ async def deploy_telnyx_agent(
 
     Makes zero API calls.
     """
+    del (
+        api_key,
+        telnyx_agent_id,
+        system_prompt,
+        agent_model,
+        agent_temperature,
+        tools,
+        version_description,
+    )
     return TelnyxDeployResult(success=True)

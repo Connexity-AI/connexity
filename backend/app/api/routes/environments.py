@@ -7,6 +7,7 @@ from app.api.deps import CurrentUser, SessionDep, get_current_user
 from app.core.config import settings
 from app.core.encryption import decrypt
 from app.models import (
+    Agent,
     Deployment,
     DeploymentCreate,
     DeploymentPublic,
@@ -25,11 +26,14 @@ from app.models.enums import Platform
 from app.models.environment import validate_environment_platform_fields
 from app.models.schemas import AggregateMetrics
 from app.models.user import User
+from app.services.elevenlabs import deploy_elevenlabs_agent
 from app.services.retell import (
     RetellAgentVersion,
     deploy_retell_agent,
     list_retell_agent_versions,
 )
+from app.services.telnyx import deploy_telnyx_agent
+from app.services.vapi import deploy_vapi_assistant
 from app.services.webhook_deploy import (
     build_webhook_payload,
     deliver_webhook_deployment,
@@ -40,6 +44,61 @@ router = APIRouter(
     tags=["environments"],
     dependencies=[Depends(get_current_user)],
 )
+
+
+def _apply_agent_platform_to_environment_create(
+    agent: Agent, environment_in: EnvironmentCreate
+) -> EnvironmentCreate:
+    if agent.platform in (
+        Platform.RETELL,
+        Platform.TELNYX,
+        Platform.VAPI,
+        Platform.ELEVENLABS,
+    ):
+        if agent.integration_id is None or not (agent.platform_agent_id or "").strip():
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "Agent is missing integration or provider agent binding; "
+                    "fix the agent before creating environments"
+                ),
+            )
+        data = environment_in.model_dump()
+        data["platform"] = agent.platform
+        data["endpoint_url"] = None
+        return EnvironmentCreate.model_validate(data)
+    if agent.platform == Platform.WEBHOOK:
+        data = environment_in.model_dump()
+        data["platform"] = Platform.WEBHOOK
+        return EnvironmentCreate.model_validate(data)
+    return environment_in
+
+
+def _apply_agent_platform_to_environment_update(
+    agent: Agent, _env: Environment, environment_in: EnvironmentUpdate
+) -> EnvironmentUpdate:
+    body_dump = environment_in.model_dump(exclude_unset=True)
+    if agent.platform in (
+        Platform.RETELL,
+        Platform.TELNYX,
+        Platform.VAPI,
+        Platform.ELEVENLABS,
+    ):
+        if agent.integration_id is None or not (agent.platform_agent_id or "").strip():
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "Agent is missing integration or provider agent binding; "
+                    "fix the agent before updating environments"
+                ),
+            )
+        body_dump["platform"] = agent.platform
+        body_dump["endpoint_url"] = None
+        return EnvironmentUpdate.model_validate(body_dump)
+    if agent.platform == Platform.WEBHOOK:
+        body_dump["platform"] = Platform.WEBHOOK
+        return EnvironmentUpdate.model_validate(body_dump)
+    return environment_in
 
 
 def _version_notes_for_retell(version_row: AgentVersion) -> str:
@@ -57,10 +116,7 @@ def _to_public(env: Environment, integration_name: str | None) -> EnvironmentPub
         name=env.name,
         platform=env.platform,
         agent_id=env.agent_id,
-        integration_id=env.integration_id,
         integration_name=integration_name,
-        platform_agent_id=env.platform_agent_id,
-        platform_agent_name=env.platform_agent_name,
         endpoint_url=env.endpoint_url,
         current_version_number=env.current_version_number,
         current_version_name=env.current_version_name,
@@ -133,7 +189,12 @@ def _validate_gate_config(
 def _get_environment_integration_name(
     session: SessionDep, *, platform: Platform, integration_id: uuid.UUID | None
 ) -> str | None:
-    if platform != Platform.RETELL:
+    if platform not in {
+        Platform.RETELL,
+        Platform.TELNYX,
+        Platform.VAPI,
+        Platform.ELEVENLABS,
+    }:
         return None
     if integration_id is None:
         raise HTTPException(status_code=422, detail="Integration is required")
@@ -232,10 +293,11 @@ def create_environment(
     agent = crud.get_agent(session=session, agent_id=environment_in.agent_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+    environment_in = _apply_agent_platform_to_environment_create(agent, environment_in)
     integration_name = _get_environment_integration_name(
         session=session,
         platform=environment_in.platform,
-        integration_id=environment_in.integration_id,
+        integration_id=agent.integration_id,
     )
     _validate_gate_config(
         session=session,
@@ -255,8 +317,13 @@ def list_environments(
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     rows = crud.list_environments_by_agent(session=session, agent_id=agent_id)
+    integration_name = _get_environment_integration_name(
+        session=session,
+        platform=agent.platform,
+        integration_id=agent.integration_id,
+    )
     return EnvironmentsPublic(
-        data=[_to_public(env, name) for env, name in rows],
+        data=[_to_public(env, integration_name) for env in rows],
         count=len(rows),
     )
 
@@ -317,18 +384,36 @@ def update_environment(
     if not env:
         raise HTTPException(status_code=404, detail="Environment not found")
 
+    agent = crud.get_agent(session=session, agent_id=env.agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    requested_update_data = environment_in.model_dump(exclude_unset=True)
+    requested_platform = requested_update_data.get("platform", env.platform)
+    requested_endpoint_url = requested_update_data.get("endpoint_url", env.endpoint_url)
+    requested_platform_changed = (
+        "platform" in requested_update_data and requested_platform != env.platform
+    )
+    requested_endpoint_changed = (
+        "endpoint_url" in requested_update_data
+        and requested_endpoint_url != env.endpoint_url
+    )
+
+    environment_in = _apply_agent_platform_to_environment_update(
+        agent, env, environment_in
+    )
+
     update_data = environment_in.model_dump(exclude_unset=True)
     platform = update_data.get("platform", env.platform)
-    integration_id = update_data.get("integration_id", env.integration_id)
-    platform_agent_id = update_data.get("platform_agent_id", env.platform_agent_id)
     endpoint_url = update_data.get("endpoint_url", env.endpoint_url)
     platform_changed = "platform" in update_data and platform != env.platform
+    endpoint_changed = (
+        "endpoint_url" in update_data and endpoint_url != env.endpoint_url
+    )
 
     try:
         validate_environment_platform_fields(
             platform=platform,
-            integration_id=integration_id,
-            platform_agent_id=platform_agent_id,
             endpoint_url=endpoint_url,
         )
     except ValueError as exc:
@@ -337,7 +422,7 @@ def update_environment(
     integration_name = _get_environment_integration_name(
         session=session,
         platform=platform,
-        integration_id=integration_id,
+        integration_id=agent.integration_id,
     )
     _validate_gate_config(
         session=session,
@@ -352,7 +437,12 @@ def update_environment(
         db_environment=env,
         data=environment_in,
     )
-    if platform_changed:
+    if (
+        platform_changed
+        or endpoint_changed
+        or requested_platform_changed
+        or requested_endpoint_changed
+    ):
         updated.current_version_number = None
         updated.current_version_name = None
         updated.current_deployed_at = None
@@ -370,13 +460,6 @@ def delete_environment(
     env = crud.get_environment(session=session, environment_id=environment_id)
     if not env:
         raise HTTPException(status_code=404, detail="Environment not found")
-    if env.integration_id is not None:
-        integration = crud.get_integration(
-            session=session,
-            integration_id=env.integration_id,
-        )
-        if not integration:
-            raise HTTPException(status_code=404, detail="Environment not found")
     crud.delete_environment(session=session, db_environment=env)
     return Message(message="Environment deleted successfully")
 
@@ -419,14 +502,14 @@ async def deploy_environment(
 
     deployed_version_name = version_row.version_name
     if env.platform == Platform.RETELL:
-        if env.integration_id is None or env.platform_agent_id is None:
+        if agent.integration_id is None or agent.platform_agent_id is None:
             raise HTTPException(
                 status_code=422,
                 detail="Retell environment is missing integration or agent id",
             )
         integration = crud.get_integration(
             session=session,
-            integration_id=env.integration_id,
+            integration_id=agent.integration_id,
         )
         if not integration:
             raise HTTPException(status_code=404, detail="Integration not found")
@@ -439,7 +522,7 @@ async def deploy_environment(
 
         result = await deploy_retell_agent(
             api_key=api_key,
-            retell_agent_id=env.platform_agent_id,
+            retell_agent_id=agent.platform_agent_id,
             system_prompt=version_row.system_prompt,
             agent_model=version_row.agent_model,
             agent_temperature=version_row.agent_temperature,
@@ -447,6 +530,93 @@ async def deploy_environment(
             version_description=combined_description,
         )
         deployed_version_name = result.retell_version_name
+    elif env.platform == Platform.TELNYX:
+        if agent.integration_id is None or agent.platform_agent_id is None:
+            raise HTTPException(
+                status_code=422,
+                detail="Telnyx environment is missing integration or agent id",
+            )
+        integration = crud.get_integration(
+            session=session,
+            integration_id=agent.integration_id,
+        )
+        if not integration:
+            raise HTTPException(status_code=404, detail="Integration not found")
+        api_key = decrypt(integration.encrypted_api_key)
+        notes = _version_notes_for_retell(version_row).strip()
+
+        result = await deploy_telnyx_agent(
+            api_key=api_key,
+            telnyx_agent_id=agent.platform_agent_id,
+            system_prompt=version_row.system_prompt,
+            agent_model=version_row.agent_model,
+            agent_temperature=version_row.agent_temperature,
+            tools=version_row.tools,
+            version_description=notes or None,
+        )
+        if not result.success:
+            raise HTTPException(
+                status_code=502,
+                detail=result.error_message or "Telnyx deployment failed",
+            )
+    elif env.platform == Platform.VAPI:
+        if agent.integration_id is None or agent.platform_agent_id is None:
+            raise HTTPException(
+                status_code=422,
+                detail="Vapi environment is missing integration or assistant id",
+            )
+        integration = crud.get_integration(
+            session=session,
+            integration_id=agent.integration_id,
+        )
+        if not integration:
+            raise HTTPException(status_code=404, detail="Integration not found")
+        api_key = decrypt(integration.encrypted_api_key)
+        connexity_label = f"Connexity Agent v{body.agent_version}"
+        notes = _version_notes_for_retell(version_row).strip()
+        combined_description = (
+            f"{connexity_label} — {notes}" if notes else connexity_label
+        )
+
+        result = await deploy_vapi_assistant(
+            api_key=api_key,
+            assistant_id=agent.platform_agent_id,
+            system_prompt=version_row.system_prompt,
+            agent_model=version_row.agent_model,
+            agent_provider=version_row.agent_provider,
+            agent_temperature=version_row.agent_temperature,
+            tools=version_row.tools,
+            version_description=combined_description,
+        )
+        deployed_version_name = result.vapi_version_name
+    elif env.platform == Platform.ELEVENLABS:
+        if agent.integration_id is None or agent.platform_agent_id is None:
+            raise HTTPException(
+                status_code=422,
+                detail="ElevenLabs environment is missing integration or agent id",
+            )
+        integration = crud.get_integration(
+            session=session,
+            integration_id=agent.integration_id,
+        )
+        if not integration:
+            raise HTTPException(status_code=404, detail="Integration not found")
+        api_key = decrypt(integration.encrypted_api_key)
+        connexity_label = f"Connexity Agent v{body.agent_version}"
+        notes = _version_notes_for_retell(version_row).strip()
+        combined_description = (
+            f"{connexity_label} — {notes}" if notes else connexity_label
+        )
+
+        result = await deploy_elevenlabs_agent(
+            api_key=api_key,
+            agent_id=agent.platform_agent_id,
+            system_prompt=version_row.system_prompt,
+            agent_model=version_row.agent_model,
+            agent_temperature=version_row.agent_temperature,
+            tools=version_row.tools,
+            version_description=combined_description,
+        )
     elif env.platform == Platform.WEBHOOK:
         if env.endpoint_url is None:
             raise HTTPException(
@@ -477,7 +647,7 @@ async def deploy_environment(
         deployment = crud.mark_deployment_failed(
             session=session,
             deployment=deployment,
-            error_message=result.error_message or "Unknown Retell error",
+            error_message=result.error_message or "Unknown deploy error",
         )
 
     deployer_user = None
@@ -505,7 +675,8 @@ async def list_environment_retell_versions(
     env = crud.get_environment(session=session, environment_id=environment_id)
     if not env:
         raise HTTPException(status_code=404, detail="Environment not found")
-    if crud.get_agent(session=session, agent_id=env.agent_id) is None:
+    agent = crud.get_agent(session=session, agent_id=env.agent_id)
+    if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
     if env.platform != Platform.RETELL:
@@ -513,7 +684,7 @@ async def list_environment_retell_versions(
             status_code=400,
             detail="Retell versions are only available for Retell environments",
         )
-    if env.integration_id is None or env.platform_agent_id is None:
+    if agent.integration_id is None or agent.platform_agent_id is None:
         raise HTTPException(
             status_code=422,
             detail="Retell environment is missing integration or agent id",
@@ -521,14 +692,14 @@ async def list_environment_retell_versions(
 
     integration = crud.get_integration(
         session=session,
-        integration_id=env.integration_id,
+        integration_id=agent.integration_id,
     )
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
 
     api_key = decrypt(integration.encrypted_api_key)
     versions = await list_retell_agent_versions(
-        api_key=api_key, retell_agent_id=env.platform_agent_id
+        api_key=api_key, retell_agent_id=agent.platform_agent_id
     )
     published = [v for v in versions if v.is_published]
     published.sort(key=lambda v: v.version, reverse=True)

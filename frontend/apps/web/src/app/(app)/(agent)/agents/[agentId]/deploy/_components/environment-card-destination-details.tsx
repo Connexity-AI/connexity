@@ -1,35 +1,42 @@
+import { Platform } from '@/client/types.gen';
+import { useAgent } from '@/app/(app)/(agent)/_hooks/use-agent';
+import type { AgentCanonicalDeployTarget } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_utils/agent-canonical-deploy-target';
 import type { EnvironmentPublic } from '@/client/types.gen';
 import type { FC } from 'react';
 
 interface Props {
+  agentId: string;
   environment: EnvironmentPublic;
 }
 
-function getRetellAgentLabel(environment: EnvironmentPublic): string {
-  if (environment.platform_agent_name) {
-    return environment.platform_agent_name;
+function getPlatformAgentLabel(
+  platformAgentName: string | null | undefined,
+  platformAgentId: string | null | undefined
+): string {
+  if (platformAgentName) {
+    return platformAgentName;
   }
-  if (environment.platform_agent_id) {
-    return environment.platform_agent_id;
+  if (platformAgentId) {
+    return platformAgentId;
   }
-  return '—';
+  return '-';
 }
 
 function getWebhookUrl(environment: EnvironmentPublic): string {
   if (environment.endpoint_url) {
     return environment.endpoint_url;
   }
-  return '—';
+  return '-';
 }
 
-function getIntegrationName(environment: EnvironmentPublic): string {
-  if (environment.integration_name) {
-    return environment.integration_name;
+function getIntegrationName(integrationName: string | null | undefined): string {
+  if (integrationName) {
+    return integrationName;
   }
-  return '—';
+  return '-';
 }
 
-const WebhookDestination: FC<Props> = ({ environment }) => {
+const WebhookDestination: FC<{ environment: EnvironmentPublic }> = ({ environment }) => {
   return (
     <div className="space-y-1">
       <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Webhook URL</span>
@@ -38,33 +45,104 @@ const WebhookDestination: FC<Props> = ({ environment }) => {
   );
 };
 
-const RetellDestination: FC<Props> = ({ environment }) => {
+const RetellDestination: FC<{
+  integrationName: string;
+  platformAgentLabel: string;
+}> = ({ integrationName, platformAgentLabel }) => {
   return (
     <>
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Integration</span>
-        <span className="text-xs text-foreground">{getIntegrationName(environment)}</span>
+        <span className="text-xs text-foreground">{integrationName}</span>
       </div>
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Retell Agent</span>
-        <span className="text-xs text-foreground">{getRetellAgentLabel(environment)}</span>
+        <span className="text-xs text-foreground">{platformAgentLabel}</span>
       </div>
     </>
   );
 };
 
-export const EnvironmentCardDestinationDetails: FC<Props> = ({ environment }) => {
-  if (environment.platform === 'webhook') {
+const VapiDestination: FC<{ integrationName: string; platformAgentLabel: string }> = ({
+  integrationName,
+  platformAgentLabel,
+}) => {
+  return (
+    <>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Integration</span>
+        <span className="text-xs text-foreground">{integrationName}</span>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Vapi Assistant</span>
+        <span className="text-xs text-foreground">{platformAgentLabel}</span>
+      </div>
+    </>
+  );
+};
+
+const ElevenLabsDestination: FC<{
+  integrationName: string;
+  platformAgentLabel: string;
+}> = ({ integrationName, platformAgentLabel }) => {
+  return (
+    <>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Integration</span>
+        <span className="text-xs text-foreground">{integrationName}</span>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+          ElevenLabs Agent
+        </span>
+        <span className="text-xs text-foreground">{platformAgentLabel}</span>
+      </div>
+    </>
+  );
+};
+
+export const EnvironmentCardDestinationDetails: FC<Props> = ({ agentId, environment }) => {
+  const { data: agent } = useAgent(agentId);
+  const agentTarget = agent as AgentCanonicalDeployTarget | undefined;
+  const integrationName = getIntegrationName(environment.integration_name);
+  const platformAgentLabel = getPlatformAgentLabel(
+    agentTarget?.platform_agent_name,
+    agentTarget?.platform_agent_id
+  );
+  if (environment.platform === Platform.WEBHOOK) {
     return (
       <div className="px-5 py-4 border-b border-border bg-accent/5 space-y-3">
         <WebhookDestination environment={environment} />
       </div>
     );
   }
+  if (environment.platform === Platform.VAPI) {
+    return (
+      <div className="px-5 py-4 border-b border-border bg-accent/5 space-y-3">
+        <VapiDestination
+          integrationName={integrationName}
+          platformAgentLabel={platformAgentLabel}
+        />
+      </div>
+    );
+  }
+  if (environment.platform === Platform.ELEVENLABS) {
+    return (
+      <div className="px-5 py-4 border-b border-border bg-accent/5 space-y-3">
+        <ElevenLabsDestination
+          integrationName={integrationName}
+          platformAgentLabel={platformAgentLabel}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="px-5 py-4 border-b border-border bg-accent/5 space-y-3">
-      <RetellDestination environment={environment} />
+      <RetellDestination
+        integrationName={integrationName}
+        platformAgentLabel={platformAgentLabel}
+      />
     </div>
   );
 };

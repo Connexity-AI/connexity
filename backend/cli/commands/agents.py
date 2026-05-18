@@ -434,3 +434,25 @@ def agents_guidelines_set(
         agent = resolve_agent(client, agent_ref)
         data = client.agents.put_guidelines(str(agent["id"]), body)
     _emit(ctx, data, output_override)
+
+
+# ---------------------------------------------------------------------------
+# runtimes
+# ---------------------------------------------------------------------------
+
+
+@agents_group.command("runtimes")
+@click.argument("agent_ref")
+@click.option(
+    "--output", "output_override", type=click.Choice(["json", "table"]), default=None
+)
+@click.pass_context
+def agents_runtimes(
+    ctx: click.Context, agent_ref: str, output_override: str | None
+) -> None:
+    """List runtimes available for AGENT_REF (with the recommended default)."""
+    ensure_auth(ctx)
+    with open_client(ctx) as client:
+        agent = resolve_agent(client, agent_ref)
+        data = client.agents.list_runtimes(str(agent["id"]))
+    _emit(ctx, data, output_override)

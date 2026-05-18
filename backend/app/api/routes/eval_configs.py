@@ -14,7 +14,12 @@ from app.models.eval_config import (
     EvalConfigsPublic,
     EvalConfigUpdate,
 )
-from app.models.schemas import RunConfig
+from app.models.schemas import (
+    RunConfig,
+    RuntimeTestRequest,
+    RuntimeTestResult,
+)
+from app.services.eval_runtimes import get_runtime
 
 
 def _to_public(
@@ -67,6 +72,40 @@ router = APIRouter(
     tags=["eval-configs"],
     dependencies=[Depends(get_current_user)],
 )
+
+
+@router.post(
+    "/test-runtime",
+    response_model=RuntimeTestResult,
+)
+async def test_runtime(
+    session: SessionDep, body: RuntimeTestRequest
+) -> RuntimeTestResult:
+    """Smoke-test a runtime config against an agent."""
+    agent = crud.get_agent(session=session, agent_id=body.agent_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    try:
+        runtime = get_runtime(body.mode, body.runtime.kind)
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unknown runtime: {body.runtime.kind}",
+        ) from exc
+    if not runtime.supported_for_platform(agent.platform):
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Runtime '{body.runtime.kind.value}' is not available for this agent."
+            ),
+        )
+    try:
+        runtime.validate_config(body.runtime, agent, session)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    result = await runtime.test_connection(body.runtime, agent, session)
+    return RuntimeTestResult(ok=result.ok, message=result.message)
 
 
 @router.post("/", response_model=EvalConfigPublic)
@@ -130,11 +169,14 @@ def update_eval_config(
     eval_config = crud.get_eval_config(session=session, eval_config_id=eval_config_id)
     if not eval_config:
         raise HTTPException(status_code=404, detail="Eval config not found")
-    updated = crud.update_eval_config(
-        session=session,
-        db_eval_config=eval_config,
-        eval_config_in=eval_config_in,
-    )
+    try:
+        updated = crud.update_eval_config(
+            session=session,
+            db_eval_config=eval_config,
+            eval_config_in=eval_config_in,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return _to_public(session, updated)
 
 

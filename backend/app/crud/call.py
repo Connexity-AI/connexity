@@ -7,9 +7,15 @@ from sqlmodel import Session, col, select
 
 from app.models.agent import Agent
 from app.models.call import Call, CallPublic
+from app.models.integration import Integration
 from app.models.test_case import TestCase
+from app.services.elevenlabs import (
+    ElevenLabsConversationDetails,
+    ElevenLabsConversationSummary,
+)
 from app.services.retell import RetellCall
 from app.services.telnyx import TelnyxCall
+from app.services.vapi import VapiCall
 
 # SQLModel's declarative metaclass sets ``__table__`` at class creation, but
 # pyright's stubs don't expose it on ``type[Call]``; bind it once with an
@@ -38,6 +44,90 @@ def _retell_call_to_row(
         "duration_seconds": duration,
         "status": call.call_status,
         "transcript": call.transcript_object,
+        "raw": call.raw,
+    }
+
+
+def _vapi_call_to_row(
+    call: VapiCall, *, agent_id: uuid.UUID, integration_id: uuid.UUID
+) -> dict:
+    started_at = call.started_at or call.created_at or datetime.now(UTC)
+    duration: int | None = None
+    if call.started_at and call.ended_at:
+        duration = max(0, int((call.ended_at - call.started_at).total_seconds()))
+    return {
+        "agent_id": agent_id,
+        "integration_id": integration_id,
+        "retell_call_id": call.call_id,
+        "retell_agent_id": call.assistant_id or "",
+        "started_at": started_at,
+        "duration_seconds": duration,
+        "status": call.status,
+        "transcript": call.transcript,
+        "raw": call.raw,
+    }
+
+
+def _telnyx_call_to_row(
+    call: TelnyxCall, *, agent_id: uuid.UUID, integration_id: uuid.UUID
+) -> dict:
+    started_at = (
+        datetime.fromtimestamp(call.start_timestamp / 1000, tz=UTC)
+        if call.start_timestamp
+        else datetime.now(UTC)
+    )
+    duration: int | None = None
+    if call.start_timestamp and call.end_timestamp:
+        duration = max(0, (call.end_timestamp - call.start_timestamp) // 1000)
+    return {
+        "agent_id": agent_id,
+        "integration_id": integration_id,
+        "telnyx_call_id": call.call_id,
+        "telnyx_agent_id": call.agent_id or "",
+        "started_at": started_at,
+        "duration_seconds": duration,
+        "status": call.call_status,
+        "transcript": call.transcript_object,
+        "raw": call.raw,
+    }
+
+
+def _elevenlabs_summary_to_row(
+    call: ElevenLabsConversationSummary,
+    *,
+    agent_id: uuid.UUID,
+    integration_id: uuid.UUID,
+) -> dict:
+    started_at = datetime.fromtimestamp(call.start_time_unix_secs, tz=UTC)
+    return {
+        "agent_id": agent_id,
+        "integration_id": integration_id,
+        "retell_call_id": call.conversation_id,
+        "retell_agent_id": call.agent_id,
+        "started_at": started_at,
+        "duration_seconds": call.call_duration_secs,
+        "status": call.status,
+        "transcript": None,
+        "raw": call.raw,
+    }
+
+
+def _elevenlabs_details_to_row(
+    call: ElevenLabsConversationDetails,
+    *,
+    agent_id: uuid.UUID,
+    integration_id: uuid.UUID,
+) -> dict:
+    started_at = datetime.fromtimestamp(call.start_time_unix_secs, tz=UTC)
+    return {
+        "agent_id": agent_id,
+        "integration_id": integration_id,
+        "retell_call_id": call.conversation_id,
+        "retell_agent_id": call.agent_id or "",
+        "started_at": started_at,
+        "duration_seconds": call.call_duration_secs,
+        "status": call.status,
+        "transcript": call.transcript,
         "raw": call.raw,
     }
 
@@ -76,28 +166,56 @@ def upsert_calls_from_retell(
     return inserted
 
 
-def _telnyx_call_to_row(
-    call: TelnyxCall, *, agent_id: uuid.UUID, integration_id: uuid.UUID
-) -> dict:
-    started_at = (
-        datetime.fromtimestamp(call.start_timestamp / 1000, tz=UTC)
-        if call.start_timestamp
-        else datetime.now(UTC)
-    )
-    duration: int | None = None
-    if call.start_timestamp and call.end_timestamp:
-        duration = max(0, (call.end_timestamp - call.start_timestamp) // 1000)
-    return {
-        "agent_id": agent_id,
-        "integration_id": integration_id,
-        "telnyx_call_id": call.call_id,
-        "telnyx_agent_id": call.agent_id or "",
-        "started_at": started_at,
-        "duration_seconds": duration,
-        "status": call.call_status,
-        "transcript": call.transcript_object,
-        "raw": call.raw,
-    }
+def upsert_calls_from_vapi(
+    *,
+    session: Session,
+    agent_id: uuid.UUID,
+    integration_id: uuid.UUID,
+    vapi_calls: list[VapiCall],
+) -> int:
+    """Upsert Vapi calls, refreshing existing rows as calls evolve.
+
+    Vapi calls can first arrive as in-progress and later transition to ended with
+    transcript + duration populated. Use conflict-update semantics so refresh
+    syncs can enrich existing rows instead of dropping updates as duplicates.
+    """
+    if not vapi_calls:
+        return 0
+
+    rows = [
+        _vapi_call_to_row(c, agent_id=agent_id, integration_id=integration_id)
+        for c in vapi_calls
+        if c.call_id
+    ]
+    if not rows:
+        return 0
+
+    insert_stmt = pg_insert(_CALL_TABLE).values(rows)
+    stmt = insert_stmt.on_conflict_do_update(
+        index_elements=["retell_call_id", "agent_id"],
+        set_={
+            "retell_agent_id": insert_stmt.excluded.retell_agent_id,
+            "started_at": insert_stmt.excluded.started_at,
+            "status": insert_stmt.excluded.status,
+            "duration_seconds": func.coalesce(
+                insert_stmt.excluded.duration_seconds,
+                _CALL_TABLE.c.duration_seconds,
+            ),
+            "transcript": func.coalesce(
+                insert_stmt.excluded.transcript,
+                _CALL_TABLE.c.transcript,
+            ),
+            "raw": func.coalesce(
+                insert_stmt.excluded.raw,
+                _CALL_TABLE.c.raw,
+            ),
+            "integration_id": insert_stmt.excluded.integration_id,
+        },
+    ).returning(_CALL_TABLE.c.id)
+    result = session.execute(stmt)
+    inserted = len(list(result))
+    session.commit()
+    return inserted
 
 
 def upsert_calls_from_telnyx(
@@ -107,10 +225,6 @@ def upsert_calls_from_telnyx(
     integration_id: uuid.UUID,
     telnyx_calls: list[TelnyxCall],
 ) -> int:
-    """Insert telnyx calls, skipping rows whose ``telnyx_call_id`` already exists.
-
-    Returns the number of newly-inserted rows.
-    """
     if not telnyx_calls:
         return 0
 
@@ -134,21 +248,60 @@ def upsert_calls_from_telnyx(
     return inserted
 
 
-def get_latest_telnyx_call_started_at(
+def upsert_calls_from_elevenlabs(
     *,
     session: Session,
     agent_id: uuid.UUID,
-    telnyx_agent_id: str | None = None,
-) -> datetime | None:
-    stmt = (
-        select(func.max(Call.started_at))
-        .where(Call.agent_id == agent_id)
-        .where(Call.telnyx_call_id.is_not(None))  # type: ignore[union-attr]
-        .where(Call.deleted_at.is_(None))  # type: ignore[union-attr]
-    )
-    if telnyx_agent_id is not None:
-        stmt = stmt.where(Call.telnyx_agent_id == telnyx_agent_id)
-    return session.exec(stmt).one_or_none()
+    integration_id: uuid.UUID,
+    conversations: list[ElevenLabsConversationDetails | ElevenLabsConversationSummary],
+) -> int:
+    if not conversations:
+        return 0
+
+    rows: list[dict] = []
+    for c in conversations:
+        if isinstance(c, ElevenLabsConversationDetails):
+            rows.append(
+                _elevenlabs_details_to_row(
+                    c, agent_id=agent_id, integration_id=integration_id
+                )
+            )
+        else:
+            rows.append(
+                _elevenlabs_summary_to_row(
+                    c, agent_id=agent_id, integration_id=integration_id
+                )
+            )
+    rows = [r for r in rows if r.get("retell_call_id")]
+    if not rows:
+        return 0
+
+    insert_stmt = pg_insert(_CALL_TABLE).values(rows)
+    stmt = insert_stmt.on_conflict_do_update(
+        index_elements=["retell_call_id", "agent_id"],
+        set_={
+            "retell_agent_id": insert_stmt.excluded.retell_agent_id,
+            "started_at": insert_stmt.excluded.started_at,
+            "status": insert_stmt.excluded.status,
+            "duration_seconds": func.coalesce(
+                insert_stmt.excluded.duration_seconds,
+                _CALL_TABLE.c.duration_seconds,
+            ),
+            "transcript": func.coalesce(
+                insert_stmt.excluded.transcript,
+                _CALL_TABLE.c.transcript,
+            ),
+            "raw": func.coalesce(
+                insert_stmt.excluded.raw,
+                _CALL_TABLE.c.raw,
+            ),
+            "integration_id": insert_stmt.excluded.integration_id,
+        },
+    ).returning(_CALL_TABLE.c.id)
+    result = session.execute(stmt)
+    inserted = len(list(result))
+    session.commit()
+    return inserted
 
 
 def get_latest_call_started_at(
@@ -167,6 +320,23 @@ def get_latest_call_started_at(
     return session.exec(stmt).one_or_none()
 
 
+def get_latest_telnyx_call_started_at(
+    *,
+    session: Session,
+    agent_id: uuid.UUID,
+    telnyx_agent_id: str | None = None,
+) -> datetime | None:
+    stmt = (
+        select(func.max(Call.started_at))
+        .where(Call.agent_id == agent_id)
+        .where(Call.telnyx_call_id.is_not(None))  # type: ignore[union-attr]
+        .where(Call.deleted_at.is_(None))  # type: ignore[union-attr]
+    )
+    if telnyx_agent_id is not None:
+        stmt = stmt.where(Call.telnyx_agent_id == telnyx_agent_id)
+    return session.exec(stmt).one_or_none()
+
+
 def list_calls_for_agent(
     *,
     session: Session,
@@ -177,7 +347,10 @@ def list_calls_for_agent(
     date_to: datetime | None = None,
 ) -> tuple[list[CallPublic], int]:
     base = (
-        select(Call).where(Call.agent_id == agent_id).where(Call.deleted_at.is_(None))  # type: ignore[union-attr]
+        select(Call, Integration.provider)
+        .outerjoin(Integration, Call.integration_id == Integration.id)
+        .where(Call.agent_id == agent_id)
+        .where(Call.deleted_at.is_(None))  # type: ignore[union-attr]
     )
     count_stmt = (
         select(func.count())
@@ -201,7 +374,9 @@ def list_calls_for_agent(
     if not rows:
         return [], total
 
-    call_ids = [r.id for r in rows]
+    calls = [call for call, _ in rows]
+    call_ids = [c.id for c in calls]
+    provider_by_call_id = {call.id: provider for call, provider in rows}
 
     tc_counts = dict(
         session.exec(
@@ -217,15 +392,18 @@ def list_calls_for_agent(
             agent_id=r.agent_id,
             retell_call_id=r.retell_call_id,
             retell_agent_id=r.retell_agent_id,
+            telnyx_call_id=r.telnyx_call_id,
+            telnyx_agent_id=r.telnyx_agent_id,
             started_at=r.started_at,
             duration_seconds=r.duration_seconds,
             status=r.status,
+            provider=provider_by_call_id.get(r.id),
             transcript=r.transcript,
             is_new=r.seen_at is None,
             test_case_count=int(tc_counts.get(r.id, 0)),
             created_at=r.created_at,
         )
-        for r in rows
+        for r in calls
     ]
     return items, total
 

@@ -1,12 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, Loader2, XCircle } from 'lucide-react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 
 import { Button } from '@workspace/ui/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@workspace/ui/components/ui/dialog';
@@ -19,21 +13,9 @@ import {
   FormMessage,
 } from '@workspace/ui/components/ui/form';
 
-import { createIntegration } from '@/actions/integrations';
-import { integrationKeys } from '@/constants/query-keys';
-import { isSuccessApiResult } from '@/utils/api';
+import { PROVIDERS, useAddIntegrationDialog } from './use-add-integration-dialog';
 
 import type { FC } from 'react';
-
-const formSchema = z.object({
-  provider: z.enum(['retell']),
-  name: z.string().min(1, 'Name is required'),
-  api_key: z.string().min(1, 'API key is required'),
-});
-
-type FormValues = z.infer<typeof formSchema>;
-
-type DialogState = 'form' | 'testing' | 'success' | 'error';
 
 interface Props {
   open: boolean;
@@ -44,52 +26,14 @@ const INPUT_CLASS =
   'w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50';
 
 export const AddIntegrationDialog: FC<Props> = ({ open, onOpenChange }) => {
-  const queryClient = useQueryClient();
-  const [dialogState, setDialogState] = useState<DialogState>('form');
-  const [errorMessage, setErrorMessage] = useState<string>('');
-
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: { provider: 'retell', name: '', api_key: '' },
-    values: { provider: 'retell', name: '', api_key: '' },
-  });
-
-  const handleOpenChange = (next: boolean) => {
-    if (dialogState === 'testing' && !next) {
-      return;
-    }
-    onOpenChange(next);
-  };
-
-  const onSubmit = async (values: FormValues) => {
-    setDialogState('testing');
-    setErrorMessage('');
-
-    const result = await createIntegration(values);
-
-    if (isSuccessApiResult(result)) {
-      setDialogState('success');
-      void queryClient.invalidateQueries({ queryKey: integrationKeys.all });
-      setTimeout(() => onOpenChange(false), 1500);
-      return;
-    }
-
-    const err = 'error' in result ? result.error : undefined;
-    const msg =
-      typeof err === 'object' && err !== null && 'detail' in err
-        ? String((err as { detail: unknown }).detail)
-        : 'Failed to add integration. Check your API key and try again.';
-    setErrorMessage(msg);
-    setDialogState('error');
-  };
+  const { form, dialogState, errorMessage, selectedProvider, handleOpenChange, onSubmit } =
+    useAddIntegrationDialog({ onOpenChange });
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden [&>button:last-of-type]:hidden">
         <div className="px-6 py-4 border-b border-border">
-          <DialogTitle className="text-sm font-medium text-foreground">
-            Add Integration
-          </DialogTitle>
+          <DialogTitle className="text-sm font-medium text-foreground">Add Integration</DialogTitle>
         </div>
 
         {dialogState === 'success' ? (
@@ -99,23 +43,34 @@ export const AddIntegrationDialog: FC<Props> = ({ open, onOpenChange }) => {
           </div>
         ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-4">
+            <form onSubmit={onSubmit} className="p-6 space-y-4">
               {/* Provider */}
               <FormField
                 control={form.control}
                 name="provider"
-                render={() => (
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-xs text-muted-foreground mb-2 block">
                       Provider
                     </FormLabel>
                     <div className="grid grid-cols-3 gap-2">
-                      <button
-                        type="button"
-                        className="px-3 py-2 rounded-lg border text-xs font-medium transition-colors border-primary bg-primary/10 text-foreground"
-                      >
-                        Retell
-                      </button>
+                      {PROVIDERS.map((item) => (
+                        <Button
+                          key={item.value}
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className={`px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${
+                            field.value === item.value
+                              ? 'border-primary bg-primary/10 text-foreground hover:bg-primary/10 hover:text-foreground'
+                              : 'border-border text-muted-foreground hover:bg-accent'
+                          }`}
+                          onClick={() => field.onChange(item.value)}
+                          disabled={dialogState === 'testing'}
+                        >
+                          {item.label}
+                        </Button>
+                      ))}
                     </div>
                     <FormMessage />
                   </FormItem>
@@ -135,7 +90,7 @@ export const AddIntegrationDialog: FC<Props> = ({ open, onOpenChange }) => {
                       <input
                         {...field}
                         type="text"
-                        placeholder="e.g., Production Retell"
+                        placeholder={selectedProvider.placeholder}
                         className={INPUT_CLASS}
                         disabled={dialogState === 'testing'}
                       />
@@ -165,12 +120,12 @@ export const AddIntegrationDialog: FC<Props> = ({ open, onOpenChange }) => {
                     </FormControl>
                     <div className="flex items-center justify-between mt-1">
                       <a
-                        href="https://dashboard.retellai.com/settings/api-keys"
+                        href={selectedProvider.docsHref}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[10px] text-primary hover:underline"
                       >
-                        Get Retell API Key
+                        {selectedProvider.docsLabel}
                       </a>
                       <p className="text-[10px] text-muted-foreground/40">
                         Tip: Use &quot;test-error&quot; to demo error state
@@ -184,7 +139,9 @@ export const AddIntegrationDialog: FC<Props> = ({ open, onOpenChange }) => {
               {dialogState === 'error' && errorMessage && (
                 <div className="flex items-center gap-2.5 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3">
                   <XCircle className="w-4 h-4 shrink-0 text-destructive" />
-                  <p className="text-sm text-destructive">Connection failed. Please check your API key.</p>
+                  <p className="text-sm text-destructive">
+                    Connection failed. Please check your API key.
+                  </p>
                 </div>
               )}
 

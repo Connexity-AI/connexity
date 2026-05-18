@@ -111,6 +111,77 @@ def test_eval_configs_list_uses_correct_path(api_env, runner, respx_mock_clean) 
     assert result.exit_code == 0, result.stderr
 
 
+def test_agents_runtimes(api_env, runner, respx_mock_clean) -> None:
+    """`agents runtimes` hits GET /agents/{id}/runtimes."""
+    agent_uuid = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    respx_mock_clean.get(f"/agents/{agent_uuid}").respond(
+        200, json={"id": agent_uuid, "name": "agent-x"}
+    )
+    route = respx_mock_clean.get(f"/agents/{agent_uuid}/runtimes").respond(
+        200,
+        json={
+            "data": [
+                {
+                    "kind": "connexity",
+                    "label": "Connexity",
+                    "description": "...",
+                    "is_default": True,
+                },
+                {
+                    "kind": "retell",
+                    "label": "Retell",
+                    "description": "...",
+                    "is_default": False,
+                },
+            ]
+        },
+    )
+    result = runner.invoke(
+        app,
+        ["--output", "json", "agents", "runtimes", agent_uuid],
+    )
+    assert result.exit_code == 0, result.stderr
+    assert route.called
+
+
+def test_eval_configs_test_runtime_posts_payload(
+    api_env, runner, respx_mock_clean, tmp_path: Path
+) -> None:
+    """`eval-configs test-runtime` posts {agent_id, mode, runtime}."""
+    agent_uuid = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    runtime_config = {"kind": "custom_endpoint", "url": "https://your-agent.com/v1"}
+    file = tmp_path / "runtime.json"
+    file.write_text(json.dumps(runtime_config))
+
+    respx_mock_clean.get(f"/agents/{agent_uuid}").respond(
+        200, json={"id": agent_uuid, "name": "agent-x"}
+    )
+    route = respx_mock_clean.post("/eval-configs/test-runtime").respond(
+        200, json={"ok": True, "message": "looks good"}
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "--output",
+            "json",
+            "eval-configs",
+            "test-runtime",
+            "--agent",
+            agent_uuid,
+            "--from-file",
+            str(file),
+        ],
+    )
+    assert result.exit_code == 0, result.stderr
+    sent = json.loads(route.calls.last.request.content)
+    assert sent == {
+        "agent_id": agent_uuid,
+        "mode": "text",
+        "runtime": runtime_config,
+    }
+
+
 def test_runs_baseline_uses_eval_config_id_param(
     api_env, runner, respx_mock_clean
 ) -> None:

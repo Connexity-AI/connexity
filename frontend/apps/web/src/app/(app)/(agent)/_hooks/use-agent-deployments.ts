@@ -6,7 +6,7 @@ import { listAgentDeployments } from '@/actions/environments';
 import { environmentKeys } from '@/constants/query-keys';
 import { isSuccessApiResult } from '@/utils/api';
 
-export function useAgentDeployments(agentId: string) {
+export function useAgentDeployments(agentId: string, enabled: boolean = true) {
   return useQuery({
     queryKey: environmentKeys.agentDeployments(agentId),
     queryFn: async () => {
@@ -15,5 +15,6 @@ export function useAgentDeployments(agentId: string) {
       return result.data;
     },
     staleTime: 30 * 1000,
+    enabled,
   });
 }

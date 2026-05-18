@@ -50,3 +50,8 @@ class EvalConfigsApi(_BaseApi):
         return self._t.delete_dict(
             f"eval-configs/{eval_config_id}/test-cases/{test_case_id}"
         )
+
+    # --- runtimes ---------------------------------------------------------
+
+    def test_runtime(self, body: dict[str, Any]) -> dict[str, Any]:
+        return self._t.post_dict("eval-configs/test-runtime", json_body=body)

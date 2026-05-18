@@ -1,8 +1,7 @@
 import { isServer } from '@/utils/runtime';
 import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { getPublicEnv } from '@/config/process-env';
-
-// import { waitMs } from '@/utils/wait';
+import { fetchWithDevBackendRetry } from '@/lib/backend-fetch';
 
 import type { CreateClientConfig } from '@/client/client.gen';
 
@@ -37,7 +36,7 @@ const serverFetch: typeof fetch = async (input, init = {}) => {
   // test skeletons styling
   // await waitMs(3000);
 
-  const response = fetch(input, { ...init, headers });
+  const response = fetchWithDevBackendRetry(input, { ...init, headers });
 
   return response;
 };

@@ -147,6 +147,12 @@ export function useEvalGate({
 
   const createRun = useCreateRun(agentId);
 
+  useEffect(() => {
+    setPendingRunId(null);
+    setPendingDeployVersion(null);
+    setGateError(null);
+  }, [gateConfigId]);
+
   // Streams server-sent events for the in-flight run into the runs query
   // cache. The watcher effect below reads from that cache, so we don't
   // need to do anything with the stream's return value directly — we
@@ -235,9 +241,9 @@ export function useEvalGate({
     selectedVersionRun,
     gateState,
     /** True while a gated run kicked off here is still in flight. */
-    isInFlight: pendingRunId !== null,
+    isInFlight: hasGate && pendingRunId !== null,
     /** Either the gate-specific error or whatever createRun surfaced. */
-    error: gateError ?? createRun.error,
+    error: hasGate ? (gateError ?? createRun.error) : null,
     startGatedRun,
   };
 }

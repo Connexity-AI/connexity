@@ -6,9 +6,13 @@ from app.crud.agent import (  # noqa: F401
     create_draft_agent,
     delete_agent,
     get_agent,
+    latest_completed_eval_summaries_by_agent,
     list_agents,
     set_agent_editor_guidelines,
     update_agent,
+)
+from app.crud.agent_version import (  # noqa: F401
+    active_published_versions_by_agent_ids as list_active_published_versions_by_agent_ids,
 )
 from app.crud.agent_version import (  # noqa: F401
     create_or_update_draft as create_or_update_agent_draft,
@@ -32,7 +36,9 @@ from app.crud.call import (  # noqa: F401
     mark_call_seen,
     soft_delete_calls_for_integration,
     touch_calls_last_synced_at,
+    upsert_calls_from_elevenlabs,
     upsert_calls_from_retell,
+    upsert_calls_from_vapi,
 )
 from app.crud.custom_metrics import (  # noqa: F401
     create_custom_metric,

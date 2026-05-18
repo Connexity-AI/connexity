@@ -25,6 +25,11 @@ class AgentMode(StrEnum):
     PLATFORM = "platform"
 
 
+class AgentPromptType(StrEnum):
+    SINGLE_PROMPT = "single_prompt"
+    MULTI_PROMPT = "multi_prompt"
+
+
 class AgentVersionStatus(StrEnum):
     DRAFT = "draft"
     PUBLISHED = "published"
@@ -67,12 +72,27 @@ class PromptEditorSessionStatus(StrEnum):
 class Platform(StrEnum):
     RETELL = "retell"
     TELNYX = "telnyx"
+    VAPI = "vapi"
+    ELEVENLABS = "elevenlabs"
     WEBHOOK = "webhook"
+
+
+class RunMode(StrEnum):
+    TEXT = "text"
+    VOICE = "voice"
+
+
+class TextRuntimeKind(StrEnum):
+    CONNEXITY = "connexity"
+    RETELL = "retell"
+    CUSTOM_ENDPOINT = "custom_endpoint"
 
 
 class IntegrationProvider(StrEnum):
     RETELL = "retell"
     TELNYX = "telnyx"
+    VAPI = "vapi"
+    ELEVENLABS = "elevenlabs"
 
 
 class DeploymentStatus(StrEnum):

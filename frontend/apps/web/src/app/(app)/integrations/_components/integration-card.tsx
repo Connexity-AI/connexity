@@ -11,6 +11,7 @@ import type { FC } from 'react';
 
 const PROVIDER_STYLES: Record<string, string> = {
   retell: 'bg-purple-500/10 text-purple-400',
+  vapi: 'bg-sky-500/10 text-sky-400',
   elevenlabs: 'bg-green-500/10 text-green-400',
 };
 

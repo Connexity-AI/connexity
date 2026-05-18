@@ -9,11 +9,11 @@ live here so API and services share one definition.
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, Self
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.models.enums import SimulatorMode, TurnRole
+from app.models.enums import RunMode, SimulatorMode, TextRuntimeKind, TurnRole
 
 if TYPE_CHECKING:
     from app.models.test_case import TestCase
@@ -21,28 +21,24 @@ if TYPE_CHECKING:
 # ── Test case nested types ──────────────────────────────────────────
 
 
-class MockResponse(BaseModel):
-    expected_params: dict[str, Any] | None = Field(
-        default=None,
-        description="Partial-match filter on tool arguments; null = match any call",
-    )
-    response: dict[str, Any] = Field(
-        description="Canned return value sent back to the LLM as the tool result",
-    )
-
-
 class ExpectedToolCall(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     tool: str = Field(description="Tool/function name the agent should invoke")
     expected_params: dict[str, Any] | None = Field(
         default=None,
-        description="Key parameters the judge verifies; null = any params acceptable",
+        description=(
+            "Used for mock routing (required argument keys must be present in the live "
+            "call; values ignored) and generator alignment; null matches any invocation. "
+            "Use {{paramName}} tokens for simulator- or agent-varying values."
+        ),
     )
-    mock_responses: list[MockResponse] | None = Field(
+    mock_response: dict[str, Any] | None = Field(
         default=None,
         description=(
-            "Ordered mock responses consumed sequentially during platform agent "
-            "simulation. First entry whose expected_params partially matches is "
-            "popped and returned."
+            "Canned JSON object returned as the tool result in mock mode. "
+            "Use one expected_tool_calls row per mocked invocation when the same "
+            "tool is called multiple times."
         ),
     )
 
@@ -213,6 +209,84 @@ class AgentSimulatorConfig(BaseModel):
     )
 
 
+# ── Runtime configs (discriminated union) ─────────────────────────
+
+
+class ConnexityRuntimeConfig(BaseModel):
+    """Connexity text runtime: in-process user simulator + platform AgentSimulator.
+
+    Requires a non-empty ``system_prompt`` on the agent for validation at eval-config
+    time. For HTTP agents without platform prompts, use ``CustomEndpointRuntimeConfig``.
+    """
+
+    kind: Literal[TextRuntimeKind.CONNEXITY] = TextRuntimeKind.CONNEXITY
+
+
+class RetellRuntimeConfig(BaseModel):
+    """Retell text runtime.
+
+    Connexity owns the user simulator and judge. The Retell runtime will call
+    Retell as the agent side via chat APIs once implemented.
+    """
+
+    kind: Literal[TextRuntimeKind.RETELL] = TextRuntimeKind.RETELL
+
+
+class CustomEndpointRuntimeConfig(BaseModel):
+    """Run evals against a user-provided HTTP endpoint.
+
+    The configured ``url`` must follow Connexity's OpenAI-compatible chat
+    completions contract (see ``app.models.agent_contract``): POST
+    ``AgentRequest`` → ``AgentResponse``.
+    """
+
+    kind: Literal[TextRuntimeKind.CUSTOM_ENDPOINT] = TextRuntimeKind.CUSTOM_ENDPOINT
+    url: str = Field(
+        min_length=1,
+        max_length=2048,
+        description="Chat-completions URL that receives AgentRequest payloads",
+    )
+
+
+RuntimeConfig = Annotated[
+    ConnexityRuntimeConfig | RetellRuntimeConfig | CustomEndpointRuntimeConfig,
+    Field(discriminator="kind"),
+]
+
+
+# ── Public runtime descriptors (API responses) ────────────────────
+
+
+class RuntimeOption(BaseModel):
+    """One runtime choice exposed to the UI dropdown."""
+
+    kind: TextRuntimeKind = Field(description="Runtime identifier")
+    label: str = Field(description="Human-readable name")
+    description: str = Field(description="Short marketing tagline")
+    is_default: bool = Field(
+        default=False, description="True when this is the recommended default"
+    )
+
+
+class RuntimeOptionsPublic(BaseModel):
+    data: list[RuntimeOption] = Field(
+        description="Runtimes available for the agent, in stable display order"
+    )
+
+
+class RuntimeTestResult(BaseModel):
+    """Outcome of POST /eval-configs/test-runtime."""
+
+    ok: bool = Field(description="True when the runtime config passed the smoke test")
+    message: str = Field(description="Human-readable detail")
+
+
+class RuntimeTestRequest(BaseModel):
+    agent_id: uuid.UUID = Field(description="Agent the runtime will run against")
+    mode: RunMode = Field(default=RunMode.TEXT, description="Run mode for this runtime")
+    runtime: RuntimeConfig = Field(description="Runtime config under test")
+
+
 class RunConfig(BaseModel):
     concurrency: int = Field(default=5, description="Max parallel test case executions")
     timeout_per_test_case_ms: int = Field(
@@ -225,7 +299,7 @@ class RunConfig(BaseModel):
     )
     tool_mode: Literal["mock", "live"] = Field(
         default="mock",
-        description="Global tool execution mode: mock uses test-case mock_responses, live executes real implementations",
+        description="Global tool execution mode: mock uses test-case expected_tool_calls.mock_response payloads, live executes real implementations",
     )
     metrics_pass_threshold: float = Field(
         default=80.0,
@@ -261,8 +335,17 @@ class RunConfig(BaseModel):
     agent_simulator: AgentSimulatorConfig | None = Field(
         default=None,
         description=(
-            "Agent simulator LLM overrides. Only applies when the agent mode is platform."
+            "Agent simulator LLM overrides. Applies when the selected text runtime "
+            "uses AgentSimulator (Connexity)."
         ),
+    )
+    mode: RunMode = Field(
+        default=RunMode.TEXT,
+        description="Run modality: text today, voice for future realtime simulations.",
+    )
+    runtime: RuntimeConfig = Field(
+        default_factory=ConnexityRuntimeConfig,
+        description="Runtime that drives the eval for the selected mode.",
     )
 
 

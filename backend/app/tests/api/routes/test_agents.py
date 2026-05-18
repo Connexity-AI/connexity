@@ -1,12 +1,20 @@
 import uuid
+from unittest.mock import AsyncMock, patch
 
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from app import crud
 from app.core.config import settings
+from app.models import Integration, RunStatus
+from app.models.enums import IntegrationProvider
 from app.services.prompt_editor.agent_prompt import DEFAULT_EDITOR_GUIDELINES
-from app.tests.utils.eval import create_test_agent
+from app.tests.utils.eval import (
+    create_test_agent,
+    create_test_eval_config,
+    create_test_run,
+)
 
 
 def test_create_agent(client: TestClient, auth_cookies: dict[str, str]) -> None:
@@ -37,6 +45,29 @@ def test_list_agents(
     result = r.json()
     assert result["count"] >= 1
     assert len(result["data"]) >= 1
+
+
+def test_list_agents_includes_last_eval_summary(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = create_test_agent(db)
+    eval_config = create_test_eval_config(db, agent_id=agent.id)
+    run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
+    run.status = RunStatus.COMPLETED
+    db.add(run)
+    db.commit()
+    db.refresh(run)
+
+    response = client.get(
+        f"{settings.API_V1_STR}/agents/",
+        cookies=auth_cookies,
+    )
+    assert response.status_code == 200
+    body = response.json()
+    listed = next((item for item in body["data"] if item["id"] == str(agent.id)), None)
+    assert listed is not None
+    assert listed["last_eval"] is not None
+    assert listed["last_eval"]["run_id"] == str(run.id)
 
 
 def test_get_agent(
@@ -312,3 +343,95 @@ def test_put_guidelines_unauthenticated(client: TestClient, db: Session) -> None
         json={"guidelines": "x"},
     )
     assert r.status_code in (401, 403)
+
+
+def test_post_agents_draft_defaults(
+    client: TestClient, auth_cookies: dict[str, str]
+) -> None:
+    r = client.post(
+        f"{settings.API_V1_STR}/agents/draft",
+        json={},
+        cookies=auth_cookies,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["name"] == "Untitled Agent"
+    assert body["id"]
+
+
+def test_post_agents_draft_retell_missing_importable_llm_still_creates_agent(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    integration = Integration(
+        provider=IntegrationProvider.RETELL,
+        name="retell-import-fallback",
+        encrypted_api_key="ciphertext",
+        masked_api_key="sk_t...1234",
+    )
+    db.add(integration)
+    db.commit()
+    db.refresh(integration)
+
+    with (
+        patch(
+            "app.services.provider_agent_import.decrypt",
+            return_value="retell-key",
+        ),
+        patch(
+            "app.services.retell.import_retell_agent_config",
+            new=AsyncMock(
+                side_effect=HTTPException(
+                    status_code=422,
+                    detail="Retell LLM is missing general_prompt or model â€” cannot import",
+                )
+            ),
+        ),
+    ):
+        r = client.post(
+            f"{settings.API_V1_STR}/agents/draft",
+            json={
+                "name": "Retell Shell Agent",
+                "platform": "retell",
+                "integration_id": str(integration.id),
+                "platform_agent_id": "agent_retell_123",
+                "platform_agent_name": "Retell Provider Agent",
+            },
+            cookies=auth_cookies,
+        )
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["name"] == "Retell Shell Agent"
+    assert body["platform"] == "retell"
+    assert body["integration_id"] == str(integration.id)
+    assert body["platform_agent_id"] == "agent_retell_123"
+    assert body["platform_agent_name"] == "Retell Provider Agent"
+    assert body["has_draft"] is True
+    assert body["system_prompt"] is None
+    assert body["agent_model"] is None
+
+
+def test_list_agents_includes_latest_published_version(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = create_test_agent(db)
+    client.put(
+        f"{settings.API_V1_STR}/agents/{agent.id}/draft",
+        json={"endpoint_url": "http://v2.example/agent"},
+        cookies=auth_cookies,
+    )
+    pub = client.post(
+        f"{settings.API_V1_STR}/agents/{agent.id}/publish",
+        json={},
+        cookies=auth_cookies,
+    )
+    assert pub.status_code == 200
+
+    r = client.get(f"{settings.API_V1_STR}/agents/", cookies=auth_cookies)
+    assert r.status_code == 200
+    listed = next(
+        (item for item in r.json()["data"] if item["id"] == str(agent.id)), None
+    )
+    assert listed is not None
+    assert listed["latest_published_version"] is not None
+    assert listed["latest_published_version"]["version"] == 2

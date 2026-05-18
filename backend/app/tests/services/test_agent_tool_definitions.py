@@ -33,6 +33,7 @@ def test_openai_wrapper_preserves_required_in_parameters() -> None:
     parsed = parse_agent_tool_definitions(raw)
     assert len(parsed) == 1
     assert parsed[0].name == "book"
+    assert parsed[0].terminating is False
     assert parsed[0].parameters is not None
     assert parsed[0].parameters.get("required") == ["date", "room"]
     prompt_row = agent_tool_definitions_as_prompt_dicts(raw)[0]
@@ -102,3 +103,12 @@ def test_normalize_rejects_duplicate_tool_names() -> None:
     t = canonical_end_call_tool_dict()
     with pytest.raises(ValueError, match="Duplicate"):
         normalize_and_validate_agent_tools([t, t])
+
+
+def test_parse_sets_terminating_from_platform_config() -> None:
+    parsed = parse_agent_tool_definitions([canonical_end_call_tool_dict()])
+    assert len(parsed) == 1
+    assert parsed[0].name == "end_call"
+    assert parsed[0].terminating is True
+    prompt_row = parsed[0].to_prompt_dict()
+    assert "terminating" not in prompt_row

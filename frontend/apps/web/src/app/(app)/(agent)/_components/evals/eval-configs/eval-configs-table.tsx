@@ -9,6 +9,7 @@ import { cn } from '@workspace/ui/lib/utils';
 import { useEvalConfigs } from '@/app/(app)/(agent)/_hooks/use-eval-configs';
 import { RunEvalConfigButton } from '@/app/(app)/(agent)/_components/evals/run-eval-config-button';
 import { UrlGenerator } from '@/common/url-generator/url-generator';
+import { getToolCallModeBadge } from '@/app/(app)/(agent)/_utils/tool-call-mode-badge';
 
 import type { EvalConfigPublic } from '@/client/types.gen';
 
@@ -103,7 +104,7 @@ function ColumnHeaders() {
 }
 
 function Row({ agentId, config }: { agentId: string; config: EvalConfigPublic }) {
-  const toolMode = config.config?.tool_mode ?? 'mock';
+  const toolCallModeBadge = getToolCallModeBadge(config.config);
   const metricsPct = config.config?.metrics_pass_threshold ?? 80;
   const casesPct = config.config?.cases_pass_threshold ?? 100;
   return (
@@ -129,12 +130,12 @@ function Row({ agentId, config }: { agentId: string; config: EvalConfigPublic })
       <span
         className={cn(
           'pointer-events-none relative w-fit rounded px-1.5 py-0.5 text-[10px]',
-          toolMode === 'mock'
-            ? 'bg-yellow-500/15 text-yellow-400'
-            : 'bg-blue-500/15 text-blue-400'
+          toolCallModeBadge.tone === 'mock' && 'bg-yellow-500/15 text-yellow-400',
+          toolCallModeBadge.tone === 'live' && 'bg-blue-500/15 text-blue-400',
+          toolCallModeBadge.tone === 'na' && 'bg-muted text-muted-foreground'
         )}
       >
-        {toolMode === 'mock' ? 'Mock' : 'Live'}
+        {toolCallModeBadge.label}
       </span>
       <span className="pointer-events-none relative text-xs text-muted-foreground tabular-nums">
         {formatDate(config.created_at)}

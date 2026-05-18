@@ -6,7 +6,8 @@ from sqlalchemy import update as sa_update
 from sqlmodel import Session, col, select
 
 from app.models import TestCase
-from app.models.enums import TestCaseStatus
+from app.models.agent import Agent
+from app.models.enums import Platform, TestCaseStatus, TextRuntimeKind
 from app.models.eval_config import (
     EvalConfig,
     EvalConfigCreate,
@@ -15,7 +16,31 @@ from app.models.eval_config import (
     EvalConfigMemberPublic,
     EvalConfigUpdate,
 )
-from app.models.schemas import TestCaseExecution
+from app.models.schemas import (
+    CustomEndpointRuntimeConfig,
+    RetellRuntimeConfig,
+    RunConfig,
+    TestCaseExecution,
+)
+
+
+def _default_run_config_for_agent(agent: Agent) -> RunConfig:
+    """Choose a practical default runtime for a newly created eval config.
+
+    Connexity stays the global default, but endpoint-style agents without a
+    platform prompt need a concrete HTTP URL to be runnable. Retell agents
+    should default to the Retell runtime even if their imported prompt/model is
+    incomplete.
+    """
+    if agent.platform == Platform.RETELL:
+        return RunConfig(runtime=RetellRuntimeConfig())
+
+    if not (agent.system_prompt or "").strip():
+        endpoint_url = (agent.endpoint_url or "").strip()
+        if endpoint_url:
+            return RunConfig(runtime=CustomEndpointRuntimeConfig(url=endpoint_url))
+
+    return RunConfig()
 
 
 def validate_test_case_ids(
@@ -35,19 +60,106 @@ def validate_test_case_ids(
     return [tid for tid in test_case_ids if tid not in existing_ids]
 
 
+def _validate_runtime(
+    *,
+    session: Session,
+    agent: Agent,
+    run_config: RunConfig,
+    config_id: uuid.UUID | None,
+    extra_test_case_ids: list[uuid.UUID] | None = None,
+) -> None:
+    """Raise ``ValueError`` if ``run_config.runtime`` is invalid for ``agent``.
+
+    Checks runtime availability for the agent's platform, delegates to the
+    runtime's validator (requirements are expressed in terms of runtime + agent
+    fields, not ``Agent.mode``), and forbids tool calls on custom endpoint runtimes.
+    """
+    from app.services.eval_runtimes import get_runtime  # local import to avoid cycle
+
+    runtime_config = run_config.runtime
+    try:
+        runtime = get_runtime(run_config.mode, runtime_config.kind)
+    except KeyError as exc:
+        msg = f"Unknown runtime: {runtime_config.kind}"
+        raise ValueError(msg) from exc
+
+    if not runtime.supported_for_platform(agent.platform):
+        platform_label = agent.platform.value if agent.platform else "this agent"
+        msg = (
+            f"Runtime '{runtime_config.kind.value}' is not available "
+            f"for {platform_label}."
+        )
+        raise ValueError(msg)
+
+    runtime.validate_config(runtime_config, agent, session)
+
+    if runtime_config.kind == TextRuntimeKind.CUSTOM_ENDPOINT:
+        # Tool calls can only be exercised by the in-process Connexity simulator.
+        # Reject configs that link test cases declaring expected_tool_calls.
+        test_case_filter = (
+            [EvalConfigMember.eval_config_id == config_id]
+            if config_id is not None
+            else []
+        )
+
+        candidate_ids: set[uuid.UUID] = set(extra_test_case_ids or [])
+        if config_id is not None:
+            existing = session.exec(
+                select(EvalConfigMember.test_case_id).where(*test_case_filter)
+            ).all()
+            candidate_ids.update(existing)
+
+        if candidate_ids:
+            rows = session.exec(
+                select(TestCase.id, TestCase.expected_tool_calls).where(
+                    col(TestCase.id).in_(candidate_ids)
+                )
+            ).all()
+            offenders = [
+                test_case_id for test_case_id, expected_calls in rows if expected_calls
+            ]
+            if offenders:
+                msg = (
+                    "Tool calls are only supported with the Connexity runtime. "
+                    "Remove expected_tool_calls from the linked test cases, "
+                    "or switch the runtime to 'connexity'."
+                )
+                raise ValueError(msg)
+
+
 def create_eval_config(
     *, session: Session, eval_config_in: EvalConfigCreate
 ) -> EvalConfig:
+    agent = session.get(Agent, eval_config_in.agent_id)
+    if agent is None:
+        msg = f"Agent {eval_config_in.agent_id} not found"
+        raise ValueError(msg)
+
+    run_config = eval_config_in.config or _default_run_config_for_agent(agent)
+    member_ids = (
+        [m.test_case_id for m in eval_config_in.members]
+        if eval_config_in.members
+        else []
+    )
+    _validate_runtime(
+        session=session,
+        agent=agent,
+        run_config=run_config,
+        config_id=None,
+        extra_test_case_ids=member_ids,
+    )
+
     create_data = eval_config_in.model_dump(exclude={"members", "config"})
     db_obj = EvalConfig.model_validate(create_data)
     if eval_config_in.config is not None:
         db_obj.config = eval_config_in.config.model_dump()
+    else:
+        db_obj.config = run_config.model_dump()
     session.add(db_obj)
     session.flush()
 
     if eval_config_in.members:
-        ids = [m.test_case_id for m in eval_config_in.members]
-        missing = validate_test_case_ids(session=session, test_case_ids=ids)
+        missing = validate_test_case_ids(session=session, test_case_ids=member_ids)
         if missing:
             raise ValueError(f"Test cases not found: {missing}")
         for position, entry in enumerate(eval_config_in.members):
@@ -113,6 +225,18 @@ def update_eval_config(
     db_eval_config: EvalConfig,
     eval_config_in: EvalConfigUpdate,
 ) -> EvalConfig:
+    if eval_config_in.config is not None:
+        agent = session.get(Agent, db_eval_config.agent_id)
+        if agent is None:
+            msg = f"Agent {db_eval_config.agent_id} not found"
+            raise ValueError(msg)
+        _validate_runtime(
+            session=session,
+            agent=agent,
+            run_config=eval_config_in.config,
+            config_id=db_eval_config.id,
+        )
+
     update_data = eval_config_in.model_dump(exclude_unset=True, exclude={"config"})
     db_eval_config.sqlmodel_update(update_data)
     if eval_config_in.config is not None:
@@ -165,6 +289,18 @@ def add_test_cases_to_config(
     missing = validate_test_case_ids(session=session, test_case_ids=test_case_ids)
     if missing:
         raise ValueError(f"Test cases not found: {missing}")
+    if db_eval_config.config is not None:
+        agent = session.get(Agent, db_eval_config.agent_id)
+        if agent is None:
+            msg = f"Agent {db_eval_config.agent_id} not found"
+            raise ValueError(msg)
+        _validate_runtime(
+            session=session,
+            agent=agent,
+            run_config=RunConfig.model_validate(db_eval_config.config),
+            config_id=db_eval_config.id,
+            extra_test_case_ids=test_case_ids,
+        )
     existing = set(
         session.exec(
             select(EvalConfigMember.test_case_id).where(
@@ -220,6 +356,20 @@ def replace_test_cases_in_config(
     missing = validate_test_case_ids(session=session, test_case_ids=test_case_ids)
     if missing:
         raise ValueError(f"Test cases not found: {missing}")
+    if db_eval_config.config is not None:
+        agent = session.get(Agent, db_eval_config.agent_id)
+        if agent is None:
+            msg = f"Agent {db_eval_config.agent_id} not found"
+            raise ValueError(msg)
+        # Replace path: only the new ids count; pass them explicitly and pretend
+        # there's no existing config to avoid double-counting old members.
+        _validate_runtime(
+            session=session,
+            agent=agent,
+            run_config=RunConfig.model_validate(db_eval_config.config),
+            config_id=None,
+            extra_test_case_ids=test_case_ids,
+        )
     existing = session.exec(
         select(EvalConfigMember).where(
             EvalConfigMember.eval_config_id == db_eval_config.id

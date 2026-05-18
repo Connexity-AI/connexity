@@ -16,6 +16,7 @@ import {
   type CallPublic,
   type ConversationTurnInput,
   type TestCasePublic,
+  type ToolCall,
 } from '@/client/types.gen';
 import { isErrorApiResult } from '@/utils/api';
 
@@ -35,6 +36,31 @@ const HOLD_PROGRESS_AT = 95;
 const COMPLETION_DELAY_MS = 200;
 
 export type AiPromptPhase = 'input' | 'generating' | 'results';
+
+interface RawToolCall {
+  id?: unknown;
+  function?: {
+    name?: unknown;
+    arguments?: unknown;
+  };
+  tool_result?: unknown;
+}
+
+interface RawTranscriptEntry {
+  role?: unknown;
+  content?: unknown;
+  message?: unknown;
+  name?: unknown;
+  tool_call_id?: unknown;
+  toolCallId?: unknown;
+  arguments?: unknown;
+  result?: unknown;
+  toolCalls?: RawToolCall[];
+  tool_calls?: RawToolCall[];
+  start?: unknown;
+  timestamp?: unknown;
+  secondsFromStart?: unknown;
+}
 
 interface UseCreateTestCaseAiPromptArgs {
   agentId: string;
@@ -72,9 +98,63 @@ function normalizeRole(raw: unknown): TurnRole {
 }
 
 function extractOffsetSeconds(entry: Record<string, unknown>): number | null {
+  if (typeof entry.secondsFromStart === 'number') return entry.secondsFromStart;
   if (typeof entry.start === 'number') return entry.start;
   if (typeof entry.timestamp === 'number') return entry.timestamp;
   return null;
+}
+
+function stringifyToolArguments(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object') {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return '{}';
+    }
+  }
+  return '{}';
+}
+
+function stringifyToolResult(value: unknown): string | null {
+  if (typeof value === 'string') return value;
+  if (value === null || value === undefined) return null;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function textContent(entry: RawTranscriptEntry): string | null {
+  if (typeof entry.content === 'string') return entry.content;
+  if (typeof entry.message === 'string') return entry.message;
+  return null;
+}
+
+function toolCallId(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value.trim() ? value : fallback;
+}
+
+function toToolCall(raw: RawToolCall, fallbackId: string): ToolCall | null {
+  const name = raw.function?.name;
+  if (typeof name !== 'string' || !name.trim()) return null;
+
+  return {
+    id: toolCallId(raw.id, fallbackId),
+    type: 'function',
+    function: {
+      name,
+      arguments: stringifyToolArguments(raw.function?.arguments),
+    },
+    tool_result: raw.tool_result ?? null,
+  };
+}
+
+function rawToolCalls(entry: RawTranscriptEntry): RawToolCall[] {
+  if (Array.isArray(entry.toolCalls)) return entry.toolCalls;
+  if (Array.isArray(entry.tool_calls)) return entry.tool_calls;
+  return [];
 }
 
 function buildTranscriptFromCall(call: CallPublic): ConversationTurnInput[] {
@@ -84,24 +164,76 @@ function buildTranscriptFromCall(call: CallPublic): ConversationTurnInput[] {
   const startedAtMs = new Date(call.started_at).getTime();
   const turns: ConversationTurnInput[] = [];
 
-  for (const [index, entry] of raw.entries()) {
+  for (const [rawIndex, entry] of raw.entries()) {
     if (!entry || typeof entry !== 'object') continue;
 
-    const role = normalizeRole(entry.role);
-
-    let content: string | null = null;
-    if (typeof entry.content === 'string') {
-      content = entry.content;
-    }
+    const rawEntry = entry as RawTranscriptEntry;
+    const roleRaw = typeof rawEntry.role === 'string' ? rawEntry.role.toLowerCase() : '';
 
     const offsetSeconds = extractOffsetSeconds(entry);
-    let timestampMs = startedAtMs + index;
+    let timestampMs = startedAtMs + rawIndex;
     if (offsetSeconds !== null) {
       timestampMs = startedAtMs + offsetSeconds * 1000;
     }
     const timestamp = new Date(timestampMs).toISOString();
 
-    turns.push({ index, role, content, timestamp });
+    if (roleRaw === 'tool_calls') {
+      const calls = rawToolCalls(rawEntry)
+        .map((callItem, callIndex) => toToolCall(callItem, `call_${rawIndex}_${callIndex}`))
+        .filter((callItem): callItem is ToolCall => callItem !== null);
+      if (calls.length > 0) {
+        turns.push({
+          index: turns.length,
+          role: TurnRole.ASSISTANT,
+          content: textContent(rawEntry),
+          tool_calls: calls,
+          timestamp,
+        });
+      }
+      continue;
+    }
+
+    if (roleRaw === 'tool_call_invocation' || roleRaw === 'tool_call') {
+      const name = typeof rawEntry.name === 'string' ? rawEntry.name : null;
+      if (name) {
+        const id = toolCallId(rawEntry.tool_call_id ?? rawEntry.toolCallId, `call_${rawIndex}`);
+        turns.push({
+          index: turns.length,
+          role: TurnRole.ASSISTANT,
+          content: textContent(rawEntry),
+          tool_calls: [
+            {
+              id,
+              type: 'function',
+              function: {
+                name,
+                arguments: stringifyToolArguments(rawEntry.arguments),
+              },
+            },
+          ],
+          timestamp,
+        });
+      }
+      continue;
+    }
+
+    if (roleRaw === 'tool_call_result' || roleRaw === 'tool_result') {
+      turns.push({
+        index: turns.length,
+        role: TurnRole.TOOL,
+        content: stringifyToolResult(rawEntry.result ?? rawEntry.content),
+        tool_call_id: toolCallId(rawEntry.tool_call_id ?? rawEntry.toolCallId, `call_${rawIndex}`),
+        timestamp,
+      });
+      continue;
+    }
+
+    turns.push({
+      index: turns.length,
+      role: normalizeRole(rawEntry.role),
+      content: textContent(rawEntry),
+      timestamp,
+    });
   }
 
   return turns;

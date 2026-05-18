@@ -1,21 +1,29 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 
+import { useAgent } from '@/app/(app)/(agent)/_hooks/use-agent';
 import { useCreateEnvironment } from '@/app/(app)/(agent)/_hooks/use-create-environment';
+import { useEnvironmentPayloadPreview } from '@/app/(app)/(agent)/_hooks/use-environment-payload-preview';
 import { useUpdateEnvironment } from '@/app/(app)/(agent)/_hooks/use-update-environment';
+import { addEnvironmentFormSchema } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_components/add-environment-form-schema';
+import type { AgentCanonicalDeployTarget } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_utils/agent-canonical-deploy-target';
 import {
-  addEnvironmentFormSchema,
-  type AddEnvironmentFormValues,
-} from '@/app/(app)/(agent)/agents/[agentId]/deploy/_components/add-environment-form-schema';
+  getAgentEnvironmentFormMode,
+  type AgentEnvironmentFormMode,
+} from '@/app/(app)/(agent)/agents/[agentId]/deploy/_utils/agent-environment-form-mode';
 import {
   getEnvironmentCreateBody,
   getEnvironmentFormValues,
   getEnvironmentUpdateBody,
 } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_utils/environment-form-values';
+import { isIntegrationPlatform } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_utils/environment-platform-utils';
 
+import type {
+  AddEnvironmentFormInputValues,
+  AddEnvironmentFormValues,
+} from '@/app/(app)/(agent)/agents/[agentId]/deploy/_components/add-environment-form-schema';
 import type { EnvironmentPublic } from '@/client/types.gen';
 
 interface UseAddEnvironmentFormOptions {
@@ -29,44 +37,44 @@ export function useAddEnvironmentForm({
   environment,
   onSuccess,
 }: UseAddEnvironmentFormOptions) {
+  const { data: agent, isLoading: isAgentLoading } = useAgent(agentId);
+  const agentTarget = agent as AgentCanonicalDeployTarget | undefined;
+  const agentEnvironmentFormMode: AgentEnvironmentFormMode = getAgentEnvironmentFormMode(
+    agentTarget,
+    isAgentLoading
+  );
+
   const createEnvironment = useCreateEnvironment(agentId);
   const updateEnvironment = useUpdateEnvironment(agentId);
 
-  const form = useForm<AddEnvironmentFormValues>({
+  const form = useForm<AddEnvironmentFormInputValues, unknown, AddEnvironmentFormValues>({
     resolver: zodResolver(addEnvironmentFormSchema),
-    defaultValues: getEnvironmentFormValues(environment),
+    defaultValues: getEnvironmentFormValues(environment, agentTarget),
+    values: getEnvironmentFormValues(environment, agentTarget),
   });
 
-  useEffect(() => {
-    form.reset(getEnvironmentFormValues(environment));
-  }, [environment, form]);
-
-  const integrationId = form.watch('integration_id');
+  const name = form.watch('name');
   const platform = form.watch('platform');
+  const evalGateEnabled = form.watch('eval_gate_enabled');
+  const evalGateEvalConfigId = form.watch('eval_gate_eval_config_id');
   const isPending = createEnvironment.isPending || updateEnvironment.isPending;
   const error = createEnvironment.error ?? updateEnvironment.error;
-
-  const handlePlatformChange = (value: AddEnvironmentFormValues['platform']) => {
-    form.setValue('platform', value);
-    if (value === 'retell') {
-      form.setValue('endpoint_url', null);
-      return;
-    }
-    form.setValue('integration_id', null);
-    form.setValue('platform_agent_id', null);
-    form.setValue('platform_agent_name', null);
-  };
-
-  const handleIntegrationChange = (id: string) => {
-    form.setValue('integration_id', id || null);
-    form.setValue('platform_agent_id', null);
-    form.setValue('platform_agent_name', null);
-  };
-
-  const handleAgentChange = (id: string, name: string) => {
-    form.setValue('platform_agent_id', id || null);
-    form.setValue('platform_agent_name', name || null);
-  };
+  const integrationPlatform = isIntegrationPlatform(platform) ? platform : null;
+  const isEditing = environment !== null;
+  const submitLabel = isEditing ? 'Save changes' : 'Add environment';
+  const needsAgentForNewEnvironment = environment === null && agentEnvironmentFormMode === 'loading';
+  const isSubmitDisabled =
+    isPending ||
+    needsAgentForNewEnvironment ||
+    (evalGateEnabled && evalGateEvalConfigId == null);
+  const environmentNameForPreview = name.trim() || 'production';
+  const payloadPreview = useEnvironmentPayloadPreview({
+    agentId,
+    platform,
+    environmentName: environmentNameForPreview,
+    evalGateEnabled,
+    evalGateEvalConfigId: evalGateEvalConfigId ?? null,
+  });
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
@@ -88,11 +96,17 @@ export function useAddEnvironmentForm({
     form,
     onSubmit,
     platform,
-    integrationId,
-    handlePlatformChange,
-    handleIntegrationChange,
-    handleAgentChange,
+    integrationPlatform,
+    payloadOpen: payloadPreview.payloadOpen,
+    onTogglePayloadOpen: payloadPreview.onTogglePayloadOpen,
+    payloadPreview: payloadPreview.payloadPreview,
+    isPayloadPreviewLoading: payloadPreview.isPayloadPreviewLoading,
+    showMissingPublishedVersionInfo: payloadPreview.showMissingPublishedVersionInfo,
+    submitLabel,
+    isSubmitDisabled,
     isPending,
     error,
+    agentEnvironmentFormMode,
+    agentTarget,
   };
 }

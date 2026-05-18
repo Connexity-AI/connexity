@@ -9,7 +9,7 @@ import click
 from cli import output
 from cli.context import ensure_auth, get_output_format, open_client
 from cli.payload import load_dict_payload
-from cli.resolvers import resolve_eval_config
+from cli.resolvers import resolve_agent, resolve_eval_config
 
 
 @click.group("eval-configs")
@@ -237,4 +237,47 @@ def eval_configs_members_remove(
     with open_client(ctx) as client:
         cfg = resolve_eval_config(client, eval_config_ref)
         result = client.eval_configs.remove_member(str(cfg["id"]), test_case_id)
+    _emit(ctx, result, output_override)
+
+
+# ---------------------------------------------------------------------------
+# runtime smoke-test
+# ---------------------------------------------------------------------------
+
+
+@eval_configs_group.command("test-runtime")
+@click.option(
+    "--agent",
+    "agent_ref",
+    required=True,
+    help="Agent UUID or name the runtime will run against",
+)
+@click.option(
+    "--from-file",
+    "from_file",
+    required=True,
+    help="Path to runtime config JSON ('-' for stdin), e.g. "
+    '{"kind":"custom_endpoint","url":"https://..."}',
+)
+@click.option(
+    "--output", "output_override", type=click.Choice(["json", "table"]), default=None
+)
+@click.pass_context
+def eval_configs_test_runtime(
+    ctx: click.Context,
+    agent_ref: str,
+    from_file: str,
+    output_override: str | None,
+) -> None:
+    """Smoke-test a runtime config against an agent."""
+    ensure_auth(ctx)
+    runtime_config = load_dict_payload(from_file)
+    with open_client(ctx) as client:
+        agent = resolve_agent(client, agent_ref)
+        body = {
+            "agent_id": str(agent["id"]),
+            "mode": "text",
+            "runtime": runtime_config,
+        }
+        result = client.eval_configs.test_runtime(body)
     _emit(ctx, result, output_override)

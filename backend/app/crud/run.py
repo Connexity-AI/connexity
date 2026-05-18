@@ -14,8 +14,8 @@ from app.models import (
     RunStatus,
     RunUpdate,
 )
-from app.models.enums import AgentMode
-from app.models.schemas import RunConfig
+from app.models.enums import AgentMode, RunMode, TextRuntimeKind
+from app.models.schemas import CustomEndpointRuntimeConfig, RunConfig
 from app.services.agent_tool_definitions import normalize_and_validate_agent_tools
 from app.services.tool_dispatch import validate_live_tool_snapshot
 
@@ -27,7 +27,10 @@ def enrich_run_create_from_agent(
     agent: Agent,
     eval_config: EvalConfig,
 ) -> RunCreate:
-    """Fill run snapshot fields from the agent and eval config; validate endpoint mode.
+    """Fill run snapshot fields from the agent and eval config.
+
+    Snapshot requirements follow ``RunConfig.mode`` and ``RunConfig.runtime``, not
+    ``Agent.mode`` (the latter is still copied onto the run row for audit).
 
     If `run_in.agent_version` is provided and differs from the active published
     version, snapshot fields (system_prompt, tools, model, etc.) are taken from
@@ -91,7 +94,51 @@ def enrich_run_create_from_agent(
     if data.get("agent_mode") is None:
         data["agent_mode"] = source_mode.value
 
-    if source_mode == AgentMode.PLATFORM:
+    text_kind: TextRuntimeKind | None = (
+        cfg.runtime.kind if cfg.mode == RunMode.TEXT else None
+    )
+
+    if cfg.mode == RunMode.TEXT and text_kind is not None:
+        if text_kind == TextRuntimeKind.CONNEXITY:
+            if data.get("agent_system_prompt") is None:
+                data["agent_system_prompt"] = source.system_prompt
+            if data.get("agent_tools") is None:
+                data["agent_tools"] = source.tools
+            eff_model = (
+                asim.model if asim and asim.model else None
+            ) or source.agent_model
+            eff_prov = (
+                asim.provider if asim and asim.provider else None
+            ) or source.agent_provider
+            if data.get("agent_model") is None:
+                data["agent_model"] = eff_model
+            if data.get("agent_provider") is None:
+                data["agent_provider"] = eff_prov
+            if not data.get("agent_system_prompt"):
+                msg = (
+                    "Connexity runtime requires agent_system_prompt on the run snapshot "
+                    "(set system_prompt on the agent or agent version)."
+                )
+                raise ValueError(msg)
+        elif text_kind == TextRuntimeKind.CUSTOM_ENDPOINT:
+            rt = cfg.runtime
+            assert isinstance(rt, CustomEndpointRuntimeConfig)
+            url = rt.url.strip()
+            if not (url.startswith("http://") or url.startswith("https://")):
+                msg = "custom endpoint runtime url must start with http:// or https://"
+                raise ValueError(msg)
+            if data.get("agent_tools") is None and source.tools:
+                data["agent_tools"] = source.tools
+            if data.get("agent_system_prompt") is None and source.system_prompt:
+                data["agent_system_prompt"] = source.system_prompt
+            if data.get("agent_model") is None and source.agent_model:
+                data["agent_model"] = source.agent_model
+            if data.get("agent_provider") is None and source.agent_provider:
+                data["agent_provider"] = source.agent_provider
+        elif text_kind == TextRuntimeKind.RETELL:
+            if data.get("agent_tools") is None and source.tools:
+                data["agent_tools"] = source.tools
+    elif source_mode == AgentMode.PLATFORM:
         if data.get("agent_system_prompt") is None:
             data["agent_system_prompt"] = source.system_prompt
         if data.get("agent_tools") is None:
@@ -124,7 +171,11 @@ def enrich_run_create_from_agent(
     if data.get("agent_tools") is not None:
         data["agent_tools"] = normalize_and_validate_agent_tools(data["agent_tools"])
 
-    if agent.mode == AgentMode.PLATFORM and cfg.tool_mode == "live":
+    if (
+        cfg.mode == RunMode.TEXT
+        and cfg.runtime.kind == TextRuntimeKind.CONNEXITY
+        and cfg.tool_mode == "live"
+    ):
         validate_live_tool_snapshot(data.get("agent_tools"))
 
     return RunCreate.model_validate(data)

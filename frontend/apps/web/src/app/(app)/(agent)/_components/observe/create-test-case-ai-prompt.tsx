@@ -284,13 +284,14 @@ function InputBody({
         <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-400" />
         <p className="text-[11px] leading-snug text-violet-300/80">
           AI will read this <span className="text-violet-300">conversation</span> and your{' '}
-          <span className="text-violet-300">agent prompt</span> to create a relevant test case(s)
+          <span className="text-violet-300">agent prompt</span> to turn the observed issue into a
+          passing regression test.
         </p>
       </div>
 
       <div>
         <label className="mb-1.5 block text-xs text-muted-foreground">
-          What should this test case(s) cover?
+          What failed, and what should the agent do instead?
         </label>
 
         <Textarea
@@ -298,7 +299,7 @@ function InputBody({
           value={userPrompt}
           onChange={(e) => setUserPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="e.g. Generate a test case covering the out-of-scope request from this call, ensuring polite decline and redirection…"
+          placeholder="e.g. The agent accepted an out-of-scope request. Generate a test case where it politely declines and redirects to supported help."
           className="h-48 resize-none text-sm"
         />
 

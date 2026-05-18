@@ -33,19 +33,35 @@ export function extractTurns(raw: unknown): TranscriptTurn[] {
 interface RawTranscriptItem {
   role?: string;
   content?: unknown;
+  message?: unknown;
   name?: string;
   tool_call_id?: string;
+  toolCallId?: string;
   arguments?: unknown;
   result?: unknown;
+  toolCalls?: Array<{
+    id?: string;
+    function?: {
+      name?: string;
+      arguments?: unknown;
+    };
+  }>;
   words?: Array<{ start?: number; end?: number; word?: string }>;
   start?: number;
   timestamp?: number | string;
+  secondsFromStart?: number;
 }
 
 function toTurn(item: RawTranscriptItem): TranscriptTurn {
+  let content: string | undefined;
+  if (typeof item.content === 'string') {
+    content = item.content;
+  } else if (typeof item.message === 'string') {
+    content = item.message;
+  }
   return {
     role: item.role,
-    content: typeof item.content === 'string' ? item.content : undefined,
+    content,
     words: item.words,
     start: item.start,
     timestamp: item.timestamp,
@@ -81,6 +97,7 @@ function parseResult(value: unknown): unknown {
 }
 
 function itemStartSeconds(item: RawTranscriptItem): number | null {
+  if (typeof item.secondsFromStart === 'number') return item.secondsFromStart;
   const firstWordStart = item.words?.[0]?.start;
   if (typeof firstWordStart === 'number') return firstWordStart;
   if (typeof item.start === 'number') return item.start;
@@ -96,24 +113,44 @@ export function buildTranscriptDisplayItems(
     const role = (item.role ?? '').toLowerCase();
     const start = itemStartSeconds(item);
 
+    if (role === 'system') {
+      return;
+    }
+
+    if (role === 'tool_calls') {
+      const calls = Array.isArray(item.toolCalls) ? item.toolCalls : [];
+      calls.forEach((call, callIdx) => {
+        items.push({
+          kind: 'tool_call',
+          tool: call.function?.name ?? 'tool',
+          params: parseArgs(call.function?.arguments),
+          startSeconds: start,
+          key: `tc-${call.id ?? `${idx}-${callIdx}`}`,
+        });
+      });
+      return;
+    }
+
     if (role === 'tool_call_invocation' || role === 'tool_call') {
+      const toolCallId = item.tool_call_id ?? item.toolCallId;
       items.push({
         kind: 'tool_call',
         tool: item.name ?? 'tool',
         params: parseArgs(item.arguments),
         startSeconds: start,
-        key: `tc-${item.tool_call_id ?? idx}`,
+        key: `tc-${toolCallId ?? idx}`,
       });
       return;
     }
 
     if (role === 'tool_call_result' || role === 'tool_result') {
+      const toolCallId = item.tool_call_id ?? item.toolCallId;
       items.push({
         kind: 'tool_result',
         tool: item.name ?? 'tool',
         result: parseResult(item.result ?? item.content),
         startSeconds: start,
-        key: `tr-${item.tool_call_id ?? idx}`,
+        key: `tr-${toolCallId ?? idx}`,
       });
       return;
     }

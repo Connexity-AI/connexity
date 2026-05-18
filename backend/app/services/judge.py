@@ -163,11 +163,6 @@ def _build_user_prompt(inp: JudgeInput, metric_names: list[str]) -> str:
     else:
         outcomes_block = "(none)"
 
-    tools_expected = json.dumps(
-        inp.test_case.expected_tool_calls or [],
-        indent=2,
-        ensure_ascii=False,
-    )
     agent_prompt = (inp.agent_system_prompt or "(not captured for this run)").strip()
     tools_for_prompt = agent_tool_definitions_as_prompt_dicts(inp.agent_tools)
     tools_snapshot = (
@@ -199,11 +194,6 @@ as a JSON array of objects, each with:
 
 **Expected outcomes:**
 {outcomes_block}
-
-**Expected tool calls:**
-```json
-{tools_expected}
-```
 
 **Agent system prompt / business rules:**
 ```

@@ -22,35 +22,22 @@ from app.models import (
 from app.models.agent import Agent
 from app.models.enums import Platform
 from app.models.test_case import TestCase
+from app.services.elevenlabs import (
+    get_elevenlabs_conversation,
+    list_elevenlabs_conversations,
+)
 from app.services.retell import list_retell_calls
 from app.services.telnyx import list_telnyx_calls
+from app.services.vapi import list_vapi_calls
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["calls"], dependencies=[Depends(get_current_user)])
 
-_PAGE_SIZE = 100
+_RETELL_PAGE_SIZE = 100
 _MAX_FETCH_ITERATIONS = 20
 
 _SYNC_TTL = timedelta(seconds=15)
-
-# Map platform to its call-listing function
-_PLATFORM_CALL_LISTERS = {
-    Platform.RETELL: list_retell_calls,
-    Platform.TELNYX: list_telnyx_calls,
-}
-
-# Map platform to its upsert function
-_PLATFORM_UPSERTERS = {
-    Platform.RETELL: crud.upsert_calls_from_retell,
-    Platform.TELNYX: crud.upsert_calls_from_telnyx,
-}
-
-# Map platform to its watermark function
-_PLATFORM_WATERMARKERS = {
-    Platform.RETELL: crud.get_latest_call_started_at,
-    Platform.TELNYX: crud.get_latest_telnyx_call_started_at,
-}
 
 
 def _emit(event: str, **fields: Any) -> None:
@@ -59,31 +46,22 @@ def _emit(event: str, **fields: Any) -> None:
     logger.warning(json.dumps(payload, default=str))
 
 
-async def _fetch_and_store_from_platform(
+async def _fetch_and_store_production_calls(
     *,
     session,
     agent,
     incremental: bool,
-    platform: Platform,
 ) -> int:
-    """Pull calls from a voice platform into the DB across every matching environment.
+    """Pull calls into the DB across every production-call provider environment.
 
     Returns total number of newly-inserted rows.
     """
-    list_calls = _PLATFORM_CALL_LISTERS.get(platform)
-    upsert_fn = _PLATFORM_UPSERTERS.get(platform)
-    watermark_fn = _PLATFORM_WATERMARKERS.get(platform)
-    if any(fn is None for fn in (list_calls, upsert_fn, watermark_fn)):
-        return 0
-
     started = time.monotonic()
-    platform_name = platform.value
     event: dict[str, Any] = {
         "agent_id": str(agent.id),
-        "platform": platform_name,
         "incremental": incremental,
         "envs_total": 0,
-        "platform_envs": 0,
+        "provider_envs": 0,
         "envs": [],
         "created_total": 0,
         "status": "ok",
@@ -92,30 +70,38 @@ async def _fetch_and_store_from_platform(
         environments = crud.list_environments_by_agent(
             session=session, agent_id=agent.id
         )
-        platform_envs = [
-            (env, name)
-            for env, name in environments
-            if env.platform == platform
+        provider_envs = [
+            env
+            for env in environments
+            if env.platform
+            in {Platform.RETELL, Platform.TELNYX, Platform.VAPI, Platform.ELEVENLABS}
         ]
         event["envs_total"] = len(environments)
-        event["platform_envs"] = len(platform_envs)
+        event["provider_envs"] = len(provider_envs)
 
-        if not platform_envs:
-            event["status"] = f"no_{platform_name}_env"
+        if not provider_envs:
+            event["status"] = "no_production_call_env"
             raise HTTPException(
                 status_code=400,
-                detail=f"Add a {platform_name.title()} environment on the Deploy tab first",
+                detail="Add a Retell, Telnyx, Vapi, or ElevenLabs environment on the Deploy tab first",
             )
 
         created_total = 0
-        for env, _ in platform_envs:
-            if env.integration_id is None or env.platform_agent_id is None:
+        for env in provider_envs:
+            if agent.integration_id is None or agent.platform_agent_id is None:
+                env_event = {
+                    "env_id": str(env.id),
+                    "platform": env.platform,
+                    "status": "missing_agent_target",
+                }
+                event["envs"].append(env_event)
                 continue
             env_event: dict[str, Any] = {
                 "env_id": str(env.id),
-                "platform_agent_id": env.platform_agent_id,
-                "integration_id": str(env.integration_id)
-                if env.integration_id
+                "platform": env.platform,
+                "platform_agent_id": agent.platform_agent_id,
+                "integration_id": str(agent.integration_id)
+                if agent.integration_id
                 else None,
                 "iterations": 0,
                 "fetched": 0,
@@ -128,7 +114,7 @@ async def _fetch_and_store_from_platform(
 
             integration = crud.get_integration(
                 session=session,
-                integration_id=env.integration_id,
+                integration_id=agent.integration_id,
             )
             if integration is None:
                 env_event["status"] = "missing_integration"
@@ -142,56 +128,149 @@ async def _fetch_and_store_from_platform(
             env_event["api_key_len"] = len(api_key) if api_key else 0
 
             # Per-environment watermark: the latest started_at of calls already
-            # stored for this (agent, platform_agent_id) pair.
+            # stored for this (agent, retell_agent_id) pair. A brand-new env on
+            # an agent that has prior calls from a different env still gets a
+            # full backfill instead of inheriting the other env's cutoff.
             start_after: datetime | None = None
             if incremental:
-                if platform == Platform.TELNYX:
-                    start_after = watermark_fn(
+                if env.platform == Platform.TELNYX:
+                    start_after = crud.get_latest_telnyx_call_started_at(
                         session=session,
                         agent_id=agent.id,
-                        telnyx_agent_id=env.platform_agent_id,
+                        telnyx_agent_id=agent.platform_agent_id,
                     )
                 else:
-                    start_after = watermark_fn(
+                    start_after = crud.get_latest_call_started_at(
                         session=session,
                         agent_id=agent.id,
-                        retell_agent_id=env.platform_agent_id,
+                        retell_agent_id=agent.platform_agent_id,
                     )
             env_event["start_after"] = start_after
             for iteration in range(_MAX_FETCH_ITERATIONS):
                 env_event["iterations"] = iteration + 1
                 try:
-                    batch = await list_calls(
-                        api_key,
-                        agent_id=env.platform_agent_id,
-                        start_after=start_after,
-                        limit=_PAGE_SIZE,
-                    )
+                    if env.platform == Platform.RETELL:
+                        batch = await list_retell_calls(
+                            api_key,
+                            agent_id=agent.platform_agent_id,
+                            start_after=start_after,
+                            limit=_RETELL_PAGE_SIZE,
+                        )
+                        inserted = crud.upsert_calls_from_retell(
+                            session=session,
+                            agent_id=agent.id,
+                            integration_id=integration.id,
+                            retell_calls=batch,
+                        )
+                        newest = max(
+                            (
+                                c.start_timestamp
+                                for c in batch
+                                if c.start_timestamp is not None
+                            ),
+                            default=None,
+                        )
+                        next_after = (
+                            datetime.fromtimestamp(newest / 1000, tz=UTC)
+                            if newest is not None
+                            else None
+                        )
+                    elif env.platform == Platform.TELNYX:
+                        batch = await list_telnyx_calls(
+                            api_key,
+                            agent_id=agent.platform_agent_id,
+                            start_after=start_after,
+                            limit=_RETELL_PAGE_SIZE,
+                        )
+                        inserted = crud.upsert_calls_from_telnyx(
+                            session=session,
+                            agent_id=agent.id,
+                            integration_id=integration.id,
+                            telnyx_calls=batch,
+                        )
+                        newest = max(
+                            (
+                                c.start_timestamp
+                                for c in batch
+                                if c.start_timestamp is not None
+                            ),
+                            default=None,
+                        )
+                        next_after = (
+                            datetime.fromtimestamp(newest / 1000, tz=UTC)
+                            if newest is not None
+                            else None
+                        )
+                    else:
+                        if env.platform == Platform.VAPI:
+                            batch = await list_vapi_calls(
+                                api_key,
+                                assistant_id=agent.platform_agent_id,
+                                start_after=start_after,
+                                limit=_RETELL_PAGE_SIZE,
+                            )
+                            inserted = crud.upsert_calls_from_vapi(
+                                session=session,
+                                agent_id=agent.id,
+                                integration_id=integration.id,
+                                vapi_calls=batch,
+                            )
+                            next_after = max(
+                                (
+                                    c.started_at or c.created_at
+                                    for c in batch
+                                    if c.started_at is not None
+                                    or c.created_at is not None
+                                ),
+                                default=None,
+                            )
+                        else:
+                            summaries = await list_elevenlabs_conversations(
+                                api_key,
+                                agent_id=agent.platform_agent_id,
+                                start_after=start_after,
+                                page_size=_RETELL_PAGE_SIZE,
+                                max_pages=1,
+                            )
+                            batch = [
+                                await get_elevenlabs_conversation(
+                                    api_key, conversation_id=s.conversation_id
+                                )
+                                for s in summaries
+                            ]
+                            inserted = crud.upsert_calls_from_elevenlabs(
+                                session=session,
+                                agent_id=agent.id,
+                                integration_id=integration.id,
+                                conversations=batch,
+                            )
+                            newest_unix = max(
+                                (
+                                    c.start_time_unix_secs
+                                    for c in batch
+                                    if c.start_time_unix_secs
+                                ),
+                                default=None,
+                            )
+                            next_after = (
+                                datetime.fromtimestamp(newest_unix, tz=UTC)
+                                if newest_unix is not None
+                                else None
+                            )
                 except HTTPException as exc:
-                    env_event["status"] = f"{platform_name}_error"
+                    env_event["status"] = "provider_error"
                     env_event["error"] = f"{exc.status_code}: {exc.detail}"
                     raise
                 if not batch:
                     break
-                inserted = upsert_fn(
-                    session=session,
-                    agent_id=agent.id,
-                    integration_id=integration.id,
-                    **({"retell_calls": batch} if platform == Platform.RETELL else {"telnyx_calls": batch}),
-                )
                 env_event["fetched"] += len(batch)
                 env_event["inserted"] += inserted
                 env_event["skipped_dupes"] += len(batch) - inserted
                 created_total += inserted
-                if len(batch) < _PAGE_SIZE:
+                if len(batch) < _RETELL_PAGE_SIZE:
                     break
-                newest_ms = max(
-                    (c.start_timestamp for c in batch if c.start_timestamp is not None),
-                    default=None,
-                )
-                if newest_ms is None:
+                if next_after is None:
                     break
-                next_after = datetime.fromtimestamp(newest_ms / 1000, tz=UTC)
                 if start_after is not None and next_after <= start_after:
                     break
                 start_after = next_after
@@ -208,32 +287,7 @@ async def _fetch_and_store_from_platform(
         raise
     finally:
         event["duration_ms"] = int((time.monotonic() - started) * 1000)
-        _emit(f"{platform_name}_sync", **event)
-
-
-async def _fetch_and_store_for_all_platforms(
-    *,
-    session,
-    agent,
-    incremental: bool,
-) -> int:
-    """Pull calls from all supported voice platforms.
-
-    Returns total number of newly-inserted rows across all platforms.
-    """
-    created_total = 0
-    for platform in (Platform.RETELL, Platform.TELNYX):
-        try:
-            created = await _fetch_and_store_from_platform(
-                session=session,
-                agent=agent,
-                incremental=incremental,
-                platform=platform,
-            )
-            created_total += created
-        except HTTPException:
-            pass
-    return created_total
+        _emit("production_calls_sync", **event)
 
 
 def _is_sync_stale(last_synced_at: datetime | None) -> bool:
@@ -248,7 +302,7 @@ def _is_sync_stale(last_synced_at: datetime | None) -> bool:
 
 
 async def _sync_calls_in_background(agent_id: uuid.UUID) -> None:
-    """Run a platform sync in a fresh DB session after the request response is sent.
+    """Run a production call sync in a fresh DB session after the response is sent.
 
     Errors are logged, never raised — there is no caller left to receive them.
     """
@@ -264,7 +318,7 @@ async def _sync_calls_in_background(agent_id: uuid.UUID) -> None:
                 event["status"] = "agent_not_found"
                 return
             try:
-                created = await _fetch_and_store_for_all_platforms(
+                created = await _fetch_and_store_production_calls(
                     session=session, agent=agent, incremental=True
                 )
                 event["created"] = created
@@ -328,6 +382,12 @@ async def list_agent_calls(
             date_from=date_from,
             date_to=date_to,
         )
+        logger.warning(
+            "frontend calls payload agent=%s count=%s items=%s",
+            agent_id,
+            count,
+            [item.model_dump(mode="json") for item in items],
+        )
         event["rows_returned"] = len(items)
         event["total_count"] = count
         return CallsPublic(data=items, count=count)
@@ -365,7 +425,7 @@ async def refresh_agent_calls(
             event["status"] = "agent_not_found"
             raise HTTPException(status_code=404, detail="Agent not found")
 
-        created = await _fetch_and_store_for_all_platforms(
+        created = await _fetch_and_store_production_calls(
             session=session, agent=agent, incremental=True
         )
         crud.touch_calls_last_synced_at(session=session, agent_id=agent_id)
@@ -412,6 +472,13 @@ def get_call_detail(
     call_id: uuid.UUID,
 ) -> CallPublic:
     call = _call_or_404(session=session, call_id=call_id)
+    provider = None
+    if call.integration_id is not None:
+        integration = crud.get_integration(
+            session=session,
+            integration_id=call.integration_id,
+        )
+        provider = integration.provider if integration is not None else None
     is_new = call.seen_at is None
     tc_count = int(
         session.exec(
@@ -421,13 +488,14 @@ def get_call_detail(
     return CallPublic(
         id=call.id,
         agent_id=call.agent_id,
-        retell_call_id=call.retell_call_id or "",
-        retell_agent_id=call.retell_agent_id or "",
+        retell_call_id=call.retell_call_id,
+        retell_agent_id=call.retell_agent_id,
         telnyx_call_id=call.telnyx_call_id,
         telnyx_agent_id=call.telnyx_agent_id,
         started_at=call.started_at,
         duration_seconds=call.duration_seconds,
         status=call.status,
+        provider=provider,
         transcript=call.transcript,
         is_new=is_new,
         test_case_count=tc_count,

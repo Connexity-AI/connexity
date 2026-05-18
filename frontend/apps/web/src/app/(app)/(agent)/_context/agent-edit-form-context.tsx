@@ -23,6 +23,7 @@ import { mapAgentToForm } from '@/app/(app)/(agent)/_utils/map-agent-to-form';
 import { mapFormToDraft } from '@/app/(app)/(agent)/_utils/map-form-to-draft';
 
 import type { AgentFormValues } from '@/app/(app)/(agent)/_schemas/agent-form';
+import type { AgentPublic, AgentVersionPublic } from '@/client/types.gen';
 import type { ReactNode } from 'react';
 
 // ─── Actions context ─────────────────────────────────────────────────────────
@@ -41,6 +42,8 @@ interface AgentEditFormActions {
   isDraftSaving: boolean;
   agentId: string;
   flushDraftSave: () => Promise<void>;
+  agent: AgentPublic | undefined;
+  draft: AgentVersionPublic | undefined;
 }
 
 const AgentEditFormActionsContext = createContext<AgentEditFormActions | null>(null);
@@ -70,10 +73,8 @@ export function AgentEditFormProvider({ agentId, children }: AgentEditFormProvid
   const { data: agent, isLoading: isAgentLoading } = useAgent(agentId);
   const { selectedVersion, isReadOnly, openPublishDialog } = useVersions();
 
-  const { data: draft, isLoading: isDraftLoading } = useAgentDraft(
-    agentId,
-    agent?.has_draft === true
-  );
+  const { data: draftData, isLoading: isDraftLoading } = useAgentDraft(agentId);
+  const draft = draftData ?? undefined;
 
   const { data: versionData, isLoading: isVersionLoading } = useAgentVersion(
     agentId,
@@ -219,6 +220,8 @@ export function AgentEditFormProvider({ agentId, children }: AgentEditFormProvid
         isDraftSaving,
         agentId,
         flushDraftSave,
+        agent,
+        draft,
       }}
     >
       <Form {...form}>{children}</Form>

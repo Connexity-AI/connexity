@@ -3,11 +3,12 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from pydantic import ConfigDict, model_validator
-from sqlalchemy import Column, Text, text
+from sqlalchemy import Column, Enum, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
-from app.models.enums import AgentMode
+from app.models.enums import AgentMode, AgentPromptType, Platform
+from app.models.schemas import AggregateMetrics
 
 if TYPE_CHECKING:
     from app.models.agent_version import AgentVersion
@@ -48,6 +49,47 @@ class AgentBase(SQLModel):
     mode: AgentMode = Field(
         default=AgentMode.ENDPOINT,
         description="endpoint: HTTP agent; platform: LLM simulated on the platform",
+    )
+    platform: Platform | None = Field(
+        default=None,
+        description=(
+            "Voice/agent platform this agent targets. Drives which evaluation "
+            "engines are available. Null for legacy rows; use 'webhook' for "
+            "custom HTTP agents."
+        ),
+    )
+    prompt_type: AgentPromptType = Field(
+        default=AgentPromptType.SINGLE_PROMPT,
+        sa_column=Column(
+            Enum(
+                AgentPromptType,
+                values_callable=lambda enum_type: [
+                    member.value for member in enum_type
+                ],
+                native_enum=False,
+                validate_strings=True,
+                name="agentprompttype",
+            ),
+            nullable=False,
+            server_default=AgentPromptType.SINGLE_PROMPT.value,
+        ),
+        description="single_prompt: one system prompt; multi_prompt reserved for future use",
+    )
+    integration_id: uuid.UUID | None = Field(
+        default=None,
+        foreign_key="integration.id",
+        index=True,
+        description="Integration used for Retell, Vapi, or ElevenLabs provider agent",
+    )
+    platform_agent_id: str | None = Field(
+        default=None,
+        max_length=255,
+        description="Provider agent or assistant id when bound to an integration",
+    )
+    platform_agent_name: str | None = Field(
+        default=None,
+        max_length=255,
+        description="Display name of the provider agent at bind time",
     )
     endpoint_url: str | None = Field(
         default=None,
@@ -175,6 +217,14 @@ class AgentCreate(AgentBase):
 
 class AgentCreateDraft(SQLModel):
     name: str = Field(default="Untitled Agent", max_length=255)
+    platform: Platform | None = Field(
+        default=None,
+        description="When set with integration and platform_agent_id, imports config from provider",
+    )
+    prompt_type: AgentPromptType = Field(default=AgentPromptType.SINGLE_PROMPT)
+    integration_id: uuid.UUID | None = None
+    platform_agent_id: str | None = Field(default=None, max_length=255)
+    platform_agent_name: str | None = Field(default=None, max_length=255)
 
 
 class AgentUpdate(SQLModel):
@@ -188,6 +238,14 @@ class AgentUpdate(SQLModel):
         default=None,
         description="endpoint: HTTP agent; platform: LLM simulated on the platform",
     )
+    platform: Platform | None = Field(
+        default=None,
+        description="Voice/agent platform this agent targets",
+    )
+    prompt_type: AgentPromptType | None = None
+    integration_id: uuid.UUID | None = None
+    platform_agent_id: str | None = Field(default=None, max_length=255)
+    platform_agent_name: str | None = Field(default=None, max_length=255)
     endpoint_url: str | None = Field(
         default=None, max_length=2048, description="URL of the agent's API endpoint"
     )
@@ -222,11 +280,25 @@ class AgentUpdate(SQLModel):
     )
 
 
+class AgentLatestPublishedVersionPublic(SQLModel):
+    version: int = Field(description="Active published version number")
+    version_name: str | None = Field(default=None)
+    version_description: str | None = Field(default=None)
+
+
 class AgentPublic(AgentBase):
     id: uuid.UUID = Field(description="Unique agent identifier")
     has_draft: bool = Field(description="True when an unpublished draft version exists")
     created_at: datetime = Field(description="When the agent was created")
     updated_at: datetime = Field(description="When the agent was last updated")
+    latest_published_version: AgentLatestPublishedVersionPublic | None = Field(
+        default=None,
+        description="Summary of the active published version for list UI",
+    )
+    last_eval: "AgentLastEvalSummary | None" = Field(
+        default=None,
+        description="Latest completed eval run summary for this agent, if any",
+    )
 
     @model_validator(mode="after")
     def validate_mode_fields(self) -> "AgentPublic":
@@ -239,6 +311,17 @@ class AgentPublic(AgentBase):
 class AgentsPublic(SQLModel):
     data: list[AgentPublic] = Field(description="List of agents")
     count: int = Field(description="Total number of agents matching the query")
+
+
+class AgentLastEvalSummary(SQLModel):
+    run_id: uuid.UUID = Field(description="Latest completed run id")
+    created_at: datetime = Field(
+        description="When the latest completed run was created"
+    )
+    aggregate_metrics: AggregateMetrics | None = Field(
+        default=None,
+        description="Aggregate metrics snapshot from the latest completed run",
+    )
 
 
 class AgentGuidelinesPublic(SQLModel):
