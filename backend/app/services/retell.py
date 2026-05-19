@@ -1,3 +1,4 @@
+import asyncio
 import copy
 import logging
 import time
@@ -11,6 +12,9 @@ from pydantic import BaseModel, Field
 from app.models.imported_platform_config import ImportedPlatformConfig
 
 logger = logging.getLogger(__name__)
+
+_RETELL_PLAYGROUND_MAX_ATTEMPTS = 4
+_RETELL_PLAYGROUND_BACKOFF_SECONDS = (1.0, 2.0, 4.0)
 
 
 class RetellAgentSummary(BaseModel):
@@ -60,6 +64,17 @@ class RetellChatCompletionResult(BaseModel):
     error_message: str | None = None
 
 
+class RetellAgentPlaygroundCompletionResult(BaseModel):
+    success: bool
+    messages: list[RetellChatMessage] = Field(default_factory=list)
+    latency_ms: int | None = None
+    error_message: str | None = None
+    current_state: str | None = None
+    current_node_id: str | None = None
+    dynamic_variables: dict[str, Any] = Field(default_factory=dict)
+    call_ended: bool = False
+
+
 class RetellCreateChatAgentResult(BaseModel):
     success: bool
     agent_id: str | None = None
@@ -101,6 +116,18 @@ def _retell_response_detail(response: httpx.Response) -> str:
     except ValueError:
         detail = response.text
     return str(detail)
+
+
+def _parse_retry_after_seconds(value: str | None) -> float | None:
+    if value is None:
+        return None
+    try:
+        parsed = float(value.strip())
+    except (TypeError, ValueError):
+        return None
+    if parsed <= 0:
+        return None
+    return parsed
 
 
 def _retell_duration_seconds(
@@ -1324,6 +1351,167 @@ async def create_retell_chat_completion(
         success=True,
         messages=_parse_retell_chat_messages(payload.get("messages")),
         latency_ms=latency_ms,
+    )
+
+
+async def create_retell_agent_playground_completion(
+    *,
+    api_key: str,
+    retell_agent_id: str,
+    messages: list[dict[str, Any]],
+    dynamic_variables: dict[str, Any] | None = None,
+    current_state: str | None = None,
+    current_node_id: str | None = None,
+    component_id: str | None = None,
+) -> RetellAgentPlaygroundCompletionResult:
+    body: dict[str, Any] = {"messages": messages}
+    if dynamic_variables is not None:
+        body["dynamic_variables"] = dynamic_variables
+    if current_state is not None:
+        body["current_state"] = current_state
+    if current_node_id is not None:
+        body["current_node_id"] = current_node_id
+    if component_id is not None:
+        body["component_id"] = component_id
+
+    started = time.perf_counter()
+    response: httpx.Response | None = None
+    network_error: httpx.HTTPError | None = None
+    for attempt in range(1, _RETELL_PLAYGROUND_MAX_ATTEMPTS + 1):
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"https://api.retellai.com/agent-playground-completion/{retell_agent_id}",
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json=body,
+                    timeout=15.0,
+                )
+            network_error = None
+        except httpx.HTTPError as exc:
+            network_error = exc
+            response = None
+            if attempt >= _RETELL_PLAYGROUND_MAX_ATTEMPTS:
+                latency_ms = int((time.perf_counter() - started) * 1000)
+                return RetellAgentPlaygroundCompletionResult(
+                    success=False,
+                    latency_ms=latency_ms,
+                    error_message=f"Network error: {exc}",
+                )
+            wait_seconds = _RETELL_PLAYGROUND_BACKOFF_SECONDS[
+                min(attempt - 1, len(_RETELL_PLAYGROUND_BACKOFF_SECONDS) - 1)
+            ]
+            logger.warning(
+                "Retell playground request failed (attempt %d/%d), retrying in %.1fs: %s",
+                attempt,
+                _RETELL_PLAYGROUND_MAX_ATTEMPTS,
+                wait_seconds,
+                exc,
+            )
+            await asyncio.sleep(wait_seconds)
+            continue
+
+        if response.status_code == 429 and attempt < _RETELL_PLAYGROUND_MAX_ATTEMPTS:
+            wait_seconds = (
+                _parse_retry_after_seconds(response.headers.get("Retry-After"))
+                or _RETELL_PLAYGROUND_BACKOFF_SECONDS[
+                    min(attempt - 1, len(_RETELL_PLAYGROUND_BACKOFF_SECONDS) - 1)
+                ]
+            )
+            logger.warning(
+                "Retell playground throttled (attempt %d/%d), retrying in %.1fs: %s",
+                attempt,
+                _RETELL_PLAYGROUND_MAX_ATTEMPTS,
+                wait_seconds,
+                _retell_response_detail(response),
+            )
+            await asyncio.sleep(wait_seconds)
+            continue
+
+        if response.status_code >= 500 and attempt < _RETELL_PLAYGROUND_MAX_ATTEMPTS:
+            wait_seconds = _RETELL_PLAYGROUND_BACKOFF_SECONDS[
+                min(attempt - 1, len(_RETELL_PLAYGROUND_BACKOFF_SECONDS) - 1)
+            ]
+            logger.warning(
+                "Retell playground returned %d (attempt %d/%d), retrying in %.1fs: %s",
+                response.status_code,
+                attempt,
+                _RETELL_PLAYGROUND_MAX_ATTEMPTS,
+                wait_seconds,
+                _retell_response_detail(response),
+            )
+            await asyncio.sleep(wait_seconds)
+            continue
+
+        break
+
+    latency_ms = int((time.perf_counter() - started) * 1000)
+
+    if network_error is not None:
+        return RetellAgentPlaygroundCompletionResult(
+            success=False,
+            latency_ms=latency_ms,
+            error_message=f"Network error: {network_error}",
+        )
+
+    if response is None:
+        return RetellAgentPlaygroundCompletionResult(
+            success=False,
+            latency_ms=latency_ms,
+            error_message="Retell playground request did not return a response",
+        )
+
+    if response.status_code >= 400:
+        return RetellAgentPlaygroundCompletionResult(
+            success=False,
+            latency_ms=latency_ms,
+            error_message=(
+                "Retell agent-playground-completion returned "
+                f"{response.status_code}: {_retell_response_detail(response)}"
+            ),
+        )
+
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        return RetellAgentPlaygroundCompletionResult(
+            success=False,
+            latency_ms=latency_ms,
+            error_message=f"Malformed Retell response: {exc}",
+        )
+
+    if not isinstance(payload, dict):
+        return RetellAgentPlaygroundCompletionResult(
+            success=False,
+            latency_ms=latency_ms,
+            error_message="Retell agent-playground-completion returned invalid JSON",
+        )
+
+    dynamic_variable_values = payload.get("dynamic_variables")
+    dynamic_variables_payload = (
+        dict(dynamic_variable_values)
+        if isinstance(dynamic_variable_values, dict)
+        else {}
+    )
+
+    return RetellAgentPlaygroundCompletionResult(
+        success=True,
+        messages=_parse_retell_chat_messages(payload.get("messages")),
+        latency_ms=latency_ms,
+        current_state=(
+            str(payload["current_state"])
+            if payload.get("current_state") is not None
+            else None
+        ),
+        current_node_id=(
+            str(payload["current_node_id"])
+            if payload.get("current_node_id") is not None
+            else None
+        ),
+        dynamic_variables=dynamic_variables_payload,
+        call_ended=bool(payload.get("call_ended", False)),
     )
 
 

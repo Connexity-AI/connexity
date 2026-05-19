@@ -5,7 +5,6 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import HTTPException
 
 from app.models.agent import Agent
 from app.models.enums import AgentMode, FirstTurn, Platform
@@ -14,9 +13,8 @@ from app.services.eval_runtimes import AgentSnapshot, RunSnapshot
 from app.services.eval_runtimes.base import RuntimeRunArgs
 from app.services.eval_runtimes.text.retell import RetellRuntime
 from app.services.retell import (
-    RetellChatCompletionResult,
+    RetellAgentPlaygroundCompletionResult,
     RetellChatMessage,
-    RetellCreateChatResult,
 )
 
 
@@ -99,7 +97,7 @@ def test_validate_config_requires_integration_and_platform_agent_id() -> None:
         runtime.validate_config(RetellRuntimeConfig(), agent, session)
 
 
-async def test_test_connection_checks_chat_agent() -> None:
+async def test_test_connection_checks_retell_playground() -> None:
     runtime = RetellRuntime()
     agent = _make_agent()
     session = MagicMock()
@@ -110,18 +108,24 @@ async def test_test_connection_checks_chat_agent() -> None:
             "app.services.eval_runtimes.text.retell.decrypt", return_value="retell-key"
         ),
         patch(
-            "app.services.eval_runtimes.text.retell.get_retell_chat_agent",
-            new=AsyncMock(return_value={"agent_id": "retell_chat_agent_123"}),
-        ) as mock_get_chat_agent,
+            "app.services.eval_runtimes.text.retell.create_retell_agent_playground_completion",
+            new=AsyncMock(
+                return_value=RetellAgentPlaygroundCompletionResult(success=True)
+            ),
+        ) as mock_playground,
     ):
         result = await runtime.test_connection(RetellRuntimeConfig(), agent, session)
 
     assert result.ok is True
     assert "reachable" in result.message
-    mock_get_chat_agent.assert_awaited_once_with("retell-key", "retell_chat_agent_123")
+    mock_playground.assert_awaited_once_with(
+        api_key="retell-key",
+        retell_agent_id="retell_chat_agent_123",
+        messages=[],
+    )
 
 
-async def test_test_connection_bridges_voice_agents_via_temporary_chat_agent() -> None:
+async def test_test_connection_surfaces_playground_error() -> None:
     runtime = RetellRuntime()
     agent = _make_agent()
     session = MagicMock()
@@ -132,40 +136,22 @@ async def test_test_connection_bridges_voice_agents_via_temporary_chat_agent() -
             "app.services.eval_runtimes.text.retell.decrypt", return_value="retell-key"
         ),
         patch(
-            "app.services.eval_runtimes.text.retell.get_retell_chat_agent",
+            "app.services.eval_runtimes.text.retell.create_retell_agent_playground_completion",
             new=AsyncMock(
-                side_effect=HTTPException(
-                    status_code=400, detail="Invalid agent channel"
+                return_value=RetellAgentPlaygroundCompletionResult(
+                    success=False,
+                    error_message="Playground rejected the request",
                 )
             ),
         ),
-        patch(
-            "app.services.eval_runtimes.text.retell.create_retell_chat_agent_from_existing_agent",
-            new=AsyncMock(
-                return_value=SimpleNamespace(success=True, agent_id="temp_chat_123")
-            ),
-        ) as mock_create_temp,
-        patch(
-            "app.services.eval_runtimes.text.retell.delete_retell_chat_agent",
-            new=AsyncMock(return_value=True),
-        ) as mock_delete_temp,
     ):
         result = await runtime.test_connection(RetellRuntimeConfig(), agent, session)
 
-    assert result.ok is True
-    assert "bridged" in result.message
-    mock_create_temp.assert_awaited_once_with(
-        api_key="retell-key",
-        retell_agent_id="retell_chat_agent_123",
-        agent_name=f"Connexity eval temp for {agent.name}",
-    )
-    mock_delete_temp.assert_awaited_once_with(
-        api_key="retell-key",
-        agent_id="temp_chat_123",
-    )
+    assert result.ok is False
+    assert result.message == "Playground rejected the request"
 
 
-async def test_run_test_case_uses_retell_chat_completion() -> None:
+async def test_run_test_case_uses_retell_playground() -> None:
     runtime = RetellRuntime()
     agent = _make_agent()
     test_case = _make_test_case()
@@ -178,34 +164,25 @@ async def test_run_test_case_uses_retell_chat_completion() -> None:
             "app.services.eval_runtimes.text.retell.decrypt", return_value="retell-key"
         ),
         patch(
-            "app.services.eval_runtimes.text.retell.get_retell_chat_agent",
-            new=AsyncMock(return_value={"agent_id": "retell_chat_agent_123"}),
-        ),
-        patch(
-            "app.services.eval_runtimes.text.retell.create_retell_chat",
+            "app.services.eval_runtimes.text.retell.create_retell_agent_playground_completion",
             new=AsyncMock(
-                return_value=RetellCreateChatResult(
-                    success=True,
-                    chat_id="chat_123",
-                )
+                side_effect=[
+                    RetellAgentPlaygroundCompletionResult(success=True),
+                    RetellAgentPlaygroundCompletionResult(
+                        success=True,
+                        current_state="collect_issue",
+                        dynamic_variables={"customer_tier": "gold"},
+                        call_ended=False,
+                        messages=[
+                            RetellChatMessage(
+                                role="agent", content="Hi, how can I help?"
+                            )
+                        ],
+                        latency_ms=321,
+                    ),
+                ]
             ),
-        ) as mock_create_chat,
-        patch(
-            "app.services.eval_runtimes.text.retell.create_retell_chat_completion",
-            new=AsyncMock(
-                return_value=RetellChatCompletionResult(
-                    success=True,
-                    messages=[
-                        RetellChatMessage(role="agent", content="Hi, how can I help?")
-                    ],
-                    latency_ms=321,
-                )
-            ),
-        ) as mock_completion,
-        patch(
-            "app.services.eval_runtimes.text.retell.end_retell_chat",
-            new=AsyncMock(return_value=True),
-        ) as mock_end_chat,
+        ) as mock_playground,
     ):
         result = await runtime.run_test_case(RetellRuntimeConfig(), args, session)
 
@@ -213,21 +190,22 @@ async def test_run_test_case_uses_retell_chat_completion() -> None:
     assert result.transcript[0].content == "Hello there"
     assert result.transcript[1].content == "Hi, how can I help?"
     assert result.transcript[1].latency_ms == 321
-    mock_create_chat.assert_awaited_once_with(
-        api_key="retell-key",
-        retell_agent_id="retell_chat_agent_123",
-        metadata={
-            "run_id": str(args.run_snapshot.run_id),
-            "test_case_id": str(test_case.id),
-        },
-        dynamic_variables={},
-    )
-    mock_completion.assert_awaited_once_with(
-        api_key="retell-key",
-        chat_id="chat_123",
-        content="Hello there",
-    )
-    mock_end_chat.assert_awaited_once_with(api_key="retell-key", chat_id="chat_123")
+    assert len(mock_playground.await_args_list) == 2
+    assert mock_playground.await_args_list[0].kwargs == {
+        "api_key": "retell-key",
+        "retell_agent_id": "retell_chat_agent_123",
+        "messages": [],
+        "dynamic_variables": None,
+    }
+    assert mock_playground.await_args_list[1].kwargs == {
+        "api_key": "retell-key",
+        "retell_agent_id": "retell_chat_agent_123",
+        "messages": [{"role": "user", "content": "Hello there"}],
+        "dynamic_variables": None,
+        "current_state": None,
+        "current_node_id": None,
+        "component_id": None,
+    }
 
 
 async def test_run_test_case_preserves_retell_opening_message() -> None:
@@ -243,39 +221,27 @@ async def test_run_test_case_preserves_retell_opening_message() -> None:
             "app.services.eval_runtimes.text.retell.decrypt", return_value="retell-key"
         ),
         patch(
-            "app.services.eval_runtimes.text.retell.get_retell_chat_agent",
-            new=AsyncMock(return_value={"agent_id": "retell_chat_agent_123"}),
-        ),
-        patch(
-            "app.services.eval_runtimes.text.retell.create_retell_chat",
+            "app.services.eval_runtimes.text.retell.create_retell_agent_playground_completion",
             new=AsyncMock(
-                return_value=RetellCreateChatResult(
+                return_value=RetellAgentPlaygroundCompletionResult(
                     success=True,
-                    chat_id="chat_123",
                     messages=[
-                        RetellChatMessage(
-                            role="agent",
-                            content="Welcome to support, what can I do for you?",
-                        )
+                        RetellChatMessage(role="agent", content="Hi, how can I help?")
                     ],
                     latency_ms=111,
                 )
             ),
         ),
-        patch(
-            "app.services.eval_runtimes.text.retell.end_retell_chat",
-            new=AsyncMock(return_value=True),
-        ),
     ):
         result = await runtime.run_test_case(RetellRuntimeConfig(), args, session)
 
     assert [turn.role.value for turn in result.transcript] == ["assistant", "user"]
-    assert result.transcript[0].content == "Welcome to support, what can I do for you?"
+    assert result.transcript[0].content == "Hi, how can I help?"
     assert result.transcript[0].latency_ms == 111
     assert result.transcript[1].content == "I need help"
 
 
-async def test_run_test_case_bridges_voice_agent_into_temporary_chat_agent() -> None:
+async def test_run_test_case_carries_playground_state_between_turns() -> None:
     runtime = RetellRuntime()
     agent = _make_agent()
     test_case = _make_test_case()
@@ -288,70 +254,41 @@ async def test_run_test_case_bridges_voice_agent_into_temporary_chat_agent() -> 
             "app.services.eval_runtimes.text.retell.decrypt", return_value="retell-key"
         ),
         patch(
-            "app.services.eval_runtimes.text.retell.get_retell_chat_agent",
+            "app.services.eval_runtimes.text.retell.create_retell_agent_playground_completion",
             new=AsyncMock(
-                side_effect=HTTPException(
-                    status_code=400, detail="Invalid agent channel"
-                )
+                side_effect=[
+                    RetellAgentPlaygroundCompletionResult(
+                        success=True,
+                        current_state="collect_issue",
+                        current_node_id="node_start",
+                        dynamic_variables={"customer_name": "Avery"},
+                    ),
+                    RetellAgentPlaygroundCompletionResult(
+                        success=True,
+                        messages=[
+                            RetellChatMessage(
+                                role="agent", content="How is the PTO being operated?"
+                            )
+                        ],
+                        current_state="collect_issue",
+                        current_node_id="node_followup",
+                        dynamic_variables={"customer_name": "Avery"},
+                    ),
+                ]
             ),
-        ),
-        patch(
-            "app.services.eval_runtimes.text.retell.create_retell_chat_agent_from_existing_agent",
-            new=AsyncMock(
-                return_value=SimpleNamespace(success=True, agent_id="temp_chat_123")
-            ),
-        ) as mock_create_temp,
-        patch(
-            "app.services.eval_runtimes.text.retell.create_retell_chat",
-            new=AsyncMock(
-                return_value=RetellCreateChatResult(
-                    success=True,
-                    chat_id="chat_123",
-                )
-            ),
-        ) as mock_create_chat,
-        patch(
-            "app.services.eval_runtimes.text.retell.create_retell_chat_completion",
-            new=AsyncMock(
-                return_value=RetellChatCompletionResult(
-                    success=True,
-                    messages=[
-                        RetellChatMessage(
-                            role="agent", content="How is the PTO being operated?"
-                        )
-                    ],
-                )
-            ),
-        ),
-        patch(
-            "app.services.eval_runtimes.text.retell.end_retell_chat",
-            new=AsyncMock(return_value=True),
-        ) as mock_end_chat,
-        patch(
-            "app.services.eval_runtimes.text.retell.delete_retell_chat_agent",
-            new=AsyncMock(return_value=True),
-        ) as mock_delete_temp,
+        ) as mock_playground,
     ):
         result = await runtime.run_test_case(RetellRuntimeConfig(), args, session)
 
     assert [turn.role.value for turn in result.transcript] == ["user", "assistant"]
     assert result.transcript[1].content == "How is the PTO being operated?"
-    mock_create_temp.assert_awaited_once_with(
-        api_key="retell-key",
-        retell_agent_id="retell_chat_agent_123",
-        agent_name=f"Connexity eval temp for {agent.name}",
-    )
-    mock_create_chat.assert_awaited_once_with(
-        api_key="retell-key",
-        retell_agent_id="temp_chat_123",
-        metadata={
-            "run_id": str(args.run_snapshot.run_id),
-            "test_case_id": str(test_case.id),
-        },
-        dynamic_variables={},
-    )
-    mock_end_chat.assert_awaited_once_with(api_key="retell-key", chat_id="chat_123")
-    mock_delete_temp.assert_awaited_once_with(
-        api_key="retell-key",
-        agent_id="temp_chat_123",
-    )
+    assert len(mock_playground.await_args_list) == 2
+    assert mock_playground.await_args_list[1].kwargs == {
+        "api_key": "retell-key",
+        "retell_agent_id": "retell_chat_agent_123",
+        "messages": [{"role": "user", "content": "Hello there"}],
+        "dynamic_variables": {"customer_name": "Avery"},
+        "current_state": "collect_issue",
+        "current_node_id": "node_start",
+        "component_id": None,
+    }
