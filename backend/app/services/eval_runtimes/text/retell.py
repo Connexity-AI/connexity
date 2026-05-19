@@ -1,18 +1,18 @@
 """Retell text runtime.
 
 Connexity owns the user simulator and judge. Retell owns the tested agent side
-through the Chat API: one Retell chat session per test-case execution, then one
-``create-chat-completion`` request per simulated user turn.
+through the stateless playground API: one initial empty-history request per
+test-case execution, then one full-history ``agent-playground-completion``
+request per simulated user turn.
 """
 
 import asyncio
 import json
 import logging
 import time
-from dataclasses import dataclass, replace
-from typing import ClassVar
+from dataclasses import dataclass, field, replace
+from typing import Any, ClassVar
 
-from fastapi import HTTPException
 from sqlmodel import Session
 
 from app.core.encryption import decrypt
@@ -44,26 +44,31 @@ from app.services.eval_runtimes.text.base import (
 )
 from app.services.eval_runtimes.types import TestCaseRunResult
 from app.services.retell import (
+    RetellAgentPlaygroundCompletionResult,
     RetellChatMessage,
-    create_retell_chat,
-    create_retell_chat_agent_from_existing_agent,
-    create_retell_chat_completion,
-    delete_retell_chat_agent,
-    end_retell_chat,
-    get_retell_chat_agent,
-    is_retell_invalid_agent_channel_error,
+    create_retell_agent_playground_completion,
 )
 from app.services.user_simulator import UserSimulator
 
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class RetellPlaygroundState:
+    dynamic_variables: dict[str, Any] = field(default_factory=dict)
+    current_state: str | None = None
+    current_node_id: str | None = None
+    component_id: str | None = None
+    call_ended: bool = False
+
+
 @dataclass(frozen=True)
 class RetellTextAgentConfig(TextAgentTurnConfig):
     api_key: str = ""
     retell_agent_id: str = ""
-    retell_chat_id: str | None = None
-    temporary_chat_agent_id: str | None = None
+    playground_state: RetellPlaygroundState = field(
+        default_factory=RetellPlaygroundState
+    )
 
 
 class RetellRuntime(TextRuntimeBase):
@@ -113,36 +118,21 @@ class RetellRuntime(TextRuntimeBase):
                 ok=False, message=f"Could not decrypt Retell API key: {exc}"
             )
 
-        try:
-            await get_retell_chat_agent(api_key, agent.platform_agent_id or "")
-        except HTTPException as exc:
-            detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
-            if not is_retell_invalid_agent_channel_error(detail):
-                return RuntimeTestResult(ok=False, message=detail)
-
-            temp_chat_agent = await create_retell_chat_agent_from_existing_agent(
-                api_key=api_key,
-                retell_agent_id=agent.platform_agent_id or "",
-                agent_name=f"Connexity eval temp for {agent.name}",
-            )
-            if not temp_chat_agent.success or not temp_chat_agent.agent_id:
-                return RuntimeTestResult(
-                    ok=False,
-                    message=temp_chat_agent.error_message
-                    or "Could not prepare Retell chat agent for evaluation.",
-                )
-            await delete_retell_chat_agent(
-                api_key=api_key,
-                agent_id=temp_chat_agent.agent_id,
-            )
+        result = await create_retell_agent_playground_completion(
+            api_key=api_key,
+            retell_agent_id=agent.platform_agent_id or "",
+            messages=[],
+        )
+        if not result.success:
             return RuntimeTestResult(
-                ok=True,
-                message="Retell voice agent is reachable and can be bridged for chat evals.",
+                ok=False,
+                message=result.error_message
+                or "Retell playground request failed.",
             )
 
         return RuntimeTestResult(
             ok=True,
-            message="Retell chat agent is reachable.",
+            message="Retell playground is reachable.",
         )
 
     def build_text_agent_config(
@@ -192,98 +182,47 @@ class RetellRuntime(TextRuntimeBase):
         args: RuntimeRunArgs,
         session: Session,
     ) -> TestCaseRunResult:
-        agent_config = self.build_text_agent_config(runtime_config, args, session)
-        assert isinstance(agent_config, RetellTextAgentConfig)
+        base_agent_config = self.build_text_agent_config(runtime_config, args, session)
+        assert isinstance(base_agent_config, RetellTextAgentConfig)
 
-        try:
-            prepared_agent_config = await self._prepare_chat_agent(agent_config, args)
-        except ValueError as exc:
-            transcript = [
-                self.build_conversation_turn(
-                    index=0,
-                    role=TurnRole.ASSISTANT,
-                    content=f"[agent_error] {exc}",
-                )
-            ]
-            return self._build_result(transcript, TestCaseTokenAccumulator())
-
-        chat = await create_retell_chat(
-            api_key=prepared_agent_config.api_key,
-            retell_agent_id=prepared_agent_config.retell_agent_id,
-            metadata={
-                "run_id": str(args.run_snapshot.run_id),
-                "test_case_id": str(args.test_case.id),
-            },
-            dynamic_variables=self._dynamic_variables_for_test_case(args.test_case),
+        agent_config = replace(
+            base_agent_config,
+            playground_state=RetellPlaygroundState(
+                dynamic_variables=self._dynamic_variables_for_test_case(args.test_case)
+            ),
         )
 
         transcript: list[ConversationTurn] = []
         accumulator = TestCaseTokenAccumulator()
-        if not chat.success or not chat.chat_id:
+        initial_result = await create_retell_agent_playground_completion(
+            api_key=agent_config.api_key,
+            retell_agent_id=agent_config.retell_agent_id,
+            messages=[],
+            dynamic_variables=agent_config.playground_state.dynamic_variables or None,
+        )
+        if not initial_result.success:
             transcript.append(
                 self.build_conversation_turn(
                     index=0,
                     role=TurnRole.ASSISTANT,
-                    content=f"[agent_error] {chat.error_message or 'Retell chat setup failed'}",
+                    content=(
+                        "[agent_error] "
+                        f"{initial_result.error_message or 'Retell playground setup failed'}"
+                    ),
                 )
             )
             return self._build_result(transcript, accumulator)
 
-        runtime_agent_config = replace(
-            prepared_agent_config, retell_chat_id=chat.chat_id
+        self._apply_retell_playground_result(
+            agent_config.playground_state, initial_result
         )
-        try:
-            return await self._run_retell_text_case(
-                test_case=args.test_case,
-                agent_config=runtime_agent_config,
-                config=args.run_snapshot.run_config,
-                initial_messages=chat.messages,
-                initial_latency_ms=chat.latency_ms,
-                cancel_event=args.run_snapshot.cancel_event,
-            )
-        finally:
-            await end_retell_chat(
-                api_key=runtime_agent_config.api_key,
-                chat_id=chat.chat_id,
-            )
-            if runtime_agent_config.temporary_chat_agent_id:
-                await delete_retell_chat_agent(
-                    api_key=runtime_agent_config.api_key,
-                    agent_id=runtime_agent_config.temporary_chat_agent_id,
-                )
-
-    async def _prepare_chat_agent(
-        self,
-        agent_config: RetellTextAgentConfig,
-        args: RuntimeRunArgs,
-    ) -> RetellTextAgentConfig:
-        try:
-            await get_retell_chat_agent(
-                agent_config.api_key, agent_config.retell_agent_id
-            )
-            return agent_config
-        except HTTPException as exc:
-            detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
-            if not is_retell_invalid_agent_channel_error(detail):
-                msg = f"Retell chat agent lookup failed: {detail}"
-                raise ValueError(msg) from exc
-
-        temp_chat_agent = await create_retell_chat_agent_from_existing_agent(
-            api_key=agent_config.api_key,
-            retell_agent_id=agent_config.retell_agent_id,
-            agent_name=f"Connexity eval temp for {args.agent_snapshot.agent.name}",
-        )
-        if not temp_chat_agent.success or not temp_chat_agent.agent_id:
-            msg = (
-                temp_chat_agent.error_message
-                or "Could not prepare Retell chat agent for evaluation."
-            )
-            raise ValueError(msg)
-
-        return replace(
-            agent_config,
-            retell_agent_id=temp_chat_agent.agent_id,
-            temporary_chat_agent_id=temp_chat_agent.agent_id,
+        return await self._run_retell_text_case(
+            test_case=args.test_case,
+            agent_config=agent_config,
+            config=args.run_snapshot.run_config,
+            initial_messages=initial_result.messages,
+            initial_latency_ms=initial_result.latency_ms,
+            cancel_event=args.run_snapshot.cancel_event,
         )
 
     async def _run_retell_text_case(
@@ -319,6 +258,8 @@ class RetellRuntime(TextRuntimeBase):
         if self._turns_have_terminating_assistant_tool_call(
             transcript, agent_config.tools
         ):
+            return self._build_result(transcript, accumulator)
+        if agent_config.playground_state.call_ended:
             return self._build_result(transcript, accumulator)
 
         if first_turn == FirstTurn.USER:
@@ -367,8 +308,8 @@ class RetellRuntime(TextRuntimeBase):
                     index=len(transcript),
                     role=TurnRole.ASSISTANT,
                     content=(
-                        "[agent_error] Retell chat did not provide an opening agent "
-                        "message for an agent-first test case"
+                        "[agent_error] Retell playground did not provide an "
+                        "opening agent message for an agent-first test case"
                     ),
                 )
             )
@@ -437,6 +378,8 @@ class RetellRuntime(TextRuntimeBase):
                 ):
                     break
                 agent_rounds += 1
+                if agent_config.playground_state.call_ended:
+                    break
 
                 if max_agent_rounds is not None and agent_rounds >= max_agent_rounds:
                     break
@@ -475,6 +418,8 @@ class RetellRuntime(TextRuntimeBase):
                 ):
                     break
                 agent_rounds += 1
+                if agent_config.playground_state.call_ended:
+                    break
 
         return self._build_result(transcript, accumulator)
 
@@ -482,23 +427,13 @@ class RetellRuntime(TextRuntimeBase):
         agent_config = context.agent_config
         assert isinstance(agent_config, RetellTextAgentConfig)
 
-        if not agent_config.retell_chat_id:
-            context.transcript.append(
-                self.build_conversation_turn(
-                    index=len(context.transcript),
-                    role=TurnRole.ASSISTANT,
-                    content="[agent_error] missing Retell chat id",
-                )
-            )
-            return False
-
         if not context.transcript or context.transcript[-1].role != TurnRole.USER:
             context.transcript.append(
                 self.build_conversation_turn(
                     index=len(context.transcript),
                     role=TurnRole.ASSISTANT,
                     content=(
-                        "[agent_error] Retell chat completion requires the latest "
+                        "[agent_error] Retell playground requires the latest "
                         "transcript turn to be a user message"
                     ),
                 )
@@ -516,14 +451,20 @@ class RetellRuntime(TextRuntimeBase):
             )
             return False
 
-        result = await create_retell_chat_completion(
+        result = await create_retell_agent_playground_completion(
             api_key=agent_config.api_key,
-            chat_id=agent_config.retell_chat_id,
-            content=user_content,
+            retell_agent_id=agent_config.retell_agent_id,
+            messages=self._transcript_to_retell_playground_messages(
+                context.transcript
+            ),
+            dynamic_variables=agent_config.playground_state.dynamic_variables or None,
+            current_state=agent_config.playground_state.current_state,
+            current_node_id=agent_config.playground_state.current_node_id,
+            component_id=agent_config.playground_state.component_id,
         )
         if not result.success:
             logger.warning(
-                "Retell create-chat-completion failed for test_case %s: %s",
+                "Retell agent-playground-completion failed for test_case %s: %s",
                 context.test_case.id,
                 result.error_message,
             )
@@ -536,7 +477,12 @@ class RetellRuntime(TextRuntimeBase):
             )
             return False
 
+        self._apply_retell_playground_result(
+            agent_config.playground_state, result
+        )
         if not result.messages:
+            if agent_config.playground_state.call_ended:
+                return True
             context.transcript.append(
                 self.build_conversation_turn(
                     index=len(context.transcript),
@@ -554,9 +500,9 @@ class RetellRuntime(TextRuntimeBase):
         return True
 
     @staticmethod
-    def _dynamic_variables_for_test_case(test_case: TestCase) -> dict[str, str]:
+    def _dynamic_variables_for_test_case(test_case: TestCase) -> dict[str, Any]:
         raw = test_case.user_context or {}
-        out: dict[str, str] = {}
+        out: dict[str, Any] = {}
         for key, value in raw.items():
             if value is None:
                 continue
@@ -646,3 +592,49 @@ class RetellRuntime(TextRuntimeBase):
             appended_agent_turn = True
 
         return appended_agent_turn
+
+    @staticmethod
+    def _apply_retell_playground_result(
+        state: RetellPlaygroundState,
+        result: RetellAgentPlaygroundCompletionResult,
+    ) -> None:
+        state.dynamic_variables = dict(result.dynamic_variables)
+        if result.current_state is not None:
+            state.current_state = result.current_state
+        if result.current_node_id is not None:
+            state.current_node_id = result.current_node_id
+        state.call_ended = result.call_ended
+
+    @staticmethod
+    def _transcript_to_retell_playground_messages(
+        transcript: list[ConversationTurn],
+    ) -> list[dict[str, Any]]:
+        messages: list[dict[str, Any]] = []
+        for turn in transcript:
+            if turn.role == TurnRole.USER:
+                messages.append(
+                    {"role": "user", "content": (turn.content or "").strip()}
+                )
+                continue
+            if turn.role == TurnRole.ASSISTANT:
+                if turn.content is not None:
+                    messages.append({"role": "agent", "content": turn.content})
+                for tool_call in turn.tool_calls or []:
+                    messages.append(
+                        {
+                            "role": "tool_call_invocation",
+                            "tool_call_id": tool_call.id,
+                            "name": tool_call.function.name,
+                            "arguments": tool_call.function.arguments,
+                        }
+                    )
+                continue
+            if turn.role == TurnRole.TOOL:
+                messages.append(
+                    {
+                        "role": "tool_call_result",
+                        "tool_call_id": turn.tool_call_id,
+                        "content": turn.content,
+                    }
+                )
+        return messages
