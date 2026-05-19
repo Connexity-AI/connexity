@@ -1414,11 +1414,12 @@ async def create_retell_agent_playground_completion(
             continue
 
         if response.status_code == 429 and attempt < _RETELL_PLAYGROUND_MAX_ATTEMPTS:
-            wait_seconds = _parse_retry_after_seconds(
-                response.headers.get("Retry-After")
-            ) or _RETELL_PLAYGROUND_BACKOFF_SECONDS[
-                min(attempt - 1, len(_RETELL_PLAYGROUND_BACKOFF_SECONDS) - 1)
-            ]
+            wait_seconds = (
+                _parse_retry_after_seconds(response.headers.get("Retry-After"))
+                or _RETELL_PLAYGROUND_BACKOFF_SECONDS[
+                    min(attempt - 1, len(_RETELL_PLAYGROUND_BACKOFF_SECONDS) - 1)
+                ]
+            )
             logger.warning(
                 "Retell playground throttled (attempt %d/%d), retrying in %.1fs: %s",
                 attempt,

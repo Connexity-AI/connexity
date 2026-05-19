@@ -263,7 +263,9 @@ async def test_playground_completion_retries_after_429_and_succeeds() -> None:
 
 
 @pytest.mark.asyncio
-async def test_playground_completion_returns_error_after_exhausting_429_retries() -> None:
+async def test_playground_completion_returns_error_after_exhausting_429_retries() -> (
+    None
+):
     throttled = _response(
         "POST",
         "https://api.retellai.com/agent-playground-completion/agent_123",

@@ -126,8 +126,7 @@ class RetellRuntime(TextRuntimeBase):
         if not result.success:
             return RuntimeTestResult(
                 ok=False,
-                message=result.error_message
-                or "Retell playground request failed.",
+                message=result.error_message or "Retell playground request failed.",
             )
 
         return RuntimeTestResult(
@@ -454,9 +453,7 @@ class RetellRuntime(TextRuntimeBase):
         result = await create_retell_agent_playground_completion(
             api_key=agent_config.api_key,
             retell_agent_id=agent_config.retell_agent_id,
-            messages=self._transcript_to_retell_playground_messages(
-                context.transcript
-            ),
+            messages=self._transcript_to_retell_playground_messages(context.transcript),
             dynamic_variables=agent_config.playground_state.dynamic_variables or None,
             current_state=agent_config.playground_state.current_state,
             current_node_id=agent_config.playground_state.current_node_id,
@@ -477,9 +474,7 @@ class RetellRuntime(TextRuntimeBase):
             )
             return False
 
-        self._apply_retell_playground_result(
-            agent_config.playground_state, result
-        )
+        self._apply_retell_playground_result(agent_config.playground_state, result)
         if not result.messages:
             if agent_config.playground_state.call_ended:
                 return True

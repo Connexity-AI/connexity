@@ -230,7 +230,7 @@ async def test_run_test_case_preserves_retell_opening_message() -> None:
                     ],
                     latency_ms=111,
                 )
-            )
+            ),
         ),
     ):
         result = await runtime.run_test_case(RetellRuntimeConfig(), args, session)
