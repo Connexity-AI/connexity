@@ -7,6 +7,7 @@ from app import crud
 from app.models import VoiceSimulationJobCreate, VoiceSimulationJobUpdate
 from app.models.enums import VoiceSimulationJobStatus
 from app.models.schemas import ConversationTurn, TurnRole
+from app.services.dtmf import format_dtmf_code
 from app.tests.utils.eval import (
     create_test_case_fixture,
     create_test_case_result_fixture,
@@ -43,7 +44,7 @@ def _voice_job_create(
     run_id,
     test_case_id,
     test_case_result_id,
-    dtmf_code: str = "99124",
+    dtmf_code: str = format_dtmf_code(body=24),
 ) -> VoiceSimulationJobCreate:
     return VoiceSimulationJobCreate(
         run_id=run_id,
@@ -83,7 +84,7 @@ def test_create_voice_simulation_job(db: Session) -> None:
     )
     assert job.id is not None
     assert job.status == VoiceSimulationJobStatus.PENDING
-    assert job.dtmf_code == "99124"
+    assert job.dtmf_code == format_dtmf_code(body=24)
     assert job.worker_id is None
 
 
@@ -146,7 +147,7 @@ def test_claim_next_pending_voice_job(db: Session) -> None:
             run_id=run.id,
             test_case_id=test_case.id,
             test_case_result_id=result.id,
-            dtmf_code="99101",
+            dtmf_code=format_dtmf_code(body=1),
         ),
     )
     claimed = crud.claim_next_pending_voice_job(
@@ -155,7 +156,7 @@ def test_claim_next_pending_voice_job(db: Session) -> None:
         lease_seconds=60,
     )
     assert claimed is not None
-    assert claimed.dtmf_code == "99101"
+    assert claimed.dtmf_code == format_dtmf_code(body=1)
     assert claimed.status == VoiceSimulationJobStatus.CLAIMED
     assert claimed.worker_id == "worker-a"
     assert claimed.claimed_at is not None
@@ -177,7 +178,7 @@ def test_claim_reclaims_expired_lease(db: Session) -> None:
             run_id=run.id,
             test_case_id=test_case.id,
             test_case_result_id=result.id,
-            dtmf_code="99102",
+            dtmf_code=format_dtmf_code(body=2),
         ),
     )
     past = datetime.now(UTC) - timedelta(seconds=30)
@@ -210,7 +211,7 @@ def test_get_voice_simulation_job_by_dtmf(db: Session) -> None:
             run_id=run.id,
             test_case_id=test_case.id,
             test_case_result_id=result.id,
-            dtmf_code="99103",
+            dtmf_code=format_dtmf_code(body=3),
         ),
     )
     crud.update_voice_simulation_job(
@@ -220,9 +221,11 @@ def test_get_voice_simulation_job_by_dtmf(db: Session) -> None:
             status=VoiceSimulationJobStatus.WAITING_FOR_RESULT,
         ),
     )
-    match = crud.get_voice_simulation_job_by_dtmf(session=db, dtmf_code="99103")
+    match = crud.get_voice_simulation_job_by_dtmf(
+        session=db, dtmf_code=format_dtmf_code(body=3)
+    )
     assert match is not None
-    assert match.dtmf_code == "99103"
+    assert match.dtmf_code == format_dtmf_code(body=3)
 
 
 def test_cancel_voice_jobs_for_run(db: Session) -> None:
@@ -233,7 +236,7 @@ def test_cancel_voice_jobs_for_run(db: Session) -> None:
             run_id=run.id,
             test_case_id=test_case.id,
             test_case_result_id=result.id,
-            dtmf_code="99104",
+            dtmf_code=format_dtmf_code(body=4),
         ),
     )
     cancelled = crud.cancel_voice_jobs_for_run(session=db, run_id=run.id)

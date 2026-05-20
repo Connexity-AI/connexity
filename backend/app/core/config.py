@@ -136,6 +136,11 @@ class Settings(BaseSettings):
     TWILIO_ACCOUNT_SID: str | None = None
     TWILIO_AUTH_TOKEN: str | None = None
 
+    # Voice DTMF decoder
+    DTMF_AUDIO_MAX_BYTES: int = 25 * 1024 * 1024
+    DTMF_AUDIO_DOWNLOAD_TIMEOUT_SECONDS: float = 30.0
+    DTMF_FFMPEG_TIMEOUT_SECONDS: float = 30.0
+
     DEFAULT_STT_PROVIDER: str | None = None
     DEFAULT_STT_MODEL: str | None = None
     DEFAULT_TTS_PROVIDER: str | None = None

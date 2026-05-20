@@ -26,6 +26,7 @@ dependencies = [
     "httpx-sse>=0.4.3",
     "deepdiff>=9.0.0",
     "cryptography>=42.0.0",
+    "dtmf>=1.1.0",
 ]
 
 [project.scripts]

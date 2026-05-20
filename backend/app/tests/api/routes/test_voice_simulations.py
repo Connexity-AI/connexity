@@ -9,6 +9,7 @@ from app import crud
 from app.core.config import settings
 from app.models import VoiceSimulationJobCreate, VoiceSimulationJobUpdate
 from app.models.enums import VoiceSimulationJobStatus
+from app.services.dtmf import format_dtmf_code
 from app.tests.utils.eval import (
     create_test_case_fixture,
     create_test_case_result_fixture,
@@ -40,7 +41,7 @@ def _isolate_voice_jobs(db: Session) -> None:
             )
 
 
-def _setup_waiting_job(db: Session, *, dtmf_code: str = "99124"):
+def _setup_waiting_job(db: Session, *, dtmf_code: str = format_dtmf_code(body=24)):
     test_case = create_test_case_fixture(db)
     eval_config = create_test_eval_config(db, members=eval_config_members(test_case.id))
     run = create_test_run(
@@ -75,7 +76,9 @@ def _setup_waiting_job(db: Session, *, dtmf_code: str = "99124"):
     return job
 
 
-def _submission_payload(*, dtmf_code: str = "99124") -> dict[str, object]:
+def _submission_payload(
+    *, dtmf_code: str = format_dtmf_code(body=24)
+) -> dict[str, object]:
     return {
         "audio_url": f"mock-dtmf://{dtmf_code}",
         "messages": [
@@ -90,8 +93,8 @@ def test_submit_voice_simulation_result_success(
     auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
-    job = _setup_waiting_job(db, dtmf_code="99124")
-    payload = _submission_payload(dtmf_code="99124")
+    job = _setup_waiting_job(db, dtmf_code=format_dtmf_code(body=24))
+    payload = _submission_payload(dtmf_code=format_dtmf_code(body=24))
 
     response = client.post(
         f"{settings.API_V1_STR}/voice-simulations/results",
@@ -121,8 +124,8 @@ def test_submit_voice_simulation_result_idempotent(
     auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
-    _setup_waiting_job(db, dtmf_code="99125")
-    payload = _submission_payload(dtmf_code="99125")
+    _setup_waiting_job(db, dtmf_code=format_dtmf_code(body=25))
+    payload = _submission_payload(dtmf_code=format_dtmf_code(body=25))
     url = f"{settings.API_V1_STR}/voice-simulations/results"
 
     first = client.post(url, json=payload, cookies=auth_cookies)
@@ -145,7 +148,7 @@ def test_submit_voice_simulation_result_bearer_auth(
     client: TestClient,
     db: Session,
 ) -> None:
-    _setup_waiting_job(db, dtmf_code="99126")
+    _setup_waiting_job(db, dtmf_code=format_dtmf_code(body=26))
     login = client.post(
         f"{settings.API_V1_STR}/login/access-token",
         data={"username": AUTH_USER_EMAIL, "password": AUTH_USER_PASSWORD},
@@ -154,7 +157,7 @@ def test_submit_voice_simulation_result_bearer_auth(
 
     response = client.post(
         f"{settings.API_V1_STR}/voice-simulations/results",
-        json=_submission_payload(dtmf_code="99126"),
+        json=_submission_payload(dtmf_code=format_dtmf_code(body=26)),
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -167,7 +170,7 @@ def test_submit_voice_simulation_result_job_not_found(
 ) -> None:
     response = client.post(
         f"{settings.API_V1_STR}/voice-simulations/results",
-        json=_submission_payload(dtmf_code="99999"),
+        json=_submission_payload(dtmf_code=format_dtmf_code(body=9999)),
         cookies=auth_cookies,
     )
     assert response.status_code == 404
@@ -178,16 +181,35 @@ def test_submit_voice_simulation_result_dtmf_decode_failure(
     auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
-    _setup_waiting_job(db, dtmf_code="99127")
+    _setup_waiting_job(db, dtmf_code=format_dtmf_code(body=27))
     response = client.post(
         f"{settings.API_V1_STR}/voice-simulations/results",
         json={
-            "audio_url": "mock-dtmf-fail://99127",
+            "audio_url": f"mock-dtmf-fail://{format_dtmf_code(body=27)}",
             "messages": [{"role": "user", "content": "hello"}],
         },
         cookies=auth_cookies,
     )
     assert response.status_code == 400
+
+
+def test_submit_voice_simulation_result_rejects_development_url_in_production(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _setup_waiting_job(db, dtmf_code=format_dtmf_code(body=30))
+    monkeypatch.setattr("app.services.dtmf.settings.ENVIRONMENT", "production")
+
+    response = client.post(
+        f"{settings.API_V1_STR}/voice-simulations/results",
+        json=_submission_payload(dtmf_code=format_dtmf_code(body=30)),
+        cookies=auth_cookies,
+    )
+
+    assert response.status_code == 400
+    assert "Development DTMF URL shortcuts are disabled" in response.json()["detail"]
 
 
 def test_submit_voice_simulation_result_rejects_pending_job(
@@ -209,7 +231,7 @@ def test_submit_voice_simulation_result_rejects_pending_job(
             run_id=run.id,
             test_case_id=test_case.id,
             test_case_result_id=result.id,
-            dtmf_code="99128",
+            dtmf_code=format_dtmf_code(body=28),
             agent_phone_number="+15551234567",
             stt_provider="deepgram",
             stt_model="nova-3",
@@ -221,7 +243,7 @@ def test_submit_voice_simulation_result_rejects_pending_job(
 
     response = client.post(
         f"{settings.API_V1_STR}/voice-simulations/results",
-        json=_submission_payload(dtmf_code="99128"),
+        json=_submission_payload(dtmf_code=format_dtmf_code(body=28)),
         cookies=auth_cookies,
     )
     assert response.status_code == 400
@@ -232,14 +254,14 @@ def test_get_voice_simulation_job(
     auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
-    job = _setup_waiting_job(db, dtmf_code="99129")
+    job = _setup_waiting_job(db, dtmf_code=format_dtmf_code(body=29))
     response = client.get(
         f"{settings.API_V1_STR}/voice-simulations/jobs/{job.id}",
         cookies=auth_cookies,
     )
     assert response.status_code == 200
     assert response.json()["id"] == str(job.id)
-    assert response.json()["dtmf_code"] == "99129"
+    assert response.json()["dtmf_code"] == format_dtmf_code(body=29)
 
 
 def test_get_voice_simulation_job_not_found(
