@@ -7,6 +7,12 @@ Connexity is structured so Railway can host the full stack as separate services:
 - `Postgres`
 - optional `mcp-server`
 
+Each deployable service has its own `railway.toml` alongside the code it runs:
+
+- `frontend/railway.toml`
+- `backend/railway.toml`
+- `mcp_server/railway.toml`
+
 ## CLI-first workflow
 
 Use the Railway CLI to create and populate the project:
@@ -22,6 +28,16 @@ The script:
 3. Adds the frontend, backend, and optional MCP services.
 4. Uses Railway reference variables so service URLs stay in sync.
 5. Deploys each service from its own subdirectory.
+
+## Railway setup
+
+Railway still needs one service per deployable component. The `railway.toml` files keep each service's build and deploy settings in git, but you still set the service root directory in Railway to:
+
+- `/frontend`
+- `/backend`
+- `/mcp_server`
+
+Once that is done, Railway will read the config file from each service directory and apply it on deploy.
 
 ## Variables
 
@@ -55,6 +71,10 @@ The recommended pattern is:
 - `CONNEXITY_API_URL=http://${{ backend.RAILWAY_PRIVATE_DOMAIN }}:8000/api/v1`
 
 That keeps the browser-facing URL public while keeping backend-to-backend traffic on Railway's private network.
+
+## Health checks
+
+The frontend exposes a dedicated `/api/health` route so Railway can wait for a real `200` before marking a deployment healthy. The backend and MCP server already expose `/` and `/healthz` respectively.
 
 ## Security
 
