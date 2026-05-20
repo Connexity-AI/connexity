@@ -9,7 +9,7 @@ endif
 
 .PHONY: help install dev dashboard mcp db db-upgrade db-migrate db-downgrade db-stop \
         docker-up docker-down docker-logs docker-build-up docker-build-down \
-        cli lint format test generate-client
+        cli lint format test generate-client cloud-run-smoke
 
 # ──────────────────────────────────────────────
 # Help
@@ -95,6 +95,9 @@ format: ## Format backend code with ruff
 
 test: ## Run backend tests with coverage
 	cd backend && uv run bash scripts/tests-start.sh
+
+cloud-run-smoke: ## Build the production backend image and smoke-test it with Cloud Run-like limits
+	bash scripts/cloud-run-backend-smoke.sh
 
 # ──────────────────────────────────────────────
 # Code generation
