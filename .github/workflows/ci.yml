@@ -81,6 +81,16 @@ jobs:
           uv run coverage run --source=app -m pytest -v
           uv run coverage report --show-missing --fail-under=90
 
+  backend-container-smoke:
+    name: "Backend · Production Container Smoke"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Boot production backend image with Cloud Run-like limits
+        run: bash scripts/cloud-run-backend-smoke.sh
+
   # ── Frontend: lint + typecheck ─────────────────────────────
   frontend-lint:
     name: "Frontend · Lint & Types"
