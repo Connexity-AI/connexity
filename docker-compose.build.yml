@@ -12,3 +12,9 @@ services:
       context: ./backend
       dockerfile: Dockerfile.dev
     image: connexity-backend:local
+
+  mcp-server:
+    build:
+      context: ./mcp_server
+      dockerfile: Dockerfile
+    image: connexity-mcp-server:local

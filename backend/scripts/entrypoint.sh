@@ -8,5 +8,5 @@ tree .
 ./scripts/prestart.sh
 
 # Start FastAPI server
-# 8000 uvicorn default port
-exec fastapi run --workers 1 app/main.py
+# Railway injects PORT for public networking; fall back to 8000 locally.
+exec fastapi run --workers 4 --host 0.0.0.0 --port "${PORT:-8000}" app.main:app

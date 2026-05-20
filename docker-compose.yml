@@ -42,6 +42,25 @@ services:
     networks:
       - default
 
+  mcp-server:
+    image: ${CONNEXITY_MCP_SERVER_IMAGE:-ghcr.io/connexity-ai/connexity-mcp-server:latest}
+    platform: linux/amd64
+    container_name: connexity-mcp-server
+    restart: unless-stopped
+    ports:
+      - 8001:8001
+    depends_on:
+      - backend
+    networks:
+      - default
+    env_file:
+      - .env
+    environment:
+      CONNEXITY_API_URL: http://backend:8000/api/v1
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: 8001
+      MCP_PATH: /mcp
+
   database:
     image: postgres:17.5-alpine3.22
     container_name: connexity-database

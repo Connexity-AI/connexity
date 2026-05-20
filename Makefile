@@ -7,7 +7,7 @@ else
   BASH := bash
 endif
 
-.PHONY: help install dev dashboard db db-upgrade db-migrate db-downgrade db-stop \
+.PHONY: help install dev dashboard mcp db db-upgrade db-migrate db-downgrade db-stop \
         docker-up docker-down docker-logs docker-build-up docker-build-down \
         cli lint format test generate-client
 
@@ -26,6 +26,7 @@ help: ## Show available targets
 install: ## Install Python and frontend dependencies
 	@test -f .env || (cp .env.example .env && echo "Created .env from .env.example")
 	cd backend && uv venv && uv sync
+	cd mcp_server && uv sync
 	cd frontend && pnpm install
 
 dev: ## Start FastAPI backend (local, requires DB running)
@@ -34,6 +35,10 @@ dev: ## Start FastAPI backend (local, requires DB running)
 dashboard: ## Start Next.js dev server (loads repo root .env)
 	@$(BASH) -c '[ -f .env ] || { echo "Missing .env; copy .env.example to .env first." >&2; exit 1; }'
 	@$(BASH) -c 'set -a && source <(tr -d "\r" < .env) && set +a && cd frontend && pnpm dev'
+
+mcp: ## Start MCP server (loads repo root .env)
+	@$(BASH) -c '[ -f .env ] || { echo "Missing .env; copy .env.example to .env first." >&2; exit 1; }'
+	@$(BASH) -c 'set -a && source <(tr -d "\r" < .env) && set +a && cd mcp_server && { [ -f .venv/Scripts/python.exe ] || uv sync; } && PYTHONPATH=src ./.venv/Scripts/python.exe -m connexity_mcp_server'
 
 db: ## Start Postgres + Adminer in Docker
 	docker compose up -d database adminer
@@ -54,7 +59,7 @@ db-stop: ## Stop Postgres + Adminer
 # Docker (everything in containers)
 # ──────────────────────────────────────────────
 
-docker-up: ## Start all services in Docker (frontend, backend, DB, adminer)
+docker-up: ## Start all services in Docker (frontend, backend, MCP, DB, adminer)
 	docker compose up -d
 
 docker-down: ## Stop all Docker services
@@ -63,7 +68,7 @@ docker-down: ## Stop all Docker services
 docker-logs: ## Tail logs for all Docker services
 	docker compose logs -f
 
-docker-build-up: ## Build and start stack from local Dockerfiles
+docker-build-up: ## Build and start stack from local Dockerfiles (frontend, backend, MCP)
 	docker compose -f docker-compose.yml -f docker-compose.build.yml up --build -d
 
 docker-build-down: ## Stop stack started with docker-build-up

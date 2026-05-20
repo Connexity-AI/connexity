@@ -98,6 +98,10 @@ Use the **same Compose stack on a VM**: install Docker on the machine, clone the
 
 When the Connexity API is **not** on your machine’s default URL, set **`CONNEXITY_CLI_API_URL`** (that deployment’s API base) and **`CONNEXITY_CLI_API_TOKEN`** (bearer token after `login` or from your automation). See [`CLI_README.md`](./CLI_README.md); commented examples in [`.env.example`](.env.example).
 
+### Railway
+
+If you want to deploy the full stack on Railway, start with [`docs/railway.md`](./docs/railway.md). It explains the CLI bootstrap flow, which values should stay secret, and which env vars should be reference variables instead of hard-coded strings.
+
 ## 🪢 Integrations
 
 Connexity is designed to live alongside the voice AI platforms you already use. Retell is implemented today, and more first-class adapters are in active development.
