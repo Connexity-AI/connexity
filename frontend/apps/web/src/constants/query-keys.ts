@@ -55,6 +55,18 @@ export const llmModelKeys = {
   list: () => ['llm-models'] as const,
 };
 
+export const sttModelKeys = {
+  list: () => ['stt-models'] as const,
+};
+
+export const ttsModelKeys = {
+  list: () => ['tts-models'] as const,
+};
+
+export const ttsVoiceKeys = {
+  list: (provider: string, model: string) => ['tts-voices', provider, model] as const,
+};
+
 export const defaultToolTemplateKeys = {
   list: () => ['default-tool-templates'] as const,
 };

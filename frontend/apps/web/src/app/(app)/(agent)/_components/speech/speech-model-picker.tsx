@@ -19,50 +19,47 @@ import {
 } from '@workspace/ui/components/ui/popover';
 import { cn } from '@workspace/ui/lib/utils';
 
-import { useLlmModels } from '@/app/(app)/(agent)/_hooks/use-llm-models';
+import type { SpeechModelProviderPublic, SpeechModelPublic } from '@/client/types.gen';
 
-import type { LlmModelProviderPublic, LlmModelPublic } from '@/client/types.gen';
-
-export type LlmModelSelection = Pick<
-  LlmModelPublic,
+export type SpeechModelSelection = Pick<
+  SpeechModelPublic,
   'id' | 'provider' | 'provider_label' | 'model' | 'label'
 >;
 
-interface LlmModelPickerProps {
+interface SpeechModelPickerProps {
+  catalog: SpeechModelProviderPublic[];
+  isFetching?: boolean;
   value?: string | null;
   provider?: string | null;
-  onSelect: (model: LlmModelSelection) => void;
+  onSelect: (model: SpeechModelSelection) => void;
   disabled?: boolean;
   placeholder?: string;
-  align?: 'start' | 'center' | 'end';
-  triggerClassName?: string;
-  contentClassName?: string;
-  compact?: boolean;
+  ariaLabel?: string;
+  hint?: string;
 }
 
 const MODELS_PER_PROVIDER = 5;
 
-export function LlmModelPicker({
+export function SpeechModelPicker({
+  catalog,
+  isFetching = false,
   value,
   provider,
   onSelect,
   disabled,
   placeholder = 'Select model',
-  align = 'start',
-  triggerClassName,
-  contentClassName,
-  compact = false,
-}: LlmModelPickerProps) {
+  ariaLabel = 'Speech model',
+  hint = 'Add provider API keys to the backend environment to list more models.',
+}: SpeechModelPickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const { data: catalog, isFetching } = useLlmModels();
   const selectedModel = useMemo(
-    () => findModel(catalog.data, value, provider),
-    [catalog.data, value, provider]
+    () => findModel(catalog, value, provider),
+    [catalog, value, provider]
   );
   const visibleProviders = useMemo(
-    () => visibleProviderGroups(catalog.data, search),
-    [catalog.data, search]
+    () => visibleProviderGroups(catalog, search),
+    [catalog, search]
   );
   const selectedId = selectedModel?.id;
   const displayValue = selectedModel ? selectedModel.model : value || placeholder;
@@ -75,13 +72,9 @@ export function LlmModelPicker({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          aria-label="LLM model"
+          aria-label={ariaLabel}
           disabled={disabled}
-          className={cn(
-            'justify-between gap-2 border-input bg-background font-normal',
-            compact ? 'h-7 w-auto px-2 text-xs' : 'h-9 w-full text-sm',
-            triggerClassName
-          )}
+          className="h-9 w-full justify-between gap-2 border-input bg-background font-normal text-sm"
         >
           <span className="min-w-0 truncate" suppressHydrationWarning>
             {displayValue || placeholder}
@@ -93,14 +86,7 @@ export function LlmModelPicker({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        align={align}
-        className={cn(
-          compact ? 'w-[320px]' : 'w-[var(--radix-popover-trigger-width)]',
-          'p-0',
-          contentClassName
-        )}
-      >
+      <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
         <Command>
           <CommandInput
             value={search}
@@ -114,7 +100,7 @@ export function LlmModelPicker({
                 key={`${providerGroup.provider}:${providerGroup.label}`}
                 heading={providerGroup.label}
               >
-                {uniqueLlmModels(providerGroup.models).map((model, index) => (
+                {uniqueModels(providerGroup.models).map((model, index) => (
                   <CommandItem
                     key={`${providerGroup.provider}:${model.id}:${index}`}
                     value={`${model.id} ${model.model} ${model.provider}`}
@@ -141,7 +127,7 @@ export function LlmModelPicker({
           </CommandList>
           <div className="flex items-start gap-2 border-t px-3 py-2 text-[11px] leading-4 text-muted-foreground">
             <CircleHelp className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span>Add provider API keys to the backend environment to list more models.</span>
+            <span>{hint}</span>
           </div>
         </Command>
       </PopoverContent>
@@ -149,7 +135,7 @@ export function LlmModelPicker({
   );
 }
 
-function uniqueLlmModels(models: LlmModelPublic[]): LlmModelPublic[] {
+function uniqueModels(models: SpeechModelPublic[]): SpeechModelPublic[] {
   const seen = new Set<string>();
   return models.filter((model) => {
     if (seen.has(model.id)) {
@@ -161,12 +147,12 @@ function uniqueLlmModels(models: LlmModelPublic[]): LlmModelPublic[] {
 }
 
 function visibleProviderGroups(
-  providers: LlmModelProviderPublic[],
+  providers: SpeechModelProviderPublic[],
   search: string
-): LlmModelProviderPublic[] {
+): SpeechModelProviderPublic[] {
   const groups = providers.map((providerGroup) => ({
     ...providerGroup,
-    models: uniqueLlmModels(providerGroup.models),
+    models: uniqueModels(providerGroup.models),
   }));
 
   if (search.trim()) {
@@ -182,10 +168,10 @@ function visibleProviderGroups(
 }
 
 function findModel(
-  providers: LlmModelProviderPublic[],
+  providers: SpeechModelProviderPublic[],
   value?: string | null,
   provider?: string | null
-): LlmModelPublic | undefined {
+): SpeechModelPublic | undefined {
   if (!value) return undefined;
 
   const allModels = providers.flatMap((providerGroup) => providerGroup.models);

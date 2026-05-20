@@ -128,6 +128,21 @@ class MetricSelection(BaseModel):
     )
 
 
+class SttConfig(BaseModel):
+    """Speech-to-text provider and model for voice persona simulation."""
+
+    provider: str = Field(description="Pipecat STT provider key, e.g. deepgram")
+    model: str = Field(description="Provider-local STT model id")
+
+
+class TtsConfig(BaseModel):
+    """Text-to-speech provider, model, and voice for voice persona simulation."""
+
+    provider: str = Field(description="Pipecat TTS provider key, e.g. elevenlabs")
+    model: str = Field(description="Provider-local TTS model id")
+    voice_id: str = Field(description="Provider voice id passed to Pipecat Settings.voice")
+
+
 class JudgeConfig(BaseModel):
     """Judge behavior and LLM overrides."""
 
@@ -175,6 +190,14 @@ class UserSimulatorConfig(BaseModel):
         ge=0.0,
         le=2.0,
         description="Sampling temperature for simulator LLM",
+    )
+    stt: SttConfig | None = Field(
+        default=None,
+        description="STT provider and model for voice mode persona pipeline",
+    )
+    tts: TtsConfig | None = Field(
+        default=None,
+        description="TTS provider, model, and voice for voice mode persona pipeline",
     )
 
     @model_validator(mode="after")
@@ -347,6 +370,27 @@ class RunConfig(BaseModel):
         default_factory=ConnexityRuntimeConfig,
         description="Runtime that drives the eval for the selected mode.",
     )
+    agent_phone_number: str | None = Field(
+        default=None,
+        description="E.164 phone number Connexity calls in voice mode",
+    )
+
+    @model_validator(mode="after")
+    def voice_mode_requires_speech_and_phone(self) -> Self:
+        if self.mode != RunMode.VOICE:
+            return self
+        phone = (self.agent_phone_number or "").strip()
+        if not phone:
+            msg = "agent_phone_number is required when mode is 'voice'"
+            raise ValueError(msg)
+        sim = self.user_simulator
+        if sim is None or sim.stt is None:
+            msg = "user_simulator.stt is required when mode is 'voice'"
+            raise ValueError(msg)
+        if sim.tts is None or not (sim.tts.voice_id or "").strip():
+            msg = "user_simulator.tts with voice_id is required when mode is 'voice'"
+            raise ValueError(msg)
+        return self
 
 
 # ── Conversation nested types ──────────────────────────────────────

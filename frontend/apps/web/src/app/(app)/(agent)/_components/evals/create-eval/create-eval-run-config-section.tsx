@@ -20,10 +20,121 @@ import { useRuntimeField } from '@/app/(app)/(agent)/_hooks/use-runtime-field';
 import { useToolModeLiveGuard } from '@/app/(app)/(agent)/_hooks/use-tool-mode-live-guard';
 import { runtimeIconForKind } from '@/app/(app)/(agent)/_utils/runtime-field-helpers';
 import { missingLiveImplementations } from '@/app/(app)/(agent)/_utils/platform-live-tools-feasible';
+import {
+  SimulationMode,
+  type CreateEvalFormValues,
+} from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
 import { AppModelsEnumsAgentMode, TextRuntimeKind } from '@/client/types.gen';
 
-import type { CreateEvalFormValues } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
+import type { SimulationMode as SimulationModeType } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
 import type { TextRuntimeKind as TextRuntimeKindType } from '@/client/types.gen';
+
+const SIMULATION_MODES = [
+  { value: SimulationMode.TEXT, label: 'Text' },
+  { value: SimulationMode.VOICE, label: 'Voice' },
+] as const;
+
+function SimulationModeField() {
+  const form = useFormContext<CreateEvalFormValues>();
+  const readOnly = useCreateEvalReadOnly();
+
+  return (
+    <FormField
+      control={form.control}
+      name="run.simulation_mode"
+      render={({ field }) => (
+        <FormItem className="col-span-2">
+          <FieldLabel>Simulation mode</FieldLabel>
+          <SimulationModeToggle
+            value={field.value}
+            readOnly={readOnly}
+            onChange={(mode) => {
+              field.onChange(mode);
+              if (mode === SimulationMode.VOICE) {
+                form.setValue('run.tool_mode', 'mock', {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+              }
+            }}
+          />
+          <FieldHint>
+            Text runs multi-turn chat simulations. Voice places a Twilio call to your agent and
+            evaluates from the agent-side transcript after the call ends.
+          </FieldHint>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
+
+function SimulationModeToggle({
+  value,
+  readOnly,
+  onChange,
+}: {
+  value: SimulationModeType;
+  readOnly: boolean;
+  onChange: (mode: SimulationModeType) => void;
+}) {
+  return (
+    <div className="flex w-fit items-center gap-1 rounded-lg border border-border bg-accent/20 p-0.5">
+      {SIMULATION_MODES.map((option) => {
+        const selected = value === option.value;
+        return (
+          <Button
+            key={option.value}
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={readOnly}
+            onClick={() => onChange(option.value)}
+            className={cn(
+              'px-4 py-1.5 text-xs transition-all',
+              selected
+                ? 'bg-accent text-foreground border border-border shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {option.label}
+          </Button>
+        );
+      })}
+    </div>
+  );
+}
+
+function AgentPhoneNumberField() {
+  const form = useFormContext<CreateEvalFormValues>();
+  const readOnly = useCreateEvalReadOnly();
+
+  return (
+    <FormField
+      control={form.control}
+      name="run.agent_phone_number"
+      render={({ field }) => (
+        <FormItem className="col-span-2">
+          <FieldLabel>Agent phone number</FieldLabel>
+          <FormControl>
+            <Input
+              type="tel"
+              className="h-9 text-sm"
+              disabled={readOnly}
+              placeholder="+1 555 123 4567"
+              {...field}
+            />
+          </FormControl>
+          <FieldHint>
+            E.164 format (e.g. +15551234567). Connexity calls this number during voice evaluations;
+            your agent should return a recording URL and transcript when the call ends.
+          </FieldHint>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
 
 function ConcurrencyField() {
   const form = useFormContext<CreateEvalFormValues>();
@@ -273,7 +384,7 @@ function RuntimeField({
       name="run.runtime"
       render={({ field }) => (
         <FormItem className="col-span-2">
-          <FieldLabel>Runtime</FieldLabel>
+          <FieldLabel>Text runtime</FieldLabel>
 
           {error ? (
             <FieldHint>Failed to load runtime options.</FieldHint>
@@ -436,22 +547,31 @@ export function RuntimeSection({
   defaultToBackendOption = true,
 }: RuntimeSectionProps) {
   const form = useFormContext<CreateEvalFormValues>();
+  const simulationMode = form.watch('run.simulation_mode');
   const runtimeKind = form.watch('run.runtime.kind');
+  const isVoice = simulationMode === SimulationMode.VOICE;
 
   return (
     <Section>
-      <Section.Header title="Runtime" />
+      <Section.Header title="Simulation runtime" />
       <Section.Body>
         <div className="grid grid-cols-2 gap-4">
-          <RuntimeField
-            agentId={agentId}
-            defaultToBackendOption={defaultToBackendOption}
-          />
-          <RunConfigToolModeSection
-            agentMode={agentMode}
-            agentTools={agentTools}
-            runtimeKind={runtimeKind}
-          />
+          <SimulationModeField />
+          {isVoice ? (
+            <AgentPhoneNumberField />
+          ) : (
+            <>
+              <RuntimeField
+                agentId={agentId}
+                defaultToBackendOption={defaultToBackendOption}
+              />
+              <RunConfigToolModeSection
+                agentMode={agentMode}
+                agentTools={agentTools}
+                runtimeKind={runtimeKind}
+              />
+            </>
+          )}
         </div>
       </Section.Body>
     </Section>

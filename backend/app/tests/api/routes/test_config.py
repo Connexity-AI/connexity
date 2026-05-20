@@ -10,6 +10,13 @@ from app.services.llm_models import (
     LLMModelPublic,
     LLMModelsPublic,
 )
+from app.services.speech_models import (
+    SpeechModelProviderPublic,
+    SpeechModelPublic,
+    SpeechModelsPublic,
+    VoicePublic,
+    VoicesPublic,
+)
 
 
 def test_get_config(client: TestClient, auth_cookies: dict[str, str]) -> None:
@@ -33,6 +40,19 @@ def test_get_config_requires_auth(client: TestClient) -> None:
 
 def test_llm_models_requires_auth(client: TestClient) -> None:
     r = client.get(f"{settings.API_V1_STR}/config/llm-models")
+    assert r.status_code == 401
+
+
+def test_stt_models_requires_auth(client: TestClient) -> None:
+    r = client.get(f"{settings.API_V1_STR}/config/stt-models")
+    assert r.status_code == 401
+
+
+def test_tts_voices_requires_auth(client: TestClient) -> None:
+    r = client.get(
+        f"{settings.API_V1_STR}/config/tts-voices",
+        params={"provider": "openai", "model": "tts-1"},
+    )
     assert r.status_code == 401
 
 
@@ -104,6 +124,110 @@ def test_llm_models_returns_catalog(
     assert payload["count"] == 1
     assert payload["data"][0]["provider"] == "openai"
     assert payload["data"][0]["models"][0]["id"] == "openai/gpt-4o-mini"
+
+
+def test_tts_models_requires_auth(client: TestClient) -> None:
+    r = client.get(f"{settings.API_V1_STR}/config/tts-models")
+    assert r.status_code == 401
+
+
+def test_tts_models_returns_catalog(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    monkeypatch: MonkeyPatch,
+) -> None:
+    catalog = SpeechModelsPublic(
+        default_model="openai/tts-1",
+        count=1,
+        data=[
+            SpeechModelProviderPublic(
+                provider="openai",
+                label="OpenAI",
+                default_model="openai/tts-1",
+                models=[
+                    SpeechModelPublic(
+                        id="openai/tts-1",
+                        provider="openai",
+                        provider_label="OpenAI",
+                        model="tts-1",
+                        label="TTS-1",
+                        is_default=True,
+                    )
+                ],
+            )
+        ],
+    )
+    monkeypatch.setattr(config_route, "get_available_tts_models", lambda: catalog)
+
+    r = client.get(
+        f"{settings.API_V1_STR}/config/tts-models",
+        cookies=auth_cookies,
+    )
+    assert r.status_code == 200
+    assert r.json()["default_model"] == "openai/tts-1"
+    assert r.json()["count"] == 1
+
+
+def test_stt_models_returns_catalog(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    monkeypatch: MonkeyPatch,
+) -> None:
+    catalog = SpeechModelsPublic(
+        default_model="deepgram/nova-3-general",
+        count=1,
+        data=[
+            SpeechModelProviderPublic(
+                provider="deepgram",
+                label="Deepgram",
+                default_model="deepgram/nova-3-general",
+                models=[
+                    SpeechModelPublic(
+                        id="deepgram/nova-3-general",
+                        provider="deepgram",
+                        provider_label="Deepgram",
+                        model="nova-3-general",
+                        label="nova-3-general",
+                        is_default=True,
+                    )
+                ],
+            )
+        ],
+    )
+    monkeypatch.setattr(config_route, "get_available_stt_models", lambda: catalog)
+
+    r = client.get(
+        f"{settings.API_V1_STR}/config/stt-models",
+        cookies=auth_cookies,
+    )
+    assert r.status_code == 200
+    assert r.json()["count"] == 1
+
+
+def test_tts_voices_returns_catalog(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    monkeypatch: MonkeyPatch,
+) -> None:
+    catalog = VoicesPublic(
+        count=1,
+        default_voice_id="nova",
+        data=[VoicePublic(id="nova", label="Nova")],
+    )
+    monkeypatch.setattr(
+        config_route,
+        "get_available_tts_voices",
+        lambda *, provider, model: catalog,
+    )
+
+    r = client.get(
+        f"{settings.API_V1_STR}/config/tts-voices",
+        params={"provider": "openai", "model": "tts-1"},
+        cookies=auth_cookies,
+    )
+    assert r.status_code == 200
+    assert r.json()["count"] == 1
+    assert r.json()["data"][0]["id"] == "nova"
 
 
 def test_available_metrics_includes_custom_metrics(

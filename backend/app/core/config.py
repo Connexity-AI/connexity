@@ -122,6 +122,25 @@ class Settings(BaseSettings):
     # LLM — shared across generator, judge, simulator, etc.
     OPENAI_API_KEY: str | None = None
     ANTHROPIC_API_KEY: str | None = None
+
+    # Speech — persona voice pipeline (Pipecat); catalogs only list providers with keys set
+    DEEPGRAM_API_KEY: str | None = None
+    ELEVENLABS_API_KEY: str | None = None
+    CARTESIA_API_KEY: str | None = None
+    # Optional tier-2 (not wired in v1 catalog builders)
+    ASSEMBLYAI_API_KEY: str | None = None
+    AZURE_SPEECH_KEY: str | None = None
+    AZURE_SPEECH_REGION: str | None = None
+
+    # Telephony — voice eval worker (Pipecat Twilio serializer); not used by catalog API
+    TWILIO_ACCOUNT_SID: str | None = None
+    TWILIO_AUTH_TOKEN: str | None = None
+
+    DEFAULT_STT_PROVIDER: str | None = None
+    DEFAULT_STT_MODEL: str | None = None
+    DEFAULT_TTS_PROVIDER: str | None = None
+    DEFAULT_TTS_MODEL: str | None = None
+    DEFAULT_TTS_VOICE_ID: str | None = None
     LLM_DEFAULT_MODEL: str = Field(
         default="gpt-4.1",
         description="Provider-local default when LLM_DEFAULT_MODEL env is unset",

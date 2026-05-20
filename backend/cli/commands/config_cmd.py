@@ -53,3 +53,52 @@ def config_llm_models(ctx: click.Context, output_override: str | None) -> None:
     with open_client(ctx) as client:
         data = client.config.llm_models()
     output.emit(data, output_format=fmt)
+
+
+@config_group.command("stt-models")
+@click.option(
+    "--output", "output_override", type=click.Choice(["json", "table"]), default=None
+)
+@click.pass_context
+def config_stt_models(ctx: click.Context, output_override: str | None) -> None:
+    """List configured STT models grouped by provider."""
+    ensure_auth(ctx)
+    fmt = get_output_format(ctx, output_override)
+    with open_client(ctx) as client:
+        data = client.config.stt_models()
+    output.emit(data, output_format=fmt)
+
+
+@config_group.command("tts-models")
+@click.option(
+    "--output", "output_override", type=click.Choice(["json", "table"]), default=None
+)
+@click.pass_context
+def config_tts_models(ctx: click.Context, output_override: str | None) -> None:
+    """List configured TTS models grouped by provider."""
+    ensure_auth(ctx)
+    fmt = get_output_format(ctx, output_override)
+    with open_client(ctx) as client:
+        data = client.config.tts_models()
+    output.emit(data, output_format=fmt)
+
+
+@config_group.command("tts-voices")
+@click.argument("provider")
+@click.argument("model")
+@click.option(
+    "--output", "output_override", type=click.Choice(["json", "table"]), default=None
+)
+@click.pass_context
+def config_tts_voices(
+    ctx: click.Context,
+    provider: str,
+    model: str,
+    output_override: str | None,
+) -> None:
+    """List TTS voices for a provider and model."""
+    ensure_auth(ctx)
+    fmt = get_output_format(ctx, output_override)
+    with open_client(ctx) as client:
+        data = client.config.tts_voices(provider=provider, model=model)
+    output.emit(data, output_format=fmt)

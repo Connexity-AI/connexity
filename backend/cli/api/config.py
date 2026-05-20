@@ -18,3 +18,15 @@ class ConfigApi(_BaseApi):
 
     def llm_models(self) -> dict[str, Any]:
         return self._t.get_dict("config/llm-models")
+
+    def stt_models(self) -> dict[str, Any]:
+        return self._t.get_dict("config/stt-models")
+
+    def tts_models(self) -> dict[str, Any]:
+        return self._t.get_dict("config/tts-models")
+
+    def tts_voices(self, *, provider: str, model: str) -> dict[str, Any]:
+        return self._t.get_dict(
+            "config/tts-voices",
+            params={"provider": provider, "model": model},
+        )

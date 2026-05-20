@@ -939,132 +939,6 @@ export type BodyLoginLoginAccessToken = {
 };
 
 /**
- * Body_oauth-authorize_confirm
- */
-export type BodyOauthAuthorizeConfirm = {
-  /**
-   * Response Type
-   */
-  response_type: string;
-  /**
-   * Client Id
-   */
-  client_id: string;
-  /**
-   * Redirect Uri
-   */
-  redirect_uri: string;
-  /**
-   * Email
-   */
-  email: string;
-  /**
-   * Password
-   */
-  password: string;
-  /**
-   * Code Challenge
-   */
-  code_challenge: string;
-  /**
-   * Code Challenge Method
-   */
-  code_challenge_method: string;
-  /**
-   * Scope
-   */
-  scope?: string | null;
-  /**
-   * State
-   */
-  state?: string | null;
-  /**
-   * Resource
-   */
-  resource?: string | null;
-};
-
-/**
- * Body_oauth-authorize_signup_confirm
- */
-export type BodyOauthAuthorizeSignupConfirm = {
-  /**
-   * Response Type
-   */
-  response_type: string;
-  /**
-   * Client Id
-   */
-  client_id: string;
-  /**
-   * Redirect Uri
-   */
-  redirect_uri: string;
-  /**
-   * Email
-   */
-  email: string;
-  /**
-   * Password
-   */
-  password: string;
-  /**
-   * Code Challenge
-   */
-  code_challenge: string;
-  /**
-   * Code Challenge Method
-   */
-  code_challenge_method: string;
-  /**
-   * Full Name
-   */
-  full_name?: string | null;
-  /**
-   * Scope
-   */
-  scope?: string | null;
-  /**
-   * State
-   */
-  state?: string | null;
-  /**
-   * Resource
-   */
-  resource?: string | null;
-};
-
-/**
- * Body_oauth-token
- */
-export type BodyOauthToken = {
-  /**
-   * Grant Type
-   */
-  grant_type: string;
-  /**
-   * Client Id
-   */
-  client_id: string;
-  /**
-   * Code
-   */
-  code?: string | null;
-  /**
-   * Redirect Uri
-   */
-  redirect_uri?: string | null;
-  /**
-   * Code Verifier
-   */
-  code_verifier?: string | null;
-  /**
-   * Refresh Token
-   */
-  refresh_token?: string | null;
-};
-
-/**
  * CallPublic
  */
 export type CallPublic = {
@@ -2143,16 +2017,6 @@ export type GenerateResult = {
 };
 
 /**
- * HTTPValidationError
- */
-export type HttpValidationError = {
-  /**
-   * Detail
-   */
-  detail?: Array<ValidationError>;
-};
-
-/**
  * ImprovementSuggestion
  */
 export type ImprovementSuggestion = {
@@ -2775,74 +2639,6 @@ export const MetricTier = {
 export type MetricTier = (typeof MetricTier)[keyof typeof MetricTier];
 
 /**
- * OAuthClientRegistrationRequest
- */
-export type OAuthClientRegistrationRequest = {
-  /**
-   * Redirect Uris
-   */
-  redirect_uris: Array<string>;
-  /**
-   * Client Name
-   */
-  client_name?: string | null;
-  /**
-   * Grant Types
-   */
-  grant_types?: Array<string> | null;
-  /**
-   * Response Types
-   */
-  response_types?: Array<string> | null;
-  /**
-   * Scope
-   */
-  scope?: string | null;
-  /**
-   * Token Endpoint Auth Method
-   */
-  token_endpoint_auth_method?: string | null;
-};
-
-/**
- * OAuthClientRegistrationResponse
- */
-export type OAuthClientRegistrationResponse = {
-  /**
-   * Client Id
-   */
-  client_id: string;
-  /**
-   * Client Id Issued At
-   */
-  client_id_issued_at: number;
-  /**
-   * Client Name
-   */
-  client_name?: string | null;
-  /**
-   * Redirect Uris
-   */
-  redirect_uris: Array<string>;
-  /**
-   * Grant Types
-   */
-  grant_types: Array<string>;
-  /**
-   * Response Types
-   */
-  response_types: Array<string>;
-  /**
-   * Scope
-   */
-  scope?: string | null;
-  /**
-   * Token Endpoint Auth Method
-   */
-  token_endpoint_auth_method?: string;
-};
-
-/**
  * OnConflict
  */
 export const OnConflict = { SKIP: 'skip', OVERWRITE: 'overwrite' } as const;
@@ -3451,6 +3247,12 @@ export type RunConfigInput = {
     | ({
         kind: 'custom_endpoint';
       } & CustomEndpointRuntimeConfig);
+  /**
+   * Agent Phone Number
+   *
+   * E.164 phone number Connexity calls in voice mode
+   */
+  agent_phone_number?: string | null;
 };
 
 /**
@@ -3524,6 +3326,12 @@ export type RunConfigOutput = {
     | ({
         kind: 'custom_endpoint';
       } & CustomEndpointRuntimeConfig);
+  /**
+   * Agent Phone Number
+   *
+   * E.164 phone number Connexity calls in voice mode
+   */
+  agent_phone_number?: string | null;
 };
 
 /**
@@ -3962,6 +3770,122 @@ export const SimulatorMode = { LLM: 'llm', SCRIPTED: 'scripted' } as const;
  * SimulatorMode
  */
 export type SimulatorMode = (typeof SimulatorMode)[keyof typeof SimulatorMode];
+
+/**
+ * SpeechModelProviderPublic
+ */
+export type SpeechModelProviderPublic = {
+  /**
+   * Provider
+   *
+   * Pipecat provider key
+   */
+  provider: string;
+  /**
+   * Label
+   *
+   * Human-readable provider label
+   */
+  label: string;
+  /**
+   * Default Model
+   *
+   * Full routing id for provider default
+   */
+  default_model?: string | null;
+  /**
+   * Models
+   *
+   * Selectable models
+   */
+  models: Array<SpeechModelPublic>;
+};
+
+/**
+ * SpeechModelPublic
+ */
+export type SpeechModelPublic = {
+  /**
+   * Id
+   *
+   * Full routing id, e.g. deepgram/nova-3-general
+   */
+  id: string;
+  /**
+   * Provider
+   *
+   * Pipecat provider key
+   */
+  provider: string;
+  /**
+   * Provider Label
+   *
+   * Human-readable provider label
+   */
+  provider_label: string;
+  /**
+   * Model
+   *
+   * Provider-local model id
+   */
+  model: string;
+  /**
+   * Label
+   *
+   * Human-readable model label
+   */
+  label: string;
+  /**
+   * Is Default
+   *
+   * Default model for this provider in the catalog
+   */
+  is_default: boolean;
+};
+
+/**
+ * SpeechModelsPublic
+ */
+export type SpeechModelsPublic = {
+  /**
+   * Data
+   *
+   * Available speech models by provider
+   */
+  data: Array<SpeechModelProviderPublic>;
+  /**
+   * Count
+   *
+   * Total selectable models
+   */
+  count: number;
+  /**
+   * Default Model
+   *
+   * Global default full routing id when configured
+   */
+  default_model?: string | null;
+};
+
+/**
+ * SttConfig
+ *
+ * Speech-to-text provider and model for voice persona simulation.
+ */
+export type SttConfig = {
+  /**
+   * Provider
+   *
+   * Pipecat STT provider key, e.g. deepgram
+   */
+  provider: string;
+  /**
+   * Model
+   *
+   * Provider-local STT model id
+   */
+  model: string;
+};
 
 /**
  * SuggestionsRequest
@@ -4957,6 +4881,32 @@ export type ToolDiff = {
 };
 
 /**
+ * TtsConfig
+ *
+ * Text-to-speech provider, model, and voice for voice persona simulation.
+ */
+export type TtsConfig = {
+  /**
+   * Provider
+   *
+   * Pipecat TTS provider key, e.g. elevenlabs
+   */
+  provider: string;
+  /**
+   * Model
+   *
+   * Provider-local TTS model id
+   */
+  model: string;
+  /**
+   * Voice Id
+   *
+   * Provider voice id passed to Pipecat Settings.voice
+   */
+  voice_id: string;
+};
+
+/**
  * TurnRole
  */
 export const TurnRole = {
@@ -5060,6 +5010,14 @@ export type UserSimulatorConfig = {
    * Sampling temperature for simulator LLM
    */
   temperature?: number | null;
+  /**
+   * STT provider and model for voice mode persona pipeline
+   */
+  stt?: SttConfig | null;
+  /**
+   * TTS provider, model, and voice for voice mode persona pipeline
+   */
+  tts?: TtsConfig | null;
 };
 
 /**
@@ -5077,21 +5035,51 @@ export type UserUpdateMe = {
 };
 
 /**
- * ValidationError
+ * VoicePublic
  */
-export type ValidationError = {
+export type VoicePublic = {
   /**
-   * Location
+   * Id
+   *
+   * Voice id passed to Pipecat TTS Settings.voice
    */
-  loc: Array<string | number>;
+  id: string;
   /**
-   * Message
+   * Label
+   *
+   * Human-readable voice label
    */
-  msg: string;
+  label: string;
   /**
-   * Error Type
+   * Preview Url
+   *
+   * Optional preview audio URL when available
    */
-  type: string;
+  preview_url?: string | null;
+};
+
+/**
+ * VoicesPublic
+ */
+export type VoicesPublic = {
+  /**
+   * Data
+   *
+   * Selectable voices
+   */
+  data: Array<VoicePublic>;
+  /**
+   * Count
+   *
+   * Number of voices
+   */
+  count: number;
+  /**
+   * Default Voice Id
+   *
+   * Suggested default voice for provider/model
+   */
+  default_voice_id?: string | null;
 };
 
 /**
@@ -5342,279 +5330,6 @@ export type HealthHealthResponses = {
 };
 
 export type HealthHealthResponse = HealthHealthResponses[keyof HealthHealthResponses];
-
-export type OauthOauthAuthorizationServerMetadataData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/.well-known/oauth-authorization-server';
-};
-
-export type OauthOauthAuthorizationServerMetadataResponses = {
-  /**
-   * Response Oauth-Oauth Authorization Server Metadata
-   *
-   * Successful Response
-   */
-  200: {
-    [key: string]: unknown;
-  };
-};
-
-export type OauthOauthAuthorizationServerMetadataResponse =
-  OauthOauthAuthorizationServerMetadataResponses[keyof OauthOauthAuthorizationServerMetadataResponses];
-
-export type OauthOpenidConfigurationData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/.well-known/openid-configuration';
-};
-
-export type OauthOpenidConfigurationResponses = {
-  /**
-   * Response Oauth-Openid Configuration
-   *
-   * Successful Response
-   */
-  200: {
-    [key: string]: unknown;
-  };
-};
-
-export type OauthOpenidConfigurationResponse =
-  OauthOpenidConfigurationResponses[keyof OauthOpenidConfigurationResponses];
-
-export type OauthJwksData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/.well-known/jwks.json';
-};
-
-export type OauthJwksResponses = {
-  /**
-   * Response Oauth-Jwks
-   *
-   * Successful Response
-   */
-  200: {
-    [key: string]: unknown;
-  };
-};
-
-export type OauthJwksResponse = OauthJwksResponses[keyof OauthJwksResponses];
-
-export type OauthRegisterOauthClientData = {
-  body: OAuthClientRegistrationRequest;
-  path?: never;
-  query?: never;
-  url: '/oauth/register';
-};
-
-export type OauthRegisterOauthClientErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type OauthRegisterOauthClientError =
-  OauthRegisterOauthClientErrors[keyof OauthRegisterOauthClientErrors];
-
-export type OauthRegisterOauthClientResponses = {
-  /**
-   * Successful Response
-   */
-  200: OAuthClientRegistrationResponse;
-};
-
-export type OauthRegisterOauthClientResponse =
-  OauthRegisterOauthClientResponses[keyof OauthRegisterOauthClientResponses];
-
-export type OauthAuthorizeData = {
-  body?: never;
-  path?: never;
-  query: {
-    /**
-     * Response Type
-     */
-    response_type: string;
-    /**
-     * Client Id
-     */
-    client_id: string;
-    /**
-     * Redirect Uri
-     */
-    redirect_uri: string;
-    /**
-     * Code Challenge
-     */
-    code_challenge?: string | null;
-    /**
-     * Code Challenge Method
-     */
-    code_challenge_method?: string | null;
-    /**
-     * Scope
-     */
-    scope?: string | null;
-    /**
-     * State
-     */
-    state?: string | null;
-    /**
-     * Resource
-     */
-    resource?: string | null;
-  };
-  url: '/oauth/authorize';
-};
-
-export type OauthAuthorizeErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type OauthAuthorizeError = OauthAuthorizeErrors[keyof OauthAuthorizeErrors];
-
-export type OauthAuthorizeResponses = {
-  /**
-   * Successful Response
-   */
-  200: unknown;
-};
-
-export type OauthAuthorizeSignupData = {
-  body?: never;
-  path?: never;
-  query: {
-    /**
-     * Response Type
-     */
-    response_type: string;
-    /**
-     * Client Id
-     */
-    client_id: string;
-    /**
-     * Redirect Uri
-     */
-    redirect_uri: string;
-    /**
-     * Code Challenge
-     */
-    code_challenge?: string | null;
-    /**
-     * Code Challenge Method
-     */
-    code_challenge_method?: string | null;
-    /**
-     * Scope
-     */
-    scope?: string | null;
-    /**
-     * State
-     */
-    state?: string | null;
-    /**
-     * Resource
-     */
-    resource?: string | null;
-  };
-  url: '/oauth/authorize/signup';
-};
-
-export type OauthAuthorizeSignupErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type OauthAuthorizeSignupError =
-  OauthAuthorizeSignupErrors[keyof OauthAuthorizeSignupErrors];
-
-export type OauthAuthorizeSignupResponses = {
-  /**
-   * Successful Response
-   */
-  200: unknown;
-};
-
-export type OauthAuthorizeConfirmData = {
-  body: BodyOauthAuthorizeConfirm;
-  path?: never;
-  query?: never;
-  url: '/oauth/authorize/confirm';
-};
-
-export type OauthAuthorizeConfirmErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type OauthAuthorizeConfirmError =
-  OauthAuthorizeConfirmErrors[keyof OauthAuthorizeConfirmErrors];
-
-export type OauthAuthorizeConfirmResponses = {
-  /**
-   * Successful Response
-   */
-  200: unknown;
-};
-
-export type OauthAuthorizeSignupConfirmData = {
-  body: BodyOauthAuthorizeSignupConfirm;
-  path?: never;
-  query?: never;
-  url: '/oauth/authorize/signup/confirm';
-};
-
-export type OauthAuthorizeSignupConfirmErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type OauthAuthorizeSignupConfirmError =
-  OauthAuthorizeSignupConfirmErrors[keyof OauthAuthorizeSignupConfirmErrors];
-
-export type OauthAuthorizeSignupConfirmResponses = {
-  /**
-   * Successful Response
-   */
-  200: unknown;
-};
-
-export type OauthTokenData = {
-  body: BodyOauthToken;
-  path?: never;
-  query?: never;
-  url: '/oauth/token';
-};
-
-export type OauthTokenErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type OauthTokenError = OauthTokenErrors[keyof OauthTokenErrors];
-
-export type OauthTokenResponses = {
-  /**
-   * Successful Response
-   */
-  200: unknown;
-};
 
 export type LoginLoginAccessTokenData = {
   body: BodyLoginLoginAccessToken;
@@ -6012,172 +5727,6 @@ export type UsersUpdatePasswordMeResponses = {
 
 export type UsersUpdatePasswordMeResponse =
   UsersUpdatePasswordMeResponses[keyof UsersUpdatePasswordMeResponses];
-
-export type McpListAgentsData = {
-  body?: never;
-  path?: never;
-  query?: {
-    /**
-     * Skip
-     */
-    skip?: number;
-    /**
-     * Limit
-     */
-    limit?: number;
-  };
-  url: '/api/v1/mcp/agents';
-};
-
-export type McpListAgentsErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type McpListAgentsError = McpListAgentsErrors[keyof McpListAgentsErrors];
-
-export type McpListAgentsResponses = {
-  /**
-   * Successful Response
-   */
-  200: AgentsPublic;
-};
-
-export type McpListAgentsResponse = McpListAgentsResponses[keyof McpListAgentsResponses];
-
-export type McpGetDraftData = {
-  body?: never;
-  path: {
-    /**
-     * Agent Id
-     */
-    agent_id: string;
-  };
-  query?: never;
-  url: '/api/v1/mcp/agents/{agent_id}/draft';
-};
-
-export type McpGetDraftErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type McpGetDraftError = McpGetDraftErrors[keyof McpGetDraftErrors];
-
-export type McpGetDraftResponses = {
-  /**
-   * Successful Response
-   */
-  200: AgentVersionPublic;
-};
-
-export type McpGetDraftResponse = McpGetDraftResponses[keyof McpGetDraftResponses];
-
-export type McpUpsertDraftData = {
-  body: AgentDraftUpdate;
-  path: {
-    /**
-     * Agent Id
-     */
-    agent_id: string;
-  };
-  query?: never;
-  url: '/api/v1/mcp/agents/{agent_id}/draft';
-};
-
-export type McpUpsertDraftErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type McpUpsertDraftError = McpUpsertDraftErrors[keyof McpUpsertDraftErrors];
-
-export type McpUpsertDraftResponses = {
-  /**
-   * Successful Response
-   */
-  200: AgentVersionPublic;
-};
-
-export type McpUpsertDraftResponse = McpUpsertDraftResponses[keyof McpUpsertDraftResponses];
 
 export type AgentsListAgentsData = {
   body?: never;
@@ -10279,6 +9828,169 @@ export type ConfigGetLlmModelsResponses = {
 
 export type ConfigGetLlmModelsResponse =
   ConfigGetLlmModelsResponses[keyof ConfigGetLlmModelsResponses];
+
+export type ConfigGetSttModelsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/config/stt-models';
+};
+
+export type ConfigGetSttModelsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ConfigGetSttModelsError = ConfigGetSttModelsErrors[keyof ConfigGetSttModelsErrors];
+
+export type ConfigGetSttModelsResponses = {
+  /**
+   * Successful Response
+   */
+  200: SpeechModelsPublic;
+};
+
+export type ConfigGetSttModelsResponse =
+  ConfigGetSttModelsResponses[keyof ConfigGetSttModelsResponses];
+
+export type ConfigGetTtsModelsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/config/tts-models';
+};
+
+export type ConfigGetTtsModelsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ConfigGetTtsModelsError = ConfigGetTtsModelsErrors[keyof ConfigGetTtsModelsErrors];
+
+export type ConfigGetTtsModelsResponses = {
+  /**
+   * Successful Response
+   */
+  200: SpeechModelsPublic;
+};
+
+export type ConfigGetTtsModelsResponse =
+  ConfigGetTtsModelsResponses[keyof ConfigGetTtsModelsResponses];
+
+export type ConfigGetTtsVoicesData = {
+  body?: never;
+  path?: never;
+  query: {
+    /**
+     * Provider
+     *
+     * TTS provider key, e.g. elevenlabs
+     */
+    provider: string;
+    /**
+     * Model
+     *
+     * TTS model id for the provider
+     */
+    model: string;
+  };
+  url: '/api/v1/config/tts-voices';
+};
+
+export type ConfigGetTtsVoicesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ConfigGetTtsVoicesError = ConfigGetTtsVoicesErrors[keyof ConfigGetTtsVoicesErrors];
+
+export type ConfigGetTtsVoicesResponses = {
+  /**
+   * Successful Response
+   */
+  200: VoicesPublic;
+};
+
+export type ConfigGetTtsVoicesResponse =
+  ConfigGetTtsVoicesResponses[keyof ConfigGetTtsVoicesResponses];
 
 export type IntegrationsListIntegrationsData = {
   body?: never;

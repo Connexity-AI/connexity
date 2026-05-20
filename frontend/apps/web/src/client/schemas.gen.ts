@@ -1730,231 +1730,6 @@ export const Body_login_login_access_tokenSchema = {
   title: 'Body_login-login_access_token',
 } as const;
 
-export const Body_oauth_authorize_confirmSchema = {
-  properties: {
-    response_type: {
-      type: 'string',
-      title: 'Response Type',
-    },
-    client_id: {
-      type: 'string',
-      title: 'Client Id',
-    },
-    redirect_uri: {
-      type: 'string',
-      title: 'Redirect Uri',
-    },
-    email: {
-      type: 'string',
-      title: 'Email',
-    },
-    password: {
-      type: 'string',
-      title: 'Password',
-    },
-    code_challenge: {
-      type: 'string',
-      title: 'Code Challenge',
-    },
-    code_challenge_method: {
-      type: 'string',
-      title: 'Code Challenge Method',
-    },
-    scope: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Scope',
-    },
-    state: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'State',
-    },
-    resource: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Resource',
-    },
-  },
-  type: 'object',
-  required: [
-    'response_type',
-    'client_id',
-    'redirect_uri',
-    'email',
-    'password',
-    'code_challenge',
-    'code_challenge_method',
-  ],
-  title: 'Body_oauth-authorize_confirm',
-} as const;
-
-export const Body_oauth_authorize_signup_confirmSchema = {
-  properties: {
-    response_type: {
-      type: 'string',
-      title: 'Response Type',
-    },
-    client_id: {
-      type: 'string',
-      title: 'Client Id',
-    },
-    redirect_uri: {
-      type: 'string',
-      title: 'Redirect Uri',
-    },
-    email: {
-      type: 'string',
-      title: 'Email',
-    },
-    password: {
-      type: 'string',
-      title: 'Password',
-    },
-    code_challenge: {
-      type: 'string',
-      title: 'Code Challenge',
-    },
-    code_challenge_method: {
-      type: 'string',
-      title: 'Code Challenge Method',
-    },
-    full_name: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Full Name',
-    },
-    scope: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Scope',
-    },
-    state: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'State',
-    },
-    resource: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Resource',
-    },
-  },
-  type: 'object',
-  required: [
-    'response_type',
-    'client_id',
-    'redirect_uri',
-    'email',
-    'password',
-    'code_challenge',
-    'code_challenge_method',
-  ],
-  title: 'Body_oauth-authorize_signup_confirm',
-} as const;
-
-export const Body_oauth_tokenSchema = {
-  properties: {
-    grant_type: {
-      type: 'string',
-      title: 'Grant Type',
-    },
-    client_id: {
-      type: 'string',
-      title: 'Client Id',
-    },
-    code: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Code',
-    },
-    redirect_uri: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Redirect Uri',
-    },
-    code_verifier: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Code Verifier',
-    },
-    refresh_token: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Refresh Token',
-    },
-  },
-  type: 'object',
-  required: ['grant_type', 'client_id'],
-  title: 'Body_oauth-token',
-} as const;
-
 export const CallPublicSchema = {
   properties: {
     id: {
@@ -3620,20 +3395,6 @@ export const GenerateResultSchema = {
   description: 'Output from test case generation.',
 } as const;
 
-export const HTTPValidationErrorSchema = {
-  properties: {
-    detail: {
-      items: {
-        $ref: '#/components/schemas/ValidationError',
-      },
-      type: 'array',
-      title: 'Detail',
-    },
-  },
-  type: 'object',
-  title: 'HTTPValidationError',
-} as const;
-
 export const ImprovementSuggestionSchema = {
   properties: {
     target: {
@@ -4499,146 +4260,6 @@ export const MetricTierSchema = {
   type: 'string',
   enum: ['execution', 'knowledge', 'process', 'delivery'],
   title: 'MetricTier',
-} as const;
-
-export const OAuthClientRegistrationRequestSchema = {
-  properties: {
-    redirect_uris: {
-      items: {
-        type: 'string',
-      },
-      type: 'array',
-      title: 'Redirect Uris',
-    },
-    client_name: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Client Name',
-    },
-    grant_types: {
-      anyOf: [
-        {
-          items: {
-            type: 'string',
-          },
-          type: 'array',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Grant Types',
-    },
-    response_types: {
-      anyOf: [
-        {
-          items: {
-            type: 'string',
-          },
-          type: 'array',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Response Types',
-    },
-    scope: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Scope',
-    },
-    token_endpoint_auth_method: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Token Endpoint Auth Method',
-    },
-  },
-  type: 'object',
-  required: ['redirect_uris'],
-  title: 'OAuthClientRegistrationRequest',
-} as const;
-
-export const OAuthClientRegistrationResponseSchema = {
-  properties: {
-    client_id: {
-      type: 'string',
-      title: 'Client Id',
-    },
-    client_id_issued_at: {
-      type: 'integer',
-      title: 'Client Id Issued At',
-    },
-    client_name: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Client Name',
-    },
-    redirect_uris: {
-      items: {
-        type: 'string',
-      },
-      type: 'array',
-      title: 'Redirect Uris',
-    },
-    grant_types: {
-      items: {
-        type: 'string',
-      },
-      type: 'array',
-      title: 'Grant Types',
-    },
-    response_types: {
-      items: {
-        type: 'string',
-      },
-      type: 'array',
-      title: 'Response Types',
-    },
-    scope: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Scope',
-    },
-    token_endpoint_auth_method: {
-      type: 'string',
-      title: 'Token Endpoint Auth Method',
-      default: 'none',
-    },
-  },
-  type: 'object',
-  required: ['client_id', 'client_id_issued_at', 'redirect_uris', 'grant_types', 'response_types'],
-  title: 'OAuthClientRegistrationResponse',
 } as const;
 
 export const OnConflictSchema = {
@@ -5545,6 +5166,18 @@ export const RunConfig_InputSchema = {
         },
       },
     },
+    agent_phone_number: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Phone Number',
+      description: 'E.164 phone number Connexity calls in voice mode',
+    },
   },
   type: 'object',
   title: 'RunConfig',
@@ -5664,6 +5297,18 @@ export const RunConfig_OutputSchema = {
           retell: '#/components/schemas/RetellRuntimeConfig',
         },
       },
+    },
+    agent_phone_number: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Phone Number',
+      description: 'E.164 phone number Connexity calls in voice mode',
     },
   },
   type: 'object',
@@ -6379,6 +6024,134 @@ export const SimulatorModeSchema = {
   type: 'string',
   enum: ['llm', 'scripted'],
   title: 'SimulatorMode',
+} as const;
+
+export const SpeechModelProviderPublicSchema = {
+  properties: {
+    provider: {
+      type: 'string',
+      title: 'Provider',
+      description: 'Pipecat provider key',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+      description: 'Human-readable provider label',
+    },
+    default_model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Default Model',
+      description: 'Full routing id for provider default',
+    },
+    models: {
+      items: {
+        $ref: '#/components/schemas/SpeechModelPublic',
+      },
+      type: 'array',
+      title: 'Models',
+      description: 'Selectable models',
+    },
+  },
+  type: 'object',
+  required: ['provider', 'label', 'models'],
+  title: 'SpeechModelProviderPublic',
+} as const;
+
+export const SpeechModelPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      title: 'Id',
+      description: 'Full routing id, e.g. deepgram/nova-3-general',
+    },
+    provider: {
+      type: 'string',
+      title: 'Provider',
+      description: 'Pipecat provider key',
+    },
+    provider_label: {
+      type: 'string',
+      title: 'Provider Label',
+      description: 'Human-readable provider label',
+    },
+    model: {
+      type: 'string',
+      title: 'Model',
+      description: 'Provider-local model id',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+      description: 'Human-readable model label',
+    },
+    is_default: {
+      type: 'boolean',
+      title: 'Is Default',
+      description: 'Default model for this provider in the catalog',
+    },
+  },
+  type: 'object',
+  required: ['id', 'provider', 'provider_label', 'model', 'label', 'is_default'],
+  title: 'SpeechModelPublic',
+} as const;
+
+export const SpeechModelsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/SpeechModelProviderPublic',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Available speech models by provider',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+      description: 'Total selectable models',
+    },
+    default_model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Default Model',
+      description: 'Global default full routing id when configured',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'SpeechModelsPublic',
+} as const;
+
+export const SttConfigSchema = {
+  properties: {
+    provider: {
+      type: 'string',
+      title: 'Provider',
+      description: 'Pipecat STT provider key, e.g. deepgram',
+    },
+    model: {
+      type: 'string',
+      title: 'Model',
+      description: 'Provider-local STT model id',
+    },
+  },
+  type: 'object',
+  required: ['provider', 'model'],
+  title: 'SttConfig',
+  description: 'Speech-to-text provider and model for voice persona simulation.',
 } as const;
 
 export const SuggestionsRequestSchema = {
@@ -8141,6 +7914,30 @@ export const ToolDiffSchema = {
   title: 'ToolDiff',
 } as const;
 
+export const TtsConfigSchema = {
+  properties: {
+    provider: {
+      type: 'string',
+      title: 'Provider',
+      description: 'Pipecat TTS provider key, e.g. elevenlabs',
+    },
+    model: {
+      type: 'string',
+      title: 'Model',
+      description: 'Provider-local TTS model id',
+    },
+    voice_id: {
+      type: 'string',
+      title: 'Voice Id',
+      description: 'Provider voice id passed to Pipecat Settings.voice',
+    },
+  },
+  type: 'object',
+  required: ['provider', 'model', 'voice_id'],
+  title: 'TtsConfig',
+  description: 'Text-to-speech provider, model, and voice for voice persona simulation.',
+} as const;
+
 export const TurnRoleSchema = {
   type: 'string',
   enum: ['user', 'assistant', 'system', 'tool'],
@@ -8292,6 +8089,28 @@ export const UserSimulatorConfigSchema = {
       title: 'Temperature',
       description: 'Sampling temperature for simulator LLM',
     },
+    stt: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SttConfig',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'STT provider and model for voice mode persona pipeline',
+    },
+    tts: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/TtsConfig',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'TTS provider, model, and voice for voice mode persona pipeline',
+    },
   },
   type: 'object',
   title: 'UserSimulatorConfig',
@@ -8330,34 +8149,67 @@ export const UserUpdateMeSchema = {
   title: 'UserUpdateMe',
 } as const;
 
-export const ValidationErrorSchema = {
+export const VoicePublicSchema = {
   properties: {
-    loc: {
-      items: {
-        anyOf: [
-          {
-            type: 'string',
-          },
-          {
-            type: 'integer',
-          },
-        ],
-      },
-      type: 'array',
-      title: 'Location',
-    },
-    msg: {
+    id: {
       type: 'string',
-      title: 'Message',
+      title: 'Id',
+      description: 'Voice id passed to Pipecat TTS Settings.voice',
     },
-    type: {
+    label: {
       type: 'string',
-      title: 'Error Type',
+      title: 'Label',
+      description: 'Human-readable voice label',
+    },
+    preview_url: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Preview Url',
+      description: 'Optional preview audio URL when available',
     },
   },
   type: 'object',
-  required: ['loc', 'msg', 'type'],
-  title: 'ValidationError',
+  required: ['id', 'label'],
+  title: 'VoicePublic',
+} as const;
+
+export const VoicesPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/VoicePublic',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Selectable voices',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+      description: 'Number of voices',
+    },
+    default_voice_id: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Default Voice Id',
+      description: 'Suggested default voice for provider/model',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'VoicesPublic',
 } as const;
 
 export const WebhookAgentSchema = {

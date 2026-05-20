@@ -4,9 +4,17 @@ import {
   BOOTSTRAP_DEFAULT_LLM_ROUTE,
   splitDefaultLlmRouting,
 } from '@/utils/split-default-llm-routing';
-import { TextRuntimeKind } from '@/client/types.gen';
+import {
+  E164_PHONE_MESSAGE,
+  isValidE164Phone,
+  normalizePhoneNumber,
+} from '@/utils/validation';
+import { RunMode, TextRuntimeKind } from '@/client/types.gen';
 
 import type { EvalConfigCreate, RunConfigInput } from '@/client/types.gen';
+
+export const SimulationMode = { TEXT: 'text', VOICE: 'voice' } as const;
+export type SimulationMode = (typeof SimulationMode)[keyof typeof SimulationMode];
 
 export type CreateEvalRuntime = NonNullable<RunConfigInput['runtime']>;
 
@@ -29,6 +37,8 @@ const runtimeSchema = z.discriminatedUnion('kind', [
 export const createEvalFormSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(255),
   run: z.object({
+    simulation_mode: z.enum([SimulationMode.TEXT, SimulationMode.VOICE]),
+    agent_phone_number: z.string(),
     concurrency: z.number().int().min(1).max(50),
     max_turns: z.number().int().min(1).max(200).nullable(),
     tool_mode: z.enum(['mock', 'live']),
@@ -68,8 +78,56 @@ export const createEvalFormSchema = z.object({
     provider: z.string().min(1),
     model: z.string().min(1),
     temperature: z.number().min(0).max(2),
+    stt: z.object({
+      provider: z.string(),
+      model: z.string(),
+    }),
+    tts: z.object({
+      provider: z.string(),
+      model: z.string(),
+      voice_id: z.string(),
+    }),
   }),
 }).superRefine((values, ctx) => {
+  if (values.run.simulation_mode === SimulationMode.VOICE) {
+    const phone = values.run.agent_phone_number.trim();
+    if (!phone) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['run', 'agent_phone_number'],
+        message: 'Agent phone number is required for voice simulations',
+      });
+    } else if (!isValidE164Phone(phone)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['run', 'agent_phone_number'],
+        message: E164_PHONE_MESSAGE,
+      });
+    }
+    if (!values.persona.stt.provider.trim() || !values.persona.stt.model.trim()) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['persona', 'stt', 'model'],
+        message: 'STT model is required for voice simulations',
+      });
+    }
+    if (!values.persona.tts.provider.trim() || !values.persona.tts.model.trim()) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['persona', 'tts', 'model'],
+        message: 'TTS model is required for voice simulations',
+      });
+    }
+    if (!values.persona.tts.voice_id.trim()) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['persona', 'tts', 'voice_id'],
+        message: 'TTS voice is required for voice simulations',
+      });
+    }
+    return;
+  }
+
   if (values.run.runtime.kind !== TextRuntimeKind.CUSTOM_ENDPOINT) {
     return;
   }
@@ -99,6 +157,8 @@ export function buildDefaults(
   return {
     name,
     run: {
+      simulation_mode: SimulationMode.TEXT,
+      agent_phone_number: '',
       concurrency: 10,
       max_turns: 30,
       tool_mode: 'mock',
@@ -117,6 +177,8 @@ export function buildDefaults(
       provider,
       model,
       temperature: 0.7,
+      stt: { provider: '', model: '' },
+      tts: { provider: '', model: '', voice_id: '' },
     },
   };
 }
@@ -126,8 +188,12 @@ export function formValuesToCreatePayload(
   agentId: string
 ): EvalConfigCreate {
   const runtime = values.run.runtime;
-  const toolMode =
-    runtime.kind === TextRuntimeKind.CONNEXITY ? values.run.tool_mode : 'mock';
+  const isVoice = values.run.simulation_mode === SimulationMode.VOICE;
+  const toolMode = isVoice
+    ? 'mock'
+    : runtime.kind === TextRuntimeKind.CONNEXITY
+      ? values.run.tool_mode
+      : 'mock';
 
   return {
     name: values.name,
@@ -136,8 +202,11 @@ export function formValuesToCreatePayload(
       concurrency: values.run.concurrency,
       max_turns: values.run.max_turns,
       tool_mode: toolMode,
-      mode: 'text',
+      mode: isVoice ? RunMode.VOICE : RunMode.TEXT,
       runtime,
+      agent_phone_number: isVoice
+        ? normalizePhoneNumber(values.run.agent_phone_number)
+        : null,
       metrics_pass_threshold: values.run.metrics_pass_threshold,
       cases_pass_threshold: values.run.cases_pass_threshold,
       judge: {
@@ -151,6 +220,19 @@ export function formValuesToCreatePayload(
         provider: values.persona.provider,
         model: values.persona.model,
         temperature: values.persona.temperature,
+        stt: isVoice
+          ? {
+              provider: values.persona.stt.provider,
+              model: values.persona.stt.model,
+            }
+          : null,
+        tts: isVoice
+          ? {
+              provider: values.persona.tts.provider,
+              model: values.persona.tts.model,
+              voice_id: values.persona.tts.voice_id,
+            }
+          : null,
       },
     },
     members: values.test_cases.map((tc) => ({

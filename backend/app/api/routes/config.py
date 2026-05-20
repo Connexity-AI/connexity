@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
 
 from app.api.deps import SessionDep, get_current_user
@@ -7,6 +7,13 @@ from app.models import ConfigPublic, PredefinedToolsPublic
 from app.services.agent_tool_definitions import list_predefined_tools_for_api
 from app.services.judge_metrics import MetricDefinition, get_metrics_for_api
 from app.services.llm_models import LLMModelsPublic, get_available_llm_models
+from app.services.speech_models import (
+    SpeechModelsPublic,
+    VoicesPublic,
+    get_available_stt_models,
+    get_available_tts_models,
+    get_available_tts_voices,
+)
 
 router = APIRouter(
     prefix="/config",
@@ -55,3 +62,21 @@ def get_available_metrics(
 @router.get("/llm-models", response_model=LLMModelsPublic)
 def get_llm_models() -> LLMModelsPublic:
     return get_available_llm_models()
+
+
+@router.get("/stt-models", response_model=SpeechModelsPublic)
+def get_stt_models() -> SpeechModelsPublic:
+    return get_available_stt_models()
+
+
+@router.get("/tts-models", response_model=SpeechModelsPublic)
+def get_tts_models() -> SpeechModelsPublic:
+    return get_available_tts_models()
+
+
+@router.get("/tts-voices", response_model=VoicesPublic)
+def get_tts_voices(
+    provider: str = Query(description="TTS provider key, e.g. elevenlabs"),
+    model: str = Query(description="TTS model id for the provider"),
+) -> VoicesPublic:
+    return get_available_tts_voices(provider=provider, model=model)

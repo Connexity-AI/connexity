@@ -1,6 +1,8 @@
 from datetime import UTC, datetime
 
-from app.models.enums import SimulatorMode, TurnRole
+import pytest
+
+from app.models.enums import RunMode, SimulatorMode, TurnRole
 from app.models.schemas import (
     AgentSimulatorConfig,
     AggregateMetrics,
@@ -13,9 +15,11 @@ from app.models.schemas import (
     MetricSelection,
     PythonImplementation,
     RunConfig,
+    SttConfig,
     ToolCall,
     ToolCallFunction,
     ToolPlatformConfig,
+    TtsConfig,
     UserSimulatorConfig,
 )
 
@@ -400,6 +404,72 @@ def test_run_config_with_user_simulator_round_trip():
     restored = _round_trip(RunConfig, config)
     assert restored.user_simulator is not None
     assert restored.user_simulator.mode == SimulatorMode.SCRIPTED
+
+
+def test_stt_and_tts_config_round_trip() -> None:
+    stt = SttConfig(provider="deepgram", model="nova-3-general")
+    tts = TtsConfig(
+        provider="elevenlabs",
+        model="eleven_multilingual_v2",
+        voice_id="21m00Tcm4TlvDq8ikWAM",
+    )
+    cfg = UserSimulatorConfig(
+        model="gpt-4o-mini",
+        provider="openai",
+        stt=stt,
+        tts=tts,
+    )
+    restored = _round_trip(UserSimulatorConfig, cfg)
+    assert restored.stt is not None
+    assert restored.stt.model == "nova-3-general"
+    assert restored.tts is not None
+    assert restored.tts.voice_id == "21m00Tcm4TlvDq8ikWAM"
+
+
+def test_run_config_voice_mode_requires_phone_and_speech() -> None:
+    with pytest.raises(ValueError, match="agent_phone_number"):
+        RunConfig(
+            mode=RunMode.VOICE,
+            user_simulator=UserSimulatorConfig(
+                stt=SttConfig(provider="deepgram", model="nova-3-general"),
+                tts=TtsConfig(
+                    provider="deepgram",
+                    model="aura",
+                    voice_id="aura-2-helena-en",
+                ),
+            ),
+        )
+
+    with pytest.raises(ValueError, match="user_simulator.stt"):
+        RunConfig(
+            mode=RunMode.VOICE,
+            agent_phone_number="+15551234567",
+            user_simulator=UserSimulatorConfig(
+                tts=TtsConfig(
+                    provider="deepgram",
+                    model="aura",
+                    voice_id="aura-2-helena-en",
+                ),
+            ),
+        )
+
+
+def test_run_config_voice_mode_valid() -> None:
+    config = RunConfig(
+        mode=RunMode.VOICE,
+        agent_phone_number="+15551234567",
+        user_simulator=UserSimulatorConfig(
+            stt=SttConfig(provider="deepgram", model="nova-3-general"),
+            tts=TtsConfig(
+                provider="deepgram",
+                model="aura",
+                voice_id="aura-2-helena-en",
+            ),
+        ),
+    )
+    restored = _round_trip(RunConfig, config)
+    assert restored.mode == RunMode.VOICE
+    assert restored.agent_phone_number == "+15551234567"
 
 
 # ── AggregateMetrics ───────────────────────────────────────────────

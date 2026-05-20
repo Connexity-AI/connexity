@@ -4,8 +4,11 @@ import pytest
 from sqlmodel import Session
 
 from app import crud
-from app.models import EvalConfigMemberEntry, EvalConfigUpdate
+from app.models import EvalConfigCreate, EvalConfigMemberEntry, EvalConfigUpdate
+from app.models.enums import RunMode
+from app.models.schemas import RunConfig, SttConfig, TtsConfig, UserSimulatorConfig
 from app.tests.utils.eval import (
+    create_test_agent,
     create_test_case_fixture,
     create_test_eval_config,
     eval_config_members,
@@ -399,3 +402,33 @@ def test_count_test_cases_in_configs_batch(db: Session) -> None:
     )
     assert counts[config_a.id] == 2
     assert counts.get(config_b.id, 0) == 0
+
+
+def test_create_eval_config_voice_mode(db: Session) -> None:
+    agent = create_test_agent(db)
+    voice_config = RunConfig(
+        mode=RunMode.VOICE,
+        agent_phone_number="+15551234567",
+        user_simulator=UserSimulatorConfig(
+            stt=SttConfig(provider="deepgram", model="nova-3-general"),
+            tts=TtsConfig(
+                provider="openai",
+                model="gpt-4o-mini-tts",
+                voice_id="nova",
+            ),
+        ),
+    )
+    created = crud.create_eval_config(
+        session=db,
+        eval_config_in=EvalConfigCreate(
+            name=f"voice-config-{uuid.uuid4().hex[:8]}",
+            agent_id=agent.id,
+            config=voice_config,
+        ),
+    )
+    parsed = RunConfig.model_validate(created.config)
+    assert parsed.mode == RunMode.VOICE
+    assert parsed.agent_phone_number == "+15551234567"
+    assert parsed.user_simulator is not None
+    assert parsed.user_simulator.stt is not None
+    assert parsed.user_simulator.tts is not None

@@ -78,6 +78,15 @@ import type {
   ConfigGetPredefinedToolsData,
   ConfigGetPredefinedToolsErrors,
   ConfigGetPredefinedToolsResponses,
+  ConfigGetSttModelsData,
+  ConfigGetSttModelsErrors,
+  ConfigGetSttModelsResponses,
+  ConfigGetTtsModelsData,
+  ConfigGetTtsModelsErrors,
+  ConfigGetTtsModelsResponses,
+  ConfigGetTtsVoicesData,
+  ConfigGetTtsVoicesErrors,
+  ConfigGetTtsVoicesResponses,
   CustomMetricsCreateCustomMetricData,
   CustomMetricsCreateCustomMetricErrors,
   CustomMetricsCreateCustomMetricResponses,
@@ -2634,6 +2643,78 @@ export class ConfigService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/config/llm-models',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Stt Models
+   */
+  public static getSttModels<ThrowOnError extends boolean = false>(
+    options?: Options<ConfigGetSttModelsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      ConfigGetSttModelsResponses,
+      ConfigGetSttModelsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/config/stt-models',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Tts Models
+   */
+  public static getTtsModels<ThrowOnError extends boolean = false>(
+    options?: Options<ConfigGetTtsModelsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      ConfigGetTtsModelsResponses,
+      ConfigGetTtsModelsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/config/tts-models',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Tts Voices
+   */
+  public static getTtsVoices<ThrowOnError extends boolean = false>(
+    options: Options<ConfigGetTtsVoicesData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      ConfigGetTtsVoicesResponses,
+      ConfigGetTtsVoicesErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/config/tts-voices',
       ...options,
     });
   }

@@ -203,11 +203,13 @@ from app.models.schemas import (  # noqa: F401
     RuntimeOptionsPublic,
     RuntimeTestRequest,
     RuntimeTestResult,
+    SttConfig,
     TestCaseExecution,
     ToolCall,
     ToolCallFunction,
     ToolImplementation,
     ToolPlatformConfig,
+    TtsConfig,
     UserSimulatorConfig,
 )
 

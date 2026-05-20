@@ -170,13 +170,13 @@ export function CreateEvalView({
               <TestCasesSection agentId={agentId} />
               <JudgeSection metrics={metrics} />
               <PassThresholdsSection />
-              <PersonaSection />
               <RuntimeSection
                 agentId={agentId}
                 agentMode={agent?.mode ?? null}
                 agentTools={agent?.tools ?? null}
                 defaultToBackendOption={!initialConfig}
               />
+              <PersonaSection />
             </div>
           </form>
         </div>

@@ -27,6 +27,12 @@ class ElevenLabsAgentSummary(BaseModel):
     version: int | None = None
 
 
+class ElevenLabsVoiceSummary(BaseModel):
+    voice_id: str
+    name: str | None = None
+    preview_url: str | None = None
+
+
 class ElevenLabsDeployResult(BaseModel):
     success: bool
     elevenlabs_version_id: str | None = None
@@ -78,6 +84,42 @@ def _extract_list_payload(payload: Any, *, items_key: str) -> list[dict[str, Any
     if isinstance(data_items, list):
         return [p for p in data_items if isinstance(p, dict)]
     return []
+
+
+def list_elevenlabs_voices(api_key: str) -> list[ElevenLabsVoiceSummary]:
+    """List TTS voices for catalog UI (sync; does not raise HTTPException)."""
+    try:
+        with httpx.Client(timeout=15.0) as client:
+            response = client.get(
+                f"{_ELEVENLABS_API_BASE_URL}/v1/voices",
+                headers=_headers(api_key),
+            )
+        if response.status_code != 200:
+            logger.warning(
+                "ElevenLabs voices API returned %s",
+                response.status_code,
+            )
+            return []
+        payload = response.json()
+    except httpx.HTTPError as exc:
+        logger.warning("Failed to reach ElevenLabs voices API: %s", exc)
+        return []
+
+    items = _extract_list_payload(payload, items_key="voices")
+    voices: list[ElevenLabsVoiceSummary] = []
+    for item in items:
+        voice_id = item.get("voice_id") or item.get("id")
+        if not voice_id:
+            continue
+        preview = item.get("preview_url")
+        voices.append(
+            ElevenLabsVoiceSummary(
+                voice_id=str(voice_id),
+                name=item.get("name") if isinstance(item.get("name"), str) else None,
+                preview_url=preview if isinstance(preview, str) else None,
+            )
+        )
+    return voices
 
 
 async def list_elevenlabs_agents(api_key: str) -> list[ElevenLabsAgentSummary]:
