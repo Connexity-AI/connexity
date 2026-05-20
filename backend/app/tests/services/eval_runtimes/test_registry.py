@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.models.enums import Platform, RunMode, TextRuntimeKind
+from app.models.enums import Platform, RunMode, TextRuntimeKind, VoiceRuntimeKind
 from app.services.eval_runtimes import (
     default_runtime_for_platform,
     get_runtime,
@@ -11,6 +11,7 @@ from app.services.eval_runtimes import (
 from app.services.eval_runtimes.text.connexity import ConnexityRuntime
 from app.services.eval_runtimes.text.custom_endpoint import CustomEndpointRuntime
 from app.services.eval_runtimes.text.retell import RetellRuntime
+from app.services.eval_runtimes.voice.twilio import TwilioVoiceRuntime
 
 
 def test_get_runtime_returns_known_kinds() -> None:
@@ -21,6 +22,10 @@ def test_get_runtime_returns_known_kinds() -> None:
     assert isinstance(
         get_runtime(RunMode.TEXT, TextRuntimeKind.CUSTOM_ENDPOINT),
         CustomEndpointRuntime,
+    )
+    assert isinstance(
+        get_runtime(RunMode.VOICE, VoiceRuntimeKind.TWILIO),
+        TwilioVoiceRuntime,
     )
 
 

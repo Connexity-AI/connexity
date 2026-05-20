@@ -8,11 +8,55 @@ import re
 from urllib.parse import parse_qs, urlparse
 
 from pydantic import BaseModel, Field
+from sqlmodel import Session, select
+
+from app.models import VoiceSimulationJob
 
 _MOCK_SCHEME_PREFIX = "mock-dtmf://"
 _MOCK_FAIL_SCHEME_PREFIX = "mock-dtmf-fail://"
 _MOCK_QUERY_KEY = "connexity_mock_dtmf"
 _MOCK_PATH_PATTERN = re.compile(r"/mock-dtmf/(\d+)/")
+
+DEFAULT_DTMF_PREFIX = "99"
+
+
+def dtmf_checksum_digit(prefix: str, body: int) -> str:
+    """Return the checksum digit for a Connexity DTMF code body."""
+    digits = f"{prefix}{body}"
+    return str(sum(int(char) for char in digits if char.isdigit()) % 10)
+
+
+def format_dtmf_code(*, prefix: str = DEFAULT_DTMF_PREFIX, body: int) -> str:
+    """Build a Connexity DTMF code from prefix, incremental body, and checksum."""
+    checksum = dtmf_checksum_digit(prefix, body)
+    return f"{prefix}{body}{checksum}"
+
+
+def _parse_dtmf_body(code: str, *, prefix: str = DEFAULT_DTMF_PREFIX) -> int | None:
+    if not code.startswith(prefix) or len(code) <= len(prefix) + 1:
+        return None
+    body_digits = code[len(prefix) : -1]
+    if not body_digits.isdigit():
+        return None
+    return int(body_digits)
+
+
+def allocate_dtmf_code(
+    *,
+    session: Session,
+    prefix: str = DEFAULT_DTMF_PREFIX,
+) -> str:
+    """Allocate the next incremental Connexity DTMF code for a new voice job."""
+    statement = select(VoiceSimulationJob.dtmf_code).where(
+        VoiceSimulationJob.dtmf_code.startswith(prefix)
+    )
+    existing_codes = session.exec(statement).all()
+    max_body = 0
+    for code in existing_codes:
+        parsed_body = _parse_dtmf_body(code, prefix=prefix)
+        if parsed_body is not None:
+            max_body = max(max_body, parsed_body)
+    return format_dtmf_code(prefix=prefix, body=max_body + 1)
 
 
 class DtmfDecodeResult(BaseModel):

@@ -5,16 +5,21 @@ given agent platform. Adding a runtime = create an :class:`EvalRuntime` subclass
 in its own module and append it here.
 """
 
-from app.models.enums import Platform, RunMode, TextRuntimeKind
+from app.models.enums import Platform, RunMode, TextRuntimeKind, VoiceRuntimeKind
 from app.services.eval_runtimes.base import EvalRuntime
 from app.services.eval_runtimes.text.connexity import ConnexityRuntime
 from app.services.eval_runtimes.text.custom_endpoint import CustomEndpointRuntime
 from app.services.eval_runtimes.text.retell import RetellRuntime
+from app.services.eval_runtimes.voice.twilio import TwilioVoiceRuntime
 
 _TEXT_RUNTIMES: dict[TextRuntimeKind, EvalRuntime] = {
     ConnexityRuntime.KIND: ConnexityRuntime(),
     RetellRuntime.KIND: RetellRuntime(),
     CustomEndpointRuntime.KIND: CustomEndpointRuntime(),
+}
+
+_VOICE_RUNTIMES: dict[VoiceRuntimeKind, EvalRuntime] = {
+    TwilioVoiceRuntime.KIND: TwilioVoiceRuntime(),
 }
 
 
@@ -28,10 +33,15 @@ _TEXT_DEFAULTS_BY_PLATFORM: dict[Platform | None, TextRuntimeKind] = {
 }
 
 
-def get_runtime(mode: RunMode, kind: TextRuntimeKind) -> EvalRuntime:
+def get_runtime(
+    mode: RunMode,
+    kind: TextRuntimeKind | VoiceRuntimeKind,
+) -> EvalRuntime:
     """Return the registered runtime instance, or raise ``KeyError``."""
     if mode == RunMode.TEXT:
-        return _TEXT_RUNTIMES[kind]
+        return _TEXT_RUNTIMES[kind]  # type: ignore[index]
+    if mode == RunMode.VOICE:
+        return _VOICE_RUNTIMES[kind]  # type: ignore[index]
     msg = f"No runtimes registered for mode {mode.value}"
     raise KeyError(msg)
 

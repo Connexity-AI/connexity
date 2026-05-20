@@ -9,6 +9,7 @@ Each implementation lives in its own module and registers itself in
 :mod:`app.services.eval_runtimes.registry`.
 """
 
+import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import ClassVar
@@ -16,7 +17,7 @@ from typing import ClassVar
 from sqlmodel import Session
 
 from app.models.agent import Agent
-from app.models.enums import Platform, RunMode, TextRuntimeKind
+from app.models.enums import Platform, RunMode, TextRuntimeKind, VoiceRuntimeKind
 from app.models.schemas import RuntimeConfig
 from app.models.test_case import TestCase
 from app.services.eval_runtimes.types import (
@@ -41,13 +42,15 @@ class RuntimeRunArgs:
     test_case: TestCase
     agent_snapshot: AgentSnapshot
     run_snapshot: RunSnapshot
+    test_case_result_id: uuid.UUID
+    repetition_index: int = 0
 
 
 class EvalRuntime(ABC):
     """Strategy that drives a test case end-to-end to a transcript."""
 
     MODE: ClassVar[RunMode]
-    KIND: ClassVar[TextRuntimeKind]
+    KIND: ClassVar[TextRuntimeKind | VoiceRuntimeKind]
     LABEL: ClassVar[str]
     DESCRIPTION: ClassVar[str]
 

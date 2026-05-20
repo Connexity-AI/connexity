@@ -81,6 +81,17 @@ def _validate_runtime(
     """
     if run_config.mode == RunMode.VOICE:
         _validate_voice_config(run_config)
+        from app.services.eval_runtimes import (
+            get_runtime,  # local import to avoid cycle
+        )
+
+        runtime_config = run_config.runtime
+        try:
+            runtime = get_runtime(run_config.mode, runtime_config.kind)
+        except KeyError as exc:
+            msg = f"Unknown runtime: {runtime_config.kind}"
+            raise ValueError(msg) from exc
+        runtime.validate_config(runtime_config, agent, session)
         return
 
     from app.services.eval_runtimes import get_runtime  # local import to avoid cycle

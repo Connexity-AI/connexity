@@ -56,9 +56,7 @@ def get_voice_simulation_job_by_dtmf(
     )
     if statuses is not None:
         statement = statement.where(col(VoiceSimulationJob.status).in_(statuses))
-    statement = (
-        statement.order_by(VoiceSimulationJob.created_at.desc()).limit(1)
-    )
+    statement = statement.order_by(VoiceSimulationJob.created_at.desc()).limit(1)
     return session.exec(statement).first()
 
 

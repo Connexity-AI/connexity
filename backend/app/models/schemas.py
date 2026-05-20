@@ -13,7 +13,13 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.models.enums import RunMode, SimulatorMode, TextRuntimeKind, TurnRole
+from app.models.enums import (
+    RunMode,
+    SimulatorMode,
+    TextRuntimeKind,
+    TurnRole,
+    VoiceRuntimeKind,
+)
 
 if TYPE_CHECKING:
     from app.models.test_case import TestCase
@@ -273,8 +279,22 @@ class CustomEndpointRuntimeConfig(BaseModel):
     )
 
 
+class TwilioVoiceRuntimeConfig(BaseModel):
+    """Twilio + Pipecat voice runtime.
+
+    Connexity dials ``RunConfig.agent_phone_number``, sends a DTMF code, and
+    waits for the user-side agent to submit ``audio_url`` and OpenAI-format
+    ``messages`` after the call ends.
+    """
+
+    kind: Literal[VoiceRuntimeKind.TWILIO] = VoiceRuntimeKind.TWILIO
+
+
 RuntimeConfig = Annotated[
-    ConnexityRuntimeConfig | RetellRuntimeConfig | CustomEndpointRuntimeConfig,
+    ConnexityRuntimeConfig
+    | RetellRuntimeConfig
+    | CustomEndpointRuntimeConfig
+    | TwilioVoiceRuntimeConfig,
     Field(discriminator="kind"),
 ]
 
@@ -381,6 +401,8 @@ class RunConfig(BaseModel):
     def voice_mode_requires_speech_and_phone(self) -> Self:
         if self.mode != RunMode.VOICE:
             return self
+        if self.runtime.kind not in VoiceRuntimeKind:
+            self.runtime = TwilioVoiceRuntimeConfig()
         phone = (self.agent_phone_number or "").strip()
         if not phone:
             msg = "agent_phone_number is required when mode is 'voice'"

@@ -112,6 +112,7 @@ from app.models.enums import (  # noqa: F401
     TestCaseStatus,
     TextRuntimeKind,
     TurnRole,
+    VoiceRuntimeKind,
     VoiceSimulationJobStatus,
 )
 
@@ -211,6 +212,7 @@ from app.models.schemas import (  # noqa: F401
     ToolImplementation,
     ToolPlatformConfig,
     TtsConfig,
+    TwilioVoiceRuntimeConfig,
     UserSimulatorConfig,
 )
 

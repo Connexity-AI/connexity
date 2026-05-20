@@ -87,6 +87,10 @@ class TextRuntimeKind(StrEnum):
     CUSTOM_ENDPOINT = "custom_endpoint"
 
 
+class VoiceRuntimeKind(StrEnum):
+    TWILIO = "twilio"
+
+
 class IntegrationProvider(StrEnum):
     RETELL = "retell"
     VAPI = "vapi"
