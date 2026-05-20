@@ -228,14 +228,6 @@ from app.models.test_case import (  # noqa: F401
     TestCaseUpdate,
 )
 
-# ── Voice simulation job ───────────────────────────────────────────
-from app.models.voice_simulation_job import (  # noqa: F401
-    VoiceSimulationJob,
-    VoiceSimulationJobBase,
-    VoiceSimulationJobCreate,
-    VoiceSimulationJobUpdate,
-)
-
 # ── Test case result ───────────────────────────────────────────────
 from app.models.test_case_result import (  # noqa: F401
     TestCaseResult,
@@ -259,6 +251,16 @@ from app.models.user import (  # noqa: F401
     UserRegister,
     UserUpdate,
     UserUpdateMe,
+)
+
+# ── Voice simulation job ───────────────────────────────────────────
+from app.models.voice_simulation_job import (  # noqa: F401
+    VoiceSimulationJob,
+    VoiceSimulationJobBase,
+    VoiceSimulationJobCreate,
+    VoiceSimulationJobPublic,
+    VoiceSimulationJobUpdate,
+    VoiceSimulationResultSubmit,
 )
 from app.models.webhook_payload import (  # noqa: F401
     WebhookAgent,

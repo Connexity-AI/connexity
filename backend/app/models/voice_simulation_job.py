@@ -6,6 +6,7 @@ from sqlalchemy import Column, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
+from app.models.agent_contract import ChatMessage
 from app.models.enums import VoiceSimulationJobStatus
 from app.models.schemas import ConversationTurn
 
@@ -165,6 +166,74 @@ class VoiceSimulationJobCreate(SQLModel):
     tts_provider: str = Field(description="TTS provider key")
     tts_model: str = Field(description="TTS model id")
     tts_voice_id: str = Field(description="TTS voice id")
+
+
+class VoiceSimulationResultSubmit(SQLModel):
+    audio_url: str = Field(
+        max_length=2048,
+        description="Public URL of the call recording that includes Connexity DTMF tones",
+    )
+    messages: list[ChatMessage] = Field(
+        min_length=1,
+        description="OpenAI-format conversation messages from the user-side agent",
+    )
+
+
+class VoiceSimulationJobPublic(SQLModel):
+    id: uuid.UUID = Field(description="Unique voice simulation job identifier")
+    run_id: uuid.UUID = Field(description="FK to the parent eval run")
+    test_case_id: uuid.UUID = Field(description="FK to the test case being executed")
+    test_case_result_id: uuid.UUID = Field(
+        description="FK to the test case result row for this execution",
+    )
+    repetition_index: int = Field(
+        description="Repetition index within the run (0-based)",
+    )
+    status: VoiceSimulationJobStatus = Field(description="Voice job lifecycle status")
+    dtmf_code: str = Field(description="Connexity DTMF code sent during the call")
+    agent_phone_number: str = Field(description="E.164 agent phone number dialed")
+    twilio_call_sid: str | None = Field(
+        default=None,
+        description="Twilio call SID once the worker places the call",
+    )
+    audio_url: str | None = Field(
+        default=None,
+        description="Submitted recording URL after call completion",
+    )
+    submitted_messages: list[dict[str, Any]] | None = Field(
+        default=None,
+        description="Raw OpenAI-format messages from the user-side submission",
+    )
+    normalized_transcript: list[dict[str, Any]] | None = Field(
+        default=None,
+        description="ConversationTurn[] mapped from submitted messages",
+    )
+    error_code: str | None = Field(
+        default=None,
+        description="Machine-readable error code when the job fails",
+    )
+    error_message: str | None = Field(
+        default=None,
+        description="Human-readable error message when the job fails",
+    )
+    claimed_at: datetime | None = Field(
+        default=None,
+        description="When a worker claimed this job",
+    )
+    call_started_at: datetime | None = Field(
+        default=None,
+        description="When the Twilio call was connected",
+    )
+    call_ended_at: datetime | None = Field(
+        default=None,
+        description="When the Twilio call ended",
+    )
+    result_received_at: datetime | None = Field(
+        default=None,
+        description="When the user-side result submission was accepted",
+    )
+    created_at: datetime = Field(description="When the voice job was created")
+    updated_at: datetime = Field(description="When the voice job was last updated")
 
 
 class VoiceSimulationJobUpdate(SQLModel):

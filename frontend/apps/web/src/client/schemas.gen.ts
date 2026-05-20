@@ -1891,6 +1891,69 @@ export const CauseAnalysisItemSchema = {
   title: 'CauseAnalysisItem',
 } as const;
 
+export const ChatMessageSchema = {
+  properties: {
+    role: {
+      $ref: '#/components/schemas/TurnRole',
+      description: 'Message role: system, user, assistant, or tool',
+    },
+    content: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Content',
+      description: 'Text content; null when only tool_calls are sent',
+    },
+    tool_calls: {
+      anyOf: [
+        {
+          items: {
+            $ref: '#/components/schemas/ToolCall',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Tool Calls',
+      description: 'Assistant tool calls (OpenAI shape)',
+    },
+    tool_call_id: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Tool Call Id',
+      description: 'For role=tool, id of the tool call this message responds to',
+    },
+    name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Name',
+      description: 'Optional tool name for role=tool (OpenAI convention)',
+    },
+  },
+  type: 'object',
+  required: ['role'],
+  title: 'ChatMessage',
+} as const;
+
 export const ConfigPublicSchema = {
   properties: {
     project_name: {
@@ -8177,6 +8240,248 @@ export const VoicePublicSchema = {
   type: 'object',
   required: ['id', 'label'],
   title: 'VoicePublic',
+} as const;
+
+export const VoiceSimulationJobPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+      description: 'Unique voice simulation job identifier',
+    },
+    run_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Run Id',
+      description: 'FK to the parent eval run',
+    },
+    test_case_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Test Case Id',
+      description: 'FK to the test case being executed',
+    },
+    test_case_result_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Test Case Result Id',
+      description: 'FK to the test case result row for this execution',
+    },
+    repetition_index: {
+      type: 'integer',
+      title: 'Repetition Index',
+      description: 'Repetition index within the run (0-based)',
+    },
+    status: {
+      $ref: '#/components/schemas/VoiceSimulationJobStatus',
+      description: 'Voice job lifecycle status',
+    },
+    dtmf_code: {
+      type: 'string',
+      title: 'Dtmf Code',
+      description: 'Connexity DTMF code sent during the call',
+    },
+    agent_phone_number: {
+      type: 'string',
+      title: 'Agent Phone Number',
+      description: 'E.164 agent phone number dialed',
+    },
+    twilio_call_sid: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Twilio Call Sid',
+      description: 'Twilio call SID once the worker places the call',
+    },
+    audio_url: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Audio Url',
+      description: 'Submitted recording URL after call completion',
+    },
+    submitted_messages: {
+      anyOf: [
+        {
+          items: {
+            type: 'object',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Submitted Messages',
+      description: 'Raw OpenAI-format messages from the user-side submission',
+    },
+    normalized_transcript: {
+      anyOf: [
+        {
+          items: {
+            type: 'object',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Normalized Transcript',
+      description: 'ConversationTurn[] mapped from submitted messages',
+    },
+    error_code: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Error Code',
+      description: 'Machine-readable error code when the job fails',
+    },
+    error_message: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Error Message',
+      description: 'Human-readable error message when the job fails',
+    },
+    claimed_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Claimed At',
+      description: 'When a worker claimed this job',
+    },
+    call_started_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Call Started At',
+      description: 'When the Twilio call was connected',
+    },
+    call_ended_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Call Ended At',
+      description: 'When the Twilio call ended',
+    },
+    result_received_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Result Received At',
+      description: 'When the user-side result submission was accepted',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+      description: 'When the voice job was created',
+    },
+    updated_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Updated At',
+      description: 'When the voice job was last updated',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'run_id',
+    'test_case_id',
+    'test_case_result_id',
+    'repetition_index',
+    'status',
+    'dtmf_code',
+    'agent_phone_number',
+    'created_at',
+    'updated_at',
+  ],
+  title: 'VoiceSimulationJobPublic',
+} as const;
+
+export const VoiceSimulationJobStatusSchema = {
+  type: 'string',
+  enum: [
+    'pending',
+    'claimed',
+    'calling',
+    'waiting_for_result',
+    'completed',
+    'failed',
+    'expired',
+    'cancelled',
+  ],
+  title: 'VoiceSimulationJobStatus',
+} as const;
+
+export const VoiceSimulationResultSubmitSchema = {
+  properties: {
+    audio_url: {
+      type: 'string',
+      maxLength: 2048,
+      title: 'Audio Url',
+      description: 'Public URL of the call recording that includes Connexity DTMF tones',
+    },
+    messages: {
+      items: {
+        $ref: '#/components/schemas/ChatMessage',
+      },
+      type: 'array',
+      minItems: 1,
+      title: 'Messages',
+      description: 'OpenAI-format conversation messages from the user-side agent',
+    },
+  },
+  type: 'object',
+  required: ['audio_url', 'messages'],
+  title: 'VoiceSimulationResultSubmit',
 } as const;
 
 export const VoicesPublicSchema = {

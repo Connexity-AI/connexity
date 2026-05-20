@@ -1054,6 +1054,40 @@ export type CauseAnalysisItem = {
 };
 
 /**
+ * ChatMessage
+ */
+export type ChatMessage = {
+  /**
+   * Message role: system, user, assistant, or tool
+   */
+  role: TurnRole;
+  /**
+   * Content
+   *
+   * Text content; null when only tool_calls are sent
+   */
+  content?: string | null;
+  /**
+   * Tool Calls
+   *
+   * Assistant tool calls (OpenAI shape)
+   */
+  tool_calls?: Array<ToolCall> | null;
+  /**
+   * Tool Call Id
+   *
+   * For role=tool, id of the tool call this message responds to
+   */
+  tool_call_id?: string | null;
+  /**
+   * Name
+   *
+   * Optional tool name for role=tool (OpenAI convention)
+   */
+  name?: string | null;
+};
+
+/**
  * ConfigPublic
  */
 export type ConfigPublic = {
@@ -5056,6 +5090,172 @@ export type VoicePublic = {
    * Optional preview audio URL when available
    */
   preview_url?: string | null;
+};
+
+/**
+ * VoiceSimulationJobPublic
+ */
+export type VoiceSimulationJobPublic = {
+  /**
+   * Id
+   *
+   * Unique voice simulation job identifier
+   */
+  id: string;
+  /**
+   * Run Id
+   *
+   * FK to the parent eval run
+   */
+  run_id: string;
+  /**
+   * Test Case Id
+   *
+   * FK to the test case being executed
+   */
+  test_case_id: string;
+  /**
+   * Test Case Result Id
+   *
+   * FK to the test case result row for this execution
+   */
+  test_case_result_id: string;
+  /**
+   * Repetition Index
+   *
+   * Repetition index within the run (0-based)
+   */
+  repetition_index: number;
+  /**
+   * Voice job lifecycle status
+   */
+  status: VoiceSimulationJobStatus;
+  /**
+   * Dtmf Code
+   *
+   * Connexity DTMF code sent during the call
+   */
+  dtmf_code: string;
+  /**
+   * Agent Phone Number
+   *
+   * E.164 agent phone number dialed
+   */
+  agent_phone_number: string;
+  /**
+   * Twilio Call Sid
+   *
+   * Twilio call SID once the worker places the call
+   */
+  twilio_call_sid?: string | null;
+  /**
+   * Audio Url
+   *
+   * Submitted recording URL after call completion
+   */
+  audio_url?: string | null;
+  /**
+   * Submitted Messages
+   *
+   * Raw OpenAI-format messages from the user-side submission
+   */
+  submitted_messages?: Array<{
+    [key: string]: unknown;
+  }> | null;
+  /**
+   * Normalized Transcript
+   *
+   * ConversationTurn[] mapped from submitted messages
+   */
+  normalized_transcript?: Array<{
+    [key: string]: unknown;
+  }> | null;
+  /**
+   * Error Code
+   *
+   * Machine-readable error code when the job fails
+   */
+  error_code?: string | null;
+  /**
+   * Error Message
+   *
+   * Human-readable error message when the job fails
+   */
+  error_message?: string | null;
+  /**
+   * Claimed At
+   *
+   * When a worker claimed this job
+   */
+  claimed_at?: string | null;
+  /**
+   * Call Started At
+   *
+   * When the Twilio call was connected
+   */
+  call_started_at?: string | null;
+  /**
+   * Call Ended At
+   *
+   * When the Twilio call ended
+   */
+  call_ended_at?: string | null;
+  /**
+   * Result Received At
+   *
+   * When the user-side result submission was accepted
+   */
+  result_received_at?: string | null;
+  /**
+   * Created At
+   *
+   * When the voice job was created
+   */
+  created_at: string;
+  /**
+   * Updated At
+   *
+   * When the voice job was last updated
+   */
+  updated_at: string;
+};
+
+/**
+ * VoiceSimulationJobStatus
+ */
+export const VoiceSimulationJobStatus = {
+  PENDING: 'pending',
+  CLAIMED: 'claimed',
+  CALLING: 'calling',
+  WAITING_FOR_RESULT: 'waiting_for_result',
+  COMPLETED: 'completed',
+  FAILED: 'failed',
+  EXPIRED: 'expired',
+  CANCELLED: 'cancelled',
+} as const;
+
+/**
+ * VoiceSimulationJobStatus
+ */
+export type VoiceSimulationJobStatus =
+  (typeof VoiceSimulationJobStatus)[keyof typeof VoiceSimulationJobStatus];
+
+/**
+ * VoiceSimulationResultSubmit
+ */
+export type VoiceSimulationResultSubmit = {
+  /**
+   * Audio Url
+   *
+   * Public URL of the call recording that includes Connexity DTMF tones
+   */
+  audio_url: string;
+  /**
+   * Messages
+   *
+   * OpenAI-format conversation messages from the user-side agent
+   */
+  messages: Array<ChatMessage>;
 };
 
 /**
@@ -11020,3 +11220,110 @@ export type CallsGetCallDetailResponses = {
 
 export type CallsGetCallDetailResponse =
   CallsGetCallDetailResponses[keyof CallsGetCallDetailResponses];
+
+export type VoiceSimulationsSubmitVoiceSimulationResultsData = {
+  body: VoiceSimulationResultSubmit;
+  path?: never;
+  query?: never;
+  url: '/api/v1/voice-simulations/results';
+};
+
+export type VoiceSimulationsSubmitVoiceSimulationResultsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type VoiceSimulationsSubmitVoiceSimulationResultsError =
+  VoiceSimulationsSubmitVoiceSimulationResultsErrors[keyof VoiceSimulationsSubmitVoiceSimulationResultsErrors];
+
+export type VoiceSimulationsSubmitVoiceSimulationResultsResponses = {
+  /**
+   * Successful Response
+   */
+  200: VoiceSimulationJobPublic;
+};
+
+export type VoiceSimulationsSubmitVoiceSimulationResultsResponse =
+  VoiceSimulationsSubmitVoiceSimulationResultsResponses[keyof VoiceSimulationsSubmitVoiceSimulationResultsResponses];
+
+export type VoiceSimulationsGetVoiceSimulationJobData = {
+  body?: never;
+  path: {
+    /**
+     * Job Id
+     */
+    job_id: string;
+  };
+  query?: never;
+  url: '/api/v1/voice-simulations/jobs/{job_id}';
+};
+
+export type VoiceSimulationsGetVoiceSimulationJobErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type VoiceSimulationsGetVoiceSimulationJobError =
+  VoiceSimulationsGetVoiceSimulationJobErrors[keyof VoiceSimulationsGetVoiceSimulationJobErrors];
+
+export type VoiceSimulationsGetVoiceSimulationJobResponses = {
+  /**
+   * Successful Response
+   */
+  200: VoiceSimulationJobPublic;
+};
+
+export type VoiceSimulationsGetVoiceSimulationJobResponse =
+  VoiceSimulationsGetVoiceSimulationJobResponses[keyof VoiceSimulationsGetVoiceSimulationJobResponses];

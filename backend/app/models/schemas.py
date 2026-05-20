@@ -140,7 +140,9 @@ class TtsConfig(BaseModel):
 
     provider: str = Field(description="Pipecat TTS provider key, e.g. elevenlabs")
     model: str = Field(description="Provider-local TTS model id")
-    voice_id: str = Field(description="Provider voice id passed to Pipecat Settings.voice")
+    voice_id: str = Field(
+        description="Provider voice id passed to Pipecat Settings.voice"
+    )
 
 
 class JudgeConfig(BaseModel):

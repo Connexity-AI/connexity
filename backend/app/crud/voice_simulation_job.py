@@ -49,14 +49,15 @@ def get_voice_simulation_job_by_dtmf(
     *,
     session: Session,
     dtmf_code: str,
-    statuses: tuple[VoiceSimulationJobStatus, ...] = _RESULT_MATCH_STATUSES,
+    statuses: tuple[VoiceSimulationJobStatus, ...] | None = _RESULT_MATCH_STATUSES,
 ) -> VoiceSimulationJob | None:
+    statement = select(VoiceSimulationJob).where(
+        VoiceSimulationJob.dtmf_code == dtmf_code,
+    )
+    if statuses is not None:
+        statement = statement.where(col(VoiceSimulationJob.status).in_(statuses))
     statement = (
-        select(VoiceSimulationJob)
-        .where(VoiceSimulationJob.dtmf_code == dtmf_code)
-        .where(col(VoiceSimulationJob.status).in_(statuses))
-        .order_by(VoiceSimulationJob.created_at.desc())
-        .limit(1)
+        statement.order_by(VoiceSimulationJob.created_at.desc()).limit(1)
     )
     return session.exec(statement).first()
 
@@ -109,7 +110,10 @@ def update_voice_simulation_job(
     job_in: VoiceSimulationJobUpdate,
 ) -> VoiceSimulationJob:
     update_data = job_in.model_dump(exclude_unset=True)
-    if "normalized_transcript" in update_data and job_in.normalized_transcript is not None:
+    if (
+        "normalized_transcript" in update_data
+        and job_in.normalized_transcript is not None
+    ):
         update_data["normalized_transcript"] = [
             t.model_dump(mode="json") for t in job_in.normalized_transcript
         ]
