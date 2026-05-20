@@ -144,6 +144,15 @@ from app.crud.test_case_result import (  # noqa: F401
     list_test_case_results,
     update_test_case_result,
 )
+from app.crud.voice_simulation_job import (  # noqa: F401
+    cancel_voice_jobs_for_run,
+    claim_next_pending_voice_job,
+    create_voice_simulation_job,
+    get_voice_simulation_job,
+    get_voice_simulation_job_by_dtmf,
+    list_voice_simulation_jobs,
+    update_voice_simulation_job,
+)
 from app.crud.user import (  # noqa: F401
     authenticate,
     create_user,

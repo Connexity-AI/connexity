@@ -112,6 +112,7 @@ from app.models.enums import (  # noqa: F401
     TestCaseStatus,
     TextRuntimeKind,
     TurnRole,
+    VoiceSimulationJobStatus,
 )
 
 # ── Environment ────────────────────────────────────────────────────
@@ -225,6 +226,14 @@ from app.models.test_case import (  # noqa: F401
     TestCasesExport,
     TestCasesPublic,
     TestCaseUpdate,
+)
+
+# ── Voice simulation job ───────────────────────────────────────────
+from app.models.voice_simulation_job import (  # noqa: F401
+    VoiceSimulationJob,
+    VoiceSimulationJobBase,
+    VoiceSimulationJobCreate,
+    VoiceSimulationJobUpdate,
 )
 
 # ── Test case result ───────────────────────────────────────────────

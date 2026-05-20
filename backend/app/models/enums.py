@@ -97,3 +97,14 @@ class DeploymentStatus(StrEnum):
     PENDING = "pending"
     DEPLOYED = "deployed"
     FAILED = "failed"
+
+
+class VoiceSimulationJobStatus(StrEnum):
+    PENDING = "pending"
+    CLAIMED = "claimed"
+    CALLING = "calling"
+    WAITING_FOR_RESULT = "waiting_for_result"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"
