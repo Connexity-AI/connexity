@@ -107,7 +107,13 @@ def test_submit_voice_simulation_result_success(
     assert len(body["submitted_messages"]) == len(payload["messages"])
     assert body["submitted_messages"][0]["content"] == payload["messages"][0]["content"]
     assert body["result_received_at"] is not None
-    assert body["normalized_transcript"] is None
+    assert body["normalized_transcript"] is not None
+    assert len(body["normalized_transcript"]) == len(payload["messages"])
+    assert body["normalized_transcript"][0]["role"] == "user"
+    assert (
+        body["normalized_transcript"][0]["content"] == payload["messages"][0]["content"]
+    )
+    assert body["normalized_transcript"][1]["role"] == "assistant"
 
 
 def test_submit_voice_simulation_result_idempotent(

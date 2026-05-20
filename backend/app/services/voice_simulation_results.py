@@ -11,6 +11,7 @@ from app.models import (
 )
 from app.models.enums import VoiceSimulationJobStatus
 from app.services.dtmf import decode_dtmf_from_audio_url
+from app.services.voice_transcript import map_chat_messages_to_conversation_transcript
 
 _ACCEPTING_STATUSES = (
     VoiceSimulationJobStatus.CALLING,
@@ -45,6 +46,10 @@ def submit_voice_simulation_result(
     submitted_messages = [
         message.model_dump(mode="json") for message in payload.messages
     ]
+    normalized_transcript = map_chat_messages_to_conversation_transcript(
+        payload.messages,
+        base_timestamp=datetime.now(UTC),
+    )
 
     if job.status == VoiceSimulationJobStatus.COMPLETED:
         if (
@@ -70,6 +75,7 @@ def submit_voice_simulation_result(
             status=VoiceSimulationJobStatus.COMPLETED,
             audio_url=payload.audio_url,
             submitted_messages=submitted_messages,
+            normalized_transcript=normalized_transcript,
             result_received_at=datetime.now(UTC),
         ),
     )
