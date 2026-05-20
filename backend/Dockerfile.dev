@@ -1,8 +1,8 @@
 FROM python:3.12-alpine3.22
 
-# Install dependencies (tree and bash)
+# Install shell used by the entrypoint
 RUN apk update
-RUN apk add --no-cache tree bash
+RUN apk add --no-cache bash
 
 ENV PYTHONUNBUFFERED=1
 

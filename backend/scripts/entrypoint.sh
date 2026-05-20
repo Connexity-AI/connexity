@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-pwd
-tree .
+# Run DB readiness + migrations unless the platform handles that separately.
+if [[ "${RUN_DB_PRESTART:-1}" == "1" ]]; then
+  ./scripts/prestart.sh
+fi
 
-# Run migrations and seed
-./scripts/prestart.sh
-
-# Start FastAPI server
-# Railway injects PORT for public networking; fall back to 8000 locally.
-exec fastapi run --workers 4 --host 0.0.0.0 --port "${PORT:-8000}" app.main:app
+# Railway and Cloud Run both inject PORT for public networking.
+exec uvicorn app.main:app \
+  --host 0.0.0.0 \
+  --port "${PORT:-8000}" \
+  --workers "${WEB_CONCURRENCY:-4}"
