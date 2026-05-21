@@ -1,6 +1,6 @@
 """Evaluation runtime package — pluggable strategies for driving an eval run.
 
-See ``docs/eval-runtimes.md`` for how to add a new runtime.
+See ``docs/evals/runtimes.md`` for how to add a new runtime.
 """
 
 from app.services.eval_runtimes.base import (

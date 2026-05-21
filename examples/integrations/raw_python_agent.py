@@ -8,7 +8,7 @@ from pydantic import BaseModel
 # ---------------------------------------------------------------------------
 # NOTE: Models below mirror app.models.agent_contract (canonical source).
 # They are duplicated here so this example stays self-contained / copy-paste
-# friendly.  See docs/agent-contract.md for the authoritative spec.
+# friendly.  See docs/agents/contract.md for the authoritative spec.
 # ---------------------------------------------------------------------------
 
 app = FastAPI(title="Raw Python agent (OpenAI SDK)", version="0.1.0")

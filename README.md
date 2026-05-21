@@ -62,7 +62,7 @@ Connexity is built around a single closed loop for developing voice AI agents �
 
 - **Test case generation** — Connexity reads the agent's own system prompt, tool definitions, and production conversations to generate diverse multi-turn test cases. Each generated case ships with a persona, an opening message, expected outcomes for the judge, and the tool calls the agent is expected to make. You can also use AI to draft or refine individual test cases from natural-language instructions.
 
-- **Agent evaluation** — run multi-turn simulations against your agent, scored by an LLM-as-judge with custom metrics, full transcripts, tool-call traces, and per-turn cost / token accounting. Every run finishes with a clear pass/fail verdict gated on two configurable thresholds — a weighted-metrics pass rate and a per-test-case pass rate (see [scoring & thresholds](./docs/scoring-and-thresholds.md)).
+- **Agent evaluation** — run multi-turn simulations against your agent, scored by an LLM-as-judge with custom metrics, full transcripts, tool-call traces, and per-turn cost / token accounting. Every run finishes with a clear pass/fail verdict gated on two configurable thresholds — a weighted-metrics pass rate and a per-test-case pass rate (see [scoring & thresholds](./docs/evals/scoring-and-thresholds.md)).
 
 - **Run-to-run comparison** — pick any two completed runs and Connexity computes a regression verdict across per-metric deltas, pass/fail dimensions, and latency / cost shifts. Optional AI cause-analysis reads the failed transcripts and surfaces the most likely root cause for any regression so you don't have to guess.
 
@@ -92,7 +92,7 @@ docker compose up
 
 ### VM
 
-Use the **same Compose stack on a VM**: install Docker on the machine, clone the repo, set production **`SITE_URL`** and secrets in **`.env`**, then **`docker compose up`**. Walkthrough for local versus VM—including sizing, firewall, and shutdown—is in [Docker Compose: local & VM](./docs/vm-docker-compose.md).
+Use the **same Compose stack on a VM**: install Docker on the machine, clone the repo, set production **`SITE_URL`** and secrets in **`.env`**, then **`docker compose up`**. Walkthrough for local versus VM—including sizing, firewall, and shutdown—is in [Docker Compose: local & VM](./docs/self-hosting/docker-compose.md).
 
 ### CLI against a hosted instance
 
@@ -100,7 +100,7 @@ When the Connexity API is **not** on your machine’s default URL, set **`CONNEX
 
 ### Railway
 
-If you want to deploy the full stack on Railway, start with [`docs/railway.md`](./docs/railway.md). It explains the CLI bootstrap flow, which values should stay secret, and which env vars should be reference variables instead of hard-coded strings.
+If you want to deploy the full stack on Railway, start with [`docs/self-hosting/railway.md`](./docs/self-hosting/railway.md). It explains the CLI bootstrap flow, which values should stay secret, and which env vars should be reference variables instead of hard-coded strings.
 
 ## 🪢 Integrations
 
@@ -191,7 +191,7 @@ If Connexity is useful to you, please star the repo on GitHub — it helps a lot
 
 Finding an answer to your question:
 
-- The [`docs/`](./docs) folder is the best place to start. Topic-specific guides: [scoring & thresholds](./docs/scoring-and-thresholds.md), [judge criteria](./docs/judge-criteria.md), [test case schema](./docs/test-case-schema.md), [agent contract](./docs/agent-contract.md), [data model](./docs/data-model.md), [Docker Compose: local & VM](./docs/vm-docker-compose.md), [migrations](./docs/migrations.md), and the [`connexity-cli` reference](./CLI_README.md).
+- The [`docs/`](./docs) folder is the best place to start. Topic-specific guides: [scoring & thresholds](./docs/evals/scoring-and-thresholds.md), [judge criteria](./docs/evals/judge-criteria.md), [test case schema](./docs/evals/test-case-schema.md), [agent contract](./docs/agents/contract.md), [Docker Compose: local & VM](./docs/self-hosting/docker-compose.md), [Railway](./docs/self-hosting/railway.md), and the [`connexity-cli` reference](./CLI_README.md). Maintainer-only notes (data model, migrations, release pipeline) live in [`docs-internal/`](./docs-internal).
 - [GitHub Discussions](https://github.com/Connexity-AI/connexity/discussions) — ask questions, share what you're building, and request features.
 - [Discord](https://discord.gg/Gj47DqWq) — chat with the team and other users in real time.
 

@@ -1,6 +1,6 @@
 # Platform Releases
 
-This document covers how to cut a versioned release of the Connexity platform (backend + frontend), independent of the [`connexity-cli` PyPI release flow](./pypi-publishing.md).
+This document covers how to cut a versioned release of the Connexity platform (backend + frontend), independent of the [`connexity-cli` PyPI release flow](./pypi.md).
 
 ## Why platform releases exist
 
@@ -17,7 +17,7 @@ Cut one whenever you have a coherent batch of changes you want to label.
 | Tag pattern | Meaning |
 |---|---|
 | `vX.Y.Z` | Platform release (this doc) |
-| `cli-vX.Y.Z` | CLI package release on PyPI (see [`pypi-publishing.md`](./pypi-publishing.md)) |
+| `cli-vX.Y.Z` | CLI package release on PyPI (see [`pypi.md`](./pypi.md)) |
 | `v0.1.0` (no prefix) | Historical CLI release pre-dating the namespace split. Do not reuse. |
 
 Platform releases start at **`v1.0.0`** to avoid colliding with the `v0.1.0` historical tag.
@@ -39,13 +39,13 @@ Within ~30 seconds the workflow:
 
 1. Computes the next `vX.Y.Z` based on the latest existing platform tag.
 2. Creates and pushes the tag.
-3. Opens a GitHub Release titled `vX.Y.Z` with auto-generated notes — formatted by [`.github/release.yml`](../.github/release.yml) into Features / Bug Fixes / Documentation / Maintenance / Other Changes sections, sourced from PR labels and titles since the previous platform tag.
+3. Opens a GitHub Release titled `vX.Y.Z` with auto-generated notes — formatted by [`.github/release.yml`](../../.github/release.yml) into Features / Bug Fixes / Documentation / Maintenance / Other Changes sections, sourced from PR labels and titles since the previous platform tag.
 
 The tag and release are visible at https://github.com/Connexity-AI/connexity/releases.
 
 ## Conventions for clean release notes
 
-Auto-generated notes group PRs by the labels in [`.github/release.yml`](../.github/release.yml). To keep notes useful:
+Auto-generated notes group PRs by the labels in [`.github/release.yml`](../../.github/release.yml). To keep notes useful:
 
 - **Label your PRs** — `feature`, `bug`, `documentation`, `chore`, etc. PRs without a recognised label fall under "Other Changes".
 - **Use clear PR titles** — they're the bullet text in the release notes.
