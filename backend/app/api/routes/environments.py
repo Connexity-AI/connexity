@@ -203,9 +203,9 @@ def _get_eval_payload_for_gate(
     config_name = gate_cfg.name if gate_cfg is not None else None
 
     def _results_link(run_id: uuid.UUID) -> str | None:
-        if not settings.SITE_URL:
+        if not settings.public_site_url:
             return None
-        base_url = settings.SITE_URL.rstrip("/")
+        base_url = settings.public_site_url
         return f"{base_url}/agents/{agent_id}/evals/eval-runs/{run_id}"
 
     gate_run = crud.get_latest_completed_run_for_version(

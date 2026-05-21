@@ -6,7 +6,7 @@ param(
     [string]$BackendServiceName = "backend",
     [string]$McpServiceName = "mcp-server",
     [string]$DotEnvPath = (Join-Path $PSScriptRoot "..\.env"),
-    [string]$SiteUrl = $env:SITE_URL,
+    [string]$BackendPort = $env:BACKEND_PORT,
     [string]$ConnexityApiToken = $env:CONNEXITY_API_TOKEN,
     [string]$ConnexityEmail = $env:CONNEXITY_EMAIL,
     [string]$ConnexityPassword = $env:CONNEXITY_PASSWORD
@@ -144,20 +144,14 @@ $encryptionKey = Get-Setting -DotEnv $dotEnv -Name "ENCRYPTION_KEY"
 $openAiKey = Get-Setting -DotEnv $dotEnv -Name "OPENAI_API_KEY"
 $anthropicKey = Get-Setting -DotEnv $dotEnv -Name "ANTHROPIC_API_KEY"
 
-if ([string]::IsNullOrWhiteSpace($SiteUrl)) {
-    $SiteUrl = Get-Setting -DotEnv $dotEnv -Name "SITE_URL"
+if ([string]::IsNullOrWhiteSpace($BackendPort)) {
+    $BackendPort = "8000"
 }
 
-$shouldGenerateFrontendDomain = $false
-if ([string]::IsNullOrWhiteSpace($SiteUrl) -or $SiteUrl -match "localhost") {
-    $SiteUrl = New-RailwayUrlReference -Namespace $FrontendServiceName -VariableName "RAILWAY_PUBLIC_DOMAIN"
-    $shouldGenerateFrontendDomain = $true
-}
+$BackendPort = $BackendPort.Trim()
 
-$SiteUrl = $SiteUrl.TrimEnd("/")
-
-$backendApiUrl = New-RailwayUrlReference -Namespace $BackendServiceName -VariableName "RAILWAY_PRIVATE_DOMAIN" -Scheme "http://" -Suffix ":8000/api/v1"
-$frontendSiteUrl = $SiteUrl
+$backendOrigin = New-RailwayUrlReference -Namespace $BackendServiceName -VariableName "RAILWAY_PRIVATE_DOMAIN" -Scheme "http://" -Suffix ":$BackendPort"
+$backendApiUrl = "$backendOrigin/api/v1"
 
 Push-Location (Resolve-Path (Join-Path $PSScriptRoot ".."))
 try {
@@ -176,9 +170,7 @@ try {
         "-s",
         $FrontendServiceName,
         "-v",
-        "SITE_URL=$frontendSiteUrl",
-        "-v",
-        "API_URL=$backendApiUrl"
+        "API_URL=$backendOrigin"
     )
     Invoke-Railway $frontendArgs
 
@@ -189,11 +181,11 @@ try {
         "-v",
         ('DATABASE_URL=${{ ' + $PostgresServiceName + '.DATABASE_URL }}'),
         "-v",
-        "SITE_URL=$frontendSiteUrl",
-        "-v",
         "JWT_SECRET_KEY=$jwtSecretKey",
         "-v",
         "ENCRYPTION_KEY=$encryptionKey",
+        "-v",
+        "PORT=$BackendPort",
         "-v",
         "ENVIRONMENT=production"
     )
@@ -213,9 +205,7 @@ try {
         "-s",
         $McpServiceName,
         "-v",
-        "CONNEXITY_API_URL=$backendApiUrl",
-        "-v",
-        "CONNEXITY_USE_SAVED_CLI_CREDENTIALS=false"
+        "CONNEXITY_API_URL=$backendApiUrl"
     )
 
     if (-not [string]::IsNullOrWhiteSpace($ConnexityApiToken)) {
@@ -239,9 +229,7 @@ try {
     Invoke-Railway $mcpArgs
 
     Invoke-RailwayUpInDirectory -Directory "frontend" -ServiceName $FrontendServiceName
-    if ($shouldGenerateFrontendDomain) {
-        Invoke-Railway @("domain", "-s", $FrontendServiceName)
-    }
+    Invoke-Railway @("domain", "-s", $FrontendServiceName)
     Invoke-RailwayUpInDirectory -Directory "backend" -ServiceName $BackendServiceName
     Invoke-RailwayUpInDirectory -Directory "mcp_server" -ServiceName $McpServiceName
 }

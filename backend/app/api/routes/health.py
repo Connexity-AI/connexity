@@ -15,7 +15,7 @@ DOCS_URL = "https://github.com/Connexity-AI/connexity/blob/main/README.md"
 @router.get("/", response_model=Message)
 def health() -> Message:
     required_vars = {
-        "SITE_URL": bool(settings.SITE_URL),
+        "PUBLIC_SITE_URL": bool(settings.public_site_url),
         "DATABASE_URL": bool(settings.DATABASE_URL),
         "JWT_SECRET_KEY": bool(settings.JWT_SECRET_KEY),
     }

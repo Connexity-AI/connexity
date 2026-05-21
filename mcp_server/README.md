@@ -33,3 +33,6 @@ Local-dev fallbacks are built in:
 - auth falls back from `CONNEXITY_API_TOKEN` to saved CLI credentials, then
   `CONNEXITY_EMAIL` / `CONNEXITY_PASSWORD`, then `FIRST_SUPERUSER` /
   `FIRST_SUPERUSER_PASSWORD`
+- `MCP_PUBLIC_BASE_URL` falls back to `https://${RAILWAY_PUBLIC_DOMAIN}` on Railway
+- `CONNEXITY_USE_SAVED_CLI_CREDENTIALS` defaults to `false` on Railway and `true`
+  in local development
