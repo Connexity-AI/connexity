@@ -1,7 +1,7 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
-  "globalEnv": ["NODE_ENV", "SITE_URL", "API_URL", "NEXT_RUNTIME"],
+  "globalEnv": ["NODE_ENV", "SITE_URL", "API_URL", "NEXT_RUNTIME", "RAILWAY_PUBLIC_DOMAIN"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

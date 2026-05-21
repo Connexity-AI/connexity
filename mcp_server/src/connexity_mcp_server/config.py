@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -59,7 +60,7 @@ class Settings(BaseSettings):
     dev_email: str | None = Field(default=None, alias="FIRST_SUPERUSER")
     dev_password: str | None = Field(default=None, alias="FIRST_SUPERUSER_PASSWORD")
     connexity_use_saved_cli_credentials: bool = Field(
-        default=True,
+        default_factory=lambda: not bool(os.environ.get("RAILWAY_ENVIRONMENT")),
         alias="CONNEXITY_USE_SAVED_CLI_CREDENTIALS",
     )
     connexity_api_timeout_seconds: float = Field(
@@ -90,12 +91,23 @@ class Settings(BaseSettings):
         return path.rstrip("/") or "/"
 
     @property
+    def resolved_mcp_public_base_url(self) -> str | None:
+        if isinstance(self.mcp_public_base_url, str) and self.mcp_public_base_url.strip():
+            return self.mcp_public_base_url.strip().rstrip("/")
+
+        railway_public_domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN")
+        if isinstance(railway_public_domain, str) and railway_public_domain.strip():
+            return f"https://{railway_public_domain.strip().rstrip('/')}"
+
+        return None
+
+    @property
     def resolved_allowed_hosts(self) -> list[str]:
         hosts = ["127.0.0.1:*", "localhost:*", "[::1]:*"]
         for host in _split_csv(self.mcp_allowed_hosts):
             if host not in hosts:
                 hosts.append(host)
-        parsed_public_host = _extract_host(self.mcp_public_base_url)
+        parsed_public_host = _extract_host(self.resolved_mcp_public_base_url)
         if parsed_public_host and parsed_public_host not in hosts:
             hosts.append(parsed_public_host)
         return hosts
@@ -106,8 +118,8 @@ class Settings(BaseSettings):
         for origin in _split_csv(self.mcp_allowed_origins):
             if origin not in origins:
                 origins.append(origin)
-        if isinstance(self.mcp_public_base_url, str) and self.mcp_public_base_url.strip():
-            public_origin = self.mcp_public_base_url.strip().rstrip("/")
+        public_origin = self.resolved_mcp_public_base_url
+        if public_origin:
             if public_origin not in origins:
                 origins.append(public_origin)
         return origins

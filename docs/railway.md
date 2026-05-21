@@ -57,18 +57,23 @@ These values should be treated as secrets:
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-These values should be reference variables, not hard-coded strings:
+These values should be reference variables or coordinated service variables, not hard-coded strings:
 
-- `frontend.SITE_URL`
-- `backend.SITE_URL`
+- `backend.PORT`
 - `frontend.API_URL`
 - `mcp-server.CONNEXITY_API_URL`
 
 The recommended pattern is:
 
-- `SITE_URL=https://${{ frontend.RAILWAY_PUBLIC_DOMAIN }}`
-- `API_URL=http://${{ backend.RAILWAY_PRIVATE_DOMAIN }}:8000/api/v1`
-- `CONNEXITY_API_URL=http://${{ backend.RAILWAY_PRIVATE_DOMAIN }}:8000/api/v1`
+- `PORT=8000` on the backend service
+- `API_URL=http://${{ backend.RAILWAY_PRIVATE_DOMAIN }}:${{ backend.PORT }}`
+- `CONNEXITY_API_URL=http://${{ backend.RAILWAY_PRIVATE_DOMAIN }}:${{ backend.PORT }}/api/v1`
+
+The frontend now derives its own public base URL from `RAILWAY_PUBLIC_DOMAIN`, and the backend derives the same public URL from `RAILWAY_SERVICE_CONNEXITY_FE_URL` when `SITE_URL` is unset. The MCP server likewise derives its public base URL from `RAILWAY_PUBLIC_DOMAIN` when `MCP_PUBLIC_BASE_URL` is unset, and it defaults away from saved CLI credentials on Railway.
+
+The frontend expects the backend origin only because its generated client already prefixes routes with `/api/v1`. The MCP server accepts either form, but using the explicit `/api/v1` URL keeps it aligned with the backend CLI defaults.
+
+Railway injects a runtime `PORT`, but private-network callers still need to know which port the backend listens on. Setting `backend.PORT` yourself keeps the backend listener and the URLs used by the frontend and MCP server in sync.
 
 That keeps the browser-facing URL public while keeping backend-to-backend traffic on Railway's private network.
 

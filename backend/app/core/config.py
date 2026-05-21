@@ -1,3 +1,4 @@
+import os
 import warnings
 from typing import Annotated, Any, Literal, Self
 
@@ -38,11 +39,12 @@ class Settings(BaseSettings):
 
     # ------- Required variables -------
 
-    # Note: SITE_URL and database are actually REQUIRED variables but made optional
+    # Note: database is truly required, while SITE_URL is an override that can be
+    # derived on Railway from the frontend service public domain.
     # Note: to display dev friendly message in root route for deployments without env vars set
 
-    # Frontend url
-    SITE_URL: str | None = None  # truly required
+    # Frontend url override
+    SITE_URL: str | None = None
 
     # DATABASE_URL | POSTGRES_* # truly required
 
@@ -145,9 +147,21 @@ class Settings(BaseSettings):
     @property
     def all_cors_origins(self) -> list[str]:
         origins = [str(origin).rstrip("/") for origin in self.BACKEND_CORS_ORIGINS]
-        if self.SITE_URL:
-            origins.append(self.SITE_URL)
+        if self.public_site_url:
+            origins.append(self.public_site_url)
         return origins
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def public_site_url(self) -> str | None:
+        if self.SITE_URL:
+            return self.SITE_URL.rstrip("/")
+
+        railway_frontend_host = os.environ.get("RAILWAY_SERVICE_CONNEXITY_FE_URL")
+        if railway_frontend_host and railway_frontend_host.strip():
+            return f"https://{railway_frontend_host.strip().rstrip('/')}"
+
+        return None
 
     @computed_field  # type: ignore[prop-decorator]
     @property

@@ -73,7 +73,7 @@ def generate_new_account_email(
             "username": username,
             "password": password,
             "email": email_to,
-            "link": settings.SITE_URL,
+            "link": settings.public_site_url,
         },
     )
     return EmailData(html_content=html_content, subject=subject)
