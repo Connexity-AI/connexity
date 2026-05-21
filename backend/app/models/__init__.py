@@ -162,6 +162,13 @@ from app.models.prompt_editor import (  # noqa: F401
     PromptEditorSessionsPublic,
     PromptEditorSessionUpdate,
 )
+from app.models.oauth import (  # noqa: F401
+    OAuthAuthorizationCode,
+    OAuthClient,
+    OAuthClientRegistrationRequest,
+    OAuthClientRegistrationResponse,
+    OAuthRefreshToken,
+)
 
 # ── Run ────────────────────────────────────────────────────────────
 from app.models.run import (  # noqa: F401

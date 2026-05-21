@@ -14,6 +14,7 @@ from app.api.routes import (
     internal,
     login,
     mcp,
+    oauth,
     prompt_editor,
     runs,
     test_case_results,
@@ -45,3 +46,4 @@ api_router.include_router(calls.router)
 
 root_router = APIRouter()
 root_router.include_router(health.router)
+root_router.include_router(oauth.router)

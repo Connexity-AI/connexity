@@ -66,6 +66,15 @@ class Settings(BaseSettings):
     ENCRYPTION_KEY: str = DEFAULT_SECRET_VALUE
     MCP_CLIENT_ID: str = DEFAULT_MCP_CLIENT_ID
     MCP_CLIENT_SECRET: str | None = None
+    MCP_OAUTH_AUDIENCE: str | None = None
+    OAUTH_ISSUER_URL: str | None = None
+    OAUTH_DEFAULT_RESOURCE_URL: str | None = None
+    OAUTH_AUTH_CODE_EXPIRE_MINUTES: int = 10
+    OAUTH_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    OAUTH_ALLOWED_REDIRECT_URIS: str = (
+        "https://claude.ai/api/mcp/auth_callback,"
+        "https://claude.com/api/mcp/auth_callback"
+    )
 
     @field_validator("ENCRYPTION_KEY")
     @classmethod
@@ -217,6 +226,35 @@ class Settings(BaseSettings):
         if self.MCP_CLIENT_ID.strip():
             return self.MCP_CLIENT_ID.strip()
         return DEFAULT_MCP_CLIENT_ID
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def oauth_issuer_url(self) -> str:
+        if self.OAUTH_ISSUER_URL and self.OAUTH_ISSUER_URL.strip():
+            return self.OAUTH_ISSUER_URL.strip().rstrip("/")
+
+        railway_public_domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN")
+        if railway_public_domain and railway_public_domain.strip():
+            return f"https://{railway_public_domain.strip().rstrip('/')}"
+
+        return "http://localhost:8000"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def oauth_allowed_redirect_uris(self) -> list[str]:
+        return [
+            uri.strip()
+            for uri in self.OAUTH_ALLOWED_REDIRECT_URIS.split(",")
+            if uri.strip()
+        ]
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def oauth_default_resource_url(self) -> str | None:
+        configured = self.OAUTH_DEFAULT_RESOURCE_URL or self.MCP_OAUTH_AUDIENCE
+        if configured and configured.strip():
+            return configured.strip().rstrip("/")
+        return None
 
     @computed_field  # type: ignore[prop-decorator]
     @property

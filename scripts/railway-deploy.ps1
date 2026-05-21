@@ -154,6 +154,8 @@ $BackendPort = $BackendPort.Trim()
 
 $backendOrigin = New-RailwayUrlReference -Namespace $BackendServiceName -VariableName "RAILWAY_PRIVATE_DOMAIN" -Scheme "http://" -Suffix ":$BackendPort"
 $backendApiUrl = "$backendOrigin/api/v1"
+$backendPublicOrigin = New-RailwayUrlReference -Namespace $BackendServiceName -VariableName "RAILWAY_PUBLIC_DOMAIN"
+$mcpPublicOrigin = New-RailwayUrlReference -Namespace $McpServiceName -VariableName "RAILWAY_PUBLIC_DOMAIN"
 
 Push-Location (Resolve-Path (Join-Path $PSScriptRoot ".."))
 try {
@@ -189,7 +191,9 @@ try {
         "-v",
         "PORT=$BackendPort",
         "-v",
-        "ENVIRONMENT=production"
+        "ENVIRONMENT=production",
+        "-v",
+        "OAUTH_ISSUER_URL=$backendPublicOrigin"
     )
 
     $backendArgs += @("-v", "MCP_CLIENT_SECRET=$mcpClientSecret")
@@ -214,7 +218,11 @@ try {
         "-v",
         "CONNEXITY_API_URL=$backendApiUrl",
         "-v",
-        "MCP_CLIENT_SECRET=$mcpClientSecret"
+        "MCP_CLIENT_SECRET=$mcpClientSecret",
+        "-v",
+        "MCP_PUBLIC_BASE_URL=$mcpPublicOrigin",
+        "-v",
+        "MCP_OAUTH_ISSUER_URL=$backendPublicOrigin"
     )
     if (-not [string]::IsNullOrWhiteSpace($mcpClientId)) {
         $mcpArgs += @("-v", "MCP_CLIENT_ID=$mcpClientId")
@@ -222,8 +230,11 @@ try {
 
     Invoke-Railway $mcpArgs
 
-    Invoke-RailwayUpInDirectory -Directory "frontend" -ServiceName $FrontendServiceName
     Invoke-Railway @("domain", "-s", $FrontendServiceName)
+    Invoke-Railway @("domain", "-s", $BackendServiceName)
+    Invoke-Railway @("domain", "-s", $McpServiceName)
+
+    Invoke-RailwayUpInDirectory -Directory "frontend" -ServiceName $FrontendServiceName
     Invoke-RailwayUpInDirectory -Directory "backend" -ServiceName $BackendServiceName
     Invoke-RailwayUpInDirectory -Directory "mcp_server" -ServiceName $McpServiceName
 }
