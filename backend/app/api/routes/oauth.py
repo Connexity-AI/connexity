@@ -239,11 +239,7 @@ def _authorize_form(
     mode: str = "signin",
     error: str | None = None,
 ) -> HTMLResponse:
-    error_html = (
-        f'<p class="error">{html.escape(error)}</p>'
-        if error
-        else ""
-    )
+    error_html = f'<p class="error">{html.escape(error)}</p>' if error else ""
     hidden = "\n".join(
         [
             _hidden_input("response_type", response_type),
@@ -264,9 +260,7 @@ def _authorize_form(
         else "Sign in to Connexity to allow Claude to use your MCP tools."
     )
     form_action = (
-        "/oauth/authorize/signup/confirm"
-        if signup_mode
-        else "/oauth/authorize/confirm"
+        "/oauth/authorize/signup/confirm" if signup_mode else "/oauth/authorize/confirm"
     )
     password_autocomplete = "new-password" if signup_mode else "current-password"
     full_name_field = (
@@ -435,7 +429,11 @@ async def register_oauth_client(
     response_types = body.response_types or ["code"]
     unsupported_grants = set(grant_types) - SUPPORTED_GRANT_TYPES
     unsupported_responses = set(response_types) - SUPPORTED_RESPONSE_TYPES
-    if "authorization_code" not in grant_types or unsupported_grants or unsupported_responses:
+    if (
+        "authorization_code" not in grant_types
+        or unsupported_grants
+        or unsupported_responses
+    ):
         logger.warning(
             "OAuth DCR rejected: unsupported grant_types=%s response_types=%s",
             grant_types,
@@ -764,7 +762,9 @@ def token(
         if not refresh_token:
             raise HTTPException(status_code=400, detail="Missing refresh_token")
 
-        stored_refresh_token = session.get(OAuthRefreshToken, _hash_token(refresh_token))
+        stored_refresh_token = session.get(
+            OAuthRefreshToken, _hash_token(refresh_token)
+        )
         now = datetime.now(UTC)
         if (
             stored_refresh_token is None

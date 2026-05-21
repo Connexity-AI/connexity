@@ -30,7 +30,9 @@ def create_access_token(
 
 
 def _oauth_private_key() -> ed25519.Ed25519PrivateKey:
-    seed = hashlib.sha256(f"connexity-oauth:{settings.JWT_SECRET_KEY}".encode()).digest()
+    seed = hashlib.sha256(
+        f"connexity-oauth:{settings.JWT_SECRET_KEY}".encode()
+    ).digest()
     return ed25519.Ed25519PrivateKey.from_private_bytes(seed)
 
 
