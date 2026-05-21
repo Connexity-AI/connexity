@@ -6,7 +6,7 @@ Thanks for your interest in contributing! Connexity is built in the open and we 
 
 - **Report a bug** — open an [issue](https://github.com/Connexity-AI/connexity/issues) with reproduction steps, expected vs. actual behavior, and your environment (OS, Docker / Node / Python versions).
 - **Request a feature** — start a thread in [GitHub Discussions](https://github.com/Connexity-AI/connexity/discussions). Describe the use case before the implementation — it's much easier to align on a solution that way.
-- **Improve the docs** — typos, missing pieces, or clearer explanations are always appreciated. PRs against [`docs/`](./docs) and the README are welcome.
+- **Improve the docs** — typos, missing pieces, or clearer explanations are always appreciated. The public docs site is sourced from [`docs/`](./docs); contributor and release-pipeline notes live in [`docs-internal/`](./docs-internal). PRs against either are welcome.
 - **Send a pull request** — bug fixes, small features, and well-scoped refactors are great first contributions. For larger changes, please open a discussion or issue first so we can agree on the direction.
 
 ## Development setup

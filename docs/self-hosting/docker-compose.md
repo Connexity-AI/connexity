@@ -11,7 +11,7 @@ You need **`git`**, **[Docker Desktop](https://www.docker.com/products/docker-de
 ## Local (already on your machine)
 
 1. Clone the repository and enter the directory.
-2. Copy `.env.example` to `.env` and set **`SITE_URL`**, **`JWT_SECRET_KEY`**, **`ENCRYPTION_KEY`**, **`POSTGRES_PASSWORD`**, plus **at least one LLM provider key** your deployment will use (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or others referenced in [.env.example](../.env.example)).
+2. Copy `.env.example` to `.env` and set **`SITE_URL`**, **`JWT_SECRET_KEY`**, **`ENCRYPTION_KEY`**, **`POSTGRES_PASSWORD`**, plus **at least one LLM provider key** your deployment will use (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or others referenced in [.env.example](../../.env.example)).
 3. Start the stack:
 
    ```bash
@@ -68,4 +68,4 @@ Open **`SITE_URL`** in the browser (or **`http://<instance-ip>:3000`** for a min
 - Compose is suited to **single-node** deployments and **vertical scaling**. It is not HA by itself.
 - For shutdown: **Ctrl+C** in the foreground, or **`docker compose down`** if you ran with **`docker compose up -d`** (add **`docker compose down -v`** to remove volumes too).
 
-For local development outside Docker—Postgres still in Compose, apps on the host—see [CONTRIBUTING.md](../CONTRIBUTING.md).
+For local development outside Docker—Postgres still in Compose, apps on the host—see [CONTRIBUTING.md](../../CONTRIBUTING.md).

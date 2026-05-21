@@ -4,8 +4,8 @@ End-to-end walkthrough of how a change ships in this repo — from a merged PR o
 
 This doc is the **overview**. The component-specific docs go deeper:
 
-- [`pypi-publishing.md`](./pypi-publishing.md) — CLI publishing setup and troubleshooting
-- [`platform-releases.md`](./platform-releases.md) — platform release workflow details
+- [`pypi.md`](./pypi.md) — CLI publishing setup and troubleshooting
+- [`platform.md`](./platform.md) — platform release workflow details
 
 ## Two release lines, separate namespaces
 
@@ -13,12 +13,12 @@ The repo ships two independent artifact lines from the same monorepo. They use d
 
 | Artifact | Tag pattern | Trigger | Workflow | Artifact destination |
 |---|---|---|---|---|
-| **CLI** (`connexity-cli`) | `cli-vX.Y.Z` | Merge of release-please PR on `main` | [`release-please.yml`](../.github/workflows/release-please.yml) → [`publish-pypi.yml`](../.github/workflows/publish-pypi.yml) | [PyPI](https://pypi.org/project/connexity-cli/) |
-| **Platform** (backend + frontend) | `vX.Y.Z` (from `v1.0.0`) | Manual `workflow_dispatch` | [`release-platform.yml`](../.github/workflows/release-platform.yml) | GitHub Release + Docker images (already-deployed) |
+| **CLI** (`connexity-cli`) | `cli-vX.Y.Z` | Merge of release-please PR on `main` | [`release-please.yml`](../../.github/workflows/release-please.yml) → [`publish-pypi.yml`](../../.github/workflows/publish-pypi.yml) | [PyPI](https://pypi.org/project/connexity-cli/) |
+| **Platform** (backend + frontend) | `vX.Y.Z` (from `v1.0.0`) | Manual `workflow_dispatch` | [`release-platform.yml`](../../.github/workflows/release-platform.yml) | GitHub Release + Docker images (already-deployed) |
 
 > The legacy `v0.1.0` tag is a pre-namespace-split CLI release. Do not reuse it, and skip it when looking at "the latest `v*` tag".
 
-The platform deploys on every push to `main` via [`deploy-backend.yml`](../.github/workflows/deploy-backend.yml) and [`deploy-frontend.yml`](../.github/workflows/deploy-frontend.yml). Platform tags are **informational** — they label a coherent batch of shipped work, they do not gate deployment.
+The platform deploys on every push to `main` via [`deploy-backend.yml`](../../.github/workflows/deploy-backend.yml) and [`deploy-frontend.yml`](../../.github/workflows/deploy-frontend.yml). Platform tags are **informational** — they label a coherent batch of shipped work, they do not gate deployment.
 
 The CLI does not deploy continuously; it ships only when a `cli-v*` tag is pushed.
 
@@ -43,10 +43,10 @@ Commits that do not touch `backend/cli/` are ignored by release-please regardles
 
 ### 2. release-please opens a Release PR
 
-On every push to `main`, [`release-please.yml`](../.github/workflows/release-please.yml) runs. If there are unreleased CLI commits, it opens (or updates) a single Release PR titled like `chore(cli): release 0.3.0`. The PR contains:
+On every push to `main`, [`release-please.yml`](../../.github/workflows/release-please.yml) runs. If there are unreleased CLI commits, it opens (or updates) a single Release PR titled like `chore(cli): release 0.3.0`. The PR contains:
 
 - the version bump in `pyproject.toml` and `backend/cli/_version.py`
-- a new section appended to [`backend/cli/CHANGELOG.md`](../backend/cli/CHANGELOG.md)
+- a new section appended to [`backend/cli/CHANGELOG.md`](../../backend/cli/CHANGELOG.md)
 - the manifest update in `.release-please-manifest.json`
 
 Review it like any other PR. If you want to hold a release, just don't merge the PR yet — release-please keeps it up to date with each new commit until you do.
@@ -60,13 +60,13 @@ Merging the Release PR triggers release-please to:
 
 ### 4. Tag triggers `publish-pypi.yml`
 
-[`publish-pypi.yml`](../.github/workflows/publish-pypi.yml) listens for `cli-v*` tags and runs three jobs:
+[`publish-pypi.yml`](../../.github/workflows/publish-pypi.yml) listens for `cli-v*` tags and runs three jobs:
 
 1. **build-and-validate** — `hatch build`, install the wheel in a clean venv, verify `connexity-cli --help` works, and assert that heavy backend deps (`fastapi`, `sqlmodel`, `litellm`, `alembic`, `psycopg`) did **not** leak into the wheel. This is a hard gate.
 2. **publish** — upload to PyPI via Trusted Publisher (OIDC, no secrets). Uses the `pypi` GitHub environment.
 3. **post-publish-smoke-test** — wait 30s for PyPI to propagate, then `pip install connexity-cli==<version>` and run `--help` against the published wheel.
 
-If any of these fail, the tag and GitHub Release still exist, but PyPI was not updated. See [`pypi-publishing.md`](./pypi-publishing.md#troubleshooting) for fixing each failure mode.
+If any of these fail, the tag and GitHub Release still exist, but PyPI was not updated. See [`pypi.md`](./pypi.md#troubleshooting) for fixing each failure mode.
 
 ### 5. Verify
 
@@ -94,13 +94,13 @@ The `publish-pypi.yml` workflow does not care how the tag was created.
 
 ### 0. Deploy already happened
 
-Every merge to `main` runs the build-and-push Docker workflow ([`publish-docker-ghcr.yml`](../.github/workflows/publish-docker-ghcr.yml)) on the release event, and the deploy workflows ([`deploy-backend.yml`](../.github/workflows/deploy-backend.yml) / [`deploy-frontend.yml`](../.github/workflows/deploy-frontend.yml)) SSH into the host and `docker compose up -d` the new image. By the time you cut a platform tag, the code is already live.
+Every merge to `main` runs the build-and-push Docker workflow ([`publish-docker-ghcr.yml`](../../.github/workflows/publish-docker-ghcr.yml)) on the release event, and the deploy workflows ([`deploy-backend.yml`](../../.github/workflows/deploy-backend.yml) / [`deploy-frontend.yml`](../../.github/workflows/deploy-frontend.yml)) SSH into the host and `docker compose up -d` the new image. By the time you cut a platform tag, the code is already live.
 
 The tag exists to label "this batch shipped" — for support, ops, and the [GitHub Releases](https://github.com/Connexity-AI/connexity/releases) page.
 
 ### 1. Label the PRs that are about to be in the release
 
-The release notes are auto-generated from PR labels via [`.github/release.yml`](../.github/release.yml). Categories:
+The release notes are auto-generated from PR labels via [`.github/release.yml`](../../.github/release.yml). Categories:
 
 | Label on PR | Section in release notes |
 |---|---|
@@ -133,7 +133,7 @@ The workflow refuses to run on any branch other than `main`. If you need to rele
 
 ### 4. Docker images get re-tagged
 
-[`publish-docker-ghcr.yml`](../.github/workflows/publish-docker-ghcr.yml) runs on `release: published`. It rebuilds and pushes both `<repo>-backend` and `<repo>-frontend` images to GHCR tagged with the release tag, plus `latest`. This gives ops a stable image ref per release for rollbacks.
+[`publish-docker-ghcr.yml`](../../.github/workflows/publish-docker-ghcr.yml) runs on `release: published`. It rebuilds and pushes both `<repo>-backend` and `<repo>-frontend` images to GHCR tagged with the release tag, plus `latest`. This gives ops a stable image ref per release for rollbacks.
 
 ### Manual override (hotfix from non-main commit)
 
@@ -151,7 +151,7 @@ This bypasses the `main`-only check. Use sparingly — the auto-generated notes 
 
 After either release type, post to Discord `#announcements`. This is a manual step — there is no auto-announce.
 
-The fastest path is the `/announce-release` skill ([`.claude/skills/announce-release/SKILL.md`](../.claude/skills/announce-release/SKILL.md)), which:
+The fastest path is the `/announce-release` skill ([`.claude/skills/announce-release/SKILL.md`](../../.claude/skills/announce-release/SKILL.md)), which:
 
 1. fetches the latest release with `gh release list`
 2. detects CLI vs platform from the tag prefix
@@ -202,7 +202,7 @@ Full notes: https://github.com/Connexity-AI/connexity/releases/tag/vX.Y.Z
 - Always link the GitHub Release URL.
 - Always state the user action (`uv tool upgrade ...`, or "rolling out over the next few hours").
 
-The full guide and worked examples live in [`SKILL.md`](../.claude/skills/announce-release/SKILL.md#voice-guide).
+The full guide and worked examples live in [`SKILL.md`](../../.claude/skills/announce-release/SKILL.md#voice-guide).
 
 ### Skip the announcement when…
 
@@ -245,8 +245,8 @@ Use judgement. A silent release is fine if there's nothing for users to act on.
 
 ## See also
 
-- [`pypi-publishing.md`](./pypi-publishing.md) — PyPI Trusted Publisher setup, troubleshooting wheel/validation/smoke-test failures
-- [`platform-releases.md`](./platform-releases.md) — full detail on the platform release workflow, label conventions, and manual overrides
-- [`.claude/skills/announce-release/SKILL.md`](../.claude/skills/announce-release/SKILL.md) — Discord announcement skill (voice rules, worked examples, webhook setup)
-- [`.github/release.yml`](../.github/release.yml) — release-notes category config
-- [`release-please-config.json`](../release-please-config.json) — release-please config for the CLI package
+- [`pypi.md`](./pypi.md) — PyPI Trusted Publisher setup, troubleshooting wheel/validation/smoke-test failures
+- [`platform.md`](./platform.md) — full detail on the platform release workflow, label conventions, and manual overrides
+- [`.claude/skills/announce-release/SKILL.md`](../../.claude/skills/announce-release/SKILL.md) — Discord announcement skill (voice rules, worked examples, webhook setup)
+- [`.github/release.yml`](../../.github/release.yml) — release-notes category config
+- [`release-please-config.json`](../../release-please-config.json) — release-please config for the CLI package

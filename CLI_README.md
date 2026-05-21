@@ -112,7 +112,7 @@ connexity-cli run \
   --cases-pass-threshold 95
 ```
 
-Pass `--no-fail-on-thresholds` to print the verdict but exit 0 regardless. Full formula and rationale: [docs/scoring-and-thresholds.md](docs/scoring-and-thresholds.md).
+Pass `--no-fail-on-thresholds` to print the verdict but exit 0 regardless. Full formula and rationale: [docs/evals/scoring-and-thresholds.md](docs/evals/scoring-and-thresholds.md).
 
 ## Output formats
 

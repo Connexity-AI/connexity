@@ -12,7 +12,7 @@ The publishing pipeline uses two GitHub Actions workflows:
 
 > **Tag namespaces in this repo**
 > - `cli-vX.Y.Z` — CLI package release (this doc)
-> - `vX.Y.Z` — platform release, see [`platform-releases.md`](./platform-releases.md)
+> - `vX.Y.Z` — platform release, see [`platform.md`](./platform.md)
 > - `v0.1.0` (no prefix) — historical CLI release predating the namespace split; do not reuse.
 
 ## One-Time Setup: PyPI Trusted Publisher
@@ -81,7 +81,7 @@ Commits that don't match these patterns (or don't touch `backend/cli/`) are igno
 
 ### Where the changelog lives
 
-- **In the repo:** [`backend/cli/CHANGELOG.md`](../backend/cli/CHANGELOG.md) — release-please writes to it on every Release PR.
+- **In the repo:** [`backend/cli/CHANGELOG.md`](../../backend/cli/CHANGELOG.md) — release-please writes to it on every Release PR.
 - **On GitHub:** the [Releases page](https://github.com/Connexity-AI/connexity/releases?q=cli-v) auto-mirrors each Release PR's CHANGELOG entry.
 - **On PyPI:** PyPI does not natively render per-release changelogs. The `[project.urls]` section in `pyproject.toml` exposes `Changelog` and `Releases` links in the project's PyPI sidebar — clicking them sends users to the locations above.
 

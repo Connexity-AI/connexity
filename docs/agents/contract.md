@@ -12,7 +12,7 @@ Canonical Pydantic models live in the backend at `app.models.agent_contract` (`A
 | **Content-Type** | `application/json` |
 | **Auth** | Your deployment (API key, mTLS, etc.) — not defined by this contract |
 
-The platform stores the full URL on the `Agent` record (e.g. `https://your-host/agent/respond`). The path segment `/agent/respond` is the recommended convention used by the reference [mock agent](../examples/mock_agent/).
+The platform stores the full URL on the `Agent` record (e.g. `https://your-host/agent/respond`). The path segment `/agent/respond` is the recommended convention used by the reference [mock agent](../../examples/mock_agent/).
 
 ## Request body (`AgentRequest`)
 
@@ -221,9 +221,9 @@ For hard transport failures (timeout, 5xx), the platform run records an appropri
 
 | Path | Purpose |
 |------|---------|
-| [examples/mock_agent/](../examples/mock_agent/) | Tiny FastAPI agent for local testing and onboarding. |
-| [examples/integrations/raw_python_agent.py](../examples/integrations/raw_python_agent.py) | Wrap the OpenAI SDK with an internal tool loop. |
-| [examples/integrations/langchain_agent.py](../examples/integrations/langchain_agent.py) | LangChain chat model + tools, mapped to this contract. |
+| [examples/mock_agent/](../../examples/mock_agent/) | Tiny FastAPI agent for local testing and onboarding. |
+| [examples/integrations/raw_python_agent.py](../../examples/integrations/raw_python_agent.py) | Wrap the OpenAI SDK with an internal tool loop. |
+| [examples/integrations/langchain_agent.py](../../examples/integrations/langchain_agent.py) | LangChain chat model + tools, mapped to this contract. |
 
 ## What this is not
 
