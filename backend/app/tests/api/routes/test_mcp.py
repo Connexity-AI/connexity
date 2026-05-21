@@ -30,9 +30,7 @@ def _issue_service_token(
     return body["access_token"]
 
 
-def test_mcp_token_exchange_rejects_bad_secret(
-    client: TestClient, monkeypatch
-) -> None:
+def test_mcp_token_exchange_rejects_bad_secret(client: TestClient, monkeypatch) -> None:
     monkeypatch.setattr(settings, "MCP_CLIENT_SECRET", CLIENT_SECRET)
 
     response = client.post(

@@ -172,9 +172,7 @@ def measure_actual_output(test_cases: list[dict]) -> dict:
     for tc in test_cases:
         # Serialize just the test case fields (exclude id/timestamps)
         tc_copy = {
-            k: v
-            for k, v in tc.items()
-            if k not in ("id", "created_at", "updated_at")
+            k: v for k, v in tc.items() if k not in ("id", "created_at", "updated_at")
         }
         tc_json = json.dumps(tc_copy, indent=2)
         per_case_tokens.append(count_tokens(tc_json))
@@ -276,9 +274,13 @@ def main() -> None:
 
     opc = estimates["output_per_case_tokens"]
     print(f"\nEstimated output per test case: {opc['low']}-{opc['high']} tokens")
-    print(f"GENERATOR_MAX_TOKENS setting:  {estimates['generator_max_tokens_setting']:,}")
+    print(
+        f"GENERATOR_MAX_TOKENS setting:  {estimates['generator_max_tokens_setting']:,}"
+    )
 
-    print(f"\nMax test cases by model (with GENERATOR_MAX_TOKENS={estimates['generator_max_tokens_setting']:,}):")
+    print(
+        f"\nMax test cases by model (with GENERATOR_MAX_TOKENS={estimates['generator_max_tokens_setting']:,}):"
+    )
     print(f"  {'Model':<40} {'Budget':>8} {'Conservative':>14} {'Optimistic':>12}")
     print(f"  {'-'*40} {'-'*8} {'-'*14} {'-'*12}")
     for model_name, est in estimates["model_estimates"].items():
@@ -348,10 +350,16 @@ def main() -> None:
         print(f"  Requested:         {result['count_requested']}")
         print(f"  Returned:          {result['count_returned']}")
         print(f"  Model:             {result['model_used']}")
-        print(f"  Server time:       {result['generation_time_ms']:,} ms ({result['generation_time_ms'] / 1000:.1f}s)")
-        print(f"  Wall time:         {result['wall_time_ms']:,} ms ({result['wall_time_ms'] / 1000:.1f}s)")
+        print(
+            f"  Server time:       {result['generation_time_ms']:,} ms ({result['generation_time_ms'] / 1000:.1f}s)"
+        )
+        print(
+            f"  Wall time:         {result['wall_time_ms']:,} ms ({result['wall_time_ms'] / 1000:.1f}s)"
+        )
         print(f"  Avg tokens/case:   {actual['avg_tokens_per_case']}")
-        print(f"  Min/Max tokens:    {actual['min_tokens_per_case']}/{actual['max_tokens_per_case']}")
+        print(
+            f"  Min/Max tokens:    {actual['min_tokens_per_case']}/{actual['max_tokens_per_case']}"
+        )
         print(f"  Total output tok:  {actual['total_output_tokens']:,}")
 
         # Estimate based on actual measurements
@@ -365,11 +373,15 @@ def main() -> None:
     print("\n" + "=" * 70)
     print("SUMMARY")
     print("=" * 70)
-    print(f"\n{'Count':>6} | {'Returned':>8} | {'Server (s)':>10} | {'Wall (s)':>10} | {'Avg tok/case':>12} | {'Status'}")
+    print(
+        f"\n{'Count':>6} | {'Returned':>8} | {'Server (s)':>10} | {'Wall (s)':>10} | {'Avg tok/case':>12} | {'Status'}"
+    )
     print(f"{'-'*6}-+-{'-'*8}-+-{'-'*10}-+-{'-'*10}-+-{'-'*12}-+-{'-'*10}")
     for r in results:
         if "error" in r:
-            print(f"{r['count_requested']:>6} | {'---':>8} | {r['wall_time_ms']/1000:>10.1f} | {r['wall_time_ms']/1000:>10.1f} | {'---':>12} | FAILED")
+            print(
+                f"{r['count_requested']:>6} | {'---':>8} | {r['wall_time_ms']/1000:>10.1f} | {r['wall_time_ms']/1000:>10.1f} | {'---':>12} | FAILED"
+            )
         else:
             a = r["actual_output"]
             print(
