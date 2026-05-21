@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from typing import Any
 
 import httpx
@@ -18,12 +19,8 @@ class ConnexityBackendClient:
         http_client: httpx.AsyncClient | None = None,
     ) -> None:
         self._settings = settings
-        self._token = (
-            settings.connexity_api_token.strip()
-            if isinstance(settings.connexity_api_token, str)
-            and settings.connexity_api_token.strip()
-            else None
-        )
+        self._token: str | None = None
+        self._token_expires_at = 0.0
         self._default_headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
@@ -42,19 +39,19 @@ class ConnexityBackendClient:
     async def update_agent_draft(self, agent_id: str, system_prompt: str) -> dict[str, Any]:
         return await self._request_json(
             "PUT",
-            f"/agents/{agent_id}/draft",
+            f"/mcp/agents/{agent_id}/draft",
             json={"system_prompt": system_prompt},
         )
 
     async def list_agents(self, skip: int = 0, limit: int = 100) -> dict[str, Any]:
         return await self._request_json(
             "GET",
-            "/agents",
+            "/mcp/agents",
             params={"skip": skip, "limit": limit},
         )
 
     async def get_agent_draft(self, agent_id: str) -> dict[str, Any]:
-        return await self._request_json("GET", f"/agents/{agent_id}/draft")
+        return await self._request_json("GET", f"/mcp/agents/{agent_id}/draft")
 
     async def _request_json(
         self,
@@ -99,51 +96,60 @@ class ConnexityBackendClient:
         return headers
 
     async def _get_auth_token(self) -> str:
-        if self._token:
+        if self._token and time.monotonic() < self._token_expires_at:
             return self._token
 
-        saved_token = self._settings.load_saved_cli_token()
-        if saved_token:
-            self._token = saved_token
-            return self._token
-
-        email = self._settings.connexity_email or self._settings.dev_email
-        password = self._settings.connexity_password or self._settings.dev_password
-        if email and password:
-            self._token = await self._login_for_token(email=email, password=password)
-            return self._token
-
-        raise ConnexityBackendError(
-            "Connexity auth is not configured. Provide CONNEXITY_API_TOKEN, or save "
-            "CLI credentials with connexity-cli login --save, or set CONNEXITY_EMAIL "
-            "and CONNEXITY_PASSWORD for dev login."
+        client_id = self._settings.resolved_mcp_client_id
+        client_secret = (
+            self._settings.mcp_client_secret.strip()
+            if isinstance(self._settings.mcp_client_secret, str)
+            else ""
         )
+        if not client_secret:
+            raise ConnexityBackendError(
+                "Connexity service auth is not configured. Provide "
+                "MCP_CLIENT_SECRET."
+            )
 
-    async def _login_for_token(self, *, email: str, password: str) -> str:
         try:
-            response = await self._client.post(
-                f"{self._settings.normalized_api_url}/login/access-token",
-                headers={"Accept": "application/json"},
-                data={"username": email, "password": password},
+            response = await self._client.request(
+                "POST",
+                f"{self._settings.normalized_api_url}/internal/token",
+                headers=self._default_headers,
+                json={"client_id": client_id, "client_secret": client_secret},
                 follow_redirects=True,
             )
             response.raise_for_status()
             payload = response.json()
-            if not isinstance(payload, dict):
-                raise ConnexityBackendError(
-                    "Connexity login returned a non-object JSON payload."
-                )
-            token = payload.get("access_token")
-            if not isinstance(token, str) or not token.strip():
-                raise ConnexityBackendError(
-                    "Connexity login response did not include access_token."
-                )
-            return token.strip()
         except httpx.HTTPStatusError as exc:
             detail = _extract_error_detail(exc.response)
-            raise ConnexityBackendError(f"Connexity login failed: {detail}") from exc
+            raise ConnexityBackendError(
+                f"Connexity service auth failed: {detail}"
+            ) from exc
         except httpx.HTTPError as exc:
-            raise ConnexityBackendError(f"Connexity login failed: {exc}") from exc
+            raise ConnexityBackendError(
+                f"Connexity service auth failed: {exc}"
+            ) from exc
+
+        if not isinstance(payload, dict):
+            raise ConnexityBackendError(
+                "Connexity service auth returned a non-object JSON payload."
+            )
+
+        access_token = payload.get("access_token")
+        expires_in = payload.get("expires_in")
+        if not isinstance(access_token, str) or not access_token.strip():
+            raise ConnexityBackendError(
+                "Connexity service auth response did not include a valid access token."
+            )
+        if not isinstance(expires_in, int) or expires_in <= 0:
+            raise ConnexityBackendError(
+                "Connexity service auth response did not include a valid expires_in."
+            )
+
+        self._token = access_token.strip()
+        self._token_expires_at = time.monotonic() + max(expires_in - 30, 0)
+        return self._token
 
 
 def _extract_error_detail(response: httpx.Response) -> str:

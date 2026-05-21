@@ -18,10 +18,8 @@ the MCP server.
 The server reads these environment variables:
 
 - `CONNEXITY_API_URL`
-- `CONNEXITY_API_TOKEN`
-- `CONNEXITY_EMAIL`
-- `CONNEXITY_PASSWORD`
-- `CONNEXITY_USE_SAVED_CLI_CREDENTIALS`
+- `MCP_CLIENT_ID` optional, defaults to `mcp-server`
+- `MCP_CLIENT_SECRET`
 - `MCP_HOST`
 - `MCP_PORT`
 - `MCP_PATH`
@@ -30,9 +28,10 @@ The server reads these environment variables:
 Local-dev fallbacks are built in:
 
 - `CONNEXITY_API_URL` falls back to `API_URL` and then `http://localhost:8000/api/v1`
-- auth falls back from `CONNEXITY_API_TOKEN` to saved CLI credentials, then
-  `CONNEXITY_EMAIL` / `CONNEXITY_PASSWORD`, then `FIRST_SUPERUSER` /
-  `FIRST_SUPERUSER_PASSWORD`
 - `MCP_PUBLIC_BASE_URL` falls back to `https://${RAILWAY_PUBLIC_DOMAIN}` on Railway
-- `CONNEXITY_USE_SAVED_CLI_CREDENTIALS` defaults to `false` on Railway and `true`
-  in local development
+
+For Railway production, set the same `MCP_CLIENT_SECRET` on both the backend
+and MCP services. `MCP_CLIENT_ID` is optional unless you want to override the
+built-in `mcp-server` identity. The MCP server uses that shared secret pair
+only to call `/internal/token`; the backend returns a short-lived service JWT
+that the MCP server then uses for `/mcp/*` requests.

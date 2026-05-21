@@ -45,11 +45,9 @@ These values should be treated as secrets:
 
 - `JWT_SECRET_KEY`
 - `ENCRYPTION_KEY`
+- `MCP_CLIENT_SECRET`
 - `OPENAI_API_KEY`
 - `ANTHROPIC_API_KEY`
-- `CONNEXITY_API_TOKEN`
-- `CONNEXITY_EMAIL`
-- `CONNEXITY_PASSWORD`
 
 `ENCRYPTION_KEY` must be a valid Fernet key. Generate one with:
 
@@ -68,8 +66,22 @@ The recommended pattern is:
 - `PORT=8000` on the backend service
 - `API_URL=http://${{ backend.RAILWAY_PRIVATE_DOMAIN }}:${{ backend.PORT }}`
 - `CONNEXITY_API_URL=http://${{ backend.RAILWAY_PRIVATE_DOMAIN }}:${{ backend.PORT }}/api/v1`
+- `MCP_CLIENT_SECRET=<long random secret>` shared into:
+  - `backend.MCP_CLIENT_SECRET`
+  - `mcp-server.MCP_CLIENT_SECRET`
+- optional `MCP_CLIENT_ID=<custom service id>` shared into:
+  - `backend.MCP_CLIENT_ID`
+  - `mcp-server.MCP_CLIENT_ID`
+  - if omitted, both services default to `mcp-server`
 
-The frontend now derives its own public base URL from `RAILWAY_PUBLIC_DOMAIN`, and the backend derives the same public URL from `RAILWAY_SERVICE_CONNEXITY_FE_URL` when `SITE_URL` is unset. The MCP server likewise derives its public base URL from `RAILWAY_PUBLIC_DOMAIN` when `MCP_PUBLIC_BASE_URL` is unset, and it defaults away from saved CLI credentials on Railway.
+The frontend now derives its own public base URL from `RAILWAY_PUBLIC_DOMAIN`, and the backend derives the same public URL from `RAILWAY_SERVICE_CONNEXITY_FE_URL` when `SITE_URL` is unset. The MCP server likewise derives its public base URL from `RAILWAY_PUBLIC_DOMAIN` when `MCP_PUBLIC_BASE_URL` is unset.
+
+For Railway production deployments, the intended and only supported MCP auth path is:
+
+- MCP server sends `MCP_CLIENT_ID` and `MCP_CLIENT_SECRET` to `POST /api/v1/internal/token`
+- backend compares those values to its configured values; `MCP_CLIENT_ID` defaults to `mcp-server`
+- backend returns a short-lived service JWT
+- MCP server uses that JWT for `/api/v1/mcp/*` requests
 
 The frontend expects the backend origin only because its generated client already prefixes routes with `/api/v1`. The MCP server accepts either form, but using the explicit `/api/v1` URL keeps it aligned with the backend CLI defaults.
 

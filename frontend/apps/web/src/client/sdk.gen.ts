@@ -170,6 +170,9 @@ import type {
   IntegrationsTestIntegrationData,
   IntegrationsTestIntegrationErrors,
   IntegrationsTestIntegrationResponses,
+  InternalIssueMcpServiceTokenData,
+  InternalIssueMcpServiceTokenErrors,
+  InternalIssueMcpServiceTokenResponses,
   LoginLoginAccessTokenData,
   LoginLoginAccessTokenErrors,
   LoginLoginAccessTokenResponses,
@@ -179,6 +182,15 @@ import type {
   LoginTestTokenData,
   LoginTestTokenErrors,
   LoginTestTokenResponses,
+  McpGetDraftData,
+  McpGetDraftErrors,
+  McpGetDraftResponses,
+  McpListAgentsData,
+  McpListAgentsErrors,
+  McpListAgentsResponses,
+  McpUpsertDraftData,
+  McpUpsertDraftErrors,
+  McpUpsertDraftResponses,
   PromptEditorChatData,
   PromptEditorChatErrors,
   PromptEditorChatResponses,
@@ -404,6 +416,28 @@ export class LoginService {
   }
 }
 
+export class InternalService {
+  /**
+   * Issue Mcp Service Token
+   */
+  public static issueMcpServiceToken<ThrowOnError extends boolean = false>(
+    options: Options<InternalIssueMcpServiceTokenData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      InternalIssueMcpServiceTokenResponses,
+      InternalIssueMcpServiceTokenErrors,
+      ThrowOnError
+    >({
+      url: '/api/v1/internal/token',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+}
+
 export class UsersService {
   /**
    * Register User
@@ -531,6 +565,59 @@ export class UsersService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/users/me/password',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+}
+
+export class McpService {
+  /**
+   * List Agents
+   */
+  public static listAgents<ThrowOnError extends boolean = false>(
+    options?: Options<McpListAgentsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      McpListAgentsResponses,
+      McpListAgentsErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/agents',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Draft
+   */
+  public static getDraft<ThrowOnError extends boolean = false>(
+    options: Options<McpGetDraftData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<McpGetDraftResponses, McpGetDraftErrors, ThrowOnError>({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/agents/{agent_id}/draft',
+      ...options,
+    });
+  }
+
+  /**
+   * Upsert Draft
+   */
+  public static upsertDraft<ThrowOnError extends boolean = false>(
+    options: Options<McpUpsertDraftData, ThrowOnError>
+  ) {
+    return (options.client ?? client).put<
+      McpUpsertDraftResponses,
+      McpUpsertDraftErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/agents/{agent_id}/draft',
       ...options,
       headers: {
         'Content-Type': 'application/json',
