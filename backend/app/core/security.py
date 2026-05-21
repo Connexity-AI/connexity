@@ -5,6 +5,7 @@ from typing import Any
 
 import jwt
 from cryptography.hazmat.primitives.asymmetric import ed25519
+from jwt.algorithms import OKPAlgorithm
 from passlib.context import CryptContext
 
 from app.core.config import settings
@@ -38,7 +39,7 @@ def _oauth_private_key() -> ed25519.Ed25519PrivateKey:
 
 def oauth_jwks() -> dict[str, list[dict[str, Any]]]:
     public_key = _oauth_private_key().public_key()
-    jwk = json.loads(jwt.algorithms.OKPAlgorithm.to_jwk(public_key))
+    jwk = json.loads(OKPAlgorithm.to_jwk(public_key))
     jwk.update({"kid": OAUTH_KEY_ID, "alg": OAUTH_ALGORITHM, "use": "sig"})
     return {"keys": [jwk]}
 

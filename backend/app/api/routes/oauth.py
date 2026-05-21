@@ -4,6 +4,7 @@ import html
 import logging
 import secrets
 import uuid
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 from urllib.parse import urlencode
@@ -368,17 +369,17 @@ def _authorize_form(
 
 
 @router.get("/.well-known/oauth-authorization-server")
-def oauth_authorization_server_metadata() -> dict[str, object]:
+def oauth_authorization_server_metadata() -> Mapping[str, object]:
     return _metadata()
 
 
 @router.get("/.well-known/openid-configuration")
-def openid_configuration() -> dict[str, object]:
+def openid_configuration() -> Mapping[str, object]:
     return _metadata()
 
 
 @router.get("/.well-known/jwks.json")
-def jwks() -> dict[str, object]:
+def jwks() -> Mapping[str, object]:
     return security.oauth_jwks()
 
 
