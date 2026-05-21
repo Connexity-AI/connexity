@@ -63,6 +63,7 @@ def _setup_waiting_job(db: Session, *, dtmf_code: str = format_dtmf_code(body=24
             tts_provider="elevenlabs",
             tts_model="eleven_flash_v2_5",
             tts_voice_id="test-voice",
+            max_call_duration_seconds=300,
         ),
     )
     job = crud.update_voice_simulation_job(
@@ -238,6 +239,7 @@ def test_submit_voice_simulation_result_rejects_pending_job(
             tts_provider="elevenlabs",
             tts_model="eleven_flash_v2_5",
             tts_voice_id="test-voice",
+            max_call_duration_seconds=300,
         ),
     )
 

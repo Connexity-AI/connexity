@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.core.config import settings
 from app.models.enums import (
     RunMode,
     SimulatorMode,
@@ -23,6 +24,8 @@ from app.models.enums import (
 
 if TYPE_CHECKING:
     from app.models.test_case import TestCase
+
+_DEFAULT_TIMEOUT_PER_TEST_CASE_MS = 120_000
 
 # ── Test case nested types ──────────────────────────────────────────
 
@@ -335,12 +338,20 @@ class RuntimeTestRequest(BaseModel):
 class RunConfig(BaseModel):
     concurrency: int = Field(default=5, description="Max parallel test case executions")
     timeout_per_test_case_ms: int = Field(
-        default=120_000,
+        default=_DEFAULT_TIMEOUT_PER_TEST_CASE_MS,
         description="Timeout per test case in milliseconds before forced stop",
     )
     max_turns: int | None = Field(
         default=None,
-        description="Max agent response rounds per test case; null = no cap",
+        description="Max agent response rounds per test case; null = no cap (text mode only)",
+    )
+    max_call_duration_seconds: int | None = Field(
+        default=None,
+        ge=1,
+        description=(
+            "Maximum phone call duration in seconds for voice mode; "
+            "null in text mode"
+        ),
     )
     tool_mode: Literal["mock", "live"] = Field(
         default="mock",
@@ -398,9 +409,18 @@ class RunConfig(BaseModel):
     )
 
     @model_validator(mode="after")
-    def voice_mode_requires_speech_and_phone(self) -> Self:
-        if self.mode != RunMode.VOICE:
-            return self
+    def validate_run_config_for_mode(self) -> Self:
+        if self.mode == RunMode.VOICE:
+            return self._validate_voice_mode()
+        return self._validate_text_mode()
+
+    def _validate_text_mode(self) -> Self:
+        if self.max_call_duration_seconds is not None:
+            msg = "max_call_duration_seconds is only valid when mode is 'voice'"
+            raise ValueError(msg)
+        return self
+
+    def _validate_voice_mode(self) -> Self:
         if self.runtime.kind not in VoiceRuntimeKind:
             self.runtime = TwilioVoiceRuntimeConfig()
         phone = (self.agent_phone_number or "").strip()
@@ -413,6 +433,33 @@ class RunConfig(BaseModel):
             raise ValueError(msg)
         if sim.tts is None or not (sim.tts.voice_id or "").strip():
             msg = "user_simulator.tts with voice_id is required when mode is 'voice'"
+            raise ValueError(msg)
+        if self.max_turns is not None:
+            msg = "max_turns is not used when mode is 'voice'"
+            raise ValueError(msg)
+
+        if self.timeout_per_test_case_ms == _DEFAULT_TIMEOUT_PER_TEST_CASE_MS:
+            self.timeout_per_test_case_ms = (
+                settings.VOICE_DEFAULT_TIMEOUT_PER_TEST_CASE_MS
+            )
+
+        if self.max_call_duration_seconds is None:
+            self.max_call_duration_seconds = (
+                settings.VOICE_DEFAULT_CALL_DURATION_SECONDS
+            )
+
+        timeout_seconds = self.timeout_per_test_case_ms / 1000.0
+        if self.max_call_duration_seconds >= timeout_seconds:
+            msg = (
+                "max_call_duration_seconds must be shorter than "
+                "timeout_per_test_case_ms"
+            )
+            raise ValueError(msg)
+        if self.max_call_duration_seconds > settings.VOICE_MAX_CALL_DURATION_SECONDS:
+            msg = (
+                f"max_call_duration_seconds cannot exceed "
+                f"{settings.VOICE_MAX_CALL_DURATION_SECONDS}s"
+            )
             raise ValueError(msg)
         return self
 

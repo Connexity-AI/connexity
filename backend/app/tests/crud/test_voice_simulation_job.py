@@ -57,6 +57,7 @@ def _voice_job_create(
         tts_provider="elevenlabs",
         tts_model="eleven_flash_v2_5",
         tts_voice_id="test-voice",
+        max_call_duration_seconds=300,
     )
 
 

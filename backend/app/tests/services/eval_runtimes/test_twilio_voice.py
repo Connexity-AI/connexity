@@ -44,13 +44,16 @@ from app.tests.utils.eval import (
 )
 
 
-def _voice_run_config(*, timeout_ms: int = 5_000) -> RunConfig:
-    return RunConfig(
-        mode=RunMode.VOICE,
-        timeout_per_test_case_ms=timeout_ms,
-        agent_phone_number="+15551234567",
-        runtime=TwilioVoiceRuntimeConfig(),
-        user_simulator=UserSimulatorConfig(
+def _voice_run_config(
+    *,
+    timeout_ms: int | None = None,
+    max_call_duration_seconds: int | None = None,
+) -> RunConfig:
+    config_kwargs: dict[str, object] = {
+        "mode": RunMode.VOICE,
+        "agent_phone_number": "+15551234567",
+        "runtime": TwilioVoiceRuntimeConfig(),
+        "user_simulator": UserSimulatorConfig(
             stt=SttConfig(provider="deepgram", model="nova-3"),
             tts=TtsConfig(
                 provider="elevenlabs",
@@ -58,7 +61,15 @@ def _voice_run_config(*, timeout_ms: int = 5_000) -> RunConfig:
                 voice_id="test-voice",
             ),
         ),
-    )
+    }
+    if timeout_ms is not None:
+        config_kwargs["timeout_per_test_case_ms"] = timeout_ms
+    if max_call_duration_seconds is not None:
+        config_kwargs["max_call_duration_seconds"] = max_call_duration_seconds
+    elif timeout_ms is not None:
+        timeout_seconds = timeout_ms // 1000
+        config_kwargs["max_call_duration_seconds"] = max(1, timeout_seconds - 1)
+    return RunConfig(**config_kwargs)
 
 
 def _setup_voice_context(db: Session):
@@ -172,6 +183,7 @@ async def test_twilio_voice_runtime_end_to_end(db: Session) -> None:
     assert count == 1
     assert jobs[0].status == VoiceSimulationJobStatus.COMPLETED
     assert jobs[0].test_case_result_id == result.id
+    assert jobs[0].max_call_duration_seconds == 300
 
 
 async def test_orchestrator_executes_twilio_voice_runtime(db: Session) -> None:

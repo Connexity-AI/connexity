@@ -294,6 +294,7 @@ def test_allocate_dtmf_code_increments(db) -> None:
             tts_provider="elevenlabs",
             tts_model="eleven_flash_v2_5",
             tts_voice_id="test-voice",
+            max_call_duration_seconds=300,
         ),
     )
     second = allocate_dtmf_code(session=db)

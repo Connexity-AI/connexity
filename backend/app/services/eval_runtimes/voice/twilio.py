@@ -99,6 +99,7 @@ class TwilioVoiceRuntime(EvalRuntime):
         assert run_config.user_simulator is not None
         assert run_config.user_simulator.stt is not None
         assert run_config.user_simulator.tts is not None
+        assert run_config.max_call_duration_seconds is not None
 
         dtmf_code = allocate_dtmf_code(session=session)
         stt = run_config.user_simulator.stt
@@ -118,6 +119,7 @@ class TwilioVoiceRuntime(EvalRuntime):
                 tts_provider=tts.provider,
                 tts_model=tts.model,
                 tts_voice_id=tts.voice_id,
+                max_call_duration_seconds=run_config.max_call_duration_seconds,
             ),
         )
 
@@ -141,6 +143,16 @@ class TwilioVoiceRuntime(EvalRuntime):
             raise ValueError(msg)
         if sim.tts is None or not (sim.tts.voice_id or "").strip():
             msg = "user_simulator.tts with voice_id is required for voice runs"
+            raise ValueError(msg)
+        if run_config.max_call_duration_seconds is None:
+            msg = "max_call_duration_seconds is required for voice runs"
+            raise ValueError(msg)
+        timeout_seconds = run_config.timeout_per_test_case_ms / 1000.0
+        if run_config.max_call_duration_seconds >= timeout_seconds:
+            msg = (
+                "max_call_duration_seconds must be shorter than "
+                "timeout_per_test_case_ms"
+            )
             raise ValueError(msg)
 
     async def _wait_for_job_completion(

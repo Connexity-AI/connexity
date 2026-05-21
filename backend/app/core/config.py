@@ -136,6 +136,26 @@ class Settings(BaseSettings):
     TWILIO_ACCOUNT_SID: str | None = None
     TWILIO_AUTH_TOKEN: str | None = None
 
+    # Voice simulation runtime
+    VOICE_DEFAULT_CALL_DURATION_SECONDS: int = Field(
+        default=300,
+        ge=1,
+        description="Default max call duration when a voice RunConfig omits max_call_duration_seconds",
+    )
+    VOICE_DEFAULT_TIMEOUT_PER_TEST_CASE_MS: int = Field(
+        default=600_000,
+        ge=1,
+        description=(
+            "Default timeout per test case for voice RunConfig when the text "
+            "default timeout is still in effect"
+        ),
+    )
+    VOICE_MAX_CALL_DURATION_SECONDS: int = Field(
+        default=3600,
+        ge=1,
+        description="Upper bound for voice RunConfig max_call_duration_seconds",
+    )
+
     # Voice DTMF decoder
     DTMF_AUDIO_MAX_BYTES: int = 25 * 1024 * 1024
     DTMF_AUDIO_DOWNLOAD_TIMEOUT_SECONDS: float = 30.0

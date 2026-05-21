@@ -70,6 +70,10 @@ class VoiceSimulationJobBase(SQLModel):
         max_length=255,
         description="Provider voice id for the simulated caller",
     )
+    max_call_duration_seconds: int = Field(
+        ge=1,
+        description="Wall-clock call budget enforced by the voice worker",
+    )
     twilio_call_sid: str | None = Field(
         default=None,
         max_length=64,
@@ -166,6 +170,10 @@ class VoiceSimulationJobCreate(SQLModel):
     tts_provider: str = Field(description="TTS provider key")
     tts_model: str = Field(description="TTS model id")
     tts_voice_id: str = Field(description="TTS voice id")
+    max_call_duration_seconds: int = Field(
+        ge=1,
+        description="Wall-clock call budget enforced by the voice worker",
+    )
 
 
 class VoiceSimulationResultSubmit(SQLModel):
@@ -192,6 +200,9 @@ class VoiceSimulationJobPublic(SQLModel):
     status: VoiceSimulationJobStatus = Field(description="Voice job lifecycle status")
     dtmf_code: str = Field(description="Connexity DTMF code sent during the call")
     agent_phone_number: str = Field(description="E.164 agent phone number dialed")
+    max_call_duration_seconds: int = Field(
+        description="Configured maximum call duration in seconds",
+    )
     twilio_call_sid: str | None = Field(
         default=None,
         description="Twilio call SID once the worker places the call",

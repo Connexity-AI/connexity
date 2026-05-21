@@ -470,6 +470,80 @@ def test_run_config_voice_mode_valid() -> None:
     restored = _round_trip(RunConfig, config)
     assert restored.mode == RunMode.VOICE
     assert restored.agent_phone_number == "+15551234567"
+    assert restored.max_call_duration_seconds == 300
+
+
+def test_run_config_voice_mode_applies_default_call_duration() -> None:
+    config = RunConfig(
+        mode=RunMode.VOICE,
+        agent_phone_number="+15551234567",
+        user_simulator=UserSimulatorConfig(
+            stt=SttConfig(provider="deepgram", model="nova-3-general"),
+            tts=TtsConfig(
+                provider="deepgram",
+                model="aura",
+                voice_id="aura-2-helena-en",
+            ),
+        ),
+    )
+    assert config.max_call_duration_seconds == 300
+
+
+def test_run_config_voice_mode_applies_default_timeout() -> None:
+    config = RunConfig(
+        mode=RunMode.VOICE,
+        agent_phone_number="+15551234567",
+        user_simulator=UserSimulatorConfig(
+            stt=SttConfig(provider="deepgram", model="nova-3-general"),
+            tts=TtsConfig(
+                provider="deepgram",
+                model="aura",
+                voice_id="aura-2-helena-en",
+            ),
+        ),
+    )
+    assert config.timeout_per_test_case_ms == 600_000
+    assert config.max_call_duration_seconds == 300
+
+
+def test_run_config_voice_mode_rejects_max_turns() -> None:
+    with pytest.raises(ValueError, match="max_turns"):
+        RunConfig(
+            mode=RunMode.VOICE,
+            max_turns=5,
+            agent_phone_number="+15551234567",
+            user_simulator=UserSimulatorConfig(
+                stt=SttConfig(provider="deepgram", model="nova-3-general"),
+                tts=TtsConfig(
+                    provider="deepgram",
+                    model="aura",
+                    voice_id="aura-2-helena-en",
+                ),
+            ),
+        )
+
+
+def test_run_config_voice_mode_rejects_call_duration_longer_than_timeout() -> None:
+    with pytest.raises(ValueError, match="max_call_duration_seconds"):
+        RunConfig(
+            mode=RunMode.VOICE,
+            timeout_per_test_case_ms=60_000,
+            max_call_duration_seconds=120,
+            agent_phone_number="+15551234567",
+            user_simulator=UserSimulatorConfig(
+                stt=SttConfig(provider="deepgram", model="nova-3-general"),
+                tts=TtsConfig(
+                    provider="deepgram",
+                    model="aura",
+                    voice_id="aura-2-helena-en",
+                ),
+            ),
+        )
+
+
+def test_run_config_text_mode_rejects_call_duration() -> None:
+    with pytest.raises(ValueError, match="max_call_duration_seconds"):
+        RunConfig(max_call_duration_seconds=120)
 
 
 # ── AggregateMetrics ───────────────────────────────────────────────

@@ -429,6 +429,7 @@ def test_create_eval_config_voice_mode(db: Session) -> None:
     parsed = RunConfig.model_validate(created.config)
     assert parsed.mode == RunMode.VOICE
     assert parsed.agent_phone_number == "+15551234567"
+    assert parsed.max_call_duration_seconds == 300
     assert parsed.user_simulator is not None
     assert parsed.user_simulator.stt is not None
     assert parsed.user_simulator.tts is not None

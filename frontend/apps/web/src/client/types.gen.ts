@@ -3229,9 +3229,15 @@ export type RunConfigInput = {
   /**
    * Max Turns
    *
-   * Max agent response rounds per test case; null = no cap
+   * Max agent response rounds per test case; null = no cap (text mode only)
    */
   max_turns?: number | null;
+  /**
+   * Max Call Duration Seconds
+   *
+   * Maximum phone call duration in seconds for voice mode; null in text mode
+   */
+  max_call_duration_seconds?: number | null;
   /**
    * Tool Mode
    *
@@ -3280,7 +3286,10 @@ export type RunConfigInput = {
       } & RetellRuntimeConfig)
     | ({
         kind: 'custom_endpoint';
-      } & CustomEndpointRuntimeConfig);
+      } & CustomEndpointRuntimeConfig)
+    | ({
+        kind: 'twilio';
+      } & TwilioVoiceRuntimeConfig);
   /**
    * Agent Phone Number
    *
@@ -3308,9 +3317,15 @@ export type RunConfigOutput = {
   /**
    * Max Turns
    *
-   * Max agent response rounds per test case; null = no cap
+   * Max agent response rounds per test case; null = no cap (text mode only)
    */
   max_turns?: number | null;
+  /**
+   * Max Call Duration Seconds
+   *
+   * Maximum phone call duration in seconds for voice mode; null in text mode
+   */
+  max_call_duration_seconds?: number | null;
   /**
    * Tool Mode
    *
@@ -3359,7 +3374,10 @@ export type RunConfigOutput = {
       } & RetellRuntimeConfig)
     | ({
         kind: 'custom_endpoint';
-      } & CustomEndpointRuntimeConfig);
+      } & CustomEndpointRuntimeConfig)
+    | ({
+        kind: 'twilio';
+      } & TwilioVoiceRuntimeConfig);
   /**
    * Agent Phone Number
    *
@@ -3762,7 +3780,10 @@ export type RuntimeTestRequest = {
       } & RetellRuntimeConfig)
     | ({
         kind: 'custom_endpoint';
-      } & CustomEndpointRuntimeConfig);
+      } & CustomEndpointRuntimeConfig)
+    | ({
+        kind: 'twilio';
+      } & TwilioVoiceRuntimeConfig);
 };
 
 /**
@@ -4956,6 +4977,22 @@ export const TurnRole = {
 export type TurnRole = (typeof TurnRole)[keyof typeof TurnRole];
 
 /**
+ * TwilioVoiceRuntimeConfig
+ *
+ * Twilio + Pipecat voice runtime.
+ *
+ * Connexity dials ``RunConfig.agent_phone_number``, sends a DTMF code, and
+ * waits for the user-side agent to submit ``audio_url`` and OpenAI-format
+ * ``messages`` after the call ends.
+ */
+export type TwilioVoiceRuntimeConfig = {
+  /**
+   * Kind
+   */
+  kind?: 'twilio';
+};
+
+/**
  * UpdatePassword
  */
 export type UpdatePassword = {
@@ -5142,6 +5179,12 @@ export type VoiceSimulationJobPublic = {
    * E.164 agent phone number dialed
    */
   agent_phone_number: string;
+  /**
+   * Max Call Duration Seconds
+   *
+   * Configured maximum call duration in seconds
+   */
+  max_call_duration_seconds: number;
   /**
    * Twilio Call Sid
    *

@@ -5138,7 +5138,20 @@ export const RunConfig_InputSchema = {
         },
       ],
       title: 'Max Turns',
-      description: 'Max agent response rounds per test case; null = no cap',
+      description: 'Max agent response rounds per test case; null = no cap (text mode only)',
+    },
+    max_call_duration_seconds: {
+      anyOf: [
+        {
+          type: 'integer',
+          minimum: 1,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Max Call Duration Seconds',
+      description: 'Maximum phone call duration in seconds for voice mode; null in text mode',
     },
     tool_mode: {
       type: 'string',
@@ -5217,6 +5230,9 @@ export const RunConfig_InputSchema = {
         {
           $ref: '#/components/schemas/CustomEndpointRuntimeConfig',
         },
+        {
+          $ref: '#/components/schemas/TwilioVoiceRuntimeConfig',
+        },
       ],
       title: 'Runtime',
       description: 'Runtime that drives the eval for the selected mode.',
@@ -5226,6 +5242,7 @@ export const RunConfig_InputSchema = {
           connexity: '#/components/schemas/ConnexityRuntimeConfig',
           custom_endpoint: '#/components/schemas/CustomEndpointRuntimeConfig',
           retell: '#/components/schemas/RetellRuntimeConfig',
+          twilio: '#/components/schemas/TwilioVoiceRuntimeConfig',
         },
       },
     },
@@ -5270,7 +5287,20 @@ export const RunConfig_OutputSchema = {
         },
       ],
       title: 'Max Turns',
-      description: 'Max agent response rounds per test case; null = no cap',
+      description: 'Max agent response rounds per test case; null = no cap (text mode only)',
+    },
+    max_call_duration_seconds: {
+      anyOf: [
+        {
+          type: 'integer',
+          minimum: 1,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Max Call Duration Seconds',
+      description: 'Maximum phone call duration in seconds for voice mode; null in text mode',
     },
     tool_mode: {
       type: 'string',
@@ -5349,6 +5379,9 @@ export const RunConfig_OutputSchema = {
         {
           $ref: '#/components/schemas/CustomEndpointRuntimeConfig',
         },
+        {
+          $ref: '#/components/schemas/TwilioVoiceRuntimeConfig',
+        },
       ],
       title: 'Runtime',
       description: 'Runtime that drives the eval for the selected mode.',
@@ -5358,6 +5391,7 @@ export const RunConfig_OutputSchema = {
           connexity: '#/components/schemas/ConnexityRuntimeConfig',
           custom_endpoint: '#/components/schemas/CustomEndpointRuntimeConfig',
           retell: '#/components/schemas/RetellRuntimeConfig',
+          twilio: '#/components/schemas/TwilioVoiceRuntimeConfig',
         },
       },
     },
@@ -6040,6 +6074,9 @@ export const RuntimeTestRequestSchema = {
         {
           $ref: '#/components/schemas/CustomEndpointRuntimeConfig',
         },
+        {
+          $ref: '#/components/schemas/TwilioVoiceRuntimeConfig',
+        },
       ],
       title: 'Runtime',
       description: 'Runtime config under test',
@@ -6049,6 +6086,7 @@ export const RuntimeTestRequestSchema = {
           connexity: '#/components/schemas/ConnexityRuntimeConfig',
           custom_endpoint: '#/components/schemas/CustomEndpointRuntimeConfig',
           retell: '#/components/schemas/RetellRuntimeConfig',
+          twilio: '#/components/schemas/TwilioVoiceRuntimeConfig',
         },
       },
     },
@@ -8007,6 +8045,22 @@ export const TurnRoleSchema = {
   title: 'TurnRole',
 } as const;
 
+export const TwilioVoiceRuntimeConfigSchema = {
+  properties: {
+    kind: {
+      type: 'string',
+      enum: ['twilio'],
+      const: 'twilio',
+      title: 'Kind',
+      default: 'twilio',
+    },
+  },
+  type: 'object',
+  title: 'TwilioVoiceRuntimeConfig',
+  description:
+    'Twilio + Pipecat voice runtime.\n\nConnexity dials ``RunConfig.agent_phone_number``, sends a DTMF code, and\nwaits for the user-side agent to submit ``audio_url`` and OpenAI-format\n``messages`` after the call ends.',
+} as const;
+
 export const UpdatePasswordSchema = {
   properties: {
     current_password: {
@@ -8287,6 +8341,11 @@ export const VoiceSimulationJobPublicSchema = {
       title: 'Agent Phone Number',
       description: 'E.164 agent phone number dialed',
     },
+    max_call_duration_seconds: {
+      type: 'integer',
+      title: 'Max Call Duration Seconds',
+      description: 'Configured maximum call duration in seconds',
+    },
     twilio_call_sid: {
       anyOf: [
         {
@@ -8440,6 +8499,7 @@ export const VoiceSimulationJobPublicSchema = {
     'status',
     'dtmf_code',
     'agent_phone_number',
+    'max_call_duration_seconds',
     'created_at',
     'updated_at',
   ],
