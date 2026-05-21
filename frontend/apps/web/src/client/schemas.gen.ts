@@ -1730,6 +1730,231 @@ export const Body_login_login_access_tokenSchema = {
   title: 'Body_login-login_access_token',
 } as const;
 
+export const Body_oauth_authorize_confirmSchema = {
+  properties: {
+    response_type: {
+      type: 'string',
+      title: 'Response Type',
+    },
+    client_id: {
+      type: 'string',
+      title: 'Client Id',
+    },
+    redirect_uri: {
+      type: 'string',
+      title: 'Redirect Uri',
+    },
+    email: {
+      type: 'string',
+      title: 'Email',
+    },
+    password: {
+      type: 'string',
+      title: 'Password',
+    },
+    code_challenge: {
+      type: 'string',
+      title: 'Code Challenge',
+    },
+    code_challenge_method: {
+      type: 'string',
+      title: 'Code Challenge Method',
+    },
+    scope: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Scope',
+    },
+    state: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'State',
+    },
+    resource: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Resource',
+    },
+  },
+  type: 'object',
+  required: [
+    'response_type',
+    'client_id',
+    'redirect_uri',
+    'email',
+    'password',
+    'code_challenge',
+    'code_challenge_method',
+  ],
+  title: 'Body_oauth-authorize_confirm',
+} as const;
+
+export const Body_oauth_authorize_signup_confirmSchema = {
+  properties: {
+    response_type: {
+      type: 'string',
+      title: 'Response Type',
+    },
+    client_id: {
+      type: 'string',
+      title: 'Client Id',
+    },
+    redirect_uri: {
+      type: 'string',
+      title: 'Redirect Uri',
+    },
+    email: {
+      type: 'string',
+      title: 'Email',
+    },
+    password: {
+      type: 'string',
+      title: 'Password',
+    },
+    code_challenge: {
+      type: 'string',
+      title: 'Code Challenge',
+    },
+    code_challenge_method: {
+      type: 'string',
+      title: 'Code Challenge Method',
+    },
+    full_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Full Name',
+    },
+    scope: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Scope',
+    },
+    state: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'State',
+    },
+    resource: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Resource',
+    },
+  },
+  type: 'object',
+  required: [
+    'response_type',
+    'client_id',
+    'redirect_uri',
+    'email',
+    'password',
+    'code_challenge',
+    'code_challenge_method',
+  ],
+  title: 'Body_oauth-authorize_signup_confirm',
+} as const;
+
+export const Body_oauth_tokenSchema = {
+  properties: {
+    grant_type: {
+      type: 'string',
+      title: 'Grant Type',
+    },
+    client_id: {
+      type: 'string',
+      title: 'Client Id',
+    },
+    code: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Code',
+    },
+    redirect_uri: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Redirect Uri',
+    },
+    code_verifier: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Code Verifier',
+    },
+    refresh_token: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Refresh Token',
+    },
+  },
+  type: 'object',
+  required: ['grant_type', 'client_id'],
+  title: 'Body_oauth-token',
+} as const;
+
 export const CallPublicSchema = {
   properties: {
     id: {
@@ -3395,6 +3620,20 @@ export const GenerateResultSchema = {
   description: 'Output from test case generation.',
 } as const;
 
+export const HTTPValidationErrorSchema = {
+  properties: {
+    detail: {
+      items: {
+        $ref: '#/components/schemas/ValidationError',
+      },
+      type: 'array',
+      title: 'Detail',
+    },
+  },
+  type: 'object',
+  title: 'HTTPValidationError',
+} as const;
+
 export const ImprovementSuggestionSchema = {
   properties: {
     target: {
@@ -4297,6 +4536,146 @@ export const MetricTierSchema = {
   type: 'string',
   enum: ['execution', 'knowledge', 'process', 'delivery'],
   title: 'MetricTier',
+} as const;
+
+export const OAuthClientRegistrationRequestSchema = {
+  properties: {
+    redirect_uris: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Redirect Uris',
+    },
+    client_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Client Name',
+    },
+    grant_types: {
+      anyOf: [
+        {
+          items: {
+            type: 'string',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Grant Types',
+    },
+    response_types: {
+      anyOf: [
+        {
+          items: {
+            type: 'string',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Response Types',
+    },
+    scope: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Scope',
+    },
+    token_endpoint_auth_method: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Token Endpoint Auth Method',
+    },
+  },
+  type: 'object',
+  required: ['redirect_uris'],
+  title: 'OAuthClientRegistrationRequest',
+} as const;
+
+export const OAuthClientRegistrationResponseSchema = {
+  properties: {
+    client_id: {
+      type: 'string',
+      title: 'Client Id',
+    },
+    client_id_issued_at: {
+      type: 'integer',
+      title: 'Client Id Issued At',
+    },
+    client_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Client Name',
+    },
+    redirect_uris: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Redirect Uris',
+    },
+    grant_types: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Grant Types',
+    },
+    response_types: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Response Types',
+    },
+    scope: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Scope',
+    },
+    token_endpoint_auth_method: {
+      type: 'string',
+      title: 'Token Endpoint Auth Method',
+      default: 'none',
+    },
+  },
+  type: 'object',
+  required: ['client_id', 'client_id_issued_at', 'redirect_uris', 'grant_types', 'response_types'],
+  title: 'OAuthClientRegistrationResponse',
 } as const;
 
 export const OnConflictSchema = {
@@ -7986,6 +8365,36 @@ export const UserUpdateMeSchema = {
   },
   type: 'object',
   title: 'UserUpdateMe',
+} as const;
+
+export const ValidationErrorSchema = {
+  properties: {
+    loc: {
+      items: {
+        anyOf: [
+          {
+            type: 'string',
+          },
+          {
+            type: 'integer',
+          },
+        ],
+      },
+      type: 'array',
+      title: 'Location',
+    },
+    msg: {
+      type: 'string',
+      title: 'Message',
+    },
+    type: {
+      type: 'string',
+      title: 'Error Type',
+    },
+  },
+  type: 'object',
+  required: ['loc', 'msg', 'type'],
+  title: 'ValidationError',
 } as const;
 
 export const WebhookAgentSchema = {

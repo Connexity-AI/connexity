@@ -4,17 +4,33 @@ import os
 from pathlib import Path
 from urllib.parse import urlparse
 
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, AnyHttpUrl, Field, TypeAdapter
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_MCP_CLIENT_ID = "mcp-server"
+HTTP_URL_ADAPTER = TypeAdapter(AnyHttpUrl)
+DEFAULT_BROWSER_ALLOWED_ORIGINS = (
+    "http://127.0.0.1:*",
+    "http://localhost:*",
+    "http://[::1]:*",
+    "https://claude.ai",
+    "https://claude.com",
+)
 
 
 def _split_csv(value: str | None) -> list[str]:
     if not isinstance(value, str) or not value.strip():
         return []
     return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def _split_scopes(value: str | None) -> list[str]:
+    if not isinstance(value, str) or not value.strip():
+        return []
+
+    normalized = value.replace(",", " ")
+    return [item.strip() for item in normalized.split() if item.strip()]
 
 
 def _extract_host(value: str | None) -> str | None:
@@ -53,6 +69,12 @@ class Settings(BaseSettings):
     mcp_public_base_url: str | None = Field(default=None, alias="MCP_PUBLIC_BASE_URL")
     mcp_allowed_hosts: str | None = Field(default=None, alias="MCP_ALLOWED_HOSTS")
     mcp_allowed_origins: str | None = Field(default=None, alias="MCP_ALLOWED_ORIGINS")
+    mcp_oauth_issuer_url: str | None = Field(default=None, alias="MCP_OAUTH_ISSUER_URL")
+    mcp_oauth_audience: str | None = Field(default=None, alias="MCP_OAUTH_AUDIENCE")
+    mcp_oauth_discovery_url: str | None = Field(default=None, alias="MCP_OAUTH_DISCOVERY_URL")
+    mcp_oauth_jwks_url: str | None = Field(default=None, alias="MCP_OAUTH_JWKS_URL")
+    mcp_oauth_required_scopes: str | None = Field(default=None, alias="MCP_OAUTH_REQUIRED_SCOPES")
+    mcp_oauth_resource_server_url: str | None = Field(default=None, alias="MCP_OAUTH_RESOURCE_SERVER_URL")
 
     @property
     def normalized_api_url(self) -> str:
@@ -60,6 +82,13 @@ class Settings(BaseSettings):
         if value.endswith("/api/v1"):
             return value
         return f"{value}/api/v1"
+
+    @property
+    def normalized_backend_origin(self) -> str:
+        api_url = self.normalized_api_url
+        if api_url.endswith("/api/v1"):
+            return api_url[: -len("/api/v1")]
+        return api_url.rstrip("/")
 
     @property
     def normalized_mcp_path(self) -> str:
@@ -92,7 +121,7 @@ class Settings(BaseSettings):
 
     @property
     def resolved_allowed_origins(self) -> list[str]:
-        origins = ["http://127.0.0.1:*", "http://localhost:*", "http://[::1]:*"]
+        origins = list(DEFAULT_BROWSER_ALLOWED_ORIGINS)
         for origin in _split_csv(self.mcp_allowed_origins):
             if origin not in origins:
                 origins.append(origin)
@@ -107,4 +136,96 @@ class Settings(BaseSettings):
         if self.mcp_client_id.strip():
             return self.mcp_client_id.strip()
         return DEFAULT_MCP_CLIENT_ID
+
+    @property
+    def oauth_enabled(self) -> bool:
+        return bool(self.resolved_mcp_oauth_issuer_url and self.resolved_mcp_oauth_resource_server_url)
+
+    def require_mcp_oauth(self) -> None:
+        missing: list[str] = []
+        if self.resolved_mcp_oauth_issuer_url is None:
+            missing.append("MCP_OAUTH_ISSUER_URL")
+        if self.resolved_mcp_oauth_resource_server_url is None:
+            missing.append("MCP_PUBLIC_BASE_URL or MCP_OAUTH_RESOURCE_SERVER_URL")
+
+        if missing:
+            missing_vars = ", ".join(missing)
+            raise ValueError(
+                "MCP transport auth is mandatory. "
+                f"Missing required configuration: {missing_vars}."
+            )
+
+        # Validate URL formats eagerly so startup fails before the server binds.
+        _ = self.validated_mcp_oauth_issuer_url
+        _ = self.validated_mcp_oauth_resource_server_url
+
+    def require_backend_service_auth(self) -> None:
+        client_secret = (
+            self.mcp_client_secret.strip()
+            if isinstance(self.mcp_client_secret, str)
+            else ""
+        )
+        if not client_secret:
+            raise ValueError(
+                "Connexity backend service auth is mandatory. Missing required "
+                "configuration: MCP_CLIENT_SECRET."
+            )
+
+    @property
+    def resolved_mcp_oauth_issuer_url(self) -> str | None:
+        if isinstance(self.mcp_oauth_issuer_url, str) and self.mcp_oauth_issuer_url.strip():
+            return self.mcp_oauth_issuer_url.strip().rstrip("/")
+        return None
+
+    @property
+    def resolved_mcp_oauth_resource_server_url(self) -> str | None:
+        if isinstance(self.mcp_oauth_resource_server_url, str) and self.mcp_oauth_resource_server_url.strip():
+            return self.mcp_oauth_resource_server_url.strip().rstrip("/")
+
+        public_base_url = self.resolved_mcp_public_base_url
+        if public_base_url:
+            return f"{public_base_url}{self.normalized_mcp_path}".rstrip("/")
+
+        return None
+
+    @property
+    def resolved_mcp_oauth_audience(self) -> str | None:
+        if isinstance(self.mcp_oauth_audience, str) and self.mcp_oauth_audience.strip():
+            return self.mcp_oauth_audience.strip()
+        return self.resolved_mcp_oauth_resource_server_url
+
+    @property
+    def resolved_mcp_oauth_discovery_url(self) -> str | None:
+        if isinstance(self.mcp_oauth_discovery_url, str) and self.mcp_oauth_discovery_url.strip():
+            return self.mcp_oauth_discovery_url.strip()
+
+        issuer_url = self.resolved_mcp_oauth_issuer_url
+        if issuer_url:
+            return f"{issuer_url}/.well-known/openid-configuration"
+
+        return None
+
+    @property
+    def resolved_mcp_oauth_jwks_url(self) -> str | None:
+        if isinstance(self.mcp_oauth_jwks_url, str) and self.mcp_oauth_jwks_url.strip():
+            return self.mcp_oauth_jwks_url.strip()
+        return None
+
+    @property
+    def resolved_mcp_oauth_required_scopes(self) -> list[str]:
+        return _split_scopes(self.mcp_oauth_required_scopes)
+
+    @property
+    def validated_mcp_oauth_issuer_url(self) -> AnyHttpUrl:
+        issuer_url = self.resolved_mcp_oauth_issuer_url
+        if issuer_url is None:
+            raise ValueError("MCP OAuth issuer URL is not configured.")
+        return HTTP_URL_ADAPTER.validate_python(issuer_url)
+
+    @property
+    def validated_mcp_oauth_resource_server_url(self) -> AnyHttpUrl:
+        resource_server_url = self.resolved_mcp_oauth_resource_server_url
+        if resource_server_url is None:
+            raise ValueError("MCP OAuth resource server URL is not configured.")
+        return HTTP_URL_ADAPTER.validate_python(resource_server_url)
 

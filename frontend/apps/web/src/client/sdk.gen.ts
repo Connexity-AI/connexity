@@ -191,6 +191,30 @@ import type {
   McpUpsertDraftData,
   McpUpsertDraftErrors,
   McpUpsertDraftResponses,
+  OauthAuthorizeConfirmData,
+  OauthAuthorizeConfirmErrors,
+  OauthAuthorizeConfirmResponses,
+  OauthAuthorizeData,
+  OauthAuthorizeErrors,
+  OauthAuthorizeResponses,
+  OauthAuthorizeSignupConfirmData,
+  OauthAuthorizeSignupConfirmErrors,
+  OauthAuthorizeSignupConfirmResponses,
+  OauthAuthorizeSignupData,
+  OauthAuthorizeSignupErrors,
+  OauthAuthorizeSignupResponses,
+  OauthJwksData,
+  OauthJwksResponses,
+  OauthOauthAuthorizationServerMetadataData,
+  OauthOauthAuthorizationServerMetadataResponses,
+  OauthOpenidConfigurationData,
+  OauthOpenidConfigurationResponses,
+  OauthRegisterOauthClientData,
+  OauthRegisterOauthClientErrors,
+  OauthRegisterOauthClientResponses,
+  OauthTokenData,
+  OauthTokenErrors,
+  OauthTokenResponses,
   PromptEditorChatData,
   PromptEditorChatErrors,
   PromptEditorChatResponses,
@@ -339,6 +363,151 @@ export class HealthService {
     return (options?.client ?? client).get<HealthHealthResponses, unknown, ThrowOnError>({
       url: '/',
       ...options,
+    });
+  }
+}
+
+export class OauthService {
+  /**
+   * Oauth Authorization Server Metadata
+   */
+  public static oauthAuthorizationServerMetadata<ThrowOnError extends boolean = false>(
+    options?: Options<OauthOauthAuthorizationServerMetadataData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      OauthOauthAuthorizationServerMetadataResponses,
+      unknown,
+      ThrowOnError
+    >({ url: '/.well-known/oauth-authorization-server', ...options });
+  }
+
+  /**
+   * Openid Configuration
+   */
+  public static openidConfiguration<ThrowOnError extends boolean = false>(
+    options?: Options<OauthOpenidConfigurationData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      OauthOpenidConfigurationResponses,
+      unknown,
+      ThrowOnError
+    >({ url: '/.well-known/openid-configuration', ...options });
+  }
+
+  /**
+   * Jwks
+   */
+  public static jwks<ThrowOnError extends boolean = false>(
+    options?: Options<OauthJwksData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<OauthJwksResponses, unknown, ThrowOnError>({
+      url: '/.well-known/jwks.json',
+      ...options,
+    });
+  }
+
+  /**
+   * Register Oauth Client
+   */
+  public static registerOauthClient<ThrowOnError extends boolean = false>(
+    options: Options<OauthRegisterOauthClientData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      OauthRegisterOauthClientResponses,
+      OauthRegisterOauthClientErrors,
+      ThrowOnError
+    >({
+      url: '/oauth/register',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Authorize
+   */
+  public static authorize<ThrowOnError extends boolean = false>(
+    options: Options<OauthAuthorizeData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      OauthAuthorizeResponses,
+      OauthAuthorizeErrors,
+      ThrowOnError
+    >({ url: '/oauth/authorize', ...options });
+  }
+
+  /**
+   * Authorize Signup
+   */
+  public static authorizeSignup<ThrowOnError extends boolean = false>(
+    options: Options<OauthAuthorizeSignupData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      OauthAuthorizeSignupResponses,
+      OauthAuthorizeSignupErrors,
+      ThrowOnError
+    >({ url: '/oauth/authorize/signup', ...options });
+  }
+
+  /**
+   * Authorize Confirm
+   */
+  public static authorizeConfirm<ThrowOnError extends boolean = false>(
+    options: Options<OauthAuthorizeConfirmData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      OauthAuthorizeConfirmResponses,
+      OauthAuthorizeConfirmErrors,
+      ThrowOnError
+    >({
+      ...urlSearchParamsBodySerializer,
+      url: '/oauth/authorize/confirm',
+      ...options,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Authorize Signup Confirm
+   */
+  public static authorizeSignupConfirm<ThrowOnError extends boolean = false>(
+    options: Options<OauthAuthorizeSignupConfirmData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      OauthAuthorizeSignupConfirmResponses,
+      OauthAuthorizeSignupConfirmErrors,
+      ThrowOnError
+    >({
+      ...urlSearchParamsBodySerializer,
+      url: '/oauth/authorize/signup/confirm',
+      ...options,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Token
+   */
+  public static token<ThrowOnError extends boolean = false>(
+    options: Options<OauthTokenData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<OauthTokenResponses, OauthTokenErrors, ThrowOnError>({
+      ...urlSearchParamsBodySerializer,
+      url: '/oauth/token',
+      ...options,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        ...options.headers,
+      },
     });
   }
 }

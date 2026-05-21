@@ -145,6 +145,13 @@ from app.models.integration import (  # noqa: F401
     IntegrationPublic,
     IntegrationsPublic,
 )
+from app.models.oauth import (  # noqa: F401
+    OAuthAuthorizationCode,
+    OAuthClient,
+    OAuthClientRegistrationRequest,
+    OAuthClientRegistrationResponse,
+    OAuthRefreshToken,
+)
 
 # ── Prompt editor (chat) ───────────────────────────────────────────
 from app.models.prompt_editor import (  # noqa: F401

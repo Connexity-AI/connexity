@@ -10,7 +10,10 @@ from connexity_mcp_server.config import Settings
 
 def main() -> None:
     settings = Settings()
-    app = build_application(settings)
+    try:
+        app = build_application(settings)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     port = int(os.environ.get("PORT", settings.mcp_port))
     uvicorn.run(app, host=settings.mcp_host, port=port)
 
