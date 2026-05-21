@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 from urllib.parse import urlparse
@@ -9,23 +8,7 @@ from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-
-
-def _credentials_path() -> Path:
-    xdg_config_home = Path.home() / ".config"
-    base = Path.cwd()
-    env_value = None
-    try:
-        from os import environ
-
-        env_value = environ.get("XDG_CONFIG_HOME")
-    except Exception:
-        env_value = None
-    if env_value:
-        base = Path(env_value)
-    else:
-        base = xdg_config_home
-    return base / "connexity-cli" / "credentials.json"
+DEFAULT_MCP_CLIENT_ID = "mcp-server"
 
 
 def _split_csv(value: str | None) -> list[str]:
@@ -47,22 +30,17 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=str(REPO_ROOT / ".env"),
         env_prefix="",
+        env_ignore_empty=True,
         extra="ignore",
+        populate_by_name=True,
     )
 
     connexity_api_url: str = Field(
         default="http://localhost:8000/api/v1",
         validation_alias=AliasChoices("CONNEXITY_API_URL", "API_URL"),
     )
-    connexity_api_token: str | None = Field(default=None, alias="CONNEXITY_API_TOKEN")
-    connexity_email: str | None = Field(default=None, alias="CONNEXITY_EMAIL")
-    connexity_password: str | None = Field(default=None, alias="CONNEXITY_PASSWORD")
-    dev_email: str | None = Field(default=None, alias="FIRST_SUPERUSER")
-    dev_password: str | None = Field(default=None, alias="FIRST_SUPERUSER_PASSWORD")
-    connexity_use_saved_cli_credentials: bool = Field(
-        default_factory=lambda: not bool(os.environ.get("RAILWAY_ENVIRONMENT")),
-        alias="CONNEXITY_USE_SAVED_CLI_CREDENTIALS",
-    )
+    mcp_client_id: str = Field(default=DEFAULT_MCP_CLIENT_ID, alias="MCP_CLIENT_ID")
+    mcp_client_secret: str | None = Field(default=None, alias="MCP_CLIENT_SECRET")
     connexity_api_timeout_seconds: float = Field(
         default=15.0,
         alias="CONNEXITY_API_TIMEOUT_SECONDS",
@@ -124,24 +102,9 @@ class Settings(BaseSettings):
                 origins.append(public_origin)
         return origins
 
-    def load_saved_cli_token(self) -> str | None:
-        if not self.connexity_use_saved_cli_credentials:
-            return None
+    @property
+    def resolved_mcp_client_id(self) -> str:
+        if self.mcp_client_id.strip():
+            return self.mcp_client_id.strip()
+        return DEFAULT_MCP_CLIENT_ID
 
-        path = _credentials_path()
-        if not path.exists():
-            return None
-
-        try:
-            raw = path.read_text(encoding="utf-8")
-            payload = json.loads(raw)
-        except (OSError, json.JSONDecodeError):
-            return None
-
-        if not isinstance(payload, dict):
-            return None
-
-        token = payload.get("token")
-        if isinstance(token, str) and token.strip():
-            return token.strip()
-        return None

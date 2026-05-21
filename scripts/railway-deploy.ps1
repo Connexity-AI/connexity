@@ -7,9 +7,7 @@ param(
     [string]$McpServiceName = "mcp-server",
     [string]$DotEnvPath = (Join-Path $PSScriptRoot "..\.env"),
     [string]$BackendPort = $env:BACKEND_PORT,
-    [string]$ConnexityApiToken = $env:CONNEXITY_API_TOKEN,
-    [string]$ConnexityEmail = $env:CONNEXITY_EMAIL,
-    [string]$ConnexityPassword = $env:CONNEXITY_PASSWORD
+    [string]$McpClientSecret = $env:MCP_CLIENT_SECRET
 )
 
 $ErrorActionPreference = "Stop"
@@ -141,8 +139,12 @@ Require-Setting -Name "ENCRYPTION_KEY" -Value (Get-Setting -DotEnv $dotEnv -Name
 
 $jwtSecretKey = Get-Setting -DotEnv $dotEnv -Name "JWT_SECRET_KEY"
 $encryptionKey = Get-Setting -DotEnv $dotEnv -Name "ENCRYPTION_KEY"
+$mcpClientId = Get-Setting -DotEnv $dotEnv -Name "MCP_CLIENT_ID"
+$mcpClientSecret = Get-Setting -DotEnv $dotEnv -Name "MCP_CLIENT_SECRET" -Default $McpClientSecret
 $openAiKey = Get-Setting -DotEnv $dotEnv -Name "OPENAI_API_KEY"
 $anthropicKey = Get-Setting -DotEnv $dotEnv -Name "ANTHROPIC_API_KEY"
+
+Require-Setting -Name "MCP_CLIENT_SECRET" -Value $mcpClientSecret
 
 if ([string]::IsNullOrWhiteSpace($BackendPort)) {
     $BackendPort = "8000"
@@ -190,6 +192,11 @@ try {
         "ENVIRONMENT=production"
     )
 
+    $backendArgs += @("-v", "MCP_CLIENT_SECRET=$mcpClientSecret")
+    if (-not [string]::IsNullOrWhiteSpace($mcpClientId)) {
+        $backendArgs += @("-v", "MCP_CLIENT_ID=$mcpClientId")
+    }
+
     if (-not [string]::IsNullOrWhiteSpace($openAiKey)) {
         $backendArgs += @("-v", "OPENAI_API_KEY=$openAiKey")
     }
@@ -205,25 +212,12 @@ try {
         "-s",
         $McpServiceName,
         "-v",
-        "CONNEXITY_API_URL=$backendApiUrl"
+        "CONNEXITY_API_URL=$backendApiUrl",
+        "-v",
+        "MCP_CLIENT_SECRET=$mcpClientSecret"
     )
-
-    if (-not [string]::IsNullOrWhiteSpace($ConnexityApiToken)) {
-        $mcpArgs += @("-v", "CONNEXITY_API_TOKEN=$ConnexityApiToken")
-    }
-    elseif (
-        -not [string]::IsNullOrWhiteSpace($ConnexityEmail) -and
-        -not [string]::IsNullOrWhiteSpace($ConnexityPassword)
-    ) {
-        $mcpArgs += @("-v", "CONNEXITY_EMAIL=$ConnexityEmail")
-        $mcpArgs += @("-v", "CONNEXITY_PASSWORD=$ConnexityPassword")
-    }
-    else {
-        Write-Warning (
-            "No MCP auth variables were provided. The MCP service will deploy, " +
-            "but you still need to set CONNEXITY_API_TOKEN (preferred) or " +
-            "CONNEXITY_EMAIL / CONNEXITY_PASSWORD before it can talk to the backend."
-        )
+    if (-not [string]::IsNullOrWhiteSpace($mcpClientId)) {
+        $mcpArgs += @("-v", "MCP_CLIENT_ID=$mcpClientId")
     }
 
     Invoke-Railway $mcpArgs

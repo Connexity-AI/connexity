@@ -231,6 +231,9 @@ from app.models.test_case_result import (  # noqa: F401
 # ── Existing user models ──────────────────────────────────────────
 from app.models.user import (  # noqa: F401
     Message,
+    McpServiceToken,
+    McpServiceTokenPayload,
+    McpServiceTokenRequest,
     Token,
     TokenPayload,
     UpdatePassword,

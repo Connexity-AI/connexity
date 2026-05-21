@@ -16,7 +16,7 @@ from sqlmodel import Session
 from app.core import security
 from app.core.config import settings
 from app.core.db import engine
-from app.models import Agent, TokenPayload, User
+from app.models import Agent, McpServiceTokenPayload, TokenPayload, User
 
 cookie_scheme = APIKeyCookie(name=settings.AUTH_COOKIE, auto_error=False)
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -61,6 +61,37 @@ def get_current_user(session: SessionDep, cookie: CookieDep, bearer: BearerDep) 
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def require_mcp_service(bearer: BearerDep) -> None:
+    token = bearer.credentials if bearer else None
+    expected_client_id = settings.resolved_mcp_client_id
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+
+    try:
+        payload = jwt.decode(
+            token, settings.JWT_SECRET_KEY, algorithms=[security.ALGORITHM]
+        )
+        token_data = McpServiceTokenPayload(**payload)
+    except (InvalidTokenError, ValidationError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized",
+        )
+
+    if (
+        token_data.sub != expected_client_id
+        or token_data.typ != "service"
+        or token_data.scope != "mcp:actions"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized",
+        )
 
 
 def get_owned_agent(
