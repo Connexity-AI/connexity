@@ -267,7 +267,7 @@ def main() -> None:
     estimates = estimate_limits(prompt_text, tools_json_str)
 
     inp = estimates["input_tokens"]
-    print(f"\nInput tokens breakdown:")
+    print("\nInput tokens breakdown:")
     print(f"  Agent prompt:      {inp['agent_prompt']:>7,} tokens")
     print(f"  Tools:             {inp['tools']:>7,} tokens")
     print(f"  System overhead:  ~{inp['system_overhead_est']:>7,} tokens")
