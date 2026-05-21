@@ -35,6 +35,7 @@ def get_config(request: Request) -> ConfigPublic:
         environment=settings.ENVIRONMENT,
         docs_url=request.app.docs_url or "/docs",
         default_llm_model=settings.default_llm_id,
+        voice_simulation=settings.voice_simulation_config_public(),
     )
 
 

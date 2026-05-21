@@ -16,8 +16,6 @@ import type { EvalConfigCreate, RunConfigInput } from '@/client/types.gen';
 export const SimulationMode = { TEXT: 'text', VOICE: 'voice' } as const;
 export type SimulationMode = (typeof SimulationMode)[keyof typeof SimulationMode];
 
-export type CreateEvalRuntime = NonNullable<RunConfigInput['runtime']>;
-
 const runtimeSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal(TextRuntimeKind.CONNEXITY) }),
   z.object({ kind: z.literal(TextRuntimeKind.RETELL) }),
@@ -34,6 +32,8 @@ const runtimeSchema = z.discriminatedUnion('kind', [
   }),
 ]);
 
+export type CreateEvalRuntime = z.infer<typeof runtimeSchema>;
+
 export const createEvalFormSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(255),
   run: z.object({
@@ -41,6 +41,7 @@ export const createEvalFormSchema = z.object({
     agent_phone_number: z.string(),
     concurrency: z.number().int().min(1).max(50),
     max_turns: z.number().int().min(1).max(200).nullable(),
+    max_call_duration_seconds: z.number().int().min(1).max(3600),
     tool_mode: z.enum(['mock', 'live']),
     runtime: runtimeSchema,
     runtime_test: z.object({
@@ -161,6 +162,7 @@ export function buildDefaults(
       agent_phone_number: '',
       concurrency: 10,
       max_turns: 30,
+      max_call_duration_seconds: 300,
       tool_mode: 'mock',
       runtime: { kind: TextRuntimeKind.CONNEXITY },
       runtime_test: { ok: false, url: null },
@@ -187,8 +189,8 @@ export function formValuesToCreatePayload(
   values: CreateEvalFormValues,
   agentId: string
 ): EvalConfigCreate {
-  const runtime = values.run.runtime;
   const isVoice = values.run.simulation_mode === SimulationMode.VOICE;
+  const runtime = isVoice ? { kind: 'twilio' as const } : values.run.runtime;
   const toolMode = isVoice
     ? 'mock'
     : runtime.kind === TextRuntimeKind.CONNEXITY
@@ -200,7 +202,8 @@ export function formValuesToCreatePayload(
     agent_id: agentId,
     config: {
       concurrency: values.run.concurrency,
-      max_turns: values.run.max_turns,
+      max_turns: isVoice ? null : values.run.max_turns,
+      max_call_duration_seconds: isVoice ? values.run.max_call_duration_seconds : null,
       tool_mode: toolMode,
       mode: isVoice ? RunMode.VOICE : RunMode.TEXT,
       runtime,

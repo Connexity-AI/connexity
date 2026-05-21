@@ -1111,6 +1111,10 @@ export type ConfigPublic = {
    * Default Llm Model
    */
   default_llm_model: string;
+  /**
+   * Voice simulation settings and availability for the UI
+   */
+  voice_simulation?: VoiceSimulationConfigPublic | null;
 };
 
 /**
@@ -5130,6 +5134,48 @@ export type VoicePublic = {
 };
 
 /**
+ * VoiceSimulationConfigPublic
+ */
+export type VoiceSimulationConfigPublic = {
+  /**
+   * Deployment Mode
+   *
+   * Voice deployment profile controlling concurrency limits
+   */
+  deployment_mode: 'local' | 'kubernetes';
+  /**
+   * Max Concurrency
+   *
+   * Maximum parallel voice calls allowed for this deployment
+   */
+  max_concurrency: number;
+  /**
+   * Voice Runtime Available
+   *
+   * True when Twilio credentials are configured for voice runs
+   */
+  voice_runtime_available: boolean;
+  /**
+   * Result Submission Path
+   *
+   * Relative API path for user-side voice result submission
+   */
+  result_submission_path: string;
+  /**
+   * Default Call Duration Seconds
+   *
+   * Default max call duration when omitted from RunConfig
+   */
+  default_call_duration_seconds: number;
+  /**
+   * Max Call Duration Seconds
+   *
+   * Upper bound for RunConfig max_call_duration_seconds
+   */
+  max_call_duration_seconds: number;
+};
+
+/**
  * VoiceSimulationJobPublic
  */
 export type VoiceSimulationJobPublic = {
@@ -5282,6 +5328,24 @@ export const VoiceSimulationJobStatus = {
  */
 export type VoiceSimulationJobStatus =
   (typeof VoiceSimulationJobStatus)[keyof typeof VoiceSimulationJobStatus];
+
+/**
+ * VoiceSimulationJobsPublic
+ */
+export type VoiceSimulationJobsPublic = {
+  /**
+   * Data
+   *
+   * Voice simulation jobs for a run
+   */
+  data: Array<VoiceSimulationJobPublic>;
+  /**
+   * Count
+   *
+   * Total number of jobs matching the query
+   */
+  count: number;
+};
 
 /**
  * VoiceSimulationResultSubmit
@@ -11314,6 +11378,71 @@ export type VoiceSimulationsSubmitVoiceSimulationResultsResponses = {
 
 export type VoiceSimulationsSubmitVoiceSimulationResultsResponse =
   VoiceSimulationsSubmitVoiceSimulationResultsResponses[keyof VoiceSimulationsSubmitVoiceSimulationResultsResponses];
+
+export type VoiceSimulationsListVoiceSimulationJobsForRunData = {
+  body?: never;
+  path: {
+    /**
+     * Run Id
+     */
+    run_id: string;
+  };
+  query?: {
+    /**
+     * Skip
+     */
+    skip?: number;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/voice-simulations/runs/{run_id}/jobs';
+};
+
+export type VoiceSimulationsListVoiceSimulationJobsForRunErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type VoiceSimulationsListVoiceSimulationJobsForRunError =
+  VoiceSimulationsListVoiceSimulationJobsForRunErrors[keyof VoiceSimulationsListVoiceSimulationJobsForRunErrors];
+
+export type VoiceSimulationsListVoiceSimulationJobsForRunResponses = {
+  /**
+   * Successful Response
+   */
+  200: VoiceSimulationJobsPublic;
+};
+
+export type VoiceSimulationsListVoiceSimulationJobsForRunResponse =
+  VoiceSimulationsListVoiceSimulationJobsForRunResponses[keyof VoiceSimulationsListVoiceSimulationJobsForRunResponses];
 
 export type VoiceSimulationsGetVoiceSimulationJobData = {
   body?: never;

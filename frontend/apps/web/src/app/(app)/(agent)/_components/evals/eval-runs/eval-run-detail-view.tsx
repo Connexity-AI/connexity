@@ -67,6 +67,7 @@ function EvalRunDetailContent({
     drawerResultId,
     setDrawerResultId,
     drawerResult,
+    voiceJobByResultId,
   } = useEvalRunDetail({ runId, configs, testCases });
 
   const filteredIds = useMemo(() => filteredResults.map((r) => r.id), [filteredResults]);
@@ -180,6 +181,7 @@ function EvalRunDetailContent({
                   tags={testCase?.tags}
                   difficulty={testCase?.difficulty}
                   isDeleted={Boolean(testCase?.deleted_at)}
+                  voiceJob={voiceJobByResultId.get(result.id)}
                   onOpenTrace={() => setDrawerResultId(result.id)}
                   selected={selectedIds.has(result.id)}
                   onSelectChange={toggleRow}
@@ -197,6 +199,7 @@ function EvalRunDetailContent({
           if (!open) setDrawerResultId(null);
         }}
         result={drawerResult}
+        voiceJob={drawerResult ? voiceJobByResultId.get(drawerResult.id) : undefined}
         testCaseName={
           drawerResult
             ? testCaseById.get(drawerResult.test_case_id)?.name ?? 'Unknown test case'

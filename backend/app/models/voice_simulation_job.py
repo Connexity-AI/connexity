@@ -247,6 +247,13 @@ class VoiceSimulationJobPublic(SQLModel):
     updated_at: datetime = Field(description="When the voice job was last updated")
 
 
+class VoiceSimulationJobsPublic(SQLModel):
+    data: list[VoiceSimulationJobPublic] = Field(
+        description="Voice simulation jobs for a run",
+    )
+    count: int = Field(description="Total number of jobs matching the query")
+
+
 class VoiceSimulationJobUpdate(SQLModel):
     status: VoiceSimulationJobStatus | None = Field(
         default=None,

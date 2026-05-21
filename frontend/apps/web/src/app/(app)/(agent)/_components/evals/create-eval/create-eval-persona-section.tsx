@@ -144,17 +144,7 @@ function TtsVoiceField() {
       return;
     }
     form.setValue('persona.tts.voice_id', defaultVoice, { shouldDirty: false });
-  }, [
-    form,
-    isVoice,
-    readOnly,
-    voiceId,
-    ttsProvider,
-    ttsModel,
-    voicesCatalog.count,
-    voicesCatalog.default_voice_id,
-    voicesCatalog.data,
-  ]);
+  }, [form, isVoice, readOnly, voiceId, ttsProvider, ttsModel, voicesCatalog]);
 
   return (
     <FormField

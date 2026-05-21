@@ -341,6 +341,9 @@ import type {
   VoiceSimulationsGetVoiceSimulationJobData,
   VoiceSimulationsGetVoiceSimulationJobErrors,
   VoiceSimulationsGetVoiceSimulationJobResponses,
+  VoiceSimulationsListVoiceSimulationJobsForRunData,
+  VoiceSimulationsListVoiceSimulationJobsForRunErrors,
+  VoiceSimulationsListVoiceSimulationJobsForRunResponses,
   VoiceSimulationsSubmitVoiceSimulationResultsData,
   VoiceSimulationsSubmitVoiceSimulationResultsErrors,
   VoiceSimulationsSubmitVoiceSimulationResultsResponses,
@@ -3206,6 +3209,30 @@ export class VoiceSimulationsService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+    });
+  }
+
+  /**
+   * List Voice Simulation Jobs For Run
+   */
+  public static voiceSimulationsListVoiceSimulationJobsForRun<ThrowOnError extends boolean = false>(
+    options: Options<VoiceSimulationsListVoiceSimulationJobsForRunData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      VoiceSimulationsListVoiceSimulationJobsForRunResponses,
+      VoiceSimulationsListVoiceSimulationJobsForRunErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/voice-simulations/runs/{run_id}/jobs',
+      ...options,
     });
   }
 

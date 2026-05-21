@@ -4,8 +4,14 @@ import { useMemo, useState } from 'react';
 
 import { useEvalRun } from '@/app/(app)/(agent)/_hooks/use-eval-run';
 import { useTestCaseResultsByRun } from '@/app/(app)/(agent)/_hooks/use-test-case-results-by-run';
+import { useVoiceSimulationJobsByRun } from '@/app/(app)/(agent)/_hooks/use-voice-simulation-jobs-by-run';
+import { RunMode } from '@/client/types.gen';
 
-import type { EvalConfigPublic, TestCasePublic } from '@/client/types.gen';
+import type {
+  EvalConfigPublic,
+  TestCasePublic,
+  VoiceSimulationJobPublic,
+} from '@/client/types.gen';
 
 export type ResultFilter = 'all' | 'passed' | 'failed';
 
@@ -17,7 +23,9 @@ interface UseEvalRunDetailParams {
 
 export function useEvalRunDetail({ runId, configs, testCases }: UseEvalRunDetailParams) {
   const { data: run } = useEvalRun(runId);
+  const isVoiceRun = run.config?.mode === RunMode.VOICE;
   const { data: resultsData } = useTestCaseResultsByRun(runId);
+  const { data: voiceJobsData } = useVoiceSimulationJobsByRun(runId, isVoiceRun);
 
   const [filter, setFilter] = useState<ResultFilter>('all');
   const [drawerResultId, setDrawerResultId] = useState<string | null>(null);
@@ -54,6 +62,14 @@ export function useEvalRunDetail({ runId, configs, testCases }: UseEvalRunDetail
   const drawerResult =
     drawerResultId !== null ? results.find((r) => r.id === drawerResultId) ?? null : null;
 
+  const voiceJobByResultId = useMemo(() => {
+    const map = new Map<string, VoiceSimulationJobPublic>();
+    for (const job of voiceJobsData?.data ?? []) {
+      map.set(job.test_case_result_id, job);
+    }
+    return map;
+  }, [voiceJobsData]);
+
   return {
     run,
     results,
@@ -67,5 +83,7 @@ export function useEvalRunDetail({ runId, configs, testCases }: UseEvalRunDetail
     drawerResultId,
     setDrawerResultId,
     drawerResult,
+    isVoiceRun,
+    voiceJobByResultId,
   };
 }

@@ -13,6 +13,7 @@ from typing import ClassVar
 from sqlmodel import Session
 
 from app import crud
+from app.core.config import settings
 from app.core.db import engine
 from app.models import VoiceSimulationJobCreate, VoiceSimulationJobUpdate
 from app.models.agent import Agent
@@ -65,6 +66,12 @@ class TwilioVoiceRuntime(EvalRuntime):
     ) -> None:
         if not isinstance(runtime_config, TwilioVoiceRuntimeConfig):
             msg = "twilio voice runtime requires a TwilioVoiceRuntimeConfig"
+            raise ValueError(msg)
+        if not settings.twilio_voice_runtime_configured():
+            msg = (
+                "Twilio voice runtime requires TWILIO_ACCOUNT_SID, "
+                "TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER"
+            )
             raise ValueError(msg)
 
     async def test_connection(

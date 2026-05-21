@@ -5,6 +5,8 @@ import { dehydrate } from '@tanstack/react-query';
 import getQueryClient from '@/lib/react-query/getQueryClient';
 import { CreateEvalView } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-view';
 import { EvalConfigDetailSkeleton } from '@/app/(app)/(agent)/_components/evals/eval-configs/eval-config-detail-skeleton';
+import { agentDetailQuery } from '@/app/(app)/(agent)/_queries/agent-detail-query';
+import { appConfigQueries } from '@/app/(app)/(agent)/_queries/app-config-query';
 import { availableMetricsQuery } from '@/app/(app)/(agent)/_queries/available-metrics-query';
 import { testCasesListQuery } from '@/app/(app)/(agent)/_queries/test-cases-list-query';
 import ErrorBoundary from '@/components/common/error-boundary';
@@ -21,8 +23,12 @@ export default async function CreateEvalPage({ params, searchParams }: Props) {
 
   const queryClient = getQueryClient();
 
-  queryClient.prefetchQuery(availableMetricsQuery());
-  queryClient.prefetchQuery(testCasesListQuery(agentId));
+  await Promise.all([
+    queryClient.prefetchQuery(availableMetricsQuery()),
+    queryClient.prefetchQuery(testCasesListQuery(agentId)),
+    queryClient.prefetchQuery(appConfigQueries.root),
+    queryClient.prefetchQuery(agentDetailQuery(agentId)),
+  ]);
 
   const dehydratedState = dehydrate(queryClient);
 

@@ -56,7 +56,7 @@ def get_voice_simulation_job_by_dtmf(
     )
     if statuses is not None:
         statement = statement.where(col(VoiceSimulationJob.status).in_(statuses))
-    statement = statement.order_by(VoiceSimulationJob.created_at.desc()).limit(1)
+    statement = statement.order_by(col(VoiceSimulationJob.created_at).desc()).limit(1)
     return session.exec(statement).first()
 
 
@@ -133,8 +133,8 @@ def claim_next_pending_voice_job(
         VoiceSimulationJob.status == VoiceSimulationJobStatus.PENDING,
         and_(
             col(VoiceSimulationJob.status).in_(_ACTIVE_CLAIM_STATUSES),
-            VoiceSimulationJob.lease_expires_at.is_not(None),
-            VoiceSimulationJob.lease_expires_at < now,
+            col(VoiceSimulationJob.lease_expires_at).is_not(None),
+            col(VoiceSimulationJob.lease_expires_at) < now,
         ),
     )
     statement = (

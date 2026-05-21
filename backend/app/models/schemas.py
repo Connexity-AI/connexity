@@ -461,6 +461,23 @@ class RunConfig(BaseModel):
                 f"{settings.VOICE_MAX_CALL_DURATION_SECONDS}s"
             )
             raise ValueError(msg)
+
+        if not settings.voice_simulation_enabled():
+            msg = (
+                "Voice simulations are not enabled on this deployment "
+                "(set VOICE_DEPLOYMENT_MODE to local or kubernetes)"
+            )
+            raise ValueError(msg)
+
+        max_concurrency = settings.voice_max_concurrency_for_deployment()
+        if settings.VOICE_DEPLOYMENT_MODE == "local":
+            self.concurrency = 1
+        elif self.concurrency > max_concurrency:
+            msg = (
+                f"voice concurrency cannot exceed {max_concurrency} "
+                f"for this deployment"
+            )
+            raise ValueError(msg)
         return self
 
 

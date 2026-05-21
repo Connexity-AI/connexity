@@ -1,6 +1,11 @@
+from __future__ import annotations
+
 import os
 import warnings
-from typing import Annotated, Any, Literal, Self
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
+
+if TYPE_CHECKING:
+    from app.models.common import VoiceSimulationConfigPublic
 
 from cryptography.fernet import Fernet
 from pydantic import (
@@ -135,8 +140,25 @@ class Settings(BaseSettings):
     # Telephony — voice eval worker (Pipecat Twilio serializer); not used by catalog API
     TWILIO_ACCOUNT_SID: str | None = None
     TWILIO_AUTH_TOKEN: str | None = None
+    TWILIO_FROM_NUMBER: str | None = Field(
+        default=None,
+        description="E.164 Twilio caller ID used for voice simulations",
+    )
 
     # Voice simulation runtime
+    VOICE_DEPLOYMENT_MODE: Literal["off", "local", "kubernetes"] = Field(
+        default="off",
+        description=(
+            "Voice deployment profile: off for the default text-only stack; "
+            "local or kubernetes when the voice compose overlay or cluster "
+            "manifest enables the caller worker. Set by deployment, not user .env."
+        ),
+    )
+    VOICE_MAX_CONCURRENCY: int = Field(
+        default=5,
+        ge=1,
+        description="Maximum parallel voice calls allowed in kubernetes deployments",
+    )
     VOICE_DEFAULT_CALL_DURATION_SECONDS: int = Field(
         default=300,
         ge=1,
@@ -291,6 +313,37 @@ class Settings(BaseSettings):
 
         return resolve_litellm_model(
             self.LLM_DEFAULT_MODEL, self.LLM_DEFAULT_PROVIDER or None
+        )
+
+    def voice_simulation_enabled(self) -> bool:
+        return self.VOICE_DEPLOYMENT_MODE in ("local", "kubernetes")
+
+    def twilio_voice_runtime_configured(self) -> bool:
+        return bool(
+            self.TWILIO_ACCOUNT_SID
+            and self.TWILIO_AUTH_TOKEN
+            and self.TWILIO_FROM_NUMBER
+        )
+
+    def voice_max_concurrency_for_deployment(self) -> int:
+        if self.VOICE_DEPLOYMENT_MODE == "local":
+            return 1
+        return self.VOICE_MAX_CONCURRENCY
+
+    def voice_simulation_config_public(self) -> VoiceSimulationConfigPublic | None:
+        from app.models.common import VoiceSimulationConfigPublic
+
+        if not self.voice_simulation_enabled():
+            return None
+        mode = self.VOICE_DEPLOYMENT_MODE
+        assert mode in ("local", "kubernetes")
+        return VoiceSimulationConfigPublic(
+            deployment_mode=mode,
+            max_concurrency=self.voice_max_concurrency_for_deployment(),
+            voice_runtime_available=self.twilio_voice_runtime_configured(),
+            result_submission_path=f"{self.API_V1_STR}/voice-simulations/results",
+            default_call_duration_seconds=self.VOICE_DEFAULT_CALL_DURATION_SECONDS,
+            max_call_duration_seconds=self.VOICE_MAX_CALL_DURATION_SECONDS,
         )
 
     # ------- Validators -------

@@ -546,6 +546,45 @@ def test_run_config_text_mode_rejects_call_duration() -> None:
         RunConfig(max_call_duration_seconds=120)
 
 
+def test_run_config_voice_mode_rejects_when_deployment_off(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("app.models.schemas.settings.VOICE_DEPLOYMENT_MODE", "off")
+    with pytest.raises(ValueError, match="not enabled"):
+        RunConfig(
+            mode=RunMode.VOICE,
+            agent_phone_number="+15551234567",
+            user_simulator=UserSimulatorConfig(
+                stt=SttConfig(provider="deepgram", model="nova-3-general"),
+                tts=TtsConfig(
+                    provider="deepgram",
+                    model="aura",
+                    voice_id="aura-2-helena-en",
+                ),
+            ),
+        )
+
+
+def test_run_config_voice_mode_local_forces_concurrency_one(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("app.models.schemas.settings.VOICE_DEPLOYMENT_MODE", "local")
+    config = RunConfig(
+        mode=RunMode.VOICE,
+        concurrency=10,
+        agent_phone_number="+15551234567",
+        user_simulator=UserSimulatorConfig(
+            stt=SttConfig(provider="deepgram", model="nova-3-general"),
+            tts=TtsConfig(
+                provider="deepgram",
+                model="aura",
+                voice_id="aura-2-helena-en",
+            ),
+        ),
+    )
+    assert config.concurrency == 1
+
+
 # ── AggregateMetrics ───────────────────────────────────────────────
 
 

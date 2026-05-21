@@ -76,6 +76,10 @@ export const runKeys = {
   detail: (runId: string) => ['run', runId] as const,
 };
 
+export const voiceSimulationKeys = {
+  jobsByRun: (runId: string) => ['voice-simulation-jobs', runId] as const,
+};
+
 export const testCaseResultKeys = {
   byRun: (runId: string) => ['test-case-results', runId] as const,
 };

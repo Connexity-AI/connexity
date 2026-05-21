@@ -15,7 +15,7 @@ import {
   formValuesToCreatePayload,
   SimulationMode,
 } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
-import { RunMode } from '@/client/types.gen';
+import { RunMode, TextRuntimeKind } from '@/client/types.gen';
 import {
   buildMetricRows,
   buildTestCaseRows,
@@ -30,12 +30,29 @@ import { appConfigQueries } from '@/app/(app)/(agent)/_queries/app-config-query'
 import { BOOTSTRAP_DEFAULT_LLM_ROUTE } from '@/utils/split-default-llm-routing';
 import { speechSelectionFromCatalog } from '@/utils/speech-defaults-from-catalog';
 
-import type { CreateEvalFormValues } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
+import type {
+  CreateEvalFormValues,
+  CreateEvalRuntime,
+} from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
 import type {
   EvalConfigMemberPublic,
   EvalConfigPublic,
   MetricDefinition,
+  RunConfigInput,
 } from '@/client/types.gen';
+
+function textRuntimeFromConfig(
+  runtime: RunConfigInput['runtime'] | null | undefined,
+  fallback: CreateEvalRuntime
+): CreateEvalRuntime {
+  if (!runtime || runtime.kind === 'twilio') {
+    return fallback;
+  }
+  if (runtime.kind === TextRuntimeKind.CUSTOM_ENDPOINT) {
+    return { kind: runtime.kind, url: runtime.url };
+  }
+  return { kind: runtime.kind };
+}
 
 interface UseCreateEvalFormArgs {
   agentId: string;
@@ -94,10 +111,14 @@ export function useCreateEvalForm({
       simulation_mode:
         cfg?.mode === RunMode.VOICE ? SimulationMode.VOICE : SimulationMode.TEXT,
       agent_phone_number: cfg?.agent_phone_number ?? base.run.agent_phone_number,
-      concurrency: cfg?.concurrency ?? base.run.concurrency,
+      concurrency: isVoiceConfig
+        ? Math.min(cfg?.concurrency ?? 1, 1)
+        : (cfg?.concurrency ?? base.run.concurrency),
       max_turns: cfg?.max_turns ?? base.run.max_turns,
+      max_call_duration_seconds:
+        cfg?.max_call_duration_seconds ?? base.run.max_call_duration_seconds,
       tool_mode: isVoiceConfig ? 'mock' : (cfg?.tool_mode ?? base.run.tool_mode),
-      runtime: cfg?.runtime ?? base.run.runtime,
+      runtime: textRuntimeFromConfig(cfg?.runtime, base.run.runtime),
       runtime_test: base.run.runtime_test,
       metrics_pass_threshold:
         cfg?.metrics_pass_threshold ?? base.run.metrics_pass_threshold,

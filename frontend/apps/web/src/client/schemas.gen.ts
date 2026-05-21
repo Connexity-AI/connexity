@@ -1977,6 +1977,17 @@ export const ConfigPublicSchema = {
       type: 'string',
       title: 'Default Llm Model',
     },
+    voice_simulation: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/VoiceSimulationConfigPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Voice simulation settings and availability for the UI',
+    },
   },
   type: 'object',
   required: ['project_name', 'api_version', 'environment', 'docs_url', 'default_llm_model'],
@@ -8296,6 +8307,52 @@ export const VoicePublicSchema = {
   title: 'VoicePublic',
 } as const;
 
+export const VoiceSimulationConfigPublicSchema = {
+  properties: {
+    deployment_mode: {
+      type: 'string',
+      enum: ['local', 'kubernetes'],
+      title: 'Deployment Mode',
+      description: 'Voice deployment profile controlling concurrency limits',
+    },
+    max_concurrency: {
+      type: 'integer',
+      title: 'Max Concurrency',
+      description: 'Maximum parallel voice calls allowed for this deployment',
+    },
+    voice_runtime_available: {
+      type: 'boolean',
+      title: 'Voice Runtime Available',
+      description: 'True when Twilio credentials are configured for voice runs',
+    },
+    result_submission_path: {
+      type: 'string',
+      title: 'Result Submission Path',
+      description: 'Relative API path for user-side voice result submission',
+    },
+    default_call_duration_seconds: {
+      type: 'integer',
+      title: 'Default Call Duration Seconds',
+      description: 'Default max call duration when omitted from RunConfig',
+    },
+    max_call_duration_seconds: {
+      type: 'integer',
+      title: 'Max Call Duration Seconds',
+      description: 'Upper bound for RunConfig max_call_duration_seconds',
+    },
+  },
+  type: 'object',
+  required: [
+    'deployment_mode',
+    'max_concurrency',
+    'voice_runtime_available',
+    'result_submission_path',
+    'default_call_duration_seconds',
+    'max_call_duration_seconds',
+  ],
+  title: 'VoiceSimulationConfigPublic',
+} as const;
+
 export const VoiceSimulationJobPublicSchema = {
   properties: {
     id: {
@@ -8519,6 +8576,27 @@ export const VoiceSimulationJobStatusSchema = {
     'cancelled',
   ],
   title: 'VoiceSimulationJobStatus',
+} as const;
+
+export const VoiceSimulationJobsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/VoiceSimulationJobPublic',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Voice simulation jobs for a run',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+      description: 'Total number of jobs matching the query',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'VoiceSimulationJobsPublic',
 } as const;
 
 export const VoiceSimulationResultSubmitSchema = {

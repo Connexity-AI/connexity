@@ -19,7 +19,12 @@ from app.services.speech_models import (
 )
 
 
-def test_get_config(client: TestClient, auth_cookies: dict[str, str]) -> None:
+def test_get_config(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "VOICE_DEPLOYMENT_MODE", "off")
     r = client.get(
         f"{settings.API_V1_STR}/config/",
         cookies=auth_cookies,
@@ -31,6 +36,28 @@ def test_get_config(client: TestClient, auth_cookies: dict[str, str]) -> None:
     assert result["environment"] in ("local", "staging", "production")
     assert result["docs_url"] == "/docs"
     assert result["default_llm_model"] == settings.default_llm_id
+    assert result["voice_simulation"] is None
+
+
+def test_get_config_includes_voice_simulation_when_enabled(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "VOICE_DEPLOYMENT_MODE", "local")
+
+    r = client.get(
+        f"{settings.API_V1_STR}/config/",
+        cookies=auth_cookies,
+    )
+    assert r.status_code == 200
+    voice = r.json()["voice_simulation"]
+    assert voice is not None
+    assert voice["deployment_mode"] == "local"
+    assert voice["max_concurrency"] >= 1
+    assert voice["result_submission_path"] == (
+        f"{settings.API_V1_STR}/voice-simulations/results"
+    )
 
 
 def test_get_config_requires_auth(client: TestClient) -> None:

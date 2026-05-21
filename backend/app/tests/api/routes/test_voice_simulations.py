@@ -266,6 +266,23 @@ def test_get_voice_simulation_job(
     assert response.json()["dtmf_code"] == format_dtmf_code(body=29)
 
 
+def test_list_voice_simulation_jobs_for_run(
+    client: TestClient,
+    auth_cookies: dict[str, str],
+    db: Session,
+) -> None:
+    job = _setup_waiting_job(db)
+    r = client.get(
+        f"{settings.API_V1_STR}/voice-simulations/runs/{job.run_id}/jobs",
+        cookies=auth_cookies,
+    )
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload["count"] >= 1
+    ids = {row["id"] for row in payload["data"]}
+    assert str(job.id) in ids
+
+
 def test_get_voice_simulation_job_not_found(
     client: TestClient,
     auth_cookies: dict[str, str],

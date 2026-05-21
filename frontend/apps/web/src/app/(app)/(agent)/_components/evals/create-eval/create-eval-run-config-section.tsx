@@ -1,12 +1,24 @@
 'use client';
 'use no memo';
 
-import { useFormContext } from 'react-hook-form';
+import type { ReactNode } from 'react';
 
+import { useFormContext } from 'react-hook-form';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@workspace/ui/components/ui/button';
 import { FormControl, FormField, FormItem, FormMessage } from '@workspace/ui/components/ui/form';
 import { Input } from '@workspace/ui/components/ui/input';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@workspace/ui/components/ui/tooltip';
 import { cn } from '@workspace/ui/lib/utils';
+
+import { agentDetailQuery } from '@/app/(app)/(agent)/_queries/agent-detail-query';
+import { appConfigQueries } from '@/app/(app)/(agent)/_queries/app-config-query';
+import { getPublicEnv } from '@/config/process-env';
 
 import { useCreateEvalReadOnly } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-readonly-context';
 import {
@@ -27,16 +39,77 @@ import {
 import { AppModelsEnumsAgentMode, TextRuntimeKind } from '@/client/types.gen';
 
 import type { SimulationMode as SimulationModeType } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
-import type { TextRuntimeKind as TextRuntimeKindType } from '@/client/types.gen';
+import type {
+  TextRuntimeKind as TextRuntimeKindType,
+  VoiceSimulationConfigPublic,
+} from '@/client/types.gen';
 
 const SIMULATION_MODES = [
   { value: SimulationMode.TEXT, label: 'Text' },
   { value: SimulationMode.VOICE, label: 'Voice' },
 ] as const;
 
-function SimulationModeField() {
+function voiceUnavailableReason(
+  voiceSettings: VoiceSimulationConfigPublic | null | undefined
+): ReactNode | undefined {
+  if (!voiceSettings) {
+    return (
+      <>
+        Voice simulations are not enabled on this deployment. Start Connexity with the voice
+        Docker Compose overlay, or deploy voice on Kubernetes.
+      </>
+    );
+  }
+  if (!voiceSettings.voice_runtime_available) {
+    return (
+      <>
+        Configure{' '}
+        <span className="font-mono text-amber-600 dark:text-amber-400">TWILIO_ACCOUNT_SID</span>,{' '}
+        <span className="font-mono text-amber-600 dark:text-amber-400">TWILIO_AUTH_TOKEN</span>, and{' '}
+        <span className="font-mono text-amber-600 dark:text-amber-400">TWILIO_FROM_NUMBER</span> on
+        the Connexity
+        backend before saving or running voice eval configs.
+      </>
+    );
+  }
+  return undefined;
+}
+
+const disabledOptionTooltipClassName =
+  'max-w-sm border-amber-400 bg-popover text-xs leading-relaxed text-popover-foreground shadow-md';
+
+function DisabledOptionTooltip({
+  reason,
+  children,
+}: {
+  reason: ReactNode | undefined;
+  children: ReactNode;
+}) {
+  if (!reason) {
+    return <>{children}</>;
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">{children}</span>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className={disabledOptionTooltipClassName}>
+        {reason}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function SimulationModeField({
+  voiceSettings,
+}: {
+  voiceSettings: VoiceSimulationConfigPublic | null | undefined;
+}) {
   const form = useFormContext<CreateEvalFormValues>();
   const readOnly = useCreateEvalReadOnly();
+  const voiceUnavailable =
+    !voiceSettings || voiceSettings.voice_runtime_available === false;
 
   return (
     <FormField
@@ -48,6 +121,8 @@ function SimulationModeField() {
           <SimulationModeToggle
             value={field.value}
             readOnly={readOnly}
+            voiceUnavailable={voiceUnavailable}
+            voiceDisabledReason={voiceUnavailable ? voiceUnavailableReason(voiceSettings) : undefined}
             onChange={(mode) => {
               field.onChange(mode);
               if (mode === SimulationMode.VOICE) {
@@ -55,6 +130,24 @@ function SimulationModeField() {
                   shouldDirty: true,
                   shouldValidate: true,
                 });
+                const currentDuration = form.getValues('run.max_call_duration_seconds');
+                if (currentDuration == null || currentDuration < 1) {
+                  form.setValue('run.max_call_duration_seconds', 300, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }
+                const maxConcurrency = voiceSettings?.max_concurrency ?? 1;
+                form.setValue('run.concurrency', Math.min(form.getValues('run.concurrency'), maxConcurrency), {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+                if (voiceSettings?.deployment_mode === 'local') {
+                  form.setValue('run.concurrency', 1, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }
               }
             }}
           />
@@ -69,39 +162,108 @@ function SimulationModeField() {
   );
 }
 
+interface SimulationModeToggleButtonProps {
+  option: (typeof SIMULATION_MODES)[number];
+  selected: boolean;
+  voiceDisabled: boolean;
+  voiceUnavailable: boolean;
+  voiceDisabledReason: ReactNode | undefined;
+  onSelect: (mode: SimulationModeType) => void;
+}
+
+function SimulationModeToggleButton({
+  option,
+  selected,
+  voiceDisabled,
+  voiceUnavailable,
+  voiceDisabledReason,
+  onSelect,
+}: SimulationModeToggleButtonProps) {
+  const isVoice = option.value === SimulationMode.VOICE;
+  const baseClassName = 'px-4 py-1.5 rounded-md text-xs transition-all';
+
+  const buildClassName = () => {
+    if (selected && isVoice && voiceUnavailable) {
+      return cn(
+        baseClassName,
+        'bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-sm',
+        voiceDisabled && 'cursor-not-allowed opacity-60'
+      );
+    }
+
+    if (selected) {
+      return cn(
+        baseClassName,
+        'bg-accent text-foreground border border-border shadow-sm',
+        voiceDisabled && 'cursor-not-allowed opacity-60'
+      );
+    }
+
+    return cn(
+      baseClassName,
+      'text-muted-foreground hover:text-foreground',
+      voiceDisabled && 'cursor-not-allowed opacity-60'
+    );
+  };
+
+  const button = (
+    <button
+      type="button"
+      disabled={voiceDisabled}
+      onClick={() => onSelect(option.value)}
+      className={cn(
+        'inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer',
+        buildClassName()
+      )}
+    >
+      {isVoice && voiceUnavailable ? (
+        <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-amber-400 align-middle" />
+      ) : null}
+      {option.label}
+    </button>
+  );
+
+  if (isVoice && voiceDisabled && voiceDisabledReason) {
+    return <DisabledOptionTooltip reason={voiceDisabledReason}>{button}</DisabledOptionTooltip>;
+  }
+
+  return button;
+}
+
 function SimulationModeToggle({
   value,
   readOnly,
+  voiceUnavailable,
+  voiceDisabledReason,
   onChange,
 }: {
   value: SimulationModeType;
   readOnly: boolean;
+  voiceUnavailable: boolean;
+  voiceDisabledReason: ReactNode | undefined;
   onChange: (mode: SimulationModeType) => void;
 }) {
   return (
-    <div className="flex w-fit items-center gap-1 rounded-lg border border-border bg-accent/20 p-0.5">
-      {SIMULATION_MODES.map((option) => {
-        const selected = value === option.value;
-        return (
-          <Button
-            key={option.value}
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={readOnly}
-            onClick={() => onChange(option.value)}
-            className={cn(
-              'px-4 py-1.5 text-xs transition-all',
-              selected
-                ? 'bg-accent text-foreground border border-border shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            {option.label}
-          </Button>
-        );
-      })}
-    </div>
+    <TooltipProvider delayDuration={200}>
+      <div className="flex w-fit items-center gap-1 rounded-lg border border-border bg-accent/20 p-0.5">
+        {SIMULATION_MODES.map((option) => {
+          const selected = value === option.value;
+          const isVoice = option.value === SimulationMode.VOICE;
+          const voiceDisabled = readOnly || (isVoice && voiceUnavailable);
+          return (
+            <SimulationModeToggleButton
+              key={option.value}
+              option={option}
+              selected={selected}
+              voiceDisabled={voiceDisabled}
+              voiceUnavailable={voiceUnavailable}
+              voiceDisabledReason={voiceDisabledReason}
+              onSelect={onChange}
+            />
+          );
+        })}
+      </div>
+    </TooltipProvider>
   );
 }
 
@@ -136,10 +298,19 @@ function AgentPhoneNumberField() {
   );
 }
 
-function ConcurrencyField() {
+function ConcurrencyField({
+  isVoice,
+  voiceSettings,
+}: {
+  isVoice: boolean;
+  voiceSettings: VoiceSimulationConfigPublic | null | undefined;
+}) {
   const form = useFormContext<CreateEvalFormValues>();
-
   const readOnly = useCreateEvalReadOnly();
+  const maxConcurrency = isVoice ? (voiceSettings?.max_concurrency ?? 1) : 50;
+  const isLocalVoice = isVoice && voiceSettings?.deployment_mode === 'local';
+  const fieldDisabled = readOnly || isLocalVoice;
+
   return (
     <FormField
       control={form.control}
@@ -147,23 +318,61 @@ function ConcurrencyField() {
       render={({ field }) => (
         <FormItem>
           <FieldLabel>Concurrency</FieldLabel>
-
           <FormControl>
             <Input
               type="number"
               min={1}
-              max={50}
+              max={maxConcurrency}
               className="h-9 text-sm"
-              disabled={readOnly}
-              {...field}
-              value={field.value ?? ''}
+              disabled={fieldDisabled}
+              value={isLocalVoice ? 1 : (field.value ?? '')}
               onChange={(e) => field.onChange(e.target.valueAsNumber)}
             />
           </FormControl>
-          <FieldHint>Parallel scenarios at once</FieldHint>
+          <FieldHint>
+            {isLocalVoice
+              ? 'Local voice deployments run one call at a time'
+              : isVoice
+                ? `Parallel voice calls (max ${maxConcurrency} on this deployment)`
+                : 'Parallel scenarios at once'}
+          </FieldHint>
+          <FormMessage />
         </FormItem>
       )}
     />
+  );
+}
+
+function VoiceResultSubmissionPanel({
+  voiceSettings,
+}: {
+  voiceSettings: VoiceSimulationConfigPublic;
+}) {
+  const { API_URL } = getPublicEnv();
+  const submissionUrl = `${API_URL}${voiceSettings.result_submission_path}`;
+  const loginUrl = `${API_URL}/api/v1/login/access-token`;
+
+  return (
+    <div className="col-span-2 space-y-2 rounded-lg border border-border/60 bg-accent/10 px-3 py-3">
+      <p className="text-xs font-medium text-foreground">After each call ends</p>
+      <p className="text-[11px] leading-relaxed text-muted-foreground">
+        Your agent integration must POST the call recording URL and OpenAI-format conversation
+        messages (including tool calls and tool results) to Connexity. The recording must include
+        in-band DTMF tones Connexity sent during the call.
+      </p>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-[11px]">
+        <dt className="text-muted-foreground">Endpoint</dt>
+        <dd className="break-all font-mono text-foreground">{submissionUrl}</dd>
+        <dt className="text-muted-foreground">Auth</dt>
+        <dd className="text-foreground">
+          <span className="font-mono">Authorization: Bearer &lt;token&gt;</span> — obtain a JWT via{' '}
+          <span className="font-mono">POST {loginUrl}</span> (same credentials as the Connexity UI)
+          or reuse your browser session cookie when calling from a trusted server.
+        </dd>
+        <dt className="text-muted-foreground">Body</dt>
+        <dd className="font-mono text-foreground">{`{ "audio_url": "...", "messages": [...] }`}</dd>
+      </dl>
+    </div>
   );
 }
 
@@ -203,6 +412,39 @@ function MaxTurnsField() {
   );
 }
 
+function MaxCallDurationField() {
+  const form = useFormContext<CreateEvalFormValues>();
+  const readOnly = useCreateEvalReadOnly();
+
+  return (
+    <FormField
+      control={form.control}
+      name="run.max_call_duration_seconds"
+      render={({ field }) => (
+        <FormItem>
+          <FieldLabel>Max call duration</FieldLabel>
+          <FormControl>
+            <Input
+              type="number"
+              min={1}
+              max={3600}
+              className="h-9 text-sm"
+              disabled={readOnly}
+              value={field.value ?? ''}
+              onChange={(e) => field.onChange(e.target.valueAsNumber)}
+            />
+          </FormControl>
+          <FieldHint>
+            Maximum phone call length in seconds. Must be shorter than the per-test-case timeout
+            (default 10 minutes).
+          </FieldHint>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
+
 const TOOL_MODES = ['mock', 'live'] as const;
 type ToolMode = (typeof TOOL_MODES)[number];
 
@@ -211,7 +453,7 @@ interface ToolModeToggleButtonProps {
   selected: boolean;
   liveDisabled: boolean;
   liveUnavailable: boolean;
-  missingImpl: string[];
+  liveDisabledReason: string | undefined;
   onSelect: (mode: ToolMode) => void;
 }
 
@@ -220,13 +462,13 @@ function ToolModeToggleButton({
   selected,
   liveDisabled,
   liveUnavailable,
-  missingImpl,
+  liveDisabledReason,
   onSelect,
 }: ToolModeToggleButtonProps) {
   const baseClassName = 'px-4 py-1.5 rounded-md text-xs transition-all capitalize';
 
   const buildClassName = () => {
-    if (selected && mode === 'live') {
+    if (selected && mode === 'live' && liveUnavailable) {
       return cn(
         baseClassName,
         'bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-sm',
@@ -249,38 +491,28 @@ function ToolModeToggleButton({
     );
   };
 
-  const buildTitle = () => {
-    if (mode === 'live' && liveUnavailable) {
-      return `Add live webhook or Python implementations for: ${missingImpl.join(', ')}`;
-    }
-
-    return undefined;
-  };
-
-  const renderLiveDot = () => {
-    if (mode !== 'live') {
-      return null;
-    }
-
-    return (
-      <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 mr-1.5 align-middle" />
-    );
-  };
-
-  return (
-    <Button
+  const button = (
+    <button
       type="button"
-      variant="ghost"
-      size="sm"
       disabled={liveDisabled}
-      title={buildTitle()}
       onClick={() => onSelect(mode)}
-      className={buildClassName()}
+      className={cn(
+        'inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer',
+        buildClassName()
+      )}
     >
-      {renderLiveDot()}
+      {mode === 'live' && liveUnavailable ? (
+        <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-amber-400 align-middle" />
+      ) : null}
       {mode.charAt(0).toUpperCase() + mode.slice(1)}
-    </Button>
+    </button>
   );
+
+  if (mode === 'live' && liveDisabled && liveDisabledReason) {
+    return <DisabledOptionTooltip reason={liveDisabledReason}>{button}</DisabledOptionTooltip>;
+  }
+
+  return button;
 }
 
 interface ToolModeFieldProps {
@@ -299,37 +531,20 @@ function ToolModeField({ agentMode, agentTools }: ToolModeFieldProps) {
 
   useToolModeLiveGuard(form, liveUnavailable);
 
+  const liveDisabledReason = liveUnavailable
+    ? `Live tool calls unavailable: add HTTP endpoint (or Python) under each platform tool (${missingImpl.join(', ')}) — or leave Mock selected.`
+    : undefined;
+
   return (
     <FormField
       control={form.control}
       name="run.tool_mode"
-      render={({ field }) => {
-        const renderHint = () => {
-          if (liveUnavailable) {
-            return (
-              <span className="text-amber-500/90">
-                Live tool calls unavailable: add HTTP endpoint (or Python) under each platform tool
-                ({missingImpl.join(', ')}) - or leave Mock selected.
-              </span>
-            );
-          }
+      render={({ field }) => (
+        <FormItem className="col-span-2">
+          <FieldLabel>Tool Calls</FieldLabel>
 
-          if (field.value === 'mock') {
-            return 'Tool responses are simulated using test case mock data';
-          }
-
-          if (agentMode !== AppModelsEnumsAgentMode.PLATFORM) {
-            return 'Live applies to platform simulated agents only; endpoint agents ignore this setting.';
-          }
-
-          return 'Tools invoke stored implementations (HTTP / Python) during the eval run';
-        };
-
-        return (
-          <FormItem className="col-span-2">
-            <FieldLabel>Tool Calls</FieldLabel>
-
-            <div className="flex items-center gap-1 p-0.5 rounded-lg border border-border bg-accent/20 w-fit">
+          <TooltipProvider delayDuration={200}>
+            <div className="flex w-fit items-center gap-1 rounded-lg border border-border bg-accent/20 p-0.5">
               {TOOL_MODES.map((mode) => {
                 const selected = field.value === mode;
                 const liveDisabled = readOnly || (mode === 'live' && liveUnavailable);
@@ -340,17 +555,20 @@ function ToolModeField({ agentMode, agentTools }: ToolModeFieldProps) {
                     selected={selected}
                     liveDisabled={liveDisabled}
                     liveUnavailable={liveUnavailable}
-                    missingImpl={missingImpl}
+                    liveDisabledReason={liveDisabledReason}
                     onSelect={field.onChange}
                   />
                 );
               })}
             </div>
-            <FieldHint>{renderHint()}</FieldHint>
-            <FormMessage />
-          </FormItem>
-        );
-      }}
+          </TooltipProvider>
+          <FieldHint>
+            Mock simulates tool responses from test case data. Live invokes stored HTTP or Python
+            implementations for each platform tool during the run.
+          </FieldHint>
+          <FormMessage />
+        </FormItem>
+      )}
     />
   );
 }
@@ -518,45 +736,33 @@ function RunConfigToolModeSection({
   return <ToolModeField agentMode={agentMode} agentTools={agentTools} />;
 }
 
-export function RunConfigSection() {
-  return (
-    <Section>
-      <Section.Header title="Run Configuration" />
-      <Section.Body>
-        <div className="grid grid-cols-2 gap-4">
-          <ConcurrencyField />
-
-          <MaxTurnsField />
-        </div>
-      </Section.Body>
-    </Section>
-  );
-}
-
 interface RuntimeSectionProps {
   agentId: string;
-  agentMode?: string | null;
-  agentTools?: unknown[] | null;
   defaultToBackendOption?: boolean;
 }
 
 export function RuntimeSection({
   agentId,
-  agentMode = null,
-  agentTools = null,
   defaultToBackendOption = true,
 }: RuntimeSectionProps) {
   const form = useFormContext<CreateEvalFormValues>();
   const simulationMode = form.watch('run.simulation_mode');
   const runtimeKind = form.watch('run.runtime.kind');
   const isVoice = simulationMode === SimulationMode.VOICE;
+  const { data: agent } = useQuery({
+    ...agentDetailQuery(agentId),
+    enabled: !isVoice,
+    staleTime: 30_000,
+  });
+  const { data: appConfig } = useQuery(appConfigQueries.root);
+  const voiceSettings = appConfig?.voice_simulation ?? null;
 
   return (
     <Section>
       <Section.Header title="Simulation runtime" />
       <Section.Body>
         <div className="grid grid-cols-2 gap-4">
-          <SimulationModeField />
+          <SimulationModeField voiceSettings={voiceSettings} />
           {isVoice ? (
             <AgentPhoneNumberField />
           ) : (
@@ -566,12 +772,17 @@ export function RuntimeSection({
                 defaultToBackendOption={defaultToBackendOption}
               />
               <RunConfigToolModeSection
-                agentMode={agentMode}
-                agentTools={agentTools}
+                agentMode={agent?.mode ?? null}
+                agentTools={agent?.tools ?? null}
                 runtimeKind={runtimeKind}
               />
             </>
           )}
+          <ConcurrencyField isVoice={isVoice} voiceSettings={voiceSettings} />
+          {isVoice ? <MaxCallDurationField /> : <MaxTurnsField />}
+          {isVoice && voiceSettings ? (
+            <VoiceResultSubmissionPanel voiceSettings={voiceSettings} />
+          ) : null}
         </div>
       </Section.Body>
     </Section>
