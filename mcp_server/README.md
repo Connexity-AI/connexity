@@ -27,7 +27,7 @@ The server reads these environment variables:
 - `MCP_PUBLIC_BASE_URL`
 - `MCP_OAUTH_ISSUER_URL`
 - `MCP_OAUTH_AUDIENCE` optional, defaults to the public MCP URL
-- `MCP_OAUTH_REQUIRED_SCOPES` optional, comma- or space-separated
+- `MCP_OAUTH_REQUIRED_SCOPES` optional, comma- or space-separated; defaults to `mcp:access`
 - `MCP_OAUTH_DISCOVERY_URL` optional override
 - `MCP_OAUTH_JWKS_URL` optional override
 - `MCP_OAUTH_RESOURCE_SERVER_URL` optional override; defaults to `${MCP_PUBLIC_BASE_URL}${MCP_PATH}`
@@ -56,7 +56,7 @@ Configure the MCP service as an OAuth-protected resource server:
 - set `MCP_PUBLIC_BASE_URL` to the HTTPS origin Claude will reach
 - set `MCP_OAUTH_ISSUER_URL` to the Connexity backend public origin
 - optionally set `MCP_OAUTH_AUDIENCE`; if omitted it defaults to `${MCP_PUBLIC_BASE_URL}${MCP_PATH}`
-- optionally set `MCP_OAUTH_REQUIRED_SCOPES`, for example `mcp:access`
+- optionally set `MCP_OAUTH_REQUIRED_SCOPES`; it defaults to `mcp:access`
 
 The Connexity backend includes the OAuth authorization server and Dynamic Client
 Registration endpoints Claude needs, so users should only need to paste the MCP

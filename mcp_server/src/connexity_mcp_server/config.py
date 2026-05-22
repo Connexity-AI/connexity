@@ -9,6 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_MCP_CLIENT_ID = "mcp-server"
+DEFAULT_MCP_OAUTH_REQUIRED_SCOPES = "mcp:access"
 HTTP_URL_ADAPTER = TypeAdapter(AnyHttpUrl)
 DEFAULT_BROWSER_ALLOWED_ORIGINS = (
     "http://127.0.0.1:*",
@@ -73,7 +74,10 @@ class Settings(BaseSettings):
     mcp_oauth_audience: str | None = Field(default=None, alias="MCP_OAUTH_AUDIENCE")
     mcp_oauth_discovery_url: str | None = Field(default=None, alias="MCP_OAUTH_DISCOVERY_URL")
     mcp_oauth_jwks_url: str | None = Field(default=None, alias="MCP_OAUTH_JWKS_URL")
-    mcp_oauth_required_scopes: str | None = Field(default=None, alias="MCP_OAUTH_REQUIRED_SCOPES")
+    mcp_oauth_required_scopes: str | None = Field(
+        default=DEFAULT_MCP_OAUTH_REQUIRED_SCOPES,
+        alias="MCP_OAUTH_REQUIRED_SCOPES",
+    )
     mcp_oauth_resource_server_url: str | None = Field(default=None, alias="MCP_OAUTH_RESOURCE_SERVER_URL")
 
     @property
