@@ -48,6 +48,15 @@ uv run pyright                              # type check
 uv run pytest app/tests -v                  # tests
 ```
 
+### Voice worker changes (`voice-worker/`)
+```bash
+cd voice-worker
+uv run ruff check voice_runner tests          # lint
+uv run ruff format --check voice_runner tests  # format check
+uv run pyright                                 # type check
+uv run pytest tests -v                         # tests
+```
+
 ### Frontend changes (`frontend/`)
 ```bash
 cd frontend
@@ -66,6 +75,7 @@ This keeps the frontend TypeScript SDK in sync. CI will fail if the generated cl
 | What changed | Run |
 |---|---|
 | Python code in `backend/` | `ruff check` + `ruff format --check` + `pyright` + `pytest` |
+| Python code in `voice-worker/` | `ruff check` + `ruff format --check` + `pyright` + `pytest` |
 | Frontend code in `frontend/` | `pnpm lint` + `pnpm turbo check-types` |
 | Backend routes/models | All backend checks + `bash scripts/generate-client.sh` |
 | Both backend + frontend | All of the above |

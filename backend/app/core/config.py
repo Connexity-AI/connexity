@@ -127,6 +127,9 @@ class Settings(BaseSettings):
     # LLM — shared across generator, judge, simulator, etc.
     OPENAI_API_KEY: str | None = None
     ANTHROPIC_API_KEY: str | None = None
+    # Gemini (LiteLLM text path + Pipecat voice worker); either alias is accepted.
+    GOOGLE_GENAI_API_KEY: str | None = None
+    GOOGLE_API_KEY: str | None = None
 
     # Speech — persona voice pipeline (Pipecat); catalogs only list providers with keys set
     DEEPGRAM_API_KEY: str | None = None
@@ -324,6 +327,9 @@ class Settings(BaseSettings):
             and self.TWILIO_AUTH_TOKEN
             and self.TWILIO_FROM_NUMBER
         )
+
+    def google_llm_api_key(self) -> str | None:
+        return self.GOOGLE_GENAI_API_KEY or self.GOOGLE_API_KEY
 
     def voice_max_concurrency_for_deployment(self) -> int:
         if self.VOICE_DEPLOYMENT_MODE == "local":

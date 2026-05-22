@@ -72,3 +72,8 @@ exclude = [
     "**/__pycache__",
     "**/*.pyc",
 ]
+
+[tool.uv.workspace]
+members = [
+    "voice-worker",
+]

@@ -38,6 +38,35 @@ jobs:
       - name: Pyright
         run: uv run pyright
 
+  # ── Voice worker: lint + typecheck + unit tests ────────────
+  voice-worker-lint:
+    name: "Voice worker · Lint, Types & Tests"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: voice-worker
+    steps:
+      - uses: actions/checkout@v4ch
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv sync --group dev --frozen
+
+      - name: Ruff check
+        run: uv run ruff check --output-format github voice_runner tests
+        env:
+          RUFF_OUTPUT_FORMAT: github
+
+      - name: Ruff format check
+        run: uv run ruff format --check voice_runner tests
+
+      - name: Pyright
+        run: uv run pyright
+
+      - name: Pytest
+        run: uv run pytest tests -v
+
   # ── Backend: tests + coverage ──────────────────────────────
   backend-test:
     name: "Backend · Tests"

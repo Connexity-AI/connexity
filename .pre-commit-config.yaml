@@ -28,7 +28,7 @@ repos:
     hooks:
       - id: pyright
         name: pyright
-        entry: bash -c 'cd backend && uv run pyright'
+        entry: bash -c 'cd backend && uv run pyright && cd ../voice-worker && uv run pyright'
         language: system
         types: [python]
         pass_filenames: false
