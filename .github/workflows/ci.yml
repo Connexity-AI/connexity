@@ -46,7 +46,7 @@ jobs:
       run:
         working-directory: voice-worker
     steps:
-      - uses: actions/checkout@v4ch
+      - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true

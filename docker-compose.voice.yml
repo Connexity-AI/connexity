@@ -1,0 +1,38 @@
+# Optional voice simulation stack — text-only `docker compose up` stays unchanged.
+#
+# With local builds:
+#   docker compose -f docker-compose.yml -f docker-compose.voice.yml -f docker-compose.voice.build.yml up --build
+#
+# Requires Twilio credentials, speech provider keys, and a public HTTPS origin for
+# Twilio webhooks (ngrok or similar). Set VOICE_PUBLIC_BASE_URL in `.env`.
+
+services:
+  backend:
+    environment:
+      VOICE_DEPLOYMENT_MODE: local
+
+  voice-worker:
+    platform: linux/amd64
+    container_name: connexity-voice-worker
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      POSTGRES_SERVER: database
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD?Variable not set}
+      VOICE_DEPLOYMENT_MODE: local
+      VOICE_PUBLIC_BASE_URL: ${VOICE_PUBLIC_BASE_URL?Variable not set}
+      VOICE_WORKER_HTTP_HOST: 0.0.0.0
+      VOICE_WORKER_HTTP_PORT: "8765"
+    ports:
+      - "${VOICE_WORKER_HTTP_PORT:-8765}:8765"
+    networks:
+      - default
