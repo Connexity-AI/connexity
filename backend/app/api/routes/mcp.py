@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app import crud
-from app.api.deps import SessionDep, require_mcp_service
+from app.api.deps import McpCurrentUser, SessionDep, require_mcp_user
 from app.models import (
     AgentDraftUpdate,
     AgentLatestPublishedVersionPublic,
@@ -15,7 +15,7 @@ from app.models import (
 router = APIRouter(
     prefix="/mcp",
     tags=["mcp"],
-    dependencies=[Depends(require_mcp_service)],
+    dependencies=[Depends(require_mcp_user)],
 )
 
 
@@ -64,6 +64,7 @@ def get_draft(
 @router.put("/agents/{agent_id}/draft", response_model=AgentVersionPublic)
 def upsert_draft(
     session: SessionDep,
+    current_user: McpCurrentUser,
     agent_id: uuid.UUID,
     body: AgentDraftUpdate,
 ) -> AgentVersionPublic:
@@ -78,7 +79,7 @@ def upsert_draft(
             session=session,
             agent=agent,
             draft_data=draft_data,
-            created_by=None,
+            created_by=current_user.id,
         )
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import time
 from typing import Any
 
 import httpx
+from mcp.server.auth.middleware.auth_context import get_access_token
 
 from connexity_mcp_server.config import Settings
 
@@ -19,8 +19,6 @@ class ConnexityBackendClient:
         http_client: httpx.AsyncClient | None = None,
     ) -> None:
         self._settings = settings
-        self._token: str | None = None
-        self._token_expires_at = 0.0
         self._default_headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
@@ -91,65 +89,13 @@ class ConnexityBackendClient:
 
     async def _build_headers(self) -> dict[str, str]:
         headers = dict(self._default_headers)
-        token = await self._get_auth_token()
-        headers["Authorization"] = f"Bearer {token}"
+        access_token = get_access_token()
+        if access_token is None or not access_token.token.strip():
+            raise ConnexityBackendError(
+                "Connexity backend requests require an authenticated MCP user."
+            )
+        headers["Authorization"] = f"Bearer {access_token.token}"
         return headers
-
-    async def _get_auth_token(self) -> str:
-        if self._token and time.monotonic() < self._token_expires_at:
-            return self._token
-
-        client_id = self._settings.resolved_mcp_client_id
-        client_secret = (
-            self._settings.mcp_client_secret.strip()
-            if isinstance(self._settings.mcp_client_secret, str)
-            else ""
-        )
-        if not client_secret:
-            raise ConnexityBackendError(
-                "Connexity service auth is not configured. Provide "
-                "MCP_CLIENT_SECRET."
-            )
-
-        try:
-            response = await self._client.request(
-                "POST",
-                f"{self._settings.normalized_api_url}/internal/token",
-                headers=self._default_headers,
-                json={"client_id": client_id, "client_secret": client_secret},
-                follow_redirects=True,
-            )
-            response.raise_for_status()
-            payload = response.json()
-        except httpx.HTTPStatusError as exc:
-            detail = _extract_error_detail(exc.response)
-            raise ConnexityBackendError(
-                f"Connexity service auth failed: {detail}"
-            ) from exc
-        except httpx.HTTPError as exc:
-            raise ConnexityBackendError(
-                f"Connexity service auth failed: {exc}"
-            ) from exc
-
-        if not isinstance(payload, dict):
-            raise ConnexityBackendError(
-                "Connexity service auth returned a non-object JSON payload."
-            )
-
-        access_token = payload.get("access_token")
-        expires_in = payload.get("expires_in")
-        if not isinstance(access_token, str) or not access_token.strip():
-            raise ConnexityBackendError(
-                "Connexity service auth response did not include a valid access token."
-            )
-        if not isinstance(expires_in, int) or expires_in <= 0:
-            raise ConnexityBackendError(
-                "Connexity service auth response did not include a valid expires_in."
-            )
-
-        self._token = access_token.strip()
-        self._token_expires_at = time.monotonic() + max(expires_in - 30, 0)
-        return self._token
 
 
 def _extract_error_detail(response: httpx.Response) -> str:

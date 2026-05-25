@@ -11,7 +11,6 @@ from app.api.routes import (
     eval_configs,
     health,
     integrations,
-    internal,
     login,
     mcp,
     oauth,
@@ -29,7 +28,6 @@ ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
 
 api_router = APIRouter(responses=ERROR_RESPONSES)
 api_router.include_router(login.router)
-api_router.include_router(internal.router)
 api_router.include_router(users.router)
 api_router.include_router(mcp.router)
 api_router.include_router(agents.router)

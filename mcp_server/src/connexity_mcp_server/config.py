@@ -8,7 +8,6 @@ from pydantic import AliasChoices, AnyHttpUrl, Field, TypeAdapter
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_MCP_CLIENT_ID = "mcp-server"
 DEFAULT_MCP_OAUTH_REQUIRED_SCOPES = "mcp:access"
 HTTP_URL_ADAPTER = TypeAdapter(AnyHttpUrl)
 DEFAULT_BROWSER_ALLOWED_ORIGINS = (
@@ -56,8 +55,6 @@ class Settings(BaseSettings):
         default="http://localhost:8000/api/v1",
         validation_alias=AliasChoices("CONNEXITY_API_URL", "API_URL"),
     )
-    mcp_client_id: str = Field(default=DEFAULT_MCP_CLIENT_ID, alias="MCP_CLIENT_ID")
-    mcp_client_secret: str | None = Field(default=None, alias="MCP_CLIENT_SECRET")
     connexity_api_timeout_seconds: float = Field(
         default=15.0,
         alias="CONNEXITY_API_TIMEOUT_SECONDS",
@@ -136,12 +133,6 @@ class Settings(BaseSettings):
         return origins
 
     @property
-    def resolved_mcp_client_id(self) -> str:
-        if self.mcp_client_id.strip():
-            return self.mcp_client_id.strip()
-        return DEFAULT_MCP_CLIENT_ID
-
-    @property
     def oauth_enabled(self) -> bool:
         return bool(self.resolved_mcp_oauth_issuer_url and self.resolved_mcp_oauth_resource_server_url)
 
@@ -162,18 +153,6 @@ class Settings(BaseSettings):
         # Validate URL formats eagerly so startup fails before the server binds.
         _ = self.validated_mcp_oauth_issuer_url
         _ = self.validated_mcp_oauth_resource_server_url
-
-    def require_backend_service_auth(self) -> None:
-        client_secret = (
-            self.mcp_client_secret.strip()
-            if isinstance(self.mcp_client_secret, str)
-            else ""
-        )
-        if not client_secret:
-            raise ValueError(
-                "Connexity backend service auth is mandatory. Missing required "
-                "configuration: MCP_CLIENT_SECRET."
-            )
 
     @property
     def resolved_mcp_oauth_issuer_url(self) -> str | None:

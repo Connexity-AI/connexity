@@ -71,20 +71,3 @@ class Token(SQLModel):
 # Contents of JWT token
 class TokenPayload(SQLModel):
     sub: str | None = None
-
-
-class McpServiceTokenRequest(SQLModel):
-    client_id: str
-    client_secret: str
-
-
-class McpServiceToken(SQLModel):
-    access_token: str
-    expires_in: int
-    token_type: str = "bearer"
-
-
-class McpServiceTokenPayload(SQLModel):
-    sub: str | None = None
-    typ: str | None = None
-    scope: str | None = None

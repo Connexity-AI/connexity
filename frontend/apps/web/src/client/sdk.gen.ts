@@ -170,9 +170,6 @@ import type {
   IntegrationsTestIntegrationData,
   IntegrationsTestIntegrationErrors,
   IntegrationsTestIntegrationResponses,
-  InternalIssueMcpServiceTokenData,
-  InternalIssueMcpServiceTokenErrors,
-  InternalIssueMcpServiceTokenResponses,
   LoginLoginAccessTokenData,
   LoginLoginAccessTokenErrors,
   LoginLoginAccessTokenResponses,
@@ -581,28 +578,6 @@ export class LoginService {
       ],
       url: '/api/v1/logout',
       ...options,
-    });
-  }
-}
-
-export class InternalService {
-  /**
-   * Issue Mcp Service Token
-   */
-  public static issueMcpServiceToken<ThrowOnError extends boolean = false>(
-    options: Options<InternalIssueMcpServiceTokenData, ThrowOnError>
-  ) {
-    return (options.client ?? client).post<
-      InternalIssueMcpServiceTokenResponses,
-      InternalIssueMcpServiceTokenErrors,
-      ThrowOnError
-    >({
-      url: '/api/v1/internal/token',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
     });
   }
 }

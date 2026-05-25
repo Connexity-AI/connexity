@@ -16,7 +16,7 @@ from sqlmodel import Session
 from app.core import security
 from app.core.config import settings
 from app.core.db import engine
-from app.models import Agent, McpServiceTokenPayload, TokenPayload, User
+from app.models import Agent, TokenPayload, User
 
 cookie_scheme = APIKeyCookie(name=settings.AUTH_COOKIE, auto_error=False)
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -63,35 +63,65 @@ def get_current_user(session: SessionDep, cookie: CookieDep, bearer: BearerDep) 
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-def require_mcp_service(bearer: BearerDep) -> None:
+def require_mcp_user(session: SessionDep, bearer: BearerDep) -> User:
     token = bearer.credentials if bearer else None
-    expected_client_id = settings.resolved_mcp_client_id
+    audience = settings.oauth_default_resource_url
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
         )
+    if not audience:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="MCP OAuth audience is not configured",
+        )
 
     try:
         payload = jwt.decode(
-            token, settings.JWT_SECRET_KEY, algorithms=[security.ALGORITHM]
+            token,
+            security.oauth_public_key(),
+            algorithms=[security.OAUTH_ALGORITHM],
+            audience=audience,
+            issuer=settings.oauth_issuer_url,
         )
-        token_data = McpServiceTokenPayload(**payload)
+        token_data = TokenPayload(**payload)
     except (InvalidTokenError, ValidationError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Unauthorized",
         )
 
-    if (
-        token_data.sub != expected_client_id
-        or token_data.typ != "service"
-        or token_data.scope != "mcp:actions"
-    ):
+    scopes = payload.get("scope")
+    if not isinstance(scopes, str) or "mcp:access" not in scopes.split():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Unauthorized",
         )
+    if not token_data.sub:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized",
+        )
+
+    try:
+        user_id = uuid.UUID(token_data.sub)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized",
+        )
+
+    user = session.get(User, user_id)
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized",
+        )
+    return user
+
+
+McpCurrentUser = Annotated[User, Depends(require_mcp_user)]
 
 
 def get_owned_agent(

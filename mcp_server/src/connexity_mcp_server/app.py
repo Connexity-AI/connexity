@@ -50,7 +50,6 @@ class NormalizeMcpPathMiddleware:
 
 def build_application(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings()
-    settings.require_backend_service_auth()
     settings.require_mcp_oauth()
     backend_client = ConnexityBackendClient(settings)
     token_verifier = OidcTokenVerifier(settings)
