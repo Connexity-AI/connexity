@@ -2502,38 +2502,6 @@ export type LlmModelsPublic = {
 };
 
 /**
- * McpServiceToken
- */
-export type McpServiceToken = {
-  /**
-   * Access Token
-   */
-  access_token: string;
-  /**
-   * Expires In
-   */
-  expires_in: number;
-  /**
-   * Token Type
-   */
-  token_type?: string;
-};
-
-/**
- * McpServiceTokenRequest
- */
-export type McpServiceTokenRequest = {
-  /**
-   * Client Id
-   */
-  client_id: string;
-  /**
-   * Client Secret
-   */
-  client_secret: string;
-};
-
-/**
  * Message
  */
 export type Message = {
@@ -5794,57 +5762,6 @@ export type LoginLogoutResponses = {
    */
   200: unknown;
 };
-
-export type InternalIssueMcpServiceTokenData = {
-  body: McpServiceTokenRequest;
-  path?: never;
-  query?: never;
-  url: '/api/v1/internal/token';
-};
-
-export type InternalIssueMcpServiceTokenErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type InternalIssueMcpServiceTokenError =
-  InternalIssueMcpServiceTokenErrors[keyof InternalIssueMcpServiceTokenErrors];
-
-export type InternalIssueMcpServiceTokenResponses = {
-  /**
-   * Successful Response
-   */
-  200: McpServiceToken;
-};
-
-export type InternalIssueMcpServiceTokenResponse =
-  InternalIssueMcpServiceTokenResponses[keyof InternalIssueMcpServiceTokenResponses];
 
 export type UsersRegisterUserData = {
   body: UserRegister;

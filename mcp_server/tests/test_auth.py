@@ -14,26 +14,24 @@ from connexity_mcp_server.config import Settings
 
 
 def test_build_application_requires_mcp_oauth_configuration() -> None:
-    settings = Settings()
+    settings = Settings(mcp_public_base_url=None, mcp_oauth_issuer_url=None)
 
     with pytest.raises(
         ValueError,
-        match="Connexity backend service auth is mandatory",
+        match="MCP transport auth is mandatory",
     ):
         build_application(settings)
 
 
-def test_build_application_requires_mcp_client_secret_even_with_oauth_configured() -> None:
+def test_build_application_does_not_require_backend_client_secret() -> None:
     settings = Settings(
         mcp_public_base_url="https://mcp.example.com",
         mcp_oauth_issuer_url="https://tenant.example.com",
     )
 
-    with pytest.raises(
-        ValueError,
-        match="Missing required configuration: MCP_CLIENT_SECRET",
-    ):
-        build_application(settings)
+    app = build_application(settings)
+
+    assert app.title == "Connexity MCP Server"
 
 
 def test_streamable_http_requires_bearer_token_and_exposes_protected_resource_metadata() -> None:
@@ -59,7 +57,7 @@ def test_streamable_http_requires_bearer_token_and_exposes_protected_resource_me
         assert metadata.json() == {
             "resource": "https://mcp.example.com/mcp",
             "authorization_servers": ["https://tenant.example.com"],
-            "scopes_supported": None,
+            "scopes_supported": ["mcp:access"],
             "resource_name": "connexity-mcp",
         }
 
@@ -87,7 +85,7 @@ def test_root_alias_supports_bare_origin_clients() -> None:
         assert metadata.json() == {
             "resource": "https://mcp.example.com/mcp",
             "authorization_servers": ["https://tenant.example.com"],
-            "scopes_supported": None,
+            "scopes_supported": ["mcp:access"],
             "resource_name": "connexity-mcp",
         }
 
@@ -117,6 +115,9 @@ def test_oauth_proxy_adds_cors_headers_for_claude_origin(monkeypatch: pytest.Mon
             return self
 
         async def __aexit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        async def aclose(self) -> None:
             return None
 
         async def request(self, method: str, url: str, content: bytes, headers: dict[str, str]) -> httpx.Response:
@@ -182,6 +183,7 @@ async def test_oidc_token_verifier_accepts_valid_jwt_access_tokens() -> None:
     settings = Settings(
         mcp_public_base_url="https://mcp.example.com",
         mcp_oauth_issuer_url=issuer,
+        mcp_oauth_audience=audience,
     )
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
@@ -230,6 +232,7 @@ async def test_oidc_token_verifier_rejects_wrong_audience() -> None:
     settings = Settings(
         mcp_public_base_url="https://mcp.example.com",
         mcp_oauth_issuer_url=issuer,
+        mcp_oauth_audience="https://mcp.example.com/mcp",
     )
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:

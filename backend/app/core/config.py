@@ -18,7 +18,6 @@ from pydantic_core import MultiHostUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_SECRET_VALUE: str = "changethis"
-DEFAULT_MCP_CLIENT_ID: str = "mcp-server"
 
 
 def parse_cors(v: Any) -> list[str] | str:
@@ -64,8 +63,6 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = DEFAULT_SECRET_VALUE
     # Fernet key for encrypting integration API keys — generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
     ENCRYPTION_KEY: str = DEFAULT_SECRET_VALUE
-    MCP_CLIENT_ID: str = DEFAULT_MCP_CLIENT_ID
-    MCP_CLIENT_SECRET: str | None = None
     MCP_OAUTH_AUDIENCE: str | None = None
     OAUTH_ISSUER_URL: str | None = None
     OAUTH_DEFAULT_RESOURCE_URL: str | None = None
@@ -93,13 +90,6 @@ class Settings(BaseSettings):
             )
             raise ValueError(msg) from exc
         return v
-
-    @field_validator("MCP_CLIENT_ID", mode="before")
-    @classmethod
-    def _normalize_mcp_client_id(cls, value: Any) -> str:
-        if isinstance(value, str) and value.strip():
-            return value.strip()
-        return DEFAULT_MCP_CLIENT_ID
 
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
 
@@ -219,13 +209,6 @@ class Settings(BaseSettings):
     @property
     def emails_enabled(self) -> bool:
         return bool(self.SMTP_HOST and self.EMAILS_FROM_EMAIL)
-
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def resolved_mcp_client_id(self) -> str:
-        if self.MCP_CLIENT_ID.strip():
-            return self.MCP_CLIENT_ID.strip()
-        return DEFAULT_MCP_CLIENT_ID
 
     @computed_field  # type: ignore[prop-decorator]
     @property

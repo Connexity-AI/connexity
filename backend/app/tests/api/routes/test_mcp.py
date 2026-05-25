@@ -1,68 +1,53 @@
+from datetime import timedelta
+
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
+from app.core import security
 from app.core.config import settings
 from app.tests.utils.eval import create_test_agent
+from app.tests.utils.user import create_random_user
 
 MCP_PREFIX = f"{settings.API_V1_STR}/mcp"
-TOKEN_PREFIX = f"{settings.API_V1_STR}/internal"
-CLIENT_ID = "mcp-server"
-CUSTOM_CLIENT_ID = "custom-mcp-client"
-CLIENT_SECRET = "very-long-random-string"
+RESOURCE = "https://mcp.example.com/mcp"
+ISSUER = "https://backend.example.com"
+CLIENT_ID = "claude-client"
 
 
-def _issue_service_token(
-    client: TestClient,
+def _issue_mcp_oauth_token(
+    db: Session,
     monkeypatch,
     *,
-    client_id: str = CLIENT_ID,
-    configured_client_id: str | None = None,
-) -> str:
-    monkeypatch.setattr(settings, "MCP_CLIENT_ID", configured_client_id or CLIENT_ID)
-    monkeypatch.setattr(settings, "MCP_CLIENT_SECRET", CLIENT_SECRET)
-    response = client.post(
-        f"{TOKEN_PREFIX}/token",
-        json={"client_id": client_id, "client_secret": CLIENT_SECRET},
+    audience: str = RESOURCE,
+    scope: str = "mcp:access",
+) -> tuple[str, str]:
+    monkeypatch.setattr(settings, "OAUTH_ISSUER_URL", ISSUER)
+    monkeypatch.setattr(settings, "OAUTH_DEFAULT_RESOURCE_URL", RESOURCE)
+    user = create_random_user(db)
+    access_token, _ = security.create_oauth_access_token(
+        subject=user.id,
+        audience=audience,
+        issuer=ISSUER,
+        client_id=CLIENT_ID,
+        scope=scope,
+        expires_delta=timedelta(minutes=60),
     )
-    assert response.status_code == 200
-    body = response.json()
-    assert body["expires_in"] == 300
-    return body["access_token"]
+    return access_token, str(user.id)
 
 
-def test_mcp_token_exchange_rejects_bad_secret(client: TestClient, monkeypatch) -> None:
-    monkeypatch.setattr(settings, "MCP_CLIENT_SECRET", CLIENT_SECRET)
-
-    response = client.post(
-        f"{TOKEN_PREFIX}/token",
-        json={"client_id": CLIENT_ID, "client_secret": "wrong-secret"},
-    )
+def test_mcp_list_agents_requires_oauth_user_token(client: TestClient) -> None:
+    response = client.get(f"{MCP_PREFIX}/agents")
 
     assert response.status_code == 401
 
 
-def test_mcp_token_exchange_uses_default_client_id_when_env_unset(
-    client: TestClient, monkeypatch
+def test_mcp_list_agents_rejects_wrong_audience(
+    client: TestClient, db: Session, monkeypatch
 ) -> None:
-    monkeypatch.setattr(settings, "MCP_CLIENT_ID", CLIENT_ID)
-    monkeypatch.setattr(settings, "MCP_CLIENT_SECRET", CLIENT_SECRET)
-
-    response = client.post(
-        f"{TOKEN_PREFIX}/token",
-        json={"client_id": CLIENT_ID, "client_secret": CLIENT_SECRET},
-    )
-
-    assert response.status_code == 200
-
-
-def test_mcp_token_exchange_accepts_custom_client_id_override(
-    client: TestClient, monkeypatch
-) -> None:
-    access_token = _issue_service_token(
-        client,
+    access_token, _ = _issue_mcp_oauth_token(
+        db,
         monkeypatch,
-        client_id=CUSTOM_CLIENT_ID,
-        configured_client_id=CUSTOM_CLIENT_ID,
+        audience="https://another-resource.example.com/mcp",
     )
 
     response = client.get(
@@ -70,13 +55,13 @@ def test_mcp_token_exchange_accepts_custom_client_id_override(
         headers={"Authorization": f"Bearer {access_token}"},
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 401
 
 
-def test_mcp_list_agents_with_service_jwt(
+def test_mcp_list_agents_with_oauth_user_token(
     client: TestClient, db: Session, monkeypatch
 ) -> None:
-    access_token = _issue_service_token(client, monkeypatch)
+    access_token, _ = _issue_mcp_oauth_token(db, monkeypatch)
     agent = create_test_agent(db)
 
     response = client.get(
@@ -90,23 +75,10 @@ def test_mcp_list_agents_with_service_jwt(
     assert any(item["id"] == str(agent.id) for item in body["data"])
 
 
-def test_mcp_list_agents_rejects_raw_client_secret(
-    client: TestClient, monkeypatch
-) -> None:
-    monkeypatch.setattr(settings, "MCP_CLIENT_SECRET", CLIENT_SECRET)
-
-    response = client.get(
-        f"{MCP_PREFIX}/agents",
-        headers={"Authorization": f"Bearer {CLIENT_SECRET}"},
-    )
-
-    assert response.status_code == 401
-
-
-def test_mcp_update_draft_with_service_jwt(
+def test_mcp_update_draft_with_oauth_user_token(
     client: TestClient, db: Session, monkeypatch
 ) -> None:
-    access_token = _issue_service_token(client, monkeypatch)
+    access_token, user_id = _issue_mcp_oauth_token(db, monkeypatch)
     agent = create_test_agent(db)
 
     response = client.put(
@@ -116,4 +88,6 @@ def test_mcp_update_draft_with_service_jwt(
     )
 
     assert response.status_code == 200
-    assert response.json()["system_prompt"] == "MCP draft prompt"
+    body = response.json()
+    assert body["system_prompt"] == "MCP draft prompt"
+    assert body["created_by"] == user_id

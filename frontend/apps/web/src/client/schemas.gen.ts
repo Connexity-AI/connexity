@@ -4105,43 +4105,6 @@ export const LLMModelsPublicSchema = {
   title: 'LLMModelsPublic',
 } as const;
 
-export const McpServiceTokenSchema = {
-  properties: {
-    access_token: {
-      type: 'string',
-      title: 'Access Token',
-    },
-    expires_in: {
-      type: 'integer',
-      title: 'Expires In',
-    },
-    token_type: {
-      type: 'string',
-      title: 'Token Type',
-      default: 'bearer',
-    },
-  },
-  type: 'object',
-  required: ['access_token', 'expires_in'],
-  title: 'McpServiceToken',
-} as const;
-
-export const McpServiceTokenRequestSchema = {
-  properties: {
-    client_id: {
-      type: 'string',
-      title: 'Client Id',
-    },
-    client_secret: {
-      type: 'string',
-      title: 'Client Secret',
-    },
-  },
-  type: 'object',
-  required: ['client_id', 'client_secret'],
-  title: 'McpServiceTokenRequest',
-} as const;
-
 export const MessageSchema = {
   properties: {
     message: {

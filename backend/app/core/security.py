@@ -44,6 +44,10 @@ def oauth_jwks() -> dict[str, list[dict[str, Any]]]:
     return {"keys": [jwk]}
 
 
+def oauth_public_key() -> ed25519.Ed25519PublicKey:
+    return _oauth_private_key().public_key()
+
+
 def create_oauth_access_token(
     *,
     subject: str | Any,
