@@ -224,15 +224,3 @@ helm upgrade --install connexity deploy/helm/connexity \
   --namespace connexity \
   -f values-production.yaml
 ```
-
-## Local Scaling Check
-
-Minikube works for checking voice-worker scaling if KEDA can reach the same Postgres database as the backend. Full voice calls still require public Twilio-reachable worker URLs.
-
-For a local render check without applying anything:
-
-```bash
-helm lint deploy/helm/connexity
-helm template connexity deploy/helm/connexity --set secret.create=true
-helm template connexity deploy/helm/connexity --set secret.create=true --set voice.enabled=true
-```
