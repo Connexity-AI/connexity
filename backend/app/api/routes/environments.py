@@ -32,6 +32,7 @@ from app.services.retell import (
     deploy_retell_agent,
     list_retell_agent_versions,
 )
+from app.services.telnyx import deploy_telnyx_agent
 from app.services.vapi import deploy_vapi_assistant
 from app.services.webhook_deploy import (
     build_webhook_payload,
@@ -48,7 +49,12 @@ router = APIRouter(
 def _apply_agent_platform_to_environment_create(
     agent: Agent, environment_in: EnvironmentCreate
 ) -> EnvironmentCreate:
-    if agent.platform in (Platform.RETELL, Platform.VAPI, Platform.ELEVENLABS):
+    if agent.platform in (
+        Platform.RETELL,
+        Platform.TELNYX,
+        Platform.VAPI,
+        Platform.ELEVENLABS,
+    ):
         if agent.integration_id is None or not (agent.platform_agent_id or "").strip():
             raise HTTPException(
                 status_code=422,
@@ -72,7 +78,12 @@ def _apply_agent_platform_to_environment_update(
     agent: Agent, _env: Environment, environment_in: EnvironmentUpdate
 ) -> EnvironmentUpdate:
     body_dump = environment_in.model_dump(exclude_unset=True)
-    if agent.platform in (Platform.RETELL, Platform.VAPI, Platform.ELEVENLABS):
+    if agent.platform in (
+        Platform.RETELL,
+        Platform.TELNYX,
+        Platform.VAPI,
+        Platform.ELEVENLABS,
+    ):
         if agent.integration_id is None or not (agent.platform_agent_id or "").strip():
             raise HTTPException(
                 status_code=422,
@@ -178,7 +189,12 @@ def _validate_gate_config(
 def _get_environment_integration_name(
     session: SessionDep, *, platform: Platform, integration_id: uuid.UUID | None
 ) -> str | None:
-    if platform not in {Platform.RETELL, Platform.VAPI, Platform.ELEVENLABS}:
+    if platform not in {
+        Platform.RETELL,
+        Platform.TELNYX,
+        Platform.VAPI,
+        Platform.ELEVENLABS,
+    }:
         return None
     if integration_id is None:
         raise HTTPException(status_code=422, detail="Integration is required")
@@ -514,6 +530,35 @@ async def deploy_environment(
             version_description=combined_description,
         )
         deployed_version_name = result.retell_version_name
+    elif env.platform == Platform.TELNYX:
+        if agent.integration_id is None or agent.platform_agent_id is None:
+            raise HTTPException(
+                status_code=422,
+                detail="Telnyx environment is missing integration or agent id",
+            )
+        integration = crud.get_integration(
+            session=session,
+            integration_id=agent.integration_id,
+        )
+        if not integration:
+            raise HTTPException(status_code=404, detail="Integration not found")
+        api_key = decrypt(integration.encrypted_api_key)
+        notes = _version_notes_for_retell(version_row).strip()
+
+        result = await deploy_telnyx_agent(
+            api_key=api_key,
+            telnyx_agent_id=agent.platform_agent_id,
+            system_prompt=version_row.system_prompt,
+            agent_model=version_row.agent_model,
+            agent_temperature=version_row.agent_temperature,
+            tools=version_row.tools,
+            version_description=notes or None,
+        )
+        if not result.success:
+            raise HTTPException(
+                status_code=502,
+                detail=result.error_message or "Telnyx deployment failed",
+            )
     elif env.platform == Platform.VAPI:
         if agent.integration_id is None or agent.platform_agent_id is None:
             raise HTTPException(

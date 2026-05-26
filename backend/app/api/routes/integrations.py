@@ -18,10 +18,16 @@ from app.services.retell import (
     list_retell_agents,
     test_retell_connection,
 )
+from app.services.telnyx import (
+    TelnyxAgentSummary,
+    list_telnyx_agents,
+    test_telnyx_connection,
+)
 from app.services.vapi import list_vapi_assistants, test_vapi_connection
 
 _CONNECTION_TESTERS = {
     IntegrationProvider.RETELL: test_retell_connection,
+    IntegrationProvider.TELNYX: test_telnyx_connection,
     IntegrationProvider.VAPI: test_vapi_connection,
     IntegrationProvider.ELEVENLABS: check_elevenlabs_connection,
 }
@@ -122,11 +128,14 @@ async def test_integration(
     return Message(message="Connection successful")
 
 
-@router.get("/{integration_id}/agents", response_model=list[RetellAgentSummary])
+@router.get(
+    "/{integration_id}/agents",
+    response_model=list[RetellAgentSummary | TelnyxAgentSummary],
+)
 async def list_integration_agents(
     session: SessionDep,
     integration_id: uuid.UUID,
-) -> list[RetellAgentSummary]:
+) -> list[RetellAgentSummary | TelnyxAgentSummary]:
     integration = crud.get_integration(session=session, integration_id=integration_id)
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
@@ -134,6 +143,8 @@ async def list_integration_agents(
     if integration.provider == IntegrationProvider.RETELL:
         agents = await list_retell_agents(api_key)
         return _dedupe_agents(agents)
+    if integration.provider == IntegrationProvider.TELNYX:
+        return await list_telnyx_agents(api_key)
     if integration.provider == IntegrationProvider.VAPI:
         assistants = await list_vapi_assistants(api_key)
         mapped = [

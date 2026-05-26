@@ -15,6 +15,9 @@ class Call(SQLModel, table=True):
         UniqueConstraint(
             "retell_call_id", "agent_id", name="uq_call_retell_call_agent"
         ),
+        UniqueConstraint(
+            "telnyx_call_id", "agent_id", name="uq_call_telnyx_call_agent"
+        ),
     )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -22,8 +25,10 @@ class Call(SQLModel, table=True):
     integration_id: uuid.UUID | None = Field(
         default=None, foreign_key="integration.id", index=True, nullable=True
     )
-    retell_call_id: str = Field(max_length=255, index=True)
-    retell_agent_id: str = Field(max_length=255, index=True)
+    retell_call_id: str | None = Field(default=None, max_length=255, index=True)
+    retell_agent_id: str | None = Field(default=None, max_length=255, index=True)
+    telnyx_call_id: str | None = Field(default=None, max_length=255, index=True)
+    telnyx_agent_id: str | None = Field(default=None, max_length=255, index=True)
     started_at: datetime = Field(index=True)
     duration_seconds: int | None = Field(default=None)
     status: str | None = Field(default=None, max_length=64)
@@ -44,8 +49,10 @@ class Call(SQLModel, table=True):
 class CallPublic(SQLModel):
     id: uuid.UUID
     agent_id: uuid.UUID
-    retell_call_id: str
-    retell_agent_id: str
+    retell_call_id: str | None = None
+    retell_agent_id: str | None = None
+    telnyx_call_id: str | None = None
+    telnyx_agent_id: str | None = None
     started_at: datetime
     duration_seconds: int | None = None
     status: str | None = None

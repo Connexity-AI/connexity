@@ -23,7 +23,12 @@ def validate_environment_platform_fields(
     platform: Platform,
     endpoint_url: str | None,
 ) -> None:
-    if platform in {Platform.RETELL, Platform.VAPI, Platform.ELEVENLABS}:
+    if platform in {
+        Platform.RETELL,
+        Platform.TELNYX,
+        Platform.VAPI,
+        Platform.ELEVENLABS,
+    }:
         platform_value = platform.value
         if endpoint_url is not None:
             msg = f"endpoint_url must be null when platform is '{platform_value}'"
