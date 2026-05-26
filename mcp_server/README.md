@@ -2,6 +2,26 @@
 
 Standalone MCP adapter service for Connexity.
 
+This package is the thin transport layer between an MCP client such as Claude
+and the Connexity backend. It owns:
+
+- MCP transport and tool registration
+- MCP OAuth resource-server validation
+- OAuth metadata proxying back to the main backend
+- forwarding authenticated tool requests to backend `/api/v1/mcp/*` routes
+
+For the contributor-facing architecture and tool-extension guide, see
+[`../docs-internal/mcp-architecture.md`](../docs-internal/mcp-architecture.md).
+
+## Current tools
+
+The adapter currently exposes four MCP tools:
+
+- `list_agents`
+- `find_agents`
+- `get_agent_draft`
+- `update_agent_prompt`
+
 ## Run locally
 
 From the repo root:
