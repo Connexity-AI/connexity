@@ -1,0 +1,17 @@
+apiVersion: v2
+name: connexity
+description: Connexity evaluation platform (backend, frontend, optional MCP and voice worker)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - connexity
+  - evals
+  - llm
+maintainers:
+  - name: Connexity
+dependencies:
+  - name: postgresql
+    version: "16.2.5"
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled

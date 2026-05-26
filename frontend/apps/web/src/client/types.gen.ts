@@ -5110,6 +5110,24 @@ export type UserUpdateMe = {
 };
 
 /**
+ * ValidationError
+ */
+export type ValidationError = {
+  /**
+   * Location
+   */
+  loc: Array<string | number>;
+  /**
+   * Message
+   */
+  msg: string;
+  /**
+   * Error Type
+   */
+  type: string;
+};
+
+/**
  * VoicePublic
  */
 export type VoicePublic = {
@@ -5237,6 +5255,12 @@ export type VoiceSimulationJobPublic = {
    * Twilio call SID once the worker places the call
    */
   twilio_call_sid?: string | null;
+  /**
+   * Worker Public Base Url
+   *
+   * Public worker origin used for this job's Twilio callbacks
+   */
+  worker_public_base_url?: string | null;
   /**
    * Audio Url
    *

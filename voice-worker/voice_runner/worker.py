@@ -17,7 +17,12 @@ from sqlmodel import Session
 
 import voice_runner.active_calls as active_calls
 from voice_runner.public_urls import twiml_http_url
-from voice_runner.settings import WorkerSettings, computed_worker_id, lease_ttl_seconds
+from voice_runner.settings import (
+    WorkerSettings,
+    computed_worker_id,
+    lease_ttl_seconds,
+    resolved_public_base_url,
+)
 from voice_runner.twilio_voice import create_outbound_call, hangup_call
 
 logger = logging.getLogger(__name__)
@@ -49,10 +54,7 @@ def _job_is_cancelled(job_id: uuid.UUID) -> bool:
 
 
 async def worker_loop(stop: asyncio.Event, worker_settings: WorkerSettings) -> None:
-    """Poll Postgres and run calls in loop mode (local Docker).
-
-    Kubernetes one-shot mode (claim one job then exit) is planned for step 11.
-    """
+    """Poll Postgres and run calls in loop mode (local Docker / Kubernetes StatefulSet)."""
     if not connexity_settings.twilio_voice_runtime_configured():
         logger.error(
             "Twilio is not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, "
@@ -60,15 +62,18 @@ async def worker_loop(stop: asyncio.Event, worker_settings: WorkerSettings) -> N
         )
         return
 
-    public_raw = (worker_settings.VOICE_PUBLIC_BASE_URL or "").strip().rstrip("/")
-    if not public_raw:
-        logger.error(
-            "VOICE_PUBLIC_BASE_URL must be configured for Twilio webhook callbacks."
-        )
+    try:
+        worker_public_base = resolved_public_base_url(worker_settings)
+    except ValueError as exc:
+        logger.error("%s", exc)
         return
 
     wid = computed_worker_id(worker_settings)
-    logger.info("Voice worker started worker_id=%s", wid)
+    logger.info(
+        "Voice worker started worker_id=%s public_base=%s",
+        wid,
+        worker_public_base,
+    )
 
     while not stop.is_set():
         claimed_job: VoiceSimulationJob | None = None
@@ -89,7 +94,8 @@ async def worker_loop(stop: asyncio.Event, worker_settings: WorkerSettings) -> N
                         session=session,
                         db_job=pending,
                         job_in=VoiceSimulationJobUpdate(
-                            lease_expires_at=datetime.now(UTC) + timedelta(seconds=ttl)
+                            worker_public_base_url=worker_public_base,
+                            lease_expires_at=datetime.now(UTC) + timedelta(seconds=ttl),
                         ),
                     )
                     claimed_job = pending
@@ -122,7 +128,27 @@ async def worker_loop(stop: asyncio.Event, worker_settings: WorkerSettings) -> N
 
         try:
             active_calls.EXPECTED_JOB_ID = job_id
-            webhook = twiml_http_url(public_base=public_raw, job_id=str(job_id))
+
+            with Session(engine) as session:
+                job_row = crud.get_voice_simulation_job(session=session, job_id=job_id)
+                if job_row is None:
+                    active_calls.STREAM_REGISTRY.forget(job_id)
+                    active_calls.CALL_COMPLETION.cancel(job_id)
+                    continue
+                callback_base = (
+                    job_row.worker_public_base_url or worker_public_base
+                ).rstrip("/")
+                if not callback_base:
+                    _fail_job(
+                        job_id,
+                        code="missing_worker_public_base_url",
+                        message="Voice job has no worker_public_base_url after claim.",
+                    )
+                    active_calls.STREAM_REGISTRY.forget(job_id)
+                    active_calls.CALL_COMPLETION.cancel(job_id)
+                    continue
+
+            webhook = twiml_http_url(public_base=callback_base, job_id=str(job_id))
 
             sid = connexity_settings.TWILIO_ACCOUNT_SID
             tok = connexity_settings.TWILIO_AUTH_TOKEN

@@ -85,6 +85,14 @@ class VoiceSimulationJobBase(SQLModel):
         max_length=255,
         description="Identifier of the voice worker that claimed this job",
     )
+    worker_public_base_url: str | None = Field(
+        default=None,
+        max_length=2048,
+        description=(
+            "Public https origin Twilio uses for this job's TwiML and Media Stream "
+            "(set by the worker at claim time)"
+        ),
+    )
     lease_expires_at: datetime | None = Field(
         default=None,
         index=True,
@@ -207,6 +215,10 @@ class VoiceSimulationJobPublic(SQLModel):
         default=None,
         description="Twilio call SID once the worker places the call",
     )
+    worker_public_base_url: str | None = Field(
+        default=None,
+        description="Public worker origin used for this job's Twilio callbacks",
+    )
     audio_url: str | None = Field(
         default=None,
         description="Submitted recording URL after call completion",
@@ -266,6 +278,10 @@ class VoiceSimulationJobUpdate(SQLModel):
     worker_id: str | None = Field(
         default=None,
         description="Voice worker identifier",
+    )
+    worker_public_base_url: str | None = Field(
+        default=None,
+        description="Public worker origin used for this job's Twilio callbacks",
     )
     lease_expires_at: datetime | None = Field(
         default=None,

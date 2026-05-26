@@ -28,7 +28,11 @@ from sqlmodel import Session
 import voice_runner.active_calls as active_calls
 from voice_runner.bot.pipeline import run_pipecat_voice_call
 from voice_runner.public_urls import media_stream_wss_url
-from voice_runner.settings import WorkerSettings, lease_ttl_seconds
+from voice_runner.settings import (
+    WorkerSettings,
+    lease_ttl_seconds,
+    resolved_public_base_url,
+)
 from voice_runner.twilio_voice import hangup_call
 from voice_runner.worker import worker_loop
 
@@ -137,10 +141,14 @@ async def health() -> dict[str, str]:
 @app.get("/twiml/{job_id}")
 async def twiml_xml(job_id: uuid.UUID) -> Response:
     settings = WorkerSettings()
-    pub = (settings.VOICE_PUBLIC_BASE_URL or "").strip().rstrip("/")
-    if not pub:
+    try:
+        pub = resolved_public_base_url(settings)
+    except ValueError:
         return Response(
-            content="VOICE_PUBLIC_BASE_URL is required",
+            content=(
+                "VOICE_PUBLIC_BASE_URL or VOICE_WORKER_PUBLIC_HOST_SUFFIX with "
+                "POD_NAME is required"
+            ),
             status_code=503,
         )
     ws_url = media_stream_wss_url(public_base=pub)

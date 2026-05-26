@@ -1,0 +1,26 @@
+{{- if and .Values.voice.enabled .Values.voice.keda.enabled }}
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: {{ include "connexity.voice.fullname" . }}-postgres
+  labels:
+    {{- include "connexity.labels" . | nindent 4 }}
+    app.kubernetes.io/component: voice-worker
+spec:
+  secretTargetRef:
+    - parameter: host
+      name: {{ include "connexity.secretName" . }}
+      key: POSTGRES_SERVER
+    - parameter: port
+      name: {{ include "connexity.secretName" . }}
+      key: POSTGRES_PORT
+    - parameter: userName
+      name: {{ include "connexity.secretName" . }}
+      key: POSTGRES_USER
+    - parameter: password
+      name: {{ include "connexity.secretName" . }}
+      key: POSTGRES_PASSWORD
+    - parameter: dbName
+      name: {{ include "connexity.secretName" . }}
+      key: POSTGRES_DB
+{{- end }}

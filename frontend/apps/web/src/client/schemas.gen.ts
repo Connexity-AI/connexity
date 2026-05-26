@@ -8277,6 +8277,36 @@ export const UserUpdateMeSchema = {
   title: 'UserUpdateMe',
 } as const;
 
+export const ValidationErrorSchema = {
+  properties: {
+    loc: {
+      items: {
+        anyOf: [
+          {
+            type: 'string',
+          },
+          {
+            type: 'integer',
+          },
+        ],
+      },
+      type: 'array',
+      title: 'Location',
+    },
+    msg: {
+      type: 'string',
+      title: 'Message',
+    },
+    type: {
+      type: 'string',
+      title: 'Error Type',
+    },
+  },
+  type: 'object',
+  required: ['loc', 'msg', 'type'],
+  title: 'ValidationError',
+} as const;
+
 export const VoicePublicSchema = {
   properties: {
     id: {
@@ -8414,6 +8444,18 @@ export const VoiceSimulationJobPublicSchema = {
       ],
       title: 'Twilio Call Sid',
       description: 'Twilio call SID once the worker places the call',
+    },
+    worker_public_base_url: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Worker Public Base Url',
+      description: "Public worker origin used for this job's Twilio callbacks",
     },
     audio_url: {
       anyOf: [

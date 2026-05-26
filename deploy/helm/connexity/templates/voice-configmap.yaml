@@ -1,0 +1,15 @@
+{{- if .Values.voice.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "connexity.voice.fullname" . }}
+  labels:
+    {{- include "connexity.labels" . | nindent 4 }}
+    app.kubernetes.io/component: voice-worker
+data:
+  VOICE_DEPLOYMENT_MODE: kubernetes
+  VOICE_WORKER_HTTP_HOST: "0.0.0.0"
+  VOICE_WORKER_HTTP_PORT: {{ .Values.voice.service.port | quote }}
+  VOICE_WORKER_PUBLIC_HOST_SUFFIX: {{ .Values.voice.publicHostSuffix | quote }}
+  VOICE_WORKER_MODE: loop
+{{- end }}

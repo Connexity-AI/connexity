@@ -43,6 +43,9 @@ export function VoiceRunArtifacts({ job, className }: VoiceRunArtifactsProps) {
   if (job.twilio_call_sid) {
     rows.push({ label: 'Twilio call SID', value: job.twilio_call_sid });
   }
+  if (job.worker_public_base_url) {
+    rows.push({ label: 'Worker URL', value: job.worker_public_base_url });
+  }
   if (callDuration) {
     rows.push({ label: 'Call duration', value: callDuration });
   }

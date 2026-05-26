@@ -1,0 +1,39 @@
+{{- if and .Values.voice.enabled .Values.voice.ingress.enabled -}}
+{{- $fullname := include "connexity.voice.fullname" . -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "connexity.labels" . | nindent 4 }}
+    app.kubernetes.io/component: voice-worker
+  {{- with .Values.voice.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.voice.ingress.className }}
+  ingressClassName: {{ .Values.voice.ingress.className }}
+  {{- end }}
+  {{- if and .Values.voice.ingress.tls.enabled .Values.voice.ingress.tls.secretName }}
+  tls:
+    - hosts:
+        {{- range $i := until (int .Values.voice.maxConcurrency) }}
+        - {{ $fullname }}-{{ $i }}.{{ $.Values.voice.publicHostSuffix }}
+        {{- end }}
+      secretName: {{ .Values.voice.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    {{- range $i := until (int .Values.voice.maxConcurrency) }}
+    - host: {{ $fullname }}-{{ $i }}.{{ $.Values.voice.publicHostSuffix }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $fullname }}-{{ $i }}
+                port:
+                  number: {{ $.Values.voice.service.port }}
+    {{- end }}
+{{- end }}
