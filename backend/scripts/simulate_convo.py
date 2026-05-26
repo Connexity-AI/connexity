@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Print a simulated user ↔ agent conversation using the orchestrator + user simulator.
 
-**Endpoint mode** — POST to a running HTTP agent (e.g. ``examples/mock_agent/main.py``).
+**Endpoint mode** — POST to a running HTTP agent (e.g. ``examples/mock-text-agent/main.py``).
 
-**Platform mode** — same system prompt and tool definitions as ``mock_agent/main.py``
+**Platform mode** — same system prompt and tool definitions as ``mock-text-agent/main.py``
 (loaded at runtime), but the platform runs the agent turn via
 :class:`~app.services.agent_simulator.AgentSimulator` / LiteLLM. Use ``--tool-mode``
 to control how tool calls are resolved:
@@ -11,14 +11,14 @@ to control how tool calls are resolved:
 * ``synthetic`` (default) — placeholder acknowledgement (no real data).
 * ``mock`` — canned JSON from each row's ``mock_response`` on ``expected_tool_calls``.
 * ``live`` — Python sandbox execution with hardcoded logic and
-  ``context.test_case_context`` (mirrors ``mock_agent`` tool registry).
+  ``context.test_case_context`` (mirrors ``mock-text-agent`` tool registry).
 
 Setup and run (repo root paths shown; run from ``backend/``)::
 
     cd backend && uv sync && source .venv/bin/activate
 
     # Terminal A — optional: mock HTTP agent
-    uv run python ../examples/mock_agent/main.py
+    uv run python ../examples/mock-text-agent/main.py
 
     # Endpoint mode (LLM user from test case persona; needs LLM keys)
     uv run python scripts/simulate_convo.py \\
@@ -213,10 +213,10 @@ def _repo_root() -> Path:
 
 
 def _load_mock_agent_prompt_tools() -> tuple[str, list[dict[str, Any]]]:
-    """Import ``SYSTEM_PROMPT`` and ``TOOLS`` from ``examples/mock_agent/main.py``."""
-    main_py = _repo_root() / "examples" / "mock_agent" / "main.py"
+    """Import ``SYSTEM_PROMPT`` and ``TOOLS`` from ``examples/mock-text-agent/main.py``."""
+    main_py = _repo_root() / "examples" / "mock-text-agent" / "main.py"
     if not main_py.is_file():
-        msg = f"Mock agent example not found at {main_py}"
+        msg = f"Mock test agent example not found at {main_py}"
         raise FileNotFoundError(msg)
     spec = importlib.util.spec_from_file_location(
         "connexity_mock_agent_example",
@@ -230,10 +230,10 @@ def _load_mock_agent_prompt_tools() -> tuple[str, list[dict[str, Any]]]:
     prompt = getattr(mod, "SYSTEM_PROMPT", None)
     tools = getattr(mod, "TOOLS", None)
     if not isinstance(prompt, str) or not prompt.strip():
-        msg = "examples/mock_agent/main.py must define non-empty SYSTEM_PROMPT"
+        msg = "examples/mock-text-agent/main.py must define non-empty SYSTEM_PROMPT"
         raise RuntimeError(msg)
     if not isinstance(tools, list):
-        msg = "examples/mock_agent/main.py must define TOOLS as a list"
+        msg = "examples/mock-text-agent/main.py must define TOOLS as a list"
         raise RuntimeError(msg)
     return prompt, tools
 
@@ -353,7 +353,7 @@ async def _run(args: argparse.Namespace) -> int:
         else ""
     )
     mode_note = (
-        f"platform (mock_agent prompt+tools{tool_label})"
+        f"platform (mock-text-agent prompt+tools{tool_label})"
         if args.platform_agent
         else "endpoint"
     )
@@ -418,7 +418,7 @@ def main() -> None:
         action="store_true",
         help=(
             "Run the agent via the platform simulator using SYSTEM_PROMPT and TOOLS "
-            "from examples/mock_agent/main.py (no HTTP agent; needs LLM keys)."
+            "from examples/mock-text-agent/main.py (no HTTP agent; needs LLM keys)."
         ),
     )
     parser.add_argument(

@@ -1,6 +1,6 @@
 # Agent integration examples
 
-Runnable adapters that match the [agent HTTP contract](../../docs/agents/contract.md). Both call real LLMs, run an **internal tool loop** (execute tools on the agent side, then continue the model), and return a `messages` array plus `model`, `provider`, `usage`, and `metadata`.
+Runnable adapters that match the [text agent HTTP contract](../../docs/text-agent-contract.md). Both call real LLMs, run an **internal tool loop** (execute tools on the agent side, then continue the model), and return a `messages` array plus `model`, `provider`, `usage`, and `metadata`.
 
 ## `raw_python_agent.py`
 
@@ -32,4 +32,4 @@ Both examples intentionally define their own Pydantic request/response models so
 
 ## Contract reference
 
-See [docs/agents/contract.md](../../docs/agents/contract.md) and the [mock agent](../mock_agent/) OpenAPI at `/docs`.
+See [docs/text-agent-contract.md](../../docs/text-agent-contract.md) and the [mock text agent](../mock-text-agent/) OpenAPI at `/docs`.

@@ -50,6 +50,10 @@ Twilio must reach the worker over HTTPS for outbound-call TwiML and the bidirect
 
 The backend API (`SITE_URL` / port 8000) remains separate; user agents submit results to the Connexity backend, not the voice worker.
 
+### Mock voice agent (local E2E)
+
+To test the full voice loop (call → DTMF → result submission → judge), run [examples/mock-voice-agent/](../examples/mock-voice-agent/) on port **8766**, point a Twilio number at its `/incoming` webhook, and use that number as the agent phone number in a voice eval config.
+
 ## Tests
 
 ```bash
@@ -61,4 +65,4 @@ uv run pytest tests -v
 
 - Simulator **scripted** mode is rejected for now (`ValueError`).
 - Gemini LLM needs `GOOGLE_GENAI_API_KEY` or `GOOGLE_API_KEY` in `.env`.
-- Kubernetes one-shot worker mode is planned separately (see implementation plan step 11).
+- Kubernetes one-shot worker mode is planned separately (see implementation plan step 12).
