@@ -84,17 +84,25 @@ def format_dict_rows(rows: list[dict[str, Any]], title: str | None = None) -> st
 
 
 def format_run_detail(run: dict[str, Any]) -> str:
+    config = run.get("config")
+    eval_mode = config.get("mode") if isinstance(config, dict) else None
     lines = [
         f"Run {run.get('id')}",
         f"  name:              {run.get('name')}",
         f"  status:            {run.get('status')}",
         f"  agent_id:          {run.get('agent_id')}",
         f"  agent_mode:        {run.get('agent_mode', 'endpoint')}",
-        f"  eval_config_id:    {run.get('eval_config_id')}",
-        f"  eval_config_ver:   {run.get('eval_config_version')}",
-        f"  started_at:        {run.get('started_at')}",
-        f"  completed_at:      {run.get('completed_at')}",
     ]
+    if eval_mode:
+        lines.append(f"  eval_mode:         {eval_mode}")
+    lines.extend(
+        [
+            f"  eval_config_id:    {run.get('eval_config_id')}",
+            f"  eval_config_ver:   {run.get('eval_config_version')}",
+            f"  started_at:        {run.get('started_at')}",
+            f"  completed_at:      {run.get('completed_at')}",
+        ]
+    )
     if run.get("agent_model"):
         lines.append(f"  agent_model:       {run.get('agent_model')}")
     if run.get("agent_provider"):

@@ -1,0 +1,23 @@
+{
+  "name": "voice-smoke",
+  "description": "Smoke eval for voice-mode agents — replace agent_id and agent_phone_number",
+  "agent_id": "00000000-0000-0000-0000-000000000001",
+  "config": {
+    "mode": "voice",
+    "agent_phone_number": "+15551234567",
+    "runtime": {
+      "kind": "twilio"
+    },
+    "user_simulator": {
+      "stt": {
+        "provider": "deepgram",
+        "model": "nova-3-general"
+      },
+      "tts": {
+        "provider": "openai",
+        "model": "gpt-4o-mini-tts",
+        "voice_id": "nova"
+      }
+    }
+  }
+}
