@@ -42,6 +42,12 @@ jobs:
   voice-worker-lint:
     name: "Voice worker · Lint, Types & Tests"
     runs-on: ubuntu-latest
+    env:
+      POSTGRES_SERVER: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: app
     defaults:
       run:
         working-directory: voice-worker

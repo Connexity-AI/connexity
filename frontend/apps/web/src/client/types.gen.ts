@@ -939,6 +939,132 @@ export type BodyLoginLoginAccessToken = {
 };
 
 /**
+ * Body_oauth-authorize_confirm
+ */
+export type BodyOauthAuthorizeConfirm = {
+  /**
+   * Response Type
+   */
+  response_type: string;
+  /**
+   * Client Id
+   */
+  client_id: string;
+  /**
+   * Redirect Uri
+   */
+  redirect_uri: string;
+  /**
+   * Email
+   */
+  email: string;
+  /**
+   * Password
+   */
+  password: string;
+  /**
+   * Code Challenge
+   */
+  code_challenge: string;
+  /**
+   * Code Challenge Method
+   */
+  code_challenge_method: string;
+  /**
+   * Scope
+   */
+  scope?: string | null;
+  /**
+   * State
+   */
+  state?: string | null;
+  /**
+   * Resource
+   */
+  resource?: string | null;
+};
+
+/**
+ * Body_oauth-authorize_signup_confirm
+ */
+export type BodyOauthAuthorizeSignupConfirm = {
+  /**
+   * Response Type
+   */
+  response_type: string;
+  /**
+   * Client Id
+   */
+  client_id: string;
+  /**
+   * Redirect Uri
+   */
+  redirect_uri: string;
+  /**
+   * Email
+   */
+  email: string;
+  /**
+   * Password
+   */
+  password: string;
+  /**
+   * Code Challenge
+   */
+  code_challenge: string;
+  /**
+   * Code Challenge Method
+   */
+  code_challenge_method: string;
+  /**
+   * Full Name
+   */
+  full_name?: string | null;
+  /**
+   * Scope
+   */
+  scope?: string | null;
+  /**
+   * State
+   */
+  state?: string | null;
+  /**
+   * Resource
+   */
+  resource?: string | null;
+};
+
+/**
+ * Body_oauth-token
+ */
+export type BodyOauthToken = {
+  /**
+   * Grant Type
+   */
+  grant_type: string;
+  /**
+   * Client Id
+   */
+  client_id: string;
+  /**
+   * Code
+   */
+  code?: string | null;
+  /**
+   * Redirect Uri
+   */
+  redirect_uri?: string | null;
+  /**
+   * Code Verifier
+   */
+  code_verifier?: string | null;
+  /**
+   * Refresh Token
+   */
+  refresh_token?: string | null;
+};
+
+/**
  * CallPublic
  */
 export type CallPublic = {
@@ -2055,6 +2181,16 @@ export type GenerateResult = {
 };
 
 /**
+ * HTTPValidationError
+ */
+export type HttpValidationError = {
+  /**
+   * Detail
+   */
+  detail?: Array<ValidationError>;
+};
+
+/**
  * ImprovementSuggestion
  */
 export type ImprovementSuggestion = {
@@ -2675,6 +2811,74 @@ export const MetricTier = {
  * MetricTier
  */
 export type MetricTier = (typeof MetricTier)[keyof typeof MetricTier];
+
+/**
+ * OAuthClientRegistrationRequest
+ */
+export type OAuthClientRegistrationRequest = {
+  /**
+   * Redirect Uris
+   */
+  redirect_uris: Array<string>;
+  /**
+   * Client Name
+   */
+  client_name?: string | null;
+  /**
+   * Grant Types
+   */
+  grant_types?: Array<string> | null;
+  /**
+   * Response Types
+   */
+  response_types?: Array<string> | null;
+  /**
+   * Scope
+   */
+  scope?: string | null;
+  /**
+   * Token Endpoint Auth Method
+   */
+  token_endpoint_auth_method?: string | null;
+};
+
+/**
+ * OAuthClientRegistrationResponse
+ */
+export type OAuthClientRegistrationResponse = {
+  /**
+   * Client Id
+   */
+  client_id: string;
+  /**
+   * Client Id Issued At
+   */
+  client_id_issued_at: number;
+  /**
+   * Client Name
+   */
+  client_name?: string | null;
+  /**
+   * Redirect Uris
+   */
+  redirect_uris: Array<string>;
+  /**
+   * Grant Types
+   */
+  grant_types: Array<string>;
+  /**
+   * Response Types
+   */
+  response_types: Array<string>;
+  /**
+   * Scope
+   */
+  scope?: string | null;
+  /**
+   * Token Endpoint Auth Method
+   */
+  token_endpoint_auth_method?: string;
+};
 
 /**
  * OnConflict
@@ -5662,6 +5866,279 @@ export type HealthHealthResponses = {
 
 export type HealthHealthResponse = HealthHealthResponses[keyof HealthHealthResponses];
 
+export type OauthOauthAuthorizationServerMetadataData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/.well-known/oauth-authorization-server';
+};
+
+export type OauthOauthAuthorizationServerMetadataResponses = {
+  /**
+   * Response Oauth-Oauth Authorization Server Metadata
+   *
+   * Successful Response
+   */
+  200: {
+    [key: string]: unknown;
+  };
+};
+
+export type OauthOauthAuthorizationServerMetadataResponse =
+  OauthOauthAuthorizationServerMetadataResponses[keyof OauthOauthAuthorizationServerMetadataResponses];
+
+export type OauthOpenidConfigurationData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/.well-known/openid-configuration';
+};
+
+export type OauthOpenidConfigurationResponses = {
+  /**
+   * Response Oauth-Openid Configuration
+   *
+   * Successful Response
+   */
+  200: {
+    [key: string]: unknown;
+  };
+};
+
+export type OauthOpenidConfigurationResponse =
+  OauthOpenidConfigurationResponses[keyof OauthOpenidConfigurationResponses];
+
+export type OauthJwksData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/.well-known/jwks.json';
+};
+
+export type OauthJwksResponses = {
+  /**
+   * Response Oauth-Jwks
+   *
+   * Successful Response
+   */
+  200: {
+    [key: string]: unknown;
+  };
+};
+
+export type OauthJwksResponse = OauthJwksResponses[keyof OauthJwksResponses];
+
+export type OauthRegisterOauthClientData = {
+  body: OAuthClientRegistrationRequest;
+  path?: never;
+  query?: never;
+  url: '/oauth/register';
+};
+
+export type OauthRegisterOauthClientErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type OauthRegisterOauthClientError =
+  OauthRegisterOauthClientErrors[keyof OauthRegisterOauthClientErrors];
+
+export type OauthRegisterOauthClientResponses = {
+  /**
+   * Successful Response
+   */
+  200: OAuthClientRegistrationResponse;
+};
+
+export type OauthRegisterOauthClientResponse =
+  OauthRegisterOauthClientResponses[keyof OauthRegisterOauthClientResponses];
+
+export type OauthAuthorizeData = {
+  body?: never;
+  path?: never;
+  query: {
+    /**
+     * Response Type
+     */
+    response_type: string;
+    /**
+     * Client Id
+     */
+    client_id: string;
+    /**
+     * Redirect Uri
+     */
+    redirect_uri: string;
+    /**
+     * Code Challenge
+     */
+    code_challenge?: string | null;
+    /**
+     * Code Challenge Method
+     */
+    code_challenge_method?: string | null;
+    /**
+     * Scope
+     */
+    scope?: string | null;
+    /**
+     * State
+     */
+    state?: string | null;
+    /**
+     * Resource
+     */
+    resource?: string | null;
+  };
+  url: '/oauth/authorize';
+};
+
+export type OauthAuthorizeErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type OauthAuthorizeError = OauthAuthorizeErrors[keyof OauthAuthorizeErrors];
+
+export type OauthAuthorizeResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type OauthAuthorizeSignupData = {
+  body?: never;
+  path?: never;
+  query: {
+    /**
+     * Response Type
+     */
+    response_type: string;
+    /**
+     * Client Id
+     */
+    client_id: string;
+    /**
+     * Redirect Uri
+     */
+    redirect_uri: string;
+    /**
+     * Code Challenge
+     */
+    code_challenge?: string | null;
+    /**
+     * Code Challenge Method
+     */
+    code_challenge_method?: string | null;
+    /**
+     * Scope
+     */
+    scope?: string | null;
+    /**
+     * State
+     */
+    state?: string | null;
+    /**
+     * Resource
+     */
+    resource?: string | null;
+  };
+  url: '/oauth/authorize/signup';
+};
+
+export type OauthAuthorizeSignupErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type OauthAuthorizeSignupError =
+  OauthAuthorizeSignupErrors[keyof OauthAuthorizeSignupErrors];
+
+export type OauthAuthorizeSignupResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type OauthAuthorizeConfirmData = {
+  body: BodyOauthAuthorizeConfirm;
+  path?: never;
+  query?: never;
+  url: '/oauth/authorize/confirm';
+};
+
+export type OauthAuthorizeConfirmErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type OauthAuthorizeConfirmError =
+  OauthAuthorizeConfirmErrors[keyof OauthAuthorizeConfirmErrors];
+
+export type OauthAuthorizeConfirmResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type OauthAuthorizeSignupConfirmData = {
+  body: BodyOauthAuthorizeSignupConfirm;
+  path?: never;
+  query?: never;
+  url: '/oauth/authorize/signup/confirm';
+};
+
+export type OauthAuthorizeSignupConfirmErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type OauthAuthorizeSignupConfirmError =
+  OauthAuthorizeSignupConfirmErrors[keyof OauthAuthorizeSignupConfirmErrors];
+
+export type OauthAuthorizeSignupConfirmResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type OauthTokenData = {
+  body: BodyOauthToken;
+  path?: never;
+  query?: never;
+  url: '/oauth/token';
+};
+
+export type OauthTokenErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type OauthTokenError = OauthTokenErrors[keyof OauthTokenErrors];
+
+export type OauthTokenResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
 export type LoginLoginAccessTokenData = {
   body: BodyLoginLoginAccessToken;
   path?: never;
@@ -6058,6 +6535,172 @@ export type UsersUpdatePasswordMeResponses = {
 
 export type UsersUpdatePasswordMeResponse =
   UsersUpdatePasswordMeResponses[keyof UsersUpdatePasswordMeResponses];
+
+export type McpListAgentsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Skip
+     */
+    skip?: number;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/mcp/agents';
+};
+
+export type McpListAgentsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpListAgentsError = McpListAgentsErrors[keyof McpListAgentsErrors];
+
+export type McpListAgentsResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentsPublic;
+};
+
+export type McpListAgentsResponse = McpListAgentsResponses[keyof McpListAgentsResponses];
+
+export type McpGetDraftData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/agents/{agent_id}/draft';
+};
+
+export type McpGetDraftErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpGetDraftError = McpGetDraftErrors[keyof McpGetDraftErrors];
+
+export type McpGetDraftResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentVersionPublic;
+};
+
+export type McpGetDraftResponse = McpGetDraftResponses[keyof McpGetDraftResponses];
+
+export type McpUpsertDraftData = {
+  body: AgentDraftUpdate;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/agents/{agent_id}/draft';
+};
+
+export type McpUpsertDraftErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpUpsertDraftError = McpUpsertDraftErrors[keyof McpUpsertDraftErrors];
+
+export type McpUpsertDraftResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentVersionPublic;
+};
+
+export type McpUpsertDraftResponse = McpUpsertDraftResponses[keyof McpUpsertDraftResponses];
 
 export type AgentsListAgentsData = {
   body?: never;

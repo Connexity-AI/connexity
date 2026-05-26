@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from sqlalchemy import and_, func, or_, select
+from sqlmodel import col
 
 from app.models.enums import VoiceSimulationJobStatus
 from app.models.voice_simulation_job import VoiceSimulationJob
@@ -15,14 +16,14 @@ def test_claimable_jobs_count_sql_matches_crud_filter() -> None:
     claimable = or_(
         VoiceSimulationJob.status == VoiceSimulationJobStatus.PENDING,
         and_(
-            VoiceSimulationJob.status.in_(
+            col(VoiceSimulationJob.status).in_(
                 (
                     VoiceSimulationJobStatus.CLAIMED,
                     VoiceSimulationJobStatus.CALLING,
                 )
             ),
-            VoiceSimulationJob.lease_expires_at.is_not(None),
-            VoiceSimulationJob.lease_expires_at < now_expr,
+            col(VoiceSimulationJob.lease_expires_at).is_not(None),
+            col(VoiceSimulationJob.lease_expires_at) < now_expr,
         ),
     )
     orm_count = select(func.count()).select_from(VoiceSimulationJob).where(claimable)
