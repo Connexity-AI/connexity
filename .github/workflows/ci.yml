@@ -21,7 +21,7 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: ./.github/actions/setup-uv
         with:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
@@ -47,7 +47,7 @@ jobs:
         working-directory: voice-worker
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: ./.github/actions/setup-uv
         with:
           enable-cache: true
           cache-dependency-glob: voice-worker/uv.lock
@@ -96,7 +96,7 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: ./.github/actions/setup-uv
         with:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
@@ -159,7 +159,7 @@ jobs:
       POSTGRES_DB: app
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: ./.github/actions/setup-uv
         with:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
