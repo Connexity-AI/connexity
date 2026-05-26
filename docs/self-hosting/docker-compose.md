@@ -63,6 +63,47 @@ docker compose up
 
 Open **`SITE_URL`** in the browser (or **`http://<instance-ip>:3000`** for a minimal test).
 
+## Voice mode
+
+Text evaluation uses the default Compose stack. To run voice evaluations locally, add the voice Compose files and expose the voice worker through a public HTTPS URL that Twilio can reach.
+
+1. Start a tunnel to the voice worker port:
+
+   ```bash
+   ngrok http 8765
+   ```
+
+2. Set the required voice values in `.env`:
+
+   ```bash
+   TWILIO_ACCOUNT_SID=ACxxxxxxxx
+   TWILIO_AUTH_TOKEN=your-token
+   TWILIO_FROM_NUMBER=+15551234567
+
+   # Use the https:// forwarding URL from ngrok.
+   VOICE_PUBLIC_BASE_URL=https://your-worker-url.ngrok-free.app
+
+   # Configure the speech providers used by your voice evals.
+   DEEPGRAM_API_KEY=...
+   ELEVENLABS_API_KEY=...
+   OPENAI_API_KEY=...
+   ```
+
+3. Start the stack with local voice images:
+
+   ```bash
+   docker compose \
+     -f docker-compose.yml \
+     -f docker-compose.build.yml \
+     -f docker-compose.voice.yml \
+     -f docker-compose.voice.build.yml \
+     up --build
+   ```
+
+4. Open the app at `SITE_URL`, create or select a voice eval config, and use a Twilio-reachable agent phone number.
+
+For production voice-worker autoscaling, use the [Kubernetes guide](./kubernetes.md).
+
 ### Operational notes
 
 - Compose is suited to **single-node** deployments and **vertical scaling**. It is not HA by itself.

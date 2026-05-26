@@ -9,6 +9,7 @@ User- and operator-facing documentation. The content of this folder is the sourc
 - [`self-hosting/`](./self-hosting) — running Connexity on your own infrastructure
   - [`docker-compose.md`](./self-hosting/docker-compose.md) — local & VM deployment via Docker Compose
   - [`railway.md`](./self-hosting/railway.md) — deploying to Railway
+  - [`kubernetes.md`](./self-hosting/kubernetes.md) — production Helm installs, optional MCP, and optional voice worker scaling
 - [`agents/`](./agents) — integrating your agent with the platform
   - [`contract.md`](./agents/contract.md) — the HTTP contract eval agents must implement
 - [`evals/`](./evals) — running and interpreting evaluations
