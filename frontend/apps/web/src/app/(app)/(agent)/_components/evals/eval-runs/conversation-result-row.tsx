@@ -13,7 +13,14 @@ import { SelectionCheckbox } from './selection-checkbox';
 
 import { roundScore, scoreColor } from './shared/score-utils';
 
-import { RunStatus, type Difficulty, type TestCaseResultPublic } from '@/client/types.gen';
+import { VoiceRunArtifacts } from '@/app/(app)/(agent)/_components/evals/eval-runs/voice-run-artifacts';
+
+import {
+  RunStatus,
+  type Difficulty,
+  type TestCaseResultPublic,
+  type VoiceSimulationJobPublic,
+} from '@/client/types.gen';
 
 type Verdict = NonNullable<TestCaseResultPublic['verdict']>;
 type Outcome = NonNullable<Verdict['expected_outcome_results']>[number];
@@ -29,6 +36,7 @@ interface ConversationResultRowProps {
   selected: boolean;
   onSelectChange: (id: string, checked: boolean) => void;
   runStatus: RunStatus;
+  voiceJob?: VoiceSimulationJobPublic;
 }
 
 const TIER_COLORS: Record<string, string> = {
@@ -55,6 +63,7 @@ export function ConversationResultRow({
   selected,
   onSelectChange,
   runStatus,
+  voiceJob,
 }: ConversationResultRowProps) {
   const verdict = result.verdict;
   const score = roundScore(verdict?.overall_score);
@@ -131,6 +140,7 @@ export function ConversationResultRow({
             <RunningPlaceholder />
           ) : (
             <>
+              <VoiceRunArtifacts job={voiceJob} className="mx-5 mb-3 mt-3" />
               <OutcomesSection outcomes={outcomes} passedCount={passedOutcomes} />
               <MetricsSection metrics={metrics} passedCount={passedMetrics} />
             </>

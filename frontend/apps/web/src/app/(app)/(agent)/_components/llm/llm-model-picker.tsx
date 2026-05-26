@@ -110,10 +110,13 @@ export function LlmModelPicker({
           <CommandList>
             <CommandEmpty>No models found.</CommandEmpty>
             {visibleProviders.map((providerGroup) => (
-              <CommandGroup key={providerGroup.provider} heading={providerGroup.label}>
-                {providerGroup.models.map((model) => (
+              <CommandGroup
+                key={`${providerGroup.provider}:${providerGroup.label}`}
+                heading={providerGroup.label}
+              >
+                {uniqueLlmModels(providerGroup.models).map((model, index) => (
                   <CommandItem
-                    key={model.id}
+                    key={`${providerGroup.provider}:${model.id}:${index}`}
                     value={`${model.id} ${model.model} ${model.provider}`}
                     onSelect={() => {
                       onSelect(model);
@@ -146,18 +149,36 @@ export function LlmModelPicker({
   );
 }
 
+function uniqueLlmModels(models: LlmModelPublic[]): LlmModelPublic[] {
+  const seen = new Set<string>();
+  return models.filter((model) => {
+    if (seen.has(model.id)) {
+      return false;
+    }
+    seen.add(model.id);
+    return true;
+  });
+}
+
 function visibleProviderGroups(
   providers: LlmModelProviderPublic[],
   search: string
 ): LlmModelProviderPublic[] {
-  if (search.trim()) return providers;
+  const groups = providers.map((providerGroup) => ({
+    ...providerGroup,
+    models: uniqueLlmModels(providerGroup.models),
+  }));
 
-  return providers
-    .map((provider) => {
-      const models = provider.models.slice(0, MODELS_PER_PROVIDER);
-      return { ...provider, models };
+  if (search.trim()) {
+    return groups.filter((providerGroup) => providerGroup.models.length > 0);
+  }
+
+  return groups
+    .map((providerGroup) => {
+      const models = providerGroup.models.slice(0, MODELS_PER_PROVIDER);
+      return { ...providerGroup, models };
     })
-    .filter((provider) => provider.models.length > 0);
+    .filter((providerGroup) => providerGroup.models.length > 0);
 }
 
 function findModel(

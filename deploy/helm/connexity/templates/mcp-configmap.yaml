@@ -1,0 +1,18 @@
+{{- if .Values.mcp.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "connexity.mcp.serviceName" . }}
+  labels:
+    {{- include "connexity.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mcp
+data:
+  CONNEXITY_API_URL: {{ include "connexity.backend.apiUrl" . | quote }}
+  MCP_HOST: "0.0.0.0"
+  MCP_PORT: {{ .Values.mcp.service.port | quote }}
+  MCP_PATH: /mcp
+  MCP_SERVER_NAME: connexity-mcp
+  MCP_PUBLIC_BASE_URL: {{ .Values.mcp.env.mcpPublicBaseUrl | quote }}
+  MCP_OAUTH_ISSUER_URL: {{ .Values.mcp.env.mcpOauthIssuerUrl | quote }}
+  MCP_OAUTH_AUDIENCE: {{ .Values.mcp.env.mcpOauthAudience | quote }}
+{{- end }}

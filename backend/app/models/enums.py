@@ -87,6 +87,10 @@ class TextRuntimeKind(StrEnum):
     CUSTOM_ENDPOINT = "custom_endpoint"
 
 
+class VoiceRuntimeKind(StrEnum):
+    TWILIO = "twilio"
+
+
 class IntegrationProvider(StrEnum):
     RETELL = "retell"
     VAPI = "vapi"
@@ -97,3 +101,14 @@ class DeploymentStatus(StrEnum):
     PENDING = "pending"
     DEPLOYED = "deployed"
     FAILED = "failed"
+
+
+class VoiceSimulationJobStatus(StrEnum):
+    PENDING = "pending"
+    CLAIMED = "claimed"
+    CALLING = "calling"
+    WAITING_FOR_RESULT = "waiting_for_result"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"

@@ -13,7 +13,9 @@ import {
   buildDefaults,
   createEvalFormSchema,
   formValuesToCreatePayload,
+  SimulationMode,
 } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
+import { RunMode, TextRuntimeKind } from '@/client/types.gen';
 import {
   buildMetricRows,
   buildTestCaseRows,
@@ -21,16 +23,36 @@ import {
 import { useAvailableMetrics } from '@/app/(app)/(agent)/_hooks/use-available-metrics';
 import { useCreateEvalConfig } from '@/app/(app)/(agent)/_hooks/use-create-eval-config';
 import { useCreateRun } from '@/app/(app)/(agent)/_hooks/use-create-run';
+import { useSttModels } from '@/app/(app)/(agent)/_hooks/use-stt-models';
 import { useSuspenseTestCases } from '@/app/(app)/(agent)/_hooks/use-test-cases';
+import { useTtsModels } from '@/app/(app)/(agent)/_hooks/use-tts-models';
 import { appConfigQueries } from '@/app/(app)/(agent)/_queries/app-config-query';
 import { BOOTSTRAP_DEFAULT_LLM_ROUTE } from '@/utils/split-default-llm-routing';
+import { speechSelectionFromCatalog } from '@/utils/speech-defaults-from-catalog';
 
-import type { CreateEvalFormValues } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
+import type {
+  CreateEvalFormValues,
+  CreateEvalRuntime,
+} from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
 import type {
   EvalConfigMemberPublic,
   EvalConfigPublic,
   MetricDefinition,
+  RunConfigInput,
 } from '@/client/types.gen';
+
+function textRuntimeFromConfig(
+  runtime: RunConfigInput['runtime'] | null | undefined,
+  fallback: CreateEvalRuntime
+): CreateEvalRuntime {
+  if (!runtime || runtime.kind === 'twilio') {
+    return fallback;
+  }
+  if (runtime.kind === TextRuntimeKind.CUSTOM_ENDPOINT) {
+    return { kind: runtime.kind, url: runtime.url };
+  }
+  return { kind: runtime.kind };
+}
 
 interface UseCreateEvalFormArgs {
   agentId: string;
@@ -61,6 +83,8 @@ export function useCreateEvalForm({
   const metrics = [...metricsData.data].sort((a, b) => a.name.localeCompare(b.name));
 
   const { data: appConfig } = useQuery(appConfigQueries.root);
+  const { data: sttCatalog } = useSttModels();
+  const { data: ttsCatalog } = useTtsModels();
 
   const { data: testCasesData } = useSuspenseTestCases(agentId);
   const testCases = testCasesData.data;
@@ -76,14 +100,25 @@ export function useCreateEvalForm({
       }))
     : (initialTestCaseIds ?? []).map((id) => ({ test_case_id: id, repetitions: 1 }));
 
+  const isVoiceConfig = cfg?.mode === RunMode.VOICE;
+  const sttSelection = speechSelectionFromCatalog(sttCatalog, cfg?.user_simulator?.stt ?? null);
+  const ttsSelection = speechSelectionFromCatalog(ttsCatalog, cfg?.user_simulator?.tts ?? null);
+
   const defaults: CreateEvalFormValues = {
     ...base,
     name: initialConfig?.name ?? base.name,
     run: {
-      concurrency: cfg?.concurrency ?? base.run.concurrency,
+      simulation_mode:
+        cfg?.mode === RunMode.VOICE ? SimulationMode.VOICE : SimulationMode.TEXT,
+      agent_phone_number: cfg?.agent_phone_number ?? base.run.agent_phone_number,
+      concurrency: isVoiceConfig
+        ? Math.min(cfg?.concurrency ?? 1, 1)
+        : (cfg?.concurrency ?? base.run.concurrency),
       max_turns: cfg?.max_turns ?? base.run.max_turns,
-      tool_mode: cfg?.tool_mode ?? base.run.tool_mode,
-      runtime: cfg?.runtime ?? base.run.runtime,
+      max_call_duration_seconds:
+        cfg?.max_call_duration_seconds ?? base.run.max_call_duration_seconds,
+      tool_mode: isVoiceConfig ? 'mock' : (cfg?.tool_mode ?? base.run.tool_mode),
+      runtime: textRuntimeFromConfig(cfg?.runtime, base.run.runtime),
       runtime_test: base.run.runtime_test,
       metrics_pass_threshold:
         cfg?.metrics_pass_threshold ?? base.run.metrics_pass_threshold,
@@ -100,6 +135,15 @@ export function useCreateEvalForm({
       provider: cfg?.user_simulator?.provider ?? base.persona.provider,
       model: cfg?.user_simulator?.model ?? base.persona.model,
       temperature: cfg?.user_simulator?.temperature ?? base.persona.temperature,
+      stt: {
+        provider: cfg?.user_simulator?.stt?.provider ?? sttSelection.provider,
+        model: cfg?.user_simulator?.stt?.model ?? sttSelection.model,
+      },
+      tts: {
+        provider: cfg?.user_simulator?.tts?.provider ?? ttsSelection.provider,
+        model: cfg?.user_simulator?.tts?.model ?? ttsSelection.model,
+        voice_id: cfg?.user_simulator?.tts?.voice_id ?? base.persona.tts.voice_id,
+      },
     },
   };
 

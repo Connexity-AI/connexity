@@ -1,6 +1,11 @@
+from __future__ import annotations
+
 import os
 import warnings
-from typing import Annotated, Any, Literal, Self
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
+
+if TYPE_CHECKING:
+    from app.models.common import VoiceSimulationConfigPublic
 
 from cryptography.fernet import Fernet
 from pydantic import (
@@ -122,6 +127,70 @@ class Settings(BaseSettings):
     # LLM — shared across generator, judge, simulator, etc.
     OPENAI_API_KEY: str | None = None
     ANTHROPIC_API_KEY: str | None = None
+    # Gemini (LiteLLM text path + Pipecat voice worker); either alias is accepted.
+    GOOGLE_GENAI_API_KEY: str | None = None
+    GOOGLE_API_KEY: str | None = None
+
+    # Speech — persona voice pipeline (Pipecat); catalogs only list providers with keys set
+    DEEPGRAM_API_KEY: str | None = None
+    ELEVENLABS_API_KEY: str | None = None
+    CARTESIA_API_KEY: str | None = None
+    # Optional tier-2 (not wired in v1 catalog builders)
+    ASSEMBLYAI_API_KEY: str | None = None
+    AZURE_SPEECH_KEY: str | None = None
+    AZURE_SPEECH_REGION: str | None = None
+
+    # Telephony — voice eval worker (Pipecat Twilio serializer); not used by catalog API
+    TWILIO_ACCOUNT_SID: str | None = None
+    TWILIO_AUTH_TOKEN: str | None = None
+    TWILIO_FROM_NUMBER: str | None = Field(
+        default=None,
+        description="E.164 Twilio caller ID used for voice simulations",
+    )
+
+    # Voice simulation runtime
+    VOICE_DEPLOYMENT_MODE: Literal["off", "local", "kubernetes"] = Field(
+        default="off",
+        description=(
+            "Voice deployment profile: off for the default text-only stack; "
+            "local or kubernetes when the voice compose overlay or cluster "
+            "manifest enables the caller worker. Set by deployment, not user .env."
+        ),
+    )
+    VOICE_MAX_CONCURRENCY: int = Field(
+        default=5,
+        ge=1,
+        description="Maximum parallel voice calls allowed in kubernetes deployments",
+    )
+    VOICE_DEFAULT_CALL_DURATION_SECONDS: int = Field(
+        default=300,
+        ge=1,
+        description="Default max call duration when a voice RunConfig omits max_call_duration_seconds",
+    )
+    VOICE_DEFAULT_TIMEOUT_PER_TEST_CASE_MS: int = Field(
+        default=600_000,
+        ge=1,
+        description=(
+            "Default timeout per test case for voice RunConfig when the text "
+            "default timeout is still in effect"
+        ),
+    )
+    VOICE_MAX_CALL_DURATION_SECONDS: int = Field(
+        default=3600,
+        ge=1,
+        description="Upper bound for voice RunConfig max_call_duration_seconds",
+    )
+
+    # Voice DTMF decoder
+    DTMF_AUDIO_MAX_BYTES: int = 25 * 1024 * 1024
+    DTMF_AUDIO_DOWNLOAD_TIMEOUT_SECONDS: float = 30.0
+    DTMF_FFMPEG_TIMEOUT_SECONDS: float = 30.0
+
+    DEFAULT_STT_PROVIDER: str | None = None
+    DEFAULT_STT_MODEL: str | None = None
+    DEFAULT_TTS_PROVIDER: str | None = None
+    DEFAULT_TTS_MODEL: str | None = None
+    DEFAULT_TTS_VOICE_ID: str | None = None
     LLM_DEFAULT_MODEL: str = Field(
         default="gpt-4.1",
         description="Provider-local default when LLM_DEFAULT_MODEL env is unset",
@@ -247,6 +316,40 @@ class Settings(BaseSettings):
 
         return resolve_litellm_model(
             self.LLM_DEFAULT_MODEL, self.LLM_DEFAULT_PROVIDER or None
+        )
+
+    def voice_simulation_enabled(self) -> bool:
+        return self.VOICE_DEPLOYMENT_MODE in ("local", "kubernetes")
+
+    def twilio_voice_runtime_configured(self) -> bool:
+        return bool(
+            self.TWILIO_ACCOUNT_SID
+            and self.TWILIO_AUTH_TOKEN
+            and self.TWILIO_FROM_NUMBER
+        )
+
+    def google_llm_api_key(self) -> str | None:
+        return self.GOOGLE_GENAI_API_KEY or self.GOOGLE_API_KEY
+
+    def voice_max_concurrency_for_deployment(self) -> int:
+        if self.VOICE_DEPLOYMENT_MODE == "local":
+            return 1
+        return self.VOICE_MAX_CONCURRENCY
+
+    def voice_simulation_config_public(self) -> VoiceSimulationConfigPublic | None:
+        from app.models.common import VoiceSimulationConfigPublic
+
+        if not self.voice_simulation_enabled():
+            return None
+        mode = self.VOICE_DEPLOYMENT_MODE
+        assert mode in ("local", "kubernetes")
+        return VoiceSimulationConfigPublic(
+            deployment_mode=mode,
+            max_concurrency=self.voice_max_concurrency_for_deployment(),
+            voice_runtime_available=self.twilio_voice_runtime_configured(),
+            result_submission_path=f"{self.API_V1_STR}/voice-simulations/results",
+            default_call_duration_seconds=self.VOICE_DEFAULT_CALL_DURATION_SECONDS,
+            max_call_duration_seconds=self.VOICE_MAX_CALL_DURATION_SECONDS,
         )
 
     # ------- Validators -------

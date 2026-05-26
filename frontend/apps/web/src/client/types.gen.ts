@@ -1180,6 +1180,40 @@ export type CauseAnalysisItem = {
 };
 
 /**
+ * ChatMessage
+ */
+export type ChatMessage = {
+  /**
+   * Message role: system, user, assistant, or tool
+   */
+  role: TurnRole;
+  /**
+   * Content
+   *
+   * Text content; null when only tool_calls are sent
+   */
+  content?: string | null;
+  /**
+   * Tool Calls
+   *
+   * Assistant tool calls (OpenAI shape)
+   */
+  tool_calls?: Array<ToolCall> | null;
+  /**
+   * Tool Call Id
+   *
+   * For role=tool, id of the tool call this message responds to
+   */
+  tool_call_id?: string | null;
+  /**
+   * Name
+   *
+   * Optional tool name for role=tool (OpenAI convention)
+   */
+  name?: string | null;
+};
+
+/**
  * ConfigPublic
  */
 export type ConfigPublic = {
@@ -1203,6 +1237,10 @@ export type ConfigPublic = {
    * Default Llm Model
    */
   default_llm_model: string;
+  /**
+   * Voice simulation settings and availability for the UI
+   */
+  voice_simulation?: VoiceSimulationConfigPublic | null;
 };
 
 /**
@@ -3399,9 +3437,15 @@ export type RunConfigInput = {
   /**
    * Max Turns
    *
-   * Max agent response rounds per test case; null = no cap
+   * Max agent response rounds per test case; null = no cap (text mode only)
    */
   max_turns?: number | null;
+  /**
+   * Max Call Duration Seconds
+   *
+   * Maximum phone call duration in seconds for voice mode; null in text mode
+   */
+  max_call_duration_seconds?: number | null;
   /**
    * Tool Mode
    *
@@ -3450,7 +3494,16 @@ export type RunConfigInput = {
       } & RetellRuntimeConfig)
     | ({
         kind: 'custom_endpoint';
-      } & CustomEndpointRuntimeConfig);
+      } & CustomEndpointRuntimeConfig)
+    | ({
+        kind: 'twilio';
+      } & TwilioVoiceRuntimeConfig);
+  /**
+   * Agent Phone Number
+   *
+   * E.164 phone number Connexity calls in voice mode
+   */
+  agent_phone_number?: string | null;
 };
 
 /**
@@ -3472,9 +3525,15 @@ export type RunConfigOutput = {
   /**
    * Max Turns
    *
-   * Max agent response rounds per test case; null = no cap
+   * Max agent response rounds per test case; null = no cap (text mode only)
    */
   max_turns?: number | null;
+  /**
+   * Max Call Duration Seconds
+   *
+   * Maximum phone call duration in seconds for voice mode; null in text mode
+   */
+  max_call_duration_seconds?: number | null;
   /**
    * Tool Mode
    *
@@ -3523,7 +3582,16 @@ export type RunConfigOutput = {
       } & RetellRuntimeConfig)
     | ({
         kind: 'custom_endpoint';
-      } & CustomEndpointRuntimeConfig);
+      } & CustomEndpointRuntimeConfig)
+    | ({
+        kind: 'twilio';
+      } & TwilioVoiceRuntimeConfig);
+  /**
+   * Agent Phone Number
+   *
+   * E.164 phone number Connexity calls in voice mode
+   */
+  agent_phone_number?: string | null;
 };
 
 /**
@@ -3920,7 +3988,10 @@ export type RuntimeTestRequest = {
       } & RetellRuntimeConfig)
     | ({
         kind: 'custom_endpoint';
-      } & CustomEndpointRuntimeConfig);
+      } & CustomEndpointRuntimeConfig)
+    | ({
+        kind: 'twilio';
+      } & TwilioVoiceRuntimeConfig);
 };
 
 /**
@@ -3962,6 +4033,122 @@ export const SimulatorMode = { LLM: 'llm', SCRIPTED: 'scripted' } as const;
  * SimulatorMode
  */
 export type SimulatorMode = (typeof SimulatorMode)[keyof typeof SimulatorMode];
+
+/**
+ * SpeechModelProviderPublic
+ */
+export type SpeechModelProviderPublic = {
+  /**
+   * Provider
+   *
+   * Pipecat provider key
+   */
+  provider: string;
+  /**
+   * Label
+   *
+   * Human-readable provider label
+   */
+  label: string;
+  /**
+   * Default Model
+   *
+   * Full routing id for provider default
+   */
+  default_model?: string | null;
+  /**
+   * Models
+   *
+   * Selectable models
+   */
+  models: Array<SpeechModelPublic>;
+};
+
+/**
+ * SpeechModelPublic
+ */
+export type SpeechModelPublic = {
+  /**
+   * Id
+   *
+   * Full routing id, e.g. deepgram/nova-3-general
+   */
+  id: string;
+  /**
+   * Provider
+   *
+   * Pipecat provider key
+   */
+  provider: string;
+  /**
+   * Provider Label
+   *
+   * Human-readable provider label
+   */
+  provider_label: string;
+  /**
+   * Model
+   *
+   * Provider-local model id
+   */
+  model: string;
+  /**
+   * Label
+   *
+   * Human-readable model label
+   */
+  label: string;
+  /**
+   * Is Default
+   *
+   * Default model for this provider in the catalog
+   */
+  is_default: boolean;
+};
+
+/**
+ * SpeechModelsPublic
+ */
+export type SpeechModelsPublic = {
+  /**
+   * Data
+   *
+   * Available speech models by provider
+   */
+  data: Array<SpeechModelProviderPublic>;
+  /**
+   * Count
+   *
+   * Total selectable models
+   */
+  count: number;
+  /**
+   * Default Model
+   *
+   * Global default full routing id when configured
+   */
+  default_model?: string | null;
+};
+
+/**
+ * SttConfig
+ *
+ * Speech-to-text provider and model for voice persona simulation.
+ */
+export type SttConfig = {
+  /**
+   * Provider
+   *
+   * Pipecat STT provider key, e.g. deepgram
+   */
+  provider: string;
+  /**
+   * Model
+   *
+   * Provider-local STT model id
+   */
+  model: string;
+};
 
 /**
  * SuggestionsRequest
@@ -4957,6 +5144,32 @@ export type ToolDiff = {
 };
 
 /**
+ * TtsConfig
+ *
+ * Text-to-speech provider, model, and voice for voice persona simulation.
+ */
+export type TtsConfig = {
+  /**
+   * Provider
+   *
+   * Pipecat TTS provider key, e.g. elevenlabs
+   */
+  provider: string;
+  /**
+   * Model
+   *
+   * Provider-local TTS model id
+   */
+  model: string;
+  /**
+   * Voice Id
+   *
+   * Provider voice id passed to Pipecat Settings.voice
+   */
+  voice_id: string;
+};
+
+/**
  * TurnRole
  */
 export const TurnRole = {
@@ -4970,6 +5183,22 @@ export const TurnRole = {
  * TurnRole
  */
 export type TurnRole = (typeof TurnRole)[keyof typeof TurnRole];
+
+/**
+ * TwilioVoiceRuntimeConfig
+ *
+ * Twilio + Pipecat voice runtime.
+ *
+ * Connexity dials ``RunConfig.agent_phone_number``, sends a DTMF code, and
+ * waits for the user-side agent to submit ``audio_url`` and OpenAI-format
+ * ``messages`` after the call ends.
+ */
+export type TwilioVoiceRuntimeConfig = {
+  /**
+   * Kind
+   */
+  kind?: 'twilio';
+};
 
 /**
  * UpdatePassword
@@ -5060,6 +5289,14 @@ export type UserSimulatorConfig = {
    * Sampling temperature for simulator LLM
    */
   temperature?: number | null;
+  /**
+   * STT provider and model for voice mode persona pipeline
+   */
+  stt?: SttConfig | null;
+  /**
+   * TTS provider, model, and voice for voice mode persona pipeline
+   */
+  tts?: TtsConfig | null;
 };
 
 /**
@@ -5092,6 +5329,292 @@ export type ValidationError = {
    * Error Type
    */
   type: string;
+};
+
+/**
+ * VoicePublic
+ */
+export type VoicePublic = {
+  /**
+   * Id
+   *
+   * Voice id passed to Pipecat TTS Settings.voice
+   */
+  id: string;
+  /**
+   * Label
+   *
+   * Human-readable voice label
+   */
+  label: string;
+  /**
+   * Preview Url
+   *
+   * Optional preview audio URL when available
+   */
+  preview_url?: string | null;
+};
+
+/**
+ * VoiceSimulationConfigPublic
+ */
+export type VoiceSimulationConfigPublic = {
+  /**
+   * Deployment Mode
+   *
+   * Voice deployment profile controlling concurrency limits
+   */
+  deployment_mode: 'local' | 'kubernetes';
+  /**
+   * Max Concurrency
+   *
+   * Maximum parallel voice calls allowed for this deployment
+   */
+  max_concurrency: number;
+  /**
+   * Voice Runtime Available
+   *
+   * True when Twilio credentials are configured for voice runs
+   */
+  voice_runtime_available: boolean;
+  /**
+   * Result Submission Path
+   *
+   * Relative API path for user-side voice result submission
+   */
+  result_submission_path: string;
+  /**
+   * Default Call Duration Seconds
+   *
+   * Default max call duration when omitted from RunConfig
+   */
+  default_call_duration_seconds: number;
+  /**
+   * Max Call Duration Seconds
+   *
+   * Upper bound for RunConfig max_call_duration_seconds
+   */
+  max_call_duration_seconds: number;
+};
+
+/**
+ * VoiceSimulationJobPublic
+ */
+export type VoiceSimulationJobPublic = {
+  /**
+   * Id
+   *
+   * Unique voice simulation job identifier
+   */
+  id: string;
+  /**
+   * Run Id
+   *
+   * FK to the parent eval run
+   */
+  run_id: string;
+  /**
+   * Test Case Id
+   *
+   * FK to the test case being executed
+   */
+  test_case_id: string;
+  /**
+   * Test Case Result Id
+   *
+   * FK to the test case result row for this execution
+   */
+  test_case_result_id: string;
+  /**
+   * Repetition Index
+   *
+   * Repetition index within the run (0-based)
+   */
+  repetition_index: number;
+  /**
+   * Voice job lifecycle status
+   */
+  status: VoiceSimulationJobStatus;
+  /**
+   * Dtmf Code
+   *
+   * Connexity DTMF code sent during the call
+   */
+  dtmf_code: string;
+  /**
+   * Agent Phone Number
+   *
+   * E.164 agent phone number dialed
+   */
+  agent_phone_number: string;
+  /**
+   * Max Call Duration Seconds
+   *
+   * Configured maximum call duration in seconds
+   */
+  max_call_duration_seconds: number;
+  /**
+   * Twilio Call Sid
+   *
+   * Twilio call SID once the worker places the call
+   */
+  twilio_call_sid?: string | null;
+  /**
+   * Worker Public Base Url
+   *
+   * Public worker origin used for this job's Twilio callbacks
+   */
+  worker_public_base_url?: string | null;
+  /**
+   * Audio Url
+   *
+   * Submitted recording URL after call completion
+   */
+  audio_url?: string | null;
+  /**
+   * Submitted Messages
+   *
+   * Raw OpenAI-format messages from the user-side submission
+   */
+  submitted_messages?: Array<{
+    [key: string]: unknown;
+  }> | null;
+  /**
+   * Normalized Transcript
+   *
+   * ConversationTurn[] mapped from submitted messages
+   */
+  normalized_transcript?: Array<{
+    [key: string]: unknown;
+  }> | null;
+  /**
+   * Error Code
+   *
+   * Machine-readable error code when the job fails
+   */
+  error_code?: string | null;
+  /**
+   * Error Message
+   *
+   * Human-readable error message when the job fails
+   */
+  error_message?: string | null;
+  /**
+   * Claimed At
+   *
+   * When a worker claimed this job
+   */
+  claimed_at?: string | null;
+  /**
+   * Call Started At
+   *
+   * When the Twilio call was connected
+   */
+  call_started_at?: string | null;
+  /**
+   * Call Ended At
+   *
+   * When the Twilio call ended
+   */
+  call_ended_at?: string | null;
+  /**
+   * Result Received At
+   *
+   * When the user-side result submission was accepted
+   */
+  result_received_at?: string | null;
+  /**
+   * Created At
+   *
+   * When the voice job was created
+   */
+  created_at: string;
+  /**
+   * Updated At
+   *
+   * When the voice job was last updated
+   */
+  updated_at: string;
+};
+
+/**
+ * VoiceSimulationJobStatus
+ */
+export const VoiceSimulationJobStatus = {
+  PENDING: 'pending',
+  CLAIMED: 'claimed',
+  CALLING: 'calling',
+  WAITING_FOR_RESULT: 'waiting_for_result',
+  COMPLETED: 'completed',
+  FAILED: 'failed',
+  EXPIRED: 'expired',
+  CANCELLED: 'cancelled',
+} as const;
+
+/**
+ * VoiceSimulationJobStatus
+ */
+export type VoiceSimulationJobStatus =
+  (typeof VoiceSimulationJobStatus)[keyof typeof VoiceSimulationJobStatus];
+
+/**
+ * VoiceSimulationJobsPublic
+ */
+export type VoiceSimulationJobsPublic = {
+  /**
+   * Data
+   *
+   * Voice simulation jobs for a run
+   */
+  data: Array<VoiceSimulationJobPublic>;
+  /**
+   * Count
+   *
+   * Total number of jobs matching the query
+   */
+  count: number;
+};
+
+/**
+ * VoiceSimulationResultSubmit
+ */
+export type VoiceSimulationResultSubmit = {
+  /**
+   * Audio Url
+   *
+   * Public URL of the call recording that includes Connexity DTMF tones
+   */
+  audio_url: string;
+  /**
+   * Messages
+   *
+   * OpenAI-format conversation messages from the user-side agent
+   */
+  messages: Array<ChatMessage>;
+};
+
+/**
+ * VoicesPublic
+ */
+export type VoicesPublic = {
+  /**
+   * Data
+   *
+   * Selectable voices
+   */
+  data: Array<VoicePublic>;
+  /**
+   * Count
+   *
+   * Number of voices
+   */
+  count: number;
+  /**
+   * Default Voice Id
+   *
+   * Suggested default voice for provider/model
+   */
+  default_voice_id?: string | null;
 };
 
 /**
@@ -10280,6 +10803,169 @@ export type ConfigGetLlmModelsResponses = {
 export type ConfigGetLlmModelsResponse =
   ConfigGetLlmModelsResponses[keyof ConfigGetLlmModelsResponses];
 
+export type ConfigGetSttModelsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/config/stt-models';
+};
+
+export type ConfigGetSttModelsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ConfigGetSttModelsError = ConfigGetSttModelsErrors[keyof ConfigGetSttModelsErrors];
+
+export type ConfigGetSttModelsResponses = {
+  /**
+   * Successful Response
+   */
+  200: SpeechModelsPublic;
+};
+
+export type ConfigGetSttModelsResponse =
+  ConfigGetSttModelsResponses[keyof ConfigGetSttModelsResponses];
+
+export type ConfigGetTtsModelsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/config/tts-models';
+};
+
+export type ConfigGetTtsModelsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ConfigGetTtsModelsError = ConfigGetTtsModelsErrors[keyof ConfigGetTtsModelsErrors];
+
+export type ConfigGetTtsModelsResponses = {
+  /**
+   * Successful Response
+   */
+  200: SpeechModelsPublic;
+};
+
+export type ConfigGetTtsModelsResponse =
+  ConfigGetTtsModelsResponses[keyof ConfigGetTtsModelsResponses];
+
+export type ConfigGetTtsVoicesData = {
+  body?: never;
+  path?: never;
+  query: {
+    /**
+     * Provider
+     *
+     * TTS provider key, e.g. elevenlabs
+     */
+    provider: string;
+    /**
+     * Model
+     *
+     * TTS model id for the provider
+     */
+    model: string;
+  };
+  url: '/api/v1/config/tts-voices';
+};
+
+export type ConfigGetTtsVoicesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ConfigGetTtsVoicesError = ConfigGetTtsVoicesErrors[keyof ConfigGetTtsVoicesErrors];
+
+export type ConfigGetTtsVoicesResponses = {
+  /**
+   * Successful Response
+   */
+  200: VoicesPublic;
+};
+
+export type ConfigGetTtsVoicesResponse =
+  ConfigGetTtsVoicesResponses[keyof ConfigGetTtsVoicesResponses];
+
 export type IntegrationsListIntegrationsData = {
   body?: never;
   path?: never;
@@ -11308,3 +11994,175 @@ export type CallsGetCallDetailResponses = {
 
 export type CallsGetCallDetailResponse =
   CallsGetCallDetailResponses[keyof CallsGetCallDetailResponses];
+
+export type VoiceSimulationsSubmitVoiceSimulationResultsData = {
+  body: VoiceSimulationResultSubmit;
+  path?: never;
+  query?: never;
+  url: '/api/v1/voice-simulations/results';
+};
+
+export type VoiceSimulationsSubmitVoiceSimulationResultsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type VoiceSimulationsSubmitVoiceSimulationResultsError =
+  VoiceSimulationsSubmitVoiceSimulationResultsErrors[keyof VoiceSimulationsSubmitVoiceSimulationResultsErrors];
+
+export type VoiceSimulationsSubmitVoiceSimulationResultsResponses = {
+  /**
+   * Successful Response
+   */
+  200: VoiceSimulationJobPublic;
+};
+
+export type VoiceSimulationsSubmitVoiceSimulationResultsResponse =
+  VoiceSimulationsSubmitVoiceSimulationResultsResponses[keyof VoiceSimulationsSubmitVoiceSimulationResultsResponses];
+
+export type VoiceSimulationsListVoiceSimulationJobsForRunData = {
+  body?: never;
+  path: {
+    /**
+     * Run Id
+     */
+    run_id: string;
+  };
+  query?: {
+    /**
+     * Skip
+     */
+    skip?: number;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/voice-simulations/runs/{run_id}/jobs';
+};
+
+export type VoiceSimulationsListVoiceSimulationJobsForRunErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type VoiceSimulationsListVoiceSimulationJobsForRunError =
+  VoiceSimulationsListVoiceSimulationJobsForRunErrors[keyof VoiceSimulationsListVoiceSimulationJobsForRunErrors];
+
+export type VoiceSimulationsListVoiceSimulationJobsForRunResponses = {
+  /**
+   * Successful Response
+   */
+  200: VoiceSimulationJobsPublic;
+};
+
+export type VoiceSimulationsListVoiceSimulationJobsForRunResponse =
+  VoiceSimulationsListVoiceSimulationJobsForRunResponses[keyof VoiceSimulationsListVoiceSimulationJobsForRunResponses];
+
+export type VoiceSimulationsGetVoiceSimulationJobData = {
+  body?: never;
+  path: {
+    /**
+     * Job Id
+     */
+    job_id: string;
+  };
+  query?: never;
+  url: '/api/v1/voice-simulations/jobs/{job_id}';
+};
+
+export type VoiceSimulationsGetVoiceSimulationJobErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type VoiceSimulationsGetVoiceSimulationJobError =
+  VoiceSimulationsGetVoiceSimulationJobErrors[keyof VoiceSimulationsGetVoiceSimulationJobErrors];
+
+export type VoiceSimulationsGetVoiceSimulationJobResponses = {
+  /**
+   * Successful Response
+   */
+  200: VoiceSimulationJobPublic;
+};
+
+export type VoiceSimulationsGetVoiceSimulationJobResponse =
+  VoiceSimulationsGetVoiceSimulationJobResponses[keyof VoiceSimulationsGetVoiceSimulationJobResponses];

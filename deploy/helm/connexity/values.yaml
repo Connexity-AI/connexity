@@ -1,0 +1,152 @@
+# Connexity platform Helm chart — demo defaults. Override for production.
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Shared credentials Secret. Create manually from secret.example.yaml or set secret.create=true.
+secret:
+  create: false
+  existingSecret: connexity-secrets
+  # Used only when secret.create=true (demo). Real secrets should come from existingSecret.
+  jwtSecretKey: changethis
+  encryptionKey: changethis
+  twilioAccountSid: ""
+  twilioAuthToken: ""
+  twilioFromNumber: ""
+  openaiApiKey: ""
+  deepgramApiKey: ""
+  elevenlabsApiKey: ""
+  cartesiaApiKey: ""
+
+# Bundled Postgres (Bitnami subchart). Disable and use externalDatabase for production.
+postgresql:
+  enabled: true
+  auth:
+    username: connexity
+    password: password
+    database: app
+  primary:
+    persistence:
+      enabled: true
+      size: 8Gi
+
+# External Postgres when postgresql.enabled=false.
+externalDatabase:
+  host: ""
+  port: 5432
+  user: postgres
+  password: ""
+  database: app
+  # Optional full URL for the backend (e.g. Neon).
+  # Voice/KEDA still requires discrete host/port/user/password/database values.
+  url: ""
+
+backend:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/connexity-ai/connexity-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+    # When true, use voiceTag (ffmpeg-enabled image for DTMF decoding).
+    useVoiceVariant: false
+    voiceTag: latest
+  service:
+    port: 8000
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  env:
+    environment: production
+    projectName: connexity
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/connexity-ai/connexity-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    port: 3000
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations: {}
+  appHost: app.example.com
+  apiHost: api.example.com
+  tls:
+    enabled: true
+    secretName: connexity-tls
+
+# Public URLs wired into backend/frontend/MCP OAuth settings.
+global:
+  siteUrl: https://app.example.com
+  apiPublicUrl: https://api.example.com
+
+migration:
+  enabled: true
+  backoffLimit: 3
+
+voice:
+  enabled: false
+  maxConcurrency: 5
+  publicHostSuffix: voice.example.com
+  image:
+    repository: ghcr.io/connexity-ai/connexity-voice-worker
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    port: 8765
+  ingress:
+    enabled: true
+    className: nginx
+    annotations: {}
+    tls:
+      enabled: true
+      secretName: connexity-voice-tls
+  keda:
+    enabled: true
+    pollingInterval: 10
+    cooldownPeriod: 120
+    minReplicaCount: 0
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  terminationGracePeriodSeconds: 600
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+mcp:
+  enabled: false
+  image:
+    repository: ghcr.io/connexity-ai/connexity-mcp-server
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    port: 8001
+  ingress:
+    enabled: true
+    className: nginx
+    host: mcp.example.com
+    annotations: {}
+    tls:
+      enabled: true
+      secretName: connexity-mcp-tls
+  env:
+    mcpPublicBaseUrl: https://mcp.example.com
+    mcpOauthIssuerUrl: https://api.example.com
+    mcpOauthAudience: https://mcp.example.com/mcp
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: []

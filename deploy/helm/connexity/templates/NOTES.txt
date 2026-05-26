@@ -1,0 +1,40 @@
+Connexity platform installed in namespace {{ .Release.Namespace }}.
+
+App URL: {{ .Values.global.siteUrl }} (Ingress host: {{ .Values.ingress.appHost }})
+API URL: {{ .Values.global.apiPublicUrl }} (Ingress host: {{ .Values.ingress.apiHost }})
+
+Before first use:
+1. Ensure Secret "{{ include "connexity.secretName" . }}" exists with POSTGRES_*, JWT_SECRET_KEY, ENCRYPTION_KEY, and LLM provider keys.
+2. Generate a valid Fernet ENCRYPTION_KEY (see repo .env.example).
+3. TLS secrets must cover your Ingress hosts{{ if .Values.voice.enabled }} and voice worker wildcard hosts{{ end }}.
+
+Database:
+{{- if .Values.postgresql.enabled }}
+  Bundled Postgres service: {{ include "connexity.postgres.host" . }}:5432
+{{- else }}
+  External database: {{ .Values.externalDatabase.host }}:{{ .Values.externalDatabase.port }}
+{{- end }}
+  Migrations run via Helm hook Job "{{ include "connexity.fullname" . }}-migrate".
+
+{{- if .Values.voice.enabled }}
+
+Voice worker enabled (maxConcurrency={{ .Values.voice.maxConcurrency }}):
+  Backend VOICE_DEPLOYMENT_MODE=kubernetes and VOICE_MAX_CONCURRENCY={{ .Values.voice.maxConcurrency }} are set automatically.
+  Use an ffmpeg-enabled backend image (backend/Dockerfile.voice) when voice evals submit recordings for DTMF decode.
+  Wildcard DNS *.{{ .Values.voice.publicHostSuffix }} must point to your Ingress controller.
+  Per-pod worker URLs:
+{{- $voiceFullname := include "connexity.voice.fullname" . }}
+{{- range $i := until (int .Values.voice.maxConcurrency) }}
+    - https://{{ $voiceFullname }}-{{ $i }}.{{ $.Values.voice.publicHostSuffix }}
+{{- end }}
+  Requires KEDA installed in the cluster.
+{{- end }}
+
+{{- if .Values.mcp.enabled }}
+
+MCP server enabled at {{ .Values.mcp.env.mcpPublicBaseUrl }}.
+  MCP_OAUTH_ISSUER_URL={{ .Values.mcp.env.mcpOauthIssuerUrl }}
+  MCP_OAUTH_AUDIENCE={{ .Values.mcp.env.mcpOauthAudience }}
+{{- end }}
+
+See deploy/helm/connexity/README.md for demo, production, and kind smoke-test profiles.

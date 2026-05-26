@@ -10,7 +10,7 @@ The orchestrator owns concurrency, judging, persistence, and aggregate metrics. 
 |---|---|---|
 | `connexity` | Native: in-process user simulator + agent ↔ user text loop | always |
 | `retell` | Drives a Retell web call, then exposes the transcript for judging | agent is on the Retell platform with a configured Retell integration |
-| `custom_endpoint` | Posts to a user-provided HTTP endpoint that honors the OpenAI-compatible [agent contract](../agents/contract.md) | Non-Retell agents (Custom/Webhook, Vapi, ElevenLabs, legacy rows without platform); agent must be in **endpoint** mode |
+| `custom_endpoint` | Posts to a user-provided HTTP endpoint that honors the OpenAI-compatible [text agent contract](./text-agent-contract.md) | Non-Retell agents (Custom/Webhook, Vapi, ElevenLabs, legacy rows without platform); agent must be in **endpoint** mode |
 
 The active runtime is stored in `RunConfig.runtime` (inside `eval_config.config` JSONB). Absent value → `connexity`.
 

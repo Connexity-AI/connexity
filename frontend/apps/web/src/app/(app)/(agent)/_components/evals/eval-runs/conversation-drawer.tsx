@@ -14,7 +14,13 @@ import { cn } from '@workspace/ui/lib/utils';
 
 import { roundScore } from './shared/score-utils';
 
-import type { ConversationTurnOutput, TestCaseResultPublic } from '@/client/types.gen';
+import { VoiceRunArtifacts } from '@/app/(app)/(agent)/_components/evals/eval-runs/voice-run-artifacts';
+
+import type {
+  ConversationTurnOutput,
+  TestCaseResultPublic,
+  VoiceSimulationJobPublic,
+} from '@/client/types.gen';
 
 interface ConversationDrawerProps {
   open: boolean;
@@ -22,6 +28,7 @@ interface ConversationDrawerProps {
   result: TestCaseResultPublic | null;
   testCaseName: string;
   agentName?: string | null;
+  voiceJob?: VoiceSimulationJobPublic;
 }
 
 type DisplayItem =
@@ -46,6 +53,7 @@ export function ConversationDrawer({
   result,
   testCaseName,
   agentName,
+  voiceJob,
 }: ConversationDrawerProps) {
   const displayItems = useMemo<DisplayItem[]>(() => {
     const turns = result?.transcript ?? [];
@@ -114,6 +122,7 @@ export function ConversationDrawer({
         </SheetHeader>
 
         <div className="flex-1 space-y-2 overflow-auto px-4 py-4">
+          <VoiceRunArtifacts job={voiceJob} />
           {displayItems.length === 0 ? (
             <p className="text-xs text-muted-foreground">
               No transcript available for this result.

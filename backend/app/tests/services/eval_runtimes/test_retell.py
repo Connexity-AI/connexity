@@ -67,6 +67,7 @@ def _make_args(agent: Agent, test_case, *, max_turns: int | None = 1) -> Runtime
             run_config=RunConfig(max_turns=max_turns),
             cancel_event=None,
         ),
+        test_case_result_id=uuid.uuid4(),
     )
 
 

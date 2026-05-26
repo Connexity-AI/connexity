@@ -59,6 +59,15 @@ def _ensure_predefined_metrics(session: Session) -> None:
     session.commit()
 
 
+@pytest.fixture(autouse=True)
+def _twilio_voice_test_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Voice eval config validation requires Twilio env vars in tests."""
+    monkeypatch.setattr(settings, "TWILIO_ACCOUNT_SID", "ACtest")
+    monkeypatch.setattr(settings, "TWILIO_AUTH_TOKEN", "test-token")
+    monkeypatch.setattr(settings, "TWILIO_FROM_NUMBER", "+15550000001")
+    monkeypatch.setattr(settings, "VOICE_DEPLOYMENT_MODE", "local")
+
+
 @pytest.fixture(scope="session", autouse=True)
 def db() -> Generator[Session, None, None]:
     with Session(engine) as session:

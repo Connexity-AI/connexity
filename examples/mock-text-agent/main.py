@@ -9,7 +9,7 @@ from pydantic import BaseModel
 # ---------------------------------------------------------------------------
 # NOTE: Models below mirror app.models.agent_contract (canonical source).
 # They are duplicated here so this example stays self-contained / copy-paste
-# friendly.  See docs/agents/contract.md for the authoritative spec.
+# friendly.  See docs/text-agent-contract.md for the authoritative spec.
 #
 # Tools & mock data align with examples/test-cases/*.json expected_tool_calls:
 #   - normal-refund-request: lookup_order, process_refund
@@ -192,7 +192,7 @@ TOOLS = [
 MODEL = os.getenv("MOCK_AGENT_MODEL", "gpt-4o-mini")
 MAX_TOOL_ROUNDS = 10
 
-app = FastAPI(title="Connexity mock agent", version="0.1.0")
+app = FastAPI(title="Connexity mock text agent", version="0.1.0")
 
 
 class ToolFn(BaseModel):

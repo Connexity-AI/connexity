@@ -16,13 +16,9 @@ import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { JudgeSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-judge-section';
 import { PassThresholdsSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-pass-thresholds-section';
 import { PersonaSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-persona-section';
-import {
-  RuntimeSection,
-  RunConfigSection,
-} from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-run-config-section';
+import { RuntimeSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-run-config-section';
 import { TestCasesSection } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-test-cases-section';
 import { useCreateEvalForm } from '@/app/(app)/(agent)/_components/evals/create-eval/use-create-eval-form';
-import { useAgent } from '@/app/(app)/(agent)/_hooks/use-agent';
 
 import type { EvalConfigMemberPublic, EvalConfigPublic } from '@/client/types.gen';
 
@@ -112,8 +108,6 @@ export function CreateEvalView({
       initialMembers,
     });
 
-  const { data: agent } = useAgent(agentId);
-
   const name = form.watch('name');
   const backHref = readOnly ? UrlGenerator.agentEvalsConfigs(agentId) : undefined;
 
@@ -166,17 +160,14 @@ export function CreateEvalView({
           <form onSubmit={(e) => e.preventDefault()} className="flex-1 overflow-auto">
             <div className="mx-auto max-w-2xl space-y-4 px-6 py-6">
               <SubmitErrorAlert message={submitError} />
-              <RunConfigSection />
               <TestCasesSection agentId={agentId} />
               <JudgeSection metrics={metrics} />
               <PassThresholdsSection />
-              <PersonaSection />
               <RuntimeSection
                 agentId={agentId}
-                agentMode={agent?.mode ?? null}
-                agentTools={agent?.tools ?? null}
                 defaultToBackendOption={!initialConfig}
               />
+              <PersonaSection />
             </div>
           </form>
         </div>

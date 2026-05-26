@@ -26,6 +26,9 @@ jobs:
           - image_suffix: frontend
             docker_context: ./frontend
             file: ./frontend/Dockerfile
+          - image_suffix: voice-worker
+            docker_context: .
+            file: ./voice-worker/Dockerfile
     steps:
       - uses: actions/checkout@v4
 

@@ -19,6 +19,7 @@ from app.api.routes import (
     test_case_results,
     test_cases,
     users,
+    voice_simulations,
 )
 from app.models import ErrorResponse
 
@@ -41,6 +42,7 @@ api_router.include_router(config.router)
 api_router.include_router(integrations.router)
 api_router.include_router(environments.router)
 api_router.include_router(calls.router)
+api_router.include_router(voice_simulations.router)
 
 root_router = APIRouter()
 root_router.include_router(health.router)

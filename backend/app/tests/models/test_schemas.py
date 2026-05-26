@@ -1,6 +1,8 @@
 from datetime import UTC, datetime
 
-from app.models.enums import SimulatorMode, TurnRole
+import pytest
+
+from app.models.enums import RunMode, SimulatorMode, TurnRole
 from app.models.schemas import (
     AgentSimulatorConfig,
     AggregateMetrics,
@@ -13,9 +15,11 @@ from app.models.schemas import (
     MetricSelection,
     PythonImplementation,
     RunConfig,
+    SttConfig,
     ToolCall,
     ToolCallFunction,
     ToolPlatformConfig,
+    TtsConfig,
     UserSimulatorConfig,
 )
 
@@ -400,6 +404,185 @@ def test_run_config_with_user_simulator_round_trip():
     restored = _round_trip(RunConfig, config)
     assert restored.user_simulator is not None
     assert restored.user_simulator.mode == SimulatorMode.SCRIPTED
+
+
+def test_stt_and_tts_config_round_trip() -> None:
+    stt = SttConfig(provider="deepgram", model="nova-3-general")
+    tts = TtsConfig(
+        provider="elevenlabs",
+        model="eleven_multilingual_v2",
+        voice_id="21m00Tcm4TlvDq8ikWAM",
+    )
+    cfg = UserSimulatorConfig(
+        model="gpt-4o-mini",
+        provider="openai",
+        stt=stt,
+        tts=tts,
+    )
+    restored = _round_trip(UserSimulatorConfig, cfg)
+    assert restored.stt is not None
+    assert restored.stt.model == "nova-3-general"
+    assert restored.tts is not None
+    assert restored.tts.voice_id == "21m00Tcm4TlvDq8ikWAM"
+
+
+def test_run_config_voice_mode_requires_phone_and_speech() -> None:
+    with pytest.raises(ValueError, match="agent_phone_number"):
+        RunConfig(
+            mode=RunMode.VOICE,
+            user_simulator=UserSimulatorConfig(
+                stt=SttConfig(provider="deepgram", model="nova-3-general"),
+                tts=TtsConfig(
+                    provider="deepgram",
+                    model="aura",
+                    voice_id="aura-2-helena-en",
+                ),
+            ),
+        )
+
+    with pytest.raises(ValueError, match="user_simulator.stt"):
+        RunConfig(
+            mode=RunMode.VOICE,
+            agent_phone_number="+15551234567",
+            user_simulator=UserSimulatorConfig(
+                tts=TtsConfig(
+                    provider="deepgram",
+                    model="aura",
+                    voice_id="aura-2-helena-en",
+                ),
+            ),
+        )
+
+
+def test_run_config_voice_mode_valid() -> None:
+    config = RunConfig(
+        mode=RunMode.VOICE,
+        agent_phone_number="+15551234567",
+        user_simulator=UserSimulatorConfig(
+            stt=SttConfig(provider="deepgram", model="nova-3-general"),
+            tts=TtsConfig(
+                provider="deepgram",
+                model="aura",
+                voice_id="aura-2-helena-en",
+            ),
+        ),
+    )
+    restored = _round_trip(RunConfig, config)
+    assert restored.mode == RunMode.VOICE
+    assert restored.agent_phone_number == "+15551234567"
+    assert restored.max_call_duration_seconds == 300
+
+
+def test_run_config_voice_mode_applies_default_call_duration() -> None:
+    config = RunConfig(
+        mode=RunMode.VOICE,
+        agent_phone_number="+15551234567",
+        user_simulator=UserSimulatorConfig(
+            stt=SttConfig(provider="deepgram", model="nova-3-general"),
+            tts=TtsConfig(
+                provider="deepgram",
+                model="aura",
+                voice_id="aura-2-helena-en",
+            ),
+        ),
+    )
+    assert config.max_call_duration_seconds == 300
+
+
+def test_run_config_voice_mode_applies_default_timeout() -> None:
+    config = RunConfig(
+        mode=RunMode.VOICE,
+        agent_phone_number="+15551234567",
+        user_simulator=UserSimulatorConfig(
+            stt=SttConfig(provider="deepgram", model="nova-3-general"),
+            tts=TtsConfig(
+                provider="deepgram",
+                model="aura",
+                voice_id="aura-2-helena-en",
+            ),
+        ),
+    )
+    assert config.timeout_per_test_case_ms == 600_000
+    assert config.max_call_duration_seconds == 300
+
+
+def test_run_config_voice_mode_rejects_max_turns() -> None:
+    with pytest.raises(ValueError, match="max_turns"):
+        RunConfig(
+            mode=RunMode.VOICE,
+            max_turns=5,
+            agent_phone_number="+15551234567",
+            user_simulator=UserSimulatorConfig(
+                stt=SttConfig(provider="deepgram", model="nova-3-general"),
+                tts=TtsConfig(
+                    provider="deepgram",
+                    model="aura",
+                    voice_id="aura-2-helena-en",
+                ),
+            ),
+        )
+
+
+def test_run_config_voice_mode_rejects_call_duration_longer_than_timeout() -> None:
+    with pytest.raises(ValueError, match="max_call_duration_seconds"):
+        RunConfig(
+            mode=RunMode.VOICE,
+            timeout_per_test_case_ms=60_000,
+            max_call_duration_seconds=120,
+            agent_phone_number="+15551234567",
+            user_simulator=UserSimulatorConfig(
+                stt=SttConfig(provider="deepgram", model="nova-3-general"),
+                tts=TtsConfig(
+                    provider="deepgram",
+                    model="aura",
+                    voice_id="aura-2-helena-en",
+                ),
+            ),
+        )
+
+
+def test_run_config_text_mode_rejects_call_duration() -> None:
+    with pytest.raises(ValueError, match="max_call_duration_seconds"):
+        RunConfig(max_call_duration_seconds=120)
+
+
+def test_run_config_voice_mode_rejects_when_deployment_off(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("app.models.schemas.settings.VOICE_DEPLOYMENT_MODE", "off")
+    with pytest.raises(ValueError, match="not enabled"):
+        RunConfig(
+            mode=RunMode.VOICE,
+            agent_phone_number="+15551234567",
+            user_simulator=UserSimulatorConfig(
+                stt=SttConfig(provider="deepgram", model="nova-3-general"),
+                tts=TtsConfig(
+                    provider="deepgram",
+                    model="aura",
+                    voice_id="aura-2-helena-en",
+                ),
+            ),
+        )
+
+
+def test_run_config_voice_mode_local_forces_concurrency_one(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("app.models.schemas.settings.VOICE_DEPLOYMENT_MODE", "local")
+    config = RunConfig(
+        mode=RunMode.VOICE,
+        concurrency=10,
+        agent_phone_number="+15551234567",
+        user_simulator=UserSimulatorConfig(
+            stt=SttConfig(provider="deepgram", model="nova-3-general"),
+            tts=TtsConfig(
+                provider="deepgram",
+                model="aura",
+                voice_id="aura-2-helena-en",
+            ),
+        ),
+    )
+    assert config.concurrency == 1
 
 
 # ── AggregateMetrics ───────────────────────────────────────────────

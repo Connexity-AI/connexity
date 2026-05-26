@@ -260,6 +260,13 @@ def eval_configs_members_remove(
     '{"kind":"custom_endpoint","url":"https://..."}',
 )
 @click.option(
+    "--mode",
+    type=click.Choice(["text", "voice"]),
+    default="text",
+    show_default=True,
+    help="Eval modality to smoke-test",
+)
+@click.option(
     "--output", "output_override", type=click.Choice(["json", "table"]), default=None
 )
 @click.pass_context
@@ -267,6 +274,7 @@ def eval_configs_test_runtime(
     ctx: click.Context,
     agent_ref: str,
     from_file: str,
+    mode: str,
     output_override: str | None,
 ) -> None:
     """Smoke-test a runtime config against an agent."""
@@ -276,7 +284,7 @@ def eval_configs_test_runtime(
         agent = resolve_agent(client, agent_ref)
         body = {
             "agent_id": str(agent["id"]),
-            "mode": "text",
+            "mode": mode,
             "runtime": runtime_config,
         }
         result = client.eval_configs.test_runtime(body)

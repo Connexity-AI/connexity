@@ -183,6 +183,7 @@ async def test_run_test_case_overrides_endpoint_url() -> None:
             run_config=RunConfig(),
             cancel_event=None,
         ),
+        test_case_result_id=uuid.uuid4(),
     )
 
     with patch.object(runtime, "do_agent_turn", new_callable=AsyncMock) as mock_turn:

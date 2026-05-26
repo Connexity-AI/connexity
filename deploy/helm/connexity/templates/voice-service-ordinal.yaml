@@ -1,0 +1,21 @@
+{{- if .Values.voice.enabled }}
+{{- $fullname := include "connexity.voice.fullname" . -}}
+{{- range $i := until (int .Values.voice.maxConcurrency) }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-{{ $i }}
+  labels:
+    {{- include "connexity.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: voice-worker
+spec:
+  selector:
+    {{- include "connexity.voice.selectorLabels" $ | nindent 4 }}
+    statefulset.kubernetes.io/pod-name: {{ $fullname }}-{{ $i }}
+  ports:
+    - name: http
+      port: {{ $.Values.voice.service.port }}
+      targetPort: http
+{{- end }}
+{{- end }}

@@ -1,0 +1,29 @@
+name: Setup uv
+description: Install uv via Astral install script (avoids marketplace action tarball download issues)
+inputs:
+  enable-cache:
+    description: Restore and save the uv package cache
+    required: false
+    default: "true"
+  cache-dependency-glob:
+    description: Lockfiles used for the cache key
+    required: false
+    default: "**/uv.lock"
+runs:
+  using: composite
+  steps:
+    - name: Install uv
+      shell: bash
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        uv --version
+
+    - name: Cache uv
+      if: inputs.enable-cache == 'true'
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/uv
+        key: uv-${{ runner.os }}-${{ hashFiles(inputs.cache-dependency-glob) }}
+        restore-keys: |
+          uv-${{ runner.os }}-

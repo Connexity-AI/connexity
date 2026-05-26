@@ -151,3 +151,12 @@ from app.crud.user import (  # noqa: F401
     list_users_by_ids,
     update_user,
 )
+from app.crud.voice_simulation_job import (  # noqa: F401
+    cancel_voice_jobs_for_run,
+    claim_next_pending_voice_job,
+    create_voice_simulation_job,
+    get_voice_simulation_job,
+    get_voice_simulation_job_by_dtmf,
+    list_voice_simulation_jobs,
+    update_voice_simulation_job,
+)

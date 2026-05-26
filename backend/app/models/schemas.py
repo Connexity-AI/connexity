@@ -13,10 +13,19 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.models.enums import RunMode, SimulatorMode, TextRuntimeKind, TurnRole
+from app.core.config import settings
+from app.models.enums import (
+    RunMode,
+    SimulatorMode,
+    TextRuntimeKind,
+    TurnRole,
+    VoiceRuntimeKind,
+)
 
 if TYPE_CHECKING:
     from app.models.test_case import TestCase
+
+_DEFAULT_TIMEOUT_PER_TEST_CASE_MS = 120_000
 
 # ── Test case nested types ──────────────────────────────────────────
 
@@ -128,6 +137,23 @@ class MetricSelection(BaseModel):
     )
 
 
+class SttConfig(BaseModel):
+    """Speech-to-text provider and model for voice persona simulation."""
+
+    provider: str = Field(description="Pipecat STT provider key, e.g. deepgram")
+    model: str = Field(description="Provider-local STT model id")
+
+
+class TtsConfig(BaseModel):
+    """Text-to-speech provider, model, and voice for voice persona simulation."""
+
+    provider: str = Field(description="Pipecat TTS provider key, e.g. elevenlabs")
+    model: str = Field(description="Provider-local TTS model id")
+    voice_id: str = Field(
+        description="Provider voice id passed to Pipecat Settings.voice"
+    )
+
+
 class JudgeConfig(BaseModel):
     """Judge behavior and LLM overrides."""
 
@@ -175,6 +201,14 @@ class UserSimulatorConfig(BaseModel):
         ge=0.0,
         le=2.0,
         description="Sampling temperature for simulator LLM",
+    )
+    stt: SttConfig | None = Field(
+        default=None,
+        description="STT provider and model for voice mode persona pipeline",
+    )
+    tts: TtsConfig | None = Field(
+        default=None,
+        description="TTS provider, model, and voice for voice mode persona pipeline",
     )
 
     @model_validator(mode="after")
@@ -248,8 +282,22 @@ class CustomEndpointRuntimeConfig(BaseModel):
     )
 
 
+class TwilioVoiceRuntimeConfig(BaseModel):
+    """Twilio + Pipecat voice runtime.
+
+    Connexity dials ``RunConfig.agent_phone_number``, sends a DTMF code, and
+    waits for the user-side agent to submit ``audio_url`` and OpenAI-format
+    ``messages`` after the call ends.
+    """
+
+    kind: Literal[VoiceRuntimeKind.TWILIO] = VoiceRuntimeKind.TWILIO
+
+
 RuntimeConfig = Annotated[
-    ConnexityRuntimeConfig | RetellRuntimeConfig | CustomEndpointRuntimeConfig,
+    ConnexityRuntimeConfig
+    | RetellRuntimeConfig
+    | CustomEndpointRuntimeConfig
+    | TwilioVoiceRuntimeConfig,
     Field(discriminator="kind"),
 ]
 
@@ -290,12 +338,20 @@ class RuntimeTestRequest(BaseModel):
 class RunConfig(BaseModel):
     concurrency: int = Field(default=5, description="Max parallel test case executions")
     timeout_per_test_case_ms: int = Field(
-        default=120_000,
+        default=_DEFAULT_TIMEOUT_PER_TEST_CASE_MS,
         description="Timeout per test case in milliseconds before forced stop",
     )
     max_turns: int | None = Field(
         default=None,
-        description="Max agent response rounds per test case; null = no cap",
+        description="Max agent response rounds per test case; null = no cap (text mode only)",
+    )
+    max_call_duration_seconds: int | None = Field(
+        default=None,
+        ge=1,
+        description=(
+            "Maximum phone call duration in seconds for voice mode; "
+            "null in text mode"
+        ),
     )
     tool_mode: Literal["mock", "live"] = Field(
         default="mock",
@@ -347,6 +403,82 @@ class RunConfig(BaseModel):
         default_factory=ConnexityRuntimeConfig,
         description="Runtime that drives the eval for the selected mode.",
     )
+    agent_phone_number: str | None = Field(
+        default=None,
+        description="E.164 phone number Connexity calls in voice mode",
+    )
+
+    @model_validator(mode="after")
+    def validate_run_config_for_mode(self) -> Self:
+        if self.mode == RunMode.VOICE:
+            return self._validate_voice_mode()
+        return self._validate_text_mode()
+
+    def _validate_text_mode(self) -> Self:
+        if self.max_call_duration_seconds is not None:
+            msg = "max_call_duration_seconds is only valid when mode is 'voice'"
+            raise ValueError(msg)
+        return self
+
+    def _validate_voice_mode(self) -> Self:
+        if self.runtime.kind not in VoiceRuntimeKind:
+            self.runtime = TwilioVoiceRuntimeConfig()
+        phone = (self.agent_phone_number or "").strip()
+        if not phone:
+            msg = "agent_phone_number is required when mode is 'voice'"
+            raise ValueError(msg)
+        sim = self.user_simulator
+        if sim is None or sim.stt is None:
+            msg = "user_simulator.stt is required when mode is 'voice'"
+            raise ValueError(msg)
+        if sim.tts is None or not (sim.tts.voice_id or "").strip():
+            msg = "user_simulator.tts with voice_id is required when mode is 'voice'"
+            raise ValueError(msg)
+        if self.max_turns is not None:
+            msg = "max_turns is not used when mode is 'voice'"
+            raise ValueError(msg)
+
+        if self.timeout_per_test_case_ms == _DEFAULT_TIMEOUT_PER_TEST_CASE_MS:
+            self.timeout_per_test_case_ms = (
+                settings.VOICE_DEFAULT_TIMEOUT_PER_TEST_CASE_MS
+            )
+
+        if self.max_call_duration_seconds is None:
+            self.max_call_duration_seconds = (
+                settings.VOICE_DEFAULT_CALL_DURATION_SECONDS
+            )
+
+        timeout_seconds = self.timeout_per_test_case_ms / 1000.0
+        if self.max_call_duration_seconds >= timeout_seconds:
+            msg = (
+                "max_call_duration_seconds must be shorter than "
+                "timeout_per_test_case_ms"
+            )
+            raise ValueError(msg)
+        if self.max_call_duration_seconds > settings.VOICE_MAX_CALL_DURATION_SECONDS:
+            msg = (
+                f"max_call_duration_seconds cannot exceed "
+                f"{settings.VOICE_MAX_CALL_DURATION_SECONDS}s"
+            )
+            raise ValueError(msg)
+
+        if not settings.voice_simulation_enabled():
+            msg = (
+                "Voice simulations are not enabled on this deployment "
+                "(set VOICE_DEPLOYMENT_MODE to local or kubernetes)"
+            )
+            raise ValueError(msg)
+
+        max_concurrency = settings.voice_max_concurrency_for_deployment()
+        if settings.VOICE_DEPLOYMENT_MODE == "local":
+            self.concurrency = 1
+        elif self.concurrency > max_concurrency:
+            msg = (
+                f"voice concurrency cannot exceed {max_concurrency} "
+                f"for this deployment"
+            )
+            raise ValueError(msg)
+        return self
 
 
 # ── Conversation nested types ──────────────────────────────────────

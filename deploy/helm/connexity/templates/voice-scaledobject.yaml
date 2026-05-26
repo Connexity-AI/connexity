@@ -1,0 +1,36 @@
+{{- if and .Values.voice.enabled .Values.voice.keda.enabled }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "connexity.voice.fullname" . }}
+  labels:
+    {{- include "connexity.labels" . | nindent 4 }}
+    app.kubernetes.io/component: voice-worker
+spec:
+  scaleTargetRef:
+    kind: StatefulSet
+    name: {{ include "connexity.voice.fullname" . }}
+  pollingInterval: {{ .Values.voice.keda.pollingInterval }}
+  cooldownPeriod: {{ .Values.voice.keda.cooldownPeriod }}
+  minReplicaCount: {{ .Values.voice.keda.minReplicaCount }}
+  maxReplicaCount: {{ .Values.voice.maxConcurrency }}
+  triggers:
+    - type: postgresql
+      authenticationRef:
+        name: {{ include "connexity.voice.fullname" . }}-postgres
+      metadata:
+        host: {{ include "connexity.postgres.host" . | quote }}
+        port: {{ include "connexity.postgres.port" . | quote }}
+        userName: {{ include "connexity.postgres.user" . | quote }}
+        dbName: {{ include "connexity.postgres.database" . | quote }}
+        sslmode: disable
+        query: |
+          SELECT COUNT(*) FROM voice_simulation_job
+          WHERE status = 'pending'
+             OR (
+               status IN ('claimed', 'calling')
+               AND lease_expires_at IS NOT NULL
+               AND lease_expires_at < NOW()
+             )
+        targetQueryValue: "1"
+{{- end }}

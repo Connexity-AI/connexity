@@ -263,6 +263,8 @@ async def _execute_single_test_case(
                 test_case=test_case,
                 agent_snapshot=agent_snapshot,
                 run_snapshot=run_snapshot,
+                test_case_result_id=result_id,
+                repetition_index=repetition_index,
             )
             with Session(engine) as engine_session:
                 run_out = await runtime_impl.run_test_case(

@@ -1,0 +1,41 @@
+[project]
+name = "mock-voice-agent"
+version = "0.1.0"
+description = "Lightweight Pipecat/Twilio voice agent example for Connexity voice evals"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.114.2,<1.0.0",
+    "uvicorn[standard]>=0.30.0",
+    "pydantic-settings>=2.2.1",
+    "python-dotenv>=1.0.0",
+    "httpx>=0.27.0",
+    "aiofiles>=24.1.0",
+    "twilio>=9.4.0",
+    "pipecat-ai[silero,deepgram,openai,elevenlabs]==1.2.1",
+]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.390",
+    "ruff>=0.2.2,<1.0.0",
+]
+
+[tool.pyright]
+typeCheckingMode = "basic"
+exclude = ["**/.venv", "**/venv", "recordings"]
+include = ["."]
+reportArgumentType = "warning"
+reportAssignmentType = "warning"
+reportOperatorIssue = "warning"
+reportOptionalSubscript = "warning"
+reportOptionalMemberAccess = "warning"
+reportIndexIssue = "warning"
+reportCallIssue = "warning"
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "C4", "UP", "ARG001"]
+ignore = ["E501", "B008", "W191", "B904"]

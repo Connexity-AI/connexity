@@ -7,7 +7,7 @@ from sqlmodel import Session, col, select
 
 from app.models import TestCase
 from app.models.agent import Agent
-from app.models.enums import Platform, TestCaseStatus, TextRuntimeKind
+from app.models.enums import Platform, RunMode, TestCaseStatus, TextRuntimeKind
 from app.models.eval_config import (
     EvalConfig,
     EvalConfigCreate,
@@ -60,6 +60,11 @@ def validate_test_case_ids(
     return [tid for tid in test_case_ids if tid not in existing_ids]
 
 
+def _validate_voice_config(run_config: RunConfig) -> None:
+    """Ensure voice-mode configs satisfy RunConfig schema (phone + STT/TTS)."""
+    RunConfig.model_validate(run_config.model_dump())
+
+
 def _validate_runtime(
     *,
     session: Session,
@@ -74,6 +79,21 @@ def _validate_runtime(
     runtime's validator (requirements are expressed in terms of runtime + agent
     fields, not ``Agent.mode``), and forbids tool calls on custom endpoint runtimes.
     """
+    if run_config.mode == RunMode.VOICE:
+        _validate_voice_config(run_config)
+        from app.services.eval_runtimes import (
+            get_runtime,  # local import to avoid cycle
+        )
+
+        runtime_config = run_config.runtime
+        try:
+            runtime = get_runtime(run_config.mode, runtime_config.kind)
+        except KeyError as exc:
+            msg = f"Unknown runtime: {runtime_config.kind}"
+            raise ValueError(msg) from exc
+        runtime.validate_config(runtime_config, agent, session)
+        return
+
     from app.services.eval_runtimes import get_runtime  # local import to avoid cycle
 
     runtime_config = run_config.runtime

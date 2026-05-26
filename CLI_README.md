@@ -114,6 +114,57 @@ connexity-cli run \
 
 Pass `--no-fail-on-thresholds` to print the verdict but exit 0 regardless. Full formula and rationale: [docs/evals/scoring-and-thresholds.md](docs/evals/scoring-and-thresholds.md).
 
+## Voice mode
+
+Voice evals use the same `run`, `compare`, and threshold gating as text runs. Create a voice eval config with `"mode": "voice"` in its `RunConfig` (agent phone number, STT/TTS for the simulated caller, Twilio runtime). See [docs/voice-agent-contract.md](docs/voice-agent-contract.md) for how your agent submits call results after hangup.
+
+**Before running voice evals**, confirm the deployment has voice enabled:
+
+```bash
+connexity-cli config show --output json | jq '.voice_simulation'
+# voice_runtime_available should be true; deployment_mode is local or kubernetes
+```
+
+Discover STT/TTS options for building configs:
+
+```bash
+connexity-cli config stt-models
+connexity-cli config tts-models
+connexity-cli config tts-voices openai gpt-4o-mini-tts
+```
+
+Example eval config (replace `agent_id` and `agent_phone_number`):
+
+```bash
+connexity-cli eval-configs create --from-file examples/eval-configs/voice-smoke.json
+connexity-cli eval-configs members replace voice-smoke --from-file ./members.json
+
+# Voice runs often need a longer wait — each case is a phone call
+connexity-cli run \
+  --agent my-agent \
+  --eval-config voice-smoke \
+  --timeout 3600 \
+  --stream
+```
+
+Debug stuck calls while a run is in progress:
+
+```bash
+connexity-cli voice-simulations jobs list <run-id>
+connexity-cli voice-simulations jobs show <job-id>
+```
+
+Smoke-test a Twilio runtime config:
+
+```bash
+echo '{"kind":"twilio"}' | connexity-cli eval-configs test-runtime \
+  --agent my-agent \
+  --mode voice \
+  --from-file -
+```
+
+Voice result submission (`POST /voice-simulations/results`) is performed by your agent implementation, not the CLI operator.
+
 ## Output formats
 
 Two formats are supported, switchable per-command via `--output` or globally via `--output` on the root group:
@@ -138,7 +189,8 @@ Each top-level group mirrors a backend router:
 | `integrations`          | Third-party providers (Retell), connection test, list provider-side agents             |
 | `environments`          | Bindings + `deploy`, `retell-versions`, `deployments list` (history)                   |
 | `calls`                 | Observed external calls (Retell), refresh / mark-seen                                  |
-| `config`                | Read-only API metadata, available metrics, LLM models                                  |
+| `voice-simulations`     | Voice simulation jobs for a run (list/show per-call status)                            |
+| `config`                | Read-only API metadata, available metrics, LLM/STT/TTS models                          |
 | `health`                | Server health probe                                                                    |
 | `run` / `compare` / `baseline` | Top-level convenience wrappers for common one-shot CI workflows                 |
 
@@ -169,8 +221,8 @@ prompt-editor sessions list | sessions show <id> | sessions create | sessions de
 custom-metrics list | show <id> | create | update <id> | delete <id> | preview | generate
 test-cases  list | show <id> | create | update <id> | delete <id>
             import <file> [--overwrite] | export | generate | ai create
-
-# Top-level convenience wrappers for the most common CI flows:
+voice-simulations jobs list <run-id> | jobs show <job-id>
+config      show | metrics | llm-models | stt-models | tts-models | tts-voices <provider> <model>
 run         --agent <ref> --eval-config <ref> [--metrics-pass-threshold N] [--cases-pass-threshold N] [--stream] [--set-baseline]
 compare     --candidate <id> (--baseline <id> | --against-baseline)
 baseline    get | set <id>

@@ -51,7 +51,17 @@ export function useRuntimeField({
   const testRuntime = useTestRuntime();
 
   const selectedRuntime = form.watch('run.runtime');
-  const runtimeOptions = useMemo(() => data?.data ?? [], [data?.data]);
+  const runtimeOptions = useMemo(() => {
+    const options = data?.data ?? [];
+    const seen = new Set<string>();
+    return options.filter((option) => {
+      if (seen.has(option.kind)) {
+        return false;
+      }
+      seen.add(option.kind);
+      return true;
+    });
+  }, [data?.data]);
   const selectedKind = selectedRuntime.kind;
   const customEndpointUrl =
     selectedRuntime.kind === TextRuntimeKind.CUSTOM_ENDPOINT ? selectedRuntime.url : '';

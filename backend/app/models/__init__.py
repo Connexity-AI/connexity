@@ -49,7 +49,11 @@ from app.models.call import (  # noqa: F401
 )
 
 # ── Common ─────────────────────────────────────────────────────────
-from app.models.common import ConfigPublic, ErrorResponse  # noqa: F401
+from app.models.common import (  # noqa: F401
+    ConfigPublic,
+    ErrorResponse,
+    VoiceSimulationConfigPublic,
+)
 
 # ── Comparison / diff schemas (pure Pydantic) ────────────────────
 from app.models.comparison import (  # noqa: F401
@@ -112,6 +116,8 @@ from app.models.enums import (  # noqa: F401
     TestCaseStatus,
     TextRuntimeKind,
     TurnRole,
+    VoiceRuntimeKind,
+    VoiceSimulationJobStatus,
 )
 
 # ── Environment ────────────────────────────────────────────────────
@@ -203,11 +209,14 @@ from app.models.schemas import (  # noqa: F401
     RuntimeOptionsPublic,
     RuntimeTestRequest,
     RuntimeTestResult,
+    SttConfig,
     TestCaseExecution,
     ToolCall,
     ToolCallFunction,
     ToolImplementation,
     ToolPlatformConfig,
+    TtsConfig,
+    TwilioVoiceRuntimeConfig,
     UserSimulatorConfig,
 )
 
@@ -248,6 +257,17 @@ from app.models.user import (  # noqa: F401
     UserRegister,
     UserUpdate,
     UserUpdateMe,
+)
+
+# ── Voice simulation job ───────────────────────────────────────────
+from app.models.voice_simulation_job import (  # noqa: F401
+    VoiceSimulationJob,
+    VoiceSimulationJobBase,
+    VoiceSimulationJobCreate,
+    VoiceSimulationJobPublic,
+    VoiceSimulationJobsPublic,
+    VoiceSimulationJobUpdate,
+    VoiceSimulationResultSubmit,
 )
 from app.models.webhook_payload import (  # noqa: F401
     WebhookAgent,

@@ -1,0 +1,17 @@
+# docker compose -f docker-compose.yml -f docker-compose.voice.yml -f docker-compose.voice.build.yml up --build
+#
+# Full local stack (frontend + voice backend + worker):
+# docker compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.voice.yml -f docker-compose.voice.build.yml up --build
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.voice
+    image: connexity-backend:voice
+
+  voice-worker:
+    build:
+      context: .
+      dockerfile: voice-worker/Dockerfile
+    image: connexity-voice-worker:local

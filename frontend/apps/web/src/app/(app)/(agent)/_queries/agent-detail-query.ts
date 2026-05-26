@@ -14,4 +14,6 @@ export const agentDetailQuery = (agentId: string) => ({
 
     return result.data;
   },
+
+  staleTime: 30_000,
 });

@@ -3,7 +3,7 @@
 
 Prerequisites:
   1. Backend running:   cd backend && uvicorn app.main:app --reload
-  2. Mock agent running: cd examples/mock_agent && uvicorn main:app --port 8001
+  2. Mock text agent running: cd examples/mock-text-agent && uvicorn main:app --port 8001
   3. Database seeded:    cd backend && bash scripts/prestart.sh
 
 The script will:

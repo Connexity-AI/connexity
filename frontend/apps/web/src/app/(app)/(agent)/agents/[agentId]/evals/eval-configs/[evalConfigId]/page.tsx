@@ -5,6 +5,8 @@ import { dehydrate } from '@tanstack/react-query';
 import getQueryClient from '@/lib/react-query/getQueryClient';
 import { EvalConfigDetailSkeleton } from '@/app/(app)/(agent)/_components/evals/eval-configs/eval-config-detail-skeleton';
 import { EvalConfigDetailView } from '@/app/(app)/(agent)/_components/evals/eval-configs/eval-config-detail-view';
+import { agentDetailQuery } from '@/app/(app)/(agent)/_queries/agent-detail-query';
+import { appConfigQueries } from '@/app/(app)/(agent)/_queries/app-config-query';
 import { evalConfigDetailQuery } from '@/app/(app)/(agent)/_queries/eval-config-detail-query';
 import ErrorBoundary from '@/components/common/error-boundary';
 import { HydrateProvider } from '@/components/common/hydrate-provider';
@@ -18,7 +20,11 @@ export default async function EvalConfigDetailPage({ params }: Props) {
 
   const queryClient = getQueryClient();
 
-  queryClient.prefetchQuery(evalConfigDetailQuery(evalConfigId));
+  await Promise.all([
+    queryClient.prefetchQuery(evalConfigDetailQuery(evalConfigId)),
+    queryClient.prefetchQuery(agentDetailQuery(agentId)),
+    queryClient.prefetchQuery(appConfigQueries.root),
+  ]);
 
   const dehydratedState = dehydrate(queryClient);
 

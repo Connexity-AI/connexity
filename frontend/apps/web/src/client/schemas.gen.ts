@@ -2116,6 +2116,69 @@ export const CauseAnalysisItemSchema = {
   title: 'CauseAnalysisItem',
 } as const;
 
+export const ChatMessageSchema = {
+  properties: {
+    role: {
+      $ref: '#/components/schemas/TurnRole',
+      description: 'Message role: system, user, assistant, or tool',
+    },
+    content: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Content',
+      description: 'Text content; null when only tool_calls are sent',
+    },
+    tool_calls: {
+      anyOf: [
+        {
+          items: {
+            $ref: '#/components/schemas/ToolCall',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Tool Calls',
+      description: 'Assistant tool calls (OpenAI shape)',
+    },
+    tool_call_id: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Tool Call Id',
+      description: 'For role=tool, id of the tool call this message responds to',
+    },
+    name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Name',
+      description: 'Optional tool name for role=tool (OpenAI convention)',
+    },
+  },
+  type: 'object',
+  required: ['role'],
+  title: 'ChatMessage',
+} as const;
+
 export const ConfigPublicSchema = {
   properties: {
     project_name: {
@@ -2138,6 +2201,17 @@ export const ConfigPublicSchema = {
     default_llm_model: {
       type: 'string',
       title: 'Default Llm Model',
+    },
+    voice_simulation: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/VoiceSimulationConfigPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Voice simulation settings and availability for the UI',
     },
   },
   type: 'object',
@@ -5454,7 +5528,20 @@ export const RunConfig_InputSchema = {
         },
       ],
       title: 'Max Turns',
-      description: 'Max agent response rounds per test case; null = no cap',
+      description: 'Max agent response rounds per test case; null = no cap (text mode only)',
+    },
+    max_call_duration_seconds: {
+      anyOf: [
+        {
+          type: 'integer',
+          minimum: 1,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Max Call Duration Seconds',
+      description: 'Maximum phone call duration in seconds for voice mode; null in text mode',
     },
     tool_mode: {
       type: 'string',
@@ -5533,6 +5620,9 @@ export const RunConfig_InputSchema = {
         {
           $ref: '#/components/schemas/CustomEndpointRuntimeConfig',
         },
+        {
+          $ref: '#/components/schemas/TwilioVoiceRuntimeConfig',
+        },
       ],
       title: 'Runtime',
       description: 'Runtime that drives the eval for the selected mode.',
@@ -5542,8 +5632,21 @@ export const RunConfig_InputSchema = {
           connexity: '#/components/schemas/ConnexityRuntimeConfig',
           custom_endpoint: '#/components/schemas/CustomEndpointRuntimeConfig',
           retell: '#/components/schemas/RetellRuntimeConfig',
+          twilio: '#/components/schemas/TwilioVoiceRuntimeConfig',
         },
       },
+    },
+    agent_phone_number: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Phone Number',
+      description: 'E.164 phone number Connexity calls in voice mode',
     },
   },
   type: 'object',
@@ -5574,7 +5677,20 @@ export const RunConfig_OutputSchema = {
         },
       ],
       title: 'Max Turns',
-      description: 'Max agent response rounds per test case; null = no cap',
+      description: 'Max agent response rounds per test case; null = no cap (text mode only)',
+    },
+    max_call_duration_seconds: {
+      anyOf: [
+        {
+          type: 'integer',
+          minimum: 1,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Max Call Duration Seconds',
+      description: 'Maximum phone call duration in seconds for voice mode; null in text mode',
     },
     tool_mode: {
       type: 'string',
@@ -5653,6 +5769,9 @@ export const RunConfig_OutputSchema = {
         {
           $ref: '#/components/schemas/CustomEndpointRuntimeConfig',
         },
+        {
+          $ref: '#/components/schemas/TwilioVoiceRuntimeConfig',
+        },
       ],
       title: 'Runtime',
       description: 'Runtime that drives the eval for the selected mode.',
@@ -5662,8 +5781,21 @@ export const RunConfig_OutputSchema = {
           connexity: '#/components/schemas/ConnexityRuntimeConfig',
           custom_endpoint: '#/components/schemas/CustomEndpointRuntimeConfig',
           retell: '#/components/schemas/RetellRuntimeConfig',
+          twilio: '#/components/schemas/TwilioVoiceRuntimeConfig',
         },
       },
+    },
+    agent_phone_number: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Phone Number',
+      description: 'E.164 phone number Connexity calls in voice mode',
     },
   },
   type: 'object',
@@ -6332,6 +6464,9 @@ export const RuntimeTestRequestSchema = {
         {
           $ref: '#/components/schemas/CustomEndpointRuntimeConfig',
         },
+        {
+          $ref: '#/components/schemas/TwilioVoiceRuntimeConfig',
+        },
       ],
       title: 'Runtime',
       description: 'Runtime config under test',
@@ -6341,6 +6476,7 @@ export const RuntimeTestRequestSchema = {
           connexity: '#/components/schemas/ConnexityRuntimeConfig',
           custom_endpoint: '#/components/schemas/CustomEndpointRuntimeConfig',
           retell: '#/components/schemas/RetellRuntimeConfig',
+          twilio: '#/components/schemas/TwilioVoiceRuntimeConfig',
         },
       },
     },
@@ -6379,6 +6515,134 @@ export const SimulatorModeSchema = {
   type: 'string',
   enum: ['llm', 'scripted'],
   title: 'SimulatorMode',
+} as const;
+
+export const SpeechModelProviderPublicSchema = {
+  properties: {
+    provider: {
+      type: 'string',
+      title: 'Provider',
+      description: 'Pipecat provider key',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+      description: 'Human-readable provider label',
+    },
+    default_model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Default Model',
+      description: 'Full routing id for provider default',
+    },
+    models: {
+      items: {
+        $ref: '#/components/schemas/SpeechModelPublic',
+      },
+      type: 'array',
+      title: 'Models',
+      description: 'Selectable models',
+    },
+  },
+  type: 'object',
+  required: ['provider', 'label', 'models'],
+  title: 'SpeechModelProviderPublic',
+} as const;
+
+export const SpeechModelPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      title: 'Id',
+      description: 'Full routing id, e.g. deepgram/nova-3-general',
+    },
+    provider: {
+      type: 'string',
+      title: 'Provider',
+      description: 'Pipecat provider key',
+    },
+    provider_label: {
+      type: 'string',
+      title: 'Provider Label',
+      description: 'Human-readable provider label',
+    },
+    model: {
+      type: 'string',
+      title: 'Model',
+      description: 'Provider-local model id',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+      description: 'Human-readable model label',
+    },
+    is_default: {
+      type: 'boolean',
+      title: 'Is Default',
+      description: 'Default model for this provider in the catalog',
+    },
+  },
+  type: 'object',
+  required: ['id', 'provider', 'provider_label', 'model', 'label', 'is_default'],
+  title: 'SpeechModelPublic',
+} as const;
+
+export const SpeechModelsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/SpeechModelProviderPublic',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Available speech models by provider',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+      description: 'Total selectable models',
+    },
+    default_model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Default Model',
+      description: 'Global default full routing id when configured',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'SpeechModelsPublic',
+} as const;
+
+export const SttConfigSchema = {
+  properties: {
+    provider: {
+      type: 'string',
+      title: 'Provider',
+      description: 'Pipecat STT provider key, e.g. deepgram',
+    },
+    model: {
+      type: 'string',
+      title: 'Model',
+      description: 'Provider-local STT model id',
+    },
+  },
+  type: 'object',
+  required: ['provider', 'model'],
+  title: 'SttConfig',
+  description: 'Speech-to-text provider and model for voice persona simulation.',
 } as const;
 
 export const SuggestionsRequestSchema = {
@@ -8141,10 +8405,50 @@ export const ToolDiffSchema = {
   title: 'ToolDiff',
 } as const;
 
+export const TtsConfigSchema = {
+  properties: {
+    provider: {
+      type: 'string',
+      title: 'Provider',
+      description: 'Pipecat TTS provider key, e.g. elevenlabs',
+    },
+    model: {
+      type: 'string',
+      title: 'Model',
+      description: 'Provider-local TTS model id',
+    },
+    voice_id: {
+      type: 'string',
+      title: 'Voice Id',
+      description: 'Provider voice id passed to Pipecat Settings.voice',
+    },
+  },
+  type: 'object',
+  required: ['provider', 'model', 'voice_id'],
+  title: 'TtsConfig',
+  description: 'Text-to-speech provider, model, and voice for voice persona simulation.',
+} as const;
+
 export const TurnRoleSchema = {
   type: 'string',
   enum: ['user', 'assistant', 'system', 'tool'],
   title: 'TurnRole',
+} as const;
+
+export const TwilioVoiceRuntimeConfigSchema = {
+  properties: {
+    kind: {
+      type: 'string',
+      enum: ['twilio'],
+      const: 'twilio',
+      title: 'Kind',
+      default: 'twilio',
+    },
+  },
+  type: 'object',
+  title: 'TwilioVoiceRuntimeConfig',
+  description:
+    'Twilio + Pipecat voice runtime.\n\nConnexity dials ``RunConfig.agent_phone_number``, sends a DTMF code, and\nwaits for the user-side agent to submit ``audio_url`` and OpenAI-format\n``messages`` after the call ends.',
 } as const;
 
 export const UpdatePasswordSchema = {
@@ -8292,6 +8596,28 @@ export const UserSimulatorConfigSchema = {
       title: 'Temperature',
       description: 'Sampling temperature for simulator LLM',
     },
+    stt: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SttConfig',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'STT provider and model for voice mode persona pipeline',
+    },
+    tts: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/TtsConfig',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'TTS provider, model, and voice for voice mode persona pipeline',
+    },
   },
   type: 'object',
   title: 'UserSimulatorConfig',
@@ -8358,6 +8684,396 @@ export const ValidationErrorSchema = {
   type: 'object',
   required: ['loc', 'msg', 'type'],
   title: 'ValidationError',
+} as const;
+
+export const VoicePublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      title: 'Id',
+      description: 'Voice id passed to Pipecat TTS Settings.voice',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+      description: 'Human-readable voice label',
+    },
+    preview_url: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Preview Url',
+      description: 'Optional preview audio URL when available',
+    },
+  },
+  type: 'object',
+  required: ['id', 'label'],
+  title: 'VoicePublic',
+} as const;
+
+export const VoiceSimulationConfigPublicSchema = {
+  properties: {
+    deployment_mode: {
+      type: 'string',
+      enum: ['local', 'kubernetes'],
+      title: 'Deployment Mode',
+      description: 'Voice deployment profile controlling concurrency limits',
+    },
+    max_concurrency: {
+      type: 'integer',
+      title: 'Max Concurrency',
+      description: 'Maximum parallel voice calls allowed for this deployment',
+    },
+    voice_runtime_available: {
+      type: 'boolean',
+      title: 'Voice Runtime Available',
+      description: 'True when Twilio credentials are configured for voice runs',
+    },
+    result_submission_path: {
+      type: 'string',
+      title: 'Result Submission Path',
+      description: 'Relative API path for user-side voice result submission',
+    },
+    default_call_duration_seconds: {
+      type: 'integer',
+      title: 'Default Call Duration Seconds',
+      description: 'Default max call duration when omitted from RunConfig',
+    },
+    max_call_duration_seconds: {
+      type: 'integer',
+      title: 'Max Call Duration Seconds',
+      description: 'Upper bound for RunConfig max_call_duration_seconds',
+    },
+  },
+  type: 'object',
+  required: [
+    'deployment_mode',
+    'max_concurrency',
+    'voice_runtime_available',
+    'result_submission_path',
+    'default_call_duration_seconds',
+    'max_call_duration_seconds',
+  ],
+  title: 'VoiceSimulationConfigPublic',
+} as const;
+
+export const VoiceSimulationJobPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+      description: 'Unique voice simulation job identifier',
+    },
+    run_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Run Id',
+      description: 'FK to the parent eval run',
+    },
+    test_case_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Test Case Id',
+      description: 'FK to the test case being executed',
+    },
+    test_case_result_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Test Case Result Id',
+      description: 'FK to the test case result row for this execution',
+    },
+    repetition_index: {
+      type: 'integer',
+      title: 'Repetition Index',
+      description: 'Repetition index within the run (0-based)',
+    },
+    status: {
+      $ref: '#/components/schemas/VoiceSimulationJobStatus',
+      description: 'Voice job lifecycle status',
+    },
+    dtmf_code: {
+      type: 'string',
+      title: 'Dtmf Code',
+      description: 'Connexity DTMF code sent during the call',
+    },
+    agent_phone_number: {
+      type: 'string',
+      title: 'Agent Phone Number',
+      description: 'E.164 agent phone number dialed',
+    },
+    max_call_duration_seconds: {
+      type: 'integer',
+      title: 'Max Call Duration Seconds',
+      description: 'Configured maximum call duration in seconds',
+    },
+    twilio_call_sid: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Twilio Call Sid',
+      description: 'Twilio call SID once the worker places the call',
+    },
+    worker_public_base_url: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Worker Public Base Url',
+      description: "Public worker origin used for this job's Twilio callbacks",
+    },
+    audio_url: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Audio Url',
+      description: 'Submitted recording URL after call completion',
+    },
+    submitted_messages: {
+      anyOf: [
+        {
+          items: {
+            type: 'object',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Submitted Messages',
+      description: 'Raw OpenAI-format messages from the user-side submission',
+    },
+    normalized_transcript: {
+      anyOf: [
+        {
+          items: {
+            type: 'object',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Normalized Transcript',
+      description: 'ConversationTurn[] mapped from submitted messages',
+    },
+    error_code: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Error Code',
+      description: 'Machine-readable error code when the job fails',
+    },
+    error_message: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Error Message',
+      description: 'Human-readable error message when the job fails',
+    },
+    claimed_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Claimed At',
+      description: 'When a worker claimed this job',
+    },
+    call_started_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Call Started At',
+      description: 'When the Twilio call was connected',
+    },
+    call_ended_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Call Ended At',
+      description: 'When the Twilio call ended',
+    },
+    result_received_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Result Received At',
+      description: 'When the user-side result submission was accepted',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+      description: 'When the voice job was created',
+    },
+    updated_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Updated At',
+      description: 'When the voice job was last updated',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'run_id',
+    'test_case_id',
+    'test_case_result_id',
+    'repetition_index',
+    'status',
+    'dtmf_code',
+    'agent_phone_number',
+    'max_call_duration_seconds',
+    'created_at',
+    'updated_at',
+  ],
+  title: 'VoiceSimulationJobPublic',
+} as const;
+
+export const VoiceSimulationJobStatusSchema = {
+  type: 'string',
+  enum: [
+    'pending',
+    'claimed',
+    'calling',
+    'waiting_for_result',
+    'completed',
+    'failed',
+    'expired',
+    'cancelled',
+  ],
+  title: 'VoiceSimulationJobStatus',
+} as const;
+
+export const VoiceSimulationJobsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/VoiceSimulationJobPublic',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Voice simulation jobs for a run',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+      description: 'Total number of jobs matching the query',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'VoiceSimulationJobsPublic',
+} as const;
+
+export const VoiceSimulationResultSubmitSchema = {
+  properties: {
+    audio_url: {
+      type: 'string',
+      maxLength: 2048,
+      title: 'Audio Url',
+      description: 'Public URL of the call recording that includes Connexity DTMF tones',
+    },
+    messages: {
+      items: {
+        $ref: '#/components/schemas/ChatMessage',
+      },
+      type: 'array',
+      minItems: 1,
+      title: 'Messages',
+      description: 'OpenAI-format conversation messages from the user-side agent',
+    },
+  },
+  type: 'object',
+  required: ['audio_url', 'messages'],
+  title: 'VoiceSimulationResultSubmit',
+} as const;
+
+export const VoicesPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/VoicePublic',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Selectable voices',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+      description: 'Number of voices',
+    },
+    default_voice_id: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Default Voice Id',
+      description: 'Suggested default voice for provider/model',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'VoicesPublic',
 } as const;
 
 export const WebhookAgentSchema = {
