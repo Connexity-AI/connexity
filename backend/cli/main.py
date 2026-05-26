@@ -24,6 +24,7 @@ from cli.commands.run import run_command
 from cli.commands.runs import runs_group
 from cli.commands.test_case_results import test_case_results_group
 from cli.commands.test_cases import test_cases_group
+from cli.commands.voice_simulations import voice_simulations_group
 
 
 @click.group()
@@ -98,6 +99,7 @@ app.add_command(environments_group)
 app.add_command(calls_group)
 app.add_command(prompt_editor_group)
 app.add_command(config_group)
+app.add_command(voice_simulations_group)
 
 # Convenience top-level wrappers
 app.add_command(run_command)

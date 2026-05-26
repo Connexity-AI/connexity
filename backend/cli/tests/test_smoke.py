@@ -182,6 +182,100 @@ def test_eval_configs_test_runtime_posts_payload(
     }
 
 
+def test_eval_configs_test_runtime_voice_mode(
+    api_env, runner, respx_mock_clean, tmp_path: Path
+) -> None:
+    """`eval-configs test-runtime --mode voice` forwards the modality."""
+    agent_uuid = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    runtime_config = {"kind": "twilio"}
+    file = tmp_path / "runtime.json"
+    file.write_text(json.dumps(runtime_config))
+
+    respx_mock_clean.get(f"/agents/{agent_uuid}").respond(
+        200, json={"id": agent_uuid, "name": "agent-x"}
+    )
+    route = respx_mock_clean.post("/eval-configs/test-runtime").respond(
+        200, json={"ok": True, "message": "looks good"}
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "--output",
+            "json",
+            "eval-configs",
+            "test-runtime",
+            "--agent",
+            agent_uuid,
+            "--mode",
+            "voice",
+            "--from-file",
+            str(file),
+        ],
+    )
+    assert result.exit_code == 0, result.stderr
+    sent = json.loads(route.calls.last.request.content)
+    assert sent == {
+        "agent_id": agent_uuid,
+        "mode": "voice",
+        "runtime": runtime_config,
+    }
+
+
+def test_voice_simulations_jobs_list(api_env, runner, respx_mock_clean) -> None:
+    run_id = "rrrrrrrr-rrrr-rrrr-rrrr-rrrrrrrrrrrr"
+    route = respx_mock_clean.get(f"/voice-simulations/runs/{run_id}/jobs").respond(
+        200,
+        json={
+            "data": [{"id": "j-1", "status": "waiting_for_result"}],
+            "count": 1,
+        },
+    )
+    result = runner.invoke(
+        app,
+        ["--output", "json", "voice-simulations", "jobs", "list", run_id],
+    )
+    assert result.exit_code == 0, result.stderr
+    assert route.called
+    payload = json.loads(result.stdout)
+    assert payload["count"] == 1
+
+
+def test_voice_simulations_jobs_show(api_env, runner, respx_mock_clean) -> None:
+    job_id = "jjjjjjjj-jjjj-jjjj-jjjj-jjjjjjjjjjjj"
+    route = respx_mock_clean.get(f"/voice-simulations/jobs/{job_id}").respond(
+        200,
+        json={"id": job_id, "status": "calling", "run_id": "r-1"},
+    )
+    result = runner.invoke(
+        app,
+        ["--output", "json", "voice-simulations", "jobs", "show", job_id],
+    )
+    assert result.exit_code == 0, result.stderr
+    assert route.called
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "calling"
+
+
+def test_runs_show_includes_eval_mode_in_table_output(
+    api_env, runner, respx_mock_clean
+) -> None:
+    respx_mock_clean.get("/runs/r-1").respond(
+        200,
+        json={
+            "id": "r-1",
+            "status": "running",
+            "agent_id": "a-1",
+            "eval_config_id": "c-1",
+            "eval_config_version": 1,
+            "config": {"mode": "voice"},
+        },
+    )
+    result = runner.invoke(app, ["runs", "show", "r-1"])
+    assert result.exit_code == 0, result.stderr
+    assert "eval_mode:         voice" in result.stdout
+
+
 def test_runs_baseline_uses_eval_config_id_param(
     api_env, runner, respx_mock_clean
 ) -> None:

@@ -30,6 +30,7 @@ from cli.api.runs import RunsApi
 from cli.api.test_case_results import TestCaseResultsApi
 from cli.api.test_cases import TestCasesApi
 from cli.api.users import UsersApi
+from cli.api.voice_simulations import VoiceSimulationsApi
 
 __all__ = [
     "API_PREFIX",
@@ -64,6 +65,7 @@ class ApiClient:
         self.calls = CallsApi(self._t)
         self.config = ConfigApi(self._t)
         self.health = HealthApi(self._t)
+        self.voice_simulations = VoiceSimulationsApi(self._t)
 
     def close(self) -> None:
         self._t.close()
