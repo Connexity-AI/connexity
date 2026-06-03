@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, Clock, PenLine, Sparkles, Wrench } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, PenLine, Sparkles, Tag, Wrench, X } from 'lucide-react';
 
 import {
   Accordion,
@@ -16,6 +16,10 @@ import {
 } from '@workspace/ui/components/ui/dropdown-menu';
 import { cn } from '@workspace/ui/lib/utils';
 
+import { useSetCallLabel } from '@/app/(app)/(agent)/_hooks/use-calls';
+import { CallLabel } from '@/client/types.gen';
+
+import { CallLabelChip } from './call-label-chip';
 import {
   buildTranscriptDisplayItems,
   extractTurns,
@@ -29,15 +33,24 @@ import type { CallPublic } from '@/client/types.gen';
 import type { TranscriptTurn } from './observe-format';
 
 interface CallPanelProps {
+  agentId: string;
   call: CallPublic;
   onCreateTestCaseManual?: (call: CallPublic) => void;
   onCreateTestCaseAi?: (call: CallPublic) => void;
 }
 
-export function CallPanel({ call, onCreateTestCaseManual, onCreateTestCaseAi }: CallPanelProps) {
+export function CallPanel({
+  agentId,
+  call,
+  onCreateTestCaseManual,
+  onCreateTestCaseAi,
+}: CallPanelProps) {
   const turns = extractTurns(call.transcript);
   const displayItems = buildTranscriptDisplayItems(turns);
   const showCreateButton = !!onCreateTestCaseManual || !!onCreateTestCaseAi;
+
+  const setLabel = useSetCallLabel(agentId);
+  const currentLabel = call.label ?? null;
 
   return (
     <div className="flex h-full w-[480px] shrink-0 flex-col overflow-hidden">
@@ -45,7 +58,56 @@ export function CallPanel({ call, onCreateTestCaseManual, onCreateTestCaseAi }: 
         <div className="flex items-start justify-between gap-3 pr-3">
           <p className="text-base text-foreground">{formatDate(call.started_at)}</p>
 
-          {showCreateButton ? (
+          <div className="flex shrink-0 items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  disabled={setLabel.isPending}
+                  className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border bg-accent/20 px-2.5 py-1.5 text-[11px] text-muted-foreground transition-all hover:bg-accent/40 disabled:opacity-60"
+                >
+                  {currentLabel === null ? (
+                    <>
+                      <Tag className="h-3.5 w-3.5" />
+                      Set label
+                    </>
+                  ) : (
+                    <CallLabelChip label={currentLabel} />
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                sideOffset={4}
+                className="w-44 overflow-hidden rounded-lg border-border bg-background p-0 shadow-xl"
+              >
+                <DropdownMenuItem
+                  onSelect={() => setLabel.mutate({ callId: call.id, label: CallLabel.GOOD })}
+                  className="flex items-center gap-2 rounded-none border-b border-border px-3 py-2 focus:bg-accent/50"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                  <span className="text-sm text-foreground">Good</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => setLabel.mutate({ callId: call.id, label: CallLabel.BAD })}
+                  className="flex items-center gap-2 rounded-none px-3 py-2 focus:bg-accent/50"
+                >
+                  <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
+                  <span className="text-sm text-foreground">Bad</span>
+                </DropdownMenuItem>
+                {currentLabel !== null ? (
+                  <DropdownMenuItem
+                    onSelect={() => setLabel.mutate({ callId: call.id, label: null })}
+                    className="flex items-center gap-2 rounded-none border-t border-border px-3 py-2 focus:bg-accent/50"
+                  >
+                    <X className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Clear</span>
+                  </DropdownMenuItem>
+                ) : null}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {showCreateButton ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -95,7 +157,8 @@ export function CallPanel({ call, onCreateTestCaseManual, onCreateTestCaseAi }: 
                 ) : null}
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : null}
+            ) : null}
+          </div>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-1.5">

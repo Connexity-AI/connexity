@@ -6,11 +6,14 @@ import {
   getCalls,
   markCallSeen,
   refreshCalls,
+  setCallLabel,
   type CallQueryFilters,
   type GetCallsResult,
 } from '@/actions/calls';
 import { callKeys } from '@/constants/query-keys';
 import { isSuccessApiResult } from '@/utils/api';
+
+import type { CallLabel } from '@/client/types.gen';
 
 export function useCalls(agentId: string, filters: CallQueryFilters = {}) {
   return useQuery({
@@ -61,6 +64,35 @@ export function useMarkCallSeen(agentId: string) {
       return { snapshots };
     },
     onError: (_err, _callId, context) => {
+      context?.snapshots.forEach(([key, data]) => qc.setQueryData(key, data));
+    },
+  });
+}
+
+export function useSetCallLabel(agentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ callId, label }: { callId: string; label: CallLabel | null }) => {
+      const result = await setCallLabel(callId, label);
+      if (!isSuccessApiResult(result)) throw new Error('Failed to set call label');
+      return result.data;
+    },
+    onMutate: async ({ callId, label }) => {
+      await qc.cancelQueries({ queryKey: ['calls', agentId] });
+      const snapshots = qc.getQueriesData<GetCallsResult>({ queryKey: ['calls', agentId] });
+      qc.setQueriesData<GetCallsResult>({ queryKey: ['calls', agentId] }, (prev) => {
+        if (!prev) return prev;
+        let changed = false;
+        const rows = prev.rows.map((row) => {
+          if (row.id !== callId) return row;
+          changed = true;
+          return { ...row, label };
+        });
+        return changed ? { ...prev, rows } : prev;
+      });
+      return { snapshots };
+    },
+    onError: (_err, _vars, context) => {
       context?.snapshots.forEach(([key, data]) => qc.setQueryData(key, data));
     },
   });

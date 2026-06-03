@@ -1065,6 +1065,23 @@ export type BodyOauthToken = {
 };
 
 /**
+ * CallLabel
+ */
+export const CallLabel = { GOOD: 'good', BAD: 'bad' } as const;
+
+/**
+ * CallLabel
+ */
+export type CallLabel = (typeof CallLabel)[keyof typeof CallLabel];
+
+/**
+ * CallLabelUpdate
+ */
+export type CallLabelUpdate = {
+  label?: CallLabel | null;
+};
+
+/**
  * CallPublic
  */
 export type CallPublic = {
@@ -1115,6 +1132,7 @@ export type CallPublic = {
    * Number of test cases sourced from this call
    */
   test_case_count?: number;
+  label?: CallLabel | null;
   /**
    * Created At
    */
@@ -11253,6 +11271,62 @@ export type CallsMarkCallSeenEndpointResponses = {
 
 export type CallsMarkCallSeenEndpointResponse =
   CallsMarkCallSeenEndpointResponses[keyof CallsMarkCallSeenEndpointResponses];
+
+export type CallsSetCallLabelEndpointData = {
+  body: CallLabelUpdate;
+  path: {
+    /**
+     * Call Id
+     */
+    call_id: string;
+  };
+  query?: never;
+  url: '/api/v1/calls/{call_id}/label';
+};
+
+export type CallsSetCallLabelEndpointErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CallsSetCallLabelEndpointError =
+  CallsSetCallLabelEndpointErrors[keyof CallsSetCallLabelEndpointErrors];
+
+export type CallsSetCallLabelEndpointResponses = {
+  /**
+   * Successful Response
+   */
+  200: CallPublic;
+};
+
+export type CallsSetCallLabelEndpointResponse =
+  CallsSetCallLabelEndpointResponses[keyof CallsSetCallLabelEndpointResponses];
 
 export type CallsGetCallDetailData = {
   body?: never;

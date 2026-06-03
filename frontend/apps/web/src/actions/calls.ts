@@ -4,6 +4,7 @@ import { CallsService } from '@/client/sdk.gen';
 import { isSuccessApiResult } from '@/utils/api';
 
 import type {
+  CallLabel,
   CallPublic,
   CallRefreshResult,
   CallsPublic,
@@ -66,6 +67,18 @@ export const markCallSeen = async (
 ): Promise<ApiResult<Message>> => {
   const apiResponse = await CallsService.markCallSeenEndpoint({
     path: { call_id: callId },
+  });
+  const { response: _, ...result } = apiResponse;
+  return result;
+};
+
+export const setCallLabel = async (
+  callId: string,
+  label: CallLabel | null,
+): Promise<ApiResult<CallPublic>> => {
+  const apiResponse = await CallsService.setCallLabelEndpoint({
+    path: { call_id: callId },
+    body: { label },
   });
   const { response: _, ...result } = apiResponse;
   return result;

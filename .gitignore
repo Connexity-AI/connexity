@@ -30,3 +30,6 @@ bash.exe.stackdump
 
 # Railway CLI link state
 .railway/
+
+# JetBrains IDEs
+.idea/

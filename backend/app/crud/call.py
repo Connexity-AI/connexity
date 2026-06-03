@@ -7,6 +7,7 @@ from sqlmodel import Session, col, select
 
 from app.models.agent import Agent
 from app.models.call import Call, CallPublic
+from app.models.enums import CallLabel
 from app.models.integration import Integration
 from app.models.test_case import TestCase
 from app.services.elevenlabs import (
@@ -327,11 +328,25 @@ def list_calls_for_agent(
             transcript=r.transcript,
             is_new=r.seen_at is None,
             test_case_count=int(tc_counts.get(r.id, 0)),
+            label=r.label,
             created_at=r.created_at,
         )
         for r in calls
     ]
     return items, total
+
+
+def set_call_label(
+    *, session: Session, call_id: uuid.UUID, label: CallLabel | None
+) -> Call | None:
+    call = session.get(Call, call_id)
+    if call is None:
+        return None
+    call.label = label
+    session.add(call)
+    session.commit()
+    session.refresh(call)
+    return call
 
 
 def mark_call_seen(*, session: Session, call_id: uuid.UUID) -> None:
