@@ -4,6 +4,8 @@ import { Clock, FlaskConical } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/ui/button';
 
+import { CallLabelChip } from './call-label-chip';
+
 import type { ColumnDef } from '@tanstack/react-table';
 
 import type { CallRow } from '@/actions/calls';
@@ -51,6 +53,12 @@ export const getCallsColumns = ({
         ) : null}
       </div>
     ),
+  },
+  {
+    accessorKey: 'label',
+    header: 'Label',
+    enableSorting: false,
+    cell: ({ row }) => <CallLabelChip label={row.original.label ?? null} />,
   },
   {
     accessorKey: 'duration_seconds',

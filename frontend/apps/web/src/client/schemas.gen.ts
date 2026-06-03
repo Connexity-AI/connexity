@@ -1955,6 +1955,29 @@ export const Body_oauth_tokenSchema = {
   title: 'Body_oauth-token',
 } as const;
 
+export const CallLabelSchema = {
+  type: 'string',
+  enum: ['good', 'bad'],
+  title: 'CallLabel',
+} as const;
+
+export const CallLabelUpdateSchema = {
+  properties: {
+    label: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/CallLabel',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+  },
+  type: 'object',
+  title: 'CallLabelUpdate',
+} as const;
+
 export const CallPublicSchema = {
   properties: {
     id: {
@@ -2037,6 +2060,16 @@ export const CallPublicSchema = {
       title: 'Test Case Count',
       description: 'Number of test cases sourced from this call',
       default: 0,
+    },
+    label: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/CallLabel',
+        },
+        {
+          type: 'null',
+        },
+      ],
     },
     created_at: {
       type: 'string',

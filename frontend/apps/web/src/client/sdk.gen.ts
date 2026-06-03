@@ -66,6 +66,9 @@ import type {
   CallsRefreshAgentCallsData,
   CallsRefreshAgentCallsErrors,
   CallsRefreshAgentCallsResponses,
+  CallsSetCallLabelEndpointData,
+  CallsSetCallLabelEndpointErrors,
+  CallsSetCallLabelEndpointResponses,
   ConfigGetAvailableMetricsData,
   ConfigGetAvailableMetricsErrors,
   ConfigGetAvailableMetricsResponses,
@@ -3065,6 +3068,34 @@ export class CallsService {
       ],
       url: '/api/v1/calls/{call_id}/seen',
       ...options,
+    });
+  }
+
+  /**
+   * Set Call Label Endpoint
+   */
+  public static setCallLabelEndpoint<ThrowOnError extends boolean = false>(
+    options: Options<CallsSetCallLabelEndpointData, ThrowOnError>
+  ) {
+    return (options.client ?? client).patch<
+      CallsSetCallLabelEndpointResponses,
+      CallsSetCallLabelEndpointErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/calls/{call_id}/label',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
     });
   }
 

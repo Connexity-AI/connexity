@@ -73,6 +73,7 @@ export function ObserveDrawer({
 
         {call ? (
           <CallPanel
+            agentId={agentId}
             call={call}
             onCreateTestCaseManual={showRightPanel ? undefined : onCreateTestCaseManual}
             onCreateTestCaseAi={showRightPanel ? undefined : onCreateTestCaseAi}

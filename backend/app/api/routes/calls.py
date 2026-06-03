@@ -14,6 +14,7 @@ from app.api.deps import SessionDep, get_current_user
 from app.core.db import engine
 from app.core.encryption import decrypt
 from app.models import (
+    CallLabelUpdate,
     CallPublic,
     CallRefreshResult,
     CallsPublic,
@@ -431,6 +432,45 @@ def mark_call_seen_endpoint(
     return Message(message="ok")
 
 
+@router.patch("/calls/{call_id}/label", response_model=CallPublic)
+def set_call_label_endpoint(
+    session: SessionDep,
+    call_id: uuid.UUID,
+    body: CallLabelUpdate,
+) -> CallPublic:
+    call = crud.set_call_label(session=session, call_id=call_id, label=body.label)
+    if call is None:
+        raise HTTPException(status_code=404, detail="Call not found")
+    provider = None
+    if call.integration_id is not None:
+        integration = crud.get_integration(
+            session=session,
+            integration_id=call.integration_id,
+        )
+        provider = integration.provider if integration is not None else None
+    is_new = call.seen_at is None
+    tc_count = int(
+        session.exec(
+            select(func.count(TestCase.id)).where(TestCase.source_call_id == call_id)
+        ).one()
+    )
+    return CallPublic(
+        id=call.id,
+        agent_id=call.agent_id,
+        retell_call_id=call.retell_call_id,
+        retell_agent_id=call.retell_agent_id,
+        started_at=call.started_at,
+        duration_seconds=call.duration_seconds,
+        status=call.status,
+        provider=provider,
+        transcript=call.transcript,
+        is_new=is_new,
+        test_case_count=tc_count,
+        label=call.label,
+        created_at=call.created_at,
+    )
+
+
 @router.get("/calls/{call_id}", response_model=CallPublic)
 def get_call_detail(
     session: SessionDep,
@@ -462,5 +502,6 @@ def get_call_detail(
         transcript=call.transcript,
         is_new=is_new,
         test_case_count=tc_count,
+        label=call.label,
         created_at=call.created_at,
     )

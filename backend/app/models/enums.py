@@ -97,3 +97,8 @@ class DeploymentStatus(StrEnum):
     PENDING = "pending"
     DEPLOYED = "deployed"
     FAILED = "failed"
+
+
+class CallLabel(StrEnum):
+    GOOD = "good"
+    BAD = "bad"
