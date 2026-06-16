@@ -5,6 +5,7 @@ from sqlmodel import Session
 
 from app.core import security
 from app.core.config import settings
+from app.models import User
 from app.tests.utils.eval import create_test_agent
 from app.tests.utils.user import create_random_user
 
@@ -61,8 +62,12 @@ def test_mcp_list_agents_rejects_wrong_audience(
 def test_mcp_list_agents_with_oauth_user_token(
     client: TestClient, db: Session, monkeypatch
 ) -> None:
-    access_token, _ = _issue_mcp_oauth_token(db, monkeypatch)
-    agent = create_test_agent(db)
+    access_token, user_id = _issue_mcp_oauth_token(db, monkeypatch)
+    # MCP requests are scoped to the OAuth user's own company. The agent must
+    # be created inside that company or the per-tenant filter hides it.
+    mcp_user = db.get(User, user_id)
+    assert mcp_user is not None
+    agent = create_test_agent(db, company_id=mcp_user.company_id)
 
     response = client.get(
         f"{MCP_PREFIX}/agents",
@@ -79,7 +84,9 @@ def test_mcp_update_draft_with_oauth_user_token(
     client: TestClient, db: Session, monkeypatch
 ) -> None:
     access_token, user_id = _issue_mcp_oauth_token(db, monkeypatch)
-    agent = create_test_agent(db)
+    mcp_user = db.get(User, user_id)
+    assert mcp_user is not None
+    agent = create_test_agent(db, company_id=mcp_user.company_id)
 
     response = client.put(
         f"{MCP_PREFIX}/agents/{agent.id}/draft",

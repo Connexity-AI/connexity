@@ -146,13 +146,13 @@ def test_delete_then_recreate_with_same_name(
     assert recreate_r.json()["id"] != first_id
 
 
-def test_custom_metric_is_globally_editable_by_any_user(
+def test_custom_metric_is_isolated_per_company(
     client: TestClient,
     auth_cookies: dict[str, str],
     normal_user_auth_cookies: dict[str, str],
 ) -> None:
-    """Metrics are global: any authenticated user can read/update/delete any metric."""
-    name = f"shared_{uuid.uuid4().hex[:10]}"
+    """Metrics are scoped per company — another company can't see them."""
+    name = f"private_{uuid.uuid4().hex[:10]}"
     create_r = client.post(
         f"{settings.API_V1_STR}/custom-metrics/",
         json=_create_body(name=name),
@@ -161,34 +161,34 @@ def test_custom_metric_is_globally_editable_by_any_user(
     assert create_r.status_code == 200
     metric_id = create_r.json()["id"]
 
+    # A user in a different company can't fetch it.
     other_get = client.get(
         f"{settings.API_V1_STR}/custom-metrics/{metric_id}",
         cookies=normal_user_auth_cookies,
     )
-    assert other_get.status_code == 200
-    assert other_get.json()["name"] == name
+    assert other_get.status_code == 404
 
+    # ...nor edit or delete it.
     other_put = client.put(
         f"{settings.API_V1_STR}/custom-metrics/{metric_id}",
         json={"display_name": "Edited by other user"},
         cookies=normal_user_auth_cookies,
     )
-    assert other_put.status_code == 200
-    assert other_put.json()["display_name"] == "Edited by other user"
+    assert other_put.status_code == 404
 
     other_del = client.delete(
         f"{settings.API_V1_STR}/custom-metrics/{metric_id}",
         cookies=normal_user_auth_cookies,
     )
-    assert other_del.status_code == 200
+    assert other_del.status_code == 404
 
 
-def test_list_custom_metrics_includes_metrics_from_all_users(
+def test_list_custom_metrics_includes_metrics_from_all_company_members(
     client: TestClient,
     auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
-    """Listing returns metrics regardless of who created them."""
+    """Listing within a company returns metrics regardless of which member created them."""
     other = create_random_user(db)
     name_other = f"other_user_{uuid.uuid4().hex[:10]}"
     crud.create_custom_metric(
@@ -216,12 +216,12 @@ def test_list_custom_metrics_includes_metrics_from_all_users(
     assert name_other in names
 
 
-def test_create_duplicate_name_across_users_conflicts(
+def test_create_duplicate_name_across_companies_allowed(
     client: TestClient,
     auth_cookies: dict[str, str],
     normal_user_auth_cookies: dict[str, str],
 ) -> None:
-    """Names are globally unique — a different user can't reuse an existing name."""
+    """Names are unique *per company* — two companies may use the same name."""
     name = f"shared_dup_{uuid.uuid4().hex[:10]}"
     first = client.post(
         f"{settings.API_V1_STR}/custom-metrics/",
@@ -235,7 +235,9 @@ def test_create_duplicate_name_across_users_conflicts(
         json=_create_body(name=name),
         cookies=normal_user_auth_cookies,
     )
-    assert second.status_code == 409
+    assert second.status_code == 200
+    # Different rows in different companies.
+    assert second.json()["id"] != first.json()["id"]
 
 
 def test_create_custom_metric_invalid_slug(

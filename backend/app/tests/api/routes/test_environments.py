@@ -255,11 +255,12 @@ def test_list_environments_unknown_agent_returns_404(
     assert r.status_code == 404
 
 
-def test_other_user_can_list_environment(
+def test_environment_is_isolated_per_company(
     client: TestClient,
     normal_user_auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
+    """An environment created in one company isn't visible to a user in another."""
     agent, user = _make_owned_agent(db)
     integration = _make_integration(db)
     _bind_agent_provider_target(
@@ -270,7 +271,7 @@ def test_other_user_can_list_environment(
         platform_agent_id="ret_a_other",
         platform_agent_name="ret_a_other",
     )
-    env = crud.create_environment(
+    crud.create_environment(
         session=db,
         data=EnvironmentCreate(
             name=f"env-{uuid.uuid4().hex[:6]}",
@@ -280,13 +281,14 @@ def test_other_user_can_list_environment(
         company_id=get_test_company_id(db),
     )
 
+    # ``normal_user_auth_cookies`` is in a different company, so the agent
+    # itself is hidden — listing environments via that agent_id returns 404.
     other_list = client.get(
         f"{settings.API_V1_STR}/environments/",
         params={"agent_id": str(agent.id)},
         cookies=normal_user_auth_cookies,
     )
-    assert other_list.status_code == 200
-    assert any(item["id"] == str(env.id) for item in other_list.json()["data"])
+    assert other_list.status_code == 404
 
 
 def test_create_webhook_environment_without_integration(
