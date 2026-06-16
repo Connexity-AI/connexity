@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from sqlmodel import Session
 
 from app.models.enums import TurnRole
 from app.models.schemas import (
@@ -24,6 +25,7 @@ from app.services.judge import (
     evaluate_transcript,
 )
 from app.services.llm import LLMResponse
+from app.tests.utils.eval import get_test_company_id
 
 # ── Helpers ───────────────────────────────────────────────────────────
 
@@ -138,6 +140,7 @@ def _mock_llm_response(payload: dict[str, object]) -> LLMResponse:
 
 def _make_judge_input(
     *,
+    db: Session,
     judge_config: JudgeConfig | None = None,
     transcript: list[ConversationTurn] | None = None,
 ) -> JudgeInput:
@@ -147,6 +150,7 @@ def _make_judge_input(
         agent_system_prompt="You are a helpful assistant.",
         agent_tools=[{"type": "function", "function": {"name": "book_appointment"}}],
         judge_config=judge_config,
+        company_id=get_test_company_id(db),
     )
 
 
