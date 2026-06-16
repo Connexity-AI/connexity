@@ -1,6 +1,6 @@
 """company llm credentials
 
-Revision ID: a7b8c9d0e1f2
+Revision ID: mt_llm_creds_001
 Revises: z6a7b8c9d0e1
 Create Date: 2026-06-06
 
@@ -12,7 +12,7 @@ preview, plus a preferred provider for features that don't pin one.
 import sqlalchemy as sa
 from alembic import op
 
-revision = "a7b8c9d0e1f2"
+revision = "mt_llm_creds_001"
 down_revision = "z6a7b8c9d0e1"
 branch_labels = None
 depends_on = None

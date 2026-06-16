@@ -1,9 +1,13 @@
 """add company multitenancy
 
 Revision ID: y5z6a7b8c9d0
-Revises: x3y4z5a6b7c8
+Revises: e8f9a0b1c2d3, x3y4z5a6b7c8
 Create Date: 2026-06-04
 
+Multi-tenancy lives at the merge of the two pre-existing heads in the
+migration graph (``e8f9a0b1c2d3`` from the integrations + call-soft-delete
+chain and ``x3y4z5a6b7c8`` from the call-label branch). Merging at the
+multitenancy revision avoids a no-op merge migration before it.
 """
 
 import uuid
@@ -13,7 +17,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "y5z6a7b8c9d0"
-down_revision = "x3y4z5a6b7c8"
+down_revision: tuple[str, str] = ("e8f9a0b1c2d3", "x3y4z5a6b7c8")
 branch_labels = None
 depends_on = None
 
