@@ -14,6 +14,7 @@ from app.tests.utils.eval import (
     create_test_agent,
     create_test_eval_config,
     create_test_run,
+    get_test_company_id,
 )
 
 
@@ -367,6 +368,7 @@ def test_post_agents_draft_retell_missing_importable_llm_still_creates_agent(
         name="retell-import-fallback",
         encrypted_api_key="ciphertext",
         masked_api_key="sk_t...1234",
+        company_id=get_test_company_id(db),
     )
     db.add(integration)
     db.commit()
