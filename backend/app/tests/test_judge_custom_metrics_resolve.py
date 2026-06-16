@@ -23,6 +23,7 @@ from app.services.judge_metrics import (
     custom_metric_row_to_definition,
     resolve_metrics,
 )
+from app.tests.utils.eval import get_test_company_id
 from app.tests.utils.user import create_random_user
 
 
@@ -42,6 +43,7 @@ def test_custom_metric_row_to_definition_matches_shape(db: Session) -> None:
             include_in_defaults=True,
         ),
         owner_id=owner.id,
+        company_id=get_test_company_id(db),
     )
     d = custom_metric_row_to_definition(row)
     assert d.name == name
@@ -66,6 +68,7 @@ def test_resolve_metrics_custom_from_db(db: Session) -> None:
             include_in_defaults=False,
         ),
         owner_id=owner.id,
+        company_id=get_test_company_id(db),
     )
     cfg = JudgeConfig(metrics=[MetricSelection(metric=name, weight=2.0)])
     resolved = resolve_metrics(cfg, session=db)
@@ -90,6 +93,7 @@ def test_resolve_metrics_mixed_builtin_and_custom(db: Session) -> None:
             include_in_defaults=False,
         ),
         owner_id=owner.id,
+        company_id=get_test_company_id(db),
     )
     cfg = JudgeConfig(
         metrics=[
@@ -150,6 +154,7 @@ async def test_evaluate_transcript_with_custom_metric(db: Session) -> None:
             include_in_defaults=False,
         ),
         owner_id=owner.id,
+        company_id=get_test_company_id(db),
     )
 
     judge_output = json.dumps(

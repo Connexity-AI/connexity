@@ -8,7 +8,7 @@ from litellm.exceptions import APIError
 from sqlmodel import Session
 
 from app import crud
-from app.api.deps import SessionDep, get_current_user
+from app.api.deps import CurrentCompany, SessionDep, get_current_user
 from app.crud import agent_version as agent_version_crud
 from app.models import (
     Agent,
@@ -45,9 +45,15 @@ router = APIRouter(
 
 
 @router.post("/", response_model=TestCasePublic)
-def create_test_case(session: SessionDep, test_case_in: TestCaseCreate) -> TestCase:
+def create_test_case(
+    session: SessionDep,
+    company_id: CurrentCompany,
+    test_case_in: TestCaseCreate,
+) -> TestCase:
     try:
-        return crud.create_test_case(session=session, test_case_in=test_case_in)
+        return crud.create_test_case(
+            session=session, test_case_in=test_case_in, company_id=company_id
+        )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -55,6 +61,7 @@ def create_test_case(session: SessionDep, test_case_in: TestCaseCreate) -> TestC
 @router.get("/", response_model=TestCasesPublic)
 def list_test_cases(
     session: SessionDep,
+    company_id: CurrentCompany,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=1000),
     tag: str | None = None,
@@ -83,6 +90,7 @@ def list_test_cases(
 ) -> TestCasesPublic:
     items, count = crud.list_test_cases(
         session=session,
+        company_id=company_id,
         skip=skip,
         limit=limit,
         tag=tag,
@@ -100,6 +108,7 @@ def list_test_cases(
 @router.get("/export", response_model=TestCasesExport)
 def export_test_cases(
     session: SessionDep,
+    company_id: CurrentCompany,
     tag: str | None = None,
     difficulty: Difficulty | None = None,
     status: TestCaseStatus | None = None,
@@ -109,6 +118,7 @@ def export_test_cases(
 ) -> JSONResponse:
     items = crud.export_test_cases(
         session=session,
+        company_id=company_id,
         tag=tag,
         difficulty=difficulty,
         status=status,
@@ -130,6 +140,7 @@ def export_test_cases(
 @router.post("/import", response_model=TestCaseImportResult)
 def import_test_cases(
     session: SessionDep,
+    company_id: CurrentCompany,
     test_cases_in: list[TestCaseImportItem],
     on_conflict: OnConflict = Query(default=OnConflict.SKIP),
 ) -> TestCaseImportResult:
@@ -140,7 +151,10 @@ def import_test_cases(
             status_code=400, detail="Maximum 1000 test cases per import"
         )
     return crud.bulk_import_test_cases(
-        session=session, test_cases_in=test_cases_in, on_conflict=on_conflict
+        session=session,
+        test_cases_in=test_cases_in,
+        company_id=company_id,
+        on_conflict=on_conflict,
     )
 
 
@@ -206,6 +220,7 @@ def _resolve_generate_request(
 @router.post("/generate", response_model=GenerateResult)
 async def generate_test_cases_endpoint(
     session: SessionDep,
+    company_id: CurrentCompany,
     request: GenerateRequest,
 ) -> GenerateResult:
     gen_request = _resolve_generate_request(session=session, request=request)
@@ -237,7 +252,9 @@ async def generate_test_cases_endpoint(
                 payload["agent_id"] = request.agent_id
             try:
                 db_obj = crud.create_test_case(
-                    session=session, test_case_in=TestCaseCreate(**payload)
+                    session=session,
+                    test_case_in=TestCaseCreate(**payload),
+                    company_id=company_id,
                 )
             except ValueError as exc:
                 raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -268,6 +285,7 @@ async def generate_test_cases_endpoint(
 @router.post("/ai", response_model=TestCaseAgentResult)
 async def run_test_case_ai_agent(
     session: SessionDep,
+    company_id: CurrentCompany,
     request: TestCaseAgentRequest,
 ) -> TestCaseAgentResult:
     """Single-turn tool-calling agent: create, from_transcript, or edit test cases."""
@@ -347,7 +365,9 @@ async def run_test_case_ai_agent(
         if request.persist:
             try:
                 db_obj = crud.create_test_case(
-                    session=session, test_case_in=TestCaseCreate(**payload)
+                    session=session,
+                    test_case_in=TestCaseCreate(**payload),
+                    company_id=company_id,
                 )
             except ValueError as exc:
                 raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -375,8 +395,12 @@ async def run_test_case_ai_agent(
 
 
 @router.get("/{test_case_id}", response_model=TestCasePublic)
-def get_test_case(session: SessionDep, test_case_id: uuid.UUID) -> TestCase:
-    test_case = crud.get_test_case(session=session, test_case_id=test_case_id)
+def get_test_case(
+    session: SessionDep, company_id: CurrentCompany, test_case_id: uuid.UUID
+) -> TestCase:
+    test_case = crud.get_test_case(
+        session=session, test_case_id=test_case_id, company_id=company_id
+    )
     if not test_case:
         raise HTTPException(status_code=404, detail="Test case not found")
     return test_case
@@ -385,10 +409,13 @@ def get_test_case(session: SessionDep, test_case_id: uuid.UUID) -> TestCase:
 @router.patch("/{test_case_id}", response_model=TestCasePublic)
 def update_test_case(
     session: SessionDep,
+    company_id: CurrentCompany,
     test_case_id: uuid.UUID,
     test_case_in: TestCaseUpdate,
 ) -> TestCase:
-    test_case = crud.get_test_case(session=session, test_case_id=test_case_id)
+    test_case = crud.get_test_case(
+        session=session, test_case_id=test_case_id, company_id=company_id
+    )
     if not test_case:
         raise HTTPException(status_code=404, detail="Test case not found")
     try:
@@ -400,8 +427,12 @@ def update_test_case(
 
 
 @router.delete("/{test_case_id}", response_model=Message)
-def delete_test_case(session: SessionDep, test_case_id: uuid.UUID) -> Message:
-    test_case = crud.get_test_case(session=session, test_case_id=test_case_id)
+def delete_test_case(
+    session: SessionDep, company_id: CurrentCompany, test_case_id: uuid.UUID
+) -> Message:
+    test_case = crud.get_test_case(
+        session=session, test_case_id=test_case_id, company_id=company_id
+    )
     if not test_case:
         raise HTTPException(status_code=404, detail="Test case not found")
     crud.delete_test_case(session=session, db_test_case=test_case)

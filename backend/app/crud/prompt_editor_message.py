@@ -12,10 +12,13 @@ from app.models.prompt_editor import (
 
 
 def create_message(
-    *, session: Session, message_in: PromptEditorMessageCreate
+    *,
+    session: Session,
+    message_in: PromptEditorMessageCreate,
+    company_id: uuid.UUID,
 ) -> PromptEditorMessage:
     db_sess = session.get(PromptEditorSession, message_in.session_id)
-    if db_sess is None:
+    if db_sess is None or db_sess.company_id != company_id:
         msg = "Prompt editor session not found"
         raise ValueError(msg)
     if db_sess.status != PromptEditorSessionStatus.ACTIVE:
@@ -23,6 +26,7 @@ def create_message(
         raise ValueError(msg)
 
     db_obj = PromptEditorMessage(
+        company_id=company_id,
         session_id=message_in.session_id,
         role=message_in.role,
         content=message_in.content,

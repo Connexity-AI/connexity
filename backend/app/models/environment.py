@@ -43,6 +43,7 @@ class Environment(EnvironmentBase, table=True):
     __tablename__ = "environment"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    company_id: uuid.UUID = Field(foreign_key="company.id", index=True)
     agent_id: uuid.UUID = Field(foreign_key="agent.id", index=True)
     endpoint_url: str | None = Field(default=None, max_length=2048)
     current_version_number: int | None = Field(default=None)

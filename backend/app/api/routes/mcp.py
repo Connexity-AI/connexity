@@ -22,12 +22,18 @@ router = APIRouter(
 @router.get("/agents", response_model=AgentsPublic)
 def list_agents(
     session: SessionDep,
+    current_user: McpCurrentUser,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=1000),
 ) -> AgentsPublic:
-    items, count = crud.list_agents(session=session, skip=skip, limit=limit)
+    company_id = current_user.company_id
+    items, count = crud.list_agents(
+        session=session, company_id=company_id, skip=skip, limit=limit
+    )
     summaries_by_agent_id = crud.latest_completed_eval_summaries_by_agent(
-        session=session, agent_ids=[agent.id for agent in items]
+        session=session,
+        company_id=company_id,
+        agent_ids=[agent.id for agent in items],
     )
     active_versions = crud.list_active_published_versions_by_agent_ids(
         session=session, agent_ids=[agent.id for agent in items]
@@ -50,9 +56,12 @@ def list_agents(
 @router.get("/agents/{agent_id}/draft", response_model=AgentVersionPublic)
 def get_draft(
     session: SessionDep,
+    current_user: McpCurrentUser,
     agent_id: uuid.UUID,
 ) -> AgentVersionPublic:
-    agent = crud.get_agent(session=session, agent_id=agent_id)
+    agent = crud.get_agent(
+        session=session, agent_id=agent_id, company_id=current_user.company_id
+    )
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     draft = crud.get_agent_draft(session=session, agent_id=agent_id)
@@ -68,7 +77,9 @@ def upsert_draft(
     agent_id: uuid.UUID,
     body: AgentDraftUpdate,
 ) -> AgentVersionPublic:
-    agent = crud.get_agent(session=session, agent_id=agent_id)
+    agent = crud.get_agent(
+        session=session, agent_id=agent_id, company_id=current_user.company_id
+    )
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     draft_data = body.model_dump(exclude_unset=True)

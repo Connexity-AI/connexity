@@ -112,6 +112,7 @@ class Run(RunBase, table=True):
     __tablename__ = "run"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    company_id: uuid.UUID = Field(foreign_key="company.id", index=True)
     created_by: uuid.UUID | None = Field(
         default=None,
         foreign_key="user.id",

@@ -14,6 +14,7 @@ from app.tests.utils.eval import (
     create_test_agent,
     create_test_eval_config,
     create_test_run,
+    get_test_company_id,
 )
 
 # ── Basic versioning ────────────────────────────────────────────────
@@ -198,7 +199,9 @@ def test_concurrent_updates_distinct_drafts(db: Session) -> None:
         name=f"concurrent-{uuid.uuid4().hex[:8]}",
         endpoint_url="http://localhost:9999/agent",
     )
-    agent = crud.create_agent(session=db, agent_in=agent_in)
+    agent = crud.create_agent(
+        session=db, agent_in=agent_in, company_id=get_test_company_id(db)
+    )
     aid = agent.id
     barrier = threading.Barrier(2)
     errors: list[BaseException] = []

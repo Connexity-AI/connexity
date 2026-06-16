@@ -135,6 +135,7 @@ class TestCase(TestCaseBase, table=True):
     __tablename__ = "test_case"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    company_id: uuid.UUID = Field(foreign_key="company.id", index=True)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"server_default": text("now()")},

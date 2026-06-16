@@ -17,13 +17,17 @@ from app.models import (
 )
 
 
-def create_test_case(*, session: Session, test_case_in: TestCaseCreate) -> TestCase:
+def create_test_case(
+    *, session: Session, test_case_in: TestCaseCreate, company_id: uuid.UUID
+) -> TestCase:
     if test_case_in.agent_id is not None:
         agent = session.get(Agent, test_case_in.agent_id)
-        if agent is None:
+        if agent is None or agent.company_id != company_id:
             msg = f"Agent not found: {test_case_in.agent_id}"
             raise ValueError(msg)
-    db_obj = TestCase.model_validate(test_case_in.model_dump())
+    db_obj = TestCase.model_validate(
+        {**test_case_in.model_dump(), "company_id": company_id}
+    )
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
@@ -34,6 +38,7 @@ def get_test_case(
     *,
     session: Session,
     test_case_id: uuid.UUID,
+    company_id: uuid.UUID | None = None,
     include_deleted: bool = False,
 ) -> TestCase | None:
     """Fetch a test case by id.
@@ -46,6 +51,8 @@ def get_test_case(
     if tc is None:
         return None
     if tc.deleted_at is not None and not include_deleted:
+        return None
+    if company_id is not None and tc.company_id != company_id:
         return None
     return tc
 
@@ -81,6 +88,7 @@ def list_recent_test_cases_for_agent(
 def list_test_cases(
     *,
     session: Session,
+    company_id: uuid.UUID,
     skip: int = 0,
     limit: int = 100,
     tag: str | None = None,
@@ -92,8 +100,12 @@ def list_test_cases(
     agent_id: uuid.UUID | None = None,
     include_deleted: bool = False,
 ) -> tuple[list[TestCase], int]:
-    statement = select(TestCase)
-    count_statement = select(func.count()).select_from(TestCase)
+    statement = select(TestCase).where(TestCase.company_id == company_id)
+    count_statement = (
+        select(func.count())
+        .select_from(TestCase)
+        .where(TestCase.company_id == company_id)
+    )
 
     if not include_deleted:
         statement = statement.where(col(TestCase.deleted_at).is_(None))
@@ -162,13 +174,18 @@ EXPORT_MAX_ROWS = 5000
 def export_test_cases(
     *,
     session: Session,
+    company_id: uuid.UUID,
     tag: str | None = None,
     difficulty: Difficulty | None = None,
     status: TestCaseStatus | None = None,
     agent_id: uuid.UUID | None = None,
 ) -> list[TestCase]:
     """Export test cases matching optional filters (capped at EXPORT_MAX_ROWS)."""
-    statement = select(TestCase).where(col(TestCase.deleted_at).is_(None))
+    statement = (
+        select(TestCase)
+        .where(col(TestCase.deleted_at).is_(None))
+        .where(TestCase.company_id == company_id)
+    )
 
     if tag is not None:
         statement = statement.where(col(TestCase.tags).any(tag))
@@ -187,6 +204,7 @@ def bulk_import_test_cases(
     *,
     session: Session,
     test_cases_in: list[TestCaseImportItem],
+    company_id: uuid.UUID,
     on_conflict: OnConflict,
 ) -> TestCaseImportResult:
     """Import test cases in bulk. Handles ID conflicts via on_conflict strategy."""
@@ -199,7 +217,10 @@ def bulk_import_test_cases(
     existing: dict[uuid.UUID, TestCase] = {}
     if incoming_ids:
         rows = session.exec(
-            select(TestCase).where(col(TestCase.id).in_(incoming_ids))
+            select(TestCase).where(
+                col(TestCase.id).in_(incoming_ids),
+                TestCase.company_id == company_id,
+            )
         ).all()
         existing = {row.id: row for row in rows}
 
@@ -207,7 +228,7 @@ def bulk_import_test_cases(
         try:
             if item.agent_id is not None:
                 agent = session.get(Agent, item.agent_id)
-                if agent is None:
+                if agent is None or agent.company_id != company_id:
                     label = item.name if item.name else f"index {idx}"
                     errors.append(f"Item '{label}': Agent not found: {item.agent_id}")
                     continue
@@ -215,7 +236,7 @@ def bulk_import_test_cases(
             data = item.model_dump(exclude_unset=True, exclude={"id"})
 
             if item.id is None:
-                db_obj = TestCase.model_validate(data)
+                db_obj = TestCase.model_validate({**data, "company_id": company_id})
                 session.add(db_obj)
                 created += 1
             elif item.id in existing:
@@ -227,7 +248,9 @@ def bulk_import_test_cases(
                     session.add(existing[item.id])
                     overwritten += 1
             else:
-                db_obj = TestCase.model_validate({**data, "id": item.id})
+                db_obj = TestCase.model_validate(
+                    {**data, "id": item.id, "company_id": company_id}
+                )
                 session.add(db_obj)
                 created += 1
         except Exception as exc:

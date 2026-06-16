@@ -142,6 +142,7 @@ def _create_authorization_code(
     auth_code = OAuthAuthorizationCode(
         code=code,
         client_id=client_id,
+        company_id=user.company_id,
         user_id=user.id,
         redirect_uri=redirect_uri,
         scope=scope or SUPPORTED_SCOPE,
@@ -163,6 +164,7 @@ def _create_refresh_token(
     *,
     session: SessionDep,
     user_id: uuid.UUID,
+    company_id: uuid.UUID,
     client_id: str,
     scope: str | None,
     resource: str,
@@ -171,6 +173,7 @@ def _create_refresh_token(
     refresh_token = OAuthRefreshToken(
         token_hash=_hash_token(token),
         client_id=client_id,
+        company_id=company_id,
         user_id=user_id,
         scope=scope or SUPPORTED_SCOPE,
         resource=resource,
@@ -617,6 +620,7 @@ def authorize_confirm(
     auth_token = security.create_access_token(
         user.id,
         timedelta(hours=settings.ACCESS_TOKEN_EXPIRE_HOURS),
+        additional_claims={"cid": str(user.company_id)},
     )
     response.set_cookie(
         settings.AUTH_COOKIE,
@@ -691,6 +695,7 @@ def authorize_signup_confirm(
     auth_token = security.create_access_token(
         user.id,
         timedelta(hours=settings.ACCESS_TOKEN_EXPIRE_HOURS),
+        additional_claims={"cid": str(user.company_id)},
     )
     response.set_cookie(
         settings.AUTH_COOKIE,
@@ -779,6 +784,7 @@ def token(
         rotated_refresh_token = _create_refresh_token(
             session=session,
             user_id=stored_refresh_token.user_id,
+            company_id=stored_refresh_token.company_id,
             client_id=stored_refresh_token.client_id,
             scope=stored_refresh_token.scope,
             resource=stored_refresh_token.resource,
@@ -826,6 +832,7 @@ def token(
         refresh_token_value = _create_refresh_token(
             session=session,
             user_id=auth_code.user_id,
+            company_id=auth_code.company_id,
             client_id=auth_code.client_id,
             scope=auth_code.scope,
             resource=auth_code.resource,

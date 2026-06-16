@@ -9,6 +9,7 @@ from app.tests.utils.eval import (
     create_test_case_fixture,
     create_test_eval_config,
     eval_config_members,
+    get_test_company_id,
 )
 
 
@@ -40,14 +41,18 @@ def test_create_eval_config_with_invalid_test_case_ids(db: Session) -> None:
 
 def test_get_eval_config(db: Session) -> None:
     eval_config = create_test_eval_config(db)
-    fetched = crud.get_eval_config(session=db, eval_config_id=eval_config.id)
+    fetched = crud.get_eval_config(
+        session=db, eval_config_id=eval_config.id, company_id=get_test_company_id(db)
+    )
     assert fetched is not None
     assert fetched.id == eval_config.id
 
 
 def test_list_eval_configs(db: Session) -> None:
     create_test_eval_config(db)
-    items, count = crud.list_eval_configs(session=db)
+    items, count = crud.list_eval_configs(
+        session=db, company_id=get_test_company_id(db)
+    )
     assert count >= 1
 
 
@@ -304,7 +309,9 @@ def test_delete_eval_config(db: Session) -> None:
     eval_config = create_test_eval_config(db)
     config_id = eval_config.id
     crud.delete_eval_config(session=db, db_eval_config=eval_config)
-    fetched = crud.get_eval_config(session=db, eval_config_id=config_id)
+    fetched = crud.get_eval_config(
+        session=db, eval_config_id=config_id, company_id=get_test_company_id(db)
+    )
     assert fetched is None
 
 
@@ -314,12 +321,17 @@ def test_delete_eval_config_is_soft(db: Session) -> None:
     config_id = eval_config.id
     crud.delete_eval_config(session=db, db_eval_config=eval_config)
 
-    listed, count = crud.list_eval_configs(session=db, agent_id=eval_config.agent_id)
+    listed, count = crud.list_eval_configs(
+        session=db, agent_id=eval_config.agent_id, company_id=get_test_company_id(db)
+    )
     assert all(item.id != config_id for item in listed)
     assert count == 0
 
     still_there = crud.get_eval_config(
-        session=db, eval_config_id=config_id, include_deleted=True
+        session=db,
+        eval_config_id=config_id,
+        include_deleted=True,
+        company_id=get_test_company_id(db),
     )
     assert still_there is not None
     assert still_there.deleted_at is not None

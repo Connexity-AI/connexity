@@ -8,7 +8,11 @@ from app.models import (
     TestCaseStatus,
     TestCaseUpdate,
 )
-from app.tests.utils.eval import create_test_agent, create_test_case_fixture
+from app.tests.utils.eval import (
+    create_test_agent,
+    create_test_case_fixture,
+    get_test_company_id,
+)
 
 
 def test_create_test_case(db: Session) -> None:
@@ -17,7 +21,9 @@ def test_create_test_case(db: Session) -> None:
         tags=["billing", "refund"],
         difficulty=Difficulty.HARD,
     )
-    test_case = crud.create_test_case(session=db, test_case_in=test_case_in)
+    test_case = crud.create_test_case(
+        session=db, test_case_in=test_case_in, company_id=get_test_company_id(db)
+    )
     assert test_case.name == "CRUD Test TestCase"
     assert test_case.tags == ["billing", "refund"]
     assert test_case.difficulty == Difficulty.HARD
@@ -26,14 +32,16 @@ def test_create_test_case(db: Session) -> None:
 
 def test_get_test_case(db: Session) -> None:
     test_case = create_test_case_fixture(db)
-    fetched = crud.get_test_case(session=db, test_case_id=test_case.id)
+    fetched = crud.get_test_case(
+        session=db, test_case_id=test_case.id, company_id=get_test_company_id(db)
+    )
     assert fetched is not None
     assert fetched.id == test_case.id
 
 
 def test_list_test_cases(db: Session) -> None:
     create_test_case_fixture(db, tags=["list-test"])
-    items, count = crud.list_test_cases(session=db)
+    items, count = crud.list_test_cases(session=db, company_id=get_test_company_id(db))
     assert count >= 1
     assert len(items) >= 1
 
@@ -41,14 +49,18 @@ def test_list_test_cases(db: Session) -> None:
 def test_list_test_cases_filter_by_tag(db: Session) -> None:
     tag = "unique-tag-filter-test"
     create_test_case_fixture(db, tags=[tag])
-    items, count = crud.list_test_cases(session=db, tag=tag)
+    items, count = crud.list_test_cases(
+        session=db, tag=tag, company_id=get_test_company_id(db)
+    )
     assert count >= 1
     assert all(tag in s.tags for s in items)
 
 
 def test_list_test_cases_filter_by_difficulty(db: Session) -> None:
     create_test_case_fixture(db, difficulty=Difficulty.HARD)
-    items, count = crud.list_test_cases(session=db, difficulty=Difficulty.HARD)
+    items, count = crud.list_test_cases(
+        session=db, difficulty=Difficulty.HARD, company_id=get_test_company_id(db)
+    )
     assert count >= 1
     assert all(s.difficulty == Difficulty.HARD for s in items)
 
@@ -62,9 +74,12 @@ def test_list_test_cases_filter_by_agent_id(db: Session) -> None:
             tags=["agent-filter"],
             agent_id=agent.id,
         ),
+        company_id=get_test_company_id(db),
     )
     create_test_case_fixture(db, tags=["unbound"])
-    items, count = crud.list_test_cases(session=db, agent_id=agent.id)
+    items, count = crud.list_test_cases(
+        session=db, agent_id=agent.id, company_id=get_test_company_id(db)
+    )
     assert count >= 1
     assert all(s.agent_id == agent.id for s in items)
 
@@ -78,6 +93,7 @@ def test_list_distinct_tags_for_agent(db: Session) -> None:
             tags=["alpha", "beta"],
             agent_id=agent.id,
         ),
+        company_id=get_test_company_id(db),
     )
     crud.create_test_case(
         session=db,
@@ -86,6 +102,7 @@ def test_list_distinct_tags_for_agent(db: Session) -> None:
             tags=["beta", "gamma"],
             agent_id=agent.id,
         ),
+        company_id=get_test_company_id(db),
     )
     tags = crud.list_distinct_tags_for_agent(session=db, agent_id=agent.id)
     assert tags == ["alpha", "beta", "gamma"]
@@ -100,6 +117,7 @@ def test_list_recent_test_cases_for_agent(db: Session) -> None:
             tags=["x"],
             agent_id=agent.id,
         ),
+        company_id=get_test_company_id(db),
     )
     newer = crud.create_test_case(
         session=db,
@@ -108,6 +126,7 @@ def test_list_recent_test_cases_for_agent(db: Session) -> None:
             tags=["y"],
             agent_id=agent.id,
         ),
+        company_id=get_test_company_id(db),
     )
     recent = crud.list_recent_test_cases_for_agent(
         session=db, agent_id=agent.id, limit=5
@@ -118,7 +137,9 @@ def test_list_recent_test_cases_for_agent(db: Session) -> None:
 
 def test_list_test_cases_filter_by_status(db: Session) -> None:
     create_test_case_fixture(db, status=TestCaseStatus.ARCHIVED)
-    items, count = crud.list_test_cases(session=db, status=TestCaseStatus.ARCHIVED)
+    items, count = crud.list_test_cases(
+        session=db, status=TestCaseStatus.ARCHIVED, company_id=get_test_company_id(db)
+    )
     assert count >= 1
     assert all(s.status == TestCaseStatus.ARCHIVED for s in items)
 
@@ -136,6 +157,7 @@ def test_list_test_cases_combined_filters(db: Session) -> None:
         tag=tag,
         difficulty=Difficulty.HARD,
         status=TestCaseStatus.ACTIVE,
+        company_id=get_test_company_id(db),
     )
     assert count >= 1
 
@@ -155,13 +177,17 @@ def test_delete_test_case(db: Session) -> None:
     test_case = create_test_case_fixture(db)
     test_case_id = test_case.id
     crud.delete_test_case(session=db, db_test_case=test_case)
-    fetched = crud.get_test_case(session=db, test_case_id=test_case_id)
+    fetched = crud.get_test_case(
+        session=db, test_case_id=test_case_id, company_id=get_test_company_id(db)
+    )
     assert fetched is None
 
 
 def test_list_test_cases_search_by_name(db: Session) -> None:
     create_test_case_fixture(db, name="Unique Refund Zeta TestCase")
-    items, count = crud.list_test_cases(session=db, search="Refund Zeta")
+    items, count = crud.list_test_cases(
+        session=db, search="Refund Zeta", company_id=get_test_company_id(db)
+    )
     assert count >= 1
     assert any("Refund Zeta" in s.name for s in items)
 
@@ -170,33 +196,46 @@ def test_list_test_cases_search_by_description(db: Session) -> None:
     create_test_case_fixture(
         db, name="Search Desc Test", description="Handles xylophone edge cases"
     )
-    items, count = crud.list_test_cases(session=db, search="xylophone")
+    items, count = crud.list_test_cases(
+        session=db, search="xylophone", company_id=get_test_company_id(db)
+    )
     assert count >= 1
     assert any("xylophone" in (s.description or "") for s in items)
 
 
 def test_list_test_cases_search_case_insensitive(db: Session) -> None:
     create_test_case_fixture(db, name="CaseSensitivity Check Alpha")
-    items, count = crud.list_test_cases(session=db, search="casesensitivity check")
+    items, count = crud.list_test_cases(
+        session=db, search="casesensitivity check", company_id=get_test_company_id(db)
+    )
     assert count >= 1
 
 
 def test_list_test_cases_sort_by_name_asc(db: Session) -> None:
     create_test_case_fixture(db, name="AAA Sort First")
     create_test_case_fixture(db, name="ZZZ Sort Last")
-    items, _ = crud.list_test_cases(session=db, sort_by="name", sort_order="asc")
+    items, _ = crud.list_test_cases(
+        session=db, sort_by="name", sort_order="asc", company_id=get_test_company_id(db)
+    )
     names = [s.name for s in items]
     assert names == sorted(names)
 
 
 def test_list_test_cases_sort_by_name_desc(db: Session) -> None:
-    items, _ = crud.list_test_cases(session=db, sort_by="name", sort_order="desc")
+    items, _ = crud.list_test_cases(
+        session=db,
+        sort_by="name",
+        sort_order="desc",
+        company_id=get_test_company_id(db),
+    )
     names = [s.name for s in items]
     assert names == sorted(names, reverse=True)
 
 
 def test_list_test_cases_sort_invalid_field_falls_back(db: Session) -> None:
-    items, count = crud.list_test_cases(session=db, sort_by="nonexistent")
+    items, count = crud.list_test_cases(
+        session=db, sort_by="nonexistent", company_id=get_test_company_id(db)
+    )
     assert count >= 0  # no error, falls back to created_at
 
 
@@ -215,7 +254,9 @@ def test_create_test_case_with_full_schema(db: Session) -> None:
         ],
         evaluation_criteria_override="Focus on safety compliance above all.",
     )
-    test_case = crud.create_test_case(session=db, test_case_in=test_case_in)
+    test_case = crud.create_test_case(
+        session=db, test_case_in=test_case_in, company_id=get_test_company_id(db)
+    )
     assert test_case.persona_context is not None
     assert "manipulative" in test_case.persona_context
     assert test_case.user_context["account_type"] == "free"

@@ -5,8 +5,10 @@ Predefined rows are seeded once by the Alembic migration from
 :mod:`app.services.predefined_metrics`; this module only reads from the DB.
 """
 
+import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
+from typing import Any
 
 from pydantic import BaseModel, Field
 from sqlmodel import Session, col, select
@@ -35,14 +37,24 @@ class MetricDefinition(BaseModel):
     )
 
 
-def _list_active_db_metrics(session: Session) -> list[CustomMetric]:
-    """All non-deleted, non-draft metrics ordered with predefined first."""
+def _list_active_db_metrics(
+    session: Session, *, company_id: uuid.UUID | None = None
+) -> list[CustomMetric]:
+    """All non-deleted, non-draft metrics ordered with predefined first.
+
+    When ``company_id`` is given (the normal request path) results are scoped
+    to that tenant's per-company copies. When omitted (legacy tests and some
+    background scripts) every row is returned.
+    """
+    filters: list[Any] = [
+        CustomMetric.deleted_at.is_(None),  # type: ignore[union-attr]
+        CustomMetric.is_draft.is_(False),  # type: ignore[union-attr]
+    ]
+    if company_id is not None:
+        filters.append(col(CustomMetric.company_id) == company_id)
     statement = (
         select(CustomMetric)
-        .where(
-            CustomMetric.deleted_at.is_(None),  # type: ignore[union-attr]
-            CustomMetric.is_draft.is_(False),  # type: ignore[union-attr]
-        )
+        .where(*filters)
         .order_by(
             col(CustomMetric.is_predefined).desc(),
             col(CustomMetric.created_at).asc(),
@@ -51,10 +63,12 @@ def _list_active_db_metrics(session: Session) -> list[CustomMetric]:
     return list(session.exec(statement).all())
 
 
-def get_default_metrics(session: Session | None = None) -> list[MetricDefinition]:
-    """Predefined scored metrics flagged ``include_in_defaults``."""
+def get_default_metrics(
+    session: Session | None = None, *, company_id: uuid.UUID | None = None
+) -> list[MetricDefinition]:
+    """Predefined scored metrics flagged ``include_in_defaults`` for the tenant."""
     with _session_scope(session) as db_session:
-        rows = _list_active_db_metrics(db_session)
+        rows = _list_active_db_metrics(db_session, company_id=company_id)
         return [
             custom_metric_row_to_definition(r)
             for r in rows
@@ -64,10 +78,12 @@ def get_default_metrics(session: Session | None = None) -> list[MetricDefinition
         ]
 
 
-def get_metrics_for_api(session: Session | None = None) -> list[MetricDefinition]:
-    """All active (non-draft, non-deleted) metrics for UI / config discovery."""
+def get_metrics_for_api(
+    session: Session | None = None, *, company_id: uuid.UUID | None = None
+) -> list[MetricDefinition]:
+    """All active (non-draft, non-deleted) metrics visible to the tenant."""
     with _session_scope(session) as db_session:
-        rows = _list_active_db_metrics(db_session)
+        rows = _list_active_db_metrics(db_session, company_id=company_id)
         return [custom_metric_row_to_definition(r) for r in rows]
 
 
@@ -108,20 +124,21 @@ def resolve_metrics(
     judge_config: JudgeConfig | None,
     *,
     session: Session | None = None,
+    company_id: uuid.UUID | None = None,
 ) -> list[tuple[MetricDefinition, float]]:
     """Resolve selected metrics and weights; weights renormalized to sum to 1.0.
 
-    Looks up metric definitions in the global ``custom_metric`` table. Raises
+    Looks up metric definitions in the tenant's per-company copies. Raises
     ``ValueError`` for any name not present.
     """
     if judge_config is None or judge_config.metrics is None:
-        defaults = get_default_metrics(session)
+        defaults = get_default_metrics(session, company_id=company_id)
         pairs = [(m, m.default_weight) for m in defaults]
         return _normalize_weights(pairs)
 
     selections: list[MetricSelection] = judge_config.metrics
     if not selections:
-        defaults = get_default_metrics(session)
+        defaults = get_default_metrics(session, company_id=company_id)
         pairs = [(m, m.default_weight) for m in defaults]
         return _normalize_weights(pairs)
 
@@ -129,7 +146,10 @@ def resolve_metrics(
     for sel in selections:
         with _session_scope(session) as db_session:
             row = get_custom_metric_by_name(
-                session=db_session, name=sel.metric, include_deleted=True
+                session=db_session,
+                name=sel.metric,
+                company_id=company_id,
+                include_deleted=True,
             )
         if row is None:
             msg = f"Unknown metric: {sel.metric}"

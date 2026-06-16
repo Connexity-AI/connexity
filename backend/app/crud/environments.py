@@ -8,8 +8,11 @@ from app.models.deployment import Deployment
 from app.models.environment import Environment, EnvironmentCreate, EnvironmentUpdate
 
 
-def create_environment(*, session: Session, data: EnvironmentCreate) -> Environment:
+def create_environment(
+    *, session: Session, data: EnvironmentCreate, company_id: uuid.UUID
+) -> Environment:
     db_obj = Environment(
+        company_id=company_id,
         name=data.name,
         platform=data.platform,
         agent_id=data.agent_id,
@@ -23,9 +26,17 @@ def create_environment(*, session: Session, data: EnvironmentCreate) -> Environm
 
 
 def get_environment(
-    *, session: Session, environment_id: uuid.UUID
+    *,
+    session: Session,
+    environment_id: uuid.UUID,
+    company_id: uuid.UUID | None = None,
 ) -> Environment | None:
-    return session.get(Environment, environment_id)
+    env = session.get(Environment, environment_id)
+    if env is None:
+        return None
+    if company_id is not None and env.company_id != company_id:
+        return None
+    return env
 
 
 def update_environment(

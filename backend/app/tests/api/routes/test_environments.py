@@ -20,7 +20,7 @@ from app.models import (
     User,
 )
 from app.services.webhook_deploy import WebhookDeployResult
-from app.tests.utils.eval import create_test_agent
+from app.tests.utils.eval import create_test_agent, get_test_company_id
 from app.tests.utils.utils import AUTH_USER_EMAIL
 
 
@@ -60,6 +60,7 @@ def _make_integration(db: Session):
             name=f"int-{uuid.uuid4().hex[:6]}",
             api_key="sk_test_env_routes",
         ),
+        company_id=get_test_company_id(db),
     )
 
 
@@ -71,6 +72,7 @@ def _make_elevenlabs_integration(db: Session):
             name=f"int-{uuid.uuid4().hex[:6]}",
             api_key="sk_test_eleven_env_routes",
         ),
+        company_id=get_test_company_id(db),
     )
 
 
@@ -253,11 +255,12 @@ def test_list_environments_unknown_agent_returns_404(
     assert r.status_code == 404
 
 
-def test_other_user_can_list_environment(
+def test_environment_is_isolated_per_company(
     client: TestClient,
     normal_user_auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
+    """An environment created in one company isn't visible to a user in another."""
     agent, user = _make_owned_agent(db)
     integration = _make_integration(db)
     _bind_agent_provider_target(
@@ -268,22 +271,24 @@ def test_other_user_can_list_environment(
         platform_agent_id="ret_a_other",
         platform_agent_name="ret_a_other",
     )
-    env = crud.create_environment(
+    crud.create_environment(
         session=db,
         data=EnvironmentCreate(
             name=f"env-{uuid.uuid4().hex[:6]}",
             platform=Platform.RETELL,
             agent_id=agent.id,
         ),
+        company_id=get_test_company_id(db),
     )
 
+    # ``normal_user_auth_cookies`` is in a different company, so the agent
+    # itself is hidden — listing environments via that agent_id returns 404.
     other_list = client.get(
         f"{settings.API_V1_STR}/environments/",
         params={"agent_id": str(agent.id)},
         cookies=normal_user_auth_cookies,
     )
-    assert other_list.status_code == 200
-    assert any(item["id"] == str(env.id) for item in other_list.json()["data"])
+    assert other_list.status_code == 404
 
 
 def test_create_webhook_environment_without_integration(
@@ -392,6 +397,7 @@ def test_update_environment_changes_configuration_fields(
             platform=Platform.RETELL,
             agent_id=agent.id,
         ),
+        company_id=get_test_company_id(db),
     )
     env.current_version_number = 3
     env.current_version_name = "Guardrail tightening"
@@ -446,6 +452,7 @@ def test_update_environment_rejects_gate_for_other_agent(
             platform=Platform.RETELL,
             agent_id=agent.id,
         ),
+        company_id=get_test_company_id(db),
     )
 
     r = client.patch(
@@ -481,6 +488,7 @@ def test_update_environment_rejects_null_required_fields(
             platform=Platform.RETELL,
             agent_id=agent.id,
         ),
+        company_id=get_test_company_id(db),
     )
 
     r = client.patch(
@@ -514,6 +522,7 @@ def test_update_webhook_endpoint_url_resets_current_deployed_version(
             agent_id=agent.id,
             endpoint_url="http://localhost:8000/webhook-receiver",
         ),
+        company_id=get_test_company_id(db),
     )
     env.current_version_number = 3
     env.current_version_name = "Guardrail tightening"
@@ -567,6 +576,7 @@ def test_deploy_blocked_by_gate_when_no_run_for_version(
             agent_id=agent.id,
             eval_gate_eval_config_id=gate_cfg.id,
         ),
+        company_id=get_test_company_id(db),
     )
 
     active = crud.get_active_agent_version(session=db, agent_id=agent.id)
@@ -602,6 +612,7 @@ def test_delete_integration_returns_409_when_environment_depends_on_it(
             platform=Platform.RETELL,
             agent_id=agent.id,
         ),
+        company_id=get_test_company_id(db),
     )
 
     with patch.dict(
@@ -631,6 +642,7 @@ def test_deploy_webhook_environment_marks_success_on_2xx(
             agent_id=agent.id,
             endpoint_url="https://example.com/hooks/deploy",
         ),
+        company_id=get_test_company_id(db),
     )
 
     with patch(
@@ -663,6 +675,7 @@ def test_deploy_webhook_environment_returns_failure_message(
             agent_id=agent.id,
             endpoint_url="https://example.com/hooks/deploy",
         ),
+        company_id=get_test_company_id(db),
     )
     with patch(
         "app.api.routes.environments.deliver_webhook_deployment",

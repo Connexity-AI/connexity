@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app import crud
-from app.api.deps import SessionDep, get_current_user
+from app.api.deps import CurrentCompany, SessionDep, get_current_user
 from app.models import Message
 from app.models.eval_config import (
     EvalConfig,
@@ -79,10 +79,14 @@ router = APIRouter(
     response_model=RuntimeTestResult,
 )
 async def test_runtime(
-    session: SessionDep, body: RuntimeTestRequest
+    session: SessionDep,
+    company_id: CurrentCompany,
+    body: RuntimeTestRequest,
 ) -> RuntimeTestResult:
     """Smoke-test a runtime config against an agent."""
-    agent = crud.get_agent(session=session, agent_id=body.agent_id)
+    agent = crud.get_agent(
+        session=session, agent_id=body.agent_id, company_id=company_id
+    )
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
     try:
@@ -110,11 +114,13 @@ async def test_runtime(
 
 @router.post("/", response_model=EvalConfigPublic)
 def create_eval_config(
-    session: SessionDep, eval_config_in: EvalConfigCreate
+    session: SessionDep,
+    company_id: CurrentCompany,
+    eval_config_in: EvalConfigCreate,
 ) -> EvalConfigPublic:
     try:
         eval_config = crud.create_eval_config(
-            session=session, eval_config_in=eval_config_in
+            session=session, eval_config_in=eval_config_in, company_id=company_id
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -124,12 +130,17 @@ def create_eval_config(
 @router.get("/", response_model=EvalConfigsPublic)
 def list_eval_configs(
     session: SessionDep,
+    company_id: CurrentCompany,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=1000),
     agent_id: uuid.UUID | None = None,
 ) -> EvalConfigsPublic:
     items, count = crud.list_eval_configs(
-        session=session, skip=skip, limit=limit, agent_id=agent_id
+        session=session,
+        company_id=company_id,
+        skip=skip,
+        limit=limit,
+        agent_id=agent_id,
     )
     ids = [s.id for s in items]
     counts = crud.count_test_cases_in_configs(session=session, eval_config_ids=ids)
@@ -153,8 +164,14 @@ def list_eval_configs(
 
 
 @router.get("/{eval_config_id}", response_model=EvalConfigPublic)
-def get_eval_config(session: SessionDep, eval_config_id: uuid.UUID) -> EvalConfigPublic:
-    eval_config = crud.get_eval_config(session=session, eval_config_id=eval_config_id)
+def get_eval_config(
+    session: SessionDep,
+    company_id: CurrentCompany,
+    eval_config_id: uuid.UUID,
+) -> EvalConfigPublic:
+    eval_config = crud.get_eval_config(
+        session=session, eval_config_id=eval_config_id, company_id=company_id
+    )
     if not eval_config:
         raise HTTPException(status_code=404, detail="Eval config not found")
     return _to_public(session, eval_config)
@@ -163,10 +180,13 @@ def get_eval_config(session: SessionDep, eval_config_id: uuid.UUID) -> EvalConfi
 @router.patch("/{eval_config_id}", response_model=EvalConfigPublic)
 def update_eval_config(
     session: SessionDep,
+    company_id: CurrentCompany,
     eval_config_id: uuid.UUID,
     eval_config_in: EvalConfigUpdate,
 ) -> EvalConfigPublic:
-    eval_config = crud.get_eval_config(session=session, eval_config_id=eval_config_id)
+    eval_config = crud.get_eval_config(
+        session=session, eval_config_id=eval_config_id, company_id=company_id
+    )
     if not eval_config:
         raise HTTPException(status_code=404, detail="Eval config not found")
     try:
@@ -181,8 +201,14 @@ def update_eval_config(
 
 
 @router.delete("/{eval_config_id}", response_model=Message)
-def delete_eval_config(session: SessionDep, eval_config_id: uuid.UUID) -> Message:
-    eval_config = crud.get_eval_config(session=session, eval_config_id=eval_config_id)
+def delete_eval_config(
+    session: SessionDep,
+    company_id: CurrentCompany,
+    eval_config_id: uuid.UUID,
+) -> Message:
+    eval_config = crud.get_eval_config(
+        session=session, eval_config_id=eval_config_id, company_id=company_id
+    )
     if not eval_config:
         raise HTTPException(status_code=404, detail="Eval config not found")
     crud.delete_eval_config(session=session, db_eval_config=eval_config)
@@ -195,11 +221,14 @@ def delete_eval_config(session: SessionDep, eval_config_id: uuid.UUID) -> Messag
 @router.get("/{eval_config_id}/test-cases", response_model=EvalConfigMembersPublic)
 def list_test_cases_in_config(
     session: SessionDep,
+    company_id: CurrentCompany,
     eval_config_id: uuid.UUID,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=1000),
 ) -> EvalConfigMembersPublic:
-    eval_config = crud.get_eval_config(session=session, eval_config_id=eval_config_id)
+    eval_config = crud.get_eval_config(
+        session=session, eval_config_id=eval_config_id, company_id=company_id
+    )
     if not eval_config:
         raise HTTPException(status_code=404, detail="Eval config not found")
     members, count = crud.list_test_cases_in_config(
@@ -211,10 +240,13 @@ def list_test_cases_in_config(
 @router.post("/{eval_config_id}/test-cases", response_model=EvalConfigPublic)
 def add_test_cases_to_config(
     session: SessionDep,
+    company_id: CurrentCompany,
     eval_config_id: uuid.UUID,
     body: EvalConfigMembersUpdate,
 ) -> EvalConfigPublic:
-    eval_config = crud.get_eval_config(session=session, eval_config_id=eval_config_id)
+    eval_config = crud.get_eval_config(
+        session=session, eval_config_id=eval_config_id, company_id=company_id
+    )
     if not eval_config:
         raise HTTPException(status_code=404, detail="Eval config not found")
     try:
@@ -231,10 +263,13 @@ def add_test_cases_to_config(
 @router.put("/{eval_config_id}/test-cases", response_model=EvalConfigPublic)
 def replace_test_cases_in_config(
     session: SessionDep,
+    company_id: CurrentCompany,
     eval_config_id: uuid.UUID,
     body: EvalConfigMembersUpdate,
 ) -> EvalConfigPublic:
-    eval_config = crud.get_eval_config(session=session, eval_config_id=eval_config_id)
+    eval_config = crud.get_eval_config(
+        session=session, eval_config_id=eval_config_id, company_id=company_id
+    )
     if not eval_config:
         raise HTTPException(status_code=404, detail="Eval config not found")
     try:
@@ -253,10 +288,13 @@ def replace_test_cases_in_config(
 )
 def remove_test_case_from_config(
     session: SessionDep,
+    company_id: CurrentCompany,
     eval_config_id: uuid.UUID,
     test_case_id: uuid.UUID,
 ) -> EvalConfigPublic:
-    eval_config = crud.get_eval_config(session=session, eval_config_id=eval_config_id)
+    eval_config = crud.get_eval_config(
+        session=session, eval_config_id=eval_config_id, company_id=company_id
+    )
     if not eval_config:
         raise HTTPException(status_code=404, detail="Eval config not found")
     updated = crud.remove_test_case_from_config(

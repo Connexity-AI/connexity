@@ -2149,6 +2149,96 @@ export const CauseAnalysisItemSchema = {
   title: 'CauseAnalysisItem',
 } as const;
 
+export const CompanyLLMCredentialsPublicSchema = {
+  properties: {
+    openai_api_key_masked: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Openai Api Key Masked',
+    },
+    anthropic_api_key_masked: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Anthropic Api Key Masked',
+    },
+    preferred_llm_provider: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/LLMProvider',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    has_any_llm_key: {
+      type: 'boolean',
+      title: 'Has Any Llm Key',
+      description: 'True when at least one provider key is configured',
+    },
+  },
+  type: 'object',
+  required: ['has_any_llm_key'],
+  title: 'CompanyLLMCredentialsPublic',
+  description: "Masked view of a company's LLM credentials for the settings page.",
+} as const;
+
+export const CompanyLLMCredentialsUpdateSchema = {
+  properties: {
+    openai_api_key: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Openai Api Key',
+      description: 'OpenAI API key. Set to empty string to clear; omit to leave unchanged.',
+    },
+    anthropic_api_key: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Anthropic Api Key',
+      description: 'Anthropic API key. Set to empty string to clear; omit to leave unchanged.',
+    },
+    preferred_llm_provider: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/LLMProvider',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: "Default provider when a feature doesn't pin one. Required at onboarding.",
+    },
+  },
+  type: 'object',
+  title: 'CompanyLLMCredentialsUpdate',
+  description:
+    "Payload to set or rotate a company's LLM credentials.\n\nEither ``openai_api_key`` or ``anthropic_api_key`` (or both) must be\nprovided on initial onboarding. When updating, an empty value clears\nthat provider's key.",
+} as const;
+
 export const ConfigPublicSchema = {
   properties: {
     project_name: {
@@ -4138,6 +4228,14 @@ export const LLMModelsPublicSchema = {
   title: 'LLMModelsPublic',
 } as const;
 
+export const LLMProviderSchema = {
+  type: 'string',
+  enum: ['openai', 'anthropic'],
+  title: 'LLMProvider',
+  description:
+    'LLM providers a company can use for evaluations + test case generation.\n\nBackend features are provider-agnostic — they use whichever provider the\ncompany has a key for, with model auto-rerouting at the LLM service layer.',
+} as const;
+
 export const MessageSchema = {
   properties: {
     message: {
@@ -4678,6 +4776,23 @@ export const OnConflictSchema = {
   type: 'string',
   enum: ['skip', 'overwrite'],
   title: 'OnConflict',
+} as const;
+
+export const OnboardingStatusPublicSchema = {
+  properties: {
+    has_llm_key: {
+      type: 'boolean',
+      title: 'Has Llm Key',
+    },
+    onboarding_complete: {
+      type: 'boolean',
+      title: 'Onboarding Complete',
+    },
+  },
+  type: 'object',
+  required: ['has_llm_key', 'onboarding_complete'],
+  title: 'OnboardingStatusPublic',
+  description: 'Whether the user has completed the post-signup setup steps.',
 } as const;
 
 export const PlatformSchema = {
@@ -8234,9 +8349,14 @@ export const UserPublicSchema = {
       format: 'uuid',
       title: 'Id',
     },
+    company_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Company Id',
+    },
   },
   type: 'object',
-  required: ['email', 'id'],
+  required: ['email', 'id', 'company_id'],
   title: 'UserPublic',
 } as const;
 

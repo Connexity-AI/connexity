@@ -72,6 +72,7 @@ def active_published_versions_by_agent_ids(
 def build_version_row(
     *,
     agent_id: uuid.UUID,
+    company_id: uuid.UUID,
     version: int | None,
     status: AgentVersionStatus,
     source: Agent | AgentVersion,
@@ -82,6 +83,7 @@ def build_version_row(
 ) -> AgentVersion:
     return AgentVersion(
         agent_id=agent_id,
+        company_id=company_id,
         version=version,
         status=status,
         mode=source.mode,
@@ -102,10 +104,12 @@ def create_initial_version(
     *,
     session: Session,
     agent: Agent,
+    company_id: uuid.UUID,
     created_by: uuid.UUID | None,
 ) -> AgentVersion:
     row = build_version_row(
         agent_id=agent.id,
+        company_id=company_id,
         version=1,
         status=AgentVersionStatus.PUBLISHED,
         source=agent,
@@ -205,6 +209,7 @@ def rollback_to_version(
 
     new_row = build_version_row(
         agent_id=locked.id,
+        company_id=locked.company_id,
         version=new_version_num,
         status=AgentVersionStatus.PUBLISHED,
         source=locked,
@@ -223,6 +228,7 @@ def rollback_to_version(
     else:
         new_draft = build_version_row(
             agent_id=locked.id,
+            company_id=locked.company_id,
             version=None,
             status=AgentVersionStatus.DRAFT,
             source=target,
@@ -280,6 +286,7 @@ def create_or_update_draft(
 
     draft = build_version_row(
         agent_id=locked.id,
+        company_id=locked.company_id,
         version=None,
         status=AgentVersionStatus.DRAFT,
         source=locked,
@@ -332,6 +339,7 @@ def publish_draft(
 
     published_row = build_version_row(
         agent_id=locked.id,
+        company_id=locked.company_id,
         version=new_version,
         status=AgentVersionStatus.PUBLISHED,
         source=draft,

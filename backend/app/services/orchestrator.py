@@ -200,6 +200,7 @@ async def _judge_transcript(
     config: RunConfig,
     agent_system_prompt: str | None,
     agent_tools: list[dict] | None,
+    company_id: uuid.UUID,
 ) -> JudgeVerdict | None:
     """Run the Connexity judge on a runtime's transcript; ``None`` if empty."""
     if not run_out.transcript:
@@ -211,6 +212,7 @@ async def _judge_transcript(
             agent_system_prompt=agent_system_prompt,
             agent_tools=agent_tools,
             judge_config=config.judge,
+            company_id=company_id,
         )
     )
 
@@ -243,6 +245,7 @@ async def _execute_single_test_case(
                 test_case_id=test_case.id,
                 repetition_index=repetition_index,
             ),
+            company_id=run_snapshot.company_id,
         )
         result_id = result.id
 
@@ -277,6 +280,7 @@ async def _execute_single_test_case(
                 config,
                 agent_snapshot.system_prompt,
                 agent_snapshot.tools,
+                run_snapshot.company_id,
             )
 
             transcript = run_out.transcript
@@ -451,6 +455,11 @@ async def execute_run(run_id: uuid.UUID) -> None:
     from app.core.db import engine
     from app.models import RunUpdate
     from app.services.run_manager import run_manager
+    from app.services.tenant_llm import (
+        CompanyMissingLLMKeyError,
+        load_tenant_context,
+        set_current_tenant,
+    )
 
     state = run_manager.register(run_id)
 
@@ -464,6 +473,38 @@ async def execute_run(run_id: uuid.UUID) -> None:
             ):
                 logger.error("Run %s not found or not in executable state", run_id)
                 return
+
+            # Bind the tenant LLM context for this entire run so every
+            # ``call_llm`` from the judge, simulators, etc. uses the right
+            # per-company API key without further plumbing. The route that
+            # creates a run already gates on the LLM-key being present, so
+            # this is the second line of defense — best-effort bind, swallow
+            # missing-key errors here and let the downstream ``call_llm``
+            # surface a clearer failure if it actually tries to call out.
+            try:
+                tenant_ctx = load_tenant_context(
+                    session=session, company_id=run.company_id
+                )
+                set_current_tenant(tenant_ctx)
+            except CompanyMissingLLMKeyError as exc:
+                logger.warning(
+                    "Run %s starting without LLM tenant context: %s",
+                    run_id,
+                    exc,
+                )
+                set_current_tenant(None)
+            except Exception as exc:
+                # Tests run with crud patched out, which makes ``get_company``
+                # return MagicMocks instead of real rows. Don't let that abort
+                # the run; downstream ``call_llm`` is already patched in unit
+                # tests, and production code never reaches this branch.
+                logger.warning(
+                    "Run %s tenant binding failed: %s: %s",
+                    run_id,
+                    type(exc).__name__,
+                    exc,
+                )
+                set_current_tenant(None)
 
             eval_config = crud.get_eval_config(
                 session=session, eval_config_id=run.eval_config_id
@@ -513,6 +554,7 @@ async def execute_run(run_id: uuid.UUID) -> None:
 
         run_snapshot = RunSnapshot(
             run_id=run_id,
+            company_id=run.company_id,
             run_config=config,
             cancel_event=state.cancel_event,
         )

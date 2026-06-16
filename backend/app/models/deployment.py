@@ -17,6 +17,7 @@ class Deployment(DeploymentBase, table=True):
     __tablename__ = "deployment"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    company_id: uuid.UUID = Field(foreign_key="company.id", index=True)
     retell_version_name: str | None = Field(default=None, max_length=255)
     status: DeploymentStatus = Field(default=DeploymentStatus.PENDING, index=True)
     error_message: str | None = Field(default=None)

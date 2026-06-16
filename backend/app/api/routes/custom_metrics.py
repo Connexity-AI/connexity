@@ -5,7 +5,7 @@ from litellm.exceptions import APIError
 from sqlalchemy.exc import IntegrityError
 
 from app import crud
-from app.api.deps import CurrentUser, SessionDep, get_current_user
+from app.api.deps import CurrentCompany, CurrentUser, SessionDep, get_current_user
 from app.models import (
     CustomMetric,
     CustomMetricCreate,
@@ -31,13 +31,17 @@ router = APIRouter(
 def create_custom_metric(
     session: SessionDep,
     current_user: CurrentUser,
+    company_id: CurrentCompany,
     metric_in: CustomMetricCreate,
 ) -> CustomMetric:
     # User-created metrics can never claim is_predefined; force False.
     metric_in.is_predefined = False
     try:
         return crud.create_custom_metric(
-            session=session, metric_in=metric_in, owner_id=current_user.id
+            session=session,
+            metric_in=metric_in,
+            company_id=company_id,
+            owner_id=current_user.id,
         )
     except IntegrityError:
         session.rollback()
@@ -63,11 +67,13 @@ async def generate_custom_metric_preview(
 @router.get("/", response_model=CustomMetricsPublic)
 def list_custom_metrics(
     session: SessionDep,
+    company_id: CurrentCompany,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=1000),
 ) -> CustomMetricsPublic:
     items, count = crud.list_custom_metrics(
         session=session,
+        company_id=company_id,
         skip=skip,
         limit=limit,
     )
@@ -82,9 +88,12 @@ def list_custom_metrics(
 @router.get("/{metric_id}", response_model=CustomMetricPublic)
 def get_custom_metric(
     session: SessionDep,
+    company_id: CurrentCompany,
     metric_id: uuid.UUID,
 ) -> CustomMetric:
-    metric = crud.get_custom_metric(session=session, metric_id=metric_id)
+    metric = crud.get_custom_metric(
+        session=session, metric_id=metric_id, company_id=company_id
+    )
     if not metric:
         raise HTTPException(status_code=404, detail="Custom metric not found")
     return metric
@@ -93,10 +102,13 @@ def get_custom_metric(
 @router.put("/{metric_id}", response_model=CustomMetricPublic)
 def update_custom_metric(
     session: SessionDep,
+    company_id: CurrentCompany,
     metric_id: uuid.UUID,
     metric_in: CustomMetricUpdate,
 ) -> CustomMetric:
-    metric = crud.get_custom_metric(session=session, metric_id=metric_id)
+    metric = crud.get_custom_metric(
+        session=session, metric_id=metric_id, company_id=company_id
+    )
     if not metric:
         raise HTTPException(status_code=404, detail="Custom metric not found")
     if (
@@ -123,9 +135,12 @@ def update_custom_metric(
 @router.delete("/{metric_id}", response_model=Message)
 def delete_custom_metric(
     session: SessionDep,
+    company_id: CurrentCompany,
     metric_id: uuid.UUID,
 ) -> Message:
-    metric = crud.get_custom_metric(session=session, metric_id=metric_id)
+    metric = crud.get_custom_metric(
+        session=session, metric_id=metric_id, company_id=company_id
+    )
     if not metric:
         raise HTTPException(status_code=404, detail="Custom metric not found")
     crud.delete_custom_metric(session=session, db_metric=metric)

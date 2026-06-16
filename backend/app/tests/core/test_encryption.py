@@ -41,7 +41,8 @@ def test_mask_key_long_value() -> None:
     assert masked.startswith("abcd")
     assert masked.endswith("wxyz")
     assert "•" in masked
-    assert len(masked) == len("abcdefghijklmnopqrstuvwxyz")
+    # Fixed-width mask: visible prefix + 4 bullets + visible suffix.
+    assert masked == "abcd••••wxyz"
 
 
 def test_mask_key_short_value_fully_masked() -> None:

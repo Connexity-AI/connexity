@@ -66,6 +66,10 @@ class CustomMetric(CustomMetricBase, table=True):
     __tablename__ = "custom_metric"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    # NULL for predefined (system-seeded) metrics that have no company owner.
+    company_id: uuid.UUID | None = Field(
+        default=None, foreign_key="company.id", index=True, nullable=True
+    )
     # NULL for predefined (system-seeded) metrics that have no human owner.
     created_by: uuid.UUID | None = Field(
         default=None, foreign_key="user.id", index=True, nullable=True

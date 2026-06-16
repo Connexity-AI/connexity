@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
-from app.api.deps import SessionDep, get_current_user
+from app.api.deps import CurrentCompany, SessionDep, get_current_user
 from app.core.config import settings
 from app.models import ConfigPublic, PredefinedToolsPublic
 from app.services.agent_tool_definitions import list_predefined_tools_for_api
@@ -41,14 +41,15 @@ def get_predefined_tools() -> PredefinedToolsPublic:
 @router.get("/available-metrics", response_model=AvailableMetricsPublic)
 def get_available_metrics(
     session: SessionDep,
+    company_id: CurrentCompany,
 ) -> AvailableMetricsPublic:
     """All metrics available for use in eval configs (active, non-draft).
 
-    Both built-in (predefined) and user-created metrics live in the same
-    ``custom_metric`` table; ``is_draft`` rows are excluded so the create-eval
+    Every tenant has its own per-company copy of every built-in metric plus
+    any user-created ones. ``is_draft`` rows are excluded so the create-eval
     judge picker only shows metrics the user has marked active.
     """
-    metrics = get_metrics_for_api(session)
+    metrics = get_metrics_for_api(session, company_id=company_id)
     return AvailableMetricsPublic(data=metrics, count=len(metrics))
 
 

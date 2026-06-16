@@ -8,7 +8,7 @@ import { SidebarProvider } from '@workspace/ui/components/ui/sidebar';
 import Sidebar from '@/components/dashboard/layout/sidebar';
 import { UsersService } from '@/client/sdk.gen';
 
-import type { UserPublic } from '@/client/types.gen';
+import type { OnboardingStatusPublic, UserPublic } from '@/client/types.gen';
 import type { FC, ReactNode } from 'react';
 
 async function getAuthenticatedUser(): Promise<UserPublic | undefined> {
@@ -20,14 +20,34 @@ async function getAuthenticatedUser(): Promise<UserPublic | undefined> {
   }
 }
 
+async function getOnboardingStatus(): Promise<OnboardingStatusPublic | undefined> {
+  try {
+    const result = await UsersService.readOnboardingStatus();
+    return result.data ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 interface Props {
   children: ReactNode;
 }
 
 const AppLayout: FC<Props> = async ({ children }) => {
-  const [currentUser, cookieStore] = await Promise.all([getAuthenticatedUser(), cookies()]);
+  const [currentUser, onboardingStatus, cookieStore] = await Promise.all([
+    getAuthenticatedUser(),
+    getOnboardingStatus(),
+    cookies(),
+  ]);
 
   if (!currentUser) redirect(UrlGenerator.login());
+
+  // No LLM key yet → push the user to onboarding before they can use any
+  // protected page. Settings and onboarding live outside this route group so
+  // they're still reachable without going through this gate.
+  if (onboardingStatus && !onboardingStatus.onboarding_complete) {
+    redirect(UrlGenerator.onboarding());
+  }
 
   const defaultOpen = cookieStore.get('sidebar:state')?.value !== 'false';
 

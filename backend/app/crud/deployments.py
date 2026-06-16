@@ -11,12 +11,14 @@ from app.models.environment import Environment
 def create_pending_deployment(
     *,
     session: Session,
+    company_id: uuid.UUID,
     environment_id: uuid.UUID,
     agent_id: uuid.UUID,
     agent_version: int,
     deployed_by_user_id: uuid.UUID | None,
 ) -> Deployment:
     db_obj = Deployment(
+        company_id=company_id,
         environment_id=environment_id,
         agent_id=agent_id,
         agent_version=agent_version,

@@ -1198,6 +1198,57 @@ export type CauseAnalysisItem = {
 };
 
 /**
+ * CompanyLLMCredentialsPublic
+ *
+ * Masked view of a company's LLM credentials for the settings page.
+ */
+export type CompanyLlmCredentialsPublic = {
+  /**
+   * Openai Api Key Masked
+   */
+  openai_api_key_masked?: string | null;
+  /**
+   * Anthropic Api Key Masked
+   */
+  anthropic_api_key_masked?: string | null;
+  preferred_llm_provider?: LlmProvider | null;
+  /**
+   * Has Any Llm Key
+   *
+   * True when at least one provider key is configured
+   */
+  has_any_llm_key: boolean;
+};
+
+/**
+ * CompanyLLMCredentialsUpdate
+ *
+ * Payload to set or rotate a company's LLM credentials.
+ *
+ * Either ``openai_api_key`` or ``anthropic_api_key`` (or both) must be
+ * provided on initial onboarding. When updating, an empty value clears
+ * that provider's key.
+ */
+export type CompanyLlmCredentialsUpdate = {
+  /**
+   * Openai Api Key
+   *
+   * OpenAI API key. Set to empty string to clear; omit to leave unchanged.
+   */
+  openai_api_key?: string | null;
+  /**
+   * Anthropic Api Key
+   *
+   * Anthropic API key. Set to empty string to clear; omit to leave unchanged.
+   */
+  anthropic_api_key?: string | null;
+  /**
+   * Default provider when a feature doesn't pin one. Required at onboarding.
+   */
+  preferred_llm_provider?: LlmProvider | null;
+};
+
+/**
  * ConfigPublic
  */
 export type ConfigPublic = {
@@ -2520,6 +2571,26 @@ export type LlmModelsPublic = {
 };
 
 /**
+ * LLMProvider
+ *
+ * LLM providers a company can use for evaluations + test case generation.
+ *
+ * Backend features are provider-agnostic — they use whichever provider the
+ * company has a key for, with model auto-rerouting at the LLM service layer.
+ */
+export const LlmProvider = { OPENAI: 'openai', ANTHROPIC: 'anthropic' } as const;
+
+/**
+ * LLMProvider
+ *
+ * LLM providers a company can use for evaluations + test case generation.
+ *
+ * Backend features are provider-agnostic — they use whichever provider the
+ * company has a key for, with model auto-rerouting at the LLM service layer.
+ */
+export type LlmProvider = (typeof LlmProvider)[keyof typeof LlmProvider];
+
+/**
  * Message
  */
 export type Message = {
@@ -2869,6 +2940,22 @@ export const OnConflict = { SKIP: 'skip', OVERWRITE: 'overwrite' } as const;
  * OnConflict
  */
 export type OnConflict = (typeof OnConflict)[keyof typeof OnConflict];
+
+/**
+ * OnboardingStatusPublic
+ *
+ * Whether the user has completed the post-signup setup steps.
+ */
+export type OnboardingStatusPublic = {
+  /**
+   * Has Llm Key
+   */
+  has_llm_key: boolean;
+  /**
+   * Onboarding Complete
+   */
+  onboarding_complete: boolean;
+};
 
 /**
  * Platform
@@ -5024,6 +5111,10 @@ export type UserPublic = {
    * Id
    */
   id: string;
+  /**
+   * Company Id
+   */
+  company_id: string;
 };
 
 /**
@@ -6030,6 +6121,57 @@ export type UsersUpdatePasswordMeResponses = {
 
 export type UsersUpdatePasswordMeResponse =
   UsersUpdatePasswordMeResponses[keyof UsersUpdatePasswordMeResponses];
+
+export type UsersReadOnboardingStatusData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/users/me/onboarding-status';
+};
+
+export type UsersReadOnboardingStatusErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type UsersReadOnboardingStatusError =
+  UsersReadOnboardingStatusErrors[keyof UsersReadOnboardingStatusErrors];
+
+export type UsersReadOnboardingStatusResponses = {
+  /**
+   * Successful Response
+   */
+  200: OnboardingStatusPublic;
+};
+
+export type UsersReadOnboardingStatusResponse =
+  UsersReadOnboardingStatusResponses[keyof UsersReadOnboardingStatusResponses];
 
 export type McpListAgentsData = {
   body?: never;
@@ -11382,3 +11524,105 @@ export type CallsGetCallDetailResponses = {
 
 export type CallsGetCallDetailResponse =
   CallsGetCallDetailResponses[keyof CallsGetCallDetailResponses];
+
+export type CompanyGetLlmCredentialsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/company/llm-credentials';
+};
+
+export type CompanyGetLlmCredentialsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CompanyGetLlmCredentialsError =
+  CompanyGetLlmCredentialsErrors[keyof CompanyGetLlmCredentialsErrors];
+
+export type CompanyGetLlmCredentialsResponses = {
+  /**
+   * Successful Response
+   */
+  200: CompanyLlmCredentialsPublic;
+};
+
+export type CompanyGetLlmCredentialsResponse =
+  CompanyGetLlmCredentialsResponses[keyof CompanyGetLlmCredentialsResponses];
+
+export type CompanyUpdateLlmCredentialsData = {
+  body: CompanyLlmCredentialsUpdate;
+  path?: never;
+  query?: never;
+  url: '/api/v1/company/llm-credentials';
+};
+
+export type CompanyUpdateLlmCredentialsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CompanyUpdateLlmCredentialsError =
+  CompanyUpdateLlmCredentialsErrors[keyof CompanyUpdateLlmCredentialsErrors];
+
+export type CompanyUpdateLlmCredentialsResponses = {
+  /**
+   * Successful Response
+   */
+  200: CompanyLlmCredentialsPublic;
+};
+
+export type CompanyUpdateLlmCredentialsResponse =
+  CompanyUpdateLlmCredentialsResponses[keyof CompanyUpdateLlmCredentialsResponses];

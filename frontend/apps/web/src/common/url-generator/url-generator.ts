@@ -25,6 +25,13 @@ export class UrlGenerator {
     return createTypedLink(route, emptyParser, options)(values);
   }
 
+  // ── Onboarding ──
+
+  static onboarding() {
+    const route = '/onboarding/' as Route;
+    return createTypedLink(route, emptyParser, {})({});
+  }
+
   // ── Dashboard ──
 
   static dashboard({ options, values }: DashboardType = {}) {

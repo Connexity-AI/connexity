@@ -10,7 +10,7 @@ from app.models import Agent, AgentCreate, AgentUpdate
 from app.models.enums import AgentMode
 from app.services.test_case_generator.batch.schemas import GenerateRequest
 from app.tests.services.test_case_generator.conftest import MOCK_LLM_RESPONSE
-from app.tests.utils.eval import create_test_agent
+from app.tests.utils.eval import create_test_agent, get_test_company_id
 
 
 async def _mock_generate(request):  # type: ignore[no-untyped-def]
@@ -39,7 +39,9 @@ def _platform_agent_for_generation(session: Session) -> Agent:
             }
         ],
     )
-    return crud.create_agent(session=session, agent_in=agent_in)
+    return crud.create_agent(
+        session=session, agent_in=agent_in, company_id=get_test_company_id(session)
+    )
 
 
 def test_generate_test_cases_endpoint_success(

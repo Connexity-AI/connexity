@@ -19,6 +19,7 @@ class EvalConfigMember(SQLModel, table=True):
 
     __tablename__ = "eval_config_member"
 
+    company_id: uuid.UUID = Field(foreign_key="company.id", index=True)
     eval_config_id: uuid.UUID = Field(
         foreign_key="eval_config.id",
         primary_key=True,
@@ -92,6 +93,7 @@ class EvalConfig(EvalConfigBase, table=True):
     __tablename__ = "eval_config"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    company_id: uuid.UUID = Field(foreign_key="company.id", index=True)
     config: dict[str, Any] | None = Field(
         default=None,
         sa_column=Column("config", JSONB, nullable=True),

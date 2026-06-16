@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from sqlmodel import Session
 
 from app import crud
-from app.api.deps import CurrentUser, SessionDep, get_current_user
+from app.api.deps import CurrentCompany, CurrentUser, SessionDep, get_current_user
 from app.core.config import settings
 from app.core.db import engine
 from app.models import (
@@ -101,11 +101,15 @@ def _session_public(pe_session: Any, message_count: int) -> PromptEditorSessionP
 def create_session(
     session: SessionDep,
     current_user: CurrentUser,
+    company_id: CurrentCompany,
     session_in: PromptEditorSessionCreate,
 ) -> PromptEditorSessionPublic:
     try:
         pe_session = crud.create_prompt_editor_session(
-            session=session, session_in=session_in, created_by=current_user.id
+            session=session,
+            session_in=session_in,
+            company_id=company_id,
+            created_by=current_user.id,
         )
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
@@ -116,12 +120,14 @@ def create_session(
 def list_sessions(
     session: SessionDep,
     current_user: CurrentUser,
+    company_id: CurrentCompany,
     agent_id: uuid.UUID | None = None,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=200),
 ) -> PromptEditorSessionsPublic:
     rows, total = crud.list_prompt_editor_sessions(
         session=session,
+        company_id=company_id,
         agent_id=agent_id,
         created_by=current_user.id,
         skip=skip,
@@ -133,9 +139,11 @@ def list_sessions(
 
 @router.get("/sessions/{session_id}", response_model=PromptEditorSessionPublic)
 def get_session(
-    session: SessionDep, session_id: uuid.UUID
+    session: SessionDep, company_id: CurrentCompany, session_id: uuid.UUID
 ) -> PromptEditorSessionPublic:
-    pe_session = crud.get_prompt_editor_session(session=session, session_id=session_id)
+    pe_session = crud.get_prompt_editor_session(
+        session=session, session_id=session_id, company_id=company_id
+    )
     if not pe_session:
         raise HTTPException(status_code=404, detail="Session not found")
     return _session_public(pe_session, message_count=len(pe_session.messages))
@@ -144,10 +152,13 @@ def get_session(
 @router.patch("/sessions/{session_id}", response_model=PromptEditorSessionPublic)
 def update_session(
     session: SessionDep,
+    company_id: CurrentCompany,
     session_id: uuid.UUID,
     session_in: PromptEditorSessionUpdate,
 ) -> PromptEditorSessionPublic:
-    pe_session = crud.get_prompt_editor_session(session=session, session_id=session_id)
+    pe_session = crud.get_prompt_editor_session(
+        session=session, session_id=session_id, company_id=company_id
+    )
     if not pe_session:
         raise HTTPException(status_code=404, detail="Session not found")
     updated = crud.update_prompt_editor_session(
@@ -162,11 +173,14 @@ def update_session(
 )
 def update_session_base_prompt(
     session: SessionDep,
+    company_id: CurrentCompany,
     session_id: uuid.UUID,
     body: PromptEditorSessionBasePromptUpdate,
 ) -> PromptEditorSessionPublic:
     """Set ``base_prompt`` (diff baseline), e.g. after the agent draft is saved."""
-    pe_session = crud.get_prompt_editor_session(session=session, session_id=session_id)
+    pe_session = crud.get_prompt_editor_session(
+        session=session, session_id=session_id, company_id=company_id
+    )
     if not pe_session:
         raise HTTPException(status_code=404, detail="Session not found")
     updated = crud.update_prompt_editor_session_base_prompt(
@@ -178,8 +192,12 @@ def update_session_base_prompt(
 
 
 @router.delete("/sessions/{session_id}", response_model=Message)
-def delete_session(session: SessionDep, session_id: uuid.UUID) -> Message:
-    pe_session = crud.get_prompt_editor_session(session=session, session_id=session_id)
+def delete_session(
+    session: SessionDep, company_id: CurrentCompany, session_id: uuid.UUID
+) -> Message:
+    pe_session = crud.get_prompt_editor_session(
+        session=session, session_id=session_id, company_id=company_id
+    )
     if not pe_session:
         raise HTTPException(status_code=404, detail="Session not found")
     crud.delete_prompt_editor_session(session=session, db_session=pe_session)
@@ -192,15 +210,21 @@ def delete_session(session: SessionDep, session_id: uuid.UUID) -> Message:
 )
 def list_messages(
     session: SessionDep,
+    company_id: CurrentCompany,
     session_id: uuid.UUID,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=500),
 ) -> PromptEditorMessagesPublic:
-    pe_session = crud.get_prompt_editor_session(session=session, session_id=session_id)
+    pe_session = crud.get_prompt_editor_session(
+        session=session, session_id=session_id, company_id=company_id
+    )
     if not pe_session:
         raise HTTPException(status_code=404, detail="Session not found")
     items, total = crud.list_prompt_editor_messages(
-        session=session, session_id=session_id, skip=skip, limit=limit
+        session=session,
+        session_id=session_id,
+        skip=skip,
+        limit=limit,
     )
     public_items = [
         PromptEditorMessagePublic.model_validate(m, from_attributes=True) for m in items
@@ -212,6 +236,7 @@ def list_messages(
 async def chat(
     request: Request,
     session: SessionDep,
+    company_id: CurrentCompany,
     session_id: uuid.UUID,
     body: PromptEditorChatMessageCreate,
 ) -> StreamingResponse:
@@ -226,13 +251,17 @@ async def chat(
     2. Open a **new** ``Session`` inside the generator for the DB writes that
        happen after the LLM stream completes.
     """
-    pe_session = crud.get_prompt_editor_session(session=session, session_id=session_id)
+    pe_session = crud.get_prompt_editor_session(
+        session=session, session_id=session_id, company_id=company_id
+    )
     if not pe_session:
         raise HTTPException(status_code=404, detail="Session not found")
     if pe_session.status != PromptEditorSessionStatus.ACTIVE:
         raise HTTPException(status_code=400, detail="Session is archived")
 
-    agent = crud.get_agent(session=session, agent_id=pe_session.agent_id)
+    agent = crud.get_agent(
+        session=session, agent_id=pe_session.agent_id, company_id=company_id
+    )
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
     try:
@@ -264,6 +293,7 @@ async def chat(
     try:
         crud.create_prompt_editor_message(
             session=session,
+            company_id=company_id,
             message_in=PromptEditorMessageCreate(
                 session_id=session_id,
                 role=TurnRole.USER,
@@ -319,6 +349,7 @@ async def chat(
             try:
                 assistant_msg = crud.create_prompt_editor_message(
                     session=db,
+                    company_id=company_id,
                     message_in=PromptEditorMessageCreate(
                         session_id=session_id,
                         role=TurnRole.ASSISTANT,
@@ -332,7 +363,7 @@ async def chat(
                 return
 
             fresh_pe_session = crud.get_prompt_editor_session(
-                session=db, session_id=session_id
+                session=db, session_id=session_id, company_id=company_id
             )
             if fresh_pe_session is None:
                 yield format_sse("error", {"detail": "Session not found after stream"})
@@ -364,9 +395,10 @@ async def chat(
 @router.get("/presets", response_model=list[PresetPublic])
 def get_presets(
     session: SessionDep,
+    company_id: CurrentCompany,
     agent_id: uuid.UUID = Query(description="Agent ID for contextual filtering"),
 ) -> list[PresetPublic]:
-    agent = crud.get_agent(session=session, agent_id=agent_id)
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
     presets = get_available_presets(agent=agent, session=session)

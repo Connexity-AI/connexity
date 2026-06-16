@@ -19,6 +19,7 @@ from app.tests.utils.eval import (
     create_test_prompt_editor_session,
     create_test_run,
     eval_config_members,
+    get_test_company_id,
 )
 from app.tests.utils.user import create_random_user
 
@@ -31,7 +32,10 @@ def test_create_session(db: Session) -> None:
         title="My session",
     )
     s = crud.create_prompt_editor_session(
-        session=db, session_in=session_in, created_by=user.id
+        session=db,
+        session_in=session_in,
+        created_by=user.id,
+        company_id=get_test_company_id(db),
     )
     assert s.title == "My session"
     assert s.agent_id == agent.id
@@ -44,7 +48,10 @@ def test_create_session_auto_title(db: Session) -> None:
     user = create_random_user(db)
     session_in = PromptEditorSessionCreate(agent_id=agent.id, title=None)
     s = crud.create_prompt_editor_session(
-        session=db, session_in=session_in, created_by=user.id
+        session=db,
+        session_in=session_in,
+        created_by=user.id,
+        company_id=get_test_company_id(db),
     )
     assert s.title is not None
     assert s.title.startswith("Session ")
@@ -55,7 +62,10 @@ def test_create_session_base_prompt_from_platform_agent(db: Session) -> None:
     user = create_random_user(db)
     session_in = PromptEditorSessionCreate(agent_id=agent.id)
     s = crud.create_prompt_editor_session(
-        session=db, session_in=session_in, created_by=user.id
+        session=db,
+        session_in=session_in,
+        created_by=user.id,
+        company_id=get_test_company_id(db),
     )
     assert s.base_prompt == "Hello from published row"
     assert s.edited_prompt is None
@@ -100,7 +110,10 @@ def test_create_session_with_run_id(db: Session) -> None:
         run_id=run.id,
     )
     s = crud.create_prompt_editor_session(
-        session=db, session_in=session_in, created_by=user.id
+        session=db,
+        session_in=session_in,
+        created_by=user.id,
+        company_id=get_test_company_id(db),
     )
     assert s.run_id == run.id
 
@@ -113,7 +126,10 @@ def test_create_session_invalid_agent(db: Session) -> None:
     )
     with pytest.raises(ValueError, match="Agent not found"):
         crud.create_prompt_editor_session(
-            session=db, session_in=session_in, created_by=user.id
+            session=db,
+            session_in=session_in,
+            created_by=user.id,
+            company_id=get_test_company_id(db),
         )
 
 
@@ -133,7 +149,10 @@ def test_create_session_run_id_wrong_agent(db: Session) -> None:
     )
     with pytest.raises(ValueError, match="Run does not belong to agent"):
         crud.create_prompt_editor_session(
-            session=db, session_in=session_in, created_by=user.id
+            session=db,
+            session_in=session_in,
+            created_by=user.id,
+            company_id=get_test_company_id(db),
         )
 
 
@@ -143,13 +162,20 @@ def test_get_session(db: Session) -> None:
     created = create_test_prompt_editor_session(
         db, agent_id=agent.id, created_by=user.id
     )
-    fetched = crud.get_prompt_editor_session(session=db, session_id=created.id)
+    fetched = crud.get_prompt_editor_session(
+        session=db, session_id=created.id, company_id=get_test_company_id(db)
+    )
     assert fetched is not None
     assert fetched.id == created.id
 
 
 def test_get_session_not_found(db: Session) -> None:
-    assert crud.get_prompt_editor_session(session=db, session_id=uuid.uuid4()) is None
+    assert (
+        crud.get_prompt_editor_session(
+            session=db, session_id=uuid.uuid4(), company_id=get_test_company_id(db)
+        )
+        is None
+    )
 
 
 def test_list_sessions(db: Session) -> None:
@@ -163,6 +189,7 @@ def test_list_sessions(db: Session) -> None:
         created_by=None,
         skip=0,
         limit=100,
+        company_id=get_test_company_id(db),
     )
     assert count >= 2
     assert len(rows) >= 2
@@ -184,6 +211,7 @@ def test_list_sessions_filter_by_agent(db: Session) -> None:
         created_by=None,
         skip=0,
         limit=100,
+        company_id=get_test_company_id(db),
     )
     assert count >= 1
     assert all(s.agent_id == agent_a.id for s, _ in rows)
@@ -202,6 +230,7 @@ def test_list_sessions_filter_by_created_by(db: Session) -> None:
         created_by=user_a.id,
         skip=0,
         limit=100,
+        company_id=get_test_company_id(db),
     )
     assert count >= 1
     assert all(s.created_by == user_a.id for s, _ in rows)
@@ -219,6 +248,7 @@ def test_list_sessions_ordering(db: Session) -> None:
         created_by=user.id,
         skip=0,
         limit=10,
+        company_id=get_test_company_id(db),
     )
     ours = [s for s, _ in rows if s.id in (older.id, newer.id)]
     assert ours[0].id == newer.id
@@ -235,6 +265,7 @@ def test_list_sessions_ordering(db: Session) -> None:
         created_by=user.id,
         skip=0,
         limit=10,
+        company_id=get_test_company_id(db),
     )
     ours2 = [s for s, _ in rows2 if s.id in (older.id, newer.id)]
     assert ours2[0].id == older.id
@@ -274,7 +305,12 @@ def test_delete_session_cascades_messages(db: Session) -> None:
 
     crud.delete_prompt_editor_session(session=db, db_session=s)
 
-    assert crud.get_prompt_editor_session(session=db, session_id=s.id) is None
+    assert (
+        crud.get_prompt_editor_session(
+            session=db, session_id=s.id, company_id=get_test_company_id(db)
+        )
+        is None
+    )
     remaining = db.exec(
         select(PromptEditorMessage).where(col(PromptEditorMessage.session_id) == s.id)
     ).all()

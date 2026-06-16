@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app import crud
-from app.api.deps import CurrentUser, SessionDep, get_current_user
+from app.api.deps import CurrentCompany, CurrentUser, SessionDep, get_current_user
 from app.models import (
     Agent,
     AgentCreate,
@@ -39,10 +39,14 @@ router = APIRouter(
 def create_agent(
     session: SessionDep,
     current_user: CurrentUser,
+    company_id: CurrentCompany,
     agent_in: AgentCreate,
 ) -> Agent:
     return crud.create_agent(
-        session=session, agent_in=agent_in, created_by=current_user.id
+        session=session,
+        agent_in=agent_in,
+        company_id=company_id,
+        created_by=current_user.id,
     )
 
 
@@ -50,6 +54,7 @@ def create_agent(
 async def create_draft_agent(
     session: SessionDep,
     current_user: CurrentUser,
+    company_id: CurrentCompany,
     body: AgentCreateDraft,
 ) -> Agent:
     from app.services.provider_agent_import import import_config_for_new_agent
@@ -58,6 +63,7 @@ async def create_draft_agent(
     return crud.create_draft_agent(
         session=session,
         body=body,
+        company_id=company_id,
         created_by=current_user.id,
         imported=imported,
     )
@@ -66,12 +72,17 @@ async def create_draft_agent(
 @router.get("/", response_model=AgentsPublic)
 def list_agents(
     session: SessionDep,
+    company_id: CurrentCompany,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=1000),
 ) -> AgentsPublic:
-    items, count = crud.list_agents(session=session, skip=skip, limit=limit)
+    items, count = crud.list_agents(
+        session=session, company_id=company_id, skip=skip, limit=limit
+    )
     summaries_by_agent_id = crud.latest_completed_eval_summaries_by_agent(
-        session=session, agent_ids=[agent.id for agent in items]
+        session=session,
+        company_id=company_id,
+        agent_ids=[agent.id for agent in items],
     )
     active_versions = crud.list_active_published_versions_by_agent_ids(
         session=session, agent_ids=[agent.id for agent in items]
@@ -94,6 +105,7 @@ def list_agents(
 @router.get("/{agent_id}/versions/diff", response_model=AgentVersionDiff)
 def diff_agent_versions(
     session: SessionDep,
+    company_id: CurrentCompany,
     agent_id: uuid.UUID,
     from_version: int = Query(ge=1, description="Earlier version number"),
     to_version: int = Query(ge=1, description="Later version number"),
@@ -103,7 +115,7 @@ def diff_agent_versions(
             status_code=400,
             detail="from_version and to_version must be different",
         )
-    agent = crud.get_agent(session=session, agent_id=agent_id)
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     row_from = crud.get_agent_version(
@@ -125,10 +137,11 @@ def diff_agent_versions(
 @router.get("/{agent_id}/versions/{version}", response_model=AgentVersionPublic)
 def read_agent_version(
     session: SessionDep,
+    company_id: CurrentCompany,
     agent_id: uuid.UUID,
     version: int,
 ) -> AgentVersionPublic:
-    agent = crud.get_agent(session=session, agent_id=agent_id)
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     row = crud.get_agent_version(session=session, agent_id=agent_id, version=version)
@@ -140,11 +153,12 @@ def read_agent_version(
 @router.get("/{agent_id}/versions", response_model=AgentVersionsPublic)
 def list_agent_versions(
     session: SessionDep,
+    company_id: CurrentCompany,
     agent_id: uuid.UUID,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=1000),
 ) -> AgentVersionsPublic:
-    agent = crud.get_agent(session=session, agent_id=agent_id)
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     items, count = crud.list_agent_versions(
@@ -160,10 +174,11 @@ def list_agent_versions(
 def rollback_agent(
     session: SessionDep,
     current_user: CurrentUser,
+    company_id: CurrentCompany,
     agent_id: uuid.UUID,
     body: AgentRollbackRequest,
 ) -> AgentVersionPublic:
-    agent = crud.get_agent(session=session, agent_id=agent_id)
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     try:
@@ -187,10 +202,11 @@ def rollback_agent(
 def upsert_draft(
     session: SessionDep,
     current_user: CurrentUser,
+    company_id: CurrentCompany,
     agent_id: uuid.UUID,
     body: AgentDraftUpdate,
 ) -> AgentVersionPublic:
-    agent = crud.get_agent(session=session, agent_id=agent_id)
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     draft_data = body.model_dump(exclude_unset=True)
@@ -211,9 +227,10 @@ def upsert_draft(
 @router.get("/{agent_id}/draft", response_model=AgentVersionPublic)
 def get_draft(
     session: SessionDep,
+    company_id: CurrentCompany,
     agent_id: uuid.UUID,
 ) -> AgentVersionPublic:
-    agent = crud.get_agent(session=session, agent_id=agent_id)
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     draft = crud.get_agent_draft(session=session, agent_id=agent_id)
@@ -226,10 +243,11 @@ def get_draft(
 def publish_draft(
     session: SessionDep,
     current_user: CurrentUser,
+    company_id: CurrentCompany,
     agent_id: uuid.UUID,
     body: PublishRequest,
 ) -> AgentVersionPublic:
-    agent = crud.get_agent(session=session, agent_id=agent_id)
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     try:
@@ -251,9 +269,10 @@ def publish_draft(
 @router.delete("/{agent_id}/draft", status_code=204)
 def discard_draft(
     session: SessionDep,
+    company_id: CurrentCompany,
     agent_id: uuid.UUID,
 ) -> None:
-    agent = crud.get_agent(session=session, agent_id=agent_id)
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     crud.discard_agent_draft(session=session, agent=agent)
@@ -267,10 +286,10 @@ def discard_draft(
     response_model=RuntimeOptionsPublic,
 )
 def list_agent_runtimes(
-    session: SessionDep, agent_id: uuid.UUID
+    session: SessionDep, company_id: CurrentCompany, agent_id: uuid.UUID
 ) -> RuntimeOptionsPublic:
     """Runtimes available for ``agent_id``'s platform, with the recommended default."""
-    agent = crud.get_agent(session=session, agent_id=agent_id)
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     default_kind = default_runtime_for_platform(agent.platform)
@@ -288,9 +307,9 @@ def list_agent_runtimes(
 
 @router.get("/{agent_id}/guidelines", response_model=AgentGuidelinesPublic)
 def get_agent_guidelines(
-    session: SessionDep, agent_id: uuid.UUID
+    session: SessionDep, company_id: CurrentCompany, agent_id: uuid.UUID
 ) -> AgentGuidelinesPublic:
-    agent = crud.get_agent(session=session, agent_id=agent_id)
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     return crud.agent_guidelines_public(agent=agent)
@@ -299,10 +318,11 @@ def get_agent_guidelines(
 @router.put("/{agent_id}/guidelines", response_model=AgentGuidelinesPublic)
 def put_agent_guidelines(
     session: SessionDep,
+    company_id: CurrentCompany,
     agent_id: uuid.UUID,
     body: AgentGuidelinesUpdate,
 ) -> AgentGuidelinesPublic:
-    agent = crud.get_agent(session=session, agent_id=agent_id)
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     updated = crud.set_agent_editor_guidelines(
@@ -312,8 +332,10 @@ def put_agent_guidelines(
 
 
 @router.get("/{agent_id}", response_model=AgentPublic)
-def read_agent(session: SessionDep, agent_id: uuid.UUID) -> AgentPublic:
-    agent = crud.get_agent(session=session, agent_id=agent_id)
+def read_agent(
+    session: SessionDep, company_id: CurrentCompany, agent_id: uuid.UUID
+) -> AgentPublic:
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     serialized = AgentPublic.model_validate(agent)
@@ -325,7 +347,7 @@ def read_agent(session: SessionDep, agent_id: uuid.UUID) -> AgentPublic:
             version_description=active.version_description,
         )
     summaries = crud.latest_completed_eval_summaries_by_agent(
-        session=session, agent_ids=[agent_id]
+        session=session, company_id=company_id, agent_ids=[agent_id]
     )
     serialized.last_eval = summaries.get(agent_id)
     return serialized
@@ -335,10 +357,11 @@ def read_agent(session: SessionDep, agent_id: uuid.UUID) -> AgentPublic:
 def update_agent(
     session: SessionDep,
     current_user: CurrentUser,
+    company_id: CurrentCompany,
     agent_id: uuid.UUID,
     agent_in: AgentUpdate,
 ) -> Agent:
-    agent = crud.get_agent(session=session, agent_id=agent_id)
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     try:
@@ -356,8 +379,10 @@ def update_agent(
 
 
 @router.delete("/{agent_id}", response_model=Message)
-def delete_agent(session: SessionDep, agent_id: uuid.UUID) -> Message:
-    agent = crud.get_agent(session=session, agent_id=agent_id)
+def delete_agent(
+    session: SessionDep, company_id: CurrentCompany, agent_id: uuid.UUID
+) -> Message:
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     crud.delete_agent(session=session, db_agent=agent)

@@ -1,8 +1,8 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
 
-import { ChevronUp, LogOut, Moon, Sun } from 'lucide-react';
+import { ChevronUp, KeyRound, LogOut, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
 import { Button } from '@workspace/ui/components/ui/button';
@@ -15,6 +15,7 @@ import {
 } from '@workspace/ui/components/ui/dropdown-menu';
 
 import { logoutAction } from '@/actions/auth';
+import LlmKeysDialog from '@/components/settings/llm-keys-dialog';
 
 import type { FC } from 'react';
 
@@ -24,6 +25,7 @@ interface Props {
 
 const NavUser: FC<Props> = ({ email }) => {
   const [isPending, startTransition] = useTransition();
+  const [llmKeysOpen, setLlmKeysOpen] = useState(false);
   const { theme, setTheme } = useTheme();
 
   const handleLogout = () => startTransition(() => logoutAction());
@@ -31,6 +33,7 @@ const NavUser: FC<Props> = ({ email }) => {
   const initials = (email.split('@')[0] ?? '').slice(0, 2).toUpperCase();
 
   return (
+    <>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
@@ -55,6 +58,11 @@ const NavUser: FC<Props> = ({ email }) => {
         sideOffset={4}
         className="min-w-(--radix-dropdown-menu-trigger-width)"
       >
+        <DropdownMenuItem onSelect={() => setLlmKeysOpen(true)}>
+          <KeyRound className="mr-2 h-4 w-4" />
+          <span>LLM API keys</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
           <Sun className="mr-2 h-4 w-4 dark:hidden" />
           <Moon className="mr-2 h-4 w-4 hidden dark:block" />
@@ -67,6 +75,9 @@ const NavUser: FC<Props> = ({ email }) => {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+
+    <LlmKeysDialog open={llmKeysOpen} onOpenChange={setLlmKeysOpen} />
+    </>
   );
 };
 

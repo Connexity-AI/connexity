@@ -10,6 +10,7 @@ from app.models import (
     MetricTier,
     ScoreType,
 )
+from app.tests.utils.eval import get_test_company_id
 from app.tests.utils.user import create_random_user
 
 
@@ -33,10 +34,13 @@ def test_create_and_get_custom_metric(db: Session) -> None:
         session=db,
         metric_in=_sample_create(name=name),
         owner_id=owner.id,
+        company_id=get_test_company_id(db),
     )
     assert created.id is not None
     assert created.name == name
-    fetched = crud.get_custom_metric(session=db, metric_id=created.id)
+    fetched = crud.get_custom_metric(
+        session=db, metric_id=created.id, company_id=get_test_company_id(db)
+    )
     assert fetched is not None
     assert fetched.name == name
 
@@ -48,13 +52,18 @@ def test_get_custom_metric_by_name(db: Session) -> None:
         session=db,
         metric_in=_sample_create(name=name),
         owner_id=owner.id,
+        company_id=get_test_company_id(db),
     )
-    row = crud.get_custom_metric_by_name(session=db, name=name)
+    row = crud.get_custom_metric_by_name(
+        session=db, name=name, company_id=get_test_company_id(db)
+    )
     assert row is not None
     assert row.name == name
     assert (
         crud.get_custom_metric_by_name(
-            session=db, name=f"missing_{uuid.uuid4().hex[:10]}"
+            session=db,
+            name=f"missing_{uuid.uuid4().hex[:10]}",
+            company_id=get_test_company_id(db),
         )
         is None
     )
@@ -70,13 +79,17 @@ def test_list_custom_metrics_is_global(db: Session) -> None:
         session=db,
         metric_in=_sample_create(name=name_a),
         owner_id=owner_a.id,
+        company_id=get_test_company_id(db),
     )
     crud.create_custom_metric(
         session=db,
         metric_in=_sample_create(name=name_b),
         owner_id=owner_b.id,
+        company_id=get_test_company_id(db),
     )
-    items, count = crud.list_custom_metrics(session=db)
+    items, count = crud.list_custom_metrics(
+        session=db, company_id=get_test_company_id(db)
+    )
     names = {m.name for m in items}
     assert name_a in names
     assert name_b in names
@@ -90,6 +103,7 @@ def test_update_custom_metric(db: Session) -> None:
         session=db,
         metric_in=_sample_create(name=name),
         owner_id=owner.id,
+        company_id=get_test_company_id(db),
     )
     updated = crud.update_custom_metric(
         session=db,
@@ -107,14 +121,25 @@ def test_delete_custom_metric_is_soft(db: Session) -> None:
         session=db,
         metric_in=_sample_create(name=name),
         owner_id=owner.id,
+        company_id=get_test_company_id(db),
     )
     metric_id = m.id
     crud.delete_custom_metric(session=db, db_metric=m)
 
     # CRUD getters and listings hide soft-deleted rows.
-    assert crud.get_custom_metric(session=db, metric_id=metric_id) is None
-    assert crud.get_custom_metric_by_name(session=db, name=name) is None
-    items, _ = crud.list_custom_metrics(session=db)
+    assert (
+        crud.get_custom_metric(
+            session=db, metric_id=metric_id, company_id=get_test_company_id(db)
+        )
+        is None
+    )
+    assert (
+        crud.get_custom_metric_by_name(
+            session=db, name=name, company_id=get_test_company_id(db)
+        )
+        is None
+    )
+    items, _ = crud.list_custom_metrics(session=db, company_id=get_test_company_id(db))
     assert all(item.id != metric_id for item in items)
 
     # The row is still physically present with a non-null deleted_at.
@@ -131,6 +156,7 @@ def test_create_after_soft_delete_reuses_name(db: Session) -> None:
         session=db,
         metric_in=_sample_create(name=name),
         owner_id=owner.id,
+        company_id=get_test_company_id(db),
     )
     crud.delete_custom_metric(session=db, db_metric=first)
 
@@ -138,6 +164,7 @@ def test_create_after_soft_delete_reuses_name(db: Session) -> None:
         session=db,
         metric_in=_sample_create(name=name),
         owner_id=owner.id,
+        company_id=get_test_company_id(db),
     )
     assert second.id != first.id
     assert second.name == name
