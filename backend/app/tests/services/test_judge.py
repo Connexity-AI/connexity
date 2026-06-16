@@ -172,13 +172,13 @@ class TestEvaluateTranscript:
         }
 
     @pytest.mark.asyncio
-    async def test_all_high_scores_produces_passing_verdict(self) -> None:
+    async def test_all_high_scores_produces_passing_verdict(self, db: Session) -> None:
         payload = _default_judge_llm_response()
         mock_response = _mock_llm_response(payload)
 
         with patch("app.services.judge.call_llm", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_response
-            inp = _make_judge_input()
+            inp = _make_judge_input(db=db)
             verdict = await evaluate_transcript(inp)
 
         assert isinstance(verdict, JudgeVerdict)
@@ -192,7 +192,7 @@ class TestEvaluateTranscript:
         assert verdict.summary is not None
 
     @pytest.mark.asyncio
-    async def test_low_scores_produce_failing_verdict(self) -> None:
+    async def test_low_scores_produce_failing_verdict(self, db: Session) -> None:
         payload = _default_judge_llm_response()
         for key in payload:
             payload[key] = {
@@ -206,14 +206,14 @@ class TestEvaluateTranscript:
 
         with patch("app.services.judge.call_llm", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_response
-            inp = _make_judge_input()
+            inp = _make_judge_input(db=db)
             verdict = await evaluate_transcript(inp)
 
         assert verdict.passed is False
         assert verdict.overall_score < 75.0
 
     @pytest.mark.asyncio
-    async def test_failure_code_and_turns_captured(self) -> None:
+    async def test_failure_code_and_turns_captured(self, db: Session) -> None:
         """Per-metric failure_code and turns are passed through from judge output."""
         payload = _default_judge_llm_response()
         payload["tool_routing"] = {
@@ -227,7 +227,7 @@ class TestEvaluateTranscript:
 
         with patch("app.services.judge.call_llm", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_response
-            inp = _make_judge_input()
+            inp = _make_judge_input(db=db)
             verdict = await evaluate_transcript(inp)
 
         by_name = {ms.metric: ms for ms in verdict.metric_scores}
@@ -241,7 +241,7 @@ class TestEvaluateTranscript:
         assert pe.turns == []
 
     @pytest.mark.asyncio
-    async def test_custom_pass_threshold(self) -> None:
+    async def test_custom_pass_threshold(self, db: Session) -> None:
         payload = _default_judge_llm_response()
         for key in payload:
             payload[key] = {
@@ -256,14 +256,14 @@ class TestEvaluateTranscript:
 
         with patch("app.services.judge.call_llm", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_response
-            inp = _make_judge_input(judge_config=cfg)
+            inp = _make_judge_input(db=db, judge_config=cfg)
             verdict = await evaluate_transcript(inp)
 
         assert verdict.overall_score == 60.0
         assert verdict.passed is True
 
     @pytest.mark.asyncio
-    async def test_custom_metrics_subset(self) -> None:
+    async def test_custom_metrics_subset(self, db: Session) -> None:
         cfg = JudgeConfig(
             metrics=[
                 MetricSelection(metric="tool_routing", weight=1.0),
@@ -288,7 +288,7 @@ class TestEvaluateTranscript:
 
         with patch("app.services.judge.call_llm", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_response
-            inp = _make_judge_input(judge_config=cfg)
+            inp = _make_judge_input(db=db, judge_config=cfg)
             verdict = await evaluate_transcript(inp)
 
         assert len(verdict.metric_scores) == 2
@@ -299,7 +299,7 @@ class TestEvaluateTranscript:
         assert verdict.overall_score == 80.0
 
     @pytest.mark.asyncio
-    async def test_binary_metric_scoring(self) -> None:
+    async def test_binary_metric_scoring(self, db: Session) -> None:
         cfg = JudgeConfig(
             metrics=[
                 MetricSelection(metric="tool_routing", weight=1.0),
@@ -324,7 +324,7 @@ class TestEvaluateTranscript:
 
         with patch("app.services.judge.call_llm", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_response
-            inp = _make_judge_input(judge_config=cfg)
+            inp = _make_judge_input(db=db, judge_config=cfg)
             verdict = await evaluate_transcript(inp)
 
         metrics_by_name = {ms.metric: ms for ms in verdict.metric_scores}
@@ -334,7 +334,7 @@ class TestEvaluateTranscript:
         assert tc.label == "pass"
 
     @pytest.mark.asyncio
-    async def test_binary_metric_fail(self) -> None:
+    async def test_binary_metric_fail(self, db: Session) -> None:
         cfg = JudgeConfig(
             metrics=[
                 MetricSelection(metric="tool_routing", weight=1.0),
@@ -359,7 +359,7 @@ class TestEvaluateTranscript:
 
         with patch("app.services.judge.call_llm", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_response
-            inp = _make_judge_input(judge_config=cfg)
+            inp = _make_judge_input(db=db, judge_config=cfg)
             verdict = await evaluate_transcript(inp)
 
         metrics_by_name = {ms.metric: ms for ms in verdict.metric_scores}
@@ -370,7 +370,7 @@ class TestEvaluateTranscript:
         assert tc.turns == [3]
 
     @pytest.mark.asyncio
-    async def test_score_labels_assigned_correctly(self) -> None:
+    async def test_score_labels_assigned_correctly(self, db: Session) -> None:
         payload = _default_judge_llm_response()
         payload["tool_routing"] = {
             "score": 0,
@@ -413,7 +413,7 @@ class TestEvaluateTranscript:
 
         with patch("app.services.judge.call_llm", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_response
-            inp = _make_judge_input()
+            inp = _make_judge_input(db=db)
             verdict = await evaluate_transcript(inp)
 
         by_name = {ms.metric: ms for ms in verdict.metric_scores}
@@ -425,7 +425,7 @@ class TestEvaluateTranscript:
         assert by_name["information_gathering"].label == "excellent"
 
     @pytest.mark.asyncio
-    async def test_score_clamped_to_0_5(self) -> None:
+    async def test_score_clamped_to_0_5(self, db: Session) -> None:
         payload = _default_judge_llm_response()
         payload["tool_routing"] = {
             "score": 10,
@@ -438,14 +438,14 @@ class TestEvaluateTranscript:
 
         with patch("app.services.judge.call_llm", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_response
-            inp = _make_judge_input()
+            inp = _make_judge_input(db=db)
             verdict = await evaluate_transcript(inp)
 
         by_name = {ms.metric: ms for ms in verdict.metric_scores}
         assert by_name["tool_routing"].score == 5
 
     @pytest.mark.asyncio
-    async def test_weighted_overall_score_calculation(self) -> None:
+    async def test_weighted_overall_score_calculation(self, db: Session) -> None:
         """Two metrics with equal weight: score = (s1/5 * 0.5 + s2/5 * 0.5) * 100."""
         cfg = JudgeConfig(
             metrics=[
@@ -471,20 +471,20 @@ class TestEvaluateTranscript:
 
         with patch("app.services.judge.call_llm", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_response
-            inp = _make_judge_input(judge_config=cfg)
+            inp = _make_judge_input(db=db, judge_config=cfg)
             verdict = await evaluate_transcript(inp)
 
         # (5/5 * 0.5 + 3/5 * 0.5) * 100 = (0.5 + 0.3) * 100 = 80.0
         assert verdict.overall_score == 80.0
 
     @pytest.mark.asyncio
-    async def test_empty_transcript_raises_value_error(self) -> None:
-        inp = _make_judge_input(transcript=[])
+    async def test_empty_transcript_raises_value_error(self, db: Session) -> None:
+        inp = _make_judge_input(db=db, transcript=[])
         with pytest.raises(ValueError, match="Cannot evaluate an empty transcript"):
             await evaluate_transcript(inp)
 
     @pytest.mark.asyncio
-    async def test_malformed_json_returns_error_verdict(self) -> None:
+    async def test_malformed_json_returns_error_verdict(self, db: Session) -> None:
         """Malformed JSON from LLM should produce a failed verdict, not raise."""
         mock_response = LLMResponse(
             content="This is not JSON at all",
@@ -495,7 +495,7 @@ class TestEvaluateTranscript:
 
         with patch("app.services.judge.call_llm", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_response
-            inp = _make_judge_input()
+            inp = _make_judge_input(db=db)
             verdict = await evaluate_transcript(inp)
 
         assert isinstance(verdict, JudgeVerdict)
@@ -504,7 +504,9 @@ class TestEvaluateTranscript:
         assert verdict.raw_judge_output == "This is not JSON at all"
 
     @pytest.mark.asyncio
-    async def test_missing_metric_block_returns_error_verdict(self) -> None:
+    async def test_missing_metric_block_returns_error_verdict(
+        self, db: Session
+    ) -> None:
         """If LLM omits a metric key, should produce a failed verdict."""
         payload = _default_judge_llm_response()
         del payload["tool_routing"]  # type: ignore[arg-type]
@@ -513,18 +515,18 @@ class TestEvaluateTranscript:
 
         with patch("app.services.judge.call_llm", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_response
-            inp = _make_judge_input()
+            inp = _make_judge_input(db=db)
             verdict = await evaluate_transcript(inp)
 
         assert isinstance(verdict, JudgeVerdict)
         assert verdict.passed is False
 
     @pytest.mark.asyncio
-    async def test_llm_exception_returns_error_verdict(self) -> None:
+    async def test_llm_exception_returns_error_verdict(self, db: Session) -> None:
         """Unrecoverable LLM error should produce a failed verdict."""
         with patch("app.services.judge.call_llm", new_callable=AsyncMock) as mock_call:
             mock_call.side_effect = RuntimeError("LLM service unavailable")
-            inp = _make_judge_input()
+            inp = _make_judge_input(db=db)
             verdict = await evaluate_transcript(inp)
 
         assert isinstance(verdict, JudgeVerdict)
@@ -532,26 +534,26 @@ class TestEvaluateTranscript:
         assert verdict.overall_score == 0.0
 
     @pytest.mark.asyncio
-    async def test_summary_is_populated(self) -> None:
+    async def test_summary_is_populated(self, db: Session) -> None:
         payload = _default_judge_llm_response()
         mock_response = _mock_llm_response(payload)
 
         with patch("app.services.judge.call_llm", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_response
-            inp = _make_judge_input()
+            inp = _make_judge_input(db=db)
             verdict = await evaluate_transcript(inp)
 
         assert verdict.summary is not None
         assert len(verdict.summary) > 0
 
     @pytest.mark.asyncio
-    async def test_token_usage_recorded(self) -> None:
+    async def test_token_usage_recorded(self, db: Session) -> None:
         payload = _default_judge_llm_response()
         mock_response = _mock_llm_response(payload)
 
         with patch("app.services.judge.call_llm", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_response
-            inp = _make_judge_input()
+            inp = _make_judge_input(db=db)
             verdict = await evaluate_transcript(inp)
 
         assert verdict.judge_token_usage is not None
