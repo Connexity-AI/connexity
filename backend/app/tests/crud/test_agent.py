@@ -2,7 +2,7 @@ from sqlmodel import Session
 
 from app import crud
 from app.models import AgentCreate, AgentUpdate
-from app.tests.utils.eval import create_test_agent
+from app.tests.utils.eval import create_test_agent, get_test_company_id
 
 
 def test_create_agent(db: Session) -> None:
@@ -11,7 +11,9 @@ def test_create_agent(db: Session) -> None:
         endpoint_url="http://example.com/agent",
         description="Created by test",
     )
-    agent = crud.create_agent(session=db, agent_in=agent_in)
+    agent = crud.create_agent(
+        session=db, agent_in=agent_in, company_id=get_test_company_id(db)
+    )
     assert agent.name == "CRUD Test Agent"
     assert agent.endpoint_url == "http://example.com/agent"
     assert agent.id is not None
@@ -36,13 +38,15 @@ def test_get_agent_not_found(db: Session) -> None:
 def test_list_agents(db: Session) -> None:
     create_test_agent(db)
     create_test_agent(db)
-    items, count = crud.list_agents(session=db)
+    items, count = crud.list_agents(session=db, company_id=get_test_company_id(db))
     assert count >= 2
     assert len(items) >= 2
 
 
 def test_list_agents_pagination(db: Session) -> None:
-    items, count = crud.list_agents(session=db, skip=0, limit=1)
+    items, count = crud.list_agents(
+        session=db, skip=0, limit=1, company_id=get_test_company_id(db)
+    )
     assert len(items) == 1
     assert count >= 1
 

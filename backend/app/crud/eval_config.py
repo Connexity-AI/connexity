@@ -128,7 +128,7 @@ def _validate_runtime(
 
 
 def create_eval_config(
-    *, session: Session, eval_config_in: EvalConfigCreate
+    *, session: Session, eval_config_in: EvalConfigCreate, company_id: uuid.UUID
 ) -> EvalConfig:
     agent = session.get(Agent, eval_config_in.agent_id)
     if agent is None:
@@ -150,6 +150,7 @@ def create_eval_config(
     )
 
     create_data = eval_config_in.model_dump(exclude={"members", "config"})
+    create_data["company_id"] = company_id
     db_obj = EvalConfig.model_validate(create_data)
     if eval_config_in.config is not None:
         db_obj.config = eval_config_in.config.model_dump()
@@ -165,6 +166,7 @@ def create_eval_config(
         for position, entry in enumerate(eval_config_in.members):
             member = EvalConfigMember(
                 eval_config_id=db_obj.id,
+                company_id=company_id,
                 test_case_id=entry.test_case_id,
                 position=position,
                 repetitions=entry.repetitions,
@@ -180,6 +182,7 @@ def get_eval_config(
     *,
     session: Session,
     eval_config_id: uuid.UUID,
+    company_id: uuid.UUID | None = None,
     include_deleted: bool = False,
 ) -> EvalConfig | None:
     """Fetch an eval config by id.
@@ -193,21 +196,29 @@ def get_eval_config(
         return None
     if cfg.deleted_at is not None and not include_deleted:
         return None
+    if company_id is not None and cfg.company_id != company_id:
+        return None
     return cfg
 
 
 def list_eval_configs(
     *,
     session: Session,
+    company_id: uuid.UUID,
     skip: int = 0,
     limit: int = 100,
     agent_id: uuid.UUID | None = None,
 ) -> tuple[list[EvalConfig], int]:
-    statement = select(EvalConfig).where(col(EvalConfig.deleted_at).is_(None))
+    statement = (
+        select(EvalConfig)
+        .where(col(EvalConfig.deleted_at).is_(None))
+        .where(EvalConfig.company_id == company_id)
+    )
     count_statement = (
         select(func.count())
         .select_from(EvalConfig)
         .where(col(EvalConfig.deleted_at).is_(None))
+        .where(EvalConfig.company_id == company_id)
     )
 
     if agent_id is not None:
@@ -315,6 +326,7 @@ def add_test_cases_to_config(
     for i, entry in enumerate(members):
         member = EvalConfigMember(
             eval_config_id=db_eval_config.id,
+            company_id=db_eval_config.company_id,
             test_case_id=entry.test_case_id,
             position=next_pos + i,
             repetitions=entry.repetitions,
@@ -382,6 +394,7 @@ def replace_test_cases_in_config(
     for position, entry in enumerate(members):
         member = EvalConfigMember(
             eval_config_id=db_eval_config.id,
+            company_id=db_eval_config.company_id,
             test_case_id=entry.test_case_id,
             position=position,
             repetitions=entry.repetitions,

@@ -10,6 +10,7 @@ from app.models.prompt_editor import PromptEditorMessageCreate
 from app.tests.utils.eval import (
     create_test_agent,
     create_test_prompt_editor_session,
+    get_test_company_id,
 )
 from app.tests.utils.user import create_random_user
 
@@ -23,7 +24,9 @@ def test_create_message(db: Session) -> None:
         role=TurnRole.USER,
         content="Hi",
     )
-    m = crud.create_prompt_editor_message(session=db, message_in=msg_in)
+    m = crud.create_prompt_editor_message(
+        session=db, message_in=msg_in, company_id=get_test_company_id(db)
+    )
     assert m.content == "Hi"
     assert m.session_id == s.id
     assert m.tool_calls is None
@@ -44,7 +47,9 @@ def test_create_message_archived_session(db: Session) -> None:
         content="nope",
     )
     with pytest.raises(ValueError, match="Session is not active"):
-        crud.create_prompt_editor_message(session=db, message_in=msg_in)
+        crud.create_prompt_editor_message(
+            session=db, message_in=msg_in, company_id=get_test_company_id(db)
+        )
 
 
 def test_create_message_with_tool_calls(db: Session) -> None:
@@ -67,7 +72,9 @@ def test_create_message_with_tool_calls(db: Session) -> None:
         content="Here is a suggestion",
         tool_calls=tc,
     )
-    m = crud.create_prompt_editor_message(session=db, message_in=msg_in)
+    m = crud.create_prompt_editor_message(
+        session=db, message_in=msg_in, company_id=get_test_company_id(db)
+    )
     assert m.tool_calls == tc
 
 
@@ -78,7 +85,9 @@ def test_create_message_invalid_session(db: Session) -> None:
         content="x",
     )
     with pytest.raises(ValueError, match="Prompt editor session not found"):
-        crud.create_prompt_editor_message(session=db, message_in=msg_in)
+        crud.create_prompt_editor_message(
+            session=db, message_in=msg_in, company_id=get_test_company_id(db)
+        )
 
 
 def test_list_messages_chronological(db: Session) -> None:
@@ -90,18 +99,21 @@ def test_list_messages_chronological(db: Session) -> None:
         message_in=PromptEditorMessageCreate(
             session_id=s.id, role=TurnRole.USER, content="first"
         ),
+        company_id=get_test_company_id(db),
     )
     m2 = crud.create_prompt_editor_message(
         session=db,
         message_in=PromptEditorMessageCreate(
             session_id=s.id, role=TurnRole.ASSISTANT, content="second"
         ),
+        company_id=get_test_company_id(db),
     )
     m3 = crud.create_prompt_editor_message(
         session=db,
         message_in=PromptEditorMessageCreate(
             session_id=s.id, role=TurnRole.USER, content="third"
         ),
+        company_id=get_test_company_id(db),
     )
 
     items, count = crud.list_prompt_editor_messages(
@@ -121,6 +133,7 @@ def test_list_messages_pagination(db: Session) -> None:
             message_in=PromptEditorMessageCreate(
                 session_id=s.id, role=TurnRole.USER, content=f"m{i}"
             ),
+            company_id=get_test_company_id(db),
         )
 
     page, total = crud.list_prompt_editor_messages(

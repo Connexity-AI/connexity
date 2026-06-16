@@ -8,6 +8,7 @@ from app import crud
 from app.core.config import settings
 from app.models import CustomMetricCreate, MetricTier, ScoreType
 from app.services.metric_generator import MetricGenerateResult
+from app.tests.utils.eval import get_test_company_id
 from app.tests.utils.user import create_random_user
 
 
@@ -203,6 +204,7 @@ def test_list_custom_metrics_includes_metrics_from_all_users(
             include_in_defaults=False,
         ),
         owner_id=other.id,
+        company_id=get_test_company_id(db),
     )
 
     r = client.get(

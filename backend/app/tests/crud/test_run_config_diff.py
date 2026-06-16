@@ -15,6 +15,7 @@ from app.tests.utils.eval import (
     create_test_eval_config,
     create_test_run,
     eval_config_members,
+    get_test_company_id,
 )
 
 
@@ -55,7 +56,9 @@ def test_compute_run_config_diff_model_swap(db: Session) -> None:
         agent_model="gpt-4o",
         agent_provider="openai",
     )
-    agent = crud.create_agent(session=db, agent_in=agent_in)
+    agent = crud.create_agent(
+        session=db, agent_in=agent_in, company_id=get_test_company_id(db)
+    )
     tc = create_test_case_fixture(db)
     es = create_test_eval_config(
         db, agent_id=agent.id, members=eval_config_members(tc.id)
@@ -91,7 +94,9 @@ def test_compute_run_config_diff_prompt_and_tools(db: Session) -> None:
         agent_model="gpt-4o",
         agent_provider="openai",
     )
-    agent = crud.create_agent(session=db, agent_in=agent_in)
+    agent = crud.create_agent(
+        session=db, agent_in=agent_in, company_id=get_test_company_id(db)
+    )
     tc = create_test_case_fixture(db)
     es = create_test_eval_config(
         db, agent_id=agent.id, members=eval_config_members(tc.id)

@@ -10,7 +10,7 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app import crud
-from app.api.deps import SessionDep, get_current_user
+from app.api.deps import CurrentCompany, SessionDep, get_current_user
 from app.core.db import engine
 from app.core.encryption import decrypt
 from app.models import (
@@ -114,6 +114,7 @@ async def _fetch_and_store_production_calls(
             integration = crud.get_integration(
                 session=session,
                 integration_id=agent.integration_id,
+                company_id=agent.company_id,
             )
             if integration is None:
                 env_event["status"] = "missing_integration"
@@ -151,6 +152,7 @@ async def _fetch_and_store_production_calls(
                         inserted = crud.upsert_calls_from_retell(
                             session=session,
                             agent_id=agent.id,
+                            company_id=agent.company_id,
                             integration_id=integration.id,
                             retell_calls=batch,
                         )
@@ -178,6 +180,7 @@ async def _fetch_and_store_production_calls(
                             inserted = crud.upsert_calls_from_vapi(
                                 session=session,
                                 agent_id=agent.id,
+                                company_id=agent.company_id,
                                 integration_id=integration.id,
                                 vapi_calls=batch,
                             )
@@ -207,6 +210,7 @@ async def _fetch_and_store_production_calls(
                             inserted = crud.upsert_calls_from_elevenlabs(
                                 session=session,
                                 agent_id=agent.id,
+                                company_id=agent.company_id,
                                 integration_id=integration.id,
                                 conversations=batch,
                             )
@@ -304,6 +308,7 @@ async def _sync_calls_in_background(agent_id: uuid.UUID) -> None:
 async def list_agent_calls(
     session: SessionDep,
     background_tasks: BackgroundTasks,
+    company_id: CurrentCompany,
     agent_id: uuid.UUID,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=25, ge=1, le=200),
@@ -325,7 +330,9 @@ async def list_agent_calls(
         "status": "ok",
     }
     try:
-        agent = crud.get_agent(session=session, agent_id=agent_id)
+        agent = crud.get_agent(
+            session=session, agent_id=agent_id, company_id=company_id
+        )
         if agent is None:
             event["status"] = "agent_not_found"
             raise HTTPException(status_code=404, detail="Agent not found")
@@ -376,6 +383,7 @@ async def list_agent_calls(
 @router.post("/agents/{agent_id}/calls/refresh", response_model=CallRefreshResult)
 async def refresh_agent_calls(
     session: SessionDep,
+    company_id: CurrentCompany,
     agent_id: uuid.UUID,
 ) -> CallRefreshResult:
     started = time.monotonic()
@@ -386,7 +394,9 @@ async def refresh_agent_calls(
         "total": 0,
     }
     try:
-        agent = crud.get_agent(session=session, agent_id=agent_id)
+        agent = crud.get_agent(
+            session=session, agent_id=agent_id, company_id=company_id
+        )
         if agent is None:
             event["status"] = "agent_not_found"
             raise HTTPException(status_code=404, detail="Agent not found")
@@ -415,8 +425,8 @@ async def refresh_agent_calls(
         _emit("refresh_calls", **event)
 
 
-def _call_or_404(*, session, call_id: uuid.UUID):
-    call = crud.get_call(session=session, call_id=call_id)
+def _call_or_404(*, session, call_id: uuid.UUID, company_id: uuid.UUID):
+    call = crud.get_call(session=session, call_id=call_id, company_id=company_id)
     if call is None:
         raise HTTPException(status_code=404, detail="Call not found")
     return call
@@ -425,9 +435,10 @@ def _call_or_404(*, session, call_id: uuid.UUID):
 @router.post("/calls/{call_id}/seen", response_model=Message)
 def mark_call_seen_endpoint(
     session: SessionDep,
+    company_id: CurrentCompany,
     call_id: uuid.UUID,
 ) -> Message:
-    _call_or_404(session=session, call_id=call_id)
+    _call_or_404(session=session, call_id=call_id, company_id=company_id)
     crud.mark_call_seen(session=session, call_id=call_id)
     return Message(message="ok")
 
@@ -435,9 +446,12 @@ def mark_call_seen_endpoint(
 @router.patch("/calls/{call_id}/label", response_model=CallPublic)
 def set_call_label_endpoint(
     session: SessionDep,
+    company_id: CurrentCompany,
     call_id: uuid.UUID,
     body: CallLabelUpdate,
 ) -> CallPublic:
+    # Verify ownership first via get_call (scoped by company)
+    _call_or_404(session=session, call_id=call_id, company_id=company_id)
     call = crud.set_call_label(session=session, call_id=call_id, label=body.label)
     if call is None:
         raise HTTPException(status_code=404, detail="Call not found")
@@ -446,6 +460,7 @@ def set_call_label_endpoint(
         integration = crud.get_integration(
             session=session,
             integration_id=call.integration_id,
+            company_id=company_id,
         )
         provider = integration.provider if integration is not None else None
     is_new = call.seen_at is None
@@ -474,14 +489,16 @@ def set_call_label_endpoint(
 @router.get("/calls/{call_id}", response_model=CallPublic)
 def get_call_detail(
     session: SessionDep,
+    company_id: CurrentCompany,
     call_id: uuid.UUID,
 ) -> CallPublic:
-    call = _call_or_404(session=session, call_id=call_id)
+    call = _call_or_404(session=session, call_id=call_id, company_id=company_id)
     provider = None
     if call.integration_id is not None:
         integration = crud.get_integration(
             session=session,
             integration_id=call.integration_id,
+            company_id=company_id,
         )
         provider = integration.provider if integration is not None else None
     is_new = call.seen_at is None

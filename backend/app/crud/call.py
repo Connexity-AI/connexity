@@ -25,7 +25,11 @@ _AGENT_TABLE: Table = Agent.__table__  # type: ignore[attr-defined]
 
 
 def _retell_call_to_row(
-    call: RetellCall, *, agent_id: uuid.UUID, integration_id: uuid.UUID
+    call: RetellCall,
+    *,
+    agent_id: uuid.UUID,
+    company_id: uuid.UUID,
+    integration_id: uuid.UUID,
 ) -> dict:
     started_at = (
         datetime.fromtimestamp(call.start_timestamp / 1000, tz=UTC)
@@ -37,6 +41,7 @@ def _retell_call_to_row(
         duration = max(0, (call.end_timestamp - call.start_timestamp) // 1000)
     return {
         "agent_id": agent_id,
+        "company_id": company_id,
         "integration_id": integration_id,
         "retell_call_id": call.call_id,
         "retell_agent_id": call.agent_id or "",
@@ -49,7 +54,11 @@ def _retell_call_to_row(
 
 
 def _vapi_call_to_row(
-    call: VapiCall, *, agent_id: uuid.UUID, integration_id: uuid.UUID
+    call: VapiCall,
+    *,
+    agent_id: uuid.UUID,
+    company_id: uuid.UUID,
+    integration_id: uuid.UUID,
 ) -> dict:
     started_at = call.started_at or call.created_at or datetime.now(UTC)
     duration: int | None = None
@@ -57,6 +66,7 @@ def _vapi_call_to_row(
         duration = max(0, int((call.ended_at - call.started_at).total_seconds()))
     return {
         "agent_id": agent_id,
+        "company_id": company_id,
         "integration_id": integration_id,
         "retell_call_id": call.call_id,
         "retell_agent_id": call.assistant_id or "",
@@ -72,11 +82,13 @@ def _elevenlabs_summary_to_row(
     call: ElevenLabsConversationSummary,
     *,
     agent_id: uuid.UUID,
+    company_id: uuid.UUID,
     integration_id: uuid.UUID,
 ) -> dict:
     started_at = datetime.fromtimestamp(call.start_time_unix_secs, tz=UTC)
     return {
         "agent_id": agent_id,
+        "company_id": company_id,
         "integration_id": integration_id,
         "retell_call_id": call.conversation_id,
         "retell_agent_id": call.agent_id,
@@ -92,11 +104,13 @@ def _elevenlabs_details_to_row(
     call: ElevenLabsConversationDetails,
     *,
     agent_id: uuid.UUID,
+    company_id: uuid.UUID,
     integration_id: uuid.UUID,
 ) -> dict:
     started_at = datetime.fromtimestamp(call.start_time_unix_secs, tz=UTC)
     return {
         "agent_id": agent_id,
+        "company_id": company_id,
         "integration_id": integration_id,
         "retell_call_id": call.conversation_id,
         "retell_agent_id": call.agent_id or "",
@@ -112,6 +126,7 @@ def upsert_calls_from_retell(
     *,
     session: Session,
     agent_id: uuid.UUID,
+    company_id: uuid.UUID,
     integration_id: uuid.UUID,
     retell_calls: list[RetellCall],
 ) -> int:
@@ -123,7 +138,12 @@ def upsert_calls_from_retell(
         return 0
 
     rows = [
-        _retell_call_to_row(c, agent_id=agent_id, integration_id=integration_id)
+        _retell_call_to_row(
+            c,
+            agent_id=agent_id,
+            company_id=company_id,
+            integration_id=integration_id,
+        )
         for c in retell_calls
         if c.call_id
     ]
@@ -146,6 +166,7 @@ def upsert_calls_from_vapi(
     *,
     session: Session,
     agent_id: uuid.UUID,
+    company_id: uuid.UUID,
     integration_id: uuid.UUID,
     vapi_calls: list[VapiCall],
 ) -> int:
@@ -159,7 +180,12 @@ def upsert_calls_from_vapi(
         return 0
 
     rows = [
-        _vapi_call_to_row(c, agent_id=agent_id, integration_id=integration_id)
+        _vapi_call_to_row(
+            c,
+            agent_id=agent_id,
+            company_id=company_id,
+            integration_id=integration_id,
+        )
         for c in vapi_calls
         if c.call_id
     ]
@@ -198,6 +224,7 @@ def upsert_calls_from_elevenlabs(
     *,
     session: Session,
     agent_id: uuid.UUID,
+    company_id: uuid.UUID,
     integration_id: uuid.UUID,
     conversations: list[ElevenLabsConversationDetails | ElevenLabsConversationSummary],
 ) -> int:
@@ -209,13 +236,19 @@ def upsert_calls_from_elevenlabs(
         if isinstance(c, ElevenLabsConversationDetails):
             rows.append(
                 _elevenlabs_details_to_row(
-                    c, agent_id=agent_id, integration_id=integration_id
+                    c,
+                    agent_id=agent_id,
+                    company_id=company_id,
+                    integration_id=integration_id,
                 )
             )
         else:
             rows.append(
                 _elevenlabs_summary_to_row(
-                    c, agent_id=agent_id, integration_id=integration_id
+                    c,
+                    agent_id=agent_id,
+                    company_id=company_id,
+                    integration_id=integration_id,
                 )
             )
     rows = [r for r in rows if r.get("retell_call_id")]
@@ -360,9 +393,13 @@ def mark_call_seen(*, session: Session, call_id: uuid.UUID) -> None:
     session.commit()
 
 
-def get_call(*, session: Session, call_id: uuid.UUID) -> Call | None:
+def get_call(
+    *, session: Session, call_id: uuid.UUID, company_id: uuid.UUID | None = None
+) -> Call | None:
     call = session.get(Call, call_id)
     if call is None or call.deleted_at is not None:
+        return None
+    if company_id is not None and call.company_id != company_id:
         return None
     return call
 

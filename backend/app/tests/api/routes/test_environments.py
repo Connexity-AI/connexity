@@ -20,7 +20,7 @@ from app.models import (
     User,
 )
 from app.services.webhook_deploy import WebhookDeployResult
-from app.tests.utils.eval import create_test_agent
+from app.tests.utils.eval import create_test_agent, get_test_company_id
 from app.tests.utils.utils import AUTH_USER_EMAIL
 
 
@@ -60,6 +60,7 @@ def _make_integration(db: Session):
             name=f"int-{uuid.uuid4().hex[:6]}",
             api_key="sk_test_env_routes",
         ),
+        company_id=get_test_company_id(db),
     )
 
 
@@ -71,6 +72,7 @@ def _make_elevenlabs_integration(db: Session):
             name=f"int-{uuid.uuid4().hex[:6]}",
             api_key="sk_test_eleven_env_routes",
         ),
+        company_id=get_test_company_id(db),
     )
 
 
@@ -275,6 +277,7 @@ def test_other_user_can_list_environment(
             platform=Platform.RETELL,
             agent_id=agent.id,
         ),
+        company_id=get_test_company_id(db),
     )
 
     other_list = client.get(
@@ -392,6 +395,7 @@ def test_update_environment_changes_configuration_fields(
             platform=Platform.RETELL,
             agent_id=agent.id,
         ),
+        company_id=get_test_company_id(db),
     )
     env.current_version_number = 3
     env.current_version_name = "Guardrail tightening"
@@ -446,6 +450,7 @@ def test_update_environment_rejects_gate_for_other_agent(
             platform=Platform.RETELL,
             agent_id=agent.id,
         ),
+        company_id=get_test_company_id(db),
     )
 
     r = client.patch(
@@ -481,6 +486,7 @@ def test_update_environment_rejects_null_required_fields(
             platform=Platform.RETELL,
             agent_id=agent.id,
         ),
+        company_id=get_test_company_id(db),
     )
 
     r = client.patch(
@@ -514,6 +520,7 @@ def test_update_webhook_endpoint_url_resets_current_deployed_version(
             agent_id=agent.id,
             endpoint_url="http://localhost:8000/webhook-receiver",
         ),
+        company_id=get_test_company_id(db),
     )
     env.current_version_number = 3
     env.current_version_name = "Guardrail tightening"
@@ -567,6 +574,7 @@ def test_deploy_blocked_by_gate_when_no_run_for_version(
             agent_id=agent.id,
             eval_gate_eval_config_id=gate_cfg.id,
         ),
+        company_id=get_test_company_id(db),
     )
 
     active = crud.get_active_agent_version(session=db, agent_id=agent.id)
@@ -602,6 +610,7 @@ def test_delete_integration_returns_409_when_environment_depends_on_it(
             platform=Platform.RETELL,
             agent_id=agent.id,
         ),
+        company_id=get_test_company_id(db),
     )
 
     with patch.dict(
@@ -631,6 +640,7 @@ def test_deploy_webhook_environment_marks_success_on_2xx(
             agent_id=agent.id,
             endpoint_url="https://example.com/hooks/deploy",
         ),
+        company_id=get_test_company_id(db),
     )
 
     with patch(
@@ -663,6 +673,7 @@ def test_deploy_webhook_environment_returns_failure_message(
             agent_id=agent.id,
             endpoint_url="https://example.com/hooks/deploy",
         ),
+        company_id=get_test_company_id(db),
     )
     with patch(
         "app.api.routes.environments.deliver_webhook_deployment",

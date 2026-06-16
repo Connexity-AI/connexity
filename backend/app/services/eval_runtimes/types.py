@@ -39,6 +39,7 @@ class RunSnapshot:
     """Frozen capture of run-level state shared across every test case."""
 
     run_id: uuid.UUID
+    company_id: uuid.UUID
     run_config: RunConfig
     cancel_event: asyncio.Event | None
 

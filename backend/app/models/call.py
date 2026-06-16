@@ -18,6 +18,7 @@ class Call(SQLModel, table=True):
     )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    company_id: uuid.UUID = Field(foreign_key="company.id", index=True)
     agent_id: uuid.UUID = Field(foreign_key="agent.id", index=True)
     integration_id: uuid.UUID | None = Field(
         default=None, foreign_key="integration.id", index=True, nullable=True

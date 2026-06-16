@@ -244,7 +244,10 @@ def _build_failing_summaries(
     out: list[FailingTestCaseSummary] = []
     for _score, row, v in candidates[:_MAX_FAILING_TEST_CASES]:
         tc = crud.get_test_case(
-            session=db_session, test_case_id=row.test_case_id, include_deleted=True
+            session=db_session,
+            test_case_id=row.test_case_id,
+            company_id=row.company_id,
+            include_deleted=True,
         )
         name = tc.name if tc else None
         failing_metrics: list[str] = _failing_metric_names(v) if v else []
@@ -299,11 +302,14 @@ def _build_detailed_result(
     db_session: Session,
     row: TestCaseResult,
 ) -> DetailedTestCaseResult | None:
-    run = crud.get_run(session=db_session, run_id=row.run_id)
+    run = crud.get_run(session=db_session, run_id=row.run_id, company_id=row.company_id)
     if run is None:
         return None
     tc = crud.get_test_case(
-        session=db_session, test_case_id=row.test_case_id, include_deleted=True
+        session=db_session,
+        test_case_id=row.test_case_id,
+        company_id=row.company_id,
+        include_deleted=True,
     )
     v = _parse_verdict(cast(dict[str, object] | None, row.verdict))
     raw_tr = row.transcript
@@ -341,7 +347,9 @@ async def build_eval_context(
 
     aggregate_run: Run | None = None
     if run_id is not None:
-        loaded = crud.get_run(session=db_session, run_id=run_id)
+        loaded = crud.get_run(
+            session=db_session, run_id=run_id, company_id=agent.company_id
+        )
         if loaded is not None and loaded.agent_id == agent.id:
             aggregate_run = loaded
         elif not ids:
@@ -349,6 +357,7 @@ async def build_eval_context(
     elif not ids:
         items, _total = crud.list_runs(
             session=db_session,
+            company_id=agent.company_id,
             agent_id=agent.id,
             status=RunStatus.COMPLETED,
             limit=1,
@@ -373,12 +382,15 @@ async def build_eval_context(
         aggregate_run_id = aggregate_run.id
         run_name = aggregate_run.name
         ec = crud.get_eval_config(
-            session=db_session, eval_config_id=aggregate_run.eval_config_id
+            session=db_session,
+            eval_config_id=aggregate_run.eval_config_id,
+            company_id=agent.company_id,
         )
         eval_config_name = ec.name if ec else None
 
         results, _count = crud.list_test_case_results(
             session=db_session,
+            company_id=agent.company_id,
             run_id=aggregate_run.id,
             skip=0,
             limit=_MAX_RESULTS_PER_RUN,
@@ -424,10 +436,14 @@ async def build_eval_context(
 
     detailed: list[DetailedTestCaseResult] = []
     for result_id in ids:
-        row = crud.get_test_case_result(session=db_session, result_id=result_id)
+        row = crud.get_test_case_result(
+            session=db_session, result_id=result_id, company_id=agent.company_id
+        )
         if row is None:
             continue
-        parent = crud.get_run(session=db_session, run_id=row.run_id)
+        parent = crud.get_run(
+            session=db_session, run_id=row.run_id, company_id=agent.company_id
+        )
         if parent is None or parent.agent_id != agent.id:
             continue
         built = _build_detailed_result(db_session=db_session, row=row)

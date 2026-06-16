@@ -12,14 +12,21 @@ from app.models.custom_metric import (
 
 
 def create_custom_metric(
-    *, session: Session, metric_in: CustomMetricCreate, owner_id: uuid.UUID
+    *,
+    session: Session,
+    metric_in: CustomMetricCreate,
+    company_id: uuid.UUID,
+    owner_id: uuid.UUID,
 ) -> CustomMetric:
-    """Create a new metric. ``owner_id`` is recorded on ``created_by`` for
-    audit purposes only — metrics are globally readable and editable by any
-    authenticated user.
+    """Create a new metric scoped to the company. ``owner_id`` is recorded on
+    ``created_by`` for audit purposes.
     """
     db_obj = CustomMetric.model_validate(
-        {**metric_in.model_dump(), "created_by": owner_id}
+        {
+            **metric_in.model_dump(),
+            "company_id": company_id,
+            "created_by": owner_id,
+        }
     )
     session.add(db_obj)
     session.commit()
@@ -27,15 +34,23 @@ def create_custom_metric(
     return db_obj
 
 
-def get_custom_metric(*, session: Session, metric_id: uuid.UUID) -> CustomMetric | None:
+def get_custom_metric(
+    *, session: Session, metric_id: uuid.UUID, company_id: uuid.UUID | None = None
+) -> CustomMetric | None:
     metric = session.get(CustomMetric, metric_id)
     if metric is None or metric.deleted_at is not None:
+        return None
+    if company_id is not None and metric.company_id != company_id:
         return None
     return metric
 
 
 def get_custom_metric_by_name(
-    *, session: Session, name: str, include_deleted: bool = False
+    *,
+    session: Session,
+    name: str,
+    company_id: uuid.UUID | None = None,
+    include_deleted: bool = False,
 ) -> CustomMetric | None:
     """Look up a metric by name.
 
@@ -43,8 +58,14 @@ def get_custom_metric_by_name(
     back to the most-recently-deleted row when no live one exists — used by
     judge resolution so historical eval configs can still find a metric whose
     name has been soft-deleted.
+
+    ``company_id`` (when provided) scopes the lookup to a single tenant. Each
+    company has its own copy of every metric (system or user-created), so this
+    filter is now a straight equality on ``company_id``.
     """
     statement = select(CustomMetric).where(CustomMetric.name == name)
+    if company_id is not None:
+        statement = statement.where(col(CustomMetric.company_id) == company_id)
     if not include_deleted:
         statement = statement.where(col(CustomMetric.deleted_at).is_(None))
     else:
@@ -57,17 +78,21 @@ def get_custom_metric_by_name(
 def list_custom_metrics(
     *,
     session: Session,
+    company_id: uuid.UUID,
     skip: int = 0,
     limit: int = 100,
     only_active: bool = False,
 ) -> tuple[list[CustomMetric], int]:
-    """List metrics that are not soft-deleted.
+    """List metrics owned by ``company_id``.
 
-    When ``only_active`` is True, also exclude metrics flagged ``is_draft``.
-    Predefined rows are returned first (so the UI lists built-ins above
-    user-created ones), then by creation time ascending within each group.
+    Every tenant has its own copy of every metric (predefined or user-created),
+    so this is a straight filter on ``company_id``. Predefined rows still sort
+    first to keep built-ins at the top of the UI list.
     """
-    base_filters = [CustomMetric.deleted_at.is_(None)]  # type: ignore[union-attr]
+    base_filters = [
+        CustomMetric.deleted_at.is_(None),  # type: ignore[union-attr]
+        col(CustomMetric.company_id) == company_id,
+    ]
     if only_active:
         base_filters.append(CustomMetric.is_draft.is_(False))  # type: ignore[union-attr]
 

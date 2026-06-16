@@ -11,6 +11,9 @@ class OAuthClient(SQLModel, table=True):
     __tablename__ = "oauth_client"
 
     client_id: str = Field(primary_key=True, max_length=128)
+    # OAuth clients are app-wide (e.g. Claude.ai). They are not scoped to a
+    # single company — only the user-bound rows (authorization codes and
+    # refresh tokens) carry the tenant scope.
     client_name: str | None = Field(default=None, max_length=255)
     redirect_uris: list[str] = Field(sa_column=Column(JSONB, nullable=False))
     grant_types: list[str] = Field(sa_column=Column(JSONB, nullable=False))
@@ -31,6 +34,7 @@ class OAuthAuthorizationCode(SQLModel, table=True):
     __tablename__ = "oauth_authorization_code"
 
     code: str = Field(primary_key=True, max_length=255)
+    company_id: uuid.UUID = Field(foreign_key="company.id", index=True)
     client_id: str = Field(foreign_key="oauth_client.client_id", index=True)
     user_id: uuid.UUID = Field(foreign_key="user.id", index=True)
     redirect_uri: str = Field(max_length=2048)
@@ -50,6 +54,7 @@ class OAuthRefreshToken(SQLModel, table=True):
     __tablename__ = "oauth_refresh_token"
 
     token_hash: str = Field(primary_key=True, max_length=64)
+    company_id: uuid.UUID = Field(foreign_key="company.id", index=True)
     client_id: str = Field(foreign_key="oauth_client.client_id", index=True)
     user_id: uuid.UUID = Field(foreign_key="user.id", index=True)
     scope: str | None = Field(default=None, sa_column=Column(Text, nullable=True))

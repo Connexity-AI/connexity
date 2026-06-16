@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app import crud
-from app.api.deps import SessionDep, get_current_user
+from app.api.deps import CurrentCompany, SessionDep, get_current_user
 from app.models import (
     Message,
     TestCaseResult,
@@ -22,14 +22,19 @@ router = APIRouter(
 
 @router.post("/", response_model=TestCaseResultPublic)
 def create_test_case_result(
-    session: SessionDep, result_in: TestCaseResultCreate
+    session: SessionDep,
+    company_id: CurrentCompany,
+    result_in: TestCaseResultCreate,
 ) -> TestCaseResult:
-    return crud.create_test_case_result(session=session, result_in=result_in)
+    return crud.create_test_case_result(
+        session=session, result_in=result_in, company_id=company_id
+    )
 
 
 @router.get("/", response_model=TestCaseResultsPublic)
 def list_test_case_results(
     session: SessionDep,
+    company_id: CurrentCompany,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=1000),
     run_id: uuid.UUID | None = None,
@@ -43,6 +48,7 @@ def list_test_case_results(
 ) -> TestCaseResultsPublic:
     items, count = crud.list_test_case_results(
         session=session,
+        company_id=company_id,
         skip=skip,
         limit=limit,
         run_id=run_id,
@@ -54,8 +60,12 @@ def list_test_case_results(
 
 
 @router.get("/{result_id}", response_model=TestCaseResultPublic)
-def get_test_case_result(session: SessionDep, result_id: uuid.UUID) -> TestCaseResult:
-    result = crud.get_test_case_result(session=session, result_id=result_id)
+def get_test_case_result(
+    session: SessionDep, company_id: CurrentCompany, result_id: uuid.UUID
+) -> TestCaseResult:
+    result = crud.get_test_case_result(
+        session=session, result_id=result_id, company_id=company_id
+    )
     if not result:
         raise HTTPException(status_code=404, detail="Test case result not found")
     return result
@@ -64,10 +74,13 @@ def get_test_case_result(session: SessionDep, result_id: uuid.UUID) -> TestCaseR
 @router.patch("/{result_id}", response_model=TestCaseResultPublic)
 def update_test_case_result(
     session: SessionDep,
+    company_id: CurrentCompany,
     result_id: uuid.UUID,
     result_in: TestCaseResultUpdate,
 ) -> TestCaseResult:
-    result = crud.get_test_case_result(session=session, result_id=result_id)
+    result = crud.get_test_case_result(
+        session=session, result_id=result_id, company_id=company_id
+    )
     if not result:
         raise HTTPException(status_code=404, detail="Test case result not found")
     return crud.update_test_case_result(
@@ -76,8 +89,12 @@ def update_test_case_result(
 
 
 @router.delete("/{result_id}", response_model=Message)
-def delete_test_case_result(session: SessionDep, result_id: uuid.UUID) -> Message:
-    result = crud.get_test_case_result(session=session, result_id=result_id)
+def delete_test_case_result(
+    session: SessionDep, company_id: CurrentCompany, result_id: uuid.UUID
+) -> Message:
+    result = crud.get_test_case_result(
+        session=session, result_id=result_id, company_id=company_id
+    )
     if not result:
         raise HTTPException(status_code=404, detail="Test case result not found")
     crud.delete_test_case_result(session=session, db_result=result)

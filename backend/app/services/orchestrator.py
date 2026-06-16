@@ -200,6 +200,7 @@ async def _judge_transcript(
     config: RunConfig,
     agent_system_prompt: str | None,
     agent_tools: list[dict] | None,
+    company_id: uuid.UUID,
 ) -> JudgeVerdict | None:
     """Run the Connexity judge on a runtime's transcript; ``None`` if empty."""
     if not run_out.transcript:
@@ -211,6 +212,7 @@ async def _judge_transcript(
             agent_system_prompt=agent_system_prompt,
             agent_tools=agent_tools,
             judge_config=config.judge,
+            company_id=company_id,
         )
     )
 
@@ -243,6 +245,7 @@ async def _execute_single_test_case(
                 test_case_id=test_case.id,
                 repetition_index=repetition_index,
             ),
+            company_id=run_snapshot.company_id,
         )
         result_id = result.id
 
@@ -277,6 +280,7 @@ async def _execute_single_test_case(
                 config,
                 agent_snapshot.system_prompt,
                 agent_snapshot.tools,
+                run_snapshot.company_id,
             )
 
             transcript = run_out.transcript
@@ -451,6 +455,11 @@ async def execute_run(run_id: uuid.UUID) -> None:
     from app.core.db import engine
     from app.models import RunUpdate
     from app.services.run_manager import run_manager
+    from app.services.tenant_llm import (
+        CompanyMissingLLMKeyError,
+        load_tenant_context,
+        set_current_tenant,
+    )
 
     state = run_manager.register(run_id)
 
@@ -463,6 +472,26 @@ async def execute_run(run_id: uuid.UUID) -> None:
                 RunStatus.CANCELLED,
             ):
                 logger.error("Run %s not found or not in executable state", run_id)
+                return
+
+            # Bind the tenant LLM context for this entire run so every
+            # ``call_llm`` from the judge, simulators, etc. uses the right
+            # per-company API key without further plumbing.
+            try:
+                tenant_ctx = load_tenant_context(
+                    session=session, company_id=run.company_id
+                )
+                set_current_tenant(tenant_ctx)
+            except CompanyMissingLLMKeyError as exc:
+                logger.error("Run %s blocked: %s", run_id, exc)
+                crud.update_run(
+                    session=session,
+                    db_run=run,
+                    run_in=RunUpdate(
+                        status=RunStatus.FAILED,
+                        completed_at=datetime.now(UTC),
+                    ),
+                )
                 return
 
             eval_config = crud.get_eval_config(
@@ -513,6 +542,7 @@ async def execute_run(run_id: uuid.UUID) -> None:
 
         run_snapshot = RunSnapshot(
             run_id=run_id,
+            company_id=run.company_id,
             run_config=config,
             cancel_event=state.cancel_event,
         )

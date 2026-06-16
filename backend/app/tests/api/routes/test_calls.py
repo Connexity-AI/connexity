@@ -22,7 +22,7 @@ from app.services.elevenlabs import (
     ElevenLabsConversationSummary,
 )
 from app.services.retell import RetellCall
-from app.tests.utils.eval import create_test_agent
+from app.tests.utils.eval import create_test_agent, get_test_company_id
 from app.tests.utils.utils import AUTH_USER_EMAIL
 
 
@@ -58,6 +58,7 @@ def _owned_agent_with_environment(db: Session, retell_agent_id: str = "ret_a1"):
             name=f"int-{uuid.uuid4().hex[:6]}",
             api_key="sk_test_key_abcdef",
         ),
+        company_id=get_test_company_id(db),
     )
     agent.platform = Platform.RETELL
     agent.integration_id = integration.id
@@ -73,6 +74,7 @@ def _owned_agent_with_environment(db: Session, retell_agent_id: str = "ret_a1"):
             platform=Platform.RETELL,
             agent_id=agent.id,
         ),
+        company_id=get_test_company_id(db),
     )
     return agent, integration, user
 
@@ -94,6 +96,7 @@ def _owned_agent_with_elevenlabs_environment(
             name=f"int-{uuid.uuid4().hex[:6]}",
             api_key="sk_eleven_test_key",
         ),
+        company_id=get_test_company_id(db),
     )
     agent.platform = Platform.ELEVENLABS
     agent.integration_id = integration.id
@@ -109,6 +112,7 @@ def _owned_agent_with_elevenlabs_environment(
             platform=Platform.ELEVENLABS,
             agent_id=agent.id,
         ),
+        company_id=get_test_company_id(db),
     )
     return agent, integration, user
 

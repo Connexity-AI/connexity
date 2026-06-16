@@ -24,6 +24,7 @@ from app.tests.utils.eval import (
     create_test_platform_agent,
     create_test_prompt_editor_session,
     create_test_run,
+    get_test_company_id,
 )
 from app.tests.utils.utils import AUTH_USER_EMAIL
 
@@ -304,6 +305,7 @@ def test_list_messages(
         message_in=PromptEditorMessageCreate(
             session_id=pe_session.id, role=TurnRole.USER, content="hi"
         ),
+        company_id=get_test_company_id(db),
     )
     r = client.get(
         f"{PREFIX}/sessions/{pe_session.id}/messages",

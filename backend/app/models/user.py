@@ -49,11 +49,13 @@ class UpdatePassword(SQLModel):
 class User(UserBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     hashed_password: str | None = None
+    company_id: uuid.UUID = Field(foreign_key="company.id", index=True)
 
 
 # Properties to return via API, id is always required
 class UserPublic(UserBase):
     id: uuid.UUID
+    company_id: uuid.UUID
 
 
 # Generic message
@@ -71,3 +73,4 @@ class Token(SQLModel):
 # Contents of JWT token
 class TokenPayload(SQLModel):
     sub: str | None = None
+    cid: str | None = None

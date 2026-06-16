@@ -18,16 +18,17 @@ def create_session(
     *,
     session: Session,
     session_in: PromptEditorSessionCreate,
+    company_id: uuid.UUID,
     created_by: uuid.UUID,
 ) -> PromptEditorSession:
     """Create a prompt editor session; validate agent and optional run ownership."""
     agent = session.get(Agent, session_in.agent_id)
-    if agent is None:
+    if agent is None or agent.company_id != company_id:
         msg = "Agent not found"
         raise ValueError(msg)
     if session_in.run_id is not None:
         run = session.get(Run, session_in.run_id)
-        if run is None:
+        if run is None or run.company_id != company_id:
             msg = "Run not found"
             raise ValueError(msg)
         if run.agent_id != session_in.agent_id:
@@ -42,6 +43,7 @@ def create_session(
     base_prompt = draft.system_prompt if draft is not None else agent.system_prompt
 
     db_obj = PromptEditorSession(
+        company_id=company_id,
         agent_id=session_in.agent_id,
         created_by=created_by,
         run_id=session_in.run_id,
@@ -55,21 +57,34 @@ def create_session(
 
 
 def get_session(
-    *, session: Session, session_id: uuid.UUID
+    *,
+    session: Session,
+    session_id: uuid.UUID,
+    company_id: uuid.UUID | None = None,
 ) -> PromptEditorSession | None:
-    return session.get(PromptEditorSession, session_id)
+    obj = session.get(PromptEditorSession, session_id)
+    if obj is None:
+        return None
+    if company_id is not None and obj.company_id != company_id:
+        return None
+    return obj
 
 
 def list_sessions(
     *,
     session: Session,
+    company_id: uuid.UUID,
     agent_id: uuid.UUID | None,
     created_by: uuid.UUID | None,
     skip: int,
     limit: int,
 ) -> tuple[list[tuple[PromptEditorSession, int]], int]:
     """List sessions with optional filters; each tuple contains (session, message_count)."""
-    count_stmt = select(func.count()).select_from(PromptEditorSession)
+    count_stmt = (
+        select(func.count())
+        .select_from(PromptEditorSession)
+        .where(PromptEditorSession.company_id == company_id)
+    )
     if agent_id is not None:
         count_stmt = count_stmt.where(col(PromptEditorSession.agent_id) == agent_id)
     if created_by is not None:
@@ -87,6 +102,7 @@ def list_sessions(
     list_stmt = (
         select(PromptEditorSession, func.coalesce(msg_counts.c.cnt, 0))
         .outerjoin(msg_counts, col(PromptEditorSession.id) == msg_counts.c.session_id)
+        .where(PromptEditorSession.company_id == company_id)
         .order_by(col(PromptEditorSession.updated_at).desc())
         .offset(skip)
         .limit(limit)

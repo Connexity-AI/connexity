@@ -185,12 +185,14 @@ def create_run(
     *,
     session: Session,
     run_in: RunCreate,
+    company_id: uuid.UUID,
     created_by: uuid.UUID | None = None,
 ) -> Run:
     run_data = run_in.model_dump()
     # RunConfig (Pydantic) → dict for JSONB column
     if run_in.config is not None:
         run_data["config"] = run_in.config.model_dump()
+    run_data["company_id"] = company_id
     if created_by is not None:
         run_data["created_by"] = created_by
     db_obj = Run.model_validate(run_data)
@@ -200,13 +202,21 @@ def create_run(
     return db_obj
 
 
-def get_run(*, session: Session, run_id: uuid.UUID) -> Run | None:
-    return session.get(Run, run_id)
+def get_run(
+    *, session: Session, run_id: uuid.UUID, company_id: uuid.UUID | None = None
+) -> Run | None:
+    run = session.get(Run, run_id)
+    if run is None:
+        return None
+    if company_id is not None and run.company_id != company_id:
+        return None
+    return run
 
 
 def list_runs(
     *,
     session: Session,
+    company_id: uuid.UUID,
     skip: int = 0,
     limit: int = 100,
     agent_id: uuid.UUID | None = None,
@@ -216,8 +226,10 @@ def list_runs(
     created_after: datetime | None = None,
     created_before: datetime | None = None,
 ) -> tuple[list[Run], int]:
-    statement = select(Run)
-    count_statement = select(func.count()).select_from(Run)
+    statement = select(Run).where(Run.company_id == company_id)
+    count_statement = (
+        select(func.count()).select_from(Run).where(Run.company_id == company_id)
+    )
 
     if agent_id is not None:
         statement = statement.where(Run.agent_id == agent_id)

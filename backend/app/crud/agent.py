@@ -46,17 +46,25 @@ def _versionable_fields_changed(*, before: Agent, patch: dict[str, object]) -> b
 
 
 def create_agent(
-    *, session: Session, agent_in: AgentCreate, created_by: uuid.UUID | None = None
+    *,
+    session: Session,
+    agent_in: AgentCreate,
+    company_id: uuid.UUID,
+    created_by: uuid.UUID | None = None,
 ) -> Agent:
     data = agent_in.model_dump()
     if data.get("tools") is not None:
         data["tools"] = normalize_and_validate_agent_tools(data["tools"])
+    data["company_id"] = company_id
     db_obj = Agent.model_validate(data)
     db_obj.created_by = created_by
     session.add(db_obj)
     session.flush()
     agent_version_crud.create_initial_version(
-        session=session, agent=db_obj, created_by=created_by
+        session=session,
+        agent=db_obj,
+        company_id=company_id,
+        created_by=created_by,
     )
     session.commit()
     session.refresh(db_obj)
@@ -67,6 +75,7 @@ def create_draft_agent(
     *,
     session: Session,
     body: AgentCreateDraft,
+    company_id: uuid.UUID,
     created_by: uuid.UUID | None = None,
     imported: ImportedPlatformConfig | None = None,
 ) -> Agent:
@@ -81,6 +90,7 @@ def create_draft_agent(
             name=name,
             mode=AgentMode.PLATFORM,
             has_draft=False,
+            company_id=company_id,
             created_by=created_by,
             platform=body.platform,
             prompt_type=prompt_type,
@@ -96,7 +106,10 @@ def create_draft_agent(
         session.add(db_obj)
         session.flush()
         agent_version_crud.create_initial_version(
-            session=session, agent=db_obj, created_by=created_by
+            session=session,
+            agent=db_obj,
+            company_id=company_id,
+            created_by=created_by,
         )
         session.commit()
         session.refresh(db_obj)
@@ -120,6 +133,7 @@ def create_draft_agent(
         name=name,
         mode=AgentMode.PLATFORM,
         has_draft=True,
+        company_id=company_id,
         created_by=created_by,
         platform=body.platform,
         prompt_type=prompt_type,
@@ -134,6 +148,7 @@ def create_draft_agent(
 
     draft = AgentVersion(
         agent_id=db_obj.id,
+        company_id=company_id,
         version=None,
         status=AgentVersionStatus.DRAFT,
         mode=AgentMode.PLATFORM,
@@ -145,17 +160,31 @@ def create_draft_agent(
     return db_obj
 
 
-def get_agent(*, session: Session, agent_id: uuid.UUID) -> Agent | None:
-    return session.get(Agent, agent_id)
+def get_agent(
+    *, session: Session, agent_id: uuid.UUID, company_id: uuid.UUID | None = None
+) -> Agent | None:
+    agent = session.get(Agent, agent_id)
+    if agent is None:
+        return None
+    if company_id is not None and agent.company_id != company_id:
+        return None
+    return agent
 
 
 def list_agents(
-    *, session: Session, skip: int = 0, limit: int = 100
+    *,
+    session: Session,
+    company_id: uuid.UUID,
+    skip: int = 0,
+    limit: int = 100,
 ) -> tuple[list[Agent], int]:
-    count = session.exec(select(func.count()).select_from(Agent)).one()
+    count = session.exec(
+        select(func.count()).select_from(Agent).where(Agent.company_id == company_id)
+    ).one()
     items = list(
         session.exec(
             select(Agent)
+            .where(Agent.company_id == company_id)
             .order_by(col(Agent.updated_at).desc())
             .offset(skip)
             .limit(limit)
@@ -165,7 +194,7 @@ def list_agents(
 
 
 def latest_completed_eval_summaries_by_agent(
-    *, session: Session, agent_ids: list[uuid.UUID]
+    *, session: Session, company_id: uuid.UUID, agent_ids: list[uuid.UUID]
 ) -> dict[uuid.UUID, AgentLastEvalSummary]:
     if not agent_ids:
         return {}
@@ -176,6 +205,7 @@ def latest_completed_eval_summaries_by_agent(
         .where(
             col(Run.status) == RunStatus.COMPLETED,
             col(Run.agent_id).in_(agent_ids),
+            Run.company_id == company_id,
         )
         .order_by(col(Run.created_at).desc())
     ).all()

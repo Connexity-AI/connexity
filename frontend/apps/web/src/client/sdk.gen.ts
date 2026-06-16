@@ -69,6 +69,12 @@ import type {
   CallsSetCallLabelEndpointData,
   CallsSetCallLabelEndpointErrors,
   CallsSetCallLabelEndpointResponses,
+  CompanyGetLlmCredentialsData,
+  CompanyGetLlmCredentialsErrors,
+  CompanyGetLlmCredentialsResponses,
+  CompanyUpdateLlmCredentialsData,
+  CompanyUpdateLlmCredentialsErrors,
+  CompanyUpdateLlmCredentialsResponses,
   ConfigGetAvailableMetricsData,
   ConfigGetAvailableMetricsErrors,
   ConfigGetAvailableMetricsResponses,
@@ -320,6 +326,9 @@ import type {
   UsersDeleteUserMeData,
   UsersDeleteUserMeErrors,
   UsersDeleteUserMeResponses,
+  UsersReadOnboardingStatusData,
+  UsersReadOnboardingStatusErrors,
+  UsersReadOnboardingStatusResponses,
   UsersReadUserMeData,
   UsersReadUserMeErrors,
   UsersReadUserMeResponses,
@@ -717,6 +726,36 @@ export class UsersService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+    });
+  }
+
+  /**
+   * Read Onboarding Status
+   *
+   * Whether the post-signup onboarding flow is complete.
+   *
+   * Currently the only required step is providing an LLM API key. When
+   * ``onboarding_complete`` is False the frontend routes the user to the
+   * onboarding page instead of the dashboard.
+   */
+  public static readOnboardingStatus<ThrowOnError extends boolean = false>(
+    options?: Options<UsersReadOnboardingStatusData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      UsersReadOnboardingStatusResponses,
+      UsersReadOnboardingStatusErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/users/me/onboarding-status',
+      ...options,
     });
   }
 }
@@ -2592,8 +2631,8 @@ export class ConfigService {
    *
    * All metrics available for use in eval configs (active, non-draft).
    *
-   * Both built-in (predefined) and user-created metrics live in the same
-   * ``custom_metric`` table; ``is_draft`` rows are excluded so the create-eval
+   * Every tenant has its own per-company copy of every built-in metric plus
+   * any user-created ones. ``is_draft`` rows are excluded so the create-eval
    * judge picker only shows metrics the user has marked active.
    */
   public static getAvailableMetrics<ThrowOnError extends boolean = false>(
@@ -3120,6 +3159,65 @@ export class CallsService {
       ],
       url: '/api/v1/calls/{call_id}',
       ...options,
+    });
+  }
+}
+
+export class CompanyService {
+  /**
+   * Get Llm Credentials
+   */
+  public static getLlmCredentials<ThrowOnError extends boolean = false>(
+    options?: Options<CompanyGetLlmCredentialsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      CompanyGetLlmCredentialsResponses,
+      CompanyGetLlmCredentialsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/company/llm-credentials',
+      ...options,
+    });
+  }
+
+  /**
+   * Update Llm Credentials
+   *
+   * Set or rotate the company's LLM credentials.
+   *
+   * Validates the key against the provider's API before persisting so we don't
+   * save a typoed key the user will hit at evaluation time.
+   */
+  public static updateLlmCredentials<ThrowOnError extends boolean = false>(
+    options: Options<CompanyUpdateLlmCredentialsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).put<
+      CompanyUpdateLlmCredentialsResponses,
+      CompanyUpdateLlmCredentialsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/company/llm-credentials',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
     });
   }
 }

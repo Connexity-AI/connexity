@@ -24,6 +24,7 @@ from app.models.schemas import (
     RetellRuntimeConfig,
     RunConfig,
 )
+from app.tests.utils.eval import get_test_company_id
 
 
 def _create_agent(
@@ -48,7 +49,9 @@ def _create_agent(
             endpoint_url="http://localhost:8080/agent",
             platform=platform,
         )
-    agent = crud.create_agent(session=db, agent_in=agent_in)
+    agent = crud.create_agent(
+        session=db, agent_in=agent_in, company_id=get_test_company_id(db)
+    )
     return agent.id
 
 
@@ -152,6 +155,7 @@ def test_create_eval_config_rejects_tool_calls_with_non_connexity_runtime(
                 ExpectedToolCall(tool="book_appointment", expected_params=None)
             ],
         ),
+        company_id=get_test_company_id(db),
     )
 
     payload = {
@@ -183,6 +187,7 @@ def test_create_eval_config_allows_connexity_runtime_with_tool_calls(
                 ExpectedToolCall(tool="book_appointment", expected_params=None)
             ],
         ),
+        company_id=get_test_company_id(db),
     )
 
     payload = {
@@ -209,6 +214,7 @@ def test_create_eval_config_allows_non_connexity_runtime_with_empty_tool_calls(
             name=f"tc-{uuid.uuid4().hex[:6]}",
             expected_tool_calls=[],
         ),
+        company_id=get_test_company_id(db),
     )
 
     payload = {
@@ -239,6 +245,7 @@ def test_update_eval_config_switching_runtime_rejects_existing_tool_calls(
                 ExpectedToolCall(tool="book_appointment", expected_params=None)
             ],
         ),
+        company_id=get_test_company_id(db),
     )
 
     # First, create a Connexity config that allows tool calls.
@@ -250,6 +257,7 @@ def test_update_eval_config_switching_runtime_rejects_existing_tool_calls(
             config=RunConfig(runtime=ConnexityRuntimeConfig()),
             members=[EvalConfigMemberEntry(test_case_id=tc.id)],
         ),
+        company_id=get_test_company_id(db),
     )
 
     # Now try to switch the runtime — must be rejected.

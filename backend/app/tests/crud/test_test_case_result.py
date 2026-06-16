@@ -9,6 +9,7 @@ from app.tests.utils.eval import (
     create_test_eval_config,
     create_test_run,
     eval_config_members,
+    get_test_company_id,
 )
 
 
@@ -39,7 +40,9 @@ def test_get_test_case_result(db: Session) -> None:
     result = create_test_case_result_fixture(
         db, run_id=run.id, test_case_id=test_case.id
     )
-    fetched = crud.get_test_case_result(session=db, result_id=result.id)
+    fetched = crud.get_test_case_result(
+        session=db, result_id=result.id, company_id=get_test_company_id(db)
+    )
     assert fetched is not None
     assert fetched.id == result.id
 
@@ -47,14 +50,18 @@ def test_get_test_case_result(db: Session) -> None:
 def test_list_test_case_results(db: Session) -> None:
     run, test_case = _setup_result(db)
     create_test_case_result_fixture(db, run_id=run.id, test_case_id=test_case.id)
-    items, count = crud.list_test_case_results(session=db)
+    items, count = crud.list_test_case_results(
+        session=db, company_id=get_test_company_id(db)
+    )
     assert count >= 1
 
 
 def test_list_test_case_results_filter_by_run(db: Session) -> None:
     run, test_case = _setup_result(db)
     create_test_case_result_fixture(db, run_id=run.id, test_case_id=test_case.id)
-    items, count = crud.list_test_case_results(session=db, run_id=run.id)
+    items, count = crud.list_test_case_results(
+        session=db, run_id=run.id, company_id=get_test_company_id(db)
+    )
     assert count >= 1
     assert all(r.run_id == run.id for r in items)
 
@@ -62,7 +69,9 @@ def test_list_test_case_results_filter_by_run(db: Session) -> None:
 def test_list_test_case_results_filter_by_test_case(db: Session) -> None:
     run, test_case = _setup_result(db)
     create_test_case_result_fixture(db, run_id=run.id, test_case_id=test_case.id)
-    items, count = crud.list_test_case_results(session=db, test_case_id=test_case.id)
+    items, count = crud.list_test_case_results(
+        session=db, test_case_id=test_case.id, company_id=get_test_company_id(db)
+    )
     assert count >= 1
     assert all(r.test_case_id == test_case.id for r in items)
 
@@ -93,5 +102,7 @@ def test_delete_test_case_result(db: Session) -> None:
     )
     result_id = result.id
     crud.delete_test_case_result(session=db, db_result=result)
-    fetched = crud.get_test_case_result(session=db, result_id=result_id)
+    fetched = crud.get_test_case_result(
+        session=db, result_id=result_id, company_id=get_test_company_id(db)
+    )
     assert fetched is None

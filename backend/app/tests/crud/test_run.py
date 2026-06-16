@@ -20,6 +20,7 @@ from app.tests.utils.eval import (
     create_test_eval_config,
     create_test_run,
     eval_config_members,
+    get_test_company_id,
 )
 
 _EP_AGENT_URL = "http://localhost:8080/agent"
@@ -60,7 +61,9 @@ def test_enrich_run_create_platform_agent(db: Session) -> None:
         agent_model="gpt-4o-mini",
         agent_provider="openai",
     )
-    agent = crud.create_agent(session=db, agent_in=agent_in)
+    agent = crud.create_agent(
+        session=db, agent_in=agent_in, company_id=get_test_company_id(db)
+    )
     eval_config = create_test_eval_config(db)
     run_in = RunCreate(agent_id=agent.id, eval_config_id=eval_config.id)
     enriched = crud.enrich_run_create_from_agent(
@@ -80,7 +83,9 @@ def test_enrich_run_create_platform_agent_simulator_model_override(db: Session) 
         agent_model="gpt-4o-mini",
         agent_provider="openai",
     )
-    agent = crud.create_agent(session=db, agent_in=agent_in)
+    agent = crud.create_agent(
+        session=db, agent_in=agent_in, company_id=get_test_company_id(db)
+    )
     eval_config = create_test_eval_config(db)
     run_in = RunCreate(
         agent_id=agent.id,
@@ -104,7 +109,9 @@ def test_enrich_run_create_platform_agent_simulator_provider_override(
         agent_model="claude-3-5-haiku-20241022",
         agent_provider="openai",
     )
-    agent = crud.create_agent(session=db, agent_in=agent_in)
+    agent = crud.create_agent(
+        session=db, agent_in=agent_in, company_id=get_test_company_id(db)
+    )
     eval_config = create_test_eval_config(db)
     run_in = RunCreate(
         agent_id=agent.id,
@@ -141,7 +148,9 @@ def test_enrich_run_live_rejects_platform_agent_tools_without_implementation(
         agent_provider="openai",
         tools=tools,
     )
-    agent = crud.create_agent(session=db, agent_in=agent_in)
+    agent = crud.create_agent(
+        session=db, agent_in=agent_in, company_id=get_test_company_id(db)
+    )
     eval_config = create_test_eval_config(db, agent_id=agent.id)
     crud.update_eval_config(
         session=db,
@@ -185,7 +194,9 @@ def test_enrich_run_live_accepts_when_each_tool_has_implementation(
         agent_provider="openai",
         tools=tools,
     )
-    agent = crud.create_agent(session=db, agent_in=agent_in)
+    agent = crud.create_agent(
+        session=db, agent_in=agent_in, company_id=get_test_company_id(db)
+    )
     eval_config = create_test_eval_config(db, agent_id=agent.id)
     crud.update_eval_config(
         session=db,
@@ -216,7 +227,9 @@ def test_enrich_run_live_accepts_terminating_tool_without_implementation(
         agent_provider="openai",
         tools=tools,
     )
-    agent = crud.create_agent(session=db, agent_in=agent_in)
+    agent = crud.create_agent(
+        session=db, agent_in=agent_in, company_id=get_test_company_id(db)
+    )
     eval_config = create_test_eval_config(db, agent_id=agent.id)
     crud.update_eval_config(
         session=db,
@@ -243,7 +256,9 @@ def test_enrich_run_create_endpoint_snapshots_normalized_agent_tools(
         endpoint_url="http://localhost:8080/agent",
         tools=[canonical_end_call_tool_dict()],
     )
-    agent = crud.create_agent(session=db, agent_in=agent_in)
+    agent = crud.create_agent(
+        session=db, agent_in=agent_in, company_id=get_test_company_id(db)
+    )
     eval_config = create_test_eval_config(db, agent_id=agent.id)
     run_in = RunCreate(agent_id=agent.id, eval_config_id=eval_config.id)
     enriched = crud.enrich_run_create_from_agent(
@@ -334,7 +349,7 @@ def test_create_run_with_config(db: Session) -> None:
     run_in = crud.enrich_run_create_from_agent(
         session=db, run_in=run_in, agent=agent, eval_config=eval_config
     )
-    run = crud.create_run(session=db, run_in=run_in)
+    run = crud.create_run(session=db, run_in=run_in, company_id=get_test_company_id(db))
     assert run.config is not None
     assert run.config["judge"]["model"] == "claude-3-5-sonnet"
     assert run.config["concurrency"] == 3
@@ -343,7 +358,9 @@ def test_create_run_with_config(db: Session) -> None:
 def test_get_run(db: Session) -> None:
     agent, eval_config = _setup_run(db)
     run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
-    fetched = crud.get_run(session=db, run_id=run.id)
+    fetched = crud.get_run(
+        session=db, run_id=run.id, company_id=get_test_company_id(db)
+    )
     assert fetched is not None
     assert fetched.id == run.id
 
@@ -351,14 +368,16 @@ def test_get_run(db: Session) -> None:
 def test_list_runs(db: Session) -> None:
     agent, eval_config = _setup_run(db)
     create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
-    items, count = crud.list_runs(session=db)
+    items, count = crud.list_runs(session=db, company_id=get_test_company_id(db))
     assert count >= 1
 
 
 def test_list_runs_filter_by_agent(db: Session) -> None:
     agent, eval_config = _setup_run(db)
     create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
-    items, count = crud.list_runs(session=db, agent_id=agent.id)
+    items, count = crud.list_runs(
+        session=db, agent_id=agent.id, company_id=get_test_company_id(db)
+    )
     assert count >= 1
     assert all(r.agent_id == agent.id for r in items)
 
@@ -366,7 +385,12 @@ def test_list_runs_filter_by_agent(db: Session) -> None:
 def test_list_runs_filter_by_agent_version(db: Session) -> None:
     agent, eval_config = _setup_run(db)
     create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
-    items, count = crud.list_runs(session=db, agent_version=1, agent_id=agent.id)
+    items, count = crud.list_runs(
+        session=db,
+        agent_version=1,
+        agent_id=agent.id,
+        company_id=get_test_company_id(db),
+    )
     assert count >= 1
     assert all(r.agent_version == 1 for r in items)
 
@@ -377,7 +401,9 @@ def test_list_runs_filter_by_status(db: Session) -> None:
     crud.update_run(
         session=db, db_run=run, run_in=RunUpdate(status=RunStatus.COMPLETED)
     )
-    items, count = crud.list_runs(session=db, status=RunStatus.COMPLETED)
+    items, count = crud.list_runs(
+        session=db, status=RunStatus.COMPLETED, company_id=get_test_company_id(db)
+    )
     assert count >= 1
     assert all(r.status == RunStatus.COMPLETED for r in items)
 
@@ -390,6 +416,7 @@ def test_list_runs_filter_by_date_range(db: Session) -> None:
         session=db,
         created_after=datetime(2020, 1, 1, tzinfo=UTC),
         created_before=now,
+        company_id=get_test_company_id(db),
     )
     assert count >= 1
 
@@ -410,5 +437,7 @@ def test_delete_run(db: Session) -> None:
     run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     run_id = run.id
     crud.delete_run(session=db, db_run=run)
-    fetched = crud.get_run(session=db, run_id=run_id)
+    fetched = crud.get_run(
+        session=db, run_id=run_id, company_id=get_test_company_id(db)
+    )
     assert fetched is None

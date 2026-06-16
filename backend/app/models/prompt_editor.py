@@ -32,6 +32,7 @@ class PromptEditorSession(PromptEditorSessionBase, table=True):
     __tablename__ = "prompt_editor_session"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    company_id: uuid.UUID = Field(foreign_key="company.id", index=True)
     agent_id: uuid.UUID = Field(
         foreign_key="agent.id",
         index=True,
@@ -146,6 +147,7 @@ class PromptEditorMessage(PromptEditorMessageBase, table=True):
     __tablename__ = "prompt_editor_message"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    company_id: uuid.UUID = Field(foreign_key="company.id", index=True)
     session_id: uuid.UUID = Field(
         foreign_key="prompt_editor_session.id",
         index=True,

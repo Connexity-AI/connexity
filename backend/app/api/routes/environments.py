@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app import crud
-from app.api.deps import CurrentUser, SessionDep, get_current_user
+from app.api.deps import CurrentCompany, CurrentUser, SessionDep, get_current_user
 from app.core.config import settings
 from app.core.encryption import decrypt
 from app.models import (
@@ -144,12 +144,15 @@ def _deployment_to_public(
 def _deployments_to_public_list(
     session: SessionDep,
     rows: list[tuple[Deployment, str]],
+    company_id: uuid.UUID,
 ) -> list[DeploymentPublic]:
     user_ids = [
         d.deployed_by_user_id for d, _ in rows if d.deployed_by_user_id is not None
     ]
     unique_ids = list(dict.fromkeys(user_ids))
-    users_map = crud.list_users_by_ids(session=session, user_ids=unique_ids)
+    users_map = crud.list_users_by_ids(
+        session=session, user_ids=unique_ids, company_id=company_id
+    )
     return [
         _deployment_to_public(
             d,
@@ -163,11 +166,17 @@ def _deployments_to_public_list(
 
 
 def _validate_gate_config(
-    session: SessionDep, *, agent_id: uuid.UUID, eval_config_id: uuid.UUID | None
+    session: SessionDep,
+    *,
+    agent_id: uuid.UUID,
+    eval_config_id: uuid.UUID | None,
+    company_id: uuid.UUID,
 ) -> None:
     if eval_config_id is None:
         return
-    gate_cfg = crud.get_eval_config(session=session, eval_config_id=eval_config_id)
+    gate_cfg = crud.get_eval_config(
+        session=session, eval_config_id=eval_config_id, company_id=company_id
+    )
     if not gate_cfg or gate_cfg.agent_id != agent_id:
         raise HTTPException(
             status_code=422,
@@ -176,13 +185,19 @@ def _validate_gate_config(
 
 
 def _get_environment_integration_name(
-    session: SessionDep, *, platform: Platform, integration_id: uuid.UUID | None
+    session: SessionDep,
+    *,
+    platform: Platform,
+    integration_id: uuid.UUID | None,
+    company_id: uuid.UUID,
 ) -> str | None:
     if platform not in {Platform.RETELL, Platform.VAPI, Platform.ELEVENLABS}:
         return None
     if integration_id is None:
         raise HTTPException(status_code=422, detail="Integration is required")
-    integration = crud.get_integration(session=session, integration_id=integration_id)
+    integration = crud.get_integration(
+        session=session, integration_id=integration_id, company_id=company_id
+    )
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
     return integration.name
@@ -195,11 +210,14 @@ def _get_eval_payload_for_gate(
     agent_version: int,
     eval_config_id: uuid.UUID | None,
     enforce_gate: bool,
+    company_id: uuid.UUID,
 ) -> WebhookEval:
     if eval_config_id is None:
         return WebhookEval()
 
-    gate_cfg = crud.get_eval_config(session=session, eval_config_id=eval_config_id)
+    gate_cfg = crud.get_eval_config(
+        session=session, eval_config_id=eval_config_id, company_id=company_id
+    )
     config_name = gate_cfg.name if gate_cfg is not None else None
 
     def _results_link(run_id: uuid.UUID) -> str | None:
@@ -272,9 +290,12 @@ def _get_eval_payload_for_gate(
 @router.post("/", response_model=EnvironmentPublic)
 def create_environment(
     session: SessionDep,
+    company_id: CurrentCompany,
     environment_in: EnvironmentCreate,
 ) -> EnvironmentPublic:
-    agent = crud.get_agent(session=session, agent_id=environment_in.agent_id)
+    agent = crud.get_agent(
+        session=session, agent_id=environment_in.agent_id, company_id=company_id
+    )
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     environment_in = _apply_agent_platform_to_environment_create(agent, environment_in)
@@ -282,22 +303,27 @@ def create_environment(
         session=session,
         platform=environment_in.platform,
         integration_id=agent.integration_id,
+        company_id=company_id,
     )
     _validate_gate_config(
         session=session,
         agent_id=environment_in.agent_id,
         eval_config_id=environment_in.eval_gate_eval_config_id,
+        company_id=company_id,
     )
-    db_obj = crud.create_environment(session=session, data=environment_in)
+    db_obj = crud.create_environment(
+        session=session, data=environment_in, company_id=company_id
+    )
     return _to_public(db_obj, integration_name)
 
 
 @router.get("/", response_model=EnvironmentsPublic)
 def list_environments(
     session: SessionDep,
+    company_id: CurrentCompany,
     agent_id: uuid.UUID = Query(...),
 ) -> EnvironmentsPublic:
-    agent = crud.get_agent(session=session, agent_id=agent_id)
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     rows = crud.list_environments_by_agent(session=session, agent_id=agent_id)
@@ -305,6 +331,7 @@ def list_environments(
         session=session,
         platform=agent.platform,
         integration_id=agent.integration_id,
+        company_id=company_id,
     )
     return EnvironmentsPublic(
         data=[_to_public(env, integration_name) for env in rows],
@@ -316,11 +343,12 @@ def list_environments(
 def get_webhook_payload_preview(
     session: SessionDep,
     current_user: CurrentUser,
+    company_id: CurrentCompany,
     agent_id: uuid.UUID = Query(...),
     environment_name: str = Query(..., min_length=1, max_length=255),
     eval_gate_eval_config_id: uuid.UUID | None = Query(default=None),
 ) -> WebhookDeployPayload:
-    agent = crud.get_agent(session=session, agent_id=agent_id)
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
@@ -336,6 +364,7 @@ def get_webhook_payload_preview(
         session=session,
         agent_id=agent_id,
         eval_config_id=eval_gate_eval_config_id,
+        company_id=company_id,
     )
     eval_payload = _get_eval_payload_for_gate(
         session=session,
@@ -343,6 +372,7 @@ def get_webhook_payload_preview(
         agent_version=version_row.version,
         eval_config_id=eval_gate_eval_config_id,
         enforce_gate=False,
+        company_id=company_id,
     )
     payload = build_webhook_payload(
         agent=agent,
@@ -350,6 +380,7 @@ def get_webhook_payload_preview(
             name=safe_environment_name,
             platform=Platform.WEBHOOK,
             agent_id=agent_id,
+            company_id=company_id,
         ),
         version_row=version_row,
         deployed_by=current_user.full_name or current_user.email,
@@ -361,14 +392,19 @@ def get_webhook_payload_preview(
 @router.patch("/{environment_id}", response_model=EnvironmentPublic)
 def update_environment(
     session: SessionDep,
+    company_id: CurrentCompany,
     environment_id: uuid.UUID,
     environment_in: EnvironmentUpdate,
 ) -> EnvironmentPublic:
-    env = crud.get_environment(session=session, environment_id=environment_id)
+    env = crud.get_environment(
+        session=session, environment_id=environment_id, company_id=company_id
+    )
     if not env:
         raise HTTPException(status_code=404, detail="Environment not found")
 
-    agent = crud.get_agent(session=session, agent_id=env.agent_id)
+    agent = crud.get_agent(
+        session=session, agent_id=env.agent_id, company_id=company_id
+    )
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
@@ -407,6 +443,7 @@ def update_environment(
         session=session,
         platform=platform,
         integration_id=agent.integration_id,
+        company_id=company_id,
     )
     _validate_gate_config(
         session=session,
@@ -414,6 +451,7 @@ def update_environment(
         eval_config_id=update_data.get(
             "eval_gate_eval_config_id", env.eval_gate_eval_config_id
         ),
+        company_id=company_id,
     )
 
     updated = crud.update_environment(
@@ -439,9 +477,12 @@ def update_environment(
 @router.delete("/{environment_id}", response_model=Message)
 def delete_environment(
     session: SessionDep,
+    company_id: CurrentCompany,
     environment_id: uuid.UUID,
 ) -> Message:
-    env = crud.get_environment(session=session, environment_id=environment_id)
+    env = crud.get_environment(
+        session=session, environment_id=environment_id, company_id=company_id
+    )
     if not env:
         raise HTTPException(status_code=404, detail="Environment not found")
     crud.delete_environment(session=session, db_environment=env)
@@ -452,13 +493,18 @@ def delete_environment(
 async def deploy_environment(
     session: SessionDep,
     current_user: CurrentUser,
+    company_id: CurrentCompany,
     environment_id: uuid.UUID,
     body: DeploymentCreate,
 ) -> DeploymentPublic:
-    env = crud.get_environment(session=session, environment_id=environment_id)
+    env = crud.get_environment(
+        session=session, environment_id=environment_id, company_id=company_id
+    )
     if not env:
         raise HTTPException(status_code=404, detail="Environment not found")
-    agent = crud.get_agent(session=session, agent_id=env.agent_id)
+    agent = crud.get_agent(
+        session=session, agent_id=env.agent_id, company_id=company_id
+    )
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
@@ -474,10 +520,12 @@ async def deploy_environment(
         agent_version=body.agent_version,
         eval_config_id=env.eval_gate_eval_config_id,
         enforce_gate=True,
+        company_id=company_id,
     )
 
     deployment = crud.create_pending_deployment(
         session=session,
+        company_id=company_id,
         environment_id=env.id,
         agent_id=env.agent_id,
         agent_version=body.agent_version,
@@ -494,6 +542,7 @@ async def deploy_environment(
         integration = crud.get_integration(
             session=session,
             integration_id=agent.integration_id,
+            company_id=company_id,
         )
         if not integration:
             raise HTTPException(status_code=404, detail="Integration not found")
@@ -523,6 +572,7 @@ async def deploy_environment(
         integration = crud.get_integration(
             session=session,
             integration_id=agent.integration_id,
+            company_id=company_id,
         )
         if not integration:
             raise HTTPException(status_code=404, detail="Integration not found")
@@ -553,6 +603,7 @@ async def deploy_environment(
         integration = crud.get_integration(
             session=session,
             integration_id=agent.integration_id,
+            company_id=company_id,
         )
         if not integration:
             raise HTTPException(status_code=404, detail="Integration not found")
@@ -608,7 +659,9 @@ async def deploy_environment(
     deployer_user = None
     if deployment.deployed_by_user_id is not None:
         umap = crud.list_users_by_ids(
-            session=session, user_ids=[deployment.deployed_by_user_id]
+            session=session,
+            user_ids=[deployment.deployed_by_user_id],
+            company_id=company_id,
         )
         deployer_user = umap.get(deployment.deployed_by_user_id)
 
@@ -625,12 +678,17 @@ async def deploy_environment(
 )
 async def list_environment_retell_versions(
     session: SessionDep,
+    company_id: CurrentCompany,
     environment_id: uuid.UUID,
 ) -> list[RetellAgentVersion]:
-    env = crud.get_environment(session=session, environment_id=environment_id)
+    env = crud.get_environment(
+        session=session, environment_id=environment_id, company_id=company_id
+    )
     if not env:
         raise HTTPException(status_code=404, detail="Environment not found")
-    agent = crud.get_agent(session=session, agent_id=env.agent_id)
+    agent = crud.get_agent(
+        session=session, agent_id=env.agent_id, company_id=company_id
+    )
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
@@ -648,6 +706,7 @@ async def list_environment_retell_versions(
     integration = crud.get_integration(
         session=session,
         integration_id=agent.integration_id,
+        company_id=company_id,
     )
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
@@ -664,13 +723,14 @@ async def list_environment_retell_versions(
 @router.get("/deployments", response_model=DeploymentsPublic)
 def list_agent_deployments(
     session: SessionDep,
+    company_id: CurrentCompany,
     agent_id: uuid.UUID = Query(...),
 ) -> DeploymentsPublic:
-    if not crud.get_agent(session=session, agent_id=agent_id):
+    if not crud.get_agent(session=session, agent_id=agent_id, company_id=company_id):
         raise HTTPException(status_code=404, detail="Agent not found")
     rows = crud.list_deployments_for_agent(session=session, agent_id=agent_id)
     return DeploymentsPublic(
-        data=_deployments_to_public_list(session, rows),
+        data=_deployments_to_public_list(session, rows, company_id=company_id),
         count=len(rows),
     )
 
@@ -678,9 +738,12 @@ def list_agent_deployments(
 @router.get("/{environment_id}/deployments", response_model=DeploymentsPublic)
 def list_environment_deployments(
     session: SessionDep,
+    company_id: CurrentCompany,
     environment_id: uuid.UUID,
 ) -> DeploymentsPublic:
-    env = crud.get_environment(session=session, environment_id=environment_id)
+    env = crud.get_environment(
+        session=session, environment_id=environment_id, company_id=company_id
+    )
     if not env:
         raise HTTPException(status_code=404, detail="Environment not found")
 
@@ -689,6 +752,8 @@ def list_environment_deployments(
     )
     rows_with_name = [(d, env.name) for d in rows]
     return DeploymentsPublic(
-        data=_deployments_to_public_list(session, rows_with_name),
+        data=_deployments_to_public_list(
+            session, rows_with_name, company_id=company_id
+        ),
         count=len(rows),
     )

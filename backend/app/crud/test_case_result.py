@@ -7,9 +7,14 @@ from app.models import TestCaseResult, TestCaseResultCreate, TestCaseResultUpdat
 
 
 def create_test_case_result(
-    *, session: Session, result_in: TestCaseResultCreate
+    *,
+    session: Session,
+    result_in: TestCaseResultCreate,
+    company_id: uuid.UUID,
 ) -> TestCaseResult:
-    db_obj = TestCaseResult.model_validate(result_in)
+    db_obj = TestCaseResult.model_validate(
+        {**result_in.model_dump(), "company_id": company_id}
+    )
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
@@ -17,14 +22,23 @@ def create_test_case_result(
 
 
 def get_test_case_result(
-    *, session: Session, result_id: uuid.UUID
+    *,
+    session: Session,
+    result_id: uuid.UUID,
+    company_id: uuid.UUID | None = None,
 ) -> TestCaseResult | None:
-    return session.get(TestCaseResult, result_id)
+    obj = session.get(TestCaseResult, result_id)
+    if obj is None:
+        return None
+    if company_id is not None and obj.company_id != company_id:
+        return None
+    return obj
 
 
 def list_test_case_results(
     *,
     session: Session,
+    company_id: uuid.UUID,
     skip: int = 0,
     limit: int = 100,
     run_id: uuid.UUID | None = None,
@@ -32,8 +46,12 @@ def list_test_case_results(
     repetition_index: int | None = None,
     passed: bool | None = None,
 ) -> tuple[list[TestCaseResult], int]:
-    statement = select(TestCaseResult)
-    count_statement = select(func.count()).select_from(TestCaseResult)
+    statement = select(TestCaseResult).where(TestCaseResult.company_id == company_id)
+    count_statement = (
+        select(func.count())
+        .select_from(TestCaseResult)
+        .where(TestCaseResult.company_id == company_id)
+    )
 
     if run_id is not None:
         statement = statement.where(TestCaseResult.run_id == run_id)

@@ -1,6 +1,7 @@
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from app import crud
 from app.api.deps import (
@@ -16,6 +17,14 @@ from app.models import (
     UserRegister,
     UserUpdateMe,
 )
+
+
+class OnboardingStatusPublic(BaseModel):
+    """Whether the user has completed the post-signup setup steps."""
+
+    has_llm_key: bool
+    onboarding_complete: bool
+
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -86,6 +95,24 @@ def read_user_me(current_user: CurrentUser) -> Any:
     Get current user.
     """
     return current_user
+
+
+@router.get("/me/onboarding-status", response_model=OnboardingStatusPublic)
+def read_onboarding_status(
+    session: SessionDep, current_user: CurrentUser
+) -> OnboardingStatusPublic:
+    """Whether the post-signup onboarding flow is complete.
+
+    Currently the only required step is providing an LLM API key. When
+    ``onboarding_complete`` is False the frontend routes the user to the
+    onboarding page instead of the dashboard.
+    """
+    company = crud.get_company(session=session, company_id=current_user.company_id)
+    has_key = company is not None and crud.company_has_any_llm_key(company=company)
+    return OnboardingStatusPublic(
+        has_llm_key=has_key,
+        onboarding_complete=has_key,
+    )
 
 
 @router.delete("/me", response_model=Message)

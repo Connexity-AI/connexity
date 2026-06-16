@@ -2,6 +2,7 @@
 
 import json
 import logging
+import uuid
 from dataclasses import dataclass
 from typing import Any
 
@@ -43,6 +44,10 @@ class JudgeInput:
     agent_system_prompt: str | None
     agent_tools: list[dict[str, Any]] | None
     judge_config: JudgeConfig | None
+    # Tenant scope. Required so metric lookup hits the right per-company copies.
+    # Defaults to ``None`` for backwards compatibility with unit tests that
+    # rely on a single global metric set.
+    company_id: uuid.UUID | None = None
 
 
 def _pretty_json_oneline(raw: str | Any) -> str:
@@ -376,7 +381,7 @@ async def evaluate_transcript(inp: JudgeInput) -> JudgeVerdict:
 
     judge_cfg = inp.judge_config
     try:
-        resolved = resolve_metrics(judge_cfg)
+        resolved = resolve_metrics(judge_cfg, company_id=inp.company_id)
     except ValueError as e:
         logger.error("Metric resolution failed: %s", e)
         judge_model = (

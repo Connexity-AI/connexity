@@ -22,6 +22,7 @@ from app.tests.utils.eval import (
     create_test_eval_config,
     create_test_platform_agent,
     create_test_run,
+    get_test_company_id,
 )
 
 
@@ -80,7 +81,9 @@ def test_platform_agent_with_tools_includes_review_tools(db: Session) -> None:
             }
         ],
     )
-    agent = crud.create_agent(session=db, agent_in=agent_in)
+    agent = crud.create_agent(
+        session=db, agent_in=agent_in, company_id=get_test_company_id(db)
+    )
     ids = _preset_ids(db, agent)
     assert ids == [
         "improve_prompt",
@@ -153,7 +156,9 @@ def test_platform_agent_tools_and_completed_run_five_presets(db: Session) -> Non
             }
         ],
     )
-    agent = crud.create_agent(session=db, agent_in=agent_in)
+    agent = crud.create_agent(
+        session=db, agent_in=agent_in, company_id=get_test_company_id(db)
+    )
     eval_config = create_test_eval_config(db, agent_id=agent.id)
     run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     crud.update_run(

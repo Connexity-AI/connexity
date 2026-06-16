@@ -39,7 +39,11 @@ def login_access_token(
 
     expires_delta = timedelta(hours=settings.ACCESS_TOKEN_EXPIRE_HOURS)
 
-    access_token = security.create_access_token(user.id, expires_delta)
+    access_token = security.create_access_token(
+        user.id,
+        expires_delta,
+        additional_claims={"cid": str(user.company_id)},
+    )
 
     # Absolute expiration Unix time (UTC)
     expires_at = datetime.now(UTC) + expires_delta
