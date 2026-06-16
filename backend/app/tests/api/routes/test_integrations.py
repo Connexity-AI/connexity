@@ -117,11 +117,12 @@ def test_create_list_get_test_delete_flow(
     assert all(i["id"] != integration_id for i in list_after.json()["data"])
 
 
-def test_integration_visible_to_all_authenticated_users(
+def test_integration_is_isolated_per_company(
     client: TestClient,
     auth_cookies: dict[str, str],
     normal_user_auth_cookies: dict[str, str],
 ) -> None:
+    """Integrations are scoped per company — another company's user can't see, test, or delete them."""
     with patch.dict(
         "app.api.routes.integrations._CONNECTION_TESTERS",
         {IntegrationProvider.RETELL: AsyncMock(return_value=True)},
@@ -129,19 +130,21 @@ def test_integration_visible_to_all_authenticated_users(
     ):
         create_r = client.post(
             f"{settings.API_V1_STR}/integrations/",
-            json=_create_body("shared"),
+            json=_create_body("private"),
             cookies=auth_cookies,
         )
     assert create_r.status_code == 200
     integration_id = create_r.json()["id"]
 
+    # ``normal_user_auth_cookies`` is in a different company → can't see it.
     other_list = client.get(
         f"{settings.API_V1_STR}/integrations/",
         cookies=normal_user_auth_cookies,
     )
     assert other_list.status_code == 200
-    assert any(i["id"] == integration_id for i in other_list.json()["data"])
+    assert all(i["id"] != integration_id for i in other_list.json()["data"])
 
+    # ...nor test it.
     with patch.dict(
         "app.api.routes.integrations._CONNECTION_TESTERS",
         {IntegrationProvider.RETELL: AsyncMock(return_value=True)},
@@ -151,19 +154,21 @@ def test_integration_visible_to_all_authenticated_users(
             f"{settings.API_V1_STR}/integrations/{integration_id}/test",
             cookies=normal_user_auth_cookies,
         )
-    assert other_test.status_code == 200
+    assert other_test.status_code == 404
 
+    # ...nor delete it.
     other_del = client.delete(
         f"{settings.API_V1_STR}/integrations/{integration_id}",
         cookies=normal_user_auth_cookies,
     )
-    assert other_del.status_code == 200
+    assert other_del.status_code == 404
 
+    # The original owner still sees it.
     list_after = client.get(
         f"{settings.API_V1_STR}/integrations/",
         cookies=auth_cookies,
     )
-    assert all(i["id"] != integration_id for i in list_after.json()["data"])
+    assert any(i["id"] == integration_id for i in list_after.json()["data"])
 
 
 def test_list_integration_agents_deduplicates_by_agent_id(

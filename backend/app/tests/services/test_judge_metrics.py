@@ -1,4 +1,5 @@
 import pytest
+from sqlmodel import Session
 
 from app.models.schemas import JudgeConfig, MetricSelection
 from app.services.judge import build_judge_response_format
@@ -8,40 +9,48 @@ from app.services.judge_metrics import (
     resolve_metrics,
 )
 from app.services.predefined_metrics import PREDEFINED_METRICS
+from app.tests.utils.eval import get_test_company_id
 
 _PREDEFINED_BY_NAME = {m.name: m for m in PREDEFINED_METRICS}
 
 
-def test_get_default_metrics_excludes_task_completion() -> None:
-    names = {m.name for m in get_default_metrics()}
+def test_get_default_metrics_excludes_task_completion(db: Session) -> None:
+    cid = get_test_company_id(db)
+    names = {m.name for m in get_default_metrics(db, company_id=cid)}
     assert "task_completion" not in names
     assert len(names) == 8
-    assert all(m.score_type == ScoreType.SCORED for m in get_default_metrics())
+    assert all(
+        m.score_type == ScoreType.SCORED
+        for m in get_default_metrics(db, company_id=cid)
+    )
 
 
-def test_resolve_metrics_defaults_sum_to_one() -> None:
-    resolved = resolve_metrics(None)
+def test_resolve_metrics_defaults_sum_to_one(db: Session) -> None:
+    cid = get_test_company_id(db)
+    resolved = resolve_metrics(None, session=db, company_id=cid)
     assert len(resolved) == 8
     total = sum(w for _, w in resolved)
     assert abs(total - 1.0) < 1e-9
 
 
-def test_resolve_metrics_custom_list_renormalizes() -> None:
+def test_resolve_metrics_custom_list_renormalizes(db: Session) -> None:
+    cid = get_test_company_id(db)
     cfg = JudgeConfig(
         metrics=[
             MetricSelection(metric="tool_routing", weight=1.0),
             MetricSelection(metric="response_delivery", weight=1.0),
         ]
     )
-    resolved = resolve_metrics(cfg)
+    resolved = resolve_metrics(cfg, session=db, company_id=cid)
     assert len(resolved) == 2
     assert abs(sum(w for _, w in resolved) - 1.0) < 1e-9
 
 
-def test_task_completion_requires_explicit_weight() -> None:
+def test_task_completion_requires_explicit_weight(db: Session) -> None:
+    cid = get_test_company_id(db)
     cfg = JudgeConfig(metrics=[MetricSelection(metric="task_completion", weight=None)])
     with pytest.raises(ValueError, match="task_completion requires"):
-        resolve_metrics(cfg)
+        resolve_metrics(cfg, session=db, company_id=cid)
 
 
 def test_build_judge_response_format_keys() -> None:
@@ -57,9 +66,10 @@ def test_build_judge_response_format_keys() -> None:
     assert set(props.keys()) == {"task_completion", "tool_routing"}
 
 
-def test_resolve_metrics_unknown_without_owner_raises() -> None:
+def test_resolve_metrics_unknown_without_owner_raises(db: Session) -> None:
+    cid = get_test_company_id(db)
     cfg = JudgeConfig(
         metrics=[MetricSelection(metric="not_a_real_metric_xyz", weight=1.0)]
     )
     with pytest.raises(ValueError, match="Unknown metric"):
-        resolve_metrics(cfg)
+        resolve_metrics(cfg, session=db, company_id=cid)

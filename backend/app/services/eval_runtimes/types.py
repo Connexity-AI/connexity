@@ -36,12 +36,17 @@ class AgentSnapshot:
 
 @dataclass(frozen=True)
 class RunSnapshot:
-    """Frozen capture of run-level state shared across every test case."""
+    """Frozen capture of run-level state shared across every test case.
+
+    ``company_id`` is optional only so legacy unit tests that construct snapshots
+    by hand keep compiling. The production entry point (:func:`execute_run`)
+    always stamps it from ``Run.company_id``.
+    """
 
     run_id: uuid.UUID
-    company_id: uuid.UUID
     run_config: RunConfig
     cancel_event: asyncio.Event | None
+    company_id: uuid.UUID | None = None
 
 
 @dataclass(frozen=True)
