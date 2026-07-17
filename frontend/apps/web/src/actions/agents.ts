@@ -6,11 +6,14 @@ import { isSuccessApiResult } from '@/utils/api';
 import type {
   AgentCreate,
   AgentDraftUpdate,
+  AgentFlowStalenessPublic,
   AgentPublic,
   AgentRollbackRequest,
   AgentUpdate,
   AgentVersionPublic,
   AgentVersionsPublic,
+  RequirementsExtractionStatus,
+  RequirementsPublic,
   RuntimeOptionsPublic,
   Platform,
   PublishRequest,
@@ -140,6 +143,46 @@ export const getAgentVersions = async (
   const apiResponse = await AgentsService.listAgentVersions({
     path: { agent_id: agentId },
     query: { skip, limit },
+  });
+  const { response: _, ...result } = apiResponse;
+  return result;
+};
+
+export const getAgentRequirements = async (
+  agentId: string
+): Promise<ApiResult<RequirementsPublic>> => {
+  const apiResponse = await AgentsService.listAgentRequirements({
+    path: { agent_id: agentId },
+  });
+  const { response: _, ...result } = apiResponse;
+  return result;
+};
+
+export const getAgentFlowStaleness = async (
+  agentId: string
+): Promise<ApiResult<AgentFlowStalenessPublic>> => {
+  const apiResponse = await AgentsService.checkAgentFlowStaleness({
+    path: { agent_id: agentId },
+  });
+  const { response: _, ...result } = apiResponse;
+  return result;
+};
+
+export const syncAgentFlow = async (
+  agentId: string
+): Promise<ApiResult<AgentVersionPublic>> => {
+  const apiResponse = await AgentsService.syncAgentFlow({
+    path: { agent_id: agentId },
+  });
+  const { response: _, ...result } = apiResponse;
+  return result;
+};
+
+export const reextractAgentRequirements = async (
+  agentId: string
+): Promise<ApiResult<RequirementsExtractionStatus>> => {
+  const apiResponse = await AgentsService.reextractAgentRequirements({
+    path: { agent_id: agentId },
   });
   const { response: _, ...result } = apiResponse;
   return result;

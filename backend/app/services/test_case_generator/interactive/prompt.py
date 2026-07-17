@@ -205,9 +205,11 @@ def build_dynamic_system_message(
     parts: list[str] = [
         _build_agent_header_block(ctx.agent),
         _build_agent_description_block(ctx.agent),
-        "## Agent system prompt\n<agent_prompt>\n"
+        # Body is the system prompt or a rendered requirements list (self-
+        # describing); a neutral header reads correctly for both.
+        "## Agent specification\n<agent_specification>\n"
         f"{ctx.agent_prompt}\n"
-        "</agent_prompt>",
+        "</agent_specification>",
         "## Agent tools\n<agent_tools>\n"
         f"{_format_tools(ctx.tools)}\n"
         "</agent_tools>",

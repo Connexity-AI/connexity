@@ -1,5 +1,6 @@
 import { dehydrate } from '@tanstack/react-query';
 
+import { AgentFlowStalenessWatcher } from '@/app/(app)/(agent)/_components/agent-flow-staleness-watcher';
 import { AgentEditHeader } from '@/app/(app)/(agent)/_components/header/agent-edit-header';
 import { AgentEditFormProvider } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
 import { AiSuggestionProvider } from '@/app/(app)/(agent)/_context/ai-suggestion-context';
@@ -32,6 +33,7 @@ export default async function AgentLayout({ children, params }: Props) {
           <AgentEditFormProvider agentId={agentId}>
             <AiSuggestionProvider>
               <SuggestFixesProvider>
+                <AgentFlowStalenessWatcher />
                 <AgentEditHeader />
                 {children}
               </SuggestFixesProvider>

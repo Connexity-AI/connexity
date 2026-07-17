@@ -28,6 +28,9 @@ from app.crud.agent_version import publish_draft as publish_agent_draft  # noqa:
 from app.crud.agent_version import (
     rollback_to_version as rollback_agent_version,  # noqa: F401
 )
+from app.crud.agent_version import (  # noqa: F401
+    sync_conversation_flow_agent,
+)
 from app.crud.call import (  # noqa: F401
     count_calls_for_agent,
     get_call,
@@ -120,6 +123,12 @@ from app.crud.prompt_editor_session import (
 )
 from app.crud.prompt_editor_session import (
     update_session_edited_prompt as update_prompt_editor_session_edited_prompt,  # noqa: F401
+)
+from app.crud.requirement import (  # noqa: F401
+    has_requirements_for_version,
+    list_requirements_for_version,
+    replace_requirements_for_version,
+    set_requirements_status,
 )
 from app.crud.run import (  # noqa: F401
     count_runs_by_eval_config_ids,

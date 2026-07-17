@@ -287,6 +287,21 @@ class AgentLatestPublishedVersionPublic(SQLModel):
     version_description: str | None = Field(default=None)
 
 
+class AgentFlowStalenessPublic(SQLModel):
+    is_stale: bool = Field(
+        description=(
+            "True when Retell's live conversation flow version differs from "
+            "the version captured at last import/sync"
+        )
+    )
+    captured_version: int | None = Field(
+        default=None, description="Flow version stored in agent_metadata"
+    )
+    live_version: int | None = Field(
+        default=None, description="Current flow version fetched from Retell"
+    )
+
+
 class AgentPublic(AgentBase):
     id: uuid.UUID = Field(description="Unique agent identifier")
     has_draft: bool = Field(description="True when an unpublished draft version exists")

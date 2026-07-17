@@ -749,6 +749,129 @@ def _map_retell_general_tools_to_openai(
     return out
 
 
+# Sentinel agent_model for conversation-flow agents. They have no single LLM /
+# model the way retell-llm agents do; behavior lives in the flow graph and is
+# captured as Requirements. The sentinel keeps mode=platform validation happy and
+# lets the UI distinguish flow-backed agents.
+CONVERSATION_FLOW_AGENT_MODEL = "conversation-flow"
+
+
+async def get_retell_conversation_flow(
+    *, api_key: str, conversation_flow_id: str, version: int | None = None
+) -> dict[str, Any]:
+    params = {"version": str(version)} if version is not None else None
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"https://api.retellai.com/get-conversation-flow/{conversation_flow_id}",
+                headers={"Authorization": f"Bearer {api_key}"},
+                params=params,
+                timeout=30.0,
+            )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502, detail=f"Failed to reach Retell API: {exc}"
+        ) from exc
+
+    if resp.status_code >= 400:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Retell get-conversation-flow failed with status " f"{resp.status_code}"
+            ),
+        )
+
+    body = resp.json()
+    if not isinstance(body, dict):
+        raise HTTPException(
+            status_code=422,
+            detail="Retell get-conversation-flow returned invalid JSON",
+        )
+    return body
+
+
+def _map_retell_flow_tools_to_openai(tools: Any) -> list[dict[str, Any]]:
+    """Conversation-flow tools share the custom/HTTP shape of general_tools."""
+    if not isinstance(tools, list):
+        return []
+    return _map_retell_general_tools_to_openai(tools)
+
+
+def _import_conversation_flow_config(
+    *,
+    flow: dict[str, Any],
+    conversation_flow_id: str,
+    flow_version: int | None,
+) -> ImportedPlatformConfig:
+    """Build an ImportedPlatformConfig for a conversation-flow agent.
+
+    No single prompt is fabricated — behavioral context comes from extracted
+    Requirements. ``system_prompt`` carries a short human-readable note (and the
+    flow's global_prompt when present) so mode=platform validation passes and the
+    agent view shows something meaningful; ``agent_metadata`` records the binding.
+    """
+    global_prompt = (flow.get("global_prompt") or "").strip()
+    note = (
+        "This agent is backed by a Retell Conversation Flow. Behavioral "
+        "requirements are extracted from the flow's global prompt and nodes."
+    )
+    system_prompt = f"{note}\n\n{global_prompt}".strip() if global_prompt else note
+
+    flow_tools = _map_retell_flow_tools_to_openai(flow.get("tools"))
+
+    nodes = flow.get("nodes")
+    edges = flow.get("edges")
+
+    return ImportedPlatformConfig(
+        system_prompt=system_prompt,
+        agent_model=CONVERSATION_FLOW_AGENT_MODEL,
+        agent_provider=None,
+        agent_temperature=None,
+        tools=flow_tools or None,
+        agent_metadata={
+            "retell_response_engine": "conversation-flow",
+            "conversation_flow_id": conversation_flow_id,
+            "conversation_flow_version": flow_version,
+            # Snapshot of the flow graph so requirement extraction has the full
+            # behavioral source (global prompt is already in system_prompt).
+            "conversation_flow_global_prompt": global_prompt or None,
+            "conversation_flow_nodes": nodes if isinstance(nodes, list) else [],
+            "conversation_flow_edges": edges if isinstance(edges, list) else [],
+        },
+    )
+
+
+async def check_retell_flow_staleness(
+    *, api_key: str, conversation_flow_id: str, captured_version: int | None
+) -> tuple[bool, int | None]:
+    """Compare the live Retell flow version against what was last captured.
+
+    Fetches the flow with no ``version`` pin, which Retell resolves to the
+    latest version. Returns ``(is_stale, live_version)``. A missing captured
+    version (legacy import) or a fetch failure defaults to "not stale" —
+    staleness is an informational nudge, not something that should crash the
+    page or false-positive on an API hiccup.
+    """
+    try:
+        flow = await get_retell_conversation_flow(
+            api_key=api_key, conversation_flow_id=conversation_flow_id
+        )
+    except HTTPException:
+        logger.warning(
+            "Could not check Retell flow staleness for conversation_flow_id=%s",
+            conversation_flow_id,
+        )
+        return False, None
+
+    live_version = flow.get("version")
+    live_version = live_version if isinstance(live_version, int) else None
+
+    if captured_version is None or live_version is None:
+        return False, live_version
+
+    return live_version != captured_version, live_version
+
+
 async def import_retell_agent_config(
     *, api_key: str, retell_agent_id: str
 ) -> ImportedPlatformConfig:
@@ -780,7 +903,35 @@ async def import_retell_agent_config(
             status_code=422, detail="Retell get-agent returned invalid JSON"
         )
 
-    llm_id = (agent_data.get("response_engine") or {}).get("llm_id")
+    response_engine = agent_data.get("response_engine") or {}
+    engine_type = response_engine.get("type")
+
+    # Conversation flows have no llm_id; behavior lives in the flow graph.
+    if engine_type == "conversation-flow" or response_engine.get(
+        "conversation_flow_id"
+    ):
+        conversation_flow_id = response_engine.get("conversation_flow_id")
+        if not conversation_flow_id:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "Retell conversation-flow agent is missing "
+                    "response_engine.conversation_flow_id"
+                ),
+            )
+        flow_version = response_engine.get("version")
+        flow = await get_retell_conversation_flow(
+            api_key=api_key,
+            conversation_flow_id=str(conversation_flow_id),
+            version=flow_version if isinstance(flow_version, int) else None,
+        )
+        return _import_conversation_flow_config(
+            flow=flow,
+            conversation_flow_id=str(conversation_flow_id),
+            flow_version=flow_version if isinstance(flow_version, int) else None,
+        )
+
+    llm_id = response_engine.get("llm_id")
     if not llm_id:
         raise HTTPException(
             status_code=422,

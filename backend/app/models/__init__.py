@@ -14,6 +14,7 @@ from app.models.agent import (  # noqa: F401
     AgentBase,
     AgentCreate,
     AgentCreateDraft,
+    AgentFlowStalenessPublic,
     AgentGuidelinesPublic,
     AgentGuidelinesUpdate,
     AgentLastEvalSummary,
@@ -114,6 +115,7 @@ from app.models.enums import (  # noqa: F401
     MetricTier,
     Platform,
     PromptEditorSessionStatus,
+    RequirementsStatus,
     RunMode,
     RunStatus,
     ScoreType,
@@ -177,6 +179,13 @@ from app.models.prompt_editor import (  # noqa: F401
     PromptEditorSessionPublic,
     PromptEditorSessionsPublic,
     PromptEditorSessionUpdate,
+)
+from app.models.requirement import (  # noqa: F401
+    Requirement,
+    RequirementBase,
+    RequirementPublic,
+    RequirementsExtractionStatus,
+    RequirementsPublic,
 )
 
 # ── Run ────────────────────────────────────────────────────────────

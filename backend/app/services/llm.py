@@ -149,6 +149,13 @@ class LLMResponse(BaseModel):
         default=None,
         description="Tool calls from the assistant message (OpenAI-compatible dicts)",
     )
+    finish_reason: str | None = Field(
+        default=None,
+        description=(
+            "Provider finish reason (e.g. 'stop', 'length', 'tool_calls'). "
+            "'length' means the response was cut off by max_tokens."
+        ),
+    )
 
 
 class LLMToolCall(BaseModel):
@@ -341,6 +348,14 @@ def _tool_calls_from_response(response: object) -> list[dict[str, Any]] | None:
         return None
     raw = getattr(message, "tool_calls", None)
     return _normalize_tool_calls(raw)
+
+
+def _finish_reason_from_response(response: object) -> str | None:
+    choices = getattr(response, "choices", None)
+    if not choices:
+        return None
+    finish_reason = getattr(choices[0], "finish_reason", None)
+    return str(finish_reason) if finish_reason is not None else None
 
 
 def _llm_message_to_litellm_dict(m: LLMMessage) -> dict[str, Any]:
@@ -593,6 +608,7 @@ async def call_llm(
                 latency_ms=latency_ms,
                 response_cost_usd=_response_cost_usd_from_litellm(response),
                 tool_calls=tool_calls,
+                finish_reason=_finish_reason_from_response(response),
             )
 
     raise AssertionError("unreachable")  # pragma: no cover

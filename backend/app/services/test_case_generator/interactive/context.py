@@ -14,6 +14,9 @@ from app.services.test_case_generator.interactive.schemas import (
     AgentMode,
     TestCaseAgentRequest,
 )
+from app.services.test_case_generator.requirements_source import (
+    render_requirements_text,
+)
 
 _CATEGORY_TAGS: tuple[str, ...] = ("normal", "edge-case", "red-team")
 
@@ -86,7 +89,7 @@ def build_agent_context(
             detail=f"Agent version {version_num} not found for agent {agent.id}",
         )
 
-    agent_prompt = version.system_prompt or ""
+    agent_prompt = render_requirements_text(session=session, version=version)
     tools = parse_agent_tool_definitions(version.tools)
 
     db_tags = crud.list_distinct_tags_for_agent(session=session, agent_id=agent.id)

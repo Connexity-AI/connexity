@@ -38,6 +38,9 @@ from app.services.test_case_generator import (
     build_agent_context,
     generate_test_cases,
 )
+from app.services.test_case_generator.requirements_source import (
+    render_requirements_text,
+)
 
 router = APIRouter(
     prefix="/test-cases", tags=["test-cases"], dependencies=[Depends(get_current_user)]
@@ -202,7 +205,7 @@ def _resolve_generate_request(
 
     prompt_in = request.agent_prompt
     if prompt_in is None or not str(prompt_in).strip():
-        effective_prompt = version.system_prompt or ""
+        effective_prompt = render_requirements_text(session=session, version=version)
     else:
         effective_prompt = prompt_in
 

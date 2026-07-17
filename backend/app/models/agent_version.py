@@ -3,11 +3,11 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from pydantic import ConfigDict
-from sqlalchemy import CheckConstraint, Column, Index, UniqueConstraint, text
+from sqlalchemy import CheckConstraint, Column, Index, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
-from app.models.enums import AgentMode, AgentVersionStatus
+from app.models.enums import AgentMode, AgentVersionStatus, RequirementsStatus
 
 if TYPE_CHECKING:
     from app.models.agent import Agent
@@ -72,6 +72,16 @@ class AgentVersion(SQLModel, table=True):
     is_active: bool = Field(default=False, nullable=False)
     version_name: str | None = Field(default=None)
     version_description: str | None = Field(default=None)
+    requirements_status: RequirementsStatus = Field(
+        default=RequirementsStatus.PENDING,
+        sa_column=Column(
+            "requirements_status",
+            Text,
+            nullable=False,
+            server_default=RequirementsStatus.PENDING.value,
+        ),
+        description="Lifecycle of this version's extracted requirement snapshot",
+    )
     created_by: uuid.UUID | None = Field(
         default=None,
         foreign_key="user.id",
@@ -102,6 +112,7 @@ class AgentVersionPublic(SQLModel):
     is_active: bool
     version_name: str | None
     version_description: str | None
+    requirements_status: RequirementsStatus
     created_by: uuid.UUID | None
     created_at: datetime
 

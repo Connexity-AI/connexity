@@ -304,6 +304,24 @@ async def chat(
         raise HTTPException(status_code=400, detail=str(e)) from e
 
     async def event_generator() -> AsyncGenerator[str, None]:
+        # The SSE body runs after the request's dependency scope, so we cannot
+        # rely on the ambient tenant context bound by ``CurrentCompany`` still
+        # being set here. Re-bind it explicitly so the editor's ``call_llm_stream``
+        # uses the company's API key (not the env fallback).
+        from app.services.tenant_llm import (
+            CompanyMissingLLMKeyError,
+            load_and_set_current_tenant,
+        )
+
+        try:
+            load_and_set_current_tenant(company_id)
+        except CompanyMissingLLMKeyError:
+            logger.warning(
+                "Prompt editor streaming without tenant LLM context "
+                "(no company key) for company=%s",
+                company_id,
+            )
+
         try:
             editor = PromptEditor(
                 EditorInput(

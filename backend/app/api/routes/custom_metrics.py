@@ -5,7 +5,13 @@ from litellm.exceptions import APIError
 from sqlalchemy.exc import IntegrityError
 
 from app import crud
-from app.api.deps import CurrentCompany, CurrentUser, SessionDep, get_current_user
+from app.api.deps import (
+    CurrentCompany,
+    CurrentUser,
+    SessionDep,
+    bind_tenant_llm_context,
+    get_current_user,
+)
 from app.models import (
     CustomMetric,
     CustomMetricCreate,
@@ -51,11 +57,20 @@ def create_custom_metric(
         ) from None
 
 
-@router.post("/generate", response_model=MetricGenerateResult)
+@router.post(
+    "/generate",
+    response_model=MetricGenerateResult,
+    dependencies=[Depends(bind_tenant_llm_context)],
+)
 async def generate_custom_metric_preview(
     request: MetricGenerateRequest,
 ) -> MetricGenerateResult:
-    """Generate a metric definition preview via LLM (not saved)."""
+    """Generate a metric definition preview via LLM (not saved).
+
+    The ``bind_tenant_llm_context`` dependency binds the per-company LLM tenant
+    context so ``generate_metric`` uses the company's configured API key rather
+    than the global env fallback.
+    """
     try:
         return await generate_metric(request)
     except ValueError as e:
