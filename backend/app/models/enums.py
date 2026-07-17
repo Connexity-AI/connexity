@@ -35,6 +35,16 @@ class AgentVersionStatus(StrEnum):
     PUBLISHED = "published"
 
 
+class RequirementsStatus(StrEnum):
+    """Lifecycle of a version's extracted requirement snapshot."""
+
+    PENDING = "pending"  # not yet attempted (legacy versions, draft)
+    EXTRACTING = "extracting"  # background extraction in progress
+    READY = "ready"  # extraction succeeded with at least one requirement
+    EMPTY = "empty"  # extraction succeeded but found nothing to extract
+    FAILED = "failed"  # extraction errored (e.g. LLM call failed)
+
+
 class FirstTurn(StrEnum):
     AGENT = "agent"
     USER = "user"

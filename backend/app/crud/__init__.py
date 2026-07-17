@@ -121,6 +121,12 @@ from app.crud.prompt_editor_session import (
 from app.crud.prompt_editor_session import (
     update_session_edited_prompt as update_prompt_editor_session_edited_prompt,  # noqa: F401
 )
+from app.crud.requirement import (  # noqa: F401
+    has_requirements_for_version,
+    list_requirements_for_version,
+    replace_requirements_for_version,
+    set_requirements_status,
+)
 from app.crud.run import (  # noqa: F401
     count_runs_by_eval_config_ids,
     count_runs_for_eval_config,

@@ -31,7 +31,17 @@ import { agentFormDefaults } from '@/app/(app)/(agent)/_schemas/agent-form';
  */
 const propertySchema = z.object({
   description: z.string().optional(),
-  type: z.enum(['string', 'number', 'integer']).optional(),
+  // JSON Schema allows many types (boolean, array, object, …) — especially in
+  // Retell conversation-flow tools. The form only renders string/number/integer,
+  // so coerce anything else to a safe default instead of throwing.
+  type: z
+    .unknown()
+    .optional()
+    .transform((value) =>
+      value === 'string' || value === 'number' || value === 'integer'
+        ? value
+        : undefined,
+    ),
 });
 
 /**
@@ -165,7 +175,15 @@ function mapOpenAIToolToForm(rawTool: unknown): AgentToolValues {
  * form always receives valid, complete defaults.
  */
 export function mapAgentToForm(agent: VersionableAgent): AgentFormValues {
-  const tools: AgentToolValues[] = (agent.tools ?? []).map((tool) => mapOpenAIToolToForm(tool));
+  const tools: AgentToolValues[] = (agent.tools ?? []).flatMap((tool) => {
+    try {
+      return [mapOpenAIToolToForm(tool)];
+    } catch (error) {
+      // A single malformed tool must never break the whole agent editor.
+      console.error('Skipping tool that failed to map to form shape', error);
+      return [];
+    }
+  });
 
   return {
     prompt: agent.system_prompt ?? '',

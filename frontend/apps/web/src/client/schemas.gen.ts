@@ -1214,6 +1214,9 @@ export const AgentVersionPublicSchema = {
       ],
       title: 'Version Description',
     },
+    requirements_status: {
+      $ref: '#/components/schemas/RequirementsStatus',
+    },
     created_by: {
       anyOf: [
         {
@@ -1248,6 +1251,7 @@ export const AgentVersionPublicSchema = {
     'is_active',
     'version_name',
     'version_description',
+    'requirements_status',
     'created_by',
     'created_at',
   ],
@@ -5372,6 +5376,114 @@ export const RegressionVerdictSchema = {
   type: 'object',
   required: ['regression_detected', 'reasons', 'thresholds_used'],
   title: 'RegressionVerdict',
+} as const;
+
+export const RequirementPublicSchema = {
+  properties: {
+    text: {
+      type: 'string',
+      title: 'Text',
+      description: 'Atomic, testable statement of what the agent must do',
+    },
+    category: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 64,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Category',
+      description: 'LLM-assigned grouping (e.g. capability, guardrail, routing, tool-use)',
+    },
+    source_ref: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Source Ref',
+      description:
+        'Pointer back to where this requirement came from — a prompt section label or a Retell conversation-flow node id/name. Seeds future requirement-to-prompt mapping.',
+    },
+    order_index: {
+      type: 'integer',
+      title: 'Order Index',
+      description: 'Stable display order within an agent version',
+      default: 0,
+    },
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    agent_version_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Version Id',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+    },
+  },
+  type: 'object',
+  required: ['text', 'id', 'agent_id', 'agent_version_id', 'created_at'],
+  title: 'RequirementPublic',
+} as const;
+
+export const RequirementsExtractionStatusSchema = {
+  properties: {
+    status: {
+      $ref: '#/components/schemas/RequirementsStatus',
+    },
+  },
+  type: 'object',
+  required: ['status'],
+  title: 'RequirementsExtractionStatus',
+} as const;
+
+export const RequirementsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/RequirementPublic',
+      },
+      type: 'array',
+      title: 'Data',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+    },
+    status: {
+      $ref: '#/components/schemas/RequirementsStatus',
+      description: "Extraction lifecycle of the active version's requirements",
+      default: 'pending',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'RequirementsPublic',
+} as const;
+
+export const RequirementsStatusSchema = {
+  type: 'string',
+  enum: ['pending', 'extracting', 'ready', 'empty', 'failed'],
+  title: 'RequirementsStatus',
+  description: "Lifecycle of a version's extracted requirement snapshot.",
 } as const;
 
 export const RetellAgentSummarySchema = {

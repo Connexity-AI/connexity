@@ -24,12 +24,18 @@ import type {
   AgentsGetDraftData,
   AgentsGetDraftErrors,
   AgentsGetDraftResponses,
+  AgentsListAgentRequirementsData,
+  AgentsListAgentRequirementsErrors,
+  AgentsListAgentRequirementsResponses,
   AgentsListAgentRuntimesData,
   AgentsListAgentRuntimesErrors,
   AgentsListAgentRuntimesResponses,
   AgentsListAgentsData,
   AgentsListAgentsErrors,
   AgentsListAgentsResponses,
+  AgentsListAgentVersionRequirementsData,
+  AgentsListAgentVersionRequirementsErrors,
+  AgentsListAgentVersionRequirementsResponses,
   AgentsListAgentVersionsData,
   AgentsListAgentVersionsErrors,
   AgentsListAgentVersionsResponses,
@@ -45,6 +51,9 @@ import type {
   AgentsReadAgentVersionData,
   AgentsReadAgentVersionErrors,
   AgentsReadAgentVersionResponses,
+  AgentsReextractAgentRequirementsData,
+  AgentsReextractAgentRequirementsErrors,
+  AgentsReextractAgentRequirementsResponses,
   AgentsRollbackAgentData,
   AgentsRollbackAgentErrors,
   AgentsRollbackAgentResponses,
@@ -938,6 +947,87 @@ export class AgentsService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/agents/{agent_id}/versions/{version}',
+      ...options,
+    });
+  }
+
+  /**
+   * List Agent Version Requirements
+   *
+   * Immutable, LLM-extracted requirements for a specific agent version.
+   */
+  public static listAgentVersionRequirements<ThrowOnError extends boolean = false>(
+    options: Options<AgentsListAgentVersionRequirementsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      AgentsListAgentVersionRequirementsResponses,
+      AgentsListAgentVersionRequirementsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/versions/{version}/requirements',
+      ...options,
+    });
+  }
+
+  /**
+   * List Agent Requirements
+   *
+   * Requirements for the agent's active published version (empty if none yet).
+   */
+  public static listAgentRequirements<ThrowOnError extends boolean = false>(
+    options: Options<AgentsListAgentRequirementsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      AgentsListAgentRequirementsResponses,
+      AgentsListAgentRequirementsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/requirements',
+      ...options,
+    });
+  }
+
+  /**
+   * Reextract Agent Requirements
+   *
+   * Re-run requirement extraction for the agent's active published version.
+   *
+   * Used to recover from a failed extraction (e.g. a transient LLM error)
+   * without re-importing or publishing a new version.
+   */
+  public static reextractAgentRequirements<ThrowOnError extends boolean = false>(
+    options: Options<AgentsReextractAgentRequirementsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      AgentsReextractAgentRequirementsResponses,
+      AgentsReextractAgentRequirementsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/requirements/extract',
       ...options,
     });
   }

@@ -102,6 +102,7 @@ def create_draft_agent(
             agent_model=imported.agent_model,
             agent_provider=imported.agent_provider,
             agent_temperature=imported.agent_temperature,
+            agent_metadata=imported.agent_metadata,
         )
         session.add(db_obj)
         session.flush()

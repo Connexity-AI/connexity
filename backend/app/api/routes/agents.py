@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
 from app import crud
 from app.api.deps import CurrentCompany, CurrentUser, SessionDep, get_current_user
@@ -21,9 +21,13 @@ from app.models import (
     AgentVersionsPublic,
     Message,
     PublishRequest,
+    RequirementPublic,
+    RequirementsExtractionStatus,
+    RequirementsPublic,
     RuntimeOption,
     RuntimeOptionsPublic,
 )
+from app.models.enums import RequirementsStatus
 from app.services.diff import compute_agent_version_diff
 from app.services.eval_runtimes import (
     default_runtime_for_platform,
@@ -56,17 +60,31 @@ async def create_draft_agent(
     current_user: CurrentUser,
     company_id: CurrentCompany,
     body: AgentCreateDraft,
+    background_tasks: BackgroundTasks,
 ) -> Agent:
     from app.services.provider_agent_import import import_config_for_new_agent
+    from app.services.requirement_sync import extract_requirements_for_version
 
     imported = await import_config_for_new_agent(session=session, body=body)
-    return crud.create_draft_agent(
+    agent = crud.create_draft_agent(
         session=session,
         body=body,
         company_id=company_id,
         created_by=current_user.id,
         imported=imported,
     )
+    # Imported agents get an initial published version; extract its requirements
+    # off the request path. Non-imported drafts have no published version yet —
+    # requirements are extracted when the draft is first published.
+    if imported is not None:
+        active = crud.get_active_agent_version(session=session, agent_id=agent.id)
+        if active is not None:
+            background_tasks.add_task(
+                extract_requirements_for_version,
+                agent_id=agent.id,
+                agent_version_id=active.id,
+            )
+    return agent
 
 
 @router.get("/", response_model=AgentsPublic)
@@ -150,6 +168,93 @@ def read_agent_version(
     return AgentVersionPublic.model_validate(row)
 
 
+@router.get(
+    "/{agent_id}/versions/{version}/requirements",
+    response_model=RequirementsPublic,
+)
+def list_agent_version_requirements(
+    session: SessionDep,
+    company_id: CurrentCompany,
+    agent_id: uuid.UUID,
+    version: int,
+) -> RequirementsPublic:
+    """Immutable, LLM-extracted requirements for a specific agent version."""
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    row = crud.get_agent_version(session=session, agent_id=agent_id, version=version)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Version not found")
+    items = crud.list_requirements_for_version(session=session, agent_version_id=row.id)
+    return RequirementsPublic(
+        data=[RequirementPublic.model_validate(r) for r in items],
+        count=len(items),
+        status=row.requirements_status,
+    )
+
+
+@router.get("/{agent_id}/requirements", response_model=RequirementsPublic)
+def list_agent_requirements(
+    session: SessionDep,
+    company_id: CurrentCompany,
+    agent_id: uuid.UUID,
+) -> RequirementsPublic:
+    """Requirements for the agent's active published version (empty if none yet)."""
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    active = crud.get_active_agent_version(session=session, agent_id=agent_id)
+    if active is None:
+        return RequirementsPublic(data=[], count=0, status=RequirementsStatus.PENDING)
+    items = crud.list_requirements_for_version(
+        session=session, agent_version_id=active.id
+    )
+    return RequirementsPublic(
+        data=[RequirementPublic.model_validate(r) for r in items],
+        count=len(items),
+        status=active.requirements_status,
+    )
+
+
+@router.post(
+    "/{agent_id}/requirements/extract",
+    response_model=RequirementsExtractionStatus,
+    status_code=202,
+)
+def reextract_agent_requirements(
+    session: SessionDep,
+    company_id: CurrentCompany,
+    agent_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+) -> RequirementsExtractionStatus:
+    """Re-run requirement extraction for the agent's active published version.
+
+    Used to recover from a failed extraction (e.g. a transient LLM error)
+    without re-importing or publishing a new version.
+    """
+    from app.services.requirement_sync import extract_requirements_for_version
+
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    active = crud.get_active_agent_version(session=session, agent_id=agent_id)
+    if active is None:
+        raise HTTPException(
+            status_code=409, detail="Agent has no published version to extract from"
+        )
+    crud.set_requirements_status(
+        session=session,
+        agent_version_id=active.id,
+        status=RequirementsStatus.EXTRACTING,
+    )
+    background_tasks.add_task(
+        extract_requirements_for_version,
+        agent_id=agent.id,
+        agent_version_id=active.id,
+    )
+    return RequirementsExtractionStatus(status=RequirementsStatus.EXTRACTING)
+
+
 @router.get("/{agent_id}/versions", response_model=AgentVersionsPublic)
 def list_agent_versions(
     session: SessionDep,
@@ -177,7 +282,10 @@ def rollback_agent(
     company_id: CurrentCompany,
     agent_id: uuid.UUID,
     body: AgentRollbackRequest,
+    background_tasks: BackgroundTasks,
 ) -> AgentVersionPublic:
+    from app.services.requirement_sync import extract_requirements_for_version
+
     agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -192,6 +300,11 @@ def rollback_agent(
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
+    background_tasks.add_task(
+        extract_requirements_for_version,
+        agent_id=agent.id,
+        agent_version_id=new_row.id,
+    )
     return AgentVersionPublic.model_validate(new_row)
 
 
@@ -246,7 +359,10 @@ def publish_draft(
     company_id: CurrentCompany,
     agent_id: uuid.UUID,
     body: PublishRequest,
+    background_tasks: BackgroundTasks,
 ) -> AgentVersionPublic:
+    from app.services.requirement_sync import extract_requirements_for_version
+
     agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -263,6 +379,11 @@ def publish_draft(
         if detail == "No draft to publish":
             raise HTTPException(status_code=409, detail=detail) from e
         raise HTTPException(status_code=422, detail=detail) from e
+    background_tasks.add_task(
+        extract_requirements_for_version,
+        agent_id=agent.id,
+        agent_version_id=published.id,
+    )
     return AgentVersionPublic.model_validate(published)
 
 

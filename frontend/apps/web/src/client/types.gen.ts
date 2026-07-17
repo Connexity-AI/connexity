@@ -638,6 +638,7 @@ export type AgentVersionPublic = {
    * Version Description
    */
   version_description: string | null;
+  requirements_status: RequirementsStatus;
   /**
    * Created By
    */
@@ -3379,6 +3380,97 @@ export type RegressionVerdict = {
   reasons: Array<string>;
   thresholds_used: RegressionThresholds;
 };
+
+/**
+ * RequirementPublic
+ */
+export type RequirementPublic = {
+  /**
+   * Text
+   *
+   * Atomic, testable statement of what the agent must do
+   */
+  text: string;
+  /**
+   * Category
+   *
+   * LLM-assigned grouping (e.g. capability, guardrail, routing, tool-use)
+   */
+  category?: string | null;
+  /**
+   * Source Ref
+   *
+   * Pointer back to where this requirement came from — a prompt section label or a Retell conversation-flow node id/name. Seeds future requirement-to-prompt mapping.
+   */
+  source_ref?: string | null;
+  /**
+   * Order Index
+   *
+   * Stable display order within an agent version
+   */
+  order_index?: number;
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Version Id
+   */
+  agent_version_id: string;
+  /**
+   * Created At
+   */
+  created_at: string;
+};
+
+/**
+ * RequirementsExtractionStatus
+ */
+export type RequirementsExtractionStatus = {
+  status: RequirementsStatus;
+};
+
+/**
+ * RequirementsPublic
+ */
+export type RequirementsPublic = {
+  /**
+   * Data
+   */
+  data: Array<RequirementPublic>;
+  /**
+   * Count
+   */
+  count: number;
+  /**
+   * Extraction lifecycle of the active version's requirements
+   */
+  status?: RequirementsStatus;
+};
+
+/**
+ * RequirementsStatus
+ *
+ * Lifecycle of a version's extracted requirement snapshot.
+ */
+export const RequirementsStatus = {
+  PENDING: 'pending',
+  EXTRACTING: 'extracting',
+  READY: 'ready',
+  EMPTY: 'empty',
+  FAILED: 'failed',
+} as const;
+
+/**
+ * RequirementsStatus
+ *
+ * Lifecycle of a version's extracted requirement snapshot.
+ */
+export type RequirementsStatus = (typeof RequirementsStatus)[keyof typeof RequirementsStatus];
 
 /**
  * RetellAgentSummary
@@ -6626,6 +6718,178 @@ export type AgentsReadAgentVersionResponses = {
 
 export type AgentsReadAgentVersionResponse =
   AgentsReadAgentVersionResponses[keyof AgentsReadAgentVersionResponses];
+
+export type AgentsListAgentVersionRequirementsData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+    /**
+     * Version
+     */
+    version: number;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/versions/{version}/requirements';
+};
+
+export type AgentsListAgentVersionRequirementsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsListAgentVersionRequirementsError =
+  AgentsListAgentVersionRequirementsErrors[keyof AgentsListAgentVersionRequirementsErrors];
+
+export type AgentsListAgentVersionRequirementsResponses = {
+  /**
+   * Successful Response
+   */
+  200: RequirementsPublic;
+};
+
+export type AgentsListAgentVersionRequirementsResponse =
+  AgentsListAgentVersionRequirementsResponses[keyof AgentsListAgentVersionRequirementsResponses];
+
+export type AgentsListAgentRequirementsData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/requirements';
+};
+
+export type AgentsListAgentRequirementsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsListAgentRequirementsError =
+  AgentsListAgentRequirementsErrors[keyof AgentsListAgentRequirementsErrors];
+
+export type AgentsListAgentRequirementsResponses = {
+  /**
+   * Successful Response
+   */
+  200: RequirementsPublic;
+};
+
+export type AgentsListAgentRequirementsResponse =
+  AgentsListAgentRequirementsResponses[keyof AgentsListAgentRequirementsResponses];
+
+export type AgentsReextractAgentRequirementsData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/requirements/extract';
+};
+
+export type AgentsReextractAgentRequirementsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsReextractAgentRequirementsError =
+  AgentsReextractAgentRequirementsErrors[keyof AgentsReextractAgentRequirementsErrors];
+
+export type AgentsReextractAgentRequirementsResponses = {
+  /**
+   * Successful Response
+   */
+  202: RequirementsExtractionStatus;
+};
+
+export type AgentsReextractAgentRequirementsResponse =
+  AgentsReextractAgentRequirementsResponses[keyof AgentsReextractAgentRequirementsResponses];
 
 export type AgentsListAgentVersionsData = {
   body?: never;

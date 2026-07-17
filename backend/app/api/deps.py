@@ -72,9 +72,17 @@ def get_current_user(session: SessionDep, cookie: CookieDep, bearer: BearerDep) 
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-def get_current_company_id(session: SessionDep, current_user: CurrentUser) -> uuid.UUID:
+async def get_current_company_id(
+    session: SessionDep, current_user: CurrentUser
+) -> uuid.UUID:
     # Side effect: bind the ambient LLM tenant context so downstream
     # ``call_llm`` calls pick up the right per-company API key automatically.
+    #
+    # This MUST be an ``async def`` dependency. FastAPI runs sync (``def``)
+    # dependencies in a threadpool worker, where a ``ContextVar.set`` does not
+    # propagate to the async event-loop context the route handler runs in — so
+    # the binding would be silently lost and ``call_llm`` would fall back to the
+    # env key. Running async keeps the set on the handler's context.
     _bind_tenant_llm_context_inline(session=session, current_user=current_user)
     return current_user.company_id
 
@@ -96,13 +104,18 @@ def _bind_tenant_llm_context_inline(*, session: Session, current_user: User) -> 
     set_current_tenant(tenant_context_from_company(company))
 
 
-def bind_tenant_llm_context(session: SessionDep, current_user: CurrentUser) -> None:
+async def bind_tenant_llm_context(
+    session: SessionDep, current_user: CurrentUser
+) -> None:
     """Load the current user's LLM tenant context and set it as ambient.
 
     Mounted as a route-level dependency on every authenticated router so any
     downstream ``call_llm`` automatically uses the right per-company API key.
     No-op if the company has no LLM keys configured — the LLM service will
     fall back to env vars and the dedicated gate dependency below raises 409.
+
+    MUST be ``async``: a sync dependency runs in a threadpool worker where
+    ``ContextVar.set`` would not propagate to the handler's event-loop context.
     """
     from app.crud.company import company_has_any_llm_key, get_company
     from app.services.tenant_llm import (

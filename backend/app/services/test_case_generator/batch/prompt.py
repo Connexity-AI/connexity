@@ -144,7 +144,10 @@ def build_user_prompt(
         f"Generate {count} diverse evaluation test cases for the following agent.",
         "Return exactly that many objects in the test_cases array.",
         "",
-        "AGENT SYSTEM PROMPT:",
+        # The body is either the agent's system prompt or a rendered list of its
+        # extracted requirements (which announces itself). A neutral header reads
+        # correctly for both.
+        "AGENT SPECIFICATION:",
         "---",
         agent_prompt,
         "---",
