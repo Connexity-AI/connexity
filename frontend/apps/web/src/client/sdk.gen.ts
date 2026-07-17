@@ -1640,6 +1640,10 @@ export class CustomMetricsService {
    * Generate Custom Metric Preview
    *
    * Generate a metric definition preview via LLM (not saved).
+   *
+   * The ``bind_tenant_llm_context`` dependency binds the per-company LLM tenant
+   * context so ``generate_metric`` uses the company's configured API key rather
+   * than the global env fallback.
    */
   public static customMetricsGenerateCustomMetricPreview<ThrowOnError extends boolean = false>(
     options: Options<CustomMetricsGenerateCustomMetricPreviewData, ThrowOnError>
