@@ -120,7 +120,7 @@ async def generate_test_cases(
         partial_generation = None
 
     if partial_generation is not None and partial_generation.failed_indices:
-        repair_response = await call_llm(
+        partial_repair_response = await call_llm(
             messages=[
                 LLMMessage(role="system", content=system_prompt),
                 LLMMessage(role="user", content=user_prompt),
@@ -139,32 +139,38 @@ async def generate_test_cases(
 
         try:
             repaired = _parse_test_cases(
-                repair_response.content,
+                partial_repair_response.content,
                 expected_count=len(partial_generation.failed_indices),
                 tools=request.tools,
             )
+            merged = _merge_partial_generation(partial_generation, repaired)
+            _validate_generated_cases(
+                merged,
+                expected_count=request.count,
+                tools=request.tools,
+            )
         except (json.JSONDecodeError, ValidationError, ValueError) as repair_exc:
-            logger.error(
-                "Batch test-case partial repair failed validation. "
-                "model=%s failed_indices=%s errors=%s",
-                repair_response.model,
+            # The partial-repair call itself returned a bad count/shape (e.g. the
+            # LLM didn't honor "produce exactly N replacements"). Don't fail the
+            # whole generation on that — fall through to a full regeneration
+            # below instead of raising, since that path tolerates re-deriving
+            # all `request.count` cases from scratch.
+            logger.warning(
+                "Batch test-case partial repair failed validation; falling back "
+                "to full repair. model=%s failed_indices=%s errors=%s",
+                partial_repair_response.model,
                 partial_generation.failed_indices,
                 validation_errors_from_exception(repair_exc),
             )
-            raise
-
-        merged = _merge_partial_generation(partial_generation, repaired)
-        _validate_generated_cases(
-            merged,
-            expected_count=request.count,
-            tools=request.tools,
-        )
-        latency_ms = (response.latency_ms or 0) + (repair_response.latency_ms or 0)
-        return (
-            _finalize_batch_output(merged, request.tools),
-            repair_response.model,
-            latency_ms,
-        )
+        else:
+            latency_ms = (response.latency_ms or 0) + (
+                partial_repair_response.latency_ms or 0
+            )
+            return (
+                _finalize_batch_output(merged, request.tools),
+                partial_repair_response.model,
+                latency_ms,
+            )
 
     repair_response: LLMResponse = await call_llm(
         messages=[
