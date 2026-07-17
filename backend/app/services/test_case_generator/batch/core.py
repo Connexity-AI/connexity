@@ -45,6 +45,25 @@ def _finalize_batch_output(
     return strip_mock_responses_for_terminating_tools_in_list(cases, tools=tools)
 
 
+def _raise_if_truncated(response: LLMResponse, *, requested_count: int) -> None:
+    """Give a clear error when the response was cut off by the token limit.
+
+    A truncated response is invalid JSON (the array/object never closes), which
+    otherwise surfaces as an opaque "LLM returned invalid JSON" error. Detecting
+    ``finish_reason == "length"`` up front tells the caller the real cause: ask
+    for fewer test cases or raise ``GENERATOR_MAX_TOKENS``.
+    """
+    if response.finish_reason != "length":
+        return
+    msg = (
+        f"LLM response was truncated by the token limit while generating "
+        f"{requested_count} test cases (GENERATOR_MAX_TOKENS="
+        f"{settings.GENERATOR_MAX_TOKENS}). Request fewer test cases or "
+        "increase GENERATOR_MAX_TOKENS."
+    )
+    raise ValueError(msg)
+
+
 @dataclass(frozen=True)
 class PartialGeneration:
     test_cases: list[TestCaseCreate | None]
@@ -87,6 +106,7 @@ async def generate_test_cases(
         ],
         config=llm_config,
     )
+    _raise_if_truncated(response, requested_count=request.count)
 
     try:
         test_cases = _parse_test_cases(
@@ -135,6 +155,10 @@ async def generate_test_cases(
                 ),
             ],
             config=llm_config,
+        )
+        _raise_if_truncated(
+            partial_repair_response,
+            requested_count=len(partial_generation.failed_indices),
         )
 
         try:
@@ -188,6 +212,7 @@ async def generate_test_cases(
         ],
         config=llm_config,
     )
+    _raise_if_truncated(repair_response, requested_count=request.count)
 
     try:
         repaired = _parse_test_cases(

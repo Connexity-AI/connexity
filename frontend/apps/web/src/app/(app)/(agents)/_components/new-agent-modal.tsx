@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, AudioLines, Bot, FileText, Phone, Sparkles, Workflow } from 'lucide-react';
+import { AlertTriangle, AudioLines, Bot, Phone, Sparkles } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 
 import { integrationsListQuery } from '@/app/(app)/(agent)/_queries/integrations-list-query';
@@ -243,38 +243,6 @@ export const NewAgentModal: FC<Props> = ({ open, onOpenChange }) => {
                     </FormItem>
                   )}
                 />
-
-                {platform !== null && (
-                  <div className="space-y-1.5">
-                    <p className="text-sm font-medium leading-none">Agent type</p>
-                  <div className="grid grid-cols-1 gap-2">
-                    <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg border border-foreground/40 bg-accent text-left">
-                      <FileText className="w-4 h-4 mt-0.5 shrink-0 text-foreground" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs text-foreground">Single prompt</p>
-                        <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
-                          One system prompt with versioning and deployments
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg border border-border text-left">
-                      <Workflow className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-xs text-foreground">Conversation Flow</p>
-                          <span className="text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-accent text-muted-foreground">
-                            Auto-detected
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
-                          Node-based flow — requirements are extracted automatically;
-                          observe and evaluate only
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  </div>
-                )}
 
                 {platform !== null && platform !== Platform.WEBHOOK && (
                   <>
