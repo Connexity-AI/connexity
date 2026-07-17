@@ -9,6 +9,7 @@ from app.models import (
     AgentCreate,
     AgentCreateDraft,
     AgentDraftUpdate,
+    AgentFlowStalenessPublic,
     AgentGuidelinesPublic,
     AgentGuidelinesUpdate,
     AgentLatestPublishedVersionPublic,
@@ -253,6 +254,140 @@ def reextract_agent_requirements(
         agent_version_id=active.id,
     )
     return RequirementsExtractionStatus(status=RequirementsStatus.EXTRACTING)
+
+
+@router.get("/{agent_id}/flow-staleness", response_model=AgentFlowStalenessPublic)
+async def check_agent_flow_staleness(
+    session: SessionDep,
+    company_id: CurrentCompany,
+    agent_id: uuid.UUID,
+) -> AgentFlowStalenessPublic:
+    """Compare the agent's captured Retell conversation-flow version against live.
+
+    No-op (never stale) for non-flow agents or agents missing the metadata
+    needed to check — this is an informational nudge, not a hard requirement.
+    """
+    from app.core.encryption import decrypt
+    from app.services.retell import check_retell_flow_staleness
+
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    metadata = agent.agent_metadata or {}
+    conversation_flow_id = metadata.get("conversation_flow_id")
+    captured_version = metadata.get("conversation_flow_version")
+    if (
+        metadata.get("retell_response_engine") != "conversation-flow"
+        or not conversation_flow_id
+        or agent.integration_id is None
+    ):
+        return AgentFlowStalenessPublic(is_stale=False)
+
+    integration = crud.get_integration(
+        session=session, integration_id=agent.integration_id, company_id=company_id
+    )
+    if integration is None:
+        return AgentFlowStalenessPublic(is_stale=False)
+
+    api_key = decrypt(integration.encrypted_api_key)
+    is_stale, live_version = await check_retell_flow_staleness(
+        api_key=api_key,
+        conversation_flow_id=str(conversation_flow_id),
+        captured_version=(
+            captured_version if isinstance(captured_version, int) else None
+        ),
+    )
+    return AgentFlowStalenessPublic(
+        is_stale=is_stale,
+        captured_version=(
+            captured_version if isinstance(captured_version, int) else None
+        ),
+        live_version=live_version,
+    )
+
+
+@router.post("/{agent_id}/sync-flow", response_model=AgentVersionPublic)
+async def sync_agent_flow(
+    session: SessionDep,
+    current_user: CurrentUser,
+    company_id: CurrentCompany,
+    agent_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+) -> AgentVersionPublic:
+    """Refresh a conversation-flow agent from Retell and publish a new version.
+
+    Re-fetches the live flow, updates the agent's captured snapshot
+    (``agent_metadata``), and publishes a new version — same mechanics as any
+    other agent change (diffable, rollback-able). Existing test cases, eval
+    configs, and run history are untouched. Schedules requirement re-extraction
+    against the new version.
+    """
+    from app.core.encryption import decrypt
+    from app.services.requirement_sync import extract_requirements_for_version
+    from app.services.retell import (
+        _import_conversation_flow_config,
+        get_retell_conversation_flow,
+    )
+
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    metadata = agent.agent_metadata or {}
+    conversation_flow_id = metadata.get("conversation_flow_id")
+    if (
+        metadata.get("retell_response_engine") != "conversation-flow"
+        or not conversation_flow_id
+        or agent.integration_id is None
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="Agent is not a Retell conversation-flow agent",
+        )
+
+    integration = crud.get_integration(
+        session=session, integration_id=agent.integration_id, company_id=company_id
+    )
+    if integration is None:
+        raise HTTPException(status_code=404, detail="Integration not found")
+
+    api_key = decrypt(integration.encrypted_api_key)
+    flow = await get_retell_conversation_flow(
+        api_key=api_key, conversation_flow_id=str(conversation_flow_id)
+    )
+    flow_version = flow.get("version")
+    flow_version = flow_version if isinstance(flow_version, int) else None
+    imported = _import_conversation_flow_config(
+        flow=flow,
+        conversation_flow_id=str(conversation_flow_id),
+        flow_version=flow_version,
+    )
+
+    captured_version = metadata.get("conversation_flow_version")
+    version_description = (
+        f"Synced from Retell (v{captured_version} → v{flow_version})"
+        if isinstance(captured_version, int) and flow_version is not None
+        else "Synced from Retell"
+    )
+
+    try:
+        _agent, new_row = crud.sync_conversation_flow_agent(
+            session=session,
+            db_agent=agent,
+            imported=imported,
+            version_description=version_description,
+            created_by=current_user.id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+    background_tasks.add_task(
+        extract_requirements_for_version,
+        agent_id=agent.id,
+        agent_version_id=new_row.id,
+    )
+    return AgentVersionPublic.model_validate(new_row)
 
 
 @router.get("/{agent_id}/versions", response_model=AgentVersionsPublic)

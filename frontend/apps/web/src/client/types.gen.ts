@@ -167,6 +167,30 @@ export type AgentDraftUpdate = {
 };
 
 /**
+ * AgentFlowStalenessPublic
+ */
+export type AgentFlowStalenessPublic = {
+  /**
+   * Is Stale
+   *
+   * True when Retell's live conversation flow version differs from the version captured at last import/sync
+   */
+  is_stale: boolean;
+  /**
+   * Captured Version
+   *
+   * Flow version stored in agent_metadata
+   */
+  captured_version?: number | null;
+  /**
+   * Live Version
+   *
+   * Current flow version fetched from Retell
+   */
+  live_version?: number | null;
+};
+
+/**
  * AgentGuidelinesPublic
  */
 export type AgentGuidelinesPublic = {
@@ -6890,6 +6914,117 @@ export type AgentsReextractAgentRequirementsResponses = {
 
 export type AgentsReextractAgentRequirementsResponse =
   AgentsReextractAgentRequirementsResponses[keyof AgentsReextractAgentRequirementsResponses];
+
+export type AgentsCheckAgentFlowStalenessData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/flow-staleness';
+};
+
+export type AgentsCheckAgentFlowStalenessErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsCheckAgentFlowStalenessError =
+  AgentsCheckAgentFlowStalenessErrors[keyof AgentsCheckAgentFlowStalenessErrors];
+
+export type AgentsCheckAgentFlowStalenessResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentFlowStalenessPublic;
+};
+
+export type AgentsCheckAgentFlowStalenessResponse =
+  AgentsCheckAgentFlowStalenessResponses[keyof AgentsCheckAgentFlowStalenessResponses];
+
+export type AgentsSyncAgentFlowData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/sync-flow';
+};
+
+export type AgentsSyncAgentFlowErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsSyncAgentFlowError = AgentsSyncAgentFlowErrors[keyof AgentsSyncAgentFlowErrors];
+
+export type AgentsSyncAgentFlowResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentVersionPublic;
+};
+
+export type AgentsSyncAgentFlowResponse =
+  AgentsSyncAgentFlowResponses[keyof AgentsSyncAgentFlowResponses];
 
 export type AgentsListAgentVersionsData = {
   body?: never;

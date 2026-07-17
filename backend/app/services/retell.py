@@ -841,6 +841,37 @@ def _import_conversation_flow_config(
     )
 
 
+async def check_retell_flow_staleness(
+    *, api_key: str, conversation_flow_id: str, captured_version: int | None
+) -> tuple[bool, int | None]:
+    """Compare the live Retell flow version against what was last captured.
+
+    Fetches the flow with no ``version`` pin, which Retell resolves to the
+    latest version. Returns ``(is_stale, live_version)``. A missing captured
+    version (legacy import) or a fetch failure defaults to "not stale" —
+    staleness is an informational nudge, not something that should crash the
+    page or false-positive on an API hiccup.
+    """
+    try:
+        flow = await get_retell_conversation_flow(
+            api_key=api_key, conversation_flow_id=conversation_flow_id
+        )
+    except HTTPException:
+        logger.warning(
+            "Could not check Retell flow staleness for conversation_flow_id=%s",
+            conversation_flow_id,
+        )
+        return False, None
+
+    live_version = flow.get("version")
+    live_version = live_version if isinstance(live_version, int) else None
+
+    if captured_version is None or live_version is None:
+        return False, live_version
+
+    return live_version != captured_version, live_version
+
+
 async def import_retell_agent_config(
     *, api_key: str, retell_agent_id: str
 ) -> ImportedPlatformConfig:

@@ -1,10 +1,13 @@
 'use client';
 
-import { GitBranch, Workflow } from 'lucide-react';
+import { GitBranch, Loader2, RefreshCw, Workflow } from 'lucide-react';
 import { Badge } from '@workspace/ui/components/ui/badge';
+import { Button } from '@workspace/ui/components/ui/button';
 import { TabsContent } from '@workspace/ui/components/ui/tabs';
 
 import { useAgentEditFormActions } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
+import { useAgentFlowStaleness } from '@/app/(app)/(agent)/_hooks/use-agent-flow-staleness';
+import { useSyncAgentFlow } from '@/app/(app)/(agent)/_hooks/use-sync-agent-flow';
 
 const TAB_VALUE = 'info';
 
@@ -17,7 +20,11 @@ function asString(value: unknown): string | null {
 }
 
 export function InfoTab() {
-  const { agent } = useAgentEditFormActions();
+  const { agentId, agent } = useAgentEditFormActions();
+  // Reads the query the layout-level watcher already triggered once this
+  // session — this does not fire a second request.
+  const { data: staleness } = useAgentFlowStaleness(agentId, agent);
+  const { sync, isPending: isSyncing, error: syncError } = useSyncAgentFlow(agentId);
 
   const metadata = (agent?.agent_metadata ?? {}) as Record<string, unknown>;
   const flowId = asString(metadata.conversation_flow_id);
@@ -35,7 +42,15 @@ export function InfoTab() {
       : []),
     ...(flowId ? [{ label: 'Flow ID', value: flowId }] : []),
     ...(flowVersion !== null
-      ? [{ label: 'Flow version', value: `v${flowVersion}` }]
+      ? [
+          {
+            label: 'Flow version',
+            value:
+              staleness?.is_stale && staleness.live_version !== null
+                ? `v${flowVersion} → v${staleness?.live_version}`
+                : `v${flowVersion}`,
+          },
+        ]
       : []),
     ...(nodeCount !== null
       ? [{ label: 'Nodes', value: String(nodeCount) }]
@@ -47,6 +62,44 @@ export function InfoTab() {
   return (
     <TabsContent value={TAB_VALUE} className="flex-1 mt-0 overflow-auto p-6">
       <div className="max-w-xl space-y-4">
+        {staleness?.is_stale ? (
+          <div className="flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4">
+            <RefreshCw className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+            <div className="space-y-2 flex-1 min-w-0">
+              <div>
+                <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                  Flow updated in Retell
+                  {staleness.captured_version !== null &&
+                  staleness.live_version !== null
+                    ? ` (v${staleness.captured_version} → v${staleness.live_version})`
+                    : ''}
+                </p>
+                <p className="text-xs text-amber-800/80 dark:text-amber-300/70">
+                  The version captured here is out of date. Sync to pull the
+                  latest flow, publish a new version, and refresh requirements.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 h-7 text-xs"
+                onClick={() => sync()}
+                disabled={isSyncing}
+              >
+                {isSyncing ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3 h-3" />
+                )}
+                {isSyncing ? 'Syncing…' : 'Sync Now'}
+              </Button>
+              {syncError ? (
+                <p className="text-xs text-destructive">{syncError}</p>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
         <div className="flex items-start gap-3 rounded-lg border border-border p-4">
           <Workflow className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
           <div className="space-y-1">
@@ -82,8 +135,8 @@ export function InfoTab() {
 
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
           <GitBranch className="w-3 h-3" />
-          To change behavior, edit the flow in Retell, then re-import or publish a
-          new version to refresh requirements.
+          To change behavior, edit the flow in Retell, then use Sync Now above to
+          refresh this agent.
         </p>
       </div>
     </TabsContent>

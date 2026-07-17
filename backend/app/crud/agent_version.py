@@ -8,6 +8,7 @@ from sqlmodel import Session, col, select
 from app.models import Agent, AgentVersion
 from app.models.agent import validate_agent_mode_requirements
 from app.models.enums import AgentVersionStatus
+from app.models.imported_platform_config import ImportedPlatformConfig
 from app.services.agent_tool_definitions import normalize_and_validate_agent_tools
 
 _VERSIONABLE_FIELDS = (
@@ -240,6 +241,85 @@ def rollback_to_version(
         session.add(new_draft)
         locked.has_draft = True
         session.add(locked)
+
+    session.commit()
+    session.refresh(locked)
+    session.refresh(new_row)
+    return locked, new_row
+
+
+def sync_conversation_flow_agent(
+    *,
+    session: Session,
+    db_agent: Agent,
+    imported: ImportedPlatformConfig,
+    version_description: str | None,
+    created_by: uuid.UUID | None,
+) -> tuple[Agent, AgentVersion]:
+    """Refresh an existing agent from a freshly re-fetched provider config.
+
+    Same shape as :func:`rollback_to_version` — update the agent's versionable
+    fields in place, deactivate the old active version, and publish a new one —
+    except the source is a fresh :class:`ImportedPlatformConfig` (re-fetched from
+    the provider) rather than a historical ``AgentVersion``, and ``agent_metadata``
+    (the provider binding snapshot — not a versioned field) is refreshed too.
+    Existing test cases, eval configs, and run history are untouched.
+    """
+    locked = session.exec(
+        select(Agent).where(Agent.id == db_agent.id).with_for_update()
+    ).first()
+    if locked is None:
+        msg = "Agent not found"
+        raise ValueError(msg)
+
+    validate_agent_mode_requirements(
+        mode=locked.mode,
+        endpoint_url=locked.endpoint_url,
+        system_prompt=imported.system_prompt,
+        agent_model=imported.agent_model,
+    )
+
+    tools_norm = (
+        normalize_and_validate_agent_tools(imported.tools) if imported.tools else None
+    )
+
+    new_version_num = next_published_version_number(session=session, agent_id=locked.id)
+    _deactivate_published_active(session=session, agent_id=locked.id)
+
+    session.execute(
+        sa_update(Agent)
+        .where(Agent.id == locked.id)
+        .values(
+            system_prompt=imported.system_prompt,
+            tools=tools_norm,
+            agent_model=imported.agent_model,
+            agent_provider=imported.agent_provider,
+            agent_temperature=imported.agent_temperature,
+            agent_metadata=imported.agent_metadata,
+            updated_at=datetime.now(UTC),
+        )
+    )
+    session.flush()
+    session.refresh(locked)
+
+    new_row = build_version_row(
+        agent_id=locked.id,
+        company_id=locked.company_id,
+        version=new_version_num,
+        status=AgentVersionStatus.PUBLISHED,
+        source=locked,
+        created_by=created_by,
+        is_active=True,
+        version_name=None,
+        version_description=version_description,
+    )
+    session.add(new_row)
+
+    draft = get_draft(session=session, agent_id=locked.id)
+    if draft is not None:
+        for field in _VERSIONABLE_FIELDS:
+            setattr(draft, field, getattr(locked, field))
+        session.add(draft)
 
     session.commit()
     session.refresh(locked)

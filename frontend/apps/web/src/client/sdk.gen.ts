@@ -3,6 +3,9 @@ import { client } from './client.gen';
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import type {
+  AgentsCheckAgentFlowStalenessData,
+  AgentsCheckAgentFlowStalenessErrors,
+  AgentsCheckAgentFlowStalenessResponses,
   AgentsCreateAgentData,
   AgentsCreateAgentErrors,
   AgentsCreateAgentResponses,
@@ -57,6 +60,9 @@ import type {
   AgentsRollbackAgentData,
   AgentsRollbackAgentErrors,
   AgentsRollbackAgentResponses,
+  AgentsSyncAgentFlowData,
+  AgentsSyncAgentFlowErrors,
+  AgentsSyncAgentFlowResponses,
   AgentsUpdateAgentData,
   AgentsUpdateAgentErrors,
   AgentsUpdateAgentResponses,
@@ -1028,6 +1034,67 @@ export class AgentsService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/agents/{agent_id}/requirements/extract',
+      ...options,
+    });
+  }
+
+  /**
+   * Check Agent Flow Staleness
+   *
+   * Compare the agent's captured Retell conversation-flow version against live.
+   *
+   * No-op (never stale) for non-flow agents or agents missing the metadata
+   * needed to check — this is an informational nudge, not a hard requirement.
+   */
+  public static checkAgentFlowStaleness<ThrowOnError extends boolean = false>(
+    options: Options<AgentsCheckAgentFlowStalenessData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      AgentsCheckAgentFlowStalenessResponses,
+      AgentsCheckAgentFlowStalenessErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/flow-staleness',
+      ...options,
+    });
+  }
+
+  /**
+   * Sync Agent Flow
+   *
+   * Refresh a conversation-flow agent from Retell and publish a new version.
+   *
+   * Re-fetches the live flow, updates the agent's captured snapshot
+   * (``agent_metadata``), and publishes a new version — same mechanics as any
+   * other agent change (diffable, rollback-able). Existing test cases, eval
+   * configs, and run history are untouched. Schedules requirement re-extraction
+   * against the new version.
+   */
+  public static syncAgentFlow<ThrowOnError extends boolean = false>(
+    options: Options<AgentsSyncAgentFlowData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      AgentsSyncAgentFlowResponses,
+      AgentsSyncAgentFlowErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/sync-flow',
       ...options,
     });
   }

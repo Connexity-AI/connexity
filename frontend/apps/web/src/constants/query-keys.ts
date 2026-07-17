@@ -16,6 +16,7 @@ export const agentKeys = {
     ['agent-version', agentId, version] as const,
   guidelines: (agentId: string) => ['agent-guidelines', agentId] as const,
   requirements: (agentId: string) => ['agent-requirements', agentId] as const,
+  flowStaleness: (agentId: string) => ['agent-flow-staleness', agentId] as const,
 };
 
 export const promptEditorKeys = {

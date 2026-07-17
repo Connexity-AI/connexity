@@ -28,6 +28,9 @@ from app.crud.agent_version import publish_draft as publish_agent_draft  # noqa:
 from app.crud.agent_version import (
     rollback_to_version as rollback_agent_version,  # noqa: F401
 )
+from app.crud.agent_version import (  # noqa: F401
+    sync_conversation_flow_agent,
+)
 from app.crud.call import (  # noqa: F401
     count_calls_for_agent,
     get_call,

@@ -341,6 +341,44 @@ export const AgentDraftUpdateSchema = {
   description: 'Partial update for versionable agent fields — used by PUT /agents/{id}/draft.',
 } as const;
 
+export const AgentFlowStalenessPublicSchema = {
+  properties: {
+    is_stale: {
+      type: 'boolean',
+      title: 'Is Stale',
+      description:
+        "True when Retell's live conversation flow version differs from the version captured at last import/sync",
+    },
+    captured_version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Captured Version',
+      description: 'Flow version stored in agent_metadata',
+    },
+    live_version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Live Version',
+      description: 'Current flow version fetched from Retell',
+    },
+  },
+  type: 'object',
+  required: ['is_stale'],
+  title: 'AgentFlowStalenessPublic',
+} as const;
+
 export const AgentGuidelinesPublicSchema = {
   properties: {
     guidelines: {
