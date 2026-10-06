@@ -6,6 +6,7 @@ from sqlalchemy import Column, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
+from app.models.columns import enum_type
 from app.models.enums import CallLabel, IntegrationProvider
 
 
@@ -35,7 +36,9 @@ class Call(SQLModel, table=True):
         default=None, sa_column=Column("raw", JSONB, nullable=True)
     )
     seen_at: datetime | None = Field(default=None)
-    label: CallLabel | None = Field(default=None, max_length=32, nullable=True)
+    label: CallLabel | None = Field(
+        default=None, nullable=True, sa_type=enum_type(CallLabel)
+    )
     deleted_at: datetime | None = Field(default=None, index=True)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),

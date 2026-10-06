@@ -7,6 +7,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
 from app.models.agent_version import AgentVersion
+from app.models.columns import enum_type
 from app.models.enums import RunStatus
 from app.models.schemas import AggregateMetrics, RunConfig
 
@@ -74,6 +75,7 @@ class RunBase(SQLModel):
         default=None,
         foreign_key="agent_version.id",
         index=True,
+        ondelete="SET NULL",
         description="FK to immutable agent_version row at run creation",
     )
     # Config
@@ -86,6 +88,7 @@ class RunBase(SQLModel):
     status: RunStatus = Field(
         default=RunStatus.PENDING,
         index=True,
+        sa_type=enum_type(RunStatus),
         description="Current execution status of the run",
     )
     is_baseline: bool = Field(

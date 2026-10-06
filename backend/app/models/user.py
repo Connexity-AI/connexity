@@ -4,6 +4,8 @@ import uuid
 from pydantic import EmailStr
 from sqlmodel import Field, SQLModel
 
+from app.models.columns import enum_type
+
 
 class AuthProvider(str, enum.Enum):
     email = "email"
@@ -13,7 +15,9 @@ class AuthProvider(str, enum.Enum):
 # Shared properties
 class UserBase(SQLModel):
     email: EmailStr = Field(unique=True, index=True, max_length=255)
-    provider: AuthProvider = AuthProvider.email
+    provider: AuthProvider = Field(
+        default=AuthProvider.email, sa_type=enum_type(AuthProvider)
+    )
     is_active: bool = True
     full_name: str | None = Field(default=None, max_length=255)
 

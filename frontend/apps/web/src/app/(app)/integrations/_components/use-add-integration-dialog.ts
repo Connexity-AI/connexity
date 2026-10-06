@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { createIntegration } from '@/actions/integrations';
-import { IntegrationProviderInput } from '@/client/types.gen';
+import { IntegrationProvider } from '@/client/types.gen';
 import { integrationKeys } from '@/constants/query-keys';
 import { isSuccessApiResult } from '@/utils/api';
 
@@ -16,9 +16,9 @@ import { getCreateIntegrationErrorMessage } from './add-integration-dialog.utils
 
 const formSchema = z.object({
   provider: z.enum([
-    IntegrationProviderInput.RETELL,
-    IntegrationProviderInput.VAPI,
-    IntegrationProviderInput.ELEVENLABS,
+    IntegrationProvider.RETELL,
+    IntegrationProvider.VAPI,
+    IntegrationProvider.ELEVENLABS,
   ]),
   name: z.string().min(1, 'Name is required'),
   api_key: z.string().min(1, 'API key is required'),
@@ -30,21 +30,21 @@ export type DialogState = 'form' | 'testing' | 'success' | 'error';
 
 export const PROVIDERS = [
   {
-    value: IntegrationProviderInput.RETELL,
+    value: IntegrationProvider.RETELL,
     label: 'Retell',
     placeholder: 'e.g., Production Retell',
     docsHref: 'https://dashboard.retellai.com/settings/api-keys',
     docsLabel: 'Get Retell API Key',
   },
   {
-    value: IntegrationProviderInput.VAPI,
+    value: IntegrationProvider.VAPI,
     label: 'Vapi',
     placeholder: 'e.g., Production Vapi',
     docsHref: 'https://dashboard.vapi.ai/org/api-keys',
     docsLabel: 'Get Vapi API Key',
   },
   {
-    value: IntegrationProviderInput.ELEVENLABS,
+    value: IntegrationProvider.ELEVENLABS,
     label: 'ElevenLabs',
     placeholder: 'e.g., Production ElevenLabs',
     docsHref: 'https://elevenlabs.io/app/settings/api-keys',
@@ -66,8 +66,8 @@ export const useAddIntegrationDialog = ({
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { provider: IntegrationProviderInput.RETELL, name: '', api_key: '' },
-    values: { provider: IntegrationProviderInput.RETELL, name: '', api_key: '' },
+    defaultValues: { provider: IntegrationProvider.RETELL, name: '', api_key: '' },
+    values: { provider: IntegrationProvider.RETELL, name: '', api_key: '' },
   });
 
   const mutation = useMutation({

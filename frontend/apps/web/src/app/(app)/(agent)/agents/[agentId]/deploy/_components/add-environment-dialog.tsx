@@ -15,7 +15,7 @@ import { subtitlePlatformForAddEnvironmentDialog } from '@/app/(app)/(agent)/age
 import { AddEnvironmentForm } from './add-environment-form';
 
 import type { FC } from 'react';
-import { IntegrationProviderInput } from '@/client/types.gen';
+import { IntegrationProvider } from '@/client/types.gen';
 import type { EnvironmentPublic } from '@/client/types.gen';
 
 interface Props {
@@ -30,9 +30,9 @@ export const AddEnvironmentDialog: FC<Props> = ({ open, onOpenChange, environmen
   const { data: integrationsData } = useIntegrations();
   const platformIntegrations = integrationsData.data.filter(
     (integration) =>
-      integration.provider === IntegrationProviderInput.RETELL ||
-      integration.provider === IntegrationProviderInput.VAPI ||
-      integration.provider === IntegrationProviderInput.ELEVENLABS
+      integration.provider === IntegrationProvider.RETELL ||
+      integration.provider === IntegrationProvider.VAPI ||
+      integration.provider === IntegrationProvider.ELEVENLABS
   );
   const title = environment === null ? 'Add environment' : 'Edit environment';
   const subtitlePlatform = subtitlePlatformForAddEnvironmentDialog(environment, agent);

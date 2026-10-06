@@ -4,11 +4,14 @@ from datetime import UTC, datetime
 from sqlalchemy import Column, Text, text
 from sqlmodel import Field, SQLModel
 
+from app.models.columns import enum_type
 from app.models.enums import IntegrationProvider
 
 
 class IntegrationBase(SQLModel):
-    provider: IntegrationProvider = Field(max_length=64, index=True)
+    provider: IntegrationProvider = Field(
+        index=True, sa_type=enum_type(IntegrationProvider)
+    )
     name: str = Field(max_length=255)
 
 
