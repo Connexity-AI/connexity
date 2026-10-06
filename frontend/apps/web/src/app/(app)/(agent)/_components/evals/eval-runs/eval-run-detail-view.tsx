@@ -1,7 +1,9 @@
 'use client';
 
-import { Suspense, useMemo } from 'react';
+import { Suspense } from 'react';
 import Link from 'next/link';
+
+import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { ArrowLeft } from 'lucide-react';
 
 import { Accordion } from '@workspace/ui/components/ui/accordion';
@@ -13,19 +15,14 @@ import { cn } from '@workspace/ui/lib/utils';
 
 import { useAgent } from '@/app/(app)/(agent)/_hooks/use-agent';
 import { useEvalConfigs } from '@/app/(app)/(agent)/_hooks/use-eval-configs';
-import { useEvalResultsSelection } from '@/app/(app)/(agent)/_hooks/use-eval-results-selection';
-import { useEvalRunDetail, type ResultFilter } from '@/app/(app)/(agent)/_hooks/use-eval-run-detail';
+import { useEvalRunDetail } from '@/app/(app)/(agent)/_hooks/use-eval-run-detail';
 import { useSuspenseTestCasesWithDeleted } from '@/app/(app)/(agent)/_hooks/use-test-cases';
-import { useTriggerSuggestFixes } from '@/app/(app)/(agent)/_hooks/use-trigger-suggest-fixes';
-import { UrlGenerator } from '@/common/url-generator/url-generator';
-
 import { ConversationDrawer } from './conversation-drawer';
 import { ConversationResultRow } from './conversation-result-row';
 import { EvalRunMetricsBar } from './eval-run-metrics-bar';
-import { EvalRunSelectionToolbar } from './eval-run-selection-toolbar';
-import { SelectionCheckbox } from './selection-checkbox';
-import { RunStatusIcon, runStatusBadgeClasses, runStatusLabel } from './shared/run-status-icon';
+import { runStatusBadgeClasses, RunStatusIcon, runStatusLabel } from './shared/run-status-icon';
 
+import type { ResultFilter } from '@/app/(app)/(agent)/_hooks/use-eval-run-detail';
 import type { RunStatus } from '@/client/types.gen';
 
 interface EvalRunDetailViewProps {
@@ -69,19 +66,6 @@ function EvalRunDetailContent({
     drawerResult,
   } = useEvalRunDetail({ runId, configs, testCases });
 
-  const filteredIds = useMemo(() => filteredResults.map((r) => r.id), [filteredResults]);
-  const { selectedIds, allSelected, someSelected, toggleRow, toggleAll, clear } =
-    useEvalResultsSelection(filteredIds);
-  const hasSelection = selectedIds.size > 0;
-
-  const handleSuggestFixes = useTriggerSuggestFixes({
-    agentId,
-    runId,
-    results,
-    selectedIds,
-    testCaseById,
-  });
-
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-3">
@@ -112,52 +96,35 @@ function EvalRunDetailContent({
 
       <EvalRunMetricsBar run={run} status={run.status as RunStatus} />
 
-      {hasSelection ? (
-        <EvalRunSelectionToolbar
-          selectedCount={selectedIds.size}
-          allSelected={allSelected}
-          someSelected={someSelected}
-          onToggleAll={toggleAll}
-          onSuggestFixes={handleSuggestFixes}
-          onClear={clear}
-        />
-      ) : (
-        <div className="flex h-10 shrink-0 items-center gap-4 border-b border-border px-5 py-2">
-          <SelectionCheckbox
-            checked={false}
-            onCheckedChange={(checked) => toggleAll(checked === true)}
-            aria-label="Select all"
-            disabled={filteredIds.length === 0}
-          />
-          <ToggleGroup
-            type="single"
-            value={filter}
-            onValueChange={(v) => {
-              if (v) setFilter(v as ResultFilter);
-            }}
-            className="gap-1"
+      <div className="flex h-10 shrink-0 items-center gap-4 border-b border-border px-5 py-2">
+        <ToggleGroup
+          type="single"
+          value={filter}
+          onValueChange={(v) => {
+            if (v) setFilter(v as ResultFilter);
+          }}
+          className="gap-1"
+        >
+          <ToggleGroupItem
+            value="all"
+            className="h-6 cursor-pointer px-2 text-[11px] data-[state=on]:bg-accent/60"
           >
-            <ToggleGroupItem
-              value="all"
-              className="h-6 cursor-pointer px-2 text-[11px] data-[state=on]:bg-accent/60"
-            >
-              All ({results.length})
-            </ToggleGroupItem>
-            <ToggleGroupItem
-              value="passed"
-              className="h-6 cursor-pointer px-2 text-[11px] data-[state=on]:bg-green-500/15 data-[state=on]:text-green-400"
-            >
-              Passed ({passedCount})
-            </ToggleGroupItem>
-            <ToggleGroupItem
-              value="failed"
-              className="h-6 cursor-pointer px-2 text-[11px] data-[state=on]:bg-red-500/15 data-[state=on]:text-red-400"
-            >
-              Failed ({failedCount})
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </div>
-      )}
+            All ({results.length})
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="passed"
+            className="h-6 cursor-pointer px-2 text-[11px] data-[state=on]:bg-green-500/15 data-[state=on]:text-green-400"
+          >
+            Passed ({passedCount})
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="failed"
+            className="h-6 cursor-pointer px-2 text-[11px] data-[state=on]:bg-red-500/15 data-[state=on]:text-red-400"
+          >
+            Failed ({failedCount})
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </div>
 
       <div className="flex-1 overflow-auto">
         {filteredResults.length === 0 ? (
@@ -181,8 +148,6 @@ function EvalRunDetailContent({
                   difficulty={testCase?.difficulty}
                   isDeleted={Boolean(testCase?.deleted_at)}
                   onOpenTrace={() => setDrawerResultId(result.id)}
-                  selected={selectedIds.has(result.id)}
-                  onSelectChange={toggleRow}
                   runStatus={run.status as RunStatus}
                 />
               );
@@ -199,7 +164,7 @@ function EvalRunDetailContent({
         result={drawerResult}
         testCaseName={
           drawerResult
-            ? testCaseById.get(drawerResult.test_case_id)?.name ?? 'Unknown test case'
+            ? (testCaseById.get(drawerResult.test_case_id)?.name ?? 'Unknown test case')
             : ''
         }
         agentName={agent?.name ?? null}
@@ -243,9 +208,8 @@ function EvalRunDetailSkeleton({ backHref }: { backHref: string }) {
         {Array.from({ length: 6 }).map((_, i) => (
           <li
             key={i}
-            className="grid grid-cols-[32px_24px_1fr_auto_auto_auto] items-center gap-3 border-b border-border/40 px-5 py-3"
+            className="grid grid-cols-[24px_1fr_auto_auto_auto] items-center gap-3 border-b border-border/40 px-5 py-3"
           >
-            <Skeleton className="h-4 w-4" />
             <Skeleton className="h-4 w-4" />
             <Skeleton className="h-3.5 w-56" />
             <Skeleton className="h-3 w-12" />

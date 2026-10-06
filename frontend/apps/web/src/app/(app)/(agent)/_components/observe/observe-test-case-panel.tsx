@@ -1,7 +1,7 @@
 'use client';
 'use no memo';
 
-import { Sparkles, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useFormContext } from 'react-hook-form';
 
 import { Button } from '@workspace/ui/components/ui/button';
@@ -23,7 +23,6 @@ interface ObserveTestCasePanelProps {
   testCase: TestCasePublic | null;
   onClose: () => void;
   onRequestDelete: (testCase: TestCasePublic) => void;
-  onOpenAiAssistant?: () => void;
   position?: number;
   total?: number;
   onPrev?: () => void;
@@ -35,7 +34,6 @@ export function ObserveTestCasePanel({
   testCase,
   onClose,
   onRequestDelete,
-  onOpenAiAssistant,
   position,
   total,
   onPrev,
@@ -63,18 +61,6 @@ export function ObserveTestCasePanel({
           <StatusBadge status={status} />
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {onOpenAiAssistant ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onOpenAiAssistant}
-              title="AI Assistant"
-              className="h-7 gap-1.5 rounded-md border-violet-500/25 bg-violet-500/10 px-2 text-[11px] font-normal text-violet-300 hover:bg-violet-500/20 hover:text-violet-300 [&_svg]:size-3"
-            >
-              <Sparkles />
-              AI Assistant
-            </Button>
-          ) : null}
           <BatchPagerNav
             current={position ?? 0}
             total={total ?? 0}

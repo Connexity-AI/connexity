@@ -18,9 +18,6 @@ import type {
   AgentsDiscardDraftData,
   AgentsDiscardDraftErrors,
   AgentsDiscardDraftResponses,
-  AgentsGetAgentGuidelinesData,
-  AgentsGetAgentGuidelinesErrors,
-  AgentsGetAgentGuidelinesResponses,
   AgentsGetDraftData,
   AgentsGetDraftErrors,
   AgentsGetDraftResponses,
@@ -36,9 +33,6 @@ import type {
   AgentsPublishDraftData,
   AgentsPublishDraftErrors,
   AgentsPublishDraftResponses,
-  AgentsPutAgentGuidelinesData,
-  AgentsPutAgentGuidelinesErrors,
-  AgentsPutAgentGuidelinesResponses,
   AgentsReadAgentData,
   AgentsReadAgentErrors,
   AgentsReadAgentResponses,
@@ -221,33 +215,6 @@ import type {
   OauthTokenData,
   OauthTokenErrors,
   OauthTokenResponses,
-  PromptEditorChatData,
-  PromptEditorChatErrors,
-  PromptEditorChatResponses,
-  PromptEditorCreateSessionData,
-  PromptEditorCreateSessionErrors,
-  PromptEditorCreateSessionResponses,
-  PromptEditorDeleteSessionData,
-  PromptEditorDeleteSessionErrors,
-  PromptEditorDeleteSessionResponses,
-  PromptEditorGetPresetsData,
-  PromptEditorGetPresetsErrors,
-  PromptEditorGetPresetsResponses,
-  PromptEditorGetSessionData,
-  PromptEditorGetSessionErrors,
-  PromptEditorGetSessionResponses,
-  PromptEditorListMessagesData,
-  PromptEditorListMessagesErrors,
-  PromptEditorListMessagesResponses,
-  PromptEditorListSessionsData,
-  PromptEditorListSessionsErrors,
-  PromptEditorListSessionsResponses,
-  PromptEditorUpdateSessionBasePromptData,
-  PromptEditorUpdateSessionBasePromptErrors,
-  PromptEditorUpdateSessionBasePromptResponses,
-  PromptEditorUpdateSessionData,
-  PromptEditorUpdateSessionErrors,
-  PromptEditorUpdateSessionResponses,
   RunsCancelRunEndpointData,
   RunsCancelRunEndpointErrors,
   RunsCancelRunEndpointResponses,
@@ -317,9 +284,6 @@ import type {
   TestCasesListTestCasesData,
   TestCasesListTestCasesErrors,
   TestCasesListTestCasesResponses,
-  TestCasesRunTestCaseAiAgentData,
-  TestCasesRunTestCaseAiAgentErrors,
-  TestCasesRunTestCaseAiAgentResponses,
   TestCasesUpdateTestCaseData,
   TestCasesUpdateTestCaseErrors,
   TestCasesUpdateTestCaseResponses,
@@ -1125,58 +1089,6 @@ export class AgentsService {
   }
 
   /**
-   * Get Agent Guidelines
-   */
-  public static getAgentGuidelines<ThrowOnError extends boolean = false>(
-    options: Options<AgentsGetAgentGuidelinesData, ThrowOnError>
-  ) {
-    return (options.client ?? client).get<
-      AgentsGetAgentGuidelinesResponses,
-      AgentsGetAgentGuidelinesErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/agents/{agent_id}/guidelines',
-      ...options,
-    });
-  }
-
-  /**
-   * Put Agent Guidelines
-   */
-  public static putAgentGuidelines<ThrowOnError extends boolean = false>(
-    options: Options<AgentsPutAgentGuidelinesData, ThrowOnError>
-  ) {
-    return (options.client ?? client).put<
-      AgentsPutAgentGuidelinesResponses,
-      AgentsPutAgentGuidelinesErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/agents/{agent_id}/guidelines',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-  }
-
-  /**
    * Delete Agent
    */
   public static deleteAgent<ThrowOnError extends boolean = false>(
@@ -1378,36 +1290,6 @@ export class TestCasesService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/test-cases/generate',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-  }
-
-  /**
-   * Run Test Case Ai Agent
-   *
-   * Single-turn tool-calling agent: create, from_transcript, or edit test cases.
-   */
-  public static testCasesRunTestCaseAiAgent<ThrowOnError extends boolean = false>(
-    options: Options<TestCasesRunTestCaseAiAgentData, ThrowOnError>
-  ) {
-    return (options.client ?? client).post<
-      TestCasesRunTestCaseAiAgentResponses,
-      TestCasesRunTestCaseAiAgentErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/test-cases/ai',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -2324,253 +2206,6 @@ export class TestCaseResultsService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
-    });
-  }
-}
-
-export class PromptEditorService {
-  /**
-   * List Sessions
-   */
-  public static promptEditorListSessions<ThrowOnError extends boolean = false>(
-    options?: Options<PromptEditorListSessionsData, ThrowOnError>
-  ) {
-    return (options?.client ?? client).get<
-      PromptEditorListSessionsResponses,
-      PromptEditorListSessionsErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/prompt-editor/sessions/',
-      ...options,
-    });
-  }
-
-  /**
-   * Create Session
-   */
-  public static promptEditorCreateSession<ThrowOnError extends boolean = false>(
-    options: Options<PromptEditorCreateSessionData, ThrowOnError>
-  ) {
-    return (options.client ?? client).post<
-      PromptEditorCreateSessionResponses,
-      PromptEditorCreateSessionErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/prompt-editor/sessions/',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-  }
-
-  /**
-   * Delete Session
-   */
-  public static promptEditorDeleteSession<ThrowOnError extends boolean = false>(
-    options: Options<PromptEditorDeleteSessionData, ThrowOnError>
-  ) {
-    return (options.client ?? client).delete<
-      PromptEditorDeleteSessionResponses,
-      PromptEditorDeleteSessionErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/prompt-editor/sessions/{session_id}',
-      ...options,
-    });
-  }
-
-  /**
-   * Get Session
-   */
-  public static promptEditorGetSession<ThrowOnError extends boolean = false>(
-    options: Options<PromptEditorGetSessionData, ThrowOnError>
-  ) {
-    return (options.client ?? client).get<
-      PromptEditorGetSessionResponses,
-      PromptEditorGetSessionErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/prompt-editor/sessions/{session_id}',
-      ...options,
-    });
-  }
-
-  /**
-   * Update Session
-   */
-  public static promptEditorUpdateSession<ThrowOnError extends boolean = false>(
-    options: Options<PromptEditorUpdateSessionData, ThrowOnError>
-  ) {
-    return (options.client ?? client).patch<
-      PromptEditorUpdateSessionResponses,
-      PromptEditorUpdateSessionErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/prompt-editor/sessions/{session_id}',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-  }
-
-  /**
-   * Update Session Base Prompt
-   *
-   * Set ``base_prompt`` (diff baseline), e.g. after the agent draft is saved.
-   */
-  public static promptEditorUpdateSessionBasePrompt<ThrowOnError extends boolean = false>(
-    options: Options<PromptEditorUpdateSessionBasePromptData, ThrowOnError>
-  ) {
-    return (options.client ?? client).patch<
-      PromptEditorUpdateSessionBasePromptResponses,
-      PromptEditorUpdateSessionBasePromptErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/prompt-editor/sessions/{session_id}/base-prompt',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-  }
-
-  /**
-   * List Messages
-   */
-  public static promptEditorListMessages<ThrowOnError extends boolean = false>(
-    options: Options<PromptEditorListMessagesData, ThrowOnError>
-  ) {
-    return (options.client ?? client).get<
-      PromptEditorListMessagesResponses,
-      PromptEditorListMessagesErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/prompt-editor/sessions/{session_id}/messages',
-      ...options,
-    });
-  }
-
-  /**
-   * Chat
-   *
-   * Stream the editor agent response (reasoning + full-text edit snapshots).
-   *
-   * The SSE generator outlives the FastAPI dependency scope (``get_db`` closes
-   * the SQLAlchemy ``Session`` once this function returns the
-   * ``StreamingResponse``).  Therefore we:
-   *
-   * 1. Read all data we need *before* returning and copy it into plain Python
-   * objects so the generator never touches the original session.
-   * 2. Open a **new** ``Session`` inside the generator for the DB writes that
-   * happen after the LLM stream completes.
-   */
-  public static promptEditorChat<ThrowOnError extends boolean = false>(
-    options: Options<PromptEditorChatData, ThrowOnError>
-  ) {
-    return (options.client ?? client).post<
-      PromptEditorChatResponses,
-      PromptEditorChatErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/prompt-editor/sessions/{session_id}/messages',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-  }
-
-  /**
-   * Get Presets
-   */
-  public static promptEditorGetPresets<ThrowOnError extends boolean = false>(
-    options: Options<PromptEditorGetPresetsData, ThrowOnError>
-  ) {
-    return (options.client ?? client).get<
-      PromptEditorGetPresetsResponses,
-      PromptEditorGetPresetsErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/prompt-editor/presets',
-      ...options,
     });
   }
 }

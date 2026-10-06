@@ -6,8 +6,6 @@ import type {
   GenerateRequest,
   GenerateResult,
   Message,
-  TestCaseAgentRequest,
-  TestCaseAgentResult,
   TestCaseCreate,
   TestCasePublic,
   TestCaseUpdate,
@@ -67,14 +65,6 @@ export const deleteTestCase = async (
   const apiResponse = await TestCasesService.testCasesDeleteTestCase({
     path: { test_case_id: testCaseId },
   });
-  const { response: _, ...result } = apiResponse;
-  return result;
-};
-
-export const runTestCaseAiAgent = async (
-  body: TestCaseAgentRequest
-): Promise<ApiResult<TestCaseAgentResult>> => {
-  const apiResponse = await TestCasesService.testCasesRunTestCaseAiAgent({ body });
   const { response: _, ...result } = apiResponse;
   return result;
 };

@@ -1,4 +1,4 @@
-"""Agent CRUD, draft/publish/rollback, versions, and guidelines."""
+"""Agent CRUD, draft/publish/rollback, and versions."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from cli.resolvers import resolve_agent
 
 @click.group("agents")
 def agents_group() -> None:
-    """Manage agents (create, edit, draft/publish, versions, guidelines)."""
+    """Manage agents (create, edit, draft/publish, versions)."""
 
 
 def _output_choice() -> click.Option:
@@ -381,58 +381,6 @@ def agents_versions_diff(
             from_version=from_version,
             to_version=to_version,
         )
-    _emit(ctx, data, output_override)
-
-
-# ---------------------------------------------------------------------------
-# guidelines
-# ---------------------------------------------------------------------------
-
-
-@agents_group.group("guidelines")
-def agents_guidelines_group() -> None:
-    """Read or write the agent's system guidelines."""
-
-
-@agents_guidelines_group.command("get")
-@click.argument("agent_ref")
-@click.option(
-    "--output", "output_override", type=click.Choice(["json", "table"]), default=None
-)
-@click.pass_context
-def agents_guidelines_get(
-    ctx: click.Context, agent_ref: str, output_override: str | None
-) -> None:
-    ensure_auth(ctx)
-    with open_client(ctx) as client:
-        agent = resolve_agent(client, agent_ref)
-        data = client.agents.get_guidelines(str(agent["id"]))
-    _emit(ctx, data, output_override)
-
-
-@agents_guidelines_group.command("set")
-@click.argument("agent_ref")
-@click.option(
-    "--from-file",
-    "from_file",
-    required=True,
-    help="Path to AgentGuidelinesUpdate JSON ('-' for stdin)",
-)
-@click.option(
-    "--output", "output_override", type=click.Choice(["json", "table"]), default=None
-)
-@click.pass_context
-def agents_guidelines_set(
-    ctx: click.Context,
-    agent_ref: str,
-    from_file: str,
-    output_override: str | None,
-) -> None:
-    ensure_auth(ctx)
-    body = load_dict_payload(from_file)
-    with open_client(ctx) as client:
-        agent = resolve_agent(client, agent_ref)
-        data = client.agents.put_guidelines(str(agent["id"]), body)
     _emit(ctx, data, output_override)
 
 

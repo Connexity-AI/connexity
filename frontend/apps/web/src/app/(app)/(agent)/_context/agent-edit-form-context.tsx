@@ -1,7 +1,7 @@
 'use client';
 'use no memo';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useIsMutating } from '@tanstack/react-query';
@@ -41,7 +41,6 @@ interface AgentEditFormActions {
   isReadOnly: boolean;
   isDraftSaving: boolean;
   agentId: string;
-  flushDraftSave: () => Promise<void>;
   agent: AgentPublic | undefined;
   draft: AgentVersionPublic | undefined;
 }
@@ -110,7 +109,7 @@ export function AgentEditFormProvider({ agentId, children }: AgentEditFormProvid
 
   const agentName = agent?.name ?? '';
   const { isPending: isUpdatePending, error: updateError } = useUpdateAgent(agentId, agentName);
-  const { mutate: draftMutate, mutateAsync: draftMutateAsync } = useUpsertDraft(agentId);
+  const { mutate: draftMutate } = useUpsertDraft(agentId);
 
   // Counts any in-flight draft-save, regardless of which caller triggered it
   // (form autosave, editable diff, etc.). All callers share the same
@@ -156,27 +155,6 @@ export function AgentEditFormProvider({ agentId, children }: AgentEditFormProvid
     };
   }, [form, isReadOnly, draftMutate]);
 
-  // ─── Flush pending draft save ────────────────────────────────────────────
-  // Cancels the debounce timer and, if the form has unsaved changes, writes
-  // them to the draft synchronously. Callers (e.g. the prompt editor)
-  // `await` this before actions that need to see the latest saved state.
-
-  const flushDraftSave = useCallback(async (): Promise<void> => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-      debounceTimerRef.current = null;
-    }
-
-    if (isReadOnly) return;
-
-    if (!form.formState.isDirty) return;
-
-    const values = form.getValues();
-    if (values.prompt === undefined) return;
-
-    await draftMutateAsync(mapFormToDraft(values));
-  }, [form, isReadOnly, draftMutateAsync]);
-
   // ─── Submit (publish) ────────────────────────────────────────────────────
 
   //  The function saves the current form as a draft (flushing any
@@ -219,7 +197,6 @@ export function AgentEditFormProvider({ agentId, children }: AgentEditFormProvid
         isReadOnly,
         isDraftSaving,
         agentId,
-        flushDraftSave,
         agent,
         draft,
       }}

@@ -2,7 +2,7 @@
 
 Command-line client for [Connexity](https://github.com/Connexity-AI/connexity) — drive eval runs, manage agents and test cases, and gate CI on regressions, all from the terminal.
 
-`connexity-cli` is a thin wrapper over the Connexity REST API. It covers the public surface used to drive eval workflows from CI: auth, agents, eval configs, test cases, runs (with SSE streaming), custom metrics, prompt editor, integrations, environments (including deploy + deployment history), calls, config, and health. Account self-service (signup, password reset) stays in the web UI.
+`connexity-cli` is a thin wrapper over the Connexity REST API. It covers the public surface used to drive eval workflows from CI: auth, agents, eval configs, test cases, runs (with SSE streaming), custom metrics, integrations, environments (including deploy + deployment history), calls, config, and health. Account self-service (signup, password reset) stays in the web UI.
 
 ## Installation
 
@@ -69,10 +69,6 @@ connexity-cli environments deploy <env-id> --agent-version 7
 # Stream agent execution events live
 connexity-cli runs stream <run-id>
 
-# AI-assisted prompt editing — SSE events go to stderr, final assistant
-# message + edited_prompt to stdout (drops to non-streaming when piping)
-connexity-cli prompt-editor chat <session-id> --message "tighten the refusal prose"
-
 # JSON output for piping into jq
 connexity-cli --output json agents list | jq '.data[].name'
 ```
@@ -128,13 +124,12 @@ Each top-level group mirrors a backend router:
 | Group                   | Purpose                                                                                |
 |-------------------------|----------------------------------------------------------------------------------------|
 | `login` / `logout` / `whoami` | Auth & session                                                                   |
-| `agents`                | CRUD, draft/publish/rollback, versions, version diff, guidelines                       |
+| `agents`                | CRUD, draft/publish/rollback, versions, version diff                                   |
 | `eval-configs`          | CRUD, member (test-case) management                                                    |
-| `test-cases`            | CRUD, bulk import/export, generate, AI editor                                          |
+| `test-cases`            | CRUD, bulk import/export, generate                                                     |
 | `test-case-results`     | Per-test-case run result CRUD                                                          |
 | `runs`                  | CRUD, execute, cancel, stream (SSE), baselines, compare, suggestions                   |
 | `custom-metrics`        | CRUD plus LLM-backed metric preview generation                                         |
-| `prompt-editor`         | Sessions, messages, presets, streaming chat                                            |
 | `integrations`          | Third-party providers (Retell), connection test, list provider-side agents             |
 | `environments`          | Bindings + `deploy`, `retell-versions`, `deployments list` (history)                   |
 | `calls`                 | Observed external calls (Retell), refresh / mark-seen                                  |
@@ -153,7 +148,6 @@ agents      list | show <ref> | create | update <id> | delete <id>
             versions list <ref> | versions show <ref> <n> | versions diff <ref> <a> <b>
             draft get <ref> | draft set <ref> | draft discard <ref>
             publish <ref> | rollback <ref> --to-version <n>
-            guidelines get <ref> | guidelines update <ref>
 runs        list | show <id> | create | update <id> | delete <id>
             execute <id> | cancel <id> | stream <id>
             baseline get --agent <ref> --eval-config <ref> | baseline set <id>
@@ -163,12 +157,9 @@ environments list --agent <ref> | create | delete <id>
             deploy <env-id> --agent-version <n>
             retell-versions <env-id>
             deployments list (--agent <ref> | --env-id <id>)
-prompt-editor sessions list | sessions show <id> | sessions create | sessions delete <id>
-            messages list <session-id> | chat <session-id> --message "..."
-            presets list
 custom-metrics list | show <id> | create | update <id> | delete <id> | preview | generate
 test-cases  list | show <id> | create | update <id> | delete <id>
-            import <file> [--overwrite] | export | generate | ai create
+            import <file> [--overwrite] | export | generate
 
 # Top-level convenience wrappers for the most common CI flows:
 run         --agent <ref> --eval-config <ref> [--metrics-pass-threshold N] [--cases-pass-threshold N] [--stream] [--set-baseline]

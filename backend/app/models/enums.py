@@ -64,11 +64,6 @@ class MetricTier(StrEnum):
     DELIVERY = "delivery"
 
 
-class PromptEditorSessionStatus(StrEnum):
-    ACTIVE = "active"
-    ARCHIVED = "archived"
-
-
 class Platform(StrEnum):
     RETELL = "retell"
     VAPI = "vapi"

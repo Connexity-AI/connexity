@@ -9,7 +9,6 @@ import {
 } from '@workspace/ui/components/ui/accordion';
 import { cn } from '@workspace/ui/lib/utils';
 
-import { SelectionCheckbox } from './selection-checkbox';
 
 import { roundScore, scoreColor } from './shared/score-utils';
 
@@ -26,8 +25,6 @@ interface ConversationResultRowProps {
   difficulty?: Difficulty;
   isDeleted?: boolean;
   onOpenTrace: () => void;
-  selected: boolean;
-  onSelectChange: (id: string, checked: boolean) => void;
   runStatus: RunStatus;
 }
 
@@ -52,8 +49,6 @@ export function ConversationResultRow({
   difficulty,
   isDeleted = false,
   onOpenTrace,
-  selected,
-  onSelectChange,
   runStatus,
 }: ConversationResultRowProps) {
   const verdict = result.verdict;
@@ -71,21 +66,13 @@ export function ConversationResultRow({
       value={result.id}
       className="relative border-b border-border/40 last:border-b-0"
     >
-      <SelectCheckbox
-        selected={selected}
-        resultId={result.id}
-        testCaseName={testCaseName}
-        onSelectChange={onSelectChange}
-      />
       <AccordionTrigger
         className={cn(
-          'grid cursor-pointer grid-cols-[24px_24px_1fr_auto_auto_auto] items-center gap-3 py-3 pr-5 pl-5',
+          'grid cursor-pointer grid-cols-[24px_1fr_auto_auto_auto] items-center gap-3 py-3 pr-5 pl-5',
           'font-normal text-foreground hover:no-underline',
-          'hover:bg-accent/20 data-[state=open]:bg-accent/30',
-          selected && 'bg-accent/30'
+          'hover:bg-accent/20 data-[state=open]:bg-accent/30'
         )}
       >
-        <span aria-hidden className="h-6 w-6" />
         <div className="flex h-6 w-6 items-center justify-center">
           <StatusIcon
             passed={result.passed}
@@ -138,37 +125,6 @@ export function ConversationResultRow({
         </div>
       </AccordionContent>
     </AccordionItem>
-  );
-}
-
-function SelectCheckbox({
-  selected,
-  resultId,
-  testCaseName,
-  onSelectChange,
-}: {
-  selected: boolean;
-  resultId: string;
-  testCaseName: string;
-  onSelectChange: (id: string, checked: boolean) => void;
-}) {
-  const stop = (e: React.SyntheticEvent) => {
-    e.stopPropagation();
-  };
-
-  return (
-    <div
-      className="absolute left-5 top-3 z-10 flex h-6 w-6 items-center justify-center"
-      onClick={stop}
-      onPointerDown={stop}
-      onKeyDown={stop}
-    >
-      <SelectionCheckbox
-        checked={selected}
-        onCheckedChange={(checked) => onSelectChange(resultId, checked === true)}
-        aria-label={`Select ${testCaseName}`}
-      />
-    </div>
   );
 }
 

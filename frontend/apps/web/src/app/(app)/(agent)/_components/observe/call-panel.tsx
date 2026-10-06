@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, CheckCircle2, Clock, PenLine, Sparkles, Tag, Wrench, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, PenLine, Tag, Wrench, X } from 'lucide-react';
 
 import {
   Accordion,
@@ -18,7 +18,6 @@ import { cn } from '@workspace/ui/lib/utils';
 
 import { useSetCallLabel } from '@/app/(app)/(agent)/_hooks/use-calls';
 import { CallLabel } from '@/client/types.gen';
-
 import { CallLabelChip } from './call-label-chip';
 import {
   buildTranscriptDisplayItems,
@@ -36,18 +35,11 @@ interface CallPanelProps {
   agentId: string;
   call: CallPublic;
   onCreateTestCaseManual?: (call: CallPublic) => void;
-  onCreateTestCaseAi?: (call: CallPublic) => void;
 }
 
-export function CallPanel({
-  agentId,
-  call,
-  onCreateTestCaseManual,
-  onCreateTestCaseAi,
-}: CallPanelProps) {
+export function CallPanel({ agentId, call, onCreateTestCaseManual }: CallPanelProps) {
   const turns = extractTurns(call.transcript);
   const displayItems = buildTranscriptDisplayItems(turns);
-  const showCreateButton = !!onCreateTestCaseManual || !!onCreateTestCaseAi;
 
   const setLabel = useSetCallLabel(agentId);
   const currentLabel = call.label ?? null;
@@ -107,56 +99,15 @@ export function CallPanel({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {showCreateButton ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="flex shrink-0 items-center gap-1.5 rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-[11px] text-violet-300 transition-all hover:bg-violet-500/20"
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Create test case
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                sideOffset={4}
-                className="w-56 overflow-hidden rounded-lg border-border bg-background p-0 shadow-xl"
+            {onCreateTestCaseManual ? (
+              <button
+                type="button"
+                onClick={() => onCreateTestCaseManual(call)}
+                className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border bg-accent/40 px-3 py-1.5 text-[11px] text-foreground transition-all hover:bg-accent/70"
               >
-                {onCreateTestCaseManual ? (
-                  <DropdownMenuItem
-                    onSelect={() => onCreateTestCaseManual(call)}
-                    className="flex w-full items-start gap-3 rounded-none border-b border-border px-3 py-3 focus:bg-accent/50"
-                  >
-                    <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent">
-                      <PenLine className="h-3.5 w-3.5 text-muted-foreground" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm text-foreground">Manually</p>
-                      <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-                        Create a test case from scratch
-                      </p>
-                    </div>
-                  </DropdownMenuItem>
-                ) : null}
-                {onCreateTestCaseAi ? (
-                  <DropdownMenuItem
-                    onSelect={() => onCreateTestCaseAi(call)}
-                    className="flex w-full items-start gap-3 rounded-none px-3 py-3 focus:bg-accent/50"
-                  >
-                    <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-violet-500/15">
-                      <Sparkles className="h-3.5 w-3.5 text-violet-400" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm text-violet-300">With AI</p>
-                      <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-                        Describe what to cover, AI builds it
-                      </p>
-                    </div>
-                  </DropdownMenuItem>
-                ) : null}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <PenLine className="h-3.5 w-3.5" />
+                Create test case
+              </button>
             ) : null}
           </div>
         </div>

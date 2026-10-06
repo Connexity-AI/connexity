@@ -23,7 +23,7 @@ export type AgentCreate = {
   /**
    * endpoint: HTTP agent; platform: LLM simulated on the platform
    */
-  mode?: AppModelsEnumsAgentMode;
+  mode?: AgentMode;
   /**
    * Voice/agent platform this agent targets. Drives which evaluation engines are available. Null for legacy rows; use 'webhook' for custom HTTP agents.
    */
@@ -96,12 +96,6 @@ export type AgentCreate = {
   agent_metadata?: {
     [key: string]: unknown;
   } | null;
-  /**
-   * Editor Guidelines
-   *
-   * Custom prompting guidelines for the prompt editor agent (None = use built-in default)
-   */
-  editor_guidelines?: string | null;
 };
 
 /**
@@ -137,7 +131,7 @@ export type AgentCreateDraft = {
  * Partial update for versionable agent fields — used by PUT /agents/{id}/draft.
  */
 export type AgentDraftUpdate = {
-  mode?: AppModelsEnumsAgentMode | null;
+  mode?: AgentMode | null;
   /**
    * Endpoint Url
    */
@@ -164,36 +158,6 @@ export type AgentDraftUpdate = {
    * Agent Temperature
    */
   agent_temperature?: number | null;
-};
-
-/**
- * AgentGuidelinesPublic
- */
-export type AgentGuidelinesPublic = {
-  /**
-   * Guidelines
-   *
-   * Effective guidelines text (custom or default)
-   */
-  guidelines: string;
-  /**
-   * Is Default
-   *
-   * True when using built-in defaults (no custom guidelines stored)
-   */
-  is_default: boolean;
-};
-
-/**
- * AgentGuidelinesUpdate
- */
-export type AgentGuidelinesUpdate = {
-  /**
-   * Guidelines
-   *
-   * Custom guidelines text, or null to reset to built-in default
-   */
-  guidelines?: string | null;
 };
 
 /**
@@ -239,6 +203,16 @@ export type AgentLatestPublishedVersionPublic = {
 };
 
 /**
+ * AgentMode
+ */
+export const AgentMode = { ENDPOINT: 'endpoint', PLATFORM: 'platform' } as const;
+
+/**
+ * AgentMode
+ */
+export type AgentMode = (typeof AgentMode)[keyof typeof AgentMode];
+
+/**
  * AgentPromptType
  */
 export const AgentPromptType = {
@@ -270,7 +244,7 @@ export type AgentPublic = {
   /**
    * endpoint: HTTP agent; platform: LLM simulated on the platform
    */
-  mode?: AppModelsEnumsAgentMode;
+  mode?: AgentMode;
   /**
    * Voice/agent platform this agent targets. Drives which evaluation engines are available. Null for legacy rows; use 'webhook' for custom HTTP agents.
    */
@@ -343,12 +317,6 @@ export type AgentPublic = {
   agent_metadata?: {
     [key: string]: unknown;
   } | null;
-  /**
-   * Editor Guidelines
-   *
-   * Custom prompting guidelines for the prompt editor agent (None = use built-in default)
-   */
-  editor_guidelines?: string | null;
   /**
    * Id
    *
@@ -485,7 +453,7 @@ export type AgentUpdate = {
   /**
    * endpoint: HTTP agent; platform: LLM simulated on the platform
    */
-  mode?: AppModelsEnumsAgentMode | null;
+  mode?: AgentMode | null;
   /**
    * Voice/agent platform this agent targets
    */
@@ -549,12 +517,6 @@ export type AgentUpdate = {
   agent_metadata?: {
     [key: string]: unknown;
   } | null;
-  /**
-   * Editor Guidelines
-   *
-   * Custom prompting guidelines for the prompt editor agent (None = use default)
-   */
-  editor_guidelines?: string | null;
 };
 
 /**
@@ -599,7 +561,7 @@ export type AgentVersionPublic = {
    */
   version: number | null;
   status: AgentVersionStatus;
-  mode: AppModelsEnumsAgentMode;
+  mode: AgentMode;
   /**
    * Endpoint Url
    */
@@ -2991,36 +2953,6 @@ export type PredefinedToolsPublic = {
 };
 
 /**
- * PresetPublic
- *
- * API shape for a preset (excludes internal ``requires`` gates).
- */
-export type PresetPublic = {
-  /**
-   * Id
-   */
-  id: string;
-  /**
-   * Label
-   */
-  label: string;
-  /**
-   * Message
-   */
-  message: string;
-  /**
-   * Description
-   */
-  description?: string | null;
-  /**
-   * Context
-   *
-   * 'none' or 'eval'
-   */
-  context: string;
-};
-
-/**
  * PromptDiff
  */
 export type PromptDiff = {
@@ -3050,249 +2982,6 @@ export type PromptDiff = {
    * Semantic Summary
    */
   semantic_summary?: string | null;
-};
-
-/**
- * PromptEditorChatMessageCreate
- *
- * Body for POST /prompt-editor/sessions/{id}/messages (SSE chat).
- */
-export type PromptEditorChatMessageCreate = {
-  /**
-   * Content
-   *
-   * User message text
-   */
-  content: string;
-  /**
-   * Current Prompt
-   *
-   * Current prompt text as shown in the editor (includes manual edits)
-   */
-  current_prompt: string;
-  /**
-   * Provider
-   *
-   * Optional LLM provider for this turn (e.g. openai, anthropic). Merged with model per LiteLLM rules; omit if model is a full routing id (contains /).
-   */
-  provider?: string | null;
-  /**
-   * Model
-   *
-   * Optional LLM model for this turn (bare id or full vendor/model routing id). When omitted, server defaults apply.
-   */
-  model?: string | null;
-  /**
-   * Test Case Result Ids
-   *
-   * Optional test case result IDs for eval context injection (CS-64)
-   */
-  test_case_result_ids?: Array<string> | null;
-};
-
-/**
- * PromptEditorMessagePublic
- */
-export type PromptEditorMessagePublic = {
-  /**
-   * Message role (user, assistant, …)
-   */
-  role: TurnRole;
-  /**
-   * Content
-   *
-   * Full message text
-   */
-  content: string;
-  /**
-   * Id
-   *
-   * Message id
-   */
-  id: string;
-  /**
-   * Session Id
-   *
-   * Session id
-   */
-  session_id: string;
-  /**
-   * Created At
-   *
-   * Created at
-   */
-  created_at: string;
-};
-
-/**
- * PromptEditorMessagesPublic
- */
-export type PromptEditorMessagesPublic = {
-  /**
-   * Data
-   *
-   * Messages
-   */
-  data: Array<PromptEditorMessagePublic>;
-  /**
-   * Count
-   *
-   * Total messages in the query
-   */
-  count: number;
-};
-
-/**
- * PromptEditorSessionBasePromptUpdate
- *
- * Body for PATCH /prompt-editor/sessions/{id}/base-prompt.
- */
-export type PromptEditorSessionBasePromptUpdate = {
-  /**
-   * Base Prompt
-   *
-   * New diff baseline for this session (e.g. after saving the agent draft). Typically matches the current draft system_prompt.
-   */
-  base_prompt: string;
-};
-
-/**
- * PromptEditorSessionCreate
- */
-export type PromptEditorSessionCreate = {
-  /**
-   * Agent Id
-   *
-   * Agent to attach the session to
-   */
-  agent_id: string;
-  /**
-   * Title
-   *
-   * Optional title; auto-generated if omitted
-   */
-  title?: string | null;
-  /**
-   * Run Id
-   *
-   * Optional run for eval context
-   */
-  run_id?: string | null;
-};
-
-/**
- * PromptEditorSessionPublic
- */
-export type PromptEditorSessionPublic = {
-  /**
-   * Title
-   *
-   * Session title (auto-generated or user-set)
-   */
-  title?: string | null;
-  /**
-   * active or archived
-   */
-  status?: PromptEditorSessionStatus;
-  /**
-   * Id
-   *
-   * Session id
-   */
-  id: string;
-  /**
-   * Agent Id
-   *
-   * Agent id
-   */
-  agent_id: string;
-  /**
-   * Created By
-   *
-   * Owner user id
-   */
-  created_by: string;
-  /**
-   * Run Id
-   *
-   * Linked run id if any
-   */
-  run_id: string | null;
-  /**
-   * Base Prompt
-   *
-   * Original prompt snapshot at session start
-   */
-  base_prompt: string | null;
-  /**
-   * Edited Prompt
-   *
-   * Current prompt state on server
-   */
-  edited_prompt: string | null;
-  /**
-   * Created At
-   *
-   * Created at
-   */
-  created_at: string;
-  /**
-   * Updated At
-   *
-   * Updated at
-   */
-  updated_at: string;
-  /**
-   * Message Count
-   *
-   * Number of messages in the session
-   */
-  message_count: number;
-};
-
-/**
- * PromptEditorSessionStatus
- */
-export const PromptEditorSessionStatus = { ACTIVE: 'active', ARCHIVED: 'archived' } as const;
-
-/**
- * PromptEditorSessionStatus
- */
-export type PromptEditorSessionStatus =
-  (typeof PromptEditorSessionStatus)[keyof typeof PromptEditorSessionStatus];
-
-/**
- * PromptEditorSessionUpdate
- */
-export type PromptEditorSessionUpdate = {
-  /**
-   * Title
-   *
-   * Session title
-   */
-  title?: string | null;
-  /**
-   * active or archived
-   */
-  status?: PromptEditorSessionStatus | null;
-};
-
-/**
- * PromptEditorSessionsPublic
- */
-export type PromptEditorSessionsPublic = {
-  /**
-   * Data
-   *
-   * Sessions
-   */
-  data: Array<PromptEditorSessionPublic>;
-  /**
-   * Count
-   *
-   * Total matching sessions
-   */
-  count: number;
 };
 
 /**
@@ -4080,95 +3769,6 @@ export type SuggestionsRequest = {
    * Candidate Run Id
    */
   candidate_run_id: string;
-};
-
-/**
- * TestCaseAgentRequest
- *
- * Input for the single-turn test-case AI agent.
- */
-export type TestCaseAgentRequest = {
-  mode: AppServicesTestCaseGeneratorInteractiveSchemasAgentMode;
-  /**
-   * User Message
-   */
-  user_message: string;
-  /**
-   * Agent Id
-   */
-  agent_id: string;
-  /**
-   * Agent Version
-   *
-   * Agent version to load prompt/tools from; defaults to agent's current version
-   */
-  agent_version?: number | null;
-  /**
-   * Transcript
-   */
-  transcript?: Array<ConversationTurnInput> | null;
-  /**
-   * Test Case Id
-   *
-   * Required when mode=edit; must belong to agent_id
-   */
-  test_case_id?: string | null;
-  /**
-   * Source Call Id
-   *
-   * Call this test case is generated from; linked onto persisted rows
-   */
-  source_call_id?: string | null;
-  /**
-   * Persist
-   *
-   * Default true for create/from_transcript; default false for edit
-   */
-  persist?: boolean | null;
-  /**
-   * Model
-   */
-  model?: string | null;
-  /**
-   * Provider
-   */
-  provider?: string | null;
-  /**
-   * Temperature
-   */
-  temperature?: number | null;
-};
-
-/**
- * TestCaseAgentResult
- *
- * Output from the test-case AI agent.
- */
-export type TestCaseAgentResult = {
-  mode: AppServicesTestCaseGeneratorInteractiveSchemasAgentMode;
-  /**
-   * Created
-   */
-  created?: Array<TestCasePublic>;
-  edited?: TestCasePublic | null;
-  /**
-   * Model Used
-   */
-  model_used: string;
-  /**
-   * Latency Ms
-   */
-  latency_ms: number;
-  /**
-   * Token Usage
-   */
-  token_usage?: {
-    [key: string]: number;
-  } | null;
-  /**
-   * Cost Usd
-   */
-  cost_usd?: number | null;
 };
 
 /**
@@ -5381,17 +4981,6 @@ export type WebhookToolCallParameter = {
 };
 
 /**
- * AgentMode
- */
-export const AppModelsEnumsAgentMode = { ENDPOINT: 'endpoint', PLATFORM: 'platform' } as const;
-
-/**
- * AgentMode
- */
-export type AppModelsEnumsAgentMode =
-  (typeof AppModelsEnumsAgentMode)[keyof typeof AppModelsEnumsAgentMode];
-
-/**
  * IntegrationProvider
  */
 export const AppModelsEnumsIntegrationProvider1 = {
@@ -5420,21 +5009,6 @@ export const AppModelsEnumsIntegrationProvider2 = {
  */
 export type AppModelsEnumsIntegrationProvider2 =
   (typeof AppModelsEnumsIntegrationProvider2)[keyof typeof AppModelsEnumsIntegrationProvider2];
-
-/**
- * AgentMode
- */
-export const AppServicesTestCaseGeneratorInteractiveSchemasAgentMode = {
-  CREATE: 'create',
-  FROM_TRANSCRIPT: 'from_transcript',
-  EDIT: 'edit',
-} as const;
-
-/**
- * AgentMode
- */
-export type AppServicesTestCaseGeneratorInteractiveSchemasAgentMode =
-  (typeof AppServicesTestCaseGeneratorInteractiveSchemasAgentMode)[keyof typeof AppServicesTestCaseGeneratorInteractiveSchemasAgentMode];
 
 export type HealthHealthData = {
   body?: never;
@@ -7022,118 +6596,6 @@ export type AgentsListAgentRuntimesResponses = {
 export type AgentsListAgentRuntimesResponse =
   AgentsListAgentRuntimesResponses[keyof AgentsListAgentRuntimesResponses];
 
-export type AgentsGetAgentGuidelinesData = {
-  body?: never;
-  path: {
-    /**
-     * Agent Id
-     */
-    agent_id: string;
-  };
-  query?: never;
-  url: '/api/v1/agents/{agent_id}/guidelines';
-};
-
-export type AgentsGetAgentGuidelinesErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type AgentsGetAgentGuidelinesError =
-  AgentsGetAgentGuidelinesErrors[keyof AgentsGetAgentGuidelinesErrors];
-
-export type AgentsGetAgentGuidelinesResponses = {
-  /**
-   * Successful Response
-   */
-  200: AgentGuidelinesPublic;
-};
-
-export type AgentsGetAgentGuidelinesResponse =
-  AgentsGetAgentGuidelinesResponses[keyof AgentsGetAgentGuidelinesResponses];
-
-export type AgentsPutAgentGuidelinesData = {
-  body: AgentGuidelinesUpdate;
-  path: {
-    /**
-     * Agent Id
-     */
-    agent_id: string;
-  };
-  query?: never;
-  url: '/api/v1/agents/{agent_id}/guidelines';
-};
-
-export type AgentsPutAgentGuidelinesErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type AgentsPutAgentGuidelinesError =
-  AgentsPutAgentGuidelinesErrors[keyof AgentsPutAgentGuidelinesErrors];
-
-export type AgentsPutAgentGuidelinesResponses = {
-  /**
-   * Successful Response
-   */
-  200: AgentGuidelinesPublic;
-};
-
-export type AgentsPutAgentGuidelinesResponse =
-  AgentsPutAgentGuidelinesResponses[keyof AgentsPutAgentGuidelinesResponses];
-
 export type AgentsDeleteAgentData = {
   body?: never;
   path: {
@@ -7627,57 +7089,6 @@ export type TestCasesGenerateTestCasesEndpointResponses = {
 
 export type TestCasesGenerateTestCasesEndpointResponse =
   TestCasesGenerateTestCasesEndpointResponses[keyof TestCasesGenerateTestCasesEndpointResponses];
-
-export type TestCasesRunTestCaseAiAgentData = {
-  body: TestCaseAgentRequest;
-  path?: never;
-  query?: never;
-  url: '/api/v1/test-cases/ai';
-};
-
-export type TestCasesRunTestCaseAiAgentErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type TestCasesRunTestCaseAiAgentError =
-  TestCasesRunTestCaseAiAgentErrors[keyof TestCasesRunTestCaseAiAgentErrors];
-
-export type TestCasesRunTestCaseAiAgentResponses = {
-  /**
-   * Successful Response
-   */
-  200: TestCaseAgentResult;
-};
-
-export type TestCasesRunTestCaseAiAgentResponse =
-  TestCasesRunTestCaseAiAgentResponses[keyof TestCasesRunTestCaseAiAgentResponses];
 
 export type TestCasesDeleteTestCaseData = {
   body?: never;
@@ -9722,522 +9133,6 @@ export type TestCaseResultsUpdateTestCaseResultResponses = {
 
 export type TestCaseResultsUpdateTestCaseResultResponse =
   TestCaseResultsUpdateTestCaseResultResponses[keyof TestCaseResultsUpdateTestCaseResultResponses];
-
-export type PromptEditorListSessionsData = {
-  body?: never;
-  path?: never;
-  query?: {
-    /**
-     * Agent Id
-     */
-    agent_id?: string | null;
-    /**
-     * Skip
-     */
-    skip?: number;
-    /**
-     * Limit
-     */
-    limit?: number;
-  };
-  url: '/api/v1/prompt-editor/sessions/';
-};
-
-export type PromptEditorListSessionsErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type PromptEditorListSessionsError =
-  PromptEditorListSessionsErrors[keyof PromptEditorListSessionsErrors];
-
-export type PromptEditorListSessionsResponses = {
-  /**
-   * Successful Response
-   */
-  200: PromptEditorSessionsPublic;
-};
-
-export type PromptEditorListSessionsResponse =
-  PromptEditorListSessionsResponses[keyof PromptEditorListSessionsResponses];
-
-export type PromptEditorCreateSessionData = {
-  body: PromptEditorSessionCreate;
-  path?: never;
-  query?: never;
-  url: '/api/v1/prompt-editor/sessions/';
-};
-
-export type PromptEditorCreateSessionErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type PromptEditorCreateSessionError =
-  PromptEditorCreateSessionErrors[keyof PromptEditorCreateSessionErrors];
-
-export type PromptEditorCreateSessionResponses = {
-  /**
-   * Successful Response
-   */
-  200: PromptEditorSessionPublic;
-};
-
-export type PromptEditorCreateSessionResponse =
-  PromptEditorCreateSessionResponses[keyof PromptEditorCreateSessionResponses];
-
-export type PromptEditorDeleteSessionData = {
-  body?: never;
-  path: {
-    /**
-     * Session Id
-     */
-    session_id: string;
-  };
-  query?: never;
-  url: '/api/v1/prompt-editor/sessions/{session_id}';
-};
-
-export type PromptEditorDeleteSessionErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type PromptEditorDeleteSessionError =
-  PromptEditorDeleteSessionErrors[keyof PromptEditorDeleteSessionErrors];
-
-export type PromptEditorDeleteSessionResponses = {
-  /**
-   * Successful Response
-   */
-  200: Message;
-};
-
-export type PromptEditorDeleteSessionResponse =
-  PromptEditorDeleteSessionResponses[keyof PromptEditorDeleteSessionResponses];
-
-export type PromptEditorGetSessionData = {
-  body?: never;
-  path: {
-    /**
-     * Session Id
-     */
-    session_id: string;
-  };
-  query?: never;
-  url: '/api/v1/prompt-editor/sessions/{session_id}';
-};
-
-export type PromptEditorGetSessionErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type PromptEditorGetSessionError =
-  PromptEditorGetSessionErrors[keyof PromptEditorGetSessionErrors];
-
-export type PromptEditorGetSessionResponses = {
-  /**
-   * Successful Response
-   */
-  200: PromptEditorSessionPublic;
-};
-
-export type PromptEditorGetSessionResponse =
-  PromptEditorGetSessionResponses[keyof PromptEditorGetSessionResponses];
-
-export type PromptEditorUpdateSessionData = {
-  body: PromptEditorSessionUpdate;
-  path: {
-    /**
-     * Session Id
-     */
-    session_id: string;
-  };
-  query?: never;
-  url: '/api/v1/prompt-editor/sessions/{session_id}';
-};
-
-export type PromptEditorUpdateSessionErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type PromptEditorUpdateSessionError =
-  PromptEditorUpdateSessionErrors[keyof PromptEditorUpdateSessionErrors];
-
-export type PromptEditorUpdateSessionResponses = {
-  /**
-   * Successful Response
-   */
-  200: PromptEditorSessionPublic;
-};
-
-export type PromptEditorUpdateSessionResponse =
-  PromptEditorUpdateSessionResponses[keyof PromptEditorUpdateSessionResponses];
-
-export type PromptEditorUpdateSessionBasePromptData = {
-  body: PromptEditorSessionBasePromptUpdate;
-  path: {
-    /**
-     * Session Id
-     */
-    session_id: string;
-  };
-  query?: never;
-  url: '/api/v1/prompt-editor/sessions/{session_id}/base-prompt';
-};
-
-export type PromptEditorUpdateSessionBasePromptErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type PromptEditorUpdateSessionBasePromptError =
-  PromptEditorUpdateSessionBasePromptErrors[keyof PromptEditorUpdateSessionBasePromptErrors];
-
-export type PromptEditorUpdateSessionBasePromptResponses = {
-  /**
-   * Successful Response
-   */
-  200: PromptEditorSessionPublic;
-};
-
-export type PromptEditorUpdateSessionBasePromptResponse =
-  PromptEditorUpdateSessionBasePromptResponses[keyof PromptEditorUpdateSessionBasePromptResponses];
-
-export type PromptEditorListMessagesData = {
-  body?: never;
-  path: {
-    /**
-     * Session Id
-     */
-    session_id: string;
-  };
-  query?: {
-    /**
-     * Skip
-     */
-    skip?: number;
-    /**
-     * Limit
-     */
-    limit?: number;
-  };
-  url: '/api/v1/prompt-editor/sessions/{session_id}/messages';
-};
-
-export type PromptEditorListMessagesErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type PromptEditorListMessagesError =
-  PromptEditorListMessagesErrors[keyof PromptEditorListMessagesErrors];
-
-export type PromptEditorListMessagesResponses = {
-  /**
-   * Successful Response
-   */
-  200: PromptEditorMessagesPublic;
-};
-
-export type PromptEditorListMessagesResponse =
-  PromptEditorListMessagesResponses[keyof PromptEditorListMessagesResponses];
-
-export type PromptEditorChatData = {
-  body: PromptEditorChatMessageCreate;
-  path: {
-    /**
-     * Session Id
-     */
-    session_id: string;
-  };
-  query?: never;
-  url: '/api/v1/prompt-editor/sessions/{session_id}/messages';
-};
-
-export type PromptEditorChatErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type PromptEditorChatError = PromptEditorChatErrors[keyof PromptEditorChatErrors];
-
-export type PromptEditorChatResponses = {
-  /**
-   * Successful Response
-   */
-  200: unknown;
-};
-
-export type PromptEditorGetPresetsData = {
-  body?: never;
-  path?: never;
-  query: {
-    /**
-     * Agent Id
-     *
-     * Agent ID for contextual filtering
-     */
-    agent_id: string;
-  };
-  url: '/api/v1/prompt-editor/presets';
-};
-
-export type PromptEditorGetPresetsErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type PromptEditorGetPresetsError =
-  PromptEditorGetPresetsErrors[keyof PromptEditorGetPresetsErrors];
-
-export type PromptEditorGetPresetsResponses = {
-  /**
-   * Response Prompt-Editor-Get Presets
-   *
-   * Successful Response
-   */
-  200: Array<PresetPublic>;
-};
-
-export type PromptEditorGetPresetsResponse =
-  PromptEditorGetPresetsResponses[keyof PromptEditorGetPresetsResponses];
 
 export type ConfigGetConfigData = {
   body?: never;

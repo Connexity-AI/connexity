@@ -21,7 +21,7 @@ export const AgentCreateSchema = {
       description: 'What this agent does and its purpose',
     },
     mode: {
-      $ref: '#/components/schemas/app__models__enums__AgentMode',
+      $ref: '#/components/schemas/AgentMode',
       description: 'endpoint: HTTP agent; platform: LLM simulated on the platform',
       default: 'endpoint',
     },
@@ -171,19 +171,6 @@ export const AgentCreateSchema = {
       title: 'Agent Metadata',
       description: 'Arbitrary key-value metadata about the agent',
     },
-    editor_guidelines: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Editor Guidelines',
-      description:
-        'Custom prompting guidelines for the prompt editor agent (None = use built-in default)',
-    },
   },
   type: 'object',
   required: ['name'],
@@ -259,7 +246,7 @@ export const AgentDraftUpdateSchema = {
     mode: {
       anyOf: [
         {
-          $ref: '#/components/schemas/app__models__enums__AgentMode',
+          $ref: '#/components/schemas/AgentMode',
         },
         {
           type: 'null',
@@ -341,43 +328,6 @@ export const AgentDraftUpdateSchema = {
   description: 'Partial update for versionable agent fields — used by PUT /agents/{id}/draft.',
 } as const;
 
-export const AgentGuidelinesPublicSchema = {
-  properties: {
-    guidelines: {
-      type: 'string',
-      title: 'Guidelines',
-      description: 'Effective guidelines text (custom or default)',
-    },
-    is_default: {
-      type: 'boolean',
-      title: 'Is Default',
-      description: 'True when using built-in defaults (no custom guidelines stored)',
-    },
-  },
-  type: 'object',
-  required: ['guidelines', 'is_default'],
-  title: 'AgentGuidelinesPublic',
-} as const;
-
-export const AgentGuidelinesUpdateSchema = {
-  properties: {
-    guidelines: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Guidelines',
-      description: 'Custom guidelines text, or null to reset to built-in default',
-    },
-  },
-  type: 'object',
-  title: 'AgentGuidelinesUpdate',
-} as const;
-
 export const AgentLastEvalSummarySchema = {
   properties: {
     run_id: {
@@ -444,6 +394,12 @@ export const AgentLatestPublishedVersionPublicSchema = {
   title: 'AgentLatestPublishedVersionPublic',
 } as const;
 
+export const AgentModeSchema = {
+  type: 'string',
+  enum: ['endpoint', 'platform'],
+  title: 'AgentMode',
+} as const;
+
 export const AgentPromptTypeSchema = {
   type: 'string',
   enum: ['single_prompt', 'multi_prompt'],
@@ -471,7 +427,7 @@ export const AgentPublicSchema = {
       description: 'What this agent does and its purpose',
     },
     mode: {
-      $ref: '#/components/schemas/app__models__enums__AgentMode',
+      $ref: '#/components/schemas/AgentMode',
       description: 'endpoint: HTTP agent; platform: LLM simulated on the platform',
       default: 'endpoint',
     },
@@ -620,19 +576,6 @@ export const AgentPublicSchema = {
       ],
       title: 'Agent Metadata',
       description: 'Arbitrary key-value metadata about the agent',
-    },
-    editor_guidelines: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Editor Guidelines',
-      description:
-        'Custom prompting guidelines for the prompt editor agent (None = use built-in default)',
     },
     id: {
       type: 'string',
@@ -846,7 +789,7 @@ export const AgentUpdateSchema = {
     mode: {
       anyOf: [
         {
-          $ref: '#/components/schemas/app__models__enums__AgentMode',
+          $ref: '#/components/schemas/AgentMode',
         },
         {
           type: 'null',
@@ -1001,18 +944,6 @@ export const AgentUpdateSchema = {
       title: 'Agent Metadata',
       description: 'Arbitrary key-value metadata about the agent',
     },
-    editor_guidelines: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Editor Guidelines',
-      description: 'Custom prompting guidelines for the prompt editor agent (None = use default)',
-    },
   },
   type: 'object',
   title: 'AgentUpdate',
@@ -1117,7 +1048,7 @@ export const AgentVersionPublicSchema = {
       $ref: '#/components/schemas/AgentVersionStatus',
     },
     mode: {
-      $ref: '#/components/schemas/app__models__enums__AgentMode',
+      $ref: '#/components/schemas/AgentMode',
     },
     endpoint_url: {
       anyOf: [
@@ -4821,43 +4752,6 @@ export const PredefinedToolsPublicSchema = {
   description: 'Predefined tool entries; each element matches one item in ``Agent.tools`` JSONB.',
 } as const;
 
-export const PresetPublicSchema = {
-  properties: {
-    id: {
-      type: 'string',
-      title: 'Id',
-    },
-    label: {
-      type: 'string',
-      title: 'Label',
-    },
-    message: {
-      type: 'string',
-      title: 'Message',
-    },
-    description: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Description',
-    },
-    context: {
-      type: 'string',
-      title: 'Context',
-      description: "'none' or 'eval'",
-    },
-  },
-  type: 'object',
-  required: ['id', 'label', 'message', 'context'],
-  title: 'PresetPublic',
-  description: 'API shape for a preset (excludes internal ``requires`` gates).',
-} as const;
-
 export const PromptDiffSchema = {
   properties: {
     changed: {
@@ -4905,344 +4799,6 @@ export const PromptDiffSchema = {
   type: 'object',
   required: ['changed', 'change_ratio'],
   title: 'PromptDiff',
-} as const;
-
-export const PromptEditorChatMessageCreateSchema = {
-  properties: {
-    content: {
-      type: 'string',
-      title: 'Content',
-      description: 'User message text',
-    },
-    current_prompt: {
-      type: 'string',
-      title: 'Current Prompt',
-      description: 'Current prompt text as shown in the editor (includes manual edits)',
-    },
-    provider: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Provider',
-      description:
-        'Optional LLM provider for this turn (e.g. openai, anthropic). Merged with model per LiteLLM rules; omit if model is a full routing id (contains /).',
-    },
-    model: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Model',
-      description:
-        'Optional LLM model for this turn (bare id or full vendor/model routing id). When omitted, server defaults apply.',
-    },
-    test_case_result_ids: {
-      anyOf: [
-        {
-          items: {
-            type: 'string',
-            format: 'uuid',
-          },
-          type: 'array',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Test Case Result Ids',
-      description: 'Optional test case result IDs for eval context injection (CS-64)',
-    },
-  },
-  type: 'object',
-  required: ['content', 'current_prompt'],
-  title: 'PromptEditorChatMessageCreate',
-  description: 'Body for POST /prompt-editor/sessions/{id}/messages (SSE chat).',
-} as const;
-
-export const PromptEditorMessagePublicSchema = {
-  properties: {
-    role: {
-      $ref: '#/components/schemas/TurnRole',
-      description: 'Message role (user, assistant, …)',
-    },
-    content: {
-      type: 'string',
-      title: 'Content',
-      description: 'Full message text',
-    },
-    id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Id',
-      description: 'Message id',
-    },
-    session_id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Session Id',
-      description: 'Session id',
-    },
-    created_at: {
-      type: 'string',
-      format: 'date-time',
-      title: 'Created At',
-      description: 'Created at',
-    },
-  },
-  type: 'object',
-  required: ['role', 'content', 'id', 'session_id', 'created_at'],
-  title: 'PromptEditorMessagePublic',
-} as const;
-
-export const PromptEditorMessagesPublicSchema = {
-  properties: {
-    data: {
-      items: {
-        $ref: '#/components/schemas/PromptEditorMessagePublic',
-      },
-      type: 'array',
-      title: 'Data',
-      description: 'Messages',
-    },
-    count: {
-      type: 'integer',
-      title: 'Count',
-      description: 'Total messages in the query',
-    },
-  },
-  type: 'object',
-  required: ['data', 'count'],
-  title: 'PromptEditorMessagesPublic',
-} as const;
-
-export const PromptEditorSessionBasePromptUpdateSchema = {
-  properties: {
-    base_prompt: {
-      type: 'string',
-      title: 'Base Prompt',
-      description:
-        'New diff baseline for this session (e.g. after saving the agent draft). Typically matches the current draft system_prompt.',
-    },
-  },
-  type: 'object',
-  required: ['base_prompt'],
-  title: 'PromptEditorSessionBasePromptUpdate',
-  description: 'Body for PATCH /prompt-editor/sessions/{id}/base-prompt.',
-} as const;
-
-export const PromptEditorSessionCreateSchema = {
-  properties: {
-    agent_id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Agent Id',
-      description: 'Agent to attach the session to',
-    },
-    title: {
-      anyOf: [
-        {
-          type: 'string',
-          maxLength: 255,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Title',
-      description: 'Optional title; auto-generated if omitted',
-    },
-    run_id: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'uuid',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Run Id',
-      description: 'Optional run for eval context',
-    },
-  },
-  type: 'object',
-  required: ['agent_id'],
-  title: 'PromptEditorSessionCreate',
-} as const;
-
-export const PromptEditorSessionPublicSchema = {
-  properties: {
-    title: {
-      anyOf: [
-        {
-          type: 'string',
-          maxLength: 255,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Title',
-      description: 'Session title (auto-generated or user-set)',
-    },
-    status: {
-      $ref: '#/components/schemas/PromptEditorSessionStatus',
-      description: 'active or archived',
-      default: 'active',
-    },
-    id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Id',
-      description: 'Session id',
-    },
-    agent_id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Agent Id',
-      description: 'Agent id',
-    },
-    created_by: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Created By',
-      description: 'Owner user id',
-    },
-    run_id: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'uuid',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Run Id',
-      description: 'Linked run id if any',
-    },
-    base_prompt: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Base Prompt',
-      description: 'Original prompt snapshot at session start',
-    },
-    edited_prompt: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Edited Prompt',
-      description: 'Current prompt state on server',
-    },
-    created_at: {
-      type: 'string',
-      format: 'date-time',
-      title: 'Created At',
-      description: 'Created at',
-    },
-    updated_at: {
-      type: 'string',
-      format: 'date-time',
-      title: 'Updated At',
-      description: 'Updated at',
-    },
-    message_count: {
-      type: 'integer',
-      title: 'Message Count',
-      description: 'Number of messages in the session',
-    },
-  },
-  type: 'object',
-  required: [
-    'id',
-    'agent_id',
-    'created_by',
-    'run_id',
-    'base_prompt',
-    'edited_prompt',
-    'created_at',
-    'updated_at',
-    'message_count',
-  ],
-  title: 'PromptEditorSessionPublic',
-} as const;
-
-export const PromptEditorSessionStatusSchema = {
-  type: 'string',
-  enum: ['active', 'archived'],
-  title: 'PromptEditorSessionStatus',
-} as const;
-
-export const PromptEditorSessionUpdateSchema = {
-  properties: {
-    title: {
-      anyOf: [
-        {
-          type: 'string',
-          maxLength: 255,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Title',
-      description: 'Session title',
-    },
-    status: {
-      anyOf: [
-        {
-          $ref: '#/components/schemas/PromptEditorSessionStatus',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      description: 'active or archived',
-    },
-  },
-  type: 'object',
-  title: 'PromptEditorSessionUpdate',
-} as const;
-
-export const PromptEditorSessionsPublicSchema = {
-  properties: {
-    data: {
-      items: {
-        $ref: '#/components/schemas/PromptEditorSessionPublic',
-      },
-      type: 'array',
-      title: 'Data',
-      description: 'Sessions',
-    },
-    count: {
-      type: 'integer',
-      title: 'Count',
-      description: 'Total matching sessions',
-    },
-  },
-  type: 'object',
-  required: ['data', 'count'],
-  title: 'PromptEditorSessionsPublic',
 } as const;
 
 export const PublishRequestSchema = {
@@ -6545,190 +6101,6 @@ export const SuggestionsRequestSchema = {
   type: 'object',
   required: ['baseline_run_id', 'candidate_run_id'],
   title: 'SuggestionsRequest',
-} as const;
-
-export const TestCaseAgentRequestSchema = {
-  properties: {
-    mode: {
-      $ref: '#/components/schemas/app__services__test_case_generator__interactive__schemas__AgentMode',
-    },
-    user_message: {
-      type: 'string',
-      minLength: 1,
-      title: 'User Message',
-    },
-    agent_id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Agent Id',
-    },
-    agent_version: {
-      anyOf: [
-        {
-          type: 'integer',
-          minimum: 1,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Agent Version',
-      description: "Agent version to load prompt/tools from; defaults to agent's current version",
-    },
-    transcript: {
-      anyOf: [
-        {
-          items: {
-            $ref: '#/components/schemas/ConversationTurn-Input',
-          },
-          type: 'array',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Transcript',
-    },
-    test_case_id: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'uuid',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Test Case Id',
-      description: 'Required when mode=edit; must belong to agent_id',
-    },
-    source_call_id: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'uuid',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Source Call Id',
-      description: 'Call this test case is generated from; linked onto persisted rows',
-    },
-    persist: {
-      anyOf: [
-        {
-          type: 'boolean',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Persist',
-      description: 'Default true for create/from_transcript; default false for edit',
-    },
-    model: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Model',
-    },
-    provider: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Provider',
-    },
-    temperature: {
-      anyOf: [
-        {
-          type: 'number',
-          maximum: 2,
-          minimum: 0,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Temperature',
-    },
-  },
-  type: 'object',
-  required: ['mode', 'user_message', 'agent_id'],
-  title: 'TestCaseAgentRequest',
-  description: 'Input for the single-turn test-case AI agent.',
-} as const;
-
-export const TestCaseAgentResultSchema = {
-  properties: {
-    mode: {
-      $ref: '#/components/schemas/app__services__test_case_generator__interactive__schemas__AgentMode',
-    },
-    created: {
-      items: {
-        $ref: '#/components/schemas/TestCasePublic',
-      },
-      type: 'array',
-      title: 'Created',
-    },
-    edited: {
-      anyOf: [
-        {
-          $ref: '#/components/schemas/TestCasePublic',
-        },
-        {
-          type: 'null',
-        },
-      ],
-    },
-    model_used: {
-      type: 'string',
-      title: 'Model Used',
-    },
-    latency_ms: {
-      type: 'integer',
-      title: 'Latency Ms',
-    },
-    token_usage: {
-      anyOf: [
-        {
-          additionalProperties: {
-            type: 'integer',
-          },
-          type: 'object',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Token Usage',
-    },
-    cost_usd: {
-      anyOf: [
-        {
-          type: 'number',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Cost Usd',
-    },
-  },
-  type: 'object',
-  required: ['mode', 'model_used', 'latency_ms'],
-  title: 'TestCaseAgentResult',
-  description: 'Output from the test-case AI agent.',
 } as const;
 
 export const TestCaseComparisonSchema = {
@@ -8869,12 +8241,6 @@ export const WebhookToolCallParameterSchema = {
   title: 'WebhookToolCallParameter',
 } as const;
 
-export const app__models__enums__AgentModeSchema = {
-  type: 'string',
-  enum: ['endpoint', 'platform'],
-  title: 'AgentMode',
-} as const;
-
 export const app__models__enums__IntegrationProvider__1Schema = {
   type: 'string',
   enum: ['retell', 'vapi', 'elevenlabs'],
@@ -8886,10 +8252,4 @@ export const app__models__enums__IntegrationProvider__2Schema = {
   type: 'string',
   enum: ['retell', 'vapi', 'elevenlabs'],
   title: 'IntegrationProvider',
-} as const;
-
-export const app__services__test_case_generator__interactive__schemas__AgentModeSchema = {
-  type: 'string',
-  enum: ['create', 'from_transcript', 'edit'],
-  title: 'AgentMode',
 } as const;

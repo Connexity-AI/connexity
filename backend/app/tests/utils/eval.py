@@ -10,17 +10,12 @@ from app.models import (
     EvalConfig,
     EvalConfigCreate,
     EvalConfigMemberEntry,
-    PromptEditorMessage,
-    PromptEditorMessageCreate,
-    PromptEditorSession,
-    PromptEditorSessionCreate,
     Run,
     RunCreate,
     TestCase,
     TestCaseCreate,
     TestCaseResult,
     TestCaseResultCreate,
-    TurnRole,
     User,
 )
 from app.models.company import Company
@@ -192,47 +187,4 @@ def create_test_case_result_fixture(
     )
     return crud.create_test_case_result(
         session=session, result_in=result_in, company_id=cid
-    )
-
-
-def create_test_prompt_editor_session(
-    session: Session,
-    *,
-    agent_id: uuid.UUID,
-    created_by: uuid.UUID,
-    company_id: uuid.UUID | None = None,
-    **overrides: object,
-) -> PromptEditorSession:
-    cid = _resolve_company_id(session, company_id)
-    defaults: dict[str, object] = {
-        "agent_id": agent_id,
-        "title": f"test-session-{uuid.uuid4().hex[:8]}",
-    }
-    defaults.update(overrides)
-    return crud.create_prompt_editor_session(
-        session=session,
-        session_in=PromptEditorSessionCreate(**defaults),  # type: ignore[arg-type]
-        company_id=cid,
-        created_by=created_by,
-    )
-
-
-def create_test_prompt_editor_message(
-    session: Session,
-    session_id: uuid.UUID,
-    *,
-    company_id: uuid.UUID | None = None,
-    **overrides: object,
-) -> PromptEditorMessage:
-    cid = _resolve_company_id(session, company_id)
-    defaults: dict[str, object] = {
-        "session_id": session_id,
-        "role": TurnRole.USER,
-        "content": "hello",
-    }
-    defaults.update(overrides)
-    return crud.create_prompt_editor_message(
-        session=session,
-        message_in=PromptEditorMessageCreate(**defaults),  # type: ignore[arg-type]
-        company_id=cid,
     )

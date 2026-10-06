@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 
-import { AddTestCaseAiDrawer } from '@/app/(app)/(agent)/_components/evals/test-cases/add-test-case-ai-drawer';
 import { AddTestCaseManualDrawer } from '@/app/(app)/(agent)/_components/evals/test-cases/add-test-case-manual-drawer';
 import { DeleteTestCasesDialog } from '@/app/(app)/(agent)/_components/evals/test-cases/delete-test-cases-dialog';
 import { TestCaseDetailDrawer } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-detail-drawer';
@@ -33,7 +32,6 @@ export function TestCasesTable({ agentId, testCases }: TestCasesTableProps) {
   const drawer = useTestCaseDrawer();
   const grouping = useTestCasesGrouping(filtered);
   const [manualAddOpen, setManualAddOpen] = useState(false);
-  const [aiAddOpen, setAiAddOpen] = useState(false);
 
   const deletion = useTestCasesDeletion({
     agentId,
@@ -61,10 +59,7 @@ export function TestCasesTable({ agentId, testCases }: TestCasesTableProps) {
             onClearSelection={selection.clear}
           />
           <TestCasesToolbar.Actions>
-            <TestCasesToolbar.AddTestCaseDropdown
-              onAddManually={() => setManualAddOpen(true)}
-              onAddWithAi={() => setAiAddOpen(true)}
-            />
+            <TestCasesToolbar.AddTestCaseButton onClick={() => setManualAddOpen(true)} />
             <TestCasesToolbar.CreateEvalButton
               agentId={agentId}
               selectedIds={Array.from(selection.selectedIds)}
@@ -124,8 +119,6 @@ export function TestCasesTable({ agentId, testCases }: TestCasesTableProps) {
         open={manualAddOpen}
         onOpenChange={setManualAddOpen}
       />
-
-      <AddTestCaseAiDrawer agentId={agentId} open={aiAddOpen} onOpenChange={setAiAddOpen} />
     </>
   );
 }

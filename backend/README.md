@@ -123,7 +123,7 @@ When the tests are run, a file `htmlcov/index.html` is generated, you can open i
 
 ## CLI (`connexity-cli`)
 
-The `cli/` package ships a Click-based CLI installed as `connexity-cli` (entry point in `pyproject.toml`). It is a thin, namespaced wrapper over the REST API and covers every backend route — auth, agents, eval configs, test cases, runs, custom metrics, prompt editor, integrations, environments, calls, config, health.
+The `cli/` package ships a Click-based CLI installed as `connexity-cli` (entry point in `pyproject.toml`). It is a thin, namespaced wrapper over the REST API and covers every backend route — auth, agents, eval configs, test cases, runs, custom metrics, integrations, environments, calls, config, health.
 
 ### Configuration
 
@@ -156,9 +156,6 @@ connexity-cli compare --candidate <run-id> --against-baseline   # exit 1 on regr
 
 # Stream agent execution events
 connexity-cli runs stream <run-id>
-
-# AI-assisted prompt editing (streaming SSE → stderr, final → stdout)
-connexity-cli prompt-editor chat <session-id> --message "tighten the refusal prose"
 
 # Pure JSON mode for piping to jq
 connexity-cli --output json agents list | jq '.data[].name'

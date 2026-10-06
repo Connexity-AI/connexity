@@ -48,7 +48,7 @@ goes in the session log (section 9).
 
 | Slice | What | Status |
 |---|---|---|
-| 0.1 | Land `remove-ai-assistant` | Not started (119 files uncommitted on the branch) |
+| 0.1 | Land `remove-ai-assistant` | PR open, awaiting merge |
 | 0.2 | Demolition | Not started |
 | 0.3 | Fresh migration baseline | Not started |
 | 0.4 | Harness: `make check`, hooks, stale docs | Not started |
@@ -66,7 +66,7 @@ goes in the session log (section 9).
 | 2.4 | Inbox v0 | Not started |
 | M1 | Milestone 1 exit review | Not started |
 
-**Next slice:** 0.1.
+**Next slice:** 0.2, once the 0.1 PR is merged.
 
 ---
 
@@ -150,13 +150,25 @@ that makes later sessions fast and safe.
 
 - There are 64 Alembic revisions describing a schema that is about to change shape.
   Since no 1.x data is owed, squash to one baseline after demolition.
+- `alembic check` currently reports a large pre-existing drift between the models and
+  the migrated schema (enum column types, foreign key names, indexes, a `user.oauth_id`
+  column the models no longer have). The baseline must end with `alembic check` clean.
 - **Done when:** `alembic upgrade head` on an empty database produces the current
-  models, and the test database bootstraps from the single baseline.
+  models, `alembic check` reports no drift, and the test database bootstraps from the
+  single baseline.
 
 ### 0.4 Harness
 
 - Add `make check` that runs every gate in one command (ruff, format check, pyright,
   pytest, frontend lint, type check, client-is-fresh check).
+- Fix the frontend type check in CI. `pnpm turbo check-types` runs zero tasks because
+  no package defines a `check-types` script (the app's script is `typecheck`), so CI
+  has never type-checked the frontend. Found in slice 0.1; `tsc --noEmit` passes today.
+- Add the MCP server tests to CI. They pass locally (`uv run --extra dev pytest` in
+  `mcp_server/`) but no workflow runs them.
+- Make local test runs work out of the box. The root `.env` here points
+  `DATABASE_URL` at a hosted database, and the local Postgres container rejects the
+  password in `.env`, so slice 0.1 ran tests in a throwaway container.
 - Add Claude Code hooks in `.claude/settings.json` (note: this file is gitignored
   today; decide whether to track it): block edits under
   `frontend/apps/web/src/client/`, and run the client generator reminder after route
@@ -416,3 +428,19 @@ next. Keep each entry under ten lines.
 - Q1 and Q2 answered the same day (see decision log). Vision §9 reworded to "the
   agent's own engine"; the first build reframed as case study 1 of several.
 - Next: slice 0.1.
+
+### 2026-10-06: slice 0.1
+
+- Branch `remove-ai-assistant` brought up to date with `main` and checked.
+- Results: ruff and format clean; pyright 0 errors; backend tests 793 passed; CLI tests
+  36 passed; MCP server tests 10 passed; frontend lint clean; `tsc --noEmit` clean;
+  generated client already fresh.
+- Migration `rm_ai_assistant_001`: applies from an empty database, downgrades and
+  re-upgrades cleanly, and leaves no prompt-editor drift.
+- Review found one bug, fixed with a test: the superuser seed crashed prestart when
+  `FIRST_SUPERUSER_PASSWORD` was outside 6 to 40 characters.
+- Learned: the CI frontend type check is a no-op; the schema has pre-existing drift;
+  local test runs need a `DATABASE_URL` override. All three are recorded under 0.3 and
+  0.4.
+- Not done: no `next build` and no manual click-through of the UI.
+- Next: merge the PR, then slice 0.2 (needs Q3 answered).

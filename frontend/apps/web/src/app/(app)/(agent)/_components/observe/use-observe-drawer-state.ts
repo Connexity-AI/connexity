@@ -24,7 +24,6 @@ interface UseObserveDrawerStateResult {
   onCloseDrawer: () => void;
   onCloseRightPanel: () => void;
   onCreateTestCaseManual: () => void;
-  onCreateTestCaseAi: () => void;
   deletion: ReturnType<typeof useTestCasesDeletion>;
 }
 
@@ -109,11 +108,6 @@ export function useObserveDrawerState({
     setSelectedTestCaseId(null);
   }, []);
 
-  const onCreateTestCaseAi = useCallback(() => {
-    setRightPanelMode('ai-prompt');
-    setSelectedTestCaseId(null);
-  }, []);
-
   return {
     selectedCall,
     selectedTestCase,
@@ -124,7 +118,6 @@ export function useObserveDrawerState({
     onCloseDrawer,
     onCloseRightPanel,
     onCreateTestCaseManual,
-    onCreateTestCaseAi,
     deletion,
   };
 }

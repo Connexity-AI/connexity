@@ -1,7 +1,7 @@
 'use client';
 'use no memo';
 
-import { Loader2, Sparkles, X } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/ui/button';
 import { Form } from '@workspace/ui/components/ui/form';
@@ -18,14 +18,12 @@ interface ObserveManualTestCasePanelProps {
   agentId: string;
   call?: CallPublic | null;
   onClose: () => void;
-  onOpenAiAssistant?: () => void;
 }
 
 export function ObserveManualTestCasePanel({
   agentId,
   call,
   onClose,
-  onOpenAiAssistant,
 }: ObserveManualTestCasePanelProps) {
   const { form, availableTools, handleSubmit, name, status, isPending, error, onOpenChange } =
     useManualTestCaseForm({
@@ -46,17 +44,6 @@ export function ObserveManualTestCasePanel({
           <StatusBadge status={status} />
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {onOpenAiAssistant ? (
-            <button
-              type="button"
-              onClick={onOpenAiAssistant}
-              title="AI Assistant"
-              className="flex h-7 items-center gap-1.5 rounded-md border border-violet-500/25 bg-violet-500/10 px-2 text-[11px] text-violet-300 transition-colors hover:bg-violet-500/20"
-            >
-              <Sparkles className="h-3 w-3" />
-              AI Assistant
-            </button>
-          ) : null}
           <button
             type="button"
             onClick={() => onOpenChange(false)}

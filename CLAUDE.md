@@ -69,7 +69,7 @@ make db-migrate MSG="description"   # new Alembic revision
 | What changed | Run |
 |---|---|
 | Python in `backend/` | `ruff check` + `ruff format --check` + `pyright` + `pytest` (see `backend/CLAUDE.md`) |
-| Code in `frontend/` | `pnpm lint` + `pnpm turbo check-types` |
+| Code in `frontend/` | `pnpm lint` + `pnpm typecheck` in `frontend/apps/web` (see `frontend/CLAUDE.md`) |
 | Backend routes or models | All backend checks + `bash scripts/generate-client.sh` |
 | Both | All of the above |
 

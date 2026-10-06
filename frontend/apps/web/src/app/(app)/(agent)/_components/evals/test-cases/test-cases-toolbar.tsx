@@ -1,17 +1,11 @@
 'use client';
 
-import { FlaskConical, PenLine, Plus, Sparkles, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
-import { Button } from '@workspace/ui/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@workspace/ui/components/ui/dropdown-menu';
-
 import { UrlGenerator } from '@/common/url-generator/url-generator';
+import { FlaskConical, Plus, Trash2 } from 'lucide-react';
+
+import { Button } from '@workspace/ui/components/ui/button';
 
 import type { ReactNode } from 'react';
 
@@ -93,41 +87,22 @@ function SelectionActions({
   );
 }
 
-interface AddTestCaseDropdownProps {
-  onAddManually: () => void;
-  onAddWithAi: () => void;
+interface AddTestCaseButtonProps {
+  onClick: () => void;
 }
 
-function AddTestCaseDropdown({ onAddManually, onAddWithAi }: AddTestCaseDropdownProps) {
+function AddTestCaseButton({ onClick }: AddTestCaseButtonProps) {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button type="button" size="sm" variant="outline" className="h-7 gap-1.5 text-xs">
-          <Plus className="h-3 w-3" />
-          Add test case
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuItem onSelect={onAddManually} className="gap-2">
-          <PenLine className="h-3.5 w-3.5" />
-          <div className="flex min-w-0 flex-col">
-            <span className="text-sm">Manually</span>
-            <span className="text-[11px] text-muted-foreground">
-              Create a test case from scratch
-            </span>
-          </div>
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onAddWithAi} className="gap-2">
-          <Sparkles className="h-3.5 w-3.5 text-violet-400" />
-          <div className="flex min-w-0 flex-col">
-            <span className="text-sm text-violet-300">With AI</span>
-            <span className="text-[11px] text-muted-foreground">
-              Describe what to cover, AI builds it
-            </span>
-          </div>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      type="button"
+      size="sm"
+      variant="outline"
+      className="h-7 gap-1.5 text-xs"
+      onClick={onClick}
+    >
+      <Plus className="h-3 w-3" />
+      Add test case
+    </Button>
   );
 }
 
@@ -191,6 +166,6 @@ function Leading({
 export const TestCasesToolbar = Object.assign(Root, {
   Leading,
   Actions,
-  AddTestCaseDropdown,
+  AddTestCaseButton,
   CreateEvalButton,
 });

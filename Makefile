@@ -7,7 +7,7 @@ else
   BASH := bash
 endif
 
-.PHONY: help install dev dashboard mcp db db-upgrade db-migrate db-downgrade db-stop \
+.PHONY: help install dev dashboard mcp db db-upgrade db-seed db-migrate db-downgrade db-stop \
         docker-up docker-down docker-logs docker-build-up docker-build-down \
         cli lint format test generate-client cloud-run-smoke
 
@@ -45,6 +45,9 @@ db: ## Start Postgres + Adminer in Docker
 
 db-upgrade: ## Run Alembic migrations to latest
 	cd backend && uv run python -m alembic upgrade head
+
+db-seed: ## Create FIRST_SUPERUSER from .env if missing (idempotent)
+	cd backend && uv run python app/initial_data.py
 
 db-migrate: ## Generate a new Alembic migration (usage: make db-migrate MSG="description")
 	cd backend && uv run python -m alembic revision --autogenerate -m "$(MSG)"
