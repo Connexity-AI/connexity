@@ -122,8 +122,8 @@ def test_agents_runtimes(api_env, runner, respx_mock_clean) -> None:
         json={
             "data": [
                 {
-                    "kind": "connexity",
-                    "label": "Connexity",
+                    "kind": "custom_endpoint",
+                    "label": "Your Agent",
                     "description": "...",
                     "is_default": True,
                 },

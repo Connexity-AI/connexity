@@ -77,7 +77,6 @@ class RunMode(StrEnum):
 
 
 class TextRuntimeKind(StrEnum):
-    CONNEXITY = "connexity"
     RETELL = "retell"
     CUSTOM_ENDPOINT = "custom_endpoint"
 

@@ -97,7 +97,7 @@ class EvalConfig(EvalConfigBase, table=True):
     config: dict[str, Any] | None = Field(
         default=None,
         sa_column=Column("config", JSONB, nullable=True),
-        description="Run configuration (concurrency, max_turns, judge, tool_mode, etc.)",
+        description="Run configuration (concurrency, max_turns, judge, runtime, etc.)",
     )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
@@ -129,7 +129,7 @@ class EvalConfigCreate(SQLModel):
     agent_id: uuid.UUID = Field(description="Agent this eval config belongs to")
     config: RunConfig | None = Field(
         default=None,
-        description="Run configuration (concurrency, max_turns, judge, tool_mode, etc.)",
+        description="Run configuration (concurrency, max_turns, judge, runtime, etc.)",
     )
     members: list[EvalConfigMemberEntry] | None = Field(
         default=None,
@@ -144,7 +144,7 @@ class EvalConfigUpdate(SQLModel):
     )
     config: RunConfig | None = Field(
         default=None,
-        description="Run configuration (concurrency, max_turns, judge, tool_mode, etc.)",
+        description="Run configuration (concurrency, max_turns, judge, runtime, etc.)",
     )
 
 
@@ -152,7 +152,7 @@ class EvalConfigPublic(EvalConfigBase):
     id: uuid.UUID = Field(description="Unique eval config identifier")
     config: RunConfig | None = Field(
         default=None,
-        description="Run configuration (concurrency, max_turns, judge, tool_mode, etc.)",
+        description="Run configuration (concurrency, max_turns, judge, runtime, etc.)",
     )
     test_case_count: int = 0
     effective_test_case_count: int = Field(

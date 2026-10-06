@@ -546,7 +546,10 @@ async def execute_run(run_id: uuid.UUID) -> None:
                 session=session, eval_config_id=run.eval_config_id
             )
 
-            config = RunConfig.model_validate(run.config) if run.config else RunConfig()
+            if not run.config:
+                msg = f"Run {run_id} has no config snapshot"
+                raise ValueError(msg)
+            config = RunConfig.model_validate(run.config)
             agent_snapshot = _build_agent_snapshot(agent, run, config)
             # Detach from session so background tasks can read attrs without an
             # open Session — only the snapshot fields are touched by runtimes.

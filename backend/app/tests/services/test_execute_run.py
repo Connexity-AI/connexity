@@ -12,6 +12,7 @@ from app.models.enums import AgentMode, RunStatus, TestCaseStatus, TurnRole
 from app.models.run import Run
 from app.models.schemas import (
     ConversationTurn,
+    CustomEndpointRuntimeConfig,
     JudgeVerdict,
     MetricScore,
     RunConfig,
@@ -48,6 +49,12 @@ def _make_test_case(*, name: str = "test-case") -> TestCase:
     )
 
 
+def _run_config() -> RunConfig:
+    return RunConfig(
+        runtime=CustomEndpointRuntimeConfig(url="http://localhost:8080/agent")
+    )
+
+
 def _make_run(
     *,
     eval_config_id: uuid.UUID | None = None,
@@ -58,6 +65,7 @@ def _make_run(
         agent_id=uuid.uuid4(),
         agent_endpoint_url="http://localhost:8080/agent",
         eval_config_id=eval_config_id or uuid.uuid4(),
+        config=_run_config().model_dump(),
         status=status,
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
@@ -109,7 +117,7 @@ def _make_snapshots(
     )
     run_snapshot = RunSnapshot(
         run_id=run_id or uuid.uuid4(),
-        run_config=config or RunConfig(),
+        run_config=config or _run_config(),
         cancel_event=cancel_event or asyncio.Event(),
     )
     return agent_snapshot, run_snapshot

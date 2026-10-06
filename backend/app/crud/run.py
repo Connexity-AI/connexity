@@ -17,7 +17,6 @@ from app.models import (
 from app.models.enums import AgentMode, RunMode, TextRuntimeKind
 from app.models.schemas import CustomEndpointRuntimeConfig, RunConfig
 from app.services.agent_tool_definitions import normalize_and_validate_agent_tools
-from app.services.tool_dispatch import validate_live_tool_snapshot
 
 
 def enrich_run_create_from_agent(
@@ -70,7 +69,7 @@ def enrich_run_create_from_agent(
         ver_row = active_row
 
     # Snapshot the eval config's run config when the caller didn't override it,
-    # so max_turns / concurrency / judge / tool_mode set on the eval config are
+    # so max_turns / concurrency / judge / runtime set on the eval config are
     # actually honored at run time. Always persist the resolved config so the
     # run row never has a NULL config and frontend defaults are not relied on.
     if run_in.config is not None:
@@ -78,12 +77,11 @@ def enrich_run_create_from_agent(
     elif eval_config.config is not None:
         cfg = RunConfig.model_validate(eval_config.config)
     else:
-        cfg = RunConfig()
+        msg = f"Eval config {eval_config.id} has no run config; set config.runtime"
+        raise ValueError(msg)
     data["config"] = cfg.model_dump()
 
     data["eval_config_version"] = eval_config.version
-
-    asim = cfg.agent_simulator
 
     if not data.get("agent_endpoint_url") and source.endpoint_url:
         data["agent_endpoint_url"] = source.endpoint_url
@@ -99,28 +97,7 @@ def enrich_run_create_from_agent(
     )
 
     if cfg.mode == RunMode.TEXT and text_kind is not None:
-        if text_kind == TextRuntimeKind.CONNEXITY:
-            if data.get("agent_system_prompt") is None:
-                data["agent_system_prompt"] = source.system_prompt
-            if data.get("agent_tools") is None:
-                data["agent_tools"] = source.tools
-            eff_model = (
-                asim.model if asim and asim.model else None
-            ) or source.agent_model
-            eff_prov = (
-                asim.provider if asim and asim.provider else None
-            ) or source.agent_provider
-            if data.get("agent_model") is None:
-                data["agent_model"] = eff_model
-            if data.get("agent_provider") is None:
-                data["agent_provider"] = eff_prov
-            if not data.get("agent_system_prompt"):
-                msg = (
-                    "Connexity runtime requires agent_system_prompt on the run snapshot "
-                    "(set system_prompt on the agent or agent version)."
-                )
-                raise ValueError(msg)
-        elif text_kind == TextRuntimeKind.CUSTOM_ENDPOINT:
+        if text_kind == TextRuntimeKind.CUSTOM_ENDPOINT:
             rt = cfg.runtime
             assert isinstance(rt, CustomEndpointRuntimeConfig)
             url = rt.url.strip()
@@ -138,25 +115,6 @@ def enrich_run_create_from_agent(
         elif text_kind == TextRuntimeKind.RETELL:
             if data.get("agent_tools") is None and source.tools:
                 data["agent_tools"] = source.tools
-    elif source_mode == AgentMode.PLATFORM:
-        if data.get("agent_system_prompt") is None:
-            data["agent_system_prompt"] = source.system_prompt
-        if data.get("agent_tools") is None:
-            data["agent_tools"] = source.tools
-        eff_model = (asim.model if asim and asim.model else None) or source.agent_model
-        eff_prov = (
-            asim.provider if asim and asim.provider else None
-        ) or source.agent_provider
-        if data.get("agent_model") is None:
-            data["agent_model"] = eff_model
-        if data.get("agent_provider") is None:
-            data["agent_provider"] = eff_prov
-        if not data.get("agent_system_prompt"):
-            msg = "agent system_prompt is required for platform-mode agents"
-            raise ValueError(msg)
-        if not data.get("agent_model"):
-            msg = "agent_model is required for platform-mode agents (set on agent or in run config agent_simulator.model)"
-            raise ValueError(msg)
     elif source_mode == AgentMode.ENDPOINT:
         ep = data.get("agent_endpoint_url")
         if not ep or not str(ep).strip():
@@ -170,13 +128,6 @@ def enrich_run_create_from_agent(
 
     if data.get("agent_tools") is not None:
         data["agent_tools"] = normalize_and_validate_agent_tools(data["agent_tools"])
-
-    if (
-        cfg.mode == RunMode.TEXT
-        and cfg.runtime.kind == TextRuntimeKind.CONNEXITY
-        and cfg.tool_mode == "live"
-    ):
-        validate_live_tool_snapshot(data.get("agent_tools"))
 
     return RunCreate.model_validate(data)
 

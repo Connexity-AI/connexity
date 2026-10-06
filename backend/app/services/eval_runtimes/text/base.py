@@ -11,7 +11,7 @@ import time
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Any
 
 from sqlmodel import Session
 
@@ -45,7 +45,6 @@ class TextAgentTurnConfig:
     provider: str | None = None
     system_prompt: str | None = None
     tools: list[dict[str, Any]] | None = None
-    platform_tool_executor_mode: Literal["mock", "live", "synthetic"] | None = None
 
 
 @dataclass

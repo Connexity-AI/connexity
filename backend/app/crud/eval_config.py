@@ -25,22 +25,26 @@ from app.models.schemas import (
 
 
 def _default_run_config_for_agent(agent: Agent) -> RunConfig:
-    """Choose a practical default runtime for a newly created eval config.
+    """Choose the default runtime for an eval config created without one.
 
-    Connexity stays the global default, but endpoint-style agents without a
-    platform prompt need a concrete HTTP URL to be runnable. Retell agents
-    should default to the Retell runtime even if their imported prompt/model is
-    incomplete.
+    Evals always run on the agent's own engine: Retell agents use the Retell
+    runtime, and agents with an HTTP endpoint use the custom endpoint runtime.
+
+    Raises:
+        ValueError: The agent has neither, so the caller must supply a runtime.
     """
     if agent.platform == Platform.RETELL:
         return RunConfig(runtime=RetellRuntimeConfig())
 
-    if not (agent.system_prompt or "").strip():
-        endpoint_url = (agent.endpoint_url or "").strip()
-        if endpoint_url:
-            return RunConfig(runtime=CustomEndpointRuntimeConfig(url=endpoint_url))
+    endpoint_url = (agent.endpoint_url or "").strip()
+    if endpoint_url:
+        return RunConfig(runtime=CustomEndpointRuntimeConfig(url=endpoint_url))
 
-    return RunConfig()
+    msg = (
+        "No default runtime for this agent: set config.runtime to a "
+        "custom_endpoint runtime with the agent's URL."
+    )
+    raise ValueError(msg)
 
 
 def validate_test_case_ids(
@@ -94,7 +98,7 @@ def _validate_runtime(
     runtime.validate_config(runtime_config, agent, session)
 
     if runtime_config.kind == TextRuntimeKind.CUSTOM_ENDPOINT:
-        # Tool calls can only be exercised by the in-process Connexity simulator.
+        # A custom endpoint runs its own tools, so Connexity cannot mock tool calls.
         # Reject configs that link test cases declaring expected_tool_calls.
         test_case_filter = (
             [EvalConfigMember.eval_config_id == config_id]

@@ -1,6 +1,6 @@
 # Evaluation runtimes
 
-An **evaluation runtime** is the strategy that drives a single test case from start to finish: it produces a transcript (in-process simulator, external phone/web call, etc.). Runtimes are pluggable — adding a new one means writing a single class and registering it.
+An **evaluation runtime** is the strategy that drives a single test case from start to finish and produces a transcript. Evaluations always run on the agent's own engine: the provider's engine for hosted platforms, or the team's own deployed service for self-hosted agents. Connexity simulates the caller and judges the result; it never re-implements the agent from a copy of its prompt. Runtimes are pluggable — adding a new one means writing a single class and registering it.
 
 The orchestrator owns concurrency, judging, persistence, and aggregate metrics. The runtime owns the conversation loop. This separation is what lets text and voice runtimes coexist without churning the orchestrator.
 
@@ -8,11 +8,10 @@ The orchestrator owns concurrency, judging, persistence, and aggregate metrics. 
 
 | Kind | Used for | Available when |
 |---|---|---|
-| `connexity` | Native: in-process user simulator + agent ↔ user text loop | always |
 | `retell` | Drives a Retell web call, then exposes the transcript for judging | agent is on the Retell platform with a configured Retell integration |
-| `custom_endpoint` | Posts to a user-provided HTTP endpoint that honors the OpenAI-compatible [agent contract](../agents/contract.md) | Non-Retell agents (Custom/Webhook, Vapi, ElevenLabs, legacy rows without platform); agent must be in **endpoint** mode |
+| `custom_endpoint` | Posts to a user-provided HTTP endpoint that honors the OpenAI-compatible [agent contract](../agents/contract.md). Use it for self-hosted agents (Pipecat, LiveKit Agents, your own service). | Non-Retell agents (Custom/Webhook, Vapi, ElevenLabs, rows without a platform) |
 
-The active runtime is stored in `RunConfig.runtime` (inside `eval_config.config` JSONB). Absent value → `connexity`.
+The active runtime is stored in `RunConfig.runtime` (inside `eval_config.config` JSONB) and is required. When an eval config is created without a config, the default is `retell` for Retell agents and `custom_endpoint` with the agent's `endpoint_url` otherwise; an agent with neither is rejected.
 
 ## Where things live
 
@@ -24,8 +23,7 @@ backend/app/services/eval_runtimes/
 ├── types.py                # AgentSnapshot, RunSnapshot, TestCaseRunResult
 ├── text/
 │   ├── base.py             # TextRuntimeBase shared user-simulator loop
-│   ├── connexity.py        # ConnexityRuntime
-│   ├── retell.py           # RetellRuntime (placeholder)
+│   ├── retell.py           # RetellRuntime
 │   └── custom_endpoint.py  # CustomEndpointRuntime
 └── voice/                  # voice runtimes (Retell voice, Vapi, …)
 ```
@@ -47,7 +45,7 @@ backend/app/api/routes/agents.py           # GET /agents/{id}/runtimes
 
 ## How an eval run uses the runtime
 
-1. `crud.create_eval_config` / `update_eval_config` calls `_validate_runtime(...)`. The runtime's own `validate_config` runs, and tool-call-using test cases are rejected if the runtime is not Connexity.
+1. `crud.create_eval_config` / `update_eval_config` calls `_validate_runtime(...)`. The runtime's own `validate_config` runs, and test cases that declare expected tool calls are rejected on the custom endpoint runtime.
 2. `services.orchestrator.execute_run` loads the snapshotted `RunConfig`, builds an `AgentSnapshot` and `RunSnapshot` once, then dispatches each test case through `runtime.run_test_case(...)` under a `Semaphore(config.concurrency)`.
 3. After the runtime returns a transcript, the orchestrator calls `judge.evaluate_transcript(...)` to produce the verdict, computes per-case metrics, and persists `TestCaseResult`.
 4. Per-test-case failures land in `TestCaseResult.error_message`; the run continues.
@@ -76,7 +74,6 @@ Worked example: add a `myvoice` voice runtime.
 
 ```python
 class TextRuntimeKind(StrEnum):
-    CONNEXITY = "connexity"
     RETELL = "retell"
     CUSTOM_ENDPOINT = "custom_endpoint"
     MYVOICE = "myvoice"        # ← new
@@ -93,8 +90,7 @@ class MyVoiceRuntimeConfig(BaseModel):
 
 
 RuntimeConfig = Annotated[
-    ConnexityRuntimeConfig
-    | RetellRuntimeConfig
+    RetellRuntimeConfig
     | CustomEndpointRuntimeConfig
     | MyVoiceRuntimeConfig,                   # ← new
     Field(discriminator="kind"),
@@ -164,7 +160,6 @@ Runtimes must be safe to instantiate without arguments — the registry creates 
 from app.services.eval_runtimes.voice.myvoice import MyVoiceRuntime
 
 _TEXT_RUNTIMES: dict[TextRuntimeKind, EvalRuntime] = {
-    ConnexityRuntime.KIND: ConnexityRuntime(),
     RetellRuntime.KIND: RetellRuntime(),
     CustomEndpointRuntime.KIND: CustomEndpointRuntime(),
     MyVoiceRuntime.KIND: MyVoiceRuntime(),     # ← new
@@ -203,16 +198,13 @@ Runtimes **must not** call the judge themselves. The orchestrator always runs th
 
 ## Sharing the text loop
 
-`TextRuntimeBase` owns the runtime-agnostic loop: user simulator turns, turn ordering, terminating tool calls, timeouts, cancellation, and result assembly. It does **not** know how to call a Connexity endpoint, a custom endpoint, or Retell.
+`TextRuntimeBase` owns the runtime-agnostic loop: user simulator turns, turn ordering, terminating tool calls, timeouts, cancellation, and result assembly. It does **not** know how to call a custom endpoint or Retell.
 
 Text runtimes provide the agent side:
 
 - `build_text_agent_config(...)` resolves the per-runtime agent settings.
 - `do_agent_turn(...)` executes one agent turn and appends the assistant/tool turns to the transcript.
 
-`ConnexityRuntime` drives agent turns **only** through
-:class:`~app.services.agent_simulator.AgentSimulator` (platform-mode agents).
-`CustomEndpointRuntime` drives agent turns **only** through HTTP POST to your
-endpoint (endpoint-mode agents). They share `TextRuntimeBase` for the user
-simulator loop only — not agent inference. Retell will implement its own
-`do_agent_turn(...)`.
+`CustomEndpointRuntime` drives agent turns through HTTP POST to your endpoint.
+`RetellRuntime` drives them through Retell's own chat APIs. They share
+`TextRuntimeBase` for the user simulator loop only — not agent inference.

@@ -11,15 +11,12 @@ from app.core.config import settings
 from app.models import (
     AgentCreate,
     AgentMode,
-    EvalConfigCreate,
     ExpectedToolCall,
     Platform,
     TestCaseCreate,
     TextRuntimeKind,
 )
-from app.models.eval_config import EvalConfigMemberEntry
 from app.models.schemas import (
-    ConnexityRuntimeConfig,
     CustomEndpointRuntimeConfig,
     RetellRuntimeConfig,
     RunConfig,
@@ -66,9 +63,7 @@ def test_list_runtimes_for_retell_agent(
     assert r.status_code == 200
     body = r.json()
     kinds = [opt["kind"] for opt in body["data"]]
-    assert TextRuntimeKind.CONNEXITY in kinds
-    assert TextRuntimeKind.RETELL in kinds
-    assert TextRuntimeKind.CUSTOM_ENDPOINT not in kinds
+    assert kinds == [TextRuntimeKind.RETELL]
     default = next(opt for opt in body["data"] if opt["is_default"])
     assert default["kind"] == TextRuntimeKind.RETELL
 
@@ -84,10 +79,7 @@ def test_list_runtimes_for_vapi_agent(
     assert r.status_code == 200
     body = r.json()
     kinds = [opt["kind"] for opt in body["data"]]
-    assert kinds == [
-        TextRuntimeKind.CONNEXITY,
-        TextRuntimeKind.CUSTOM_ENDPOINT,
-    ]
+    assert kinds == [TextRuntimeKind.CUSTOM_ENDPOINT]
 
 
 def test_list_runtimes_for_custom_agent(
@@ -101,8 +93,9 @@ def test_list_runtimes_for_custom_agent(
     assert r.status_code == 200
     body = r.json()
     kinds = [opt["kind"] for opt in body["data"]]
-    assert TextRuntimeKind.CONNEXITY in kinds
-    assert TextRuntimeKind.CUSTOM_ENDPOINT in kinds
+    assert kinds == [TextRuntimeKind.CUSTOM_ENDPOINT]
+    default = next(opt for opt in body["data"] if opt["is_default"])
+    assert default["kind"] == TextRuntimeKind.CUSTOM_ENDPOINT
 
 
 def test_create_eval_config_rejects_retell_runtime_on_vapi_agent(
@@ -142,7 +135,7 @@ def test_create_eval_config_rejects_custom_endpoint_for_retell_agent(
     assert r.status_code == 422
 
 
-def test_create_eval_config_rejects_tool_calls_with_non_connexity_runtime(
+def test_create_eval_config_rejects_tool_calls_with_custom_endpoint_runtime(
     client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent_id = _create_agent(db, Platform.WEBHOOK)
@@ -175,36 +168,7 @@ def test_create_eval_config_rejects_tool_calls_with_non_connexity_runtime(
     assert "Tool calls" in r.json()["detail"]
 
 
-def test_create_eval_config_allows_connexity_runtime_with_tool_calls(
-    client: TestClient, auth_cookies: dict[str, str], db: Session
-) -> None:
-    agent_id = _create_agent(db, Platform.WEBHOOK, mode=AgentMode.PLATFORM)
-    tc = crud.create_test_case(
-        session=db,
-        test_case_in=TestCaseCreate(
-            name=f"tc-{uuid.uuid4().hex[:6]}",
-            expected_tool_calls=[
-                ExpectedToolCall(tool="book_appointment", expected_params=None)
-            ],
-        ),
-        company_id=get_test_company_id(db),
-    )
-
-    payload = {
-        "name": "with-tools-connexity",
-        "agent_id": str(agent_id),
-        "config": RunConfig(runtime=ConnexityRuntimeConfig()).model_dump(),
-        "members": [{"test_case_id": str(tc.id), "repetitions": 1}],
-    }
-    r = client.post(
-        f"{settings.API_V1_STR}/eval-configs/",
-        json=payload,
-        cookies=auth_cookies,
-    )
-    assert r.status_code == 200
-
-
-def test_create_eval_config_allows_non_connexity_runtime_with_empty_tool_calls(
+def test_create_eval_config_allows_custom_endpoint_runtime_with_empty_tool_calls(
     client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
     agent_id = _create_agent(db, Platform.WEBHOOK)
@@ -233,45 +197,49 @@ def test_create_eval_config_allows_non_connexity_runtime_with_empty_tool_calls(
     assert r.status_code == 200
 
 
-def test_update_eval_config_switching_runtime_rejects_existing_tool_calls(
+def test_create_eval_config_rejects_removed_in_house_runtime(
     client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
-    agent_id = _create_agent(db, Platform.WEBHOOK, mode=AgentMode.PLATFORM)
-    tc = crud.create_test_case(
-        session=db,
-        test_case_in=TestCaseCreate(
-            name=f"tc-{uuid.uuid4().hex[:6]}",
-            expected_tool_calls=[
-                ExpectedToolCall(tool="book_appointment", expected_params=None)
-            ],
-        ),
-        company_id=get_test_company_id(db),
-    )
-
-    # First, create a Connexity config that allows tool calls.
-    cfg = crud.create_eval_config(
-        session=db,
-        eval_config_in=EvalConfigCreate(
-            name="cfg",
-            agent_id=agent_id,
-            config=RunConfig(runtime=ConnexityRuntimeConfig()),
-            members=[EvalConfigMemberEntry(test_case_id=tc.id)],
-        ),
-        company_id=get_test_company_id(db),
-    )
-
-    # Now try to switch the runtime — must be rejected.
-    update_payload = {
-        "config": RunConfig(
-            runtime=CustomEndpointRuntimeConfig(url="https://x/v1")
-        ).model_dump(),
-    }
-    r = client.patch(
-        f"{settings.API_V1_STR}/eval-configs/{cfg.id}",
-        json=update_payload,
+    agent_id = _create_agent(db, Platform.WEBHOOK)
+    r = client.post(
+        f"{settings.API_V1_STR}/eval-configs/",
+        json={
+            "name": "legacy",
+            "agent_id": str(agent_id),
+            "config": {"runtime": {"kind": "connexity"}},
+        },
         cookies=auth_cookies,
     )
     assert r.status_code == 422
+
+
+def test_create_eval_config_without_config_defaults_to_agent_endpoint(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent_id = _create_agent(db, Platform.WEBHOOK)
+    r = client.post(
+        f"{settings.API_V1_STR}/eval-configs/",
+        json={"name": "defaulted", "agent_id": str(agent_id)},
+        cookies=auth_cookies,
+    )
+    assert r.status_code == 200
+    runtime = r.json()["config"]["runtime"]
+    assert runtime["kind"] == TextRuntimeKind.CUSTOM_ENDPOINT
+    assert runtime["url"] == "http://localhost:8080/agent"
+
+
+def test_create_eval_config_without_config_or_engine_is_rejected(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    # No provider connector and no endpoint: there is no engine to run evals on.
+    agent_id = _create_agent(db, None, mode=AgentMode.PLATFORM)
+    r = client.post(
+        f"{settings.API_V1_STR}/eval-configs/",
+        json={"name": "no-engine", "agent_id": str(agent_id)},
+        cookies=auth_cookies,
+    )
+    assert r.status_code == 422
+    assert "No default runtime" in r.json()["detail"]
 
 
 def test_test_runtime_endpoint_returns_404_for_missing_agent(
@@ -282,17 +250,17 @@ def test_test_runtime_endpoint_returns_404_for_missing_agent(
         json={
             "agent_id": str(uuid.uuid4()),
             "mode": "text",
-            "runtime": {"kind": "connexity"},
+            "runtime": {"kind": "retell"},
         },
         cookies=auth_cookies,
     )
     assert r.status_code == 404
 
 
-def test_test_runtime_endpoint_for_connexity(
+def test_test_runtime_endpoint_rejects_removed_in_house_runtime(
     client: TestClient, auth_cookies: dict[str, str], db: Session
 ) -> None:
-    agent_id = _create_agent(db, Platform.WEBHOOK, mode=AgentMode.PLATFORM)
+    agent_id = _create_agent(db, Platform.WEBHOOK)
     r = client.post(
         f"{settings.API_V1_STR}/eval-configs/test-runtime",
         json={
@@ -302,9 +270,7 @@ def test_test_runtime_endpoint_for_connexity(
         },
         cookies=auth_cookies,
     )
-    assert r.status_code == 200
-    body = r.json()
-    assert body["ok"] is True
+    assert r.status_code == 422
 
 
 def test_test_runtime_endpoint_unsupported_combo(
