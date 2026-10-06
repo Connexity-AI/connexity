@@ -1,135 +1,97 @@
-# connexity
+# Connexity
+
+## What this is
+
+Connexity is the system of record and independent verifier for voice AI agents. An AI
+assistant (Claude Code or another) does the engineering on a voice agent. Connexity
+holds the spec, the call traces, the versions and the test verdicts, checks every real
+call, detects incidents, and tells the human what needs a decision. The human decides
+and approves.
+
+Connexity never writes fixes, never deploys, and never talks back. It has no chat.
+
+## Current state: mid-rebuild
+
+The code in this repo is mostly **Connexity 1.x**, an eval and observability platform
+with a builder UI (prompt editors, test creation forms, deploy buttons). That product is
+being rebuilt in place into 2.0. Much of what you see in the code is scheduled for
+deletion, so do not treat existing patterns as the direction.
+
+**Before doing anything, read [`REBUILD.md`](./REBUILD.md).** It has the current status,
+the next slice, what is kept, frozen and deleted, and the open questions.
+
+| Document | Read it for |
+|---|---|
+| [`REBUILD.md`](./REBUILD.md) | Status, next slice, carry-over map, decisions. Read every session. |
+| [`Connexity 2.0.md`](./Connexity%202.0.md) | The vision. Read the sections your slice cites. |
+| [`docs-internal/development-lifecycle.md`](./docs-internal/development-lifecycle.md) | How we work: the slice loop, verification, decisions. |
+| `backend/CLAUDE.md`, `frontend/CLAUDE.md` | Language and framework conventions. |
+| `README.md`, `CLI_README.md`, `docs/` | Describe 1.x. Not a guide to where the product is going. |
+
+## Rules for every session
+
+1. **One session, one slice** from `REBUILD.md`. Do not widen it. Note anything else you
+   find in `REBUILD.md` instead of fixing it.
+2. **End by updating `REBUILD.md`:** the status table, the session log, and the decision
+   log if something was decided.
+3. **Do not record a decision Dmytro did not make.** Mark statements Decided, Proposed
+   or Open. Only his explicit words make something Decided.
+4. **Do not grade your own work.** State the done-when before building, report check
+   results with their output, and run `/code-review` in a fresh context before asking
+   for review.
+5. **Never weaken a test, type check or lint rule to make a change pass** without saying
+   so at the top of the PR description.
+6. **Delete, do not deprecate.** No compatibility is owed to 1.x. Remove dead code with
+   its tests, routes, generated client and docs in the same PR. Before deleting anything
+   not listed in `REBUILD.md`, ask.
+7. **Do not build what the vision rules out:** chat, editors for prompts or workflows,
+   creation forms, deploying or writing to providers, features about a system rather
+   than an agent's conversation.
+8. **The repo is public.** Never commit real call data, client names or secrets.
 
 ## Commands
 
 ```bash
-# Backend
-cd backend && uv venv && source .venv/bin/activate && uv sync
-uvicorn app.main:app --reload
-
-# CLI (after `uv pip install -e ./backend`)
-connexity-cli --help
-
-# Database
-docker compose up -d database adminer
-cd backend && bash scripts/prestart.sh  # runs Alembic migrations against POSTGRES_DB (dev)
-# Tests run against a separate `app_test` database in the same Postgres container.
-# `backend/conftest.py` creates it and applies migrations on first pytest run; safe to wipe.
-
-# Frontend
-cd frontend && pnpm install && pnpm dev
-
-# Regenerate API client (requires backend running or venv activated)
-bash scripts/generate-client.sh
-
-# New migration after model changes
-cd backend && alembic revision --autogenerate -m "description"
-
-# Typecheck frontend
-cd frontend && pnpm typecheck
-
-# Lint
-cd backend && ruff check . && ruff format --check .
-cd backend && pyright
-cd frontend && pnpm lint
-cd frontend && pnpm turbo check-types
+make install          # Python (uv) and frontend (pnpm) dependencies
+make db               # Postgres + Adminer in Docker
+make db-seed          # migrations + superuser
+make dev              # FastAPI on :8000
+make dashboard        # Next.js on :3000
+make mcp              # MCP server
+make lint             # backend + frontend lint and types
+make test             # backend tests with coverage
+make generate-client  # regenerate the frontend API client
+make db-migrate MSG="description"   # new Alembic revision
 ```
 
-## Quality Checks (run before committing)
+### What to run before committing
 
-After implementing a feature or fix, run the relevant checks before committing:
-
-### Backend changes (`backend/`)
-```bash
-cd backend
-uv run ruff check app cli scripts          # lint
-uv run ruff format --check app cli scripts  # format check
-uv run pyright                              # type check
-uv run pytest app/tests -v                  # tests
-```
-
-### Frontend changes (`frontend/`)
-```bash
-cd frontend
-pnpm lint                  # ESLint
-pnpm turbo check-types       # TypeScript type check
-```
-
-### After backend route or model changes
-If you changed any FastAPI route, request/response model, or anything that affects the OpenAPI schema, you **MUST** regenerate the client:
-```bash
-bash scripts/generate-client.sh
-```
-This keeps the frontend TypeScript SDK in sync. CI will fail if the generated client is stale.
-
-### Quick reference: what to run when
 | What changed | Run |
 |---|---|
-| Python code in `backend/` | `ruff check` + `ruff format --check` + `pyright` + `pytest` |
-| Frontend code in `frontend/` | `pnpm lint` + `pnpm turbo check-types` |
-| Backend routes/models | All backend checks + `bash scripts/generate-client.sh` |
-| Both backend + frontend | All of the above |
+| Python in `backend/` | `ruff check` + `ruff format --check` + `pyright` + `pytest` (see `backend/CLAUDE.md`) |
+| Code in `frontend/` | `pnpm lint` + `pnpm turbo check-types` |
+| Backend routes or models | All backend checks + `bash scripts/generate-client.sh` |
+| Both | All of the above |
 
-## Git & PRs
+CI fails if the generated client is stale.
 
-- **Main branch**: `main`. Always use `main` as the base branch for PRs.
-- **NEVER tag Claude as co-author** in commits, PRs, or any messages. No `Co-authored-by`, `Co-Authored-By`, or any AI attribution trailers.
+## Architecture that survives the rebuild
 
-## Critical Rules
+- **Type chain:** SQLModel → FastAPI → OpenAPI → Hey API codegen → TypeScript SDK. Do
+  not break it with hand-written types.
+- **Never edit `frontend/apps/web/src/client/`.** It is generated.
+- **Multitenancy:** every tenant-owned row carries `company_id`.
+- **Auth:** HttpOnly cookie JWT for the web app; OAuth bearer tokens for MCP.
+- **MCP is a separate thin adapter** (`mcp_server/`) that forwards the user's token to
+  backend `/api/v1/mcp/*` routes. It is the assistant's main interface to the product.
+- **Environment variables** are validated at runtime (Pydantic `BaseSettings` in the
+  backend, Zod in the frontend). Add new ones to the root `.env.example` and the
+  schema. The root `.env` is the only env file.
+- **Tooling:** `uv` for Python, `pnpm` for the frontend.
 
-- **NEVER edit files in `frontend/apps/web/src/client/`** — auto-generated by Hey API. Changes will be silently overwritten.
-- **ALWAYS run `bash scripts/generate-client.sh`** after ANY backend route or model change.
-- Backend `response_model=` controls what gets exposed to frontend — never return raw DB models (table=True) directly.
-- The `openapi-ts.config.ts` strips method prefixes (e.g. `itemsCreateItem` → `createItem`).
-- Environment variables are validated at runtime — backend via Pydantic `BaseSettings`, frontend via Zod (`@next-public-env`). Add new vars to the root `.env.example` and the validation schema. There is no separate `frontend/apps/web/.env` for normal setups; use repo root `.env` only.
+## Git
 
-## Architecture Decisions
-
-- **Auth**: HttpOnly cookie JWT (`auth_cookie`). Server-side uses `serverFetch` (reads cookies from `next/headers`), client-side proxies through `/api/client-proxy/[...path]`. Do not introduce a separate auth mechanism.
-- **Type chain**: SQLModel → FastAPI → OpenAPI → Hey API codegen → TypeScript SDK. Do not break this chain by hand-writing types that should come from codegen.
-- **Server Components by default**: Use `async` server components for data fetching. Only add `'use client'` for interactivity (forms, hooks, event handlers).
-- **Dialogs**: Use custom event system via `window.dispatchEvent(new CustomEvent(...))` defined in `src/constants/events.ts`. Do not use state-lifting for dialog open/close.
-
-## Python Code Style
-
-IMPORTANT: All Python code in `backend/` MUST follow these conventions.
-
-- **Python 3.12+**. Use modern syntax: `type` aliases, `X | Y` unions (not `Union[X, Y]` or `Optional[X]`).
-- **Type hints on all function signatures** — parameters and return types. Use `-> None` explicitly.
-- **Pydantic/SQLModel models** for all data structures crossing API boundaries. No raw dicts for request/response bodies.
-- **No `Any` type** unless interfacing with an untyped external library. Prefer narrowing the type.
-- **f-strings** for string formatting. No `.format()` or `%` formatting.
-- **Snake_case** for functions, methods, variables, modules. **PascalCase** for classes.
-- **Imports**: stdlib first, then third-party, then local. Use absolute imports (`from app.models import ...`), not relative.
-- **No wildcard imports** (`from module import *`).
-- **Docstrings**: Only on public API functions/classes with non-obvious behavior. Use Google style (Args/Returns/Raises sections). Skip docstrings on trivial CRUD, private helpers, and models.
-- **Error handling**: Raise `HTTPException` in route handlers. Use specific exception types, not bare `except Exception`. Never silently swallow exceptions.
-- **Database operations**: All DB logic goes in `crud.py`, not in route handlers. Route handlers orchestrate, CRUD functions query.
-- **Async**: Use `async def` for route handlers that do I/O. Use `def` (sync) for CPU-bound or simple operations — FastAPI handles threading.
-- **Dependencies**: Use FastAPI `Depends()` for shared logic (auth, DB sessions). Do not instantiate sessions manually in routes.
-- **Formatter/linter**: `ruff` — format and lint must pass before commit.
-- **Type checker**: `pyright` (basic mode, tightening to standard incrementally) — must pass before commit.
-
-## TypeScript / React Code Style
-
-IMPORTANT: All frontend code in `frontend/` MUST follow these conventions.
-
-- **TypeScript strict mode**. No `any` — use `unknown` and narrow, or use the generated types from `src/client/`.
-- **Functional components only**. No class components.
-- **Named exports** (not default exports) for components and utilities.
-- **Destructure props** in function signature: `function UserCard({ name, email }: UserCardProps)`.
-- **Colocation**: Keep component-specific types, constants, and helpers in the same file unless shared.
-- **Server actions** for form submissions (in `src/actions/`). Follow the `ApiResult` pattern — strip the `Response` object before returning.
-- **Zod schemas** in `src/schemas/` for form validation. React Hook Form with `zodResolver`.
-- **Wrap async server components** in `<ErrorBoundarySuspense fallback={<Skeleton />}>` for parallel streaming.
-- **No barrel files** (`index.ts` re-exports). Import directly from the source file.
-- **Tailwind v4** for styling. Use `cn()` utility for conditional classes. No CSS modules or styled-components.
-- **ShadcnUI** (new-york style) from `packages/ui/`. Check existing components before creating new ones.
-
-## Common Gotchas
-
-- The client proxy at `/api/client-proxy/[...path]` is required for client-side API calls because the browser cannot access HttpOnly cookies. Do not bypass it.
-- `pnpm` (not npm/yarn) for frontend package management. The lockfile is `pnpm-lock.yaml`.
-- `uv` (not pip) for backend dependency management. The lockfile is `uv.lock`.
-- Backend must be running (or venv activated) for `generate-client.sh` to extract the OpenAPI schema.
-- Alembic migrations are in `backend/app/alembic/versions/`. After model changes: generate migration, review it, then run `prestart.sh`.
+- Base branch is `main`. One slice per branch.
+- **Never add AI attribution** to commits, PRs or messages: no `Co-authored-by`, no
+  "generated with" lines.
+- Use the `/commit` and `/create-pr` skills.
