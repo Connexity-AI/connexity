@@ -1,9 +1,8 @@
 """Custom endpoint text runtime.
 
 Runs the shared in-process **user simulator** against an **HTTP agent endpoint**
-(OpenAI-compatible contract). Agent inference never goes through
-:class:`~app.services.agent_simulator.AgentSimulator` — that path is
-:class:`ConnexityRuntime`.
+(OpenAI-compatible contract). The endpoint is the team's own deployed agent, so
+agent inference and tool execution happen on the agent's own engine.
 
 See :mod:`app.models.agent_contract` for ``AgentRequest`` / ``AgentResponse``.
 """

@@ -23,7 +23,6 @@ interface UseObserveDrawerStateResult {
   onTestCaseClick: (call: CallPublic, testCase: TestCasePublic) => void;
   onCloseDrawer: () => void;
   onCloseRightPanel: () => void;
-  onCreateTestCaseManual: () => void;
   deletion: ReturnType<typeof useTestCasesDeletion>;
 }
 
@@ -103,11 +102,6 @@ export function useObserveDrawerState({
     setSelectedTestCaseId(null);
   }, []);
 
-  const onCreateTestCaseManual = useCallback(() => {
-    setRightPanelMode('manual-create');
-    setSelectedTestCaseId(null);
-  }, []);
-
   return {
     selectedCall,
     selectedTestCase,
@@ -117,7 +111,6 @@ export function useObserveDrawerState({
     onTestCaseClick,
     onCloseDrawer,
     onCloseRightPanel,
-    onCreateTestCaseManual,
     deletion,
   };
 }

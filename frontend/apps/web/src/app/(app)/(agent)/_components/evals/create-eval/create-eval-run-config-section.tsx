@@ -17,13 +17,10 @@ import {
 import { resolveRuntimeTestStatusMessage } from '@/app/(app)/(agent)/_components/evals/create-eval/runtime-test-status-message';
 import { SubmittedCustomEndpointFieldFormMessage } from '@/app/(app)/(agent)/_components/evals/create-eval/submitted-custom-endpoint-field-form-message';
 import { useRuntimeField } from '@/app/(app)/(agent)/_hooks/use-runtime-field';
-import { useToolModeLiveGuard } from '@/app/(app)/(agent)/_hooks/use-tool-mode-live-guard';
 import { runtimeIconForKind } from '@/app/(app)/(agent)/_utils/runtime-field-helpers';
-import { missingLiveImplementations } from '@/app/(app)/(agent)/_utils/platform-live-tools-feasible';
-import { AgentMode, TextRuntimeKind } from '@/client/types.gen';
+import { TextRuntimeKind } from '@/client/types.gen';
 
 import type { CreateEvalFormValues } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
-import type { TextRuntimeKind as TextRuntimeKindType } from '@/client/types.gen';
 
 function ConcurrencyField() {
   const form = useFormContext<CreateEvalFormValues>();
@@ -88,158 +85,6 @@ function MaxTurnsField() {
           <FormMessage />
         </FormItem>
       )}
-    />
-  );
-}
-
-const TOOL_MODES = ['mock', 'live'] as const;
-type ToolMode = (typeof TOOL_MODES)[number];
-
-interface ToolModeToggleButtonProps {
-  mode: ToolMode;
-  selected: boolean;
-  liveDisabled: boolean;
-  liveUnavailable: boolean;
-  missingImpl: string[];
-  onSelect: (mode: ToolMode) => void;
-}
-
-function ToolModeToggleButton({
-  mode,
-  selected,
-  liveDisabled,
-  liveUnavailable,
-  missingImpl,
-  onSelect,
-}: ToolModeToggleButtonProps) {
-  const baseClassName = 'px-4 py-1.5 rounded-md text-xs transition-all capitalize';
-
-  const buildClassName = () => {
-    if (selected && mode === 'live') {
-      return cn(
-        baseClassName,
-        'bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-sm',
-        liveDisabled && 'cursor-not-allowed opacity-60'
-      );
-    }
-
-    if (selected) {
-      return cn(
-        baseClassName,
-        'bg-accent text-foreground border border-border shadow-sm',
-        liveDisabled && 'cursor-not-allowed opacity-60'
-      );
-    }
-
-    return cn(
-      baseClassName,
-      'text-muted-foreground hover:text-foreground',
-      liveDisabled && 'cursor-not-allowed opacity-60'
-    );
-  };
-
-  const buildTitle = () => {
-    if (mode === 'live' && liveUnavailable) {
-      return `Add live webhook or Python implementations for: ${missingImpl.join(', ')}`;
-    }
-
-    return undefined;
-  };
-
-  const renderLiveDot = () => {
-    if (mode !== 'live') {
-      return null;
-    }
-
-    return (
-      <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 mr-1.5 align-middle" />
-    );
-  };
-
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      disabled={liveDisabled}
-      title={buildTitle()}
-      onClick={() => onSelect(mode)}
-      className={buildClassName()}
-    >
-      {renderLiveDot()}
-      {mode.charAt(0).toUpperCase() + mode.slice(1)}
-    </Button>
-  );
-}
-
-interface ToolModeFieldProps {
-  agentMode: string | null;
-  agentTools: unknown[] | null;
-}
-
-function ToolModeField({ agentMode, agentTools }: ToolModeFieldProps) {
-  const form = useFormContext<CreateEvalFormValues>();
-
-  const readOnly = useCreateEvalReadOnly();
-
-  const isPlatform = agentMode === AgentMode.PLATFORM;
-  const missingImpl = isPlatform ? missingLiveImplementations(agentTools ?? undefined) : [];
-  const liveUnavailable = isPlatform && missingImpl.length > 0;
-
-  useToolModeLiveGuard(form, liveUnavailable);
-
-  return (
-    <FormField
-      control={form.control}
-      name="run.tool_mode"
-      render={({ field }) => {
-        const renderHint = () => {
-          if (liveUnavailable) {
-            return (
-              <span className="text-amber-500/90">
-                Live tool calls unavailable: add HTTP endpoint (or Python) under each platform tool
-                ({missingImpl.join(', ')}) - or leave Mock selected.
-              </span>
-            );
-          }
-
-          if (field.value === 'mock') {
-            return 'Tool responses are simulated using test case mock data';
-          }
-
-          if (agentMode !== AgentMode.PLATFORM) {
-            return 'Live applies to platform simulated agents only; endpoint agents ignore this setting.';
-          }
-
-          return 'Tools invoke stored implementations (HTTP / Python) during the eval run';
-        };
-
-        return (
-          <FormItem className="col-span-2">
-            <FieldLabel>Tool Calls</FieldLabel>
-
-            <div className="flex items-center gap-1 p-0.5 rounded-lg border border-border bg-accent/20 w-fit">
-              {TOOL_MODES.map((mode) => {
-                const selected = field.value === mode;
-                const liveDisabled = readOnly || (mode === 'live' && liveUnavailable);
-                return (
-                  <ToolModeToggleButton
-                    key={mode}
-                    mode={mode}
-                    selected={selected}
-                    liveDisabled={liveDisabled}
-                    liveUnavailable={liveUnavailable}
-                    missingImpl={missingImpl}
-                    onSelect={field.onChange}
-                  />
-                );
-              })}
-            </div>
-            <FieldHint>{renderHint()}</FieldHint>
-            <FormMessage />
-          </FormItem>
-        );
-      }}
     />
   );
 }
@@ -382,31 +227,6 @@ function RuntimeField({
   );
 }
 
-function RunConfigToolModeSection({
-  agentMode,
-  agentTools,
-  runtimeKind,
-}: {
-  agentMode: string | null;
-  agentTools: unknown[] | null;
-  runtimeKind: TextRuntimeKindType;
-}) {
-  const form = useFormContext<CreateEvalFormValues>();
-  const isToolModeApplicable =
-    agentMode === AgentMode.PLATFORM &&
-    runtimeKind === TextRuntimeKind.CONNEXITY;
-
-  // keep persisted config aligned with backend behavior: tool mode only applies
-  // to Connexity runtime on platform-mode agents.
-  useToolModeLiveGuard(form, !isToolModeApplicable);
-
-  if (!isToolModeApplicable) {
-    return null;
-  }
-
-  return <ToolModeField agentMode={agentMode} agentTools={agentTools} />;
-}
-
 export function RunConfigSection() {
   return (
     <Section>
@@ -424,20 +244,10 @@ export function RunConfigSection() {
 
 interface RuntimeSectionProps {
   agentId: string;
-  agentMode?: string | null;
-  agentTools?: unknown[] | null;
   defaultToBackendOption?: boolean;
 }
 
-export function RuntimeSection({
-  agentId,
-  agentMode = null,
-  agentTools = null,
-  defaultToBackendOption = true,
-}: RuntimeSectionProps) {
-  const form = useFormContext<CreateEvalFormValues>();
-  const runtimeKind = form.watch('run.runtime.kind');
-
+export function RuntimeSection({ agentId, defaultToBackendOption = true }: RuntimeSectionProps) {
   return (
     <Section>
       <Section.Header title="Runtime" />
@@ -446,11 +256,6 @@ export function RuntimeSection({
           <RuntimeField
             agentId={agentId}
             defaultToBackendOption={defaultToBackendOption}
-          />
-          <RunConfigToolModeSection
-            agentMode={agentMode}
-            agentTools={agentTools}
-            runtimeKind={runtimeKind}
           />
         </div>
       </Section.Body>

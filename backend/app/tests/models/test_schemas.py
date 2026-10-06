@@ -1,8 +1,10 @@
 from datetime import UTC, datetime
 
-from app.models.enums import SimulatorMode, TurnRole
+import pytest
+from pydantic import ValidationError
+
+from app.models.enums import SimulatorMode, TextRuntimeKind, TurnRole
 from app.models.schemas import (
-    AgentSimulatorConfig,
     AggregateMetrics,
     ConversationTurn,
     ExpectedToolCall,
@@ -12,6 +14,7 @@ from app.models.schemas import (
     MetricScore,
     MetricSelection,
     PythonImplementation,
+    RetellRuntimeConfig,
     RunConfig,
     ToolCall,
     ToolCallFunction,
@@ -342,8 +345,18 @@ def test_judge_verdict_full():
 # ── RunConfig ──────────────────────────────────────────────────────
 
 
+def test_run_config_requires_runtime():
+    with pytest.raises(ValidationError):
+        RunConfig()  # type: ignore[call-arg]
+
+
+def test_run_config_rejects_removed_in_house_runtime():
+    with pytest.raises(ValidationError):
+        RunConfig.model_validate({"runtime": {"kind": "connexity"}})
+
+
 def test_run_config_defaults():
-    config = RunConfig()
+    config = RunConfig(runtime=RetellRuntimeConfig())
     restored = _round_trip(RunConfig, config)
     assert restored.concurrency == 5
     assert restored.timeout_per_test_case_ms == 120_000
@@ -361,7 +374,7 @@ def test_run_config_full():
             pass_threshold=80.0,
         ),
         user_simulator=UserSimulatorConfig(model="gpt-4o", provider="openai"),
-        agent_simulator=AgentSimulatorConfig(model="gpt-4o-mini", temperature=0.1),
+        runtime=RetellRuntimeConfig(),
     )
     restored = _round_trip(RunConfig, config)
     assert restored.concurrency == 10
@@ -371,8 +384,7 @@ def test_run_config_full():
     assert restored.judge.model == "claude-sonnet-4-5-20250514"
     assert restored.user_simulator is not None
     assert restored.user_simulator.model == "gpt-4o"
-    assert restored.agent_simulator is not None
-    assert restored.agent_simulator.model == "gpt-4o-mini"
+    assert restored.runtime.kind == TextRuntimeKind.RETELL
 
 
 def test_user_simulator_config_round_trip():
@@ -396,6 +408,7 @@ def test_run_config_with_user_simulator_round_trip():
             provider="openai",
             temperature=0.5,
         ),
+        runtime=RetellRuntimeConfig(),
     )
     restored = _round_trip(RunConfig, config)
     assert restored.user_simulator is not None

@@ -77,7 +77,6 @@ class RunMode(StrEnum):
 
 
 class TextRuntimeKind(StrEnum):
-    CONNEXITY = "connexity"
     RETELL = "retell"
     CUSTOM_ENDPOINT = "custom_endpoint"
 
@@ -86,12 +85,6 @@ class IntegrationProvider(StrEnum):
     RETELL = "retell"
     VAPI = "vapi"
     ELEVENLABS = "elevenlabs"
-
-
-class DeploymentStatus(StrEnum):
-    PENDING = "pending"
-    DEPLOYED = "deployed"
-    FAILED = "failed"
 
 
 class CallLabel(StrEnum):

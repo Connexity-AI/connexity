@@ -9,6 +9,7 @@ import { useForm } from 'react-hook-form';
 
 import { integrationsListQuery } from '@/app/(app)/(agent)/_queries/integrations-list-query';
 import { useCreateDraftAgent } from '@/app/(app)/(agents)/_hooks/use-create-draft-agent';
+import { useCreateEndpointAgent } from '@/app/(app)/(agents)/_hooks/use-create-endpoint-agent';
 import {
   newAgentFormSchema,
   type NewAgentFormValues,
@@ -56,7 +57,12 @@ const PLATFORM_OPTIONS: {
   description: string;
   icon: typeof Bot;
 }[] = [
-  { value: Platform.WEBHOOK, label: 'Custom', description: 'Webhook or bring your own stack', icon: Bot },
+  {
+    value: Platform.WEBHOOK,
+    label: 'Self-hosted',
+    description: 'Pipecat, LiveKit or your own service',
+    icon: Bot,
+  },
   { value: Platform.RETELL, label: 'Retell', description: 'Retell AI voice agents', icon: Phone },
   { value: Platform.VAPI, label: 'Vapi', description: 'Vapi voice agents', icon: Sparkles },
   {
@@ -78,6 +84,7 @@ const defaultValues: NewAgentFormValues = {
   integration_id: null,
   platform_agent_id: null,
   platform_agent_name: null,
+  endpoint_url: null,
 };
 
 function integrationProviderForPlatform(platform: Platform): IntegrationProviderInput {
@@ -91,7 +98,10 @@ function integrationProviderForPlatform(platform: Platform): IntegrationProvider
 }
 
 export const NewAgentModal: FC<Props> = ({ open, onOpenChange }) => {
-  const { mutateAsync, isPending, error } = useCreateDraftAgent();
+  const createDraft = useCreateDraftAgent();
+  const createEndpoint = useCreateEndpointAgent();
+  const isPending = createDraft.isPending || createEndpoint.isPending;
+  const error = createDraft.error ?? createEndpoint.error;
   const integrationsQuery = useQuery(integrationsListQuery());
 
   const form = useForm<NewAgentFormValues>({
@@ -147,17 +157,23 @@ export const NewAgentModal: FC<Props> = ({ open, onOpenChange }) => {
     if (values.platform === null) {
       return;
     }
+    if (values.platform === Platform.WEBHOOK) {
+      await createEndpoint.mutateAsync({
+        name: values.name.trim(),
+        endpointUrl: (values.endpoint_url ?? '').trim(),
+      });
+      onOpenChange(false);
+      return;
+    }
     const payload: CreateAgentDraftPayload = {
       name: values.name.trim(),
       platform: values.platform,
       prompt_type: 'single_prompt',
-      integration_id: values.platform === Platform.WEBHOOK ? null : values.integration_id,
-      platform_agent_id:
-        values.platform === Platform.WEBHOOK ? null : values.platform_agent_id,
-      platform_agent_name:
-        values.platform === Platform.WEBHOOK ? null : values.platform_agent_name,
+      integration_id: values.integration_id,
+      platform_agent_id: values.platform_agent_id,
+      platform_agent_name: values.platform_agent_name,
     };
-    await mutateAsync(payload);
+    await createDraft.mutateAsync(payload);
     onOpenChange(false);
   };
 
@@ -244,7 +260,7 @@ export const NewAgentModal: FC<Props> = ({ open, onOpenChange }) => {
                   )}
                 />
 
-                {platform !== null && (
+                {platform !== null && platform !== Platform.WEBHOOK && (
                   <div className="space-y-1.5">
                     <p className="text-sm font-medium leading-none">Prompt mode</p>
                   <div className="grid grid-cols-1 gap-2">
@@ -273,6 +289,32 @@ export const NewAgentModal: FC<Props> = ({ open, onOpenChange }) => {
                     </div>
                   </div>
                   </div>
+                )}
+
+                {platform === Platform.WEBHOOK && (
+                  <FormField
+                    control={form.control}
+                    name="endpoint_url"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1.5 px-1">
+                        <FormLabel htmlFor="new-agent-endpoint-url">Agent endpoint URL</FormLabel>
+                        <FormControl>
+                          <Input
+                            id="new-agent-endpoint-url"
+                            placeholder="https://your-server.com/agent/respond"
+                            className="h-9 text-xs"
+                            disabled={isPending}
+                            value={field.value ?? ''}
+                            onChange={(event) => field.onChange(event.target.value || null)}
+                          />
+                        </FormControl>
+                        <p className="text-[11px] text-muted-foreground">
+                          Evaluations call your deployed agent at this URL.
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 )}
 
                 {platform !== null && platform !== Platform.WEBHOOK && (

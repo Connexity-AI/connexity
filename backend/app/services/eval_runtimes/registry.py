@@ -7,24 +7,19 @@ in its own module and append it here.
 
 from app.models.enums import Platform, RunMode, TextRuntimeKind
 from app.services.eval_runtimes.base import EvalRuntime
-from app.services.eval_runtimes.text.connexity import ConnexityRuntime
 from app.services.eval_runtimes.text.custom_endpoint import CustomEndpointRuntime
 from app.services.eval_runtimes.text.retell import RetellRuntime
 
 _TEXT_RUNTIMES: dict[TextRuntimeKind, EvalRuntime] = {
-    ConnexityRuntime.KIND: ConnexityRuntime(),
     RetellRuntime.KIND: RetellRuntime(),
     CustomEndpointRuntime.KIND: CustomEndpointRuntime(),
 }
 
 
-# Per-platform default runtime. Connexity is always available as a fallback.
+# Per-platform default runtime. Platforms without a first-party connector fall
+# back to the custom endpoint runtime (the team's own deployed agent).
 _TEXT_DEFAULTS_BY_PLATFORM: dict[Platform | None, TextRuntimeKind] = {
-    None: TextRuntimeKind.CONNEXITY,
-    Platform.WEBHOOK: TextRuntimeKind.CONNEXITY,
     Platform.RETELL: TextRuntimeKind.RETELL,
-    Platform.VAPI: TextRuntimeKind.CONNEXITY,
-    Platform.ELEVENLABS: TextRuntimeKind.CONNEXITY,
 }
 
 
@@ -39,7 +34,6 @@ def get_runtime(mode: RunMode, kind: TextRuntimeKind) -> EvalRuntime:
 def runtimes_for_platform(platform: Platform | None) -> list[EvalRuntime]:
     """Return text runtimes available for ``platform`` in stable display order."""
     order = (
-        TextRuntimeKind.CONNEXITY,
         TextRuntimeKind.RETELL,
         TextRuntimeKind.CUSTOM_ENDPOINT,
     )
@@ -54,4 +48,4 @@ def default_runtime_for_platform(
     platform: Platform | None,
 ) -> TextRuntimeKind:
     """Return the default text runtime kind for ``platform``."""
-    return _TEXT_DEFAULTS_BY_PLATFORM.get(platform, TextRuntimeKind.CONNEXITY)
+    return _TEXT_DEFAULTS_BY_PLATFORM.get(platform, TextRuntimeKind.CUSTOM_ENDPOINT)

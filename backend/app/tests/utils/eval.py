@@ -128,7 +128,7 @@ def create_test_eval_config(
             raise ValueError(f"Agent {agent_id} not found")
 
     resolved_config = config
-    if resolved_config is None and not (agent.system_prompt or "").strip():
+    if resolved_config is None:
         if agent.platform == Platform.RETELL:
             resolved_config = RunConfig(runtime=RetellRuntimeConfig())
         else:

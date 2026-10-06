@@ -105,21 +105,6 @@ import type {
   EnvironmentsDeleteEnvironmentData,
   EnvironmentsDeleteEnvironmentErrors,
   EnvironmentsDeleteEnvironmentResponses,
-  EnvironmentsDeployEnvironmentData,
-  EnvironmentsDeployEnvironmentErrors,
-  EnvironmentsDeployEnvironmentResponses,
-  EnvironmentsGetWebhookPayloadPreviewData,
-  EnvironmentsGetWebhookPayloadPreviewErrors,
-  EnvironmentsGetWebhookPayloadPreviewResponses,
-  EnvironmentsListAgentDeploymentsData,
-  EnvironmentsListAgentDeploymentsErrors,
-  EnvironmentsListAgentDeploymentsResponses,
-  EnvironmentsListEnvironmentDeploymentsData,
-  EnvironmentsListEnvironmentDeploymentsErrors,
-  EnvironmentsListEnvironmentDeploymentsResponses,
-  EnvironmentsListEnvironmentRetellVersionsData,
-  EnvironmentsListEnvironmentRetellVersionsErrors,
-  EnvironmentsListEnvironmentRetellVersionsResponses,
   EnvironmentsListEnvironmentsData,
   EnvironmentsListEnvironmentsErrors,
   EnvironmentsListEnvironmentsResponses,
@@ -188,9 +173,6 @@ import type {
   McpListAgentsData,
   McpListAgentsErrors,
   McpListAgentsResponses,
-  McpUpsertDraftData,
-  McpUpsertDraftErrors,
-  McpUpsertDraftResponses,
   OauthAuthorizeConfirmData,
   OauthAuthorizeConfirmErrors,
   OauthAuthorizeConfirmResponses,
@@ -752,27 +734,6 @@ export class McpService {
       security: [{ scheme: 'bearer', type: 'http' }],
       url: '/api/v1/mcp/agents/{agent_id}/draft',
       ...options,
-    });
-  }
-
-  /**
-   * Upsert Draft
-   */
-  public static upsertDraft<ThrowOnError extends boolean = false>(
-    options: Options<McpUpsertDraftData, ThrowOnError>
-  ) {
-    return (options.client ?? client).put<
-      McpUpsertDraftResponses,
-      McpUpsertDraftErrors,
-      ThrowOnError
-    >({
-      security: [{ scheme: 'bearer', type: 'http' }],
-      url: '/api/v1/mcp/agents/{agent_id}/draft',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
     });
   }
 }
@@ -2496,30 +2457,6 @@ export class EnvironmentsService {
   }
 
   /**
-   * Get Webhook Payload Preview
-   */
-  public static getWebhookPayloadPreview<ThrowOnError extends boolean = false>(
-    options: Options<EnvironmentsGetWebhookPayloadPreviewData, ThrowOnError>
-  ) {
-    return (options.client ?? client).get<
-      EnvironmentsGetWebhookPayloadPreviewResponses,
-      EnvironmentsGetWebhookPayloadPreviewErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/environments/webhook-payload-preview',
-      ...options,
-    });
-  }
-
-  /**
    * Delete Environment
    */
   public static deleteEnvironment<ThrowOnError extends boolean = false>(
@@ -2568,106 +2505,6 @@ export class EnvironmentsService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
-    });
-  }
-
-  /**
-   * Deploy Environment
-   */
-  public static deployEnvironment<ThrowOnError extends boolean = false>(
-    options: Options<EnvironmentsDeployEnvironmentData, ThrowOnError>
-  ) {
-    return (options.client ?? client).post<
-      EnvironmentsDeployEnvironmentResponses,
-      EnvironmentsDeployEnvironmentErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/environments/{environment_id}/deploy',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-  }
-
-  /**
-   * List Environment Retell Versions
-   */
-  public static listEnvironmentRetellVersions<ThrowOnError extends boolean = false>(
-    options: Options<EnvironmentsListEnvironmentRetellVersionsData, ThrowOnError>
-  ) {
-    return (options.client ?? client).get<
-      EnvironmentsListEnvironmentRetellVersionsResponses,
-      EnvironmentsListEnvironmentRetellVersionsErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/environments/{environment_id}/retell-versions',
-      ...options,
-    });
-  }
-
-  /**
-   * List Agent Deployments
-   */
-  public static listAgentDeployments<ThrowOnError extends boolean = false>(
-    options: Options<EnvironmentsListAgentDeploymentsData, ThrowOnError>
-  ) {
-    return (options.client ?? client).get<
-      EnvironmentsListAgentDeploymentsResponses,
-      EnvironmentsListAgentDeploymentsErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/environments/deployments',
-      ...options,
-    });
-  }
-
-  /**
-   * List Environment Deployments
-   */
-  public static listEnvironmentDeployments<ThrowOnError extends boolean = false>(
-    options: Options<EnvironmentsListEnvironmentDeploymentsData, ThrowOnError>
-  ) {
-    return (options.client ?? client).get<
-      EnvironmentsListEnvironmentDeploymentsResponses,
-      EnvironmentsListEnvironmentDeploymentsErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/environments/{environment_id}/deployments',
-      ...options,
     });
   }
 }

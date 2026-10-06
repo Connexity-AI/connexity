@@ -23,8 +23,6 @@ import {
 import { useAddEnvironmentForm } from '@/app/(app)/(agent)/_hooks/use-add-environment-form';
 import { Platform } from '@/client/types.gen';
 import { AgentSelectField } from './agent-select-field';
-import { EvalGateFormSection } from './eval-gate-form-section';
-import { PayloadPreviewSection } from './payload-preview-section';
 
 import type { FC } from 'react';
 
@@ -50,11 +48,6 @@ export const AddEnvironmentForm: FC<Props> = ({
     onSubmit,
     platform,
     integrationPlatform,
-    payloadOpen,
-    onTogglePayloadOpen,
-    payloadPreview,
-    isPayloadPreviewLoading,
-    showMissingPublishedVersionInfo,
     submitLabel,
     isSubmitDisabled,
     isPending,
@@ -159,19 +152,18 @@ export const AddEnvironmentForm: FC<Props> = ({
             )}
 
             {platform === Platform.WEBHOOK && (
-              <>
                 <FormField
                   control={form.control}
                   name="endpoint_url"
                   render={({ field }) => (
                     <FormItem className="space-y-1.5">
-                      <FormLabel htmlFor="endpoint-url">Webhook URL</FormLabel>
+                      <FormLabel htmlFor="endpoint-url">Endpoint URL</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Webhook className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                           <Input
                             id="endpoint-url"
-                            placeholder="https://your-server.com/deploy/:agent_id"
+                            placeholder="https://your-server.com/agent"
                             className="pl-8 h-9 text-xs"
                             value={field.value ?? ''}
                             onChange={(event) =>
@@ -181,26 +173,11 @@ export const AddEnvironmentForm: FC<Props> = ({
                           />
                         </div>
                       </FormControl>
-                      <p className="text-[11px] text-muted-foreground">
-                        We POST to this URL on deploy. A 200 response is a success; any other status
-                        is treated as a failure and the response body will be shown.
-                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
-                <PayloadPreviewSection
-                  showMissingPublishedVersionInfo={showMissingPublishedVersionInfo}
-                  payloadOpen={payloadOpen}
-                  onTogglePayloadOpen={onTogglePayloadOpen}
-                  payloadPreview={payloadPreview}
-                  isPayloadPreviewLoading={isPayloadPreviewLoading}
-                />
-              </>
             )}
-
-            <EvalGateFormSection agentId={agentId} disabled={isPending} />
           </div>
         </div>
 

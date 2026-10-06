@@ -1,14 +1,12 @@
 import uuid
 from datetime import UTC, datetime
 
-import pytest
 from sqlmodel import Session
 
 from app import crud
 from app.models import AgentCreate, EvalConfigUpdate, RunCreate, RunStatus, RunUpdate
 from app.models.enums import AgentMode
 from app.models.schemas import (
-    AgentSimulatorConfig,
     CustomEndpointRuntimeConfig,
     JudgeConfig,
     RunConfig,
@@ -75,152 +73,12 @@ def test_enrich_run_create_platform_agent(db: Session) -> None:
     assert enriched.agent_system_prompt == "Be concise."
 
 
-def test_enrich_run_create_platform_agent_simulator_model_override(db: Session) -> None:
-    agent_in = AgentCreate(
-        name="platform-agent-override",
-        mode=AgentMode.PLATFORM,
-        system_prompt="Be concise.",
-        agent_model="gpt-4o-mini",
-        agent_provider="openai",
-    )
-    agent = crud.create_agent(
-        session=db, agent_in=agent_in, company_id=get_test_company_id(db)
-    )
-    eval_config = create_test_eval_config(db)
-    run_in = RunCreate(
-        agent_id=agent.id,
-        eval_config_id=eval_config.id,
-        config=RunConfig(agent_simulator=AgentSimulatorConfig(model="gpt-4o")),
-    )
-    enriched = crud.enrich_run_create_from_agent(
-        session=db, run_in=run_in, agent=agent, eval_config=eval_config
-    )
-    assert enriched.agent_model == "gpt-4o"
-    assert enriched.agent_provider == "openai"
-
-
-def test_enrich_run_create_platform_agent_simulator_provider_override(
-    db: Session,
-) -> None:
-    agent_in = AgentCreate(
-        name="platform-agent-prov-override",
-        mode=AgentMode.PLATFORM,
-        system_prompt="Hi",
-        agent_model="claude-3-5-haiku-20241022",
-        agent_provider="openai",
-    )
-    agent = crud.create_agent(
-        session=db, agent_in=agent_in, company_id=get_test_company_id(db)
-    )
-    eval_config = create_test_eval_config(db)
-    run_in = RunCreate(
-        agent_id=agent.id,
-        eval_config_id=eval_config.id,
-        config=RunConfig(
-            agent_simulator=AgentSimulatorConfig(provider="anthropic"),
-        ),
-    )
-    enriched = crud.enrich_run_create_from_agent(
-        session=db, run_in=run_in, agent=agent, eval_config=eval_config
-    )
-    assert enriched.agent_model == "claude-3-5-haiku-20241022"
-    assert enriched.agent_provider == "anthropic"
-
-
-def test_enrich_run_live_rejects_platform_agent_tools_without_implementation(
-    db: Session,
-) -> None:
-    tools = [
-        {
-            "type": "function",
-            "function": {
-                "name": "no_hook",
-                "description": "x",
-                "parameters": {"type": "object", "properties": {}},
-            },
-        }
-    ]
-    agent_in = AgentCreate(
-        name=f"plat-live-block-{uuid.uuid4().hex[:8]}",
-        mode=AgentMode.PLATFORM,
-        system_prompt="Be concise.",
-        agent_model="gpt-4o-mini",
-        agent_provider="openai",
-        tools=tools,
-    )
-    agent = crud.create_agent(
-        session=db, agent_in=agent_in, company_id=get_test_company_id(db)
-    )
-    eval_config = create_test_eval_config(db, agent_id=agent.id)
-    crud.update_eval_config(
-        session=db,
-        db_eval_config=eval_config,
-        eval_config_in=EvalConfigUpdate(config=RunConfig(tool_mode="live")),
-    )
-    run_in = RunCreate(agent_id=agent.id, eval_config_id=eval_config.id)
-    with pytest.raises(ValueError, match="Live tool mode"):
-        crud.enrich_run_create_from_agent(
-            session=db,
-            run_in=run_in,
-            agent=agent,
-            eval_config=eval_config,
-        )
-
-
-def test_enrich_run_live_accepts_when_each_tool_has_implementation(
-    db: Session,
-) -> None:
-    tools = [
-        {
-            "type": "function",
-            "function": {
-                "name": "hooked",
-                "description": "x",
-                "parameters": {"type": "object", "properties": {}},
-            },
-            "platform_config": {
-                "implementation": {
-                    "type": "http_webhook",
-                    "url": "https://hooks.example.com/x",
-                },
-            },
-        }
-    ]
-    agent_in = AgentCreate(
-        name=f"plat-live-ok-{uuid.uuid4().hex[:8]}",
-        mode=AgentMode.PLATFORM,
-        system_prompt="Be concise.",
-        agent_model="gpt-4o-mini",
-        agent_provider="openai",
-        tools=tools,
-    )
-    agent = crud.create_agent(
-        session=db, agent_in=agent_in, company_id=get_test_company_id(db)
-    )
-    eval_config = create_test_eval_config(db, agent_id=agent.id)
-    crud.update_eval_config(
-        session=db,
-        db_eval_config=eval_config,
-        eval_config_in=EvalConfigUpdate(config=RunConfig(tool_mode="live")),
-    )
-    run_in = RunCreate(agent_id=agent.id, eval_config_id=eval_config.id)
-    enriched = crud.enrich_run_create_from_agent(
-        session=db,
-        run_in=run_in,
-        agent=agent,
-        eval_config=eval_config,
-    )
-    assert enriched.agent_tools is not None
-    assert enriched.config is not None
-    assert enriched.config.tool_mode == "live"
-
-
-def test_enrich_run_live_accepts_terminating_tool_without_implementation(
+def test_enrich_run_snapshots_terminating_tool_without_implementation(
     db: Session,
 ) -> None:
     tools = [canonical_end_call_tool_dict()]
     agent_in = AgentCreate(
-        name=f"plat-live-term-{uuid.uuid4().hex[:8]}",
+        name=f"plat-term-{uuid.uuid4().hex[:8]}",
         mode=AgentMode.PLATFORM,
         system_prompt="Be concise.",
         agent_model="gpt-4o-mini",
@@ -231,11 +89,6 @@ def test_enrich_run_live_accepts_terminating_tool_without_implementation(
         session=db, agent_in=agent_in, company_id=get_test_company_id(db)
     )
     eval_config = create_test_eval_config(db, agent_id=agent.id)
-    crud.update_eval_config(
-        session=db,
-        db_eval_config=eval_config,
-        eval_config_in=EvalConfigUpdate(config=RunConfig(tool_mode="live")),
-    )
     run_in = RunCreate(agent_id=agent.id, eval_config_id=eval_config.id)
     enriched = crud.enrich_run_create_from_agent(
         session=db,
@@ -278,7 +131,6 @@ def test_enrich_run_create_endpoint_snapshots_normalized_agent_tools(
             config=RunConfig(
                 max_turns=7,
                 concurrency=4,
-                tool_mode="live",
                 runtime=CustomEndpointRuntimeConfig(url=_EP_AGENT_URL),
             ),
         ),
@@ -290,7 +142,6 @@ def test_enrich_run_create_endpoint_snapshots_normalized_agent_tools(
     assert enriched.config is not None
     assert enriched.config.max_turns == 7
     assert enriched.config.concurrency == 4
-    assert enriched.config.tool_mode == "live"
     assert enriched.eval_config_version == eval_config.version
 
 
@@ -321,7 +172,7 @@ def test_enrich_run_create_explicit_config_overrides_eval_config(db: Session) ->
     assert enriched.config is not None
     assert enriched.config.max_turns == 15
     # explicit run-level config wins wholesale; we don't merge from eval_config
-    assert enriched.config.concurrency == RunConfig().concurrency
+    assert enriched.config.concurrency == RunConfig.model_fields["concurrency"].default
 
 
 def test_create_run(db: Session) -> None:

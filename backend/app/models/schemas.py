@@ -85,10 +85,7 @@ ToolImplementation = PythonImplementation | HttpWebhookImplementation
 
 
 class ToolPlatformConfig(BaseModel):
-    """How the platform invokes a registered tool live (HTTP or Python sandbox).
-
-    Mock vs live for a run is decided by ``RunConfig.tool_mode``, not persisted here.
-    """
+    """Platform metadata stored alongside a tool definition."""
 
     predefined: bool = Field(
         default=False,
@@ -104,8 +101,8 @@ class ToolPlatformConfig(BaseModel):
     implementation: ToolImplementation | None = Field(
         default=None,
         description=(
-            "HTTP webhook or embedded Python runner. Required for runs with "
-            "``tool_mode=live``. Omitted when the tool definition has no runnable hook."
+            "HTTP webhook or embedded Python runner recorded on the tool. Connexity "
+            "does not execute it; the agent's own engine runs its tools."
         ),
     )
 
@@ -185,41 +182,7 @@ class UserSimulatorConfig(BaseModel):
         return self
 
 
-class AgentSimulatorConfig(BaseModel):
-    """Agent simulator LLM overrides (only used when agent mode is platform)."""
-
-    model: str | None = Field(
-        default=None,
-        description="Override agent_model for this run",
-    )
-    provider: str | None = Field(
-        default=None,
-        description="Override agent agent_provider for this run",
-    )
-    temperature: float | None = Field(
-        default=None,
-        ge=0.0,
-        le=2.0,
-        description="Sampling temperature for agent simulator LLM",
-    )
-    max_tokens: int | None = Field(
-        default=None,
-        ge=1,
-        description="Max completion tokens for agent simulator LLM",
-    )
-
-
 # ── Runtime configs (discriminated union) ─────────────────────────
-
-
-class ConnexityRuntimeConfig(BaseModel):
-    """Connexity text runtime: in-process user simulator + platform AgentSimulator.
-
-    Requires a non-empty ``system_prompt`` on the agent for validation at eval-config
-    time. For HTTP agents without platform prompts, use ``CustomEndpointRuntimeConfig``.
-    """
-
-    kind: Literal[TextRuntimeKind.CONNEXITY] = TextRuntimeKind.CONNEXITY
 
 
 class RetellRuntimeConfig(BaseModel):
@@ -249,7 +212,7 @@ class CustomEndpointRuntimeConfig(BaseModel):
 
 
 RuntimeConfig = Annotated[
-    ConnexityRuntimeConfig | RetellRuntimeConfig | CustomEndpointRuntimeConfig,
+    RetellRuntimeConfig | CustomEndpointRuntimeConfig,
     Field(discriminator="kind"),
 ]
 
@@ -297,10 +260,6 @@ class RunConfig(BaseModel):
         default=None,
         description="Max agent response rounds per test case; null = no cap",
     )
-    tool_mode: Literal["mock", "live"] = Field(
-        default="mock",
-        description="Global tool execution mode: mock uses test-case expected_tool_calls.mock_response payloads, live executes real implementations",
-    )
     metrics_pass_threshold: float = Field(
         default=80.0,
         ge=0.0,
@@ -332,20 +291,15 @@ class RunConfig(BaseModel):
             "Omitted fields use app LLM defaults."
         ),
     )
-    agent_simulator: AgentSimulatorConfig | None = Field(
-        default=None,
-        description=(
-            "Agent simulator LLM overrides. Applies when the selected text runtime "
-            "uses AgentSimulator (Connexity)."
-        ),
-    )
     mode: RunMode = Field(
         default=RunMode.TEXT,
         description="Run modality: text today, voice for future realtime simulations.",
     )
     runtime: RuntimeConfig = Field(
-        default_factory=ConnexityRuntimeConfig,
-        description="Runtime that drives the eval for the selected mode.",
+        description=(
+            "Runtime that drives the eval for the selected mode. Required: evals "
+            "always run on the agent's own engine, so there is no default."
+        ),
     )
 
 

@@ -122,8 +122,8 @@ def test_agents_runtimes(api_env, runner, respx_mock_clean) -> None:
         json={
             "data": [
                 {
-                    "kind": "connexity",
-                    "label": "Connexity",
+                    "kind": "custom_endpoint",
+                    "label": "Your Agent",
                     "description": "...",
                     "is_default": True,
                 },
@@ -356,112 +356,6 @@ def test_environments_list_requires_agent(api_env, runner, respx_mock_clean) -> 
     assert result.exit_code == 0, result.stderr
     qs = route.calls.last.request.url.params
     assert qs["agent_id"] == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
-
-
-def test_environments_deploy_posts_agent_version(
-    api_env, runner, respx_mock_clean
-) -> None:
-    """environments deploy posts {agent_version} to /environments/{id}/deploy."""
-    route = respx_mock_clean.post("/environments/env-1/deploy").respond(
-        200, json={"id": "d-1", "status": "succeeded", "environment_id": "env-1"}
-    )
-    result = runner.invoke(
-        app,
-        ["--output", "json", "environments", "deploy", "env-1", "--agent-version", "3"],
-    )
-    assert result.exit_code == 0, result.stderr
-    sent = json.loads(route.calls.last.request.content)
-    assert sent == {"agent_version": 3}
-
-
-def test_environments_deploy_failed_status_exits_non_zero(
-    api_env, runner, respx_mock_clean
-) -> None:
-    """A 200 OK with status='failed' should still exit non-zero for CI use."""
-    respx_mock_clean.post("/environments/env-1/deploy").respond(
-        200,
-        json={
-            "id": "d-1",
-            "status": "failed",
-            "environment_id": "env-1",
-            "error_message": "boom",
-        },
-    )
-    result = runner.invoke(
-        app,
-        ["--output", "json", "environments", "deploy", "env-1", "--agent-version", "3"],
-    )
-    assert result.exit_code == 1
-
-
-def test_environments_retell_versions(api_env, runner, respx_mock_clean) -> None:
-    respx_mock_clean.get("/environments/env-1/retell-versions").respond(
-        200, json=[{"version": 5, "is_published": True}]
-    )
-    result = runner.invoke(
-        app, ["--output", "json", "environments", "retell-versions", "env-1"]
-    )
-    assert result.exit_code == 0, result.stderr
-
-
-def test_environments_deployments_list_by_agent(
-    api_env, runner, respx_mock_clean
-) -> None:
-    respx_mock_clean.get("/agents/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa").respond(
-        200, json={"id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "name": "A"}
-    )
-    route = respx_mock_clean.get("/environments/deployments").respond(
-        200, json={"data": [], "count": 0}
-    )
-    result = runner.invoke(
-        app,
-        [
-            "environments",
-            "deployments",
-            "list",
-            "--agent",
-            "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-        ],
-    )
-    assert result.exit_code == 0, result.stderr
-    assert (
-        route.calls.last.request.url.params["agent_id"]
-        == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
-    )
-
-
-def test_environments_deployments_list_by_env_id(
-    api_env, runner, respx_mock_clean
-) -> None:
-    respx_mock_clean.get("/environments/env-1/deployments").respond(
-        200, json={"data": [], "count": 0}
-    )
-    result = runner.invoke(
-        app, ["environments", "deployments", "list", "--env-id", "env-1"]
-    )
-    assert result.exit_code == 0, result.stderr
-
-
-def test_environments_deployments_list_requires_one_filter(api_env, runner) -> None:
-    """Either --agent or --env-id is required, but not both."""
-    result = runner.invoke(app, ["environments", "deployments", "list"])
-    assert result.exit_code != 0
-    assert "Provide exactly one" in (result.stderr + result.stdout)
-
-    result = runner.invoke(
-        app,
-        [
-            "environments",
-            "deployments",
-            "list",
-            "--agent",
-            "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-            "--env-id",
-            "env-1",
-        ],
-    )
-    assert result.exit_code != 0
-    assert "Provide exactly one" in (result.stderr + result.stdout)
 
 
 _AGENT_UUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"

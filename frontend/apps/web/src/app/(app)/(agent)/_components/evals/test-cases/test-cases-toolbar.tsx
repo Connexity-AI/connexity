@@ -1,9 +1,6 @@
 'use client';
 
-import Link from 'next/link';
-
-import { UrlGenerator } from '@/common/url-generator/url-generator';
-import { FlaskConical, Plus, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/ui/button';
 
@@ -87,55 +84,6 @@ function SelectionActions({
   );
 }
 
-interface AddTestCaseButtonProps {
-  onClick: () => void;
-}
-
-function AddTestCaseButton({ onClick }: AddTestCaseButtonProps) {
-  return (
-    <Button
-      type="button"
-      size="sm"
-      variant="outline"
-      className="h-7 gap-1.5 text-xs"
-      onClick={onClick}
-    >
-      <Plus className="h-3 w-3" />
-      Add test case
-    </Button>
-  );
-}
-
-interface CreateEvalButtonProps {
-  agentId: string;
-  selectedIds: string[];
-  filteredIds: string[];
-}
-
-function CreateEvalButton({ agentId, selectedIds, filteredIds }: CreateEvalButtonProps) {
-  const targetIds = selectedIds.length > 0 ? selectedIds : filteredIds;
-
-  if (targetIds.length === 0) {
-    return (
-      <Button size="sm" className="h-7 gap-1.5 text-xs" disabled>
-        <FlaskConical className="h-3 w-3" />
-        Create Eval (0)
-      </Button>
-    );
-  }
-
-  const href = `${UrlGenerator.agentEvalsCreate(agentId)}?ids=${targetIds.join(',')}`;
-
-  return (
-    <Button asChild size="sm" className="h-7 gap-1.5 text-xs">
-      <Link href={href}>
-        <FlaskConical className="h-3 w-3" />
-        Create Eval ({targetIds.length})
-      </Link>
-    </Button>
-  );
-}
-
 interface LeadingProps {
   selectedCount: number;
   filteredCount: number;
@@ -166,6 +114,4 @@ function Leading({
 export const TestCasesToolbar = Object.assign(Root, {
   Leading,
   Actions,
-  AddTestCaseButton,
-  CreateEvalButton,
 });

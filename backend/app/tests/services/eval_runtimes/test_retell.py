@@ -64,7 +64,7 @@ def _make_args(agent: Agent, test_case, *, max_turns: int | None = 1) -> Runtime
         ),
         run_snapshot=RunSnapshot(
             run_id=uuid.uuid4(),
-            run_config=RunConfig(max_turns=max_turns),
+            run_config=RunConfig(max_turns=max_turns, runtime=RetellRuntimeConfig()),
             cancel_event=None,
         ),
     )

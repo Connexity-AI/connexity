@@ -4,12 +4,10 @@ import { FlaskConical, Plus } from 'lucide-react';
 import Link from 'next/link';
 
 import { Button } from '@workspace/ui/components/ui/button';
-import { cn } from '@workspace/ui/lib/utils';
 
 import { useEvalConfigs } from '@/app/(app)/(agent)/_hooks/use-eval-configs';
 import { RunEvalConfigButton } from '@/app/(app)/(agent)/_components/evals/run-eval-config-button';
 import { UrlGenerator } from '@/common/url-generator/url-generator';
-import { getToolCallModeBadge } from '@/app/(app)/(agent)/_utils/tool-call-mode-badge';
 
 import type { EvalConfigPublic } from '@/client/types.gen';
 
@@ -59,7 +57,7 @@ export function EvalConfigsTable({ agentId }: EvalConfigsTableProps) {
 
   return (
     <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
-      <Header agentId={agentId} count={configs.length} />
+      <Header count={configs.length} />
       <ColumnHeaders />
       <div className="flex-1 overflow-auto">
         <ul>
@@ -72,31 +70,24 @@ export function EvalConfigsTable({ agentId }: EvalConfigsTableProps) {
   );
 }
 
-function Header({ agentId, count }: { agentId: string; count: number }) {
+function Header({ count }: { count: number }) {
   return (
     <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-5 py-2.5">
       <p className="text-xs text-muted-foreground">
         {count} eval {count === 1 ? 'config' : 'configs'}
       </p>
-      <Button asChild size="sm" className="h-7 gap-1.5 text-xs">
-        <Link href={UrlGenerator.agentEvalsCreate(agentId)}>
-          <Plus className="h-3 w-3" />
-          New Eval Config
-        </Link>
-      </Button>
     </div>
   );
 }
 
 function ColumnHeaders() {
   return (
-    <div className="grid shrink-0 grid-cols-[1fr_100px_120px_90px_90px_120px_180px_80px] items-center gap-4 border-b border-border bg-background px-5 py-2 text-[10px] uppercase tracking-wider text-muted-foreground/60">
+    <div className="grid shrink-0 grid-cols-[1fr_100px_120px_90px_90px_180px_80px] items-center gap-4 border-b border-border bg-background px-5 py-2 text-[10px] uppercase tracking-wider text-muted-foreground/60">
       <span>Name</span>
       <span>Cases</span>
       <span>Total Runs</span>
       <span>Metrics %</span>
       <span>Cases %</span>
-      <span>Tool Calls</span>
       <span>Created</span>
       <span />
     </div>
@@ -104,11 +95,10 @@ function ColumnHeaders() {
 }
 
 function Row({ agentId, config }: { agentId: string; config: EvalConfigPublic }) {
-  const toolCallModeBadge = getToolCallModeBadge(config.config);
   const metricsPct = config.config?.metrics_pass_threshold ?? 80;
   const casesPct = config.config?.cases_pass_threshold ?? 100;
   return (
-    <li className="group relative grid grid-cols-[1fr_100px_120px_90px_90px_120px_180px_80px] items-center gap-4 border-b border-border/40 px-5 py-2.5 hover:bg-accent/20">
+    <li className="group relative grid grid-cols-[1fr_100px_120px_90px_90px_180px_80px] items-center gap-4 border-b border-border/40 px-5 py-2.5 hover:bg-accent/20">
       <Link
         href={UrlGenerator.agentEvalsConfigDetail(agentId, config.id)}
         className="absolute inset-0"
@@ -126,16 +116,6 @@ function Row({ agentId, config }: { agentId: string; config: EvalConfigPublic })
       </span>
       <span className="pointer-events-none relative font-mono text-xs tabular-nums text-emerald-400">
         {casesPct}%
-      </span>
-      <span
-        className={cn(
-          'pointer-events-none relative w-fit rounded px-1.5 py-0.5 text-[10px]',
-          toolCallModeBadge.tone === 'mock' && 'bg-yellow-500/15 text-yellow-400',
-          toolCallModeBadge.tone === 'live' && 'bg-blue-500/15 text-blue-400',
-          toolCallModeBadge.tone === 'na' && 'bg-muted text-muted-foreground'
-        )}
-      >
-        {toolCallModeBadge.label}
       </span>
       <span className="pointer-events-none relative text-xs text-muted-foreground tabular-nums">
         {formatDate(config.created_at)}

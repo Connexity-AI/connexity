@@ -34,7 +34,7 @@ export function EvalRunsList({ agentId, runs, configs, onOpenRun }: EvalRunsList
   const selection = useRunsSelection(visibleIds);
 
   if (runs.length === 0) {
-    return <EvalRunsEmptyState agentId={agentId} />;
+    return <EvalRunsEmptyState />;
   }
 
   return (

@@ -125,7 +125,6 @@ export function ObserveContent({ agentId }: ObserveContentProps) {
         rightPanelMode={drawer.rightPanelMode}
         onClose={drawer.onCloseDrawer}
         onCloseRightPanel={drawer.onCloseRightPanel}
-        onCreateTestCaseManual={drawer.onCreateTestCaseManual}
         onRequestDeleteTestCase={drawer.deletion.requestSingle}
       />
 

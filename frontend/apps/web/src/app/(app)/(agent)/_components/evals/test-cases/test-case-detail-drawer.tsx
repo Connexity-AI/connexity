@@ -1,7 +1,6 @@
 'use client';
 'use no memo';
 
-import { useFormContext } from 'react-hook-form';
 
 import { Form } from '@workspace/ui/components/ui/form';
 import { Sheet, SheetContent } from '@workspace/ui/components/ui/sheet';
@@ -11,9 +10,9 @@ import { TestCaseDrawerFooter } from '@/app/(app)/(agent)/_components/evals/test
 import { TestCaseDrawerHeader } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-drawer-header';
 import { TestCaseEvaluationSection } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-evaluation-section';
 import { TestCaseUserSimulationSection } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-user-simulation-section';
+import { useAgentTools } from '@/app/(app)/(agent)/_hooks/use-agent-tools';
 import { useTestCaseDetailForm } from '@/app/(app)/(agent)/_hooks/use-test-case-detail-form';
 
-import type { AgentFormValues } from '@/app/(app)/(agent)/_schemas/agent-form';
 import type { TestCasePublic } from '@/client/types.gen';
 
 interface TestCaseDetailDrawerProps {
@@ -31,8 +30,7 @@ export function TestCaseDetailDrawer({
   onOpenChange,
   onRequestDelete,
 }: TestCaseDetailDrawerProps) {
-  const agentForm = useFormContext<AgentFormValues>();
-  const availableTools = agentForm.watch('tools') ?? [];
+  const availableTools = useAgentTools(agentId);
 
   const { form, handleSubmit, isPending } = useTestCaseDetailForm({
     agentId,

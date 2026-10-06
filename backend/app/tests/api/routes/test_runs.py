@@ -89,9 +89,6 @@ def test_create_run_platform_agent_without_endpoint_url(
     data = {
         "agent_id": agent_id,
         "eval_config_id": str(eval_config.id),
-        "config": {
-            "agent_simulator": {"model": "gpt-4o", "temperature": 0.2},
-        },
     }
     r = client.post(
         f"{settings.API_V1_STR}/runs/",
@@ -101,7 +98,7 @@ def test_create_run_platform_agent_without_endpoint_url(
     assert r.status_code == 200
     body = r.json()
     assert body["agent_mode"] == AgentMode.PLATFORM.value
-    assert body["agent_model"] == "gpt-4o"
+    assert body["agent_model"] == "gpt-4o-mini"
     assert body["agent_provider"] == "openai"
     assert body["agent_endpoint_url"] is None
     assert body["agent_system_prompt"] == "You are helpful."

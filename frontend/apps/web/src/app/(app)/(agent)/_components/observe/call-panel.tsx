@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, CheckCircle2, Clock, PenLine, Tag, Wrench, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, Tag, Wrench, X } from 'lucide-react';
 
 import {
   Accordion,
@@ -34,10 +34,9 @@ import type { TranscriptTurn } from './observe-format';
 interface CallPanelProps {
   agentId: string;
   call: CallPublic;
-  onCreateTestCaseManual?: (call: CallPublic) => void;
 }
 
-export function CallPanel({ agentId, call, onCreateTestCaseManual }: CallPanelProps) {
+export function CallPanel({ agentId, call }: CallPanelProps) {
   const turns = extractTurns(call.transcript);
   const displayItems = buildTranscriptDisplayItems(turns);
 
@@ -98,17 +97,6 @@ export function CallPanel({ agentId, call, onCreateTestCaseManual }: CallPanelPr
                 ) : null}
               </DropdownMenuContent>
             </DropdownMenu>
-
-            {onCreateTestCaseManual ? (
-              <button
-                type="button"
-                onClick={() => onCreateTestCaseManual(call)}
-                className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border bg-accent/40 px-3 py-1.5 text-[11px] text-foreground transition-all hover:bg-accent/70"
-              >
-                <PenLine className="h-3.5 w-3.5" />
-                Create test case
-              </button>
-            ) : null}
           </div>
         </div>
 

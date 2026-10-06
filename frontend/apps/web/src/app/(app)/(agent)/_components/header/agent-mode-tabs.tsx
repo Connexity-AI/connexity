@@ -3,13 +3,13 @@
 import Link from 'next/link';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
-import { FlaskConical, Pencil, Radio, Rocket } from 'lucide-react';
+import { FlaskConical, Plug, Radio } from 'lucide-react';
 
 import { Tabs, TabsList, TabsTrigger } from '@workspace/ui/components/ui/tabs';
 
 import type { LucideIcon } from 'lucide-react';
 
-export type AgentPageMode = 'edit' | 'evals' | 'deploy' | 'observe';
+export type AgentPageMode = 'observe' | 'evals' | 'deploy';
 
 interface ModeTab {
   value: AgentPageMode;
@@ -20,19 +20,18 @@ interface ModeTab {
 }
 
 const MODE_TABS: ModeTab[] = [
-  { value: 'edit', label: 'Edit', Icon: Pencil, href: UrlGenerator.agentEdit },
+  {
+    value: 'observe',
+    label: 'Calls',
+    Icon: Radio,
+    href: UrlGenerator.agentObserve,
+  },
   { value: 'evals', label: 'Evals', Icon: FlaskConical, href: UrlGenerator.agentEvals },
   {
     value: 'deploy',
-    label: 'Deploy',
-    Icon: Rocket,
+    label: 'Environments',
+    Icon: Plug,
     href: UrlGenerator.agentDeploy,
-  },
-  {
-    value: 'observe',
-    label: 'Observe',
-    Icon: Radio,
-    href: UrlGenerator.agentObserve,
   },
 ];
 

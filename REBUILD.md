@@ -48,8 +48,8 @@ goes in the session log (section 9).
 
 | Slice | What | Status |
 |---|---|---|
-| 0.1 | Land `remove-ai-assistant` | PR open, awaiting merge |
-| 0.2 | Demolition | Not started |
+| 0.1 | Land `remove-ai-assistant` | Done (PR #159) |
+| 0.2 | Demolition | PR open, awaiting merge |
 | 0.3 | Fresh migration baseline | Not started |
 | 0.4 | Harness: `make check`, hooks, stale docs | Not started |
 | 1.1 | Canonical trace schema | Not started |
@@ -66,7 +66,7 @@ goes in the session log (section 9).
 | 2.4 | Inbox v0 | Not started |
 | M1 | Milestone 1 exit review | Not started |
 
-**Next slice:** 0.2, once the 0.1 PR is merged.
+**Next slice:** 0.3, once the 0.2 PR is merged.
 
 ---
 
@@ -103,24 +103,33 @@ tested but do not develop it until its phase arrives.
 | Call sync (`api/routes/calls.py`, `services/retell.py`) | Retell fetch logic lives in a route file and writes rows directly. | A Retell reference mapping that emits canonical traces through the ingest path. Slice 1.3. |
 | `AgentVersion` | A prompt-and-tools snapshot that the product owns and edits. | An observed fingerprint of what is live across flow, prompts, skills and settings. Slice 1.5, then verified state in Phase 5. |
 | MCP tools | Four tools, all for listing agents and editing a prompt draft. | Read tools for calls and checks first (slice 1.8), then write tools for spec, tests and judges. |
-| CLI (`backend/cli/`) | Drives the 1.x eval loop. | Undecided. See open question Q3. |
+| CLI (`backend/cli/`) | Drives the 1.x eval loop, plus draft, publish and deploy commands. | Frozen. Each demolition PR removes the commands whose routes it deletes. The eval commands (`run`, `runs`, `compare`, `baseline`, `test-cases`, `eval-configs`) stay working with the frozen eval stack. No new PyPI releases. Its future is decided in Phase 4. |
 
-### Delete (slice 0.2)
+### Deleted in slice 0.2
 
-Each of these is ruled out by a decided item in the vision.
+The first version of this table was written from the README and file names and got
+three rows wrong. It was corrected against the code before anything was deleted.
 
-| What | Where | Ruled out by |
+| What | Ruled out by | Status |
 |---|---|---|
-| In-product AI assistant and prompt editor | Already removed on `remove-ai-assistant` | §4 No chat in the product |
-| Prompt, tools and settings editors; publish and draft flow | `frontend/.../(agent)/_components/{prompt,tools,settings,header,diff}`, `agents/[agentId]/edit`, draft and publish routes in `routes/agents.py` | §15 the UI is for seeing and deciding |
-| "Build from scratch" agents and the in-house agent simulator | `services/agent_simulator.py`, `eval_runtimes/text/connexity.py`, `tool_executor.py`, `tool_dispatch.py`, `agent_tool_definitions.py`, platform mode in `AgentMode` | §9 Connexity never re-implements an agent from a copy of its prompt |
-| Deploying from the product | `services/webhook_deploy.py`, `deploy_retell_agent` in `services/retell.py`, deploy routes in `routes/environments.py`, `models/deployment.py`, `agents/[agentId]/deploy` | §5 and §16 the assistant deploys, the product has read access |
-| Vapi and ElevenLabs import | `services/vapi.py`, `services/elevenlabs.py`, `provider_agent_import.py`, `models/imported_platform_config.py` | §9 the assistant writes provider mappings |
-| Forms for creating tests, evals and metrics | `frontend/.../evals/create-eval`, `generate-test-cases-dialog.tsx`, manual test case panels in `observe/` | §15 creation happens through the assistant |
-| Onboarding wizard | `frontend/apps/web/src/app/onboarding` | §13 onboarding starts in the assistant |
+| In-product AI assistant and prompt editor | §4 No chat in the product | Done in 0.1 |
+| In-house agent simulator and Connexity runtime (`agent_simulator`, `tool_executor`, `tool_dispatch`, `text/connexity.py`), `RunConfig.agent_simulator` and `tool_mode` | §9 Connexity never re-implements an agent | Done |
+| The deploy action: deploy routes, provider deploy functions, webhook deploy, deployment table and history, eval gate on environments, deploy UI, CLI deploy commands | §5, §16 the assistant deploys | Done |
+| MCP `update_agent_prompt` | §3 the assistant does not edit prompts through the product | Done |
+| Editor UI: prompt, tools and settings tabs, publish dialog, diff and versions drawer, draft autosave | §15 the UI is for seeing and deciding | Done |
+| UI entry points for creating tests and evals: create-eval page, test case generation dialog, manual and from-call test case creation | §15 creation happens through the assistant | Done |
 
-Keep the backend services behind the deleted forms where they are frozen for Phase 4
-(test case generation, metric generation). Only the UI entry points go.
+### Kept after checking the code (the first table was wrong about these)
+
+| What | Why it stays | Revisit |
+|---|---|---|
+| Vapi and ElevenLabs: connection test, agent listing, config import, call sync | They are working integrations for two more stacks, not planned stubs. Only their deploy functions were removed. | Phase 1, as reference mappings |
+| LLM key onboarding (`/onboarding`) | It is a single form for the company's LLM key, which judges still need. It is not a builder wizard. | Phase 6 onboarding |
+| `Environment` | Call sync uses it to find the provider agent. Only deploy state and the gate were removed. Webhook environments still validate but no longer do anything. | 1.8 |
+| Backend draft, publish, rollback and version routes; CLI agent commands | They sit under agent creation and the frozen eval stack, and `AgentVersion` is reshaped in 1.5. | 1.5 |
+| Create-agent and add-environment forms | The assistant cannot register connections until the MCP tools exist. The self-hosted option now asks for the agent's endpoint URL so it creates a usable agent. | 1.8 |
+| Editing UI inside the frozen eval stack: eval config detail form, test case detail drawer, the custom metrics page, the "Run" button | Out of the agreed scope for 0.2. Nothing new can be created from the UI, but existing items can still be edited. | Phase 4 |
+| Retell functions that nothing calls (`create_retell_batch_test`, `create_retell_chat*`, `list_retell_agent_versions`, and others) | Already unused before the rebuild. Batch tests and agent versions are likely inputs to Phases 1 and 4. | 1.5 and Phase 4 |
 
 ---
 
@@ -138,8 +147,8 @@ that makes later sessions fast and safe.
 
 ### 0.2 Demolition
 
-- Delete everything in the Delete table above. One PR per row or small group of rows,
-  so each diff is reviewable.
+- Delete everything in the Deleted table above. Done as one PR with one commit per
+  group, so each diff is reviewable.
 - For each deletion: remove routes, CRUD, models, services, CLI commands, MCP tools,
   frontend screens, tests and public docs that mention it. Regenerate the client.
 - Before deleting anything not named in the table, stop and ask.
@@ -153,6 +162,11 @@ that makes later sessions fast and safe.
 - `alembic check` currently reports a large pre-existing drift between the models and
   the migrated schema (enum column types, foreign key names, indexes, a `user.oauth_id`
   column the models no longer have). The baseline must end with `alembic check` clean.
+- Existing databases do not survive slice 0.2: stored eval configs and runs whose
+  config uses the removed `connexity` runtime, or has no `runtime` at all, fail
+  validation and make the eval list endpoints return 500. The baseline is the point
+  where every database is recreated. Until then, a database with 1.x eval data needs
+  those rows deleted by hand.
 - **Done when:** `alembic upgrade head` on an empty database produces the current
   models, `alembic check` reports no drift, and the test database bootstraps from the
   single baseline.
@@ -166,6 +180,10 @@ that makes later sessions fast and safe.
   has never type-checked the frontend. Found in slice 0.1; `tsc --noEmit` passes today.
 - Add the MCP server tests to CI. They pass locally (`uv run --extra dev pytest` in
   `mcp_server/`) but no workflow runs them.
+- Redact the connection string in the `conftest.py` safety-check error. It prints the
+  full database URL, password included, whenever `DATABASE_URL` points elsewhere.
+- Rename the `/agents/[id]/deploy` route. It now only lists environments and its tab is
+  labelled "Environments", but the path and directory still say `deploy`.
 - Make local test runs work out of the box. The root `.env` here points
   `DATABASE_URL` at a hosted database, and the local Postgres container rejects the
   password in `.env`, so slice 0.1 ran tests in a throwaway container.
@@ -389,7 +407,6 @@ unless a slice depends on them.
 
 | # | Question | Blocks | Claude's recommendation |
 |---|---|---|---|
-| Q3 | What happens to `connexity-cli` on PyPI? | 0.2 | Freeze it with the eval stack and decide in Phase 4. The assistant uses MCP; CI may still want a CLI for the gate. |
 | Q4 | How is a Retell tool call matched to its n8n execution? | 1.4 | Have the skill return its execution ID in the tool response. Fall back to matching on webhook time and payload for history. |
 | Q5 | Where do real reference agent traces live for tests? They cannot go into a public repo. | 1.1 | A gitignored `fixtures-private/` directory plus a small set of hand-anonymised traces committed as test fixtures. |
 | Q6 | Are deterministic checks a built-in library with per-agent parameters, or can the assistant author new ones through the API? | 2.1 | Built-in library for Milestone 1. Assistant-authored checks need a sandbox and belong with Phase 4. |
@@ -411,6 +428,10 @@ Dmytro's only when he stated it in his own words.
 | 2026-10-06 | Keep the custom endpoint runtime and agent contract (frozen) as the connector for self-hosted frameworks such as Pipecat. Delete only the in-house simulator. | Dmytro, after raising Pipecat |
 | 2026-10-06 | The vision doc may be committed. It must not name the client or their company; operational detail stays. | Dmytro |
 | 2026-10-06 | Reference agent 1 is not the central piece. More examples on other stacks will be added. | Dmytro |
+| 2026-10-06 | Vapi and ElevenLabs keep connection, listing, import and call sync; only deploy is removed. | Dmytro |
+| 2026-10-06 | Create-agent and add-environment forms stay until slice 1.8. | Dmytro |
+| 2026-10-06 | Backend draft, publish and version routes stay until slice 1.5. | Dmytro |
+| 2026-10-06 | `connexity-cli` is frozen: trim commands whose routes are deleted, keep the eval commands, publish nothing new, decide its future in Phase 4. | Dmytro |
 
 ---
 
@@ -443,4 +464,25 @@ next. Keep each entry under ten lines.
   local test runs need a `DATABASE_URL` override. All three are recorded under 0.3 and
   0.4.
 - Not done: no `next build` and no manual click-through of the UI.
-- Next: merge the PR, then slice 0.2 (needs Q3 answered).
+- Next: merge the PR, then slice 0.2. Q3 was answered the same day (CLI frozen).
+
+### 2026-10-06: slice 0.2
+
+- Before deleting, mapped the code and found the Delete table wrong on three rows (Vapi
+  and ElevenLabs are working integrations, onboarding is an LLM key form, environments
+  carry the provider link). Scope corrected with Dmytro; see section 3.
+- Shipped in four commits: simulator and Connexity runtime; deploy; MCP prompt tool;
+  frontend editor, deploy UI and creation entry points. About 16,000 lines removed.
+- `RunConfig.runtime` is now required. Default is Retell for Retell agents and the
+  custom endpoint with the agent's URL otherwise; an agent with neither is rejected.
+- Results: ruff and format clean; pyright 0 errors; backend and CLI tests 752 passed;
+  MCP tests 10 passed; frontend lint and `tsc` clean; `next build` passes; migration
+  `rm_deploy_001` applies, reverses and re-applies.
+- Review found two issues. Fixed: provider agents whose config import is skipped were
+  left as unpublishable drafts. Not fixed, recorded under 0.3: 1.x eval configs and
+  runs in an existing database break the eval list endpoints.
+- Learned: check the code before writing a delete list; a pruning script must leave
+  alone code that was already unused; the agents UI still carries editing inside the
+  frozen eval stack.
+- Not done: no click-through of the UI.
+- Next: slice 0.3.

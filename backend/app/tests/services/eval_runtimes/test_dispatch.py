@@ -13,8 +13,8 @@ from app.models.enums import (
     TestCaseStatus,
 )
 from app.models.schemas import (
-    ConnexityRuntimeConfig,
     CustomEndpointRuntimeConfig,
+    RetellRuntimeConfig,
     RunConfig,
 )
 from app.models.test_case import TestCase
@@ -73,7 +73,9 @@ def _make_snapshots(
     )
     run_snapshot = RunSnapshot(
         run_id=uuid.uuid4(),
-        run_config=RunConfig(),
+        run_config=RunConfig(
+            runtime=CustomEndpointRuntimeConfig(url="http://localhost:8080/agent")
+        ),
         cancel_event=asyncio.Event(),
     )
     return agent_snapshot, run_snapshot
@@ -91,7 +93,7 @@ def _patch_db_and_crud(mock_crud: MagicMock, manager: RunManager):
     )
 
 
-async def test_dispatch_picks_connexity_runtime_by_default() -> None:
+async def test_dispatch_picks_retell_runtime() -> None:
     run_id = uuid.uuid4()
     test_case = _make_test_case()
     result_obj = _make_result(run_id, test_case.id)
@@ -104,13 +106,13 @@ async def test_dispatch_picks_connexity_runtime_by_default() -> None:
     manager = RunManager()
     manager.register(run_id)
 
-    agent = _make_agent()
+    agent = _make_agent(platform=Platform.RETELL)
     agent_snapshot, run_snapshot = _make_snapshots(
         agent, endpoint_url="http://localhost:8080/agent"
     )
     run_snapshot = RunSnapshot(
         run_id=run_id,
-        run_config=RunConfig(runtime=ConnexityRuntimeConfig()),
+        run_config=RunConfig(runtime=RetellRuntimeConfig()),
         cancel_event=asyncio.Event(),
     )
 
@@ -121,15 +123,15 @@ async def test_dispatch_picks_connexity_runtime_by_default() -> None:
         p3,
         p4,
         patch(
-            "app.services.eval_runtimes.text.connexity.ConnexityRuntime.run_test_case",
+            "app.services.eval_runtimes.text.retell.RetellRuntime.run_test_case",
             new_callable=AsyncMock,
-        ) as mock_connexity,
+        ) as mock_retell,
         patch(
             "app.services.eval_runtimes.text.custom_endpoint.CustomEndpointRuntime.run_test_case",
             new_callable=AsyncMock,
         ) as mock_custom,
     ):
-        mock_connexity.return_value = TestCaseRunResult(
+        mock_retell.return_value = TestCaseRunResult(
             transcript=[],
             agent_token_usage={},
             platform_token_usage={},
@@ -143,7 +145,7 @@ async def test_dispatch_picks_connexity_runtime_by_default() -> None:
             semaphore=asyncio.Semaphore(5),
         )
 
-    mock_connexity.assert_awaited_once()
+    mock_retell.assert_awaited_once()
     mock_custom.assert_not_awaited()
 
 
@@ -177,9 +179,9 @@ async def test_dispatch_picks_custom_endpoint_runtime() -> None:
         p3,
         p4,
         patch(
-            "app.services.eval_runtimes.text.connexity.ConnexityRuntime.run_test_case",
+            "app.services.eval_runtimes.text.retell.RetellRuntime.run_test_case",
             new_callable=AsyncMock,
-        ) as mock_connexity,
+        ) as mock_retell,
         patch(
             "app.services.eval_runtimes.text.custom_endpoint.CustomEndpointRuntime.run_test_case",
             new_callable=AsyncMock,
@@ -200,7 +202,7 @@ async def test_dispatch_picks_custom_endpoint_runtime() -> None:
         )
 
     mock_custom.assert_awaited_once()
-    mock_connexity.assert_not_awaited()
+    mock_retell.assert_not_awaited()
     forwarded_cfg = mock_custom.await_args.args[0]
     assert isinstance(forwarded_cfg, CustomEndpointRuntimeConfig)
     assert forwarded_cfg.url == "https://override/v1"

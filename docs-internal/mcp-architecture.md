@@ -126,18 +126,18 @@ state changes.
 
 ## Request lifecycle for a tool call
 
-Using `update_agent_prompt` as the example:
+Using `get_agent_draft` as the example:
 
 1. An MCP client calls the tool on the MCP server.
 2. FastMCP authenticates the bearer token using `OidcTokenVerifier`.
-3. The registered tool in `app.py` calls `tools.update_agent_prompt(...)`.
-4. `tools.py` calls `ConnexityBackendClient.update_agent_draft(...)`.
+3. The registered tool in `app.py` calls `tools.get_agent_draft(...)`.
+4. `tools.py` calls `ConnexityBackendClient.get_agent_draft(...)`.
 5. `client.py` reads the current MCP access token from auth context and sends it
-   as `Authorization: Bearer ...` to `PUT /api/v1/mcp/agents/{agent_id}/draft`.
+   as `Authorization: Bearer ...` to `GET /api/v1/mcp/agents/{agent_id}/draft`.
 6. The backend route validates the token again via `require_mcp_user`.
-7. Backend CRUD updates the draft and stamps `created_by` from the MCP user.
-8. The backend response is normalized into `UpdateAgentPromptResult` and
-   returned to the MCP client.
+7. Backend CRUD loads the draft, scoped to the MCP user's company.
+8. The backend response is normalized into `AgentDraftResult` and returned to
+   the MCP client.
 
 ## Design rules for new tools
 
@@ -294,7 +294,6 @@ Current MCP tools map to backend routes like this:
 | `list_agents` | `tools.list_agents` | `GET /api/v1/mcp/agents` |
 | `find_agents` | `tools.find_agents` | `GET /api/v1/mcp/agents` then local filtering in adapter |
 | `get_agent_draft` | `tools.get_agent_draft` | `GET /api/v1/mcp/agents/{agent_id}/draft` |
-| `update_agent_prompt` | `tools.update_agent_prompt` | `PUT /api/v1/mcp/agents/{agent_id}/draft` |
 
 `find_agents` is the one notable exception where the adapter performs a small
 read-only aggregation over paginated backend results. That is acceptable because

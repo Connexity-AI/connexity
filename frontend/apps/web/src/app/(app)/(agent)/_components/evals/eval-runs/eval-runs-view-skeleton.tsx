@@ -10,10 +10,9 @@ export function EvalRunsViewSkeleton() {
         <Skeleton className="h-7 w-32" />
         <Skeleton className="h-7 w-40" />
       </div>
-      <div className="grid shrink-0 grid-cols-[32px_1fr_72px_110px_110px_96px] items-center gap-4 border-b border-border bg-background px-5 py-2 text-[10px] uppercase tracking-wider text-muted-foreground/60">
+      <div className="grid shrink-0 grid-cols-[32px_1fr_110px_110px_96px] items-center gap-4 border-b border-border bg-background px-5 py-2 text-[10px] uppercase tracking-wider text-muted-foreground/60">
         <span />
         <span>Run</span>
-        <span>Tool Calls</span>
         <span>Score</span>
         <span>Cases</span>
         <span aria-hidden="true" />
@@ -22,14 +21,13 @@ export function EvalRunsViewSkeleton() {
         {Array.from({ length: 8 }).map((_, i) => (
           <li
             key={i}
-            className="grid grid-cols-[32px_1fr_72px_110px_110px_96px] items-center gap-4 border-b border-border/40 px-5 py-2.5"
+            className="grid grid-cols-[32px_1fr_110px_110px_96px] items-center gap-4 border-b border-border/40 px-5 py-2.5"
           >
             <Skeleton className="h-4 w-4" />
             <div className="flex flex-col gap-1.5">
               <Skeleton className="h-3.5 w-56" />
               <Skeleton className="h-3 w-32" />
             </div>
-            <Skeleton className="h-4 w-10" />
             <Skeleton className="h-3 w-14" />
             <Skeleton className="h-3 w-14" />
             <Skeleton className="h-3 w-16 justify-self-end" />

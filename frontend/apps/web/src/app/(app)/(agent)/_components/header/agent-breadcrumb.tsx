@@ -9,16 +9,20 @@ import {
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
+  BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@workspace/ui/components/ui/breadcrumb';
 import { Separator } from '@workspace/ui/components/ui/separator';
 import { SidebarTrigger } from '@workspace/ui/components/ui/sidebar';
 
-import { EditableBreadcrumbName } from '@/app/(app)/(agent)/_components/header/editable-breadcrumb-name';
-import { useAgentEditFormActions } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
+import { useAgent } from '@/app/(app)/(agent)/_hooks/use-agent';
 
-export function AgentEditBreadcrumb() {
-  const { agentName, agentId } = useAgentEditFormActions();
+interface AgentBreadcrumbProps {
+  agentId: string;
+}
+
+export function AgentBreadcrumb({ agentId }: AgentBreadcrumbProps) {
+  const { data: agent } = useAgent(agentId);
 
   return (
     <div className="flex items-center gap-3">
@@ -36,7 +40,9 @@ export function AgentEditBreadcrumb() {
 
           <BreadcrumbSeparator />
 
-          <EditableBreadcrumbName agentId={agentId} agentName={agentName} />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{agent?.name ?? ''}</BreadcrumbPage>
+          </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
     </div>

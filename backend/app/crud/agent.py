@@ -128,10 +128,15 @@ def create_draft_agent(
         else None
     )
 
+    # A provider agent whose config could not be imported still runs on the
+    # provider's engine, so it gets a published version like any other. Only
+    # agents with no provider behind them start as an unpublished draft.
+    is_provider_agent = integration_id is not None and platform_agent_id is not None
+
     db_obj = Agent(
         name=name,
         mode=AgentMode.PLATFORM,
-        has_draft=True,
+        has_draft=not is_provider_agent,
         company_id=company_id,
         created_by=created_by,
         platform=body.platform,
@@ -142,6 +147,17 @@ def create_draft_agent(
     )
     session.add(db_obj)
     session.flush()
+
+    if is_provider_agent:
+        agent_version_crud.create_initial_version(
+            session=session,
+            agent=db_obj,
+            company_id=company_id,
+            created_by=created_by,
+        )
+        session.commit()
+        session.refresh(db_obj)
+        return db_obj
 
     from app.models import AgentVersion
 

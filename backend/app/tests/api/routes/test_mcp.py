@@ -78,23 +78,3 @@ def test_mcp_list_agents_with_oauth_user_token(
     body = response.json()
     assert body["count"] >= 1
     assert any(item["id"] == str(agent.id) for item in body["data"])
-
-
-def test_mcp_update_draft_with_oauth_user_token(
-    client: TestClient, db: Session, monkeypatch
-) -> None:
-    access_token, user_id = _issue_mcp_oauth_token(db, monkeypatch)
-    mcp_user = db.get(User, user_id)
-    assert mcp_user is not None
-    agent = create_test_agent(db, company_id=mcp_user.company_id)
-
-    response = client.put(
-        f"{MCP_PREFIX}/agents/{agent.id}/draft",
-        json={"system_prompt": "MCP draft prompt"},
-        headers={"Authorization": f"Bearer {access_token}"},
-    )
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["system_prompt"] == "MCP draft prompt"
-    assert body["created_by"] == user_id

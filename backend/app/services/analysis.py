@@ -142,11 +142,7 @@ def _build_tool_diff_summary(config_diff: RunConfigDiff) -> str:
 
 
 def _extract_simulator_change(config_diff: RunConfigDiff) -> str:
-    sim_changes = [
-        c
-        for c in config_diff.config_changes
-        if "user_simulator" in c.field or "agent_simulator" in c.field
-    ]
+    sim_changes = [c for c in config_diff.config_changes if "user_simulator" in c.field]
     if not sim_changes:
         return "unchanged"
     return "; ".join(f"{c.field}: {c.old_value} → {c.new_value}" for c in sim_changes)

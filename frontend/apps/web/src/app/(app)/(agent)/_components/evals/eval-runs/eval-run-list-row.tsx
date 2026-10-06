@@ -6,7 +6,6 @@ import { Checkbox } from '@workspace/ui/components/ui/checkbox';
 import { cn } from '@workspace/ui/lib/utils';
 
 import { useRunStream } from '@/app/(app)/(agent)/_hooks/use-run-stream';
-import { getToolCallModeBadge } from '@/app/(app)/(agent)/_utils/tool-call-mode-badge';
 import { RunStatus } from '@/client/types.gen';
 
 import { formatAbsoluteLocal, formatLocalShort, formatTimeAgo } from './shared/format-time';
@@ -52,12 +51,11 @@ export function EvalRunListRow({
   const casesPassed = metrics?.cases_passed ?? null;
   const passedCount = metrics?.passed_count ?? 0;
   const totalExecutions = metrics?.total_executions ?? 0;
-  const toolCallModeBadge = getToolCallModeBadge(run.config);
 
   return (
     <li
       className={cn(
-        'group grid cursor-pointer grid-cols-[32px_1fr_72px_110px_110px_96px] items-center gap-4 border-b border-border/40 px-5 py-2.5 transition-colors select-none',
+        'group grid cursor-pointer grid-cols-[32px_1fr_110px_110px_96px] items-center gap-4 border-b border-border/40 px-5 py-2.5 transition-colors select-none',
         selected ? 'bg-accent/50' : 'hover:bg-accent/20'
       )}
       onClick={onOpen}
@@ -95,19 +93,6 @@ export function EvalRunListRow({
             </span>
           ) : null}
         </div>
-      </div>
-
-      <div className="flex items-center">
-        <span
-          className={cn(
-            'rounded px-1.5 py-0.5 text-[10px]',
-            toolCallModeBadge.tone === 'mock' && 'bg-yellow-500/15 text-yellow-400',
-            toolCallModeBadge.tone === 'live' && 'bg-blue-500/15 text-blue-400',
-            toolCallModeBadge.tone === 'na' && 'bg-muted text-muted-foreground'
-          )}
-        >
-          {toolCallModeBadge.label}
-        </span>
       </div>
 
       <div className="flex items-center">

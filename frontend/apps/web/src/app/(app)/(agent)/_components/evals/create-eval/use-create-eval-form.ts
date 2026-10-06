@@ -82,7 +82,6 @@ export function useCreateEvalForm({
     run: {
       concurrency: cfg?.concurrency ?? base.run.concurrency,
       max_turns: cfg?.max_turns ?? base.run.max_turns,
-      tool_mode: cfg?.tool_mode ?? base.run.tool_mode,
       runtime: cfg?.runtime ?? base.run.runtime,
       runtime_test: base.run.runtime_test,
       metrics_pass_threshold:

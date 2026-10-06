@@ -87,7 +87,7 @@ export function useRuntimeField({
       return;
     }
 
-    if (selectedKind === TextRuntimeKind.CONNEXITY && defaultOption.kind !== selectedKind) {
+    if (defaultOption.kind !== selectedKind) {
       form.setValue('run.runtime', runtimeConfigForKind(defaultOption.kind), {
         shouldDirty: false,
         shouldValidate: true,

@@ -8,8 +8,8 @@ import pytest
 from app.models.agent import Agent
 from app.models.enums import AgentMode, Platform
 from app.models.schemas import (
-    ConnexityRuntimeConfig,
     CustomEndpointRuntimeConfig,
+    RetellRuntimeConfig,
     RunConfig,
 )
 from app.services.eval_runtimes import AgentSnapshot, RunSnapshot
@@ -61,7 +61,7 @@ def test_validate_config_rejects_wrong_kind() -> None:
     agent = _make_agent()
     session = MagicMock()
     with pytest.raises(ValueError):
-        runtime.validate_config(ConnexityRuntimeConfig(), agent, session)
+        runtime.validate_config(RetellRuntimeConfig(), agent, session)
 
 
 class _MockResponse:
@@ -180,7 +180,9 @@ async def test_run_test_case_overrides_endpoint_url() -> None:
         ),
         run_snapshot=RunSnapshot(
             run_id=uuid.uuid4(),
-            run_config=RunConfig(),
+            run_config=RunConfig(
+                runtime=CustomEndpointRuntimeConfig(url="https://override/v1")
+            ),
             cancel_event=None,
         ),
     )
