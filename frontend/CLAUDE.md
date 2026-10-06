@@ -6,13 +6,9 @@ Applies to all code in `frontend/`.
 
 ```bash
 cd frontend
-pnpm lint                          # ESLint
-cd apps/web && pnpm typecheck      # TypeScript (tsc --noEmit)
+pnpm lint                # ESLint
+pnpm turbo check-types   # TypeScript (regenerates Next route types, then tsc --noEmit)
 ```
-
-Do not rely on `pnpm turbo check-types`. No package defines that script, so it runs
-zero tasks and passes without checking anything. CI still calls it; fixing that is
-slice 0.4 in `REBUILD.md`.
 
 ## What the UI is for
 

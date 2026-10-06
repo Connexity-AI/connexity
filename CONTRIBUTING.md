@@ -17,12 +17,18 @@ The fastest way to get a working environment is the local dev mode (DB in Docker
 git clone https://github.com/Connexity-AI/connexity.git
 cd connexity
 
-cp .env.example .env
-cp frontend/apps/web/.env.example frontend/apps/web/.env
+cp .env.example .env   # the only env file; local Postgres is the default
 
-make install   # installs Python (uv) and frontend (pnpm) dependencies
-make db        # starts Postgres + Adminer in Docker
-make db-seed   # runs Alembic migrations and seeds a superuser
+make install     # installs Python (uv) and frontend (pnpm) dependencies
+make db          # starts Postgres + Adminer in Docker
+make db-upgrade  # applies migrations
+make db-seed     # creates the FIRST_SUPERUSER login, if set in .env
+```
+
+To throw the local database away and rebuild it from migrations:
+
+```bash
+make db-reset
 ```
 
 Then run the backend and frontend in two terminals:
@@ -43,7 +49,14 @@ Run `make help` to see all available targets (lint, format, tests, client codege
 
 ## Quality checks
 
-Before opening a PR, please run the relevant checks locally.
+Before opening a PR, run every gate with one command. It starts the local database if
+needed and prints how long each step took:
+
+```bash
+make check
+```
+
+The individual checks, if you want to run one on its own:
 
 ### Backend (`backend/`)
 
@@ -52,7 +65,7 @@ cd backend
 uv run ruff check app cli scripts        # lint
 uv run ruff format --check app cli scripts  # format check
 uv run pyright                            # type check
-uv run pytest app/tests -v                # tests
+uv run pytest                             # tests (uses the local Postgres, database app_test)
 ```
 
 ### Frontend (`frontend/`)

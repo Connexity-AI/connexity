@@ -1,6 +1,6 @@
 import { Platform } from '@/client/types.gen';
 import { useAgent } from '@/app/(app)/(agent)/_hooks/use-agent';
-import type { AgentCanonicalDeployTarget } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_utils/agent-canonical-deploy-target';
+import type { AgentProviderTarget } from '@/app/(app)/(agent)/agents/[agentId]/environments/_utils/agent-provider-target';
 import type { EnvironmentPublic } from '@/client/types.gen';
 import type { FC } from 'react';
 
@@ -103,7 +103,7 @@ const ElevenLabsDestination: FC<{
 
 export const EnvironmentCardDestinationDetails: FC<Props> = ({ agentId, environment }) => {
   const { data: agent } = useAgent(agentId);
-  const agentTarget = agent as AgentCanonicalDeployTarget | undefined;
+  const agentTarget = agent as AgentProviderTarget | undefined;
   const integrationName = getIntegrationName(environment.integration_name);
   const platformAgentLabel = getPlatformAgentLabel(
     agentTarget?.platform_agent_name,

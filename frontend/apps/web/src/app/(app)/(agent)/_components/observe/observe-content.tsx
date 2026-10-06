@@ -59,10 +59,10 @@ export function ObserveContent({ agentId }: ObserveContentProps) {
         <p className="text-sm text-muted-foreground">
           No environment connected yet. Go to the{' '}
           <Link
-            href={UrlGenerator.agentDeploy(agentId)}
+            href={UrlGenerator.agentEnvironments(agentId)}
             className="text-foreground underline underline-offset-2"
           >
-            Deploy tab
+            Environments tab
           </Link>{' '}
           and add an environment to start observing calls.
         </p>

@@ -58,6 +58,8 @@ make db-seed          # migrations + superuser
 make dev              # FastAPI on :8000
 make dashboard        # Next.js on :3000
 make mcp              # MCP server
+make check            # every gate a PR must pass, with per-step timings
+make db-reset         # DELETE the local database and rebuild it from migrations
 make lint             # backend + frontend lint and types
 make test             # backend tests with coverage
 make generate-client  # regenerate the frontend API client
@@ -66,14 +68,23 @@ make db-migrate MSG="description"   # new Alembic revision
 
 ### What to run before committing
 
-| What changed | Run |
-|---|---|
-| Python in `backend/` | `ruff check` + `ruff format --check` + `pyright` + `pytest` (see `backend/CLAUDE.md`) |
-| Code in `frontend/` | `pnpm lint` + `pnpm typecheck` in `frontend/apps/web` (see `frontend/CLAUDE.md`) |
-| Backend routes or models | All backend checks + `bash scripts/generate-client.sh` |
-| Both | All of the above |
+Run `make check` before every push. It runs the same gates as CI (backend lint, format,
+types, tests with the coverage floor, MCP tests, frontend lint and types, generated
+client freshness) and takes about a minute and a half.
 
-CI fails if the generated client is stale.
+While iterating, run only what your change touches; the commands are in
+`backend/CLAUDE.md` and `frontend/CLAUDE.md`. After a backend route or model change,
+run `bash scripts/generate-client.sh`.
+
+### Hooks
+
+`.claude/settings.json` is tracked and applies to every session:
+
+- Edits under `frontend/apps/web/src/client/` are blocked. Regenerate instead.
+- After an edit under `backend/app/models/` or `backend/app/api/routes/`, the session is
+  reminded to add a migration and regenerate the client.
+
+Personal settings go in `.claude/settings.local.json`, which is ignored.
 
 ## Architecture that survives the rebuild
 

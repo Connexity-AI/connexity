@@ -1,4 +1,4 @@
-import type { AddEnvironmentFormValues } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_components/add-environment-form-schema';
+import type { AddEnvironmentFormValues } from '@/app/(app)/(agent)/agents/[agentId]/environments/_components/add-environment-form-schema';
 import { Platform } from '@/client/types.gen';
 
 export type IntegrationPlatform = Extract<

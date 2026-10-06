@@ -269,7 +269,7 @@ export const NewAgentModal: FC<Props> = ({ open, onOpenChange }) => {
                       <div className="min-w-0 flex-1">
                         <p className="text-xs text-foreground">Single prompt</p>
                         <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
-                          One system prompt with versioning and deployments
+                          One system prompt
                         </p>
                       </div>
                     </div>
