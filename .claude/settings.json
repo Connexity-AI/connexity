@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "deny": ["Edit(frontend/apps/web/src/client/**)"]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-generated-client.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/remind-after-api-change.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

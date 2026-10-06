@@ -96,17 +96,20 @@ In case study 1, a prompt rule about money did not hold and a code guard did. Th
 same applies to this repo. If a rule matters, it becomes a hook, a CI step, a type or a
 constraint. `CLAUDE.md` is for what cannot be mechanised.
 
-Current mechanical gates:
+Current mechanical gates. `make check` runs all of the "make check" ones locally in
+one command, with per-step timings; run it before every push.
 
 | Gate | Where |
 |---|---|
-| Ruff lint and format, Pyright | pre-commit, CI |
-| Backend tests on real Postgres | CI |
-| Frontend lint and type check | CI |
-| Generated client is fresh | CI |
-
-Planned in slice 0.4: one `make check` command, and a hook that blocks edits to the
-generated client.
+| Ruff lint and format, Pyright | pre-commit, `make check`, CI |
+| Backend tests on real Postgres, coverage floor of 90% | `make check`, CI |
+| Models match migrations | test suite, CI (`alembic check`) |
+| Enum columns follow the storage rule | test suite |
+| MCP server tests | `make check`, CI |
+| Frontend lint and type check | `make check`, CI |
+| Generated client is fresh | `make check`, CI |
+| Generated client cannot be hand-edited | hook in `.claude/settings.json` |
+| Tests cannot reach a hosted database | `backend/conftest.py` |
 
 ### Test against reality
 

@@ -1,269 +1,73 @@
-# Data Model — connexity
+# Data model
 
-## Entity Relationship Diagram
+The models in `backend/app/models/` are the single description of the schema. This page
+is a map, not a column reference: read the model file for fields, and keep this page to
+what the code cannot tell you (what each table is for and where it is heading).
+
+A test (`test_models_match_migrated_schema`) fails when models and migrations disagree,
+so the models are always what the database actually has.
+
+## Tables
 
 ```mermaid
 erDiagram
-    Agent ||--o{ Run : "tested in"
-    EvalSet ||--o{ Run : "evaluated by"
-    EvalSet ||--o{ EvalSetMember : "contains"
-    TestCase ||--o{ EvalSetMember : "belongs to"
-    Run ||--o{ TestCaseResult : "produces"
-    TestCase ||--o{ TestCaseResult : "evaluated in"
-
-    Agent {
-        uuid id PK
-        string name
-        string description
-        enum mode
-        string endpoint_url
-        text system_prompt
-        jsonb tools
-        string agent_model
-        string agent_provider
-        jsonb metadata
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    TestCase {
-        uuid id PK
-        string name
-        string description
-        enum difficulty
-        text_array tags
-        enum status
-        jsonb persona
-        string initial_message
-        jsonb user_context
-        int max_turns
-        jsonb expected_outcomes
-        jsonb expected_tool_calls
-        string evaluation_criteria_override
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    EvalSet {
-        uuid id PK
-        string name
-        string description
-        int version
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    EvalSetMember {
-        uuid eval_set_id FK
-        uuid test_case_id FK
-        int position
-    }
-
-    Run {
-        uuid id PK
-        string name
-        uuid agent_id FK
-        string agent_endpoint_url
-        text agent_system_prompt
-        jsonb agent_tools
-        string agent_mode
-        string agent_model
-        string agent_provider
-        uuid eval_set_id FK
-        int eval_set_version
-        jsonb config
-        enum status
-        bool is_baseline
-        jsonb aggregate_metrics
-        timestamp started_at
-        timestamp completed_at
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    TestCaseResult {
-        uuid id PK
-        uuid run_id FK
-        uuid test_case_id FK
-        jsonb transcript
-        int turn_count
-        jsonb verdict
-        int total_latency_ms
-        int agent_latency_p50_ms
-        int agent_latency_p95_ms
-        int agent_latency_max_ms
-        jsonb agent_token_usage
-        jsonb platform_token_usage
-        float estimated_cost_usd
-        bool passed
-        text error_message
-        timestamp started_at
-        timestamp completed_at
-        timestamp created_at
-        timestamp updated_at
-    }
+    company ||--o{ user : has
+    company ||--o{ integration : owns
+    company ||--o{ agent : owns
+    company ||--o{ custom_metric : owns
+    integration ||--o{ agent : "provider account for"
+    agent ||--o{ agent_version : "snapshots"
+    agent ||--o{ environment : "linked through"
+    agent ||--o{ call : "served"
+    agent ||--o{ test_case : has
+    agent ||--o{ eval_config : has
+    call ||--o{ test_case : "source of"
+    eval_config ||--o{ eval_config_member : contains
+    test_case ||--o{ eval_config_member : "member of"
+    eval_config ||--o{ run : "executed as"
+    agent_version ||--o{ run : "tested in"
+    run ||--o{ test_case_result : produces
+    test_case ||--o{ test_case_result : "result of"
+    user ||--o{ oauth_authorization_code : grants
+    user ||--o{ oauth_refresh_token : holds
+    oauth_client ||--o{ oauth_authorization_code : issues
+    oauth_client ||--o{ oauth_refresh_token : issues
 ```
 
-## Enums
+| Table | Model file | What it holds | Rebuild status |
+|---|---|---|---|
+| `company` | `company.py` | A tenant, with its LLM credentials (encrypted). | Keep |
+| `user` | `user.py` | A login. Each signup creates its own company. | Keep |
+| `integration` | `integration.py` | A provider account (Retell, Vapi, ElevenLabs) with an encrypted API key. This is the product's read access to a provider. | Keep |
+| `agent` | `agent.py` | A voice agent, linked to a provider agent or to its own HTTP endpoint. | Keep |
+| `agent_version` | `agent_version.py` | A snapshot of the agent's prompt, tools and model settings; draft or published. | Reshape in slice 1.5 into observed component versions |
+| `environment` | `environment.py` | The link call sync uses to find an agent's provider. | Revisit in slice 1.8 |
+| `call` | `call.py` | A production call: transcript plus the provider's raw payload. Retell-specific column names. | Reshape in slice 1.1 into the canonical trace |
+| `test_case` | `test_case.py` | A simulated-caller scenario, optionally sourced from a call. | Frozen until Phase 4 |
+| `eval_config`, `eval_config_member` | `eval_config.py` | A named set of test cases with a run configuration (runtime, judge, thresholds). | Frozen until Phase 4 |
+| `run` | `run.py` | One execution of an eval config against an agent version, with aggregate metrics. | Frozen until Phase 4 |
+| `test_case_result` | `test_case_result.py` | One test case's transcript and judge verdict within a run. | Frozen until Phase 4 |
+| `custom_metric` | `custom_metric.py` | Judge metrics per company; built-in ones are copied in at signup. | Frozen until Phase 4 |
+| `oauth_client`, `oauth_authorization_code`, `oauth_refresh_token` | `oauth.py` | The OAuth server that MCP clients authenticate against. | Keep |
 
-| Enum | Values |
-|------|--------|
-| `Difficulty` | `normal`, `hard` |
-| `TestCaseStatus` | `draft`, `active`, `archived` |
-| `RunStatus` | `pending`, `running`, `completed`, `failed`, `cancelled` |
-| `TurnRole` | `user`, `assistant`, `system`, `tool` |
-| `AgentMode` | `endpoint`, `platform` |
+## Conventions
 
-## JSONB Nested Entities
+- **Tenancy.** Every tenant-owned table has `company_id`, and every query filters on it.
+- **Enums** are VARCHAR columns holding the member's value, declared with
+  `enum_type(...)` from `app/models/columns.py`. No Postgres ENUM types.
+- **Structured values** that are read and written as a whole live in JSONB columns
+  with a Pydantic model in `schemas.py` (run config, transcript turns, judge verdict,
+  aggregate metrics).
+- **Deleting an agent** cascades to its versions in the database. Runs keep a nullable
+  reference to the version they tested.
+- **Soft delete** (`deleted_at`) is used on calls, test cases, eval configs and custom
+  metrics.
+- **Constraints live on the model.** Indexes, partial indexes and `ondelete` rules are
+  declared on the model, never in a migration only. See
+  [`migrations.md`](./migrations.md).
 
-These are stored inside JSONB columns, not as separate tables.
+## Snapshots on runs
 
-### RunConfig (stored in `runs.config`)
-
-| Field | Type | Default |
-|-------|------|---------|
-| `concurrency` | `int` | `5` |
-| `timeout_per_test_case_ms` | `int` | `120000` |
-| `judge` | `JudgeConfig \| None` | `None` |
-| `user_simulator` | `UserSimulatorConfig \| None` | `None` |
-| `agent_simulator` | `AgentSimulatorConfig \| None` | `None` |
-
-### JudgeConfig (nested in `RunConfig.judge`)
-
-| Field | Type | Default |
-|-------|------|---------|
-| `metrics` | `list[MetricSelection] \| None` | `None` |
-| `pass_threshold` | `float` | `75.0` |
-| `model` | `str \| None` | `None` |
-| `provider` | `str \| None` | `None` |
-
-### UserSimulatorConfig (nested in `RunConfig.user_simulator`)
-
-| Field | Type | Default |
-|-------|------|---------|
-| `mode` | `SimulatorMode` | `llm` |
-| `scripted_messages` | `list[str]` | `[]` |
-| `model` | `str \| None` | `None` |
-| `provider` | `str \| None` | `None` |
-| `temperature` | `float \| None` | `None` |
-
-### AgentSimulatorConfig (nested in `RunConfig.agent_simulator`)
-
-| Field | Type | Default |
-|-------|------|---------|
-| `model` | `str \| None` | `None` |
-| `provider` | `str \| None` | `None` |
-| `temperature` | `float \| None` | `None` |
-| `max_tokens` | `int \| None` | `None` |
-
-### ConversationTurn (stored in `test_case_result.transcript`)
-
-| Field | Type |
-|-------|------|
-| `index` | `int` |
-| `role` | `TurnRole` |
-| `content` | `str \| None` |
-| `tool_calls` | `list[ToolCall] \| None` |
-| `tool_call_id` | `str \| None` |
-| `latency_ms` | `int \| None` |
-| `token_count` | `int \| None` |
-| `timestamp` | `datetime` |
-
-### ToolCall (nested in `ConversationTurn.tool_calls`)
-
-OpenAI chat-completions shape, plus optional `tool_result` for platform-stored outcomes.
-
-| Field | Type |
-|-------|------|
-| `id` | `str` |
-| `type` | `function` |
-| `function` | `ToolCallFunction` (`name`, `arguments` JSON string) |
-| `tool_result` | `Any \| None` |
-
-### JudgeVerdict (stored in `test_case_result.verdict`)
-
-| Field | Type | Default |
-|-------|------|---------|
-| `passed` | `bool` | — |
-| `overall_score` | `float` | — |
-| `metric_scores` | `list[MetricScore]` | — |
-| `summary` | `str \| None` | `None` |
-| `raw_judge_output` | `str \| None` | `None` |
-| `judge_model` | `str` | — |
-| `judge_provider` | `str` | — |
-| `judge_latency_ms` | `int \| None` | `None` |
-| `judge_token_usage` | `dict[str, int] \| None` | `None` |
-
-### MetricScore (nested in `JudgeVerdict.metric_scores`)
-
-| Field | Type | Default |
-|-------|------|---------|
-| `metric` | `str` | — |
-| `score` | `int` | — (0–5 scored; 0 or 5 binary) |
-| `label` | `str` | — (critical_fail\|fail\|poor\|acceptable\|good\|excellent / pass\|fail) |
-| `weight` | `float` | `1.0` |
-| `justification` | `str` | — |
-| `is_binary` | `bool` | `false` |
-| `tier` | `str \| None` | `None` |
-| `failure_code` | `str \| None` | `None` — judge-generated label when metric scored poorly |
-| `turns` | `list[int]` | `[]` — turn indices where the issue was observed |
-
-### AggregateMetrics (stored in `runs.aggregate_metrics`)
-
-| Field | Type | Default |
-|-------|------|---------|
-| `unique_test_case_count` | `int` | — |
-| `total_executions` | `int` | — |
-| `passed_count` | `int` | — |
-| `failed_count` | `int` | — |
-| `error_count` | `int` | — |
-| `pass_rate` | `float` | — |
-| `latency_p50_ms` | `float \| None` | `None` |
-| `latency_p95_ms` | `float \| None` | `None` |
-| `latency_max_ms` | `float \| None` | `None` |
-| `latency_avg_ms` | `float \| None` | `None` |
-| `total_agent_token_usage` | `dict[str, int] \| None` | `None` |
-| `total_platform_token_usage` | `dict[str, int] \| None` | `None` |
-| `total_estimated_cost_usd` | `float \| None` | `None` |
-| `avg_overall_score` | `float \| None` | `None` |
-
-### Persona (stored in `test_case.persona`)
-
-| Field | Type |
-|-------|------|
-| `type` | `str` |
-| `description` | `str` |
-| `instructions` | `str` |
-
-### ExpectedToolCall (stored in `test_case.expected_tool_calls`)
-
-| Field | Type | Default |
-|-------|------|---------|
-| `tool` | `str` | — |
-| `expected_params` | `dict[str, Any] \| None` | `None` |
-
-### expected_outcomes (stored in `test_case.expected_outcomes`)
-
-Free-form `dict[str, Any]`. Keys are descriptive labels (e.g. `"refund_initiated"`), values are expected state (bool, string, etc.). The judge interprets these semantically.
-
-## Indexes
-
-| Table | Index | Type |
-|-------|-------|------|
-| `test_case` | `difficulty` | btree |
-| `test_case` | `status` | btree |
-| `test_case` | `tags` | GIN |
-| `eval_set` | `name` | btree |
-| `eval_set_member` | `eval_set_id` | btree |
-| `run` | `agent_id` | btree |
-| `run` | `eval_set_id` | btree |
-| `run` | `status` | btree |
-| `run` | `is_baseline` | btree |
-| `run` | `created_at` | btree |
-| `test_case_result` | `run_id` | btree |
-| `test_case_result` | `test_case_id` | btree |
-| `test_case_result` | `passed` | btree |
-
-## Critical Design Decision
-
-`agent_system_prompt`, `agent_tools`, and related agent snapshot fields live on the **Run** entity (captured at eval time), **NOT** on TestCase. Each run also records `agent_version` / `agent_version_id` pointing at the immutable **AgentVersion** row. This ensures that each evaluation run captures a complete snapshot of the agent configuration at that point in time.
+A run copies the agent's prompt, tools, model and mode onto itself when it is created,
+and records the `agent_version` it tested. A result therefore always shows what was
+actually evaluated, even after the agent changes.

@@ -50,6 +50,11 @@
    </a>
 </p>
 
+> **Connexity is being rebuilt.** This page describes Connexity 1.x, and parts of it no
+> longer match the code on `main` (the in-product assistant, agent editor, in-house
+> simulator and deploys have been removed). See [`Connexity 2.0.md`](./Connexity%202.0.md)
+> for where the product is going and [`REBUILD.md`](./REBUILD.md) for progress.
+
 Connexity is an **open-source evaluation and observability platform for voice AI agents**. It closes the loop between development and production: build or connect an agent, iterate on prompts with the coding assistant you already use (Claude Code, Cursor, Codex) via the Connexity CLI and MCP server, generate realistic test cases from the agent's own configuration and real conversations, run evaluations locally or in CI, inspect production calls, and promote better versions with confidence — all from one place.
 
 ## 🌀 Core Features

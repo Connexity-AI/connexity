@@ -68,8 +68,8 @@ export class UrlGenerator {
     return `/agents/${agentId}/evals/eval-configs/${evalConfigId}` as Route;
   }
 
-  static agentDeploy(agentId: string) {
-    return `/agents/${agentId}/deploy` as Route;
+  static agentEnvironments(agentId: string) {
+    return `/agents/${agentId}/environments` as Route;
   }
 
   static agentObserve(agentId: string) {

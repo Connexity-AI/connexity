@@ -6,23 +6,23 @@ import { useForm } from 'react-hook-form';
 import { useAgent } from '@/app/(app)/(agent)/_hooks/use-agent';
 import { useCreateEnvironment } from '@/app/(app)/(agent)/_hooks/use-create-environment';
 import { useUpdateEnvironment } from '@/app/(app)/(agent)/_hooks/use-update-environment';
-import { addEnvironmentFormSchema } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_components/add-environment-form-schema';
-import type { AgentCanonicalDeployTarget } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_utils/agent-canonical-deploy-target';
+import { addEnvironmentFormSchema } from '@/app/(app)/(agent)/agents/[agentId]/environments/_components/add-environment-form-schema';
+import type { AgentProviderTarget } from '@/app/(app)/(agent)/agents/[agentId]/environments/_utils/agent-provider-target';
 import {
   getAgentEnvironmentFormMode,
   type AgentEnvironmentFormMode,
-} from '@/app/(app)/(agent)/agents/[agentId]/deploy/_utils/agent-environment-form-mode';
+} from '@/app/(app)/(agent)/agents/[agentId]/environments/_utils/agent-environment-form-mode';
 import {
   getEnvironmentCreateBody,
   getEnvironmentFormValues,
   getEnvironmentUpdateBody,
-} from '@/app/(app)/(agent)/agents/[agentId]/deploy/_utils/environment-form-values';
-import { isIntegrationPlatform } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_utils/environment-platform-utils';
+} from '@/app/(app)/(agent)/agents/[agentId]/environments/_utils/environment-form-values';
+import { isIntegrationPlatform } from '@/app/(app)/(agent)/agents/[agentId]/environments/_utils/environment-platform-utils';
 
 import type {
   AddEnvironmentFormInputValues,
   AddEnvironmentFormValues,
-} from '@/app/(app)/(agent)/agents/[agentId]/deploy/_components/add-environment-form-schema';
+} from '@/app/(app)/(agent)/agents/[agentId]/environments/_components/add-environment-form-schema';
 import type { EnvironmentPublic } from '@/client/types.gen';
 
 interface UseAddEnvironmentFormOptions {
@@ -37,7 +37,7 @@ export function useAddEnvironmentForm({
   onSuccess,
 }: UseAddEnvironmentFormOptions) {
   const { data: agent, isLoading: isAgentLoading } = useAgent(agentId);
-  const agentTarget = agent as AgentCanonicalDeployTarget | undefined;
+  const agentTarget = agent as AgentProviderTarget | undefined;
   const agentEnvironmentFormMode: AgentEnvironmentFormMode = getAgentEnvironmentFormMode(
     agentTarget,
     isAgentLoading

@@ -15,15 +15,11 @@ uv run pytest app/tests -v                  # tests
 Tests run against a separate `app_test` database in the same Postgres container.
 `backend/conftest.py` creates it and applies migrations on first run; it is safe to wipe.
 
-If the root `.env` sets `DATABASE_URL` (a hosted database), it overrides `POSTGRES_*` and
-the test safety check refuses to run. Never point tests or migrations at that database.
-Override `DATABASE_URL` in the shell for the test run, pointing at a local or throwaway
-Postgres with a database named `app_test`:
-
-```bash
-docker run -d --rm --name connexity-test-db -e POSTGRES_PASSWORD=password -p 127.0.0.1:55000:5432 postgres:17-alpine
-DATABASE_URL=postgresql://postgres:password@127.0.0.1:55000/app_test uv run pytest app/tests -q
-```
+Tests always use the local Postgres from `make db`, built from the `POSTGRES_*`
+settings. A `DATABASE_URL` in the root `.env` (a hosted database) is ignored by the test
+run, so tests can never reach it. To use a different local database, set
+`TEST_DATABASE_URL`; its database must be named `app_test`. Never point migrations at a
+hosted database from a dev machine.
 
 After any route or model change, run `bash scripts/generate-client.sh` from the repo root.
 

@@ -7,9 +7,9 @@ else
   BASH := bash
 endif
 
-.PHONY: help install dev dashboard mcp db db-upgrade db-seed db-migrate db-downgrade db-stop \
+.PHONY: help install dev dashboard mcp db db-upgrade db-seed db-migrate db-downgrade db-stop db-reset \
         docker-up docker-down docker-logs docker-build-up docker-build-down \
-        cli lint format test generate-client cloud-run-smoke
+        cli check lint format test generate-client cloud-run-smoke
 
 # ──────────────────────────────────────────────
 # Help
@@ -58,6 +58,13 @@ db-downgrade: ## Downgrade Alembic by one revision (usage: make db-downgrade or 
 db-stop: ## Stop Postgres + Adminer
 	docker compose down database adminer
 
+db-reset: ## DELETE the local database and rebuild it from migrations, then seed the login
+	@printf 'This permanently deletes the local database in backend/data/database. Continue? [y/N] ' && read answer && [ "$$answer" = "y" ]
+	docker compose down database adminer
+	find backend/data/database -mindepth 1 ! -name .gitkeep -delete
+	docker compose up -d --wait database adminer
+	cd backend && uv run bash scripts/prestart.sh
+
 # ──────────────────────────────────────────────
 # Docker (everything in containers)
 # ──────────────────────────────────────────────
@@ -88,10 +95,13 @@ cli: ## Run the CLI (usage: make cli ARGS="hello")
 # Code quality
 # ──────────────────────────────────────────────
 
+check: ## Run every gate a PR must pass, with per-step timings
+	@$(BASH) scripts/check.sh
+
 lint: ## Run linting and type-checking (backend + frontend)
 	cd backend && uv run bash scripts/lint.sh
 	cd frontend && pnpm lint
-	cd frontend && pnpm turbo typecheck
+	cd frontend && pnpm turbo check-types
 
 format: ## Format backend code with ruff
 	cd backend && uv run bash scripts/format.sh

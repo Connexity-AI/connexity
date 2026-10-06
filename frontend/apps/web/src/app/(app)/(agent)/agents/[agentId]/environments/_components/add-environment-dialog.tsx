@@ -11,7 +11,7 @@ import {
 import { useAgent } from '@/app/(app)/(agent)/_hooks/use-agent';
 import { platformLabel } from '@/app/(app)/(agents)/_components/new-agent-platform-labels';
 import { useIntegrations } from '@/app/(app)/(agent)/_hooks/use-integrations';
-import { subtitlePlatformForAddEnvironmentDialog } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_utils/subtitle-platform-for-add-environment-dialog';
+import { subtitlePlatformForAddEnvironmentDialog } from '@/app/(app)/(agent)/agents/[agentId]/environments/_utils/subtitle-platform-for-add-environment-dialog';
 import { AddEnvironmentForm } from './add-environment-form';
 
 import type { FC } from 'react';
@@ -46,7 +46,7 @@ export const AddEnvironmentDialog: FC<Props> = ({ open, onOpenChange, environmen
           <DialogTitle className="text-lg leading-none font-semibold">{title}</DialogTitle>
           {subtitlePlatform !== null && (
             <p className="text-[11px] text-muted-foreground mt-1">
-              Configure a {platformLabel(subtitlePlatform)} deployment environment
+              Link this agent to its {platformLabel(subtitlePlatform)} account
             </p>
           )}
         </DialogHeader>

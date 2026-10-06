@@ -17,7 +17,7 @@ interface Props {
   params: Promise<{ agentId: string }>;
 }
 
-export default async function AgentDeployPage({ params }: Props) {
+export default async function AgentEnvironmentsPage({ params }: Props) {
   const { agentId } = await params;
 
   const queryClient = getQueryClient();

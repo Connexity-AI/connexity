@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from '@workspace/ui/components/ui/tabs';
 
 import type { LucideIcon } from 'lucide-react';
 
-export type AgentPageMode = 'observe' | 'evals' | 'deploy';
+export type AgentPageMode = 'observe' | 'evals' | 'environments';
 
 interface ModeTab {
   value: AgentPageMode;
@@ -28,10 +28,10 @@ const MODE_TABS: ModeTab[] = [
   },
   { value: 'evals', label: 'Evals', Icon: FlaskConical, href: UrlGenerator.agentEvals },
   {
-    value: 'deploy',
+    value: 'environments',
     label: 'Environments',
     Icon: Plug,
-    href: UrlGenerator.agentDeploy,
+    href: UrlGenerator.agentEnvironments,
   },
 ];
 

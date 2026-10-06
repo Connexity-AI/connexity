@@ -1,8 +1,8 @@
 import type {
   AddEnvironmentFormInputValues,
   AddEnvironmentFormValues,
-} from '@/app/(app)/(agent)/agents/[agentId]/deploy/_components/add-environment-form-schema';
-import type { AgentCanonicalDeployTarget } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_utils/agent-canonical-deploy-target';
+} from '@/app/(app)/(agent)/agents/[agentId]/environments/_components/add-environment-form-schema';
+import type { AgentProviderTarget } from '@/app/(app)/(agent)/agents/[agentId]/environments/_utils/agent-provider-target';
 import { Platform } from '@/client/types.gen';
 import type { EnvironmentCreate, EnvironmentPublic, EnvironmentUpdate } from '@/client/types.gen';
 import { isPlatformIntegration } from './environment-platform-utils';
@@ -17,7 +17,7 @@ export const DEFAULT_ENVIRONMENT_FORM_VALUES: AddEnvironmentFormInputValues = {
 };
 
 function getAgentProviderTargetValues(
-  agent?: AgentCanonicalDeployTarget | null
+  agent?: AgentProviderTarget | null
 ): Pick<
   AddEnvironmentFormInputValues,
   'integration_id' | 'platform_agent_id' | 'platform_agent_name'
@@ -30,7 +30,7 @@ function getAgentProviderTargetValues(
 }
 
 function defaultFormValuesForNewEnvironment(
-  agent?: AgentCanonicalDeployTarget | null
+  agent?: AgentProviderTarget | null
 ): AddEnvironmentFormInputValues {
   if (!agent?.platform || agent.platform === Platform.WEBHOOK) {
     return DEFAULT_ENVIRONMENT_FORM_VALUES;
@@ -48,7 +48,7 @@ function defaultFormValuesForNewEnvironment(
 
 export function getEnvironmentFormValues(
   environment: EnvironmentPublic | null,
-  agent?: AgentCanonicalDeployTarget | null
+  agent?: AgentProviderTarget | null
 ): AddEnvironmentFormInputValues {
   if (environment === null) {
     return defaultFormValuesForNewEnvironment(agent);

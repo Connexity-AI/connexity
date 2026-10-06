@@ -1,5 +1,9 @@
 # connexity-cli
 
+> **Connexity is being rebuilt.** `connexity-cli` is frozen at 0.2.0 while that happens:
+> commands whose API was removed are gone from `main`, the eval commands still work,
+> and no new releases are published. See [`REBUILD.md`](./REBUILD.md).
+
 Command-line client for [Connexity](https://github.com/Connexity-AI/connexity) — drive eval runs, manage agents and test cases, and gate CI on regressions, all from the terminal.
 
 `connexity-cli` is a thin wrapper over the Connexity REST API. It covers the public surface used to drive eval workflows from CI: auth, agents, eval configs, test cases, runs (with SSE streaming), custom metrics, integrations, environments, calls, config, and health. Account self-service (signup, password reset) stays in the web UI.

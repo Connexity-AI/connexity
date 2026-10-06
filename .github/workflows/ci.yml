@@ -76,10 +76,31 @@ jobs:
       - name: Run migrations
         run: uv run alembic upgrade head
 
+      - name: Models match migrations
+        run: uv run alembic check
+
       - name: Run tests with coverage
         run: |
           uv run coverage run --source=app -m pytest -v
           uv run coverage report --show-missing --fail-under=90
+
+  # ── MCP server: tests ──────────────────────────────────────
+  mcp-test:
+    name: "MCP Server · Tests"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mcp_server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: mcp_server/uv.lock
+      - run: uv sync --extra dev --frozen
+
+      - name: Run tests
+        run: uv run --extra dev pytest -q
 
   backend-container-smoke:
     name: "Backend · Production Container Smoke"

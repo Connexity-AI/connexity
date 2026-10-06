@@ -1,12 +1,12 @@
 import { Platform } from '@/client/types.gen';
 
-import type { AgentCanonicalDeployTarget } from './agent-canonical-deploy-target';
+import type { AgentProviderTarget } from './agent-provider-target';
 import { isPlatformIntegration } from './environment-platform-utils';
 
 export type AgentEnvironmentFormMode = 'loading' | 'webhook' | 'integration';
 
 export function getAgentEnvironmentFormMode(
-  agent: AgentCanonicalDeployTarget | undefined,
+  agent: AgentProviderTarget | undefined,
   isAgentLoading: boolean
 ): AgentEnvironmentFormMode {
   if (isAgentLoading) {

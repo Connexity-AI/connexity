@@ -20,7 +20,6 @@ export function useDeleteEnvironment(agentId: string) {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: environmentKeys.list(agentId) });
-      void queryClient.invalidateQueries({ queryKey: environmentKeys.agentDeployments(agentId) });
     },
   });
 

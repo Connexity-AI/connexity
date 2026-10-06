@@ -1,5 +1,9 @@
 # Connexity docs
 
+> **Connexity is being rebuilt.** These pages describe Connexity 1.x and are rewritten
+> at the end of the rebuild. Pages already updated for removed features:
+> [`evals/runtimes.md`](./evals/runtimes.md).
+
 User- and operator-facing documentation. The content of this folder is the source for the public docs site at **[docs.connexity.ai](https://docs.connexity.ai)** — keep it curated for that audience.
 
 > Contributor- and maintainer-only material (release pipeline, DB schema, internal migration workflow, Railway template blueprint) lives in [`../docs-internal/`](../docs-internal) and is **not** published.

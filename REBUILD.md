@@ -50,8 +50,8 @@ goes in the session log (section 9).
 |---|---|---|
 | 0.1 | Land `remove-ai-assistant` | Done (PR #159) |
 | 0.2 | Demolition | Done (PR #160) |
-| 0.3 | Fresh migration baseline | PR open, awaiting merge |
-| 0.4 | Harness: `make check`, hooks, stale docs | Not started |
+| 0.3 | Fresh migration baseline | Done (PR #161) |
+| 0.4 | Harness: `make check`, hooks, stale docs | PR open, awaiting merge |
 | 1.1 | Canonical trace schema | Not started |
 | 1.2 | Ingest API and service tokens | Not started |
 | 1.3 | Retell reference mapping | Not started |
@@ -66,7 +66,7 @@ goes in the session log (section 9).
 | 2.4 | Inbox v0 | Not started |
 | M1 | Milestone 1 exit review | Not started |
 
-**Next slice:** 0.4, once the 0.3 PR is merged and the hosted database is reset.
+**Next slice:** 1.1 (canonical trace schema, a design session), once the 0.4 PR is merged. Phase 0 is then complete.
 
 ---
 
@@ -433,6 +433,7 @@ Dmytro's only when he stated it in his own words.
 | 2026-10-06 | Backend draft, publish and version routes stay until slice 1.5. | Dmytro |
 | 2026-10-06 | Losing all data in the hosted database for the migration baseline is acceptable. | Dmytro |
 | 2026-10-06 | Enum columns are VARCHARs holding the member's value; no Postgres ENUM types. | Proposed by Claude; Dmytro approved it with the slice 0.3 PR ("go") |
+| 2026-10-06 | `.claude/settings.json` is tracked, so hooks apply to every session. | Dmytro |
 | 2026-10-06 | `connexity-cli` is frozen: trim commands whose routes are deleted, keep the eval commands, publish nothing new, decide its future in Phase 4. | Dmytro |
 
 ---
@@ -513,3 +514,28 @@ next. Keep each entry under ten lines.
 - Deploy note: the backend container runs migrations on start. A database at an old
   revision makes it fail until that database is recreated.
 - Next: slice 0.4.
+
+### 2026-10-06: slice 0.4
+
+- `make check` (`scripts/check.sh`) runs every PR gate and prints per-step timings.
+  Measured on Dmytro's machine over three runs: 114, 78 and 74 seconds in total. The
+  backend tests with coverage are 55 to 84 seconds of that; everything else together
+  is about 20 seconds (frontend lint and types were served from turbo's cache).
+- CI: the frontend type check now runs (the script is `check-types`, which turbo
+  expected all along); added an MCP server test job and an `alembic check` step.
+- Tests always use the local Postgres built from `POSTGRES_*` and ignore any
+  `DATABASE_URL` in `.env`, so they cannot reach a hosted database. Errors name host,
+  port and database only.
+- Hooks in a tracked `.claude/settings.json`: edits to the generated client are
+  blocked; edits to models or routes remind the session about migrations and the
+  client. Both scripts pass pipe tests. Firing inside a live session was not verified
+  in this session; a new session picks the file up.
+- `make db-reset` rebuilds the local database from migrations.
+- Renamed the `/agents/[id]/deploy` route to `/environments`.
+- Docs: rewrote `docs-internal/data-model.md` from the models; fixed `CONTRIBUTING.md`;
+  added "being rebuilt" banners to `README.md`, `CLI_README.md` and `docs/README.md`.
+- Learned: `docker compose` cannot parse a `.env` line commented with `;` (use `#`),
+  and its error prints the line, secrets included.
+- Not done: tests are not parallelised; that is the obvious way to cut the check time
+  if it becomes a drag.
+- Next: Phase 1, slice 1.1.
