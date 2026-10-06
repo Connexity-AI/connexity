@@ -35,11 +35,3 @@ class AgentDraftResult(BaseModel):
     agent_temperature: float | None = None
     tools: list[dict] = Field(default_factory=list)
     tools_count: int = 0
-
-
-class UpdateAgentPromptResult(BaseModel):
-    agent_id: str
-    version_id: str | None = None
-    version: int | None = None
-    system_prompt: str | None = None
-    updated: bool = True

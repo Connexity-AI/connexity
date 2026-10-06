@@ -21,13 +21,11 @@ from connexity_mcp_server.models import (
     AgentDraftResult,
     FindAgentsResult,
     ListAgentsResult,
-    UpdateAgentPromptResult,
 )
 from connexity_mcp_server.tools import (
     find_agents as _find_agents,
     get_agent_draft as _get_agent_draft,
     list_agents as _list_agents,
-    update_agent_prompt as _update_agent_prompt,
 )
 
 
@@ -82,17 +80,6 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     @mcp_server.tool()
     async def get_agent_draft(agent_id: str) -> AgentDraftResult:
         return await _get_agent_draft(client=backend_client, agent_id=agent_id)
-
-    @mcp_server.tool()
-    async def update_agent_prompt(
-        agent_id: str,
-        system_prompt: str,
-    ) -> UpdateAgentPromptResult:
-        return await _update_agent_prompt(
-            client=backend_client,
-            agent_id=agent_id,
-            system_prompt=system_prompt,
-        )
 
     @contextlib.asynccontextmanager
     async def lifespan(_: FastAPI):

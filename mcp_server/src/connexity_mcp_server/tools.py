@@ -6,7 +6,6 @@ from connexity_mcp_server.models import (
     AgentSummary,
     FindAgentsResult,
     ListAgentsResult,
-    UpdateAgentPromptResult,
 )
 
 _AGENT_SEARCH_PAGE_SIZE = 100
@@ -64,21 +63,6 @@ async def get_agent_draft(
         agent_temperature=_float_or_none(draft.get("agent_temperature")),
         tools=[tool for tool in tools if isinstance(tool, dict)],
         tools_count=len(tools),
-    )
-
-
-async def update_agent_prompt(
-    client: ConnexityBackendClient,
-    agent_id: str,
-    system_prompt: str,
-) -> UpdateAgentPromptResult:
-    draft = await client.update_agent_draft(agent_id, system_prompt)
-    return UpdateAgentPromptResult(
-        agent_id=agent_id,
-        version_id=_string_or_none(draft.get("id")),
-        version=_int_or_none(draft.get("version")),
-        system_prompt=_string_or_none(draft.get("system_prompt")),
-        updated=True,
     )
 
 

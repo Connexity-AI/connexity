@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app import crud
 from app.api.deps import McpCurrentUser, SessionDep, require_mcp_user
 from app.models import (
-    AgentDraftUpdate,
     AgentLatestPublishedVersionPublic,
     AgentPublic,
     AgentsPublic,
@@ -67,31 +66,4 @@ def get_draft(
     draft = crud.get_agent_draft(session=session, agent_id=agent_id)
     if draft is None:
         raise HTTPException(status_code=404, detail="No draft found")
-    return AgentVersionPublic.model_validate(draft)
-
-
-@router.put("/agents/{agent_id}/draft", response_model=AgentVersionPublic)
-def upsert_draft(
-    session: SessionDep,
-    current_user: McpCurrentUser,
-    agent_id: uuid.UUID,
-    body: AgentDraftUpdate,
-) -> AgentVersionPublic:
-    agent = crud.get_agent(
-        session=session, agent_id=agent_id, company_id=current_user.company_id
-    )
-    if not agent:
-        raise HTTPException(status_code=404, detail="Agent not found")
-    draft_data = body.model_dump(exclude_unset=True)
-    if not draft_data:
-        raise HTTPException(status_code=422, detail="No fields provided")
-    try:
-        draft = crud.create_or_update_agent_draft(
-            session=session,
-            agent=agent,
-            draft_data=draft_data,
-            created_by=current_user.id,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e)) from e
     return AgentVersionPublic.model_validate(draft)

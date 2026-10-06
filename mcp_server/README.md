@@ -15,12 +15,11 @@ For the contributor-facing architecture and tool-extension guide, see
 
 ## Current tools
 
-The adapter currently exposes four MCP tools:
+The adapter currently exposes three read-only MCP tools:
 
 - `list_agents`
 - `find_agents`
 - `get_agent_draft`
-- `update_agent_prompt`
 
 ## Run locally
 

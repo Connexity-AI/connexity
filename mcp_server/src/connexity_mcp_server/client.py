@@ -34,13 +34,6 @@ class ConnexityBackendClient:
         if self._owns_client:
             await self._client.aclose()
 
-    async def update_agent_draft(self, agent_id: str, system_prompt: str) -> dict[str, Any]:
-        return await self._request_json(
-            "PUT",
-            f"/mcp/agents/{agent_id}/draft",
-            json={"system_prompt": system_prompt},
-        )
-
     async def list_agents(self, skip: int = 0, limit: int = 100) -> dict[str, Any]:
         return await self._request_json(
             "GET",
