@@ -3,10 +3,10 @@ import uuid
 from datetime import UTC, datetime
 
 from pydantic import field_validator
-from sqlalchemy import Column, Text, text
-from sqlalchemy import Enum as SAEnum
+from sqlalchemy import Column, Index, Text, text
 from sqlmodel import Field, SQLModel
 
+from app.models.columns import enum_type
 from app.models.enums import MetricTier, ScoreType
 
 _SLUG_RE = re.compile(r"^[a-z][a-z0-9_]*$")
@@ -16,29 +16,9 @@ class CustomMetricBase(SQLModel):
     name: str = Field(max_length=255, description="Globally-unique slug (snake_case)")
     display_name: str = Field(max_length=255)
     description: str = Field(sa_column=Column(Text, nullable=False))
-    tier: MetricTier = Field(
-        sa_column=Column(
-            SAEnum(
-                MetricTier,
-                name="metrictier",
-                native_enum=True,
-                values_callable=lambda m: [e.value for e in m],
-            ),
-            nullable=False,
-        )
-    )
+    tier: MetricTier = Field(nullable=False, sa_type=enum_type(MetricTier))
     default_weight: float = Field(default=1.0, ge=0.0)
-    score_type: ScoreType = Field(
-        sa_column=Column(
-            SAEnum(
-                ScoreType,
-                name="scoretype",
-                native_enum=True,
-                values_callable=lambda m: [e.value for e in m],
-            ),
-            nullable=False,
-        )
-    )
+    score_type: ScoreType = Field(nullable=False, sa_type=enum_type(ScoreType))
     rubric: str = Field(sa_column=Column(Text, nullable=False))
     include_in_defaults: bool = Field(default=False)
     is_predefined: bool = Field(
@@ -64,6 +44,16 @@ class CustomMetricBase(SQLModel):
 
 class CustomMetric(CustomMetricBase, table=True):
     __tablename__ = "custom_metric"
+    __table_args__ = (
+        # A metric name is unique per company among metrics that are not deleted.
+        Index(
+            "uq_custom_metric_company_name_active",
+            "company_id",
+            "name",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+    )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     # NULL for predefined (system-seeded) metrics that have no company owner.

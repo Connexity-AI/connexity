@@ -44,7 +44,7 @@ import {
   SelectValue,
 } from '@workspace/ui/components/ui/select';
 import { cn } from '@workspace/ui/lib/utils';
-import { IntegrationProviderInput, Platform } from '@/client/types.gen';
+import { IntegrationProvider, Platform } from '@/client/types.gen';
 import { isSuccessApiResult } from '@/utils/api';
 
 import type { FC } from 'react';
@@ -87,14 +87,14 @@ const defaultValues: NewAgentFormValues = {
   endpoint_url: null,
 };
 
-function integrationProviderForPlatform(platform: Platform): IntegrationProviderInput {
+function integrationProviderForPlatform(platform: Platform): IntegrationProvider {
   if (platform === Platform.RETELL) {
-    return IntegrationProviderInput.RETELL;
+    return IntegrationProvider.RETELL;
   }
   if (platform === Platform.VAPI) {
-    return IntegrationProviderInput.VAPI;
+    return IntegrationProvider.VAPI;
   }
-  return IntegrationProviderInput.ELEVENLABS;
+  return IntegrationProvider.ELEVENLABS;
 }
 
 export const NewAgentModal: FC<Props> = ({ open, onOpenChange }) => {

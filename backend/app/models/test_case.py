@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, field_validator
 from sqlalchemy import Column, Index, Text, text
-from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
 from app.models.agent import Agent
+from app.models.columns import enum_type
 from app.models.enums import Difficulty, FirstTurn, TestCaseStatus
 from app.models.schemas import ExpectedToolCall
 
@@ -33,6 +33,7 @@ class TestCaseBase(SQLModel):
     difficulty: Difficulty = Field(
         default=Difficulty.NORMAL,
         index=True,
+        sa_type=enum_type(Difficulty),
         description="Two-level difficulty classification",
     )
     tags: list[str] = Field(
@@ -43,16 +44,9 @@ class TestCaseBase(SQLModel):
     status: TestCaseStatus = Field(
         default=TestCaseStatus.ACTIVE,
         description="Lifecycle status — only active test cases run by default",
-        sa_column=Column(
-            SAEnum(
-                TestCaseStatus,
-                name="testcasestatus",
-                native_enum=True,
-                values_callable=lambda m: [e.name for e in m],
-            ),
-            nullable=False,
-            index=True,
-        ),
+        nullable=False,
+        index=True,
+        sa_type=enum_type(TestCaseStatus),
     )
     persona_context: str | None = Field(
         default=None,
@@ -64,16 +58,8 @@ class TestCaseBase(SQLModel):
     first_turn: FirstTurn = Field(
         default=FirstTurn.USER,
         description="Who speaks first in the conversation: agent or user",
-        sa_column=Column(
-            SAEnum(
-                FirstTurn,
-                name="firstturn",
-                native_enum=True,
-                values_callable=lambda m: [e.name for e in m],
-            ),
-            nullable=False,
-            server_default="USER",
-        ),
+        nullable=False,
+        sa_type=enum_type(FirstTurn),
     )
     first_message: str | None = Field(
         default=None,

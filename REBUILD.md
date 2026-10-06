@@ -49,8 +49,8 @@ goes in the session log (section 9).
 | Slice | What | Status |
 |---|---|---|
 | 0.1 | Land `remove-ai-assistant` | Done (PR #159) |
-| 0.2 | Demolition | PR open, awaiting merge |
-| 0.3 | Fresh migration baseline | Not started |
+| 0.2 | Demolition | Done (PR #160) |
+| 0.3 | Fresh migration baseline | PR open, awaiting merge |
 | 0.4 | Harness: `make check`, hooks, stale docs | Not started |
 | 1.1 | Canonical trace schema | Not started |
 | 1.2 | Ingest API and service tokens | Not started |
@@ -66,7 +66,7 @@ goes in the session log (section 9).
 | 2.4 | Inbox v0 | Not started |
 | M1 | Milestone 1 exit review | Not started |
 
-**Next slice:** 0.3, once the 0.2 PR is merged.
+**Next slice:** 0.4, once the 0.3 PR is merged and the hosted database is reset.
 
 ---
 
@@ -431,6 +431,8 @@ Dmytro's only when he stated it in his own words.
 | 2026-10-06 | Vapi and ElevenLabs keep connection, listing, import and call sync; only deploy is removed. | Dmytro |
 | 2026-10-06 | Create-agent and add-environment forms stay until slice 1.8. | Dmytro |
 | 2026-10-06 | Backend draft, publish and version routes stay until slice 1.5. | Dmytro |
+| 2026-10-06 | Losing all data in the hosted database for the migration baseline is acceptable. | Dmytro |
+| 2026-10-06 | Enum columns are VARCHARs holding the member's value; no Postgres ENUM types. | Proposed by Claude; Dmytro approved it with the slice 0.3 PR ("go") |
 | 2026-10-06 | `connexity-cli` is frozen: trim commands whose routes are deleted, keep the eval commands, publish nothing new, decide its future in Phase 4. | Dmytro |
 
 ---
@@ -486,3 +488,28 @@ next. Keep each entry under ten lines.
   frozen eval stack.
 - Not done: no click-through of the UI.
 - Next: slice 0.3.
+
+### 2026-10-06: slice 0.3
+
+- Replaced the 64 Alembic revisions with one `0001_baseline`, generated from the models.
+- Before generating, moved into the models everything that existed only in old
+  migrations and affects behaviour: `ON DELETE CASCADE` on `agent_version.agent_id`,
+  `ON DELETE SET NULL` on `run.agent_version_id`, the partial unique index on custom
+  metric names, the agent version listing index, and timezone-aware `created_at` on
+  `agent_version` and `company`.
+- One rule for enum columns (proposed by Claude, approved by Dmytro with the PR): a
+  VARCHAR holding the member's value, via `enum_type()`. Before this, some enums were
+  Postgres ENUM types and others were VARCHARs holding uppercase member names.
+- Found and fixed by that rule: the "one draft per agent" partial index compared
+  against `'draft'` while rows stored `'DRAFT'`, so it never enforced anything.
+- Dropped on purpose: Postgres ENUM types, most server defaults (the models supply
+  defaults), `user.oauth_id`, `ON DELETE RESTRICT` on `company_id` keys (the default
+  `NO ACTION` blocks the delete the same way).
+- Compared old and new schemas with `pg_dump`; every remaining difference is listed
+  above.
+- Results: `alembic check` clean; baseline applies, downgrades to empty and re-applies;
+  backend and CLI tests 756 passed (4 new); ruff clean; pyright 0 errors.
+- New mechanical gate: a test fails when models and migrations disagree.
+- Deploy note: the backend container runs migrations on start. A database at an old
+  revision makes it fail until that database is recreated.
+- Next: slice 0.4.

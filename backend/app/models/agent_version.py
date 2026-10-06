@@ -3,10 +3,11 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from pydantic import ConfigDict
-from sqlalchemy import CheckConstraint, Column, Index, UniqueConstraint, text
+from sqlalchemy import CheckConstraint, Column, DateTime, Index, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
+from app.models.columns import enum_type
 from app.models.enums import AgentMode, AgentVersionStatus
 
 if TYPE_CHECKING:
@@ -33,6 +34,11 @@ class AgentVersion(SQLModel, table=True):
             unique=True,
             postgresql_where=text("is_active AND version IS NOT NULL"),
         ),
+        Index(
+            "ix_agent_version_agent_id_created_at_desc",
+            "agent_id",
+            text("created_at DESC"),
+        ),
         CheckConstraint(
             "NOT is_active OR version IS NOT NULL",
             name="ck_agent_version_active_rules",
@@ -46,6 +52,7 @@ class AgentVersion(SQLModel, table=True):
         foreign_key="agent.id",
         index=True,
         nullable=False,
+        ondelete="CASCADE",
     )
     version: int | None = Field(
         default=None,
@@ -55,10 +62,12 @@ class AgentVersion(SQLModel, table=True):
     status: AgentVersionStatus = Field(
         default=AgentVersionStatus.PUBLISHED,
         nullable=False,
+        sa_type=enum_type(AgentVersionStatus),
         description="draft or published",
     )
     mode: AgentMode = Field(
-        description="endpoint: HTTP agent; platform: LLM simulated on the platform"
+        sa_type=enum_type(AgentMode),
+        description="endpoint: HTTP agent; platform: LLM simulated on the platform",
     )
     endpoint_url: str | None = Field(default=None, max_length=2048)
     system_prompt: str | None = Field(default=None)
@@ -79,6 +88,7 @@ class AgentVersion(SQLModel, table=True):
     )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
         sa_column_kwargs={"server_default": text("now()")},
     )
 

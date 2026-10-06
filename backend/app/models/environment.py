@@ -5,12 +5,13 @@ from pydantic import model_validator
 from sqlalchemy import text
 from sqlmodel import Field, SQLModel
 
+from app.models.columns import enum_type
 from app.models.enums import Platform
 
 
 class EnvironmentBase(SQLModel):
     name: str = Field(max_length=255)
-    platform: Platform = Field(...)
+    platform: Platform = Field(..., sa_type=enum_type(Platform))
 
 
 def _is_http_url(value: str) -> bool:

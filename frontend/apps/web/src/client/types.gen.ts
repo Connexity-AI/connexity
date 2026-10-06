@@ -1043,7 +1043,7 @@ export type CallPublic = {
    * Status
    */
   status?: string | null;
-  provider?: AppModelsEnumsIntegrationProvider2 | null;
+  provider?: IntegrationProvider | null;
   /**
    * Transcript
    */
@@ -2083,10 +2083,7 @@ export type ImprovementSuggestions = {
  * IntegrationCreate
  */
 export type IntegrationCreate = {
-  /**
-   * IntegrationProvider
-   */
-  provider: 'retell' | 'vapi' | 'elevenlabs';
+  provider: IntegrationProvider;
   /**
    * Name
    */
@@ -2100,7 +2097,7 @@ export type IntegrationCreate = {
 /**
  * IntegrationProvider
  */
-export const IntegrationProviderInput = {
+export const IntegrationProvider = {
   RETELL: 'retell',
   VAPI: 'vapi',
   ELEVENLABS: 'elevenlabs',
@@ -2109,17 +2106,13 @@ export const IntegrationProviderInput = {
 /**
  * IntegrationProvider
  */
-export type IntegrationProviderInput =
-  (typeof IntegrationProviderInput)[keyof typeof IntegrationProviderInput];
+export type IntegrationProvider = (typeof IntegrationProvider)[keyof typeof IntegrationProvider];
 
 /**
  * IntegrationPublic
  */
 export type IntegrationPublic = {
-  /**
-   * IntegrationProvider
-   */
-  provider: 'retell' | 'vapi' | 'elevenlabs';
+  provider: IntegrationProvider;
   /**
    * Name
    */
@@ -4591,36 +4584,6 @@ export type ValidationError = {
    */
   type: string;
 };
-
-/**
- * IntegrationProvider
- */
-export const AppModelsEnumsIntegrationProvider1 = {
-  RETELL: 'retell',
-  VAPI: 'vapi',
-  ELEVENLABS: 'elevenlabs',
-} as const;
-
-/**
- * IntegrationProvider
- */
-export type AppModelsEnumsIntegrationProvider1 =
-  (typeof AppModelsEnumsIntegrationProvider1)[keyof typeof AppModelsEnumsIntegrationProvider1];
-
-/**
- * IntegrationProvider
- */
-export const AppModelsEnumsIntegrationProvider2 = {
-  RETELL: 'retell',
-  VAPI: 'vapi',
-  ELEVENLABS: 'elevenlabs',
-} as const;
-
-/**
- * IntegrationProvider
- */
-export type AppModelsEnumsIntegrationProvider2 =
-  (typeof AppModelsEnumsIntegrationProvider2)[keyof typeof AppModelsEnumsIntegrationProvider2];
 
 export type HealthHealthData = {
   body?: never;

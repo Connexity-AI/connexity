@@ -2,6 +2,10 @@
 
 Alembic manages PostgreSQL schema migrations. Migration files live in `backend/app/alembic/versions/`.
 
+The history starts at `0001_baseline`, generated from the models during the 2.0 rebuild.
+It replaced the 64 revisions of Connexity 1.x. A database created by those old revisions
+cannot be upgraded: recreate it.
+
 ## Creating a Migration
 
 After modifying SQLModel models in `backend/app/models/`:
@@ -14,7 +18,6 @@ make db-migrate MSG="add workspace table"
 **Always review the generated file** before committing. Autogenerate does not handle every case — check for:
 
 - Correct table/column creation and deletion
-- ENUM type drops in `downgrade()` (see below)
 - Index creation (GIN indexes from `__table_args__` may need manual addition)
 - Correct foreign key constraint ordering in downgrade (children before parents)
 
@@ -34,23 +37,32 @@ alembic downgrade base   # roll back all revisions
 
 ## Verifying No Drift
 
-After applying migrations, check that models and DB schema are in sync:
+Models and migrations must always agree. Two things enforce it:
 
 ```bash
-cd backend && alembic revision --autogenerate -m "drift check"
+cd backend && uv run alembic check
 ```
 
-If the generated migration contains only `pass` in both `upgrade()` and `downgrade()`, there is no drift. Delete the empty file.
+and the test `test_models_match_migrated_schema` in
+`backend/app/tests/crud/test_schema_conventions.py`, which fails the suite when a model
+changes without a migration or the reverse.
 
-## Handling ENUM Types
+Anything a migration creates must also be declared on the model (indexes, partial
+indexes, `ondelete` rules, constraints). The 1.x history drifted because constraints
+were added in migrations only.
 
-Alembic autogenerate **does not** emit `DROP TYPE` statements in `downgrade()` for PostgreSQL ENUM types. After generating a migration that creates enums, manually add drops at the end of `downgrade()`:
+## Enum columns
+
+Every enum column uses `enum_type(...)` from `app.models.columns`:
 
 ```python
-sa.Enum(name='myenum').drop(op.get_bind(), checkfirst=True)
+status: RunStatus = Field(default=RunStatus.PENDING, sa_type=enum_type(RunStatus))
 ```
 
-Without this, `alembic downgrade base` leaves orphan enum types in the database.
+It is stored as a `VARCHAR(32)` holding the member's value (`"pending"`, not `"PENDING"`).
+No PostgreSQL ENUM types are created, so adding a member needs no `ALTER TYPE` migration
+and `downgrade()` has no types to drop. A test fails if an enum column is declared any
+other way.
 
 ## Resolving Migration Conflicts
 

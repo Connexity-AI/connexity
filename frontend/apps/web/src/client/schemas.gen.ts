@@ -1900,7 +1900,7 @@ export const CallPublicSchema = {
     provider: {
       anyOf: [
         {
-          $ref: '#/components/schemas/app__models__enums__IntegrationProvider__2',
+          $ref: '#/components/schemas/IntegrationProvider',
         },
         {
           type: 'null',
@@ -3493,10 +3493,7 @@ export const ImprovementSuggestionsSchema = {
 export const IntegrationCreateSchema = {
   properties: {
     provider: {
-      type: 'string',
-      enum: ['retell', 'vapi', 'elevenlabs'],
-      maxLength: 64,
-      title: 'IntegrationProvider',
+      $ref: '#/components/schemas/IntegrationProvider',
     },
     name: {
       type: 'string',
@@ -3513,20 +3510,16 @@ export const IntegrationCreateSchema = {
   title: 'IntegrationCreate',
 } as const;
 
-export const IntegrationProvider_InputSchema = {
+export const IntegrationProviderSchema = {
   type: 'string',
   enum: ['retell', 'vapi', 'elevenlabs'],
-  maxLength: 64,
   title: 'IntegrationProvider',
 } as const;
 
 export const IntegrationPublicSchema = {
   properties: {
     provider: {
-      type: 'string',
-      enum: ['retell', 'vapi', 'elevenlabs'],
-      maxLength: 64,
-      title: 'IntegrationProvider',
+      $ref: '#/components/schemas/IntegrationProvider',
     },
     name: {
       type: 'string',
@@ -7520,17 +7513,4 @@ export const ValidationErrorSchema = {
   type: 'object',
   required: ['loc', 'msg', 'type'],
   title: 'ValidationError',
-} as const;
-
-export const app__models__enums__IntegrationProvider__1Schema = {
-  type: 'string',
-  enum: ['retell', 'vapi', 'elevenlabs'],
-  maxLength: 64,
-  title: 'IntegrationProvider',
-} as const;
-
-export const app__models__enums__IntegrationProvider__2Schema = {
-  type: 'string',
-  enum: ['retell', 'vapi', 'elevenlabs'],
-  title: 'IntegrationProvider',
 } as const;

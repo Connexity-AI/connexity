@@ -71,3 +71,11 @@ cd backend && alembic revision --autogenerate -m "description"
 ```
 
 Review the generated file, then run `bash scripts/prestart.sh`.
+
+- **Models are the single description of the schema.** Declare every index, partial
+  index, constraint and `ondelete` rule on the model, never in a migration only. The
+  test `test_models_match_migrated_schema` fails on any drift; `uv run alembic check`
+  shows it.
+- **Enum columns** use `sa_type=enum_type(MyEnum)` from `app.models.columns`: a VARCHAR
+  holding the member's value, no Postgres ENUM type.
+- The history starts at `0001_baseline`. See `docs-internal/migrations.md`.

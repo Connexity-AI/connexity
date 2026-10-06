@@ -3,10 +3,11 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from pydantic import ConfigDict, model_validator
-from sqlalchemy import Column, Enum, text
+from sqlalchemy import Column, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
+from app.models.columns import enum_type
 from app.models.enums import AgentMode, AgentPromptType, Platform
 from app.models.schemas import AggregateMetrics
 
@@ -47,10 +48,12 @@ class AgentBase(SQLModel):
     )
     mode: AgentMode = Field(
         default=AgentMode.ENDPOINT,
+        sa_type=enum_type(AgentMode),
         description="endpoint: HTTP agent; platform: LLM simulated on the platform",
     )
     platform: Platform | None = Field(
         default=None,
+        sa_type=enum_type(Platform),
         description=(
             "Voice/agent platform this agent targets. Drives which evaluation "
             "engines are available. Null for legacy rows; use 'webhook' for "
@@ -59,19 +62,7 @@ class AgentBase(SQLModel):
     )
     prompt_type: AgentPromptType = Field(
         default=AgentPromptType.SINGLE_PROMPT,
-        sa_column=Column(
-            Enum(
-                AgentPromptType,
-                values_callable=lambda enum_type: [
-                    member.value for member in enum_type
-                ],
-                native_enum=False,
-                validate_strings=True,
-                name="agentprompttype",
-            ),
-            nullable=False,
-            server_default=AgentPromptType.SINGLE_PROMPT.value,
-        ),
+        sa_type=enum_type(AgentPromptType),
         description="single_prompt: one system prompt; multi_prompt reserved for future use",
     )
     integration_id: uuid.UUID | None = Field(

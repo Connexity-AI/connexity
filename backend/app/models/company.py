@@ -2,9 +2,10 @@ import enum
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import Column, Text, text
-from sqlalchemy import Enum as SAEnum
+from sqlalchemy import Column, DateTime, Text, text
 from sqlmodel import Field, SQLModel
+
+from app.models.columns import enum_type
 
 
 class LLMProvider(str, enum.Enum):
@@ -24,6 +25,7 @@ class Company(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
         sa_column_kwargs={"server_default": text("now()")},
     )
 
@@ -44,15 +46,8 @@ class Company(SQLModel, table=True):
     # from the provider the user chose during onboarding.
     preferred_llm_provider: LLMProvider | None = Field(
         default=None,
-        sa_column=Column(
-            SAEnum(
-                LLMProvider,
-                name="llmprovider",
-                native_enum=True,
-                values_callable=lambda m: [e.value for e in m],
-            ),
-            nullable=True,
-        ),
+        nullable=True,
+        sa_type=enum_type(LLMProvider),
     )
 
 
