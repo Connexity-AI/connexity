@@ -3,7 +3,6 @@ import { Suspense } from 'react';
 import { dehydrate } from '@tanstack/react-query';
 
 import { agentDetailQuery } from '@/app/(app)/(agent)/_queries/agent-detail-query';
-import { agentVersionsListQuery } from '@/app/(app)/(agent)/_queries/agent-versions-list-query';
 import getQueryClient from '@/lib/react-query/getQueryClient';
 import { environmentsListQuery } from '@/app/(app)/(agent)/_queries/environments-list-query';
 import { integrationsListQuery } from '@/app/(app)/(agent)/_queries/integrations-list-query';
@@ -26,7 +25,6 @@ export default async function AgentDeployPage({ params }: Props) {
   await Promise.all([
     queryClient.prefetchQuery(environmentsListQuery(agentId)),
     queryClient.prefetchQuery(integrationsListQuery()),
-    queryClient.prefetchQuery(agentVersionsListQuery(agentId)),
     queryClient.prefetchQuery(agentDetailQuery(agentId)),
   ]);
 

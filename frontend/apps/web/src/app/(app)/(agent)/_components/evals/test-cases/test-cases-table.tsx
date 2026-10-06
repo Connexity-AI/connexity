@@ -1,8 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-
-import { AddTestCaseManualDrawer } from '@/app/(app)/(agent)/_components/evals/test-cases/add-test-case-manual-drawer';
 import { DeleteTestCasesDialog } from '@/app/(app)/(agent)/_components/evals/test-cases/delete-test-cases-dialog';
 import { TestCaseDetailDrawer } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-detail-drawer';
 import { TestCasesColumnHeaders } from '@/app/(app)/(agent)/_components/evals/test-cases/test-cases-column-headers';
@@ -31,7 +28,6 @@ export function TestCasesTable({ agentId, testCases }: TestCasesTableProps) {
   const selection = useTestCasesSelection(filteredIds);
   const drawer = useTestCaseDrawer();
   const grouping = useTestCasesGrouping(filtered);
-  const [manualAddOpen, setManualAddOpen] = useState(false);
 
   const deletion = useTestCasesDeletion({
     agentId,
@@ -58,14 +54,6 @@ export function TestCasesTable({ agentId, testCases }: TestCasesTableProps) {
             onBatchDelete={requestBatchDelete}
             onClearSelection={selection.clear}
           />
-          <TestCasesToolbar.Actions>
-            <TestCasesToolbar.AddTestCaseButton onClick={() => setManualAddOpen(true)} />
-            <TestCasesToolbar.CreateEvalButton
-              agentId={agentId}
-              selectedIds={Array.from(selection.selectedIds)}
-              filteredIds={filteredIds}
-            />
-          </TestCasesToolbar.Actions>
         </TestCasesToolbar>
 
         <TestCasesFilterBar
@@ -112,12 +100,6 @@ export function TestCasesTable({ agentId, testCases }: TestCasesTableProps) {
         testCases={deletion.targets}
         onConfirm={deletion.confirm}
         isPending={deletion.isPending}
-      />
-
-      <AddTestCaseManualDrawer
-        agentId={agentId}
-        open={manualAddOpen}
-        onOpenChange={setManualAddOpen}
       />
     </>
   );

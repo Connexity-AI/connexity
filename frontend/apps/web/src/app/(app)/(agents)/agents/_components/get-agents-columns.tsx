@@ -33,7 +33,7 @@ export const getAgentsColumns = (): ColumnDef<AgentRow>[] => [
       return (
         <div className="flex min-w-[100px] max-w-[280px] flex-col gap-0.5">
           <Link
-            href={UrlGenerator.agentEdit(row.original.id)}
+            href={UrlGenerator.agentObserve(row.original.id)}
             className="truncate text-sm text-foreground hover:underline"
           >
             {row.original.name}

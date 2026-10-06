@@ -370,38 +370,6 @@ export type AgentRollbackRequest = {
 };
 
 /**
- * AgentSimulatorConfig
- *
- * Agent simulator LLM overrides (only used when agent mode is platform).
- */
-export type AgentSimulatorConfig = {
-  /**
-   * Model
-   *
-   * Override agent_model for this run
-   */
-  model?: string | null;
-  /**
-   * Provider
-   *
-   * Override agent agent_provider for this run
-   */
-  provider?: string | null;
-  /**
-   * Temperature
-   *
-   * Sampling temperature for agent simulator LLM
-   */
-  temperature?: number | null;
-  /**
-   * Max Tokens
-   *
-   * Max completion tokens for agent simulator LLM
-   */
-  max_tokens?: number | null;
-};
-
-/**
  * AgentToolDefinition
  *
  * Prompt-facing tool: ``parameters`` is a full JSON Schema (properties, required, ...).
@@ -1237,21 +1205,6 @@ export type ConfigPublic = {
 };
 
 /**
- * ConnexityRuntimeConfig
- *
- * Connexity text runtime: in-process user simulator + platform AgentSimulator.
- *
- * Requires a non-empty ``system_prompt`` on the agent for validation at eval-config
- * time. For HTTP agents without platform prompts, use ``CustomEndpointRuntimeConfig``.
- */
-export type ConnexityRuntimeConfig = {
-  /**
-   * Kind
-   */
-  kind?: 'connexity';
-};
-
-/**
  * ConversationTurn
  */
 export type ConversationTurnInput = {
@@ -1540,91 +1493,6 @@ export type CustomMetricsPublic = {
 };
 
 /**
- * DeploymentCreate
- */
-export type DeploymentCreate = {
-  /**
-   * Agent Version
-   */
-  agent_version: number;
-};
-
-/**
- * DeploymentPublic
- */
-export type DeploymentPublic = {
-  /**
-   * Id
-   */
-  id: string;
-  /**
-   * Environment Id
-   */
-  environment_id: string;
-  /**
-   * Environment Name
-   */
-  environment_name: string;
-  /**
-   * Agent Id
-   */
-  agent_id: string;
-  /**
-   * Agent Version
-   */
-  agent_version: number;
-  /**
-   * Retell Version Name
-   */
-  retell_version_name: string | null;
-  status: DeploymentStatus;
-  /**
-   * Error Message
-   */
-  error_message: string | null;
-  /**
-   * Deployed By User Id
-   */
-  deployed_by_user_id: string | null;
-  /**
-   * Deployed By Display Name
-   */
-  deployed_by_display_name: string | null;
-  /**
-   * Deployed At
-   */
-  deployed_at: string;
-};
-
-/**
- * DeploymentStatus
- */
-export const DeploymentStatus = {
-  PENDING: 'pending',
-  DEPLOYED: 'deployed',
-  FAILED: 'failed',
-} as const;
-
-/**
- * DeploymentStatus
- */
-export type DeploymentStatus = (typeof DeploymentStatus)[keyof typeof DeploymentStatus];
-
-/**
- * DeploymentsPublic
- */
-export type DeploymentsPublic = {
-  /**
-   * Data
-   */
-  data: Array<DeploymentPublic>;
-  /**
-   * Count
-   */
-  count: number;
-};
-
-/**
  * Difficulty
  */
 export const Difficulty = { NORMAL: 'normal', HARD: 'hard' } as const;
@@ -1651,12 +1519,6 @@ export type EnvironmentCreate = {
    * Endpoint Url
    */
   endpoint_url?: string | null;
-  /**
-   * Eval Gate Eval Config Id
-   *
-   * Optional: gate deploys on a passing run of this eval config for the requested agent version.
-   */
-  eval_gate_eval_config_id?: string | null;
 };
 
 /**
@@ -1685,22 +1547,6 @@ export type EnvironmentPublic = {
    */
   endpoint_url: string | null;
   /**
-   * Current Version Number
-   */
-  current_version_number: number | null;
-  /**
-   * Current Version Name
-   */
-  current_version_name: string | null;
-  /**
-   * Current Deployed At
-   */
-  current_deployed_at: string | null;
-  /**
-   * Eval Gate Eval Config Id
-   */
-  eval_gate_eval_config_id: string | null;
-  /**
    * Created At
    */
   created_at: string;
@@ -1719,12 +1565,6 @@ export type EnvironmentUpdate = {
    * Endpoint Url
    */
   endpoint_url?: string | null;
-  /**
-   * Eval Gate Eval Config Id
-   *
-   * Optional: gate deploys on a passing run of this eval config for the requested agent version.
-   */
-  eval_gate_eval_config_id?: string | null;
 };
 
 /**
@@ -1782,7 +1622,7 @@ export type EvalConfigCreate = {
    */
   agent_id: string;
   /**
-   * Run configuration (concurrency, max_turns, judge, tool_mode, etc.)
+   * Run configuration (concurrency, max_turns, judge, runtime, etc.)
    */
   config?: RunConfigInput | null;
   /**
@@ -1928,7 +1768,7 @@ export type EvalConfigPublic = {
    */
   id: string;
   /**
-   * Run configuration (concurrency, max_turns, judge, tool_mode, etc.)
+   * Run configuration (concurrency, max_turns, judge, runtime, etc.)
    */
   config?: RunConfigOutput | null;
   /**
@@ -1978,7 +1818,7 @@ export type EvalConfigUpdate = {
    */
   description?: string | null;
   /**
-   * Run configuration (concurrency, max_turns, judge, tool_mode, etc.)
+   * Run configuration (concurrency, max_turns, judge, runtime, etc.)
    */
   config?: RunConfigInput | null;
 };
@@ -3092,24 +2932,6 @@ export type RetellAgentSummary = {
 };
 
 /**
- * RetellAgentVersion
- */
-export type RetellAgentVersion = {
-  /**
-   * Version
-   */
-  version: number;
-  /**
-   * Version Title
-   */
-  version_title?: string | null;
-  /**
-   * Is Published
-   */
-  is_published?: boolean;
-};
-
-/**
  * RetellRuntimeConfig
  *
  * Retell text runtime.
@@ -3197,12 +3019,6 @@ export type RunConfigInput = {
    */
   max_turns?: number | null;
   /**
-   * Tool Mode
-   *
-   * Global tool execution mode: mock uses test-case expected_tool_calls.mock_response payloads, live executes real implementations
-   */
-  tool_mode?: 'mock' | 'live';
-  /**
    * Metrics Pass Threshold
    *
    * Run-level threshold (%) for the weighted-average metric score across all test case executions. The run's metrics dimension passes when the average score is at or above this threshold.
@@ -3223,22 +3039,15 @@ export type RunConfigInput = {
    */
   user_simulator?: UserSimulatorConfig | null;
   /**
-   * Agent simulator LLM overrides. Applies when the selected text runtime uses AgentSimulator (Connexity).
-   */
-  agent_simulator?: AgentSimulatorConfig | null;
-  /**
    * Run modality: text today, voice for future realtime simulations.
    */
   mode?: RunMode;
   /**
    * Runtime
    *
-   * Runtime that drives the eval for the selected mode.
+   * Runtime that drives the eval for the selected mode. Required: evals always run on the agent's own engine, so there is no default.
    */
-  runtime?:
-    | ({
-        kind: 'connexity';
-      } & ConnexityRuntimeConfig)
+  runtime:
     | ({
         kind: 'retell';
       } & RetellRuntimeConfig)
@@ -3270,12 +3079,6 @@ export type RunConfigOutput = {
    */
   max_turns?: number | null;
   /**
-   * Tool Mode
-   *
-   * Global tool execution mode: mock uses test-case expected_tool_calls.mock_response payloads, live executes real implementations
-   */
-  tool_mode?: 'mock' | 'live';
-  /**
    * Metrics Pass Threshold
    *
    * Run-level threshold (%) for the weighted-average metric score across all test case executions. The run's metrics dimension passes when the average score is at or above this threshold.
@@ -3296,22 +3099,15 @@ export type RunConfigOutput = {
    */
   user_simulator?: UserSimulatorConfig | null;
   /**
-   * Agent simulator LLM overrides. Applies when the selected text runtime uses AgentSimulator (Connexity).
-   */
-  agent_simulator?: AgentSimulatorConfig | null;
-  /**
    * Run modality: text today, voice for future realtime simulations.
    */
   mode?: RunMode;
   /**
    * Runtime
    *
-   * Runtime that drives the eval for the selected mode.
+   * Runtime that drives the eval for the selected mode. Required: evals always run on the agent's own engine, so there is no default.
    */
-  runtime?:
-    | ({
-        kind: 'connexity';
-      } & ConnexityRuntimeConfig)
+  runtime:
     | ({
         kind: 'retell';
       } & RetellRuntimeConfig)
@@ -3706,9 +3502,6 @@ export type RuntimeTestRequest = {
    * Runtime config under test
    */
   runtime:
-    | ({
-        kind: 'connexity';
-      } & ConnexityRuntimeConfig)
     | ({
         kind: 'retell';
       } & RetellRuntimeConfig)
@@ -4566,11 +4359,7 @@ export type TestCasesPublic = {
 /**
  * TextRuntimeKind
  */
-export const TextRuntimeKind = {
-  CONNEXITY: 'connexity',
-  RETELL: 'retell',
-  CUSTOM_ENDPOINT: 'custom_endpoint',
-} as const;
+export const TextRuntimeKind = { RETELL: 'retell', CUSTOM_ENDPOINT: 'custom_endpoint' } as const;
 
 /**
  * TextRuntimeKind
@@ -4801,183 +4590,6 @@ export type ValidationError = {
    * Error Type
    */
   type: string;
-};
-
-/**
- * WebhookAgent
- */
-export type WebhookAgent = {
-  /**
-   * Id
-   */
-  id: string;
-  /**
-   * Name
-   */
-  name: string;
-  /**
-   * Version
-   */
-  version: number;
-  /**
-   * Version Name
-   */
-  version_name?: string | null;
-  /**
-   * Version Description
-   */
-  version_description?: string | null;
-  /**
-   * Prompt
-   */
-  prompt: string;
-  llm: WebhookLlm;
-  /**
-   * Tool Calls
-   */
-  tool_calls?: Array<WebhookToolCall>;
-};
-
-/**
- * WebhookDeployPayload
- */
-export type WebhookDeployPayload = {
-  /**
-   * Event
-   */
-  event: string;
-  agent: WebhookAgent;
-  /**
-   * Environment
-   */
-  environment: string;
-  /**
-   * Deployed At
-   */
-  deployed_at: string;
-  /**
-   * Deployed By
-   */
-  deployed_by?: string | null;
-  eval: WebhookEval;
-};
-
-/**
- * WebhookEval
- */
-export type WebhookEval = {
-  /**
-   * Config Id
-   */
-  config_id?: string | null;
-  /**
-   * Config Name
-   */
-  config_name?: string | null;
-  /**
-   * Run At
-   */
-  run_at?: string | null;
-  /**
-   * Passed
-   */
-  passed?: boolean | null;
-  /**
-   * Metrics Score
-   */
-  metrics_score?: number | null;
-  /**
-   * Metrics Pass Threshold
-   */
-  metrics_pass_threshold?: number | null;
-  /**
-   * Cases Passed
-   */
-  cases_passed?: number | null;
-  /**
-   * Cases Total
-   */
-  cases_total?: number | null;
-  /**
-   * Cases Pass Threshold
-   */
-  cases_pass_threshold?: number | null;
-  /**
-   * Results Link
-   */
-  results_link?: string | null;
-};
-
-/**
- * WebhookLlm
- */
-export type WebhookLlm = {
-  /**
-   * Provider
-   */
-  provider?: string | null;
-  /**
-   * Model
-   */
-  model?: string | null;
-  /**
-   * Temperature
-   */
-  temperature?: number | null;
-};
-
-/**
- * WebhookToolCall
- */
-export type WebhookToolCall = {
-  /**
-   * Name
-   */
-  name?: string | null;
-  /**
-   * Description
-   */
-  description?: string | null;
-  /**
-   * Method
-   */
-  method?: string | null;
-  /**
-   * Url
-   */
-  url?: string | null;
-  /**
-   * Headers
-   */
-  headers?: {
-    [key: string]: string;
-  };
-  /**
-   * Parameters
-   */
-  parameters?: Array<WebhookToolCallParameter>;
-};
-
-/**
- * WebhookToolCallParameter
- */
-export type WebhookToolCallParameter = {
-  /**
-   * Name
-   */
-  name: string;
-  /**
-   * Type
-   */
-  type?: string | null;
-  /**
-   * Required
-   */
-  required?: boolean;
-  /**
-   * Description
-   */
-  description?: string | null;
 };
 
 /**
@@ -5858,60 +5470,6 @@ export type McpGetDraftResponses = {
 };
 
 export type McpGetDraftResponse = McpGetDraftResponses[keyof McpGetDraftResponses];
-
-export type McpUpsertDraftData = {
-  body: AgentDraftUpdate;
-  path: {
-    /**
-     * Agent Id
-     */
-    agent_id: string;
-  };
-  query?: never;
-  url: '/api/v1/mcp/agents/{agent_id}/draft';
-};
-
-export type McpUpsertDraftErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type McpUpsertDraftError = McpUpsertDraftErrors[keyof McpUpsertDraftErrors];
-
-export type McpUpsertDraftResponses = {
-  /**
-   * Successful Response
-   */
-  200: AgentVersionPublic;
-};
-
-export type McpUpsertDraftResponse = McpUpsertDraftResponses[keyof McpUpsertDraftResponses];
 
 export type AgentsListAgentsData = {
   body?: never;
@@ -9723,70 +9281,6 @@ export type EnvironmentsCreateEnvironmentResponses = {
 export type EnvironmentsCreateEnvironmentResponse =
   EnvironmentsCreateEnvironmentResponses[keyof EnvironmentsCreateEnvironmentResponses];
 
-export type EnvironmentsGetWebhookPayloadPreviewData = {
-  body?: never;
-  path?: never;
-  query: {
-    /**
-     * Agent Id
-     */
-    agent_id: string;
-    /**
-     * Environment Name
-     */
-    environment_name: string;
-    /**
-     * Eval Gate Eval Config Id
-     */
-    eval_gate_eval_config_id?: string | null;
-  };
-  url: '/api/v1/environments/webhook-payload-preview';
-};
-
-export type EnvironmentsGetWebhookPayloadPreviewErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type EnvironmentsGetWebhookPayloadPreviewError =
-  EnvironmentsGetWebhookPayloadPreviewErrors[keyof EnvironmentsGetWebhookPayloadPreviewErrors];
-
-export type EnvironmentsGetWebhookPayloadPreviewResponses = {
-  /**
-   * Successful Response
-   */
-  200: WebhookDeployPayload;
-};
-
-export type EnvironmentsGetWebhookPayloadPreviewResponse =
-  EnvironmentsGetWebhookPayloadPreviewResponses[keyof EnvironmentsGetWebhookPayloadPreviewResponses];
-
 export type EnvironmentsDeleteEnvironmentData = {
   body?: never;
   path: {
@@ -9898,232 +9392,6 @@ export type EnvironmentsUpdateEnvironmentResponses = {
 
 export type EnvironmentsUpdateEnvironmentResponse =
   EnvironmentsUpdateEnvironmentResponses[keyof EnvironmentsUpdateEnvironmentResponses];
-
-export type EnvironmentsDeployEnvironmentData = {
-  body: DeploymentCreate;
-  path: {
-    /**
-     * Environment Id
-     */
-    environment_id: string;
-  };
-  query?: never;
-  url: '/api/v1/environments/{environment_id}/deploy';
-};
-
-export type EnvironmentsDeployEnvironmentErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type EnvironmentsDeployEnvironmentError =
-  EnvironmentsDeployEnvironmentErrors[keyof EnvironmentsDeployEnvironmentErrors];
-
-export type EnvironmentsDeployEnvironmentResponses = {
-  /**
-   * Successful Response
-   */
-  200: DeploymentPublic;
-};
-
-export type EnvironmentsDeployEnvironmentResponse =
-  EnvironmentsDeployEnvironmentResponses[keyof EnvironmentsDeployEnvironmentResponses];
-
-export type EnvironmentsListEnvironmentRetellVersionsData = {
-  body?: never;
-  path: {
-    /**
-     * Environment Id
-     */
-    environment_id: string;
-  };
-  query?: never;
-  url: '/api/v1/environments/{environment_id}/retell-versions';
-};
-
-export type EnvironmentsListEnvironmentRetellVersionsErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type EnvironmentsListEnvironmentRetellVersionsError =
-  EnvironmentsListEnvironmentRetellVersionsErrors[keyof EnvironmentsListEnvironmentRetellVersionsErrors];
-
-export type EnvironmentsListEnvironmentRetellVersionsResponses = {
-  /**
-   * Response Environments-List Environment Retell Versions
-   *
-   * Successful Response
-   */
-  200: Array<RetellAgentVersion>;
-};
-
-export type EnvironmentsListEnvironmentRetellVersionsResponse =
-  EnvironmentsListEnvironmentRetellVersionsResponses[keyof EnvironmentsListEnvironmentRetellVersionsResponses];
-
-export type EnvironmentsListAgentDeploymentsData = {
-  body?: never;
-  path?: never;
-  query: {
-    /**
-     * Agent Id
-     */
-    agent_id: string;
-  };
-  url: '/api/v1/environments/deployments';
-};
-
-export type EnvironmentsListAgentDeploymentsErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type EnvironmentsListAgentDeploymentsError =
-  EnvironmentsListAgentDeploymentsErrors[keyof EnvironmentsListAgentDeploymentsErrors];
-
-export type EnvironmentsListAgentDeploymentsResponses = {
-  /**
-   * Successful Response
-   */
-  200: DeploymentsPublic;
-};
-
-export type EnvironmentsListAgentDeploymentsResponse =
-  EnvironmentsListAgentDeploymentsResponses[keyof EnvironmentsListAgentDeploymentsResponses];
-
-export type EnvironmentsListEnvironmentDeploymentsData = {
-  body?: never;
-  path: {
-    /**
-     * Environment Id
-     */
-    environment_id: string;
-  };
-  query?: never;
-  url: '/api/v1/environments/{environment_id}/deployments';
-};
-
-export type EnvironmentsListEnvironmentDeploymentsErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type EnvironmentsListEnvironmentDeploymentsError =
-  EnvironmentsListEnvironmentDeploymentsErrors[keyof EnvironmentsListEnvironmentDeploymentsErrors];
-
-export type EnvironmentsListEnvironmentDeploymentsResponses = {
-  /**
-   * Successful Response
-   */
-  200: DeploymentsPublic;
-};
-
-export type EnvironmentsListEnvironmentDeploymentsResponse =
-  EnvironmentsListEnvironmentDeploymentsResponses[keyof EnvironmentsListEnvironmentDeploymentsResponses];
 
 export type CallsListAgentCallsData = {
   body?: never;

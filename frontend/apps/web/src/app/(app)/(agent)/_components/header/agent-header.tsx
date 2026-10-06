@@ -4,8 +4,7 @@ import { useParams, useSelectedLayoutSegment } from 'next/navigation';
 
 import { cn } from '@workspace/ui/lib/utils';
 
-import { AgentEditActions } from '@/app/(app)/(agent)/_components/header/agent-edit-actions';
-import { AgentEditBreadcrumb } from '@/app/(app)/(agent)/_components/header/agent-edit-breadcrumb';
+import { AgentBreadcrumb } from '@/app/(app)/(agent)/_components/header/agent-breadcrumb';
 import {
   AgentModeTabs,
   type AgentPageMode,
@@ -16,24 +15,18 @@ const HEADER_CLASSNAME = cn(
   'bg-card dark:bg-zinc-900 px-6'
 );
 
-export function AgentEditHeader() {
+export function AgentHeader() {
   const { agentId } = useParams<{ agentId: string }>();
   const segment = useSelectedLayoutSegment() as AgentPageMode | null;
-  const activeMode: AgentPageMode = segment ?? 'edit';
+  const activeMode: AgentPageMode = segment ?? 'observe';
 
   return (
     <header className={HEADER_CLASSNAME}>
       <div className="absolute inset-y-0 left-6 flex items-center">
-        <AgentEditBreadcrumb />
+        <AgentBreadcrumb agentId={agentId} />
       </div>
 
       <AgentModeTabs agentId={agentId} activeMode={activeMode} />
-
-      {activeMode === 'edit' && (
-        <div className="absolute inset-y-0 right-6 flex items-center">
-          <AgentEditActions />
-        </div>
-      )}
     </header>
   );
 }

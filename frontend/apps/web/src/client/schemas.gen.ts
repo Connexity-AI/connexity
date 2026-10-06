@@ -663,65 +663,6 @@ export const AgentRollbackRequestSchema = {
   title: 'AgentRollbackRequest',
 } as const;
 
-export const AgentSimulatorConfigSchema = {
-  properties: {
-    model: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Model',
-      description: 'Override agent_model for this run',
-    },
-    provider: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Provider',
-      description: 'Override agent agent_provider for this run',
-    },
-    temperature: {
-      anyOf: [
-        {
-          type: 'number',
-          maximum: 2,
-          minimum: 0,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Temperature',
-      description: 'Sampling temperature for agent simulator LLM',
-    },
-    max_tokens: {
-      anyOf: [
-        {
-          type: 'integer',
-          minimum: 1,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Max Tokens',
-      description: 'Max completion tokens for agent simulator LLM',
-    },
-  },
-  type: 'object',
-  title: 'AgentSimulatorConfig',
-  description: 'Agent simulator LLM overrides (only used when agent mode is platform).',
-} as const;
-
 export const AgentToolDefinitionSchema = {
   properties: {
     name: {
@@ -2199,22 +2140,6 @@ export const ConfigPublicSchema = {
   title: 'ConfigPublic',
 } as const;
 
-export const ConnexityRuntimeConfigSchema = {
-  properties: {
-    kind: {
-      type: 'string',
-      enum: ['connexity'],
-      const: 'connexity',
-      title: 'Kind',
-      default: 'connexity',
-    },
-  },
-  type: 'object',
-  title: 'ConnexityRuntimeConfig',
-  description:
-    'Connexity text runtime: in-process user simulator + platform AgentSimulator.\n\nRequires a non-empty ``system_prompt`` on the agent for validation at eval-config\ntime. For HTTP agents without platform prompts, use ``CustomEndpointRuntimeConfig``.',
-} as const;
-
 export const ConversationTurn_InputSchema = {
   properties: {
     index: {
@@ -2692,140 +2617,6 @@ export const CustomMetricsPublicSchema = {
   title: 'CustomMetricsPublic',
 } as const;
 
-export const DeploymentCreateSchema = {
-  properties: {
-    agent_version: {
-      type: 'integer',
-      minimum: 1,
-      title: 'Agent Version',
-    },
-  },
-  type: 'object',
-  required: ['agent_version'],
-  title: 'DeploymentCreate',
-} as const;
-
-export const DeploymentPublicSchema = {
-  properties: {
-    id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Id',
-    },
-    environment_id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Environment Id',
-    },
-    environment_name: {
-      type: 'string',
-      title: 'Environment Name',
-    },
-    agent_id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Agent Id',
-    },
-    agent_version: {
-      type: 'integer',
-      title: 'Agent Version',
-    },
-    retell_version_name: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Retell Version Name',
-    },
-    status: {
-      $ref: '#/components/schemas/DeploymentStatus',
-    },
-    error_message: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Error Message',
-    },
-    deployed_by_user_id: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'uuid',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Deployed By User Id',
-    },
-    deployed_by_display_name: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Deployed By Display Name',
-    },
-    deployed_at: {
-      type: 'string',
-      format: 'date-time',
-      title: 'Deployed At',
-    },
-  },
-  type: 'object',
-  required: [
-    'id',
-    'environment_id',
-    'environment_name',
-    'agent_id',
-    'agent_version',
-    'retell_version_name',
-    'status',
-    'error_message',
-    'deployed_by_user_id',
-    'deployed_by_display_name',
-    'deployed_at',
-  ],
-  title: 'DeploymentPublic',
-} as const;
-
-export const DeploymentStatusSchema = {
-  type: 'string',
-  enum: ['pending', 'deployed', 'failed'],
-  title: 'DeploymentStatus',
-} as const;
-
-export const DeploymentsPublicSchema = {
-  properties: {
-    data: {
-      items: {
-        $ref: '#/components/schemas/DeploymentPublic',
-      },
-      type: 'array',
-      title: 'Data',
-    },
-    count: {
-      type: 'integer',
-      title: 'Count',
-    },
-  },
-  type: 'object',
-  required: ['data', 'count'],
-  title: 'DeploymentsPublic',
-} as const;
-
 export const DifficultySchema = {
   type: 'string',
   enum: ['normal', 'hard'],
@@ -2858,20 +2649,6 @@ export const EnvironmentCreateSchema = {
         },
       ],
       title: 'Endpoint Url',
-    },
-    eval_gate_eval_config_id: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'uuid',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Eval Gate Eval Config Id',
-      description:
-        'Optional: gate deploys on a passing run of this eval config for the requested agent version.',
     },
   },
   type: 'object',
@@ -2921,52 +2698,6 @@ export const EnvironmentPublicSchema = {
       ],
       title: 'Endpoint Url',
     },
-    current_version_number: {
-      anyOf: [
-        {
-          type: 'integer',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Current Version Number',
-    },
-    current_version_name: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Current Version Name',
-    },
-    current_deployed_at: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'date-time',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Current Deployed At',
-    },
-    eval_gate_eval_config_id: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'uuid',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Eval Gate Eval Config Id',
-    },
     created_at: {
       type: 'string',
       format: 'date-time',
@@ -2981,10 +2712,6 @@ export const EnvironmentPublicSchema = {
     'agent_id',
     'integration_name',
     'endpoint_url',
-    'current_version_number',
-    'current_version_name',
-    'current_deployed_at',
-    'eval_gate_eval_config_id',
     'created_at',
   ],
   title: 'EnvironmentPublic',
@@ -3025,20 +2752,6 @@ export const EnvironmentUpdateSchema = {
         },
       ],
       title: 'Endpoint Url',
-    },
-    eval_gate_eval_config_id: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'uuid',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Eval Gate Eval Config Id',
-      description:
-        'Optional: gate deploys on a passing run of this eval config for the requested agent version.',
     },
   },
   type: 'object',
@@ -3119,7 +2832,7 @@ export const EvalConfigCreateSchema = {
           type: 'null',
         },
       ],
-      description: 'Run configuration (concurrency, max_turns, judge, tool_mode, etc.)',
+      description: 'Run configuration (concurrency, max_turns, judge, runtime, etc.)',
     },
     members: {
       anyOf: [
@@ -3314,7 +3027,7 @@ export const EvalConfigPublicSchema = {
           type: 'null',
         },
       ],
-      description: 'Run configuration (concurrency, max_turns, judge, tool_mode, etc.)',
+      description: 'Run configuration (concurrency, max_turns, judge, runtime, etc.)',
     },
     test_case_count: {
       type: 'integer',
@@ -3386,7 +3099,7 @@ export const EvalConfigUpdateSchema = {
           type: 'null',
         },
       ],
-      description: 'Run configuration (concurrency, max_turns, judge, tool_mode, etc.)',
+      description: 'Run configuration (concurrency, max_turns, judge, runtime, etc.)',
     },
   },
   type: 'object',
@@ -4969,34 +4682,6 @@ export const RetellAgentSummarySchema = {
   title: 'RetellAgentSummary',
 } as const;
 
-export const RetellAgentVersionSchema = {
-  properties: {
-    version: {
-      type: 'integer',
-      title: 'Version',
-    },
-    version_title: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Version Title',
-    },
-    is_published: {
-      type: 'boolean',
-      title: 'Is Published',
-      default: false,
-    },
-  },
-  type: 'object',
-  required: ['version'],
-  title: 'RetellAgentVersion',
-} as const;
-
 export const RetellRuntimeConfigSchema = {
   properties: {
     kind: {
@@ -5160,14 +4845,6 @@ export const RunConfig_InputSchema = {
       title: 'Max Turns',
       description: 'Max agent response rounds per test case; null = no cap',
     },
-    tool_mode: {
-      type: 'string',
-      enum: ['mock', 'live'],
-      title: 'Tool Mode',
-      description:
-        'Global tool execution mode: mock uses test-case expected_tool_calls.mock_response payloads, live executes real implementations',
-      default: 'mock',
-    },
     metrics_pass_threshold: {
       type: 'number',
       maximum: 100,
@@ -5209,18 +4886,6 @@ export const RunConfig_InputSchema = {
       description:
         'User simulator: LLM vs scripted replay, model/provider overrides, temperature. Omitted fields use app LLM defaults.',
     },
-    agent_simulator: {
-      anyOf: [
-        {
-          $ref: '#/components/schemas/AgentSimulatorConfig',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      description:
-        'Agent simulator LLM overrides. Applies when the selected text runtime uses AgentSimulator (Connexity).',
-    },
     mode: {
       $ref: '#/components/schemas/RunMode',
       description: 'Run modality: text today, voice for future realtime simulations.',
@@ -5229,9 +4894,6 @@ export const RunConfig_InputSchema = {
     runtime: {
       oneOf: [
         {
-          $ref: '#/components/schemas/ConnexityRuntimeConfig',
-        },
-        {
           $ref: '#/components/schemas/RetellRuntimeConfig',
         },
         {
@@ -5239,11 +4901,11 @@ export const RunConfig_InputSchema = {
         },
       ],
       title: 'Runtime',
-      description: 'Runtime that drives the eval for the selected mode.',
+      description:
+        "Runtime that drives the eval for the selected mode. Required: evals always run on the agent's own engine, so there is no default.",
       discriminator: {
         propertyName: 'kind',
         mapping: {
-          connexity: '#/components/schemas/ConnexityRuntimeConfig',
           custom_endpoint: '#/components/schemas/CustomEndpointRuntimeConfig',
           retell: '#/components/schemas/RetellRuntimeConfig',
         },
@@ -5251,6 +4913,7 @@ export const RunConfig_InputSchema = {
     },
   },
   type: 'object',
+  required: ['runtime'],
   title: 'RunConfig',
 } as const;
 
@@ -5280,14 +4943,6 @@ export const RunConfig_OutputSchema = {
       title: 'Max Turns',
       description: 'Max agent response rounds per test case; null = no cap',
     },
-    tool_mode: {
-      type: 'string',
-      enum: ['mock', 'live'],
-      title: 'Tool Mode',
-      description:
-        'Global tool execution mode: mock uses test-case expected_tool_calls.mock_response payloads, live executes real implementations',
-      default: 'mock',
-    },
     metrics_pass_threshold: {
       type: 'number',
       maximum: 100,
@@ -5329,18 +4984,6 @@ export const RunConfig_OutputSchema = {
       description:
         'User simulator: LLM vs scripted replay, model/provider overrides, temperature. Omitted fields use app LLM defaults.',
     },
-    agent_simulator: {
-      anyOf: [
-        {
-          $ref: '#/components/schemas/AgentSimulatorConfig',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      description:
-        'Agent simulator LLM overrides. Applies when the selected text runtime uses AgentSimulator (Connexity).',
-    },
     mode: {
       $ref: '#/components/schemas/RunMode',
       description: 'Run modality: text today, voice for future realtime simulations.',
@@ -5349,9 +4992,6 @@ export const RunConfig_OutputSchema = {
     runtime: {
       oneOf: [
         {
-          $ref: '#/components/schemas/ConnexityRuntimeConfig',
-        },
-        {
           $ref: '#/components/schemas/RetellRuntimeConfig',
         },
         {
@@ -5359,11 +4999,11 @@ export const RunConfig_OutputSchema = {
         },
       ],
       title: 'Runtime',
-      description: 'Runtime that drives the eval for the selected mode.',
+      description:
+        "Runtime that drives the eval for the selected mode. Required: evals always run on the agent's own engine, so there is no default.",
       discriminator: {
         propertyName: 'kind',
         mapping: {
-          connexity: '#/components/schemas/ConnexityRuntimeConfig',
           custom_endpoint: '#/components/schemas/CustomEndpointRuntimeConfig',
           retell: '#/components/schemas/RetellRuntimeConfig',
         },
@@ -5371,6 +5011,7 @@ export const RunConfig_OutputSchema = {
     },
   },
   type: 'object',
+  required: ['runtime'],
   title: 'RunConfig',
 } as const;
 
@@ -6028,9 +5669,6 @@ export const RuntimeTestRequestSchema = {
     runtime: {
       oneOf: [
         {
-          $ref: '#/components/schemas/ConnexityRuntimeConfig',
-        },
-        {
           $ref: '#/components/schemas/RetellRuntimeConfig',
         },
         {
@@ -6042,7 +5680,6 @@ export const RuntimeTestRequestSchema = {
       discriminator: {
         propertyName: 'kind',
         mapping: {
-          connexity: '#/components/schemas/ConnexityRuntimeConfig',
           custom_endpoint: '#/components/schemas/CustomEndpointRuntimeConfig',
           retell: '#/components/schemas/RetellRuntimeConfig',
         },
@@ -7557,7 +7194,7 @@ export const TestCasesPublicSchema = {
 
 export const TextRuntimeKindSchema = {
   type: 'string',
-  enum: ['connexity', 'retell', 'custom_endpoint'],
+  enum: ['retell', 'custom_endpoint'],
   title: 'TextRuntimeKind',
 } as const;
 
@@ -7883,362 +7520,6 @@ export const ValidationErrorSchema = {
   type: 'object',
   required: ['loc', 'msg', 'type'],
   title: 'ValidationError',
-} as const;
-
-export const WebhookAgentSchema = {
-  properties: {
-    id: {
-      type: 'string',
-      title: 'Id',
-    },
-    name: {
-      type: 'string',
-      title: 'Name',
-    },
-    version: {
-      type: 'integer',
-      title: 'Version',
-    },
-    version_name: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Version Name',
-    },
-    version_description: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Version Description',
-    },
-    prompt: {
-      type: 'string',
-      title: 'Prompt',
-    },
-    llm: {
-      $ref: '#/components/schemas/WebhookLlm',
-    },
-    tool_calls: {
-      items: {
-        $ref: '#/components/schemas/WebhookToolCall',
-      },
-      type: 'array',
-      title: 'Tool Calls',
-    },
-  },
-  type: 'object',
-  required: ['id', 'name', 'version', 'prompt', 'llm'],
-  title: 'WebhookAgent',
-} as const;
-
-export const WebhookDeployPayloadSchema = {
-  properties: {
-    event: {
-      type: 'string',
-      title: 'Event',
-    },
-    agent: {
-      $ref: '#/components/schemas/WebhookAgent',
-    },
-    environment: {
-      type: 'string',
-      title: 'Environment',
-    },
-    deployed_at: {
-      type: 'string',
-      format: 'date-time',
-      title: 'Deployed At',
-    },
-    deployed_by: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Deployed By',
-    },
-    eval: {
-      $ref: '#/components/schemas/WebhookEval',
-    },
-  },
-  type: 'object',
-  required: ['event', 'agent', 'environment', 'deployed_at', 'eval'],
-  title: 'WebhookDeployPayload',
-} as const;
-
-export const WebhookEvalSchema = {
-  properties: {
-    config_id: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Config Id',
-    },
-    config_name: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Config Name',
-    },
-    run_at: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'date-time',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Run At',
-    },
-    passed: {
-      anyOf: [
-        {
-          type: 'boolean',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Passed',
-    },
-    metrics_score: {
-      anyOf: [
-        {
-          type: 'number',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Metrics Score',
-    },
-    metrics_pass_threshold: {
-      anyOf: [
-        {
-          type: 'number',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Metrics Pass Threshold',
-    },
-    cases_passed: {
-      anyOf: [
-        {
-          type: 'integer',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Cases Passed',
-    },
-    cases_total: {
-      anyOf: [
-        {
-          type: 'integer',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Cases Total',
-    },
-    cases_pass_threshold: {
-      anyOf: [
-        {
-          type: 'number',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Cases Pass Threshold',
-    },
-    results_link: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Results Link',
-    },
-  },
-  type: 'object',
-  title: 'WebhookEval',
-} as const;
-
-export const WebhookLlmSchema = {
-  properties: {
-    provider: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Provider',
-    },
-    model: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Model',
-    },
-    temperature: {
-      anyOf: [
-        {
-          type: 'number',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Temperature',
-    },
-  },
-  type: 'object',
-  title: 'WebhookLlm',
-} as const;
-
-export const WebhookToolCallSchema = {
-  properties: {
-    name: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Name',
-    },
-    description: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Description',
-    },
-    method: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Method',
-    },
-    url: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Url',
-    },
-    headers: {
-      additionalProperties: {
-        type: 'string',
-      },
-      type: 'object',
-      title: 'Headers',
-    },
-    parameters: {
-      items: {
-        $ref: '#/components/schemas/WebhookToolCallParameter',
-      },
-      type: 'array',
-      title: 'Parameters',
-    },
-  },
-  type: 'object',
-  title: 'WebhookToolCall',
-} as const;
-
-export const WebhookToolCallParameterSchema = {
-  properties: {
-    name: {
-      type: 'string',
-      title: 'Name',
-    },
-    type: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Type',
-    },
-    required: {
-      type: 'boolean',
-      title: 'Required',
-      default: false,
-    },
-    description: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Description',
-    },
-  },
-  type: 'object',
-  required: ['name'],
-  title: 'WebhookToolCallParameter',
 } as const;
 
 export const app__models__enums__IntegrationProvider__1Schema = {

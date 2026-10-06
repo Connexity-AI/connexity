@@ -40,16 +40,7 @@ export const addEnvironmentFormSchema = z
       .url('Enter a valid URL')
       .regex(/^https?:\/\//i, 'URL must start with http:// or https://')
       .nullable(),
-    eval_gate_enabled: z.boolean(),
-    eval_gate_eval_config_id: nullableUuidString,
   })
-  .refine(
-    (v) => !v.eval_gate_enabled || v.eval_gate_eval_config_id !== null,
-    {
-      message: 'Select an eval config for the gate',
-      path: ['eval_gate_eval_config_id'],
-    }
-  )
   .refine(
     (v) => {
       if (v.platform === Platform.WEBHOOK) {
@@ -58,7 +49,7 @@ export const addEnvironmentFormSchema = z
       return true;
     },
     {
-      message: 'Enter a webhook URL',
+      message: 'Enter an endpoint URL',
       path: ['endpoint_url'],
     }
   )

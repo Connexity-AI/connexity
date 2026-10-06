@@ -14,8 +14,6 @@ export const DEFAULT_ENVIRONMENT_FORM_VALUES: AddEnvironmentFormInputValues = {
   platform_agent_id: null,
   platform_agent_name: null,
   endpoint_url: null,
-  eval_gate_enabled: false,
-  eval_gate_eval_config_id: null,
 };
 
 function getAgentProviderTargetValues(
@@ -45,8 +43,6 @@ function defaultFormValuesForNewEnvironment(
     platform: agent.platform,
     ...getAgentProviderTargetValues(agent),
     endpoint_url: null,
-    eval_gate_enabled: false,
-    eval_gate_eval_config_id: null,
   };
 }
 
@@ -63,8 +59,6 @@ export function getEnvironmentFormValues(
     platform: environment.platform,
     ...getAgentProviderTargetValues(agent),
     endpoint_url: environment.endpoint_url ?? null,
-    eval_gate_enabled: environment.eval_gate_eval_config_id !== null,
-    eval_gate_eval_config_id: environment.eval_gate_eval_config_id ?? null,
   };
 }
 
@@ -79,7 +73,6 @@ export function getEnvironmentCreateBody(
     platform: values.platform,
     agent_id: agentId,
     endpoint_url: body.endpoint_url,
-    eval_gate_eval_config_id: body.eval_gate_eval_config_id,
   };
 }
 
@@ -90,8 +83,5 @@ export function getEnvironmentUpdateBody(
     name: values.name,
     platform: values.platform,
     endpoint_url: values.platform === Platform.WEBHOOK ? values.endpoint_url : null,
-    eval_gate_eval_config_id: values.eval_gate_enabled
-      ? values.eval_gate_eval_config_id
-      : null,
   };
 }

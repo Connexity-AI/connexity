@@ -4,17 +4,15 @@ import { Sheet, SheetContent } from '@workspace/ui/components/ui/sheet';
 
 import { SrOnlySheetTitle } from '@/components/common/sr-only-sheet-title';
 import { CallPanel } from './call-panel';
-import { ObserveManualTestCasePanel } from './observe-manual-test-case-panel';
 import { ObserveTestCasePanel } from './observe-test-case-panel';
 
 import type { CallPublic, TestCasePublic } from '@/client/types.gen';
 
-export type ObserveRightPanelMode = 'manual-create' | 'test-case';
+export type ObserveRightPanelMode = 'test-case';
 
 function getDrawerTitle(hasCall: boolean, rightPanelMode: ObserveRightPanelMode | null) {
   if (hasCall) return 'Call transcript';
   if (rightPanelMode === 'test-case') return 'Test case detail';
-  if (rightPanelMode === 'manual-create') return 'New test case';
   return 'Test case';
 }
 
@@ -25,7 +23,6 @@ interface ObserveDrawerProps {
   rightPanelMode: ObserveRightPanelMode | null;
   onClose: () => void;
   onCloseRightPanel: () => void;
-  onCreateTestCaseManual: (call: CallPublic) => void;
   onRequestDeleteTestCase: (testCase: TestCasePublic) => void;
   batchPosition?: number;
   batchTotal?: number;
@@ -40,7 +37,6 @@ export function ObserveDrawer({
   rightPanelMode,
   onClose,
   onCloseRightPanel,
-  onCreateTestCaseManual,
   onRequestDeleteTestCase,
   batchPosition,
   batchTotal,
@@ -68,18 +64,10 @@ export function ObserveDrawer({
         <SrOnlySheetTitle>{getDrawerTitle(!!call, rightPanelMode)}</SrOnlySheetTitle>
 
         {call ? (
-          <CallPanel
-            agentId={agentId}
-            call={call}
-            onCreateTestCaseManual={showRightPanel ? undefined : onCreateTestCaseManual}
-          />
+          <CallPanel agentId={agentId} call={call} />
         ) : null}
 
         {call && showRightPanel ? <div className="w-px shrink-0 bg-border" /> : null}
-
-        {rightPanelMode === 'manual-create' ? (
-          <ObserveManualTestCasePanel agentId={agentId} call={call} onClose={onCloseRightPanel} />
-        ) : null}
 
         {rightPanelMode === 'test-case' ? (
           <ObserveTestCasePanel

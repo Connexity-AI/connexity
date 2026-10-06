@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form';
 
 import { useAgent } from '@/app/(app)/(agent)/_hooks/use-agent';
 import { useCreateEnvironment } from '@/app/(app)/(agent)/_hooks/use-create-environment';
-import { useEnvironmentPayloadPreview } from '@/app/(app)/(agent)/_hooks/use-environment-payload-preview';
 import { useUpdateEnvironment } from '@/app/(app)/(agent)/_hooks/use-update-environment';
 import { addEnvironmentFormSchema } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_components/add-environment-form-schema';
 import type { AgentCanonicalDeployTarget } from '@/app/(app)/(agent)/agents/[agentId]/deploy/_utils/agent-canonical-deploy-target';
@@ -53,28 +52,14 @@ export function useAddEnvironmentForm({
     values: getEnvironmentFormValues(environment, agentTarget),
   });
 
-  const name = form.watch('name');
   const platform = form.watch('platform');
-  const evalGateEnabled = form.watch('eval_gate_enabled');
-  const evalGateEvalConfigId = form.watch('eval_gate_eval_config_id');
   const isPending = createEnvironment.isPending || updateEnvironment.isPending;
   const error = createEnvironment.error ?? updateEnvironment.error;
   const integrationPlatform = isIntegrationPlatform(platform) ? platform : null;
   const isEditing = environment !== null;
   const submitLabel = isEditing ? 'Save changes' : 'Add environment';
   const needsAgentForNewEnvironment = environment === null && agentEnvironmentFormMode === 'loading';
-  const isSubmitDisabled =
-    isPending ||
-    needsAgentForNewEnvironment ||
-    (evalGateEnabled && evalGateEvalConfigId == null);
-  const environmentNameForPreview = name.trim() || 'production';
-  const payloadPreview = useEnvironmentPayloadPreview({
-    agentId,
-    platform,
-    environmentName: environmentNameForPreview,
-    evalGateEnabled,
-    evalGateEvalConfigId: evalGateEvalConfigId ?? null,
-  });
+  const isSubmitDisabled = isPending || needsAgentForNewEnvironment;
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
@@ -97,11 +82,6 @@ export function useAddEnvironmentForm({
     onSubmit,
     platform,
     integrationPlatform,
-    payloadOpen: payloadPreview.payloadOpen,
-    onTogglePayloadOpen: payloadPreview.onTogglePayloadOpen,
-    payloadPreview: payloadPreview.payloadPreview,
-    isPayloadPreviewLoading: payloadPreview.isPayloadPreviewLoading,
-    showMissingPublishedVersionInfo: payloadPreview.showMissingPublishedVersionInfo,
     submitLabel,
     isSubmitDisabled,
     isPending,

@@ -2,7 +2,6 @@
 'use no memo';
 
 import { X } from 'lucide-react';
-import { useFormContext } from 'react-hook-form';
 
 import { Button } from '@workspace/ui/components/ui/button';
 import { Form } from '@workspace/ui/components/ui/form';
@@ -13,9 +12,9 @@ import { TestCaseEvaluationSection } from '@/app/(app)/(agent)/_components/evals
 import { TestCaseUserSimulationSection } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-user-simulation-section';
 import { StatusBadge } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-drawer-primitives';
 import { BatchPagerNav } from '@/app/(app)/(agent)/_components/observe/batch-pager-nav';
+import { useAgentTools } from '@/app/(app)/(agent)/_hooks/use-agent-tools';
 import { useTestCaseDetailForm } from '@/app/(app)/(agent)/_hooks/use-test-case-detail-form';
 
-import type { AgentFormValues } from '@/app/(app)/(agent)/_schemas/agent-form';
 import type { TestCasePublic } from '@/client/types.gen';
 
 interface ObserveTestCasePanelProps {
@@ -39,8 +38,7 @@ export function ObserveTestCasePanel({
   onPrev,
   onNext,
 }: ObserveTestCasePanelProps) {
-  const agentForm = useFormContext<AgentFormValues>();
-  const availableTools = agentForm.watch('tools') ?? [];
+  const availableTools = useAgentTools(agentId);
 
   const { form, handleSubmit, isPending } = useTestCaseDetailForm({
     agentId,

@@ -11,6 +11,7 @@ export const newAgentFormSchema = z
     integration_id: z.string().uuid().nullable(),
     platform_agent_id: z.string().nullable(),
     platform_agent_name: z.string().nullable(),
+    endpoint_url: z.string().trim().nullable(),
   })
   .refine((v) => v.platform !== null, {
     message: 'Platform is required',
@@ -24,6 +25,18 @@ export const newAgentFormSchema = z
       return true;
     },
     { message: 'Custom agents do not use integrations', path: ['integration_id'] }
+  )
+  .refine(
+    (v) => {
+      if (v.platform !== Platform.WEBHOOK) {
+        return true;
+      }
+      return /^https?:\/\/\S+$/i.test(v.endpoint_url ?? '');
+    },
+    {
+      message: 'Enter the URL of your agent endpoint (http:// or https://)',
+      path: ['endpoint_url'],
+    }
   )
   .refine(
     (v) => {

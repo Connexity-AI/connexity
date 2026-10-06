@@ -111,14 +111,14 @@ export const EnvironmentCardDestinationDetails: FC<Props> = ({ agentId, environm
   );
   if (environment.platform === Platform.WEBHOOK) {
     return (
-      <div className="px-5 py-4 border-b border-border bg-accent/5 space-y-3">
+      <div className="px-5 py-4 bg-accent/5 space-y-3">
         <WebhookDestination environment={environment} />
       </div>
     );
   }
   if (environment.platform === Platform.VAPI) {
     return (
-      <div className="px-5 py-4 border-b border-border bg-accent/5 space-y-3">
+      <div className="px-5 py-4 bg-accent/5 space-y-3">
         <VapiDestination
           integrationName={integrationName}
           platformAgentLabel={platformAgentLabel}
@@ -128,7 +128,7 @@ export const EnvironmentCardDestinationDetails: FC<Props> = ({ agentId, environm
   }
   if (environment.platform === Platform.ELEVENLABS) {
     return (
-      <div className="px-5 py-4 border-b border-border bg-accent/5 space-y-3">
+      <div className="px-5 py-4 bg-accent/5 space-y-3">
         <ElevenLabsDestination
           integrationName={integrationName}
           platformAgentLabel={platformAgentLabel}
@@ -138,7 +138,7 @@ export const EnvironmentCardDestinationDetails: FC<Props> = ({ agentId, environm
   }
 
   return (
-    <div className="px-5 py-4 border-b border-border bg-accent/5 space-y-3">
+    <div className="px-5 py-4 bg-accent/5 space-y-3">
       <RetellDestination
         integrationName={integrationName}
         platformAgentLabel={platformAgentLabel}

@@ -1,9 +1,7 @@
 import { dehydrate } from '@tanstack/react-query';
 
-import { AgentEditHeader } from '@/app/(app)/(agent)/_components/header/agent-edit-header';
-import { AgentEditFormProvider } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
-import { DiffProvider } from '@/app/(app)/(agent)/_context/diff-context';
-import { VersionsProvider } from '@/app/(app)/(agent)/_context/versions-context';
+import { AgentHeader } from '@/app/(app)/(agent)/_components/header/agent-header';
+import { agentDetailQuery } from '@/app/(app)/(agent)/_queries/agent-detail-query';
 import { appConfigQueries } from '@/app/(app)/(agent)/_queries/app-config-query';
 import getQueryClient from '@/lib/react-query/getQueryClient';
 import { HydrateProvider } from '@/components/common/hydrate-provider';
@@ -19,20 +17,17 @@ export default async function AgentLayout({ children, params }: Props) {
   const { agentId } = await params;
 
   const queryClient = getQueryClient();
-  await queryClient.prefetchQuery(appConfigQueries.root);
+  await Promise.all([
+    queryClient.prefetchQuery(appConfigQueries.root),
+    queryClient.prefetchQuery(agentDetailQuery(agentId)),
+  ]);
 
   const dehydratedState = dehydrate(queryClient);
 
   return (
     <HydrateProvider state={dehydratedState}>
-      <VersionsProvider>
-        <DiffProvider>
-          <AgentEditFormProvider agentId={agentId}>
-            <AgentEditHeader />
-            {children}
-          </AgentEditFormProvider>
-        </DiffProvider>
-      </VersionsProvider>
+      <AgentHeader />
+      {children}
     </HydrateProvider>
   );
 }

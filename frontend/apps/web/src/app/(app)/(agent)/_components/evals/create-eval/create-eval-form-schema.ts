@@ -11,7 +11,6 @@ import type { EvalConfigCreate, RunConfigInput } from '@/client/types.gen';
 export type CreateEvalRuntime = NonNullable<RunConfigInput['runtime']>;
 
 const runtimeSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal(TextRuntimeKind.CONNEXITY) }),
   z.object({ kind: z.literal(TextRuntimeKind.RETELL) }),
   z.object({
     kind: z.literal(TextRuntimeKind.CUSTOM_ENDPOINT),
@@ -31,7 +30,6 @@ export const createEvalFormSchema = z.object({
   run: z.object({
     concurrency: z.number().int().min(1).max(50),
     max_turns: z.number().int().min(1).max(200).nullable(),
-    tool_mode: z.enum(['mock', 'live']),
     runtime: runtimeSchema,
     runtime_test: z.object({
       ok: z.boolean(),
@@ -101,8 +99,7 @@ export function buildDefaults(
     run: {
       concurrency: 10,
       max_turns: 30,
-      tool_mode: 'mock',
-      runtime: { kind: TextRuntimeKind.CONNEXITY },
+      runtime: { kind: TextRuntimeKind.RETELL },
       runtime_test: { ok: false, url: null },
       metrics_pass_threshold: 80,
       cases_pass_threshold: 100,
@@ -126,8 +123,6 @@ export function formValuesToCreatePayload(
   agentId: string
 ): EvalConfigCreate {
   const runtime = values.run.runtime;
-  const toolMode =
-    runtime.kind === TextRuntimeKind.CONNEXITY ? values.run.tool_mode : 'mock';
 
   return {
     name: values.name,
@@ -135,7 +130,6 @@ export function formValuesToCreatePayload(
     config: {
       concurrency: values.run.concurrency,
       max_turns: values.run.max_turns,
-      tool_mode: toolMode,
       mode: 'text',
       runtime,
       metrics_pass_threshold: values.run.metrics_pass_threshold,

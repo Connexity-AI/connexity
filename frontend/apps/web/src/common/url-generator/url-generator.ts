@@ -44,10 +44,6 @@ export class UrlGenerator {
     return createTypedLink(route, agentsParser, options)(values);
   }
 
-  static agentEdit(agentId: string) {
-    return `/agents/${agentId}/edit` as Route;
-  }
-
   static agentEvals(agentId: string) {
     return `/agents/${agentId}/evals` as Route;
   }
@@ -66,10 +62,6 @@ export class UrlGenerator {
 
   static agentEvalsRunDetail(agentId: string, runId: string) {
     return `/agents/${agentId}/evals/eval-runs/${runId}` as Route;
-  }
-
-  static agentEvalsCreate(agentId: string) {
-    return `/agents/${agentId}/evals/create-eval` as Route;
   }
 
   static agentEvalsConfigDetail(agentId: string, evalConfigId: string) {

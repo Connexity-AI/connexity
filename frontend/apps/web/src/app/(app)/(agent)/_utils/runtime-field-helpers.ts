@@ -1,4 +1,4 @@
-import { Bot, FlaskConical } from 'lucide-react';
+import { Bot } from 'lucide-react';
 
 import { TextRuntimeKind } from '@/client/types.gen';
 
@@ -16,10 +16,6 @@ export function runtimeConfigForKind(
   return { kind };
 }
 
-export function runtimeIconForKind(kind: TextRuntimeKindType) {
-  if (kind === TextRuntimeKind.CONNEXITY) {
-    return FlaskConical;
-  }
-
+export function runtimeIconForKind(_kind: TextRuntimeKindType) {
   return Bot;
 }

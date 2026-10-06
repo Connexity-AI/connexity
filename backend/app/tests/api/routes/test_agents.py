@@ -293,9 +293,13 @@ def test_post_agents_draft_retell_missing_importable_llm_still_creates_agent(
     assert body["integration_id"] == str(integration.id)
     assert body["platform_agent_id"] == "agent_retell_123"
     assert body["platform_agent_name"] == "Retell Provider Agent"
-    assert body["has_draft"] is True
+    # No editor exists to publish a draft, so the agent must be usable as created.
+    assert body["has_draft"] is False
     assert body["system_prompt"] is None
     assert body["agent_model"] is None
+    active = crud.get_active_agent_version(session=db, agent_id=uuid.UUID(body["id"]))
+    assert active is not None
+    assert active.version == 1
 
 
 def test_list_agents_includes_latest_published_version(
