@@ -91,21 +91,11 @@ from app.models.custom_metric import (  # noqa: F401
     CustomMetricUpdate,
 )
 
-# ── Deployment ─────────────────────────────────────────────────────
-from app.models.deployment import (  # noqa: F401
-    Deployment,
-    DeploymentBase,
-    DeploymentCreate,
-    DeploymentPublic,
-    DeploymentsPublic,
-)
-
 # ── Enums ──────────────────────────────────────────────────────────
 from app.models.enums import (  # noqa: F401
     AgentMode,
     AgentPromptType,
     AgentVersionStatus,
-    DeploymentStatus,
     Difficulty,
     FirstTurn,
     IntegrationProvider,
@@ -235,12 +225,4 @@ from app.models.user import (  # noqa: F401
     UserRegister,
     UserUpdate,
     UserUpdateMe,
-)
-from app.models.webhook_payload import (  # noqa: F401
-    WebhookAgent,
-    WebhookDeployPayload,
-    WebhookEval,
-    WebhookLlm,
-    WebhookToolCall,
-    WebhookToolCallParameter,
 )

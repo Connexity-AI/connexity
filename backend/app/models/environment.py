@@ -46,18 +46,6 @@ class Environment(EnvironmentBase, table=True):
     company_id: uuid.UUID = Field(foreign_key="company.id", index=True)
     agent_id: uuid.UUID = Field(foreign_key="agent.id", index=True)
     endpoint_url: str | None = Field(default=None, max_length=2048)
-    current_version_number: int | None = Field(default=None)
-    current_version_name: str | None = Field(default=None, max_length=255)
-    current_deployed_at: datetime | None = Field(default=None)
-    eval_gate_eval_config_id: uuid.UUID | None = Field(
-        default=None,
-        foreign_key="eval_config.id",
-        index=True,
-        description=(
-            "When set, deploys to this environment are gated on a passing run "
-            "of this eval config for the requested agent version."
-        ),
-    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"server_default": text("now()")},
@@ -74,13 +62,6 @@ class Environment(EnvironmentBase, table=True):
 class EnvironmentCreate(EnvironmentBase):
     agent_id: uuid.UUID
     endpoint_url: str | None = Field(default=None, max_length=2048)
-    eval_gate_eval_config_id: uuid.UUID | None = Field(
-        default=None,
-        description=(
-            "Optional: gate deploys on a passing run of this eval config for "
-            "the requested agent version."
-        ),
-    )
 
     @model_validator(mode="after")
     def validate_platform_fields(self) -> "EnvironmentCreate":
@@ -95,13 +76,6 @@ class EnvironmentUpdate(SQLModel):
     name: str | None = Field(default=None, max_length=255)
     platform: Platform | None = None
     endpoint_url: str | None = Field(default=None, max_length=2048)
-    eval_gate_eval_config_id: uuid.UUID | None = Field(
-        default=None,
-        description=(
-            "Optional: gate deploys on a passing run of this eval config for "
-            "the requested agent version."
-        ),
-    )
 
     @model_validator(mode="after")
     def validate_required_update_fields(self) -> "EnvironmentUpdate":
@@ -119,10 +93,6 @@ class EnvironmentPublic(EnvironmentBase):
     agent_id: uuid.UUID
     integration_name: str | None
     endpoint_url: str | None
-    current_version_number: int | None
-    current_version_name: str | None
-    current_deployed_at: datetime | None
-    eval_gate_eval_config_id: uuid.UUID | None
     created_at: datetime
 
 

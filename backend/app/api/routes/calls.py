@@ -82,7 +82,7 @@ async def _fetch_and_store_production_calls(
             event["status"] = "no_production_call_env"
             raise HTTPException(
                 status_code=400,
-                detail="Add a Retell, Vapi, or ElevenLabs environment on the Deploy tab first",
+                detail="Add a Retell, Vapi, or ElevenLabs environment for this agent first",
             )
 
         created_total = 0

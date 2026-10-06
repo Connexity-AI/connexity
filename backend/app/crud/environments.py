@@ -4,7 +4,6 @@ from sqlalchemy import func
 from sqlmodel import Session, col, select
 
 from app.models.agent import Agent
-from app.models.deployment import Deployment
 from app.models.environment import Environment, EnvironmentCreate, EnvironmentUpdate
 
 
@@ -17,7 +16,6 @@ def create_environment(
         platform=data.platform,
         agent_id=data.agent_id,
         endpoint_url=data.endpoint_url,
-        eval_gate_eval_config_id=data.eval_gate_eval_config_id,
     )
     session.add(db_obj)
     session.commit()
@@ -62,11 +60,6 @@ def list_environments_by_agent(
 
 
 def delete_environment(*, session: Session, db_environment: Environment) -> None:
-    deployments = session.exec(
-        select(Deployment).where(Deployment.environment_id == db_environment.id)
-    ).all()
-    for d in deployments:
-        session.delete(d)
     session.delete(db_environment)
     session.commit()
 

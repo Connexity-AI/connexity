@@ -2,7 +2,7 @@
 
 Command-line client for [Connexity](https://github.com/Connexity-AI/connexity) — drive eval runs, manage agents and test cases, and gate CI on regressions, all from the terminal.
 
-`connexity-cli` is a thin wrapper over the Connexity REST API. It covers the public surface used to drive eval workflows from CI: auth, agents, eval configs, test cases, runs (with SSE streaming), custom metrics, integrations, environments (including deploy + deployment history), calls, config, and health. Account self-service (signup, password reset) stays in the web UI.
+`connexity-cli` is a thin wrapper over the Connexity REST API. It covers the public surface used to drive eval workflows from CI: auth, agents, eval configs, test cases, runs (with SSE streaming), custom metrics, integrations, environments, calls, config, and health. Account self-service (signup, password reset) stays in the web UI.
 
 ## Installation
 
@@ -61,10 +61,6 @@ connexity-cli run \
 # CI gate: regression check against the baseline (exits 1 on regression
 # OR when the candidate fails its own metrics or cases threshold)
 connexity-cli compare --candidate <run-id> --against-baseline
-
-# Deploy a pre-validated agent version to Retell via a configured environment
-# (eval-gated environments reject the deploy when thresholds fail)
-connexity-cli environments deploy <env-id> --agent-version 7
 
 # Stream agent execution events live
 connexity-cli runs stream <run-id>
@@ -131,7 +127,7 @@ Each top-level group mirrors a backend router:
 | `runs`                  | CRUD, execute, cancel, stream (SSE), baselines, compare, suggestions                   |
 | `custom-metrics`        | CRUD plus LLM-backed metric preview generation                                         |
 | `integrations`          | Third-party providers (Retell), connection test, list provider-side agents             |
-| `environments`          | Bindings + `deploy`, `retell-versions`, `deployments list` (history)                   |
+| `environments`          | Bindings between an agent and its provider account (used for call sync)                |
 | `calls`                 | Observed external calls (Retell), refresh / mark-seen                                  |
 | `config`                | Read-only API metadata, available metrics, LLM models                                  |
 | `health`                | Server health probe                                                                    |
@@ -154,9 +150,6 @@ runs        list | show <id> | create | update <id> | delete <id>
             compare --baseline <id> --candidate <id> [--include-analysis] [--fail-on-thresholds]
             compare-suggestions --baseline <id> --candidate <id>
 environments list --agent <ref> | create | delete <id>
-            deploy <env-id> --agent-version <n>
-            retell-versions <env-id>
-            deployments list (--agent <ref> | --env-id <id>)
 custom-metrics list | show <id> | create | update <id> | delete <id> | preview | generate
 test-cases  list | show <id> | create | update <id> | delete <id>
             import <file> [--overwrite] | export | generate
@@ -170,7 +163,7 @@ baseline    get | set <id>
 ## Exit codes
 
 - `0` — success
-- `1` — operation completed but indicates failure: run failed / cancelled, regression detected, candidate failed its metrics or cases threshold (default-on, opt out with `--no-fail-on-thresholds`), deploy returned `status=failed`, or `import` returned errors
+- `1` — operation completed but indicates failure: run failed / cancelled, regression detected, candidate failed its metrics or cases threshold (default-on, opt out with `--no-fail-on-thresholds`), or `import` returned errors
 - `2` — argument / configuration error, timeout, network failure
 
 ## License
