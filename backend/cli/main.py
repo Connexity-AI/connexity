@@ -19,7 +19,6 @@ from cli.commands.environments import environments_group
 from cli.commands.eval_configs import eval_configs_group
 from cli.commands.health import health_command
 from cli.commands.integrations import integrations_group
-from cli.commands.prompt_editor import prompt_editor_group
 from cli.commands.run import run_command
 from cli.commands.runs import runs_group
 from cli.commands.test_case_results import test_case_results_group
@@ -96,7 +95,6 @@ app.add_command(runs_group)
 app.add_command(integrations_group)
 app.add_command(environments_group)
 app.add_command(calls_group)
-app.add_command(prompt_editor_group)
 app.add_command(config_group)
 
 # Convenience top-level wrappers

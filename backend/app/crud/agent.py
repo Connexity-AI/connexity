@@ -9,7 +9,6 @@ from app.models import (
     Agent,
     AgentCreate,
     AgentCreateDraft,
-    AgentGuidelinesPublic,
     AgentLastEvalSummary,
     AgentUpdate,
     AggregateMetrics,
@@ -279,27 +278,3 @@ def update_agent(
 def delete_agent(*, session: Session, db_agent: Agent) -> None:
     session.delete(db_agent)
     session.commit()
-
-
-def agent_guidelines_public(*, agent: Agent) -> AgentGuidelinesPublic:
-    """Build API response: full default text when unset, plus whether custom text is stored."""
-    from app.services.prompt_editor.agent_prompt import get_effective_guidelines
-
-    stored = agent.editor_guidelines
-    is_default = stored is None or not stored.strip()
-    effective = get_effective_guidelines(stored)
-    return AgentGuidelinesPublic(guidelines=effective, is_default=is_default)
-
-
-def set_agent_editor_guidelines(
-    *, session: Session, db_agent: Agent, guidelines: str | None
-) -> Agent:
-    """Persist editor guidelines; None or whitespace-only clears to built-in default."""
-    if guidelines is None or not guidelines.strip():
-        db_agent.editor_guidelines = None
-    else:
-        db_agent.editor_guidelines = guidelines.strip()
-    session.add(db_agent)
-    session.commit()
-    session.refresh(db_agent)
-    return db_agent

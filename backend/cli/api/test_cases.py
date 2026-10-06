@@ -44,10 +44,7 @@ class TestCasesApi(_BaseApi):
     def export(self, *, params: dict[str, Any] | None = None) -> dict[str, Any]:
         return self._t.get_dict("test-cases/export", params=params)
 
-    # --- generation / AI --------------------------------------------------
+    # --- generation --------------------------------------------------
 
     def generate(self, body: dict[str, Any]) -> dict[str, Any]:
         return self._t.post_dict("test-cases/generate", json_body=body)
-
-    def ai(self, body: dict[str, Any]) -> dict[str, Any]:
-        return self._t.post_dict("test-cases/ai", json_body=body)

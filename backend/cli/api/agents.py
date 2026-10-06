@@ -1,4 +1,4 @@
-"""Agent CRUD, draft/publish/rollback, versions, guidelines."""
+"""Agent CRUD, draft/publish/rollback, versions."""
 
 from __future__ import annotations
 
@@ -87,14 +87,6 @@ class AgentsApi(_BaseApi):
             f"agents/{agent_id}/versions/diff",
             params={"from_version": from_version, "to_version": to_version},
         )
-
-    # --- guidelines -------------------------------------------------------
-
-    def get_guidelines(self, agent_id: str) -> dict[str, Any]:
-        return self._t.get_dict(f"agents/{agent_id}/guidelines")
-
-    def put_guidelines(self, agent_id: str, body: dict[str, Any]) -> dict[str, Any]:
-        return self._t.put_dict(f"agents/{agent_id}/guidelines", json_body=body)
 
     # --- runtimes ---------------------------------------------------------
 

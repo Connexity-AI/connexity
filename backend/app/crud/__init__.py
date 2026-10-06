@@ -1,14 +1,12 @@
 """CRUD package — re-exports all functions for ``from app import crud`` compatibility."""
 
 from app.crud.agent import (  # noqa: F401
-    agent_guidelines_public,
     create_agent,
     create_draft_agent,
     delete_agent,
     get_agent,
     latest_completed_eval_summaries_by_agent,
     list_agents,
-    set_agent_editor_guidelines,
     update_agent,
 )
 from app.crud.agent_version import (  # noqa: F401
@@ -93,33 +91,6 @@ from app.crud.integrations import (  # noqa: F401
     delete_integration,
     get_integration,
     list_integrations,
-)
-from app.crud.prompt_editor_message import (
-    create_message as create_prompt_editor_message,  # noqa: F401
-)
-from app.crud.prompt_editor_message import (
-    list_messages as list_prompt_editor_messages,  # noqa: F401
-)
-from app.crud.prompt_editor_session import (
-    create_session as create_prompt_editor_session,  # noqa: F401
-)
-from app.crud.prompt_editor_session import (
-    delete_session as delete_prompt_editor_session,  # noqa: F401
-)
-from app.crud.prompt_editor_session import (
-    get_session as get_prompt_editor_session,  # noqa: F401
-)
-from app.crud.prompt_editor_session import (
-    list_sessions as list_prompt_editor_sessions,  # noqa: F401
-)
-from app.crud.prompt_editor_session import (
-    update_session as update_prompt_editor_session,  # noqa: F401
-)
-from app.crud.prompt_editor_session import (
-    update_session_base_prompt as update_prompt_editor_session_base_prompt,  # noqa: F401
-)
-from app.crud.prompt_editor_session import (
-    update_session_edited_prompt as update_prompt_editor_session_edited_prompt,  # noqa: F401
 )
 from app.crud.run import (  # noqa: F401
     count_runs_by_eval_config_ids,

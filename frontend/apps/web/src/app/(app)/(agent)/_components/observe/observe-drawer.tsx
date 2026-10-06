@@ -2,22 +2,20 @@
 
 import { Sheet, SheetContent } from '@workspace/ui/components/ui/sheet';
 
+import { SrOnlySheetTitle } from '@/components/common/sr-only-sheet-title';
 import { CallPanel } from './call-panel';
-import { CreateTestCaseAiPrompt } from './create-test-case-ai-prompt';
 import { ObserveManualTestCasePanel } from './observe-manual-test-case-panel';
 import { ObserveTestCasePanel } from './observe-test-case-panel';
 
-import { SrOnlySheetTitle } from '@/components/common/sr-only-sheet-title';
-
 import type { CallPublic, TestCasePublic } from '@/client/types.gen';
 
-export type ObserveRightPanelMode = 'ai-prompt' | 'manual-create' | 'test-case';
+export type ObserveRightPanelMode = 'manual-create' | 'test-case';
 
 function getDrawerTitle(hasCall: boolean, rightPanelMode: ObserveRightPanelMode | null) {
   if (hasCall) return 'Call transcript';
   if (rightPanelMode === 'test-case') return 'Test case detail';
   if (rightPanelMode === 'manual-create') return 'New test case';
-  return 'Generate test case';
+  return 'Test case';
 }
 
 interface ObserveDrawerProps {
@@ -28,7 +26,6 @@ interface ObserveDrawerProps {
   onClose: () => void;
   onCloseRightPanel: () => void;
   onCreateTestCaseManual: (call: CallPublic) => void;
-  onCreateTestCaseAi: (call: CallPublic) => void;
   onRequestDeleteTestCase: (testCase: TestCasePublic) => void;
   batchPosition?: number;
   batchTotal?: number;
@@ -44,7 +41,6 @@ export function ObserveDrawer({
   onClose,
   onCloseRightPanel,
   onCreateTestCaseManual,
-  onCreateTestCaseAi,
   onRequestDeleteTestCase,
   batchPosition,
   batchTotal,
@@ -76,27 +72,13 @@ export function ObserveDrawer({
             agentId={agentId}
             call={call}
             onCreateTestCaseManual={showRightPanel ? undefined : onCreateTestCaseManual}
-            onCreateTestCaseAi={showRightPanel ? undefined : onCreateTestCaseAi}
           />
         ) : null}
 
         {call && showRightPanel ? <div className="w-px shrink-0 bg-border" /> : null}
 
-        {rightPanelMode === 'ai-prompt' && call ? (
-          <CreateTestCaseAiPrompt
-            agentId={agentId}
-            call={call}
-            onClose={onCloseRightPanel}
-          />
-        ) : null}
-
         {rightPanelMode === 'manual-create' ? (
-          <ObserveManualTestCasePanel
-            agentId={agentId}
-            call={call}
-            onClose={onCloseRightPanel}
-            onOpenAiAssistant={call ? () => onCreateTestCaseAi(call) : undefined}
-          />
+          <ObserveManualTestCasePanel agentId={agentId} call={call} onClose={onCloseRightPanel} />
         ) : null}
 
         {rightPanelMode === 'test-case' ? (
@@ -106,7 +88,6 @@ export function ObserveDrawer({
             testCase={testCase}
             onClose={onCloseRightPanel}
             onRequestDelete={onRequestDeleteTestCase}
-            onOpenAiAssistant={call ? () => onCreateTestCaseAi(call) : undefined}
             position={batchPosition}
             total={batchTotal}
             onPrev={onBatchPrev}

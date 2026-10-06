@@ -25,7 +25,6 @@ from cli.api.environments import EnvironmentsApi
 from cli.api.eval_configs import EvalConfigsApi
 from cli.api.health import HealthApi
 from cli.api.integrations import IntegrationsApi
-from cli.api.prompt_editor import PromptEditorApi
 from cli.api.runs import RunsApi
 from cli.api.test_case_results import TestCaseResultsApi
 from cli.api.test_cases import TestCasesApi
@@ -58,7 +57,6 @@ class ApiClient:
         self.eval_configs = EvalConfigsApi(self._t)
         self.runs = RunsApi(self._t)
         self.custom_metrics = CustomMetricsApi(self._t)
-        self.prompt_editor = PromptEditorApi(self._t)
         self.integrations = IntegrationsApi(self._t)
         self.environments = EnvironmentsApi(self._t)
         self.calls = CallsApi(self._t)

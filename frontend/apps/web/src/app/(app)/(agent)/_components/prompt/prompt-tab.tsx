@@ -8,15 +8,12 @@ import { FormControl, FormField, FormItem, FormMessage } from '@workspace/ui/com
 import { TabsContent } from '@workspace/ui/components/ui/tabs';
 import { Textarea } from '@workspace/ui/components/ui/textarea';
 
-import { AiSuggestionDiff } from '@/app/(app)/(agent)/_components/diff/ai-suggestion-diff';
 import { DiffControls } from '@/app/(app)/(agent)/_components/diff/diff-controls';
 import { EditableDiffView } from '@/app/(app)/(agent)/_components/diff/editable-diff-view';
 import { PromptTabSkeleton } from '@/app/(app)/(agent)/_components/prompt/prompt-tab-skeleton';
 import { useAgentEditFormActions } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
-import { useAiSuggestion } from '@/app/(app)/(agent)/_context/ai-suggestion-context';
 import { useDiff } from '@/app/(app)/(agent)/_context/diff-context';
 import { useAgentVersions } from '@/app/(app)/(agent)/_hooks/use-agent-versions';
-import { usePromptEditorSession } from '@/app/(app)/(agent)/_hooks/use-prompt-editor-session';
 
 import type { DiffVersionId } from '@/app/(app)/(agent)/_context/diff-context';
 import type { AgentFormValues } from '@/app/(app)/(agent)/_schemas/agent-form';
@@ -28,8 +25,6 @@ export function PromptTab() {
     useDiff();
   const { data: versionsData } = useAgentVersions(agentId);
   const versions = versionsData?.data ?? [];
-  const { suggestedPrompt, clearSuggestion } = useAiSuggestion();
-  const { basePrompt, updateBasePrompt } = usePromptEditorSession(agentId);
   const diffScrollRef = useRef<HTMLDivElement>(null);
 
   if (isLoading) return <PromptTabSkeleton />;
@@ -56,45 +51,6 @@ export function PromptTab() {
   };
 
   const diffMode = showDiff && isReadOnly;
-
-  // AI suggestion diff takes precedence over the plain textarea. The version-
-  // diff branch above still wins because it requires `isReadOnly`, and we
-  // never show AI diff in read-only mode (autosave is disabled there).
-  if (suggestedPrompt !== null && !isReadOnly) {
-    // Diff baseline is the session's immutable base_prompt snapshot, so
-    // every chat turn shows the cumulative delta from session start rather
-    // than just this turn's incremental change. Falls back to the current
-    // form value if the session hasn't loaded yet.
-    const diffBase = basePrompt ?? form.getValues().prompt ?? '';
-
-    const handleAccept = (editedPrompt: string) => {
-      form.setValue('prompt', editedPrompt, {
-        shouldDirty: true,
-        shouldTouch: true,
-      });
-      // Advance the session's diff baseline so the next chat turn shows a
-      // fresh delta from what the user just agreed to, not from session start.
-      void updateBasePrompt(editedPrompt);
-      clearSuggestion();
-    };
-
-    const handleDecline = () => {
-      clearSuggestion();
-    };
-
-    return (
-      <TabsContent value="prompt" className="flex-1 mt-0 p-6 flex flex-col min-h-0">
-        <AiSuggestionDiff
-          agentId={agentId}
-          draftContent={diffBase}
-          suggestedContent={suggestedPrompt}
-          isBusy={false}
-          onAccept={handleAccept}
-          onDecline={handleDecline}
-        />
-      </TabsContent>
-    );
-  }
 
   if (diffMode) {
     return (

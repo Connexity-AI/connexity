@@ -20,7 +20,7 @@ import { useRuntimeField } from '@/app/(app)/(agent)/_hooks/use-runtime-field';
 import { useToolModeLiveGuard } from '@/app/(app)/(agent)/_hooks/use-tool-mode-live-guard';
 import { runtimeIconForKind } from '@/app/(app)/(agent)/_utils/runtime-field-helpers';
 import { missingLiveImplementations } from '@/app/(app)/(agent)/_utils/platform-live-tools-feasible';
-import { AppModelsEnumsAgentMode, TextRuntimeKind } from '@/client/types.gen';
+import { AgentMode, TextRuntimeKind } from '@/client/types.gen';
 
 import type { CreateEvalFormValues } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
 import type { TextRuntimeKind as TextRuntimeKindType } from '@/client/types.gen';
@@ -182,7 +182,7 @@ function ToolModeField({ agentMode, agentTools }: ToolModeFieldProps) {
 
   const readOnly = useCreateEvalReadOnly();
 
-  const isPlatform = agentMode === AppModelsEnumsAgentMode.PLATFORM;
+  const isPlatform = agentMode === AgentMode.PLATFORM;
   const missingImpl = isPlatform ? missingLiveImplementations(agentTools ?? undefined) : [];
   const liveUnavailable = isPlatform && missingImpl.length > 0;
 
@@ -207,7 +207,7 @@ function ToolModeField({ agentMode, agentTools }: ToolModeFieldProps) {
             return 'Tool responses are simulated using test case mock data';
           }
 
-          if (agentMode !== AppModelsEnumsAgentMode.PLATFORM) {
+          if (agentMode !== AgentMode.PLATFORM) {
             return 'Live applies to platform simulated agents only; endpoint agents ignore this setting.';
           }
 
@@ -393,7 +393,7 @@ function RunConfigToolModeSection({
 }) {
   const form = useFormContext<CreateEvalFormValues>();
   const isToolModeApplicable =
-    agentMode === AppModelsEnumsAgentMode.PLATFORM &&
+    agentMode === AgentMode.PLATFORM &&
     runtimeKind === TextRuntimeKind.CONNEXITY;
 
   // keep persisted config aligned with backend behavior: tool mode only applies

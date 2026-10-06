@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from pydantic import ConfigDict, model_validator
-from sqlalchemy import Column, Enum, Text, text
+from sqlalchemy import Column, Enum, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -13,7 +13,6 @@ from app.models.schemas import AggregateMetrics
 if TYPE_CHECKING:
     from app.models.agent_version import AgentVersion
     from app.models.eval_config import EvalConfig
-    from app.models.prompt_editor import PromptEditorSession
     from app.models.run import Run
     from app.models.test_case import TestCase
 
@@ -124,13 +123,6 @@ class AgentBase(SQLModel):
         sa_column=Column("metadata", JSONB, nullable=True),
         description="Arbitrary key-value metadata about the agent",
     )
-    editor_guidelines: str | None = Field(
-        default=None,
-        sa_column=Column(Text, nullable=True),
-        description=(
-            "Custom prompting guidelines for the prompt editor agent (None = use built-in default)"
-        ),
-    )
 
     @model_validator(mode="after")
     def validate_mode_fields(self) -> "AgentBase":
@@ -195,10 +187,6 @@ class Agent(AgentBase, table=True):
     )
     test_cases: list["TestCase"] = Relationship(back_populates="agent")
     agent_versions: list["AgentVersion"] = Relationship(
-        back_populates="agent",
-        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
-    )
-    prompt_editor_sessions: list["PromptEditorSession"] = Relationship(
         back_populates="agent",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
@@ -275,10 +263,6 @@ class AgentUpdate(SQLModel):
     agent_metadata: dict[str, Any] | None = Field(
         default=None, description="Arbitrary key-value metadata about the agent"
     )
-    editor_guidelines: str | None = Field(
-        default=None,
-        description="Custom prompting guidelines for the prompt editor agent (None = use default)",
-    )
 
 
 class AgentLatestPublishedVersionPublic(SQLModel):
@@ -322,18 +306,4 @@ class AgentLastEvalSummary(SQLModel):
     aggregate_metrics: AggregateMetrics | None = Field(
         default=None,
         description="Aggregate metrics snapshot from the latest completed run",
-    )
-
-
-class AgentGuidelinesPublic(SQLModel):
-    guidelines: str = Field(description="Effective guidelines text (custom or default)")
-    is_default: bool = Field(
-        description="True when using built-in defaults (no custom guidelines stored)"
-    )
-
-
-class AgentGuidelinesUpdate(SQLModel):
-    guidelines: str | None = Field(
-        default=None,
-        description="Custom guidelines text, or null to reset to built-in default",
     )

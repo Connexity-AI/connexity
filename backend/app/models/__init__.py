@@ -14,8 +14,6 @@ from app.models.agent import (  # noqa: F401
     AgentBase,
     AgentCreate,
     AgentCreateDraft,
-    AgentGuidelinesPublic,
-    AgentGuidelinesUpdate,
     AgentLastEvalSummary,
     AgentLatestPublishedVersionPublic,
     AgentPublic,
@@ -113,7 +111,6 @@ from app.models.enums import (  # noqa: F401
     IntegrationProvider,
     MetricTier,
     Platform,
-    PromptEditorSessionStatus,
     RunMode,
     RunStatus,
     ScoreType,
@@ -160,23 +157,6 @@ from app.models.oauth import (  # noqa: F401
     OAuthClientRegistrationRequest,
     OAuthClientRegistrationResponse,
     OAuthRefreshToken,
-)
-
-# ── Prompt editor (chat) ───────────────────────────────────────────
-from app.models.prompt_editor import (  # noqa: F401
-    PromptEditorChatMessageCreate,
-    PromptEditorMessage,
-    PromptEditorMessageBase,
-    PromptEditorMessageCreate,
-    PromptEditorMessagePublic,
-    PromptEditorMessagesPublic,
-    PromptEditorSession,
-    PromptEditorSessionBase,
-    PromptEditorSessionBasePromptUpdate,
-    PromptEditorSessionCreate,
-    PromptEditorSessionPublic,
-    PromptEditorSessionsPublic,
-    PromptEditorSessionUpdate,
 )
 
 # ── Run ────────────────────────────────────────────────────────────

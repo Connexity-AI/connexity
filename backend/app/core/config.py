@@ -108,6 +108,10 @@ class Settings(BaseSettings):
 
     EMAIL_TEST_USER: EmailStr = "test@example.com"
 
+    # Seeded by app/initial_data.py (run from prestart.sh) when both are set
+    FIRST_SUPERUSER: EmailStr | None = None
+    FIRST_SUPERUSER_PASSWORD: str | None = None
+
     SMTP_TLS: bool = True
     SMTP_SSL: bool = False
     SMTP_PORT: int = 587

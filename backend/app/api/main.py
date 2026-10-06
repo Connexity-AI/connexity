@@ -15,7 +15,6 @@ from app.api.routes import (
     login,
     mcp,
     oauth,
-    prompt_editor,
     runs,
     test_case_results,
     test_cases,
@@ -37,7 +36,6 @@ api_router.include_router(custom_metrics.router)
 api_router.include_router(eval_configs.router)
 api_router.include_router(runs.router)
 api_router.include_router(test_case_results.router)
-api_router.include_router(prompt_editor.router)
 api_router.include_router(config.router)
 api_router.include_router(integrations.router)
 api_router.include_router(environments.router)

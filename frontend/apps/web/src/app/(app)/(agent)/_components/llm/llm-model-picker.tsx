@@ -37,7 +37,6 @@ interface LlmModelPickerProps {
   align?: 'start' | 'center' | 'end';
   triggerClassName?: string;
   contentClassName?: string;
-  compact?: boolean;
 }
 
 const MODELS_PER_PROVIDER = 5;
@@ -51,7 +50,6 @@ export function LlmModelPicker({
   align = 'start',
   triggerClassName,
   contentClassName,
-  compact = false,
 }: LlmModelPickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -79,7 +77,7 @@ export function LlmModelPicker({
           disabled={disabled}
           className={cn(
             'justify-between gap-2 border-input bg-background font-normal',
-            compact ? 'h-7 w-auto px-2 text-xs' : 'h-9 w-full text-sm',
+            'h-9 w-full text-sm',
             triggerClassName
           )}
         >
@@ -95,11 +93,7 @@ export function LlmModelPicker({
       </PopoverTrigger>
       <PopoverContent
         align={align}
-        className={cn(
-          compact ? 'w-[320px]' : 'w-[var(--radix-popover-trigger-width)]',
-          'p-0',
-          contentClassName
-        )}
+        className={cn('w-[var(--radix-popover-trigger-width)] p-0', contentClassName)}
       >
         <Command>
           <CommandInput

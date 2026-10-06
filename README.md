@@ -50,7 +50,7 @@
    </a>
 </p>
 
-Connexity is an **open-source evaluation and observability platform for voice AI agents**. It closes the loop between development and production: build or connect an agent, refine prompts with an AI co-pilot, generate realistic test cases from the agent's own configuration and real conversations, run evaluations locally or in CI, inspect production calls, and promote better versions with confidence — all from one place.
+Connexity is an **open-source evaluation and observability platform for voice AI agents**. It closes the loop between development and production: build or connect an agent, iterate on prompts with the coding assistant you already use (Claude Code, Cursor, Codex) via the Connexity CLI and MCP server, generate realistic test cases from the agent's own configuration and real conversations, run evaluations locally or in CI, inspect production calls, and promote better versions with confidence — all from one place.
 
 ## 🌀 Core Features
 
@@ -58,9 +58,7 @@ Connexity is built around a single closed loop for developing voice AI agents �
 
 - **Agent versioning** — work freely on a draft of your agent's prompt, tools, and configuration. When you're happy with the changes, capture them as an immutable version with an optional changelog. Past versions are kept so you can compare runs, roll back, or branch off them.
 
-- **AI-assisted prompt editor** — collaborate with an AI agent that knows your current prompt, tools, and past evaluation results to draft, critique, and rewrite prompts faster than you would by hand.
-
-- **Test case generation** — Connexity reads the agent's own system prompt, tool definitions, and production conversations to generate diverse multi-turn test cases. Each generated case ships with a persona, an opening message, expected outcomes for the judge, and the tool calls the agent is expected to make. You can also use AI to draft or refine individual test cases from natural-language instructions.
+- **Test case generation** — Connexity reads the agent's own system prompt, tool definitions, and production conversations to generate diverse multi-turn test cases. Each generated case ships with a persona, an opening message, expected outcomes for the judge, and the tool calls the agent is expected to make.
 
 - **Agent evaluation** — run multi-turn simulations against your agent, scored by an LLM-as-judge with custom metrics, full transcripts, tool-call traces, and per-turn cost / token accounting. Every run finishes with a clear pass/fail verdict gated on two configurable thresholds — a weighted-metrics pass rate and a per-test-case pass rate (see [scoring & thresholds](./docs/evals/scoring-and-thresholds.md)).
 
@@ -153,15 +151,13 @@ Pick one:
 
 - **Connect Retell** — connect your Retell workspace, choose the agent/environment you want to observe or deploy to, and bring production calls into Connexity.
 - **Import from Vapi or ElevenLabs** *(planned)* — connect your account and pull an existing agent, including its prompt, tools, and configuration.
-- **Build from scratch with the AI prompt editor** — start a new agent and let the AI co-pilot help you draft the system prompt, tools, and persona.
+- **Build from scratch** — create a new agent and write the system prompt, tools, and persona directly, or drive the edits from Claude Code, Cursor, or Codex via the Connexity CLI and MCP server.
 
 Edits are kept as a draft on the agent. When you're ready, capture the draft as a new version with an optional changelog. That version is what evaluations and deployments are pinned to.
 
 ### 3️⃣ Generate test cases
 
 From the dashboard, generate a batch of test cases for your agent. Connexity reads the agent's system prompt and tool definitions and produces diverse multi-turn scenarios — happy paths, edge cases, and adversarial / red-team cases — each with a persona, an opening message, expected outcomes, and the tool calls the agent is expected to make.
-
-You can also ask AI to create or refine individual test cases from natural-language instructions, including turning real production transcripts into repeatable regression tests.
 
 ### 4️⃣ Run an evaluation
 
