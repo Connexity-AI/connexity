@@ -1,0 +1,41 @@
+name: Plan
+
+# Every pull request is reviewed through its plan. See plans/README.md.
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    name: "Plan · Present & Complete"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Exempt release automation and no-plan pull requests
+        id: exempt
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          HAS_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'no-plan') }}
+        run: |
+          if [[ "$HEAD_REF" == release-please--* || "$HAS_LABEL" == "true" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Exempt from the plan requirement."
+          fi
+
+      - name: Check the plan
+        if: steps.exempt.outputs.skip != 'true'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: python3 scripts/check_plan.py --base "origin/$BASE_REF"

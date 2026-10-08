@@ -1,14 +1,9 @@
 name: Release Please
 
+# Paused for the 2.0 rebuild: nothing is released until the rebuild ships as 2.0.0, and
+# connexity-cli is frozen at 0.2.0. The push trigger is removed so no release pull
+# request is opened or updated. See the decision log in REBUILD.md (2026-10-08).
 on:
-  push:
-    branches: [main]
-    paths:
-      - "backend/cli/**"
-      - "pyproject.toml"
-      - "release-please-config.json"
-      - ".release-please-manifest.json"
-      - ".github/workflows/release-please.yml"
   workflow_dispatch:
 
 permissions:
