@@ -6,8 +6,10 @@ session starts here.
 - **Why and what:** [`Connexity 2.0.md`](./Connexity%202.0.md) (the vision). This plan
   does not repeat it. Section numbers below (§) refer to that file.
 - **How we work:** [`docs-internal/development-lifecycle.md`](./docs-internal/development-lifecycle.md).
-- **This file:** the order of work, the current status, and the decisions made along
-  the way.
+- **Each pull request's plan:** [`plans/`](./plans/README.md). What one change set out
+  to do and what it did. The plan is what gets reviewed.
+- **This file:** the roadmap. The order of work, the current status, and the decisions
+  made along the way.
 
 When the vision and this plan disagree, the vision wins and this plan gets fixed.
 
@@ -43,15 +45,16 @@ properly at the checkpoint before each one starts.
 
 ## 2. Status
 
-Update this table at the end of every session. One line of status, no history; history
-goes in the session log (section 9).
+Update this table at the end of every session. One line of status, no history; the
+history of a slice is its plan file in `plans/`.
 
 | Slice | What | Status |
 |---|---|---|
 | 0.1 | Land `remove-ai-assistant` | Done (PR #159) |
 | 0.2 | Demolition | Done (PR #160) |
 | 0.3 | Fresh migration baseline | Done (PR #161) |
-| 0.4 | Harness: `make check`, hooks, stale docs | PR open, awaiting merge |
+| 0.4 | Harness: `make check`, hooks, stale docs | Done (PR #162) |
+| 0.5 | Plan file required with every pull request | PR open, awaiting merge |
 | 1.1 | Canonical trace schema | Not started |
 | 1.2 | Ingest API and service tokens | Not started |
 | 1.3 | Retell reference mapping | Not started |
@@ -66,7 +69,9 @@ goes in the session log (section 9).
 | 2.4 | Inbox v0 | Not started |
 | M1 | Milestone 1 exit review | Not started |
 
-**Next slice:** 1.1 (canonical trace schema, a design session), once the 0.4 PR is merged. Phase 0 is then complete.
+**Next slice:** 1.1 (canonical trace schema). Its design questions are answered (see the
+decision log, 2026-10-08); it starts once the 0.5 PR is merged, as the first pull
+request under the plan rule.
 
 ---
 
@@ -393,6 +398,9 @@ earlier phases taught.
 
 ### Cross-cutting, scheduled when their phase needs them
 
+- An OpenTelemetry endpoint as a mapping, for self-hosted agents (Pipecat, LiveKit
+  Agents) that already emit spans.
+
 - Focus sharing, pins and navigate-back between product and assistant (§4).
 - Client feedback intake through the assistant (§10).
 - Generic provider mappings as saved artifacts for providers beyond Retell (§9).
@@ -407,10 +415,10 @@ unless a slice depends on them.
 
 | # | Question | Blocks | Claude's recommendation |
 |---|---|---|---|
+| Q8 | Which tool does the automated review of a diff against its plan? | Nothing yet; plans are reviewed by people, code by CI | Dmytro is researching. Constraint from him: not the same provider or model that wrote the code. |
 | Q4 | How is a Retell tool call matched to its n8n execution? | 1.4 | Have the skill return its execution ID in the tool response. Fall back to matching on webhook time and payload for history. |
 | Q5 | Where do real reference agent traces live for tests? They cannot go into a public repo. | 1.1 | A gitignored `fixtures-private/` directory plus a small set of hand-anonymised traces committed as test fixtures. |
 | Q6 | Are deterministic checks a built-in library with per-agent parameters, or can the assistant author new ones through the API? | 2.1 | Built-in library for Milestone 1. Assistant-authored checks need a sandbox and belong with Phase 4. |
-| Q7 | Do turns and tool calls become tables or typed JSONB? | 1.1 | Decide in the 1.1 design session from the queries Phase 2 needs. |
 
 ---
 
@@ -434,14 +442,28 @@ Dmytro's only when he stated it in his own words.
 | 2026-10-06 | Losing all data in the hosted database for the migration baseline is acceptable. | Dmytro |
 | 2026-10-06 | Enum columns are VARCHARs holding the member's value; no Postgres ENUM types. | Proposed by Claude; Dmytro approved it with the slice 0.3 PR ("go") |
 | 2026-10-06 | `.claude/settings.json` is tracked, so hooks apply to every session. | Dmytro |
+| 2026-10-08 | Trace timeline is one ordered list of events (utterance, tool call, marker) with timings; a tool call carries its arguments and result together. | Dmytro |
+| 2026-10-08 | Real, test and simulated calls share one trace format, told apart by `source`. | Dmytro |
+| 2026-10-08 | Trace events are stored as rows, not as a JSON document, so there is one source of truth and aggregates use plain SQL. | Dmytro ("rows - i don't want to go against single source of truth") |
+| 2026-10-08 | A trace stores the caller's phone number and the recording link. | Dmytro |
+| 2026-10-08 | OpenTelemetry is not the trace format. Traces carry optional trace and span ids, the schema doc maps traces to spans, and an OpenTelemetry endpoint is a later mapping. | Dmytro |
+| 2026-10-08 | Every pull request carries a committed plan file; people review the plan, not the code. | Dmytro |
+| 2026-10-08 | The plan is approved by whoever opens the pull request. Opening it means they answer for plan and execution. The team then reviews the plan. | Dmytro |
+| 2026-10-08 | A pull request never contains a plan alone. | Dmytro |
+| 2026-10-08 | Code review is automated: CI gates plus an AI reviewer. The AI reviewer is deferred; Dmytro will research options and prefers one that is not the same provider or model that wrote the code. | Dmytro |
+| 2026-10-08 | Plan exemptions: release automation branches, and a `no-plan` label applied by a person. | Dmytro |
+| 2026-10-08 | Per-slice detail moves from `REBUILD.md` to plan files; `REBUILD.md` stays the roadmap. | Dmytro |
+| 2026-10-08 | No releases during the rebuild. The finished rebuild ships as 2.0.0, with one shared version for backend, frontend, MCP server and (if it survives) the CLI, reported by the running app. Pre-release tags at milestones are optional. | Dmytro |
+| 2026-10-08 | The CLI release automation is paused until then. | Dmytro |
 | 2026-10-06 | `connexity-cli` is frozen: trim commands whose routes are deleted, keep the eval commands, publish nothing new, decide its future in Phase 4. | Dmytro |
 
 ---
 
 ## 10. Session log
 
-Append one entry per session: date, slice, what shipped, what was learned, what is
-next. Keep each entry under ten lines.
+Closed. From slice 0.5 on, the record of a slice is its plan file in `plans/`. The
+entries below are kept as the history of Phase 0.
+
 
 ### 2026-10-06: planning
 

@@ -32,6 +32,25 @@ tell the user "I see uncommitted changes — let me commit those first" and foll
 
 ---
 
+## Step 0.5 — The plan
+
+Every pull request carries one plan file from `plans/`, and the plan is what gets
+reviewed (see `plans/README.md`). Before going further:
+
+```bash
+python3 scripts/check_plan.py
+```
+
+- If it fails, stop. Do not open the pull request. Write or complete the plan, commit it
+  with the work, and run the check again. A hook also blocks `gh pr create` in this
+  state.
+- The plan's `## Outcome` section must describe what actually happened: deviations from
+  the plan, check results, and what was not done. Fill it in from the real results of
+  this session, not from what was intended.
+- Never apply the `no-plan` label yourself. Only the user can exempt a pull request.
+
+---
+
 ## Step 1 — Gather context
 
 ```bash
@@ -91,67 +110,33 @@ Rules:
 
 ## Step 4 — Craft the PR body
 
-Use this structure (adapt if a repo template exists):
+The reviewer reads the plan, not the diff, so the body points at the plan and repeats
+only what a reviewer needs before opening it. Follow `.github/pull_request_template.md`:
 
 ```markdown
+## Plan
+
+[`plans/2026-10-08-short-name.md`](../blob/<branch>/plans/2026-10-08-short-name.md)
+
 ## Summary
 
-What this PR does and why — 2–4 sentences. Business context if relevant.
+Two or three sentences from the plan's Goal.
 
-## Changes
+## Outcome
 
-- **Area/module**: what changed and why
-- **Area/module**: what changed and why
-(bullet points — aim for each one to carry meaningful information, not just file names)
-
-## Testing
-
-How was this verified? Unit tests, manual steps, eval runs, etc.
-If not applicable, say so briefly.
-
-## Notes / Follow-ups
-
-Optional: edge cases left for later, known limitations, related issues.
+The plan's Outcome section, copied: deviations from the plan, check results, not done.
 ```
+
+Do not restate the plan's Changes or Decisions in the body; they live in the plan.
 
 ### Body quality bar
 
-- Write as a human senior engineer would — clear, confident, no filler
-- Each bullet in "Changes" should explain *why* the change was made, not just *what*
+- Write for a reviewer who was not in the session and will not read the diff
+- The Outcome must match the plan file's Outcome word for word in substance: do not
+  soften a deviation or drop a "not done" item in the pull request body
 - Do not include: "Co-Authored-by", "Generated with Claude", or any AI attribution
-- Do not include empty sections — omit or merge them if there's nothing to say
+- Do not include empty sections
 - Link issues if branch name or commits reference them (`Closes #123`)
-
-### Example title + body
-
-```
-feat(eval): replace 4-metric evaluator with 14-metric weighted judge
-
-## Summary
-
-The previous evaluation system scored conversations on 4 abstract dimensions,
-making it hard to identify specific failure modes. This PR introduces a
-14-metric weighted scoring system tunable per scenario via YAML config.
-
-## Changes
-
-- **eval/judge.py**: Implement weighted LLM-as-a-judge with 14 metrics covering
-  goal achievement, tool accuracy, latency, and error handling
-- **eval/config.py**: Add per-scenario weight overrides loaded from YAML
-- **tests/test_judge.py**: Cover each metric with fixture conversations
-- **alembic/versions/xxx_add_eval_metrics.py**: Schema migration for new columns
-
-## Testing
-
-- All 14 metrics verified with unit tests against synthetic conversations
-- Manual eval run against 505 Junk test suite: scores match expected ranges
-- Alembic migration tested on staging Supabase instance
-
-## Notes
-
-Weight defaults were tuned empirically — further calibration after production
-data accumulates is tracked in #341.
-```
 
 ---
 

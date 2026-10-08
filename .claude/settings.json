@@ -1,9 +1,22 @@
 {
   "permissions": {
-    "deny": ["Edit(frontend/apps/web/src/client/**)"]
+    "deny": [
+      "Edit(frontend/apps/web/src/client/**)"
+    ]
   },
+  "plansDirectory": "plans",
   "hooks": {
     "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/require-plan-for-pr.py\"",
+            "timeout": 30
+          }
+        ]
+      },
       {
         "matcher": "Edit|Write",
         "hooks": [

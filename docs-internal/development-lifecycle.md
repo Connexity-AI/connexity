@@ -10,16 +10,17 @@ produces confident wrong answers. We do not build the product that way either.
 
 ---
 
-## 1. Three documents, three jobs
+## 1. Four documents, four jobs
 
 | Document | Answers | Changes when |
 |---|---|---|
 | [`Connexity 2.0.md`](../Connexity%202.0.md) | Why, and what the product is | Dmytro changes his mind |
-| [`REBUILD.md`](../REBUILD.md) | What order, what is done, what was decided | Every session |
+| [`REBUILD.md`](../REBUILD.md) | What order, what is done, what was decided | A slice starts or finishes |
+| [`plans/`](../plans/README.md) | What one pull request set out to do and what it did | Once per pull request |
 | `CLAUDE.md` (root, `backend/`, `frontend/`) | How to work in this repo | A convention changes |
 
 A session reads `REBUILD.md` first, then only the vision sections its slice cites.
-Nothing is restated across the three; they link to each other.
+Nothing is restated across them; they link to each other.
 
 ---
 
@@ -27,33 +28,46 @@ Nothing is restated across the three; they link to each other.
 
 | | Does | Does not |
 |---|---|---|
-| **Dmytro** | Decides scope and product behaviour. Approves plans before code and diffs before merge. Answers open questions. | Read every line to find bugs. Remember what the last session did. |
-| **Building session** | Investigates, plans, writes code and tests, runs the checks, opens the PR. | Approve its own work. Record a decision Dmytro did not make. Widen its slice. |
-| **Reviewing session** | Reviews the diff in a fresh context against the slice's done-when. | Fix what it finds without reporting it. |
-| **The machine** (CI, hooks, type checker, tests) | Enforces everything that can be enforced mechanically. | Get overridden to make a change pass. |
+| **Owner** (whoever opens the pull request; today Dmytro) | Approves the plan before work starts. Answers for both the plan and its execution once the pull request is open. | Read the diff line by line. |
+| **Reviewers** (the team) | Review the plan and its Outcome in the pull request. | Review code. Wait on a plan-only pull request; there are none. |
+| **Building session** | Investigates, writes the plan, writes code and tests, runs the checks, records the Outcome, opens the pull request. | Approve its own plan. Record a decision the owner did not make. Widen its slice. |
+| **Automated review** | Checks the code: tests, types, lint, coverage, drift, and a reviewer that compares the diff with the plan. | Get overridden to make a change pass. |
+
+**People review plans; machines review code.** A wrong plan is expensive and only a
+person can catch it. Wrong code under a right plan is cheap to regenerate, so it is
+not worth a person's reading time.
+
+The automated reviewer that compares a diff with its plan is not in place yet. Which
+tool does it is an open decision (Dmytro wants one that is not the same model that
+wrote the code). Until then, CI covers what tests and types can, and the building
+session runs `/code-review` and reports its findings in the plan.
 
 ---
 
 ## 3. The slice loop
 
-One session, one slice from `REBUILD.md`. A slice is small enough to review in one
-sitting and ends in a merged PR.
+One session, one slice from `REBUILD.md`, one plan, one pull request.
 
 1. **Orient.** Read `REBUILD.md` status and the slice. Read the vision sections it
    cites. Check `git status` and the branch.
-2. **Plan.** For anything beyond a mechanical change, state the approach and the
-   done-when before writing code. Design slices (schema, API shape) produce a short
-   written design that Dmytro approves first.
-3. **Build.** Stay inside the slice. Anything discovered outside it becomes a note in
-   `REBUILD.md` or a spawned task, not an extra change.
-4. **Verify.** Run the checks (section 5). Exercise the change for real where possible:
-   hit the endpoint, load the screen, run the check against a real trace.
-5. **Review.** Run `/code-review` in a fresh context before asking Dmytro to look.
-6. **Record.** Update the status table, the session log, and the decision log in
-   `REBUILD.md`. Then commit and open the PR.
+2. **Plan.** Write the plan file (`plans/`, from the template) before any code: goal,
+   changes, decisions, done-when, out of scope, risks. The owner approves it. A design
+   slice (schema, API shape) settles its open questions with the owner here.
+3. **Build.** Stay inside the plan. Anything discovered outside it becomes a note in
+   `REBUILD.md` or a spawned task, not an extra change. If the plan turns out to be
+   wrong, stop and say so; do not quietly build something else.
+4. **Verify.** Run `make check`. Exercise the change for real where possible: hit the
+   endpoint, load the screen, run the check against a real trace.
+5. **Record the outcome.** Fill in the plan's Outcome: deviations from the plan, check
+   results, what was not done. Update the status table and decision log in
+   `REBUILD.md`.
+6. **Open the pull request.** It carries the plan and the work together, never the plan
+   alone. Opening it is the owner taking responsibility for both.
+7. **Review.** Reviewers read the plan. If the review changes the plan, the work is
+   redone to match.
 
-A session that cannot finish its slice leaves the status line saying exactly where it
-stopped and why.
+A session that cannot finish its slice leaves the plan's Outcome saying exactly where
+it stopped and why.
 
 ---
 
@@ -77,12 +91,13 @@ had only restated a concern about. The same failure is possible here.
 
 ### The assistant does not grade its own work
 
-- Done-when criteria are written in the plan before the code exists.
+- Done-when criteria are written in the plan file before the code exists.
 - "Tests pass" is reported with the command and its output, not as a claim.
 - A change that loosens, deletes or skips a test, a type check, a lint rule or a CI
   step says so at the top of the PR description, with the reason. It is never bundled
   silently into a fix.
-- Review happens in a different context from the build.
+- A person reviews the plan, never the session's own account of the code. The code is
+  judged by checks the session cannot edit its way around.
 
 ### Deterministic before judged
 
@@ -101,6 +116,7 @@ one command, with per-step timings; run it before every push.
 
 | Gate | Where |
 |---|---|
+| Every pull request has one complete plan, and is not a plan alone | CI (`Plan` workflow), `make check`, hook on `gh pr create` |
 | Ruff lint and format, Pyright | pre-commit, `make check`, CI |
 | Backend tests on real Postgres, coverage floor of 90% | `make check`, CI |
 | Models match migrations | test suite, CI (`alembic check`) |
@@ -149,7 +165,7 @@ timeout, empty response and malformed response.
 - Branch from `main`, one slice per branch, PR back to `main`.
 - Conventional commit messages. Use the `/commit` and `/create-pr` skills.
 - No AI attribution anywhere: no co-author trailers, no "generated with" lines.
-- Small PRs. Demolition is split so that each deletion is reviewable on its own.
+- Small pull requests: one slice, one plan.
 
 ---
 

@@ -82,6 +82,16 @@ frontend_types() {
   cd frontend && pnpm turbo check-types
 }
 
+plan_is_present() {
+  # Reviewers read the plan, not the diff. Skipped on main, where there is no branch
+  # to plan for.
+  if [ "$(git branch --show-current)" = "main" ]; then
+    echo "On main: no plan required."
+    return 0
+  fi
+  python3 scripts/check_plan.py --include-working-tree
+}
+
 client_is_fresh() {
   # Regenerate the API client and fail if that changed anything.
   local client_dir="frontend/apps/web/src/client"
@@ -97,6 +107,7 @@ client_is_fresh() {
 
 total_start=$SECONDS
 
+run_step "Plan present and complete" plan_is_present
 run_step "Start local database" start_database
 run_step "Backend lint and format" backend_lint
 run_step "Backend types (pyright)" backend_types
