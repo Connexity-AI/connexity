@@ -1,8 +1,8 @@
 # Call trace schema
 
-> **Status: schema version 1.** Connexity can validate, store and read back a trace in
-> this shape. There is no endpoint to send one to yet, and no provider is mapped to it
-> yet; both are coming. Worked examples are in [`examples/`](./examples/).
+> **Status: schema version 1.** Connexity validates and stores traces in this shape, and
+> you can send one yourself: see [Sending a trace](./ingest.md). No provider is mapped
+> to it automatically yet. Worked examples are in [`examples/`](./examples/).
 
 A **trace** is Connexity's record of one call: who said what and when, what tools the
 agent called and what came back, what the agent was given before the call, and which

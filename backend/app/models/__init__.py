@@ -136,6 +136,17 @@ from app.models.eval_config import (  # noqa: F401
     EvalConfigUpdate,
 )
 
+# ── Ingest ─────────────────────────────────────────────────────────
+from app.models.ingest_token import (  # noqa: F401
+    IngestToken,
+    IngestTokenCreate,
+    IngestTokenCreated,
+    IngestTokenPublic,
+    IngestTokensPublic,
+    IngestTraceRequest,
+    IngestTraceResult,
+)
+
 # ── Integration ────────────────────────────────────────────────────
 from app.models.integration import (  # noqa: F401
     Integration,

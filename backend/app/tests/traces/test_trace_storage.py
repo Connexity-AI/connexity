@@ -18,7 +18,7 @@ def _store(db: Session, trace: Trace) -> Call:
         trace=trace,
         agent_id=agent.id,
         company_id=get_test_company_id(db),
-    )
+    ).call
 
 
 def _count(
@@ -89,13 +89,16 @@ def test_storing_the_same_call_again_replaces_its_trace(db: Session) -> None:
     first = load_example("hosted-platform-full")
     shorter = first.model_copy(update={"events": first.events[:2], "components": None})
 
-    call = crud.store_trace(
+    first_store = crud.store_trace(
         session=db, trace=first, agent_id=agent.id, company_id=company_id
     )
-    again = crud.store_trace(
+    second_store = crud.store_trace(
         session=db, trace=shorter, agent_id=agent.id, company_id=company_id
     )
+    call, again = first_store.call, second_store.call
 
+    assert first_store.created is True
+    assert second_store.created is False
     assert again.id == call.id
     assert _count(db, CallEvent, again) == 2
     assert _count(db, CallComponent, again) == 0

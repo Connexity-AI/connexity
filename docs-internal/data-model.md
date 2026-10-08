@@ -15,6 +15,7 @@ erDiagram
     company ||--o{ integration : owns
     company ||--o{ agent : owns
     company ||--o{ custom_metric : owns
+    company ||--o{ ingest_token : issues
     integration ||--o{ agent : "provider account for"
     agent ||--o{ agent_version : "snapshots"
     agent ||--o{ environment : "linked through"
@@ -52,6 +53,7 @@ erDiagram
 | `run` | `run.py` | One execution of an eval config against an agent version, with aggregate metrics. | Frozen until Phase 4 |
 | `test_case_result` | `test_case_result.py` | One test case's transcript and judge verdict within a run. | Frozen until Phase 4 |
 | `custom_metric` | `custom_metric.py` | Judge metrics per company; built-in ones are copied in at signup. | Frozen until Phase 4 |
+| `ingest_token` | `ingest_token.py` | A company's credential for sending traces. Only a hash of the token is stored. | New in slice 1.2 |
 | `oauth_client`, `oauth_authorization_code`, `oauth_refresh_token` | `oauth.py` | The OAuth server that MCP clients authenticate against. | Keep |
 
 ## Conventions

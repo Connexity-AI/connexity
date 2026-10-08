@@ -995,6 +995,49 @@ export type BodyOauthToken = {
 };
 
 /**
+ * CallChannel
+ */
+export const CallChannel = {
+  PHONE: 'phone',
+  WEB: 'web',
+  TEXT: 'text',
+} as const;
+
+/**
+ * CallChannel
+ */
+export type CallChannel = (typeof CallChannel)[keyof typeof CallChannel];
+
+/**
+ * CallDirection
+ */
+export const CallDirection = { INBOUND: 'inbound', OUTBOUND: 'outbound' } as const;
+
+/**
+ * CallDirection
+ */
+export type CallDirection = (typeof CallDirection)[keyof typeof CallDirection];
+
+/**
+ * CallEndReason
+ */
+export const CallEndReason = {
+  CALLER_HANGUP: 'caller_hangup',
+  AGENT_HANGUP: 'agent_hangup',
+  TRANSFER: 'transfer',
+  VOICEMAIL: 'voicemail',
+  NO_ANSWER: 'no_answer',
+  ERROR: 'error',
+  LIMIT: 'limit',
+  UNKNOWN: 'unknown',
+} as const;
+
+/**
+ * CallEndReason
+ */
+export type CallEndReason = (typeof CallEndReason)[keyof typeof CallEndReason];
+
+/**
  * CallLabel
  */
 export const CallLabel = { GOOD: 'good', BAD: 'bad' } as const;
@@ -2083,6 +2126,141 @@ export type ImprovementSuggestions = {
 };
 
 /**
+ * IngestTokenCreate
+ */
+export type IngestTokenCreate = {
+  /**
+   * Name
+   */
+  name: string;
+};
+
+/**
+ * IngestTokenCreated
+ */
+export type IngestTokenCreated = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Prefix
+   */
+  prefix: string;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Last Used At
+   */
+  last_used_at: string | null;
+  /**
+   * Revoked At
+   */
+  revoked_at: string | null;
+  /**
+   * Token
+   *
+   * The token itself. Shown only in this response.
+   */
+  token: string;
+};
+
+/**
+ * IngestTokenPublic
+ */
+export type IngestTokenPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Prefix
+   */
+  prefix: string;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Last Used At
+   */
+  last_used_at: string | null;
+  /**
+   * Revoked At
+   */
+  revoked_at: string | null;
+};
+
+/**
+ * IngestTokensPublic
+ */
+export type IngestTokensPublic = {
+  /**
+   * Data
+   */
+  data: Array<IngestTokenPublic>;
+  /**
+   * Count
+   */
+  count: number;
+};
+
+/**
+ * IngestTraceRequest
+ */
+export type IngestTraceRequest = {
+  /**
+   * Agent Id
+   *
+   * The Connexity agent the call belongs to
+   */
+  agent_id: string;
+  trace: Trace;
+  /**
+   * Raw
+   *
+   * The provider's original payload, stored unmodified beside the call
+   */
+  raw?: {
+    [key: string]: unknown;
+  } | null;
+};
+
+/**
+ * IngestTraceResult
+ */
+export type IngestTraceResult = {
+  /**
+   * Call Id
+   */
+  call_id: string;
+  /**
+   * Created
+   *
+   * True when the call is new; false when its trace was replaced
+   */
+  created: boolean;
+  /**
+   * Capabilities
+   */
+  capabilities: Array<TraceCapability>;
+  /**
+   * Missing Capabilities
+   */
+  missing_capabilities: Array<TraceCapability>;
+};
+
+/**
  * IntegrationCreate
  */
 export type IntegrationCreate = {
@@ -2147,6 +2325,8 @@ export type IntegrationsPublic = {
    */
   count: number;
 };
+
+export type JsonValue = unknown;
 
 /**
  * JudgeConfig
@@ -2387,6 +2567,46 @@ export const LlmProvider = { OPENAI: 'openai', ANTHROPIC: 'anthropic' } as const
  * company has a key for, with model auto-rerouting at the LLM service layer.
  */
 export type LlmProvider = (typeof LlmProvider)[keyof typeof LlmProvider];
+
+/**
+ * MarkerEvent
+ *
+ * Something that happened that is neither speech nor a tool call.
+ */
+export type MarkerEvent = {
+  /**
+   * Id
+   *
+   * Unique within the trace; checks and comments point at it
+   */
+  id: string;
+  /**
+   * Start Ms
+   *
+   * Milliseconds from the start of the call
+   */
+  start_ms?: number | null;
+  /**
+   * Span Id
+   *
+   * Copied from the source when it has one (OpenTelemetry span id)
+   */
+  span_id?: string | null;
+  /**
+   * Type
+   */
+  type?: 'marker';
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Detail
+   */
+  detail?: {
+    [key: string]: JsonValue;
+  } | null;
+};
 
 /**
  * Message
@@ -3547,6 +3767,16 @@ export const SimulatorMode = { LLM: 'llm', SCRIPTED: 'scripted' } as const;
 export type SimulatorMode = (typeof SimulatorMode)[keyof typeof SimulatorMode];
 
 /**
+ * Speaker
+ */
+export const Speaker = { AGENT: 'agent', CALLER: 'caller' } as const;
+
+/**
+ * Speaker
+ */
+export type Speaker = (typeof Speaker)[keyof typeof Speaker];
+
+/**
  * SuggestionsRequest
  */
 export type SuggestionsRequest = {
@@ -4405,6 +4635,57 @@ export type ToolCall = {
 };
 
 /**
+ * ToolCallEvent
+ *
+ * One call from the agent to a tool, with its outcome in the same event.
+ */
+export type ToolCallEvent = {
+  /**
+   * Id
+   *
+   * Unique within the trace; checks and comments point at it
+   */
+  id: string;
+  /**
+   * Start Ms
+   *
+   * Milliseconds from the start of the call
+   */
+  start_ms?: number | null;
+  /**
+   * Span Id
+   *
+   * Copied from the source when it has one (OpenTelemetry span id)
+   */
+  span_id?: string | null;
+  /**
+   * End Ms
+   *
+   * Milliseconds from the start of the call
+   */
+  end_ms?: number | null;
+  /**
+   * Type
+   */
+  type?: 'tool_call';
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Arguments
+   */
+  arguments?: {
+    [key: string]: JsonValue;
+  } | null;
+  status?: ToolCallStatus | null;
+  /**
+   * Parsed JSON if it parses, otherwise the raw string
+   */
+  result?: JsonValue;
+};
+
+/**
  * ToolCallFunction
  */
 export type ToolCallFunction = {
@@ -4421,6 +4702,21 @@ export type ToolCallFunction = {
    */
   arguments: string;
 };
+
+/**
+ * ToolCallStatus
+ */
+export const ToolCallStatus = {
+  OK: 'ok',
+  ERROR: 'error',
+  TIMEOUT: 'timeout',
+  NO_RESULT: 'no_result',
+} as const;
+
+/**
+ * ToolCallStatus
+ */
+export type ToolCallStatus = (typeof ToolCallStatus)[keyof typeof ToolCallStatus];
 
 /**
  * ToolDiff
@@ -4445,6 +4741,181 @@ export type ToolDiff = {
    */
   modified?: Array<FieldChange>;
 };
+
+/**
+ * Trace
+ *
+ * Connexity's record of one call, in a provider-neutral shape.
+ */
+export type Trace = {
+  /**
+   * Schema Version
+   */
+  schema_version?: 1;
+  /**
+   * Provider
+   *
+   * Free text, lower case; not a fixed list
+   */
+  provider: string;
+  /**
+   * External Id
+   *
+   * The provider's own id for the call
+   */
+  external_id: string;
+  /**
+   * Started At
+   */
+  started_at: string;
+  source?: TraceSource;
+  channel?: CallChannel | null;
+  direction?: CallDirection | null;
+  /**
+   * Ended At
+   */
+  ended_at?: string | null;
+  end_reason?: CallEndReason | null;
+  /**
+   * End Reason Detail
+   *
+   * The provider's own wording
+   */
+  end_reason_detail?: string | null;
+  /**
+   * Trace Id
+   */
+  trace_id?: string | null;
+  parties?: TraceParties | null;
+  /**
+   * Recording Url
+   */
+  recording_url?: string | null;
+  /**
+   * Inputs
+   *
+   * Variables set before the call started
+   */
+  inputs?: {
+    [key: string]: JsonValue;
+  } | null;
+  /**
+   * Components
+   */
+  components?: Array<TraceComponent> | null;
+  /**
+   * Reports Tool Calls
+   *
+   * True when the mapping includes every tool call the agent made, so a trace with no tool_call events means the agent made none
+   */
+  reports_tool_calls?: boolean | null;
+  /**
+   * Events
+   */
+  events: Array<
+    | ({
+        type: 'utterance';
+      } & UtteranceEvent)
+    | ({
+        type: 'tool_call';
+      } & ToolCallEvent)
+    | ({
+        type: 'marker';
+      } & MarkerEvent)
+  >;
+  /**
+   * Outputs
+   *
+   * What the provider concluded after the call
+   */
+  outputs?: {
+    [key: string]: JsonValue;
+  } | null;
+  /**
+   * Extensions
+   */
+  extensions?: {
+    [key: string]: JsonValue;
+  } | null;
+};
+
+/**
+ * TraceCapability
+ */
+export const TraceCapability = {
+  TOOL_CALLS: 'tool_calls',
+  TOOL_RESULTS: 'tool_results',
+  TIMING: 'timing',
+  INPUTS: 'inputs',
+  COMPONENTS: 'components',
+  RECORDING: 'recording',
+  OUTPUTS: 'outputs',
+} as const;
+
+/**
+ * TraceCapability
+ */
+export type TraceCapability = (typeof TraceCapability)[keyof typeof TraceCapability];
+
+/**
+ * TraceComponent
+ *
+ * One thing that served the call, with the version that was live.
+ */
+export type TraceComponent = {
+  /**
+   * Kind
+   */
+  kind: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Ref
+   *
+   * The provider's own identifier
+   */
+  ref?: string | null;
+  /**
+   * Version
+   */
+  version?: string | null;
+  /**
+   * Fingerprint
+   *
+   * Hash of the content, for components with no version number
+   */
+  fingerprint?: string | null;
+};
+
+/**
+ * TraceParties
+ */
+export type TraceParties = {
+  /**
+   * Agent Number
+   */
+  agent_number?: string | null;
+  /**
+   * Caller Number
+   */
+  caller_number?: string | null;
+};
+
+/**
+ * TraceSource
+ */
+export const TraceSource = {
+  PRODUCTION: 'production',
+  TEST_CALL: 'test_call',
+  SIMULATION: 'simulation',
+} as const;
+
+/**
+ * TraceSource
+ */
+export type TraceSource = (typeof TraceSource)[keyof typeof TraceSource];
 
 /**
  * TurnRole
@@ -4568,6 +5039,55 @@ export type UserUpdateMe = {
    * Email
    */
   email?: string | null;
+};
+
+/**
+ * UtteranceEvent
+ *
+ * Something a party said.
+ */
+export type UtteranceEvent = {
+  /**
+   * Id
+   *
+   * Unique within the trace; checks and comments point at it
+   */
+  id: string;
+  /**
+   * Start Ms
+   *
+   * Milliseconds from the start of the call
+   */
+  start_ms?: number | null;
+  /**
+   * Span Id
+   *
+   * Copied from the source when it has one (OpenTelemetry span id)
+   */
+  span_id?: string | null;
+  /**
+   * End Ms
+   *
+   * Milliseconds from the start of the call
+   */
+  end_ms?: number | null;
+  /**
+   * Type
+   */
+  type?: 'utterance';
+  speaker: Speaker;
+  /**
+   * Text
+   *
+   * What was said, as transcribed
+   */
+  text: string;
+  /**
+   * Interrupted
+   *
+   * True if the other party cut it off
+   */
+  interrupted?: boolean | null;
 };
 
 /**
@@ -9653,6 +10173,214 @@ export type CallsGetCallDetailResponses = {
 
 export type CallsGetCallDetailResponse =
   CallsGetCallDetailResponses[keyof CallsGetCallDetailResponses];
+
+export type IngestIngestTraceData = {
+  body: IngestTraceRequest;
+  path?: never;
+  query?: never;
+  url: '/api/v1/ingest/traces';
+};
+
+export type IngestIngestTraceErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type IngestIngestTraceError = IngestIngestTraceErrors[keyof IngestIngestTraceErrors];
+
+export type IngestIngestTraceResponses = {
+  /**
+   * Successful Response
+   */
+  200: IngestTraceResult;
+};
+
+export type IngestIngestTraceResponse =
+  IngestIngestTraceResponses[keyof IngestIngestTraceResponses];
+
+export type IngestListIngestTokensData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/ingest-tokens/';
+};
+
+export type IngestListIngestTokensErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type IngestListIngestTokensError =
+  IngestListIngestTokensErrors[keyof IngestListIngestTokensErrors];
+
+export type IngestListIngestTokensResponses = {
+  /**
+   * Successful Response
+   */
+  200: IngestTokensPublic;
+};
+
+export type IngestListIngestTokensResponse =
+  IngestListIngestTokensResponses[keyof IngestListIngestTokensResponses];
+
+export type IngestCreateIngestTokenData = {
+  body: IngestTokenCreate;
+  path?: never;
+  query?: never;
+  url: '/api/v1/ingest-tokens/';
+};
+
+export type IngestCreateIngestTokenErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type IngestCreateIngestTokenError =
+  IngestCreateIngestTokenErrors[keyof IngestCreateIngestTokenErrors];
+
+export type IngestCreateIngestTokenResponses = {
+  /**
+   * Successful Response
+   */
+  200: IngestTokenCreated;
+};
+
+export type IngestCreateIngestTokenResponse =
+  IngestCreateIngestTokenResponses[keyof IngestCreateIngestTokenResponses];
+
+export type IngestRevokeIngestTokenData = {
+  body?: never;
+  path: {
+    /**
+     * Token Id
+     */
+    token_id: string;
+  };
+  query?: never;
+  url: '/api/v1/ingest-tokens/{token_id}';
+};
+
+export type IngestRevokeIngestTokenErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type IngestRevokeIngestTokenError =
+  IngestRevokeIngestTokenErrors[keyof IngestRevokeIngestTokenErrors];
+
+export type IngestRevokeIngestTokenResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message;
+};
+
+export type IngestRevokeIngestTokenResponse =
+  IngestRevokeIngestTokenResponses[keyof IngestRevokeIngestTokenResponses];
 
 export type CompanyGetLlmCredentialsData = {
   body?: never;

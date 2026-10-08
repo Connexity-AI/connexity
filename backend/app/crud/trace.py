@@ -6,7 +6,10 @@ event, one row per component. There is no stored trace document.
 
 import uuid
 from datetime import UTC, datetime
+from typing import NamedTuple
 
+from sqlalchemy import Table
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlmodel import Session, col, delete, select
 
 from app.models.call import Call, CallComponent, CallEvent
@@ -20,6 +23,8 @@ from app.models.trace import (
     TraceParties,
     UtteranceEvent,
 )
+
+_CALL_TABLE: Table = Call.__table__  # type: ignore[attr-defined]
 
 
 def _to_naive_utc(value: datetime) -> datetime:
@@ -104,6 +109,11 @@ def _agent_ref(trace: Trace) -> str:
     return ""
 
 
+class StoredTrace(NamedTuple):
+    call: Call
+    created: bool
+
+
 def store_trace(
     *,
     session: Session,
@@ -111,19 +121,24 @@ def store_trace(
     agent_id: uuid.UUID,
     company_id: uuid.UUID,
     integration_id: uuid.UUID | None = None,
-) -> Call:
+    raw: dict[str, object] | None = None,
+) -> StoredTrace:
     """Store ``trace`` for an agent, replacing any trace already stored for that call.
 
     A call is identified by ``(external_id, agent_id)``. Storing the same call again
     replaces its events and components, so re-running a corrected mapping is safe.
+
+    Safe to call concurrently for the same call: the call row is created with
+    ``ON CONFLICT DO NOTHING`` and then locked, so one caller creates it and the
+    others replace its trace in turn.
+
+    Returns:
+        The call, and whether this store created it.
     """
-    call = session.exec(
-        select(Call).where(
-            Call.external_id == trace.external_id, Call.agent_id == agent_id
-        )
-    ).first()
-    if call is None:
-        call = Call(
+    inserted = session.execute(
+        pg_insert(_CALL_TABLE)
+        .values(
+            id=uuid.uuid4(),
             company_id=company_id,
             agent_id=agent_id,
             integration_id=integration_id,
@@ -131,7 +146,18 @@ def store_trace(
             external_id=trace.external_id,
             provider_agent_id=_agent_ref(trace),
             started_at=_to_naive_utc(trace.started_at),
+            source=trace.source,
         )
+        .on_conflict_do_nothing(index_elements=["external_id", "agent_id"])
+        .returning(_CALL_TABLE.c.id)
+    ).first()
+    created = inserted is not None
+
+    call = session.exec(
+        select(Call)
+        .where(Call.external_id == trace.external_id, Call.agent_id == agent_id)
+        .with_for_update()
+    ).one()
 
     parties = trace.parties
     call.provider = trace.provider
@@ -152,6 +178,8 @@ def store_trace(
     call.inputs = trace.inputs
     call.outputs = trace.outputs
     call.extensions = trace.extensions
+    if raw is not None:
+        call.raw = dict(raw)
     session.add(call)
     session.flush()
 
@@ -178,7 +206,7 @@ def store_trace(
         )
     session.commit()
     session.refresh(call)
-    return call
+    return StoredTrace(call=call, created=created)
 
 
 def get_trace(*, session: Session, call: Call) -> Trace | None:
