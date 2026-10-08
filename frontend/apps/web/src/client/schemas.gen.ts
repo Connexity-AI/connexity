@@ -1862,13 +1862,13 @@ export const CallPublicSchema = {
       format: 'uuid',
       title: 'Agent Id',
     },
-    retell_call_id: {
+    external_id: {
       type: 'string',
-      title: 'Retell Call Id',
+      title: 'External Id',
     },
-    retell_agent_id: {
+    provider_agent_id: {
       type: 'string',
-      title: 'Retell Agent Id',
+      title: 'Provider Agent Id',
     },
     started_at: {
       type: 'string',
@@ -1900,12 +1900,13 @@ export const CallPublicSchema = {
     provider: {
       anyOf: [
         {
-          $ref: '#/components/schemas/IntegrationProvider',
+          type: 'string',
         },
         {
           type: 'null',
         },
       ],
+      title: 'Provider',
     },
     transcript: {
       anyOf: [
@@ -1950,7 +1951,7 @@ export const CallPublicSchema = {
     },
   },
   type: 'object',
-  required: ['id', 'agent_id', 'retell_call_id', 'retell_agent_id', 'started_at', 'created_at'],
+  required: ['id', 'agent_id', 'external_id', 'provider_agent_id', 'started_at', 'created_at'],
   title: 'CallPublic',
 } as const;
 

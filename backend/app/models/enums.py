@@ -90,3 +90,59 @@ class IntegrationProvider(StrEnum):
 class CallLabel(StrEnum):
     GOOD = "good"
     BAD = "bad"
+
+
+class TraceSource(StrEnum):
+    PRODUCTION = "production"
+    TEST_CALL = "test_call"
+    SIMULATION = "simulation"
+
+
+class CallChannel(StrEnum):
+    PHONE = "phone"
+    WEB = "web"
+    TEXT = "text"
+
+
+class CallDirection(StrEnum):
+    INBOUND = "inbound"
+    OUTBOUND = "outbound"
+
+
+class CallEndReason(StrEnum):
+    CALLER_HANGUP = "caller_hangup"
+    AGENT_HANGUP = "agent_hangup"
+    TRANSFER = "transfer"
+    VOICEMAIL = "voicemail"
+    NO_ANSWER = "no_answer"
+    ERROR = "error"
+    LIMIT = "limit"
+    UNKNOWN = "unknown"
+
+
+class CallEventType(StrEnum):
+    UTTERANCE = "utterance"
+    TOOL_CALL = "tool_call"
+    MARKER = "marker"
+
+
+class Speaker(StrEnum):
+    AGENT = "agent"
+    CALLER = "caller"
+
+
+class ToolCallStatus(StrEnum):
+    OK = "ok"
+    ERROR = "error"
+    TIMEOUT = "timeout"
+    NO_RESULT = "no_result"
+
+
+class TraceCapability(StrEnum):
+    TOOL_CALLS = "tool_calls"
+    TOOL_RESULTS = "tool_results"
+    TIMING = "timing"
+    INPUTS = "inputs"
+    COMPONENTS = "components"
+    RECORDING = "recording"
+    OUTPUTS = "outputs"

@@ -41,6 +41,8 @@ from app.models.agent_version import (  # noqa: F401
 # ── Call (Observer) ────────────────────────────────────────────────
 from app.models.call import (  # noqa: F401
     Call,
+    CallComponent,
+    CallEvent,
     CallLabelUpdate,
     CallPublic,
     CallRefreshResult,

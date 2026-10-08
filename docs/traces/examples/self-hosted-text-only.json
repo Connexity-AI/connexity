@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "provider": "pipecat",
+  "external_id": "session-example-7f3",
+  "started_at": "2026-10-02T18:40:00+02:00",
+  "source": "test_call",
+  "events": [
+    { "id": "1", "type": "utterance", "speaker": "caller", "text": "Hello?" },
+    { "id": "2", "type": "utterance", "speaker": "agent",
+      "text": "Hi, you've reached the front desk. How can I help?" },
+    { "id": "3", "type": "utterance", "speaker": "caller",
+      "text": "I'd like to move my appointment to Friday." },
+    { "id": "4", "type": "utterance", "speaker": "agent",
+      "text": "I can't change bookings myself, but I'll pass that on." }
+  ]
+}

@@ -116,6 +116,7 @@ from app.crud.test_case_result import (  # noqa: F401
     list_test_case_results,
     update_test_case_result,
 )
+from app.crud.trace import get_trace, store_trace  # noqa: F401
 from app.crud.user import (  # noqa: F401
     authenticate,
     create_user,

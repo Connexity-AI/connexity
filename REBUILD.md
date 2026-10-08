@@ -55,7 +55,7 @@ history of a slice is its plan file in `plans/`.
 | 0.3 | Fresh migration baseline | Done (PR #161) |
 | 0.4 | Harness: `make check`, hooks, stale docs | Done (PR #162) |
 | 0.5 | Plan file required with every pull request | PR open, awaiting merge |
-| 1.1 | Canonical trace schema | Not started |
+| 1.1 | Canonical trace schema | PR open, awaiting merge |
 | 1.2 | Ingest API and service tokens | Not started |
 | 1.3 | Retell reference mapping | Not started |
 | 1.4 | Skill executions (n8n) | Not started |
@@ -69,9 +69,8 @@ history of a slice is its plan file in `plans/`.
 | 2.4 | Inbox v0 | Not started |
 | M1 | Milestone 1 exit review | Not started |
 
-**Next slice:** 1.1 (canonical trace schema). Its design questions are answered (see the
-decision log, 2026-10-08); it starts once the 0.5 PR is merged, as the first pull
-request under the plan rule.
+**Next slice:** 1.2 (ingest API and service tokens), once the 1.1 PR is merged. It must
+handle two simultaneous stores of the same call; see the 1.1 plan's Outcome.
 
 ---
 

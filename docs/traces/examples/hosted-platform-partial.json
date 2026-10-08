@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "provider": "vapi",
+  "external_id": "example-0b6f2c1e-web",
+  "started_at": "2026-10-01T09:15:00Z",
+  "channel": "web",
+  "ended_at": "2026-10-01T09:15:41Z",
+  "end_reason": "caller_hangup",
+  "end_reason_detail": "customer-ended-call",
+  "inputs": {},
+  "components": [
+    { "kind": "agent", "name": "Support assistant", "ref": "asst_example_19" }
+  ],
+  "events": [
+    { "id": "m0", "type": "utterance", "speaker": "agent",
+      "text": "Thanks for calling. What can I help with?", "start_ms": 300 },
+    { "id": "m1", "type": "utterance", "speaker": "caller",
+      "text": "Where is my order?", "start_ms": 4100 },
+    { "id": "m2", "type": "tool_call", "name": "lookup_order",
+      "arguments": { "order_id": "A-1042" }, "start_ms": 6200 },
+    { "id": "m3", "type": "utterance", "speaker": "agent",
+      "text": "One moment while I check.", "start_ms": 6400 },
+    { "id": "m4", "type": "tool_call", "name": "lookup_order",
+      "arguments": { "order_id": "A-1042" },
+      "status": "timeout", "start_ms": 12000, "end_ms": 22000 },
+    { "id": "m5", "type": "utterance", "speaker": "agent",
+      "text": "I'm sorry, I can't reach the order system right now.", "start_ms": 22400 }
+  ],
+  "outputs": { "summary": "Caller asked for order status; lookup failed." }
+}

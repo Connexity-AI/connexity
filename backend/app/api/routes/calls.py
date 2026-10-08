@@ -128,7 +128,7 @@ async def _fetch_and_store_production_calls(
             env_event["api_key_len"] = len(api_key) if api_key else 0
 
             # Per-environment watermark: the latest started_at of calls already
-            # stored for this (agent, retell_agent_id) pair. A brand-new env on
+            # stored for this (agent, provider_agent_id) pair. A brand-new env on
             # an agent that has prior calls from a different env still gets a
             # full backfill instead of inheriting the other env's cutoff.
             start_after: datetime | None = None
@@ -136,7 +136,7 @@ async def _fetch_and_store_production_calls(
                 start_after = crud.get_latest_call_started_at(
                     session=session,
                     agent_id=agent.id,
-                    retell_agent_id=agent.platform_agent_id,
+                    provider_agent_id=agent.platform_agent_id,
                 )
             env_event["start_after"] = start_after
             for iteration in range(_MAX_FETCH_ITERATIONS):
@@ -455,14 +455,6 @@ def set_call_label_endpoint(
     call = crud.set_call_label(session=session, call_id=call_id, label=body.label)
     if call is None:
         raise HTTPException(status_code=404, detail="Call not found")
-    provider = None
-    if call.integration_id is not None:
-        integration = crud.get_integration(
-            session=session,
-            integration_id=call.integration_id,
-            company_id=company_id,
-        )
-        provider = integration.provider if integration is not None else None
     is_new = call.seen_at is None
     tc_count = int(
         session.exec(
@@ -472,12 +464,12 @@ def set_call_label_endpoint(
     return CallPublic(
         id=call.id,
         agent_id=call.agent_id,
-        retell_call_id=call.retell_call_id,
-        retell_agent_id=call.retell_agent_id,
+        external_id=call.external_id,
+        provider_agent_id=call.provider_agent_id,
         started_at=call.started_at,
         duration_seconds=call.duration_seconds,
         status=call.status,
-        provider=provider,
+        provider=call.provider,
         transcript=call.transcript,
         is_new=is_new,
         test_case_count=tc_count,
@@ -493,14 +485,6 @@ def get_call_detail(
     call_id: uuid.UUID,
 ) -> CallPublic:
     call = _call_or_404(session=session, call_id=call_id, company_id=company_id)
-    provider = None
-    if call.integration_id is not None:
-        integration = crud.get_integration(
-            session=session,
-            integration_id=call.integration_id,
-            company_id=company_id,
-        )
-        provider = integration.provider if integration is not None else None
     is_new = call.seen_at is None
     tc_count = int(
         session.exec(
@@ -510,12 +494,12 @@ def get_call_detail(
     return CallPublic(
         id=call.id,
         agent_id=call.agent_id,
-        retell_call_id=call.retell_call_id,
-        retell_agent_id=call.retell_agent_id,
+        external_id=call.external_id,
+        provider_agent_id=call.provider_agent_id,
         started_at=call.started_at,
         duration_seconds=call.duration_seconds,
         status=call.status,
-        provider=provider,
+        provider=call.provider,
         transcript=call.transcript,
         is_new=is_new,
         test_case_count=tc_count,
