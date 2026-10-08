@@ -129,6 +129,8 @@ class CallEventType(StrEnum):
 class Speaker(StrEnum):
     AGENT = "agent"
     CALLER = "caller"
+    # Neither the agent nor the caller, e.g. the person a call was transferred to.
+    OTHER = "other"
 
 
 class ToolCallStatus(StrEnum):

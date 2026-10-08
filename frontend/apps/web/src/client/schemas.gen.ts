@@ -1889,6 +1889,10 @@ export const CallPublicSchema = {
       format: 'uuid',
       title: 'Agent Id',
     },
+    provider: {
+      type: 'string',
+      title: 'Provider',
+    },
     external_id: {
       type: 'string',
       title: 'External Id',
@@ -1897,10 +1901,25 @@ export const CallPublicSchema = {
       type: 'string',
       title: 'Provider Agent Id',
     },
+    source: {
+      $ref: '#/components/schemas/TraceSource',
+    },
     started_at: {
       type: 'string',
       format: 'date-time',
       title: 'Started At',
+    },
+    ended_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Ended At',
     },
     duration_seconds: {
       anyOf: [
@@ -1912,8 +1931,19 @@ export const CallPublicSchema = {
         },
       ],
       title: 'Duration Seconds',
+      description: 'Derived from started_at and ended_at',
     },
-    status: {
+    end_reason: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/CallEndReason',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    end_reason_detail: {
       anyOf: [
         {
           type: 'string',
@@ -1922,32 +1952,12 @@ export const CallPublicSchema = {
           type: 'null',
         },
       ],
-      title: 'Status',
+      title: 'End Reason Detail',
     },
-    provider: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Provider',
-    },
-    transcript: {
-      anyOf: [
-        {
-          items: {
-            type: 'object',
-          },
-          type: 'array',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Transcript',
+    has_trace: {
+      type: 'boolean',
+      title: 'Has Trace',
+      description: 'False when the call was synced but not yet converted to a trace',
     },
     is_new: {
       type: 'boolean',
@@ -1978,7 +1988,17 @@ export const CallPublicSchema = {
     },
   },
   type: 'object',
-  required: ['id', 'agent_id', 'external_id', 'provider_agent_id', 'started_at', 'created_at'],
+  required: [
+    'id',
+    'agent_id',
+    'provider',
+    'external_id',
+    'provider_agent_id',
+    'source',
+    'started_at',
+    'has_trace',
+    'created_at',
+  ],
   title: 'CallPublic',
 } as const;
 
@@ -1987,7 +2007,7 @@ export const CallRefreshResultSchema = {
     created: {
       type: 'integer',
       title: 'Created',
-      description: 'Number of new call rows inserted from Retell',
+      description: 'Number of new calls stored by this refresh',
     },
     total: {
       type: 'integer',
@@ -1998,6 +2018,24 @@ export const CallRefreshResultSchema = {
   type: 'object',
   required: ['created', 'total'],
   title: 'CallRefreshResult',
+} as const;
+
+export const CallTracePublicSchema = {
+  properties: {
+    trace: {
+      $ref: '#/components/schemas/Trace-Output',
+    },
+    capabilities: {
+      items: {
+        $ref: '#/components/schemas/TraceCapability',
+      },
+      type: 'array',
+      title: 'Capabilities',
+    },
+  },
+  type: 'object',
+  required: ['trace', 'capabilities'],
+  title: 'CallTracePublic',
 } as const;
 
 export const CallsPublicSchema = {
@@ -3665,7 +3703,7 @@ export const IngestTraceRequestSchema = {
       description: 'The Connexity agent the call belongs to',
     },
     trace: {
-      $ref: '#/components/schemas/Trace',
+      $ref: '#/components/schemas/Trace-Input',
     },
     raw: {
       anyOf: [
@@ -6016,7 +6054,7 @@ export const SimulatorModeSchema = {
 
 export const SpeakerSchema = {
   type: 'string',
-  enum: ['agent', 'caller'],
+  enum: ['agent', 'caller', 'other'],
   title: 'Speaker',
 } as const;
 
@@ -7699,7 +7737,233 @@ export const ToolDiffSchema = {
   title: 'ToolDiff',
 } as const;
 
-export const TraceSchema = {
+export const Trace_InputSchema = {
+  properties: {
+    schema_version: {
+      type: 'integer',
+      enum: [1],
+      const: 1,
+      title: 'Schema Version',
+      default: 1,
+    },
+    provider: {
+      type: 'string',
+      maxLength: 64,
+      minLength: 1,
+      pattern: '^[a-z0-9][a-z0-9_.-]*$',
+      title: 'Provider',
+      description: 'Free text, lower case; not a fixed list',
+    },
+    external_id: {
+      type: 'string',
+      maxLength: 255,
+      minLength: 1,
+      title: 'External Id',
+      description: "The provider's own id for the call",
+    },
+    started_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Started At',
+    },
+    source: {
+      $ref: '#/components/schemas/TraceSource',
+      default: 'production',
+    },
+    channel: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/CallChannel',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    direction: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/CallDirection',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    ended_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Ended At',
+    },
+    end_reason: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/CallEndReason',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    end_reason_detail: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'End Reason Detail',
+      description: "The provider's own wording",
+    },
+    trace_id: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 64,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Trace Id',
+    },
+    parties: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/TraceParties',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    recording_url: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 2048,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Recording Url',
+    },
+    inputs: {
+      anyOf: [
+        {
+          additionalProperties: {
+            $ref: '#/components/schemas/JsonValue',
+          },
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Inputs',
+      description: 'Variables set before the call started',
+    },
+    components: {
+      anyOf: [
+        {
+          items: {
+            $ref: '#/components/schemas/TraceComponent',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Components',
+    },
+    reports_tool_calls: {
+      anyOf: [
+        {
+          type: 'boolean',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Reports Tool Calls',
+      description:
+        'True when the mapping includes every tool call the agent made, so a trace with no tool_call events means the agent made none',
+    },
+    events: {
+      items: {
+        oneOf: [
+          {
+            $ref: '#/components/schemas/UtteranceEvent',
+          },
+          {
+            $ref: '#/components/schemas/ToolCallEvent',
+          },
+          {
+            $ref: '#/components/schemas/MarkerEvent',
+          },
+        ],
+        discriminator: {
+          propertyName: 'type',
+          mapping: {
+            marker: '#/components/schemas/MarkerEvent',
+            tool_call: '#/components/schemas/ToolCallEvent',
+            utterance: '#/components/schemas/UtteranceEvent',
+          },
+        },
+      },
+      type: 'array',
+      title: 'Events',
+    },
+    outputs: {
+      anyOf: [
+        {
+          additionalProperties: {
+            $ref: '#/components/schemas/JsonValue',
+          },
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Outputs',
+      description: 'What the provider concluded after the call',
+    },
+    extensions: {
+      anyOf: [
+        {
+          additionalProperties: {
+            $ref: '#/components/schemas/JsonValue',
+          },
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Extensions',
+    },
+  },
+  additionalProperties: false,
+  type: 'object',
+  required: ['provider', 'external_id', 'started_at', 'events'],
+  title: 'Trace',
+  description: "Connexity's record of one call, in a provider-neutral shape.",
+} as const;
+
+export const Trace_OutputSchema = {
   properties: {
     schema_version: {
       type: 'integer',
@@ -8334,4 +8598,39 @@ export const ValidationErrorSchema = {
   type: 'object',
   required: ['loc', 'msg', 'type'],
   title: 'ValidationError',
+} as const;
+
+export const WebhookResultSchema = {
+  properties: {
+    status: {
+      type: 'string',
+      title: 'Status',
+    },
+    reason: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Reason',
+    },
+    call_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Call Id',
+    },
+  },
+  type: 'object',
+  required: ['status'],
+  title: 'WebhookResult',
 } as const;

@@ -27,7 +27,9 @@ from app.crud.agent_version import (
     rollback_to_version as rollback_agent_version,  # noqa: F401
 )
 from app.crud.call import (  # noqa: F401
+    call_to_public,
     count_calls_for_agent,
+    count_test_cases_for_call,
     get_call,
     get_latest_call_started_at,
     list_calls_for_agent,
@@ -36,7 +38,6 @@ from app.crud.call import (  # noqa: F401
     soft_delete_calls_for_integration,
     touch_calls_last_synced_at,
     upsert_calls_from_elevenlabs,
-    upsert_calls_from_retell,
     upsert_calls_from_vapi,
 )
 from app.crud.company import (  # noqa: F401

@@ -1,9 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import Link from 'next/link';
 
-import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { callsObserveParser } from '@/common/url-generator/parsers';
 import { RefreshCw } from 'lucide-react';
 
@@ -11,10 +9,8 @@ import { Button } from '@workspace/ui/components/ui/button';
 import { cn } from '@workspace/ui/lib/utils';
 
 import { DeleteTestCasesDialog } from '@/app/(app)/(agent)/_components/evals/test-cases/delete-test-cases-dialog';
-import { useEnvironments } from '@/app/(app)/(agent)/_hooks/use-environments';
 import { DataTable } from '@/components/common/data-table/data-table';
 import { TablePagination } from '@/components/common/data-table/table-pagination';
-import { Platform } from '@/client/types.gen';
 
 import { DateRangePicker } from './date-range-picker';
 import { getCallsColumns } from './get-calls-columns';
@@ -28,8 +24,6 @@ interface ObserveContentProps {
 }
 
 export function ObserveContent({ agentId }: ObserveContentProps) {
-  const { data: environmentsData } = useEnvironments(agentId);
-
   const calls = useObserveCalls(agentId);
   const drawer = useObserveDrawerState({ agentId, calls: calls.rows });
 
@@ -42,32 +36,8 @@ export function ObserveContent({ agentId }: ObserveContentProps) {
     [drawer.testCasesByCallId, drawer.onTestCaseClick],
   );
 
-  const hasProductionCallEnvironment = (environmentsData?.data ?? []).some(
-    (env) =>
-      env.platform === Platform.RETELL ||
-      env.platform === Platform.VAPI ||
-      env.platform === Platform.ELEVENLABS,
-  );
-
   if (calls.isLoading) {
     return <ObserveTableSkeleton />;
-  }
-
-  if (!hasProductionCallEnvironment) {
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center p-10 text-center">
-        <p className="text-sm text-muted-foreground">
-          No environment connected yet. Go to the{' '}
-          <Link
-            href={UrlGenerator.agentEnvironments(agentId)}
-            className="text-foreground underline underline-offset-2"
-          >
-            Environments tab
-          </Link>{' '}
-          and add an environment to start observing calls.
-        </p>
-      </div>
-    );
   }
 
   return (
@@ -109,7 +79,7 @@ export function ObserveContent({ agentId }: ObserveContentProps) {
           onRowClick={drawer.onRowClick}
           emptyState={
             <p className="text-sm text-muted-foreground">
-              No calls yet. Click Refresh to fetch from Retell, Vapi, or ElevenLabs.
+              No calls yet. Refresh pulls them from the provider this agent is linked to.
             </p>
           }
           footer={

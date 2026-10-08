@@ -8,6 +8,7 @@ import type {
   CallPublic,
   CallRefreshResult,
   CallsPublic,
+  CallTracePublic,
   Message,
 } from '@/client/types.gen';
 import type { ApiResult } from '@/types/api';
@@ -82,4 +83,13 @@ export const setCallLabel = async (
   });
   const { response: _, ...result } = apiResponse;
   return result;
+};
+
+/** The call's trace, or `null` when the call has not been converted to one. */
+export const getCallTrace = async (callId: string): Promise<CallTracePublic | null> => {
+  const apiResponse = await CallsService.getCallTrace({
+    path: { call_id: callId },
+  });
+  const { response: _, ...result } = apiResponse;
+  return isSuccessApiResult<CallTracePublic>(result) ? result.data : null;
 };

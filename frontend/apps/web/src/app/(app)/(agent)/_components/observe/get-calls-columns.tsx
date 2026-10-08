@@ -5,6 +5,7 @@ import { Clock, FlaskConical } from 'lucide-react';
 import { Button } from '@workspace/ui/components/ui/button';
 
 import { CallLabelChip } from './call-label-chip';
+import { formatDuration, formatEnumLabel } from './observe-format';
 
 import type { ColumnDef } from '@tanstack/react-table';
 
@@ -19,13 +20,6 @@ function formatCallDate(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-function formatDuration(seconds: number | null | undefined): string {
-  if (seconds === null || seconds === undefined) return '—';
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 interface GetCallsColumnsArgs {
@@ -70,6 +64,22 @@ export const getCallsColumns = ({
         {formatDuration(row.original.duration_seconds)}
       </div>
     ),
+  },
+  {
+    accessorKey: 'end_reason',
+    header: 'Ended',
+    enableSorting: false,
+    cell: ({ row }) =>
+      row.original.end_reason ? (
+        <span
+          className="text-xs text-muted-foreground"
+          title={row.original.end_reason_detail ?? undefined}
+        >
+          {formatEnumLabel(row.original.end_reason)}
+        </span>
+      ) : (
+        <span className="text-[10px] text-muted-foreground/30">—</span>
+      ),
   },
   {
     accessorKey: 'test_case_count',

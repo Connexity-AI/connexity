@@ -13,7 +13,6 @@ from app.services.elevenlabs import (
     ElevenLabsConversationDetails,
     ElevenLabsConversationSummary,
 )
-from app.services.retell import RetellCall
 from app.services.vapi import VapiCall
 
 # SQLModel's declarative metaclass sets ``__table__`` at class creation, but
@@ -21,36 +20,6 @@ from app.services.vapi import VapiCall
 # explicit ``Table`` annotation so downstream usage typechecks cleanly.
 _CALL_TABLE: Table = Call.__table__  # type: ignore[attr-defined]
 _AGENT_TABLE: Table = Agent.__table__  # type: ignore[attr-defined]
-
-
-def _retell_call_to_row(
-    call: RetellCall,
-    *,
-    agent_id: uuid.UUID,
-    company_id: uuid.UUID,
-    integration_id: uuid.UUID,
-) -> dict:
-    started_at = (
-        datetime.fromtimestamp(call.start_timestamp / 1000, tz=UTC)
-        if call.start_timestamp
-        else datetime.now(UTC)
-    )
-    duration: int | None = None
-    if call.start_timestamp and call.end_timestamp:
-        duration = max(0, (call.end_timestamp - call.start_timestamp) // 1000)
-    return {
-        "agent_id": agent_id,
-        "company_id": company_id,
-        "integration_id": integration_id,
-        "provider": "retell",
-        "external_id": call.call_id,
-        "provider_agent_id": call.agent_id or "",
-        "started_at": started_at,
-        "duration_seconds": duration,
-        "status": call.call_status,
-        "transcript": call.transcript_object,
-        "raw": call.raw,
-    }
 
 
 def _vapi_call_to_row(
@@ -61,9 +30,6 @@ def _vapi_call_to_row(
     integration_id: uuid.UUID,
 ) -> dict:
     started_at = call.started_at or call.created_at or datetime.now(UTC)
-    duration: int | None = None
-    if call.started_at and call.ended_at:
-        duration = max(0, int((call.ended_at - call.started_at).total_seconds()))
     return {
         "agent_id": agent_id,
         "company_id": company_id,
@@ -72,9 +38,6 @@ def _vapi_call_to_row(
         "external_id": call.call_id,
         "provider_agent_id": call.assistant_id or "",
         "started_at": started_at,
-        "duration_seconds": duration,
-        "status": call.status,
-        "transcript": call.transcript,
         "raw": call.raw,
     }
 
@@ -95,9 +58,6 @@ def _elevenlabs_summary_to_row(
         "external_id": call.conversation_id,
         "provider_agent_id": call.agent_id,
         "started_at": started_at,
-        "duration_seconds": call.call_duration_secs,
-        "status": call.status,
-        "transcript": None,
         "raw": call.raw,
     }
 
@@ -118,51 +78,8 @@ def _elevenlabs_details_to_row(
         "external_id": call.conversation_id,
         "provider_agent_id": call.agent_id or "",
         "started_at": started_at,
-        "duration_seconds": call.call_duration_secs,
-        "status": call.status,
-        "transcript": call.transcript,
         "raw": call.raw,
     }
-
-
-def upsert_calls_from_retell(
-    *,
-    session: Session,
-    agent_id: uuid.UUID,
-    company_id: uuid.UUID,
-    integration_id: uuid.UUID,
-    retell_calls: list[RetellCall],
-) -> int:
-    """Insert retell calls, skipping rows whose ``external_id`` already exists.
-
-    Returns the number of newly-inserted rows.
-    """
-    if not retell_calls:
-        return 0
-
-    rows = [
-        _retell_call_to_row(
-            c,
-            agent_id=agent_id,
-            company_id=company_id,
-            integration_id=integration_id,
-        )
-        for c in retell_calls
-        if c.call_id
-    ]
-    if not rows:
-        return 0
-
-    stmt = (
-        pg_insert(_CALL_TABLE)
-        .values(rows)
-        .on_conflict_do_nothing(index_elements=["external_id", "agent_id"])
-        .returning(_CALL_TABLE.c.id)
-    )
-    result = session.execute(stmt)
-    inserted = len(list(result))
-    session.commit()
-    return inserted
 
 
 def upsert_calls_from_vapi(
@@ -175,9 +92,9 @@ def upsert_calls_from_vapi(
 ) -> int:
     """Upsert Vapi calls, refreshing existing rows as calls evolve.
 
-    Vapi calls can first arrive as in-progress and later transition to ended with
-    transcript + duration populated. Use conflict-update semantics so refresh
-    syncs can enrich existing rows instead of dropping updates as duplicates.
+    Vapi calls can first arrive as in-progress and later transition to ended. Use
+    conflict-update semantics so a refresh replaces the stored payload instead of
+    dropping the update as a duplicate.
     """
     if not vapi_calls:
         return 0
@@ -201,15 +118,6 @@ def upsert_calls_from_vapi(
         set_={
             "provider_agent_id": insert_stmt.excluded.provider_agent_id,
             "started_at": insert_stmt.excluded.started_at,
-            "status": insert_stmt.excluded.status,
-            "duration_seconds": func.coalesce(
-                insert_stmt.excluded.duration_seconds,
-                _CALL_TABLE.c.duration_seconds,
-            ),
-            "transcript": func.coalesce(
-                insert_stmt.excluded.transcript,
-                _CALL_TABLE.c.transcript,
-            ),
             "raw": func.coalesce(
                 insert_stmt.excluded.raw,
                 _CALL_TABLE.c.raw,
@@ -264,15 +172,6 @@ def upsert_calls_from_elevenlabs(
         set_={
             "provider_agent_id": insert_stmt.excluded.provider_agent_id,
             "started_at": insert_stmt.excluded.started_at,
-            "status": insert_stmt.excluded.status,
-            "duration_seconds": func.coalesce(
-                insert_stmt.excluded.duration_seconds,
-                _CALL_TABLE.c.duration_seconds,
-            ),
-            "transcript": func.coalesce(
-                insert_stmt.excluded.transcript,
-                _CALL_TABLE.c.transcript,
-            ),
             "raw": func.coalesce(
                 insert_stmt.excluded.raw,
                 _CALL_TABLE.c.raw,
@@ -300,6 +199,38 @@ def get_latest_call_started_at(
     if provider_agent_id is not None:
         stmt = stmt.where(Call.provider_agent_id == provider_agent_id)
     return session.exec(stmt).one_or_none()
+
+
+def call_to_public(call: Call, *, test_case_count: int) -> CallPublic:
+    duration: int | None = None
+    if call.ended_at is not None:
+        duration = max(0, int((call.ended_at - call.started_at).total_seconds()))
+    return CallPublic(
+        id=call.id,
+        agent_id=call.agent_id,
+        provider=call.provider,
+        external_id=call.external_id,
+        provider_agent_id=call.provider_agent_id,
+        source=call.source,
+        started_at=call.started_at,
+        ended_at=call.ended_at,
+        duration_seconds=duration,
+        end_reason=call.end_reason,
+        end_reason_detail=call.end_reason_detail,
+        has_trace=call.schema_version is not None,
+        is_new=call.seen_at is None,
+        test_case_count=test_case_count,
+        label=call.label,
+        created_at=call.created_at,
+    )
+
+
+def count_test_cases_for_call(*, session: Session, call_id: uuid.UUID) -> int:
+    return int(
+        session.exec(
+            select(func.count(TestCase.id)).where(TestCase.source_call_id == call_id)
+        ).one()
+    )
 
 
 def list_calls_for_agent(
@@ -347,22 +278,8 @@ def list_calls_for_agent(
     )
 
     items = [
-        CallPublic(
-            id=r.id,
-            agent_id=r.agent_id,
-            external_id=r.external_id,
-            provider_agent_id=r.provider_agent_id,
-            started_at=r.started_at,
-            duration_seconds=r.duration_seconds,
-            status=r.status,
-            provider=r.provider,
-            transcript=r.transcript,
-            is_new=r.seen_at is None,
-            test_case_count=int(tc_counts.get(r.id, 0)),
-            label=r.label,
-            created_at=r.created_at,
-        )
-        for r in calls
+        call_to_public(call, test_case_count=int(tc_counts.get(call.id, 0)))
+        for call in calls
     ]
     return items, total
 

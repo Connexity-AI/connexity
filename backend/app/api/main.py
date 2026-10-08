@@ -20,6 +20,7 @@ from app.api.routes import (
     test_case_results,
     test_cases,
     users,
+    webhooks,
 )
 from app.models import ErrorResponse
 
@@ -43,6 +44,7 @@ api_router.include_router(environments.router)
 api_router.include_router(calls.router)
 api_router.include_router(ingest.router)
 api_router.include_router(ingest.tokens_router)
+api_router.include_router(webhooks.router)
 api_router.include_router(company.router)
 
 root_router = APIRouter()

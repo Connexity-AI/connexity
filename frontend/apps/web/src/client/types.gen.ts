@@ -1067,6 +1067,10 @@ export type CallPublic = {
    */
   agent_id: string;
   /**
+   * Provider
+   */
+  provider: string;
+  /**
    * External Id
    */
   external_id: string;
@@ -1074,28 +1078,32 @@ export type CallPublic = {
    * Provider Agent Id
    */
   provider_agent_id: string;
+  source: TraceSource;
   /**
    * Started At
    */
   started_at: string;
   /**
+   * Ended At
+   */
+  ended_at?: string | null;
+  /**
    * Duration Seconds
+   *
+   * Derived from started_at and ended_at
    */
   duration_seconds?: number | null;
+  end_reason?: CallEndReason | null;
   /**
-   * Status
+   * End Reason Detail
    */
-  status?: string | null;
+  end_reason_detail?: string | null;
   /**
-   * Provider
+   * Has Trace
+   *
+   * False when the call was synced but not yet converted to a trace
    */
-  provider?: string | null;
-  /**
-   * Transcript
-   */
-  transcript?: Array<{
-    [key: string]: unknown;
-  }> | null;
+  has_trace: boolean;
   /**
    * Is New
    *
@@ -1122,7 +1130,7 @@ export type CallRefreshResult = {
   /**
    * Created
    *
-   * Number of new call rows inserted from Retell
+   * Number of new calls stored by this refresh
    */
   created: number;
   /**
@@ -1131,6 +1139,17 @@ export type CallRefreshResult = {
    * Total call rows in DB for this agent after refresh
    */
   total: number;
+};
+
+/**
+ * CallTracePublic
+ */
+export type CallTracePublic = {
+  trace: TraceOutput;
+  /**
+   * Capabilities
+   */
+  capabilities: Array<TraceCapability>;
 };
 
 /**
@@ -2225,7 +2244,7 @@ export type IngestTraceRequest = {
    * The Connexity agent the call belongs to
    */
   agent_id: string;
-  trace: Trace;
+  trace: TraceInput;
   /**
    * Raw
    *
@@ -3769,7 +3788,11 @@ export type SimulatorMode = (typeof SimulatorMode)[keyof typeof SimulatorMode];
 /**
  * Speaker
  */
-export const Speaker = { AGENT: 'agent', CALLER: 'caller' } as const;
+export const Speaker = {
+  AGENT: 'agent',
+  CALLER: 'caller',
+  OTHER: 'other',
+} as const;
 
 /**
  * Speaker
@@ -4747,7 +4770,104 @@ export type ToolDiff = {
  *
  * Connexity's record of one call, in a provider-neutral shape.
  */
-export type Trace = {
+export type TraceInput = {
+  /**
+   * Schema Version
+   */
+  schema_version?: 1;
+  /**
+   * Provider
+   *
+   * Free text, lower case; not a fixed list
+   */
+  provider: string;
+  /**
+   * External Id
+   *
+   * The provider's own id for the call
+   */
+  external_id: string;
+  /**
+   * Started At
+   */
+  started_at: string;
+  source?: TraceSource;
+  channel?: CallChannel | null;
+  direction?: CallDirection | null;
+  /**
+   * Ended At
+   */
+  ended_at?: string | null;
+  end_reason?: CallEndReason | null;
+  /**
+   * End Reason Detail
+   *
+   * The provider's own wording
+   */
+  end_reason_detail?: string | null;
+  /**
+   * Trace Id
+   */
+  trace_id?: string | null;
+  parties?: TraceParties | null;
+  /**
+   * Recording Url
+   */
+  recording_url?: string | null;
+  /**
+   * Inputs
+   *
+   * Variables set before the call started
+   */
+  inputs?: {
+    [key: string]: JsonValue;
+  } | null;
+  /**
+   * Components
+   */
+  components?: Array<TraceComponent> | null;
+  /**
+   * Reports Tool Calls
+   *
+   * True when the mapping includes every tool call the agent made, so a trace with no tool_call events means the agent made none
+   */
+  reports_tool_calls?: boolean | null;
+  /**
+   * Events
+   */
+  events: Array<
+    | ({
+        type: 'utterance';
+      } & UtteranceEvent)
+    | ({
+        type: 'tool_call';
+      } & ToolCallEvent)
+    | ({
+        type: 'marker';
+      } & MarkerEvent)
+  >;
+  /**
+   * Outputs
+   *
+   * What the provider concluded after the call
+   */
+  outputs?: {
+    [key: string]: JsonValue;
+  } | null;
+  /**
+   * Extensions
+   */
+  extensions?: {
+    [key: string]: JsonValue;
+  } | null;
+};
+
+/**
+ * Trace
+ *
+ * Connexity's record of one call, in a provider-neutral shape.
+ */
+export type TraceOutput = {
   /**
    * Schema Version
    */
@@ -5106,6 +5226,24 @@ export type ValidationError = {
    * Error Type
    */
   type: string;
+};
+
+/**
+ * WebhookResult
+ */
+export type WebhookResult = {
+  /**
+   * Status
+   */
+  status: string;
+  /**
+   * Reason
+   */
+  reason?: string | null;
+  /**
+   * Call Id
+   */
+  call_id?: string | null;
 };
 
 export type HealthHealthData = {
@@ -10174,6 +10312,61 @@ export type CallsGetCallDetailResponses = {
 export type CallsGetCallDetailResponse =
   CallsGetCallDetailResponses[keyof CallsGetCallDetailResponses];
 
+export type CallsGetCallTraceData = {
+  body?: never;
+  path: {
+    /**
+     * Call Id
+     */
+    call_id: string;
+  };
+  query?: never;
+  url: '/api/v1/calls/{call_id}/trace';
+};
+
+export type CallsGetCallTraceErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CallsGetCallTraceError = CallsGetCallTraceErrors[keyof CallsGetCallTraceErrors];
+
+export type CallsGetCallTraceResponses = {
+  /**
+   * Successful Response
+   */
+  200: CallTracePublic;
+};
+
+export type CallsGetCallTraceResponse =
+  CallsGetCallTraceResponses[keyof CallsGetCallTraceResponses];
+
 export type IngestIngestTraceData = {
   body: IngestTraceRequest;
   path?: never;
@@ -10381,6 +10574,62 @@ export type IngestRevokeIngestTokenResponses = {
 
 export type IngestRevokeIngestTokenResponse =
   IngestRevokeIngestTokenResponses[keyof IngestRevokeIngestTokenResponses];
+
+export type WebhooksRetellWebhookData = {
+  body?: never;
+  path: {
+    /**
+     * Integration Id
+     */
+    integration_id: string;
+  };
+  query?: never;
+  url: '/api/v1/webhooks/retell/{integration_id}';
+};
+
+export type WebhooksRetellWebhookErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type WebhooksRetellWebhookError =
+  WebhooksRetellWebhookErrors[keyof WebhooksRetellWebhookErrors];
+
+export type WebhooksRetellWebhookResponses = {
+  /**
+   * Successful Response
+   */
+  200: WebhookResult;
+};
+
+export type WebhooksRetellWebhookResponse =
+  WebhooksRetellWebhookResponses[keyof WebhooksRetellWebhookResponses];
 
 export type CompanyGetLlmCredentialsData = {
   body?: never;
