@@ -8,7 +8,6 @@ from sqlmodel import Session, col, select
 from app.models.agent import Agent
 from app.models.call import Call, CallPublic
 from app.models.enums import CallLabel
-from app.models.integration import Integration
 from app.models.test_case import TestCase
 from app.services.elevenlabs import (
     ElevenLabsConversationDetails,
@@ -43,8 +42,9 @@ def _retell_call_to_row(
         "agent_id": agent_id,
         "company_id": company_id,
         "integration_id": integration_id,
-        "retell_call_id": call.call_id,
-        "retell_agent_id": call.agent_id or "",
+        "provider": "retell",
+        "external_id": call.call_id,
+        "provider_agent_id": call.agent_id or "",
         "started_at": started_at,
         "duration_seconds": duration,
         "status": call.call_status,
@@ -68,8 +68,9 @@ def _vapi_call_to_row(
         "agent_id": agent_id,
         "company_id": company_id,
         "integration_id": integration_id,
-        "retell_call_id": call.call_id,
-        "retell_agent_id": call.assistant_id or "",
+        "provider": "vapi",
+        "external_id": call.call_id,
+        "provider_agent_id": call.assistant_id or "",
         "started_at": started_at,
         "duration_seconds": duration,
         "status": call.status,
@@ -90,8 +91,9 @@ def _elevenlabs_summary_to_row(
         "agent_id": agent_id,
         "company_id": company_id,
         "integration_id": integration_id,
-        "retell_call_id": call.conversation_id,
-        "retell_agent_id": call.agent_id,
+        "provider": "elevenlabs",
+        "external_id": call.conversation_id,
+        "provider_agent_id": call.agent_id,
         "started_at": started_at,
         "duration_seconds": call.call_duration_secs,
         "status": call.status,
@@ -112,8 +114,9 @@ def _elevenlabs_details_to_row(
         "agent_id": agent_id,
         "company_id": company_id,
         "integration_id": integration_id,
-        "retell_call_id": call.conversation_id,
-        "retell_agent_id": call.agent_id or "",
+        "provider": "elevenlabs",
+        "external_id": call.conversation_id,
+        "provider_agent_id": call.agent_id or "",
         "started_at": started_at,
         "duration_seconds": call.call_duration_secs,
         "status": call.status,
@@ -130,7 +133,7 @@ def upsert_calls_from_retell(
     integration_id: uuid.UUID,
     retell_calls: list[RetellCall],
 ) -> int:
-    """Insert retell calls, skipping rows whose ``retell_call_id`` already exists.
+    """Insert retell calls, skipping rows whose ``external_id`` already exists.
 
     Returns the number of newly-inserted rows.
     """
@@ -153,7 +156,7 @@ def upsert_calls_from_retell(
     stmt = (
         pg_insert(_CALL_TABLE)
         .values(rows)
-        .on_conflict_do_nothing(index_elements=["retell_call_id", "agent_id"])
+        .on_conflict_do_nothing(index_elements=["external_id", "agent_id"])
         .returning(_CALL_TABLE.c.id)
     )
     result = session.execute(stmt)
@@ -194,9 +197,9 @@ def upsert_calls_from_vapi(
 
     insert_stmt = pg_insert(_CALL_TABLE).values(rows)
     stmt = insert_stmt.on_conflict_do_update(
-        index_elements=["retell_call_id", "agent_id"],
+        index_elements=["external_id", "agent_id"],
         set_={
-            "retell_agent_id": insert_stmt.excluded.retell_agent_id,
+            "provider_agent_id": insert_stmt.excluded.provider_agent_id,
             "started_at": insert_stmt.excluded.started_at,
             "status": insert_stmt.excluded.status,
             "duration_seconds": func.coalesce(
@@ -251,15 +254,15 @@ def upsert_calls_from_elevenlabs(
                     integration_id=integration_id,
                 )
             )
-    rows = [r for r in rows if r.get("retell_call_id")]
+    rows = [r for r in rows if r.get("external_id")]
     if not rows:
         return 0
 
     insert_stmt = pg_insert(_CALL_TABLE).values(rows)
     stmt = insert_stmt.on_conflict_do_update(
-        index_elements=["retell_call_id", "agent_id"],
+        index_elements=["external_id", "agent_id"],
         set_={
-            "retell_agent_id": insert_stmt.excluded.retell_agent_id,
+            "provider_agent_id": insert_stmt.excluded.provider_agent_id,
             "started_at": insert_stmt.excluded.started_at,
             "status": insert_stmt.excluded.status,
             "duration_seconds": func.coalesce(
@@ -287,15 +290,15 @@ def get_latest_call_started_at(
     *,
     session: Session,
     agent_id: uuid.UUID,
-    retell_agent_id: str | None = None,
+    provider_agent_id: str | None = None,
 ) -> datetime | None:
     stmt = (
         select(func.max(Call.started_at))
         .where(Call.agent_id == agent_id)
         .where(Call.deleted_at.is_(None))  # type: ignore[union-attr]
     )
-    if retell_agent_id is not None:
-        stmt = stmt.where(Call.retell_agent_id == retell_agent_id)
+    if provider_agent_id is not None:
+        stmt = stmt.where(Call.provider_agent_id == provider_agent_id)
     return session.exec(stmt).one_or_none()
 
 
@@ -309,10 +312,7 @@ def list_calls_for_agent(
     date_to: datetime | None = None,
 ) -> tuple[list[CallPublic], int]:
     base = (
-        select(Call, Integration.provider)
-        .outerjoin(Integration, Call.integration_id == Integration.id)
-        .where(Call.agent_id == agent_id)
-        .where(Call.deleted_at.is_(None))  # type: ignore[union-attr]
+        select(Call).where(Call.agent_id == agent_id).where(Call.deleted_at.is_(None))  # type: ignore[union-attr]
     )
     count_stmt = (
         select(func.count())
@@ -328,17 +328,15 @@ def list_calls_for_agent(
         count_stmt = count_stmt.where(Call.started_at <= date_to)
 
     total = session.exec(count_stmt).one()
-    rows = list(
+    calls = list(
         session.exec(
             base.order_by(col(Call.started_at).desc()).offset(skip).limit(limit)
         ).all()
     )
-    if not rows:
+    if not calls:
         return [], total
 
-    calls = [call for call, _ in rows]
     call_ids = [c.id for c in calls]
-    provider_by_call_id = {call.id: provider for call, provider in rows}
 
     tc_counts = dict(
         session.exec(
@@ -352,12 +350,12 @@ def list_calls_for_agent(
         CallPublic(
             id=r.id,
             agent_id=r.agent_id,
-            retell_call_id=r.retell_call_id,
-            retell_agent_id=r.retell_agent_id,
+            external_id=r.external_id,
+            provider_agent_id=r.provider_agent_id,
             started_at=r.started_at,
             duration_seconds=r.duration_seconds,
             status=r.status,
-            provider=provider_by_call_id.get(r.id),
+            provider=r.provider,
             transcript=r.transcript,
             is_new=r.seen_at is None,
             test_case_count=int(tc_counts.get(r.id, 0)),

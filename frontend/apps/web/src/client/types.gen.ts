@@ -1024,13 +1024,13 @@ export type CallPublic = {
    */
   agent_id: string;
   /**
-   * Retell Call Id
+   * External Id
    */
-  retell_call_id: string;
+  external_id: string;
   /**
-   * Retell Agent Id
+   * Provider Agent Id
    */
-  retell_agent_id: string;
+  provider_agent_id: string;
   /**
    * Started At
    */
@@ -1043,7 +1043,10 @@ export type CallPublic = {
    * Status
    */
   status?: string | null;
-  provider?: IntegrationProvider | null;
+  /**
+   * Provider
+   */
+  provider?: string | null;
   /**
    * Transcript
    */
