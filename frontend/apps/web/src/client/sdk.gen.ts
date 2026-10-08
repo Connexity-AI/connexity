@@ -143,6 +143,18 @@ import type {
   EvalConfigsUpdateEvalConfigResponses,
   HealthHealthData,
   HealthHealthResponses,
+  IngestCreateIngestTokenData,
+  IngestCreateIngestTokenErrors,
+  IngestCreateIngestTokenResponses,
+  IngestIngestTraceData,
+  IngestIngestTraceErrors,
+  IngestIngestTraceResponses,
+  IngestListIngestTokensData,
+  IngestListIngestTokensErrors,
+  IngestListIngestTokensResponses,
+  IngestRevokeIngestTokenData,
+  IngestRevokeIngestTokenErrors,
+  IngestRevokeIngestTokenResponses,
   IntegrationsCreateIntegrationData,
   IntegrationsCreateIntegrationErrors,
   IntegrationsCreateIntegrationResponses,
@@ -2630,6 +2642,113 @@ export class CallsService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/calls/{call_id}',
+      ...options,
+    });
+  }
+}
+
+export class IngestService {
+  /**
+   * Ingest Trace
+   *
+   * Store a call trace for one of the token's company's agents.
+   *
+   * Sending a call again (same ``external_id`` for the same agent) replaces its trace.
+   */
+  public static ingestTrace<ThrowOnError extends boolean = false>(
+    options: Options<IngestIngestTraceData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      IngestIngestTraceResponses,
+      IngestIngestTraceErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/ingest/traces',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * List Ingest Tokens
+   */
+  public static listIngestTokens<ThrowOnError extends boolean = false>(
+    options?: Options<IngestListIngestTokensData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      IngestListIngestTokensResponses,
+      IngestListIngestTokensErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/ingest-tokens/',
+      ...options,
+    });
+  }
+
+  /**
+   * Create Ingest Token
+   *
+   * Create an ingest token. The token itself is returned only here.
+   */
+  public static createIngestToken<ThrowOnError extends boolean = false>(
+    options: Options<IngestCreateIngestTokenData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      IngestCreateIngestTokenResponses,
+      IngestCreateIngestTokenErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/ingest-tokens/',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Revoke Ingest Token
+   *
+   * Revoke a token. It stops working immediately and stays listed as revoked.
+   */
+  public static revokeIngestToken<ThrowOnError extends boolean = false>(
+    options: Options<IngestRevokeIngestTokenData, ThrowOnError>
+  ) {
+    return (options.client ?? client).delete<
+      IngestRevokeIngestTokenResponses,
+      IngestRevokeIngestTokenErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/ingest-tokens/{token_id}',
       ...options,
     });
   }

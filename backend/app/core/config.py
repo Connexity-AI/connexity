@@ -104,6 +104,10 @@ class Settings(BaseSettings):
     ] = []
 
     PROJECT_NAME: str = "connexity"
+
+    # Limits on one request to the ingest endpoint
+    INGEST_MAX_BODY_BYTES: int = 5_000_000
+    INGEST_MAX_EVENTS: int = 5_000
     SENTRY_DSN: HttpUrl | None = None
 
     EMAIL_TEST_USER: EmailStr = "test@example.com"

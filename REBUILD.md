@@ -54,9 +54,9 @@ history of a slice is its plan file in `plans/`.
 | 0.2 | Demolition | Done (PR #160) |
 | 0.3 | Fresh migration baseline | Done (PR #161) |
 | 0.4 | Harness: `make check`, hooks, stale docs | Done (PR #162) |
-| 0.5 | Plan file required with every pull request | PR open, awaiting merge |
-| 1.1 | Canonical trace schema | PR open, awaiting merge |
-| 1.2 | Ingest API and service tokens | Not started |
+| 0.5 | Plan file required with every pull request | Done (PR #163) |
+| 1.1 | Canonical trace schema | Done (PR #164) |
+| 1.2 | Ingest API and service tokens | PR open, awaiting merge |
 | 1.3 | Retell reference mapping | Not started |
 | 1.4 | Skill executions (n8n) | Not started |
 | 1.5 | Component versions | Not started |
@@ -69,8 +69,8 @@ history of a slice is its plan file in `plans/`.
 | 2.4 | Inbox v0 | Not started |
 | M1 | Milestone 1 exit review | Not started |
 
-**Next slice:** 1.2 (ingest API and service tokens), once the 1.1 PR is merged. It must
-handle two simultaneous stores of the same call; see the 1.1 plan's Outcome.
+**Next slice:** 1.3 (Retell reference mapping), once the 1.2 PR is merged. It needs a
+read-only Retell API key for reference agent 1 in the local `.env`.
 
 ---
 
@@ -454,6 +454,7 @@ Dmytro's only when he stated it in his own words.
 | 2026-10-08 | Per-slice detail moves from `REBUILD.md` to plan files; `REBUILD.md` stays the roadmap. | Dmytro |
 | 2026-10-08 | No releases during the rebuild. The finished rebuild ships as 2.0.0, with one shared version for backend, frontend, MCP server and (if it survives) the CLI, reported by the running app. Pre-release tags at milestones are optional. | Dmytro |
 | 2026-10-08 | The CLI release automation is paused until then. | Dmytro |
+| 2026-10-08 | Ingest tokens are company-wide, not per agent, to reduce complexity; can be narrowed later. They do not expire; resending a call replaces its trace; no token screen; no rate limiting yet. | Dmytro |
 | 2026-10-06 | `connexity-cli` is frozen: trim commands whose routes are deleted, keep the eval commands, publish nothing new, decide its future in Phase 4. | Dmytro |
 
 ---

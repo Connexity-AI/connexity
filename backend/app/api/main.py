@@ -11,6 +11,7 @@ from app.api.routes import (
     environments,
     eval_configs,
     health,
+    ingest,
     integrations,
     login,
     mcp,
@@ -40,6 +41,8 @@ api_router.include_router(config.router)
 api_router.include_router(integrations.router)
 api_router.include_router(environments.router)
 api_router.include_router(calls.router)
+api_router.include_router(ingest.router)
+api_router.include_router(ingest.tokens_router)
 api_router.include_router(company.router)
 
 root_router = APIRouter()
