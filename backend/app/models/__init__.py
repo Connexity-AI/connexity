@@ -47,6 +47,7 @@ from app.models.call import (  # noqa: F401
     CallPublic,
     CallRefreshResult,
     CallsPublic,
+    CallTracePublic,
 )
 
 # ── Common ─────────────────────────────────────────────────────────

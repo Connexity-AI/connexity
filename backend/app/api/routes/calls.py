@@ -1,263 +1,31 @@
-import json
 import logging
-import time
 import uuid
 from datetime import UTC, datetime, timedelta
-from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
-from sqlalchemy import func
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from app import crud
 from app.api.deps import CurrentCompany, SessionDep, get_current_user
 from app.core.db import engine
-from app.core.encryption import decrypt
 from app.models import (
+    Call,
     CallLabelUpdate,
     CallPublic,
     CallRefreshResult,
     CallsPublic,
+    CallTracePublic,
     Message,
 )
 from app.models.agent import Agent
-from app.models.enums import Platform
-from app.models.test_case import TestCase
-from app.services.elevenlabs import (
-    get_elevenlabs_conversation,
-    list_elevenlabs_conversations,
-)
-from app.services.retell import list_retell_calls
-from app.services.vapi import list_vapi_calls
+from app.services.call_sync import emit, sync_agent_calls
+from app.services.trace_capabilities import derive_capabilities
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["calls"], dependencies=[Depends(get_current_user)])
 
-_RETELL_PAGE_SIZE = 100
-_MAX_FETCH_ITERATIONS = 20
-
 _SYNC_TTL = timedelta(seconds=15)
-
-
-def _emit(event: str, **fields: Any) -> None:
-    """Emit a single wide-event log line as JSON for Cloud Logging to ingest."""
-    payload = {"event": event, **fields}
-    logger.warning(json.dumps(payload, default=str))
-
-
-async def _fetch_and_store_production_calls(
-    *,
-    session,
-    agent,
-    incremental: bool,
-) -> int:
-    """Pull calls into the DB across every production-call provider environment.
-
-    Returns total number of newly-inserted rows.
-    """
-    started = time.monotonic()
-    event: dict[str, Any] = {
-        "agent_id": str(agent.id),
-        "incremental": incremental,
-        "envs_total": 0,
-        "provider_envs": 0,
-        "envs": [],
-        "created_total": 0,
-        "status": "ok",
-    }
-    try:
-        environments = crud.list_environments_by_agent(
-            session=session, agent_id=agent.id
-        )
-        provider_envs = [
-            env
-            for env in environments
-            if env.platform in {Platform.RETELL, Platform.VAPI, Platform.ELEVENLABS}
-        ]
-        event["envs_total"] = len(environments)
-        event["provider_envs"] = len(provider_envs)
-
-        if not provider_envs:
-            event["status"] = "no_production_call_env"
-            raise HTTPException(
-                status_code=400,
-                detail="Add a Retell, Vapi, or ElevenLabs environment for this agent first",
-            )
-
-        created_total = 0
-        for env in provider_envs:
-            if agent.integration_id is None or agent.platform_agent_id is None:
-                env_event = {
-                    "env_id": str(env.id),
-                    "platform": env.platform,
-                    "status": "missing_agent_target",
-                }
-                event["envs"].append(env_event)
-                continue
-            env_event: dict[str, Any] = {
-                "env_id": str(env.id),
-                "platform": env.platform,
-                "platform_agent_id": agent.platform_agent_id,
-                "integration_id": str(agent.integration_id)
-                if agent.integration_id
-                else None,
-                "iterations": 0,
-                "fetched": 0,
-                "inserted": 0,
-                "skipped_dupes": 0,
-                "start_after": None,
-                "status": "ok",
-            }
-            event["envs"].append(env_event)
-
-            integration = crud.get_integration(
-                session=session,
-                integration_id=agent.integration_id,
-                company_id=agent.company_id,
-            )
-            if integration is None:
-                env_event["status"] = "missing_integration"
-                continue
-            try:
-                api_key = decrypt(integration.encrypted_api_key)
-            except Exception as exc:
-                env_event["status"] = "decrypt_failed"
-                env_event["error"] = repr(exc)
-                raise
-            env_event["api_key_len"] = len(api_key) if api_key else 0
-
-            # Per-environment watermark: the latest started_at of calls already
-            # stored for this (agent, provider_agent_id) pair. A brand-new env on
-            # an agent that has prior calls from a different env still gets a
-            # full backfill instead of inheriting the other env's cutoff.
-            start_after: datetime | None = None
-            if incremental:
-                start_after = crud.get_latest_call_started_at(
-                    session=session,
-                    agent_id=agent.id,
-                    provider_agent_id=agent.platform_agent_id,
-                )
-            env_event["start_after"] = start_after
-            for iteration in range(_MAX_FETCH_ITERATIONS):
-                env_event["iterations"] = iteration + 1
-                try:
-                    if env.platform == Platform.RETELL:
-                        batch = await list_retell_calls(
-                            api_key,
-                            agent_id=agent.platform_agent_id,
-                            start_after=start_after,
-                            limit=_RETELL_PAGE_SIZE,
-                        )
-                        inserted = crud.upsert_calls_from_retell(
-                            session=session,
-                            agent_id=agent.id,
-                            company_id=agent.company_id,
-                            integration_id=integration.id,
-                            retell_calls=batch,
-                        )
-                        newest = max(
-                            (
-                                c.start_timestamp
-                                for c in batch
-                                if c.start_timestamp is not None
-                            ),
-                            default=None,
-                        )
-                        next_after = (
-                            datetime.fromtimestamp(newest / 1000, tz=UTC)
-                            if newest is not None
-                            else None
-                        )
-                    else:
-                        if env.platform == Platform.VAPI:
-                            batch = await list_vapi_calls(
-                                api_key,
-                                assistant_id=agent.platform_agent_id,
-                                start_after=start_after,
-                                limit=_RETELL_PAGE_SIZE,
-                            )
-                            inserted = crud.upsert_calls_from_vapi(
-                                session=session,
-                                agent_id=agent.id,
-                                company_id=agent.company_id,
-                                integration_id=integration.id,
-                                vapi_calls=batch,
-                            )
-                            next_after = max(
-                                (
-                                    c.started_at or c.created_at
-                                    for c in batch
-                                    if c.started_at is not None
-                                    or c.created_at is not None
-                                ),
-                                default=None,
-                            )
-                        else:
-                            summaries = await list_elevenlabs_conversations(
-                                api_key,
-                                agent_id=agent.platform_agent_id,
-                                start_after=start_after,
-                                page_size=_RETELL_PAGE_SIZE,
-                                max_pages=1,
-                            )
-                            batch = [
-                                await get_elevenlabs_conversation(
-                                    api_key, conversation_id=s.conversation_id
-                                )
-                                for s in summaries
-                            ]
-                            inserted = crud.upsert_calls_from_elevenlabs(
-                                session=session,
-                                agent_id=agent.id,
-                                company_id=agent.company_id,
-                                integration_id=integration.id,
-                                conversations=batch,
-                            )
-                            newest_unix = max(
-                                (
-                                    c.start_time_unix_secs
-                                    for c in batch
-                                    if c.start_time_unix_secs
-                                ),
-                                default=None,
-                            )
-                            next_after = (
-                                datetime.fromtimestamp(newest_unix, tz=UTC)
-                                if newest_unix is not None
-                                else None
-                            )
-                except HTTPException as exc:
-                    env_event["status"] = "provider_error"
-                    env_event["error"] = f"{exc.status_code}: {exc.detail}"
-                    raise
-                if not batch:
-                    break
-                env_event["fetched"] += len(batch)
-                env_event["inserted"] += inserted
-                env_event["skipped_dupes"] += len(batch) - inserted
-                created_total += inserted
-                if len(batch) < _RETELL_PAGE_SIZE:
-                    break
-                if next_after is None:
-                    break
-                if start_after is not None and next_after <= start_after:
-                    break
-                start_after = next_after
-        event["created_total"] = created_total
-        return created_total
-    except HTTPException as exc:
-        if event["status"] == "ok":
-            event["status"] = "http_error"
-        event["error"] = f"{exc.status_code}: {exc.detail}"
-        raise
-    except Exception as exc:
-        event["status"] = "unhandled_exception"
-        event["error"] = repr(exc)
-        raise
-    finally:
-        event["duration_ms"] = int((time.monotonic() - started) * 1000)
-        _emit("production_calls_sync", **event)
 
 
 def _is_sync_stale(last_synced_at: datetime | None) -> bool:
@@ -272,36 +40,39 @@ def _is_sync_stale(last_synced_at: datetime | None) -> bool:
 
 
 async def _sync_calls_in_background(agent_id: uuid.UUID) -> None:
-    """Run a production call sync in a fresh DB session after the response is sent.
+    """Run a call sync in a fresh DB session after the response is sent.
 
-    Errors are logged, never raised — there is no caller left to receive them.
+    Errors are logged, never raised: there is no caller left to receive them.
     """
-    started = time.monotonic()
-    event: dict[str, Any] = {
-        "agent_id": str(agent_id),
-        "status": "ok",
-    }
-    try:
-        with Session(engine) as session:
-            agent = session.get(Agent, agent_id)
-            if agent is None:
-                event["status"] = "agent_not_found"
-                return
-            try:
-                created = await _fetch_and_store_production_calls(
-                    session=session, agent=agent, incremental=True
-                )
-                event["created"] = created
-            except HTTPException as exc:
-                event["status"] = "http_error"
-                event["error"] = f"{exc.status_code}: {exc.detail}"
-            except Exception as exc:
-                event["status"] = "unhandled_exception"
-                event["error"] = repr(exc)
-                logger.exception("[bg-sync] agent=%s UNEXPECTED ERROR", agent_id)
-    finally:
-        event["duration_ms"] = int((time.monotonic() - started) * 1000)
-        _emit("bg_sync", **event)
+    with Session(engine) as session:
+        agent = session.get(Agent, agent_id)
+        if agent is None:
+            return
+        try:
+            await sync_agent_calls(session=session, agent=agent, incremental=True)
+        except HTTPException as exc:
+            # Expected for an agent with no provider link; already logged by the sync.
+            logger.info("[bg-sync] agent=%s skipped: %s", agent_id, exc.detail)
+        except Exception:  # noqa: BLE001 - a background task has no one to raise to
+            logger.exception("[bg-sync] agent=%s unexpected error", agent_id)
+
+
+def _call_or_404(
+    *, session: Session, call_id: uuid.UUID, company_id: uuid.UUID
+) -> Call:
+    call = crud.get_call(session=session, call_id=call_id, company_id=company_id)
+    if call is None:
+        raise HTTPException(status_code=404, detail="Call not found")
+    return call
+
+
+def _to_public(session: Session, call: Call) -> CallPublic:
+    return crud.call_to_public(
+        call,
+        test_case_count=crud.count_test_cases_for_call(
+            session=session, call_id=call.id
+        ),
+    )
 
 
 @router.get("/agents/{agent_id}/calls", response_model=CallsPublic)
@@ -315,69 +86,31 @@ async def list_agent_calls(
     date_from: datetime | None = Query(default=None),
     date_to: datetime | None = Query(default=None),
 ) -> CallsPublic:
-    started = time.monotonic()
-    event: dict[str, Any] = {
-        "agent_id": str(agent_id),
-        "skip": skip,
-        "limit": limit,
-        "date_from": date_from,
-        "date_to": date_to,
-        "agent_found": False,
-        "stale": False,
-        "scheduled_bg_sync": False,
-        "rows_returned": 0,
-        "total_count": 0,
-        "status": "ok",
-    }
-    try:
-        agent = crud.get_agent(
-            session=session, agent_id=agent_id, company_id=company_id
-        )
-        if agent is None:
-            event["status"] = "agent_not_found"
-            raise HTTPException(status_code=404, detail="Agent not found")
-        event["agent_found"] = True
-        event["last_synced_at"] = agent.calls_last_synced_at
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
 
-        stale = _is_sync_stale(agent.calls_last_synced_at)
-        event["stale"] = stale
+    stale = _is_sync_stale(agent.calls_last_synced_at)
+    if stale:
+        crud.touch_calls_last_synced_at(session=session, agent_id=agent_id)
+        background_tasks.add_task(_sync_calls_in_background, agent_id)
 
-        if stale:
-            crud.touch_calls_last_synced_at(session=session, agent_id=agent_id)
-            background_tasks.add_task(_sync_calls_in_background, agent_id)
-            event["scheduled_bg_sync"] = True
-
-        items, count = crud.list_calls_for_agent(
-            session=session,
-            agent_id=agent_id,
-            skip=skip,
-            limit=limit,
-            date_from=date_from,
-            date_to=date_to,
-        )
-        logger.warning(
-            "frontend calls payload agent=%s count=%s items=%s",
-            agent_id,
-            count,
-            [item.model_dump(mode="json") for item in items],
-        )
-        event["rows_returned"] = len(items)
-        event["total_count"] = count
-        return CallsPublic(data=items, count=count)
-    except HTTPException as exc:
-        if event["status"] == "ok":
-            event["status"] = "http_error"
-        event["http_status"] = exc.status_code
-        event["error"] = str(exc.detail)
-        raise
-    except Exception as exc:
-        event["status"] = "unhandled_exception"
-        event["error"] = repr(exc)
-        logger.exception("[list-calls] agent=%s UNHANDLED EXCEPTION", agent_id)
-        raise
-    finally:
-        event["duration_ms"] = int((time.monotonic() - started) * 1000)
-        _emit("list_calls", **event)
+    items, count = crud.list_calls_for_agent(
+        session=session,
+        agent_id=agent_id,
+        skip=skip,
+        limit=limit,
+        date_from=date_from,
+        date_to=date_to,
+    )
+    emit(
+        "list_calls",
+        agent_id=str(agent_id),
+        rows_returned=len(items),
+        total_count=count,
+        scheduled_bg_sync=stale,
+    )
+    return CallsPublic(data=items, count=count)
 
 
 @router.post("/agents/{agent_id}/calls/refresh", response_model=CallRefreshResult)
@@ -386,50 +119,14 @@ async def refresh_agent_calls(
     company_id: CurrentCompany,
     agent_id: uuid.UUID,
 ) -> CallRefreshResult:
-    started = time.monotonic()
-    event: dict[str, Any] = {
-        "agent_id": str(agent_id),
-        "status": "ok",
-        "created": 0,
-        "total": 0,
-    }
-    try:
-        agent = crud.get_agent(
-            session=session, agent_id=agent_id, company_id=company_id
-        )
-        if agent is None:
-            event["status"] = "agent_not_found"
-            raise HTTPException(status_code=404, detail="Agent not found")
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
 
-        created = await _fetch_and_store_production_calls(
-            session=session, agent=agent, incremental=True
-        )
-        crud.touch_calls_last_synced_at(session=session, agent_id=agent_id)
-        total = crud.count_calls_for_agent(session=session, agent_id=agent_id)
-        event["created"] = created
-        event["total"] = total
-        return CallRefreshResult(created=created, total=total)
-    except HTTPException as exc:
-        if event["status"] == "ok":
-            event["status"] = "http_error"
-        event["http_status"] = exc.status_code
-        event["error"] = str(exc.detail)
-        raise
-    except Exception as exc:
-        event["status"] = "unhandled_exception"
-        event["error"] = repr(exc)
-        logger.exception("[refresh-calls] agent=%s UNHANDLED EXCEPTION", agent_id)
-        raise
-    finally:
-        event["duration_ms"] = int((time.monotonic() - started) * 1000)
-        _emit("refresh_calls", **event)
-
-
-def _call_or_404(*, session, call_id: uuid.UUID, company_id: uuid.UUID):
-    call = crud.get_call(session=session, call_id=call_id, company_id=company_id)
-    if call is None:
-        raise HTTPException(status_code=404, detail="Call not found")
-    return call
+    created = await sync_agent_calls(session=session, agent=agent, incremental=True)
+    crud.touch_calls_last_synced_at(session=session, agent_id=agent_id)
+    total = crud.count_calls_for_agent(session=session, agent_id=agent_id)
+    return CallRefreshResult(created=created, total=total)
 
 
 @router.post("/calls/{call_id}/seen", response_model=Message)
@@ -455,27 +152,7 @@ def set_call_label_endpoint(
     call = crud.set_call_label(session=session, call_id=call_id, label=body.label)
     if call is None:
         raise HTTPException(status_code=404, detail="Call not found")
-    is_new = call.seen_at is None
-    tc_count = int(
-        session.exec(
-            select(func.count(TestCase.id)).where(TestCase.source_call_id == call_id)
-        ).one()
-    )
-    return CallPublic(
-        id=call.id,
-        agent_id=call.agent_id,
-        external_id=call.external_id,
-        provider_agent_id=call.provider_agent_id,
-        started_at=call.started_at,
-        duration_seconds=call.duration_seconds,
-        status=call.status,
-        provider=call.provider,
-        transcript=call.transcript,
-        is_new=is_new,
-        test_case_count=tc_count,
-        label=call.label,
-        created_at=call.created_at,
-    )
+    return _to_public(session, call)
 
 
 @router.get("/calls/{call_id}", response_model=CallPublic)
@@ -485,24 +162,23 @@ def get_call_detail(
     call_id: uuid.UUID,
 ) -> CallPublic:
     call = _call_or_404(session=session, call_id=call_id, company_id=company_id)
-    is_new = call.seen_at is None
-    tc_count = int(
-        session.exec(
-            select(func.count(TestCase.id)).where(TestCase.source_call_id == call_id)
-        ).one()
-    )
-    return CallPublic(
-        id=call.id,
-        agent_id=call.agent_id,
-        external_id=call.external_id,
-        provider_agent_id=call.provider_agent_id,
-        started_at=call.started_at,
-        duration_seconds=call.duration_seconds,
-        status=call.status,
-        provider=call.provider,
-        transcript=call.transcript,
-        is_new=is_new,
-        test_case_count=tc_count,
-        label=call.label,
-        created_at=call.created_at,
-    )
+    return _to_public(session, call)
+
+
+@router.get("/calls/{call_id}/trace", response_model=CallTracePublic)
+def get_call_trace(
+    session: SessionDep,
+    company_id: CurrentCompany,
+    call_id: uuid.UUID,
+) -> CallTracePublic:
+    """The call's trace, with what it can support.
+
+    404 with "not converted" when the call was synced but has no trace yet.
+    """
+    call = _call_or_404(session=session, call_id=call_id, company_id=company_id)
+    trace = crud.get_trace(session=session, call=call)
+    if trace is None:
+        raise HTTPException(
+            status_code=404, detail="This call has not been converted to a trace yet"
+        )
+    return CallTracePublic(trace=trace, capabilities=derive_capabilities(trace))

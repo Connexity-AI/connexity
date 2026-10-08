@@ -4,6 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 
 import {
   getCalls,
+  getCallTrace,
   markCallSeen,
   refreshCalls,
   setCallLabel,
@@ -24,6 +25,15 @@ export function useCalls(agentId: string, filters: CallQueryFilters = {}) {
   });
 }
 
+export function useCallTrace(callId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: callKeys.trace(callId),
+    queryFn: () => getCallTrace(callId),
+    enabled,
+    staleTime: 60 * 1000,
+  });
+}
+
 export function useRefreshCalls(agentId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -36,6 +46,8 @@ export function useRefreshCalls(agentId: string) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['calls', agentId] });
+      // A call's trace is replaced when its provider sends it again.
+      qc.invalidateQueries({ queryKey: ['call'] });
     },
   });
 }

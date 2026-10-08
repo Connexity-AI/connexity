@@ -15,8 +15,10 @@ from app.models.enums import (
     CallLabel,
     Speaker,
     ToolCallStatus,
+    TraceCapability,
     TraceSource,
 )
+from app.models.trace import Trace
 
 
 class Call(SQLModel, table=True):
@@ -69,12 +71,7 @@ class Call(SQLModel, table=True):
         default=None, sa_column=Column("extensions", JSONB(none_as_null=True))
     )
 
-    # ── Pre-trace columns, removed when call sync moves to traces (slice 1.3). ──
-    duration_seconds: int | None = Field(default=None)
-    status: str | None = Field(default=None, max_length=64)
-    transcript: list[dict[str, Any]] | None = Field(
-        default=None, sa_column=Column("transcript", JSONB, nullable=True)
-    )
+    # The provider's original payload, unmodified. Never read as a trace.
     raw: dict[str, Any] | None = Field(
         default=None, sa_column=Column("raw", JSONB, nullable=True)
     )
@@ -162,13 +159,20 @@ class CallComponent(SQLModel, table=True):
 class CallPublic(SQLModel):
     id: uuid.UUID
     agent_id: uuid.UUID
+    provider: str
     external_id: str
     provider_agent_id: str
+    source: TraceSource
     started_at: datetime
-    duration_seconds: int | None = None
-    status: str | None = None
-    provider: str | None = None
-    transcript: list[dict[str, Any]] | None = None
+    ended_at: datetime | None = None
+    duration_seconds: int | None = Field(
+        default=None, description="Derived from started_at and ended_at"
+    )
+    end_reason: CallEndReason | None = None
+    end_reason_detail: str | None = None
+    has_trace: bool = Field(
+        description="False when the call was synced but not yet converted to a trace"
+    )
     is_new: bool = Field(
         default=True,
         description="True when the requesting user has not opened this call yet",
@@ -178,6 +182,11 @@ class CallPublic(SQLModel):
     )
     label: CallLabel | None = None
     created_at: datetime
+
+
+class CallTracePublic(SQLModel):
+    trace: Trace
+    capabilities: list[TraceCapability]
 
 
 class CallsPublic(SQLModel):
@@ -190,5 +199,5 @@ class CallLabelUpdate(SQLModel):
 
 
 class CallRefreshResult(SQLModel):
-    created: int = Field(description="Number of new call rows inserted from Retell")
+    created: int = Field(description="Number of new calls stored by this refresh")
     total: int = Field(description="Total call rows in DB for this agent after refresh")

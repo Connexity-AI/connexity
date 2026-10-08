@@ -90,4 +90,5 @@ export const callKeys = {
   list: (agentId: string, filters: CallFilters = {}) =>
     ['calls', agentId, filters] as const,
   detail: (callId: string) => ['call', callId] as const,
+  trace: (callId: string) => ['call', callId, 'trace'] as const,
 };

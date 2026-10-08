@@ -44,8 +44,8 @@ erDiagram
 | `integration` | `integration.py` | A provider account (Retell, Vapi, ElevenLabs) with an encrypted API key. This is the product's read access to a provider. | Keep |
 | `agent` | `agent.py` | A voice agent, linked to a provider agent or to its own HTTP endpoint. | Keep |
 | `agent_version` | `agent_version.py` | A snapshot of the agent's prompt, tools and model settings; draft or published. | Reshape in slice 1.5 into observed component versions |
-| `environment` | `environment.py` | The link call sync uses to find an agent's provider. | Revisit in slice 1.8 |
-| `call` | `call.py` | A call and the call-level fields of its trace (provider, source, end reason, parties, inputs, outputs), plus the provider's raw payload. | The pre-trace columns `transcript`, `status` and `duration_seconds` go in slice 1.3 |
+| `environment` | `environment.py` | No remaining purpose: call sync reads the agent's own provider link since slice 1.3. | Delete in a later slice |
+| `call` | `call.py` | A call and the call-level fields of its trace (provider, source, end reason, parties, inputs, outputs), plus the provider's raw payload. | The pre-trace columns were dropped in slice 1.3; duration is derived from start and end |
 | `call_event` | `call.py` | One row per trace event (utterance, tool call, marker), ordered within the call. The only stored form of the timeline. | New in slice 1.1 |
 | `call_component` | `call.py` | One row per component that served a call, with its version. | New in slice 1.1; filled properly in slice 1.5 |
 | `test_case` | `test_case.py` | A simulated-caller scenario, optionally sourced from a call. | Frozen until Phase 4 |

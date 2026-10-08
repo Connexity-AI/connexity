@@ -11,7 +11,6 @@ from app import crud
 from app.core import encryption
 from app.core.config import settings
 from app.models import (
-    EnvironmentCreate,
     IntegrationCreate,
     IntegrationProvider,
     Platform,
@@ -23,7 +22,13 @@ from app.services.elevenlabs import (
 )
 from app.services.retell import RetellCall
 from app.tests.utils.eval import create_test_agent, get_test_company_id
-from app.tests.utils.utils import AUTH_USER_EMAIL
+from app.tests.utils.retell_payloads import retell_call
+from app.tests.utils.utils import (
+    AUTH_USER_EMAIL,
+    extract_cookies,
+    random_email,
+    random_lower_string,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -43,7 +48,7 @@ def _seed_user(db: Session) -> User:
     return user
 
 
-def _owned_agent_with_environment(db: Session, provider_agent_id: str = "ret_a1"):
+def _owned_retell_agent(db: Session, provider_agent_id: str = "ret_a1"):
     user = _seed_user(db)
     agent = create_test_agent(db)
     agent.created_by = user.id
@@ -67,21 +72,10 @@ def _owned_agent_with_environment(db: Session, provider_agent_id: str = "ret_a1"
     db.add(agent)
     db.commit()
     db.refresh(agent)
-    crud.create_environment(
-        session=db,
-        data=EnvironmentCreate(
-            name=f"env-{uuid.uuid4().hex[:6]}",
-            platform=Platform.RETELL,
-            agent_id=agent.id,
-        ),
-        company_id=get_test_company_id(db),
-    )
     return agent, integration, user
 
 
-def _owned_agent_with_elevenlabs_environment(
-    db: Session, elevenlabs_agent_id: str = "el_a1"
-):
+def _owned_elevenlabs_agent(db: Session, elevenlabs_agent_id: str = "el_a1"):
     user = _seed_user(db)
     agent = create_test_agent(db)
     agent.created_by = user.id
@@ -105,15 +99,6 @@ def _owned_agent_with_elevenlabs_environment(
     db.add(agent)
     db.commit()
     db.refresh(agent)
-    crud.create_environment(
-        session=db,
-        data=EnvironmentCreate(
-            name=f"env-{uuid.uuid4().hex[:6]}",
-            platform=Platform.ELEVENLABS,
-            agent_id=agent.id,
-        ),
-        company_id=get_test_company_id(db),
-    )
     return agent, integration, user
 
 
@@ -129,8 +114,12 @@ def _fake_retell_call(
         start_timestamp=start_ms,
         end_timestamp=end_ms,
         call_status="ended",
-        transcript_object=[{"role": "agent", "content": "Hello"}],
-        raw={"call_id": call_id},
+        raw=retell_call(
+            call_id,
+            agent_id=provider_agent_id,
+            start_ms=start_ms,
+            duration_ms=(end_ms - start_ms) if end_ms else 60_000,
+        ),
     )
 
 
@@ -202,13 +191,13 @@ def test_list_calls_fetches_from_retell_and_marks_new(
     auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
-    agent, _integration, _user = _owned_agent_with_environment(db)
+    agent, _integration, _user = _owned_retell_agent(db)
     fake_calls = [
         _fake_retell_call("ret_call_1", 1_700_000_000_000, 1_700_000_060_000),
         _fake_retell_call("ret_call_2", 1_700_000_100_000, 1_700_000_200_000),
     ]
     mocked = AsyncMock(return_value=fake_calls)
-    with patch("app.api.routes.calls.list_retell_calls", mocked):
+    with patch("app.services.call_sync.list_retell_calls", mocked):
         # Stale-while-revalidate: first GET serves an empty response and kicks
         # off a background sync. TestClient awaits ASGI background tasks before
         # returning, so by the second GET the DB is populated. The TTL gate
@@ -237,12 +226,10 @@ def test_seen_endpoint_clears_new_badge(
     auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
-    agent, _integration, _user = _owned_agent_with_environment(
-        db, provider_agent_id="ret_a_seen"
-    )
+    agent, _integration, _user = _owned_retell_agent(db, provider_agent_id="ret_a_seen")
     fake_calls = [_fake_retell_call("ret_call_seen_1", 1_700_001_000_000)]
     with patch(
-        "app.api.routes.calls.list_retell_calls",
+        "app.services.call_sync.list_retell_calls",
         AsyncMock(return_value=fake_calls),
     ):
         # Prime: kicks off the background sync.
@@ -278,7 +265,7 @@ def test_refresh_uses_incremental_fetch(
     auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
-    agent, _integration, _user = _owned_agent_with_environment(
+    agent, _integration, _user = _owned_retell_agent(
         db, provider_agent_id="ret_a_refresh"
     )
     initial = [
@@ -290,7 +277,7 @@ def test_refresh_uses_incremental_fetch(
         ),
     ]
     with patch(
-        "app.api.routes.calls.list_retell_calls",
+        "app.services.call_sync.list_retell_calls",
         AsyncMock(return_value=initial),
     ):
         client.get(
@@ -307,7 +294,7 @@ def test_refresh_uses_incremental_fetch(
         ),
     ]
     mocked = AsyncMock(return_value=second_batch)
-    with patch("app.api.routes.calls.list_retell_calls", mocked):
+    with patch("app.services.call_sync.list_retell_calls", mocked):
         r = client.post(
             f"{settings.API_V1_STR}/agents/{agent.id}/calls/refresh",
             cookies=auth_cookies,
@@ -345,17 +332,17 @@ def test_list_calls_fetches_from_elevenlabs(
     auth_cookies: dict[str, str],
     db: Session,
 ) -> None:
-    agent, _integration, _user = _owned_agent_with_elevenlabs_environment(db)
+    agent, _integration, _user = _owned_elevenlabs_agent(db)
     summaries = [_fake_elevenlabs_summary("conv_1", 1_700_000_000)]
     details = _fake_elevenlabs_details("conv_1", 1_700_000_000)
 
     with (
         patch(
-            "app.api.routes.calls.list_elevenlabs_conversations",
+            "app.services.call_sync.list_elevenlabs_conversations",
             AsyncMock(return_value=summaries),
         ) as mock_list,
         patch(
-            "app.api.routes.calls.get_elevenlabs_conversation",
+            "app.services.call_sync.get_elevenlabs_conversation",
             AsyncMock(return_value=details),
         ) as mock_get,
     ):
@@ -374,3 +361,144 @@ def test_list_calls_fetches_from_elevenlabs(
     assert body["data"][0]["external_id"] == "conv_1"
     assert mock_list.await_count >= 1
     assert mock_get.await_count == 1
+
+
+def _sync(client: TestClient, cookies: dict[str, str], agent_id: uuid.UUID) -> dict:
+    r = client.post(
+        f"{settings.API_V1_STR}/agents/{agent_id}/calls/refresh", cookies=cookies
+    )
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+def test_refresh_stores_retell_calls_as_traces_with_the_original_payload(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent, integration, _user = _owned_retell_agent(db, provider_agent_id="ret_a_tr")
+    fake = _fake_retell_call(
+        "ret_call_tr_1", 1_700_010_000_000, 1_700_010_090_000, "ret_a_tr"
+    )
+    with patch(
+        "app.services.call_sync.list_retell_calls", AsyncMock(return_value=[fake])
+    ):
+        assert _sync(client, auth_cookies, agent.id)["created"] == 1
+
+    r = client.get(
+        f"{settings.API_V1_STR}/agents/{agent.id}/calls", cookies=auth_cookies
+    )
+    (item,) = r.json()["data"]
+    assert item["provider"] == "retell"
+    assert item["has_trace"] is True
+    assert item["duration_seconds"] == 90
+    assert item["end_reason"] == "caller_hangup"
+    assert item["provider_agent_id"] == "ret_a_tr"
+    assert "transcript" not in item
+    assert "status" not in item
+
+    call = crud.get_call(
+        session=db, call_id=uuid.UUID(item["id"]), company_id=agent.company_id
+    )
+    assert call is not None
+    assert call.raw == fake.raw
+    assert call.integration_id == integration.id
+
+    trace_r = client.get(
+        f"{settings.API_V1_STR}/calls/{item['id']}/trace", cookies=auth_cookies
+    )
+    assert trace_r.status_code == 200, trace_r.text
+    body = trace_r.json()
+    assert body["trace"]["external_id"] == "ret_call_tr_1"
+    assert [e["type"] for e in body["trace"]["events"]] == ["utterance", "utterance"]
+    assert "timing" in body["capabilities"]
+    assert "tool_calls" in body["capabilities"]
+
+
+def test_refreshing_the_same_calls_again_creates_no_duplicates(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent, _integration, _user = _owned_retell_agent(db, provider_agent_id="ret_a_dup")
+    fake = _fake_retell_call("ret_call_dup_1", 1_700_020_000_000, None, "ret_a_dup")
+    with patch(
+        "app.services.call_sync.list_retell_calls", AsyncMock(return_value=[fake])
+    ):
+        first = _sync(client, auth_cookies, agent.id)
+        second = _sync(client, auth_cookies, agent.id)
+    assert (first["created"], first["total"]) == (1, 1)
+    assert (second["created"], second["total"]) == (0, 1)
+
+
+def test_a_retell_call_that_cannot_be_mapped_is_skipped(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent, _integration, _user = _owned_retell_agent(db, provider_agent_id="ret_a_bad")
+    good = _fake_retell_call("ret_call_ok", 1_700_030_000_000, None, "ret_a_bad")
+    no_time = RetellCall(call_id="ret_call_bad", raw={"call_id": "ret_call_bad"})
+    no_payload = RetellCall(call_id="ret_call_empty")
+    with patch(
+        "app.services.call_sync.list_retell_calls",
+        AsyncMock(return_value=[no_time, good, no_payload]),
+    ):
+        result = _sync(client, auth_cookies, agent.id)
+    assert (result["created"], result["total"]) == (1, 1)
+
+
+def test_trace_of_a_call_that_was_not_converted_is_not_found(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent, _integration, _user = _owned_elevenlabs_agent(db, "el_a_nt")
+    with (
+        patch(
+            "app.services.call_sync.list_elevenlabs_conversations",
+            AsyncMock(
+                return_value=[_fake_elevenlabs_summary("conv_nt", 1_700_040_000)]
+            ),
+        ),
+        patch(
+            "app.services.call_sync.get_elevenlabs_conversation",
+            AsyncMock(return_value=_fake_elevenlabs_details("conv_nt", 1_700_040_000)),
+        ),
+    ):
+        _sync(client, auth_cookies, agent.id)
+    r = client.get(
+        f"{settings.API_V1_STR}/agents/{agent.id}/calls", cookies=auth_cookies
+    )
+    (item,) = r.json()["data"]
+    assert item["has_trace"] is False
+
+    trace_r = client.get(
+        f"{settings.API_V1_STR}/calls/{item['id']}/trace", cookies=auth_cookies
+    )
+    assert trace_r.status_code == 404
+    assert "not been converted" in trace_r.json()["detail"]
+
+
+def test_trace_of_another_companys_call_is_not_found(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent, _integration, _user = _owned_retell_agent(db, provider_agent_id="ret_a_oc")
+    fake = _fake_retell_call("ret_call_oc", 1_700_050_000_000, None, "ret_a_oc")
+    with patch(
+        "app.services.call_sync.list_retell_calls", AsyncMock(return_value=[fake])
+    ):
+        _sync(client, auth_cookies, agent.id)
+    call_id = client.get(
+        f"{settings.API_V1_STR}/agents/{agent.id}/calls", cookies=auth_cookies
+    ).json()["data"][0]["id"]
+
+    email, password = random_email(), random_lower_string()
+    client.post(
+        f"{settings.API_V1_STR}/users/signup",
+        json={"email": email, "password": password},
+    )
+    login = client.post(
+        f"{settings.API_V1_STR}/login/access-token",
+        data={"username": email, "password": password},
+    )
+    other = extract_cookies(login)
+    for path in (f"calls/{call_id}/trace", f"calls/{call_id}"):
+        r = client.get(f"{settings.API_V1_STR}/{path}", cookies=other)
+        assert r.status_code == 404
+    assert (
+        client.get(f"{settings.API_V1_STR}/calls/{uuid.uuid4()}/trace").status_code
+        == 401
+    )

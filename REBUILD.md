@@ -56,8 +56,9 @@ history of a slice is its plan file in `plans/`.
 | 0.4 | Harness: `make check`, hooks, stale docs | Done (PR #162) |
 | 0.5 | Plan file required with every pull request | Done (PR #163) |
 | 1.1 | Canonical trace schema | Done (PR #164) |
-| 1.2 | Ingest API and service tokens | PR open, awaiting merge |
-| 1.3 | Retell reference mapping | Not started |
+| 1.2 | Ingest API and service tokens | Done (PR #165) |
+| 1.3 | Retell reference mapping | PR open, awaiting merge |
+| 1.3b | Vapi and ElevenLabs reference mappings | Not started |
 | 1.4 | Skill executions (n8n) | Not started |
 | 1.5 | Component versions | Not started |
 | 1.6 | CRM data per call (GoHighLevel) | Not started |
@@ -69,8 +70,17 @@ history of a slice is its plan file in `plans/`.
 | 2.4 | Inbox v0 | Not started |
 | M1 | Milestone 1 exit review | Not started |
 
-**Next slice:** 1.3 (Retell reference mapping), once the 1.2 PR is merged. It needs a
-read-only Retell API key for reference agent 1 in the local `.env`.
+**Next slice:** 1.4 (skill executions, n8n), once the 1.3 PR is merged. Before or beside
+it: 1.3b, because Vapi and ElevenLabs calls show no conversation until they are mapped.
+
+Carried from 1.3:
+
+- The agent connected locally is an inbound bot with no backend tool calls, so the
+  Retell mapping of tool results is tested on invented payloads only. Connecting the
+  offer bot would check it on real calls. Open.
+- Calls synced before 1.3 have no trace until their provider sends them again or they
+  are re-pulled. There is no product path that re-converts stored payloads. Open.
+- `Environment` has no remaining purpose (see the table below).
 
 ---
 
@@ -104,7 +114,7 @@ tested but do not develop it until its phase arrives.
 | Area | Problem today | Becomes |
 |---|---|---|
 | `Call` (`models/call.py`) | Retell-specific columns (`retell_call_id`, `retell_agent_id`), transcript plus an opaque `raw` blob. | The canonical trace: turns, tool calls with arguments and results, input variables, component versions, raw kept alongside. Slice 1.1. |
-| Call sync (`api/routes/calls.py`, `services/retell.py`) | Retell fetch logic lives in a route file and writes rows directly. | A Retell reference mapping that emits canonical traces through the ingest path. Slice 1.3. |
+| Call sync (`services/call_sync.py`, `services/mappings/`) | Done for Retell in slice 1.3: a mapping module turns Retell payloads into traces, by pull and by webhook. | Vapi and ElevenLabs still store the original payload only. Slice 1.3b. |
 | `AgentVersion` | A prompt-and-tools snapshot that the product owns and edits. | An observed fingerprint of what is live across flow, prompts, skills and settings. Slice 1.5, then verified state in Phase 5. |
 | MCP tools | Four tools, all for listing agents and editing a prompt draft. | Read tools for calls and checks first (slice 1.8), then write tools for spec, tests and judges. |
 | CLI (`backend/cli/`) | Drives the 1.x eval loop, plus draft, publish and deploy commands. | Frozen. Each demolition PR removes the commands whose routes it deletes. The eval commands (`run`, `runs`, `compare`, `baseline`, `test-cases`, `eval-configs`) stay working with the frozen eval stack. No new PyPI releases. Its future is decided in Phase 4. |
@@ -129,7 +139,7 @@ three rows wrong. It was corrected against the code before anything was deleted.
 |---|---|---|
 | Vapi and ElevenLabs: connection test, agent listing, config import, call sync | They are working integrations for two more stacks, not planned stubs. Only their deploy functions were removed. | Phase 1, as reference mappings |
 | LLM key onboarding (`/onboarding`) | It is a single form for the company's LLM key, which judges still need. It is not a builder wizard. | Phase 6 onboarding |
-| `Environment` | Call sync uses it to find the provider agent. Only deploy state and the gate were removed. Webhook environments still validate but no longer do anything. | 1.8 |
+| `Environment` | Nothing uses it since slice 1.3: call sync reads the agent's own provider link. The model, routes and the Environments tab remain. | Delete in a later slice (Dmytro, 2026-10-08) |
 | Backend draft, publish, rollback and version routes; CLI agent commands | They sit under agent creation and the frozen eval stack, and `AgentVersion` is reshaped in 1.5. | 1.5 |
 | Create-agent and add-environment forms | The assistant cannot register connections until the MCP tools exist. The self-hosted option now asks for the agent's endpoint URL so it creates a usable agent. | 1.8 |
 | Editing UI inside the frozen eval stack: eval config detail form, test case detail drawer, the custom metrics page, the "Run" button | Out of the agreed scope for 0.2. Nothing new can be created from the UI, but existing items can still be edited. | Phase 4 |
@@ -243,6 +253,11 @@ Design session first, then models and migration.
   version that served the call.
 - **Done when:** the last 30 days of reference agent 1 calls are ingested and a sample of
   ten matches the Retell dashboard turn for turn.
+
+### 1.3b Vapi and ElevenLabs reference mappings
+
+- A mapping module for each, like Retell's, so their calls become traces.
+- Until then their calls are listed but show "not converted yet".
 
 ### 1.4 Skill executions (n8n)
 
@@ -456,6 +471,13 @@ Dmytro's only when he stated it in his own words.
 | 2026-10-08 | The CLI release automation is paused until then. | Dmytro |
 | 2026-10-08 | Ingest tokens are company-wide, not per agent, to reduce complexity; can be narrowed later. They do not expire; resending a call replaces its trace; no token screen; no rate limiting yet. | Dmytro |
 | 2026-10-06 | `connexity-cli` is frozen: trim commands whose routes are deleted, keep the eval commands, publish nothing new, decide its future in Phase 4. | Dmytro |
+| 2026-10-08 | Vapi and ElevenLabs calls lose their conversation display until they are mapped (slice 1.3b). | Proposed by Claude; Dmytro approved the slice 1.3 plan |
+| 2026-10-08 | The trace format gains a third speaker, `other`; schema version stays 1. | Proposed by Claude; Dmytro approved the slice 1.3 plan |
+| 2026-10-08 | No scheduler for pulling calls. Pull on request and when stale; the webhook makes calls prompt. | Proposed by Claude; Dmytro approved the slice 1.3 plan |
+| 2026-10-08 | The Retell webhook is verified with the connected account's API key. | Proposed by Claude; Dmytro approved the slice 1.3 plan |
+| 2026-10-08 | Real calls are checked on Dmytro's machine only; counts and field names are reported, never content. Test fixtures are invented. | Proposed by Claude; Dmytro approved the slice 1.3 plan |
+| 2026-10-08 | Call sync works from the agent's provider link, not an environment. Deleting environments is a later slice. | Proposed by Claude; Dmytro approved the slice 1.3 plan |
+| 2026-10-08 | Events in a trace mapped from Retell are ordered by start time, not by Retell's listing order. | Dmytro ("start time") |
 
 ---
 

@@ -1,8 +1,8 @@
 # Call trace schema
 
 > **Status: schema version 1.** Connexity validates and stores traces in this shape, and
-> you can send one yourself: see [Sending a trace](./ingest.md). No provider is mapped
-> to it automatically yet. Worked examples are in [`examples/`](./examples/).
+> you can send one yourself: see [Sending a trace](./ingest.md). Retell calls are
+> mapped to it automatically: see [Retell calls](./retell.md). Worked examples are in [`examples/`](./examples/).
 
 A **trace** is Connexity's record of one call: who said what and when, what tools the
 agent called and what came back, what the agent was given before the call, and which
@@ -126,7 +126,7 @@ Something a party said.
 | Field | Required | Notes |
 |---|---|---|
 | `id` | yes | Unique within the trace. Checks and comments point at it. |
-| `speaker` | yes | `agent` or `caller`. |
+| `speaker` | yes | `agent`, `caller`, or `other` for a third party such as the person a call was transferred to. |
 | `text` | yes | What was said, as transcribed. |
 | `start_ms`, `end_ms` | no | Milliseconds from the start of the call. |
 | `interrupted` | no | `true` if the other party cut it off. |
@@ -222,8 +222,8 @@ a figure spoken before the tool returned.
 | `outputs` | `call_analysis` | `analysis` | `analysis` |
 | `recording_url` | `recording_url` | `artifact.recordingUrl` | not in the payload |
 
-These columns are from the providers' documented payloads and have not yet been checked
-against real calls. Slice 1.3 does that for Retell.
+The Retell column is built and checked against real calls: see [Retell calls](./retell.md).
+The Vapi and ElevenLabs columns are from documented payloads and are not built yet.
 
 ## Personal data
 
