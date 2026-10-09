@@ -22,6 +22,7 @@ from app.services.elevenlabs import (
     get_elevenlabs_conversation,
     list_elevenlabs_conversations,
 )
+from app.services.executions import sync_call_executions_safely
 from app.services.mappings.retell import RetellMappingError, retell_call_to_trace
 from app.services.retell import RetellCall, list_retell_calls
 from app.services.vapi import list_vapi_calls
@@ -39,12 +40,16 @@ def emit(event: str, **fields: Any) -> None:
     logger.warning(json.dumps({"event": event, **fields}, default=str))
 
 
-def store_retell_calls(
+async def store_retell_calls(
     *, session: Session, agent: Agent, calls: list[RetellCall]
 ) -> tuple[int, int]:
-    """Convert and store Retell calls. Returns ``(created, failed)``."""
+    """Convert and store Retell calls, then look for each new call's executions.
+
+    Returns ``(created, failed)``.
+    """
     created = 0
     failed = 0
+    has_backends = bool(crud.list_tool_backends(session=session, agent_id=agent.id))
     for call in calls:
         if call.raw is None:
             failed += 1
@@ -64,6 +69,10 @@ def store_retell_calls(
             raw=call.raw,
         )
         created += stored.created
+        # Only for a call seen for the first time: a backend keeps its history for a
+        # while only, and an old call can be looked up again on request.
+        if stored.created and has_backends:
+            await sync_call_executions_safely(session=session, call=stored.call)
     return created, failed
 
 
@@ -130,7 +139,7 @@ async def sync_agent_calls(*, session: Session, agent: Agent, incremental: bool)
                     start_after=start_after,
                     limit=PAGE_SIZE,
                 )
-                created, failed = store_retell_calls(
+                created, failed = await store_retell_calls(
                     session=session, agent=agent, calls=batch
                 )
                 event["failed"] += failed

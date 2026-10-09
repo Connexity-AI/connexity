@@ -64,7 +64,7 @@ export function ObserveDrawer({
         <SrOnlySheetTitle>{getDrawerTitle(!!call, rightPanelMode)}</SrOnlySheetTitle>
 
         {call ? (
-          <CallPanel agentId={agentId} call={call} />
+          <CallPanel key={call.id} agentId={agentId} call={call} />
         ) : null}
 
         {call && showRightPanel ? <div className="w-px shrink-0 bg-border" /> : null}

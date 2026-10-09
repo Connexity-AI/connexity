@@ -57,9 +57,9 @@ history of a slice is its plan file in `plans/`.
 | 0.5 | Plan file required with every pull request | Done (PR #163) |
 | 1.1 | Canonical trace schema | Done (PR #164) |
 | 1.2 | Ingest API and service tokens | Done (PR #165) |
-| 1.3 | Retell reference mapping | PR open, awaiting merge |
+| 1.3 | Retell reference mapping | Done (PR #166) |
 | 1.3b | Vapi and ElevenLabs reference mappings | Not started |
-| 1.4 | Skill executions (n8n) | Not started |
+| 1.4 | Skill executions (n8n) | PR open, awaiting merge |
 | 1.5 | Component versions | Not started |
 | 1.6 | CRM data per call (GoHighLevel) | Not started |
 | 1.7 | Calls screen | Not started |
@@ -70,16 +70,17 @@ history of a slice is its plan file in `plans/`.
 | 2.4 | Inbox v0 | Not started |
 | M1 | Milestone 1 exit review | Not started |
 
-**Next slice:** 1.4 (skill executions, n8n), once the 1.3 PR is merged. Before or beside
-it: 1.3b, because Vapi and ElevenLabs calls show no conversation until they are mapped.
+**Next slice:** 1.5 (component versions), once the 1.4 PR is merged. Slice 1.4 already
+stores, per execution, the version of the workflow that ran.
 
-Carried from 1.3:
+Open, carried from earlier slices:
 
-- The agent connected locally is an inbound bot with no backend tool calls, so the
-  Retell mapping of tool results is tested on invented payloads only. Connecting the
-  offer bot would check it on real calls. Open.
-- Calls synced before 1.3 have no trace until their provider sends them again or they
-  are re-pulled. There is no product path that re-converts stored payloads. Open.
+- **1.3b:** Vapi and ElevenLabs calls show no conversation until they are mapped.
+- Calls stored before a mapping existed are not re-converted or looked up on their own;
+  only on request, one call at a time.
+- An n8n that hosted Connexity cannot reach needs the workflow to push its execution.
+  Not built.
+- Node data from n8n is stored without redaction.
 - `Environment` has no remaining purpose (see the table below).
 
 ---
@@ -141,7 +142,7 @@ three rows wrong. It was corrected against the code before anything was deleted.
 | LLM key onboarding (`/onboarding`) | It is a single form for the company's LLM key, which judges still need. It is not a builder wizard. | Phase 6 onboarding |
 | `Environment` | Nothing uses it since slice 1.3: call sync reads the agent's own provider link. The model, routes and the Environments tab remain. | Delete in a later slice (Dmytro, 2026-10-08) |
 | Backend draft, publish, rollback and version routes; CLI agent commands | They sit under agent creation and the frozen eval stack, and `AgentVersion` is reshaped in 1.5. | 1.5 |
-| Create-agent and add-environment forms | The assistant cannot register connections until the MCP tools exist. The self-hosted option now asks for the agent's endpoint URL so it creates a usable agent. | 1.8 |
+| Create-agent form and the Integrations form | The UI may do anything the assistant can do through the API (Dmytro, 2026-10-09). The add-environment form goes with environments. | Stay |
 | Editing UI inside the frozen eval stack: eval config detail form, test case detail drawer, the custom metrics page, the "Run" button | Out of the agreed scope for 0.2. Nothing new can be created from the UI, but existing items can still be edited. | Phase 4 |
 | Retell functions that nothing calls (`create_retell_batch_test`, `create_retell_chat*`, `list_retell_agent_versions`, and others) | Already unused before the rebuild. Batch tests and agent versions are likely inputs to Phases 1 and 4. | 1.5 and Phase 4 |
 
@@ -264,7 +265,8 @@ Design session first, then models and migration.
 - Read-only n8n connection registered as an integration.
 - Link each tool call to the n8n execution it triggered, with node-by-node inputs and
   outputs (§8: agent, call, tool call, execution, node).
-- The correlation method is a design question: see Q4.
+- Each tool is mapped to the workflow that serves it. An execution is matched to a tool
+  call by the call id, tool name and arguments its trigger received.
 - No workflow list, no standalone execution browser.
 - **Done when:** for a real call, each backend tool call opens to its node-by-node
   execution.
@@ -290,7 +292,7 @@ Design session first, then models and migration.
 
 - Replace the Observe drawer with a call screen: audio, transcript, each tool call
   expandable to its execution, CRM in and out, component versions.
-- No editing, no forms.
+- No editing of the call.
 - **Done when:** the "price dropped from 275 to 262" class of question (§2 item 4) can
   be answered from one screen without opening Retell, n8n or GoHighLevel.
 
@@ -298,7 +300,8 @@ Design session first, then models and migration.
 
 - Replace the four prompt tools with read tools: list calls, get a trace, get a tool
   call's execution, get component versions.
-- Tools for the assistant to register connections with the product (§5).
+- Tools for the assistant to register connections with the product (§5). They are a
+  second way in: the connection forms in the UI stay.
 - **Done when:** a Claude Code session in the reference agent's workspace can answer "what
   happened on call X" using only Connexity tools.
 
@@ -430,7 +433,6 @@ unless a slice depends on them.
 | # | Question | Blocks | Claude's recommendation |
 |---|---|---|---|
 | Q8 | Which tool does the automated review of a diff against its plan? | Nothing yet; plans are reviewed by people, code by CI | Dmytro is researching. Constraint from him: not the same provider or model that wrote the code. |
-| Q4 | How is a Retell tool call matched to its n8n execution? | 1.4 | Have the skill return its execution ID in the tool response. Fall back to matching on webhook time and payload for history. |
 | Q5 | Where do real reference agent traces live for tests? They cannot go into a public repo. | 1.1 | A gitignored `fixtures-private/` directory plus a small set of hand-anonymised traces committed as test fixtures. |
 | Q6 | Are deterministic checks a built-in library with per-agent parameters, or can the assistant author new ones through the API? | 2.1 | Built-in library for Milestone 1. Assistant-authored checks need a sandbox and belong with Phase 4. |
 
@@ -478,6 +480,11 @@ Dmytro's only when he stated it in his own words.
 | 2026-10-08 | Real calls are checked on Dmytro's machine only; counts and field names are reported, never content. Test fixtures are invented. | Proposed by Claude; Dmytro approved the slice 1.3 plan |
 | 2026-10-08 | Call sync works from the agent's provider link, not an environment. Deleting environments is a later slice. | Proposed by Claude; Dmytro approved the slice 1.3 plan |
 | 2026-10-08 | Events in a trace mapped from Retell are ordered by start time, not by Retell's listing order. | Dmytro ("start time") |
+| 2026-10-09 | The UI is not held back: anything the assistant can create or change in Connexity through the API, a person can also do in the UI. Replaces "no creation forms". Still out: chat, editors for the agent's prompts or workflows, deploying or writing to providers. | Dmytro ("i want to assistant being able to do everything and meanwhile not limit ui") |
+| 2026-10-09 | Nothing removed in the rebuild comes back because of that. AI that generates content (an internal assistant, test case generation) does not live in Connexity; it is done through the external assistant. | Dmytro |
+| 2026-10-09 | n8n is connected per company as an integration with an address, entered in the Integrations form. The address must be `https`; private addresses are refused unless a setting allows them. Push from an unreachable n8n is later. | Dmytro |
+| 2026-10-09 | A tool is mapped to its workflow, per agent (tool name to one workflow in one n8n connection). An agent is not linked to a whole n8n instance. Tool names come from observed calls for now. | Dmytro ("maybe we shouldnt map n8n to agent but link individual tool calls") |
+| 2026-10-09 | Q4 closed: an execution belongs to a tool call when its trigger carries the call's id, the tool name and the same arguments; start time breaks a tie. Without a call id it is a labelled guess. The trigger's copy of the call is not stored. | Proposed by Claude from real data; Dmytro approved ("go") |
 
 ---
 

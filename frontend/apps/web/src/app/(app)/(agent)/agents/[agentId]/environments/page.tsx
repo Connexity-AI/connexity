@@ -6,12 +6,14 @@ import { agentDetailQuery } from '@/app/(app)/(agent)/_queries/agent-detail-quer
 import getQueryClient from '@/lib/react-query/getQueryClient';
 import { environmentsListQuery } from '@/app/(app)/(agent)/_queries/environments-list-query';
 import { integrationsListQuery } from '@/app/(app)/(agent)/_queries/integrations-list-query';
+import { agentToolsQuery } from '@/app/(app)/(agent)/_queries/agent-tools-query';
 import ErrorBoundary from '@/components/common/error-boundary';
 import { HydrateProvider } from '@/components/common/hydrate-provider';
 import {
   EnvironmentsSection,
   EnvironmentsSectionSkeleton,
 } from './_components/environments-section';
+import { ToolBackendsSection } from './_components/tool-backends-section';
 
 interface Props {
   params: Promise<{ agentId: string }>;
@@ -26,6 +28,7 @@ export default async function AgentEnvironmentsPage({ params }: Props) {
     queryClient.prefetchQuery(environmentsListQuery(agentId)),
     queryClient.prefetchQuery(integrationsListQuery()),
     queryClient.prefetchQuery(agentDetailQuery(agentId)),
+    queryClient.prefetchQuery(agentToolsQuery(agentId)),
   ]);
 
   const dehydratedState = dehydrate(queryClient);
@@ -37,6 +40,11 @@ export default async function AgentEnvironmentsPage({ params }: Props) {
           <ErrorBoundary>
             <Suspense fallback={<EnvironmentsSectionSkeleton />}>
               <EnvironmentsSection agentId={agentId} />
+            </Suspense>
+          </ErrorBoundary>
+          <ErrorBoundary>
+            <Suspense fallback={<EnvironmentsSectionSkeleton />}>
+              <ToolBackendsSection agentId={agentId} />
             </Suspense>
           </ErrorBoundary>
         </HydrateProvider>

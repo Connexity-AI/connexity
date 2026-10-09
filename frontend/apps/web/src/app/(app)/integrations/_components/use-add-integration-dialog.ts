@@ -14,15 +14,22 @@ import { isSuccessApiResult } from '@/utils/api';
 
 import { getCreateIntegrationErrorMessage } from './add-integration-dialog.utils';
 
-const formSchema = z.object({
-  provider: z.enum([
-    IntegrationProvider.RETELL,
-    IntegrationProvider.VAPI,
-    IntegrationProvider.ELEVENLABS,
-  ]),
-  name: z.string().min(1, 'Name is required'),
-  api_key: z.string().min(1, 'API key is required'),
-});
+const formSchema = z
+  .object({
+    provider: z.enum([
+      IntegrationProvider.RETELL,
+      IntegrationProvider.VAPI,
+      IntegrationProvider.ELEVENLABS,
+      IntegrationProvider.N8N,
+    ]),
+    name: z.string().min(1, 'Name is required'),
+    api_key: z.string().min(1, 'API key is required'),
+    base_url: z.string(),
+  })
+  .refine((values) => values.provider !== IntegrationProvider.N8N || values.base_url.trim(), {
+    path: ['base_url'],
+    message: 'The address of your n8n instance is required',
+  });
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -50,7 +57,21 @@ export const PROVIDERS = [
     docsHref: 'https://elevenlabs.io/app/settings/api-keys',
     docsLabel: 'Get ElevenLabs API Key',
   },
+  {
+    value: IntegrationProvider.N8N,
+    label: 'n8n',
+    placeholder: 'e.g., Production n8n',
+    docsHref: 'https://docs.n8n.io/api/authentication/',
+    docsLabel: 'Create an n8n API key',
+  },
 ] as const;
+
+const EMPTY_FORM: FormValues = {
+  provider: IntegrationProvider.RETELL,
+  name: '',
+  api_key: '',
+  base_url: '',
+};
 
 interface UseAddIntegrationDialogParams {
   onOpenChange: (open: boolean) => void;
@@ -66,13 +87,19 @@ export const useAddIntegrationDialog = ({
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { provider: IntegrationProvider.RETELL, name: '', api_key: '' },
-    values: { provider: IntegrationProvider.RETELL, name: '', api_key: '' },
+    defaultValues: EMPTY_FORM,
+    values: EMPTY_FORM,
   });
 
   const mutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      const result = await createIntegration(values);
+      const needsAddress = values.provider === IntegrationProvider.N8N;
+      const result = await createIntegration({
+        provider: values.provider,
+        name: values.name,
+        api_key: values.api_key,
+        base_url: needsAddress ? values.base_url.trim() : null,
+      });
 
       if (isSuccessApiResult(result)) {
         return result.data;
@@ -111,6 +138,7 @@ export const useAddIntegrationDialog = ({
 
   return {
     form,
+    needsAddress: provider === IntegrationProvider.N8N,
     dialogState,
     errorMessage,
     selectedProvider,

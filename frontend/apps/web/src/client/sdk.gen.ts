@@ -63,6 +63,9 @@ import type {
   CallsRefreshAgentCallsData,
   CallsRefreshAgentCallsErrors,
   CallsRefreshAgentCallsResponses,
+  CallsRefreshCallExecutionsData,
+  CallsRefreshCallExecutionsErrors,
+  CallsRefreshCallExecutionsResponses,
   CallsSetCallLabelEndpointData,
   CallsSetCallLabelEndpointErrors,
   CallsSetCallLabelEndpointResponses,
@@ -170,6 +173,9 @@ import type {
   IntegrationsListIntegrationsData,
   IntegrationsListIntegrationsErrors,
   IntegrationsListIntegrationsResponses,
+  IntegrationsListIntegrationWorkflowsData,
+  IntegrationsListIntegrationWorkflowsErrors,
+  IntegrationsListIntegrationWorkflowsResponses,
   IntegrationsTestIntegrationData,
   IntegrationsTestIntegrationErrors,
   IntegrationsTestIntegrationResponses,
@@ -284,6 +290,15 @@ import type {
   TestCasesUpdateTestCaseData,
   TestCasesUpdateTestCaseErrors,
   TestCasesUpdateTestCaseResponses,
+  ToolBackendsClearAgentToolBackendData,
+  ToolBackendsClearAgentToolBackendErrors,
+  ToolBackendsClearAgentToolBackendResponses,
+  ToolBackendsListAgentToolsData,
+  ToolBackendsListAgentToolsErrors,
+  ToolBackendsListAgentToolsResponses,
+  ToolBackendsSetAgentToolBackendData,
+  ToolBackendsSetAgentToolBackendErrors,
+  ToolBackendsSetAgentToolBackendResponses,
   UsersDeleteUserMeData,
   UsersDeleteUserMeErrors,
   UsersDeleteUserMeResponses,
@@ -2419,6 +2434,32 @@ export class IntegrationsService {
       ...options,
     });
   }
+
+  /**
+   * List Integration Workflows
+   *
+   * The names of an n8n connection's workflows, for mapping a tool to one.
+   */
+  public static listIntegrationWorkflows<ThrowOnError extends boolean = false>(
+    options: Options<IntegrationsListIntegrationWorkflowsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      IntegrationsListIntegrationWorkflowsResponses,
+      IntegrationsListIntegrationWorkflowsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/integrations/{integration_id}/workflows',
+      ...options,
+    });
+  }
 }
 
 export class EnvironmentsService {
@@ -2679,6 +2720,35 @@ export class CallsService {
       ...options,
     });
   }
+
+  /**
+   * Refresh Call Executions
+   *
+   * Look again for what the backend did for this call's tool calls.
+   *
+   * For a call stored before its tools were mapped to workflows. A backend only keeps
+   * its history for a while, so an old call may find nothing.
+   */
+  public static refreshCallExecutions<ThrowOnError extends boolean = false>(
+    options: Options<CallsRefreshCallExecutionsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      CallsRefreshCallExecutionsResponses,
+      CallsRefreshCallExecutionsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/calls/{call_id}/executions/refresh',
+      ...options,
+    });
+  }
 }
 
 export class IngestService {
@@ -2805,6 +2875,90 @@ export class WebhooksService {
       WebhooksRetellWebhookErrors,
       ThrowOnError
     >({ url: '/api/v1/webhooks/retell/{integration_id}', ...options });
+  }
+}
+
+export class ToolBackendsService {
+  /**
+   * List Agent Tools
+   *
+   * The tools seen in the agent's calls, each with the workflow it is mapped to.
+   *
+   * A mapped tool is listed even when no stored call has used it.
+   */
+  public static toolBackendsListAgentTools<ThrowOnError extends boolean = false>(
+    options: Options<ToolBackendsListAgentToolsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      ToolBackendsListAgentToolsResponses,
+      ToolBackendsListAgentToolsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/tools',
+      ...options,
+    });
+  }
+
+  /**
+   * Clear Agent Tool Backend
+   */
+  public static toolBackendsClearAgentToolBackend<ThrowOnError extends boolean = false>(
+    options: Options<ToolBackendsClearAgentToolBackendData, ThrowOnError>
+  ) {
+    return (options.client ?? client).delete<
+      ToolBackendsClearAgentToolBackendResponses,
+      ToolBackendsClearAgentToolBackendErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/tool-backends',
+      ...options,
+    });
+  }
+
+  /**
+   * Set Agent Tool Backend
+   *
+   * Map a tool to a workflow in one of the company's n8n connections.
+   */
+  public static toolBackendsSetAgentToolBackend<ThrowOnError extends boolean = false>(
+    options: Options<ToolBackendsSetAgentToolBackendData, ThrowOnError>
+  ) {
+    return (options.client ?? client).put<
+      ToolBackendsSetAgentToolBackendResponses,
+      ToolBackendsSetAgentToolBackendErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/tool-backends',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
   }
 }
 

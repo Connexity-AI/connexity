@@ -700,6 +700,34 @@ export const AgentToolDefinitionSchema = {
     'Prompt-facing tool: ``parameters`` is a full JSON Schema (properties, required, ...).\n\n``terminating`` mirrors ``platform_config.terminating`` from stored agent tools.\nIt is excluded from :meth:`to_prompt_dict` and from batch/interactive tool\nsummaries so prompts stay unchanged; consumers (e.g. test-case validation) use\nit to treat hangup/transfer tools differently.',
 } as const;
 
+export const AgentToolPublicSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    call_count: {
+      type: 'integer',
+      title: 'Call Count',
+      description: 'Tool calls with this name across the agent',
+    },
+    backend: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/ToolBackendPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+  },
+  type: 'object',
+  required: ['name', 'call_count'],
+  title: 'AgentToolPublic',
+  description: "A tool seen in an agent's calls, and the workflow it is mapped to, if any.",
+} as const;
+
 export const AgentUpdateSchema = {
   properties: {
     name: {
@@ -2032,6 +2060,14 @@ export const CallTracePublicSchema = {
       type: 'array',
       title: 'Capabilities',
     },
+    executions: {
+      items: {
+        $ref: '#/components/schemas/Execution',
+      },
+      type: 'array',
+      title: 'Executions',
+      default: [],
+    },
   },
   type: 'object',
   required: ['trace', 'capabilities'],
@@ -3193,6 +3229,213 @@ export const EvalConfigsPublicSchema = {
   title: 'EvalConfigsPublic',
 } as const;
 
+export const ExecutionSchema = {
+  properties: {
+    event_id: {
+      type: 'string',
+      title: 'Event Id',
+    },
+    provider: {
+      type: 'string',
+      title: 'Provider',
+    },
+    external_id: {
+      type: 'string',
+      title: 'External Id',
+    },
+    workflow_id: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Workflow Id',
+    },
+    workflow_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Workflow Name',
+    },
+    workflow_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Workflow Version',
+    },
+    status: {
+      $ref: '#/components/schemas/ExecutionStatus',
+      default: 'unknown',
+    },
+    started_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Started At',
+    },
+    ended_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Ended At',
+    },
+    match: {
+      $ref: '#/components/schemas/ExecutionMatch',
+    },
+    steps: {
+      items: {
+        $ref: '#/components/schemas/ExecutionStep',
+      },
+      type: 'array',
+      title: 'Steps',
+      default: [],
+    },
+  },
+  type: 'object',
+  required: ['event_id', 'provider', 'external_id', 'match'],
+  title: 'Execution',
+  description: 'One run of a backend workflow, tied to the tool call that triggered it.',
+} as const;
+
+export const ExecutionMatchSchema = {
+  type: 'string',
+  enum: ['exact', 'guess'],
+  title: 'ExecutionMatch',
+} as const;
+
+export const ExecutionStatusSchema = {
+  type: 'string',
+  enum: ['ok', 'error', 'running', 'canceled', 'unknown'],
+  title: 'ExecutionStatus',
+} as const;
+
+export const ExecutionStepSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    kind: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Kind',
+    },
+    status: {
+      $ref: '#/components/schemas/ExecutionStatus',
+      default: 'ok',
+    },
+    started_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Started At',
+    },
+    duration_ms: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Duration Ms',
+    },
+    input_from: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Input From',
+      default: [],
+    },
+    output: {
+      $ref: '#/components/schemas/JsonValue',
+    },
+    error: {
+      $ref: '#/components/schemas/JsonValue',
+    },
+    data_dropped: {
+      type: 'boolean',
+      title: 'Data Dropped',
+      default: false,
+    },
+  },
+  type: 'object',
+  required: ['name'],
+  title: 'ExecutionStep',
+  description: 'One unit of work inside an execution (an n8n node run).',
+} as const;
+
+export const ExecutionSyncResultSchema = {
+  properties: {
+    tool_calls: {
+      type: 'integer',
+      title: 'Tool Calls',
+      description: 'Tool calls on the call',
+    },
+    mapped: {
+      type: 'integer',
+      title: 'Mapped',
+      description: 'Tool calls whose tool is mapped to a workflow',
+    },
+    matched: {
+      type: 'integer',
+      title: 'Matched',
+      description: 'Tool calls that now have an execution',
+    },
+    problems: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Problems',
+      default: [],
+    },
+  },
+  type: 'object',
+  required: ['tool_calls', 'mapped', 'matched'],
+  title: 'ExecutionSyncResult',
+  description: "What looking for a call's executions found.",
+} as const;
+
 export const ExpectedOutcomeResultSchema = {
   properties: {
     statement: {
@@ -3765,6 +4008,18 @@ export const IntegrationCreateSchema = {
       maxLength: 255,
       title: 'Name',
     },
+    base_url: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 2048,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Base Url',
+    },
     api_key: {
       type: 'string',
       title: 'Api Key',
@@ -3777,7 +4032,7 @@ export const IntegrationCreateSchema = {
 
 export const IntegrationProviderSchema = {
   type: 'string',
-  enum: ['retell', 'vapi', 'elevenlabs'],
+  enum: ['retell', 'vapi', 'elevenlabs', 'n8n'],
   title: 'IntegrationProvider',
 } as const;
 
@@ -3790,6 +4045,18 @@ export const IntegrationPublicSchema = {
       type: 'string',
       maxLength: 255,
       title: 'Name',
+    },
+    base_url: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 2048,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Base Url',
     },
     id: {
       type: 'string',
@@ -7550,6 +7817,56 @@ export const TokenSchema = {
   title: 'Token',
 } as const;
 
+export const ToolBackendPublicSchema = {
+  properties: {
+    integration_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Integration Id',
+    },
+    integration_name: {
+      type: 'string',
+      title: 'Integration Name',
+    },
+    workflow_id: {
+      type: 'string',
+      title: 'Workflow Id',
+    },
+    workflow_name: {
+      type: 'string',
+      title: 'Workflow Name',
+    },
+  },
+  type: 'object',
+  required: ['integration_id', 'integration_name', 'workflow_id', 'workflow_name'],
+  title: 'ToolBackendPublic',
+} as const;
+
+export const ToolBackendSetSchema = {
+  properties: {
+    tool_name: {
+      type: 'string',
+      maxLength: 255,
+      minLength: 1,
+      title: 'Tool Name',
+    },
+    integration_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Integration Id',
+    },
+    workflow_id: {
+      type: 'string',
+      maxLength: 64,
+      minLength: 1,
+      title: 'Workflow Id',
+    },
+  },
+  type: 'object',
+  required: ['tool_name', 'integration_id', 'workflow_id'],
+  title: 'ToolBackendSet',
+} as const;
+
 export const ToolCallSchema = {
   properties: {
     id: {
@@ -8633,4 +8950,25 @@ export const WebhookResultSchema = {
   type: 'object',
   required: ['status'],
   title: 'WebhookResult',
+} as const;
+
+export const WorkflowSummarySchema = {
+  properties: {
+    id: {
+      type: 'string',
+      title: 'Id',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    active: {
+      type: 'boolean',
+      title: 'Active',
+      default: false,
+    },
+  },
+  type: 'object',
+  required: ['id', 'name'],
+  title: 'WorkflowSummary',
 } as const;

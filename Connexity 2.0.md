@@ -108,11 +108,15 @@ The product runs the checks and produces the verdicts.
 Nothing in the product talks back. Chat means the user's own assistant, and the user
 should never be unsure about that.
 
-The user can type in exactly three places, and none of them reply:
+Nothing the user types gets a reply. The places that matter most are:
 
 - a comment on a moment in a call
 - an answer to a decision question
 - an edit to a spec rule
+
+Forms for what Connexity itself holds (connections, agents and their links, and later
+spec rules, tests, judges and checks) are allowed: the UI may do anything the assistant
+can do through the API (Decided 2026-10-09). They are forms, not conversation.
 
 The product's own use of models (triage, judges, classifiers) is background work. Its
 output is always an artifact: an issue, a diff, a verification result, a spec entry.
@@ -479,9 +483,11 @@ Inside an agent (Proposed):
   verification results, bypasses and rollback.
 - **Overview:** outcomes in business terms.
 
-Not in the UI: a chat box, editors for prompts or workflows, forms for creating tests
-or judges, connection settings beyond status, any top-level section for workflows or
-the CRM.
+Not in the UI: a chat box, editors for the agent's prompts or workflows, anything that
+deploys or writes to a provider, AI that generates content inside the product (an
+internal assistant, test case generation), any top-level section for workflows or the
+CRM. Otherwise the UI may do whatever the assistant can do through the API, including
+setting up connections (Decided 2026-10-09).
 
 ---
 

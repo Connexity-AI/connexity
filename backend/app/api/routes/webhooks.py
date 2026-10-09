@@ -12,7 +12,7 @@ import re
 import time
 import uuid
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from pydantic import BaseModel
 from sqlmodel import select
 
@@ -21,6 +21,7 @@ from app.api.deps import SessionDep
 from app.core.encryption import decrypt
 from app.models import Agent, Integration
 from app.models.enums import IntegrationProvider, Platform
+from app.services.executions import sync_call_executions_in_background
 from app.services.mappings.retell import RetellMappingError, retell_call_to_trace
 
 logger = logging.getLogger(__name__)
@@ -62,7 +63,10 @@ def retell_signature_is_valid(
 
 @router.post("/retell/{integration_id}", response_model=WebhookResult)
 async def retell_webhook(
-    session: SessionDep, request: Request, integration_id: uuid.UUID
+    session: SessionDep,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    integration_id: uuid.UUID,
 ) -> WebhookResult:
     """Receive a Retell webhook for one connected Retell account.
 
@@ -114,4 +118,7 @@ async def retell_webhook(
         integration_id=integration.id,
         raw=payload,
     )
+    # After the response: Retell waits only ten seconds for an answer. Both events
+    # look, because the executions exist as soon as the call has ended.
+    background_tasks.add_task(sync_call_executions_in_background, stored.call.id)
     return WebhookResult(status="stored", call_id=stored.call.id)

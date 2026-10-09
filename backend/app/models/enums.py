@@ -85,6 +85,7 @@ class IntegrationProvider(StrEnum):
     RETELL = "retell"
     VAPI = "vapi"
     ELEVENLABS = "elevenlabs"
+    N8N = "n8n"
 
 
 class CallLabel(StrEnum):
@@ -118,6 +119,21 @@ class CallEndReason(StrEnum):
     ERROR = "error"
     LIMIT = "limit"
     UNKNOWN = "unknown"
+
+
+class ExecutionStatus(StrEnum):
+    OK = "ok"
+    ERROR = "error"
+    RUNNING = "running"
+    CANCELED = "canceled"
+    UNKNOWN = "unknown"
+
+
+class ExecutionMatch(StrEnum):
+    # The execution's trigger carried this call's id, the tool's name and its arguments.
+    EXACT = "exact"
+    # No call id in the trigger: matched on arguments and start time only.
+    GUESS = "guess"
 
 
 class CallEventType(StrEnum):

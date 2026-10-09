@@ -403,6 +403,25 @@ export type AgentToolDefinition = {
 };
 
 /**
+ * AgentToolPublic
+ *
+ * A tool seen in an agent's calls, and the workflow it is mapped to, if any.
+ */
+export type AgentToolPublic = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Call Count
+   *
+   * Tool calls with this name across the agent
+   */
+  call_count: number;
+  backend?: ToolBackendPublic | null;
+};
+
+/**
  * AgentUpdate
  */
 export type AgentUpdate = {
@@ -1150,6 +1169,10 @@ export type CallTracePublic = {
    * Capabilities
    */
   capabilities: Array<TraceCapability>;
+  /**
+   * Executions
+   */
+  executions?: Array<Execution>;
 };
 
 /**
@@ -1907,6 +1930,143 @@ export type EvalConfigsPublic = {
 };
 
 /**
+ * Execution
+ *
+ * One run of a backend workflow, tied to the tool call that triggered it.
+ */
+export type Execution = {
+  /**
+   * Event Id
+   */
+  event_id: string;
+  /**
+   * Provider
+   */
+  provider: string;
+  /**
+   * External Id
+   */
+  external_id: string;
+  /**
+   * Workflow Id
+   */
+  workflow_id?: string | null;
+  /**
+   * Workflow Name
+   */
+  workflow_name?: string | null;
+  /**
+   * Workflow Version
+   */
+  workflow_version?: string | null;
+  status?: ExecutionStatus;
+  /**
+   * Started At
+   */
+  started_at?: string | null;
+  /**
+   * Ended At
+   */
+  ended_at?: string | null;
+  match: ExecutionMatch;
+  /**
+   * Steps
+   */
+  steps?: Array<ExecutionStep>;
+};
+
+/**
+ * ExecutionMatch
+ */
+export const ExecutionMatch = { EXACT: 'exact', GUESS: 'guess' } as const;
+
+/**
+ * ExecutionMatch
+ */
+export type ExecutionMatch = (typeof ExecutionMatch)[keyof typeof ExecutionMatch];
+
+/**
+ * ExecutionStatus
+ */
+export const ExecutionStatus = {
+  OK: 'ok',
+  ERROR: 'error',
+  RUNNING: 'running',
+  CANCELED: 'canceled',
+  UNKNOWN: 'unknown',
+} as const;
+
+/**
+ * ExecutionStatus
+ */
+export type ExecutionStatus = (typeof ExecutionStatus)[keyof typeof ExecutionStatus];
+
+/**
+ * ExecutionStep
+ *
+ * One unit of work inside an execution (an n8n node run).
+ */
+export type ExecutionStep = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Kind
+   */
+  kind?: string | null;
+  status?: ExecutionStatus;
+  /**
+   * Started At
+   */
+  started_at?: string | null;
+  /**
+   * Duration Ms
+   */
+  duration_ms?: number | null;
+  /**
+   * Input From
+   */
+  input_from?: Array<string>;
+  output?: JsonValue;
+  error?: JsonValue;
+  /**
+   * Data Dropped
+   */
+  data_dropped?: boolean;
+};
+
+/**
+ * ExecutionSyncResult
+ *
+ * What looking for a call's executions found.
+ */
+export type ExecutionSyncResult = {
+  /**
+   * Tool Calls
+   *
+   * Tool calls on the call
+   */
+  tool_calls: number;
+  /**
+   * Mapped
+   *
+   * Tool calls whose tool is mapped to a workflow
+   */
+  mapped: number;
+  /**
+   * Matched
+   *
+   * Tool calls that now have an execution
+   */
+  matched: number;
+  /**
+   * Problems
+   */
+  problems?: Array<string>;
+};
+
+/**
  * ExpectedOutcomeResult
  */
 export type ExpectedOutcomeResult = {
@@ -2289,6 +2449,10 @@ export type IntegrationCreate = {
    */
   name: string;
   /**
+   * Base Url
+   */
+  base_url?: string | null;
+  /**
    * Api Key
    */
   api_key: string;
@@ -2301,6 +2465,7 @@ export const IntegrationProvider = {
   RETELL: 'retell',
   VAPI: 'vapi',
   ELEVENLABS: 'elevenlabs',
+  N8N: 'n8n',
 } as const;
 
 /**
@@ -2317,6 +2482,10 @@ export type IntegrationPublic = {
    * Name
    */
   name: string;
+  /**
+   * Base Url
+   */
+  base_url?: string | null;
   /**
    * Id
    */
@@ -4630,6 +4799,46 @@ export type Token = {
 };
 
 /**
+ * ToolBackendPublic
+ */
+export type ToolBackendPublic = {
+  /**
+   * Integration Id
+   */
+  integration_id: string;
+  /**
+   * Integration Name
+   */
+  integration_name: string;
+  /**
+   * Workflow Id
+   */
+  workflow_id: string;
+  /**
+   * Workflow Name
+   */
+  workflow_name: string;
+};
+
+/**
+ * ToolBackendSet
+ */
+export type ToolBackendSet = {
+  /**
+   * Tool Name
+   */
+  tool_name: string;
+  /**
+   * Integration Id
+   */
+  integration_id: string;
+  /**
+   * Workflow Id
+   */
+  workflow_id: string;
+};
+
+/**
  * ToolCall
  */
 export type ToolCall = {
@@ -5244,6 +5453,24 @@ export type WebhookResult = {
    * Call Id
    */
   call_id?: string | null;
+};
+
+/**
+ * WorkflowSummary
+ */
+export type WorkflowSummary = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Active
+   */
+  active?: boolean;
 };
 
 export type HealthHealthData = {
@@ -9798,6 +10025,64 @@ export type IntegrationsListIntegrationAgentsResponses = {
 export type IntegrationsListIntegrationAgentsResponse =
   IntegrationsListIntegrationAgentsResponses[keyof IntegrationsListIntegrationAgentsResponses];
 
+export type IntegrationsListIntegrationWorkflowsData = {
+  body?: never;
+  path: {
+    /**
+     * Integration Id
+     */
+    integration_id: string;
+  };
+  query?: never;
+  url: '/api/v1/integrations/{integration_id}/workflows';
+};
+
+export type IntegrationsListIntegrationWorkflowsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type IntegrationsListIntegrationWorkflowsError =
+  IntegrationsListIntegrationWorkflowsErrors[keyof IntegrationsListIntegrationWorkflowsErrors];
+
+export type IntegrationsListIntegrationWorkflowsResponses = {
+  /**
+   * Response Integrations-List Integration Workflows
+   *
+   * Successful Response
+   */
+  200: Array<WorkflowSummary>;
+};
+
+export type IntegrationsListIntegrationWorkflowsResponse =
+  IntegrationsListIntegrationWorkflowsResponses[keyof IntegrationsListIntegrationWorkflowsResponses];
+
 export type EnvironmentsListEnvironmentsData = {
   body?: never;
   path?: never;
@@ -10367,6 +10652,62 @@ export type CallsGetCallTraceResponses = {
 export type CallsGetCallTraceResponse =
   CallsGetCallTraceResponses[keyof CallsGetCallTraceResponses];
 
+export type CallsRefreshCallExecutionsData = {
+  body?: never;
+  path: {
+    /**
+     * Call Id
+     */
+    call_id: string;
+  };
+  query?: never;
+  url: '/api/v1/calls/{call_id}/executions/refresh';
+};
+
+export type CallsRefreshCallExecutionsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CallsRefreshCallExecutionsError =
+  CallsRefreshCallExecutionsErrors[keyof CallsRefreshCallExecutionsErrors];
+
+export type CallsRefreshCallExecutionsResponses = {
+  /**
+   * Successful Response
+   */
+  200: ExecutionSyncResult;
+};
+
+export type CallsRefreshCallExecutionsResponse =
+  CallsRefreshCallExecutionsResponses[keyof CallsRefreshCallExecutionsResponses];
+
 export type IngestIngestTraceData = {
   body: IngestTraceRequest;
   path?: never;
@@ -10630,6 +10971,181 @@ export type WebhooksRetellWebhookResponses = {
 
 export type WebhooksRetellWebhookResponse =
   WebhooksRetellWebhookResponses[keyof WebhooksRetellWebhookResponses];
+
+export type ToolBackendsListAgentToolsData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/tools';
+};
+
+export type ToolBackendsListAgentToolsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ToolBackendsListAgentToolsError =
+  ToolBackendsListAgentToolsErrors[keyof ToolBackendsListAgentToolsErrors];
+
+export type ToolBackendsListAgentToolsResponses = {
+  /**
+   * Response Tool-Backends-List Agent Tools
+   *
+   * Successful Response
+   */
+  200: Array<AgentToolPublic>;
+};
+
+export type ToolBackendsListAgentToolsResponse =
+  ToolBackendsListAgentToolsResponses[keyof ToolBackendsListAgentToolsResponses];
+
+export type ToolBackendsClearAgentToolBackendData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query: {
+    /**
+     * Tool Name
+     */
+    tool_name: string;
+  };
+  url: '/api/v1/agents/{agent_id}/tool-backends';
+};
+
+export type ToolBackendsClearAgentToolBackendErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ToolBackendsClearAgentToolBackendError =
+  ToolBackendsClearAgentToolBackendErrors[keyof ToolBackendsClearAgentToolBackendErrors];
+
+export type ToolBackendsClearAgentToolBackendResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message;
+};
+
+export type ToolBackendsClearAgentToolBackendResponse =
+  ToolBackendsClearAgentToolBackendResponses[keyof ToolBackendsClearAgentToolBackendResponses];
+
+export type ToolBackendsSetAgentToolBackendData = {
+  body: ToolBackendSet;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/tool-backends';
+};
+
+export type ToolBackendsSetAgentToolBackendErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ToolBackendsSetAgentToolBackendError =
+  ToolBackendsSetAgentToolBackendErrors[keyof ToolBackendsSetAgentToolBackendErrors];
+
+export type ToolBackendsSetAgentToolBackendResponses = {
+  /**
+   * Successful Response
+   */
+  200: ToolBackendPublic;
+};
+
+export type ToolBackendsSetAgentToolBackendResponse =
+  ToolBackendsSetAgentToolBackendResponses[keyof ToolBackendsSetAgentToolBackendResponses];
 
 export type CompanyGetLlmCredentialsData = {
   body?: never;

@@ -136,6 +136,13 @@ from app.models.eval_config import (  # noqa: F401
     EvalConfigsPublic,
     EvalConfigUpdate,
 )
+from app.models.execution import (  # noqa: F401
+    CallExecution,
+    CallExecutionStep,
+    Execution,
+    ExecutionStep,
+    ExecutionSyncResult,
+)
 
 # ── Ingest ─────────────────────────────────────────────────────────
 from app.models.ingest_token import (  # noqa: F401
@@ -150,10 +157,15 @@ from app.models.ingest_token import (  # noqa: F401
 
 # ── Integration ────────────────────────────────────────────────────
 from app.models.integration import (  # noqa: F401
+    AgentToolBackend,
+    AgentToolPublic,
     Integration,
     IntegrationCreate,
     IntegrationPublic,
     IntegrationsPublic,
+    ToolBackendPublic,
+    ToolBackendSet,
+    WorkflowSummary,
 )
 from app.models.oauth import (  # noqa: F401
     OAuthAuthorizationCode,

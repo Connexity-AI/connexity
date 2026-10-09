@@ -13,6 +13,7 @@ const PROVIDER_STYLES: Record<string, string> = {
   retell: 'bg-purple-500/10 text-purple-400',
   vapi: 'bg-sky-500/10 text-sky-400',
   elevenlabs: 'bg-green-500/10 text-green-400',
+  n8n: 'bg-orange-500/10 text-orange-400',
 };
 
 interface Props {
@@ -44,6 +45,11 @@ export const IntegrationCard: FC<Props> = ({ integration }) => {
               </div>
             </div>
             <h3 className="text-sm text-foreground font-medium mb-2">{integration.name}</h3>
+            {integration.base_url ? (
+              <p className="mb-2 truncate font-mono text-xs text-muted-foreground">
+                {integration.base_url}
+              </p>
+            ) : null}
             <code className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">
               {integration.masked_api_key}
             </code>
