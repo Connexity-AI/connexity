@@ -47,6 +47,12 @@ from app.crud.company import (  # noqa: F401
     resolve_llm_api_key,
     update_llm_credentials,
 )
+from app.crud.component_version import (  # noqa: F401
+    get_component_version,
+    get_component_version_by_id,
+    list_component_versions,
+    record_component_version,
+)
 from app.crud.custom_metrics import (  # noqa: F401
     create_custom_metric,
     delete_custom_metric,

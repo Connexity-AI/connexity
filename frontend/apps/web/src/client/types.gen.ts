@@ -1118,6 +1118,16 @@ export type CallPublic = {
    */
   end_reason_detail?: string | null;
   /**
+   * Agent Version
+   */
+  agent_version?: string | null;
+  /**
+   * State Fingerprint
+   *
+   * One fingerprint over the agent, prompt and model that served it
+   */
+  state_fingerprint?: string | null;
+  /**
    * Has Trace
    *
    * False when the call was synced but not yet converted to a trace
@@ -1173,6 +1183,10 @@ export type CallTracePublic = {
    * Executions
    */
   executions?: Array<Execution>;
+  /**
+   * Served By
+   */
+  served_by?: Array<ServedBy>;
 };
 
 /**
@@ -1264,6 +1278,75 @@ export type CompanyLlmCredentialsUpdate = {
    * Default provider when a feature doesn't pin one. Required at onboarding.
    */
   preferred_llm_provider?: LlmProvider | null;
+};
+
+/**
+ * ComponentVersionPublic
+ */
+export type ComponentVersionPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Kind
+   */
+  kind: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Ref
+   */
+  ref: string;
+  /**
+   * Version
+   */
+  version: string;
+  /**
+   * Fingerprint
+   */
+  fingerprint: string;
+  /**
+   * First Seen At
+   */
+  first_seen_at: string;
+  content?: JsonValue;
+};
+
+/**
+ * ComponentVersionSummary
+ */
+export type ComponentVersionSummary = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Kind
+   */
+  kind: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Ref
+   */
+  ref: string;
+  /**
+   * Version
+   */
+  version: string;
+  /**
+   * Fingerprint
+   */
+  fingerprint: string;
+  /**
+   * First Seen At
+   */
+  first_seen_at: string;
 };
 
 /**
@@ -3945,6 +4028,38 @@ export const ScoreType = { SCORED: 'scored', BINARY: 'binary' } as const;
 export type ScoreType = (typeof ScoreType)[keyof typeof ScoreType];
 
 /**
+ * ServedBy
+ *
+ * One thing that served a call, with the version that was live.
+ */
+export type ServedBy = {
+  /**
+   * Kind
+   */
+  kind: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Ref
+   */
+  ref?: string | null;
+  /**
+   * Version
+   */
+  version?: string | null;
+  /**
+   * Fingerprint
+   */
+  fingerprint?: string | null;
+  /**
+   * Component Version Id
+   */
+  component_version_id?: string | null;
+};
+
+/**
  * SimulatorMode
  */
 export const SimulatorMode = { LLM: 'llm', SCRIPTED: 'scripted' } as const;
@@ -5435,6 +5550,42 @@ export type ValidationError = {
    * Error Type
    */
   type: string;
+};
+
+/**
+ * VersionResolveResult
+ *
+ * What resolving an agent's stored calls did.
+ */
+export type VersionResolveResult = {
+  /**
+   * Calls Resolved
+   *
+   * Calls that now list what served them
+   */
+  calls_resolved: number;
+  /**
+   * Calls Unresolved
+   *
+   * Calls whose version could not be read
+   */
+  calls_unresolved: number;
+  /**
+   * Versions Read
+   *
+   * Agent versions read from the provider
+   */
+  versions_read: number;
+  /**
+   * Skills Recorded
+   *
+   * Workflow versions newly recorded
+   */
+  skills_recorded: number;
+  /**
+   * Problems
+   */
+  problems?: Array<string>;
 };
 
 /**
@@ -11146,6 +11297,185 @@ export type ToolBackendsSetAgentToolBackendResponses = {
 
 export type ToolBackendsSetAgentToolBackendResponse =
   ToolBackendsSetAgentToolBackendResponses[keyof ToolBackendsSetAgentToolBackendResponses];
+
+export type ComponentVersionsListAgentComponentVersionsData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: {
+    /**
+     * Kind
+     */
+    kind?: string | null;
+  };
+  url: '/api/v1/agents/{agent_id}/component-versions';
+};
+
+export type ComponentVersionsListAgentComponentVersionsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ComponentVersionsListAgentComponentVersionsError =
+  ComponentVersionsListAgentComponentVersionsErrors[keyof ComponentVersionsListAgentComponentVersionsErrors];
+
+export type ComponentVersionsListAgentComponentVersionsResponses = {
+  /**
+   * Response Component-Versions-List Agent Component Versions
+   *
+   * Successful Response
+   */
+  200: Array<ComponentVersionSummary>;
+};
+
+export type ComponentVersionsListAgentComponentVersionsResponse =
+  ComponentVersionsListAgentComponentVersionsResponses[keyof ComponentVersionsListAgentComponentVersionsResponses];
+
+export type ComponentVersionsGetAgentComponentVersionData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+    /**
+     * Component Version Id
+     */
+    component_version_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/component-versions/{component_version_id}';
+};
+
+export type ComponentVersionsGetAgentComponentVersionErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ComponentVersionsGetAgentComponentVersionError =
+  ComponentVersionsGetAgentComponentVersionErrors[keyof ComponentVersionsGetAgentComponentVersionErrors];
+
+export type ComponentVersionsGetAgentComponentVersionResponses = {
+  /**
+   * Successful Response
+   */
+  200: ComponentVersionPublic;
+};
+
+export type ComponentVersionsGetAgentComponentVersionResponse =
+  ComponentVersionsGetAgentComponentVersionResponses[keyof ComponentVersionsGetAgentComponentVersionResponses];
+
+export type ComponentVersionsResolveAgentCallVersionsData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/versions/resolve';
+};
+
+export type ComponentVersionsResolveAgentCallVersionsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ComponentVersionsResolveAgentCallVersionsError =
+  ComponentVersionsResolveAgentCallVersionsErrors[keyof ComponentVersionsResolveAgentCallVersionsErrors];
+
+export type ComponentVersionsResolveAgentCallVersionsResponses = {
+  /**
+   * Successful Response
+   */
+  200: VersionResolveResult;
+};
+
+export type ComponentVersionsResolveAgentCallVersionsResponse =
+  ComponentVersionsResolveAgentCallVersionsResponses[keyof ComponentVersionsResolveAgentCallVersionsResponses];
 
 export type CompanyGetLlmCredentialsData = {
   body?: never;

@@ -22,6 +22,7 @@ from app.models.call import Call, CallEvent
 from app.models.enums import CallEventType, ExecutionMatch
 from app.models.execution import Execution, ExecutionSyncResult
 from app.models.integration import AgentToolBackend, Integration
+from app.services.component_versions import record_skill_version
 from app.services.mappings.n8n import (
     N8nMappingError,
     ToolRequest,
@@ -112,6 +113,7 @@ def _pick(
 
 async def _executions_for_workflow(
     *,
+    session: Session,
     call: Call,
     integration: Integration,
     workflow_id: str,
@@ -161,13 +163,18 @@ async def _executions_for_workflow(
             continue
         event, match = picked
         try:
-            found.append(
-                n8n_execution_to_execution(payload, event_id=event.key, match=match)
+            execution = n8n_execution_to_execution(
+                payload, event_id=event.key, match=match
             )
         except N8nMappingError as exc:
             problems.append(f"{integration.name}: {exc}")
             continue
         taken.add(event.key)
+        # The execution carries the workflow as it ran: the only record of that version.
+        skill = record_skill_version(session=session, call=call, payload=payload)
+        if skill is not None:
+            execution.workflow_version = skill[0]
+        found.append(execution)
     return found, problems
 
 
@@ -208,6 +215,7 @@ async def sync_call_executions(*, session: Session, call: Call) -> ExecutionSync
 
     for backend, integration, group_events in groups.values():
         executions, problems = await _executions_for_workflow(
+            session=session,
             call=call,
             integration=integration,
             workflow_id=backend.workflow_id,

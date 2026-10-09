@@ -59,8 +59,8 @@ history of a slice is its plan file in `plans/`.
 | 1.2 | Ingest API and service tokens | Done (PR #165) |
 | 1.3 | Retell reference mapping | Done (PR #166) |
 | 1.3b | Vapi and ElevenLabs reference mappings | Not started |
-| 1.4 | Skill executions (n8n) | PR open, awaiting merge |
-| 1.5 | Component versions | Not started |
+| 1.4 | Skill executions (n8n) | Done (PR #167) |
+| 1.5 | Component versions | PR open, awaiting merge |
 | 1.6 | CRM data per call (GoHighLevel) | Not started |
 | 1.7 | Calls screen | Not started |
 | 1.8 | MCP read surface | Not started |
@@ -70,8 +70,8 @@ history of a slice is its plan file in `plans/`.
 | 2.4 | Inbox v0 | Not started |
 | M1 | Milestone 1 exit review | Not started |
 
-**Next slice:** 1.5 (component versions), once the 1.4 PR is merged. Slice 1.4 already
-stores, per execution, the version of the workflow that ran.
+**Next slice:** 1.6 (CRM data per call), or Phase 2 (Check) first; the roadmap lets 1.6
+move after Phase 2. To be chosen once the 1.5 PR is merged.
 
 Open, carried from earlier slices:
 
@@ -82,6 +82,8 @@ Open, carried from earlier slices:
   Not built.
 - Node data from n8n is stored without redaction.
 - `Environment` has no remaining purpose (see the table below).
+- Retell's prompt versions include each tool's address. That could suggest the
+  tool-to-workflow mapping and list tools before they are ever called. Not built.
 
 ---
 
@@ -116,7 +118,7 @@ tested but do not develop it until its phase arrives.
 |---|---|---|
 | `Call` (`models/call.py`) | Retell-specific columns (`retell_call_id`, `retell_agent_id`), transcript plus an opaque `raw` blob. | The canonical trace: turns, tool calls with arguments and results, input variables, component versions, raw kept alongside. Slice 1.1. |
 | Call sync (`services/call_sync.py`, `services/mappings/`) | Done for Retell in slice 1.3: a mapping module turns Retell payloads into traces, by pull and by webhook. | Vapi and ElevenLabs still store the original payload only. Slice 1.3b. |
-| `AgentVersion` | A prompt-and-tools snapshot that the product owns and edits. | An observed fingerprint of what is live across flow, prompts, skills and settings. Slice 1.5, then verified state in Phase 5. |
+| `AgentVersion` | A prompt-and-tools snapshot that the product owns and edits. | Not reshaped. Slice 1.5 added `component_version`, the catalogue of observed versions with fingerprints and content; verified state builds on that in Phase 5. `AgentVersion` goes with the eval stack in Phase 4. |
 | MCP tools | Four tools, all for listing agents and editing a prompt draft. | Read tools for calls and checks first (slice 1.8), then write tools for spec, tests and judges. |
 | CLI (`backend/cli/`) | Drives the 1.x eval loop, plus draft, publish and deploy commands. | Frozen. Each demolition PR removes the commands whose routes it deletes. The eval commands (`run`, `runs`, `compare`, `baseline`, `test-cases`, `eval-configs`) stay working with the frozen eval stack. No new PyPI releases. Its future is decided in Phase 4. |
 
@@ -141,7 +143,7 @@ three rows wrong. It was corrected against the code before anything was deleted.
 | Vapi and ElevenLabs: connection test, agent listing, config import, call sync | They are working integrations for two more stacks, not planned stubs. Only their deploy functions were removed. | Phase 1, as reference mappings |
 | LLM key onboarding (`/onboarding`) | It is a single form for the company's LLM key, which judges still need. It is not a builder wizard. | Phase 6 onboarding |
 | `Environment` | Nothing uses it since slice 1.3: call sync reads the agent's own provider link. The model, routes and the Environments tab remain. | Delete in a later slice (Dmytro, 2026-10-08) |
-| Backend draft, publish, rollback and version routes; CLI agent commands | They sit under agent creation and the frozen eval stack, and `AgentVersion` is reshaped in 1.5. | 1.5 |
+| Backend draft, publish, rollback and version routes; CLI agent commands; the `AgentVersion` model | They sit under agent creation and the frozen eval stack (test runs point at `AgentVersion`). Observed versions live in a separate catalogue since slice 1.5. | Phase 4, with the eval stack (Dmytro, 2026-10-09) |
 | Create-agent form and the Integrations form | The UI may do anything the assistant can do through the API (Dmytro, 2026-10-09). The add-environment form goes with environments. | Stay |
 | Editing UI inside the frozen eval stack: eval config detail form, test case detail drawer, the custom metrics page, the "Run" button | Out of the agreed scope for 0.2. Nothing new can be created from the UI, but existing items can still be edited. | Phase 4 |
 | Retell functions that nothing calls (`create_retell_batch_test`, `create_retell_chat*`, `list_retell_agent_versions`, and others) | Already unused before the rebuild. Batch tests and agent versions are likely inputs to Phases 1 and 4. | 1.5 and Phase 4 |
@@ -485,6 +487,10 @@ Dmytro's only when he stated it in his own words.
 | 2026-10-09 | n8n is connected per company as an integration with an address, entered in the Integrations form. The address must be `https`; private addresses are refused unless a setting allows them. Push from an unreachable n8n is later. | Dmytro |
 | 2026-10-09 | A tool is mapped to its workflow, per agent (tool name to one workflow in one n8n connection). An agent is not linked to a whole n8n instance. Tool names come from observed calls for now. | Dmytro ("maybe we shouldnt map n8n to agent but link individual tool calls") |
 | 2026-10-09 | Q4 closed: an execution belongs to a tool call when its trigger carries the call's id, the tool name and the same arguments; start time breaks a tie. Without a call id it is a labelled guess. The trigger's copy of the call is not stored. | Proposed by Claude from real data; Dmytro approved ("go") |
+| 2026-10-09 | Component versions store their content, not only a fingerprint. | Dmytro ("content") |
+| 2026-10-09 | Fingerprints are per component, plus one per call over agent, prompt and model. Skills are not part of the call's fingerprint. | Proposed by Claude; Dmytro agreed |
+| 2026-10-09 | `AgentVersion` and the draft, publish and rollback routes are not touched in slice 1.5. They are decided with the eval stack in Phase 4. | Proposed by Claude; Dmytro agreed |
+| 2026-10-09 | Masking in stored content goes by field name (headers, and fields named like a key, token, secret or password), before fingerprinting. Fingerprints leave out timestamps, version numbers, publish flags and titles. | Proposed by Claude; Dmytro approved the slice 1.5 plan |
 
 ---
 

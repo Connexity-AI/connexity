@@ -167,7 +167,8 @@ components that have no version number).
 
 Connexity uses this to answer "which version was this call on?" and later to tell
 verified versions from unverified ones. A mapping supplies whatever the provider
-reports with the call.
+reports with the call. For Retell calls Connexity fills in the rest itself: see
+[Which version served a call](./versions.md).
 
 ## End reasons
 

@@ -29,13 +29,20 @@ import {
   ToolCallStatus,
 } from '@/client/types.gen';
 import { CallLabelChip } from './call-label-chip';
-import { formatDate, formatDuration, formatEnumLabel, formatTimestamp } from './observe-format';
+import {
+  formatDate,
+  formatDuration,
+  formatEnumLabel,
+  formatTimestamp,
+  shortFingerprint,
+} from './observe-format';
 
 import type {
   CallPublic,
   Execution,
   ExecutionStep,
   MarkerEvent,
+  ServedBy,
   ToolCallEvent,
   TraceOutput,
   UtteranceEvent,
@@ -50,6 +57,7 @@ export function CallPanel({ agentId, call }: CallPanelProps) {
   const traceQuery = useCallTrace(call.id, call.has_trace);
   const trace = traceQuery.data?.trace ?? null;
   const executions = traceQuery.data?.executions ?? [];
+  const servedBy = traceQuery.data?.served_by ?? [];
   const refreshExecutions = useRefreshCallExecutions(call.id);
   const hasToolCalls = trace?.events.some((event) => event.type === 'tool_call') ?? false;
 
@@ -130,6 +138,8 @@ export function CallPanel({ agentId, call }: CallPanelProps) {
         </div>
       </div>
 
+      {servedBy.length > 0 ? <ServedByBlock items={servedBy} /> : null}
+
       <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
         <div className="mb-4 flex items-center justify-between gap-2">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Conversation</p>
@@ -159,6 +169,47 @@ export function CallPanel({ agentId, call }: CallPanelProps) {
           executions={executions}
         />
       </div>
+    </div>
+  );
+}
+
+function ServedByBlock({ items }: { items: ServedBy[] }) {
+  return (
+    <div className="shrink-0 border-b border-border px-5 py-3">
+      <p className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">Served by</p>
+      <ul className="space-y-1">
+        {items.map((item, index) => (
+          <li
+            key={`${item.kind}-${item.ref ?? item.name}-${index}`}
+            className="flex items-baseline gap-2 text-[11px]"
+          >
+            <span className="w-12 shrink-0 text-[10px] text-muted-foreground/60">
+              {formatEnumLabel(item.kind)}
+            </span>
+            <span className="min-w-0 truncate text-foreground/90">{item.name}</span>
+            {item.version ? (
+              <span className="shrink-0 tabular-nums text-muted-foreground" title={item.version}>
+                {/^\d+$/.test(item.version) ? `v${item.version}` : shortFingerprint(item.version)}
+              </span>
+            ) : null}
+            {item.fingerprint ? (
+              <span
+                className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground/50"
+                title={`Fingerprint of the content: ${item.fingerprint}`}
+              >
+                {shortFingerprint(item.fingerprint)}
+              </span>
+            ) : (
+              <span
+                className="ml-auto shrink-0 text-[10px] text-muted-foreground/40"
+                title="The content of this version has not been read yet"
+              >
+                not resolved
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

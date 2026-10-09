@@ -11,7 +11,6 @@ import { cn } from '@workspace/ui/lib/utils';
 import { DeleteTestCasesDialog } from '@/app/(app)/(agent)/_components/evals/test-cases/delete-test-cases-dialog';
 import { DataTable } from '@/components/common/data-table/data-table';
 import { TablePagination } from '@/components/common/data-table/table-pagination';
-
 import { DateRangePicker } from './date-range-picker';
 import { getCallsColumns } from './get-calls-columns';
 import { ObserveDrawer } from './observe-drawer';
@@ -33,7 +32,7 @@ export function ObserveContent({ agentId }: ObserveContentProps) {
         testCasesByCallId: drawer.testCasesByCallId,
         onTestCaseClick: drawer.onTestCaseClick,
       }),
-    [drawer.testCasesByCallId, drawer.onTestCaseClick],
+    [drawer.testCasesByCallId, drawer.onTestCaseClick]
   );
 
   if (calls.isLoading) {
@@ -82,9 +81,7 @@ export function ObserveContent({ agentId }: ObserveContentProps) {
               No calls yet. Refresh pulls them from the provider this agent is linked to.
             </p>
           }
-          footer={
-            <TablePagination totalCount={calls.totalCount} parser={callsObserveParser} />
-          }
+          footer={<TablePagination totalCount={calls.totalCount} parser={callsObserveParser} />}
         />
       </div>
 

@@ -7,6 +7,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
 from app.models.columns import enum_type
+from app.models.component_version import ServedBy
 from app.models.enums import (
     CallChannel,
     CallDirection,
@@ -62,6 +63,10 @@ class Call(SQLModel, table=True):
     caller_number: str | None = Field(default=None, max_length=64, index=True)
     recording_url: str | None = Field(default=None, max_length=2048)
     reports_tool_calls: bool | None = Field(default=None)
+    # The agent's own version, and one fingerprint over what every call has (agent,
+    # prompt, model), so calls can be grouped by the state that served them.
+    agent_version: str | None = Field(default=None, max_length=255)
+    state_fingerprint: str | None = Field(default=None, max_length=64, index=True)
     inputs: dict[str, Any] | None = Field(
         default=None, sa_column=Column("inputs", JSONB(none_as_null=True))
     )
@@ -171,6 +176,11 @@ class CallPublic(SQLModel):
     )
     end_reason: CallEndReason | None = None
     end_reason_detail: str | None = None
+    agent_version: str | None = None
+    state_fingerprint: str | None = Field(
+        default=None,
+        description="One fingerprint over the agent, prompt and model that served it",
+    )
     has_trace: bool = Field(
         description="False when the call was synced but not yet converted to a trace"
     )
@@ -190,6 +200,9 @@ class CallTracePublic(SQLModel):
     capabilities: list[TraceCapability]
     # What the backend did for each tool call that has a known execution.
     executions: list[Execution] = []
+    # What served the call: the trace's components, and a skill for each workflow that
+    # ran, each with the catalogue entry that holds its content when there is one.
+    served_by: list[ServedBy] = []
 
 
 class CallsPublic(SQLModel):

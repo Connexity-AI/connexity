@@ -217,6 +217,8 @@ def call_to_public(call: Call, *, test_case_count: int) -> CallPublic:
         duration_seconds=duration,
         end_reason=call.end_reason,
         end_reason_detail=call.end_reason_detail,
+        agent_version=call.agent_version,
+        state_fingerprint=call.state_fingerprint,
         has_trace=call.schema_version is not None,
         is_new=call.seen_at is None,
         test_case_count=test_case_count,

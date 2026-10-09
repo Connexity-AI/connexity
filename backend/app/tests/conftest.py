@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -10,6 +11,7 @@ from app.core.db import engine
 from app.main import app
 from app.models.custom_metric import CustomMetric
 from app.services.predefined_metrics import PREDEFINED_METRICS
+from app.services.retell_versions import RetellReadError
 from app.tests.utils.user import (
     authentication_token_from_email,
     authentication_token_with_password,
@@ -100,3 +102,23 @@ def normal_user_auth_cookies(client: TestClient, db: Session) -> dict[str, str]:
     return authentication_token_from_email(
         client=client, email=settings.EMAIL_TEST_USER, db=db
     )
+
+
+@pytest.fixture(autouse=True)
+def _no_provider_version_reads(
+    request: pytest.FixtureRequest,
+) -> Generator[None, None, None]:
+    """Storing a Retell call looks up the agent's version at Retell.
+
+    Tests do not reach Retell: by default the lookup fails the way an unreachable
+    provider does, and the call is stored with its version number only. A test that is
+    about versions marks itself ``provider_versions`` and supplies its own answers.
+    """
+    if request.node.get_closest_marker("provider_versions"):
+        yield
+        return
+    with patch(
+        "app.services.component_versions.get_retell_agent_at_version",
+        AsyncMock(side_effect=RetellReadError("not reachable in tests")),
+    ):
+        yield

@@ -52,6 +52,9 @@ build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+markers = [
+    "provider_versions: the test supplies its own answers for provider version reads",
+]
 
 [tool.coverage.run]
 omit = [

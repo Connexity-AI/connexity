@@ -18,6 +18,7 @@ from app import crud
 from app.core.encryption import decrypt
 from app.models.agent import Agent
 from app.models.enums import Platform
+from app.services.component_versions import add_retell_components
 from app.services.elevenlabs import (
     get_elevenlabs_conversation,
     list_elevenlabs_conversations,
@@ -41,7 +42,7 @@ def emit(event: str, **fields: Any) -> None:
 
 
 async def store_retell_calls(
-    *, session: Session, agent: Agent, calls: list[RetellCall]
+    *, session: Session, agent: Agent, api_key: str, calls: list[RetellCall]
 ) -> tuple[int, int]:
     """Convert and store Retell calls, then look for each new call's executions.
 
@@ -60,6 +61,9 @@ async def store_retell_calls(
             failed += 1
             logger.warning("Retell call %s could not be mapped: %s", call.call_id, exc)
             continue
+        trace = await add_retell_components(
+            session=session, agent=agent, api_key=api_key, trace=trace
+        )
         stored = crud.store_trace(
             session=session,
             trace=trace,
@@ -140,7 +144,7 @@ async def sync_agent_calls(*, session: Session, agent: Agent, incremental: bool)
                     limit=PAGE_SIZE,
                 )
                 created, failed = await store_retell_calls(
-                    session=session, agent=agent, calls=batch
+                    session=session, agent=agent, api_key=api_key, calls=batch
                 )
                 event["failed"] += failed
                 newest = max(

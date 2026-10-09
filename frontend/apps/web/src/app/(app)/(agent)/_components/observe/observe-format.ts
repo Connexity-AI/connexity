@@ -34,6 +34,11 @@ export function formatDuration(seconds: number | null | undefined): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+/** The first characters of a fingerprint: enough to tell two apart at a glance. */
+export function shortFingerprint(fingerprint: string): string {
+  return fingerprint.slice(0, 7);
+}
+
 /** Turns a fixed-list value such as `caller_hangup` into "Caller hangup". */
 export function formatEnumLabel(value: string): string {
   const text = value.replaceAll('_', ' ');

@@ -13,6 +13,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlmodel import Session, col, delete, select
 
 from app.models.call import Call, CallComponent, CallEvent
+from app.models.component_version import STATE_KINDS
 from app.models.enums import CallEventType
 from app.models.trace import (
     MarkerEvent,
@@ -23,6 +24,7 @@ from app.models.trace import (
     TraceParties,
     UtteranceEvent,
 )
+from app.services.fingerprint import combined_fingerprint
 
 _CALL_TABLE: Table = Call.__table__  # type: ignore[attr-defined]
 
@@ -109,6 +111,18 @@ def _agent_ref(trace: Trace) -> str:
     return ""
 
 
+def _state(trace: Trace) -> tuple[str | None, str | None]:
+    """The agent's version, and one fingerprint over the components every call has."""
+    agent_version: str | None = None
+    parts: dict[str, str] = {}
+    for component in trace.components or []:
+        if component.kind == "agent" and agent_version is None:
+            agent_version = component.version
+        if component.kind in STATE_KINDS and component.fingerprint:
+            parts.setdefault(component.kind, component.fingerprint)
+    return agent_version, combined_fingerprint(parts)
+
+
 class StoredTrace(NamedTuple):
     call: Call
     created: bool
@@ -175,6 +189,7 @@ def store_trace(
     call.caller_number = parties.caller_number if parties else None
     call.recording_url = trace.recording_url
     call.reports_tool_calls = trace.reports_tool_calls
+    call.agent_version, call.state_fingerprint = _state(trace)
     call.inputs = trace.inputs
     call.outputs = trace.outputs
     call.extensions = trace.extensions
