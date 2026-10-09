@@ -57,8 +57,15 @@ If the trigger received no call id (the Retell tool is set to send arguments onl
 execution is matched on arguments and a start time within ten seconds of the tool call.
 This is shown as a **guess**.
 
-- For a call stored before its tools were mapped, use **Find executions** on the call,
-  or `POST /api/v1/calls/{call_id}/executions/refresh`.
+- Nobody has to ask. Besides a call's arrival, Connexity looks when a tool's mapping is
+  saved or changed (that tool's recent calls), and in the background when an agent's
+  calls are synced (any recent call with a mapped tool call not looked up yet).
+- A lookup that n8n answered is not repeated, whether or not it found anything, until
+  the tool's mapping changes. A lookup that failed because n8n could not be read is
+  tried again, at most every ten minutes.
+- Only calls from the last 30 days are looked up on their own
+  (`EXECUTION_LOOKUP_MAX_AGE_DAYS`). `POST /api/v1/calls/{call_id}/executions/refresh`
+  looks up one call on request, whatever its age.
 - **n8n deletes old executions** (after 14 days by default; it is a setting of the
   instance). A call older than that can no longer be opened to an execution. Executions
   already copied into Connexity stay.

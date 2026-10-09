@@ -6,7 +6,6 @@ import {
   getCalls,
   getCallTrace,
   markCallSeen,
-  refreshCallExecutions,
   refreshCalls,
   setCallLabel,
   type CallQueryFilters,
@@ -32,18 +31,6 @@ export function useCallTrace(callId: string, enabled: boolean) {
     queryFn: () => getCallTrace(callId),
     enabled,
     staleTime: 60 * 1000,
-  });
-}
-
-export function useRefreshCallExecutions(callId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async () => {
-      const result = await refreshCallExecutions(callId);
-      if (!isSuccessApiResult(result)) throw new Error('Could not look for executions');
-      return result.data;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: callKeys.trace(callId) }),
   });
 }
 

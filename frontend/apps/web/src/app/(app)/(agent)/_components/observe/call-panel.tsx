@@ -16,11 +16,7 @@ import {
 } from '@workspace/ui/components/ui/dropdown-menu';
 import { cn } from '@workspace/ui/lib/utils';
 
-import {
-  useCallTrace,
-  useRefreshCallExecutions,
-  useSetCallLabel,
-} from '@/app/(app)/(agent)/_hooks/use-calls';
+import { useCallTrace, useSetCallLabel } from '@/app/(app)/(agent)/_hooks/use-calls';
 import {
   CallLabel,
   ExecutionMatch,
@@ -58,8 +54,6 @@ export function CallPanel({ agentId, call }: CallPanelProps) {
   const trace = traceQuery.data?.trace ?? null;
   const executions = traceQuery.data?.executions ?? [];
   const servedBy = traceQuery.data?.served_by ?? [];
-  const refreshExecutions = useRefreshCallExecutions(call.id);
-  const hasToolCalls = trace?.events.some((event) => event.type === 'tool_call') ?? false;
 
   const setLabel = useSetCallLabel(agentId);
   const currentLabel = call.label ?? null;
@@ -141,27 +135,9 @@ export function CallPanel({ agentId, call }: CallPanelProps) {
       {servedBy.length > 0 ? <ServedByBlock items={servedBy} /> : null}
 
       <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Conversation</p>
-          {hasToolCalls ? (
-            <button
-              type="button"
-              disabled={refreshExecutions.isPending}
-              onClick={() => refreshExecutions.mutate()}
-              className="text-[10px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline disabled:opacity-60"
-              title="Look in the mapped backends for what happened behind each tool call"
-            >
-              {refreshExecutions.isPending ? 'Looking…' : 'Find executions'}
-            </button>
-          ) : null}
-        </div>
-        {refreshExecutions.data ? (
-          <p className="text-[10px] text-muted-foreground">
-            {refreshExecutions.data.matched} of {refreshExecutions.data.mapped} mapped tool calls
-            have an execution.
-            {refreshExecutions.data.problems?.[0] ? ` ${refreshExecutions.data.problems[0]}` : ''}
-          </p>
-        ) : null}
+        <p className="mb-4 text-[10px] uppercase tracking-wider text-muted-foreground">
+          Conversation
+        </p>
         <CallEvents
           hasTrace={call.has_trace}
           isLoading={traceQuery.isLoading}

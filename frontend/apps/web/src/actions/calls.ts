@@ -9,7 +9,6 @@ import type {
   CallRefreshResult,
   CallsPublic,
   CallTracePublic,
-  ExecutionSyncResult,
   Message,
 } from '@/client/types.gen';
 import type { ApiResult } from '@/types/api';
@@ -93,15 +92,4 @@ export const getCallTrace = async (callId: string): Promise<CallTracePublic | nu
   });
   const { response: _, ...result } = apiResponse;
   return isSuccessApiResult<CallTracePublic>(result) ? result.data : null;
-};
-
-/** Look again in the mapped backends for what happened behind a call's tool calls. */
-export const refreshCallExecutions = async (
-  callId: string,
-): Promise<ApiResult<ExecutionSyncResult>> => {
-  const apiResponse = await CallsService.refreshCallExecutions({
-    path: { call_id: callId },
-  });
-  const { response: _, ...result } = apiResponse;
-  return result;
 };

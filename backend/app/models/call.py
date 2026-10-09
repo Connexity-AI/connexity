@@ -67,6 +67,9 @@ class Call(SQLModel, table=True):
     # prompt, model), so calls can be grouped by the state that served them.
     agent_version: str | None = Field(default=None, max_length=255)
     state_fingerprint: str | None = Field(default=None, max_length=64, index=True)
+    # When the backends were last asked, and answered cleanly, what this call's tool
+    # calls ran. Empty means not asked yet, or asked and the backend could not be read.
+    executions_checked_at: datetime | None = Field(default=None)
     inputs: dict[str, Any] | None = Field(
         default=None, sa_column=Column("inputs", JSONB(none_as_null=True))
     )

@@ -97,6 +97,10 @@ class Settings(BaseSettings):
     # public. Turn this on only for a self-hosted Connexity or local development.
     ALLOW_PRIVATE_INTEGRATION_URLS: bool = False
 
+    # A backend keeps its execution history for a while only. Calls older than this are
+    # not looked up on their own; they would find nothing.
+    EXECUTION_LOOKUP_MAX_AGE_DAYS: int = 30
+
     API_V1_STR: str = "/api/v1"
     AUTH_COOKIE: str = "auth_cookie"
     # Cookie expiration and JWT expiration match
