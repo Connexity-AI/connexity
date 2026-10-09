@@ -9,13 +9,15 @@ executions can be read. Problems are returned and logged, without call content.
 """
 
 import logging
+import time
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlmodel import Session, col, select
+from sqlmodel import Session, col, select, update
 
 from app import crud
+from app.core.config import settings
 from app.core.db import engine
 from app.core.encryption import decrypt
 from app.models.call import Call, CallEvent
@@ -41,6 +43,8 @@ _OPEN_CALL_WINDOW = timedelta(hours=2)
 # than this, so more means the time filter was ignored.
 _MAX_EXECUTIONS_PER_WORKFLOW = 500
 _MAX_DETAILS_PER_WORKFLOW = 100
+# How long after a call ended a missing execution may still turn up.
+_SETTLE_AFTER = timedelta(minutes=15)
 # A guess must start this close to the tool call.
 _GUESS_TOLERANCE = timedelta(seconds=10)
 
@@ -240,7 +244,22 @@ async def sync_call_executions(*, session: Session, call: Call) -> ExecutionSync
             len(result.problems),
             "; ".join(sorted(set(result.problems))),
         )
+    elif result.matched >= result.mapped or _is_settled(call):
+        # Asked and answered: not asked again unless a mapping changes.
+        call.executions_checked_at = datetime.now(UTC).replace(tzinfo=None)
+        session.add(call)
+        session.commit()
     return result
+
+
+def _is_settled(call: Call) -> bool:
+    """Whether a missing execution can no longer be about to appear.
+
+    A workflow still running when the call ended is saved by the backend a little
+    later. Until the call has been over for a while, "found nothing" is not final.
+    """
+    ended = _aware(call.ended_at or call.started_at)
+    return datetime.now(UTC) - ended > _SETTLE_AFTER
 
 
 async def sync_call_executions_safely(
@@ -262,3 +281,113 @@ async def sync_call_executions_in_background(call_id: uuid.UUID) -> None:
         call = session.get(Call, call_id)
         if call is not None:
             await sync_call_executions_safely(session=session, call=call)
+
+
+# ── Without being asked ────────────────────────────────────────────
+
+_MAX_CALLS_PER_PASS = 50
+# After a pass that hit a problem, the next automatic pass for that agent waits this
+# long. Kept in this process only: another worker may try once more, which is harmless.
+_RETRY_AFTER_SECONDS = 600.0
+_retry_not_before: dict[uuid.UUID, float] = {}
+# Lookups that report a problem in a row before a pass gives the backend up for now.
+_MAX_PROBLEMS_IN_A_ROW = 3
+# One pass per agent at a time in this process: two would look up the same calls.
+_passes_running: set[uuid.UUID] = set()
+
+
+def _lookup_cutoff() -> datetime:
+    return datetime.now(UTC).replace(tzinfo=None) - timedelta(
+        days=settings.EXECUTION_LOOKUP_MAX_AGE_DAYS
+    )
+
+
+def _recent_calls_using(agent_id: uuid.UUID, tool_names: list[str]) -> Any:
+    """Recent calls of the agent with a tool call to one of ``tool_names``."""
+    return (
+        select(Call)
+        .where(
+            Call.agent_id == agent_id,
+            col(Call.deleted_at).is_(None),
+            Call.started_at >= _lookup_cutoff(),
+            col(Call.id).in_(
+                select(CallEvent.call_id).where(
+                    CallEvent.type == CallEventType.TOOL_CALL,
+                    col(CallEvent.name).in_(tool_names),
+                )
+            ),
+        )
+        .order_by(col(Call.started_at).desc())
+    )
+
+
+def forget_lookups_for_tool(
+    *, session: Session, agent_id: uuid.UUID, tool_name: str
+) -> None:
+    """A tool's mapping changed: its recent calls are to be looked up again."""
+    session.exec(
+        update(Call)
+        .where(
+            col(Call.id).in_(
+                _recent_calls_using(agent_id, [tool_name]).with_only_columns(Call.id)
+            )
+        )
+        .values(executions_checked_at=None)
+        .execution_options(synchronize_session=False)
+    )
+    session.commit()
+    _retry_not_before.pop(agent_id, None)
+
+
+async def find_missing_executions(*, session: Session, agent_id: uuid.UUID) -> int:
+    """Look up recent calls with a mapped tool call that have not been looked up yet.
+
+    Never raises. Returns how many calls were looked up. A pass looks at a limited
+    number of calls; the next pass carries on.
+    """
+    now = time.monotonic()
+    if _retry_not_before.get(agent_id, 0.0) > now or agent_id in _passes_running:
+        return 0
+    _passes_running.add(agent_id)
+    try:
+        mapped = [
+            backend.tool_name
+            for backend, _integration in crud.list_tool_backends(
+                session=session, agent_id=agent_id
+            )
+        ]
+        if not mapped:
+            return 0
+        calls = session.exec(
+            _recent_calls_using(agent_id, mapped)
+            .where(col(Call.executions_checked_at).is_(None))
+            .limit(_MAX_CALLS_PER_PASS)
+        ).all()
+        looked_up = 0
+        problems_in_a_row = 0
+        for call in calls:
+            result = await sync_call_executions(session=session, call=call)
+            looked_up += 1
+            if not result.problems:
+                problems_in_a_row = 0
+                continue
+            # One call with a problem of its own must not hold up the calls after it;
+            # several in a row mean the backend is not answering.
+            _retry_not_before[agent_id] = now + _RETRY_AFTER_SECONDS
+            problems_in_a_row += 1
+            if problems_in_a_row >= _MAX_PROBLEMS_IN_A_ROW:
+                break
+        return looked_up
+    except Exception:  # noqa: BLE001 - background work has no one to raise to
+        session.rollback()
+        logger.exception("Executions of agent %s could not be looked up", agent_id)
+        _retry_not_before[agent_id] = now + _RETRY_AFTER_SECONDS
+        return 0
+    finally:
+        _passes_running.discard(agent_id)
+
+
+async def find_missing_executions_in_background(agent_id: uuid.UUID) -> None:
+    """For use after a response has been sent: its own database session."""
+    with Session(engine) as session:
+        await find_missing_executions(session=session, agent_id=agent_id)

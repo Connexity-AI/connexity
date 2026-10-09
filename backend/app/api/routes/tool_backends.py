@@ -2,7 +2,7 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
 from app import crud
 from app.api.deps import CurrentCompany, SessionDep, get_current_user
@@ -13,6 +13,10 @@ from app.models import (
     Message,
     ToolBackendPublic,
     ToolBackendSet,
+)
+from app.services.executions import (
+    find_missing_executions_in_background,
+    forget_lookups_for_tool,
 )
 from app.services.n8n import N8nError, get_n8n_workflow
 
@@ -65,11 +69,15 @@ def list_agent_tools(
 @router.put("/tool-backends", response_model=ToolBackendPublic)
 async def set_agent_tool_backend(
     session: SessionDep,
+    background_tasks: BackgroundTasks,
     company_id: CurrentCompany,
     agent_id: uuid.UUID,
     body: ToolBackendSet,
 ) -> ToolBackendPublic:
-    """Map a tool to a workflow in one of the company's n8n connections."""
+    """Map a tool to a workflow in one of the company's n8n connections.
+
+    The tool's recent calls are then looked up for their executions, after the response.
+    """
     _require_agent(session, company_id, agent_id)
     integration = crud.get_integration(
         session=session, integration_id=body.integration_id, company_id=company_id
@@ -101,6 +109,10 @@ async def set_agent_tool_backend(
         workflow_id=workflow.id,
         workflow_name=workflow.name[:255],
     )
+    forget_lookups_for_tool(
+        session=session, agent_id=agent_id, tool_name=body.tool_name
+    )
+    background_tasks.add_task(find_missing_executions_in_background, agent_id)
     return ToolBackendPublic(
         integration_id=integration.id,
         integration_name=integration.name,

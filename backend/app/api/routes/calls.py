@@ -24,7 +24,7 @@ from app.services.component_versions import (
     resolve_agent_versions_quietly,
     served_by,
 )
-from app.services.executions import sync_call_executions
+from app.services.executions import find_missing_executions, sync_call_executions
 from app.services.trace_capabilities import derive_capabilities
 
 logger = logging.getLogger(__name__)
@@ -63,6 +63,8 @@ async def _sync_calls_in_background(agent_id: uuid.UUID) -> None:
             logger.exception("[bg-sync] agent=%s unexpected error", agent_id)
         # Calls stored before versions were read, or while the provider was down.
         await resolve_agent_versions_quietly(session=session, agent=agent)
+        # Tool calls whose execution has not been looked for yet.
+        await find_missing_executions(session=session, agent_id=agent.id)
 
 
 def _call_or_404(

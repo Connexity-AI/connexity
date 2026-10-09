@@ -2944,6 +2944,8 @@ export class ToolBackendsService {
    * Set Agent Tool Backend
    *
    * Map a tool to a workflow in one of the company's n8n connections.
+   *
+   * The tool's recent calls are then looked up for their executions, after the response.
    */
   public static toolBackendsSetAgentToolBackend<ThrowOnError extends boolean = false>(
     options: Options<ToolBackendsSetAgentToolBackendData, ThrowOnError>

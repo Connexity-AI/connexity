@@ -491,6 +491,7 @@ Dmytro's only when he stated it in his own words.
 | 2026-10-09 | Fingerprints are per component, plus one per call over agent, prompt and model. Skills are not part of the call's fingerprint. | Proposed by Claude; Dmytro agreed |
 | 2026-10-09 | `AgentVersion` and the draft, publish and rollback routes are not touched in slice 1.5. They are decided with the eval stack in Phase 4. | Proposed by Claude; Dmytro agreed |
 | 2026-10-09 | Masking in stored content goes by field name (headers, and fields named like a key, token, secret or password), before fingerprinting. Fingerprints leave out timestamps, version numbers, publish flags and titles. | Proposed by Claude; Dmytro approved the slice 1.5 plan |
+| 2026-10-09 | No button for work the system knows it has to do. Versions of stored calls are resolved in the background, and executions are looked up on their own (when a mapping changes, and in the background sync). The API actions stay for the assistant. | Dmytro ("whats the reason for button?", "remove") |
 
 ---
 

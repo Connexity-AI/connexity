@@ -10,6 +10,7 @@ from app.core.config import settings
 from app.core.db import engine
 from app.main import app
 from app.models.custom_metric import CustomMetric
+from app.services.n8n import N8nError
 from app.services.predefined_metrics import PREDEFINED_METRICS
 from app.services.retell_versions import RetellReadError
 from app.tests.utils.user import (
@@ -120,5 +121,19 @@ def _no_provider_version_reads(
     with patch(
         "app.services.component_versions.get_retell_agent_at_version",
         AsyncMock(side_effect=RetellReadError("not reachable in tests")),
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def _no_backend_execution_reads() -> Generator[None, None, None]:
+    """Saving a tool mapping, and syncing calls, look for executions in n8n.
+
+    Tests do not reach n8n: by default the lookup fails the way an unreachable backend
+    does. A test about executions patches the same function with its own answers.
+    """
+    with patch(
+        "app.services.executions.list_n8n_executions",
+        AsyncMock(side_effect=N8nError("not reachable in tests")),
     ):
         yield

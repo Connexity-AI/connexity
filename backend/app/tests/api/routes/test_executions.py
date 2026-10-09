@@ -19,6 +19,7 @@ from app.core import encryption
 from app.core.config import settings
 from app.models import Agent, AgentToolBackend, Call, CallExecution
 from app.models.enums import Platform
+from app.services import executions as executions_service
 from app.services.mappings.retell import retell_call_to_trace
 from app.services.n8n import (
     N8nConnectionResult,
@@ -662,3 +663,232 @@ def test_a_pulled_call_gets_its_executions_and_is_stored_even_if_n8n_is_down(
     call = db.exec(select(Call).where(Call.external_id == call_id)).one()
     executions = _trace(client, auth_cookies, call)["executions"]
     assert len(executions) == (0 if n8n_down else 1)
+
+
+# ── Looked for without being asked ─────────────────────────────────
+
+
+@pytest.fixture
+def _calls_are_recent(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The invented calls carry a fixed, old start time.
+    monkeypatch.setattr(settings, "EXECUTION_LOOKUP_MAX_AGE_DAYS", 100_000)
+    executions_service._retry_not_before.clear()
+
+
+def _open_calls_screen(
+    client: TestClient,
+    cookies: dict[str, str],
+    db: Session,
+    agent: Agent,
+    listing: AsyncMock,
+    detail: AsyncMock,
+) -> None:
+    db.refresh(agent)
+    agent.calls_last_synced_at = None  # the list is stale: a sync is due
+    db.add(agent)
+    db.commit()
+    with (
+        patch("app.services.executions.list_n8n_executions", listing),
+        patch("app.services.executions.get_n8n_execution", detail),
+    ):
+        r = client.get(f"{API}/agents/{agent.id}/calls", cookies=cookies)
+    assert r.status_code == 200, r.text
+
+
+@pytest.mark.usefixtures("_calls_are_recent")
+def test_saving_or_changing_a_mapping_looks_up_the_tools_recent_calls(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = _agent(client, auth_cookies, db)
+    integration_id = _n8n(client, auth_cookies)
+    call = _store_call(db, agent, _price_call("tc_1", 3.0))
+    listing, detail = _n8n_answers(
+        [
+            n8n_execution(
+                "9701",
+                started_at=CALL_START + timedelta(seconds=3.1),
+                call_id=call.external_id,
+            )
+        ]
+    )
+    with (
+        patch("app.services.executions.list_n8n_executions", listing),
+        patch("app.services.executions.get_n8n_execution", detail),
+    ):
+        assert _map(client, auth_cookies, agent.id, integration_id).status_code == 200
+        # Nobody asked: the execution is there.
+        (execution,) = _trace(client, auth_cookies, call)["executions"]
+        assert execution["external_id"] == "9701"
+        assert listing.await_count == 1
+
+        # Pointing the tool at a workflow again makes its calls be looked up again.
+        assert _map(client, auth_cookies, agent.id, integration_id).status_code == 200
+        assert listing.await_count == 2
+        # A mapping for another tool does not.
+        assert (
+            _map(
+                client, auth_cookies, agent.id, integration_id, "other_tool"
+            ).status_code
+            == 200
+        )
+        assert listing.await_count == 2
+
+
+@pytest.mark.usefixtures("_calls_are_recent")
+def test_the_background_sync_looks_up_a_call_once(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = _agent(client, auth_cookies, db)
+    assert (
+        _map(client, auth_cookies, agent.id, _n8n(client, auth_cookies)).status_code
+        == 200
+    )
+    call = _store_call(db, agent, _price_call("tc_1", 3.0))
+    unmapped_only = _store_call(
+        db, agent, [invocation("tc_e", "end_call", "", time_sec=5.0)]
+    )
+    listing, detail = _n8n_answers(
+        [
+            n8n_execution(
+                "9801",
+                started_at=CALL_START + timedelta(seconds=3.1),
+                call_id=call.external_id,
+            )
+        ]
+    )
+
+    _open_calls_screen(client, auth_cookies, db, agent, listing, detail)
+    assert listing.await_count == 1
+    assert len(_trace(client, auth_cookies, call)["executions"]) == 1
+    db.refresh(unmapped_only)
+    assert unmapped_only.executions_checked_at is None  # nothing to ask about
+
+    # Asked and answered: not asked again.
+    _open_calls_screen(client, auth_cookies, db, agent, listing, detail)
+    assert listing.await_count == 1
+
+
+@pytest.mark.usefixtures("_calls_are_recent")
+def test_a_lookup_that_failed_is_tried_again_after_the_wait(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = _agent(client, auth_cookies, db)
+    assert (
+        _map(client, auth_cookies, agent.id, _n8n(client, auth_cookies)).status_code
+        == 200
+    )
+    call = _store_call(db, agent, _price_call("tc_1", 3.0))
+    listing, detail = _n8n_answers(
+        [
+            n8n_execution(
+                "9901",
+                started_at=CALL_START + timedelta(seconds=3.1),
+                call_id=call.external_id,
+            )
+        ]
+    )
+    down = AsyncMock(side_effect=N8nError("Could not reach n8n"))
+
+    _open_calls_screen(client, auth_cookies, db, agent, down, detail)
+    assert down.await_count == 1
+    # n8n is back, but the wait is not over.
+    _open_calls_screen(client, auth_cookies, db, agent, listing, detail)
+    assert listing.await_count == 0
+    assert _trace(client, auth_cookies, call)["executions"] == []
+
+    executions_service._retry_not_before.clear()
+    _open_calls_screen(client, auth_cookies, db, agent, listing, detail)
+    assert listing.await_count == 1
+    assert len(_trace(client, auth_cookies, call)["executions"]) == 1
+
+
+def test_an_old_call_is_not_looked_up_on_its_own_but_is_on_request(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    executions_service._retry_not_before.clear()
+    agent = _agent(client, auth_cookies, db)
+    assert (
+        _map(client, auth_cookies, agent.id, _n8n(client, auth_cookies)).status_code
+        == 200
+    )
+    # The invented call started long before the 30-day limit.
+    call = _store_call(db, agent, _price_call("tc_1", 3.0))
+    execution = n8n_execution(
+        "9951", started_at=CALL_START + timedelta(seconds=3.1), call_id=call.external_id
+    )
+    listing, detail = _n8n_answers([execution])
+
+    _open_calls_screen(client, auth_cookies, db, agent, listing, detail)
+    assert listing.await_count == 0
+
+    summary, _l, _d = _refresh(client, auth_cookies, call, [execution])
+    assert summary["matched"] == 1
+
+
+@pytest.mark.usefixtures("_calls_are_recent")
+def test_nothing_found_is_not_final_while_the_call_has_only_just_ended(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = _agent(client, auth_cookies, db)
+    assert (
+        _map(client, auth_cookies, agent.id, _n8n(client, auth_cookies)).status_code
+        == 200
+    )
+    call = _store_call(db, agent, _price_call("tc_1", 3.0))
+    call.ended_at = datetime.now(UTC).replace(tzinfo=None)  # hung up a moment ago
+    db.add(call)
+    db.commit()
+    execution = n8n_execution(
+        "9971", started_at=CALL_START + timedelta(seconds=3.1), call_id=call.external_id
+    )
+    nothing_yet, _ = _n8n_answers([])
+    listing, detail = _n8n_answers([execution])
+
+    # The workflow is still running: n8n has nothing saved yet.
+    _open_calls_screen(client, auth_cookies, db, agent, nothing_yet, detail)
+    assert nothing_yet.await_count == 1
+    db.refresh(call)
+    assert call.executions_checked_at is None
+
+    # Asked again on the next sync, and found.
+    _open_calls_screen(client, auth_cookies, db, agent, listing, detail)
+    assert len(_trace(client, auth_cookies, call)["executions"]) == 1
+    db.refresh(call)
+    assert call.executions_checked_at is not None
+
+
+@pytest.mark.usefixtures("_calls_are_recent")
+def test_a_call_with_a_problem_of_its_own_does_not_hold_up_the_others(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = _agent(client, auth_cookies, db)
+    assert (
+        _map(client, auth_cookies, agent.id, _n8n(client, auth_cookies)).status_code
+        == 200
+    )
+    older = _store_call(db, agent, _price_call("tc_1", 3.0))
+    newer = _store_call(db, agent, _price_call("tc_1", 3.0))
+    newer.started_at = older.started_at + timedelta(hours=1)
+    newer.ended_at = newer.started_at + timedelta(minutes=1)
+    db.add(newer)
+    db.commit()
+    good = n8n_execution(
+        "9981",
+        started_at=CALL_START + timedelta(seconds=3.1),
+        call_id=older.external_id,
+    )
+    listing, detail = _n8n_answers([good])
+    answers = listing.return_value
+
+    def answer(*_args: Any, **kwargs: Any) -> Any:
+        # The newer call is looked up first, and its lookup fails.
+        if kwargs["started_after"] > CALL_START + timedelta(minutes=30):
+            raise N8nError("n8n answered 500")
+        return answers
+
+    listing.side_effect = answer
+    _open_calls_screen(client, auth_cookies, db, agent, listing, detail)
+    assert listing.await_count == 2
+    assert len(_trace(client, auth_cookies, older)["executions"]) == 1
+    db.refresh(newer)
+    assert newer.executions_checked_at is None
