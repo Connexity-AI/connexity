@@ -20,6 +20,10 @@ from app.models import (
 )
 from app.models.agent import Agent
 from app.services.call_sync import emit, sync_agent_calls
+from app.services.component_versions import (
+    resolve_agent_versions_quietly,
+    served_by,
+)
 from app.services.executions import sync_call_executions
 from app.services.trace_capabilities import derive_capabilities
 
@@ -57,6 +61,8 @@ async def _sync_calls_in_background(agent_id: uuid.UUID) -> None:
             logger.info("[bg-sync] agent=%s skipped: %s", agent_id, exc.detail)
         except Exception:  # noqa: BLE001 - a background task has no one to raise to
             logger.exception("[bg-sync] agent=%s unexpected error", agent_id)
+        # Calls stored before versions were read, or while the provider was down.
+        await resolve_agent_versions_quietly(session=session, agent=agent)
 
 
 def _call_or_404(
@@ -187,6 +193,7 @@ def get_call_trace(
         trace=trace,
         capabilities=derive_capabilities(trace),
         executions=crud.get_executions(session=session, call=call),
+        served_by=served_by(session=session, call=call, trace=trace),
     )
 
 

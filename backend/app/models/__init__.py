@@ -83,6 +83,13 @@ from app.models.comparison import (  # noqa: F401
     TestCaseComparison,
     ToolDiff,
 )
+from app.models.component_version import (  # noqa: F401
+    ComponentVersion,
+    ComponentVersionPublic,
+    ComponentVersionSummary,
+    ServedBy,
+    VersionResolveResult,
+)
 
 # ── Custom metric ──────────────────────────────────────────────────
 from app.models.custom_metric import (  # noqa: F401

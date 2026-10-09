@@ -25,6 +25,7 @@ erDiagram
     call ||--o{ call_execution : "tool calls ran"
     call_execution ||--o{ call_execution_step : "steps"
     agent ||--o{ agent_tool_backend : "tools served by"
+    agent ||--o{ component_version : "versions seen"
     integration ||--o{ agent_tool_backend : "workflow in"
     agent ||--o{ test_case : has
     agent ||--o{ eval_config : has
@@ -51,10 +52,11 @@ erDiagram
 | `environment` | `environment.py` | No remaining purpose: call sync reads the agent's own provider link since slice 1.3. | Delete in a later slice |
 | `call` | `call.py` | A call and the call-level fields of its trace (provider, source, end reason, parties, inputs, outputs), plus the provider's raw payload. | The pre-trace columns were dropped in slice 1.3; duration is derived from start and end |
 | `call_event` | `call.py` | One row per trace event (utterance, tool call, marker), ordered within the call. The only stored form of the timeline. | New in slice 1.1 |
-| `call_component` | `call.py` | One row per component that served a call, with its version. | New in slice 1.1; filled properly in slice 1.5 |
+| `call_component` | `call.py` | One row per component that served a call, with its version and fingerprint. `call.agent_version` and `call.state_fingerprint` summarise them. | Filled for Retell since slice 1.5 |
 | `call_execution` | `execution.py` | What a backend did for one tool call: one run of a workflow, tied to the call and the tool call's id in the trace. | New in slice 1.4 |
 | `call_execution_step` | `execution.py` | One unit of work in an execution (an n8n node run), ordered, with its output. | New in slice 1.4 |
 | `agent_tool_backend` | `integration.py` | Which workflow, in which n8n connection, serves one of an agent's tools. | New in slice 1.4 |
+| `component_version` | `component_version.py` | The catalogue: one row per version of a component (agent settings, prompt, model, skill) seen for an agent, with a fingerprint and the content. | New in slice 1.5 |
 | `test_case` | `test_case.py` | A simulated-caller scenario, optionally sourced from a call. | Frozen until Phase 4 |
 | `eval_config`, `eval_config_member` | `eval_config.py` | A named set of test cases with a run configuration (runtime, judge, thresholds). | Frozen until Phase 4 |
 | `run` | `run.py` | One execution of an eval config against an agent version, with aggregate metrics. | Frozen until Phase 4 |

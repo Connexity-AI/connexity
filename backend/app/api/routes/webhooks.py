@@ -21,6 +21,7 @@ from app.api.deps import SessionDep
 from app.core.encryption import decrypt
 from app.models import Agent, Integration
 from app.models.enums import IntegrationProvider, Platform
+from app.services.component_versions import add_retell_components
 from app.services.executions import sync_call_executions_in_background
 from app.services.mappings.retell import RetellMappingError, retell_call_to_trace
 
@@ -77,10 +78,11 @@ async def retell_webhook(
     integration = session.get(Integration, integration_id)
     if integration is None or integration.provider != IntegrationProvider.RETELL:
         raise _REFUSED
+    api_key = decrypt(integration.encrypted_api_key)
     if not retell_signature_is_valid(
         raw_body=raw_body,
         signature=request.headers.get("x-retell-signature"),
-        api_key=decrypt(integration.encrypted_api_key),
+        api_key=api_key,
         now_ms=int(time.time() * 1000),
     ):
         raise _REFUSED
@@ -109,6 +111,9 @@ async def retell_webhook(
     except RetellMappingError as exc:
         logger.warning("Retell webhook call could not be mapped: %s", exc)
         return WebhookResult(status="ignored", reason="call could not be mapped")
+    trace = await add_retell_components(
+        session=session, agent=agent, api_key=api_key, trace=trace
+    )
 
     stored = crud.store_trace(
         session=session,

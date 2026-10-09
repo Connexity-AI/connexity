@@ -5,12 +5,11 @@ import { Clock, FlaskConical } from 'lucide-react';
 import { Button } from '@workspace/ui/components/ui/button';
 
 import { CallLabelChip } from './call-label-chip';
-import { formatDuration, formatEnumLabel } from './observe-format';
-
-import type { ColumnDef } from '@tanstack/react-table';
+import { formatDuration, formatEnumLabel, shortFingerprint } from './observe-format';
 
 import type { CallRow } from '@/actions/calls';
 import type { TestCasePublic } from '@/client/types.gen';
+import type { ColumnDef } from '@tanstack/react-table';
 
 function formatCallDate(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
@@ -64,6 +63,28 @@ export const getCallsColumns = ({
         {formatDuration(row.original.duration_seconds)}
       </div>
     ),
+  },
+  {
+    accessorKey: 'agent_version',
+    header: 'Version',
+    enableSorting: false,
+    cell: ({ row }) => {
+      const { agent_version: version, state_fingerprint: state } = row.original;
+      if (!version) return <span className="text-[10px] text-muted-foreground/30">—</span>;
+      return (
+        <div className="flex items-center gap-1.5 text-xs tabular-nums text-muted-foreground">
+          <span>v{version}</span>
+          {state ? (
+            <span
+              className="font-mono text-[10px] text-muted-foreground/50"
+              title="One fingerprint over the agent, prompt and model that served the call"
+            >
+              {shortFingerprint(state)}
+            </span>
+          ) : null}
+        </div>
+      );
+    },
   },
   {
     accessorKey: 'end_reason',

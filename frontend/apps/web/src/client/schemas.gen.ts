@@ -1982,6 +1982,29 @@ export const CallPublicSchema = {
       ],
       title: 'End Reason Detail',
     },
+    agent_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Version',
+    },
+    state_fingerprint: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'State Fingerprint',
+      description: 'One fingerprint over the agent, prompt and model that served it',
+    },
     has_trace: {
       type: 'boolean',
       title: 'Has Trace',
@@ -2066,6 +2089,14 @@ export const CallTracePublicSchema = {
       },
       type: 'array',
       title: 'Executions',
+      default: [],
+    },
+    served_by: {
+      items: {
+        $ref: '#/components/schemas/ServedBy',
+      },
+      type: 'array',
+      title: 'Served By',
       default: [],
     },
   },
@@ -2211,6 +2242,85 @@ export const CompanyLLMCredentialsUpdateSchema = {
   title: 'CompanyLLMCredentialsUpdate',
   description:
     "Payload to set or rotate a company's LLM credentials.\n\nEither ``openai_api_key`` or ``anthropic_api_key`` (or both) must be\nprovided on initial onboarding. When updating, an empty value clears\nthat provider's key.",
+} as const;
+
+export const ComponentVersionPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    kind: {
+      type: 'string',
+      title: 'Kind',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    ref: {
+      type: 'string',
+      title: 'Ref',
+    },
+    version: {
+      type: 'string',
+      title: 'Version',
+    },
+    fingerprint: {
+      type: 'string',
+      title: 'Fingerprint',
+    },
+    first_seen_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'First Seen At',
+    },
+    content: {
+      $ref: '#/components/schemas/JsonValue',
+    },
+  },
+  type: 'object',
+  required: ['id', 'kind', 'name', 'ref', 'version', 'fingerprint', 'first_seen_at'],
+  title: 'ComponentVersionPublic',
+} as const;
+
+export const ComponentVersionSummarySchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    kind: {
+      type: 'string',
+      title: 'Kind',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    ref: {
+      type: 'string',
+      title: 'Ref',
+    },
+    version: {
+      type: 'string',
+      title: 'Version',
+    },
+    fingerprint: {
+      type: 'string',
+      title: 'Fingerprint',
+    },
+    first_seen_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'First Seen At',
+    },
+  },
+  type: 'object',
+  required: ['id', 'kind', 'name', 'ref', 'version', 'fingerprint', 'first_seen_at'],
+  title: 'ComponentVersionSummary',
 } as const;
 
 export const ConfigPublicSchema = {
@@ -6313,6 +6423,68 @@ export const ScoreTypeSchema = {
   title: 'ScoreType',
 } as const;
 
+export const ServedBySchema = {
+  properties: {
+    kind: {
+      type: 'string',
+      title: 'Kind',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    ref: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Ref',
+    },
+    version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version',
+    },
+    fingerprint: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Fingerprint',
+    },
+    component_version_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Component Version Id',
+    },
+  },
+  type: 'object',
+  required: ['kind', 'name'],
+  title: 'ServedBy',
+  description: 'One thing that served a call, with the version that was live.',
+} as const;
+
 export const SimulatorModeSchema = {
   type: 'string',
   enum: ['llm', 'scripted'],
@@ -8915,6 +9087,43 @@ export const ValidationErrorSchema = {
   type: 'object',
   required: ['loc', 'msg', 'type'],
   title: 'ValidationError',
+} as const;
+
+export const VersionResolveResultSchema = {
+  properties: {
+    calls_resolved: {
+      type: 'integer',
+      title: 'Calls Resolved',
+      description: 'Calls that now list what served them',
+    },
+    calls_unresolved: {
+      type: 'integer',
+      title: 'Calls Unresolved',
+      description: 'Calls whose version could not be read',
+    },
+    versions_read: {
+      type: 'integer',
+      title: 'Versions Read',
+      description: 'Agent versions read from the provider',
+    },
+    skills_recorded: {
+      type: 'integer',
+      title: 'Skills Recorded',
+      description: 'Workflow versions newly recorded',
+    },
+    problems: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Problems',
+      default: [],
+    },
+  },
+  type: 'object',
+  required: ['calls_resolved', 'calls_unresolved', 'versions_read', 'skills_recorded'],
+  title: 'VersionResolveResult',
+  description: "What resolving an agent's stored calls did.",
 } as const;
 
 export const WebhookResultSchema = {

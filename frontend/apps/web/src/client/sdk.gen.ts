@@ -75,6 +75,15 @@ import type {
   CompanyUpdateLlmCredentialsData,
   CompanyUpdateLlmCredentialsErrors,
   CompanyUpdateLlmCredentialsResponses,
+  ComponentVersionsGetAgentComponentVersionData,
+  ComponentVersionsGetAgentComponentVersionErrors,
+  ComponentVersionsGetAgentComponentVersionResponses,
+  ComponentVersionsListAgentComponentVersionsData,
+  ComponentVersionsListAgentComponentVersionsErrors,
+  ComponentVersionsListAgentComponentVersionsResponses,
+  ComponentVersionsResolveAgentCallVersionsData,
+  ComponentVersionsResolveAgentCallVersionsErrors,
+  ComponentVersionsResolveAgentCallVersionsResponses,
   ConfigGetAvailableMetricsData,
   ConfigGetAvailableMetricsErrors,
   ConfigGetAvailableMetricsResponses,
@@ -2958,6 +2967,88 @@ export class ToolBackendsService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+    });
+  }
+}
+
+export class ComponentVersionsService {
+  /**
+   * List Agent Component Versions
+   *
+   * Every version seen for the agent, newest first within each kind. No content.
+   */
+  public static componentVersionsListAgentComponentVersions<ThrowOnError extends boolean = false>(
+    options: Options<ComponentVersionsListAgentComponentVersionsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      ComponentVersionsListAgentComponentVersionsResponses,
+      ComponentVersionsListAgentComponentVersionsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/component-versions',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Agent Component Version
+   *
+   * One version with its content, credentials masked.
+   */
+  public static componentVersionsGetAgentComponentVersion<ThrowOnError extends boolean = false>(
+    options: Options<ComponentVersionsGetAgentComponentVersionData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      ComponentVersionsGetAgentComponentVersionResponses,
+      ComponentVersionsGetAgentComponentVersionErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/component-versions/{component_version_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Resolve Agent Call Versions
+   *
+   * Work out what served the agent's stored calls that do not say yet.
+   *
+   * Reads each agent version from the provider once. Safe to run again.
+   */
+  public static componentVersionsResolveAgentCallVersions<ThrowOnError extends boolean = false>(
+    options: Options<ComponentVersionsResolveAgentCallVersionsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      ComponentVersionsResolveAgentCallVersionsResponses,
+      ComponentVersionsResolveAgentCallVersionsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/versions/resolve',
+      ...options,
     });
   }
 }
