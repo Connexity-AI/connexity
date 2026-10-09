@@ -93,6 +93,10 @@ class Settings(BaseSettings):
 
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
 
+    # Addresses users supply for their own systems (an n8n instance) must be https and
+    # public. Turn this on only for a self-hosted Connexity or local development.
+    ALLOW_PRIVATE_INTEGRATION_URLS: bool = False
+
     API_V1_STR: str = "/api/v1"
     AUTH_COOKIE: str = "auth_cookie"
     # Cookie expiration and JWT expiration match

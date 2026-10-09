@@ -12,15 +12,19 @@ pnpm turbo check-types   # TypeScript (regenerates Next route types, then tsc --
 
 ## What the UI is for
 
-The UI is for seeing and deciding. Creating and editing happen through the user's
-assistant. Do not add:
+The assistant can do everything, and the UI is not held back on purpose: anything the
+API lets the assistant create or change in Connexity (connections, agents and their
+links, and later spec rules, tests, judges and checks), a person can also do in the UI.
+Both go through the same API.
+
+Do not add:
 
 - a chat box, or anything that replies to the user
-- editors for prompts, tools or workflows
-- forms that create tests, judges, metrics or connections
-
-The user types in exactly three places: a comment on a moment in a call, an answer to a
-decision question, and an edit to a spec rule.
+- editors for the agent's prompts, tools or workflows, or anything that deploys or
+  writes to a provider. Connexity never changes the agent itself.
+- AI that generates content inside the product (an internal assistant, test case
+  generation). That is the external assistant's work.
+- anything removed during the rebuild, without asking first
 
 ## Architecture
 

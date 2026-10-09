@@ -18,6 +18,7 @@ from app.models.enums import (
     TraceCapability,
     TraceSource,
 )
+from app.models.execution import Execution
 from app.models.trace import Trace
 
 
@@ -187,6 +188,8 @@ class CallPublic(SQLModel):
 class CallTracePublic(SQLModel):
     trace: Trace
     capabilities: list[TraceCapability]
+    # What the backend did for each tool call that has a known execution.
+    executions: list[Execution] = []
 
 
 class CallsPublic(SQLModel):

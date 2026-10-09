@@ -16,13 +16,25 @@ import {
 } from '@workspace/ui/components/ui/dropdown-menu';
 import { cn } from '@workspace/ui/lib/utils';
 
-import { useCallTrace, useSetCallLabel } from '@/app/(app)/(agent)/_hooks/use-calls';
-import { CallLabel, Speaker, ToolCallStatus } from '@/client/types.gen';
+import {
+  useCallTrace,
+  useRefreshCallExecutions,
+  useSetCallLabel,
+} from '@/app/(app)/(agent)/_hooks/use-calls';
+import {
+  CallLabel,
+  ExecutionMatch,
+  ExecutionStatus,
+  Speaker,
+  ToolCallStatus,
+} from '@/client/types.gen';
 import { CallLabelChip } from './call-label-chip';
 import { formatDate, formatDuration, formatEnumLabel, formatTimestamp } from './observe-format';
 
 import type {
   CallPublic,
+  Execution,
+  ExecutionStep,
   MarkerEvent,
   ToolCallEvent,
   TraceOutput,
@@ -37,6 +49,9 @@ interface CallPanelProps {
 export function CallPanel({ agentId, call }: CallPanelProps) {
   const traceQuery = useCallTrace(call.id, call.has_trace);
   const trace = traceQuery.data?.trace ?? null;
+  const executions = traceQuery.data?.executions ?? [];
+  const refreshExecutions = useRefreshCallExecutions(call.id);
+  const hasToolCalls = trace?.events.some((event) => event.type === 'tool_call') ?? false;
 
   const setLabel = useSetCallLabel(agentId);
   const currentLabel = call.label ?? null;
@@ -116,13 +131,32 @@ export function CallPanel({ agentId, call }: CallPanelProps) {
       </div>
 
       <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
-        <p className="mb-4 text-[10px] uppercase tracking-wider text-muted-foreground">
-          Conversation
-        </p>
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Conversation</p>
+          {hasToolCalls ? (
+            <button
+              type="button"
+              disabled={refreshExecutions.isPending}
+              onClick={() => refreshExecutions.mutate()}
+              className="text-[10px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline disabled:opacity-60"
+              title="Look in the mapped backends for what happened behind each tool call"
+            >
+              {refreshExecutions.isPending ? 'Looking…' : 'Find executions'}
+            </button>
+          ) : null}
+        </div>
+        {refreshExecutions.data ? (
+          <p className="text-[10px] text-muted-foreground">
+            {refreshExecutions.data.matched} of {refreshExecutions.data.mapped} mapped tool calls
+            have an execution.
+            {refreshExecutions.data.problems?.[0] ? ` ${refreshExecutions.data.problems[0]}` : ''}
+          </p>
+        ) : null}
         <CallEvents
           hasTrace={call.has_trace}
           isLoading={traceQuery.isLoading}
           trace={trace}
+          executions={executions}
         />
       </div>
     </div>
@@ -133,9 +167,10 @@ interface CallEventsProps {
   hasTrace: boolean;
   isLoading: boolean;
   trace: TraceOutput | null;
+  executions: Execution[];
 }
 
-function CallEvents({ hasTrace, isLoading, trace }: CallEventsProps) {
+function CallEvents({ hasTrace, isLoading, trace, executions }: CallEventsProps) {
   if (!hasTrace) {
     return (
       <p className="text-xs text-muted-foreground">
@@ -154,7 +189,15 @@ function CallEvents({ hasTrace, isLoading, trace }: CallEventsProps) {
   }
   return trace.events.map((event) => {
     if (event.type === 'utterance') return <UtteranceBubble key={event.id} event={event} />;
-    if (event.type === 'tool_call') return <ToolCallBlock key={event.id} event={event} />;
+    if (event.type === 'tool_call') {
+      return (
+        <ToolCallBlock
+          key={event.id}
+          event={event}
+          execution={executions.find((execution) => execution.event_id === event.id)}
+        />
+      );
+    }
     if (event.type === 'marker') return <MarkerLine key={event.id} event={event} />;
     return null;
   });
@@ -171,7 +214,12 @@ const TOOL_STATUS_STYLES: Record<ToolCallStatus, string> = {
   [ToolCallStatus.NO_RESULT]: 'border-border bg-accent/30 text-muted-foreground',
 };
 
-function ToolCallBlock({ event }: { event: ToolCallEvent }) {
+interface ToolCallBlockProps {
+  event: ToolCallEvent;
+  execution?: Execution;
+}
+
+function ToolCallBlock({ event, execution }: ToolCallBlockProps) {
   const timestamp = eventTimestamp(event.start_ms);
   const status = event.status ?? null;
   const hasResult = event.result !== null && event.result !== undefined;
@@ -204,6 +252,11 @@ function ToolCallBlock({ event }: { event: ToolCallEvent }) {
                   {formatEnumLabel(status)}
                 </span>
               ) : null}
+              {execution ? (
+                <span className="shrink-0 rounded border border-border px-1.5 py-px text-[10px] text-muted-foreground">
+                  {execution.steps?.length ?? 0} steps
+                </span>
+              ) : null}
             </span>
           </AccordionTrigger>
           <AccordionContent className="space-y-3 px-3 pb-3 pt-3">
@@ -213,10 +266,99 @@ function ToolCallBlock({ event }: { event: ToolCallEvent }) {
               value={hasResult ? event.result : null}
               empty="No result was logged"
             />
+            {execution ? <ExecutionDetail execution={execution} /> : null}
           </AccordionContent>
         </AccordionItem>
       </Accordion>
     </div>
+  );
+}
+
+const EXECUTION_STATUS_STYLES: Record<ExecutionStatus, string> = {
+  [ExecutionStatus.OK]: 'bg-emerald-400',
+  [ExecutionStatus.ERROR]: 'bg-rose-400',
+  [ExecutionStatus.RUNNING]: 'bg-amber-400',
+  [ExecutionStatus.CANCELED]: 'bg-muted-foreground',
+  [ExecutionStatus.UNKNOWN]: 'bg-muted-foreground',
+};
+
+function ExecutionDetail({ execution }: { execution: Execution }) {
+  const steps = execution.steps ?? [];
+  return (
+    <div>
+      <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60">
+        Execution
+      </p>
+      <p className="mb-2 text-[10px] text-muted-foreground">
+        {execution.workflow_name ?? execution.workflow_id ?? execution.provider}
+        {' · '}
+        {formatEnumLabel(execution.status ?? ExecutionStatus.UNKNOWN)}
+        {execution.match === ExecutionMatch.GUESS ? (
+          <span
+            className="ml-1.5 rounded border border-amber-500/30 bg-amber-500/10 px-1 py-px text-amber-400"
+            title="The backend received no call id, so this was matched on arguments and time only"
+          >
+            Guess
+          </span>
+        ) : null}
+      </p>
+      {steps.length === 0 ? (
+        <p className="text-[10px] text-muted-foreground/60">The backend kept no step data.</p>
+      ) : (
+        <ol className="space-y-1">
+          {steps.map((step, index) => (
+            <ExecutionStepRow key={`${step.name}-${index}`} step={step} />
+          ))}
+        </ol>
+      )}
+    </div>
+  );
+}
+
+function ExecutionStepRow({ step }: { step: ExecutionStep }) {
+  const status = step.status ?? ExecutionStatus.OK;
+  const hasOutput = step.output !== null && step.output !== undefined;
+  const hasError = step.error !== null && step.error !== undefined;
+  const inputFrom = step.input_from ?? [];
+
+  return (
+    <li>
+      <details className="rounded border border-border/60 bg-background/40">
+        <summary className="flex cursor-pointer items-center gap-2 px-2 py-1.5 text-[11px]">
+          <span
+            className={cn('h-1.5 w-1.5 shrink-0 rounded-full', EXECUTION_STATUS_STYLES[status])}
+          />
+          <span className="truncate text-foreground/90">{step.name}</span>
+          {step.kind ? (
+            <span className="shrink-0 font-mono text-[10px] text-muted-foreground/60">
+              {step.kind}
+            </span>
+          ) : null}
+          {typeof step.duration_ms === 'number' ? (
+            <span className="ml-auto shrink-0 tabular-nums text-[10px] text-muted-foreground/60">
+              {step.duration_ms} ms
+            </span>
+          ) : null}
+        </summary>
+        <div className="space-y-2 border-t border-border/40 px-2 py-2">
+          {inputFrom.length > 0 ? (
+            <p className="text-[10px] text-muted-foreground">
+              Input: the output of {inputFrom.join(', ')}
+            </p>
+          ) : null}
+          {hasError ? <ToolCallSection label="Error" value={step.error} empty="" /> : null}
+          {hasOutput ? (
+            <ToolCallSection label="Output" value={step.output} empty="" />
+          ) : (
+            <p className="text-[10px] text-muted-foreground/60">
+              {step.data_dropped
+                ? 'Output not kept: the execution was over the size limit.'
+                : 'No output.'}
+            </p>
+          )}
+        </div>
+      </details>
+    </li>
   );
 }
 

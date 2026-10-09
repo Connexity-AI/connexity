@@ -52,8 +52,11 @@ the next slice, what is kept, frozen and deleted, and the open questions.
    its tests, routes, generated client and docs in the same PR. Before deleting anything
    not listed in `REBUILD.md`, ask.
 8. **Do not build what the vision rules out:** chat, editors for prompts or workflows,
-   creation forms, deploying or writing to providers, features about a system rather
-   than an agent's conversation.
+   deploying or writing to providers, AI that generates content inside the product
+   (an internal assistant, test case generation), features about a system rather than
+   an agent's conversation. Nothing removed in the rebuild comes back without asking.
+   **The UI is not held back otherwise:** anything the assistant can create or change
+   in Connexity through the API, a person can also do in the UI.
 9. **The repo is public.** Never commit real call data, client names or secrets.
 
 ## Commands

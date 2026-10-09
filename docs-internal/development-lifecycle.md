@@ -151,8 +151,10 @@ timeout, empty response and malformed response.
   same PR.
 - **Frozen code stays frozen.** Areas marked Freeze in `REBUILD.md` keep compiling and
   passing tests, but get no new features until their phase.
-- **No builder features.** If a change adds an editor, a creation form or anything that
-  talks back, it contradicts the vision. Stop and ask.
+- **No builder features.** If a change adds an editor for the agent's prompts or
+  workflows, AI that generates content inside the product, anything that talks back, or
+  brings back something the rebuild removed, it contradicts the vision. Stop and ask.
+  Forms for what Connexity itself holds are fine: the UI may do anything the API does.
 - **The feature test** (vision section 16): does this describe an agent's conversation
   or something that conversation touched? If not, it does not belong.
 - **Read-only toward providers.** The product ingests and compares. It does not deploy,

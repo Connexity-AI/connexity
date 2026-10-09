@@ -24,6 +24,8 @@ export const testCaseKeys = {
 export const integrationKeys = {
   all: ['integrations'] as const,
   list: () => ['integrations', 'list'] as const,
+  workflows: (integrationId: string) => ['integrations', 'workflows', integrationId] as const,
+  agentTools: (agentId: string) => ['integrations', 'agent-tools', agentId] as const,
 };
 
 export const evalConfigKeys = {

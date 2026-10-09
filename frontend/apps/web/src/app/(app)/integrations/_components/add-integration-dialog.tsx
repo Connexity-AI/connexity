@@ -26,8 +26,15 @@ const INPUT_CLASS =
   'w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50';
 
 export const AddIntegrationDialog: FC<Props> = ({ open, onOpenChange }) => {
-  const { form, dialogState, errorMessage, selectedProvider, handleOpenChange, onSubmit } =
-    useAddIntegrationDialog({ onOpenChange });
+  const {
+    form,
+    needsAddress,
+    dialogState,
+    errorMessage,
+    selectedProvider,
+    handleOpenChange,
+    onSubmit,
+  } = useAddIntegrationDialog({ onOpenChange });
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -53,7 +60,7 @@ export const AddIntegrationDialog: FC<Props> = ({ open, onOpenChange }) => {
                     <FormLabel className="text-xs text-muted-foreground mb-2 block">
                       Provider
                     </FormLabel>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-4 gap-2">
                       {PROVIDERS.map((item) => (
                         <Button
                           key={item.value}
@@ -100,6 +107,33 @@ export const AddIntegrationDialog: FC<Props> = ({ open, onOpenChange }) => {
                 )}
               />
 
+              {needsAddress ? (
+                <FormField
+                  control={form.control}
+                  name="base_url"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs text-muted-foreground mb-2 block">
+                        Instance address
+                      </FormLabel>
+                      <FormControl>
+                        <input
+                          {...field}
+                          type="url"
+                          placeholder="https://your-name.app.n8n.cloud"
+                          className={`${INPUT_CLASS} font-mono`}
+                          disabled={dialogState === 'testing'}
+                        />
+                      </FormControl>
+                      <p className="text-[10px] text-muted-foreground/60 mt-1">
+                        Connexity only reads executions. Use a read-only key if your plan has them.
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : null}
+
               {/* API Key */}
               <FormField
                 control={form.control}
@@ -127,9 +161,6 @@ export const AddIntegrationDialog: FC<Props> = ({ open, onOpenChange }) => {
                       >
                         {selectedProvider.docsLabel}
                       </a>
-                      <p className="text-[10px] text-muted-foreground/40">
-                        Tip: Use &quot;test-error&quot; to demo error state
-                      </p>
                     </div>
                     <FormMessage />
                   </FormItem>
@@ -139,9 +170,7 @@ export const AddIntegrationDialog: FC<Props> = ({ open, onOpenChange }) => {
               {dialogState === 'error' && errorMessage && (
                 <div className="flex items-center gap-2.5 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3">
                   <XCircle className="w-4 h-4 shrink-0 text-destructive" />
-                  <p className="text-sm text-destructive">
-                    Connection failed. Please check your API key.
-                  </p>
+                  <p className="text-sm text-destructive">{errorMessage}</p>
                 </div>
               )}
 

@@ -19,6 +19,7 @@ from app.api.routes import (
     runs,
     test_case_results,
     test_cases,
+    tool_backends,
     users,
     webhooks,
 )
@@ -45,6 +46,7 @@ api_router.include_router(calls.router)
 api_router.include_router(ingest.router)
 api_router.include_router(ingest.tokens_router)
 api_router.include_router(webhooks.router)
+api_router.include_router(tool_backends.router)
 api_router.include_router(company.router)
 
 root_router = APIRouter()

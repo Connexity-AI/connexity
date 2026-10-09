@@ -15,10 +15,12 @@ from app.models import (
     CallRefreshResult,
     CallsPublic,
     CallTracePublic,
+    ExecutionSyncResult,
     Message,
 )
 from app.models.agent import Agent
 from app.services.call_sync import emit, sync_agent_calls
+from app.services.executions import sync_call_executions
 from app.services.trace_capabilities import derive_capabilities
 
 logger = logging.getLogger(__name__)
@@ -181,4 +183,23 @@ def get_call_trace(
         raise HTTPException(
             status_code=404, detail="This call has not been converted to a trace yet"
         )
-    return CallTracePublic(trace=trace, capabilities=derive_capabilities(trace))
+    return CallTracePublic(
+        trace=trace,
+        capabilities=derive_capabilities(trace),
+        executions=crud.get_executions(session=session, call=call),
+    )
+
+
+@router.post("/calls/{call_id}/executions/refresh", response_model=ExecutionSyncResult)
+async def refresh_call_executions(
+    session: SessionDep,
+    company_id: CurrentCompany,
+    call_id: uuid.UUID,
+) -> ExecutionSyncResult:
+    """Look again for what the backend did for this call's tool calls.
+
+    For a call stored before its tools were mapped to workflows. A backend only keeps
+    its history for a while, so an old call may find nothing.
+    """
+    call = _call_or_404(session=session, call_id=call_id, company_id=company_id)
+    return await sync_call_executions(session=session, call=call)

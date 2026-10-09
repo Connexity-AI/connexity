@@ -11,8 +11,11 @@ from app.models import (
     IntegrationPublic,
     IntegrationsPublic,
     Message,
+    WorkflowSummary,
 )
 from app.services.elevenlabs import check_elevenlabs_connection, list_elevenlabs_agents
+from app.services.n8n import N8nError, check_n8n_connection, list_n8n_workflows
+from app.services.outbound_url import OutboundUrlError, normalize_base_url
 from app.services.retell import (
     RetellAgentSummary,
     list_retell_agents,
@@ -27,11 +30,23 @@ _CONNECTION_TESTERS = {
 }
 
 
-async def _test_connection(provider: IntegrationProvider, api_key: str) -> bool:
+# Providers whose connection is to the user's own instance, so it needs an address.
+_PROVIDERS_WITH_ADDRESS = {IntegrationProvider.N8N}
+
+
+async def _test_connection(
+    provider: IntegrationProvider, api_key: str, base_url: str | None
+) -> str | None:
+    """Try the connection. Returns ``None`` when it works, else what went wrong."""
+    if provider == IntegrationProvider.N8N:
+        if not base_url:
+            return "An n8n connection needs the address of the n8n instance"
+        result = await check_n8n_connection(base_url, api_key)
+        return None if result.ok else result.message
     tester = _CONNECTION_TESTERS.get(provider)
-    if tester is None:
-        return False
-    return await tester(api_key)
+    if tester is None or not await tester(api_key):
+        return "Could not connect to provider — check your API key and try again"
+    return None
 
 
 def _agent_priority(agent: RetellAgentSummary) -> tuple[int, int]:
@@ -65,12 +80,22 @@ async def create_integration(
     company_id: CurrentCompany,
     integration_in: IntegrationCreate,
 ) -> IntegrationPublic:
-    ok = await _test_connection(integration_in.provider, integration_in.api_key)
-    if not ok:
+    if integration_in.provider in _PROVIDERS_WITH_ADDRESS:
+        try:
+            integration_in.base_url = normalize_base_url(integration_in.base_url or "")
+        except OutboundUrlError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+    elif not (integration_in.base_url or "").strip():
+        integration_in.base_url = None
+    else:
         raise HTTPException(
-            status_code=400,
-            detail="Could not connect to provider — check your API key and try again",
+            status_code=400, detail="This provider does not take an address"
         )
+    problem = await _test_connection(
+        integration_in.provider, integration_in.api_key, integration_in.base_url
+    )
+    if problem is not None:
+        raise HTTPException(status_code=400, detail=problem)
     db_obj = crud.create_integration(
         session=session, data=integration_in, company_id=company_id
     )
@@ -128,9 +153,13 @@ async def test_integration(
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
     api_key = decrypt(integration.encrypted_api_key)
-    ok = await _test_connection(integration.provider, api_key)
-    if not ok:
-        raise HTTPException(status_code=400, detail="Connection test failed")
+    problem = await _test_connection(
+        integration.provider, api_key, integration.base_url
+    )
+    if problem is not None:
+        raise HTTPException(
+            status_code=400, detail=f"Connection test failed: {problem}"
+        )
     return Message(message="Connection successful")
 
 
@@ -174,3 +203,29 @@ async def list_integration_agents(
         ]
         return _dedupe_agents(mapped)
     raise HTTPException(status_code=400, detail="Provider does not expose agents")
+
+
+@router.get("/{integration_id}/workflows", response_model=list[WorkflowSummary])
+async def list_integration_workflows(
+    session: SessionDep,
+    company_id: CurrentCompany,
+    integration_id: uuid.UUID,
+) -> list[WorkflowSummary]:
+    """The names of an n8n connection's workflows, for mapping a tool to one."""
+    integration = crud.get_integration(
+        session=session, integration_id=integration_id, company_id=company_id
+    )
+    if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    if integration.provider != IntegrationProvider.N8N:
+        raise HTTPException(status_code=400, detail="Provider has no workflows")
+    try:
+        workflows = await list_n8n_workflows(
+            integration.base_url or "", decrypt(integration.encrypted_api_key)
+        )
+    except N8nError as exc:
+        raise HTTPException(status_code=502, detail=f"n8n: {exc}") from exc
+    return [
+        WorkflowSummary(id=workflow.id, name=workflow.name, active=workflow.active)
+        for workflow in workflows
+    ]

@@ -7,6 +7,7 @@ import time
 import uuid
 from collections.abc import Generator
 from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from cryptography.fernet import Fernet
@@ -291,3 +292,22 @@ def test_a_signed_body_that_is_not_json_is_rejected(
     _agent, integration, _provider_agent_id = _retell_agent(db)
     r = _post(client, integration.id, b"not json")
     assert r.status_code == 422
+
+
+def test_a_stored_call_is_looked_up_for_executions_after_the_response(
+    client: TestClient, db: Session
+) -> None:
+    agent, integration, provider_agent_id = _retell_agent(db)
+    payload = retell_call("call_wh_exec", agent_id=provider_agent_id)
+    with patch(
+        "app.api.routes.webhooks.sync_call_executions_in_background", AsyncMock()
+    ) as looked_up:
+        r = _post(client, integration.id, {"event": "call_ended", "call": payload})
+        ignored = _post(
+            client, integration.id, {"event": "call_started", "call": payload}
+        )
+    assert r.status_code == 200
+    assert ignored.json()["status"] == "ignored"
+    assert looked_up.await_count == 1
+    call = db.exec(select(Call).where(Call.agent_id == agent.id)).one()
+    assert looked_up.await_args.args == (call.id,)

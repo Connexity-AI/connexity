@@ -2,7 +2,8 @@
 
 > **Status: schema version 1.** Connexity validates and stores traces in this shape, and
 > you can send one yourself: see [Sending a trace](./ingest.md). Retell calls are
-> mapped to it automatically: see [Retell calls](./retell.md). Worked examples are in [`examples/`](./examples/).
+> mapped to it automatically: see [Retell calls](./retell.md). What a backend did for a
+> tool call is described in [n8n executions](./n8n.md). Worked examples are in [`examples/`](./examples/).
 
 A **trace** is Connexity's record of one call: who said what and when, what tools the
 agent called and what came back, what the agent was given before the call, and which
