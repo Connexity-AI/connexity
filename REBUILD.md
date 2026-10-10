@@ -60,18 +60,24 @@ history of a slice is its plan file in `plans/`.
 | 1.3 | Retell reference mapping | Done (PR #166) |
 | 1.3b | Vapi and ElevenLabs reference mappings | Not started |
 | 1.4 | Skill executions (n8n) | Done (PR #167) |
-| 1.5 | Component versions | PR open, awaiting merge |
+| 1.5 | Component versions | Done (PR #168) |
+| 1.4b | Executions looked up without a button | Done (PR #169) |
 | 1.6 | CRM data per call (GoHighLevel) | Not started |
 | 1.7 | Calls screen | Not started |
 | 1.8 | MCP read surface | Not started |
+| 2.0 | Design: checks, findings, issues and incidents | PR open, awaiting merge |
 | 2.1 | Check engine | Not started |
-| 2.2 | First check library | Not started |
-| 2.3 | Backfill and check results in the UI | Not started |
-| 2.4 | Inbox v0 | Not started |
+| 2.2 | First rule checks and facts | Not started |
+| 2.3 | Issues, incidents and reliability | Not started |
+| 2.4 | Findings, issues and incidents on screen | Not started |
+| — | Inbox | Postponed: designed separately |
+| — | Tests against issues | Postponed: designed separately |
+| — | Alerting | Postponed: its own project |
 | M1 | Milestone 1 exit review | Not started |
 
-**Next slice:** 1.6 (CRM data per call), or Phase 2 (Check) first; the roadmap lets 1.6
-move after Phase 2. To be chosen once the 1.5 PR is merged.
+**Next slice:** 2.1 (check engine). The candidate checks have been tried on stored real
+calls; what that showed is under 2.2. Before 2.4, design where a person sees findings,
+issues and incidents without an inbox.
 
 Open, carried from earlier slices:
 
@@ -311,54 +317,96 @@ Design session first, then models and migration.
 
 ## 6. Phase 2: Check (ladder level 2)
 
-Goal: deterministic checks run on every call and on history, and failures reach a human.
+Goal: every real call is checked, what is wrong with it is grouped into issues, and a
+period of failing calls is an incident a person can respond to and review.
+
+The model is in the vision, section 7 (Decided 2026-10-10): check, fact, finding, issue,
+incident, metric, decision record. Read it before any slice here. Tests, the inbox and
+alerting are designed separately and are not in this phase.
+
+### 2.0 Design
+
+- Done in conversation on 2026-10-10 and written into the vision and this file.
 
 ### 2.1 Check engine
 
-- A check is a pure function from a canonical trace to a list of findings. Each finding
-  points at exact turns or tool calls.
-- No model calls in this tier.
-- Registry, per-agent enablement and parameters, results stored per call and per check
-  version.
-- Runs on every ingest.
-- **Done when:** a trivial check runs on ingest and its finding is stored against the
-  right turn.
+- A rule check is a pure function from a trace and its facts to findings. Each finding
+  points at exact events and records the check's version.
+- Facts: values derived from the trace and attached to a moment in it.
+- A registry of checks, and a setting per agent per check: off, flags, or fails the
+  call. Every change to a setting is a decision record.
+- Runs when a call arrives. No model calls.
+- **Done when:** a trivial check runs on arrival, its finding is stored against the
+  right event, and changing its setting is recorded with who, when and why.
 
-### 2.2 First check library
+### 2.2 First rule checks and facts
 
-From §7 and the evidence in §2:
+- The types that are true under any prompt: tool call failed (including a failed step
+  inside the backend, read from the execution), tool call got no result, agent stopped
+  responding, same thing said twice, stage directions spoken aloud, and slow response as
+  a flag only.
+- The types that depend on what the agent was instructed to do wait for the spec: value
+  from nowhere, value spoken before the tool answered, two questions in one turn, agent
+  ended the call early.
+- A check added later can run over history. Those findings are shown but do not change
+  past reliability.
+- **Done when:** each check has tests with a failing and a passing example, and a count
+  of findings on real calls with a hand-reviewed sample.
 
-- **Number provenance:** every dollar figure the agent says traces to a tool result, an
-  input variable, or something the caller said.
-- **Value spoken on an empty result:** a price stated when the backend returned nothing
-  or had not returned yet.
-- Two questions in one turn.
-- Stage directions spoken aloud.
-- A reply written on the caller's behalf, or several turns collapsed into one.
-- Hang-up directly after caller acceptance.
-- **Done when:** each check has unit tests built from real traces, with both a failing
-  and a passing example.
+What trying the candidates on stored real calls showed (2026-10-10, about 670 calls
+across two agents, counts only):
 
-### 2.3 Backfill and check results in the UI
+- **As first listed, the checks would have failed 40% to 50% of calls.** Almost all of
+  that was the instruction-based checks and a latency threshold set at the median.
+- **A timing check must reason about when speech ends, not the order of events.** Callers
+  say "yeah" while the agent is still talking. A first version of "caller spoke twice
+  with nothing from the agent between" raised 57 findings; 55 were the agent speaking
+  the whole time. Corrected, it raised 1, which looked real.
+- **"Agent silent for 10 seconds, then the caller hung up"** held up: 11 calls after the
+  same correction.
+- **The typical gap before the agent replies is about 1.6 seconds**, and one reply in ten
+  takes over 2.6. A fixed 2,000 ms threshold is not usable (Q9).
+- **Neither agent has one failed tool call**, because Retell reports success whenever the
+  webhook answered. A workflow can answer and still fail inside, so the check must also
+  read the execution's status.
+- **The checks will find little on the two connected agents.** What this phase proves is
+  the machinery. A fault agent that fails on command exists as local files
+  (`examples/fault-agent/`, ignored by git on Dmytro's machine, not yet set up) to give
+  the checks something real to find.
 
-- Run all checks over ingested history.
-- Show findings on the exact turns in the call screen, and a per-check summary per
-  agent.
-- **Done when:** the history of reference agent 1 is fully checked and browsable.
+### 2.3 Issues, incidents and reliability
 
-### 2.4 Inbox v0
+- Findings grouped into issues by agent, type and key. Issue states: open, resolved in a
+  version, regressed, accepted.
+- Incident records: opened by the first failed real call, closed by confirmation on real
+  calls or a quiet period, a recurrence marked as one. Each holds its calls, versions,
+  evidence and timeline.
+- A call is failed, degraded or clean. Reliability and quality per agent and per
+  version, with a mark where a check or a setting changed.
+- **Done when:** on the connected agents' history, every failed call belongs to exactly
+  one incident, and a reliability figure can be explained by listing the incidents
+  behind it.
 
-The inbox is the home screen (§11, §15). Version 0 is deliberately small.
+### 2.4 Findings, issues and incidents on screen
 
-- One item type: failed check.
-- Grouping: many calls failing the same check become one item.
-- Actions: acknowledge, dismiss as false positive (which is recorded against the check),
-  comment.
-- No routing rules, dispatch modes or approval policy yet. Those are Phase 6.
-- MCP tools so the assistant can list and read items.
-- **Done when:** the inbox is the landing page and shows grouped check failures.
+- Findings on the exact moment in a call. An agent's issues and incidents, an incident
+  page, and the agent's reliability and quality. To be designed before it is built;
+  there is no inbox to lean on.
+- **Done when:** a person can go from an agent's reliability figure to the incident, to
+  the call, to the moment.
+
+### Postponed, each with its own design
+
+- **Inbox.** Was 2.4. What an item is and what a person can do from it.
+- **Tests against issues.** Phase 4.
+- **Alerting.** Who is told about what, and how fast.
 
 ### Milestone 1 exit review
+
+> **To revisit (Open).** This was written when Phase 2 ended with an inbox and when
+> reference agent 1, the offer bot, was the agent in front of us. The inbox has moved
+> out of the phase, and the agents connected today are an inbound bot and a booking
+> agent. Dmytro has not restated the exit criteria.
 
 The milestone passes when the product would have caught what case study 1 (vision §2)
 suffered:
@@ -435,8 +483,9 @@ unless a slice depends on them.
 | # | Question | Blocks | Claude's recommendation |
 |---|---|---|---|
 | Q8 | Which tool does the automated review of a diff against its plan? | Nothing yet; plans are reviewed by people, code by CI | Dmytro is researching. Constraint from him: not the same provider or model that wrote the code. |
+| Q9 | How do measures that are always slightly present, such as latency, become incidents without one incident collecting thousands of findings? | 2.3, for the slow-response check only | Three directions in the vision, section 7: judge the call instead of the turn; open on a rise above the normal rate; split by what the agent was waiting on. Not decided. |
+| Q10 | What are the Milestone 1 exit criteria now that the inbox is out of Phase 2 and the offer bot is not connected? | The exit review | Restate them once 2.2 has run on real calls. |
 | Q5 | Where do real reference agent traces live for tests? They cannot go into a public repo. | 1.1 | A gitignored `fixtures-private/` directory plus a small set of hand-anonymised traces committed as test fixtures. |
-| Q6 | Are deterministic checks a built-in library with per-agent parameters, or can the assistant author new ones through the API? | 2.1 | Built-in library for Milestone 1. Assistant-authored checks need a sandbox and belong with Phase 4. |
 
 ---
 
@@ -492,6 +541,21 @@ Dmytro's only when he stated it in his own words.
 | 2026-10-09 | `AgentVersion` and the draft, publish and rollback routes are not touched in slice 1.5. They are decided with the eval stack in Phase 4. | Proposed by Claude; Dmytro agreed |
 | 2026-10-09 | Masking in stored content goes by field name (headers, and fields named like a key, token, secret or password), before fingerprinting. Fingerprints leave out timestamps, version numbers, publish flags and titles. | Proposed by Claude; Dmytro approved the slice 1.5 plan |
 | 2026-10-09 | No button for work the system knows it has to do. Versions of stored calls are resolved in the background, and executions are looked up on their own (when a mapping changes, and in the background sync). The API actions stay for the assistant. | Dmytro ("whats the reason for button?", "remove") |
+| 2026-10-10 | Development paused to design how checks, issues and incidents work before building Phase 2. | Dmytro |
+| 2026-10-10 | An incident is not a type of issue. An issue is always an issue; an incident is its own record of a period in which the issue failed real calls, with the context for response, remediation and post-mortem. One issue can have many incidents, and a recurrence is known as one. | Dmytro ("Issue is always and issue and incident it's more about tracking when it happened, who affected, blast radius") |
+| 2026-10-10 | Every failed call belongs to an incident. Issues from checks that only flag never become incidents. | Dmytro, from his question "Isnt every call breaking issue is the incident?" |
+| 2026-10-10 | An incident closes when real calls on the fixed version pass, or after a quiet period; never on a click alone. Reliability leaves out calls that never connected or reached voicemail. | Proposed by Claude; Dmytro agreed |
+| 2026-10-10 | The user controls what counts as failing a call, and every such decision is kept as an audit trail. A decision takes effect when it is made and never rewrites the past. The assistant proposes, a person confirms. A reason is required when the change improves the number. | Dmytro ("as any law it becomes effective when started") |
+| 2026-10-10 | An issue is identified by its symptom (agent, type, key), not its cause; the cause is recorded on the incident. Version, test-or-production and error text are not part of the identity. | Proposed by Claude; Dmytro agreed |
+| 2026-10-10 | Every finding comes from a named check. Open-ended discovery may only propose new checks. | Proposed by Claude; Dmytro agreed |
+| 2026-10-10 | One concept, "check", with three kinds: rule, classifier, judge. No separate rubric. A facts layer underneath. A judge answers pass or fail with evidence; no check produces a score. | Proposed by Claude; Dmytro agreed |
+| 2026-10-10 | Per agent each check is off, flags, or fails the call. This replaces a separate "trusted" state and a separate "call-breaking" flag. A call is failed, degraded or clean. | Proposed by Claude; Dmytro agreed ("ok") |
+| 2026-10-10 | Q6 closed: rule checks are a built-in library; classifiers and judges are defined as data. Custom checks are postponed (configurable patterns first, outside code last). A check the assistant runs and reports itself is ruled out or advisory only. | Proposed by Claude; Dmytro agreed ("lets postpone custom ones") |
+| 2026-10-10 | A metric is a number with no pass or fail; a threshold on one is a rule check. | Proposed by Claude; Dmytro agreed |
+| 2026-10-10 | Business outcomes are not this product: no outcome rate, no outcome analytics. Connexity verifies whether the agent did its job correctly. | Dmytro ("I dont want to go into business outcomes as its a different product") |
+| 2026-10-10 | Postponed, each to its own design: tests against issues, the inbox, alerting, shifts in a metric, team assignment (tentatively replaced by dispatch). | Dmytro |
+| 2026-10-10 | Checks that depend on what the agent was instructed to do wait for the spec; Phase 2 builds only checks that are true under any prompt. | Dmytro ("We either leave prompt checks now or design spec. I'd rather leave it") |
+| 2026-10-10 | The fault agent stays as local files, not in the repository. | Dmytro |
 
 ---
 

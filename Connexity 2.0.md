@@ -199,19 +199,164 @@ editing is deferred.
 
 ## 7. Verification
 
-### Three tiers (Proposed; heavy use of Jev Decided)
+### Checks, findings, issues and incidents (Decided 2026-10-10)
 
-1. **Deterministic checks.** Run on every transcript, no model involved. Examples:
-   - *Number provenance:* every dollar figure the agent says must trace to a backend
-     response, a pre-call variable, or something the caller said. Anything else was
-     invented.
-   - Two questions in one turn. Stage directions spoken aloud. A reply written on the
-     caller's behalf.
-2. **Classification models (Jev).** For bounded decisions that need language
-   understanding. Examples: did the caller accept, counter or defer; did the agent
-   answer the question or deflect; is the other party a human, a call screener or
-   voicemail; did the caller agree to the hold.
-3. **Language-model judges with rubrics.** Only for qualitative questions.
+This is the model for real calls. Tests, the inbox and alerting are designed separately
+and are not covered here.
+
+| Concept | What it is |
+|---|---|
+| **Check** | Anything that looks at a call and can raise a finding. |
+| **Fact** | Something derived from the trace and attached to a moment in it: an amount that was spoken, "the caller accepted". |
+| **Finding** | One thing wrong at one moment in one call, raised by one version of one check. It points at exact events in the trace. |
+| **Issue** | All findings with the same symptom on one agent. It lives forever. |
+| **Incident** | A period during which an issue was failing real calls, with everything needed to respond to it, fix it and review it afterwards. |
+| **Metric** | A number measured on a call. It has no pass or fail. |
+| **Decision record** | Who decided what, when and why. |
+
+**Checks.** One concept with three kinds, by how the check decides:
+
+1. **Rule:** code over the trace, no model. Free and instant. *The tool returned an
+   error. A dollar figure the agent said traces to no backend response, pre-call
+   variable or anything the caller said.*
+2. **Classifier:** a small model returns one label from a fixed set. *Did the caller
+   accept, counter or defer? Is the other party a person, a call screener or
+   voicemail?*
+3. **Judge:** a language model answers one question against written criteria. Only for
+   qualitative questions.
+
+- There is no separate "rubric". A rubric is a list of questions; each question is its
+  own check.
+- **No check produces a score.** A judge returns pass or fail, the moments in the call
+  it relied on, and a short reason. A pass or fail can be compared with a person's
+  answer; a number out of 100 cannot.
+- **Checks are rules over events and facts.** Most classifiers produce facts, and a rule
+  turns facts into a finding. A finding is only as reliable as the least reliable fact
+  it used.
+- **Every finding comes from a named check looking for a named thing.** An open-ended
+  "find anything wrong with this call" pass cannot raise findings. It may exist later as
+  discovery, whose output is a proposal for a new check that a person accepts.
+- A person can report a finding by hand, on a moment in a call.
+
+**Per agent, each check is off, flags, or fails the call.** The user decides.
+
+| Setting | Effect |
+|---|---|
+| Off | Does not run. |
+| Flags | Raises findings and issues. The call is not failed. |
+| Fails the call | A finding marks the call failed and belongs to an incident. |
+
+A rule check is tested code, so its default comes from its type. A classifier or a judge
+defaults to "flags". Each check shows its measured precision, from the findings people
+confirmed and dismissed, as advice next to the setting. Measuring a judge against calls
+a person labelled is designed when the first judge is built.
+
+**A call is failed, degraded or clean.** Failed: at least one finding from a check set
+to "fails the call". Degraded: findings, none of those. Clean: no findings.
+
+- **Reliability** is the share of production calls that are not failed. Calls that never
+  connected or reached voicemail are left out.
+- **Quality** is the share that are clean.
+- Both are shown per agent and per version. Neither rewrites the past (see decision
+  records).
+
+**An issue is identified by its symptom, not its cause.** Its identity is the agent, the
+issue type, and a key the type defines, usually the one thing that says what broke (the
+tool's name, the rule). The version, whether the call was a test, and the error text are
+not part of it, so the same issue can be found in a test and on a real call, and can
+come back after a release. An issue is open, resolved in a version, regressed, or
+accepted as known. The cause is recorded on each incident.
+
+Starting types. The first group is true under any prompt and is what Phase 2 builds.
+The second group depends on what the agent was instructed to do, so it waits for the
+spec (Decided 2026-10-10, after trying the checks on real calls).
+
+| Type | Key | Fails the call by default |
+|---|---|---|
+| Tool call failed, including a failed step inside the backend | Tool name | Yes |
+| Tool call got no result | Tool name | Yes |
+| Agent stopped responding | None | Yes |
+| Same thing said twice | None | No |
+| Stage directions spoken aloud | None | No |
+| Slow response | None | No, and only a flag until the open item on latency is settled |
+
+| Type, with the spec | Key | Why it waits |
+|---|---|---|
+| Value spoken that came from nowhere | Kind of value | Whether a value is legitimate depends on what the prompt or a rule allows. On one real agent, 370 of 385 spoken amounts were written in the prompt. |
+| Value spoken before the tool answered | Tool name | Needs the same matching of values. |
+| Two questions in one turn | None | A style rule, not a defect under every prompt. |
+| Agent ended the call early | None | Needs to know when the agent is meant to end; a caller speaking last is how a normal goodbye looks. |
+| Spec rule broken | The rule | Set per rule. |
+
+Where "two questions in one turn" belongs, and whether "same thing said twice" and
+"stage directions" stay in the first group, is Claude's split; Dmytro has not confirmed
+those three.
+
+Business issue types are the customer's own spec rules, not a fixed list of codes. They
+arrive with the spec (section 6).
+
+**An incident is its own record, and an issue can have many.** Every failed call belongs
+to exactly one incident, so a reliability figure can always be explained by listing the
+incidents behind it.
+
+- It **opens** on the first failed real call of an issue that has no open incident.
+- It **closes** when real calls on the fixed version have passed without it, or after a
+  quiet period, which is recorded as "stopped without a fix". Never on a click alone.
+- If it comes back before the fix was confirmed, the same incident continues. If it
+  comes back after a confirmed close, a new incident opens on the same issue and is
+  marked as a recurrence.
+- It holds what is needed for **response** (the calls and callers affected, the versions
+  and tools involved, the evidence, and what changed just before it started), for
+  **remediation** (what was done, by whom, the version that carried the fix, whether it
+  was confirmed), and for the **post-mortem** (a timeline, time to detect and to
+  resolve, the cause, and what came out of it).
+- Issues from checks that only flag never become incidents.
+
+**Decision records.** Every change to what a check does for an agent, every finding
+dismissed as wrong, every incident declared by hand and every resolution is recorded:
+who, when, what it applied to, the old and new value, and a reason.
+
+- A decision takes effect when it is made. It never rewrites past reliability; the chart
+  is marked at that date. The same mark is used when a check is added.
+- The assistant may propose a decision that changes the number; a person confirms it.
+- A reason is required when the change makes the number better.
+
+**Metrics.** Latency, cost, duration, time per tool. A threshold on a metric is a rule
+check ("the reply took over 2,000 ms"); the metric itself raises nothing.
+
+**Not this product (Decided 2026-10-10).** Connexity verifies whether the agent did its
+job correctly. It does not measure how much business that produced: conversion, revenue
+and return on investment belong to a company's own analytics. The provider's call
+analysis stays visible on the call, and data can be pulled out, but there is no outcome
+rate and no outcome dashboard.
+
+**Who makes checks.** Rule checks ship with Connexity as a library with settings per
+agent. Classifiers and judges are defined as data (a question, what counts as pass and
+fail, which calls it applies to) by the assistant or a person. Checks written as code
+from outside are postponed: configurable patterns first, sandboxed code last. A check the
+assistant runs by itself and reports is ruled out, or advisory at most, because it would
+be grading its own work.
+
+Proposed, not yet confirmed:
+
+- Titles follow Type, then Title, then Description. The type is fixed; the title
+  describes the specific event and is filled from a template ("Booking tool returned an
+  error"); no model writes it.
+- "Resolved in a version" records the time and the component version that carried the
+  fix. A later finding is a regression only if its call ran on that version or a later
+  one; versions are ordered by when they were first seen.
+- A person may later merge two issues, or split one by an attribute such as the kind of
+  error.
+
+Open:
+
+- **Measures that are always slightly present, such as latency.** "Any reply over 2,000
+  ms" never has a quiet period, so one incident collects thousands of findings and never
+  closes. Three directions, none chosen: judge the call instead of the turn; open on a
+  rise above the normal rate; split by what the agent was waiting on.
+- **Shifts.** A notable change in a metric between two versions, with no single call at
+  fault. Postponed until the foundation is solid.
+- Team assignment, tentatively replaced by dispatch to the assistant (section 11).
 
 **About Jev.** A model from TypeSafe AI that returns typed decisions with probabilities
 and does not generate text. Reported as roughly 100 ms to half a second per decision,
@@ -228,9 +373,9 @@ rubrics, labels, thresholds. The product stores, validates, runs and judges.
 
 - **Tests are validated on submission:** looping personas, stale mocks, ambiguous
   metrics.
-- **Judges are calibrated before they count:** agreement with human-labelled calls, and
-  stability across repeated runs. A judge starts as advisory and becomes trusted when
-  it clears a bar the user sets.
+- **Judges are measured before they count:** agreement with human-labelled calls, and
+  stability across repeated runs. A judge starts as "flags"; the user decides when it
+  may fail a call, with the measurements as advice.
 - **Changes to tests and judges are reviewed like changes to the agent.** If a fix also
   loosens a metric or a rubric, the review shows the before and after and the user
   approves it explicitly.
@@ -375,15 +520,16 @@ item if the session fails.
 
 ## 12. Incident response (Decided: a crucial role of the app, and part of onboarding)
 
-An incident is a problem on real calls that is still happening.
+An incident is a period during which an issue is failing real calls, kept as its own
+record with what is needed to respond, to fix and to review afterwards. The model is in
+section 7 (Decided 2026-10-10).
 
-Default severities (Proposed):
-
-| Severity | Examples |
-|---|---|
-| **Critical** | A money rule broken on a real call. A price spoken when the backend returned nothing. An invented number. |
-| **High** | Backend timeouts or failures. The agent hanging up on callers. Calls running on missing CRM data. An unverified version serving calls. |
-| **Medium** | A sudden drop in outcomes. A spike in one failed check. |
+The earlier severity table is withdrawn. Whether a problem is an incident is no longer a
+matter of severity: it follows from the check being set to "fails the call". Two of its
+rows were not incidents under this model. A spike in a check that only flags is an
+escalation of an issue. A sudden drop in outcomes has no single call at fault; it is a
+shift in a metric, which is postponed, and business outcomes are outside the product.
+Who is told about what, and how fast, is alerting, which is designed separately.
 
 Lifecycle (Proposed): detect, group, size the exposure, contain, diagnose and fix,
 verify and deploy, confirm on the next real calls, close with a new rule or test.
@@ -481,7 +627,8 @@ Inside an agent (Proposed):
   classifiers with calibration status.
 - **Versions:** a timeline of changes across prompt, skills and tests, with approvals,
   verification results, bypasses and rollback.
-- **Overview:** outcomes in business terms.
+- **Overview:** reliability and quality per version, with the incidents behind them.
+  Not business outcomes (section 7).
 
 Not in the UI: a chat box, editors for the agent's prompts or workflows, anything that
 deploys or writes to a provider, AI that generates content inside the product (an
@@ -499,6 +646,8 @@ setting up connections (Decided 2026-10-09).
 - A deploy pipeline. The assistant deploys.
 - A simulator that replaces the agent's own engine.
 - A product for teams that deploy manually.
+- Business analytics. Conversion, revenue and return on investment belong to a
+  company's own tools.
 
 Test for any future feature: does it describe an agent's conversation, or something
 that conversation touched? If yes, it can belong. If it describes another system on its
