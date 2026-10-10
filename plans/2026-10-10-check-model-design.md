@@ -104,7 +104,11 @@ Proposed by Claude and **not** confirmed, written into the vision as Proposed:
 
 ### Deviations from the plan
 
-None. The plan was written after the conversation it records and alongside the edits.
+- **The starting type list was split after the pull request was opened.** The candidate
+  checks were tried on stored real calls the same day. Dmytro then decided that checks
+  depending on what the agent was instructed to do wait for the spec. The vision's list
+  is now two groups, and the roadmap's slice 2.2 records what the run showed. Which
+  group three of the types belong in is Claude's split and is marked as unconfirmed.
 
 ### Check results
 
@@ -129,7 +133,7 @@ Against the done-when:
 | The vision states the model and nothing describes the old one | Yes for sections 7, 12, 15 and 16. Sections 11 and 12 still use "severity" in Proposed parts that belong to alerting and the inbox; left on purpose |
 | Each statement marked Decided, Proposed or Open | Yes |
 | Phase 2 matches the model, without the inbox slice | Yes |
-| A decision-log entry for each decision | Yes, 13 entries dated 2026-10-10 |
+| A decision-log entry for each decision | Yes, 15 entries dated 2026-10-10 |
 | `make check` passes | Yes, every step |
 
 `/code-review` was not run: no code changed.

@@ -267,21 +267,30 @@ not part of it, so the same issue can be found in a test and on a real call, and
 come back after a release. An issue is open, resolved in a version, regressed, or
 accepted as known. The cause is recorded on each incident.
 
-Starting types, limited to what a trace can support today:
+Starting types. The first group is true under any prompt and is what Phase 2 builds.
+The second group depends on what the agent was instructed to do, so it waits for the
+spec (Decided 2026-10-10, after trying the checks on real calls).
 
 | Type | Key | Fails the call by default |
 |---|---|---|
-| Tool call failed | Tool name | Yes |
+| Tool call failed, including a failed step inside the backend | Tool name | Yes |
 | Tool call got no result | Tool name | Yes |
 | Agent stopped responding | None | Yes |
-| Agent ended the call early | None | Yes |
-| Value spoken that came from nowhere | Kind of value | Yes |
-| Value spoken before the tool answered | Tool name | Yes |
-| Slow response | None | No |
 | Same thing said twice | None | No |
-| Two questions in one turn | None | No |
 | Stage directions spoken aloud | None | No |
-| Spec rule broken (with the spec) | The rule | Set per rule |
+| Slow response | None | No, and only a flag until the open item on latency is settled |
+
+| Type, with the spec | Key | Why it waits |
+|---|---|---|
+| Value spoken that came from nowhere | Kind of value | Whether a value is legitimate depends on what the prompt or a rule allows. On one real agent, 370 of 385 spoken amounts were written in the prompt. |
+| Value spoken before the tool answered | Tool name | Needs the same matching of values. |
+| Two questions in one turn | None | A style rule, not a defect under every prompt. |
+| Agent ended the call early | None | Needs to know when the agent is meant to end; a caller speaking last is how a normal goodbye looks. |
+| Spec rule broken | The rule | Set per rule. |
+
+Where "two questions in one turn" belongs, and whether "same thing said twice" and
+"stage directions" stay in the first group, is Claude's split; Dmytro has not confirmed
+those three.
 
 Business issue types are the customer's own spec rules, not a fixed list of codes. They
 arrive with the spec (section 6).

@@ -75,10 +75,9 @@ history of a slice is its plan file in `plans/`.
 | — | Alerting | Postponed: its own project |
 | M1 | Milestone 1 exit review | Not started |
 
-**Next slice:** Phase 2, starting with a planning step before 2.1: run the candidate rule
-checks over the stored real calls and report, per check, how many findings it raises and
-how many are right. It costs nothing and may change the list of types. Then design where
-a person sees findings, issues and incidents without an inbox.
+**Next slice:** 2.1 (check engine). The candidate checks have been tried on stored real
+calls; what that showed is under 2.2. Before 2.4, design where a person sees findings,
+issues and incidents without an inbox.
 
 Open, carried from earlier slices:
 
@@ -342,16 +341,38 @@ alerting are designed separately and are not in this phase.
 
 ### 2.2 First rule checks and facts
 
-- The starting types from the vision: tool call failed, tool call got no result, agent
-  stopped responding, agent ended the call early, value spoken that came from nowhere,
-  value spoken before the tool answered, slow response, same thing said twice, two
-  questions in one turn, stage directions spoken aloud.
-- Each is first tried on the stored real calls (counts only), and kept, changed or
-  dropped on what that shows.
+- The types that are true under any prompt: tool call failed (including a failed step
+  inside the backend, read from the execution), tool call got no result, agent stopped
+  responding, same thing said twice, stage directions spoken aloud, and slow response as
+  a flag only.
+- The types that depend on what the agent was instructed to do wait for the spec: value
+  from nowhere, value spoken before the tool answered, two questions in one turn, agent
+  ended the call early.
 - A check added later can run over history. Those findings are shown but do not change
   past reliability.
 - **Done when:** each check has tests with a failing and a passing example, and a count
   of findings on real calls with a hand-reviewed sample.
+
+What trying the candidates on stored real calls showed (2026-10-10, about 670 calls
+across two agents, counts only):
+
+- **As first listed, the checks would have failed 40% to 50% of calls.** Almost all of
+  that was the instruction-based checks and a latency threshold set at the median.
+- **A timing check must reason about when speech ends, not the order of events.** Callers
+  say "yeah" while the agent is still talking. A first version of "caller spoke twice
+  with nothing from the agent between" raised 57 findings; 55 were the agent speaking
+  the whole time. Corrected, it raised 1, which looked real.
+- **"Agent silent for 10 seconds, then the caller hung up"** held up: 11 calls after the
+  same correction.
+- **The typical gap before the agent replies is about 1.6 seconds**, and one reply in ten
+  takes over 2.6. A fixed 2,000 ms threshold is not usable (Q9).
+- **Neither agent has one failed tool call**, because Retell reports success whenever the
+  webhook answered. A workflow can answer and still fail inside, so the check must also
+  read the execution's status.
+- **The checks will find little on the two connected agents.** What this phase proves is
+  the machinery. A fault agent that fails on command exists as local files
+  (`examples/fault-agent/`, ignored by git on Dmytro's machine, not yet set up) to give
+  the checks something real to find.
 
 ### 2.3 Issues, incidents and reliability
 
@@ -533,6 +554,8 @@ Dmytro's only when he stated it in his own words.
 | 2026-10-10 | A metric is a number with no pass or fail; a threshold on one is a rule check. | Proposed by Claude; Dmytro agreed |
 | 2026-10-10 | Business outcomes are not this product: no outcome rate, no outcome analytics. Connexity verifies whether the agent did its job correctly. | Dmytro ("I dont want to go into business outcomes as its a different product") |
 | 2026-10-10 | Postponed, each to its own design: tests against issues, the inbox, alerting, shifts in a metric, team assignment (tentatively replaced by dispatch). | Dmytro |
+| 2026-10-10 | Checks that depend on what the agent was instructed to do wait for the spec; Phase 2 builds only checks that are true under any prompt. | Dmytro ("We either leave prompt checks now or design spec. I'd rather leave it") |
+| 2026-10-10 | The fault agent stays as local files, not in the repository. | Dmytro |
 
 ---
 
