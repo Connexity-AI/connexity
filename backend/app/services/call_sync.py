@@ -18,6 +18,7 @@ from app import crud
 from app.core.encryption import decrypt
 from app.models.agent import Agent
 from app.models.enums import Platform
+from app.services.checks.engine import check_call_safely
 from app.services.component_versions import add_retell_components
 from app.services.elevenlabs import (
     get_elevenlabs_conversation,
@@ -73,6 +74,7 @@ async def store_retell_calls(
             raw=call.raw,
         )
         created += stored.created
+        check_call_safely(session=session, call=stored.call)
         # Only for a call seen for the first time: a backend keeps its history for a
         # while only, and an old call can be looked up again on request.
         if stored.created and has_backends:

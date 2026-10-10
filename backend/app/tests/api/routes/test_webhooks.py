@@ -111,6 +111,7 @@ def test_signed_call_ended_stores_a_trace(client: TestClient, db: Session) -> No
     assert call.integration_id == integration.id
     assert call.raw == payload
     assert call.outputs is None
+    assert call.checked_at is not None
     events = db.exec(select(CallEvent).where(CallEvent.call_id == call.id)).all()
     assert len(events) == 2
 

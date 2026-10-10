@@ -49,6 +49,15 @@ from app.models.call import (  # noqa: F401
     CallsPublic,
     CallTracePublic,
 )
+from app.models.check import (  # noqa: F401
+    AgentCheckPublic,
+    CheckModeUpdate,
+    CheckRelease,
+    DecisionRecord,
+    DecisionRecordPublic,
+    Finding,
+    FindingPublic,
+)
 
 # ── Common ─────────────────────────────────────────────────────────
 from app.models.common import ConfigPublic, ErrorResponse  # noqa: F401

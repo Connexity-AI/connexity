@@ -21,6 +21,7 @@ from app.api.deps import SessionDep
 from app.core.encryption import decrypt
 from app.models import Agent, Integration
 from app.models.enums import IntegrationProvider, Platform
+from app.services.checks.engine import check_call_safely
 from app.services.component_versions import add_retell_components
 from app.services.executions import sync_call_executions_in_background
 from app.services.mappings.retell import RetellMappingError, retell_call_to_trace
@@ -123,6 +124,7 @@ async def retell_webhook(
         integration_id=integration.id,
         raw=payload,
     )
+    check_call_safely(session=session, call=stored.call)
     # After the response: Retell waits only ten seconds for an answer. Both events
     # look, because the executions exist as soon as the call has ended.
     background_tasks.add_task(sync_call_executions_in_background, stored.call.id)

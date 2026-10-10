@@ -24,6 +24,7 @@ from app.models import (
     Message,
 )
 from app.models.enums import TraceCapability
+from app.services.checks.engine import check_call_safely
 from app.services.trace_capabilities import derive_capabilities
 
 _ingest_bearer = HTTPBearer(auto_error=False)
@@ -116,6 +117,7 @@ def ingest_trace(
         integration_id=agent.integration_id,
         raw=body.raw,
     )
+    check_call_safely(session=session, call=stored.call)
     capabilities = derive_capabilities(body.trace)
     return IngestTraceResult(
         call_id=stored.call.id,

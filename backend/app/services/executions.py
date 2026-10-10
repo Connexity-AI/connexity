@@ -24,6 +24,7 @@ from app.models.call import Call, CallEvent
 from app.models.enums import CallEventType, ExecutionMatch
 from app.models.execution import Execution, ExecutionSyncResult
 from app.models.integration import AgentToolBackend, Integration
+from app.services.checks.engine import check_call_safely
 from app.services.component_versions import record_skill_version
 from app.services.mappings.n8n import (
     N8nMappingError,
@@ -236,6 +237,10 @@ async def sync_call_executions(*, session: Session, call: Call) -> ExecutionSync
                 },
             )
             result.matched += len(executions)
+
+    if result.matched:
+        # A check may read what the backend did, so the call is checked again.
+        check_call_safely(session=session, call=call)
 
     if result.problems:
         logger.warning(

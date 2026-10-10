@@ -5,6 +5,34 @@ export type ClientOptions = {
 };
 
 /**
+ * AgentCheckPublic
+ */
+export type AgentCheckPublic = {
+  /**
+   * Type
+   */
+  type: string;
+  /**
+   * Title
+   */
+  title: string;
+  /**
+   * Description
+   */
+  description: string;
+  kind: CheckKind;
+  /**
+   * Version
+   */
+  version: number;
+  default_mode: CheckMode;
+  /**
+   * What the check does for this agent now
+   */
+  mode: CheckMode;
+};
+
+/**
  * AgentCreate
  */
 export type AgentCreate = {
@@ -1187,6 +1215,16 @@ export type CallTracePublic = {
    * Served By
    */
   served_by?: Array<ServedBy>;
+  /**
+   * Findings
+   */
+  findings?: Array<FindingPublic>;
+  /**
+   * Checked At
+   *
+   * When the checks last ran; null if they have not
+   */
+  checked_at?: string | null;
 };
 
 /**
@@ -1227,6 +1265,51 @@ export type CauseAnalysisItem = {
    * Reasoning
    */
   reasoning: string;
+};
+
+/**
+ * CheckKind
+ */
+export const CheckKind = {
+  RULE: 'rule',
+  CLASSIFIER: 'classifier',
+  JUDGE: 'judge',
+} as const;
+
+/**
+ * CheckKind
+ */
+export type CheckKind = (typeof CheckKind)[keyof typeof CheckKind];
+
+/**
+ * CheckMode
+ *
+ * What a check does for one agent. Ordered from loosest to strictest.
+ */
+export const CheckMode = {
+  OFF: 'off',
+  FLAGS: 'flags',
+  FAILS: 'fails',
+} as const;
+
+/**
+ * CheckMode
+ *
+ * What a check does for one agent. Ordered from loosest to strictest.
+ */
+export type CheckMode = (typeof CheckMode)[keyof typeof CheckMode];
+
+/**
+ * CheckModeUpdate
+ */
+export type CheckModeUpdate = {
+  mode: CheckMode;
+  /**
+   * Reason
+   *
+   * Required when the change loosens the check
+   */
+  reason?: string | null;
 };
 
 /**
@@ -1661,6 +1744,55 @@ export type CustomMetricsPublic = {
    * Total number of custom metrics
    */
   count: number;
+};
+
+/**
+ * DecisionKind
+ */
+export const DecisionKind = { CHECK_SETTING: 'check_setting' } as const;
+
+/**
+ * DecisionKind
+ */
+export type DecisionKind = (typeof DecisionKind)[keyof typeof DecisionKind];
+
+/**
+ * DecisionRecordPublic
+ */
+export type DecisionRecordPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  kind: DecisionKind;
+  /**
+   * Subject
+   */
+  subject: string;
+  /**
+   * Old Value
+   */
+  old_value?: string | null;
+  /**
+   * New Value
+   */
+  new_value?: string | null;
+  /**
+   * Reason
+   */
+  reason?: string | null;
+  /**
+   * Decided By
+   */
+  decided_by?: string | null;
+  /**
+   * Decided By Email
+   */
+  decided_by_email: string;
+  /**
+   * Created At
+   */
+  created_at: string;
 };
 
 /**
@@ -2235,6 +2367,68 @@ export type FieldChange = {
       }
     | Array<unknown>
     | null;
+};
+
+/**
+ * FindingEffect
+ */
+export const FindingEffect = { FLAGS: 'flags', FAILS: 'fails' } as const;
+
+/**
+ * FindingEffect
+ */
+export type FindingEffect = (typeof FindingEffect)[keyof typeof FindingEffect];
+
+/**
+ * FindingPublic
+ */
+export type FindingPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Check Type
+   */
+  check_type: string;
+  /**
+   * Check Version
+   */
+  check_version: number;
+  kind: CheckKind;
+  /**
+   * Title
+   *
+   * The check's name; empty for a check since removed
+   */
+  title: string;
+  /**
+   * Key
+   */
+  key?: string | null;
+  /**
+   * Event Ids
+   *
+   * Ids of the trace events it points at
+   */
+  event_ids: Array<string>;
+  /**
+   * Detail
+   */
+  detail?: {
+    [key: string]: JsonValue;
+  } | null;
+  effect: FindingEffect;
+  /**
+   * Retroactive
+   *
+   * True when the call started before this check existed
+   */
+  retroactive: boolean;
+  /**
+   * Created At
+   */
+  created_at: string;
 };
 
 /**
@@ -11476,6 +11670,187 @@ export type ComponentVersionsResolveAgentCallVersionsResponses = {
 
 export type ComponentVersionsResolveAgentCallVersionsResponse =
   ComponentVersionsResolveAgentCallVersionsResponses[keyof ComponentVersionsResolveAgentCallVersionsResponses];
+
+export type ChecksListAgentChecksData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/checks';
+};
+
+export type ChecksListAgentChecksErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ChecksListAgentChecksError =
+  ChecksListAgentChecksErrors[keyof ChecksListAgentChecksErrors];
+
+export type ChecksListAgentChecksResponses = {
+  /**
+   * Response Checks-List Agent Checks
+   *
+   * Successful Response
+   */
+  200: Array<AgentCheckPublic>;
+};
+
+export type ChecksListAgentChecksResponse =
+  ChecksListAgentChecksResponses[keyof ChecksListAgentChecksResponses];
+
+export type ChecksSetAgentCheckModeData = {
+  body: CheckModeUpdate;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+    /**
+     * Check Type
+     */
+    check_type: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/checks/{check_type}';
+};
+
+export type ChecksSetAgentCheckModeErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ChecksSetAgentCheckModeError =
+  ChecksSetAgentCheckModeErrors[keyof ChecksSetAgentCheckModeErrors];
+
+export type ChecksSetAgentCheckModeResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentCheckPublic;
+};
+
+export type ChecksSetAgentCheckModeResponse =
+  ChecksSetAgentCheckModeResponses[keyof ChecksSetAgentCheckModeResponses];
+
+export type ChecksListAgentDecisionsData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: {
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/agents/{agent_id}/decisions';
+};
+
+export type ChecksListAgentDecisionsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ChecksListAgentDecisionsError =
+  ChecksListAgentDecisionsErrors[keyof ChecksListAgentDecisionsErrors];
+
+export type ChecksListAgentDecisionsResponses = {
+  /**
+   * Response Checks-List Agent Decisions
+   *
+   * Successful Response
+   */
+  200: Array<DecisionRecordPublic>;
+};
+
+export type ChecksListAgentDecisionsResponse =
+  ChecksListAgentDecisionsResponses[keyof ChecksListAgentDecisionsResponses];
 
 export type CompanyGetLlmCredentialsData = {
   body?: never;

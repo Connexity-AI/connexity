@@ -48,6 +48,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
     from app.core.db import engine
     from app.models import Run, RunStatus
+    from app.services.checks.engine import record_check_releases
 
     with Session(engine) as session:
         stale_runs = session.exec(
@@ -60,6 +61,9 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         if stale_runs:
             session.commit()
             logger.warning("Marked %d stale RUNNING runs as FAILED", len(stale_runs))
+
+    with Session(engine) as session:
+        record_check_releases(session)
 
     yield
 

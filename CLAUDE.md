@@ -82,6 +82,12 @@ Run `make check` before every push. It runs the same gates as CI (plan present a
 complete, backend lint, format, types, tests with the coverage floor, MCP tests,
 frontend lint and types, generated client freshness) and takes about a minute and a half.
 
+**Who tests what.** You test the backend through its API: start the server on the local
+database and call the changed endpoints over HTTP, then report requests and results in
+the plan. Dmytro tests the frontend: do not open a browser or click through screens;
+list in the plan what he should check on screen. Details in
+`docs-internal/development-lifecycle.md`, section 5.
+
 While iterating, run only what your change touches; the commands are in
 `backend/CLAUDE.md` and `frontend/CLAUDE.md`. After a backend route or model change,
 run `bash scripts/generate-client.sh`.
