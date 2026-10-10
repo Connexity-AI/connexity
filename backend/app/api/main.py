@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from app.api.routes import (
     agents,
     calls,
+    checks,
     company,
     component_versions,
     config,
@@ -49,6 +50,7 @@ api_router.include_router(ingest.tokens_router)
 api_router.include_router(webhooks.router)
 api_router.include_router(tool_backends.router)
 api_router.include_router(component_versions.router)
+api_router.include_router(checks.router)
 api_router.include_router(company.router)
 
 root_router = APIRouter()

@@ -57,6 +57,9 @@ erDiagram
 | `call_execution_step` | `execution.py` | One unit of work in an execution (an n8n node run), ordered, with its output. | New in slice 1.4 |
 | `agent_tool_backend` | `integration.py` | Which workflow, in which n8n connection, serves one of an agent's tools. | New in slice 1.4 |
 | `component_version` | `component_version.py` | The catalogue: one row per version of a component (agent settings, prompt, model, skill) seen for an agent, with a fingerprint and the content. | New in slice 1.5 |
+| `finding` | `check.py` | One thing wrong at one moment in one call, raised by one version of one check. Points at trace events by their id, and keeps the effect (flags or fails) its check had when the call started. | New in slice 2.1 |
+| `decision_record` | `check.py` | Who decided what, when and why. Append only. A check's setting for an agent is its latest record; there is no table holding the current value. | New in slice 2.1 |
+| `check_release` | `check.py` | When each version of a built-in check was first present. Not owned by a company. A finding on a call that started earlier is retroactive. | New in slice 2.1 |
 | `test_case` | `test_case.py` | A simulated-caller scenario, optionally sourced from a call. | Frozen until Phase 4 |
 | `eval_config`, `eval_config_member` | `eval_config.py` | A named set of test cases with a run configuration (runtime, judge, thresholds). | Frozen until Phase 4 |
 | `run` | `run.py` | One execution of an eval config against an agent version, with aggregate metrics. | Frozen until Phase 4 |

@@ -661,8 +661,39 @@ def test_a_pulled_call_gets_its_executions_and_is_stored_even_if_n8n_is_down(
     assert listing.await_count == 1
 
     call = db.exec(select(Call).where(Call.external_id == call_id)).one()
+    assert call.checked_at is not None
     executions = _trace(client, auth_cookies, call)["executions"]
     assert len(executions) == (0 if n8n_down else 1)
+
+
+def test_a_call_is_checked_again_when_its_executions_are_stored(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = _agent(client, auth_cookies, db)
+    _map(client, auth_cookies, agent.id, _n8n(client, auth_cookies))
+    call = _store_call(db, agent, _price_call("tc_1", 3.0))
+    assert call.checked_at is None
+
+    nothing, _, _ = _refresh(client, auth_cookies, call, [])
+    db.refresh(call)
+    assert nothing["matched"] == 0
+    assert call.checked_at is None
+
+    found, _, _ = _refresh(
+        client,
+        auth_cookies,
+        call,
+        [
+            n8n_execution(
+                "9701",
+                started_at=CALL_START + timedelta(seconds=3.1),
+                call_id=call.external_id,
+            )
+        ],
+    )
+    db.refresh(call)
+    assert found["matched"] == 1
+    assert call.checked_at is not None
 
 
 # ── Looked for without being asked ─────────────────────────────────

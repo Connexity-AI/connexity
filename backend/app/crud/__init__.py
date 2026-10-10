@@ -40,6 +40,16 @@ from app.crud.call import (  # noqa: F401
     upsert_calls_from_elevenlabs,
     upsert_calls_from_vapi,
 )
+from app.crud.check import (  # noqa: F401
+    check_setting_history,
+    ensure_check_releases,
+    get_findings,
+    list_decision_records,
+    lock_agent,
+    lock_call,
+    record_decision,
+    replace_findings,
+)
 from app.crud.company import (  # noqa: F401
     company_has_any_llm_key,
     company_llm_credentials_public,

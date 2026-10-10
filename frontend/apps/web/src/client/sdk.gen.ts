@@ -69,6 +69,15 @@ import type {
   CallsSetCallLabelEndpointData,
   CallsSetCallLabelEndpointErrors,
   CallsSetCallLabelEndpointResponses,
+  ChecksListAgentChecksData,
+  ChecksListAgentChecksErrors,
+  ChecksListAgentChecksResponses,
+  ChecksListAgentDecisionsData,
+  ChecksListAgentDecisionsErrors,
+  ChecksListAgentDecisionsResponses,
+  ChecksSetAgentCheckModeData,
+  ChecksSetAgentCheckModeErrors,
+  ChecksSetAgentCheckModeResponses,
   CompanyGetLlmCredentialsData,
   CompanyGetLlmCredentialsErrors,
   CompanyGetLlmCredentialsResponses,
@@ -3050,6 +3059,94 @@ export class ComponentVersionsService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/agents/{agent_id}/versions/resolve',
+      ...options,
+    });
+  }
+}
+
+export class ChecksService {
+  /**
+   * List Agent Checks
+   *
+   * Every check, with what it does for this agent now.
+   */
+  public static listAgentChecks<ThrowOnError extends boolean = false>(
+    options: Options<ChecksListAgentChecksData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      ChecksListAgentChecksResponses,
+      ChecksListAgentChecksErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/checks',
+      ...options,
+    });
+  }
+
+  /**
+   * Set Agent Check Mode
+   *
+   * Set a check to off, flags or fails for this agent.
+   *
+   * The change is kept as a decision record and applies to calls that start from now
+   * on; calls already checked keep what they counted for. A reason is required when the
+   * change loosens the check.
+   */
+  public static setAgentCheckMode<ThrowOnError extends boolean = false>(
+    options: Options<ChecksSetAgentCheckModeData, ThrowOnError>
+  ) {
+    return (options.client ?? client).put<
+      ChecksSetAgentCheckModeResponses,
+      ChecksSetAgentCheckModeErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/checks/{check_type}',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * List Agent Decisions
+   *
+   * The agent's decision records, newest first.
+   */
+  public static listAgentDecisions<ThrowOnError extends boolean = false>(
+    options: Options<ChecksListAgentDecisionsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      ChecksListAgentDecisionsResponses,
+      ChecksListAgentDecisionsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/decisions',
       ...options,
     });
   }

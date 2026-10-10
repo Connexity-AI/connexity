@@ -2,10 +2,12 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
+from pydantic import AwareDatetime
 from sqlalchemy import Column, Index, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
+from app.models.check import FindingPublic
 from app.models.columns import enum_type
 from app.models.component_version import ServedBy
 from app.models.enums import (
@@ -70,6 +72,8 @@ class Call(SQLModel, table=True):
     # When the backends were last asked, and answered cleanly, what this call's tool
     # calls ran. Empty means not asked yet, or asked and the backend could not be read.
     executions_checked_at: datetime | None = Field(default=None)
+    # When the checks last ran over this call. Empty means never, or a check broke.
+    checked_at: datetime | None = Field(default=None)
     inputs: dict[str, Any] | None = Field(
         default=None, sa_column=Column("inputs", JSONB(none_as_null=True))
     )
@@ -206,6 +210,11 @@ class CallTracePublic(SQLModel):
     # What served the call: the trace's components, and a skill for each workflow that
     # ran, each with the catalogue entry that holds its content when there is one.
     served_by: list[ServedBy] = []
+    # What the checks found, each pointing at events of the trace by id.
+    findings: list[FindingPublic] = []
+    checked_at: AwareDatetime | None = Field(
+        default=None, description="When the checks last ran; null if they have not"
+    )
 
 
 class CallsPublic(SQLModel):

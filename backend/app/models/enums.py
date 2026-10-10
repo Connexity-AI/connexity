@@ -164,3 +164,27 @@ class TraceCapability(StrEnum):
     COMPONENTS = "components"
     RECORDING = "recording"
     OUTPUTS = "outputs"
+
+
+class CheckKind(StrEnum):
+    # Code over the trace, no model.
+    RULE = "rule"
+    CLASSIFIER = "classifier"
+    JUDGE = "judge"
+
+
+class CheckMode(StrEnum):
+    """What a check does for one agent. Ordered from loosest to strictest."""
+
+    OFF = "off"
+    FLAGS = "flags"
+    FAILS = "fails"
+
+
+class FindingEffect(StrEnum):
+    FLAGS = "flags"
+    FAILS = "fails"
+
+
+class DecisionKind(StrEnum):
+    CHECK_SETTING = "check_setting"

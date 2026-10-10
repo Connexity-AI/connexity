@@ -16,10 +16,13 @@ from app.models import (
     CallsPublic,
     CallTracePublic,
     ExecutionSyncResult,
+    Finding,
+    FindingPublic,
     Message,
 )
 from app.models.agent import Agent
 from app.services.call_sync import emit, sync_agent_calls
+from app.services.checks.registry import get_check
 from app.services.component_versions import (
     resolve_agent_versions_quietly,
     served_by,
@@ -74,6 +77,23 @@ def _call_or_404(
     if call is None:
         raise HTTPException(status_code=404, detail="Call not found")
     return call
+
+
+def _finding_public(row: Finding) -> FindingPublic:
+    check = get_check(row.check_type)
+    return FindingPublic(
+        id=row.id,
+        check_type=row.check_type,
+        check_version=row.check_version,
+        kind=row.kind,
+        title=check.title if check else "",
+        key=row.key,
+        event_ids=row.event_keys,
+        detail=row.detail,
+        effect=row.effect,
+        retroactive=row.retroactive,
+        created_at=row.created_at,
+    )
 
 
 def _to_public(session: Session, call: Call) -> CallPublic:
@@ -196,6 +216,11 @@ def get_call_trace(
         capabilities=derive_capabilities(trace),
         executions=crud.get_executions(session=session, call=call),
         served_by=served_by(session=session, call=call, trace=trace),
+        findings=[
+            _finding_public(row)
+            for row in crud.get_findings(session=session, call=call)
+        ],
+        checked_at=call.checked_at.replace(tzinfo=UTC) if call.checked_at else None,
     )
 
 

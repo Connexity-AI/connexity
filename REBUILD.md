@@ -65,8 +65,8 @@ history of a slice is its plan file in `plans/`.
 | 1.6 | CRM data per call (GoHighLevel) | Not started |
 | 1.7 | Calls screen | Not started |
 | 1.8 | MCP read surface | Not started |
-| 2.0 | Design: checks, findings, issues and incidents | PR open, awaiting merge |
-| 2.1 | Check engine | Not started |
+| 2.0 | Design: checks, findings, issues and incidents | Done (PR #170) |
+| 2.1 | Check engine | Built on branch `check-engine`; pull request not opened yet |
 | 2.2 | First rule checks and facts | Not started |
 | 2.3 | Issues, incidents and reliability | Not started |
 | 2.4 | Findings, issues and incidents on screen | Not started |
@@ -75,9 +75,9 @@ history of a slice is its plan file in `plans/`.
 | — | Alerting | Postponed: its own project |
 | M1 | Milestone 1 exit review | Not started |
 
-**Next slice:** 2.1 (check engine). The candidate checks have been tried on stored real
-calls; what that showed is under 2.2. Before 2.4, design where a person sees findings,
-issues and incidents without an inbox.
+**Next slice:** 2.2 (first rule checks and facts). The candidate checks have been tried
+on stored real calls; what that showed is under 2.2. Before 2.4, design where a person
+sees findings, issues and incidents without an inbox.
 
 Open, carried from earlier slices:
 
@@ -88,6 +88,12 @@ Open, carried from earlier slices:
   Not built.
 - Node data from n8n is stored without redaction.
 - `Environment` has no remaining purpose (see the table below).
+- From 2.1: calls stored before the check engine are unchecked until they are sent
+  again; a call a check broke on is not retried; a check's setting can be changed
+  through the API only (no screen, no MCP tool); any signed-in user or token of the
+  company can change it, so "the assistant proposes, a person confirms" is not enforced.
+- Deleting an agent that has calls answers 500: `call.agent_id` has no rule for it.
+  Found in 2.1; it predates it.
 - Retell's prompt versions include each tool's address. That could suggest the
   tool-to-workflow mapping and list tools before they are ever called. Not built.
 
@@ -369,6 +375,10 @@ across two agents, counts only):
 - **Neither agent has one failed tool call**, because Retell reports success whenever the
   webhook answered. A workflow can answer and still fail inside, so the check must also
   read the execution's status.
+- **237 of 1,349 stored tool calls have the status "no result"** (counted in slice 2.1,
+  813 calls). "Tool call got no result" fails the call by default, so look at what
+  these are before switching it on: a tool that is not meant to answer would make it
+  noise.
 - **The checks will find little on the two connected agents.** What this phase proves is
   the machinery. A fault agent that fails on command exists as local files
   (`examples/fault-agent/`, ignored by git on Dmytro's machine, not yet set up) to give
@@ -556,6 +566,10 @@ Dmytro's only when he stated it in his own words.
 | 2026-10-10 | Postponed, each to its own design: tests against issues, the inbox, alerting, shifts in a metric, team assignment (tentatively replaced by dispatch). | Dmytro |
 | 2026-10-10 | Checks that depend on what the agent was instructed to do wait for the spec; Phase 2 builds only checks that are true under any prompt. | Dmytro ("We either leave prompt checks now or design spec. I'd rather leave it") |
 | 2026-10-10 | The fault agent stays as local files, not in the repository. | Dmytro |
+| 2026-10-10 | The building session tests the backend through the API on a running local server; Dmytro tests the frontend, and the session does not open a browser. | Dmytro ("Claude always does backen test through APIs and leaves me frontend testing") |
+| 2026-10-10 | The first check is a real one, "tool call failed" from the trace's status. Facts are computed per run and not stored. A reason is required to loosen a check, optional to tighten it. | Proposed by Claude; Dmytro approved the slice 2.1 plan ("Ok build") |
+| 2026-10-10 | A finding's effect is the setting in force when its call started. A finding on a call that started before its check existed is retroactive. | Proposed by Claude; Dmytro approved the slice 2.1 plan ("Ok build") |
+| 2026-10-10 | A check's current setting is read from the decision records; no table holds it. "When a check first existed" is when a server carrying it first started. A timeout counts as a failed tool call; "no result" does not. | Proposed by Claude in the slice 2.1 plan; not put to Dmytro one by one |
 
 ---
 
