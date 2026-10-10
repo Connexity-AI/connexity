@@ -66,7 +66,7 @@ history of a slice is its plan file in `plans/`.
 | 1.7 | Calls screen | Not started |
 | 1.8 | MCP read surface | Not started |
 | 2.0 | Design: checks, findings, issues and incidents | Done (PR #170) |
-| 2.1 | Check engine | Built on branch `check-engine`; pull request not opened yet |
+| 2.1 | Check engine | PR #171 open, awaiting merge |
 | 2.2 | First rule checks and facts | Not started |
 | 2.3 | Issues, incidents and reliability | Not started |
 | 2.4 | Findings, issues and incidents on screen | Not started |
