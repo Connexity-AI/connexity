@@ -56,8 +56,9 @@ One session, one slice from `REBUILD.md`, one plan, one pull request.
 3. **Build.** Stay inside the plan. Anything discovered outside it becomes a note in
    `REBUILD.md` or a spawned task, not an extra change. If the plan turns out to be
    wrong, stop and say so; do not quietly build something else.
-4. **Verify.** Run `make check`. Exercise the change for real where possible: hit the
-   endpoint, load the screen, run the check against a real trace.
+4. **Verify.** Run `make check`. Then exercise the backend for real through its API
+   (section 5, "Who tests what"). The session does not test screens; it lists what
+   Dmytro should look at.
 5. **Record the outcome.** Fill in the plan's Outcome: deviations from the plan, check
    results, what was not done. Update the status table and decision log in
    `REBUILD.md`.
@@ -98,6 +99,31 @@ had only restated a concern about. The same failure is possible here.
   silently into a fix.
 - A person reviews the plan, never the session's own account of the code. The code is
   judged by checks the session cannot edit its way around.
+
+### Who tests what
+
+**The session tests the backend through the API. Dmytro tests the frontend.**
+
+Backend, every slice that changes a route or what a route returns:
+
+- Start the server locally and call the changed endpoints over HTTP, as an API caller
+  would: the main path, a refusal, and another company's attempt where it applies. The
+  test suite does not count as this; it runs inside the process.
+- Local database only. Before the first request, confirm the running server is on the
+  local Postgres, not a hosted one.
+- Work on a throwaway agent created for the run, so invented calls never mix with real
+  ones. Log in with the local seed user from `.env`; the login answers with a token to
+  send as a bearer. Remove the throwaway agent and its calls afterwards.
+- Report it in the plan's Outcome as a table: request, expected, what came back. Status
+  codes, counts and field names only; nothing from a real call.
+
+Frontend:
+
+- The session runs lint, types and the build, and does not open a browser, take
+  screenshots or click through screens.
+- The plan's Outcome ends with **"For Dmytro to check on screen"**: the pages to open and
+  what should be true on each. Until he has, the Outcome says the screens were not looked
+  at.
 
 ### Deterministic before judged
 

@@ -44,7 +44,9 @@
 
 ### Check results
 
-<!-- The `make check` table, plus anything verified by hand. -->
+<!-- The `make check` table. For a backend change, the table of API calls made against
+     the running server: request, expected, what came back. For a frontend change, a
+     "For Dmytro to check on screen" list: pages to open and what should be true. -->
 
 ### Not done
 

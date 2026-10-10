@@ -10,6 +10,12 @@ pnpm lint                # ESLint
 pnpm turbo check-types   # TypeScript (regenerates Next route types, then tsc --noEmit)
 ```
 
+## Testing
+
+Dmytro tests screens himself. Run lint, types and the build; do not start a browser
+preview, take screenshots or click through the UI. In the plan's Outcome, list the pages
+he should open and what should be true on each.
+
 ## What the UI is for
 
 The assistant can do everything, and the UI is not held back on purpose: anything the
