@@ -41,14 +41,24 @@ from app.crud.call import (  # noqa: F401
     upsert_calls_from_vapi,
 )
 from app.crud.check import (  # noqa: F401
+    call_check_statuses,
+    calls_missing_check_runs,
     check_setting_history,
+    count_calls_missing_check_runs,
     ensure_check_releases,
+    get_call_checks,
     get_findings,
+    get_issue,
     list_decision_records,
+    list_issue_findings,
+    list_issues,
     lock_agent,
     lock_call,
+    record_checks_broke,
     record_decision,
     replace_findings,
+    set_issue_state,
+    summarise_issue,
 )
 from app.crud.company import (  # noqa: F401
     company_has_any_llm_key,

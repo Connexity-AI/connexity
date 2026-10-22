@@ -4,12 +4,15 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlmodel import Session
+from starlette.concurrency import run_in_threadpool
 
 from app import crud
 from app.api.deps import CurrentCompany, SessionDep, get_current_user
 from app.core.db import engine
 from app.models import (
     Call,
+    CallCheck,
+    CallCheckPublic,
     CallLabelUpdate,
     CallPublic,
     CallRefreshResult,
@@ -22,6 +25,7 @@ from app.models import (
 )
 from app.models.agent import Agent
 from app.services.call_sync import emit, sync_agent_calls
+from app.services.checks.engine import check_unchecked_calls_in_background
 from app.services.checks.registry import get_check
 from app.services.component_versions import (
     resolve_agent_versions_quietly,
@@ -68,6 +72,9 @@ async def _sync_calls_in_background(agent_id: uuid.UUID) -> None:
         await resolve_agent_versions_quietly(session=session, agent=agent)
         # Tool calls whose execution has not been looked for yet.
         await find_missing_executions(session=session, agent_id=agent.id)
+    # Stored calls that some check has never run on. In a worker thread: it is plain
+    # database work, and a long pass must not hold up other requests.
+    await run_in_threadpool(check_unchecked_calls_in_background, agent_id)
 
 
 def _call_or_404(
@@ -83,6 +90,7 @@ def _finding_public(row: Finding) -> FindingPublic:
     check = get_check(row.check_type)
     return FindingPublic(
         id=row.id,
+        issue_id=row.issue_id,
         check_type=row.check_type,
         check_version=row.check_version,
         kind=row.kind,
@@ -96,12 +104,27 @@ def _finding_public(row: Finding) -> FindingPublic:
     )
 
 
+def _call_check_public(row: CallCheck) -> CallCheckPublic:
+    check = get_check(row.check_type)
+    return CallCheckPublic(
+        check_type=row.check_type,
+        title=check.title if check else "",
+        check_version=row.check_version,
+        outcome=row.outcome,
+        missing=row.missing,
+        ran_at=row.ran_at,
+    )
+
+
 def _to_public(session: Session, call: Call) -> CallPublic:
     return crud.call_to_public(
         call,
         test_case_count=crud.count_test_cases_for_call(
             session=session, call_id=call.id
         ),
+        check_status=crud.call_check_statuses(session=session, call_ids=[call.id])[
+            call.id
+        ],
     )
 
 
@@ -219,6 +242,10 @@ def get_call_trace(
         findings=[
             _finding_public(row)
             for row in crud.get_findings(session=session, call=call)
+        ],
+        checks=[
+            _call_check_public(row)
+            for row in crud.get_call_checks(session=session, call=call)
         ],
         checked_at=call.checked_at.replace(tzinfo=UTC) if call.checked_at else None,
     )

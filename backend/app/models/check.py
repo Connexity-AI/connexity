@@ -9,12 +9,19 @@ from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import AwareDatetime, JsonValue
-from sqlalchemy import Column, DateTime, ForeignKey, Index, Text, text
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
 from app.models.columns import enum_type
-from app.models.enums import CheckKind, CheckMode, DecisionKind, FindingEffect
+from app.models.enums import (
+    CheckKind,
+    CheckMode,
+    CheckOutcome,
+    DecisionKind,
+    FindingEffect,
+    IssueState,
+)
 
 CHECK_TYPE_MAX_LENGTH = 64
 
@@ -40,6 +47,11 @@ class Finding(SQLModel, table=True):
         )
     )
     call_id: uuid.UUID = Field(foreign_key="call.id", index=True, ondelete="CASCADE")
+    issue_id: uuid.UUID = Field(
+        sa_column=Column(
+            ForeignKey("issue.id", ondelete="CASCADE"), nullable=False, index=True
+        )
+    )
     check_type: str = Field(max_length=CHECK_TYPE_MAX_LENGTH)
     check_version: int
     kind: CheckKind = Field(sa_type=enum_type(CheckKind))
@@ -56,6 +68,68 @@ class Finding(SQLModel, table=True):
     # The call started before this check existed: shown, counted for nothing.
     retroactive: bool = Field(default=False)
     created_at: datetime = Field(
+        default_factory=_now,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+        sa_column_kwargs={"server_default": text("now()")},
+    )
+
+
+class Issue(SQLModel, table=True):
+    """All findings with the same symptom on one agent. It lives forever.
+
+    Its identity is the agent, the check's type and the key that type defines. When it
+    was first and last seen, and how much it holds, are read from its findings.
+    """
+
+    __tablename__ = "issue"
+    __table_args__ = (
+        UniqueConstraint("agent_id", "check_type", "key", name="uq_issue_identity"),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    company_id: uuid.UUID = Field(foreign_key="company.id", index=True)
+    agent_id: uuid.UUID = Field(
+        sa_column=Column(
+            ForeignKey("agent.id", ondelete="CASCADE"), nullable=False, index=True
+        )
+    )
+    check_type: str = Field(max_length=CHECK_TYPE_MAX_LENGTH)
+    # Empty for a type with no key, so that the identity is still unique.
+    key: str = Field(default="", max_length=255)
+    state: IssueState = Field(
+        default=IssueState.OPEN, sa_type=enum_type(IssueState), index=True
+    )
+    # The last time a person resolved it. Kept when it regresses.
+    resolved_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+    )
+    # The version said to carry the fix, as the person wrote it. A note, not a rule.
+    resolved_version: str | None = Field(default=None, max_length=255)
+    created_at: datetime = Field(
+        default_factory=_now,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+        sa_column_kwargs={"server_default": text("now()")},
+    )
+
+
+class CallCheck(SQLModel, table=True):
+    """What one check did on one call, the last time the call was checked."""
+
+    __tablename__ = "call_check"
+
+    call_id: uuid.UUID = Field(
+        sa_column=Column(
+            ForeignKey("call.id", ondelete="CASCADE"), primary_key=True, nullable=False
+        )
+    )
+    check_type: str = Field(max_length=CHECK_TYPE_MAX_LENGTH, primary_key=True)
+    company_id: uuid.UUID = Field(foreign_key="company.id", index=True)
+    check_version: int
+    outcome: CheckOutcome = Field(sa_type=enum_type(CheckOutcome))
+    # For a skipped check: what the call's trace lacks.
+    missing: str | None = Field(default=None, max_length=255)
+    ran_at: datetime = Field(
         default_factory=_now,
         sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
         sa_column_kwargs={"server_default": text("now()")},
@@ -118,6 +192,7 @@ class CheckRelease(SQLModel, table=True):
 
 class FindingPublic(SQLModel):
     id: uuid.UUID
+    issue_id: uuid.UUID
     check_type: str
     check_version: int
     kind: CheckKind
@@ -161,3 +236,68 @@ class DecisionRecordPublic(SQLModel):
     decided_by: uuid.UUID | None = None
     decided_by_email: str
     created_at: AwareDatetime
+
+
+class CallCheckPublic(SQLModel):
+    check_type: str
+    title: str = Field(description="The check's name; empty for a check since removed")
+    check_version: int
+    outcome: CheckOutcome
+    missing: str | None = Field(
+        default=None, description="For a skipped check: what the call's trace lacks"
+    )
+    ran_at: AwareDatetime
+
+
+class ChecksRunResult(SQLModel):
+    checked: int = Field(description="Stored calls checked by this request")
+    remaining: int = Field(description="Stored calls a check has still never run on")
+
+
+class IssuePublic(SQLModel):
+    id: uuid.UUID
+    agent_id: uuid.UUID
+    check_type: str
+    title: str = Field(description="The check's name; empty for a check since removed")
+    key: str | None = None
+    state: IssueState
+    resolved_at: AwareDatetime | None = None
+    resolved_version: str | None = None
+    finding_count: int
+    call_count: int
+    first_seen_at: AwareDatetime | None = Field(
+        default=None, description="When the earliest call it was found on started"
+    )
+    last_seen_at: AwareDatetime | None = Field(
+        default=None, description="When the latest call it was found on started"
+    )
+    created_at: AwareDatetime
+
+
+class IssueFindingPublic(SQLModel):
+    id: uuid.UUID
+    call_id: uuid.UUID
+    call_started_at: AwareDatetime
+    check_version: int
+    event_ids: list[str]
+    detail: dict[str, JsonValue] | None = None
+    effect: FindingEffect
+    retroactive: bool
+
+
+class IssueDetailPublic(IssuePublic):
+    findings: list[IssueFindingPublic] = Field(
+        description="Newest call first; at most 200"
+    )
+
+
+class IssueStateUpdate(SQLModel):
+    state: IssueState = Field(description="open, resolved or accepted")
+    reason: str | None = Field(
+        default=None, max_length=2000, description="Required to accept an issue"
+    )
+    version: str | None = Field(
+        default=None,
+        max_length=255,
+        description="When resolving: the version that carried the fix",
+    )

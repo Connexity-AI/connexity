@@ -55,7 +55,8 @@ def _other_company(client: TestClient) -> dict[str, str]:
 
 def _trace(
     *,
-    tool_status: str = "error",
+    tool_status: str | None = "error",
+    tool: str = "find_table",
     external_id: str | None = None,
     started_at: datetime | None = None,
 ) -> dict[str, Any]:
@@ -69,8 +70,8 @@ def _trace(
             {
                 "id": "t1",
                 "type": "tool_call",
-                "name": "find_table",
-                "status": tool_status,
+                "name": tool,
+                **({"status": tool_status} if tool_status else {}),
             },
             {"id": "u2", "type": "utterance", "speaker": "agent", "text": "One moment"},
         ],
@@ -130,6 +131,13 @@ def test_a_failing_tool_call_is_found_when_the_call_arrives(
     assert finding["effect"] == "fails"
     assert finding["retroactive"] is False
     assert body["checked_at"] is not None
+    (ran,) = body["checks"]
+    assert (ran["check_type"], ran["title"], ran["check_version"]) == (
+        CHECK,
+        "Tool call failed",
+        1,
+    )
+    assert (ran["outcome"], ran["missing"]) == ("ran", None)
 
     row = db.exec(select(Finding).where(Finding.call_id == uuid.UUID(call_id))).one()
     assert str(row.agent_id) == agent_id
@@ -227,7 +235,9 @@ def test_a_check_that_breaks_leaves_the_call_stored_and_unchecked(
     fresh = _read(client, auth_cookies, new_call)
     assert len(fresh["trace"]["events"]) == 3
     assert fresh["findings"] == []
-    assert fresh["checked_at"] is None
+    assert [(c["check_type"], c["outcome"]) for c in fresh["checks"]] == [
+        (CHECK, "broke")
+    ]
 
 
 def test_checking_again_leaves_findings_of_other_checks_alone(
@@ -244,6 +254,7 @@ def test_checking_again_leaves_findings_of_other_checks_alone(
             company_id=mine.company_id,
             agent_id=mine.agent_id,
             call_id=mine.call_id,
+            issue_id=mine.issue_id,
             check_type="a_check_since_removed",
             check_version=1,
             kind=mine.kind,
@@ -305,6 +316,7 @@ def test_switching_a_check_off_applies_to_later_calls_of_that_agent_only(
 
     assert quiet["findings"] == []
     assert quiet["checked_at"] is not None
+    assert [c["outcome"] for c in quiet["checks"]] == ["off"]
     assert len(loud["findings"]) == 1
 
 

@@ -1895,6 +1895,53 @@ export const CallChannelSchema = {
   title: 'CallChannel',
 } as const;
 
+export const CallCheckPublicSchema = {
+  properties: {
+    check_type: {
+      type: 'string',
+      title: 'Check Type',
+    },
+    title: {
+      type: 'string',
+      title: 'Title',
+      description: "The check's name; empty for a check since removed",
+    },
+    check_version: {
+      type: 'integer',
+      title: 'Check Version',
+    },
+    outcome: {
+      $ref: '#/components/schemas/CheckOutcome',
+    },
+    missing: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Missing',
+      description: "For a skipped check: what the call's trace lacks",
+    },
+    ran_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Ran At',
+    },
+  },
+  type: 'object',
+  required: ['check_type', 'title', 'check_version', 'outcome', 'ran_at'],
+  title: 'CallCheckPublic',
+} as const;
+
+export const CallCheckStatusSchema = {
+  type: 'string',
+  enum: ['failed', 'degraded', 'clean', 'unchecked'],
+  title: 'CallCheckStatus',
+} as const;
+
 export const CallDirectionSchema = {
   type: 'string',
   enum: ['inbound', 'outbound'],
@@ -2066,6 +2113,12 @@ export const CallPublicSchema = {
         },
       ],
     },
+    check_status: {
+      $ref: '#/components/schemas/CallCheckStatus',
+      description:
+        'failed: a finding from a check set to fail the call; degraded: other findings; clean: checked, nothing found; unchecked: no check ran',
+      default: 'unchecked',
+    },
     created_at: {
       type: 'string',
       format: 'date-time',
@@ -2139,6 +2192,14 @@ export const CallTracePublicSchema = {
       },
       type: 'array',
       title: 'Findings',
+      default: [],
+    },
+    checks: {
+      items: {
+        $ref: '#/components/schemas/CallCheckPublic',
+      },
+      type: 'array',
+      title: 'Checks',
       default: [],
     },
     checked_at: {
@@ -2244,6 +2305,31 @@ export const CheckModeUpdateSchema = {
   type: 'object',
   required: ['mode'],
   title: 'CheckModeUpdate',
+} as const;
+
+export const CheckOutcomeSchema = {
+  type: 'string',
+  enum: ['ran', 'skipped', 'broke', 'off'],
+  title: 'CheckOutcome',
+  description: 'What one check did on one call.',
+} as const;
+
+export const ChecksRunResultSchema = {
+  properties: {
+    checked: {
+      type: 'integer',
+      title: 'Checked',
+      description: 'Stored calls checked by this request',
+    },
+    remaining: {
+      type: 'integer',
+      title: 'Remaining',
+      description: 'Stored calls a check has still never run on',
+    },
+  },
+  type: 'object',
+  required: ['checked', 'remaining'],
+  title: 'ChecksRunResult',
 } as const;
 
 export const CompanyLLMCredentialsPublicSchema = {
@@ -2923,8 +3009,7 @@ export const CustomMetricsPublicSchema = {
 
 export const DecisionKindSchema = {
   type: 'string',
-  enum: ['check_setting'],
-  const: 'check_setting',
+  enum: ['check_setting', 'issue_state'],
   title: 'DecisionKind',
 } as const;
 
@@ -3860,6 +3945,11 @@ export const FindingPublicSchema = {
       format: 'uuid',
       title: 'Id',
     },
+    issue_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Issue Id',
+    },
     check_type: {
       type: 'string',
       title: 'Check Type',
@@ -3926,6 +4016,7 @@ export const FindingPublicSchema = {
   type: 'object',
   required: [
     'id',
+    'issue_id',
     'check_type',
     'check_version',
     'kind',
@@ -4469,6 +4560,346 @@ export const IntegrationsPublicSchema = {
   type: 'object',
   required: ['data', 'count'],
   title: 'IntegrationsPublic',
+} as const;
+
+export const IssueDetailPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    check_type: {
+      type: 'string',
+      title: 'Check Type',
+    },
+    title: {
+      type: 'string',
+      title: 'Title',
+      description: "The check's name; empty for a check since removed",
+    },
+    key: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Key',
+    },
+    state: {
+      $ref: '#/components/schemas/IssueState',
+    },
+    resolved_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Resolved At',
+    },
+    resolved_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Resolved Version',
+    },
+    finding_count: {
+      type: 'integer',
+      title: 'Finding Count',
+    },
+    call_count: {
+      type: 'integer',
+      title: 'Call Count',
+    },
+    first_seen_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'First Seen At',
+      description: 'When the earliest call it was found on started',
+    },
+    last_seen_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Last Seen At',
+      description: 'When the latest call it was found on started',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+    },
+    findings: {
+      items: {
+        $ref: '#/components/schemas/IssueFindingPublic',
+      },
+      type: 'array',
+      title: 'Findings',
+      description: 'Newest call first; at most 200',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'agent_id',
+    'check_type',
+    'title',
+    'state',
+    'finding_count',
+    'call_count',
+    'created_at',
+    'findings',
+  ],
+  title: 'IssueDetailPublic',
+} as const;
+
+export const IssueFindingPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    call_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Call Id',
+    },
+    call_started_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Call Started At',
+    },
+    check_version: {
+      type: 'integer',
+      title: 'Check Version',
+    },
+    event_ids: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Event Ids',
+    },
+    detail: {
+      anyOf: [
+        {
+          additionalProperties: {
+            $ref: '#/components/schemas/JsonValue',
+          },
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Detail',
+    },
+    effect: {
+      $ref: '#/components/schemas/FindingEffect',
+    },
+    retroactive: {
+      type: 'boolean',
+      title: 'Retroactive',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'call_id',
+    'call_started_at',
+    'check_version',
+    'event_ids',
+    'effect',
+    'retroactive',
+  ],
+  title: 'IssueFindingPublic',
+} as const;
+
+export const IssuePublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    check_type: {
+      type: 'string',
+      title: 'Check Type',
+    },
+    title: {
+      type: 'string',
+      title: 'Title',
+      description: "The check's name; empty for a check since removed",
+    },
+    key: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Key',
+    },
+    state: {
+      $ref: '#/components/schemas/IssueState',
+    },
+    resolved_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Resolved At',
+    },
+    resolved_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Resolved Version',
+    },
+    finding_count: {
+      type: 'integer',
+      title: 'Finding Count',
+    },
+    call_count: {
+      type: 'integer',
+      title: 'Call Count',
+    },
+    first_seen_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'First Seen At',
+      description: 'When the earliest call it was found on started',
+    },
+    last_seen_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Last Seen At',
+      description: 'When the latest call it was found on started',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'agent_id',
+    'check_type',
+    'title',
+    'state',
+    'finding_count',
+    'call_count',
+    'created_at',
+  ],
+  title: 'IssuePublic',
+} as const;
+
+export const IssueStateSchema = {
+  type: 'string',
+  enum: ['open', 'resolved', 'regressed', 'accepted'],
+  title: 'IssueState',
+} as const;
+
+export const IssueStateUpdateSchema = {
+  properties: {
+    state: {
+      $ref: '#/components/schemas/IssueState',
+      description: 'open, resolved or accepted',
+    },
+    reason: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 2000,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Reason',
+      description: 'Required to accept an issue',
+    },
+    version: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version',
+      description: 'When resolving: the version that carried the fix',
+    },
+  },
+  type: 'object',
+  required: ['state'],
+  title: 'IssueStateUpdate',
 } as const;
 
 export const JsonValueSchema = {} as const;

@@ -296,15 +296,19 @@ Business issue types are the customer's own spec rules, not a fixed list of code
 arrive with the spec (section 6).
 
 **An incident is its own record, and an issue can have many.** Every failed call belongs
-to exactly one incident, so a reliability figure can always be explained by listing the
-incidents behind it.
+to at least one incident, so a reliability figure can always be explained by listing the
+incidents behind it. A call that fails for two issues belongs to both incidents and is
+counted once (Decided 2026-10-10, replacing "exactly one").
 
 - It **opens** on the first failed real call of an issue that has no open incident.
-- It **closes** when real calls on the fixed version have passed without it, or after a
-  quiet period, which is recorded as "stopped without a fix". Never on a click alone.
-- If it comes back before the fix was confirmed, the same incident continues. If it
-  comes back after a confirmed close, a new incident opens on the same issue and is
-  marked as a recurrence.
+- It **closes** only when a person closes it, with a reason (Decided 2026-10-10,
+  replacing "closes on evidence or after a quiet period"). Nothing closes an incident
+  automatically. Later there may be a queue of incidents that look fixed, for a person
+  to confirm; not now.
+- While it is open, further failed calls of the issue join it. After it is closed, a new
+  failed call opens a new incident on the same issue, marked as a recurrence. "After" goes
+  by when the call started: a failing call that started before the close and arrived
+  late joins the closed incident without reopening it.
 - It holds what is needed for **response** (the calls and callers affected, the versions
   and tools involved, the evidence, and what changed just before it started), for
   **remediation** (what was done, by whom, the version that carried the fix, whether it
@@ -342,9 +346,9 @@ Proposed, not yet confirmed:
 - Titles follow Type, then Title, then Description. The type is fixed; the title
   describes the specific event and is filled from a template ("Booking tool returned an
   error"); no model writes it.
-- "Resolved in a version" records the time and the component version that carried the
-  fix. A later finding is a regression only if its call ran on that version or a later
-  one; versions are ordered by when they were first seen.
+- "Resolved in a version" records the time and, as a note, the version that carried the
+  fix. A later finding is a regression when its call started after that time. Ordering
+  versions is not used (changed 2026-10-10 with manual closing).
 - A person may later merge two issues, or split one by an attribute such as the kind of
   error.
 

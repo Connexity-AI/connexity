@@ -7,11 +7,12 @@ from sqlalchemy import Column, Index, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
-from app.models.check import FindingPublic
+from app.models.check import CallCheckPublic, FindingPublic
 from app.models.columns import enum_type
 from app.models.component_version import ServedBy
 from app.models.enums import (
     CallChannel,
+    CallCheckStatus,
     CallDirection,
     CallEndReason,
     CallEventType,
@@ -199,6 +200,13 @@ class CallPublic(SQLModel):
         default=0, description="Number of test cases sourced from this call"
     )
     label: CallLabel | None = None
+    check_status: CallCheckStatus = Field(
+        default=CallCheckStatus.UNCHECKED,
+        description=(
+            "failed: a finding from a check set to fail the call; degraded: other "
+            "findings; clean: checked, nothing found; unchecked: no check ran"
+        ),
+    )
     created_at: datetime
 
 
@@ -212,6 +220,8 @@ class CallTracePublic(SQLModel):
     served_by: list[ServedBy] = []
     # What the checks found, each pointing at events of the trace by id.
     findings: list[FindingPublic] = []
+    # What each check did on this call the last time it was checked.
+    checks: list[CallCheckPublic] = []
     checked_at: AwareDatetime | None = Field(
         default=None, description="When the checks last ran; null if they have not"
     )

@@ -58,6 +58,12 @@ the next slice, what is kept, frozen and deleted, and the open questions.
    **The UI is not held back otherwise:** anything the assistant can create or change
    in Connexity through the API, a person can also do in the UI.
 9. **The repo is public.** Never commit real call data, client names or secrets.
+10. **Checks are a library that grows only when Dmytro asks.** Do not add, propose or
+    plan a check he did not ask for by name, even one listed in the vision or in
+    `REBUILD.md`. Build the foundation the checks run on.
+11. **End every reply with "Next step from you:"** and the one thing Dmytro has to do
+    next: answer a numbered question, approve, test something, merge. If nothing is
+    needed from him, say so and say what you will do next.
 
 ## Commands
 

@@ -15,6 +15,7 @@ from app.api.routes import (
     health,
     ingest,
     integrations,
+    issues,
     login,
     mcp,
     oauth,
@@ -51,6 +52,7 @@ api_router.include_router(webhooks.router)
 api_router.include_router(tool_backends.router)
 api_router.include_router(component_versions.router)
 api_router.include_router(checks.router)
+api_router.include_router(issues.router)
 api_router.include_router(company.router)
 
 root_router = APIRouter()
