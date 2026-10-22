@@ -66,18 +66,18 @@ history of a slice is its plan file in `plans/`.
 | 1.7 | Calls screen | Not started |
 | 1.8 | MCP read surface | Not started |
 | 2.0 | Design: checks, findings, issues and incidents | Done (PR #170) |
-| 2.1 | Check engine | PR #171 open, awaiting merge |
-| 2.2 | First rule checks and facts | Not started |
-| 2.3 | Issues, incidents and reliability | Not started |
-| 2.4 | Findings, issues and incidents on screen | Not started |
+| 2.1 | Check engine | Done (PR #171) |
+| 2.2 | First rule checks and facts | Dropped: its engine pieces are folded into 2.3; checks are added only when Dmytro asks |
+| 2.3 | Check runs, issues and call status | PR open, awaiting merge |
+| 2.4 | Incidents and reliability | Not started |
+| 2.5 | Findings, issues and incidents on screen | Not started |
 | — | Inbox | Postponed: designed separately |
 | — | Tests against issues | Postponed: designed separately |
 | — | Alerting | Postponed: its own project |
 | M1 | Milestone 1 exit review | Not started |
 
-**Next slice:** 2.2 (first rule checks and facts). The candidate checks have been tried
-on stored real calls; what that showed is under 2.2. Before 2.4, design where a person
-sees findings, issues and incidents without an inbox.
+**Next slice:** 2.4 (incidents and reliability), after 2.3. Before 2.5, design where a
+person sees findings, issues and incidents without an inbox.
 
 Open, carried from earlier slices:
 
@@ -92,6 +92,9 @@ Open, carried from earlier slices:
   again; a call a check broke on is not retried; a check's setting can be changed
   through the API only (no screen, no MCP tool); any signed-in user or token of the
   company can change it, so "the assistant proposes, a person confirms" is not enforced.
+- From 2.3: a call is "unchecked" when its mapping does not say whether it reports tool
+  calls and the agent called none; a new version of a check does not run over stored
+  calls; the test for "is anything unchecked" looks at every call of the agent.
 - Deleting an agent that has calls answers 500: `call.agent_id` has no rule for it.
   Found in 2.1; it predates it.
 - Retell's prompt versions include each tool's address. That could suggest the
@@ -345,19 +348,17 @@ alerting are designed separately and are not in this phase.
 - **Done when:** a trivial check runs on arrival, its finding is stored against the
   right event, and changing its setting is recorded with who, when and why.
 
-### 2.2 First rule checks and facts
+### 2.2 First rule checks and facts (dropped 2026-10-10)
 
-- The types that are true under any prompt: tool call failed (including a failed step
-  inside the backend, read from the execution), tool call got no result, agent stopped
-  responding, same thing said twice, stage directions spoken aloud, and slow response as
-  a flag only.
-- The types that depend on what the agent was instructed to do wait for the spec: value
-  from nowhere, value spoken before the tool answered, two questions in one turn, agent
-  ended the call early.
-- A check added later can run over history. Those findings are shown but do not change
-  past reliability.
-- **Done when:** each check has tests with a failing and a passing example, and a count
-  of findings on real calls with a hand-reviewed sample.
+- Not built as a slice. The library holds one check, "tool call failed", and grows only
+  when Dmytro asks for a check by name (decision log, 2026-10-10).
+- Its engine pieces moved to 2.3: a record of each check's run on each call, skipping a
+  check on a call that lacks what it needs, and running a check over calls already
+  stored.
+- The checks listed in the vision, section 7, are candidates, not a plan.
+
+The notes below are observations from real calls. They are kept for the day a check is
+asked for; none of them is planned work.
 
 What trying the candidates on stored real calls showed (2026-10-10, about 670 calls
 across two agents, counts only):
@@ -379,25 +380,44 @@ across two agents, counts only):
   813 calls). "Tool call got no result" fails the call by default, so look at what
   these are before switching it on: a tool that is not meant to answer would make it
   noise.
+- **Counted again on 813 calls (2026-10-10):** 235 of the 237 "no result" tool calls are
+  the provider's own end-call tool, and the call ends within 34 ms of it; the other two
+  were also the last event of their call. On one agent, 34 calls end with the caller
+  speaking, one tool answering ok, and the agent never speaking again (21 by inactivity,
+  13 by the caller hanging up); whether that is intended is not known. Two calls have the
+  same 15-word sentence in two agent turns running. No stage directions. Without a tool
+  involved, the 99th percentile gap before a reply is 4.8 seconds.
 - **The checks will find little on the two connected agents.** What this phase proves is
   the machinery. A fault agent that fails on command exists as local files
   (`examples/fault-agent/`, ignored by git on Dmytro's machine, not yet set up) to give
   the checks something real to find.
 
-### 2.3 Issues, incidents and reliability
+### 2.3 Check runs, issues and call status
 
-- Findings grouped into issues by agent, type and key. Issue states: open, resolved in a
-  version, regressed, accepted.
-- Incident records: opened by the first failed real call, closed by confirmation on real
-  calls or a quiet period, a recurrence marked as one. Each holds its calls, versions,
-  evidence and timeline.
-- A call is failed, degraded or clean. Reliability and quality per agent and per
-  version, with a mark where a check or a setting changed.
-- **Done when:** on the connected agents' history, every failed call belongs to exactly
-  one incident, and a reliability figure can be explained by listing the incidents
-  behind it.
+- From 2.2: each check's run on each call is recorded (which version; ran, skipped,
+  broke, or switched off); a check is skipped, not passed, on a call that lacks what it
+  needs; a check that never ran on a stored call is run on it, and those findings are
+  retroactive.
+- Findings grouped into issues by agent, type and key. Issue states: open, resolved,
+  regressed, accepted. Resolving and accepting are a person's decisions, recorded.
+- A call is failed, degraded, clean or unchecked.
+- **Done when:** played through the API with invented calls, failing calls land in one
+  issue, resolving it and failing again makes it regressed, and a call that lacks what a
+  check needs is shown as unchecked, not clean.
 
-### 2.4 Findings, issues and incidents on screen
+### 2.4 Incidents and reliability
+
+- Incident records: opened by the first failed real call of an issue with no open
+  incident, closed only by a person with a reason, a recurrence marked as one. A call
+  that fails for two issues is in both incidents. Each holds its calls, versions,
+  evidence and timeline, and the cause and what was done as a person wrote them.
+- Reliability and quality per agent and per version, with a mark where a check or a
+  setting changed.
+- **Done when:** every failed real call belongs to at least one incident, an incident
+  stays open until someone closes it, a failure after the close opens a recurrence, and
+  a reliability figure can be explained by listing the incidents behind it.
+
+### 2.5 Findings, issues and incidents on screen
 
 - Findings on the exact moment in a call. An agent's issues and incidents, an incident
   page, and the agent's reliability and quality. To be designed before it is built;
@@ -407,7 +427,7 @@ across two agents, counts only):
 
 ### Postponed, each with its own design
 
-- **Inbox.** Was 2.4. What an item is and what a person can do from it.
+- **Inbox.** Once slice 2.4. What an item is and what a person can do from it.
 - **Tests against issues.** Phase 4.
 - **Alerting.** Who is told about what, and how fast.
 
@@ -566,6 +586,12 @@ Dmytro's only when he stated it in his own words.
 | 2026-10-10 | Postponed, each to its own design: tests against issues, the inbox, alerting, shifts in a metric, team assignment (tentatively replaced by dispatch). | Dmytro |
 | 2026-10-10 | Checks that depend on what the agent was instructed to do wait for the spec; Phase 2 builds only checks that are true under any prompt. | Dmytro ("We either leave prompt checks now or design spec. I'd rather leave it") |
 | 2026-10-10 | The fault agent stays as local files, not in the repository. | Dmytro |
+| 2026-10-10 | Checks are a library that grows only when Dmytro asks for a check explicitly. Sessions do not invent or plan checks; the focus is the foundation. | Dmytro ("treat checks as library and don't invent them without me asking explicitly") |
+| 2026-10-10 | An incident closes only manually, never automatically. This replaces "closes when real calls on the fixed version pass, or after a quiet period; never on a click alone". A queue of incidents that look fixed may come later. | Dmytro ("Incidents can close only manually never automatically") |
+| 2026-10-10 | The old 2.3 is split: check runs, issues and call status first (2.3), then incidents and reliability (2.4); screens become 2.5. | Proposed by Claude; Dmytro agreed ("Agree") |
+| 2026-10-10 | A call that fails for two issues belongs to both incidents and is counted once in reliability. Replaces "every failed call belongs to exactly one incident". | Proposed by Claude; Dmytro agreed ("Agree") |
+| 2026-10-10 | "After the close" goes by when the call started. The rule that ordered versions to decide a regression is dropped. | Proposed by Claude; Dmytro agreed ("Agree") |
+| 2026-10-10 | Slice 2.2 is dropped as a slice; its engine pieces are folded into 2.3. | Dmytro ("Fold") |
 | 2026-10-10 | The building session tests the backend through the API on a running local server; Dmytro tests the frontend, and the session does not open a browser. | Dmytro ("Claude always does backen test through APIs and leaves me frontend testing") |
 | 2026-10-10 | The first check is a real one, "tool call failed" from the trace's status. Facts are computed per run and not stored. A reason is required to loosen a check, optional to tighten it. | Proposed by Claude; Dmytro approved the slice 2.1 plan ("Ok build") |
 | 2026-10-10 | A finding's effect is the setting in force when its call started. A finding on a call that started before its check existed is retroactive. | Proposed by Claude; Dmytro approved the slice 2.1 plan ("Ok build") |

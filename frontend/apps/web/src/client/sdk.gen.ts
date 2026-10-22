@@ -75,6 +75,9 @@ import type {
   ChecksListAgentDecisionsData,
   ChecksListAgentDecisionsErrors,
   ChecksListAgentDecisionsResponses,
+  ChecksRunAgentChecksData,
+  ChecksRunAgentChecksErrors,
+  ChecksRunAgentChecksResponses,
   ChecksSetAgentCheckModeData,
   ChecksSetAgentCheckModeErrors,
   ChecksSetAgentCheckModeResponses,
@@ -197,6 +200,15 @@ import type {
   IntegrationsTestIntegrationData,
   IntegrationsTestIntegrationErrors,
   IntegrationsTestIntegrationResponses,
+  IssuesGetIssueData,
+  IssuesGetIssueErrors,
+  IssuesGetIssueResponses,
+  IssuesListAgentIssuesData,
+  IssuesListAgentIssuesErrors,
+  IssuesListAgentIssuesResponses,
+  IssuesSetIssueStateData,
+  IssuesSetIssueStateErrors,
+  IssuesSetIssueStateResponses,
   LoginLoginAccessTokenData,
   LoginLoginAccessTokenErrors,
   LoginLoginAccessTokenResponses,
@@ -3126,6 +3138,36 @@ export class ChecksService {
   }
 
   /**
+   * Run Agent Checks
+   *
+   * Check the agent's stored calls that some check has never run on.
+   *
+   * This also happens by itself when the agent's calls are opened. Up to 200 calls per
+   * request; ``remaining`` says how many are left. Findings on calls that started before
+   * a check existed are retroactive.
+   */
+  public static runAgentChecks<ThrowOnError extends boolean = false>(
+    options: Options<ChecksRunAgentChecksData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      ChecksRunAgentChecksResponses,
+      ChecksRunAgentChecksErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/checks/run',
+      ...options,
+    });
+  }
+
+  /**
    * List Agent Decisions
    *
    * The agent's decision records, newest first.
@@ -3148,6 +3190,94 @@ export class ChecksService {
       ],
       url: '/api/v1/agents/{agent_id}/decisions',
       ...options,
+    });
+  }
+}
+
+export class IssuesService {
+  /**
+   * List Agent Issues
+   *
+   * The agent's issues, the one seen most recently first.
+   */
+  public static listAgentIssues<ThrowOnError extends boolean = false>(
+    options: Options<IssuesListAgentIssuesData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      IssuesListAgentIssuesResponses,
+      IssuesListAgentIssuesErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/issues',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Issue
+   *
+   * One issue with its findings and the calls they are on.
+   */
+  public static getIssue<ThrowOnError extends boolean = false>(
+    options: Options<IssuesGetIssueData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      IssuesGetIssueResponses,
+      IssuesGetIssueErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/issues/{issue_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Set Issue State
+   *
+   * Resolve an issue, accept it as known, or reopen it.
+   *
+   * Kept as a decision record. Accepting requires a reason. "Regressed" is not
+   * something a person sets: it happens when a resolved issue is found again on a call
+   * that started after the resolution.
+   */
+  public static setIssueState<ThrowOnError extends boolean = false>(
+    options: Options<IssuesSetIssueStateData, ThrowOnError>
+  ) {
+    return (options.client ?? client).put<
+      IssuesSetIssueStateResponses,
+      IssuesSetIssueStateErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/issues/{issue_id}/state',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
     });
   }
 }

@@ -9,12 +9,18 @@ from app.api.deps import CurrentCompany, CurrentUser, SessionDep, get_current_us
 from app.models import (
     AgentCheckPublic,
     CheckModeUpdate,
+    ChecksRunResult,
     DecisionRecord,
     DecisionRecordPublic,
 )
 from app.models.enums import DecisionKind
 from app.services.checks.base import RuleCheck
-from app.services.checks.engine import current_mode, is_loosening
+from app.services.checks.engine import (
+    check_unchecked_calls,
+    count_unchecked_calls,
+    current_mode,
+    is_loosening,
+)
 from app.services.checks.registry import CHECKS, get_check
 
 router = APIRouter(
@@ -106,6 +112,24 @@ def set_agent_check_mode(
         decided_by=current_user,
     )
     return _public(check, [*records, record])
+
+
+@router.post("/checks/run", response_model=ChecksRunResult)
+def run_agent_checks(
+    session: SessionDep, company_id: CurrentCompany, agent_id: uuid.UUID
+) -> ChecksRunResult:
+    """Check the agent's stored calls that some check has never run on.
+
+    This also happens by itself when the agent's calls are opened. Up to 200 calls per
+    request; ``remaining`` says how many are left. Findings on calls that started before
+    a check existed are retroactive.
+    """
+    _require_agent(session, company_id, agent_id)
+    checked = check_unchecked_calls(session=session, agent_id=agent_id)
+    return ChecksRunResult(
+        checked=checked,
+        remaining=count_unchecked_calls(session=session, agent_id=agent_id),
+    )
 
 
 @router.get("/decisions", response_model=list[DecisionRecordPublic])

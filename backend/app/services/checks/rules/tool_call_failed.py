@@ -1,6 +1,6 @@
 """A tool call the trace reports as failed."""
 
-from app.models.enums import CheckMode, ToolCallStatus
+from app.models.enums import CheckMode, ToolCallStatus, TraceCapability
 from app.models.trace import ToolCallEvent
 from app.services.checks.base import CheckInput, Raised, RuleCheck
 
@@ -27,4 +27,5 @@ TOOL_CALL_FAILED = RuleCheck(
     description="A tool the agent called returned an error or timed out.",
     default_mode=CheckMode.FAILS,
     run=_run,
+    needs=(TraceCapability.TOOL_RESULTS,),
 )

@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 
 from pydantic import JsonValue
 
-from app.models.enums import CheckKind, CheckMode
+from app.models.enums import CheckKind, CheckMode, TraceCapability
 from app.models.execution import Execution
 from app.models.trace import Trace
 
@@ -61,4 +61,7 @@ class RuleCheck:
     default_mode: CheckMode
     run: Callable[[CheckInput], list[Raised]]
     facts: tuple[str, ...] = ()
+    # What a trace must have for the check to say anything. On a call without it the
+    # check is skipped, which is recorded and is not a pass.
+    needs: tuple[TraceCapability, ...] = ()
     kind: CheckKind = CheckKind.RULE

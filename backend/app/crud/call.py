@@ -5,9 +5,10 @@ from sqlalchemy import Table, func, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlmodel import Session, col, select
 
+from app.crud.check import call_check_statuses
 from app.models.agent import Agent
 from app.models.call import Call, CallPublic
-from app.models.enums import CallLabel
+from app.models.enums import CallCheckStatus, CallLabel
 from app.models.test_case import TestCase
 from app.services.elevenlabs import (
     ElevenLabsConversationDetails,
@@ -201,7 +202,12 @@ def get_latest_call_started_at(
     return session.exec(stmt).one_or_none()
 
 
-def call_to_public(call: Call, *, test_case_count: int) -> CallPublic:
+def call_to_public(
+    call: Call,
+    *,
+    test_case_count: int,
+    check_status: CallCheckStatus = CallCheckStatus.UNCHECKED,
+) -> CallPublic:
     duration: int | None = None
     if call.ended_at is not None:
         duration = max(0, int((call.ended_at - call.started_at).total_seconds()))
@@ -223,6 +229,7 @@ def call_to_public(call: Call, *, test_case_count: int) -> CallPublic:
         is_new=call.seen_at is None,
         test_case_count=test_case_count,
         label=call.label,
+        check_status=check_status,
         created_at=call.created_at,
     )
 
@@ -279,8 +286,13 @@ def list_calls_for_agent(
         ).all()
     )
 
+    statuses = call_check_statuses(session=session, call_ids=call_ids)
     items = [
-        call_to_public(call, test_case_count=int(tc_counts.get(call.id, 0)))
+        call_to_public(
+            call,
+            test_case_count=int(tc_counts.get(call.id, 0)),
+            check_status=statuses[call.id],
+        )
         for call in calls
     ]
     return items, total

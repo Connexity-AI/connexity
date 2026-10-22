@@ -51,12 +51,20 @@ from app.models.call import (  # noqa: F401
 )
 from app.models.check import (  # noqa: F401
     AgentCheckPublic,
+    CallCheck,
+    CallCheckPublic,
     CheckModeUpdate,
     CheckRelease,
+    ChecksRunResult,
     DecisionRecord,
     DecisionRecordPublic,
     Finding,
     FindingPublic,
+    Issue,
+    IssueDetailPublic,
+    IssueFindingPublic,
+    IssuePublic,
+    IssueStateUpdate,
 )
 
 # ── Common ─────────────────────────────────────────────────────────

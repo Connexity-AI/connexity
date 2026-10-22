@@ -5,6 +5,7 @@ was set to when the call started, and stores the result.
 """
 
 import logging
+import uuid
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -12,13 +13,15 @@ from datetime import UTC, datetime
 from sqlmodel import Session
 
 from app import crud
+from app.core.db import engine
 from app.models.call import Call
-from app.models.check import DecisionRecord, Finding
-from app.models.enums import CheckMode, FindingEffect
+from app.models.check import CallCheck, DecisionRecord, Finding
+from app.models.enums import CheckMode, CheckOutcome, FindingEffect
 from app.models.execution import Execution
 from app.models.trace import Trace
 from app.services.checks.base import CheckInput, Fact, FactSource, Raised, RuleCheck
 from app.services.checks.registry import CHECKS, FACT_SOURCES
+from app.services.trace_capabilities import derive_capabilities
 
 logger = logging.getLogger(__name__)
 
@@ -141,8 +144,9 @@ def check_call(
     """Check ``call`` and replace its findings with what the checks raise now.
 
     Each check runs as it was set when the call started, so checking an old call again
-    never changes what it counted for. A check that breaks is logged and keeps the
-    findings it had; the others are stored, and the call is not noted as checked.
+    never changes what it counted for. What each check did (ran, skipped, broke, off)
+    is recorded for the call. A check that breaks is logged and keeps the findings it
+    had; the others are stored.
 
     Returns:
         How many findings the checks that ran raised, or ``None`` when the call has
@@ -164,10 +168,17 @@ def check_call(
         return None
     started = _aware(call.started_at)
     history = crud.check_setting_history(session=session, agent_id=call.agent_id)
+    capabilities = set(derive_capabilities(trace))
     effects: dict[str, FindingEffect] = {}
+    outcomes: dict[str, tuple[CheckOutcome, str | None]] = {}
     for check in checks:
         mode = mode_at(check, history.get(check.type, []), started)
-        if mode is not CheckMode.OFF:
+        missing = [need.value for need in check.needs if need not in capabilities]
+        if mode is CheckMode.OFF:
+            outcomes[check.type] = (CheckOutcome.OFF, None)
+        elif missing:
+            outcomes[check.type] = (CheckOutcome.SKIPPED, ", ".join(missing))
+        else:
             effects[check.type] = FindingEffect(mode.value)
 
     run = run_checks(
@@ -178,9 +189,13 @@ def check_call(
     )
     for check_type, error in run.broken.items():
         logger.error("Check '%s' broke on call %s", check_type, call.id, exc_info=error)
+    for check_type in effects:
+        outcome = CheckOutcome.BROKE if check_type in run.broken else CheckOutcome.RAN
+        outcomes[check_type] = (outcome, None)
     return crud.replace_findings(
         session=session,
         call=call,
+        # A broken check keeps the findings it had: the fault is ours, not the call's.
         check_types={check.type for check in checks} - set(run.broken),
         findings=[
             Finding(
@@ -198,7 +213,17 @@ def check_call(
             )
             for check, raised in run.found
         ],
-        checked=not run.broken,
+        runs=[
+            CallCheck(
+                call_id=call.id,
+                check_type=check.type,
+                company_id=call.company_id,
+                check_version=check.version,
+                outcome=outcomes[check.type][0],
+                missing=outcomes[check.type][1],
+            )
+            for check in checks
+        ],
     )
 
 
@@ -222,3 +247,51 @@ def is_loosening(old: CheckMode, new: CheckMode) -> bool:
         CheckMode.FAILS: 2,
     }
     return order[new] < order[old]
+
+
+# Stored calls checked in one pass. A pass is cheap (no network), so this only bounds
+# how long one request or background task holds a database session.
+MAX_CALLS_PER_PASS = 200
+
+
+def check_unchecked_calls(
+    *, session: Session, agent_id: uuid.UUID, limit: int = MAX_CALLS_PER_PASS
+) -> int:
+    """Check the agent's stored calls that some check has never run on.
+
+    A call is picked up once: after this it has a row for every check, whatever the
+    outcome. Findings on calls that started before a check existed are retroactive.
+
+    Returns:
+        How many calls were checked.
+    """
+    versions = {check.type: check.version for check in CHECKS}
+    checked = 0
+    for call in crud.calls_missing_check_runs(
+        session=session, agent_id=agent_id, check_types=list(versions), limit=limit
+    ):
+        call_id, company_id = call.id, call.company_id
+        if check_call_safely(session=session, call=call) is not None:
+            checked += 1
+            continue
+        # The call could not be checked at all. Say so, or every pass would pick it up
+        # again and never reach the calls behind it.
+        crud.record_checks_broke(
+            session=session, call_id=call_id, company_id=company_id, versions=versions
+        )
+    return checked
+
+
+def check_unchecked_calls_in_background(agent_id: uuid.UUID) -> None:
+    """For a worker thread: its own database session, never raises."""
+    try:
+        with Session(engine) as session:
+            check_unchecked_calls(session=session, agent_id=agent_id)
+    except Exception:  # noqa: BLE001 - a background task has no one to raise to
+        logger.exception("Stored calls of agent %s could not be checked", agent_id)
+
+
+def count_unchecked_calls(*, session: Session, agent_id: uuid.UUID) -> int:
+    return crud.count_calls_missing_check_runs(
+        session=session, agent_id=agent_id, check_types=[c.type for c in CHECKS]
+    )

@@ -188,3 +188,31 @@ class FindingEffect(StrEnum):
 
 class DecisionKind(StrEnum):
     CHECK_SETTING = "check_setting"
+    ISSUE_STATE = "issue_state"
+
+
+class CheckOutcome(StrEnum):
+    """What one check did on one call."""
+
+    RAN = "ran"
+    # The call lacks something the check needs. Not a pass.
+    SKIPPED = "skipped"
+    BROKE = "broke"
+    # The check was switched off for the agent when the call started.
+    OFF = "off"
+
+
+class IssueState(StrEnum):
+    OPEN = "open"
+    RESOLVED = "resolved"
+    # Found again on a call that started after it was resolved.
+    REGRESSED = "regressed"
+    ACCEPTED = "accepted"
+
+
+class CallCheckStatus(StrEnum):
+    FAILED = "failed"
+    DEGRADED = "degraded"
+    CLEAN = "clean"
+    # No check ran on the call: never checked, or every check was skipped, broke or off.
+    UNCHECKED = "unchecked"

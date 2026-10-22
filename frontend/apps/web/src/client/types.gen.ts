@@ -1056,6 +1056,52 @@ export const CallChannel = {
 export type CallChannel = (typeof CallChannel)[keyof typeof CallChannel];
 
 /**
+ * CallCheckPublic
+ */
+export type CallCheckPublic = {
+  /**
+   * Check Type
+   */
+  check_type: string;
+  /**
+   * Title
+   *
+   * The check's name; empty for a check since removed
+   */
+  title: string;
+  /**
+   * Check Version
+   */
+  check_version: number;
+  outcome: CheckOutcome;
+  /**
+   * Missing
+   *
+   * For a skipped check: what the call's trace lacks
+   */
+  missing?: string | null;
+  /**
+   * Ran At
+   */
+  ran_at: string;
+};
+
+/**
+ * CallCheckStatus
+ */
+export const CallCheckStatus = {
+  FAILED: 'failed',
+  DEGRADED: 'degraded',
+  CLEAN: 'clean',
+  UNCHECKED: 'unchecked',
+} as const;
+
+/**
+ * CallCheckStatus
+ */
+export type CallCheckStatus = (typeof CallCheckStatus)[keyof typeof CallCheckStatus];
+
+/**
  * CallDirection
  */
 export const CallDirection = { INBOUND: 'inbound', OUTBOUND: 'outbound' } as const;
@@ -1175,6 +1221,10 @@ export type CallPublic = {
   test_case_count?: number;
   label?: CallLabel | null;
   /**
+   * failed: a finding from a check set to fail the call; degraded: other findings; clean: checked, nothing found; unchecked: no check ran
+   */
+  check_status?: CallCheckStatus;
+  /**
    * Created At
    */
   created_at: string;
@@ -1219,6 +1269,10 @@ export type CallTracePublic = {
    * Findings
    */
   findings?: Array<FindingPublic>;
+  /**
+   * Checks
+   */
+  checks?: Array<CallCheckPublic>;
   /**
    * Checked At
    *
@@ -1310,6 +1364,43 @@ export type CheckModeUpdate = {
    * Required when the change loosens the check
    */
   reason?: string | null;
+};
+
+/**
+ * CheckOutcome
+ *
+ * What one check did on one call.
+ */
+export const CheckOutcome = {
+  RAN: 'ran',
+  SKIPPED: 'skipped',
+  BROKE: 'broke',
+  OFF: 'off',
+} as const;
+
+/**
+ * CheckOutcome
+ *
+ * What one check did on one call.
+ */
+export type CheckOutcome = (typeof CheckOutcome)[keyof typeof CheckOutcome];
+
+/**
+ * ChecksRunResult
+ */
+export type ChecksRunResult = {
+  /**
+   * Checked
+   *
+   * Stored calls checked by this request
+   */
+  checked: number;
+  /**
+   * Remaining
+   *
+   * Stored calls a check has still never run on
+   */
+  remaining: number;
 };
 
 /**
@@ -1749,7 +1840,7 @@ export type CustomMetricsPublic = {
 /**
  * DecisionKind
  */
-export const DecisionKind = { CHECK_SETTING: 'check_setting' } as const;
+export const DecisionKind = { CHECK_SETTING: 'check_setting', ISSUE_STATE: 'issue_state' } as const;
 
 /**
  * DecisionKind
@@ -2388,6 +2479,10 @@ export type FindingPublic = {
    */
   id: string;
   /**
+   * Issue Id
+   */
+  issue_id: string;
+  /**
    * Check Type
    */
   check_type: string;
@@ -2789,6 +2884,208 @@ export type IntegrationsPublic = {
    * Count
    */
   count: number;
+};
+
+/**
+ * IssueDetailPublic
+ */
+export type IssueDetailPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Check Type
+   */
+  check_type: string;
+  /**
+   * Title
+   *
+   * The check's name; empty for a check since removed
+   */
+  title: string;
+  /**
+   * Key
+   */
+  key?: string | null;
+  state: IssueState;
+  /**
+   * Resolved At
+   */
+  resolved_at?: string | null;
+  /**
+   * Resolved Version
+   */
+  resolved_version?: string | null;
+  /**
+   * Finding Count
+   */
+  finding_count: number;
+  /**
+   * Call Count
+   */
+  call_count: number;
+  /**
+   * First Seen At
+   *
+   * When the earliest call it was found on started
+   */
+  first_seen_at?: string | null;
+  /**
+   * Last Seen At
+   *
+   * When the latest call it was found on started
+   */
+  last_seen_at?: string | null;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Findings
+   *
+   * Newest call first; at most 200
+   */
+  findings: Array<IssueFindingPublic>;
+};
+
+/**
+ * IssueFindingPublic
+ */
+export type IssueFindingPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Call Id
+   */
+  call_id: string;
+  /**
+   * Call Started At
+   */
+  call_started_at: string;
+  /**
+   * Check Version
+   */
+  check_version: number;
+  /**
+   * Event Ids
+   */
+  event_ids: Array<string>;
+  /**
+   * Detail
+   */
+  detail?: {
+    [key: string]: JsonValue;
+  } | null;
+  effect: FindingEffect;
+  /**
+   * Retroactive
+   */
+  retroactive: boolean;
+};
+
+/**
+ * IssuePublic
+ */
+export type IssuePublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Check Type
+   */
+  check_type: string;
+  /**
+   * Title
+   *
+   * The check's name; empty for a check since removed
+   */
+  title: string;
+  /**
+   * Key
+   */
+  key?: string | null;
+  state: IssueState;
+  /**
+   * Resolved At
+   */
+  resolved_at?: string | null;
+  /**
+   * Resolved Version
+   */
+  resolved_version?: string | null;
+  /**
+   * Finding Count
+   */
+  finding_count: number;
+  /**
+   * Call Count
+   */
+  call_count: number;
+  /**
+   * First Seen At
+   *
+   * When the earliest call it was found on started
+   */
+  first_seen_at?: string | null;
+  /**
+   * Last Seen At
+   *
+   * When the latest call it was found on started
+   */
+  last_seen_at?: string | null;
+  /**
+   * Created At
+   */
+  created_at: string;
+};
+
+/**
+ * IssueState
+ */
+export const IssueState = {
+  OPEN: 'open',
+  RESOLVED: 'resolved',
+  REGRESSED: 'regressed',
+  ACCEPTED: 'accepted',
+} as const;
+
+/**
+ * IssueState
+ */
+export type IssueState = (typeof IssueState)[keyof typeof IssueState];
+
+/**
+ * IssueStateUpdate
+ */
+export type IssueStateUpdate = {
+  /**
+   * open, resolved or accepted
+   */
+  state: IssueState;
+  /**
+   * Reason
+   *
+   * Required to accept an issue
+   */
+  reason?: string | null;
+  /**
+   * Version
+   *
+   * When resolving: the version that carried the fix
+   */
+  version?: string | null;
 };
 
 export type JsonValue = unknown;
@@ -11789,6 +12086,62 @@ export type ChecksSetAgentCheckModeResponses = {
 export type ChecksSetAgentCheckModeResponse =
   ChecksSetAgentCheckModeResponses[keyof ChecksSetAgentCheckModeResponses];
 
+export type ChecksRunAgentChecksData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/checks/run';
+};
+
+export type ChecksRunAgentChecksErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ChecksRunAgentChecksError =
+  ChecksRunAgentChecksErrors[keyof ChecksRunAgentChecksErrors];
+
+export type ChecksRunAgentChecksResponses = {
+  /**
+   * Successful Response
+   */
+  200: ChecksRunResult;
+};
+
+export type ChecksRunAgentChecksResponse =
+  ChecksRunAgentChecksResponses[keyof ChecksRunAgentChecksResponses];
+
 export type ChecksListAgentDecisionsData = {
   body?: never;
   path: {
@@ -11851,6 +12204,173 @@ export type ChecksListAgentDecisionsResponses = {
 
 export type ChecksListAgentDecisionsResponse =
   ChecksListAgentDecisionsResponses[keyof ChecksListAgentDecisionsResponses];
+
+export type IssuesListAgentIssuesData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/issues';
+};
+
+export type IssuesListAgentIssuesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type IssuesListAgentIssuesError =
+  IssuesListAgentIssuesErrors[keyof IssuesListAgentIssuesErrors];
+
+export type IssuesListAgentIssuesResponses = {
+  /**
+   * Response Issues-List Agent Issues
+   *
+   * Successful Response
+   */
+  200: Array<IssuePublic>;
+};
+
+export type IssuesListAgentIssuesResponse =
+  IssuesListAgentIssuesResponses[keyof IssuesListAgentIssuesResponses];
+
+export type IssuesGetIssueData = {
+  body?: never;
+  path: {
+    /**
+     * Issue Id
+     */
+    issue_id: string;
+  };
+  query?: never;
+  url: '/api/v1/issues/{issue_id}';
+};
+
+export type IssuesGetIssueErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type IssuesGetIssueError = IssuesGetIssueErrors[keyof IssuesGetIssueErrors];
+
+export type IssuesGetIssueResponses = {
+  /**
+   * Successful Response
+   */
+  200: IssueDetailPublic;
+};
+
+export type IssuesGetIssueResponse = IssuesGetIssueResponses[keyof IssuesGetIssueResponses];
+
+export type IssuesSetIssueStateData = {
+  body: IssueStateUpdate;
+  path: {
+    /**
+     * Issue Id
+     */
+    issue_id: string;
+  };
+  query?: never;
+  url: '/api/v1/issues/{issue_id}/state';
+};
+
+export type IssuesSetIssueStateErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type IssuesSetIssueStateError = IssuesSetIssueStateErrors[keyof IssuesSetIssueStateErrors];
+
+export type IssuesSetIssueStateResponses = {
+  /**
+   * Successful Response
+   */
+  200: IssuePublic;
+};
+
+export type IssuesSetIssueStateResponse =
+  IssuesSetIssueStateResponses[keyof IssuesSetIssueStateResponses];
 
 export type CompanyGetLlmCredentialsData = {
   body?: never;
