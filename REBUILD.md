@@ -59,6 +59,7 @@ history of a slice is its plan file in `plans/`.
 | 1.2 | Ingest API and service tokens | Done (PR #165) |
 | 1.3 | Retell reference mapping | Done (PR #166) |
 | 1.3b | Vapi and ElevenLabs reference mappings | Not started |
+| 1.3c | Retell's retired list endpoints: pull calls and list agents again | PR open, awaiting merge |
 | 1.4 | Skill executions (n8n) | Done (PR #167) |
 | 1.5 | Component versions | Done (PR #168) |
 | 1.4b | Executions looked up without a button | Done (PR #169) |
@@ -68,7 +69,7 @@ history of a slice is its plan file in `plans/`.
 | 2.0 | Design: checks, findings, issues and incidents | Done (PR #170) |
 | 2.1 | Check engine | Done (PR #171) |
 | 2.2 | First rule checks and facts | Dropped: its engine pieces are folded into 2.3; checks are added only when Dmytro asks |
-| 2.3 | Check runs, issues and call status | PR open, awaiting merge |
+| 2.3 | Check runs, issues and call status | Done (PR #172) |
 | 2.4 | Incidents and reliability | Not started |
 | 2.5 | Findings, issues and incidents on screen | Not started |
 | — | Inbox | Postponed: designed separately |

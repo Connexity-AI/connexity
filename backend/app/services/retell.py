@@ -148,12 +148,18 @@ def _is_finished_retell_call(
     return normalized_status in {"ended", "completed", "finished"}
 
 
+_LIST_AGENTS_URL = "https://api.retellai.com/v2/list-agents"
+_LIST_AGENTS_MAX_PAGES = 50
+
+
 async def test_retell_connection(api_key: str) -> bool:
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.get(
-                "https://api.retellai.com/list-agents",
+            response = await client.post(
+                _LIST_AGENTS_URL,
                 headers={"Authorization": f"Bearer {api_key}"},
+                params={"limit": 1},
+                json={},
                 timeout=10.0,
             )
         return response.status_code == 200
@@ -162,33 +168,68 @@ async def test_retell_connection(api_key: str) -> bool:
 
 
 async def list_retell_agents(api_key: str) -> list[RetellAgentSummary]:
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                "https://api.retellai.com/list-agents",
-                headers={"Authorization": f"Bearer {api_key}"},
-                params={"is_latest": "true"},
-                timeout=10.0,
-            )
-    except httpx.HTTPError as exc:
-        raise HTTPException(
-            status_code=502, detail="Failed to reach Retell API"
-        ) from exc
+    """Every agent in the account, read page by page from Retell's agent list.
 
-    if response.status_code != 200:
-        raise HTTPException(status_code=502, detail="Retell API returned an error")
-
+    The list carries no version or "published" flag per agent; an agent counts as
+    published when it has a latest published version, and that is the version shown.
+    """
     agents: list[RetellAgentSummary] = []
-    for item in response.json():
-        agents.append(
-            RetellAgentSummary(
-                agent_id=item.get("agent_id", ""),
-                agent_name=item.get("agent_name"),
-                is_published=bool(item.get("is_published", False)),
-                version=item.get("version"),
-            )
-        )
+    pagination_key: str | None = None
+    async with httpx.AsyncClient() as client:
+        for _ in range(_LIST_AGENTS_MAX_PAGES):
+            params: dict[str, Any] = {"limit": 1000}
+            if pagination_key:
+                params["pagination_key"] = pagination_key
+            try:
+                response = await client.post(
+                    _LIST_AGENTS_URL,
+                    headers={"Authorization": f"Bearer {api_key}"},
+                    params=params,
+                    json={},
+                    timeout=10.0,
+                )
+            except httpx.HTTPError as exc:
+                raise HTTPException(
+                    status_code=502, detail="Failed to reach Retell API"
+                ) from exc
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=502, detail="Retell API returned an error"
+                )
+            body = _json_or_none(response)
+            items = body.get("items") if isinstance(body, dict) else None
+            if not isinstance(items, list):
+                raise HTTPException(
+                    status_code=502, detail="Retell API returned an unexpected answer"
+                )
+            for item in items:
+                if not isinstance(item, dict) or not item.get("agent_id"):
+                    continue
+                published = item.get("latest_published_version")
+                agents.append(
+                    RetellAgentSummary(
+                        agent_id=str(item["agent_id"]),
+                        agent_name=item.get("agent_name"),
+                        is_published=published is not None,
+                        version=published if isinstance(published, int) else None,
+                    )
+                )
+            next_key = body.get("pagination_key")
+            if (
+                not body.get("has_more")
+                or not isinstance(next_key, str)
+                or not next_key
+            ):
+                break
+            pagination_key = next_key
     return agents
+
+
+def _json_or_none(response: httpx.Response) -> Any:
+    try:
+        return response.json()
+    except ValueError:
+        return None
 
 
 async def list_retell_agent_versions(
@@ -511,6 +552,13 @@ async def list_retell_test_runs(
     return jobs
 
 
+_LIST_CALLS_URL = "https://api.retellai.com/v3/list-calls"
+# Full call records read at the same time during a pull.
+_CALL_READ_CONCURRENCY = 5
+# Calls Retell has not finished yet. A pull stops at the first one it lists.
+_RETELL_IN_PROGRESS = {"registered", "ongoing"}
+
+
 async def list_retell_calls(
     api_key: str,
     *,
@@ -518,19 +566,23 @@ async def list_retell_calls(
     start_after: datetime | None = None,
     limit: int = 100,
 ) -> list[RetellCall]:
-    """Fetch calls for a given Retell agent via POST /v2/list-calls.
+    """Finished calls of one Retell agent, oldest first, each with its full record.
 
-    If ``start_after`` is provided, only calls with ``start_timestamp`` strictly
-    greater than it are returned (used by the refresh flow to skip already-stored
-    rows).
+    Retell's call list no longer carries transcripts or recordings, so every finished
+    call it lists is read once in full. If reading one fails, the result stops just
+    before it, so the next pull, which starts after the newest call returned, asks for
+    it again. A call Retell no longer has is skipped.
+
+    If ``start_after`` is given, only calls that started strictly after it are listed.
     """
-    filter_criteria: dict[str, Any] = {"agent_id": [agent_id]}
+    filter_criteria: dict[str, Any] = {"agent": [{"agent_id": agent_id}]}
     if start_after is not None:
-        # Retell timestamps are epoch milliseconds; use exclusive lower threshold
+        # Retell timestamps are epoch milliseconds.
         filter_criteria["start_timestamp"] = {
-            "lower_threshold": int(start_after.timestamp() * 1000) + 1,
+            "type": "number",
+            "op": "gt",
+            "value": int(start_after.timestamp() * 1000),
         }
-
     body = {
         "filter_criteria": filter_criteria,
         "limit": limit,
@@ -540,7 +592,7 @@ async def list_retell_calls(
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                "https://api.retellai.com/v2/list-calls",
+                _LIST_CALLS_URL,
                 headers={
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json",
@@ -556,35 +608,51 @@ async def list_retell_calls(
     if response.status_code != 200:
         raise HTTPException(status_code=502, detail="Retell API returned an error")
 
-    payload = response.json()
-    # Retell may return the list directly or wrap it in {"calls": [...]} depending
-    # on version; handle both defensively.
-    items = payload if isinstance(payload, list) else payload.get("calls", [])
-
-    calls: list[RetellCall] = []
-    for item in items:
-        if not isinstance(item, dict):
-            continue
-        status = item.get("call_status")
-        start_timestamp = item.get("start_timestamp")
-        end_timestamp = item.get("end_timestamp")
-        if not _is_finished_retell_call(
-            status=status,
-            start_timestamp=start_timestamp,
-            end_timestamp=end_timestamp,
-        ):
-            continue
-        calls.append(
-            RetellCall(
-                call_id=item.get("call_id", ""),
-                agent_id=item.get("agent_id"),
-                start_timestamp=start_timestamp,
-                end_timestamp=end_timestamp,
-                call_status=status,
-                transcript_object=item.get("transcript_object"),
-                raw=item,
-            )
+    payload = _json_or_none(response)
+    items = payload.get("items") if isinstance(payload, dict) else None
+    if not isinstance(items, list):
+        raise HTTPException(
+            status_code=502, detail="Retell API returned an unexpected answer"
         )
+
+    finished: list[dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict) or not item.get("call_id"):
+            continue
+        if str(item.get("call_status") or "").lower() in _RETELL_IN_PROGRESS:
+            # Stop here: returning later calls would move the next pull past this one
+            # before it ends.
+            break
+        if _is_finished_retell_call(
+            status=item.get("call_status"),
+            start_timestamp=item.get("start_timestamp"),
+            end_timestamp=item.get("end_timestamp"),
+        ):
+            finished.append(item)
+
+    semaphore = asyncio.Semaphore(_CALL_READ_CONCURRENCY)
+
+    async def read(call_id: str) -> RetellCall | None:
+        async with semaphore:
+            return await get_retell_call(api_key, call_id)
+
+    results = await asyncio.gather(
+        *(read(str(item["call_id"])) for item in finished), return_exceptions=True
+    )
+    calls: list[RetellCall] = []
+    for result in results:
+        if isinstance(result, BaseException):
+            # Stop before the call that could not be read, so it is asked for again.
+            logger.warning("Reading a Retell call in full failed: %s", result)
+            if not calls:
+                # Nothing could be read: say so, rather than look like "no new calls".
+                raise HTTPException(
+                    status_code=502,
+                    detail="Retell API returned an error reading a call",
+                ) from result
+            break
+        if result is not None:
+            calls.append(result)
     return calls
 
 

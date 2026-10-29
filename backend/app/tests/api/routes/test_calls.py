@@ -218,7 +218,9 @@ def test_list_calls_fetches_from_retell_and_marks_new(
     for item in body["data"]:
         assert item["is_new"] is True
         assert item["test_case_count"] == 0
-    assert mocked.await_count == 1
+    # One sync: it reads a second page to learn there is nothing newer, since a short
+    # Retell page no longer means the end. The second GET starts no sync of its own.
+    assert mocked.await_count == 2
 
 
 def test_seen_endpoint_clears_new_badge(
