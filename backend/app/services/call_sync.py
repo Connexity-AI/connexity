@@ -218,7 +218,11 @@ async def sync_agent_calls(*, session: Session, agent: Agent, incremental: bool)
                 break
             event["fetched"] += fetched
             event["created"] += created
-            if fetched < PAGE_SIZE or next_after is None:
+            # Retell's list drops unfinished calls and stops at a call it could not
+            # read, so a short page does not mean the end: read on until a page is
+            # empty.
+            short_page = fetched < PAGE_SIZE and agent.platform != Platform.RETELL
+            if short_page or next_after is None:
                 break
             if start_after is not None and next_after <= start_after:
                 break
