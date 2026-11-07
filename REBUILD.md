@@ -83,6 +83,7 @@ history of a slice is its plan file in `plans/`.
 | 1.1 | Canonical trace schema | Done (PR #164) |
 | 1.2 | Ingest API and service tokens | Done (PR #165) |
 | 1.3 | Retell reference mapping | Done (PR #166) |
+| 1.3c | Retell's retired list endpoints: pull calls and list agents again | Done (PR #173) |
 | 1.4 | Skill executions (n8n) | Done (PR #167) |
 | 1.5 | Component versions | Done (PR #168) |
 | 1.4b | Executions looked up without a button | Done (PR #169) |
