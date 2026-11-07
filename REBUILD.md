@@ -3,15 +3,17 @@
 This is the working plan for turning Connexity 1.x into Connexity 2.0. Every rebuild
 session starts here.
 
-- **Why and what:** [`Connexity 2.0.md`](./Connexity%202.0.md) (the vision). This plan
-  does not repeat it. Section numbers below (§) refer to that file.
+- **Why:** the goal at the top of [`CLAUDE.md`](./CLAUDE.md). Dmytro's fuller vision is
+  private and kept out of the repo.
+- **How a part is designed:** the design docs in `docs-internal/`, such as
+  [`checks-and-incidents.md`](./docs-internal/checks-and-incidents.md).
 - **How we work:** [`docs-internal/development-lifecycle.md`](./docs-internal/development-lifecycle.md).
 - **Each pull request's plan:** [`plans/`](./plans/README.md). What one change set out
   to do and what it did. The plan is what gets reviewed.
 - **This file:** the roadmap. The order of work, the current status, and the decisions
   made along the way.
 
-When the vision and this plan disagree, the vision wins and this plan gets fixed.
+When a design doc and this plan disagree, ask Dmytro; then fix whichever is wrong.
 
 ---
 
@@ -37,9 +39,32 @@ reference agent 1, but every slice is designed for any stack:
 - When a design choice is being made only because reference agent 1 needs it, say so in
   the PR and ask whether a second stack would need something different.
 
-Order of work follows the ladder in §13: Observe, Check, Spec, Test, Gate, Loop.
-Phases 0 to 2 are planned in detail. Phases 3 to 6 are outlines and get planned
-properly at the checkpoint before each one starts.
+**Provider strategy (Decided).**
+
+- **Ingestion is provider-agnostic.** Connexity defines a canonical trace; a mapping
+  turns each provider's data (Retell, Vapi, Pipecat, others) into it. The trace has a
+  small required core (call, turns, tool calls with arguments and results, input
+  variables, component versions) and optional extensions. Unmapped data is kept raw.
+- **Evaluation is not.** Simulations run on the agent's own engine: the provider's for
+  hosted platforms, the team's own deployed service for self-hosted frameworks, reached
+  through a Connexity-defined endpoint contract. Connexity never re-implements an agent
+  from a copy of its prompt.
+- So observability works with any provider, and testing works with supported ones.
+
+**The ladder (Proposed).** How a team adopts the product, and how Phases 0 to 2 were
+ordered:
+
+| Level | What the user gets |
+|---|---|
+| 1. Observe | Every call as one joined trace, with versions |
+| 2. Check | Checks on every call, grouped into issues and incidents |
+| 3. Spec | Business rules with provenance |
+| 4. Test | Simulations and backend tests derived from the spec |
+| 5. Gate | Verified deploys and bypass detection |
+| 6. Loop | Triage and prepared fixes, with people approving |
+
+Phases 0 to 2 below describe what was built. The roadmap beyond them is paused (see
+section 2).
 
 ---
 
@@ -58,31 +83,29 @@ history of a slice is its plan file in `plans/`.
 | 1.1 | Canonical trace schema | Done (PR #164) |
 | 1.2 | Ingest API and service tokens | Done (PR #165) |
 | 1.3 | Retell reference mapping | Done (PR #166) |
-| 1.3b | Vapi and ElevenLabs reference mappings | Not started |
-| 1.3c | Retell's retired list endpoints: pull calls and list agents again | PR open, awaiting merge |
+| 1.3c | Retell's retired list endpoints: pull calls and list agents again | Done (PR #173) |
 | 1.4 | Skill executions (n8n) | Done (PR #167) |
 | 1.5 | Component versions | Done (PR #168) |
 | 1.4b | Executions looked up without a button | Done (PR #169) |
-| 1.6 | CRM data per call (GoHighLevel) | Not started |
-| 1.7 | Calls screen | Not started |
-| 1.8 | MCP read surface | Not started |
 | 2.0 | Design: checks, findings, issues and incidents | Done (PR #170) |
 | 2.1 | Check engine | Done (PR #171) |
 | 2.2 | First rule checks and facts | Dropped: its engine pieces are folded into 2.3; checks are added only when Dmytro asks |
 | 2.3 | Check runs, issues and call status | Done (PR #172) |
-| 2.4 | Incidents and reliability | Not started |
-| 2.5 | Findings, issues and incidents on screen | Not started |
-| — | Inbox | Postponed: designed separately |
-| — | Tests against issues | Postponed: designed separately |
-| — | Alerting | Postponed: its own project |
-| M1 | Milestone 1 exit review | Not started |
 
-**Next slice:** 2.4 (incidents and reliability), after 2.3. Before 2.5, design where a
-person sees findings, issues and incidents without an inbox.
+**Roadmap: paused (Decided 2026-11-07).** The table lists only what is built. What comes
+next starts from the design (lifecycle section 3, "UI: the design comes first"), and
+Dmytro will rewrite the roadmap after that work. Until then there is no next slice.
+Earlier plans for later work are kept in section 7, "Parked ideas", which is not a
+plan.
 
 Open, carried from earlier slices:
 
-- **1.3b:** Vapi and ElevenLabs calls show no conversation until they are mapped.
+- **MCP is behind everything built.** Since 2026-11-07 every feature ships with its MCP
+  tools, but the MCP server has only `list_agents`, `find_agents` and `get_agent_draft`.
+  Calls and traces, executions, component versions, connections, tool-to-workflow
+  links, check settings, check runs and issues have no tools yet. It is the first debt
+  to plan when the roadmap is rewritten.
+- Vapi and ElevenLabs calls show no conversation: they have no mapping yet.
 - Calls stored before a mapping existed are not re-converted or looked up on their own;
   only on request, one call at a time.
 - An n8n that hosted Connexity cannot reach needs the workflow to push its execution.
@@ -105,7 +128,7 @@ Open, carried from earlier slices:
 
 ## 3. What carries over from 1.x
 
-This answers open question 6 in the vision. "Freeze" means leave it compiling and
+This answers which parts of 1.x carry over. "Freeze" means leave it compiling and
 tested but do not develop it until its phase arrives.
 
 ### Keep
@@ -115,18 +138,18 @@ tested but do not develop it until its phase arrives.
 | Auth, users, companies (multitenancy) | `backend/app/api/deps.py`, `models/company.py`, `models/user.py` | Unchanged. |
 | OAuth and the MCP adapter layering | `backend/app/api/routes/oauth.py`, `routes/mcp.py`, `mcp_server/` | The assistant's main door into the product. The layering stays; the tools are replaced. |
 | Type chain | SQLModel, FastAPI, OpenAPI, Hey API codegen | Unchanged. |
-| Integrations with encrypted keys | `models/integration.py`, `crud/integrations.py` | Holds the product's read access to providers (§5). |
+| Integrations with encrypted keys | `models/integration.py`, `crud/integrations.py` | Holds the product's read access to providers. The product reads everything; it never writes. |
 | CI, release pipeline, Docker, Railway | `.github/`, `docs-internal/releases/` | Unchanged. |
 
 ### Freeze until Phase 4 (Test)
 
 | Area | Where | Role in 2.0 |
 |---|---|---|
-| Eval runtime abstraction and Retell text runtime | `services/eval_runtimes/base.py`, `text/retell.py` | Already runs simulations on the provider's own engine, which is the provider strategy in §9. Becomes the first test connector. |
+| Eval runtime abstraction and Retell text runtime | `services/eval_runtimes/base.py`, `text/retell.py` | Already runs simulations on the provider's own engine, which is the provider strategy in section 1. Becomes the first test connector. |
 | Orchestrator, runs, results | `services/orchestrator.py`, `run_manager.py`, `models/run.py`, `models/test_case_result.py` | Test execution. |
-| LLM judge, custom metrics, comparison | `services/judge.py`, `judge_metrics.py`, `comparison.py`, `models/custom_metric.py` | Tier 3 of verification (§7). Needs calibration added. |
+| LLM judge, custom metrics, comparison | `services/judge.py`, `judge_metrics.py`, `comparison.py`, `models/custom_metric.py` | The judge kind of check (see `docs-internal/checks-and-incidents.md`). Needs calibration added. |
 | Test cases and eval configs | `models/test_case.py`, `models/eval_config.py` | Reshaped in Phase 4 to link to spec rules. |
-| Custom endpoint runtime and agent contract | `eval_runtimes/text/custom_endpoint.py`, `models/agent_contract.py`, `docs/agents/contract.md`, `examples/` | The test connector for self-hosted frameworks (Pipecat and similar), where the team's deployed service is the engine (§9). The contract is text-only today; audio-level behaviour is vision open question 7. |
+| Custom endpoint runtime and agent contract | `eval_runtimes/text/custom_endpoint.py`, `models/agent_contract.py`, `docs/agents/contract.md`, `examples/` | The test connector for self-hosted frameworks (Pipecat and similar), where the team's deployed service is the engine. The contract is text-only today; audio-level behaviour is open question P6. |
 
 ### Reshape
 
@@ -135,7 +158,7 @@ tested but do not develop it until its phase arrives.
 | `Call` (`models/call.py`) | Retell-specific columns (`retell_call_id`, `retell_agent_id`), transcript plus an opaque `raw` blob. | The canonical trace: turns, tool calls with arguments and results, input variables, component versions, raw kept alongside. Slice 1.1. |
 | Call sync (`services/call_sync.py`, `services/mappings/`) | Done for Retell in slice 1.3: a mapping module turns Retell payloads into traces, by pull and by webhook. | Vapi and ElevenLabs still store the original payload only. Slice 1.3b. |
 | `AgentVersion` | A prompt-and-tools snapshot that the product owns and edits. | Not reshaped. Slice 1.5 added `component_version`, the catalogue of observed versions with fingerprints and content; verified state builds on that in Phase 5. `AgentVersion` goes with the eval stack in Phase 4. |
-| MCP tools | Four tools, all for listing agents and editing a prompt draft. | Read tools for calls and checks first (slice 1.8), then write tools for spec, tests and judges. |
+| MCP tools | Four tools, all for listing agents and editing a prompt draft. | Read tools for calls and checks first (parked slice 1.8), then write tools for spec, tests and judges. |
 | CLI (`backend/cli/`) | Drives the 1.x eval loop, plus draft, publish and deploy commands. | Frozen. Each demolition PR removes the commands whose routes it deletes. The eval commands (`run`, `runs`, `compare`, `baseline`, `test-cases`, `eval-configs`) stay working with the frozen eval stack. No new PyPI releases. Its future is decided in Phase 4. |
 
 ### Deleted in slice 0.2
@@ -145,12 +168,12 @@ three rows wrong. It was corrected against the code before anything was deleted.
 
 | What | Ruled out by | Status |
 |---|---|---|
-| In-product AI assistant and prompt editor | §4 No chat in the product | Done in 0.1 |
-| In-house agent simulator and Connexity runtime (`agent_simulator`, `tool_executor`, `tool_dispatch`, `text/connexity.py`), `RunConfig.agent_simulator` and `tool_mode` | §9 Connexity never re-implements an agent | Done |
-| The deploy action: deploy routes, provider deploy functions, webhook deploy, deployment table and history, eval gate on environments, deploy UI, CLI deploy commands | §5, §16 the assistant deploys | Done |
-| MCP `update_agent_prompt` | §3 the assistant does not edit prompts through the product | Done |
-| Editor UI: prompt, tools and settings tabs, publish dialog, diff and versions drawer, draft autosave | §15 the UI is for seeing and deciding | Done |
-| UI entry points for creating tests and evals: create-eval page, test case generation dialog, manual and from-call test case creation | §15 creation happens through the assistant | Done |
+| In-product AI assistant and prompt editor | No chat in the product | Done in 0.1 |
+| In-house agent simulator and Connexity runtime (`agent_simulator`, `tool_executor`, `tool_dispatch`, `text/connexity.py`), `RunConfig.agent_simulator` and `tool_mode` | Connexity never re-implements an agent | Done |
+| The deploy action: deploy routes, provider deploy functions, webhook deploy, deployment table and history, eval gate on environments, deploy UI, CLI deploy commands | The assistant deploys | Done |
+| MCP `update_agent_prompt` | The assistant does not edit prompts through the product | Done |
+| Editor UI: prompt, tools and settings tabs, publish dialog, diff and versions drawer, draft autosave | The UI is for seeing and deciding | Done |
+| UI entry points for creating tests and evals: create-eval page, test case generation dialog, manual and from-call test case creation | Creation happens through the assistant | Done |
 
 ### Kept after checking the code (the first table was wrong about these)
 
@@ -241,7 +264,7 @@ component that served it.
 
 Design session first, then models and migration.
 
-- Required core (§9): call, turns, tool calls with arguments and results, input
+- Required core (provider strategy, section 1): call, turns, tool calls with arguments and results, input
   variables, component versions.
 - Optional extensions: audio, timings, cost, provider-specific fields.
 - Unmapped provider data is kept raw next to the mapped trace.
@@ -273,16 +296,11 @@ Design session first, then models and migration.
 - **Done when:** the last 30 days of reference agent 1 calls are ingested and a sample of
   ten matches the Retell dashboard turn for turn.
 
-### 1.3b Vapi and ElevenLabs reference mappings
-
-- A mapping module for each, like Retell's, so their calls become traces.
-- Until then their calls are listed but show "not converted yet".
-
 ### 1.4 Skill executions (n8n)
 
 - Read-only n8n connection registered as an integration.
 - Link each tool call to the n8n execution it triggered, with node-by-node inputs and
-  outputs (§8: agent, call, tool call, execution, node).
+  outputs (path: agent, call, tool call, execution, node).
 - Each tool is mapped to the workflow that serves it. An execution is matched to a tool
   call by the call id, tool name and arguments its trigger received.
 - No workflow list, no standalone execution browser.
@@ -298,31 +316,6 @@ Design session first, then models and migration.
 - **Done when:** two calls served by different workflow versions show different
   fingerprints, and the call screen shows which is which.
 
-### 1.6 CRM data per call (GoHighLevel)
-
-- Read-only GoHighLevel connection.
-- Per call: what came in before the call and what was written back after it.
-- Fetched after a short delay because writes are asynchronous (§8).
-- This slice can move after Phase 2 if it blocks the milestone.
-- **Done when:** a real call shows its CRM record before and after.
-
-### 1.7 Calls screen
-
-- Replace the Observe drawer with a call screen: audio, transcript, each tool call
-  expandable to its execution, CRM in and out, component versions.
-- No editing of the call.
-- **Done when:** the "price dropped from 275 to 262" class of question (§2 item 4) can
-  be answered from one screen without opening Retell, n8n or GoHighLevel.
-
-### 1.8 MCP read surface
-
-- Replace the four prompt tools with read tools: list calls, get a trace, get a tool
-  call's execution, get component versions.
-- Tools for the assistant to register connections with the product (§5). They are a
-  second way in: the connection forms in the UI stay.
-- **Done when:** a Claude Code session in the reference agent's workspace can answer "what
-  happened on call X" using only Connexity tools.
-
 ---
 
 ## 6. Phase 2: Check (ladder level 2)
@@ -330,13 +323,14 @@ Design session first, then models and migration.
 Goal: every real call is checked, what is wrong with it is grouped into issues, and a
 period of failing calls is an incident a person can respond to and review.
 
-The model is in the vision, section 7 (Decided 2026-10-10): check, fact, finding, issue,
-incident, metric, decision record. Read it before any slice here. Tests, the inbox and
+The model is in [`docs-internal/checks-and-incidents.md`](./docs-internal/checks-and-incidents.md)
+(Decided 2026-10-10): check, fact, finding, issue, incident, metric, decision record.
+Read it before any slice here. Tests, the inbox and
 alerting are designed separately and are not in this phase.
 
 ### 2.0 Design
 
-- Done in conversation on 2026-10-10 and written into the vision and this file.
+- Done in conversation on 2026-10-10. The model is now in `docs-internal/checks-and-incidents.md`.
 
 ### 2.1 Check engine
 
@@ -356,7 +350,7 @@ alerting are designed separately and are not in this phase.
 - Its engine pieces moved to 2.3: a record of each check's run on each call, skipping a
   check on a call that lacks what it needs, and running a check over calls already
   stored.
-- The checks listed in the vision, section 7, are candidates, not a plan.
+- The checks listed in `docs-internal/checks-and-incidents.md` are candidates, not a plan.
 
 The notes below are observations from real calls. They are kept for the day a check is
 asked for; none of them is planned work.
@@ -406,7 +400,51 @@ across two agents, counts only):
   issue, resolving it and failing again makes it regressed, and a call that lacks what a
   check needs is shown as unchecked, not clean.
 
-### 2.4 Incidents and reliability
+---
+
+## 7. Parked ideas (not a plan)
+
+Kept from the roadmap as it stood before 2026-11-07, so nothing is lost. None of it is
+scheduled, and none of it is Decided as work to do: the roadmap is rewritten from the
+design. Where one of these comes back, it is planned again from scratch.
+
+### Phase 1 slices not built
+
+#### 1.3b Vapi and ElevenLabs reference mappings
+
+- A mapping module for each, like Retell's, so their calls become traces.
+- Until then their calls are listed but show "not converted yet".
+
+#### 1.6 CRM data per call (GoHighLevel)
+
+- Read-only GoHighLevel connection.
+- Per call: what came in before the call and what was written back after it.
+- Fetched after a short delay because CRM writes are asynchronous.
+- This slice can move after Phase 2 if it blocks the milestone.
+- **Done when:** a real call shows its CRM record before and after.
+
+#### 1.7 Calls screen
+
+- Replace the Observe drawer with a call screen: audio, transcript, each tool call
+  expandable to its execution, CRM in and out, component versions.
+- No editing of the call.
+- **Done when:** the "price dropped from 275 to 262" class of question (a price the agent quoted that the backend never produced) can
+  be answered from one screen without opening Retell, n8n or GoHighLevel.
+
+#### 1.8 MCP read surface
+
+- Replace the four prompt tools with read tools: list calls, get a trace, get a tool
+  call's execution, get component versions.
+- Tools for the assistant to register connections with the product. They are a
+  second way in: the connection forms in the UI stay.
+- **Done when:** a Claude Code session in the reference agent's workspace can answer "what
+  happened on call X" using only Connexity tools.
+
+### Phase 2 slices not built
+
+The 2.4 plan draft, never approved, is in [`plans/drafts/`](./plans/drafts/).
+
+#### 2.4 Incidents and reliability
 
 - Incident records: opened by the first failed real call of an issue with no open
   incident, closed only by a person with a reason, a recurrence marked as one. A call
@@ -418,7 +456,7 @@ across two agents, counts only):
   stays open until someone closes it, a failure after the close opens a recurrence, and
   a reliability figure can be explained by listing the incidents behind it.
 
-### 2.5 Findings, issues and incidents on screen
+#### 2.5 Findings, issues and incidents on screen
 
 - Findings on the exact moment in a call. An agent's issues and incidents, an incident
   page, and the agent's reliability and quality. To be designed before it is built;
@@ -426,24 +464,24 @@ across two agents, counts only):
 - **Done when:** a person can go from an agent's reliability figure to the incident, to
   the call, to the moment.
 
-### Postponed, each with its own design
+#### Postponed, each with its own design
 
 - **Inbox.** Once slice 2.4. What an item is and what a person can do from it.
 - **Tests against issues.** Phase 4.
 - **Alerting.** Who is told about what, and how fast.
 
-### Milestone 1 exit review
+#### Milestone 1 exit review
 
 > **To revisit (Open).** This was written when Phase 2 ended with an inbox and when
 > reference agent 1, the offer bot, was the agent in front of us. The inbox has moved
 > out of the phase, and the agents connected today are an inbound bot and a booking
 > agent. Dmytro has not restated the exit criteria.
 
-The milestone passes when the product would have caught what case study 1 (vision §2)
-suffered:
+The milestone passes when the product would have caught what the first build (case
+study 1) suffered:
 
 1. Every reference agent 1 call from the last 30 days is a joined trace with versions.
-2. Run over history, the checks flag the known incidents from §2: the invented 275
+2. Run over history, the checks flag the known incidents from that build: the invented 275
    price, the monologue with stage directions, the hang-up after a yes.
 3. The false positive rate on a hand-reviewed sample of 50 calls is low enough that
    Dmytro would leave the checks switched on. He sets the number at review.
@@ -453,70 +491,102 @@ suffered:
 
 After the review: retune `CLAUDE.md` and the lifecycle doc, then plan Phase 3 in detail.
 
----
 
-## 7. Phases 3 to 6: outlines
+### Later phases
 
-These are placeholders. Each gets a planning session at its checkpoint, using what the
-earlier phases taught.
-
-### Phase 3: Spec (level 3)
+#### Phase 3: Spec (level 3)
 
 - Rules in plain language with provenance: who decided, when, source message, exact
-  words (§6).
+  words. Prompts, tests and backend guards derive from the rules; every test links to
+  a rule, and a changed rule marks its tests stale.
 - Enforcement placement per rule; money, safety and compliance rules flagged when only
   the prompt enforces them.
 - Rule editing in the UI. Decision questions as an inbox item type.
 - MCP: propose a rule with linked evidence; the user confirms.
 - Checks from Phase 2 get linked to the rules they enforce.
 
-### Phase 4: Test (level 4)
+#### Phase 4: Test (level 4)
 
 - Unfreeze the eval stack. Test cases link to spec rules; coverage and staleness views.
 - Validation on submission: looping personas, stale mocks, ambiguous metrics.
 - Judge calibration: agreement with human labels and stability across repeated runs;
   advisory until trusted.
-- Classifier tier (Jev, §7). Needs a vendor evaluation first.
-- Backend edge-case tests for skills, run by the product (vision open question 3).
+- Classifier kind of check. Needs a vendor evaluation first.
+- Backend edge-case tests for skills, run by the product (open question P3).
 - Harness integrity: shared state between tests, test traffic reaching production.
 
-### Phase 5: Gate (level 5)
+#### Phase 5: Gate (level 5)
 
-- Verified-state fingerprints. Polling live state and comparing.
-- Bypass detection with the three cases in §5, partial deploy ranked highest.
+- Verified-state fingerprints: flow, prompts, skill code, agent settings. Polling live
+  state and comparing. A call served by an unverified version is flagged and stays
+  marked.
+- Bypass detection: an unverified deploy by the assistant, a manual edit in a provider
+  dashboard, and a partial deploy (one piece shipped without the other), the last
+  ranked highest.
+- The deploy gate is a convention (a pre-deploy hook in the workspace and the
+  assistant's standing instructions), not access the product holds.
 - Versions timeline. Pre-deploy hook and standing instructions for the workspace.
 
-### Phase 6: Loop (level 6)
+#### Phase 6: Loop (level 6)
 
 - Full inbox: priority, routing rules, approval policy, snooze and digest.
-- Dispatch modes: Manual, Investigate, Prepare (§11). Needs vision open question 1
-  answered (where automatic sessions run).
-- Incidents: severities, lifecycle, pre-approved containment (§12).
-- Assistant-first onboarding: task playbooks with verify calls, the fire drill (§13).
+- Dispatch modes, chosen per agent and item type: Manual (it waits), Investigate (a
+  session diagnoses, no changes), Prepare (the assistant writes the fix, the product
+  verifies it, a person decides). Deploy stays with a person in all three. Needs P1
+  answered. Automatic modes need grouping first, a session cap and spending limit, a
+  full record of what ran unattended, and a fallback to a manual item.
+- Incident response: detect, size the exposure, contain, fix, verify, confirm on the
+  next real calls, close with a new rule or test. The product cannot roll back, so
+  containment is pre-approved per agent ("the assistant may roll back to the last
+  verified version, then tell me").
+- Assistant-first onboarding: the product tracks onboarding state and tells the
+  assistant the next step; docs are served as short task playbooks, each step with a
+  verify call; the first step is read-only. Teams with a lifecycle are placed on the
+  ladder and adopted in place; new teams get a scaffolded setup with default house
+  rules. Ends with a fire drill: a simulated incident through the whole chain.
 
-### Cross-cutting, scheduled when their phase needs them
+#### Cross-cutting, scheduled when their phase needs them
 
 - An OpenTelemetry endpoint as a mapping, for self-hosted agents (Pipecat, LiveKit
   Agents) that already emit spans.
 
-- Focus sharing, pins and navigate-back between product and assistant (§4).
-- Client feedback intake through the assistant (§10).
-- Generic provider mappings as saved artifacts for providers beyond Retell (§9).
+- Focus sharing, pins and navigate-back between product and assistant.
+- Client feedback intake through the assistant: clients keep their own channels (Slack,
+  email, meeting notes); the user hands the raw text over, the assistant splits it into
+  items matched to calls and versions, the client's exact words are stored, and the
+  user confirms. No client portal is planned.
+- Generic provider mappings as saved artifacts for providers beyond Retell: they run
+  without an assistant session, are checked for conformance (checks degrade by what the
+  mapping provides), and their health is checked on every ingest.
 - Public repositioning: README, docs site, website. Last.
+
+---
 
 ---
 
 ## 8. Open questions
 
-Questions that block a slice. The vision's own open questions (§18) are not repeated
-unless a slice depends on them.
+Questions that block a slice.
 
 | # | Question | Blocks | Claude's recommendation |
 |---|---|---|---|
 | Q8 | Which tool does the automated review of a diff against its plan? | Nothing yet; plans are reviewed by people, code by CI | Dmytro is researching. Constraint from him: not the same provider or model that wrote the code. |
-| Q9 | How do measures that are always slightly present, such as latency, become incidents without one incident collecting thousands of findings? | 2.3, for the slow-response check only | Three directions in the vision, section 7: judge the call instead of the turn; open on a rise above the normal rate; split by what the agent was waiting on. Not decided. |
-| Q10 | What are the Milestone 1 exit criteria now that the inbox is out of Phase 2 and the offer bot is not connected? | The exit review | Restate them once 2.2 has run on real calls. |
+| Q9 | How do measures that are always slightly present, such as latency, become incidents without one incident collecting thousands of findings? | 2.3, for the slow-response check only | Three directions in `docs-internal/checks-and-incidents.md`: judge the call instead of the turn; open on a rise above the normal rate; split by what the agent was waiting on. Not decided. |
+| Q10 | What are the Milestone 1 exit criteria now that the inbox is out of Phase 2 and the offer bot is not connected? | Nothing while the roadmap is paused | Restate them when the roadmap is rewritten. |
 | Q5 | Where do real reference agent traces live for tests? They cannot go into a public repo. | 1.1 | A gitignored `fixtures-private/` directory plus a small set of hand-anonymised traces committed as test fixtures. |
+
+
+Product questions that block nothing yet. Each becomes a Q above when a slice needs it.
+
+| # | Question | Notes |
+|---|---|---|
+| P1 | Where automatic assistant sessions run: a cloud agent, a CI job, or a local runner. | The secrets are in the workspace, so the session must run where the workspace is. |
+| P2 | Which providers get first-party test connectors first. | |
+| P3 | Whether the product runs backend edge-case tests itself or accepts results from the assistant. | Claude recommends the product runs them. |
+| P4 | Whether to offer a reporting API for agencies' own dashboards, or a client portal, and when. | |
+| P5 | Whether automatic deploy ever becomes a dispatch mode for low-risk items. | |
+| P6 | How live-only failures are tested: replay of recorded calls or audio-level simulation. | |
+| P7 | Key rotation across the workspace and the product. | Keys live in both, so rotation must update both. |
 
 ---
 
@@ -597,6 +667,13 @@ Dmytro's only when he stated it in his own words.
 | 2026-10-10 | The first check is a real one, "tool call failed" from the trace's status. Facts are computed per run and not stored. A reason is required to loosen a check, optional to tighten it. | Proposed by Claude; Dmytro approved the slice 2.1 plan ("Ok build") |
 | 2026-10-10 | A finding's effect is the setting in force when its call started. A finding on a call that started before its check existed is retroactive. | Proposed by Claude; Dmytro approved the slice 2.1 plan ("Ok build") |
 | 2026-10-10 | A check's current setting is read from the decision records; no table holds it. "When a check first existed" is when a server carrying it first started. A timeout counts as a failed tool call; "no result" does not. | Proposed by Claude in the slice 2.1 plan; not put to Dmytro one by one |
+| 2026-11-07 | UI changes start in the design. Any change to what a person sees is made first in Claude Design (Design artifacts in Claude, split into files), approved there, and only then built. If building needs something different, the design changes first. The design never falls behind the code. | Dmytro ("if we want to add or adjust we need to do first in design, hard requirement") |
+| 2026-11-07 | The design system is created in its own session, led by Dmytro. | Dmytro |
+| 2026-11-07 | The root `CLAUDE.md` is short: it opens with the goal from Dmytro's vision, keeps one line per rule and points to the lifecycle guide. "System of record and independent verifier" was Claude's framing and is dropped there. | Dmytro ("i want it to focus on what we just did in vision") |
+| 2026-11-07 | `Connexity 2.0.md` is deleted. It repeated what other files say. The checks model moved to `docs-internal/checks-and-incidents.md`; what Connexity does not build moved to lifecycle section 6; provider strategy and the ladder moved to this file's ground rules; the later phases' design notes moved into their outlines and the vision's open questions into section 8 (P1 to P7). The case study is kept privately. | Dmytro ("can we drop it and if there is anything essential move it in other mds") |
+| 2026-11-07 | The roadmap is paused. `REBUILD.md` keeps what is built; every slice not started, the Milestone 1 exit review and the Phase 3 to 6 outlines move to "Parked ideas". What comes next starts from the design, and Dmytro rewrites the roadmap after it. | Dmytro ("keep everything thats built but we will go away from what's done now") |
+| 2026-11-07 | Every feature ships with its MCP tools: anything a person can do or see on the platform, the user's assistant (Claude, ChatGPT or similar) can do through MCP. A feature is not done until its tools are. | Dmytro ("we need to make sure with every feature we build MCP so EVERYTHING can be done through chatgpt/claude whats on connexity platform") |
+| 2026-11-07 | Connexity uses AI for metrics, evals and insights, but never as an agent. The rule against AI in the product is narrowed to AI that writes the agent's content or acts like an agent. Connexity produces quality analytics about agents, never business analytics. It keeps its own versions as audit records and acts only as a gate; it never deploys. | Dmytro ("we will use ai for some metrics, evals, etc but not as agent"; "It should work only as gate") |
 
 ---
 
