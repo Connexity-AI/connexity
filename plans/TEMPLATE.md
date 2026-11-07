@@ -7,6 +7,10 @@
 
 - **Owner:** <!-- who opens the pull request and answers for plan and execution -->
 - **Slice:** <!-- the REBUILD.md slice this belongs to, or "none" -->
+- **Design:** <!-- for a change to the UI: the Claude Design artifact and the version Dmytro
+  approved. "No UI change" otherwise. -->
+- **MCP:** <!-- the MCP tools this change adds or changes, so the assistant can do what the
+  platform now does. "None needed" only when nothing a user can do or see changes, with why. -->
 
 ## Goal
 
