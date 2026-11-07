@@ -2,68 +2,55 @@
 
 ## What this is
 
-Connexity is the system of record and independent verifier for voice AI agents. An AI
-assistant (Claude Code or another) does the engineering on a voice agent. Connexity
-holds the spec, the call traces, the versions and the test verdicts, checks every real
-call, detects incidents, and tells the human what needs a decision. The human decides
-and approves.
+The goal: **an AI assistant (Claude Code or similar) runs operations for an entire fleet
+of conversational AI agents, with people approving where it matters.** The assistant
+watches, investigates and fixes. People step in when a decision is theirs: approving a
+change, settling a business question, owning the client.
 
-Connexity never writes fixes, never deploys, and never talks back. It has no chat.
+Connexity is the framework that makes the assistant able to do that job: the process it
+follows, the information it works from (every call, every system the agent touches,
+every decision made), the skills and know-how for operating conversational agents, the
+verification of its work, and the place where people approve.
 
-## Current state: mid-rebuild
+Connexity itself never changes an agent: no editing of prompts or workflows, no
+deploying, no chat. The assistant does the work; people approve.
 
-The code in this repo is mostly **Connexity 1.x**, an eval and observability platform
-with a builder UI (prompt editors, test creation forms, deploy buttons). That product is
-being rebuilt in place into 2.0. Much of what you see in the code is scheduled for
-deletion, so do not treat existing patterns as the direction.
+The code is mostly Connexity 1.x, being rebuilt in place into 2.0. Do not treat existing
+patterns as the direction.
 
-**Before doing anything, read [`REBUILD.md`](./REBUILD.md).** It has the current status,
-the next slice, what is kept, frozen and deleted, and the open questions.
+## Read first
 
-| Document | Read it for |
+| Document | For |
 |---|---|
-| [`REBUILD.md`](./REBUILD.md) | The roadmap: status, next slice, carry-over map, decisions. Read every session. |
-| [`plans/`](./plans/README.md) | One plan per pull request. The plan is what gets reviewed. |
-| [`Connexity 2.0.md`](./Connexity%202.0.md) | The vision. Read the sections your slice cites. |
-| [`docs-internal/development-lifecycle.md`](./docs-internal/development-lifecycle.md) | How we work: the slice loop, verification, decisions. |
-| `backend/CLAUDE.md`, `frontend/CLAUDE.md` | Language and framework conventions. |
-| `README.md`, `CLI_README.md`, `docs/` | Describe 1.x. Not a guide to where the product is going. |
+| [`REBUILD.md`](./REBUILD.md) | Status, the next slice, decisions. Every session, first. |
+| [`docs-internal/development-lifecycle.md`](./docs-internal/development-lifecycle.md) | How we work. The rules below are its short form. |
+| [`docs-internal/`](./docs-internal/) | How each part is designed, e.g. [`checks-and-incidents.md`](./docs-internal/checks-and-incidents.md). Read the docs your slice cites. |
+| [`plans/README.md`](./plans/README.md) | One plan per pull request; the plan is what gets reviewed. |
+| `backend/CLAUDE.md`, `frontend/CLAUDE.md` | Conventions, loaded when you work there. |
+| `README.md`, `CLI_README.md`, `docs/` | Describe 1.x, not where the product is going. |
 
-## Rules for every session
+## The rules, in short
 
-1. **One session, one slice** from `REBUILD.md`. Do not widen it. Note anything else you
-   find in `REBUILD.md` instead of fixing it.
-2. **Every pull request carries a plan file** in `plans/`, written before the code and
-   approved by whoever will open the pull request. People review the plan, not the
-   diff. Before opening the pull request, fill in the plan's Outcome with what actually
-   happened. A pull request never contains a plan alone. See `plans/README.md`. CI, a
-   hook and `make check` all refuse a branch without a complete plan.
-3. **End by updating `REBUILD.md`:** the status table, and the decision log if something
-   was decided. The detail of a slice lives in its plan, not in `REBUILD.md`.
-4. **Do not record a decision Dmytro did not make.** Mark statements Decided, Proposed
-   or Open. Only his explicit words make something Decided.
-5. **Do not grade your own work.** Write the done-when in the plan before building, and
-   report check results with their output. Until an independent automated reviewer is
-   in place, run `/code-review` before opening the pull request and record what it
-   found in the plan's Outcome.
-6. **Never weaken a test, type check or lint rule to make a change pass** without saying
-   so at the top of the PR description.
-7. **Delete, do not deprecate.** No compatibility is owed to 1.x. Remove dead code with
-   its tests, routes, generated client and docs in the same PR. Before deleting anything
-   not listed in `REBUILD.md`, ask.
-8. **Do not build what the vision rules out:** chat, editors for prompts or workflows,
-   deploying or writing to providers, AI that generates content inside the product
-   (an internal assistant, test case generation), features about a system rather than
-   an agent's conversation. Nothing removed in the rebuild comes back without asking.
-   **The UI is not held back otherwise:** anything the assistant can create or change
-   in Connexity through the API, a person can also do in the UI.
-9. **The repo is public.** Never commit real call data, client names or secrets.
-10. **Checks are a library that grows only when Dmytro asks.** Do not add, propose or
-    plan a check he did not ask for by name, even one listed in the vision or in
-    `REBUILD.md`. Build the foundation the checks run on.
-11. **End every reply with "Next step from you:"** and the one thing Dmytro has to do
-    next: answer a numbered question, approve, test something, merge. If nothing is
-    needed from him, say so and say what you will do next.
+Each is explained in the lifecycle guide; the section is in brackets.
+
+1. One session, one slice from `REBUILD.md`. Do not widen it. (3)
+2. Every pull request carries a plan, approved before any code, with its Outcome filled
+   in before the pull request opens. (3)
+3. Mark statements Decided, Proposed or Open. Only Dmytro's own words make something
+   Decided. (4)
+4. Do not grade your own work. Run `/code-review` before opening a pull request. (2, 5)
+5. Never weaken a test, type check or lint rule without saying so at the top of the pull
+   request. (5)
+6. You test the backend through its API; Dmytro tests the screens. (5)
+7. Delete, do not deprecate. Ask before deleting anything `REBUILD.md` does not list. (6)
+8. Build nothing lifecycle section 6 rules out. Add a check only when Dmytro asks for it by
+   name. (6)
+9. UI changes start in the design, and the design never falls behind the code. (3)
+10. Every feature ships with its MCP tools: whatever the platform does, the user's
+    assistant can do through MCP. (6)
+11. The repo is public: no real call data, client names or secrets. (6)
+12. No AI attribution in commits or pull requests. (7)
+13. End every reply with "Next step from you:". (10)
 
 ## Commands
 
@@ -74,7 +61,7 @@ make db-seed          # migrations + superuser
 make dev              # FastAPI on :8000
 make dashboard        # Next.js on :3000
 make mcp              # MCP server
-make check            # every gate a PR must pass, with per-step timings
+make check            # every gate a pull request must pass; run before every push
 make db-reset         # DELETE the local database and rebuild it from migrations
 make lint             # backend + frontend lint and types
 make test             # backend tests with coverage
@@ -82,50 +69,15 @@ make generate-client  # regenerate the frontend API client
 make db-migrate MSG="description"   # new Alembic revision
 ```
 
-### What to run before committing
-
-Run `make check` before every push. It runs the same gates as CI (plan present and
-complete, backend lint, format, types, tests with the coverage floor, MCP tests,
-frontend lint and types, generated client freshness) and takes about a minute and a half.
-
-**Who tests what.** You test the backend through its API: start the server on the local
-database and call the changed endpoints over HTTP, then report requests and results in
-the plan. Dmytro tests the frontend: do not open a browser or click through screens;
-list in the plan what he should check on screen. Details in
-`docs-internal/development-lifecycle.md`, section 5.
-
-While iterating, run only what your change touches; the commands are in
-`backend/CLAUDE.md` and `frontend/CLAUDE.md`. After a backend route or model change,
-run `bash scripts/generate-client.sh`.
-
-### Hooks
-
-`.claude/settings.json` is tracked and applies to every session:
-
-- `gh pr create` is blocked on a branch without a complete plan file.
-- Edits under `frontend/apps/web/src/client/` are blocked. Regenerate instead.
-- After an edit under `backend/app/models/` or `backend/app/api/routes/`, the session is
-  reminded to add a migration and regenerate the client.
-
-Personal settings go in `.claude/settings.local.json`, which is ignored.
-
 ## Architecture that survives the rebuild
 
-- **Type chain:** SQLModel → FastAPI → OpenAPI → Hey API codegen → TypeScript SDK. Do
-  not break it with hand-written types.
-- **Never edit `frontend/apps/web/src/client/`.** It is generated.
+- **Type chain:** SQLModel, FastAPI, OpenAPI, Hey API codegen, TypeScript SDK. No
+  hand-written types in its place. Never edit `frontend/apps/web/src/client/`; it is
+  generated (`make generate-client`).
 - **Multitenancy:** every tenant-owned row carries `company_id`.
 - **Auth:** HttpOnly cookie JWT for the web app; OAuth bearer tokens for MCP.
-- **MCP is a separate thin adapter** (`mcp_server/`) that forwards the user's token to
-  backend `/api/v1/mcp/*` routes. It is the assistant's main interface to the product.
-- **Environment variables** are validated at runtime (Pydantic `BaseSettings` in the
-  backend, Zod in the frontend). Add new ones to the root `.env.example` and the
-  schema. The root `.env` is the only env file.
+- **MCP** is a thin adapter (`mcp_server/`) that forwards the user's token to backend
+  `/api/v1/mcp/*` routes. It is the assistant's main way into the product.
+- **Environment variables** are validated at runtime (Pydantic in the backend, Zod in the
+  frontend). The root `.env` is the only env file; add new ones to `.env.example`.
 - **Tooling:** `uv` for Python, `pnpm` for the frontend.
-
-## Git
-
-- Base branch is `main`. One slice per branch.
-- **Never add AI attribution** to commits, PRs or messages: no `Co-authored-by`, no
-  "generated with" lines.
-- Use the `/commit` and `/create-pr` skills.

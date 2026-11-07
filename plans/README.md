@@ -51,3 +51,6 @@ places:
   `release-please--`).
 - Pull requests labelled `no-plan`, for changes with nothing to plan, such as a typo.
   The label is applied by a person, not by the assistant.
+
+`plans/drafts/` holds plans that were written but never approved. They are kept for
+reference; the plan check ignores them.
