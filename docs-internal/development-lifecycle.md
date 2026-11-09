@@ -224,12 +224,16 @@ AI inside the product that writes the agent's content (prompts, tests, fixes), a
 that talks back or acts like an agent, or brings back
 something the rebuild removed, it contradicts the product. Stop and ask.
 
-**What the web app is for (Decided 2026-11-09).** The assistant does all of the work, so the
-web app shows only what a person needs: reports and things to do (approvals and
-questions), and a single call's recording and transcript, opened from a report or a
-to-do. It is not an observability tool: no trace explorers, no drilling down from an
-incident to the moment, and it must be much easier to read than one. The rule that the
-UI may do anything the API does (2026-10-09) is retired. Forms stay only where a person
+**What the web app is for (Decided 2026-11-09).** The assistant does all of the work.
+Next to it, the web app's value is the quick glance: "the only value of the system vs ai
+assistant is to have a quick glance of whats going on and thats what dashboards are
+for" (Dmytro). Screens are dashboards: numbers that show their base (agents, calls,
+period), findings and progress before anything that asks the person, a score for the
+fleet and each agent, and a single call's recording and transcript as the deepest view.
+The sidebar is Home, Agents, Roadmap, Issues and Settings. It is still not an
+observability tool: no trace explorers, no drilling down from an incident to the moment.
+This replaces the same morning's "reports and things to do". The rule that the UI may do
+anything the API does (2026-10-09) is retired. Forms stay only where a person
 has to act themselves, such as signing in and their own account (Proposed); connections,
 agents and settings are the assistant's, through MCP.
 
