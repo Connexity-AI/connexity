@@ -18,13 +18,18 @@ he should open and what should be true on each.
 
 ## What the UI is for
 
-The assistant can do everything, and the UI is not held back on purpose: anything the
-API lets the assistant create or change in Connexity (connections, agents and their
-links, and later spec rules, tests, judges and checks), a person can also do in the UI.
-Both go through the same API.
+The assistant does all of the work. The web app shows a person only what they need:
+reports, things to do (approvals and questions), and a single call's recording and
+transcript, opened from a report or a to-do. It is much easier to read than an
+observability tool. Build every screen from the Connexity Design System in Claude; see
+"UI: the design comes first" in the lifecycle guide. (Decided 2026-11-09; the older rule
+that the UI may do anything the API does is retired.)
 
 Do not add:
 
+- trace explorers, filters, dashboards of metrics, or drill-downs below a single call
+- forms for what the assistant can set through MCP (connections, agents, settings);
+  keep forms only where a person must act themselves, such as signing in (Proposed)
 - a chat box, or anything that replies to the user
 - editors for the agent's prompts, tools or workflows, or anything that deploys or
   writes to a provider. Connexity never changes the agent itself.
