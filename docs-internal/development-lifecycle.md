@@ -89,12 +89,11 @@ the design before it is made in code. This is a hard requirement.
   different from the approved design, the session stops, changes the design first, and
   gets it approved again before changing the code. Nothing reaches the screen that is not
   in the design.
-- **The design system** (the frontend's real components and tokens, as a design system
-  in Claude) is created in its own session, led by Dmytro. Designs are built on it once
-  it exists.
-
-Open: whether UI work waits for the design system, or starts designs without it and moves
-them onto it afterwards.
+- **The design system** is the Connexity Design System artifact in Claude: tokens, the
+  brand book, the logo and the components, with live previews. It was created in its own
+  session, led by Dmytro, before any screen design (2026-11-09). Every screen design is
+  built on it; a screen that needs a piece the system lacks adds the piece to the system
+  first. The design may be ahead of the code, never behind it.
 
 ---
 
@@ -212,8 +211,8 @@ timeout, empty response and malformed response.
   do or see on the platform, a user's assistant (Claude, ChatGPT or similar) can do or
   see through MCP. A feature is not done until its MCP tools are: the slice that adds a
   route, a screen or a setting adds the tools for it in the same pull request, and the
-  plan's "MCP" line names them. The reverse holds too: the UI may do anything the API
-  does.
+  plan's "MCP" line names them. The reverse does not hold: the web app is not a second
+  way to do everything (see "What the web app is for" below).
 - **Read-only toward providers.** The product ingests and compares. It does not deploy,
   roll back or write to Retell, n8n or the CRM.
 
@@ -223,8 +222,16 @@ timeout, empty response and malformed response.
 **No builder features.** If a change adds an editor for the agent's prompts or workflows,
 AI inside the product that writes the agent's content (prompts, tests, fixes), anything
 that talks back or acts like an agent, or brings back
-something the rebuild removed, it contradicts the product. Stop and ask. Forms for what
-Connexity itself holds are fine: the UI may do anything the API does.
+something the rebuild removed, it contradicts the product. Stop and ask.
+
+**What the web app is for (Decided 2026-11-09).** The assistant does all of the work, so the
+web app shows only what a person needs: reports and things to do (approvals and
+questions), and a single call's recording and transcript, opened from a report or a
+to-do. It is not an observability tool: no trace explorers, no drilling down from an
+incident to the moment, and it must be much easier to read than one. The rule that the
+UI may do anything the API does (2026-10-09) is retired. Forms stay only where a person
+has to act themselves, such as signing in and their own account (Proposed); connections,
+agents and settings are the assistant's, through MCP.
 
 **No chat in the product (Decided).** Nothing in the product talks back. Chat means the user's own assistant, and the user
 should never be unsure about that.
@@ -235,9 +242,7 @@ Nothing the user types gets a reply. The places that matter most are:
 - an answer to a decision question
 - an edit to a spec rule
 
-Forms for what Connexity itself holds (connections, agents and their links, and later
-spec rules, tests, judges and checks) are allowed: the UI may do anything the assistant
-can do through the API (Decided 2026-10-09). They are forms, not conversation.
+The few forms the web app keeps are forms, not conversation.
 
 The product's own use of models (triage, judges, classifiers) is background work. Its
 output is always an artifact: a metric, an insight, an issue, a verification result, a
@@ -250,7 +255,9 @@ without an agent.
 This is a rule about the entry point, not about depth. Technical depth is wanted: a
 voice engineer must be able to recognise an issue instantly.
 
-**Path:** agent → call → tool call → n8n execution → node-by-node detail.
+**Path:** agent → call → tool call → n8n execution → node-by-node detail. That depth
+lives in the record and is reached through MCP; the screens stop at a single call
+(Decided 2026-11-09).
 
 In scope:
 

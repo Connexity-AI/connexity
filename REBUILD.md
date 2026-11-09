@@ -183,7 +183,7 @@ three rows wrong. It was corrected against the code before anything was deleted.
 | LLM key onboarding (`/onboarding`) | It is a single form for the company's LLM key, which judges still need. It is not a builder wizard. | Phase 6 onboarding |
 | `Environment` | Nothing uses it since slice 1.3: call sync reads the agent's own provider link. The model, routes and the Environments tab remain. | Delete in a later slice (Dmytro, 2026-10-08) |
 | Backend draft, publish, rollback and version routes; CLI agent commands; the `AgentVersion` model | They sit under agent creation and the frozen eval stack (test runs point at `AgentVersion`). Observed versions live in a separate catalogue since slice 1.5. | Phase 4, with the eval stack (Dmytro, 2026-10-09) |
-| Create-agent form and the Integrations form | The UI may do anything the assistant can do through the API (Dmytro, 2026-10-09). The add-environment form goes with environments. | Stay |
+| Create-agent form and the Integrations form | Kept under the 2026-10-09 rule that the UI may do anything the API does. That rule was retired on 2026-11-09: the web app is reports, things to do and a single call. | Remove when the frontend moves onto the design system; ask first |
 | Editing UI inside the frozen eval stack: eval config detail form, test case detail drawer, the custom metrics page, the "Run" button | Out of the agreed scope for 0.2. Nothing new can be created from the UI, but existing items can still be edited. | Phase 4 |
 | Retell functions that nothing calls (`create_retell_batch_test`, `create_retell_chat*`, `list_retell_agent_versions`, and others) | Already unused before the rebuild. Batch tests and agent versions are likely inputs to Phases 1 and 4. | 1.5 and Phase 4 |
 
@@ -423,20 +423,21 @@ design. Where one of these comes back, it is planned again from scratch.
 - This slice can move after Phase 2 if it blocks the milestone.
 - **Done when:** a real call shows its CRM record before and after.
 
-#### 1.7 Calls screen
+#### 1.7 Single call
 
-- Replace the Observe drawer with a call screen: audio, transcript, each tool call
-  expandable to its execution, CRM in and out, component versions.
+- Narrowed on 2026-11-09: a person opens one call from a report or a to-do and sees its
+  recording and transcript, with the flagged moment marked. Tool calls, executions, CRM
+  data and versions stay in the record, reached through MCP, not on screen.
 - No editing of the call.
-- **Done when:** the "price dropped from 275 to 262" class of question (a price the agent quoted that the backend never produced) can
-  be answered from one screen without opening Retell, n8n or GoHighLevel.
+- **Done when:** a person can go from a report line or a to-do to the call and hear the
+  moment that was flagged.
 
 #### 1.8 MCP read surface
 
 - Replace the four prompt tools with read tools: list calls, get a trace, get a tool
   call's execution, get component versions.
-- Tools for the assistant to register connections with the product. They are a
-  second way in: the connection forms in the UI stay.
+- Tools for the assistant to register connections with the product. Since 2026-11-09
+  they are the way in; the web app does not keep connection forms.
 - **Done when:** a Claude Code session in the reference agent's workspace can answer "what
   happened on call X" using only Connexity tools.
 
@@ -455,14 +456,6 @@ The 2.4 plan draft, never approved, is in [`plans/drafts/`](./plans/drafts/).
 - **Done when:** every failed real call belongs to at least one incident, an incident
   stays open until someone closes it, a failure after the close opens a recurrence, and
   a reliability figure can be explained by listing the incidents behind it.
-
-#### 2.5 Findings, issues and incidents on screen
-
-- Findings on the exact moment in a call. An agent's issues and incidents, an incident
-  page, and the agent's reliability and quality. To be designed before it is built;
-  there is no inbox to lean on.
-- **Done when:** a person can go from an agent's reliability figure to the incident, to
-  the call, to the moment.
 
 #### Postponed, each with its own design
 
@@ -674,6 +667,8 @@ Dmytro's only when he stated it in his own words.
 | 2026-11-07 | The roadmap is paused. `REBUILD.md` keeps what is built; every slice not started, the Milestone 1 exit review and the Phase 3 to 6 outlines move to "Parked ideas". What comes next starts from the design, and Dmytro rewrites the roadmap after it. | Dmytro ("keep everything thats built but we will go away from what's done now") |
 | 2026-11-07 | Every feature ships with its MCP tools: anything a person can do or see on the platform, the user's assistant (Claude, ChatGPT or similar) can do through MCP. A feature is not done until its tools are. | Dmytro ("we need to make sure with every feature we build MCP so EVERYTHING can be done through chatgpt/claude whats on connexity platform") |
 | 2026-11-07 | Connexity uses AI for metrics, evals and insights, but never as an agent. The rule against AI in the product is narrowed to AI that writes the agent's content or acts like an agent. Connexity produces quality analytics about agents, never business analytics. It keeps its own versions as audit records and acts only as a gate; it never deploys. | Dmytro ("we will use ai for some metrics, evals, etc but not as agent"; "It should work only as gate") |
+| 2026-11-09 | Design starts from scratch, with the design system first. It is the Connexity Design System artifact in Claude. The logo (three orange loops) is the one thing that does not change; the teal "F" favicon is a leftover. Dark mode is equal to light, if not first. Typeface: Figtree. | Dmytro ("I want to start working on design from scratch"; "i like dark mode as equal if not first"; "B") |
+| 2026-11-09 | The web app is reports and things to do, plus a single call's recording and transcript. Connexity is not an observability platform and must be much easier to read than one; drilling down from an incident to traces "doesn't make any sense now", because all work is done through the assistant. The 2026-10-09 rule that the UI may do anything the API does is retired. Parked slice 2.5 is deleted and 1.7 narrowed to the single call. | Dmytro ("Retire it"; "User can do that") |
 
 ---
 
