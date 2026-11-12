@@ -20,6 +20,8 @@ For the contributor-facing architecture and tool-extension guide, see
 - `get_readiness(workspace_id)`: how complete the workspace's setup is, and what to do next.
 - `connect_voice_platform(workspace_id, api_key, platform)`: connect Retell (or Vapi,
   ElevenLabs); the key is checked and stored encrypted.
+- `add_agents(workspace_id, agents)`: add the client's Retell agents to the workspace, by
+  their Retell ids, so their calls sync.
 
 Claude.ai, Claude Code and ChatGPT can connect; see "Supported assistants" in
 `docs-internal/mcp-architecture.md`.

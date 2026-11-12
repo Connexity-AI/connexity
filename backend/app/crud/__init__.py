@@ -1,6 +1,7 @@
 """CRUD package — re-exports all functions for ``from app import crud`` compatibility."""
 
 from app.crud.agent import (  # noqa: F401
+    add_platform_agent,
     create_agent,
     create_draft_agent,
     delete_agent,
@@ -125,6 +126,7 @@ from app.crud.integrations import (  # noqa: F401
     create_integration,
     delete_integration,
     get_integration,
+    get_platform_integration,
     list_integrations,
     list_tool_backends,
     set_tool_backend,

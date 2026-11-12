@@ -3,16 +3,17 @@
 - Assistant connected: a member of the workspace holds a usable assistant connection
   (see `connected_assistants`).
 - Voice platform connected: the workspace has a voice platform integration.
-- Agents and calls synced, first scan done: not started until "First scan" (roadmap
-  feature 10) defines them.
+- Agents and calls synced: in progress once agents linked to a voice platform are added;
+  "done" and the first scan come with "First scan" (roadmap feature 10).
 """
 
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlmodel import Session, col, select
+from sqlmodel import Session, col, func, select
 
 from app.core.config import settings
+from app.models.agent import Agent
 from app.models.enums import IntegrationProvider
 from app.models.integration import Integration
 from app.models.oauth import OAuthAuthorizationCode, OAuthClient, OAuthRefreshToken
@@ -97,6 +98,19 @@ def connected_voice_platforms(*, session: Session, company_id: uuid.UUID) -> lis
     return sorted(VOICE_PLATFORMS[IntegrationProvider(p)] for p in providers)
 
 
+def linked_agent_count(*, session: Session, company_id: uuid.UUID) -> int:
+    """Agents in the workspace linked to a voice platform agent (added to sync)."""
+    return session.exec(
+        select(func.count())
+        .select_from(Agent)
+        .where(
+            Agent.company_id == company_id,
+            col(Agent.integration_id).is_not(None),
+            col(Agent.platform_agent_id).is_not(None),
+        )
+    ).one()
+
+
 def get_readiness(
     *, session: Session, company_id: uuid.UUID, mcp_url: str | None
 ) -> ReadinessPublic:
@@ -106,6 +120,7 @@ def get_readiness(
         access_token_minutes=settings.OAUTH_ACCESS_TOKEN_EXPIRE_MINUTES,
     )
     platforms = connected_voice_platforms(session=session, company_id=company_id)
+    agents_added = linked_agent_count(session=session, company_id=company_id)
 
     def state(done: bool) -> ReadinessStepState:
         return ReadinessStepState.DONE if done else ReadinessStepState.NOT_STARTED
@@ -126,7 +141,16 @@ def get_readiness(
         ReadinessStep(
             key=ReadinessStepKey.SYNC,
             name="Agents and calls synced",
-            state=ReadinessStepState.NOT_STARTED,
+            state=(
+                ReadinessStepState.IN_PROGRESS
+                if agents_added
+                else ReadinessStepState.NOT_STARTED
+            ),
+            detail=(
+                f"{agents_added} agent{'s' if agents_added != 1 else ''} added"
+                if agents_added
+                else None
+            ),
         ),
         ReadinessStep(
             key=ReadinessStepKey.FIRST_SCAN,

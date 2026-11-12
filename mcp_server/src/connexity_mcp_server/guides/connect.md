@@ -39,3 +39,20 @@ Once you are connected, connect the workspace's voice platform with
    from the platform; it never changes agents there.
 
 Connecting again replaces the key. Vapi and ElevenLabs connect the same way.
+
+## Choosing agents
+
+Once Retell is connected, add the agents this workspace should watch with `add_agents`.
+Connexity does not list Retell's agents for you; use your own access to Retell.
+
+1. Look at the Retell account's agents and their recent calls.
+2. One Retell account often holds several clients' agents. Recommend the ones that
+   belong to this client and take real calls; leave out tests, drafts and agents with no
+   recent calls.
+3. Ask the person to confirm the list.
+4. Call `add_agents` with their Retell agent ids. Each needs to be in the Retell account
+   connected to this workspace.
+5. Call `list_agents` to check, and `get_readiness`.
+
+Only added agents are synced. An agent cannot be removed from a workspace yet, so ask
+before adding.

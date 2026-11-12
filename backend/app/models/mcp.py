@@ -57,6 +57,9 @@ class McpAgent(BaseModel):
     id: uuid.UUID
     name: str
     platform: Platform | None = None
+    platform_agent_id: str | None = Field(
+        default=None, description="The agent's id on its voice platform (Retell)"
+    )
     platform_agent_name: str | None = None
     created_at: datetime
 
@@ -81,3 +84,27 @@ class McpConnection(BaseModel):
     connected_by: str | None = Field(
         default=None, description="The person, and the assistant, who connected it"
     )
+
+
+class McpAgentToAdd(BaseModel):
+    platform_agent_id: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)
+    ]
+    name: Annotated[
+        str | None, StringConstraints(strip_whitespace=True, max_length=255)
+    ] = Field(default=None, description="Defaults to the agent's name on the platform")
+
+
+class McpAddAgents(BaseModel):
+    agents: list[McpAgentToAdd] = Field(min_length=1, max_length=100)
+
+
+class McpRefusedAgent(BaseModel):
+    platform_agent_id: str
+    reason: str
+
+
+class McpAddedAgents(BaseModel):
+    added: list[McpAgent]
+    already_added: list[McpAgent]
+    refused: list[McpRefusedAgent]

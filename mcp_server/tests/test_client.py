@@ -3,6 +3,7 @@ import pytest
 from connexity_mcp_server.client import ConnexityBackendClient, ConnexityBackendError
 from connexity_mcp_server.config import Settings
 from connexity_mcp_server.tools import (
+    add_agents,
     connect_voice_platform,
     create_workspace,
     get_readiness,
@@ -256,3 +257,54 @@ async def test_connect_voice_platform_posts_the_key_to_the_workspace() -> None:
 
     assert result.data.platform == "Retell"
     assert "key_secret" not in result.model_dump_json()
+
+
+@pytest.mark.asyncio
+async def test_add_agents_posts_the_platform_ids() -> None:
+    from connexity_mcp_server.models import AgentToAdd
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url.path == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/agents"
+        assert request.content == (
+            b'{"agents":[{"platform_agent_id":"agent_1"},'
+            b'{"platform_agent_id":"agent_2","name":"Front desk"}]}'
+        )
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "added": [
+                        {
+                            "id": "a1",
+                            "name": "Front desk",
+                            "platform": "retell",
+                            "platform_agent_id": "agent_2",
+                            "platform_agent_name": "Reception v2",
+                            "created_at": "2026-11-12T10:00:00Z",
+                        }
+                    ],
+                    "already_added": [],
+                    "refused": [
+                        {"platform_agent_id": "agent_1", "reason": "Not in the account"}
+                    ],
+                },
+                "next_cursor": None,
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: add_agents(
+            client,
+            workspace_id=WORKSPACE_ID,
+            agents=[
+                AgentToAdd(platform_agent_id="agent_1"),
+                AgentToAdd(platform_agent_id="agent_2", name="Front desk"),
+            ],
+        ),
+    )
+
+    assert [a.platform_agent_id for a in result.data.added] == ["agent_2"]
+    assert result.data.refused[0].platform_agent_id == "agent_1"

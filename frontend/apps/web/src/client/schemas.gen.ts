@@ -5428,6 +5428,52 @@ export const MarkerEventSchema = {
   description: 'Something that happened that is neither speech nor a tool call.',
 } as const;
 
+export const McpAddAgentsSchema = {
+  properties: {
+    agents: {
+      items: {
+        $ref: '#/components/schemas/McpAgentToAdd',
+      },
+      type: 'array',
+      maxItems: 100,
+      minItems: 1,
+      title: 'Agents',
+    },
+  },
+  type: 'object',
+  required: ['agents'],
+  title: 'McpAddAgents',
+} as const;
+
+export const McpAddedAgentsSchema = {
+  properties: {
+    added: {
+      items: {
+        $ref: '#/components/schemas/McpAgent',
+      },
+      type: 'array',
+      title: 'Added',
+    },
+    already_added: {
+      items: {
+        $ref: '#/components/schemas/McpAgent',
+      },
+      type: 'array',
+      title: 'Already Added',
+    },
+    refused: {
+      items: {
+        $ref: '#/components/schemas/McpRefusedAgent',
+      },
+      type: 'array',
+      title: 'Refused',
+    },
+  },
+  type: 'object',
+  required: ['added', 'already_added', 'refused'],
+  title: 'McpAddedAgents',
+} as const;
+
 export const McpAgentSchema = {
   properties: {
     id: {
@@ -5449,6 +5495,18 @@ export const McpAgentSchema = {
         },
       ],
     },
+    platform_agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Agent Id',
+      description: "The agent's id on its voice platform (Retell)",
+    },
     platform_agent_name: {
       anyOf: [
         {
@@ -5469,6 +5527,78 @@ export const McpAgentSchema = {
   type: 'object',
   required: ['id', 'name', 'created_at'],
   title: 'McpAgent',
+} as const;
+
+export const McpAgentToAddSchema = {
+  properties: {
+    platform_agent_id: {
+      type: 'string',
+      maxLength: 255,
+      minLength: 1,
+      title: 'Platform Agent Id',
+    },
+    name: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Name',
+      description: "Defaults to the agent's name on the platform",
+    },
+  },
+  type: 'object',
+  required: ['platform_agent_id'],
+  title: 'McpAgentToAdd',
+} as const;
+
+export const McpAnswer_McpAddedAgents_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/McpAddedAgents',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[McpAddedAgents]',
 } as const;
 
 export const McpAnswer_McpConnection_Schema = {
@@ -5752,6 +5882,22 @@ export const McpConnectionSchema = {
   type: 'object',
   required: ['platform', 'masked_api_key', 'replaced_earlier_key'],
   title: 'McpConnection',
+} as const;
+
+export const McpRefusedAgentSchema = {
+  properties: {
+    platform_agent_id: {
+      type: 'string',
+      title: 'Platform Agent Id',
+    },
+    reason: {
+      type: 'string',
+      title: 'Reason',
+    },
+  },
+  type: 'object',
+  required: ['platform_agent_id', 'reason'],
+  title: 'McpRefusedAgent',
 } as const;
 
 export const McpVoicePlatformSchema = {

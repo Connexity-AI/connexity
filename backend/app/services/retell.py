@@ -187,6 +187,24 @@ async def test_retell_connection(api_key: str) -> bool:
         return False
 
 
+def dedupe_retell_agents(agents: list[RetellAgentSummary]) -> list[RetellAgentSummary]:
+    """One row per agent: Retell lists an agent once per version. The published, then
+    the newest, version wins."""
+
+    def priority(agent: RetellAgentSummary) -> tuple[int, int]:
+        return (
+            1 if agent.is_published else 0,
+            agent.version if agent.version is not None else -1,
+        )
+
+    by_id: dict[str, RetellAgentSummary] = {}
+    for agent in agents:
+        existing = by_id.get(agent.agent_id)
+        if existing is None or priority(agent) > priority(existing):
+            by_id[agent.agent_id] = agent
+    return list(by_id.values())
+
+
 async def list_retell_agents(api_key: str) -> list[RetellAgentSummary]:
     """Every agent in the account, read page by page from Retell's agent list.
 

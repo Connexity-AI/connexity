@@ -16,6 +16,7 @@ from app.models import (
 )
 from app.models.enums import AgentMode, AgentVersionStatus, Platform, RunStatus
 from app.models.imported_platform_config import ImportedPlatformConfig
+from app.models.integration import Integration
 from app.services.agent_tool_definitions import normalize_and_validate_agent_tools
 
 _VERSIONABLE_FIELDS = frozenset(
@@ -206,6 +207,48 @@ def list_agents(
         ).all()
     )
     return items, count
+
+
+def add_platform_agent(
+    *,
+    session: Session,
+    company_id: uuid.UUID,
+    integration: Integration,
+    platform: Platform,
+    platform_agent_id: str,
+    name: str,
+    platform_agent_name: str | None,
+    created_by: uuid.UUID,
+) -> tuple[Agent, bool]:
+    """Add an agent observed on a voice platform, linked to the workspace's connection.
+
+    Returns the agent and whether it was new. An agent already linked to the same
+    platform agent in this workspace is returned as it is. No prompt is imported and no
+    1.x draft version is made: Connexity observes the agent, it does not build it.
+    """
+    existing = session.exec(
+        select(Agent).where(
+            Agent.company_id == company_id,
+            Agent.platform == platform,
+            Agent.platform_agent_id == platform_agent_id,
+        )
+    ).first()
+    if existing is not None:
+        return existing, False
+    agent = Agent(
+        company_id=company_id,
+        name=name,
+        mode=AgentMode.PLATFORM,
+        platform=platform,
+        integration_id=integration.id,
+        platform_agent_id=platform_agent_id,
+        platform_agent_name=platform_agent_name,
+        created_by=created_by,
+    )
+    session.add(agent)
+    session.commit()
+    session.refresh(agent)
+    return agent, True
 
 
 def search_agents(

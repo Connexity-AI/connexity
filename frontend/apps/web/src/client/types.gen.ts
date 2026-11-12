@@ -3457,6 +3457,34 @@ export type MarkerEvent = {
 };
 
 /**
+ * McpAddAgents
+ */
+export type McpAddAgents = {
+  /**
+   * Agents
+   */
+  agents: Array<McpAgentToAdd>;
+};
+
+/**
+ * McpAddedAgents
+ */
+export type McpAddedAgents = {
+  /**
+   * Added
+   */
+  added: Array<McpAgent>;
+  /**
+   * Already Added
+   */
+  already_added: Array<McpAgent>;
+  /**
+   * Refused
+   */
+  refused: Array<McpRefusedAgent>;
+};
+
+/**
  * McpAgent
  */
 export type McpAgent = {
@@ -3470,6 +3498,12 @@ export type McpAgent = {
   name: string;
   platform?: Platform | null;
   /**
+   * Platform Agent Id
+   *
+   * The agent's id on its voice platform (Retell)
+   */
+  platform_agent_id?: string | null;
+  /**
    * Platform Agent Name
    */
   platform_agent_name?: string | null;
@@ -3477,6 +3511,56 @@ export type McpAgent = {
    * Created At
    */
   created_at: string;
+};
+
+/**
+ * McpAgentToAdd
+ */
+export type McpAgentToAdd = {
+  /**
+   * Platform Agent Id
+   */
+  platform_agent_id: string;
+  /**
+   * Name
+   *
+   * Defaults to the agent's name on the platform
+   */
+  name?: string | null;
+};
+
+/**
+ * McpAnswer[McpAddedAgents]
+ */
+export type McpAnswerMcpAddedAgents = {
+  /**
+   * The facts: the result of the call
+   */
+  data: McpAddedAgents;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
 };
 
 /**
@@ -3686,6 +3770,20 @@ export type McpConnection = {
    * The person, and the assistant, who connected it
    */
   connected_by?: string | null;
+};
+
+/**
+ * McpRefusedAgent
+ */
+export type McpRefusedAgent = {
+  /**
+   * Platform Agent Id
+   */
+  platform_agent_id: string;
+  /**
+   * Reason
+   */
+  reason: string;
 };
 
 /**
@@ -7867,6 +7965,60 @@ export type McpListAgentsResponses = {
 };
 
 export type McpListAgentsResponse = McpListAgentsResponses[keyof McpListAgentsResponses];
+
+export type McpAddAgentsData = {
+  body: McpAddAgents;
+  path: {
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/agents';
+};
+
+export type McpAddAgentsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpAddAgentsError = McpAddAgentsErrors[keyof McpAddAgentsErrors];
+
+export type McpAddAgentsResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerMcpAddedAgents;
+};
+
+export type McpAddAgentsResponse = McpAddAgentsResponses[keyof McpAddAgentsResponses];
 
 export type McpGetReadinessData = {
   body?: never;
