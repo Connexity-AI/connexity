@@ -99,6 +99,28 @@ step to start over.
   in `GUIDES` and served as MCP resources at `connexity://guides/<name>`. A feature that
   adds tools adds or extends its guide and points its answers' `guide` at it.
 
+## Supported assistants
+
+The backend is the OAuth authorization server; assistants register with Dynamic Client
+Registration (RFC 7591) as public clients with PKCE (S256). Callback addresses are decided
+in `backend/app/core/oauth_redirects.py`:
+
+| Assistant | Callback |
+|---|---|
+| Claude.ai, Claude Desktop | `https://claude.ai/api/mcp/auth_callback` (and the `claude.com` one) |
+| Claude Code and other local apps | `http://localhost`, `127.0.0.1` or `[::1]` on any port (RFC 8252). A registered loopback callback matches on any port. |
+| ChatGPT | `https://chatgpt.com/connector_platform_oauth_redirect`, or `https://chatgpt.com/connector/oauth/{callback_id}` |
+| Others | Exact addresses in `OAUTH_ALLOWED_REDIRECT_URIS` |
+
+Every authorization response carries `iss` (RFC 9207), and the metadata says so
+(`authorization_response_iss_parameter_supported`). Without it ChatGPT uses a different
+callback per connection. Client ID Metadata Documents are not supported yet; both Claude
+and ChatGPT fall back to registration.
+
+Every tool declares hints (`readOnlyHint`, `destructiveHint`, `openWorldHint`) so an
+assistant knows when to ask the person first. The guide for people is
+`connexity://guides/connect`.
+
 ## Main components
 
 ### MCP adapter app (`mcp_server/.../app.py`)
