@@ -48,13 +48,13 @@ assistants as they like. Each reaches exactly the workspaces that person can rea
 ### Every call is scoped to a workspace
 
 A workspace is a company: one client of an agency. Every backend `/mcp` route except
-`GET /mcp/workspaces` has the workspace in its path,
+`GET` and `POST /mcp/workspaces` has the workspace in its path,
 `/api/v1/mcp/workspaces/{workspace_id}/…`, and depends on `McpWorkspaceDep`
 (`require_mcp_workspace` in `backend/app/api/deps.py`).
 
-- Access is decided in one place: `backend/app/crud/workspace.py`. Today a person
-  reaches their own company; memberships across several workspaces replace that there,
-  and nothing else changes.
+- Access is decided in one place: `backend/app/crud/workspace.py`. A person reaches
+  the workspaces they are a member of (`workspace_member`). The workspace open on the
+  web (`user.company_id`) plays no part in MCP: every call names its workspace.
 - A workspace the person cannot reach answers 404 "Workspace not found", the same as one
   that does not exist.
 - `test_every_mcp_route_is_scoped_to_a_workspace` fails on any `/mcp` route without the
@@ -155,6 +155,7 @@ They own validation, CRUD calls, state changes and the answer's rules and next s
 | MCP tool | Backend route |
 |---|---|
 | `list_workspaces` | `GET /api/v1/mcp/workspaces` |
+| `create_workspace(name)` | `POST /api/v1/mcp/workspaces` |
 | `list_agents(workspace_id, query?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/agents` |
 
 ## What not to do

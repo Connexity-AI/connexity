@@ -2,6 +2,7 @@ import base64
 import hashlib
 from urllib.parse import parse_qs, urlparse
 
+import httpx
 import jwt
 from fastapi.testclient import TestClient
 from sqlmodel import Session
@@ -20,6 +21,17 @@ def _pkce_pair() -> tuple[str, str]:
     digest = hashlib.sha256(verifier.encode("ascii")).digest()
     challenge = base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
     return verifier, challenge
+
+
+def _allow(client: TestClient, consent: httpx.Response) -> httpx.Response:
+    """Press Allow on the consent page reached by a sign-in or sign-up form post."""
+    sent = parse_qs(consent.request.content.decode())
+    fields = {
+        key: values[0]
+        for key, values in sent.items()
+        if key not in {"email", "password", "full_name"}
+    }
+    return client.post("/oauth/authorize/allow", data=fields, follow_redirects=False)
 
 
 def _register_client(client: TestClient) -> str:
@@ -109,7 +121,8 @@ def test_oauth_signup_flow_creates_user_and_continues_to_claude(
         },
     )
     assert signup.status_code == 200
-    assert "Create your Connexity account" in signup.text
+    assert "Create an account" in signup.text
+    assert "Claude wants to connect to Connexity" in signup.text
 
     confirmed = client.post(
         "/oauth/authorize/signup/confirm",
@@ -128,6 +141,9 @@ def test_oauth_signup_flow_creates_user_and_continues_to_claude(
         },
         follow_redirects=False,
     )
+    assert confirmed.status_code == 200
+    assert "Allow" in confirmed.text
+    confirmed = _allow(client, confirmed)
     assert confirmed.status_code == 303
     location = confirmed.headers["location"]
     parsed = urlparse(location)
@@ -206,7 +222,7 @@ def test_authorization_code_pkce_flow_issues_mcp_access_token(
         },
     )
     assert authorize.status_code == 200
-    assert "Connect Claude" in authorize.text
+    assert "Claude wants to connect to Connexity" in authorize.text
 
     confirmed = client.post(
         "/oauth/authorize/confirm",
@@ -224,6 +240,9 @@ def test_authorization_code_pkce_flow_issues_mcp_access_token(
         },
         follow_redirects=False,
     )
+    assert confirmed.status_code == 200
+    assert "Allow" in confirmed.text
+    confirmed = _allow(client, confirmed)
     assert confirmed.status_code == 303
     location = confirmed.headers["location"]
     parsed = urlparse(location)
@@ -308,6 +327,9 @@ def test_token_rejects_non_ascii_code_verifier(
         },
         follow_redirects=False,
     )
+    assert confirmed.status_code == 200
+    assert "Allow" in confirmed.text
+    confirmed = _allow(client, confirmed)
     assert confirmed.status_code == 303
     code = parse_qs(urlparse(confirmed.headers["location"]).query)["code"][0]
 
@@ -324,3 +346,152 @@ def test_token_rejects_non_ascii_code_verifier(
 
     assert token.status_code == 400
     assert token.json()["detail"] == "Invalid code_verifier"
+
+
+def test_oauth_signup_with_an_invalid_email_shows_the_form_again(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(settings, "OAUTH_ISSUER_URL", "https://backend.example.com")
+    client_id = _register_client(client)
+    _, challenge = _pkce_pair()
+
+    response = client.post(
+        "/oauth/authorize/signup/confirm",
+        data={
+            "response_type": "code",
+            "client_id": client_id,
+            "redirect_uri": REDIRECT_URI,
+            "scope": "mcp:access",
+            "resource": RESOURCE,
+            "code_challenge": challenge,
+            "code_challenge_method": "S256",
+            "email": "ann@bright-dental.test",
+            "password": random_lower_string(),
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 200
+    assert "Enter a valid email address." in response.text
+
+
+def _authorize_fields(client_id: str, challenge: str) -> dict[str, str]:
+    return {
+        "response_type": "code",
+        "client_id": client_id,
+        "redirect_uri": REDIRECT_URI,
+        "scope": "mcp:access",
+        "state": "the-state",
+        "resource": RESOURCE,
+        "code_challenge": challenge,
+        "code_challenge_method": "S256",
+    }
+
+
+def _signed_up(client: TestClient, monkeypatch) -> tuple[dict[str, str], str]:
+    """Create an account through the connection page; returns the fields and email."""
+    monkeypatch.setattr(settings, "OAUTH_ISSUER_URL", "https://backend.example.com")
+    client.cookies.clear()
+    fields = _authorize_fields(_register_client(client), _pkce_pair()[1])
+    email = random_email()
+    consent = client.post(
+        "/oauth/authorize/signup/confirm",
+        data=fields | {"email": email, "password": random_lower_string()},
+    )
+    assert consent.status_code == 200
+    assert "Connect Claude to Connexity" in consent.text
+    assert email in consent.text
+    return fields, email
+
+
+def test_a_signed_in_person_is_asked_before_the_assistant_connects(
+    client: TestClient, monkeypatch
+) -> None:
+    fields, _ = _signed_up(client, monkeypatch)
+
+    again = client.get("/oauth/authorize", params=fields, follow_redirects=False)
+
+    assert again.status_code == 200
+    assert "Connect Claude to Connexity" in again.text
+    assert "Allow" in again.text
+
+
+def test_cancel_tells_the_assistant_access_was_denied(
+    client: TestClient, monkeypatch
+) -> None:
+    fields, _ = _signed_up(client, monkeypatch)
+
+    cancelled = client.post(
+        "/oauth/authorize/cancel", data=fields, follow_redirects=False
+    )
+
+    assert cancelled.status_code == 303
+    query = parse_qs(urlparse(cancelled.headers["location"]).query)
+    assert query == {"error": ["access_denied"], "state": ["the-state"]}
+
+
+def test_allow_without_a_session_shows_sign_in(client: TestClient, monkeypatch) -> None:
+    fields, _ = _signed_up(client, monkeypatch)
+    client.cookies.clear()
+
+    response = client.post(
+        "/oauth/authorize/allow", data=fields, follow_redirects=False
+    )
+
+    assert response.status_code == 200
+    assert "Sign in" in response.text
+    assert "code=" not in response.headers.get("location", "")
+
+
+def test_not_you_signs_out_and_shows_sign_in(client: TestClient, monkeypatch) -> None:
+    fields, _ = _signed_up(client, monkeypatch)
+
+    switched = client.get("/oauth/authorize/switch", params=fields)
+
+    assert switched.status_code == 200
+    assert "Claude wants to connect to Connexity" in switched.text
+    assert settings.AUTH_COOKIE not in client.cookies
+    assert "Allow" not in client.get("/oauth/authorize", params=fields).text
+
+
+def test_sign_up_errors_sit_under_their_field(client: TestClient, monkeypatch) -> None:
+    fields, email = _signed_up(client, monkeypatch)
+    client.cookies.clear()
+
+    taken = client.post(
+        "/oauth/authorize/signup/confirm",
+        data=fields | {"email": email.upper(), "password": random_lower_string()},
+    )
+    short = client.post(
+        "/oauth/authorize/signup/confirm",
+        data=fields | {"email": random_email(), "password": "abc1234"},
+    )
+
+    assert "An account already uses this email." in taken.text
+    assert "Use at least 8 characters." in short.text
+
+
+def test_a_wrong_password_on_the_connection_page(
+    client: TestClient, monkeypatch
+) -> None:
+    fields, email = _signed_up(client, monkeypatch)
+    client.cookies.clear()
+
+    response = client.post(
+        "/oauth/authorize/confirm",
+        data=fields | {"email": email, "password": "not-the-password"},
+    )
+
+    assert response.status_code == 200
+    assert "That email and password don’t match." in response.text
+    assert f'value="{email}"' in response.text
+
+
+def test_connection_pages_cannot_be_framed(client: TestClient, monkeypatch) -> None:
+    fields, _ = _signed_up(client, monkeypatch)
+
+    consent = client.get("/oauth/authorize", params=fields)
+
+    assert consent.headers["x-frame-options"] == "DENY"
+    assert "frame-ancestors 'none'" in consent.headers["content-security-policy"]

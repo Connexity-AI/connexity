@@ -41,4 +41,5 @@ class Agent(BaseModel):
 
 
 ListWorkspacesResult = Answer[list[Workspace]]
+CreateWorkspaceResult = Answer[Workspace]
 ListAgentsResult = Answer[list[Agent]]

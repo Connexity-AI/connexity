@@ -1,4 +1,5 @@
 import enum
+import re
 import uuid
 from datetime import UTC, datetime
 
@@ -20,10 +21,16 @@ class LLMProvider(str, enum.Enum):
 
 
 def workspace_name_from_email(email: str) -> str:
-    """A first name for a new workspace: the domain of its first user's email."""
+    """A first name for a new workspace, from its first user's email domain.
+
+    The domain's first part, each word capitalised: `ann@bright-dental.com` gives
+    "Bright Dental" (design, 2026-11-12).
+    """
     _, at, domain = email.rpartition("@")
-    domain = domain.strip().lower()[:255]
-    return domain if at and domain else "Workspace"
+    first = domain.strip().split(".")[0] if at else ""
+    words = [w for w in re.split(r"[-_]", first) if w]
+    name = " ".join(w[0].upper() + w[1:] for w in words)
+    return name[:255] or "My workspace"
 
 
 class Company(SQLModel, table=True):

@@ -29,6 +29,8 @@
     --unch: #45474b;
     --unch-bg: #ecebe8;
     --menu-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+    --dialog-shadow: 0 16px 48px rgb(0 0 0 / 0.24);
+    --backdrop: rgb(0 0 0 / 0.5);
   }
 
   .dark {

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0}*{box-sizing:border-box}button,input{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}input::placeholder{color:var(--ink3)}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<div style="width:100%;max-width:360px;margin:0 auto;padding:96px 0 48px;display:flex;flex-direction:column;gap:32px">
+  <div style="display:flex;align-items:center;gap:8px;height:32px">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--brand)"><circle cx="9" cy="12" r="6"></circle><circle cx="15" cy="12" r="6"></circle></svg>
+    <span style="font-size:15px;font-weight:500;color:var(--ink)">Connexity</span>
+  </div>
+
+  <sc-if value="{{ showForm }}" hint-placeholder-val="{{ true }}">
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <sc-if value="{{ connect }}" hint-placeholder-val="{{ false }}"><span style="color:var(--ink2)">{{ assistant }} wants to connect to Connexity</span></sc-if>
+      <sc-if value="{{ isSignin }}" hint-placeholder-val="{{ true }}"><h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Sign in</h1></sc-if>
+      <sc-if value="{{ isSignup }}" hint-placeholder-val="{{ false }}"><h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Create an account</h1></sc-if>
+    </div>
+
+    <sc-if value="{{ hasGoogle }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <sc-if value="{{ googleErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--crit)">Google sign-in didn’t finish. Try again or use your email.</span></sc-if>
+      <button onClick="{{ onGoogle }}" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:40px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">
+        <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path></svg>
+        Continue with Google
+      </button>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;font-size:13px;color:var(--ink3)"><span style="flex:1;height:1px;background:var(--border)"></span>or<span style="flex:1;height:1px;background:var(--border)"></span></div>
+    </sc-if>
+
+    <form onSubmit="{{ onSubmit }}" noValidate="{{ true }}" style="display:flex;flex-direction:column;gap:16px;margin:0">
+      <sc-if value="{{ isSignup }}" hint-placeholder-val="{{ false }}">
+      <label style="display:flex;flex-direction:column;gap:6px">
+        <span style="font-size:13px;line-height:18px;color:var(--ink2)">Name</span>
+        <input value="{{ name }}" onChange="{{ onName }}" autoComplete="name" style="height:40px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s1);color:var(--ink);font-size:15px;outline:none">
+      </label>
+      </sc-if>
+      <label style="display:flex;flex-direction:column;gap:6px">
+        <sc-if value="{{ isSignup }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Work email</span></sc-if>
+        <sc-if value="{{ notSignup }}" hint-placeholder-val="{{ true }}"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Email</span></sc-if>
+        <input type="email" value="{{ email }}" onChange="{{ onEmail }}" autoComplete="email" style="{{ emailStyle }}">
+        <sc-if value="{{ takenErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--crit)">An account already uses this email. <button type="button" onClick="{{ toSigninKeep }}" style="padding:0;border:0;background:none;color:var(--crit);font-size:13px;text-decoration:underline;cursor:pointer">Sign in instead</button></span></sc-if>
+      </label>
+      <label style="display:flex;flex-direction:column;gap:6px">
+        <span style="font-size:13px;line-height:18px;color:var(--ink2)">Password</span>
+        <input type="password" value="{{ pw }}" onChange="{{ onPw }}" autoComplete="{{ pwAuto }}" style="{{ pwStyle }}">
+        <sc-if value="{{ pwHint }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--ink3)">At least 8 characters</span></sc-if>
+        <sc-if value="{{ shortErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--crit)">Use at least 8 characters.</span></sc-if>
+      </label>
+      <div style="display:flex;flex-direction:column;gap:8px;padding-top:8px">
+        <sc-if value="{{ credErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--crit)">That email and password don’t match.</span></sc-if>
+        <sc-if value="{{ notSignup }}" hint-placeholder-val="{{ true }}"><button type="submit" style="width:100%;height:40px;border-radius:8px;border:0;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Sign in</button></sc-if>
+        <sc-if value="{{ isSignup }}" hint-placeholder-val="{{ false }}"><button type="submit" style="width:100%;height:40px;border-radius:8px;border:0;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Create account</button></sc-if>
+      </div>
+    </form>
+
+    <sc-if value="{{ notSignup }}" hint-placeholder-val="{{ true }}"><span style="font-size:13px;line-height:18px;color:var(--ink2)">New to Connexity? <button onClick="{{ toSignup }}" style="padding:0;border:0;background:none;color:var(--ink);font-size:13px;text-decoration:underline;cursor:pointer">Create an account</button></span></sc-if>
+    <sc-if value="{{ isSignup }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Already have an account? <button onClick="{{ toSignin }}" style="padding:0;border:0;background:none;color:var(--ink);font-size:13px;text-decoration:underline;cursor:pointer">Sign in</button></span></sc-if>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ showConsent }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Connect {{ assistant }} to Connexity</h1>
+    <p style="margin:0;text-wrap:pretty">{{ assistant }} will be able to see and work in the workspaces you can reach, on your behalf. Everything it does is recorded as done by your assistant.</p>
+    <span style="font-size:13px;line-height:18px;color:var(--ink2)">Alex Morgan · alex@example.com</span>
+    <sc-if value="{{ pending }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button onClick="{{ allow }}" style="width:100%;height:40px;border-radius:8px;border:0;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Allow</button>
+      <button onClick="{{ cancel }}" style="width:100%;height:40px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">Cancel</button>
+    </div>
+    </sc-if>
+    <sc-if value="{{ allowed }}" hint-placeholder-val="{{ false }}"><p style="margin:0;padding:12px 14px;border-radius:8px;border:1px solid var(--border);background:var(--s1)">{{ assistant }} is connected. You can go back to {{ assistant }}.</p></sc-if>
+    <sc-if value="{{ cancelled }}" hint-placeholder-val="{{ false }}"><p style="margin:0;padding:12px 14px;border-radius:8px;border:1px solid var(--border);background:var(--s1)">{{ assistant }} was not connected. You can close this tab.</p></sc-if>
+    <span style="font-size:13px;line-height:18px;color:var(--ink2)">Not you? <button onClick="{{ switchAccount }}" style="padding:0;border:0;background:none;color:var(--ink);font-size:13px;text-decoration:underline;cursor:pointer">Sign in with another account</button></span>
+  </div>
+  </sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;screen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;signin&quot;,&quot;signup&quot;,&quot;connect&quot;],&quot;default&quot;:&quot;signin&quot;,&quot;tsType&quot;:&quot;'signin' | 'signup' | 'connect'&quot;},&quot;error&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;credentials&quot;,&quot;google&quot;,&quot;emailTaken&quot;,&quot;shortPassword&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;google&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;signedIn&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;assistant&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Claude&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  static THEMES = {
+    dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--wash':'#26282b' },
+    light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--wash':'#efeeea' }
+  };
+  static EMAIL = 'alex@example.com';
+  static PRE = {
+    credentials: { email:'alex@example.com', pw:'password1' },
+    emailTaken: { name:'Alex Morgan', email:'alex@example.com', pw:'correct-horse' },
+    shortPassword: { name:'Alex Morgan', email:'alex@brightdental.com', pw:'abc12' }
+  };
+  constructor(props) {
+    super(props);
+    const e = props.error && props.error !== 'none' ? props.error : null, p = Component.PRE[e] || {};
+    this.state = { screen: props.screen || 'signin', err: e, name: p.name || '', email: p.email || '', pw: p.pw || '', signedIn: !!props.signedIn, outcome: null };
+  }
+  go(url) { try { window.location.href = url; } catch (_) {} }
+  wsFrom(email) {
+    const d = (email.split('@')[1] || '').split('.')[0] || 'My workspace';
+    return d.split(/[-_]/).filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+  }
+  renderVals() {
+    const C = Component, S = this.state, scr = S.screen;
+    const connect = scr === 'connect', signup = scr === 'signup';
+    const google = this.props.google !== false;
+    const inp = bad => ({ height:40, padding:'0 12px', borderRadius:8, border:`1px solid ${bad ? 'var(--crit)' : 'var(--bc)'}`, background:'var(--s1)', color:'var(--ink)', fontSize:15, outline:'none' });
+    const field = k => e => this.setState({ [k]: e.target.value, err: null });
+    const done = () => connect ? this.setState({ signedIn:true, outcome:null }) : this.go('Connexity Home.dc.html');
+    const onSubmit = e => {
+      e.preventDefault();
+      if (signup) {
+        if (S.pw.length < 8) return this.setState({ err:'shortPassword' });
+        if (S.err === 'emailTaken' || S.email.trim().toLowerCase() === C.EMAIL) return this.setState({ err:'emailTaken' });
+        if (!S.name.trim() || !/.+@.+\..+/.test(S.email.trim())) return;
+        return this.go('Connexity Onboarding.dc.html?ws=' + encodeURIComponent(this.wsFrom(S.email.trim())));
+      }
+      if (S.err === 'credentials' || !S.email.trim() || !S.pw) return;
+      done();
+    };
+    const toScreen = (s, keep) => () => this.setState(st => ({ screen:s, err:null, pw:'', email: keep ? st.email : st.email, name: st.name }));
+    return {
+      rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
+      assistant: this.props.assistant || 'Claude',
+      showForm: !(connect && S.signedIn), showConsent: connect && S.signedIn,
+      connect, isSignup: signup, notSignup: !signup, isSignin: !signup,
+      hasGoogle: google,
+      googleErr: google && S.err === 'google', credErr: S.err === 'credentials', takenErr: signup && S.err === 'emailTaken',
+      shortErr: signup && S.err === 'shortPassword', pwHint: signup && S.err !== 'shortPassword',
+      name: S.name, email: S.email, pw: S.pw, onName: field('name'), onEmail: field('email'), onPw: field('pw'),
+      pwAuto: signup ? 'new-password' : 'current-password',
+      emailStyle: inp(signup && S.err === 'emailTaken'), pwStyle: inp(signup && S.err === 'shortPassword'),
+      onSubmit,
+      onGoogle: () => { if (signup) this.go('Connexity Onboarding.dc.html?ws=' + encodeURIComponent(this.wsFrom(S.email.trim() || C.EMAIL))); else done(); },
+      toSignup: toScreen('signup'), toSignin: toScreen(connect ? 'connect' : 'signin'), toSigninKeep: toScreen(this.props.screen === 'connect' ? 'connect' : 'signin', true),
+      pending: !S.outcome, allowed: S.outcome === 'allowed', cancelled: S.outcome === 'cancelled',
+      allow: () => this.setState({ outcome:'allowed' }), cancel: () => this.setState({ outcome:'cancelled' }),
+      switchAccount: () => this.setState({ signedIn:false, outcome:null, email:'', pw:'', err:null })
+    };
+  }
+}
+</script>
+</body>
+</html>

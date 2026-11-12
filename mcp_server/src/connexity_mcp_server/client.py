@@ -38,6 +38,9 @@ class ConnexityBackendClient:
     async def list_workspaces(self) -> dict[str, Any]:
         return await self._request_json("GET", "/mcp/workspaces")
 
+    async def create_workspace(self, *, name: str) -> dict[str, Any]:
+        return await self._request_json("POST", "/mcp/workspaces", json={"name": name})
+
     async def list_agents(
         self,
         *,

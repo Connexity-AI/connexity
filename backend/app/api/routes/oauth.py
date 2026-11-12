@@ -1,6 +1,5 @@
 import base64
 import hashlib
-import html
 import logging
 import secrets
 import uuid
@@ -13,9 +12,16 @@ import jwt
 from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from jwt.exceptions import InvalidTokenError
+from pydantic import ValidationError
 
 from app import crud
 from app.api.deps import SessionDep
+from app.api.routes.oauth_pages import (
+    AuthorizeParams,
+    ErrorField,
+    consent_page,
+    sign_in_page,
+)
 from app.core import security
 from app.core.config import settings
 from app.models import (
@@ -199,13 +205,6 @@ def _redirect_with_code(
     )
 
 
-def _hidden_input(name: str, value: str | None) -> str:
-    return (
-        f'<input type="hidden" name="{html.escape(name)}" '
-        f'value="{html.escape(value or "")}" />'
-    )
-
-
 def _authorization_query(
     *,
     response_type: str,
@@ -230,7 +229,7 @@ def _authorization_query(
     return urlencode({key: value for key, value in params.items() if value})
 
 
-def _authorize_form(
+def _params(
     *,
     response_type: str,
     client_id: str,
@@ -240,42 +239,8 @@ def _authorize_form(
     code_challenge: str | None,
     code_challenge_method: str | None,
     resource: str | None,
-    mode: str = "signin",
-    error: str | None = None,
-) -> HTMLResponse:
-    error_html = f'<p class="error">{html.escape(error)}</p>' if error else ""
-    hidden = "\n".join(
-        [
-            _hidden_input("response_type", response_type),
-            _hidden_input("client_id", client_id),
-            _hidden_input("redirect_uri", redirect_uri),
-            _hidden_input("scope", scope),
-            _hidden_input("state", state),
-            _hidden_input("code_challenge", code_challenge),
-            _hidden_input("code_challenge_method", code_challenge_method),
-            _hidden_input("resource", _resolve_resource(resource)),
-        ]
-    )
-    signup_mode = mode == "signup"
-    title = "Create your Connexity account" if signup_mode else "Connect Claude"
-    description = (
-        "Create an account, then Claude can use your MCP tools for that workspace."
-        if signup_mode
-        else "Sign in to Connexity to allow Claude to use your MCP tools."
-    )
-    form_action = (
-        "/oauth/authorize/signup/confirm" if signup_mode else "/oauth/authorize/confirm"
-    )
-    password_autocomplete = "new-password" if signup_mode else "current-password"
-    full_name_field = (
-        """
-        <label for="full_name">Name</label>
-        <input id="full_name" name="full_name" type="text" autocomplete="name" />
-        """.strip()
-        if signup_mode
-        else ""
-    )
-    switch_query = _authorization_query(
+) -> AuthorizeParams:
+    return AuthorizeParams(
         response_type=response_type,
         client_id=client_id,
         redirect_uri=redirect_uri,
@@ -283,92 +248,74 @@ def _authorize_form(
         state=state,
         code_challenge=code_challenge,
         code_challenge_method=code_challenge_method,
-        resource=resource,
+        resource=_resolve_resource(resource),
     )
-    switch_html = (
-        f'<p class="switch">Already have an account? '
-        f'<a href="/oauth/authorize?{html.escape(switch_query)}">Sign in</a></p>'
-        if signup_mode
-        else f'<p class="switch">Don&apos;t have an account? '
-        f'<a href="/oauth/authorize/signup?{html.escape(switch_query)}">Create one</a></p>'
+
+
+def _query(params: AuthorizeParams) -> str:
+    return _authorization_query(
+        response_type=params.response_type,
+        client_id=params.client_id,
+        redirect_uri=params.redirect_uri,
+        scope=params.scope,
+        state=params.state,
+        code_challenge=params.code_challenge,
+        code_challenge_method=params.code_challenge_method,
+        resource=params.resource,
     )
-    return HTMLResponse(
-        f"""
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Connect Claude</title>
-    <style>
-      body {{
-        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        background: #f7f7f5;
-        color: #181817;
-      }}
-      main {{
-        width: min(420px, calc(100vw - 32px));
-        background: white;
-        border: 1px solid #deded8;
-        border-radius: 8px;
-        padding: 28px;
-        box-shadow: 0 18px 50px rgb(0 0 0 / 0.08);
-      }}
-      h1 {{ font-size: 22px; margin: 0 0 8px; }}
-      p {{ color: #5c5c56; line-height: 1.5; margin: 0 0 20px; }}
-      label {{ display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }}
-      input[type="email"], input[type="password"], input[type="text"] {{
-        width: 100%;
-        box-sizing: border-box;
-        border: 1px solid #cfcfca;
-        border-radius: 6px;
-        padding: 11px 12px;
-        font-size: 15px;
-      }}
-      button {{
-        width: 100%;
-        margin-top: 20px;
-        border: 0;
-        border-radius: 6px;
-        background: #181817;
-        color: white;
-        font-weight: 700;
-        padding: 12px 14px;
-        cursor: pointer;
-      }}
-      .error {{ color: #b42318; font-weight: 600; }}
-      .switch {{
-        margin: 18px 0 0;
-        text-align: center;
-        font-size: 14px;
-      }}
-      .switch a {{ color: #181817; font-weight: 700; }}
-    </style>
-  </head>
-  <body>
-    <main>
-      <h1>{html.escape(title)}</h1>
-      <p>{html.escape(description)}</p>
-      {error_html}
-      <form method="post" action="{form_action}">
-        {hidden}
-        {full_name_field}
-        <label for="email">Email</label>
-        <input id="email" name="email" type="email" autocomplete="email" required />
-        <label for="password">Password</label>
-        <input id="password" name="password" type="password" autocomplete="{password_autocomplete}" minlength="6" maxlength="40" required />
-        <button type="submit">Connect</button>
-      </form>
-      {switch_html}
-    </main>
-  </body>
-</html>
-""".strip()
+
+
+def _assistant_name(client: OAuthClient) -> str:
+    name = (client.client_name or "").strip()
+    return name[:60] if name else "Your assistant"
+
+
+def _sign_in(
+    client: OAuthClient,
+    params: AuthorizeParams,
+    *,
+    signup: bool = False,
+    error: str | None = None,
+    error_field: ErrorField = "form",
+    email: str = "",
+    full_name: str = "",
+) -> HTMLResponse:
+    return sign_in_page(
+        params=params,
+        assistant=_assistant_name(client),
+        switch_query=_query(params),
+        signup=signup,
+        error=error,
+        error_field=error_field,
+        email=email,
+        full_name=full_name,
     )
+
+
+def _consent(client: OAuthClient, params: AuthorizeParams, user: User) -> HTMLResponse:
+    person = f"{user.full_name} · {user.email}" if user.full_name else user.email
+    return consent_page(
+        params=params,
+        assistant=_assistant_name(client),
+        person=person,
+        switch_query=_query(params),
+    )
+
+
+def _with_session(response: HTMLResponse, user: User) -> HTMLResponse:
+    """Sign the person in on this origin, so the approval step knows them."""
+    auth_token, _ = security.create_session_token(
+        user_id=user.id, company_id=user.company_id
+    )
+    response.set_cookie(
+        settings.AUTH_COOKIE,
+        auth_token,
+        httponly=True,
+        secure=settings.ENVIRONMENT != "local",
+        samesite="lax",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_HOURS * 60 * 60,
+    )
+    return response
 
 
 @router.get("/.well-known/oauth-authorization-server")
@@ -481,41 +428,22 @@ def authorize(
     scope: str | None = None,
     state: str | None = None,
     resource: str | None = None,
-):
-    resolved_resource = _resolve_resource(resource)
-    _validate_authorize_request(
-        session=session,
+) -> HTMLResponse:
+    params = _params(
         response_type=response_type,
         client_id=client_id,
         redirect_uri=redirect_uri,
+        scope=scope,
+        state=state,
         code_challenge=code_challenge,
         code_challenge_method=code_challenge_method,
-        resource=resolved_resource,
+        resource=resource,
     )
+    client = _validated(session, params)
     user = _get_cookie_user(request, session)
     if user is None:
-        return _authorize_form(
-            response_type=response_type,
-            client_id=client_id,
-            redirect_uri=redirect_uri,
-            scope=scope,
-            state=state,
-            code_challenge=code_challenge,
-            code_challenge_method=code_challenge_method,
-            resource=resolved_resource,
-        )
-
-    code = _create_authorization_code(
-        session=session,
-        user=user,
-        client_id=client_id,
-        redirect_uri=redirect_uri,
-        scope=scope,
-        resource=resolved_resource or "",
-        code_challenge=code_challenge or "",
-        code_challenge_method=code_challenge_method or "S256",
-    )
-    return _redirect_with_code(redirect_uri=redirect_uri, code=code, state=state)
+        return _sign_in(client, params)
+    return _consent(client, params, user)
 
 
 @router.get("/oauth/authorize/signup", response_model=None)
@@ -530,32 +458,8 @@ def authorize_signup(
     scope: str | None = None,
     state: str | None = None,
     resource: str | None = None,
-):
-    resolved_resource = _resolve_resource(resource)
-    _validate_authorize_request(
-        session=session,
-        response_type=response_type,
-        client_id=client_id,
-        redirect_uri=redirect_uri,
-        code_challenge=code_challenge,
-        code_challenge_method=code_challenge_method,
-        resource=resolved_resource,
-    )
-    user = _get_cookie_user(request, session)
-    if user is not None:
-        code = _create_authorization_code(
-            session=session,
-            user=user,
-            client_id=client_id,
-            redirect_uri=redirect_uri,
-            scope=scope,
-            resource=resolved_resource or "",
-            code_challenge=code_challenge or "",
-            code_challenge_method=code_challenge_method or "S256",
-        )
-        return _redirect_with_code(redirect_uri=redirect_uri, code=code, state=state)
-
-    return _authorize_form(
+) -> HTMLResponse:
+    params = _params(
         response_type=response_type,
         client_id=client_id,
         redirect_uri=redirect_uri,
@@ -563,9 +467,41 @@ def authorize_signup(
         state=state,
         code_challenge=code_challenge,
         code_challenge_method=code_challenge_method,
-        resource=resolved_resource,
-        mode="signup",
+        resource=resource,
     )
+    client = _validated(session, params)
+    user = _get_cookie_user(request, session)
+    if user is not None:
+        return _consent(client, params, user)
+    return _sign_in(client, params, signup=True)
+
+
+@router.get("/oauth/authorize/switch", response_model=None)
+def authorize_switch_account(
+    session: SessionDep,
+    response_type: str,
+    client_id: str,
+    redirect_uri: str,
+    code_challenge: str | None = None,
+    code_challenge_method: str | None = None,
+    scope: str | None = None,
+    state: str | None = None,
+    resource: str | None = None,
+) -> HTMLResponse:
+    """ "Not you?": sign out on this origin and show the sign-in form again."""
+    params = _params(
+        response_type=response_type,
+        client_id=client_id,
+        redirect_uri=redirect_uri,
+        scope=scope,
+        state=state,
+        code_challenge=code_challenge,
+        code_challenge_method=code_challenge_method,
+        resource=resource,
+    )
+    response = _sign_in(_validated(session, params), params)
+    response.delete_cookie(settings.AUTH_COOKIE)
+    return response
 
 
 @router.post("/oauth/authorize/confirm", response_model=None)
@@ -574,63 +510,35 @@ def authorize_confirm(
     response_type: Annotated[str, Form()],
     client_id: Annotated[str, Form()],
     redirect_uri: Annotated[str, Form()],
-    email: Annotated[str, Form()],
-    password: Annotated[str, Form()],
     code_challenge: Annotated[str, Form()],
     code_challenge_method: Annotated[str, Form()],
+    email: Annotated[str, Form()] = "",
+    password: Annotated[str, Form()] = "",
     scope: Annotated[str | None, Form()] = None,
     state: Annotated[str | None, Form()] = None,
     resource: Annotated[str | None, Form()] = None,
-):
-    resolved_resource = _resolve_resource(resource)
-    _validate_authorize_request(
-        session=session,
+) -> HTMLResponse:
+    """Sign in, then ask the person to approve the assistant."""
+    params = _params(
         response_type=response_type,
         client_id=client_id,
         redirect_uri=redirect_uri,
-        code_challenge=code_challenge,
-        code_challenge_method=code_challenge_method,
-        resource=resolved_resource,
-    )
-    user = crud.authenticate(session=session, email=email, password=password)
-    if user is None or not user.is_active:
-        return _authorize_form(
-            response_type=response_type,
-            client_id=client_id,
-            redirect_uri=redirect_uri,
-            scope=scope,
-            state=state,
-            code_challenge=code_challenge,
-            code_challenge_method=code_challenge_method,
-            resource=resolved_resource,
-            error="Incorrect email or password.",
-        )
-
-    code = _create_authorization_code(
-        session=session,
-        user=user,
-        client_id=client_id,
-        redirect_uri=redirect_uri,
         scope=scope,
-        resource=resolved_resource or "",
+        state=state,
         code_challenge=code_challenge,
         code_challenge_method=code_challenge_method,
+        resource=resource,
     )
-    response = _redirect_with_code(redirect_uri=redirect_uri, code=code, state=state)
-    auth_token = security.create_access_token(
-        user.id,
-        timedelta(hours=settings.ACCESS_TOKEN_EXPIRE_HOURS),
-        additional_claims={"cid": str(user.company_id)},
-    )
-    response.set_cookie(
-        settings.AUTH_COOKIE,
-        auth_token,
-        httponly=True,
-        secure=settings.ENVIRONMENT != "local",
-        samesite="lax",
-        max_age=settings.ACCESS_TOKEN_EXPIRE_HOURS * 60 * 60,
-    )
-    return response
+    client = _validated(session, params)
+    user = crud.authenticate(session=session, email=email.strip(), password=password)
+    if user is None or not user.is_active:
+        return _sign_in(
+            client,
+            params,
+            error="That email and password don’t match.",
+            email=email,
+        )
+    return _with_session(_consent(client, params, user), user)
 
 
 @router.post("/oauth/authorize/signup/confirm", response_model=None)
@@ -639,73 +547,143 @@ def authorize_signup_confirm(
     response_type: Annotated[str, Form()],
     client_id: Annotated[str, Form()],
     redirect_uri: Annotated[str, Form()],
-    email: Annotated[str, Form()],
-    password: Annotated[str, Form()],
     code_challenge: Annotated[str, Form()],
     code_challenge_method: Annotated[str, Form()],
+    email: Annotated[str, Form()] = "",
+    password: Annotated[str, Form()] = "",
     full_name: Annotated[str | None, Form()] = None,
     scope: Annotated[str | None, Form()] = None,
     state: Annotated[str | None, Form()] = None,
     resource: Annotated[str | None, Form()] = None,
-):
-    resolved_resource = _resolve_resource(resource)
-    _validate_authorize_request(
-        session=session,
+) -> HTMLResponse:
+    """Create an account, then ask the person to approve the assistant."""
+    params = _params(
         response_type=response_type,
         client_id=client_id,
         redirect_uri=redirect_uri,
+        scope=scope,
+        state=state,
         code_challenge=code_challenge,
         code_challenge_method=code_challenge_method,
-        resource=resolved_resource,
+        resource=resource,
     )
-    existing_user = crud.get_user_by_email(session=session, email=email)
-    if existing_user is not None:
-        return _authorize_form(
-            response_type=response_type,
-            client_id=client_id,
-            redirect_uri=redirect_uri,
-            scope=scope,
-            state=state,
-            code_challenge=code_challenge,
-            code_challenge_method=code_challenge_method,
-            resource=resolved_resource,
-            mode="signup",
-            error="An account already exists for this email. Sign in instead.",
+    client = _validated(session, params)
+    email = email.strip()
+    keep = {"email": email, "full_name": full_name or ""}
+    try:
+        user_create = UserCreate(
+            email=email, password=password, full_name=(full_name or "").strip() or None
         )
+    except ValidationError as exc:
+        error, error_field = _signup_error(exc)
+        return _sign_in(
+            client, params, signup=True, error=error, error_field=error_field, **keep
+        )
+    if crud.find_user_by_email_ignoring_case(session=session, email=email) is not None:
+        return _sign_in(
+            client,
+            params,
+            signup=True,
+            error="An account already uses this email. Sign in instead.",
+            error_field="email",
+            **keep,
+        )
+    user = crud.create_user(session=session, user_create=user_create)
+    return _with_session(_consent(client, params, user), user)
 
-    user = crud.create_user(
-        session=session,
-        user_create=UserCreate(
-            email=email,
-            password=password,
-            full_name=full_name or None,
-        ),
+
+@router.post("/oauth/authorize/allow", response_model=None)
+def authorize_allow(
+    request: Request,
+    session: SessionDep,
+    response_type: Annotated[str, Form()],
+    client_id: Annotated[str, Form()],
+    redirect_uri: Annotated[str, Form()],
+    code_challenge: Annotated[str, Form()],
+    code_challenge_method: Annotated[str, Form()],
+    scope: Annotated[str | None, Form()] = None,
+    state: Annotated[str | None, Form()] = None,
+    resource: Annotated[str | None, Form()] = None,
+) -> HTMLResponse | RedirectResponse:
+    """The person approved: hand the assistant its authorization code."""
+    params = _params(
+        response_type=response_type,
+        client_id=client_id,
+        redirect_uri=redirect_uri,
+        scope=scope,
+        state=state,
+        code_challenge=code_challenge,
+        code_challenge_method=code_challenge_method,
+        resource=resource,
     )
+    client = _validated(session, params)
+    user = _get_cookie_user(request, session)
+    if user is None:
+        return _sign_in(client, params)
     code = _create_authorization_code(
         session=session,
         user=user,
         client_id=client_id,
         redirect_uri=redirect_uri,
         scope=scope,
-        resource=resolved_resource or "",
+        resource=params.resource or "",
         code_challenge=code_challenge,
         code_challenge_method=code_challenge_method,
     )
-    response = _redirect_with_code(redirect_uri=redirect_uri, code=code, state=state)
-    auth_token = security.create_access_token(
-        user.id,
-        timedelta(hours=settings.ACCESS_TOKEN_EXPIRE_HOURS),
-        additional_claims={"cid": str(user.company_id)},
+    return _redirect_with_code(redirect_uri=redirect_uri, code=code, state=state)
+
+
+@router.post("/oauth/authorize/cancel", response_model=None)
+def authorize_cancel(
+    session: SessionDep,
+    response_type: Annotated[str, Form()],
+    client_id: Annotated[str, Form()],
+    redirect_uri: Annotated[str, Form()],
+    code_challenge: Annotated[str, Form()],
+    code_challenge_method: Annotated[str, Form()],
+    scope: Annotated[str | None, Form()] = None,
+    state: Annotated[str | None, Form()] = None,
+    resource: Annotated[str | None, Form()] = None,
+) -> RedirectResponse:
+    """The person declined: tell the assistant, as OAuth does (`access_denied`)."""
+    params = _params(
+        response_type=response_type,
+        client_id=client_id,
+        redirect_uri=redirect_uri,
+        scope=scope,
+        state=state,
+        code_challenge=code_challenge,
+        code_challenge_method=code_challenge_method,
+        resource=resource,
     )
-    response.set_cookie(
-        settings.AUTH_COOKIE,
-        auth_token,
-        httponly=True,
-        secure=settings.ENVIRONMENT != "local",
-        samesite="lax",
-        max_age=settings.ACCESS_TOKEN_EXPIRE_HOURS * 60 * 60,
+    _validated(session, params)
+    query = {"error": "access_denied"} | ({"state": state} if state else {})
+    separator = "&" if "?" in redirect_uri else "?"
+    return RedirectResponse(
+        f"{redirect_uri}{separator}{urlencode(query)}", status_code=303
     )
-    return response
+
+
+def _validated(session: SessionDep, params: AuthorizeParams) -> OAuthClient:
+    return _validate_authorize_request(
+        session=session,
+        response_type=params.response_type,
+        client_id=params.client_id,
+        redirect_uri=params.redirect_uri,
+        code_challenge=params.code_challenge,
+        code_challenge_method=params.code_challenge_method,
+        resource=params.resource,
+    )
+
+
+def _signup_error(exc: ValidationError) -> tuple[str, ErrorField]:
+    """What to tell a person whose sign-up details were refused, and where."""
+    fields = {str(error["loc"][0]) for error in exc.errors() if error.get("loc")}
+    if "email" in fields:
+        return "Enter a valid email address.", "email"
+    if "password" in fields:
+        return "Use at least 8 characters.", "password"
+    return "Check your details and try again.", "form"
 
 
 def _verify_pkce(*, code_verifier: str, code_challenge: str) -> bool:

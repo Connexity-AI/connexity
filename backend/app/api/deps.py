@@ -59,16 +59,31 @@ def get_current_user(session: SessionDep, cookie: CookieDep, bearer: BearerDep) 
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
 
-    # Token's company claim must match the user's current company. If an admin
-    # reassigned the user to a different company via direct DB UPDATE, this
-    # forces a fresh login so the new claim is embedded.
-    if token_data.cid is None or token_data.cid != str(user.company_id):
+    # The token names the workspace that was open when it was issued. It stays valid
+    # while the person is still a member of that workspace; requests are scoped to the
+    # workspace open now (`user.company_id`), which another tab may have switched.
+    if not _is_member(session=session, user=user, cid=token_data.cid):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Company reassigned; please log in again",
+            detail="Workspace access changed; please log in again",
         )
 
     return user
+
+
+def _is_member(*, session: Session, user: User, cid: str | None) -> bool:
+    """Whether the person still belongs to the token's workspace and the open one."""
+    from app import crud
+
+    if cid is None:
+        return False
+    try:
+        workspace_id = uuid.UUID(cid)
+    except ValueError:
+        return False
+    return crud.is_member_of_all(
+        session=session, user=user, workspace_ids={workspace_id, user.company_id}
+    )
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]

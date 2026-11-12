@@ -162,12 +162,18 @@ from app.crud.test_case_result import (  # noqa: F401
 from app.crud.trace import get_trace, store_trace  # noqa: F401
 from app.crud.user import (  # noqa: F401
     authenticate,
+    create_google_user,
     create_user,
+    find_user_by_email_ignoring_case,
     get_user_by_email,
     list_users_by_ids,
     update_user,
 )
 from app.crud.workspace import (  # noqa: F401
+    add_member,
+    create_workspace,
     get_accessible_workspace,
+    is_member_of_all,
     list_accessible_workspaces,
+    open_workspace,
 )

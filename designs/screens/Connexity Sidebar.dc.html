@@ -68,14 +68,15 @@
     <div style="position:absolute;left:0;right:0;bottom:50px;z-index:30;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18);display:flex;flex-direction:column">
       <span style="padding:6px 10px 4px;font-size:13px;line-height:18px;color:var(--ink3)">Workspaces</span>
       <sc-if value="{{ wsSearchable }}"><input value="{{ wsQ }}" onChange="{{ onWsQ }}" placeholder="Find a workspace" style="height:32px;margin:2px 2px 4px;padding:0 10px;border-radius:6px;border:1px solid var(--bc);background:var(--s1);color:var(--ink);font:inherit;font-size:13px;outline:none"></sc-if>
+      <div style="display:flex;flex-direction:column;max-height:240px;overflow-y:auto">
       <sc-for list="{{ workspaces }}" as="w" hint-placeholder-count="0">
       <a href="Connexity Home.dc.html" style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:6px;color:var(--ink);font-size:13px;text-decoration:none" style-hover="background:var(--wash);opacity:1">
         <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ w.name }}</span>
         <sc-if value="{{ w.current }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
       </a>
       </sc-for>
-      <button style="display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--ink2);font-size:13px;text-align:left;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>New workspace</button>
-      <a href="Connexity Agency.dc.html" style="display:flex;align-items:center;height:34px;padding:0 10px;border-radius:6px;color:var(--ink);font-size:13px;text-decoration:none" style-hover="background:var(--wash);opacity:1">Agency settings</a>
+      </div>
+      <button onClick="{{ openDialog }}" style="display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--ink2);font-size:13px;text-align:left;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>New workspace</button>
       <div style="height:1px;margin:4px 0;background:var(--border)"></div>
       <a href="Connexity Account.dc.html" style="display:flex;align-items:center;height:36px;padding:0 10px;border-radius:6px;color:var(--ink);font-size:13px;text-decoration:none" style-hover="background:var(--wash);opacity:1">Account</a>
       <div style="display:flex;flex-direction:column;gap:6px;padding:8px 10px">
@@ -83,7 +84,7 @@
         <div style="display:flex;padding:2px;border-radius:8px;border:1px solid var(--bc)"><sc-for list="{{ themes }}" as="t" hint-placeholder-count="0"><button onClick="{{ t.pick }}" style="{{ t.style }}">{{ t.label }}</button></sc-for></div>
       </div>
       <div style="height:1px;margin:4px 0;background:var(--border)"></div>
-      <button onClick="{{ closeMenu }}" style="display:flex;align-items:center;height:36px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--ink);font-size:13px;text-align:left;cursor:pointer" style-hover="background:var(--wash)">Sign out</button>
+      <a href="Connexity Sign in.dc.html" style="display:flex;align-items:center;height:36px;padding:0 10px;border-radius:6px;color:var(--ink);font-size:13px;text-decoration:none" style-hover="background:var(--wash);opacity:1">Sign out</a>
     </div>
     </sc-if>
     <button onClick="{{ toggleMenu }}" title="Workspaces, account and theme" style="width:100%;display:flex;align-items:center;gap:10px;min-height:44px;padding:4px 12px;border:0;border-radius:8px;background:transparent;cursor:pointer;text-align:left" style-hover="background:var(--wash)">
@@ -94,15 +95,36 @@
     </div>
   </div>
 </aside>
+<sc-if value="{{ dialogOpen }}" hint-placeholder-val="{{ false }}">
+<div onMouseDown="{{ onBackdrop }}" style="position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:24px">
+  <div role="dialog" aria-label="New workspace" style="width:100%;max-width:400px;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:20px;box-shadow:0 16px 48px rgba(0,0,0,.24);color:var(--ink);font-size:15px;line-height:22px">
+    <h2 style="margin:0;font-size:17px;line-height:24px;font-weight:500">New workspace</h2>
+    <label style="display:flex;flex-direction:column;gap:6px">
+      <span style="font-size:13px;line-height:18px;color:var(--ink2)">Name</span>
+      <input ref="{{ wsInputRef }}" value="{{ wsNew }}" onChange="{{ onWsNew }}" onKeyDown="{{ onWsKey }}" style="{{ wsInputStyle }}">
+      <sc-if value="{{ wsHint }}" hint-placeholder-val="{{ true }}"><span style="font-size:13px;line-height:18px;color:var(--ink3)">Usually the client’s name</span></sc-if>
+      <sc-if value="{{ wsTooLong }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--crit)">Use 255 characters or fewer.</span></sc-if>
+    </label>
+    <div style="display:flex;justify-content:flex-end;gap:8px">
+      <button onClick="{{ cancelDialog }}" style="height:36px;padding:0 14px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">Cancel</button>
+      <button onClick="{{ createWs }}" disabled="{{ cantCreate }}" style="{{ createStyle }}">Create</button>
+    </div>
+  </div>
+</div>
+</sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;home&quot;,&quot;actions&quot;,&quot;agents&quot;,&quot;calls&quot;,&quot;roadmap&quot;,&quot;issues&quot;,&quot;incidents&quot;],&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;'home' | 'actions' | 'agents' | 'calls' | 'roadmap' | 'issues'&quot;},&quot;incident&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;menuOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;readiness&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;setup&quot;,&quot;dropped&quot;,&quot;complete&quot;],&quot;default&quot;:&quot;setup&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;home&quot;,&quot;actions&quot;,&quot;agents&quot;,&quot;calls&quot;,&quot;roadmap&quot;,&quot;issues&quot;,&quot;incidents&quot;],&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;'home' | 'actions' | 'agents' | 'calls' | 'roadmap' | 'issues'&quot;},&quot;incident&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;menuOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;readiness&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;setup&quot;,&quot;dropped&quot;,&quot;complete&quot;],&quot;default&quot;:&quot;setup&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;workspaceCount&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:9,&quot;default&quot;:6,&quot;tsType&quot;:&quot;number&quot;},&quot;wsDialog&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;closed&quot;,&quot;open&quot;,&quot;tooLong&quot;],&quot;default&quot;:&quot;closed&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
 class Component extends DCLogic {
   constructor(props) {
     super(props);
     let t = null; try { t = localStorage.getItem('cx-theme'); } catch (_) {}
-    this.state = { menuOpen: !!props.menuOpen, wsQ:'', theme: t || 'system' };
+    let u = null; try { u = new URLSearchParams(window.location.search).get('ws'); } catch (_) {}
+    this.urlWs = u;
+    const d = props.wsDialog;
+    this.state = { menuOpen: !!props.menuOpen, wsQ:'', theme: t || 'system', dialog: d === 'open' || d === 'tooLong', wsNew: d === 'tooLong' ? 'Northfield Group '.repeat(16).trim() : '', created: [], current: null, newWs: false };
     this.menuRef = React.createRef();
+    this.wsInputRef = React.createRef();
   }
   componentDidMount() {
     this.onDoc = e => {
@@ -111,7 +133,7 @@ class Component extends DCLogic {
     document.addEventListener('mousedown', this.onDoc);
   }
   componentWillUnmount() { document.removeEventListener('mousedown', this.onDoc); }
-  static WS = ['Bright Dental','Northfield Group','Kestrel Plumbing','Maple Vets','Summit Legal','Harbor Hotels'];
+  static WS = ['Bright Dental','Northfield Group','Kestrel Plumbing','Maple Vets','Summit Legal','Harbor Hotels','Cedar Clinics','Lakeside Auto','Orchard Realty'];
   glimmer() {
     let rm = false; try { rm = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) {}
     return React.createElement('span', { title:'An incident is active', style:{ display:'inline-flex', color:'var(--crit)', animation: rm ? 'none' : 'cxGlow 2s ease-in-out infinite' } },
@@ -125,11 +147,22 @@ class Component extends DCLogic {
   renderVals() {
     const a = this.props.active || 'home';
     const pct = { setup:60, dropped:92, complete:100 }[this.props.readiness] || 60, c = 2 * Math.PI * 6;
-    const fresh = !!this.props.fresh;
+    const S = this.state, fresh = !!this.props.fresh || S.newWs;
+    const nm = S.wsNew, tooLong = nm.length > 255, canCreate = !!nm.trim() && !tooLong;
+    const closeDialog = () => this.setState({ dialog:false, wsNew:'' });
+    const createWs = () => { if (!canCreate) return; const n = nm.trim(); this.setState(s => ({ created:[...s.created, n], current:n, dialog:false, wsNew:'', newWs:true, menuOpen:false })); };
     const seg = on => ({ flex:1, height:26, padding:'0 6px', borderRadius:6, border:0, background: on ? 'var(--wash)' : 'transparent', color: on ? 'var(--ink)' : 'var(--ink2)', fontSize:13, fontWeight: on ? 500 : 400, cursor:'pointer' });
-    const W = Component.WS, q = this.state.wsQ.trim().toLowerCase();
-    return { wsName: W[0], wsSearchable: W.length > 8, wsQ: this.state.wsQ, onWsQ: e => this.setState({ wsQ: e.target.value }),
-      workspaces: W.filter(n => !q || n.toLowerCase().includes(q)).map((name, i) => ({ name, initial: name[0], current: name === W[0] })),
+    const n = Math.max(1, Math.min(9, this.props.workspaceCount ?? 6));
+    const W = [...(this.urlWs ? [this.urlWs] : Component.WS.slice(0, n)), ...S.created], cur = S.current || W[0], q = S.wsQ.trim().toLowerCase();
+    return { wsName: cur, wsSearchable: W.length > 8,
+      dialogOpen: S.dialog, wsInputRef: this.wsInputRef, wsNew: nm, onWsNew: e => this.setState({ wsNew: e.target.value }),
+      onWsKey: e => { if (e.key === 'Enter') createWs(); if (e.key === 'Escape') closeDialog(); },
+      wsHint: !tooLong, wsTooLong: tooLong, cantCreate: !canCreate, createWs, cancelDialog: closeDialog,
+      onBackdrop: e => { if (e.target === e.currentTarget) closeDialog(); },
+      openDialog: () => { this.setState({ menuOpen:false, dialog:true, wsNew:'' }); setTimeout(() => this.wsInputRef.current && this.wsInputRef.current.focus(), 0); },
+      wsInputStyle: { height:36, padding:'0 12px', borderRadius:8, border:`1px solid ${tooLong ? 'var(--crit)' : 'var(--bc)'}`, background:'var(--s0)', color:'var(--ink)', fontSize:15, outline:'none' },
+      createStyle: { height:36, padding:'0 16px', borderRadius:8, border:0, background:'var(--accent)', color:'var(--on-accent)', fontSize:15, fontWeight:500, cursor: canCreate ? 'pointer' : 'default', opacity: canCreate ? 1 : 0.4 }, wsQ: this.state.wsQ, onWsQ: e => this.setState({ wsQ: e.target.value }),
+      workspaces: W.filter(n => !q || n.toLowerCase().includes(q)).map((name, i) => ({ name, initial: name[0], current: name === cur })),
       menuRef: this.menuRef, menuOpen: this.state.menuOpen, toggleMenu: () => this.setState(st => ({ menuOpen: !st.menuOpen })), closeMenu: () => this.setState({ menuOpen:false }),
       themes: [['dark','Dark'],['light','Light'],['system','System']].map(([v, label]) => ({ label, style: seg(this.state.theme === v), pick: () => { try { localStorage.setItem('cx-theme', v); } catch (_) {} this.setState({ theme:v }); } })),
       creditsLow: this.props.credits === 'low' && !fresh, notFresh: !fresh, showReady: pct < 100 && !fresh, readyPct: pct, readyDash: `${(pct / 100 * c).toFixed(2)} ${c.toFixed(2)}`, glimmer: this.props.incident === false || fresh ? null : this.glimmer(), navHome: this.navStyle(a === 'home'), navActions: this.navStyle(a === 'actions'), navAgents: this.navStyle(a === 'agents'), navCalls: this.navStyle(a === 'calls'), navRoadmap: this.navStyle(a === 'roadmap'), navIssues: this.navStyle(a === 'issues'), navIncidents: this.navStyle(a === 'incidents'), navSettings: this.navStyle(a === 'settings') };

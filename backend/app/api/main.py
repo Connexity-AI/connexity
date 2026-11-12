@@ -12,6 +12,7 @@ from app.api.routes import (
     custom_metrics,
     environments,
     eval_configs,
+    google_auth,
     health,
     ingest,
     integrations,
@@ -25,6 +26,7 @@ from app.api.routes import (
     tool_backends,
     users,
     webhooks,
+    workspaces,
 )
 from app.models import ErrorResponse
 
@@ -34,7 +36,9 @@ ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
 
 api_router = APIRouter(responses=ERROR_RESPONSES)
 api_router.include_router(login.router)
+api_router.include_router(google_auth.router)
 api_router.include_router(users.router)
+api_router.include_router(workspaces.router)
 api_router.include_router(mcp.router)
 api_router.include_router(agents.router)
 api_router.include_router(test_cases.router)

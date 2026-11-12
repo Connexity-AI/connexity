@@ -1,5 +1,6 @@
 import hashlib
 import json
+import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -28,6 +29,21 @@ def create_access_token(
         to_encode.update(additional_claims)
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+
+def create_session_token(
+    *, user_id: uuid.UUID, company_id: uuid.UUID
+) -> tuple[str, int]:
+    """The web session token (the auth cookie) and when it expires, as a Unix time.
+
+    It names the workspace the person had open when it was issued (`cid`); requests are
+    accepted while the person is still a member of it.
+    """
+    expires_delta = timedelta(hours=settings.ACCESS_TOKEN_EXPIRE_HOURS)
+    token = create_access_token(
+        user_id, expires_delta, additional_claims={"cid": str(company_id)}
+    )
+    return token, int((datetime.now(UTC) + expires_delta).timestamp())
 
 
 def _oauth_private_key() -> ed25519.Ed25519PrivateKey:

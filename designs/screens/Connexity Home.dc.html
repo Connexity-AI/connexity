@@ -15,7 +15,7 @@
 <div style="{{ rootStyle }}">
 <dc-import name="Connexity Readiness Bar" hint-size="100%,36px"></dc-import>
 <div style="display:flex;min-height:inherit">
-<div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="home" style="height:100%" hint-size="220px,280px"></dc-import></div>
+<div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="home" ws-dialog="{{ wsDialog }}" style="height:100%" hint-size="220px,280px"></dc-import></div>
 <main style="flex:1;min-width:944px;padding:24px 32px 48px">
 <div style="max-width:1120px;min-width:880px;display:flex;flex-direction:column;gap:24px">
 <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:40px">
@@ -217,6 +217,7 @@ class Component extends DCLogic {
     const agents = Component.AGENTS.map(a => ({ ...a, word: sev[a.sev].word, isCrit: a.sev === 'critical', isWarn: a.sev === 'warning', isPass: a.sev === 'passed', under: !a.over,
       badge: { display:'inline-flex', alignItems:'center', gap:4, height:22, padding:'0 8px', borderRadius:6, fontSize:13, fontWeight:500, color: sev[a.sev].fg, background: sev[a.sev].bg } }));
     return {
+      wsDialog: this.props.wsDialog,
       rootStyle: { ...Component.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
       pickerRef: this.pickerRef,
       period: this.state.period, periodOpen: this.state.periodOpen,

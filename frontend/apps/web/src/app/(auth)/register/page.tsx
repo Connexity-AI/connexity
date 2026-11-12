@@ -1,16 +1,22 @@
-import FormRegister from '@/components/auth/form-register';
+import { GoogleSignIn } from '@/components/auth/google-sign-in';
+import { SignUpForm } from '@/components/auth/sign-up-form';
 
 import type { FC } from 'react';
 
-const RegisterPage: FC = () => (
-  <div className="flex flex-col gap-6">
-    <div className="flex flex-col gap-2 text-center">
-      <h1 className="text-title font-medium">Create an account</h1>
-      <p className="text-sm text-muted-foreground">Enter your details to get started</p>
-    </div>
+interface Props {
+  searchParams: Promise<{ error?: string }>;
+}
 
-    <FormRegister />
-  </div>
-);
+const RegisterPage: FC<Props> = async ({ searchParams }) => {
+  const { error } = await searchParams;
+
+  return (
+    <div className="flex flex-col gap-6">
+      <h1 className="m-0 text-title font-medium text-ink">Create an account</h1>
+      <GoogleSignIn failed={error === 'google'} />
+      <SignUpForm />
+    </div>
+  );
+};
 
 export default RegisterPage;

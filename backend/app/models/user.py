@@ -9,7 +9,7 @@ from app.models.columns import enum_type
 
 class AuthProvider(str, enum.Enum):
     email = "email"
-    github = "github"
+    google = "google"
 
 
 # Shared properties
@@ -23,20 +23,27 @@ class UserBase(SQLModel):
 
 
 # Properties to receive via API on creation
+# Passwords: at least 8 characters (design, 2026-11-12). Existing shorter passwords
+# still sign in; they cannot be set again.
+PASSWORD_MIN_LENGTH = 8
+
+
 class UserCreate(UserBase):
-    password: str = Field(min_length=6, max_length=40)
+    password: str = Field(min_length=PASSWORD_MIN_LENGTH, max_length=40)
 
 
 class UserRegister(SQLModel):
     email: EmailStr = Field(max_length=255)
-    password: str = Field(min_length=6, max_length=40)
+    password: str = Field(min_length=PASSWORD_MIN_LENGTH, max_length=40)
     full_name: str | None = Field(default=None, max_length=255)
 
 
 # Properties to receive via API on update, all are optional
 class UserUpdate(UserBase):
     email: EmailStr | None = Field(default=None, max_length=255)  # type: ignore
-    password: str | None = Field(default=None, min_length=6, max_length=40)
+    password: str | None = Field(
+        default=None, min_length=PASSWORD_MIN_LENGTH, max_length=40
+    )
 
 
 class UserUpdateMe(SQLModel):
@@ -45,8 +52,8 @@ class UserUpdateMe(SQLModel):
 
 
 class UpdatePassword(SQLModel):
-    current_password: str = Field(min_length=6, max_length=40)
-    new_password: str = Field(min_length=6, max_length=40)
+    current_password: str = Field(min_length=1, max_length=40)
+    new_password: str = Field(min_length=PASSWORD_MIN_LENGTH, max_length=40)
 
 
 # Database model, database table inferred from class name

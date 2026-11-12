@@ -1,16 +1,22 @@
-import FormLogin from '@/components/auth/form-login';
+import { GoogleSignIn } from '@/components/auth/google-sign-in';
+import { SignInForm } from '@/components/auth/sign-in-form';
 
 import type { FC } from 'react';
 
-const LoginPage: FC = () => (
-  <div className="flex flex-col gap-6">
-    <div className="flex flex-col gap-2 text-center">
-      <h1 className="text-title font-medium">Welcome back</h1>
-      <p className="text-sm text-muted-foreground">Enter your credentials to sign in</p>
-    </div>
+interface Props {
+  searchParams: Promise<{ error?: string }>;
+}
 
-    <FormLogin />
-  </div>
-);
+const LoginPage: FC<Props> = async ({ searchParams }) => {
+  const { error } = await searchParams;
+
+  return (
+    <div className="flex flex-col gap-6">
+      <h1 className="m-0 text-title font-medium text-ink">Sign in</h1>
+      <GoogleSignIn failed={error === 'google'} />
+      <SignInForm />
+    </div>
+  );
+};
 
 export default LoginPage;

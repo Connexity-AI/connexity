@@ -68,6 +68,11 @@ class Settings(BaseSettings):
     OAUTH_DEFAULT_RESOURCE_URL: str | None = None
     OAUTH_AUTH_CODE_EXPIRE_MINUTES: int = 10
     OAUTH_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    # Sign in with Google. Without both, the Google option is not offered.
+    GOOGLE_CLIENT_ID: str | None = None
+    GOOGLE_CLIENT_SECRET: str | None = None
+    # Defaults to <backend public origin>/api/v1/auth/google/callback.
+    GOOGLE_REDIRECT_URI: str | None = None
     OAUTH_ALLOWED_REDIRECT_URIS: str = (
         "https://claude.ai/api/mcp/auth_callback,"
         "https://claude.com/api/mcp/auth_callback"
@@ -225,6 +230,23 @@ class Settings(BaseSettings):
     @property
     def emails_enabled(self) -> bool:
         return bool(self.SMTP_HOST and self.EMAILS_FROM_EMAIL)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def google_enabled(self) -> bool:
+        return bool(
+            self.GOOGLE_CLIENT_ID
+            and self.GOOGLE_CLIENT_ID.strip()
+            and self.GOOGLE_CLIENT_SECRET
+            and self.GOOGLE_CLIENT_SECRET.strip()
+        )
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def google_redirect_uri(self) -> str:
+        if self.GOOGLE_REDIRECT_URI and self.GOOGLE_REDIRECT_URI.strip():
+            return self.GOOGLE_REDIRECT_URI.strip()
+        return f"{self.oauth_issuer_url}{self.API_V1_STR}/auth/google/callback"
 
     @computed_field  # type: ignore[prop-decorator]
     @property

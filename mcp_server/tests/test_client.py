@@ -2,7 +2,7 @@ import httpx
 import pytest
 from connexity_mcp_server.client import ConnexityBackendClient, ConnexityBackendError
 from connexity_mcp_server.config import Settings
-from connexity_mcp_server.tools import list_agents, list_workspaces
+from connexity_mcp_server.tools import create_workspace, list_agents, list_workspaces
 from mcp.server.auth.middleware.auth_context import auth_context_var
 from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser
 from mcp.server.auth.provider import AccessToken
@@ -159,3 +159,26 @@ async def test_an_invalid_argument_names_it_and_points_to_list_workspaces() -> N
         "Invalid arguments (`workspace_id`: Input should be a valid UUID)."
     )
     assert "list_workspaces" in message
+
+
+@pytest.mark.asyncio
+async def test_create_workspace_posts_the_name() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url.path == "/api/v1/mcp/workspaces"
+        assert request.headers["Authorization"] == "Bearer user-oauth-token"
+        assert request.content == b'{"name":"Kestrel Plumbing"}'
+        return httpx.Response(
+            200,
+            json={
+                "data": {"id": WORKSPACE_ID, "name": "Kestrel Plumbing"},
+                "next_cursor": None,
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler, lambda client: create_workspace(client, name="Kestrel Plumbing")
+    )
+
+    assert result.data.name == "Kestrel Plumbing"
