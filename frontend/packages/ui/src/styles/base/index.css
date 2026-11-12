@@ -5,6 +5,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-surface-0 text-ink font-sans text-body antialiased;
+    font-variant-numeric: tabular-nums;
   }
 }

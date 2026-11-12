@@ -10,25 +10,6 @@ const nextConfig = {
   turbopack: {
     root: resolve(import.meta.dirname, '../../'), // anchor to frontend/ monorepo root
   },
-  async redirects() {
-    return [
-      {
-        source: '/',
-        destination: '/agents',
-        permanent: false,
-      },
-      {
-        source: '/agents/:agentId',
-        destination: '/agents/:agentId/observe',
-        permanent: false,
-      },
-      {
-        source: '/agents/:agentId/evals',
-        destination: '/agents/:agentId/evals/test-cases',
-        permanent: false,
-      },
-    ];
-  },
 };
 
 export default nextConfig;

@@ -1,12 +1,7 @@
 import { createTypedLink } from '@/common/url-generator/typed-links';
-import { agentsParser, emptyParser } from '@/common/url-generator/parsers';
+import { emptyParser } from '@/common/url-generator/parsers';
 import type { Route } from 'next';
-import type {
-  AgentsType,
-  AuthType,
-  DashboardType,
-  MetricsType,
-} from '@/common/url-generator/types';
+import type { AuthType } from '@/common/url-generator/types';
 
 export class UrlGenerator {
   static home() {
@@ -23,68 +18,6 @@ export class UrlGenerator {
   static register({ options, values }: AuthType = {}) {
     const route = '/register/' as Route;
     return createTypedLink(route, emptyParser, options)(values);
-  }
-
-  // ── Onboarding ──
-
-  static onboarding() {
-    const route = '/onboarding/' as Route;
-    return createTypedLink(route, emptyParser, {})({});
-  }
-
-  // ── Dashboard ──
-
-  static dashboard({ options, values }: DashboardType = {}) {
-    const route = '/agents/' as Route;
-    return createTypedLink(route, emptyParser, options)(values);
-  }
-
-  static agents({ options, values }: AgentsType = {}) {
-    const route = '/agents/' as Route;
-    return createTypedLink(route, agentsParser, options)(values);
-  }
-
-  static agentEvals(agentId: string) {
-    return `/agents/${agentId}/evals` as Route;
-  }
-
-  static agentEvalsTestCases(agentId: string) {
-    return `/agents/${agentId}/evals/test-cases` as Route;
-  }
-
-  static agentEvalsConfigs(agentId: string) {
-    return `/agents/${agentId}/evals/eval-configs` as Route;
-  }
-
-  static agentEvalsRuns(agentId: string) {
-    return `/agents/${agentId}/evals/eval-runs` as Route;
-  }
-
-  static agentEvalsRunDetail(agentId: string, runId: string) {
-    return `/agents/${agentId}/evals/eval-runs/${runId}` as Route;
-  }
-
-  static agentEvalsConfigDetail(agentId: string, evalConfigId: string) {
-    return `/agents/${agentId}/evals/eval-configs/${evalConfigId}` as Route;
-  }
-
-  static agentEnvironments(agentId: string) {
-    return `/agents/${agentId}/environments` as Route;
-  }
-
-  static agentObserve(agentId: string) {
-    return `/agents/${agentId}/observe` as Route;
-  }
-
-  static metrics({ options, values }: MetricsType = {}) {
-    const route = '/metrics/' as Route;
-    return createTypedLink(route, emptyParser, options)(values);
-  }
-
-  // ── Integrations ──
-
-  static integrations() {
-    return '/integrations' as Route;
   }
 
   // ── API ──

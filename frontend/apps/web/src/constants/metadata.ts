@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const METADATA: Metadata = {
-  title: 'Connexity | Open Source Voice AI Engineering Platform',
-  description: 'Connexity | Open Source Voice AI Engineering Platform',
+  title: 'Connexity',
+  description: 'Connexity: operations for a fleet of conversational AI agents',
   icons: {
     icon: '/assets/images/favicon.png',
     shortcut: '/assets/images/favicon.png',

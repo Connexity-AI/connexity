@@ -22,7 +22,7 @@ export const GET = async (request: Request): Promise<Response> => {
   // Convert Unix timestamp (seconds) to a JS Date object
   const expiresDate = new Date(Number(expiresParam) * 1000);
 
-  const redirectUrl = new URL(UrlGenerator.dashboard(), SITE_URL);
+  const redirectUrl = new URL(UrlGenerator.home(), SITE_URL);
   const response = NextResponse.redirect(redirectUrl, { status: 302 });
 
   response.cookies.set({

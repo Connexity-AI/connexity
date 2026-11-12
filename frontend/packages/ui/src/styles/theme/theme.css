@@ -1,5 +1,40 @@
-
 @theme inline {
+  /* Connexity Design System */
+  --color-surface-0: var(--s0);
+  --color-surface-1: var(--s1);
+  --color-surface-2: var(--s2);
+  --color-hairline: var(--border-hairline);
+  --color-border-control: var(--bc);
+  --color-ink: var(--ink);
+  --color-ink-secondary: var(--ink2);
+  --color-ink-muted: var(--ink3);
+  --color-accent-ink: var(--accent-ink);
+  --color-on-accent: var(--on-accent);
+  --color-wash: var(--wash);
+  --color-brand: var(--brand);
+  --color-critical: var(--crit);
+  --color-critical-bg: var(--crit-bg);
+  --color-warning: var(--warn);
+  --color-warning-bg: var(--warn-bg);
+  --color-passed: var(--pass);
+  --color-passed-bg: var(--pass-bg);
+  --color-unchecked: var(--unch);
+  --color-unchecked-bg: var(--unch-bg);
+  --shadow-menu: var(--menu-shadow);
+
+  --font-sans: var(--font-figtree, system-ui), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono, ui-monospace), ui-monospace, monospace;
+
+  --text-label: 13px;
+  --text-label--line-height: 18px;
+  --text-body: 15px;
+  --text-body--line-height: 22px;
+  --text-title: 20px;
+  --text-title--line-height: 28px;
+  --text-tile: 30px;
+  --text-tile--line-height: 36px;
+
+  /* shadcn aliases */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -20,15 +55,10 @@
   --color-input: var(--input);
   --color-input-background: var(--input-background);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);

@@ -1,0 +1,45 @@
+import Image from 'next/image';
+import Link from 'next/link';
+
+import { UrlGenerator } from '@/common/url-generator/url-generator';
+import { NAV_ITEMS } from '@/components/shell/nav-items';
+import NavLink from '@/components/shell/nav-link';
+import ProfileMenu from '@/components/shell/profile-menu';
+
+import type { UserPublic } from '@/client/types.gen';
+import type { FC } from 'react';
+
+interface Props {
+  user: UserPublic;
+}
+
+/** Connexity Sidebar (designs/screens/Connexity Sidebar.dc.html). */
+export const Sidebar: FC<Props> = ({ user }) => (
+  <aside className="sticky top-0 flex h-screen w-[220px] flex-none flex-col gap-6 border-r border-hairline bg-surface-1 px-3 py-4">
+    <Link href={UrlGenerator.home()} className="flex h-8 items-center gap-2 px-2 no-underline">
+      <Image
+        src="/connexity-logo.avif"
+        alt=""
+        width={22}
+        height={22}
+        className="flex-none rounded-sm"
+        priority
+      />
+      <span className="text-body font-medium text-ink">Connexity</span>
+    </Link>
+
+    {NAV_ITEMS.length > 0 && (
+      <nav aria-label="Pages" className="flex flex-col gap-0.5">
+        {NAV_ITEMS.map((item) => (
+          <NavLink key={item.url} item={item} />
+        ))}
+      </nav>
+    )}
+
+    <div className="mt-auto flex flex-col gap-1 border-t border-hairline pt-3">
+      <ProfileMenu name={user.full_name?.trim() || user.email} />
+    </div>
+  </aside>
+);
+
+export default Sidebar;
