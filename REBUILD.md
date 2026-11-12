@@ -10,8 +10,9 @@ session starts here.
 - **How we work:** [`docs-internal/development-lifecycle.md`](./docs-internal/development-lifecycle.md).
 - **Each pull request's plan:** [`plans/`](./plans/README.md). What one change set out
   to do and what it did. The plan is what gets reviewed.
-- **This file:** the roadmap. The order of work, the current status, and the decisions
-  made along the way.
+- **This file:** the current status, the decisions made along the way, and the open
+  questions. The order of work is Dmytro's feature roadmap, kept outside the repo
+  (section 2).
 
 When a design doc and this plan disagree, ask Dmytro; then fix whichever is wrong.
 
@@ -92,11 +93,26 @@ history of a slice is its plan file in `plans/`.
 | 2.2 | First rule checks and facts | Dropped: its engine pieces are folded into 2.3; checks are added only when Dmytro asks |
 | 2.3 | Check runs, issues and call status | Done (PR #172) |
 
-**Roadmap: paused (Decided 2026-11-07).** The table lists only what is built. What comes
-next starts from the design (lifecycle section 3, "UI: the design comes first"), and
-Dmytro will rewrite the roadmap after that work. Until then there is no next slice.
-Earlier plans for later work are kept in section 7, "Parked ideas", which is not a
-plan.
+**The order of work is Dmytro's feature roadmap (Decided 2026-11-12).** It lives
+outside the repo, which is public. Each feature has what done means, whether it is
+already partly built, and the design prompts in [`designs/`](./designs/README.md) to
+read. Dmytro names the feature a session works on; that session plans it, builds it and
+records the outcome here. This file keeps the status, the decisions and the open
+questions. Section 7, "Parked ideas", is history, not a plan.
+
+Milestones, in order (Proposed, so a reader of the repo knows the shape):
+
+1. Sign up, Readiness and onboarding, connecting assistants and Retell, continuous call
+   sync, the Calls and Agents pages, the single call.
+2. The agent page, the spec written by the assistant, clarifications in Action items.
+3. Categories, the Issues page, checks on every call, the issue type library.
+4. The basic fix loop: issue page, tips, MCP for fixing, fixed and reopened.
+5. Incidents and Slack alerts.
+6. Tests: test cases on spec rules, text simulations, results, coverage.
+7. The gate.
+8. Backends: research and connections, CRM data per call.
+9. Credits, billing, account settings, the agency account and members.
+10. The score, Home, and the rest of Settings.
 
 Open, carried from earlier slices:
 
@@ -670,6 +686,21 @@ Dmytro's only when he stated it in his own words.
 | 2026-11-09 | Design starts from scratch, with the design system first. It is the Connexity Design System artifact in Claude. The logo (three orange loops) is the one thing that does not change; the teal "F" favicon is a leftover. Dark mode is equal to light, if not first. Typeface: Figtree. | Dmytro ("I want to start working on design from scratch"; "i like dark mode as equal if not first"; "B") |
 | 2026-11-09 | The web app is reports and things to do, plus a single call's recording and transcript. Connexity is not an observability platform and must be much easier to read than one; drilling down from an incident to traces "doesn't make any sense now", because all work is done through the assistant. The 2026-10-09 rule that the UI may do anything the API does is retired. Parked slice 2.5 is deleted and 1.7 narrowed to the single call. | Dmytro ("Retire it"; "User can do that") |
 | 2026-11-09 | Later the same day: the web app is a dashboard, not a report. Its value next to the assistant is the quick glance. Numbers show their base (agents and calls). A screen gives before it asks. There is a score for the fleet and for each agent; how it is made is not designed yet. Clarifications are answered in the app and through the assistant, in small batches. Nothing is reserved for a person: everything can be done through MCP. The sidebar is Home, Agents, Roadmap, Issues, Settings. The design system's rules were rewritten to match. Replaces "reports and things to do" above. | Dmytro ("the only value of the system vs ai assistant is to have a quick glance of whats going on and thats what dashboards are for"; "Immediate effect should be give something not ask"; "It will have Home, Agents, Roadmap, Issues, Settings") |
+| 2026-11-11 | Testing follows a strict chain: production issues, then the spec, then test cases, then tests. Every fixed pattern becomes a regression test through the spec. Spec coverage is shown on the agent page. | Dmytro ("we need to have strict linearity production issues -> spec -> test cases -> tests") |
+| 2026-11-11 | Three test levels are designed together and built one at a time: text, audio over a web call or SIP, a few real phone calls. What the gate runs is customizable, with a default chosen from real runs. Only a person ships a version that failed its tests (through the assistant is fine), and it is recorded. | Dmytro ("we will design three levels but will implement one by one"; "shipping can be done only by human... like force push and should be tracked") |
+| 2026-11-11 | Clarifications are multiple-choice questions, answered in the app or by the assistant, which confirms a batch with the person first; answers become spec rules. Action items holds only what needs a person. Criticality is parked. | Dmytro ("I would rather make ai assistant to confirm with user"; "no criticality for now park it") |
+| 2026-11-12 | Whatever the assistant can do is its job by default, guided by Connexity's practices; Connexity takes jobs over later. Verification (checks, tests, the gate) and watching calls stay with Connexity. See `docs-internal/responsibilities.md`. | Dmytro ("relying on ai assistant is always faster path so it will be default"; "yes verification stays with Connexity") |
+| 2026-11-12 | The spec is written by the assistant as a Readiness step, not on connection; an agent can be without a spec until then. Replaces "the spec is generated on connection". Specs are versioned; a new agent version adopts the previous spec and the assistant raises clarifications for what changed. | Dmytro ("inferring the spec on connection then becomes job for AI assistant"; "I guess we need to do spec versioning") |
+| 2026-11-12 | Spec drift (an internal term, not in the UI) is behaviour the spec does not cover or goes against; detecting it on real calls is Connexity's job, later. | Dmytro ("spec drift meant both but its only for our internal comms"; "Connexity should do because it's a clear part of observability") |
+| 2026-11-12 | The order of work moves to Dmytro's feature roadmap, kept outside the repo; `CLAUDE.md` rule 1 becomes "one feature from the roadmap, the one Dmytro names". The 2026-11-07 pause ends. | Dmytro ("I will use this session as project management session and other sessions for execution") |
+| 2026-11-12 | Calls sync continuously, because alerts depend on it. Replaces "no scheduler, pull on request" (2026-10-08). Calls can be browsed and searched in the app and through MCP. The single call shows tool calls inline. | Dmytro ("we cannot pull them only when users opens a frontend"; "user should be able to browse/find specific calls both on ui and with ai assistant") |
+| 2026-11-12 | Issue states are open, resolved in a version, reopened (replaces "regressed") and archived (replaces "accepted as known"; stops counting, recorded). An issue is marked fixed by the assistant or a person and reopens if it happens again; no confirmation on real calls yet. | Dmytro ("instead of regressed lets have reopened"; "I dont think we can confirm on real calls"; "assistant can claim fixed") |
+| 2026-11-12 | An incident is one outage grouping issues across agents by issue type and key, never by component. Replaces "an incident belongs to one issue". Closing an incident (damage stopped) is separate from resolving an issue. Manual merge and split wait. Alerts go to Slack only to start and are kept in the app for MCP. | Dmytro ("we dont want 10 incidents for same issue across 10 different agents"; "issue type not the component"; "Yes, keep grouping"; "Slack only") |
+| 2026-11-12 | Acting without a person in the moment is an allow list predefined by Connexity, incidents only to start (the Playbook: rollback and hotfix, each with "approve automatically"), built after the gate. | Dmytro ("i was thinking about whitelist not block list"; "id rather start safe with auto approvals for incidents only") |
+| 2026-11-12 | Readiness is a second number next to the score, aimed at 100% and shown only while incomplete; onboarding is its first part. It never changes the score. | Dmytro ("Completeness is loud only while it's incomplete - 100% agree"; "shouldnt it be basically readiness list? Just first part") |
+| 2026-11-12 | Each agency client is a workspace under a thin agency account that holds billing and members; a superview comes later. MCP connections are per user and reach exactly that user's workspaces. No white-labelling. | Dmytro ("Everything will be super easy if thats just workspaces"; "it should be on user level not account level"; "we won't whitelabel") |
+| 2026-11-12 | Pricing has a limited Free plan and a Paid plan with credit top-ups. When credits run out, recording, checks, incidents and alerts keep running; simulations pause. | Dmytro ("free version but limited, and paid plan with ability to top up tokens"; "credits") |
+| 2026-11-12 | Categories are one fixed, Connexity-wide set kept in a database table. Nothing appears in the UI that does not work end to end. Every feature extends MCP with few, workflow-shaped tools. | Dmytro ("Need to have a table in db with categories"; "we don't develop anything that doesnt work - add that to rules"; "with every new feature we need to expand MCP - and in a smart way") |
 
 ---
 
