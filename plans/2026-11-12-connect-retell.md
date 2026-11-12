@@ -135,6 +135,10 @@ app.connexity.ai.
   (`McpAssistantName`), read from the token's client.
 - **Existing tests that patched the connection checks** now patch them where they moved
   (`app.services.connections`). Nothing they check changed.
+- **CI found that the new connection tests needed a real encryption key.** CI's
+  `ENCRYPTION_KEY` is a placeholder, so storing a key failed there while it passed
+  locally. The tests now set a generated key, as the integration tests do. The whole
+  backend suite was then run locally with the placeholder: 1,173 passed.
 
 ### Check results
 
