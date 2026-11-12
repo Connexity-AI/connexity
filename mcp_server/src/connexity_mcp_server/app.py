@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+from typing import Literal
 from urllib.parse import urlparse
 
 import httpx
@@ -24,10 +25,14 @@ from connexity_mcp_server.guides import (
     read_guide,
 )
 from connexity_mcp_server.models import (
+    ConnectVoicePlatformResult,
     CreateWorkspaceResult,
     GetReadinessResult,
     ListAgentsResult,
     ListWorkspacesResult,
+)
+from connexity_mcp_server.tools import (
+    connect_voice_platform as _connect_voice_platform,
 )
 from connexity_mcp_server.tools import (
     create_workspace as _create_workspace,
@@ -47,6 +52,10 @@ from connexity_mcp_server.tools import (
 READ_ONLY = ToolAnnotations(readOnlyHint=True, openWorldHint=False)
 CREATES = ToolAnnotations(
     readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=False
+)
+# Reads from the voice platform to check the key; replaces an earlier key.
+CONNECTS = ToolAnnotations(
+    readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
 )
 
 
@@ -102,6 +111,22 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         """Create a workspace for a new client, with the person you act for as its only
         member. Ask the person for the client's name first."""
         return await _create_workspace(client=backend_client, name=name)
+
+    @mcp_server.tool(annotations=CONNECTS)
+    async def connect_voice_platform(
+        workspace_id: str,
+        api_key: str,
+        platform: Literal["retell", "vapi", "elevenlabs"] = "retell",
+    ) -> ConnectVoicePlatformResult:
+        """Connect the workspace's voice platform (Retell first) so Connexity can read
+        its agents and calls. Ask the person for the API key, name the workspace, and
+        never repeat the key. Connecting again replaces the earlier key."""
+        return await _connect_voice_platform(
+            client=backend_client,
+            workspace_id=workspace_id,
+            platform=platform,
+            api_key=api_key,
+        )
 
     @mcp_server.tool(annotations=READ_ONLY)
     async def get_readiness(workspace_id: str) -> GetReadinessResult:

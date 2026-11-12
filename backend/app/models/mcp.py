@@ -8,9 +8,10 @@ Lists add `next_cursor`. Errors carry a message, next steps and a guide in the s
 
 import uuid
 from datetime import datetime
-from typing import Generic, TypeVar
+from enum import StrEnum
+from typing import Annotated, Generic, TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StringConstraints
 
 from app.models.enums import Platform
 
@@ -19,6 +20,7 @@ T = TypeVar("T")
 GUIDE_GETTING_STARTED = "connexity://guides/getting-started"
 GUIDE_WORKSPACES = "connexity://guides/workspaces"
 GUIDE_READINESS = "connexity://guides/readiness"
+GUIDE_CONNECT = "connexity://guides/connect"
 
 
 class McpAnswer(BaseModel, Generic[T]):
@@ -57,3 +59,25 @@ class McpAgent(BaseModel):
     platform: Platform | None = None
     platform_agent_name: str | None = None
     created_at: datetime
+
+
+class McpVoicePlatform(StrEnum):
+    RETELL = "retell"
+    VAPI = "vapi"
+    ELEVENLABS = "elevenlabs"
+
+
+class McpConnectVoicePlatform(BaseModel):
+    platform: McpVoicePlatform = McpVoicePlatform.RETELL
+    api_key: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=512)
+    ]
+
+
+class McpConnection(BaseModel):
+    platform: str
+    masked_api_key: str
+    replaced_earlier_key: bool
+    connected_by: str | None = Field(
+        default=None, description="The person, and the assistant, who connected it"
+    )

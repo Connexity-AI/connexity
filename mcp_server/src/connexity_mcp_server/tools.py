@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from connexity_mcp_server.client import ConnexityBackendClient
 from connexity_mcp_server.models import (
+    ConnectVoicePlatformResult,
     CreateWorkspaceResult,
     GetReadinessResult,
     ListAgentsResult,
@@ -18,6 +19,16 @@ async def create_workspace(
 ) -> CreateWorkspaceResult:
     return CreateWorkspaceResult.model_validate(
         await client.create_workspace(name=name)
+    )
+
+
+async def connect_voice_platform(
+    client: ConnexityBackendClient, workspace_id: str, platform: str, api_key: str
+) -> ConnectVoicePlatformResult:
+    return ConnectVoicePlatformResult.model_validate(
+        await client.connect_voice_platform(
+            workspace_id=workspace_id, platform=platform, api_key=api_key
+        )
     )
 
 

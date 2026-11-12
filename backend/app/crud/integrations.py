@@ -6,7 +6,7 @@ from sqlmodel import Session, col, select
 from app.core.encryption import encrypt, mask_key
 from app.crud.call import soft_delete_calls_for_integration
 from app.models.call import Call, CallEvent
-from app.models.enums import CallEventType
+from app.models.enums import CallEventType, IntegrationProvider
 from app.models.integration import (
     AgentToolBackend,
     Integration,
@@ -15,10 +15,15 @@ from app.models.integration import (
 
 
 def create_integration(
-    *, session: Session, data: IntegrationCreate, company_id: uuid.UUID
+    *,
+    session: Session,
+    data: IntegrationCreate,
+    company_id: uuid.UUID,
+    created_by_user_id: uuid.UUID | None = None,
 ) -> Integration:
     db_obj = Integration(
         company_id=company_id,
+        created_by_user_id=created_by_user_id,
         provider=data.provider,
         name=data.name,
         base_url=data.base_url,
@@ -29,6 +34,43 @@ def create_integration(
     session.commit()
     session.refresh(db_obj)
     return db_obj
+
+
+def connect_voice_platform(
+    *,
+    session: Session,
+    company_id: uuid.UUID,
+    provider: IntegrationProvider,
+    name: str,
+    api_key: str,
+    user_id: uuid.UUID,
+    via: str | None,
+) -> tuple[Integration, bool]:
+    """Store a checked voice platform key; one connection per platform per workspace.
+
+    Connecting again replaces the key and who connected it. Returns the integration and
+    whether an earlier key was replaced.
+    """
+    existing = session.exec(
+        select(Integration)
+        .where(Integration.company_id == company_id, Integration.provider == provider)
+        .order_by(col(Integration.created_at))
+    ).first()
+    integration = existing or Integration(
+        company_id=company_id,
+        provider=provider,
+        name=name,
+        encrypted_api_key="",
+        masked_api_key="",
+    )
+    integration.encrypted_api_key = encrypt(api_key)
+    integration.masked_api_key = mask_key(api_key)
+    integration.created_by_user_id = user_id
+    integration.created_via = via
+    session.add(integration)
+    session.commit()
+    session.refresh(integration)
+    return integration, existing is not None
 
 
 def get_integration(

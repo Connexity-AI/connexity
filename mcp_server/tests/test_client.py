@@ -3,6 +3,7 @@ import pytest
 from connexity_mcp_server.client import ConnexityBackendClient, ConnexityBackendError
 from connexity_mcp_server.config import Settings
 from connexity_mcp_server.tools import (
+    connect_voice_platform,
     create_workspace,
     get_readiness,
     list_agents,
@@ -223,3 +224,35 @@ async def test_get_readiness_reads_the_workspace_steps() -> None:
 
     assert result.data.percent == 25
     assert result.data.steps[0].state == "done"
+
+
+@pytest.mark.asyncio
+async def test_connect_voice_platform_posts_the_key_to_the_workspace() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url.path == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/connections"
+        assert request.headers["Authorization"] == "Bearer user-oauth-token"
+        assert request.content == b'{"platform":"retell","api_key":"key_secret"}'
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "platform": "Retell",
+                    "masked_api_key": "key_****cret",
+                    "replaced_earlier_key": False,
+                    "connected_by": "Ann through Claude Code",
+                },
+                "next_cursor": None,
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: connect_voice_platform(
+            client, workspace_id=WORKSPACE_ID, platform="retell", api_key="key_secret"
+        ),
+    )
+
+    assert result.data.platform == "Retell"
+    assert "key_secret" not in result.model_dump_json()

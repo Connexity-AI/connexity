@@ -5471,6 +5471,51 @@ export const McpAgentSchema = {
   title: 'McpAgent',
 } as const;
 
+export const McpAnswer_McpConnection_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/McpConnection',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[McpConnection]',
+} as const;
+
 export const McpAnswer_McpWorkspace_Schema = {
   properties: {
     data: {
@@ -5657,6 +5702,62 @@ export const McpAnswer_list_McpWorkspace__Schema = {
   type: 'object',
   required: ['data', 'guide'],
   title: 'McpAnswer[list[McpWorkspace]]',
+} as const;
+
+export const McpConnectVoicePlatformSchema = {
+  properties: {
+    platform: {
+      $ref: '#/components/schemas/McpVoicePlatform',
+      default: 'retell',
+    },
+    api_key: {
+      type: 'string',
+      maxLength: 512,
+      minLength: 1,
+      title: 'Api Key',
+    },
+  },
+  type: 'object',
+  required: ['api_key'],
+  title: 'McpConnectVoicePlatform',
+} as const;
+
+export const McpConnectionSchema = {
+  properties: {
+    platform: {
+      type: 'string',
+      title: 'Platform',
+    },
+    masked_api_key: {
+      type: 'string',
+      title: 'Masked Api Key',
+    },
+    replaced_earlier_key: {
+      type: 'boolean',
+      title: 'Replaced Earlier Key',
+    },
+    connected_by: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Connected By',
+      description: 'The person, and the assistant, who connected it',
+    },
+  },
+  type: 'object',
+  required: ['platform', 'masked_api_key', 'replaced_earlier_key'],
+  title: 'McpConnection',
+} as const;
+
+export const McpVoicePlatformSchema = {
+  type: 'string',
+  enum: ['retell', 'vapi', 'elevenlabs'],
+  title: 'McpVoicePlatform',
 } as const;
 
 export const McpWorkspaceSchema = {

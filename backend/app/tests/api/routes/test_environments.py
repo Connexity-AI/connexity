@@ -413,7 +413,7 @@ def test_delete_integration_returns_409_when_environment_depends_on_it(
     )
 
     with patch.dict(
-        "app.api.routes.integrations._CONNECTION_TESTERS",
+        "app.services.connections.CONNECTION_TESTERS",
         {IntegrationProvider.RETELL: AsyncMock(return_value=True)},
         clear=False,
     ):

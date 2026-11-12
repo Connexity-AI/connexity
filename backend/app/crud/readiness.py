@@ -23,12 +23,7 @@ from app.models.readiness import (
     ReadinessStepState,
 )
 from app.models.workspace_member import WorkspaceMember
-
-VOICE_PLATFORMS = {
-    IntegrationProvider.RETELL: "Retell",
-    IntegrationProvider.VAPI: "Vapi",
-    IntegrationProvider.ELEVENLABS: "ElevenLabs",
-}
+from app.services.connections import VOICE_PLATFORMS
 
 
 def connected_assistants(

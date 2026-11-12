@@ -56,7 +56,15 @@ class Readiness(BaseModel):
     connect_command: str | None = None
 
 
+class Connection(BaseModel):
+    platform: str
+    masked_api_key: str
+    replaced_earlier_key: bool
+    connected_by: str | None = None
+
+
 ListWorkspacesResult = Answer[list[Workspace]]
+ConnectVoicePlatformResult = Answer[Connection]
 GetReadinessResult = Answer[Readiness]
 CreateWorkspaceResult = Answer[Workspace]
 ListAgentsResult = Answer[list[Agent]]

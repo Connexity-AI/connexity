@@ -25,3 +25,17 @@ Custom connectors need ChatGPT's developer mode, which depends on your ChatGPT p
 
 Call `list_workspaces`, then `get_readiness` for the workspace you work in. Readiness's
 first step, "Assistant connected", shows your assistant's name.
+
+## Voice platforms
+
+Once you are connected, connect the workspace's voice platform with
+`connect_voice_platform`:
+
+1. Ask the person for the API key. In Retell it is in the dashboard, under API Keys.
+   Suggest they create a key just for Connexity.
+2. Call `connect_voice_platform` with the `workspace_id`, `platform` ("retell") and the
+   key. Do not repeat the key in your reply.
+3. Connexity checks the key with the platform and stores it encrypted. It only reads
+   from the platform; it never changes agents there.
+
+Connecting again replaces the key. Vapi and ElevenLabs connect the same way.

@@ -120,6 +120,7 @@ from app.crud.ingest_token import (  # noqa: F401
 )
 from app.crud.integrations import (  # noqa: F401
     clear_tool_backend,
+    connect_voice_platform,
     count_tool_calls_by_name,
     create_integration,
     delete_integration,

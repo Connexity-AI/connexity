@@ -96,7 +96,8 @@ history of a slice is its plan file in `plans/`.
 | M1.2 | MCP foundation: workspace scoping, the standard answer, `list_workspaces`, guides | Done (PR #180) |
 | M1.3 | Sign up and log in: workspaces per person, Google sign-in, sign-in screens, the assistant approval step | Done (PR #182) |
 | M1.4 | Readiness screen: the four Getting started steps, the connect command, `get_readiness` | Done (PR #183) |
-| M1.5 | Connect Claude Code and ChatGPT: loopback and ChatGPT callbacks, `iss` in authorization responses, tool hints | In review |
+| M1.5 | Connect Claude Code and ChatGPT: loopback and ChatGPT callbacks, `iss` in authorization responses, tool hints | Done (PR #184) |
+| M1.6 | Connect Retell through the assistant: `connect_voice_platform`, who connected it | In review |
 
 **The order of work is Dmytro's feature roadmap (Decided 2026-11-12).** It lives
 outside the repo, which is public. Each feature has what done means, whether it is
@@ -715,6 +716,7 @@ Dmytro's only when he stated it in his own words.
 | 2026-11-12 | Readiness counts the steps on screen (4 in Milestone 1, not 11); steps 1 and 2 are measured now (an assistant connected by any member; any voice platform); "Using another assistant?" waits for ChatGPT; where the app opens after the first scan is decided with feature 10. | Dmytro ("Accept, build") |
 | 2026-11-12 | The Readiness line "Your assistant is doing this. You can close this page." is hidden until the assistant can do the remaining steps. | Dmytro ("Hide it for now") |
 | 2026-11-12 | Assistants connect with loopback callbacks on any port (RFC 8252) and ChatGPT's two documented callbacks; every authorization response carries `iss` (RFC 9207); tools declare read-only hints; no Client ID Metadata Documents yet. Claude Code and ChatGPT are tested on app.connexity.ai after merge. | Proposed by Claude; Dmytro accepted ("accept build") |
+| 2026-11-12 | The assistant connects a voice platform through MCP (`connect_voice_platform`); one connection per platform per workspace, connecting again replaces the key; who connected it (person and assistant) is recorded; no disconnect tool until Settings. | Dmytro ("Accept, build") |
 
 ---
 

@@ -3,7 +3,7 @@ from collections.abc import Generator
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import (
     APIKeyCookie,
     HTTPAuthorizationCredentials,
@@ -154,7 +154,7 @@ def require_llm_key(session: SessionDep, current_user: CurrentUser) -> None:
         )
 
 
-def require_mcp_user(session: SessionDep, bearer: BearerDep) -> User:
+def require_mcp_user(request: Request, session: SessionDep, bearer: BearerDep) -> User:
     token = bearer.credentials if bearer else None
     audience = settings.oauth_default_resource_url
     if not token:
@@ -182,6 +182,10 @@ def require_mcp_user(session: SessionDep, bearer: BearerDep) -> User:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Unauthorized",
         )
+
+    # Which assistant (OAuth client) is calling, for records of who did what.
+    client_id = payload.get("client_id")
+    request.state.mcp_client_id = client_id if isinstance(client_id, str) else None
 
     scopes = payload.get("scope")
     if not isinstance(scopes, str) or "mcp:access" not in scopes.split():
@@ -213,6 +217,23 @@ def require_mcp_user(session: SessionDep, bearer: BearerDep) -> User:
 
 
 McpCurrentUser = Annotated[User, Depends(require_mcp_user)]
+
+
+def mcp_assistant_name(
+    request: Request, session: SessionDep, _user: McpCurrentUser
+) -> str | None:
+    """The name of the assistant making this MCP call, as it registered ("Claude")."""
+    from app.models.oauth import OAuthClient
+
+    client_id = getattr(request.state, "mcp_client_id", None)
+    if not client_id:
+        return None
+    client = session.get(OAuthClient, client_id)
+    name = (client.client_name or "").strip() if client else ""
+    return name[:255] or None
+
+
+McpAssistantName = Annotated[str | None, Depends(mcp_assistant_name)]
 
 
 def require_mcp_workspace(

@@ -17,6 +17,7 @@ async def test_server_lists_only_the_workspace_tools() -> None:
     tools = await _server().list_tools()
 
     assert sorted(tool.name for tool in tools) == [
+        "connect_voice_platform",
         "create_workspace",
         "get_readiness",
         "list_agents",
@@ -60,3 +61,6 @@ async def test_tools_say_whether_they_change_anything() -> None:
     assert tools["create_workspace"] is not None
     assert tools["create_workspace"].readOnlyHint is False
     assert tools["create_workspace"].destructiveHint is False
+    assert tools["connect_voice_platform"] is not None
+    assert tools["connect_voice_platform"].readOnlyHint is False
+    assert tools["connect_voice_platform"].destructiveHint is False

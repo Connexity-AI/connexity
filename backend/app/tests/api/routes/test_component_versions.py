@@ -134,7 +134,7 @@ def _agent(client: TestClient, cookies: dict[str, str], db: Session) -> Agent:
     )
     assert r.status_code == 200, r.text
     with patch.dict(
-        "app.api.routes.integrations._CONNECTION_TESTERS",
+        "app.services.connections.CONNECTION_TESTERS",
         {"retell": AsyncMock(return_value=True)},
         clear=False,
     ):
@@ -479,7 +479,7 @@ def _map_tool(client: TestClient, cookies: dict[str, str], agent: Agent) -> None
     ok = AsyncMock(
         return_value=N8nConnectionResult(ok=True, base_url="https://n8n.example.com")
     )
-    with patch("app.api.routes.integrations.check_n8n_connection", ok):
+    with patch("app.services.connections.check_n8n_connection", ok):
         integration_id = client.post(
             f"{API}/integrations/",
             json={
