@@ -1,14 +1,29 @@
-import uuid
+"""Backend routes behind the MCP server's tools.
+
+Every route answers in the standard shape (`McpAnswer`): the facts, the rules that
+apply, numbered next steps and a guide. Every route except `/mcp/workspaces` is scoped
+to a workspace in its path, resolved by `require_mcp_workspace`.
+"""
+
+import base64
+import binascii
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app import crud
-from app.api.deps import McpCurrentUser, SessionDep, require_mcp_user
-from app.models import (
-    AgentLatestPublishedVersionPublic,
-    AgentPublic,
-    AgentsPublic,
-    AgentVersionPublic,
+from app.api.deps import (
+    McpCurrentUser,
+    McpWorkspaceDep,
+    SessionDep,
+    require_mcp_user,
+)
+from app.models.mcp import (
+    GUIDE_GETTING_STARTED,
+    GUIDE_WORKSPACES,
+    McpAgent,
+    McpAnswer,
+    McpErrorDetail,
+    McpWorkspace,
 )
 
 router = APIRouter(
@@ -17,53 +32,107 @@ router = APIRouter(
     dependencies=[Depends(require_mcp_user)],
 )
 
+_CURSOR_PREFIX = "o:"
+_CURSOR_MAX_OFFSET = 1_000_000_000
 
-@router.get("/agents", response_model=AgentsPublic)
+
+def _encode_cursor(offset: int) -> str:
+    return base64.urlsafe_b64encode(f"{_CURSOR_PREFIX}{offset}".encode()).decode()
+
+
+def _decode_cursor(cursor: str | None) -> int:
+    if not cursor:
+        return 0
+    try:
+        raw = base64.urlsafe_b64decode(cursor.encode()).decode()
+        if not raw.startswith(_CURSOR_PREFIX):
+            raise ValueError(raw)
+        offset = int(raw.removeprefix(_CURSOR_PREFIX))
+        if not 0 <= offset <= _CURSOR_MAX_OFFSET:
+            raise ValueError(raw)
+    except (binascii.Error, UnicodeDecodeError, ValueError):
+        raise HTTPException(
+            status_code=400,
+            detail=McpErrorDetail(
+                error="This cursor is not valid",
+                next_steps=[
+                    "Call the same tool without `cursor` to start from the first page, "
+                    "then pass the `next_cursor` it returns."
+                ],
+            ).model_dump(),
+        )
+    return offset
+
+
+@router.get("/workspaces", response_model=McpAnswer[list[McpWorkspace]])
+def list_workspaces(
+    session: SessionDep, current_user: McpCurrentUser
+) -> McpAnswer[list[McpWorkspace]]:
+    workspaces = crud.list_accessible_workspaces(session=session, user=current_user)
+    return McpAnswer[list[McpWorkspace]](
+        data=[McpWorkspace(id=w.id, name=w.name) for w in workspaces],
+        rules=[
+            "A workspace is one client's agents, calls and settings; nothing is "
+            "shared between workspaces.",
+            "You reach the workspaces the person who connected you can reach, and act "
+            "on their behalf.",
+        ],
+        next_steps=[
+            "Pass a workspace's `id` as `workspace_id` to every other Connexity tool.",
+            "Call `list_agents` with that `workspace_id` to see its agents.",
+        ],
+        guide=GUIDE_WORKSPACES,
+    )
+
+
+@router.get(
+    "/workspaces/{workspace_id}/agents",
+    response_model=McpAnswer[list[McpAgent]],
+)
 def list_agents(
     session: SessionDep,
-    current_user: McpCurrentUser,
-    skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=100, ge=1, le=1000),
-) -> AgentsPublic:
-    company_id = current_user.company_id
-    items, count = crud.list_agents(
-        session=session, company_id=company_id, skip=skip, limit=limit
-    )
-    summaries_by_agent_id = crud.latest_completed_eval_summaries_by_agent(
+    workspace: McpWorkspaceDep,
+    query: str | None = Query(default=None, max_length=255),
+    cursor: str | None = Query(default=None, max_length=255),
+    limit: int = Query(default=25, ge=1, le=100),
+) -> McpAnswer[list[McpAgent]]:
+    offset = _decode_cursor(cursor)
+    search = query.strip() if query else None
+    agents, has_more = crud.search_agents(
         session=session,
-        company_id=company_id,
-        agent_ids=[agent.id for agent in items],
+        company_id=workspace.id,
+        query=search or None,
+        offset=offset,
+        limit=limit,
     )
-    active_versions = crud.list_active_published_versions_by_agent_ids(
-        session=session, agent_ids=[agent.id for agent in items]
-    )
-    data: list[AgentPublic] = []
-    for agent in items:
-        serialized = AgentPublic.model_validate(agent)
-        serialized.last_eval = summaries_by_agent_id.get(agent.id)
-        active = active_versions.get(agent.id)
-        if active is not None and active.version is not None:
-            serialized.latest_published_version = AgentLatestPublishedVersionPublic(
-                version=active.version,
-                version_name=active.version_name,
-                version_description=active.version_description,
+    next_steps = []
+    if has_more:
+        next_steps.append(
+            "Call `list_agents` again with `cursor` set to `next_cursor` for the next "
+            "page."
+        )
+    if search and not agents and offset == 0:
+        next_steps.append(
+            "No agent's name matches. Call `list_agents` without `query` to see them all."
+        )
+    return McpAnswer[list[McpAgent]](
+        data=[
+            McpAgent(
+                id=agent.id,
+                name=agent.name,
+                platform=agent.platform,
+                platform_agent_name=agent.platform_agent_name,
+                created_at=agent.created_at,
             )
-        data.append(serialized)
-    return AgentsPublic(data=data, count=count)
-
-
-@router.get("/agents/{agent_id}/draft", response_model=AgentVersionPublic)
-def get_draft(
-    session: SessionDep,
-    current_user: McpCurrentUser,
-    agent_id: uuid.UUID,
-) -> AgentVersionPublic:
-    agent = crud.get_agent(
-        session=session, agent_id=agent_id, company_id=current_user.company_id
+            for agent in agents
+        ],
+        rules=[
+            "Connexity never edits, deploys or calls an agent; it records and checks "
+            "what the agent does.",
+            "Agents are listed newest first; `query` matches part of the name, "
+            "ignoring case.",
+        ],
+        next_steps=next_steps,
+        guide=GUIDE_GETTING_STARTED,
+        next_cursor=_encode_cursor(offset + limit) if has_more else None,
     )
-    if not agent:
-        raise HTTPException(status_code=404, detail="Agent not found")
-    draft = crud.get_agent_draft(session=session, agent_id=agent_id)
-    if draft is None:
-        raise HTTPException(status_code=404, detail="No draft found")
-    return AgentVersionPublic.model_validate(draft)

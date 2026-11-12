@@ -92,7 +92,8 @@ history of a slice is its plan file in `plans/`.
 | 2.1 | Check engine | Done (PR #171) |
 | 2.2 | First rule checks and facts | Dropped: its engine pieces are folded into 2.3; checks are added only when Dmytro asks |
 | 2.3 | Check runs, issues and call status | Done (PR #172) |
-| M1.1 | Frontend foundation on the design system: 1.x screens deleted, empty shell on the design system | In review |
+| M1.1 | Frontend foundation on the design system: 1.x screens deleted, empty shell on the design system | Done (PR #179) |
+| M1.2 | MCP foundation: workspace scoping, the standard answer, `list_workspaces`, guides | In review |
 
 **The order of work is Dmytro's feature roadmap (Decided 2026-11-12).** It lives
 outside the repo, which is public. Each feature has what done means, whether it is
@@ -118,7 +119,8 @@ Milestones, in order (Proposed, so a reader of the repo knows the shape):
 Open, carried from earlier slices:
 
 - **MCP is behind everything built.** Since 2026-11-07 every feature ships with its MCP
-  tools, but the MCP server has only `list_agents`, `find_agents` and `get_agent_draft`.
+  tools. Since the MCP foundation (Milestone 1, feature 2) the server has
+  `list_workspaces` and `list_agents`, on the standard answer and workspace scoping.
   Calls and traces, executions, component versions, connections, tool-to-workflow
   links, check settings, check runs and issues have no tools yet. It is the first debt
   to plan when the roadmap is rewritten.
@@ -705,6 +707,7 @@ Dmytro's only when he stated it in his own words.
 | 2026-11-12 | Every 1.x screen may be deleted; each is recreated from the new Claude Design. | Dmytro ("You can remove anything you need we will need to recreate it with new claude design") |
 | 2026-11-12 | The shell is built from the 2026-11-12 Claude Design export in `designs/screens/`: Sidebar, Onboarding and Design System. | Dmytro |
 | 2026-11-12 | The app shell ships with no sidebar pages and an empty landing page until Readiness; the theme on first open follows the system; the real three-loop logo is used and the Sidebar design is corrected to match. | Proposed by Claude; Dmytro accepted ("Accept, build") |
+| 2026-11-12 | MCP foundation: every `/mcp` route has the workspace in its path and access is decided in `crud/workspace.py` (a person reaches their own company until memberships exist); an unreachable workspace answers not found; every tool answers `data`, `rules`, `next_steps`, `guide` and, on lists, `next_cursor`, written by the backend; errors carry next steps; lists use an opaque cursor; guides are MCP resources; a company has a name, from its user's email domain; `find_agents` and `get_agent_draft` are removed. | Proposed by Claude; Dmytro accepted ("Accept, build") |
 
 ---
 

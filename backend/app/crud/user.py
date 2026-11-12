@@ -5,7 +5,7 @@ from sqlmodel import Session, col, select
 
 from app.core.security import get_password_hash, verify_password
 from app.models import User, UserCreate, UserUpdate
-from app.models.company import Company
+from app.models.company import Company, workspace_name_from_email
 from app.models.custom_metric import CustomMetric
 
 
@@ -64,7 +64,7 @@ def create_user(
     """
     seed_metrics = company_id is None
     if company_id is None:
-        company = Company()
+        company = Company(name=workspace_name_from_email(user_create.email))
         session.add(company)
         session.flush()
         company_id = company.id

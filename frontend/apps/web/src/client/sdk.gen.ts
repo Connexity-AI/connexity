@@ -218,12 +218,12 @@ import type {
   LoginTestTokenData,
   LoginTestTokenErrors,
   LoginTestTokenResponses,
-  McpGetDraftData,
-  McpGetDraftErrors,
-  McpGetDraftResponses,
   McpListAgentsData,
   McpListAgentsErrors,
   McpListAgentsResponses,
+  McpListWorkspacesData,
+  McpListWorkspacesErrors,
+  McpListWorkspacesResponses,
   OauthAuthorizeConfirmData,
   OauthAuthorizeConfirmErrors,
   OauthAuthorizeConfirmResponses,
@@ -771,31 +771,35 @@ export class UsersService {
 
 export class McpService {
   /**
-   * List Agents
+   * List Workspaces
    */
-  public static listAgents<ThrowOnError extends boolean = false>(
-    options?: Options<McpListAgentsData, ThrowOnError>
+  public static listWorkspaces<ThrowOnError extends boolean = false>(
+    options?: Options<McpListWorkspacesData, ThrowOnError>
   ) {
     return (options?.client ?? client).get<
-      McpListAgentsResponses,
-      McpListAgentsErrors,
+      McpListWorkspacesResponses,
+      McpListWorkspacesErrors,
       ThrowOnError
     >({
       security: [{ scheme: 'bearer', type: 'http' }],
-      url: '/api/v1/mcp/agents',
+      url: '/api/v1/mcp/workspaces',
       ...options,
     });
   }
 
   /**
-   * Get Draft
+   * List Agents
    */
-  public static getDraft<ThrowOnError extends boolean = false>(
-    options: Options<McpGetDraftData, ThrowOnError>
+  public static listAgents<ThrowOnError extends boolean = false>(
+    options: Options<McpListAgentsData, ThrowOnError>
   ) {
-    return (options.client ?? client).get<McpGetDraftResponses, McpGetDraftErrors, ThrowOnError>({
+    return (options.client ?? client).get<
+      McpListAgentsResponses,
+      McpListAgentsErrors,
+      ThrowOnError
+    >({
       security: [{ scheme: 'bearer', type: 'http' }],
-      url: '/api/v1/mcp/agents/{agent_id}/draft',
+      url: '/api/v1/mcp/workspaces/{workspace_id}/agents',
       ...options,
     });
   }

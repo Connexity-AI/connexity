@@ -19,6 +19,13 @@ class LLMProvider(str, enum.Enum):
     ANTHROPIC = "anthropic"
 
 
+def workspace_name_from_email(email: str) -> str:
+    """A first name for a new workspace: the domain of its first user's email."""
+    _, at, domain = email.rpartition("@")
+    domain = domain.strip().lower()[:255]
+    return domain if at and domain else "Workspace"
+
+
 class Company(SQLModel, table=True):
     __tablename__ = "company"
 
@@ -28,6 +35,8 @@ class Company(SQLModel, table=True):
         sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
         sa_column_kwargs={"server_default": text("now()")},
     )
+    # A company is a workspace: one client of an agency (Decided 2026-11-12).
+    name: str = Field(default="Workspace", max_length=255)
 
     # ── Per-tenant LLM credentials ─────────────────────────────────────
     # Encrypted (Fernet) provider keys + masked previews for the UI. At least

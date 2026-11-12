@@ -3,29 +3,31 @@ from __future__ import annotations
 import contextlib
 from urllib.parse import urlparse
 
-from fastapi import FastAPI
-from fastapi import Request
-from fastapi.responses import JSONResponse, Response
 import httpx
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse, Response
 from mcp.server.auth.routes import build_resource_metadata_url
-from starlette.types import ASGIApp, Receive, Scope, Send
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.fastmcp import FastMCP
-from mcp.server.transport_security import TransportSecuritySettings
 from mcp.server.streamable_http import MCP_PROTOCOL_VERSION_HEADER
+from mcp.server.transport_security import TransportSecuritySettings
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from connexity_mcp_server.auth import OidcTokenVerifier
 from connexity_mcp_server.client import ConnexityBackendClient
 from connexity_mcp_server.config import Settings
-from connexity_mcp_server.models import (
-    AgentDraftResult,
-    FindAgentsResult,
-    ListAgentsResult,
+from connexity_mcp_server.guides import (
+    GUIDE_URI_PREFIX,
+    GUIDES,
+    INSTRUCTIONS,
+    read_guide,
+)
+from connexity_mcp_server.models import ListAgentsResult, ListWorkspacesResult
+from connexity_mcp_server.tools import (
+    list_agents as _list_agents,
 )
 from connexity_mcp_server.tools import (
-    find_agents as _find_agents,
-    get_agent_draft as _get_agent_draft,
-    list_agents as _list_agents,
+    list_workspaces as _list_workspaces,
 )
 
 
@@ -42,7 +44,7 @@ class NormalizeMcpPathMiddleware:
             scope["path"] = f"{self.mcp_path}/"
             raw_path = scope.get("raw_path")
             if isinstance(raw_path, bytes):
-                scope["raw_path"] = f"{self.mcp_path}/".encode("utf-8")
+                scope["raw_path"] = f"{self.mcp_path}/".encode()
         await self.app(scope, receive, send)
 
 
@@ -58,6 +60,7 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     )
     mcp_server = FastMCP(
         settings.mcp_server_name,
+        instructions=INSTRUCTIONS,
         stateless_http=True,
         json_response=True,
         streamable_http_path="/",
@@ -70,16 +73,30 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     )
 
     @mcp_server.tool()
-    async def list_agents(limit: int = 25) -> ListAgentsResult:
-        return await _list_agents(client=backend_client, limit=limit)
+    async def list_workspaces() -> ListWorkspacesResult:
+        """The workspaces you can reach: one per client. Call this first; every
+        other tool takes a `workspace_id` from here."""
+        return await _list_workspaces(client=backend_client)
 
     @mcp_server.tool()
-    async def find_agents(query: str, limit: int = 10) -> FindAgentsResult:
-        return await _find_agents(client=backend_client, query=query, limit=limit)
+    async def list_agents(
+        workspace_id: str,
+        query: str | None = None,
+        cursor: str | None = None,
+        limit: int = 25,
+    ) -> ListAgentsResult:
+        """The agents in a workspace, newest first. `query` matches part of the
+        name. Pass `next_cursor` back as `cursor` for the next page (limit 1 to 100)."""
+        return await _list_agents(
+            client=backend_client,
+            workspace_id=workspace_id,
+            query=query,
+            cursor=cursor,
+            limit=limit,
+        )
 
-    @mcp_server.tool()
-    async def get_agent_draft(agent_id: str) -> AgentDraftResult:
-        return await _get_agent_draft(client=backend_client, agent_id=agent_id)
+    for guide_name, guide_title in GUIDES.items():
+        _register_guide(mcp_server, name=guide_name, title=guide_title)
 
     @contextlib.asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -91,6 +108,7 @@ def build_application(settings: Settings | None = None) -> FastAPI:
                 await backend_client.aclose()
 
     app = FastAPI(title="Connexity MCP Server", lifespan=lifespan)
+    app.state.mcp_server = mcp_server
     app.router.redirect_slashes = False
 
     @app.get("/healthz")
@@ -232,7 +250,9 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     protected_resource_metadata_url = build_resource_metadata_url(
         settings.validated_mcp_oauth_resource_server_url
     )
-    protected_resource_metadata_path = urlparse(str(protected_resource_metadata_url)).path
+    protected_resource_metadata_path = urlparse(
+        str(protected_resource_metadata_url)
+    ).path
     protected_resource_metadata = {
         "resource": settings.resolved_mcp_oauth_resource_server_url,
         "authorization_servers": [settings.resolved_mcp_oauth_issuer_url],
@@ -265,12 +285,25 @@ def build_application(settings: Settings | None = None) -> FastAPI:
             return JSONResponse(protected_resource_metadata, headers=cors_headers)
 
     mcp_app = mcp_server.streamable_http_app()
-    app.add_middleware(NormalizeMcpPathMiddleware, mcp_path=settings.normalized_mcp_path)
+    app.add_middleware(
+        NormalizeMcpPathMiddleware, mcp_path=settings.normalized_mcp_path
+    )
     app.mount(settings.normalized_mcp_path, mcp_app)
     app.mount(f"{settings.normalized_mcp_path}/", mcp_app)
     if settings.normalized_mcp_path != "/":
         app.mount("/", mcp_app)
     return app
+
+
+def _register_guide(mcp_server: FastMCP, *, name: str, title: str) -> None:
+    @mcp_server.resource(
+        f"{GUIDE_URI_PREFIX}{name}",
+        name=name,
+        title=title,
+        mime_type="text/markdown",
+    )
+    def guide() -> str:
+        return read_guide(name)
 
 
 def _rewrite_backend_location(*, location: str, settings: Settings) -> str:

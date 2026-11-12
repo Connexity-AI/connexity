@@ -3371,6 +3371,115 @@ export type MarkerEvent = {
 };
 
 /**
+ * McpAgent
+ */
+export type McpAgent = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  platform?: Platform | null;
+  /**
+   * Platform Agent Name
+   */
+  platform_agent_name?: string | null;
+  /**
+   * Created At
+   */
+  created_at: string;
+};
+
+/**
+ * McpAnswer[list[McpAgent]]
+ */
+export type McpAnswerListMcpAgent = {
+  /**
+   * Data
+   *
+   * The facts: the result of the call
+   */
+  data: Array<McpAgent>;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
+ * McpAnswer[list[McpWorkspace]]
+ */
+export type McpAnswerListMcpWorkspace = {
+  /**
+   * Data
+   *
+   * The facts: the result of the call
+   */
+  data: Array<McpWorkspace>;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
+ * McpWorkspace
+ */
+export type McpWorkspace = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+};
+
+/**
  * Message
  */
 export type Message = {
@@ -6852,20 +6961,79 @@ export type UsersReadOnboardingStatusResponses = {
 export type UsersReadOnboardingStatusResponse =
   UsersReadOnboardingStatusResponses[keyof UsersReadOnboardingStatusResponses];
 
-export type McpListAgentsData = {
+export type McpListWorkspacesData = {
   body?: never;
   path?: never;
+  query?: never;
+  url: '/api/v1/mcp/workspaces';
+};
+
+export type McpListWorkspacesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpListWorkspacesError = McpListWorkspacesErrors[keyof McpListWorkspacesErrors];
+
+export type McpListWorkspacesResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerListMcpWorkspace;
+};
+
+export type McpListWorkspacesResponse =
+  McpListWorkspacesResponses[keyof McpListWorkspacesResponses];
+
+export type McpListAgentsData = {
+  body?: never;
+  path: {
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
   query?: {
     /**
-     * Skip
+     * Query
      */
-    skip?: number;
+    query?: string | null;
+    /**
+     * Cursor
+     */
+    cursor?: string | null;
     /**
      * Limit
      */
     limit?: number;
   };
-  url: '/api/v1/mcp/agents';
+  url: '/api/v1/mcp/workspaces/{workspace_id}/agents';
 };
 
 export type McpListAgentsErrors = {
@@ -6905,64 +7073,10 @@ export type McpListAgentsResponses = {
   /**
    * Successful Response
    */
-  200: AgentsPublic;
+  200: McpAnswerListMcpAgent;
 };
 
 export type McpListAgentsResponse = McpListAgentsResponses[keyof McpListAgentsResponses];
-
-export type McpGetDraftData = {
-  body?: never;
-  path: {
-    /**
-     * Agent Id
-     */
-    agent_id: string;
-  };
-  query?: never;
-  url: '/api/v1/mcp/agents/{agent_id}/draft';
-};
-
-export type McpGetDraftErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type McpGetDraftError = McpGetDraftErrors[keyof McpGetDraftErrors];
-
-export type McpGetDraftResponses = {
-  /**
-   * Successful Response
-   */
-  200: AgentVersionPublic;
-};
-
-export type McpGetDraftResponse = McpGetDraftResponses[keyof McpGetDraftResponses];
 
 export type AgentsListAgentsData = {
   body?: never;

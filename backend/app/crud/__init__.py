@@ -7,6 +7,7 @@ from app.crud.agent import (  # noqa: F401
     get_agent,
     latest_completed_eval_summaries_by_agent,
     list_agents,
+    search_agents,
     update_agent,
 )
 from app.crud.agent_version import (  # noqa: F401
@@ -165,4 +166,8 @@ from app.crud.user import (  # noqa: F401
     get_user_by_email,
     list_users_by_ids,
     update_user,
+)
+from app.crud.workspace import (  # noqa: F401
+    get_accessible_workspace,
+    list_accessible_workspaces,
 )
