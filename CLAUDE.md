@@ -24,9 +24,11 @@ patterns as the direction.
 
 | Document | For |
 |---|---|
-| [`REBUILD.md`](./REBUILD.md) | Status, the next slice, decisions. Every session, first. |
+| Dmytro's feature roadmap | The order of work: milestones and features, each with what done means and the design prompts to read. Kept outside the repo; Dmytro names the feature a session works on. |
+| [`REBUILD.md`](./REBUILD.md) | Status, decisions and open questions. Every session, first. |
+| [`designs/`](./designs/README.md) | The Claude Design prompts a feature points to, and who does what between Connexity, the assistant and the person. |
 | [`docs-internal/development-lifecycle.md`](./docs-internal/development-lifecycle.md) | How we work. The rules below are its short form. |
-| [`docs-internal/`](./docs-internal/) | How each part is designed, e.g. [`checks-and-incidents.md`](./docs-internal/checks-and-incidents.md). Read the docs your slice cites. |
+| [`docs-internal/`](./docs-internal/) | How each part is designed, e.g. [`checks-and-incidents.md`](./docs-internal/checks-and-incidents.md). Read the docs your feature touches. |
 | [`plans/README.md`](./plans/README.md) | One plan per pull request; the plan is what gets reviewed. |
 | `backend/CLAUDE.md`, `frontend/CLAUDE.md` | Conventions, loaded when you work there. |
 | `README.md`, `CLI_README.md`, `docs/` | Describe 1.x, not where the product is going. |
@@ -35,7 +37,7 @@ patterns as the direction.
 
 Each is explained in the lifecycle guide; the section is in brackets.
 
-1. One session, one slice from `REBUILD.md`. Do not widen it. (3)
+1. One session, one feature from the roadmap, the one Dmytro names. Do not widen it. (3)
 2. Every pull request carries a plan, approved before any code, with its Outcome filled
    in before the pull request opens. (3)
 3. Mark statements Decided, Proposed or Open. Only Dmytro's own words make something
@@ -49,10 +51,15 @@ Each is explained in the lifecycle guide; the section is in brackets.
    name. (6)
 9. UI changes start in the design, and the design never falls behind the code. (3)
 10. Every feature ships with its MCP tools: whatever the platform does, the user's
-    assistant can do through MCP. (6)
+    assistant can do through MCP. Keep the tools few and shaped around the work, scoped
+    to a workspace the user can access, paginated, and answering with facts, the rules
+    that apply and numbered next steps. Extend a tool before adding a near-duplicate. (6)
 11. The repo is public: no real call data, client names or secrets. (6)
 12. No AI attribution in commits or pull requests. (7)
 13. End every reply with "Next step from you:". (10)
+14. Nothing appears in the UI that does not work end to end and is not tested: no
+    placeholders, no disabled-but-visible features, no sample data in shipped screens.
+    Designs show the whole vision; a build shows only what works. (6)
 
 ## Commands
 

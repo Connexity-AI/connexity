@@ -26,15 +26,31 @@ System in Claude; see "UI: the design comes first" in the lifecycle guide.
 - **Every number shows its base:** how many agents, how many calls, over what period.
 - **Give before asking:** a screen opens with findings and progress. What needs the
   person (approvals, questions) is counted, never first.
-- **The sidebar** is Home, Agents, Roadmap, Issues and Settings.
-- **The deepest view is a single call:** its recording and transcript.
+- **The sidebar** is Home, Incidents, Action items, Agents, Calls, Roadmap, Issues and
+  Settings (Decided 2026-11-12). The Connexity logo stays at the top; there is no
+  white-labelling. The workspace picker, Account, Theme and Sign out live in the menu
+  that opens from the person's name at the bottom.
+- **Only what works is on screen.** Pages and tabs appear when their feature is built;
+  designs show more than a build does (`CLAUDE.md` rule 14).
+- **Calls can be browsed and found** (Decided 2026-11-11): newest first, search by phone
+  number or call ID, filters for agent, result, category, period and source. Callers
+  show as the last four digits.
+- **The deepest view is a single call:** its recording and transcript, with tool calls
+  inline (one collapsed line each, expanding to arguments and result) and findings at
+  their moment (Decided 2026-11-12).
+- **Small charts always show their time scale:** start and end labels and the peak with
+  its unit.
+- **No small metadata lines** ("You, today · used twice this month"): records live in
+  logs and the audit log, not on every row.
 
 Do not add:
 
-- trace explorers or drill-downs below a single call; query builders or filters other
-  than the period (Proposed)
-- forms for what the assistant can set through MCP (connections, agents, settings);
-  keep forms only where a person must act themselves, such as signing in (Proposed)
+- trace explorers or drill-downs below a single call; query builders or filters beyond
+  the ones above (Proposed)
+- forms for what the assistant can set through MCP (connections, agents); keep forms
+  and controls only where a person must act themselves, such as signing in, their own
+  account, and the decisions only a person confirms (check settings, gate settings,
+  archiving, closing an incident) (Proposed)
 - a chat box, or anything that replies to the user
 - editors for the agent's prompts, tools or workflows, or anything that deploys or
   writes to a provider. Connexity never changes the agent itself.

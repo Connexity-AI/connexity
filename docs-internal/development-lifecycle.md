@@ -47,10 +47,13 @@ session runs `/code-review` and reports its findings in the plan.
 
 ## 3. The slice loop
 
-One session, one slice from `REBUILD.md`, one plan, one pull request.
+One session, one feature, one plan, one pull request. The order of work is Dmytro's
+feature roadmap, kept outside the repo (Decided 2026-11-12); he names the feature a
+session works on. "Slice" below means that feature.
 
-1. **Orient.** Read `REBUILD.md` status and the slice. Read the design docs it
-   cites. Check `git status` and the branch.
+1. **Orient.** Read the feature's roadmap entry: what done means, and the design
+   prompts in `designs/` it names. Read `REBUILD.md` status and decisions, and the
+   design docs the feature touches. Check `git status` and the branch.
 2. **Plan.** Write the plan file (`plans/`, from the template) before any code: goal,
    changes, decisions, done-when, out of scope, risks. The owner approves it. A design
    slice (schema, API shape) settles its open questions with the owner here. A slice
@@ -230,12 +233,20 @@ assistant is to have a quick glance of whats going on and thats what dashboards 
 for" (Dmytro). Screens are dashboards: numbers that show their base (agents, calls,
 period), findings and progress before anything that asks the person, a score for the
 fleet and each agent, and a single call's recording and transcript as the deepest view.
-The sidebar is Home, Agents, Roadmap, Issues and Settings. It is still not an
+The sidebar is Home, Incidents, Action items, Agents, Calls, Roadmap, Issues and
+Settings (Decided 2026-11-12). Calls can be browsed and searched, and the single call
+shows tool calls inline. It is still not an
 observability tool: no trace explorers, no drilling down from an incident to the moment.
 This replaces the same morning's "reports and things to do". The rule that the UI may do
 anything the API does (2026-10-09) is retired. Forms stay only where a person
 has to act themselves, such as signing in and their own account (Proposed); connections,
 agents and settings are the assistant's, through MCP.
+
+**Nothing on screen that does not work (Decided 2026-11-12).** "We don't develop
+anything that doesn't work. If something exists in UI it should work, be tested"
+(Dmytro). A build shows only pages, tabs and controls that work end to end: no
+placeholders, no disabled-but-visible features, no sample data. Designs may show the
+whole vision; the build catches up feature by feature.
 
 **No chat in the product (Decided).** Nothing in the product talks back. Chat means the user's own assistant, and the user
 should never be unsure about that.
@@ -261,7 +272,8 @@ voice engineer must be able to recognise an issue instantly.
 
 **Path:** agent → call → tool call → n8n execution → node-by-node detail. That depth
 lives in the record and is reached through MCP; the screens stop at a single call
-(Decided 2026-11-09).
+(Decided 2026-11-09), which shows each tool call's arguments and result inline
+(Decided 2026-11-12).
 
 In scope:
 
