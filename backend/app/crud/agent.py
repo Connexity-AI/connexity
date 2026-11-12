@@ -208,6 +208,31 @@ def list_agents(
     return items, count
 
 
+def search_agents(
+    *,
+    session: Session,
+    company_id: uuid.UUID,
+    query: str | None = None,
+    offset: int = 0,
+    limit: int = 25,
+) -> tuple[list[Agent], bool]:
+    """A page of the company's agents, newest first, optionally matching a name.
+
+    Returns the page and whether another page follows.
+    """
+    statement = select(Agent).where(Agent.company_id == company_id)
+    if query:
+        statement = statement.where(col(Agent.name).icontains(query, autoescape=True))
+    rows = list(
+        session.exec(
+            statement.order_by(col(Agent.created_at).desc(), col(Agent.id).desc())
+            .offset(offset)
+            .limit(limit + 1)
+        ).all()
+    )
+    return rows[:limit], len(rows) > limit
+
+
 def latest_completed_eval_summaries_by_agent(
     *, session: Session, company_id: uuid.UUID, agent_ids: list[uuid.UUID]
 ) -> dict[uuid.UUID, AgentLastEvalSummary]:

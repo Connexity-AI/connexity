@@ -56,11 +56,14 @@ def get_test_company_id(session: Session) -> uuid.UUID:
 
 
 def create_test_agent(
-    session: Session, *, company_id: uuid.UUID | None = None
+    session: Session,
+    *,
+    company_id: uuid.UUID | None = None,
+    name: str | None = None,
 ) -> Agent:
     cid = _resolve_company_id(session, company_id)
     agent_in = AgentCreate(
-        name=f"test-agent-{uuid.uuid4().hex[:8]}",
+        name=name or f"test-agent-{uuid.uuid4().hex[:8]}",
         endpoint_url="http://localhost:8080/agent",
         description="Test agent for automated tests",
     )

@@ -15,11 +15,13 @@ For the contributor-facing architecture and tool-extension guide, see
 
 ## Current tools
 
-The adapter currently exposes three read-only MCP tools:
+- `list_workspaces`: the workspaces the connected person can reach. Call it first.
+- `list_agents(workspace_id, query?, cursor?, limit?)`: a workspace's agents.
 
-- `list_agents`
-- `find_agents`
-- `get_agent_draft`
+Every tool answers in the standard shape (`data`, `rules`, `next_steps`, `guide`,
+`next_cursor`). The server also sends connect instructions and serves guides as
+resources at `connexity://guides/<name>` (markdown files in
+`src/connexity_mcp_server/guides/`).
 
 ## Run locally
 
@@ -56,7 +58,8 @@ Local-dev fallbacks are built in:
 
 The MCP server forwards the authenticated user's MCP OAuth access token to the
 Connexity backend for `/mcp/*` requests. The backend validates that token and
-uses the user id for audit fields, while MCP actions remain platform-scoped.
+uses the user id for audit fields. Every tool except `list_workspaces` is scoped to a
+workspace the user can reach.
 
 ## Mandatory OAuth for MCP transport
 

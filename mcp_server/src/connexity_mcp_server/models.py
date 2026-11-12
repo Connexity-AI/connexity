@@ -1,37 +1,44 @@
 from __future__ import annotations
 
+from datetime import datetime
+from typing import Generic, TypeVar
+
 from pydantic import BaseModel, Field
 
+T = TypeVar("T")
 
-class AgentSummary(BaseModel):
+
+class Answer(BaseModel, Generic[T]):
+    """The standard answer of every Connexity tool."""
+
+    data: T = Field(description="The facts: the result of the call")
+    rules: list[str] = Field(
+        default_factory=list,
+        description="The rules that apply to what was returned. Follow them.",
+    )
+    next_steps: list[str] = Field(
+        default_factory=list,
+        description="What you can do next, in order, naming the tool to call",
+    )
+    guide: str = Field(description="URI of the guide for this part of Connexity")
+    next_cursor: str | None = Field(
+        default=None,
+        description="On lists: pass as `cursor` for the next page; empty on the last",
+    )
+
+
+class Workspace(BaseModel):
     id: str
-    name: str | None = None
-    description: str | None = None
-    mode: str | None = None
+    name: str
+
+
+class Agent(BaseModel):
+    id: str
+    name: str
     platform: str | None = None
-    has_draft: bool = False
-    latest_published_version: int | None = None
+    platform_agent_name: str | None = None
+    created_at: datetime
 
 
-class ListAgentsResult(BaseModel):
-    agents: list[AgentSummary] = Field(default_factory=list)
-    count: int = 0
-
-
-class FindAgentsResult(BaseModel):
-    query: str
-    agents: list[AgentSummary] = Field(default_factory=list)
-    count: int = 0
-    message: str | None = None
-
-
-class AgentDraftResult(BaseModel):
-    agent_id: str
-    version_id: str | None = None
-    version: int | None = None
-    system_prompt: str | None = None
-    agent_model: str | None = None
-    agent_provider: str | None = None
-    agent_temperature: float | None = None
-    tools: list[dict] = Field(default_factory=list)
-    tools_count: int = 0
+ListWorkspacesResult = Answer[list[Workspace]]
+ListAgentsResult = Answer[list[Agent]]

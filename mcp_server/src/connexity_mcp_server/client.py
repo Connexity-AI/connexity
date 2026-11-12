@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 from mcp.server.auth.middleware.auth_context import get_access_token
@@ -34,15 +35,27 @@ class ConnexityBackendClient:
         if self._owns_client:
             await self._client.aclose()
 
-    async def list_agents(self, skip: int = 0, limit: int = 100) -> dict[str, Any]:
+    async def list_workspaces(self) -> dict[str, Any]:
+        return await self._request_json("GET", "/mcp/workspaces")
+
+    async def list_agents(
+        self,
+        *,
+        workspace_id: str,
+        query: str | None = None,
+        cursor: str | None = None,
+        limit: int = 25,
+    ) -> dict[str, Any]:
+        params: dict[str, str | int] = {"limit": limit}
+        if query:
+            params["query"] = query
+        if cursor:
+            params["cursor"] = cursor
         return await self._request_json(
             "GET",
-            "/mcp/agents",
-            params={"skip": skip, "limit": limit},
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/agents",
+            params=params,
         )
-
-    async def get_agent_draft(self, agent_id: str) -> dict[str, Any]:
-        return await self._request_json("GET", f"/mcp/agents/{agent_id}/draft")
 
     async def _request_json(
         self,
@@ -72,9 +85,7 @@ class ConnexityBackendClient:
             return payload
         except httpx.HTTPStatusError as exc:
             detail = _extract_error_detail(exc.response)
-            raise ConnexityBackendError(
-                f"Connexity backend request failed: {detail}"
-            ) from exc
+            raise ConnexityBackendError(detail) from exc
         except httpx.HTTPError as exc:
             raise ConnexityBackendError(
                 f"Connexity backend request failed: {exc}"
@@ -102,4 +113,50 @@ def _extract_error_detail(response: httpx.Response) -> str:
         detail = payload.get("detail")
         if isinstance(detail, str) and detail.strip():
             return detail.strip()
+        if isinstance(detail, dict):
+            return _format_answer_error(detail) or f"HTTP {response.status_code}"
+        if isinstance(detail, list):
+            return _format_validation_error(detail)
     return f"HTTP {response.status_code}"
+
+
+def _format_validation_error(errors: list[Any]) -> str:
+    """FastAPI's 422 list of invalid arguments, as text the assistant can act on."""
+    problems = []
+    for item in errors:
+        if not isinstance(item, dict):
+            continue
+        loc = item.get("loc")
+        name = loc[-1] if isinstance(loc, list) and loc else "argument"
+        problems.append(f"`{name}`: {item.get('msg', 'invalid')}")
+    summary = "; ".join(problems) or "an argument is not valid"
+    return (
+        _format_answer_error(
+            {
+                "error": f"Invalid arguments ({summary})",
+                "next_steps": [
+                    "Fix the arguments and call the tool again. A `workspace_id` is an "
+                    "`id` returned by `list_workspaces`."
+                ],
+                "guide": "connexity://guides/getting-started",
+            }
+        )
+        or "Invalid arguments"
+    )
+
+
+def _format_answer_error(detail: dict[str, Any]) -> str | None:
+    """An error in the standard shape, as text the assistant can act on."""
+    error = detail.get("error")
+    if not isinstance(error, str) or not error.strip():
+        return None
+    message = error.strip()
+    parts = [message if message.endswith((".", "?", "!")) else f"{message}."]
+    steps = [s for s in detail.get("next_steps") or [] if isinstance(s, str)]
+    if steps:
+        numbered = " ".join(f"{i}. {step}" for i, step in enumerate(steps, start=1))
+        parts.append(f"Next steps: {numbered}")
+    guide = detail.get("guide")
+    if isinstance(guide, str) and guide:
+        parts.append(f"Guide: {guide}")
+    return " ".join(parts)

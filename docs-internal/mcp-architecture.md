@@ -1,29 +1,28 @@
 # MCP Architecture
 
-This document explains how MCP is wired into Connexity and how contributors
-should add new MCP tools.
+How MCP is wired into Connexity, the rules every tool follows, and how to add one.
+
+MCP is the assistant's main way into the product. Every feature ships its tools
+(`CLAUDE.md` rule 10): few, shaped around the work, scoped to a workspace, paginated, and
+answering in the standard shape below.
 
 ## Why MCP is a separate service
 
-Connexity does not expose MCP directly from the main backend process. Instead it
-uses a dedicated adapter in [`mcp_server/`](../mcp_server):
-
-- the backend remains the system of record for agents, drafts, auth, and business rules
-- the MCP server handles MCP transport, MCP-specific OAuth requirements, and tool registration
-- the tool layer stays thin by forwarding authenticated requests into backend `/api/v1/mcp/*` routes
-
-That split keeps MCP transport concerns out of the main application while
-reusing the same backend models, auth, and audit trail.
+Connexity does not expose MCP from the main backend process. A dedicated adapter in
+[`mcp_server/`](../mcp_server) handles MCP transport, MCP-specific OAuth and tool
+registration, and forwards each call to backend `/api/v1/mcp/*` routes with the user's
+own token. The backend stays the system of record: it authenticates again, decides
+access, writes the answer and records who did what.
 
 ## High-level flow
 
 ```text
-MCP client (Claude/Desktop/etc.)
+MCP client (Claude Code, ChatGPT, …)
   -> MCP HTTP transport on /mcp
   -> FastMCP tool in mcp_server/src/connexity_mcp_server/app.py
   -> tool handler in mcp_server/src/connexity_mcp_server/tools.py
   -> backend client in mcp_server/src/connexity_mcp_server/client.py
-  -> backend /api/v1/mcp/* route
+  -> backend /api/v1/mcp/workspaces/{workspace_id}/… route
   -> CRUD/services/models in backend
 ```
 
@@ -37,274 +36,133 @@ MCP client
   -> MCP server validates bearer token and forwards it to backend /mcp routes
 ```
 
+## The rules every tool follows
+
+### Connections are per user
+
+An OAuth token belongs to the person who approved the connection (its `sub`), and
+refresh tokens are stored per person and client. A person may connect as many
+assistants as they like. Each reaches exactly the workspaces that person can reach
+(Decided 2026-11-12). The token carries no workspace.
+
+### Every call is scoped to a workspace
+
+A workspace is a company: one client of an agency. Every backend `/mcp` route except
+`GET /mcp/workspaces` has the workspace in its path,
+`/api/v1/mcp/workspaces/{workspace_id}/…`, and depends on `McpWorkspaceDep`
+(`require_mcp_workspace` in `backend/app/api/deps.py`).
+
+- Access is decided in one place: `backend/app/crud/workspace.py`. Today a person
+  reaches their own company; memberships across several workspaces replace that there,
+  and nothing else changes.
+- A workspace the person cannot reach answers 404 "Workspace not found", the same as one
+  that does not exist.
+- `test_every_mcp_route_is_scoped_to_a_workspace` fails on any `/mcp` route without the
+  workspace in its path.
+- Tools take `workspace_id` as a required argument. `list_workspaces` is where the
+  assistant gets it.
+
+### One answer shape
+
+Every route answers with `McpAnswer` (`backend/app/models/mcp.py`), and every tool
+returns it unchanged (`Answer` in `mcp_server/.../models.py`):
+
+| Field | What it holds |
+|---|---|
+| `data` | The facts: the result of the call |
+| `rules` | The rules that apply to what was returned, one sentence each. Short; not documentation |
+| `next_steps` | Steps the assistant can take next, in order, naming the tool to call |
+| `guide` | URI of the guide for this part of Connexity (`connexity://guides/<name>`) |
+| `next_cursor` | On lists: pass back as `cursor` for the next page; empty on the last page |
+
+The backend writes `rules` and `next_steps`, because it knows the state; the adapter
+only validates and passes them through.
+
+Errors use the same idea. A route raises `HTTPException` with an `McpErrorDetail` as its
+`detail`: `error`, `next_steps` and `guide`. The adapter turns it into one line the
+assistant can act on: "Workspace not found. Next steps: 1. Call `list_workspaces` …
+Guide: connexity://guides/workspaces". FastAPI's 422 for an invalid argument becomes
+the same kind of line, naming the argument.
+
+### Pagination
+
+Lists take `cursor` and `limit` (default 25, at most 100) and return `next_cursor`. The
+cursor is opaque to the assistant. A cursor that does not decode answers 400 with a next
+step to start over.
+
+### Instructions and guides
+
+- The MCP server sends short **connect instructions** (`INSTRUCTIONS` in
+  `mcp_server/.../guides.py`): what Connexity is, start with `list_workspaces`, follow
+  `rules`, read the `guide`.
+- **Guides** are markdown files in `mcp_server/src/connexity_mcp_server/guides/`, listed
+  in `GUIDES` and served as MCP resources at `connexity://guides/<name>`. A feature that
+  adds tools adds or extends its guide and points its answers' `guide` at it.
+
 ## Main components
 
-### 1. MCP adapter app
-
-[`mcp_server/src/connexity_mcp_server/app.py`](../mcp_server/src/connexity_mcp_server/app.py)
-builds the FastAPI app and the `FastMCP` server.
-
-It is responsible for:
-
-- failing fast when mandatory MCP OAuth config is missing
-- creating the backend client and OIDC token verifier
-- registering MCP tools with `@mcp_server.tool()`
-- mounting the streamable HTTP MCP transport at `MCP_PATH`
-- exposing `/healthz`
-- proxying OAuth metadata and OAuth endpoints back to the backend
-- exposing OAuth protected-resource metadata for MCP clients
-
-This file should stay mostly orchestration-only. Avoid putting business logic
-directly here.
-
-### 2. MCP token verification
-
-[`mcp_server/src/connexity_mcp_server/auth.py`](../mcp_server/src/connexity_mcp_server/auth.py)
-implements `OidcTokenVerifier`.
-
-It validates:
-
-- issuer
-- audience
-- JWKS-backed signature
-- scopes from `scope` / `scp`
-
-The verifier returns an MCP `AccessToken`, which makes the current bearer token
-available to downstream tool code through the MCP auth context.
-
-### 3. Backend forwarding client
-
-[`mcp_server/src/connexity_mcp_server/client.py`](../mcp_server/src/connexity_mcp_server/client.py)
-is the adapter's only backend transport layer.
-
-Key rule: it forwards the currently authenticated MCP user's bearer token to the
-backend on every `/mcp/*` request.
-
-That is what lets the backend:
-
-- authenticate the request again
-- resolve the actual Connexity user
-- stamp audit fields such as `created_by`
-- keep permission checks in one place
-
-### 4. MCP tool handlers
-
-[`mcp_server/src/connexity_mcp_server/tools.py`](../mcp_server/src/connexity_mcp_server/tools.py)
-contains thin async functions that:
-
-- call backend endpoints through `ConnexityBackendClient`
-- normalize backend payloads
-- return tool-specific Pydantic result models
-
-This is the right place for lightweight shaping such as search filtering or
-small response transformations. Do not move core database or ownership logic
-here.
-
-### 5. MCP result models
-
-[`mcp_server/src/connexity_mcp_server/models.py`](../mcp_server/src/connexity_mcp_server/models.py)
-defines the typed payloads returned to MCP clients.
-
-These models are the MCP-facing contract. Keep them explicit and stable.
-
-### 6. Backend MCP routes
-
-[`backend/app/api/routes/mcp.py`](../backend/app/api/routes/mcp.py) is the
-backend entrypoint for MCP-originated actions.
-
-It is protected by
-[`require_mcp_user`](../backend/app/api/deps.py), which validates:
-
-- OAuth bearer token presence
-- configured MCP audience
-- issuer
-- `mcp:access` scope
-- that `sub` resolves to an active Connexity user
-
-The backend route should own authorization, validation, CRUD calls, and any
-state changes.
-
-## Request lifecycle for a tool call
-
-Using `get_agent_draft` as the example:
-
-1. An MCP client calls the tool on the MCP server.
-2. FastMCP authenticates the bearer token using `OidcTokenVerifier`.
-3. The registered tool in `app.py` calls `tools.get_agent_draft(...)`.
-4. `tools.py` calls `ConnexityBackendClient.get_agent_draft(...)`.
-5. `client.py` reads the current MCP access token from auth context and sends it
-   as `Authorization: Bearer ...` to `GET /api/v1/mcp/agents/{agent_id}/draft`.
-6. The backend route validates the token again via `require_mcp_user`.
-7. Backend CRUD loads the draft, scoped to the MCP user's company.
-8. The backend response is normalized into `AgentDraftResult` and returned to
-   the MCP client.
-
-## Design rules for new tools
-
-When adding a tool, keep the layering consistent:
-
-- put durable business logic in the backend, not the MCP adapter
-- keep MCP tool handlers thin and focused on transport-friendly shaping
-- return typed result models from `mcp_server/models.py`
-- forward the current bearer token instead of inventing service credentials
-- add tests on both sides of the boundary
-
-If a tool would require broad search, joins, permissions, or mutation rules,
-that logic belongs in backend services/CRUD plus a backend `/mcp` route.
-
-## How to add a new tool
-
-This is the standard workflow.
-
-### 1. Add or extend a backend `/mcp` route
-
-Update [`backend/app/api/routes/mcp.py`](../backend/app/api/routes/mcp.py).
-
-- Reuse `require_mcp_user` through the router dependency.
-- Accept narrow request shapes.
-- Call backend CRUD/services.
-- Return an existing public model or add a new backend response model if needed.
-
-Example shape:
-
-```python
-@router.get("/agents/{agent_id}/something")
-def get_agent_something(
-    session: SessionDep,
-    agent_id: uuid.UUID,
-) -> SomeResponseModel:
-    ...
-```
-
-If the endpoint mutates data, use `current_user: McpCurrentUser` and pass
-`current_user.id` into the write path for auditability.
-
-### 2. Add a backend client method in the MCP adapter
-
-Update
-[`mcp_server/src/connexity_mcp_server/client.py`](../mcp_server/src/connexity_mcp_server/client.py).
-
-Add a method that maps directly to the backend route:
-
-```python
-async def get_agent_something(self, agent_id: str) -> dict[str, Any]:
-    return await self._request_json("GET", f"/mcp/agents/{agent_id}/something")
-```
-
-Keep the client generic. It should only handle HTTP transport, JSON parsing, and
-error conversion.
-
-### 3. Add an MCP-facing result model
-
-Update
-[`mcp_server/src/connexity_mcp_server/models.py`](../mcp_server/src/connexity_mcp_server/models.py).
-
-Define the typed return value the MCP client should see:
-
-```python
-class AgentSomethingResult(BaseModel):
-    agent_id: str
-    value: str | None = None
-```
-
-### 4. Add the tool handler
-
-Update
-[`mcp_server/src/connexity_mcp_server/tools.py`](../mcp_server/src/connexity_mcp_server/tools.py).
-
-This function should call the backend client and normalize the payload:
-
-```python
-async def get_agent_something(
-    client: ConnexityBackendClient,
-    agent_id: str,
-) -> AgentSomethingResult:
-    payload = await client.get_agent_something(agent_id)
-    return AgentSomethingResult(
-        agent_id=agent_id,
-        value=_string_or_none(payload.get("value")),
-    )
-```
-
-### 5. Register the tool with FastMCP
-
-Update
-[`mcp_server/src/connexity_mcp_server/app.py`](../mcp_server/src/connexity_mcp_server/app.py).
-
-- import the result model
-- import the handler from `tools.py`
-- register a new `@mcp_server.tool()` function
-
-Example:
-
-```python
-@mcp_server.tool()
-async def get_agent_something(agent_id: str) -> AgentSomethingResult:
-    return await _get_agent_something(client=backend_client, agent_id=agent_id)
-```
-
-The registered function should stay minimal. Put transformation logic in
-`tools.py`.
-
-### 6. Add tests
-
-At minimum, cover both layers.
-
-Backend route tests:
-
-- file: [`backend/app/tests/api/routes/test_mcp.py`](../backend/app/tests/api/routes/test_mcp.py)
-- verify auth requirements
-- verify the route returns the expected payload
-- verify audit fields on mutations
-
-MCP adapter tests:
-
-- file: [`mcp_server/tests/test_client.py`](../mcp_server/tests/test_client.py)
-- verify the adapter forwards the current bearer token to backend `/mcp/*`
-
-Add transport/auth tests in
-[`mcp_server/tests/test_auth.py`](../mcp_server/tests/test_auth.py) only when
-the new tool changes MCP auth behavior, metadata exposure, or startup config.
-
-### 7. Run the local checks
-
-Typical commands:
-
-```bash
-cd mcp_server
-uv run pytest
-
-cd ../backend
-uv run pytest app/tests/api/routes/test_mcp.py
-```
-
-For a full manual run from repo root:
-
-```bash
-make dev
-make mcp
-```
-
-## Current implementation map
-
-Current MCP tools map to backend routes like this:
-
-| MCP tool | Adapter handler | Backend route |
-|---|---|---|
-| `list_agents` | `tools.list_agents` | `GET /api/v1/mcp/agents` |
-| `find_agents` | `tools.find_agents` | `GET /api/v1/mcp/agents` then local filtering in adapter |
-| `get_agent_draft` | `tools.get_agent_draft` | `GET /api/v1/mcp/agents/{agent_id}/draft` |
-
-`find_agents` is the one notable exception where the adapter performs a small
-read-only aggregation over paginated backend results. That is acceptable because
-it does not change authorization or state.
+### MCP adapter app (`mcp_server/.../app.py`)
+
+Builds the FastAPI app and the `FastMCP` server. It fails fast when MCP OAuth config is
+missing, registers tools and guide resources, mounts the streamable HTTP transport at
+`MCP_PATH`, exposes `/healthz`, proxies OAuth metadata and endpoints to the backend, and
+serves the OAuth protected-resource metadata. Keep it orchestration only.
+
+### MCP token verification (`mcp_server/.../auth.py`)
+
+`OidcTokenVerifier` validates issuer, audience, JWKS signature and scopes, and puts the
+token in the MCP auth context for the client to forward.
+
+### Backend forwarding client (`mcp_server/.../client.py`)
+
+The adapter's only backend transport. It forwards the current user's bearer token on
+every request and turns error answers into text the assistant can act on.
+
+### Tool handlers and result models (`tools.py`, `models.py`)
+
+Thin functions that call the client and validate the payload into a typed `Answer`. No
+database, ownership or business logic here.
+
+### Backend MCP routes (`backend/app/api/routes/mcp.py`)
+
+Protected by `require_mcp_user` (bearer token, audience, issuer, `mcp:access` scope, an
+active user) and, below `/mcp/workspaces/{workspace_id}`, by `require_mcp_workspace`.
+They own validation, CRUD calls, state changes and the answer's rules and next steps.
+
+## How to add a tool
+
+1. **Prefer extending a tool.** A new filter or field on an existing tool beats a
+   near-duplicate tool.
+2. **Backend route** in `backend/app/api/routes/mcp.py`, under
+   `/workspaces/{workspace_id}/…`, with `workspace: McpWorkspaceDep`. Query through
+   `app/crud/` with `workspace.id` as the company. Answer `McpAnswer[YourModel]` with
+   rules, next steps and a guide. Raise errors with an `McpErrorDetail`. On writes, take
+   `current_user: McpCurrentUser` and record who did it.
+3. **Client method** in `client.py`, mapping one-to-one to the route.
+4. **Result model** in `models.py`: `Answer[YourModel]`.
+5. **Handler** in `tools.py`: call the client, `model_validate` the payload.
+6. **Register** it in `app.py` with a docstring the assistant reads: what it returns and
+   which arguments matter.
+7. **Guide:** add or extend the guide its answers point to, and list it in `GUIDES`.
+8. **Tests on both sides:** backend route tests in
+   `backend/app/tests/api/routes/test_mcp.py` (answer shape, an unreachable workspace,
+   paging, audit fields on writes); adapter tests in `mcp_server/tests/` (token
+   forwarded, arguments sent, answer kept).
+9. **Run** `make check`.
+
+## Current tools
+
+| MCP tool | Backend route |
+|---|---|
+| `list_workspaces` | `GET /api/v1/mcp/workspaces` |
+| `list_agents(workspace_id, query?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/agents` |
 
 ## What not to do
 
-Avoid these patterns:
-
-- putting database logic directly in `mcp_server/tools.py`
-- bypassing backend `/mcp` routes and calling internal backend services from the MCP process
-- introducing service-to-service secrets for normal user-scoped tool calls
-- returning raw backend payloads when an explicit MCP result model would be clearer
-- skipping backend tests because the MCP layer already has tests
+- Database or ownership logic in `mcp_server/`.
+- Calling backend internals from the MCP process instead of `/mcp` routes.
+- Service-to-service secrets for user-scoped calls.
+- A route without the workspace in its path, or deciding access anywhere but
+  `crud/workspace.py`.
+- Raw backend payloads instead of the answer shape.
+- Skipping backend tests because the adapter has tests.

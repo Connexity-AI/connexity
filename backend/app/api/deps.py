@@ -17,6 +17,8 @@ from app.core import security
 from app.core.config import settings
 from app.core.db import engine
 from app.models import Agent, TokenPayload, User
+from app.models.company import Company
+from app.models.mcp import GUIDE_WORKSPACES, McpErrorDetail
 
 cookie_scheme = APIKeyCookie(name=settings.AUTH_COOKIE, auto_error=False)
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -196,6 +198,36 @@ def require_mcp_user(session: SessionDep, bearer: BearerDep) -> User:
 
 
 McpCurrentUser = Annotated[User, Depends(require_mcp_user)]
+
+
+def require_mcp_workspace(
+    session: SessionDep, current_user: McpCurrentUser, workspace_id: uuid.UUID
+) -> Company:
+    """The workspace an MCP call is scoped to, if the person can reach it.
+
+    A workspace they cannot reach answers the same as one that does not exist.
+    """
+    from app import crud
+
+    workspace = crud.get_accessible_workspace(
+        session=session, user=current_user, workspace_id=workspace_id
+    )
+    if workspace is None:
+        raise HTTPException(
+            status_code=404,
+            detail=McpErrorDetail(
+                error="Workspace not found",
+                next_steps=[
+                    "Call `list_workspaces` to see the workspaces you can reach, "
+                    "then pass one of their ids as `workspace_id`."
+                ],
+                guide=GUIDE_WORKSPACES,
+            ).model_dump(),
+        )
+    return workspace
+
+
+McpWorkspaceDep = Annotated[Company, Depends(require_mcp_workspace)]
 
 
 def get_owned_agent(
