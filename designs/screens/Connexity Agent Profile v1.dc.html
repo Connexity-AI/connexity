@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0}*{box-sizing:border-box}button{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<div style="display:flex;min-height:inherit">
+<div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="agents" hint-size="220px,280px"></dc-import></div>
+<main style="flex:1;min-width:944px;padding:24px 32px 48px">
+<div style="max-width:1120px;min-width:880px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:40px">
+<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+<h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">{{ name }}</h1>
+<span style="font-size:13px;color:var(--ink3);white-space:nowrap">{{ caption }}</span>
+</div>
+<div ref="{{ pickerRef }}" style="position:relative">
+<button onClick="{{ togglePeriod }}" style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>
+<span>{{ period }}</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{ periodOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;right:0;top:42px;z-index:20;min-width:200px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18)">
+<sc-for list="{{ periods }}" as="p" hint-placeholder-count="0">
+<div onClick="{{ p.pick }}" style="display:flex;align-items:center;justify-content:space-between;height:36px;padding:0 12px;border-radius:6px;font-size:15px;cursor:pointer" style-hover="background:var(--wash)">
+<span>{{ p.label }}</span>
+<sc-if value="{{ p.current }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Score</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ score }}</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Calls</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ calls }}</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Latency</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ lat }}<span style="font-size:20px;color:var(--ink2)"> s</span></span></div>
+<sc-if value="{{ hasCrit }}" hint-placeholder-val="{{ true }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px">
+<span style="display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--crit)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Critical</span>
+<span style="font-size:30px;line-height:36px;font-weight:500;color:var(--crit)">{{ crit }}</span>
+</div>
+</sc-if>
+<sc-if value="{{ noCrit }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Critical</span><span style="font-size:30px;line-height:36px;font-weight:500">0</span></div>
+</sc-if>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Issues</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ issueCount }}</span></div>
+</div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:16px">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Details</h2>
+<div style="display:grid;grid-template-columns:96px minmax(0,1fr);column-gap:16px;row-gap:14px;font-size:15px;line-height:22px">
+<span style="font-size:13px;color:var(--ink2)">Platform</span><span>Retell</span>
+<span style="font-size:13px;color:var(--ink2)">Agent type</span><span>{{ type }}</span>
+<span style="font-size:13px;color:var(--ink2)">Live version</span><span>Version {{ version }}, since {{ since }}</span>
+<span style="font-size:13px;color:var(--ink2)">Model</span><span>{{ model }}</span>
+<span style="font-size:13px;color:var(--ink2)">Systems</span>
+<div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+<sc-for list="{{ systems }}" as="s" hint-placeholder-count="3">
+<div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+<span>{{ s.name }}</span>
+<sc-if value="{{ s.failing }}"><span style="display:inline-flex;align-items:center;gap:4px;font-size:13px;line-height:18px;color:var(--crit)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>{{ s.failText }}</span></sc-if>
+</div>
+<span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ s.kind }}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Quality and latency</h2>
+<div style="display:flex;align-items:center;gap:16px;font-size:13px;color:var(--ink2)">
+<span style="display:flex;align-items:center;gap:6px"><span style="width:0;height:12px;border-left:1px dashed var(--bc)"></span>New version</span>
+<span style="display:flex;align-items:center;gap:6px"><span style="width:0;height:12px;border-left:1px dashed var(--crit)"></span>Score dropped</span>
+</div>
+</div>
+<div style="position:relative;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">Score</span>
+<div style="position:relative;height:120px">
+<div style="position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:8px"><span style="width:24px;font-size:13px;line-height:1;color:var(--ink3);text-align:right">100</span><span style="flex:1;border-top:1px solid var(--border)"></span></div>
+<div style="position:absolute;left:0;right:0;top:50%;display:flex;align-items:center;gap:8px"><span style="width:24px;font-size:13px;line-height:1;color:var(--ink3);text-align:right">50</span><span style="flex:1;border-top:1px solid var(--border)"></span></div>
+<div style="position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:8px"><span style="width:24px;font-size:13px;line-height:1;color:var(--ink3);text-align:right">0</span><span style="flex:1;border-top:1px solid var(--border)"></span></div>
+<div style="position:absolute;left:32px;right:0;top:0;bottom:0"><svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="{{ scorePath }}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path></svg></div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">Average latency</span>
+<div style="position:relative;height:96px">
+<div style="position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:8px"><span style="width:24px;font-size:13px;line-height:1;color:var(--ink3);text-align:right">2 s</span><span style="flex:1;border-top:1px solid var(--border)"></span></div>
+<div style="position:absolute;left:0;right:0;top:50%;display:flex;align-items:center;gap:8px"><span style="width:24px;font-size:13px;line-height:1;color:var(--ink3);text-align:right">1 s</span><span style="flex:1;border-top:1px solid var(--border)"></span></div>
+<div style="position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:8px"><span style="width:24px;font-size:13px;line-height:1;color:var(--ink3);text-align:right">0</span><span style="flex:1;border-top:1px solid var(--border)"></span></div>
+<div style="{{ goalStyle }}"><span style="flex:1;border-top:1px dashed var(--warn)"></span><span style="position:relative;z-index:1;padding:2px 6px;border-radius:4px;background:var(--s1);font-size:13px;line-height:1;color:var(--warn);white-space:nowrap">Goal {{ goal }} s</span></div>
+<div style="position:absolute;left:32px;right:0;top:0;bottom:0"><svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="{{ latPath }}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path></svg></div>
+</div>
+</div>
+<div style="margin-left:32px;display:grid;grid-template-columns:repeat(30,minmax(0,1fr));font-size:13px;line-height:18px;color:var(--ink3)">
+<sc-for list="{{ days }}" as="d" hint-placeholder-count="0"><span style="white-space:nowrap;overflow:visible">{{ d.label }}</span></sc-for>
+</div>
+<div style="position:absolute;left:32px;right:0;top:0;bottom:34px;pointer-events:none">
+<sc-for list="{{ marks }}" as="m" hint-placeholder-count="0">
+<div style="{{ m.line }}"><span style="{{ m.tag }}">{{ m.text }}</span></div>
+</sc-for>
+</div>
+<div style="position:absolute;left:32px;right:0;top:26px;bottom:34px;display:grid;grid-template-columns:repeat(30,minmax(0,1fr))">
+<sc-for list="{{ days }}" as="d" hint-placeholder-count="0"><div title="{{ d.title }}" style="border-radius:2px" style-hover="background:var(--wash);mix-blend-mode:normal;opacity:.5"></div></sc-for>
+</div>
+</div>
+</div>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:20px 24px 16px">
+<div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Spec · version {{ version }}</h2>
+<span style="font-size:13px;line-height:18px;color:var(--ink3)"><a href="{{ actionsHref }}" style="color:var(--ink2)">{{ clarText }}</a> · Read only. Rules change with a new version or an answered clarification.</span>
+</div>
+<div ref="{{ verRef }}" style="position:relative;flex:none">
+<button onClick="{{ toggleVer }}" style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M13 6h3a2 2 0 0 1 2 2v7"></path><path d="M11 18H8a2 2 0 0 1-2-2V9"></path></svg>
+<span>{{ compareLabel }}</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{ verOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;right:0;top:42px;z-index:20;min-width:240px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18)">
+<sc-for list="{{ verOptions }}" as="o" hint-placeholder-count="0">
+<div onClick="{{ o.pick }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;height:36px;padding:0 12px;border-radius:6px;font-size:15px;cursor:pointer" style-hover="background:var(--wash)">
+<span>{{ o.label }}</span>
+<sc-if value="{{ o.current }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</div>
+<sc-if value="{{ comparing }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:16px;padding:10px 24px;border-top:1px solid var(--border);background:var(--s0);font-size:13px;line-height:18px;color:var(--ink2)">
+<span>{{ compareSummary }}</span>
+<button onClick="{{ clearCompare }}" style="margin-left:auto;display:flex;align-items:center;gap:6px;height:28px;padding:0 8px;margin-top:-4px;margin-bottom:-4px;border:0;border-radius:8px;background:transparent;color:var(--ink2);font-size:13px;cursor:pointer" style-hover="background:var(--wash)">Stop comparing</button>
+</div>
+</sc-if>
+<sc-for list="{{ specGroups }}" as="g" hint-placeholder-count="4">
+<div style="border-top:1px solid var(--border);padding:16px 24px 20px;display:flex;flex-direction:column;gap:14px">
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">{{ g.name }}</span>
+<sc-for list="{{ g.rules }}" as="r" hint-placeholder-count="2">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start">
+<div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+<sc-if value="{{ r.dropped }}"><span style="text-decoration:line-through;color:var(--ink3);text-wrap:pretty">{{ r.text }}</span></sc-if>
+<sc-if value="{{ r.live }}"><span style="text-wrap:pretty">{{ r.text }}</span></sc-if>
+<sc-if value="{{ r.hasRisk }}"><span title="{{ r.riskTitle }}" style="display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px;border-radius:6px;background:var(--unch-bg);color:var(--unch);font-size:13px;line-height:18px;font-weight:500"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path></svg>{{ r.risk }}</span></sc-if>
+</div>
+<span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ r.src }}</span>
+<sc-if value="{{ r.conflict }}"><span style="font-size:13px;line-height:18px;color:var(--warn);text-wrap:pretty">{{ r.conflictText }} <a href="{{ actionsHref }}" style="color:var(--warn)">Clarification open in Action items</a></span></sc-if>
+</div>
+<div style="display:flex;align-items:center;gap:6px;min-height:22px">
+<sc-if value="{{ r.added }}"><span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;background:var(--pass-bg);color:var(--pass);font-size:13px;font-weight:500">Added</span></sc-if>
+<sc-if value="{{ r.dropped }}"><span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;border:1px solid var(--bc);color:var(--ink2);font-size:13px;font-weight:500">Dropped</span></sc-if>
+<sc-if value="{{ r.carried }}"><span title="Came from an answered clarification on an earlier version" style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;border:1px solid var(--border);color:var(--ink2);font-size:13px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>Carried over</span></sc-if>
+<sc-if value="{{ r.conflict }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>In conflict</span></sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-for>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Issues</h2><span style="font-size:13px;color:var(--ink3)">{{ issueCount }} open</span></div>
+<sc-if value="{{ hasIssues }}" hint-placeholder-val="{{ true }}">
+<div style="display:grid;grid-template-columns:104px minmax(0,1fr) 112px 88px 16px;gap:16px;align-items:center;height:40px;padding:0 24px 0 48px;border-top:1px solid var(--border);font-size:13px;color:var(--ink2)">
+<span>Severity</span><span>Issue</span><span style="text-align:right">Calls affected</span><span>First seen</span><span></span>
+</div>
+<sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+<div style="border-top:1px solid var(--border)">
+<div onClick="{{ g.toggle }}" style="display:flex;align-items:center;gap:8px;min-height:48px;padding:0 24px;cursor:pointer;user-select:none" style-hover="background:var(--wash)">
+<span style="display:flex;color:var(--ink2);flex:none">
+<sc-if value="{{ g.expanded }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
+<sc-if value="{{ g.collapsed }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
+</span>
+<span>{{ g.name }}</span>
+<span style="font-size:13px;color:var(--ink2)">{{ g.count }}</span>
+<sc-if value="{{ g.hasCrit }}"><span style="flex:none;display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 6px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>{{ g.crit }} critical</span></sc-if>
+</div>
+<sc-if value="{{ g.expanded }}">
+<div style="padding-bottom:8px">
+<sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="0">
+<div title="Open issue" style="display:grid;grid-template-columns:104px minmax(0,1fr) 112px 88px 16px;gap:16px;align-items:center;min-height:44px;padding:0 24px 0 48px;cursor:pointer" style-hover="background:var(--wash)">
+<span>
+<sc-if value="{{ r.isCrit }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Critical</span></sc-if>
+<sc-if value="{{ r.isWarn }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Warning</span></sc-if>
+</span>
+<span style="text-wrap:pretty;padding:10px 0">{{ r.text }}</span>
+<span style="text-align:right">{{ r.calls }}</span>
+<span style="color:var(--ink2)">{{ r.first }}</span>
+<span style="display:flex;color:var(--ink3)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</sc-if>
+<sc-if value="{{ noIssues }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:8px;padding:16px 24px 24px;border-top:1px solid var(--border);color:var(--ink2)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--pass)"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>No open issues</div>
+</sc-if>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;agent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;insurance&quot;,&quot;car&quot;,&quot;restaurant&quot;,&quot;clinic&quot;,&quot;dental&quot;],&quot;default&quot;:&quot;insurance&quot;,&quot;tsType&quot;:&quot;'insurance' | 'car' | 'restaurant' | 'clinic' | 'dental'&quot;},&quot;compareWith&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;}}">
+class Component extends DCLogic {
+  static THEMES = {
+    dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
+    light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
+  };
+  static AREAS = { cut:'Callers are never cut off', book:'Every booking is confirmed', fast:'Answers feel instant', facts:'Facts are always right', heard:'Callers are understood', once:'Callers are asked things once', person:'Callers reach a person when they ask', private:'Nothing private is said' };
+  static M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  // versions: [number, [month, day] or null if before the period, score level, latency level]
+  static AGENTS = {
+    insurance: { name:'Insurance renewals', type:'Conversational flow', model:'GPT-4.1', calls:96, lat:1.0, goal:1.5, seed:0,
+      versions:[[12,null,58,0.9],[13,[9,24],60,0.9],[14,[10,6],41,1.3]],
+      systems:[['n8n workflow','quote-lookup v7',1],['n8n workflow','policy-renewal v3',0],['CRM','GoHighLevel',0]],
+      issues:[['crit','Transfers to a person drop the call','cut',14,'7 Nov'],['crit','Renewal price quoted from the old policy','facts',9,'6 Nov'],['warn','Long pause after looking up a quote','fast',31,'6 Nov'],['warn','Hang-ups while the caller is on hold','cut',6,'25 Oct'],['warn','Cancellation fee stated that the policy does not have','facts',4,'8 Nov']] },
+    car: { name:'Car service booking', type:'Single prompt', model:'GPT-4o mini', calls:168, lat:1.8, goal:1.5, seed:7,
+      versions:[[8,null,51,1.7],[9,[9,20],48,1.9]],
+      systems:[['n8n workflow','slot-finder v4',0],['Calendar','Google Calendar',0],['CRM','GoHighLevel',0]],
+      issues:[['crit','Bookings saved for the wrong day after a slot lookup','book',6,'3 Nov'],['warn','Confirmation text not sent','book',8,'1 Nov'],['warn','Long pause after checking service slots','fast',41,'15 Oct'],['warn','Long pause before the greeting','fast',22,'19 Oct'],['warn','Talks over the caller while they give the plate number','fast',13,'27 Oct'],['warn','Vehicle registration misheard','heard',17,'21 Oct'],['warn','Service price quoted without tax','facts',9,'30 Oct']] },
+    restaurant: { name:'Restaurant reservations', type:'Conversational flow', model:'GPT-4.1 mini', calls:241, lat:0.8, goal:1.5, seed:13,
+      versions:[[5,null,60,0.8],[6,[9,28],63,0.8]],
+      systems:[['Booking','OpenTable',0],['n8n workflow','table-hold v2',0]],
+      issues:[['warn','Bookings never read back','book',28,'14 Oct'],['warn','Party size misheard','heard',12,'20 Oct'],['warn','Wrong opening hours on public holidays','facts',7,'2 Nov'],['warn','Request for a manager ignored','person',4,'5 Nov']] },
+    clinic: { name:'Clinic after-hours', type:'Single prompt', model:'GPT-4.1', calls:97, lat:1.1, goal:1.5, seed:19,
+      versions:[[3,null,66,1.1],[4,[10,2],66,1.1]],
+      systems:[['n8n workflow','on-call-page v5',0],['CRM','GoHighLevel',0]],
+      issues:[['warn','Date of birth asked twice','once',19,'13 Oct'],['warn','Hang-up while the on-call line rings','cut',6,'28 Oct'],['warn','Callback number not read back','book',5,'4 Nov']] },
+    dental: { name:'Dental reception', type:'Conversational flow', model:'GPT-4.1', calls:120, lat:1.2, goal:1.0, seed:23,
+      versions:[[10,null,74,1.2],[11,[9,18],78,1.2]],
+      systems:[['Practice software','Dentrix',0],['n8n workflow','appointment-sync v9',0]],
+      issues:[] }
+  };
+  static RISK = { m:['Money','Touches money'], s:['Safety','Touches caller safety'], c:['Compliance','Touches compliance'] };
+  // [area, rule, risk, versions it is in, source: 'p' = prompt or [who, date], carried over into live version, in conflict]
+  static SPECS = {
+    insurance: { clar:2, conflict:'The version 14 prompt says to offer it to every renewing customer.', rules:[
+      ['facts','Quote renewal prices only from the quote lookup, never from memory.','m',[12,13,14],'p'],
+      ['facts','Never quote a renewal price above the price in the quote lookup.','m',[13,14],'p'],
+      ['facts','Offer the loyalty discount to every renewing customer.','m',[14],'p'],
+      ['facts','Offer the loyalty discount only to customers of 3 years or more.','m',[12,13,14],['Alex','22 Sep'],1,1],
+      ['facts','Mention only the cancellation fees listed on the caller\u2019s policy.','m',[14],['assistant','10 Nov']],
+      ['cut','Stay on the line until a transfer is answered.','',[13,14],['assistant','28 Oct'],1],
+      ['cut','Ask before putting a caller on hold.','',[12,13,14],'p'],
+      ['person','Transfer to a person whenever the caller asks for one.','',[12,13,14],'p'],
+      ['private','Confirm date of birth and policy number before discussing the policy.','c',[12,13,14],'p'],
+      ['private','Never read out a full card or bank number.','c',[12,13,14],'p'],
+      ['private','Read the full policy number back to the caller.','',[12,13],'p'],
+      ['book','Renew a policy only after the caller agrees to the final price.','c',[12,13,14],'p'],
+      ['book','Send a renewal confirmation by text after every renewal.','',[13,14],'p'],
+      ['book','Email the renewal documents within one hour.','',[12],'p']
+    ]},
+    car: { clar:1, rules:[
+      ['facts','Quote service prices including tax.','m',[8,9],'p'],
+      ['facts','Never promise a repair price before the car is inspected.','m',[8,9],'p'],
+      ['book','Book only slots returned by the slot finder.','',[9],'p'],
+      ['book','Read the booking date and time back before ending the call.','',[8,9],'p'],
+      ['heard','Spell the registration back letter by letter.','',[8,9],['Alex','28 Aug'],1]
+    ]},
+    restaurant: { clar:1, rules:[
+      ['book','Read every booking back to the caller.','',[5,6],'p'],
+      ['book','Take bookings for up to 10 guests and pass larger groups to a person.','',[6],'p'],
+      ['book','Hold a table for late guests for up to 20 minutes.','',[6],['assistant','10 Nov']],
+      ['facts','Give holiday opening hours from the booking system.','',[5,6],['assistant','12 Sep'],1],
+      ['person','Pass the call to the manager when asked.','',[5,6],'p'],
+      ['private','Never take card details over the phone.','c',[5,6],'p']
+    ]},
+    clinic: { clar:1, rules:[
+      ['person','Tell callers with chest pain or trouble breathing to call 911.','s',[3,4],'p'],
+      ['person','Page the on-call doctor for any urgent symptom.','s',[3,4],'p'],
+      ['once','Ask for the date of birth once and reuse it.','',[3,4],['Alex','15 Oct'],1],
+      ['book','Read the callback number back to the caller.','',[3,4],'p'],
+      ['private','Never give test results over the phone.','c',[3,4],'p']
+    ]},
+    dental: { clar:1, rules:[
+      ['book','Offer the first free slot, then two alternatives.','',[10,11],'p'],
+      ['book','Send a reminder text the day before each appointment.','',[11],'p'],
+      ['book','Book two family members back to back when asked.','',[11],['Alex','9 Nov']],
+      ['facts','Never quote a price for treatment; offer a consultation instead.','m',[10,11],'p'],
+      ['private','Confirm the patient\u2019s date of birth before discussing appointments.','c',[10,11],'p'],
+      ['heard','Spell the patient\u2019s surname back.','',[10],'p']
+    ]}
+  };
+  static AREA_ORDER = ['facts','cut','person','private','book','fast','heard','once'];
+  constructor(props) {
+    super(props);
+    this.state = { periodOpen:false, period:'Last 30 days', open:null, verOpen:false, compare:undefined };
+    this.pickerRef = React.createRef();
+    this.verRef = React.createRef();
+  }
+  componentDidMount() {
+    this.onDoc = e => {
+      if (this.state.periodOpen && this.pickerRef.current && !this.pickerRef.current.contains(e.target)) this.setState({ periodOpen:false });
+      if (this.state.verOpen && this.verRef.current && !this.verRef.current.contains(e.target)) this.setState({ verOpen:false });
+    };
+    document.addEventListener('mousedown', this.onDoc);
+  }
+  componentWillUnmount() { document.removeEventListener('mousedown', this.onDoc); }
+  agentId() {
+    let q = null;
+    try { q = new URLSearchParams(window.location.search).get('agent'); } catch (_) {}
+    const id = this.props.agent || q || 'insurance';
+    return Component.AGENTS[id] ? id : 'insurance';
+  }
+  renderVals() {
+    const C = Component, M = C.M;
+    const A = C.AGENTS[this.agentId()];
+    const noise = [3,-2,1,4,-1,0,2,-3,1,2,-1,3,0,-2,2,1,-1,0,3,-2,1,2,0,-1,2,1,-3,0,1,2];
+    const n = 30, start = new Date(2026, 9, 12);
+    const vs = A.versions.map(([v, d, s, l]) => ({ v, s, l, date: d ? new Date(2026, d[0], d[1]) : null, since: d ? `${d[1]} ${M[d[0]]}` : null }));
+    const live = vs[vs.length - 1];
+    const days = [];
+    for (let i = 0; i < n; i++) {
+      const d = new Date(start); d.setDate(start.getDate() + i);
+      const ver = [...vs].reverse().find(x => !x.date || x.date <= d);
+      const k = noise[(i + A.seed) % 30];
+      const score = Math.max(0, Math.min(100, Math.round(ver.s + k * 0.8)));
+      const lat = Math.max(0.3, Math.round((ver.l + k * 0.04) * 100) / 100);
+      const label = `${d.getDate()} ${M[d.getMonth()]}`;
+      days.push({ i, d, ver, score, lat, label: i % 7 === 0 ? label : '', title: `${label} · version ${ver.v} · score ${score} · ${lat.toFixed(1)} s` });
+    }
+    const x = i => ((i + 0.5) / n * 100).toFixed(2);
+    const scorePath = days.map((p, i) => `${i ? 'L' : 'M'}${x(i)} ${(100 - p.score).toFixed(2)}`).join(' ');
+    const latPath = days.map((p, i) => `${i ? 'L' : 'M'}${x(i)} ${(100 - Math.min(2, p.lat) / 2 * 100).toFixed(2)}`).join(' ');
+    const marks = [];
+    vs.forEach((v, j) => {
+      if (!v.date || j === 0) return;
+      const idx = Math.round((v.date - start) / 864e5);
+      if (idx < 0 || idx >= n) return;
+      const delta = v.s - vs[j - 1].s;
+      const worse = delta <= -3;
+      const col = worse ? 'var(--crit)' : 'var(--bc)';
+      marks.push({
+        text: `v${v.v} ${delta > 0 ? '+' : delta < 0 ? '\u2212' : '±'}${Math.abs(delta)}`,
+        line: { position:'absolute', top:0, bottom:0, left:(idx / n * 100) + '%', borderLeft:`1px dashed ${col}` },
+        tag: { position:'absolute', top:0, left:6, fontSize:13, lineHeight:'18px', whiteSpace:'nowrap', color: worse ? 'var(--crit)' : 'var(--ink2)', fontWeight: worse ? 500 : 400 }
+      });
+    });
+    const sevRank = s => s === 'crit' ? 0 : 1;
+    const by = {};
+    A.issues.forEach(([sev, text, area, calls, first]) => { (by[area] = by[area] || []).push({ sev, text, calls, first }); });
+    const groups = Object.keys(by).map(area => {
+      const rows = by[area].sort((a, b) => sevRank(a.sev) - sevRank(b.sev) || b.calls - a.calls);
+      return { area, rows, crit: rows.filter(r => r.sev === 'crit').length, calls: rows.reduce((s, r) => s + r.calls, 0) };
+    }).sort((a, b) => b.crit - a.crit || b.rows.length - a.rows.length || b.calls - a.calls);
+    const open = this.state.open || (groups[0] ? { [groups[0].area]: true } : {});
+    const crit = A.issues.filter(i => i[0] === 'crit').length;
+    const aid = this.agentId(), SP = C.SPECS[aid], lv = live.v;
+    const earlier = vs.slice(0, -1).reverse();
+    const req = this.state.compare === undefined ? (this.props.compareWith || null) : this.state.compare;
+    const cmp = earlier.some(v => v.v === req) ? req : null;
+    const srcText = s => s === 'p' ? 'From the prompt' : `From a clarification, answered by ${s[0] === 'assistant' ? 'your assistant' : s[0]} on ${s[1]}`;
+    const rules = SP.rules.map(([area, text, risk, inV, src, carried, conflict]) => {
+      const inLive = inV.includes(lv), inCmp = cmp != null && inV.includes(cmp);
+      if (!inLive && !inCmp) return null;
+      const st = cmp == null ? 'live' : inLive && inCmp ? 'kept' : inLive ? 'added' : 'dropped';
+      return { area, text, st, src: srcText(src), risk: risk ? C.RISK[risk][0] : '', riskTitle: risk ? C.RISK[risk][1] : '', hasRisk: !!risk,
+        dropped: st === 'dropped', live: st !== 'dropped', added: st === 'added', carried: !!carried && inLive, conflict: !!conflict && inLive, conflictText: SP.conflict || '' };
+    }).filter(Boolean);
+    const specGroups = C.AREA_ORDER.filter(a => rules.some(r => r.area === a)).map(a => ({ name: C.AREAS[a], rules: rules.filter(r => r.area === a) }));
+    const cnt = k => rules.filter(r => r.st === k).length;
+    return {
+      verRef: this.verRef, verOpen: this.state.verOpen,
+      toggleVer: () => this.setState(s => ({ verOpen: !s.verOpen })),
+      compareLabel: cmp == null ? 'Compare with an earlier version' : `Compared with version ${cmp}`,
+      verOptions: [{ label:`Version ${lv} only`, current: cmp == null, pick: () => this.setState({ compare:null, verOpen:false }) },
+        ...earlier.map(v => ({ label: `Version ${v.v}${v.since ? ', from ' + v.since : ''}`, current: cmp === v.v, pick: () => this.setState({ compare:v.v, verOpen:false }) }))],
+      comparing: cmp != null, clearCompare: () => this.setState({ compare:null }),
+      compareSummary: `Version ${lv} against version ${cmp}: ${cnt('added')} added, ${cnt('dropped')} dropped, ${cnt('kept')} kept`,
+      specGroups,
+      clarText: `${SP.clar} open clarification${SP.clar === 1 ? '' : 's'} for this agent`,
+      actionsHref: `Connexity Action items.dc.html?agent=${aid}`,
+      rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
+      pickerRef: this.pickerRef,
+      period: this.state.period, periodOpen: this.state.periodOpen,
+      togglePeriod: () => this.setState(s => ({ periodOpen: !s.periodOpen })),
+      periods: ['Last 7 days','Last 30 days','Last 90 days'].map(l => ({ label:l, current: l === this.state.period, pick: () => this.setState({ period:l, periodOpen:false }) })),
+      name: A.name,
+      caption: `Retell · ${A.type.toLowerCase()} · version ${live.v}, live since ${live.since}`,
+      score: live.s, calls: A.calls, lat: A.lat.toFixed(1), crit, hasCrit: crit > 0, noCrit: crit === 0, issueCount: A.issues.length,
+      type: A.type, version: live.v, since: live.since, model: A.model,
+      systems: A.systems.map(([kind, name, f]) => ({ kind, name, failing: f > 0, failText: `${f} failing` })),
+      scorePath, latPath, days, marks, goal: A.goal.toFixed(1),
+      goalStyle: { position:'absolute', left:32, right:0, top: ((1 - A.goal / 2) * 100) + '%', display:'flex', alignItems:'center', gap:8, transform:'translateY(-50%)' },
+      hasIssues: groups.length > 0, noIssues: groups.length === 0,
+      groups: groups.map(g => ({
+        name: C.AREAS[g.area], count: g.rows.length, crit: g.crit, hasCrit: g.crit > 0,
+        expanded: !!open[g.area], collapsed: !open[g.area],
+        toggle: () => this.setState({ open: { ...open, [g.area]: !open[g.area] } }),
+        rows: g.rows.map(r => ({ ...r, isCrit: r.sev === 'crit', isWarn: r.sev === 'warn' }))
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

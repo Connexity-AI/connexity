@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0}*{box-sizing:border-box}button,input{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}input::placeholder{color:var(--ink3)}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<dc-import name="Connexity Readiness Bar" credits="{{ creditsState }}" hint-size="100%,36px"></dc-import>
+<div style="display:flex;min-height:inherit">
+<div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="agency" credits="{{ creditsState }}" style="height:100%" hint-size="220px,320px"></dc-import></div>
+<main style="flex:1;min-width:944px;padding:24px 32px 48px">
+<div style="max-width:1120px;min-width:880px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:baseline;gap:12px;min-height:40px"><h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Agency settings</h1><span style="font-size:13px;color:var(--ink3)">Signal Voice · 6 workspaces</span></div>
+<div style="display:grid;grid-template-columns:176px minmax(0,1fr);gap:32px;align-items:start">
+<nav style="display:flex;flex-direction:column;gap:2px">
+<sc-for list="{{ sections }}" as="n" hint-placeholder-count="2"><button onClick="{{ n.pick }}" style="{{ n.style }}">{{ n.label }}</button></sc-for>
+</nav>
+<div ref="{{ bodyRef }}" style="display:flex;flex-direction:column;gap:16px;min-width:0">
+<sc-if value="{{ onMembers }}" hint-placeholder-val="{{ true }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 180px 140px;gap:16px;align-items:center;height:40px;padding:0 24px;font-size:13px;color:var(--ink2)"><span>Person</span><span>Email</span><span>Workspaces</span><span>Can approve</span></div>
+<sc-for list="{{ members }}" as="u" hint-placeholder-count="5">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 180px 140px;gap:16px;align-items:center;min-height:52px;padding:6px 24px;border-top:1px solid var(--border)">
+<span style="display:flex;align-items:center;gap:10px;min-width:0"><span style="flex:none;width:24px;height:24px;border-radius:12px;background:var(--unch-bg);color:var(--ink2);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center">{{ u.initial }}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ u.name }}</span><sc-if value="{{ u.invited }}"><span style="flex:none;font-size:13px;color:var(--ink3)">Invited</span></sc-if></span>
+<span style="color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ u.email }}</span>
+<div data-ws="1" style="position:relative">
+<button onClick="{{ u.toggleWs }}" style="display:flex;align-items:center;gap:6px;height:32px;padding:0 8px 0 10px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:13px;cursor:pointer;white-space:nowrap" style-hover="background:var(--wash)">{{ u.wsLabel }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg></button>
+<sc-if value="{{ u.wsOpen }}">
+<div style="position:absolute;left:0;top:38px;z-index:20;width:240px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18)">
+<sc-for list="{{ u.wsOpts }}" as="o" hint-placeholder-count="0">
+<div onClick="{{ o.pick }}" style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:6px;font-size:13px;cursor:pointer" style-hover="background:var(--wash)">
+<sc-if value="{{ o.on }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span></sc-if>
+<sc-if value="{{ o.off }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;border:1px solid var(--bc)"></span></sc-if>
+<span>{{ o.label }}</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+<label onClick="{{ u.toggle }}" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+<sc-if value="{{ u.can }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span></sc-if>
+<sc-if value="{{ u.cannot }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;border:1px solid var(--bc)"></span></sc-if><span>{{ u.canText }}</span></label>
+</div>
+</sc-for>
+<div style="padding:12px 24px 16px;border-top:1px solid var(--border);font-size:13px;line-height:18px;color:var(--ink3)">People who can approve may archive issues, close incidents, override the gate, and change the Playbook and checks, in the workspaces they can access.</div>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px 24px;display:flex;align-items:center;gap:12px">
+<span style="flex:none;font-weight:500">Invite</span>
+<input value="{{ invite }}" onChange="{{ onInvite }}" placeholder="name@agency.com" style="flex:1;min-width:0;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s0);color:var(--ink);font-size:15px;outline:none">
+<div data-ws="1" style="position:relative">
+<button onClick="{{ inv.toggleWs }}" style="display:flex;align-items:center;gap:6px;height:32px;padding:0 8px 0 10px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:13px;cursor:pointer;white-space:nowrap" style-hover="background:var(--wash)">{{ inv.wsLabel }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg></button>
+<sc-if value="{{ inv.wsOpen }}">
+<div style="position:absolute;left:0;top:38px;z-index:20;width:240px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18)">
+<sc-for list="{{ inv.wsOpts }}" as="o" hint-placeholder-count="0">
+<div onClick="{{ o.pick }}" style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:6px;font-size:13px;cursor:pointer" style-hover="background:var(--wash)">
+<sc-if value="{{ o.on }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span></sc-if>
+<sc-if value="{{ o.off }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;border:1px solid var(--bc)"></span></sc-if>
+<span>{{ o.label }}</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+<label onClick="{{ toggleInviteCan }}" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+<sc-if value="{{ inviteCan }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span></sc-if>
+<sc-if value="{{ inviteCannot }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;border:1px solid var(--bc)"></span></sc-if>Can approve</label>
+<button onClick="{{ sendInvite }}" disabled="{{ noInvite }}" style="{{ inviteStyle }}">Invite</button>
+</div>
+</sc-if>
+<sc-if value="{{ onBilling }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+<div style="display:flex;align-items:baseline;gap:12px"><span style="font-size:13px;color:var(--ink2)">Plan</span><h2 style="margin:0;font-size:20px;line-height:28px;font-weight:500">{{ planName }}</h2></div>
+<sc-if value="{{ isFree }}" hint-placeholder-val="{{ false }}"><button style="height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:13px;cursor:pointer" style-hover="background:var(--wash)">Upgrade</button></sc-if>
+</div>
+<span style="color:var(--ink2);text-wrap:pretty">{{ planLine }}</span>
+<sc-if value="{{ isFree }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:6px;padding-top:4px">
+<div style="display:flex;justify-content:space-between;font-size:13px"><span>Call minutes observed this month</span><span><span style="font-weight:500">640</span><span style="color:var(--ink2)"> of 1,000</span></span></div>
+<div style="height:4px;border-radius:2px;background:var(--unch-bg);overflow:hidden"><div style="width:64%;height:100%;background:var(--ink);border-radius:2px"></div></div>
+</div>
+</sc-if>
+</div>
+<sc-if value="{{ isPaid }}" hint-placeholder-val="{{ true }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:flex;flex-direction:column;gap:14px">
+<span style="font-size:13px;color:var(--ink2)">Credits</span>
+<span style="display:flex;align-items:baseline;gap:8px"><span style="{{ balanceStyle }}">{{ balance }}</span><span style="font-size:15px;color:var(--ink2)">credits</span></span>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;gap:2px;height:6px;border-radius:3px;overflow:hidden;background:var(--unch-bg)"><sc-for list="{{ useParts }}" as="u" hint-placeholder-count="3"><div title="{{ u.title }}" style="{{ u.style }}"></div></sc-for></div>
+<div style="display:flex;flex-wrap:wrap;gap:16px;font-size:13px;color:var(--ink2)"><span style="color:var(--ink3)">Used this month by workspace</span><sc-for list="{{ useParts }}" as="u" hint-placeholder-count="0"><span style="display:flex;align-items:center;gap:6px"><span style="{{ u.dot }}"></span>{{ u.label }} {{ u.amount }}</span></sc-for></div>
+</div>
+<span style="{{ lastsStyle }}">{{ lasts }}</span>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">By workspace</h2><span style="font-size:13px;color:var(--ink3)">This month, for billing each client</span></div>
+<sc-for list="{{ byWs }}" as="w" hint-placeholder-count="6">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 200px 120px;gap:16px;align-items:center;min-height:44px;padding:0 24px;border-top:1px solid var(--border)">
+<span>{{ w.name }}</span>
+<div style="height:4px;border-radius:2px;background:var(--unch-bg);overflow:hidden"><div style="{{ w.bar }}"></div></div>
+<span style="text-align:right">{{ w.credits }} credits</span>
+</div>
+</sc-for>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:flex;flex-direction:column;gap:14px">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Top up</h2>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+<sc-for list="{{ topups }}" as="t" hint-placeholder-count="3"><button onClick="{{ t.pick }}" style="{{ t.style }}" style-hover="background:var(--wash)"><span style="font-weight:500">{{ t.credits }} credits</span><span style="font-size:13px;color:var(--ink2)">{{ t.price }}</span></button></sc-for>
+</div>
+<div onClick="{{ toggleAuto }}" style="display:flex;align-items:center;gap:12px;padding-top:12px;border-top:1px solid var(--border);cursor:pointer;user-select:none">
+<span style="{{ switchTrack }}"><span style="{{ switchKnob }}"></span></span>
+<span style="display:flex;flex-direction:column"><span>Auto top-up</span><span style="font-size:13px;line-height:18px;color:var(--ink2)">When the balance falls below 1,000, add 5,000</span></span>
+</div>
+</div>
+</sc-if>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Pricing</h2></div>
+<sc-for list="{{ prices }}" as="x" hint-placeholder-count="5">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;min-height:44px;padding:0 24px;border-top:1px solid var(--border)"><span>{{ x.what }}</span><span style="color:var(--ink2)">{{ x.cost }}</span></div>
+</sc-for>
+</div>
+<sc-if value="{{ isPaid }}" hint-placeholder-val="{{ true }}">
+<div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px;align-items:start">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Invoices</h2></div>
+<sc-for list="{{ invoices }}" as="v" hint-placeholder-count="3">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 96px auto;gap:16px;align-items:center;min-height:44px;padding:0 16px 0 24px;border-top:1px solid var(--border)"><span>{{ v.month }}</span><span style="text-align:right">{{ v.amount }}</span><a href="#" onClick="{{ noop }}" style="font-size:13px;color:var(--ink2)">Download</a></div>
+</sc-for>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:flex;flex-direction:column;gap:12px">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Payment method</h2>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span>Visa ending 4242</span><a href="#" onClick="{{ noop }}" title="Opens the payment provider's page" style="display:flex;align-items:center;gap:4px;font-size:13px;color:var(--ink2)">Change<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg></a></div>
+</div>
+</div>
+</sc-if>
+</sc-if>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;section&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;members&quot;,&quot;billing&quot;],&quot;default&quot;:&quot;members&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;plan&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;paid&quot;,&quot;free&quot;],&quot;default&quot;:&quot;paid&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;credits&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;ok&quot;,&quot;low&quot;,&quot;out&quot;],&quot;default&quot;:&quot;ok&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  static THEMES = {
+    dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
+    light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
+  };
+  static WS = [['northfield','Northfield Group',6240],['bright','Bright Dental',3120],['kestrel','Kestrel Plumbing',2380],['maple','Maple Vets',1610],['summit','Summit Legal',900],['harbor','Harbor Hotels',250]];
+  static MEMBERS = [['Alex Morgan','alex@example.com','all',true],['Sam Reyes','sam@example.com','all',true],['Dmytro Kovalenko','dmytro@example.com',['northfield','bright','kestrel','maple'],true],['Priya Shah','priya@example.com',['northfield','bright'],false],['Jonas Weber','jonas@example.com',['bright'],false]];
+  constructor(props) {
+    super(props);
+    let qs = null; try { qs = new URLSearchParams(window.location.search).get('section'); } catch (_) {}
+    this.state = { section: props.section || qs || 'members', autoTop:true, members: Component.MEMBERS.map(m => ({ name:m[0], email:m[1], ws:m[2], can:m[3] })), wsMenu:null, invite:'', inviteWs:'all', inviteCan:false };
+    this.bodyRef = React.createRef();
+  }
+  componentDidMount() {
+    this.onDoc = e => { if (this.state.wsMenu != null && !(e.target.closest && e.target.closest('button,[data-ws]')) ) this.setState({ wsMenu:null }); };
+    document.addEventListener('mousedown', this.onDoc);
+  }
+  componentWillUnmount() { document.removeEventListener('mousedown', this.onDoc); }
+  renderVals() {
+    const C = Component, S = this.state;
+    const nav = on => ({ display:'flex', alignItems:'center', height:36, padding:'0 12px', borderRadius:8, border:0, textAlign:'left', background: on ? 'var(--wash)' : 'transparent', color: on ? 'var(--ink)' : 'var(--ink2)', fontSize:15, cursor:'pointer' });
+    const wsLabel = ws => ws === 'all' ? 'All workspaces' : ws.length === 1 ? C.WS.find(w => w[0] === ws[0])[1] : ws.length + ' workspaces';
+    const wsOpts = (ws, set) => [{ label:'All workspaces', on: ws === 'all', off: ws !== 'all', pick: () => set('all') }].concat(C.WS.map(([id, name]) => { const on = ws === 'all' || ws.includes(id);
+      return { label:name, on, off:!on, pick: () => { const cur = ws === 'all' ? C.WS.map(w => w[0]) : ws; const next = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id]; set(next.length === C.WS.length ? 'all' : next.length ? next : cur); } }; }));
+    const okInvite = /.+@.+\..+/.test(S.invite.trim());
+    return {
+      rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
+      creditsState: this.props.credits || 'ok', bodyRef: this.bodyRef,
+      sections: [['members','Members'],['billing','Billing']].map(([id, label]) => ({ label, style: nav(S.section === id), pick: () => this.setState({ section:id, wsMenu:null }) })),
+      onMembers: S.section === 'members', onBilling: S.section === 'billing',
+      members: S.members.map((m, i) => ({ name:m.name, email:m.email, initial:m.name[0].toUpperCase(), invited: !!m.invited, can:m.can, cannot:!m.can, canText: m.can ? 'Can approve' : 'View only',
+        toggle: e => { e.preventDefault(); this.setState(s => ({ members: s.members.map((x, j) => j === i ? { ...x, can: !x.can } : x) })); },
+        wsLabel: wsLabel(m.ws), wsOpen: S.wsMenu === i, toggleWs: () => this.setState(s => ({ wsMenu: s.wsMenu === i ? null : i })),
+        wsOpts: wsOpts(m.ws, v => this.setState(s => ({ members: s.members.map((x, j) => j === i ? { ...x, ws:v } : x) }))) })),
+      inv: { wsLabel: wsLabel(S.inviteWs), wsOpen: S.wsMenu === 'inv', toggleWs: () => this.setState(s => ({ wsMenu: s.wsMenu === 'inv' ? null : 'inv' })), wsOpts: wsOpts(S.inviteWs, v => this.setState({ inviteWs:v })) },
+      invite: S.invite, onInvite: e => this.setState({ invite: e.target.value }), noInvite: !okInvite,
+      inviteCan: S.inviteCan, inviteCannot: !S.inviteCan, toggleInviteCan: e => { e.preventDefault(); this.setState(s => ({ inviteCan: !s.inviteCan })); },
+      inviteStyle: { height:36, padding:'0 16px', borderRadius:8, border:0, background:'var(--accent)', color:'var(--on-accent)', fontSize:15, fontWeight:500, cursor:'pointer', opacity: okInvite ? 1 : 0.4 },
+      sendInvite: () => { if (!okInvite) return; const e = S.invite.trim(); this.setState(s => ({ members:[...s.members, { name: e.split('@')[0].replace(/^./, c => c.toUpperCase()), email:e, ws:s.inviteWs, can:s.inviteCan, invited:true }], invite:'', inviteWs:'all', inviteCan:false })); },
+      noop: e => e.preventDefault(),
+      ...(() => {
+        const plan = this.props.plan === 'free' ? 'free' : 'paid', cr = ['low','out'].includes(this.props.credits) ? this.props.credits : 'ok';
+        const bal = { ok:8420, low:1240, out:0 }[cr];
+        const cols = ['var(--ink)','var(--ink2)','var(--ink3)','var(--bc)','var(--unch)'], top = C.WS.slice(0, 4).map(w => [w[1], w[2]]), rest = C.WS.slice(4).reduce((n, w) => n + w[2], 0);
+        const parts = top.concat(rest ? [['Others', rest]] : []).map((x, k) => [x[0], x[1], cols[k]]), tot = C.WS.reduce((n, w) => n + w[2], 0);
+        const on = S.autoTop;
+        return {
+          isFree: plan === 'free', isPaid: plan === 'paid', planName: plan === 'free' ? 'Free' : 'Paid',
+          planLine: plan === 'free' ? '1,000 call minutes observed a month, text simulations only, 30 days of history. Audio and phone tests are on Paid.' : 'One credit balance for every workspace. Every check and test level, full history. You pay only for what you use.',
+          balance: bal.toLocaleString('en-US'), balanceStyle: { fontSize:40, lineHeight:'44px', fontWeight:500, letterSpacing:'-0.01em', color: cr === 'out' ? 'var(--crit)' : 'var(--ink)' },
+          lasts: { ok:'Lasts about 3 weeks at your current rate', low:'Lasts about 3 days at your current rate', out:'Out of credits. Tests and paid judge checks are paused; recording, rule checks, incidents and alerts keep running.' }[cr],
+          lastsStyle: { color: cr === 'ok' ? 'var(--ink2)' : 'var(--ink)', textWrap:'pretty' },
+          useParts: parts.map(([label, n, col]) => ({ label, amount: n.toLocaleString('en-US'), title: `${label}: ${n.toLocaleString('en-US')} credits`, style:{ flex: `${n} 0 0`, background: col }, dot:{ width:8, height:8, borderRadius:2, background: col } })),
+          topups: [['5,000','$50'],['20,000','$180'],['50,000','$400']].map(([credits, price]) => ({ credits, price, pick: () => {},
+            style:{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:2, padding:'12px 16px', borderRadius:8, border:'1px solid var(--bc)', background:'transparent', color:'var(--ink)', fontSize:15, cursor:'pointer', textAlign:'left' } })),
+          switchTrack: { flex:'none', width:32, height:18, borderRadius:9, background: on ? 'var(--accent)' : 'var(--unch-bg)', border: on ? 0 : '1px solid var(--bc)', position:'relative', transition:'background 150ms' },
+          switchKnob: { position:'absolute', top: on ? 2 : 1, left: on ? 16 : 1, width:14, height:14, borderRadius:7, background: on ? 'var(--on-accent)' : 'var(--ink2)', transition:'left 150ms' },
+          toggleAuto: () => this.setState(s => ({ autoTop: !s.autoTop })),
+          prices: [['1 minute of call observed','1 credit'],['1 minute of text simulation','2 credits'],['1 minute of audio simulation','6 credits'],['1 real phone test call','20 credits'],['Judge checks','1 credit each, free with your own model key']].map(([what, cost]) => ({ what, cost })),
+          byWs: C.WS.map(w => ({ name: w[1], credits: w[2].toLocaleString('en-US'), bar:{ width: (w[2] / C.WS[0][2] * 100) + '%', height:'100%', background:'var(--ink)', borderRadius:2 } })),
+          invoices: [['October 2026','$180.00'],['September 2026','$180.00'],['August 2026','$50.00']].map(([month, amount]) => ({ month, amount }))
+        };
+      })(),
+    };
+  }
+}
+</script>
+</body>
+</html>

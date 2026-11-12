@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0}*{box-sizing:border-box}button,input{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}input::placeholder{color:var(--ink3)}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<sc-if value="{{ standalone }}" hint-placeholder-val="{{ true }}"><dc-import name="Connexity Readiness Bar" hint-size="100%,36px"></dc-import></sc-if>
+<div style="{{ rowStyle }}">
+<sc-if value="{{ standalone }}" hint-placeholder-val="{{ true }}">
+<div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" style="height:100%" active="calls" hint-size="220px,320px"></dc-import></div>
+</sc-if>
+<div style="{{ mainStyle }}">
+<div style="{{ innerStyle }}">
+<sc-if value="{{ standalone }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:40px">
+<h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Calls</h1>
+<div ref="{{ pickerRef }}" style="position:relative">
+<button onClick="{{ togglePeriod }}" style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>
+<span>{{ period }}</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{ periodOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;right:0;top:42px;z-index:20;min-width:200px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18)">
+<sc-for list="{{ periods }}" as="p" hint-placeholder-count="0">
+<div onClick="{{ p.pick }}" style="display:flex;align-items:center;justify-content:space-between;height:36px;padding:0 12px;border-radius:6px;font-size:15px;cursor:pointer" style-hover="background:var(--wash)">
+<span>{{ p.label }}</span>
+<sc-if value="{{ p.current }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Calls</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ tCalls }}</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--crit)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Failed</span><span style="font-size:30px;line-height:36px;font-weight:500;color:var(--crit)">{{ tFailed }}</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--warn)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Degraded</span><span style="font-size:30px;line-height:36px;font-weight:500;color:var(--warn)">{{ tDegraded }}</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Clean</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ tClean }}</span></div>
+</div>
+<div ref="{{ filtRef }}" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+<div style="display:flex;align-items:center;gap:8px;width:280px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s1)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;color:var(--ink2)"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+<input value="{{ q }}" onChange="{{ onQ }}" placeholder="Phone number or call ID" style="flex:1;min-width:0;height:34px;border:0;outline:none;background:transparent;color:var(--ink);font-size:15px">
+</div>
+<sc-if value="{{ hasIssue }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:6px;height:36px;padding:0 4px 0 12px;border-radius:8px;border:1px solid var(--ink2);background:var(--wash);font-size:15px;white-space:nowrap"><span style="color:var(--ink2)">{{ issueKind }}</span><a href="{{ issueHref }}" style="color:var(--ink);text-decoration:none">{{ issueTitle }}</a><button onClick="{{ clearIssue }}" title="Remove" style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:0;border-radius:6px;background:transparent;color:var(--ink2);cursor:pointer" style-hover="color:var(--ink)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button></span></sc-if>
+<sc-for list="{{ filters }}" as="f" hint-placeholder-count="4">
+<div style="position:relative">
+<button onClick="{{ f.toggle }}" style="{{ f.btnStyle }}" style-hover="background:var(--wash)">
+<span>{{ f.label }}</span>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{ f.open }}">
+<div style="position:absolute;left:0;top:42px;z-index:20;min-width:220px;max-height:360px;overflow:auto;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18)">
+<sc-for list="{{ f.options }}" as="o" hint-placeholder-count="0">
+<div onClick="{{ o.pick }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;height:36px;padding:0 12px;border-radius:6px;font-size:15px;cursor:pointer;white-space:nowrap" style-hover="background:var(--wash)">
+<span>{{ o.label }}</span>
+<sc-if value="{{ o.current }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-for>
+<sc-if value="{{ anyFilter }}" hint-placeholder-val="{{ false }}"><button onClick="{{ clearAll }}" style="height:36px;padding:0 8px;border:0;background:transparent;color:var(--ink2);font-size:15px;cursor:pointer;text-decoration:underline">Clear</button></sc-if>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="{{ headStyle }}">
+<span>Time</span>
+<sc-if value="{{ showAgent }}" hint-placeholder-val="{{ true }}"><span>Agent</span></sc-if>
+<span>Caller</span><span style="text-align:right">Duration</span><span>Result</span><span>Worst finding</span>
+</div>
+<sc-for list="{{ rows }}" as="r" hint-placeholder-count="12">
+<a href="{{ r.href }}" style="{{ r.rowStyle }}" style-hover="background:var(--wash);opacity:1">
+<span style="white-space:nowrap">{{ r.time }}</span>
+<sc-if value="{{ r.showAgent }}"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.agent }}</span></sc-if>
+<span style="color:var(--ink2);white-space:nowrap">{{ r.caller }}</span>
+<span style="color:var(--ink2);text-align:right">{{ r.dur }}</span>
+<span style="display:flex">
+<sc-if value="{{ r.isFailed }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Failed</span></sc-if>
+<sc-if value="{{ r.isDegraded }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Degraded</span></sc-if>
+<sc-if value="{{ r.isClean }}"><span style="color:var(--ink2)">Clean</span></sc-if>
+</span>
+<span style="display:flex;align-items:center;gap:8px;min-width:0">
+<sc-if value="{{ r.hasSrc }}"><span style="flex:none;display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:6px;border:1px solid var(--bc);color:var(--ink2);font-size:13px;line-height:18px">{{ r.srcLabel }}</span></sc-if>
+<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.find }}</span>
+</span>
+</a>
+</sc-for>
+<sc-if value="{{ noRows }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:12px;padding:20px 24px;border-top:1px solid var(--border);color:var(--ink2)">No calls match.<button onClick="{{ clearAll }}" style="padding:0;border:0;background:transparent;color:var(--ink);font-size:15px;cursor:pointer;text-decoration:underline">Clear the search and filters</button></div>
+</sc-if>
+<sc-if value="{{ hasMore }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;justify-content:center;padding:12px;border-top:1px solid var(--border)"><button onClick="{{ showMore }}" style="height:36px;padding:0 16px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">Show more</button></div>
+</sc-if>
+</div>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;embedded&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;agent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;insurance&quot;,&quot;car&quot;,&quot;restaurant&quot;,&quot;clinic&quot;,&quot;dental&quot;],&quot;default&quot;:&quot;insurance&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;period&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  static THEMES = {
+    dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
+    light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
+  };
+  static M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  static AGENTS = { insurance:'Insurance renewals', restaurant:'Restaurant reservations', car:'Car service booking', clinic:'Clinic after-hours', dental:'Dental reception' };
+  // [calls, failed, degraded] over the last 30 days, real calls only
+  static TOTALS = { insurance:[96,14,31], restaurant:[488,6,58], car:[310,11,71], clinic:[160,3,24], dental:[230,3,28] };
+  static SCALE = { 'Last 7 days':0.24, 'Last 30 days':1, 'Last 90 days':2.9 };
+  static CATS = { greet:'Greeting and identification', collect:'Information collection', book:'Booking', resched:'Rescheduling and cancelling', price:'Pricing and quotes', objection:'Objection handling', transfer:'Transfers and escalation', compliance:'Compliance and privacy', flow:'Conversation flow quality', end:'Ending the call', fast:'Responsiveness', tools:'Tools and integrations', speech:'Speech recognition', other:'Other' };
+  static CAT_ORDER = ['greet','collect','book','resched','price','objection','transfer','compliance','flow','end','fast','tools','speech','other'];
+  static FIND = {
+    insurance: [['transfer','Transfer to the renewals team dropped the call','crit'],['tools','Quote lookup timed out','crit'],['price','Renewal price quoted from the old policy','crit'],['fast','Paused 3 s after looking up a quote','warn'],['flow','Caller hung up while on hold','warn'],['price','Mentioned a cancellation fee the policy does not have','warn']],
+    car: [['book','Booking saved for the wrong day','crit'],['tools','Booking tool returned an error','crit'],['tools','Confirmation text was not sent','warn'],['fast','Paused 4 s after checking service slots','warn'],['speech','Registration misheard','warn'],['price','Service price quoted without tax','warn'],['fast','Talked over the caller during the plate number','warn']],
+    restaurant: [['transfer','Transfer to the front desk dropped the call','crit'],['tools','Booking tool returned an error','crit'],['book','Booking not read back','warn'],['speech','Party size misheard','warn'],['other','Gave regular hours on a public holiday','warn'],['transfer','Request for a manager ignored','warn']],
+    clinic: [['transfer','Urgent symptom not passed to the on-call doctor','crit'],['tools','Booking tool returned an error','crit'],['transfer','Told the caller to go to the emergency room','warn'],['collect','Asked for the date of birth twice','warn'],['transfer','Caller hung up while the on-call line rang','warn'],['collect','Callback number not read back','warn']],
+    dental: [['tools','Booking tool returned an error','crit'],['book','Offered a slot that was already taken','warn'],['tools','Appointment not saved to the practice software','warn']]
+  };
+  static FIXED = [
+    { id:'C-20481', m:0, agent:'insurance', last4:'4821', dur:298, result:'failed', find:'Transfer to the renewals team dropped the call', cat:'transfer', src:'real' },
+    { id:'S-0915', m:2, agent:'insurance', last4:'0100', dur:110, result:'failed', find:'Quoted $712, above the $668 in the quote lookup', cat:'price', src:'sim' },
+    { id:'C-20470', m:11, agent:'restaurant', last4:'1187', dur:50, result:'clean', src:'real' },
+    { id:'C-20477', m:24, agent:'car', last4:'7390', dur:94, result:'degraded', find:'Confirmation text was not sent', cat:'tools', src:'real' },
+    { id:'C-20466', m:-86, agent:'car', last4:'5316', dur:134, result:'failed', find:'Booking tool returned an error', cat:'tools', src:'real' }
+  ];
+  // issue filter from the single issue page: [agent, finding, tiles calls/failed/degraded]
+  static ISSUES = { 'I-1042':['car','Booking tool returned an error',[38,38,0]], 'I-1053':['clinic','Told the caller to go to the emergency room',[9,0,9]], 'I-0988':['insurance','Caller hung up while on hold',[12,0,12]],
+    'INC-0412':[['car','restaurant','clinic','dental'],'Booking tool returned an error',[31,31,0],'Incident','Booking tool failing'], 'INC-0411':[['insurance'],'Quote lookup timed out',[6,6,0],'Incident','Quote lookup timing out'] };
+  static ROWS = (() => {
+    const C = Component;
+    let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const pick = ['restaurant','restaurant','restaurant','car','car','dental','dental','insurance','insurance','clinic'];
+    const rows = C.FIXED.filter(f => f.m <= 24); let m = 24, n = 20476;
+    for (let i = 0; i < 110; i++) {
+      m += 5 + Math.floor(rnd() * 20);
+      const agent = pick[Math.floor(rnd() * pick.length)];
+      const src = i % 17 === 5 ? 'sim' : i % 29 === 11 ? 'test' : 'real';
+      const r = rnd(), pool = C.FIND[agent];
+      let result = 'clean', f = null;
+      if (r < 0.07) { result = 'failed'; const cs = pool.filter(p => p[2] === 'crit'); f = cs[i % cs.length]; }
+      else if (r < 0.27) { result = 'degraded'; const w = pool.filter(p => p[2] === 'warn'); f = w[Math.floor(rnd() * w.length)]; }
+      rows.push({ id: (src === 'real' ? 'C-' : src === 'sim' ? 'S-' : 'T-') + (n--), m, agent, last4: String(1000 + Math.floor(rnd() * 9000)), dur: 40 + Math.floor(rnd() * 380), result, find: f ? f[1] : '', cat: f ? f[0] : null, src });
+    }
+    rows.sort((a, b) => a.m - b.m);
+    return rows;
+  })();
+  constructor(props) {
+    super(props);
+    let iq = null;
+    try { iq = new URLSearchParams(window.location.search).get('issue'); } catch (_) {}
+    const issue = props.issue || iq;
+    this.state = { periodOpen:false, period:null, menu:null, q:'', agentF:'', resultF:'', catF:'', src:{ real:true }, shown:25, issue: Component.ISSUES[issue] ? issue : null };
+    this.pickerRef = React.createRef();
+    this.filtRef = React.createRef();
+  }
+  componentDidMount() {
+    this.onDoc = e => {
+      if (this.state.periodOpen && this.pickerRef.current && !this.pickerRef.current.contains(e.target)) this.setState({ periodOpen:false });
+      if (this.state.menu && this.filtRef.current && !this.filtRef.current.contains(e.target)) this.setState({ menu:null });
+    };
+    document.addEventListener('mousedown', this.onDoc);
+  }
+  componentWillUnmount() { document.removeEventListener('mousedown', this.onDoc); }
+  timeLabel(m) {
+    const base = new Date(2026, 10, 11, 9, 42), d = new Date(base - m * 6e4);
+    const hm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    const days = Math.round((new Date(2026, 10, 11) - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 864e5);
+    return (days === 0 ? 'Today' : days === 1 ? 'Yesterday' : d.getDate() + ' ' + Component.M[d.getMonth()]) + ' ' + hm;
+  }
+  renderVals() {
+    const C = Component, st = this.state;
+    const embedded = !!this.props.embedded;
+    const fixedAgent = embedded && C.AGENTS[this.props.agent] ? this.props.agent : null;
+    const period = st.period || this.props.period || 'Last 30 days';
+    const agentSel = fixedAgent || st.agentF;
+    const iss = st.issue ? C.ISSUES[st.issue] : null;
+    const tot = iss ? iss[2] : (agentSel ? [C.TOTALS[agentSel]] : Object.values(C.TOTALS)).reduce((a, t) => [a[0] + t[0], a[1] + t[1], a[2] + t[2]], [0, 0, 0]);
+    const k = C.SCALE[period] || 1, sc = v => Math.round(v * k);
+    const fmt = v => v.toLocaleString('en-US');
+    const q = st.q.trim(), qd = q.replace(/\D/g, ''), ql = q.toLowerCase();
+    const list = C.ROWS.filter(r => {
+      if (agentSel && r.agent !== agentSel) return false;
+      if (iss && (![].concat(iss[0]).includes(r.agent) || r.find !== iss[1])) return false;
+      if (st.resultF && r.result !== st.resultF) return false;
+      if (st.catF && r.cat !== st.catF) return false;
+      if (!st.src[r.src]) return false;
+      if (q) {
+        const byId = r.id.toLowerCase().includes(ql);
+        const byPhone = qd.length > 0 && (qd.length >= 4 ? qd.endsWith(r.last4) : r.last4.includes(qd));
+        if (!byId && !byPhone) return false;
+      }
+      return true;
+    });
+    const showAgent = !fixedAgent;
+    const cols = showAgent ? '128px 200px 88px 72px 104px minmax(0,1fr)' : '128px 88px 72px 104px minmax(0,1fr)';
+    const rowStyle = { display:'grid', gridTemplateColumns:cols, gap:16, alignItems:'center', minHeight:44, padding:'0 24px', borderTop:'1px solid var(--border)', color:'var(--ink)', textDecoration:'none', cursor:'pointer' };
+    const fallback = { failed:'C-20481', degraded:'C-20477', clean:'C-20470' };
+    const href = r => 'Connexity Call.dc.html?call=' + (C.FIXED.some(f => f.id === r.id) ? r.id : r.src === 'sim' ? 'S-0915' : r.find === 'Booking tool returned an error' ? 'C-20466' : fallback[r.result]);
+    const rows = list.slice(0, st.shown).map(r => ({
+      href: href(r), rowStyle, showAgent, time: this.timeLabel(r.m), agent: C.AGENTS[r.agent], caller: '•••• ' + r.last4,
+      dur: Math.floor(r.dur / 60) + ':' + String(r.dur % 60).padStart(2, '0'),
+      isFailed: r.result === 'failed', isDegraded: r.result === 'degraded', isClean: r.result === 'clean',
+      hasSrc: r.src !== 'real', srcLabel: r.src === 'sim' ? 'Simulated' : 'Test', find: r.find
+    }));
+    const btn = active => ({ display:'flex', alignItems:'center', gap:6, height:36, padding:'0 10px 0 12px', borderRadius:8, border:'1px solid ' + (active ? 'var(--ink2)' : 'var(--bc)'), background: active ? 'var(--wash)' : 'transparent', color:'var(--ink)', fontSize:15, cursor:'pointer', whiteSpace:'nowrap' });
+    const mk = (key, label, opts, isCur, set, active, keepOpen) => ({
+      key, label, open: st.menu === key, btnStyle: btn(active),
+      toggle: () => this.setState(s => ({ menu: s.menu === key ? null : key })),
+      options: opts.map(([v, l]) => ({ label:l, current: isCur(v), pick: () => { set(v); if (!keepOpen) this.setState({ menu:null }); } }))
+    });
+    const srcNames = { real:'Real', sim:'Simulated', test:'Test' };
+    const srcOn = Object.keys(srcNames).filter(s => st.src[s]);
+    const srcDefault = srcOn.length === 1 && srcOn[0] === 'real';
+    const filters = [];
+    if (showAgent) filters.push(mk('agent', st.agentF ? C.AGENTS[st.agentF] : 'All agents', [['', 'All agents'], ...Object.entries(C.AGENTS)], v => v === st.agentF, v => this.setState({ agentF:v, shown:25 }), !!st.agentF));
+    filters.push(mk('result', st.resultF ? { failed:'Failed', degraded:'Degraded', clean:'Clean' }[st.resultF] : 'Any result', [['', 'Any result'], ['failed', 'Failed'], ['degraded', 'Degraded'], ['clean', 'Clean']], v => v === st.resultF, v => this.setState({ resultF:v, shown:25 }), !!st.resultF));
+    filters.push(mk('cat', st.catF ? C.CATS[st.catF] : 'Any category', [['', 'Any category'], ...C.CAT_ORDER.map(c => [c, C.CATS[c]])], v => v === st.catF, v => this.setState({ catF:v, shown:25 }), !!st.catF));
+    filters.push(mk('src', srcDefault ? 'Real calls' : srcOn.map(s => srcNames[s]).join(', '), Object.entries(srcNames), v => !!st.src[v],
+      v => this.setState(s => { const next = { ...s.src, [v]: !s.src[v] }; return Object.values(next).some(Boolean) ? { src: next, shown:25 } : null; }), !srcDefault, true));
+    const anyFilter = !!(q || st.agentF || st.resultF || st.catF || !srcDefault || st.issue);
+    return {
+      standalone: !embedded, rowStyle: embedded ? { display:'block' } : { display:'flex', flex:1 },
+      rootStyle: embedded ? { display:'block', color:'var(--ink)', fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums' }
+        : { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], display:'flex', flexDirection:'column', background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
+      mainStyle: embedded ? {} : { flex:1, minWidth:944, padding:'24px 32px 48px' },
+      innerStyle: embedded ? { display:'flex', flexDirection:'column', gap:16 } : { maxWidth:1120, minWidth:880, display:'flex', flexDirection:'column', gap:24 },
+      pickerRef: this.pickerRef, filtRef: this.filtRef,
+      period, periodOpen: st.periodOpen,
+      togglePeriod: () => this.setState(s => ({ periodOpen: !s.periodOpen })),
+      periods: ['Last 7 days','Last 30 days','Last 90 days'].map(l => ({ label:l, current: l === period, pick: () => this.setState({ period:l, periodOpen:false }) })),
+      tCalls: fmt(sc(tot[0])), tFailed: fmt(sc(tot[1])), tDegraded: fmt(sc(tot[2])), tClean: fmt(sc(tot[0]) - sc(tot[1]) - sc(tot[2])),
+      q: st.q, onQ: e => this.setState({ q: e.target.value, shown:25 }),
+      filters, anyFilter,
+      hasIssue: !!iss, issueKind: iss && iss[3] ? iss[3] : 'Issue', issueTitle: iss ? (iss[4] || iss[1]) : '', issueHref: (iss && iss[3] ? 'Connexity Incident.dc.html?incident=' : 'Connexity Issue.dc.html?issue=') + (st.issue || ''),
+      clearIssue: () => this.setState({ issue:null, shown:25 }),
+      clearAll: () => this.setState({ q:'', agentF:'', resultF:'', catF:'', src:{ real:true }, menu:null, shown:25, issue:null }),
+      showAgent, headStyle: { ...rowStyle, minHeight:40, borderTop:0, fontSize:13, color:'var(--ink2)', cursor:'default' },
+      rows, noRows: list.length === 0, hasMore: list.length > st.shown,
+      showMore: () => this.setState(s => ({ shown: s.shown + 25 }))
+    };
+  }
+}
+</script>
+</body>
+</html>

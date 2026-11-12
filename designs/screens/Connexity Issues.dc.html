@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0}*{box-sizing:border-box}button,input{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}input::placeholder{color:var(--ink3)}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<sc-if value="{{ standalone }}" hint-placeholder-val="{{ true }}"><dc-import name="Connexity Readiness Bar" hint-size="100%,36px"></dc-import></sc-if>
+<div style="{{ rowStyle }}">
+<sc-if value="{{ standalone }}" hint-placeholder-val="{{ true }}">
+<div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" style="height:100%" active="issues" hint-size="220px,320px"></dc-import></div>
+</sc-if>
+<div style="{{ mainStyle }}">
+<div style="{{ innerStyle }}">
+<sc-if value="{{ standalone }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:40px">
+<h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Issues</h1>
+<div ref="{{ pickerRef }}" style="position:relative">
+<button onClick="{{ togglePeriod }}" style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>
+<span>{{ period }}</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{ periodOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;right:0;top:42px;z-index:20;min-width:200px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18)">
+<sc-for list="{{ periods }}" as="p" hint-placeholder-count="0">
+<div onClick="{{ p.pick }}" style="display:flex;align-items:center;justify-content:space-between;height:36px;padding:0 12px;border-radius:6px;font-size:15px;cursor:pointer" style-hover="background:var(--wash)">
+<span>{{ p.label }}</span>
+<sc-if value="{{ p.current }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Open</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ tOpen }}</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--crit)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Critical</span><span style="font-size:30px;line-height:36px;font-weight:500;color:var(--crit)">{{ tCrit }}</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--ink2)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>Reopened</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ tReop }}</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Resolved</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ tRes }}</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Calls affected</span><span style="display:flex;align-items:baseline;gap:6px"><span style="font-size:30px;line-height:36px;font-weight:500">{{ tCalls }}</span><span style="font-size:15px;color:var(--ink3)">of {{ tCallsOf }}</span></span></div>
+</div>
+<div ref="{{ filtRef }}" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+<div style="display:flex;align-items:center;gap:8px;width:280px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s1)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;color:var(--ink2)"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+<input value="{{ q }}" onChange="{{ onQ }}" placeholder="Issue title or ID" style="flex:1;min-width:0;height:34px;border:0;outline:none;background:transparent;color:var(--ink);font-size:15px">
+</div>
+<sc-for list="{{ filters }}" as="f" hint-placeholder-count="4">
+<div style="position:relative">
+<button onClick="{{ f.toggle }}" style="{{ f.btnStyle }}" style-hover="background:var(--wash)">
+<span>{{ f.label }}</span>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{ f.open }}">
+<div style="position:absolute;left:0;top:42px;z-index:20;min-width:220px;max-height:360px;overflow:auto;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18)">
+<sc-for list="{{ f.options }}" as="o" hint-placeholder-count="0">
+<div onClick="{{ o.pick }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;height:36px;padding:0 12px;border-radius:6px;font-size:15px;cursor:pointer;white-space:nowrap" style-hover="background:var(--wash)">
+<span>{{ o.label }}</span>
+<sc-if value="{{ o.current }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-for>
+<sc-if value="{{ anyFilter }}" hint-placeholder-val="{{ false }}"><button onClick="{{ clearAll }}" style="height:36px;padding:0 8px;border:0;background:transparent;color:var(--ink2);font-size:15px;cursor:pointer;text-decoration:underline">Clear</button></sc-if>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="{{ headStyle }}">
+<span>Issue</span>
+<sc-if value="{{ showAgent }}" hint-placeholder-val="{{ true }}"><span>Agent</span></sc-if>
+<span>Severity</span><span>Calls affected</span><span>Status</span><span>Milestone</span><span>Last seen</span>
+</div>
+<sc-for list="{{ groups }}" as="g" hint-placeholder-count="8">
+<div style="border-top:1px solid var(--border)">
+<div onClick="{{ g.toggle }}" style="display:flex;align-items:center;gap:8px;min-height:48px;padding:0 24px;cursor:pointer;user-select:none" style-hover="background:var(--wash)">
+<span style="display:flex;color:var(--ink2);flex:none">
+<sc-if value="{{ g.expanded }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
+<sc-if value="{{ g.collapsed }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
+</span>
+<span>{{ g.name }}</span>
+<span style="font-size:13px;color:var(--ink2)">{{ g.summary }}</span>
+<sc-if value="{{ g.hasCrit }}"><span style="flex:none;display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 6px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>{{ g.crit }} critical</span></sc-if>
+</div>
+<sc-if value="{{ g.expanded }}">
+<div style="padding-bottom:8px">
+<sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="0">
+<a href="{{ r.href }}" title="Open the issue" style="{{ r.rowStyle }}" style-hover="background:var(--wash);opacity:1">
+<span style="padding:10px 0;text-wrap:pretty">{{ r.title }}</span>
+<sc-if value="{{ r.showAgent }}"><span style="font-size:13px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.agent }}</span></sc-if>
+<span style="display:flex">
+<sc-if value="{{ r.isCrit }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Critical</span></sc-if>
+<sc-if value="{{ r.isWarn }}"><span style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--warn)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Warning</span></sc-if>
+</span>
+<span style="font-size:13px;white-space:nowrap">{{ r.calls }}<span style="color:var(--ink3)"> · {{ r.pct }}</span></span>
+<span style="display:flex;font-size:13px;line-height:18px">
+<sc-if value="{{ r.isOpen }}"><span>Open</span></sc-if>
+<sc-if value="{{ r.isReop }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--accent);color:var(--on-accent);font-weight:500"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>Reopened</span></sc-if>
+<sc-if value="{{ r.isRes }}"><span style="color:var(--pass)">{{ r.resText }}</span></sc-if>
+<sc-if value="{{ r.isKnown }}"><span style="color:var(--ink2)">{{ r.knownText }}</span></sc-if>
+</span>
+<span style="font-size:13px;color:var(--ink2);white-space:nowrap">{{ r.milestone }}</span>
+<span style="font-size:13px;color:var(--ink2);white-space:nowrap">{{ r.seen }}</span>
+</a>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-for>
+<sc-if value="{{ noRows }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:12px;padding:20px 24px;border-top:1px solid var(--border);color:var(--ink2)">No issues match.<button onClick="{{ clearAll }}" style="padding:0;border:0;background:transparent;color:var(--ink);font-size:15px;cursor:pointer;text-decoration:underline">Clear the search and filters</button></div>
+</sc-if>
+</div>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;open&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;&quot;,&quot;transfer&quot;,&quot;book&quot;,&quot;fast&quot;,&quot;price&quot;,&quot;tools&quot;],&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;embedded&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;agent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;insurance&quot;,&quot;car&quot;,&quot;restaurant&quot;,&quot;clinic&quot;,&quot;dental&quot;],&quot;default&quot;:&quot;insurance&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;period&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  static THEMES = {
+    dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
+    light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
+  };
+  static AGENTS = { insurance:'Insurance renewals', restaurant:'Restaurant reservations', car:'Car service booking', clinic:'Clinic after-hours', dental:'Dental reception' };
+  // calls per agent and distinct calls affected, last 30 days
+  static TOTALS = { insurance:96, restaurant:488, car:310, clinic:160, dental:230 };
+  static AFFECTED = { insurance:58, restaurant:46, car:64, clinic:24, dental:20 };
+  static SCALE = { 'Last 7 days':0.24, 'Last 30 days':1, 'Last 90 days':2.9 };
+  static DAYS = { 'Last 7 days':7, 'Last 30 days':30, 'Last 90 days':90 };
+  static CATS = { greet:'Greeting and identification', collect:'Information collection', book:'Booking', resched:'Rescheduling and cancelling', price:'Pricing and quotes', objection:'Objection handling', transfer:'Transfers and escalation', compliance:'Compliance and privacy', flow:'Conversation flow quality', end:'Ending the call', fast:'Responsiveness', tools:'Tools and integrations', speech:'Speech recognition', other:'Other' };
+  static CAT_ORDER = ['greet','collect','book','resched','price','objection','transfer','compliance','flow','end','fast','tools','speech','other'];
+  static DETAIL = ['I-1042','I-1053','I-0988'];
+  // open incidents: [id, title, agents, calls failed, since, still failing or stopped text]
+  static INCIDENTS = [['INC-0412','Booking tool failing',['car','restaurant','clinic','dental'],31,'since 09:12',null],['INC-0411','Quote lookup timing out',['insurance'],6,'since 10:05','Stopped at 10:41']];
+  // [id, category, agent, title, c|w, calls in 30 days, o open | r reopened | d resolved | k known, milestone, minutes since last seen, resolved in version]
+  static I = [
+    ['I-1037','transfer','insurance','Transfer to the renewals team dropped the call','c',31,'r',62,18],
+    ['I-1051','transfer','restaurant','Transfer to the front desk dropped the call','c',14,'o',62,95],
+    ['I-1048','transfer','clinic','Urgent symptom not passed to the on-call doctor','c',5,'o',62,610],
+    ['I-1053','transfer','clinic','Told the caller to go to the emergency room','w',9,'o',62,360],
+    ['I-1044','transfer','restaurant','Request for a manager ignored','w',9,'o',62,240],
+    ['I-1060','transfer','dental','Put through to the front desk without a summary','w',6,'o',62,1500],
+    ['I-1039','book','car','Booking saved for the wrong day','w',12,'o',64,75],
+    ['I-1055','book','restaurant','Booking not read back','w',22,'o',64,30],
+    ['I-1058','book','dental','Offered a slot that was already taken','w',8,'o',64,200],
+    ['I-1067','book','dental','Booked a check-up without the date of birth','w',5,'o',64,900],
+    ['I-1062','book','car','Booked a service the garage does not offer','w',4,'o',64,1300],
+    ['I-1066','book','clinic','Callback booked outside on-call hours','w',4,'o',64,2900],
+    ['I-1064','book','restaurant','Party booked over the table limit','w',3,'o',64,1700],
+    ['I-1069','book','restaurant','Booking made for the wrong month','w',2,'o',64,4300],
+    ['I-1031','fast','car','Paused 4 s after checking service slots','w',26,'r',62,12],
+    ['I-1033','fast','insurance','Paused 3 s after looking up a quote','w',18,'o',62,40],
+    ['I-1045','fast','restaurant','Slow first reply','w',16,'o',62,55],
+    ['I-1040','fast','car','Talked over the caller during the plate number','w',9,'o',62,130],
+    ['I-1056','fast','restaurant','Paused while checking the table plan','w',8,'o',62,170],
+    ['I-1046','fast','dental','Slow first reply','w',7,'o',62,300],
+    ['I-1052','fast','insurance','Talked over the caller','w',6,'o',62,420],
+    ['I-1049','fast','clinic','Paused after asking for the date of birth','w',5,'o',62,700],
+    ['I-1059','fast','car','Slow first reply','w',5,'o',62,1100],
+    ['I-1063','fast','clinic','Slow first reply','w',3,'o',62,2600],
+    ['I-1035','price','insurance','Renewal price quoted from the old policy','c',11,'o',67,150],
+    ['I-1054','price','insurance','Loyalty discount applied twice','w',3,'o',67,2200],
+    ['I-1038','price','insurance','Mentioned a cancellation fee the policy does not have','w',9,'r',67,260],
+    ['I-1041','price','car','Service price quoted without tax','w',12,'o',67,90],
+    ['I-1047','price','insurance','Quoted a monthly price without the yearly total','w',6,'o',67,800],
+    ['I-1050','price','car','Quoted the price for the wrong engine size','w',4,'o',67,1900],
+    ['I-1057','price','dental','Quoted a hygienist price above the price list','w',3,'o',67,3100],
+    ['I-1061','price','restaurant','Quoted the set menu at last year\u2019s price','w',2,'o',67,5200],
+    ['I-1065','price','car','Inspection price given without the retest fee','w',2,'o',67,6100],
+    ['I-1036','speech','car','Registration misheard','w',15,'o',70,140],
+    ['I-1043','speech','restaurant','Party size misheard','w',10,'o',70,110],
+    ['I-1068','speech','insurance','Policy number misheard','w',7,'o',70,480],
+    ['I-1070','speech','clinic','Medication name misheard','w',4,'o',70,1400],
+    ['I-1071','speech','dental','Patient name misheard','w',4,'o',70,1600],
+    ['I-1072','speech','insurance','Zip code misheard','w',3,'o',70,2500],
+    ['I-1073','speech','car','Phone number misheard','w',3,'o',70,3300],
+    ['I-1074','speech','restaurant','Time misheard as the next hour','w',2,'o',70,4800],
+    ['I-1075','collect','clinic','Asked for the date of birth twice','w',9,'o',72,190],
+    ['I-1076','collect','clinic','Callback number not read back','w',6,'o',72,520],
+    ['I-1077','collect','insurance','Asked for the policy number again after a transfer','w',5,'o',72,880],
+    ['I-1078','collect','car','Mileage not asked before quoting','w',4,'o',72,1250],
+    ['I-1079','collect','dental','Insurance provider not asked','w',3,'o',72,2000],
+    ['I-1080','collect','insurance','Did not ask whether the drivers changed','w',2,'o',72,3600],
+    ['I-1081','collect','restaurant','Phone number not asked for large groups','w',2,'o',72,5000],
+    ['I-1082','end','insurance','Ended the call while the caller was speaking','w',4,'o',75,660],
+    ['I-1083','end','restaurant','Hung up during a long silence','w',3,'o',75,1000],
+    ['I-1084','end','car','Ended without asking if there was anything else','w',3,'o',75,2100],
+    ['I-1085','end','clinic','Ended without repeating the callback time','w',2,'o',75,3900],
+    ['I-1086','end','insurance','Hung up during a long silence','w',2,'o',75,5600],
+    ['I-1087','compliance','insurance','Read the full card number aloud','w',2,'o',64,2700],
+    ['I-1088','compliance','insurance','Shared policy details before checking identity','w',2,'o',64,4100],
+    ['I-1089','compliance','clinic','Recording notice not given','w',1,'o',64,7200],
+    ['I-1042','tools','car','Booking tool returned an error','c',38,'o',64,4],
+    ['I-1091','tools','restaurant','Booking tool returned an error','c',9,'o',64,6],
+    ['I-1094','tools','clinic','Booking tool returned an error','c',6,'o',64,17],
+    ['I-1090','tools','dental','Booking tool returned an error','c',3,'o',64,52],
+    ['I-1093','tools','car','Service history lookup returned an error','w',7,'o',64,340],
+    ['I-1092','tools','insurance','Quote lookup timed out','c',6,'o',64,33],
+    ['I-1034','tools','car','Confirmation text was not sent','w',21,'o',64,25],
+    ['I-1095','tools','insurance','Callback not created in the CRM','w',2,'o',64,4600],
+    ['I-1008','transfer','insurance','Transfer to billing dropped the call','c',46,'d',59,12960,13],
+    ['I-1009','tools','restaurant','Booking tool returned no free slots','c',31,'d',59,8640,6],
+    ['I-1002','greet','restaurant','Greeted with the wrong restaurant name','c',9,'d',59,17280,6],
+    ['I-1003','resched','dental','Cancelled the wrong appointment','c',4,'d',59,21600,8],
+    ['I-1001','greet','insurance','Recording notice given after the first question','w',14,'d',59,5760,14],
+    ['I-1005','objection','insurance','Offered a discount before the caller objected','w',8,'d',59,7200,14],
+    ['I-1006','flow','restaurant','Repeated the opening hours twice','w',11,'d',59,15840,6],
+    ['I-1007','other','clinic','Gave regular hours on a public holiday','w',5,'d',59,25920,4],
+    ['I-1010','fast','insurance','Paused before reading the policy summary','w',7,'d',59,4320,14],
+    ['I-1011','book','car','Booked two cars into the same slot','w',5,'d',59,11520,9],
+    ['I-1012','speech','dental','Date misheard as the day before','w',4,'d',59,20160,8],
+    ['I-1013','collect','restaurant','Asked for the name twice','w',6,'d',59,28800,5],
+    ['I-1014','end','clinic','Ended before giving the on-call number','c',3,'d',59,31680,4],
+    ['I-1015','compliance','dental','Read the patient\u2019s address aloud','w',2,'d',59,23040,8],
+    ['I-1016','price','car','Quoted the old labour rate','w',9,'d',59,14400,9],
+    ['I-1017','flow','insurance','Asked the same question again after a hold','w',5,'d',59,10080,14],
+    ['I-1018','greet','car','Did not say which garage was answering','w',3,'d',59,18720,9],
+    ['I-1004','resched','car','Rescheduled without checking the new slot','w',6,'d',59,36000,9],
+    ['I-0988','flow','insurance','Caller hung up while on hold','w',12,'k',null,180,null,'Alex, 9 Nov'],
+    ['I-0991','speech','restaurant','Background noise taken as a reply','w',6,'k',null,800,null,'Sam, 4 Nov'],
+    ['I-0995','other','car','Caller asked for a person straight away','w',8,'k',null,300,null,'Alex, 28 Oct'],
+    ['I-0997','fast','dental','Paused while the practice software loaded','w',4,'k',null,1300,null,'your assistant, approved by Alex, 6 Nov']
+  ];
+  constructor(props) {
+    super(props);
+    const open = {}; if (props.open) open[props.open] = true;
+    this.state = { periodOpen:false, period:null, menu:null, q:'', agentF:'', catF:'', sevF:'', statusF:'open', open };
+    this.pickerRef = React.createRef();
+    this.filtRef = React.createRef();
+  }
+  componentDidMount() {
+    this.onDoc = e => {
+      if (this.state.periodOpen && this.pickerRef.current && !this.pickerRef.current.contains(e.target)) this.setState({ periodOpen:false });
+      if (this.state.menu && this.filtRef.current && !this.filtRef.current.contains(e.target)) this.setState({ menu:null });
+    };
+    document.addEventListener('mousedown', this.onDoc);
+  }
+  componentWillUnmount() { document.removeEventListener('mousedown', this.onDoc); }
+  seen(m) {
+    if (m < 60) return m + ' minutes ago';
+    if (m < 1440) { const h = Math.round(m / 60); return h === 1 ? '1 hour ago' : h + ' hours ago'; }
+    if (m < 2880) return 'Yesterday';
+    return Math.floor(m / 1440) + ' days ago';
+  }
+  renderVals() {
+    const C = Component, st = this.state;
+    const embedded = !!this.props.embedded;
+    const fixedAgent = embedded && C.AGENTS[this.props.agent] ? this.props.agent : null;
+    const period = st.period || this.props.period || 'Last 30 days';
+    const k = C.SCALE[period] || 1, days = C.DAYS[period] || 30;
+    const sc = v => Math.max(1, Math.round(v * k));
+    const fmt = v => v.toLocaleString('en-US');
+    const agentSel = fixedAgent || st.agentF;
+    const inPeriod = x => x[6] !== 'd' || x[8] <= days * 1440;
+    const scope = C.I.filter(x => !agentSel || x[2] === agentSel);
+    const live = scope.filter(x => x[6] === 'o' || x[6] === 'r');
+    const ag = agentSel ? [agentSel] : Object.keys(C.AGENTS);
+    const callsAll = Math.round(ag.reduce((s, a) => s + C.TOTALS[a], 0) * k);
+    const fleetCalls = Math.round(Object.values(C.TOTALS).reduce((s, v) => s + v, 0) * k);
+    const statusOk = { open: s => s === 'o' || s === 'r', reopened: s => s === 'r', resolved: s => s === 'd', known: s => s === 'k', any: () => true }[st.statusF];
+    const q = st.q.trim().toLowerCase();
+    const list = scope.filter(x => inPeriod(x) && statusOk(x[6]) && (!st.catF || x[1] === st.catF) && (!st.sevF || x[4] === st.sevF) && (!q || x[3].toLowerCase().includes(q) || x[0].toLowerCase().includes(q)));
+    const showAgent = !fixedAgent;
+    const cols = showAgent ? 'minmax(0,1fr) 152px 80px 112px 136px 88px 104px' : 'minmax(0,1fr) 80px 112px 136px 88px 104px';
+    const rowStyle = { display:'grid', gridTemplateColumns:cols, gap:16, alignItems:'center', minHeight:44, padding:'0 24px 0 48px', color:'var(--ink)', textDecoration:'none', cursor:'pointer' };
+    const rank = x => (x[6] === 'd' || x[6] === 'k') ? 2 : (x[4] === 'c' || x[6] === 'r') ? 0 : 1;
+    const pct = n => { const p = n / fleetCalls * 100; return (p < 1 ? p.toFixed(1) : Math.round(p)) + '%'; };
+    const fallback = x => x[4] === 'c' ? 'I-1042' : x[6] === 'k' ? 'I-0988' : 'I-1053';
+    const groups = C.CAT_ORDER.map(c => {
+      const rows = list.filter(x => x[1] === c).sort((a, b) => rank(a) - rank(b) || b[5] - a[5]);
+      if (!rows.length) return null;
+      const expanded = st.open[c] != null ? st.open[c] : !!q;
+      const n = rows.length, calls = rows.reduce((s, x) => s + sc(x[5]), 0);
+      const crit = rows.filter(x => x[4] === 'c' && (x[6] === 'o' || x[6] === 'r')).length;
+      return {
+        name: C.CATS[c], summary: `${n} ${n === 1 ? 'issue' : 'issues'} · ${fmt(calls)} ${calls === 1 ? 'call' : 'calls'}`,
+        hasCrit: crit > 0, crit, expanded, collapsed: !expanded,
+        toggle: () => this.setState(s => ({ open: { ...s.open, [c]: !expanded } })),
+        rows: expanded ? rows.map(x => {
+          const n2 = sc(x[5]);
+          return {
+            href: 'Connexity Issue.dc.html?issue=' + (C.DETAIL.includes(x[0]) ? x[0] : fallback(x)),
+            rowStyle, showAgent, title: x[3], agent: C.AGENTS[x[2]], isCrit: x[4] === 'c', isWarn: x[4] === 'w',
+            calls: n2 + (n2 === 1 ? ' call' : ' calls'), pct: pct(n2),
+            isOpen: x[6] === 'o', isReop: x[6] === 'r', isRes: x[6] === 'd', isKnown: x[6] === 'k', resText: 'Resolved in version ' + x[9], knownText: 'Archived by ' + (x[10] || ''),
+            milestone: x[7] ? 'Milestone ' + x[7] : '\u2014', seen: this.seen(x[8])
+          };
+        }) : []
+      };
+    }).filter(Boolean);
+    const btn = active => ({ display:'flex', alignItems:'center', gap:6, height:36, padding:'0 10px 0 12px', borderRadius:8, border:'1px solid ' + (active ? 'var(--ink2)' : 'var(--bc)'), background: active ? 'var(--wash)' : 'transparent', color:'var(--ink)', fontSize:15, cursor:'pointer', whiteSpace:'nowrap' });
+    const mk = (key, label, opts, cur, set, active) => ({
+      key, label, open: st.menu === key, btnStyle: btn(active),
+      toggle: () => this.setState(s => ({ menu: s.menu === key ? null : key })),
+      options: opts.map(([v, l]) => ({ label:l, current: v === cur, pick: () => { set(v); this.setState({ menu:null }); } }))
+    });
+    const STATUS = [['open','Open'],['reopened','Reopened'],['resolved','Resolved'],['known','Archived']];
+    const filters = [];
+    if (showAgent) filters.push(mk('agent', st.agentF ? C.AGENTS[st.agentF] : 'All agents', [['', 'All agents'], ...Object.entries(C.AGENTS)], st.agentF, v => this.setState({ agentF:v }), !!st.agentF));
+    filters.push(mk('cat', st.catF ? C.CATS[st.catF] : 'Any category', [['', 'Any category'], ...C.CAT_ORDER.map(c => [c, C.CATS[c]])], st.catF, v => this.setState({ catF:v }), !!st.catF));
+    filters.push(mk('sev', st.sevF ? { c:'Critical', w:'Warning' }[st.sevF] : 'Any severity', [['', 'Any severity'], ['c', 'Critical'], ['w', 'Warning']], st.sevF, v => this.setState({ sevF:v }), !!st.sevF));
+    filters.push(mk('status', STATUS.find(s => s[0] === st.statusF)[1], STATUS, st.statusF, v => this.setState({ statusF:v }), st.statusF !== 'open'));
+    const anyFilter = !!(q || st.agentF || st.catF || st.sevF || st.statusF !== 'open');
+    const incs = C.INCIDENTS.filter(x => !agentSel || x[2].includes(agentSel));
+    return {
+      hasFailing: incs.length > 0,
+      failingSub: incs.filter(x => !x[5]).length + ' still failing, ' + incs.filter(x => x[5]).length + ' stopped but not closed',
+      failingRows: incs.map(([iid, title, ags, failed, since, stoppedText]) => ({ href:'Connexity Incident.dc.html?incident=' + iid, title,
+        reach: ags.length === 1 ? C.AGENTS[ags[0]] : ags.length + ' agents', failed: failed + ' calls failed', since, failing: !stoppedText, stopped: !!stoppedText, stateText: stoppedText || '' })),
+      rootStyle: embedded ? { display:'block', color:'var(--ink)', fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums' }
+        : { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], display:'flex', flexDirection:'column', background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
+      mainStyle: embedded ? {} : { flex:1, minWidth:944, padding:'24px 32px 48px' },
+      innerStyle: embedded ? { display:'flex', flexDirection:'column', gap:16 } : { maxWidth:1120, minWidth:880, display:'flex', flexDirection:'column', gap:24 },
+      pickerRef: this.pickerRef, filtRef: this.filtRef,
+      period, periodOpen: st.periodOpen,
+      togglePeriod: () => this.setState(s => ({ periodOpen: !s.periodOpen })),
+      periods: ['Last 7 days','Last 30 days','Last 90 days'].map(l => ({ label:l, current: l === period, pick: () => this.setState({ period:l, periodOpen:false }) })),
+      tOpen: live.length, tCrit: live.filter(x => x[4] === 'c').length, tReop: live.filter(x => x[6] === 'r').length,
+      tRes: scope.filter(x => x[6] === 'd' && inPeriod(x)).length,
+      tCalls: fmt(Math.round(ag.reduce((s, a) => s + C.AFFECTED[a], 0) * k)), tCallsOf: fmt(callsAll),
+      q: st.q, onQ: e => this.setState({ q: e.target.value }),
+      filters, anyFilter,
+      clearAll: () => this.setState({ q:'', agentF:'', catF:'', sevF:'', statusF:'open', menu:null }),
+      showAgent, headStyle: { ...rowStyle, minHeight:40, fontSize:13, color:'var(--ink2)', cursor:'default' },
+      standalone: !embedded, rowStyle: embedded ? { display:'block' } : { display:'flex', flex:1 },
+      groups, noRows: groups.length === 0
+    };
+  }
+}
+</script>
+</body>
+</html>

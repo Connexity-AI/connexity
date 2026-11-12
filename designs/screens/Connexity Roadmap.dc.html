@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0}*{box-sizing:border-box}button{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<dc-import name="Connexity Readiness Bar" state="{{ readiness }}" hint-size="100%,36px"></dc-import>
+<div style="display:flex;min-height:inherit">
+<div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="roadmap" readiness="{{ readiness }}" style="height:100%" hint-size="220px,280px"></dc-import></div>
+<main style="flex:1;min-width:944px;padding:24px 32px 48px">
+<div style="max-width:1120px;min-width:880px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:40px">
+<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+<h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Roadmap</h1>
+<span style="font-size:13px;color:var(--ink3);white-space:nowrap">Updated 2 hours ago</span>
+</div>
+</div>
+<div id="readiness" style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<sc-if value="{{ readyOpen }}" hint-placeholder-val="{{ true }}">
+<div style="padding:20px 24px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+<div style="display:flex;align-items:baseline;gap:12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Readiness</h2><span style="font-size:13px;color:var(--ink3)">How complete the setup is. It never changes the score.</span></div>
+<span style="font-size:20px;line-height:28px;font-weight:500">{{ readyPct }}%</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="height:6px;border-radius:3px;background:var(--unch-bg);overflow:hidden"><div style="{{ readyFill }}"></div></div>
+<div style="display:flex;justify-content:space-between;font-size:13px;line-height:18px;color:var(--ink3)"><span>{{ readyLeft }}</span><span>100%</span></div>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:16px minmax(0,1fr) 200px 120px 16px;gap:16px;align-items:center;height:40px;padding:0 24px;border-top:1px solid var(--border);font-size:13px;color:var(--ink2)"><span></span><span>Control</span><span>Progress</span><span>Status</span><span></span></div>
+<div style="padding:14px 24px 6px;border-top:1px solid var(--border);font-size:13px;line-height:18px;font-weight:500;color:var(--ink2)">Getting started</div>
+<sc-for list="{{ gsSteps }}" as="k" hint-placeholder-count="4">
+<div style="border-top:1px solid var(--border)">
+<div onClick="{{ k.toggle }}" style="{{ k.rowStyle }}">
+<span style="display:flex">
+<sc-if value="{{ k.isDone }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--pass)"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></sc-if>
+<sc-if value="{{ k.isProgress }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink)"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 1 0 20z" fill="currentColor"></path></svg></sc-if>
+<sc-if value="{{ k.isTodo }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--bc)"><circle cx="12" cy="12" r="10"></circle></svg></sc-if>
+</span>
+<span style="text-wrap:pretty">{{ k.name }}</span>
+<span style="font-size:13px;color:var(--ink2)">{{ k.detail }}</span>
+<span style="{{ k.statusStyle }}">{{ k.status }}</span>
+<span style="display:flex;color:var(--ink3)">
+<sc-if value="{{ k.expanded }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
+<sc-if value="{{ k.collapsed }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
+</span>
+</div>
+<sc-if value="{{ k.expanded }}">
+<div style="padding:0 0 8px">
+<sc-for list="{{ k.agents }}" as="g" hint-placeholder-count="0">
+<a href="{{ g.href }}" style="display:grid;grid-template-columns:minmax(0,1fr) 200px 120px 16px;gap:16px;align-items:center;min-height:36px;padding:0 24px 0 56px;color:var(--ink2);text-decoration:none" style-hover="background:var(--wash);color:var(--ink);opacity:1"><span>{{ g.name }}</span><span style="font-size:13px">{{ g.what }}</span><span></span><span></span></a>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-for>
+<div style="padding:14px 24px 6px;border-top:1px solid var(--border);font-size:13px;line-height:18px;font-weight:500;color:var(--ink2)">Controls</div>
+<sc-for list="{{ controls }}" as="k" hint-placeholder-count="6">
+<div style="border-top:1px solid var(--border)">
+<div onClick="{{ k.toggle }}" style="{{ k.rowStyle }}">
+<span style="display:flex">
+<sc-if value="{{ k.isDone }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--pass)"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></sc-if>
+<sc-if value="{{ k.isProgress }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink)"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 1 0 20z" fill="currentColor"></path></svg></sc-if>
+<sc-if value="{{ k.isTodo }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--bc)"><circle cx="12" cy="12" r="10"></circle></svg></sc-if>
+</span>
+<span style="text-wrap:pretty">{{ k.name }}</span>
+<span style="font-size:13px;color:var(--ink2)">{{ k.detail }}</span>
+<span style="{{ k.statusStyle }}">{{ k.status }}</span>
+<span style="display:flex;color:var(--ink3)">
+<sc-if value="{{ k.expanded }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
+<sc-if value="{{ k.collapsed }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
+</span>
+</div>
+<sc-if value="{{ k.expanded }}">
+<div style="padding:0 0 8px">
+<sc-for list="{{ k.agents }}" as="g" hint-placeholder-count="0">
+<a href="{{ g.href }}" style="display:grid;grid-template-columns:minmax(0,1fr) 200px 120px 16px;gap:16px;align-items:center;min-height:36px;padding:0 24px 0 56px;color:var(--ink2);text-decoration:none" style-hover="background:var(--wash);color:var(--ink);opacity:1"><span>{{ g.name }}</span><span style="font-size:13px">{{ g.what }}</span><span></span><span></span></a>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</sc-if>
+<sc-if value="{{ readyDone }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ toggleReady }}" style="display:flex;align-items:center;gap:10px;min-height:48px;padding:0 24px;cursor:pointer;user-select:none;color:var(--ink2)" style-hover="background:var(--wash)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--pass)"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>
+<span style="flex:1">Readiness complete</span>
+<sc-if value="{{ doneOpen }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
+<sc-if value="{{ doneShut }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
+</div>
+<sc-if value="{{ doneOpen }}">
+<div style="padding:14px 24px 6px;border-top:1px solid var(--border);font-size:13px;line-height:18px;font-weight:500;color:var(--ink2)">Getting started</div>
+<sc-for list="{{ gsSteps }}" as="k" hint-placeholder-count="4">
+<div style="border-top:1px solid var(--border)">
+<div onClick="{{ k.toggle }}" style="{{ k.rowStyle }}">
+<span style="display:flex">
+<sc-if value="{{ k.isDone }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--pass)"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></sc-if>
+<sc-if value="{{ k.isProgress }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink)"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 1 0 20z" fill="currentColor"></path></svg></sc-if>
+<sc-if value="{{ k.isTodo }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--bc)"><circle cx="12" cy="12" r="10"></circle></svg></sc-if>
+</span>
+<span style="text-wrap:pretty">{{ k.name }}</span>
+<span style="font-size:13px;color:var(--ink2)">{{ k.detail }}</span>
+<span style="{{ k.statusStyle }}">{{ k.status }}</span>
+<span style="display:flex;color:var(--ink3)">
+<sc-if value="{{ k.expanded }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
+<sc-if value="{{ k.collapsed }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
+</span>
+</div>
+<sc-if value="{{ k.expanded }}">
+<div style="padding:0 0 8px">
+<sc-for list="{{ k.agents }}" as="g" hint-placeholder-count="0">
+<a href="{{ g.href }}" style="display:grid;grid-template-columns:minmax(0,1fr) 200px 120px 16px;gap:16px;align-items:center;min-height:36px;padding:0 24px 0 56px;color:var(--ink2);text-decoration:none" style-hover="background:var(--wash);color:var(--ink);opacity:1"><span>{{ g.name }}</span><span style="font-size:13px">{{ g.what }}</span><span></span><span></span></a>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-for>
+<div style="padding:14px 24px 6px;border-top:1px solid var(--border);font-size:13px;line-height:18px;font-weight:500;color:var(--ink2)">Controls</div>
+<sc-for list="{{ controls }}" as="k" hint-placeholder-count="6">
+<div style="border-top:1px solid var(--border)">
+<div onClick="{{ k.toggle }}" style="{{ k.rowStyle }}">
+<span style="display:flex">
+<sc-if value="{{ k.isDone }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--pass)"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></sc-if>
+<sc-if value="{{ k.isProgress }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink)"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 1 0 20z" fill="currentColor"></path></svg></sc-if>
+<sc-if value="{{ k.isTodo }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--bc)"><circle cx="12" cy="12" r="10"></circle></svg></sc-if>
+</span>
+<span style="text-wrap:pretty">{{ k.name }}</span>
+<span style="font-size:13px;color:var(--ink2)">{{ k.detail }}</span>
+<span style="{{ k.statusStyle }}">{{ k.status }}</span>
+<span style="display:flex;color:var(--ink3)">
+<sc-if value="{{ k.expanded }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
+<sc-if value="{{ k.collapsed }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
+</span>
+</div>
+<sc-if value="{{ k.expanded }}">
+<div style="padding:0 0 8px">
+<sc-for list="{{ k.agents }}" as="g" hint-placeholder-count="0">
+<a href="{{ g.href }}" style="display:grid;grid-template-columns:minmax(0,1fr) 200px 120px 16px;gap:16px;align-items:center;min-height:36px;padding:0 24px 0 56px;color:var(--ink2);text-decoration:none" style-hover="background:var(--wash);color:var(--ink);opacity:1"><span>{{ g.name }}</span><span style="font-size:13px">{{ g.what }}</span><span></span><span></span></a>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</sc-if>
+</sc-if>
+</div>
+<h2 style="margin:8px 0 -8px;font-size:15px;line-height:22px;font-weight:500">Milestones</h2>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">From 59 to 99</h2>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;gap:2px;height:36px">
+<div title="Today: 59" style="flex:59 0 0;background:var(--ink);border-radius:6px 0 0 6px"></div>
+<sc-for list="{{ segments }}" as="s" hint-placeholder-count="8">
+<div title="{{ s.title }}" onMouseEnter="{{ s.enter }}" onMouseLeave="{{ s.leave }}" style="{{ s.style }}">{{ s.rank }}</div>
+</sc-for>
+</div>
+<div style="display:flex;gap:2px;font-size:13px;line-height:18px">
+<div style="flex:59 0 0;display:flex;justify-content:space-between;color:var(--ink3)"><span>0</span><span style="color:var(--ink)">59 today</span></div>
+<div style="flex:40 0 0;text-align:right;color:var(--ink2)">99 by Jun 2027</div>
+</div>
+</div>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding-bottom:4px">
+<div style="padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Priorities</h2></div>
+<div style="display:grid;grid-template-columns:44px minmax(0,1fr) minmax(96px,0.5fr) 56px 168px 104px 92px;gap:16px;align-items:center;height:40px;padding:0 16px 0 20px;border-bottom:1px solid var(--border);font-size:13px;color:var(--ink2)">
+<span>Rank</span><span style="padding-left:24px">Category</span><span>Fixed</span><span style="text-align:right">Points</span><span>Open</span><span>Done by</span><span></span>
+</div>
+<div ref="{{ listRef }}">
+<sc-for list="{{ areas }}" as="a" hint-placeholder-count="8">
+<div data-id="{{ a.id }}" draggable="{{ a.drag }}" onDragStart="{{ a.dragStart }}" onDragOver="{{ a.dragOver }}" onDrop="{{ a.drop }}" onDragEnd="{{ a.dragEnd }}" onMouseEnter="{{ a.enter }}" onMouseLeave="{{ a.leave }}" style="{{ a.wrap }}">
+<div onClick="{{ a.toggle }}" style="{{ a.row }}">
+<div style="display:flex;align-items:center;gap:8px">
+<span style="display:flex;color:var(--ink3);cursor:grab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"></circle><circle cx="9" cy="5" r="1"></circle><circle cx="9" cy="19" r="1"></circle><circle cx="15" cy="12" r="1"></circle><circle cx="15" cy="5" r="1"></circle><circle cx="15" cy="19" r="1"></circle></svg></span>
+<span style="font-size:13px;color:var(--ink2);min-width:16px">{{ a.rank }}</span>
+</div>
+<div style="display:flex;align-items:center;gap:8px;min-width:0;padding:8px 0">
+<span style="display:flex;color:var(--ink2);flex:none">
+<sc-if value="{{ a.expanded }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
+<sc-if value="{{ a.collapsed }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
+</span>
+<sc-if value="{{ a.editing }}"><input data-edit="1" value="{{ a.draft }}" onChange="{{ a.change }}" onClick="{{ a.stop }}" onKeyDown="{{ a.key }}" onBlur="{{ a.commit }}" style="flex:1;min-width:0;height:30px;padding:0 8px;border:1px solid var(--bc);border-radius:8px;background:var(--s0);color:var(--ink);font:inherit;outline:none"></sc-if>
+<sc-if value="{{ a.notEditing }}"><span style="min-width:0;text-wrap:pretty">{{ a.name }}</span></sc-if>
+<sc-if value="{{ a.hasCrit }}">
+<span style="flex:none;display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 6px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>{{ a.crit }} critical</span>
+</sc-if>
+<sc-if value="{{ a.canRename }}"><button title="Rename" onClick="{{ a.edit }}" style="flex:none;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:0;border-radius:6px;background:transparent;color:var(--ink3);cursor:pointer" style-hover="color:var(--ink)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg></button></sc-if>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<div style="flex:1;height:6px;border-radius:3px;background:var(--unch-bg);overflow:hidden"><div style="{{ a.fill }}"></div></div>
+<span style="width:36px;text-align:right;font-size:13px;color:var(--ink2)">{{ a.pct }}%</span>
+</div>
+<span style="text-align:right">+{{ a.points }}</span>
+<span style="white-space:nowrap">{{ a.left }}</span>
+<span>{{ a.date }}</span>
+<div style="display:flex;justify-content:flex-end;gap:2px">
+<sc-if value="{{ a.hovered }}">
+<button title="Move to top" onClick="{{ a.toTop }}" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:0;border-radius:6px;background:transparent;color:var(--ink2);cursor:pointer" style-hover="background:var(--wash);color:var(--ink)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14"></path><path d="m18 13-6-6-6 6"></path><path d="M12 7v14"></path></svg></button>
+<button title="Move up" onClick="{{ a.up }}" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:0;border-radius:6px;background:transparent;color:var(--ink2);cursor:pointer" style-hover="background:var(--wash);color:var(--ink)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"></path><path d="M12 19V5"></path></svg></button>
+<button title="Move down" onClick="{{ a.down }}" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:0;border-radius:6px;background:transparent;color:var(--ink2);cursor:pointer" style-hover="background:var(--wash);color:var(--ink)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path></svg></button>
+</sc-if>
+</div>
+</div>
+<sc-if value="{{ a.expanded }}">
+<div style="padding-bottom:8px">
+<sc-for list="{{ a.patterns }}" as="p" hint-placeholder-count="0">
+<div data-pid="{{ p.id }}" draggable="true" onDragStart="{{ p.dragStart }}" onDragEnd="{{ p.dragEnd }}" onMouseEnter="{{ p.enter }}" onMouseLeave="{{ p.leave }}" style="{{ p.row }}">
+<span style="display:flex;justify-content:flex-end;color:var(--ink3);cursor:grab"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"></circle><circle cx="9" cy="5" r="1"></circle><circle cx="9" cy="19" r="1"></circle><circle cx="15" cy="12" r="1"></circle><circle cx="15" cy="5" r="1"></circle><circle cx="15" cy="19" r="1"></circle></svg></span>
+<span style="padding-left:24px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ p.name }}</span>
+<div style="display:flex;align-items:center;gap:6px;font-size:13px">
+<sc-if value="{{ p.done }}"><span style="display:flex;align-items:center;gap:6px;color:var(--pass)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>Fixed</span></sc-if>
+<sc-if value="{{ p.open }}"><span style="display:flex;align-items:center;gap:6px;color:var(--ink3)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle></svg>Not fixed</span></sc-if>
+</div>
+<span style="text-align:right">+{{ p.points }}</span>
+<span style="white-space:nowrap">{{ p.left }}</span>
+<span></span>
+<div data-move="1" style="position:relative;display:flex;justify-content:flex-end">
+<sc-if value="{{ p.showMove }}">
+<button onClick="{{ p.openMenu }}" style="display:flex;align-items:center;gap:4px;height:28px;padding:0 8px;border:0;border-radius:6px;background:transparent;color:var(--ink2);font-size:13px;cursor:pointer;white-space:nowrap" style-hover="background:var(--wash);color:var(--ink)">Move to<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></button>
+</sc-if>
+<sc-if value="{{ p.menuOpen }}">
+<div style="position:absolute;right:0;top:32px;z-index:30;width:320px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18);color:var(--ink)">
+<sc-for list="{{ p.targets }}" as="t" hint-placeholder-count="0">
+<div onClick="{{ t.pick }}" style="display:flex;align-items:center;gap:12px;min-height:36px;padding:0 12px;border-radius:6px;font-size:15px;cursor:pointer" style-hover="background:var(--wash)"><span style="width:16px;font-size:13px;color:var(--ink3)">{{ t.rank }}</span><span>{{ t.name }}</span></div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;readiness&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;setup&quot;,&quot;dropped&quot;,&quot;complete&quot;],&quot;default&quot;:&quot;setup&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  static THEMES = {
+    dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
+    light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
+  };
+  // pats: [name, points, open issues, calls affected since first seen, critical issues]
+  static AREAS = [
+    { id:'transfer', name:'Transfers and escalation', pats:[['Transfers that drop the call',3,2,238,2],['Requests for a person ignored',2,2,109,0],['Emergencies not escalated',2,2,65,1]] },
+    { id:'tools', name:'Tools and integrations', pats:[['Booking and lookup tools returning errors',2,6,268,5],['Confirmation texts not sent',1,1,104,0],['Callbacks not created in the CRM',0.5,1,18,0]] },
+    { id:'book', name:'Booking', pats:[['Bookings never read back',3,3,196,0],['Slots offered that are already taken',2,2,98,0],['Bookings saved at the wrong time',1,3,74,0]] },
+    { id:'fast', name:'Responsiveness', pats:[['Pauses while a tool runs',2,4,281,0],['Slow first reply',2,4,190,0],['Talking over the caller',1,2,105,0]] },
+    { id:'price', name:'Pricing and quotes', pats:[['Amounts that don\u2019t match the backend',3,4,236,1],['Quotes above the caller\u2019s price',2,3,205,0],['Fees the policy does not have',2,2,117,0]] },
+    { id:'speech', name:'Speech recognition', pats:[['Numbers misheard',2,4,198,0],['Names misheard',1,3,142,0],['Addresses misheard',1,1,40,0]] },
+    { id:'collect', name:'Information collection', pats:[['Details asked twice',2,4,171,0],['Details not asked before quoting',1,3,96,0]] },
+    { id:'end', name:'Ending the call', pats:[['Hang-ups during silence',2,2,88,0],['Calls ended before the caller finished',1.5,3,76,0]] },
+    { id:'compliance', name:'Compliance and privacy', pats:[['Account details read aloud',0.5,1,22,0],['Details shared before identity is checked',0.5,2,31,0]] }
+  ];
+  // readiness controls: [id, name, done|progress|todo, progress text, agents still missing it [agent id, what]]
+  static READY = {
+    setup: { pct:60, controls:[
+      ['alerts','Alerts go to Slack or another messenger','todo','Email only so far',[]],
+      ['channel','An incident channel the assistant watches','done','#voice-incidents',[]],
+      ['spec','Every agent has a spec','progress','Spec 4 of 5 agents',[['dental','No spec yet']]],
+      ['backends','Every agent\u2019s backends are connected','progress','Backends 3 of 5 agents',[['clinic','On-call rota not connected'],['dental','Practice software not connected']]],
+      ['coverage','Tests cover at least 80% of each agent\u2019s spec rules','progress','Test coverage 62% \u2192 80%',[['car','71%'],['restaurant','64%'],['clinic','48%'],['dental','No spec to test yet']]],
+      ['gate','The deployment gate is on for every agent','todo','Gate 1 of 5 agents',[['car','Off'],['restaurant','Off'],['clinic','Off'],['dental','Off']]],
+      ['autoroll','Automatic roll back is on for every agent','progress','Roll back on 3 of 5 agents',[['car','Off'],['dental','Off']]] ]},
+    dropped: { pct:92, controls:[
+      ['alerts','Alerts go to Slack or another messenger','done','Slack, #voice-alerts',[]],
+      ['channel','An incident channel the assistant watches','done','#voice-incidents',[]],
+      ['spec','Every agent has a spec','done','Spec 5 of 5 agents',[]],
+      ['backends','Every agent\u2019s backends are connected','done','Backends 5 of 5 agents',[]],
+      ['coverage','Tests cover at least 80% of each agent\u2019s spec rules','progress','Test coverage 74% \u2192 80%',[['dental','No tests']]],
+      ['gate','The deployment gate is on for every agent','done','Gate 5 of 5 agents',[]],
+      ['autoroll','Automatic roll back is on for every agent','done','Roll back on 5 of 5 agents',[]] ]},
+    complete: { pct:100, controls:[
+      ['alerts','Alerts go to Slack or another messenger','done','Slack, #voice-alerts',[]],
+      ['channel','An incident channel the assistant watches','done','#voice-incidents',[]],
+      ['spec','Every agent has a spec','done','Spec 5 of 5 agents',[]],
+      ['backends','Every agent\u2019s backends are connected','done','Backends 5 of 5 agents',[]],
+      ['coverage','Tests cover at least 80% of each agent\u2019s spec rules','done','Test coverage 84%',[]],
+      ['gate','The deployment gate is on for every agent','done','Gate 5 of 5 agents',[]],
+      ['autoroll','Automatic roll back is on for every agent','done','Roll back on 5 of 5 agents',[]] ]}
+  };
+  // Getting started: the first part of Readiness, done once the first scan finishes
+  static GETTING = [['assistant','Assistant connected','done','Claude Code',[]],['platform','Voice platform connected','done','Retell',[]],['sync','Agents and calls synced','done','5 agents \u00b7 1,284 calls',[]],['scan','First scan done','done','64 issues across 5 agents \u00b7 9 critical',[]]];
+  static AGENT_NAMES = { insurance:'Insurance renewals', restaurant:'Restaurant reservations', car:'Car service booking', clinic:'Clinic after-hours', dental:'Dental reception' };
+  static NET_RATE = 2.1; // open issues closed per week, net of new ones
+  static COLS = '44px minmax(0,1fr) minmax(96px,0.5fr) 56px 168px 104px 92px';
+  constructor(props) {
+    super(props);
+    const pats = {};
+    Component.AREAS.forEach(a => { pats[a.id] = a.pats.map(([name, points, issues, calls, crit], k) => ({ id: a.id + k, name, points, total: issues, calls, crit, done: false })); });
+    this.state = { order: Component.AREAS.map(a => a.id), pats, expanded: { transfer:true }, hoverId:null, dragId:null, dragPat:null, dropId:null, patHover:null, menuFor:null, names:{}, editing:null, draft:'' };
+    this.listRef = React.createRef();
+    this.rects = null; this.lastSwap = 0;
+  }
+  componentDidMount() {
+    this.onDoc = e => { if (this.state.menuFor && !e.target.closest('[data-move]')) this.setState({ menuFor:null }); };
+    document.addEventListener('mousedown', this.onDoc);
+  }
+  componentWillUnmount() { document.removeEventListener('mousedown', this.onDoc); }
+  componentDidUpdate(pp, ps) {
+    if (this.rects && this.listRef.current) {
+      const rects = this.rects; this.rects = null;
+      this.listRef.current.querySelectorAll('[data-id]').forEach(el => {
+        const old = rects[el.dataset.id]; if (!old) return;
+        const dy = old - el.getBoundingClientRect().top; if (!dy) return;
+        el.style.transition = 'none'; el.style.transform = `translateY(${dy}px)`;
+        requestAnimationFrame(() => { el.style.transition = 'transform 220ms cubic-bezier(.2,.7,.2,1)'; el.style.transform = ''; });
+      });
+    }
+  }
+  fmtDate(d) {
+    const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${M[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  }
+  reorder(order) {
+    if (this.listRef.current) {
+      const r = {};
+      this.listRef.current.querySelectorAll('[data-id]').forEach(el => { r[el.dataset.id] = el.getBoundingClientRect().top; });
+      this.rects = r;
+    }
+    this.setState({ order });
+  }
+  move(id, to) {
+    const o = this.state.order.filter(x => x !== id);
+    o.splice(Math.max(0, Math.min(o.length, to)), 0, id);
+    this.reorder(o);
+  }
+  movePat(pid, from, to) {
+    if (from === to) return this.setState({ dragPat:null, dropId:null, menuFor:null });
+    this.setState(s => {
+      const p = s.pats[from].find(x => x.id === pid); if (!p) return null;
+      return { pats: { ...s.pats, [from]: s.pats[from].filter(x => x.id !== pid), [to]: [...s.pats[to], p] },
+        expanded: { ...s.expanded, [to]: true }, dragPat:null, dropId:null, menuFor:null, patHover:null };
+    });
+  }
+  renderVals() {
+    const C = Component;
+    const names = Object.fromEntries(C.AREAS.map(a => [a.id, this.state.names[a.id] || a.name]));
+    const { editing, draft, order, pats, hoverId, dragId, dragPat, dropId, patHover, menuFor, expanded } = this.state;
+    const r1 = x => Math.round(x * 10) / 10;
+    const openText = (n, c) => n ? `${n} ${n === 1 ? 'issue' : 'issues'} · ${c.toLocaleString('en-US')} calls` : 'None';
+    let cum = 0;
+    const n = order.length;
+    const areas = order.map((id, i) => {
+      const list = pats[id];
+      const points = r1(list.reduce((s, p) => s + p.points, 0));
+      const total = list.reduce((s, p) => s + p.total, 0);
+      const left = list.reduce((s, p) => s + (p.done ? 0 : p.total), 0);
+      const leftCalls = list.reduce((s, p) => s + (p.done ? 0 : p.calls), 0);
+      const crit = list.reduce((s, p) => s + (p.done ? 0 : p.crit), 0);
+      const pct = total ? Math.round((total - left) / total * 100) : 0;
+      cum += left;
+      const d = new Date(2026, 10, 10); d.setDate(d.getDate() + Math.round(cum / C.NET_RATE * 7));
+      const isOpen = !!expanded[id];
+      const isDrop = dropId === id;
+      return {
+        id, rank: i + 1, name: names[id], points, left: openText(left, leftCalls), pct, date: this.fmtDate(d),
+        hasCrit: crit > 0, crit, expanded: isOpen, collapsed: !isOpen, hovered: hoverId === id && !dragId && !dragPat,
+        fill: { width: pct + '%', height:'100%', background:'var(--ink)', borderRadius:3 },
+        wrap: { borderTop: i === 0 ? '0' : '1px solid var(--border)', position:'relative',
+          background: isDrop || (hoverId === id && !dragPat) ? 'var(--wash)' : 'transparent',
+          boxShadow: isDrop ? 'inset 0 0 0 1px var(--bc)' : 'none', opacity: dragId === id ? 0.5 : 1 },
+        row: { display:'grid', gridTemplateColumns:C.COLS, gap:16, alignItems:'center', minHeight:52, padding:'0 16px 0 20px', fontSize:15, cursor:'pointer', userSelect:'none' },
+        patterns: list.map(p => ({
+          id: p.id, name: p.name, points: p.points, left: p.done ? 'None' : openText(p.total, p.calls), done: p.done, open: !p.done,
+          row: { display:'grid', gridTemplateColumns:C.COLS, gap:16, alignItems:'center', minHeight:40, padding:'0 16px 0 20px', fontSize:15, color:'var(--ink2)',
+            cursor:'grab', userSelect:'none', opacity: dragPat && dragPat.pid === p.id ? 0.4 : 1 },
+          showMove: (patHover === p.id || menuFor === p.id) && !dragPat,
+          menuOpen: menuFor === p.id,
+          targets: menuFor === p.id ? order.filter(o => o !== id).map(o => ({ rank: order.indexOf(o) + 1, name: names[o], pick: () => this.movePat(p.id, id, o) })) : [],
+          openMenu: e => { e.stopPropagation(); this.setState(s => ({ menuFor: s.menuFor === p.id ? null : p.id })); },
+          enter: () => this.setState({ patHover: p.id }),
+          leave: () => this.setState(s => s.patHover === p.id ? { patHover:null } : null),
+          dragStart: e => { e.stopPropagation(); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', p.id); } catch (_) {} this.setState({ dragPat: { pid: p.id, from: id }, menuFor:null }); },
+          dragEnd: e => { e.stopPropagation(); this.setState({ dragPat:null, dropId:null }); }
+        })),
+        editing: editing === id, notEditing: editing !== id, draft, drag: editing === id ? 'false' : 'true',
+        canRename: false,
+        stop: e => e.stopPropagation(),
+        edit: e => { e.stopPropagation(); this.setState({ editing: id, draft: names[id] }); const f = (n) => { const el = this.listRef.current && this.listRef.current.querySelector('[data-edit]'); if (el) { el.focus(); el.select(); } else if (n < 10) setTimeout(() => f(n + 1), 16); }; setTimeout(() => f(0), 0); },
+        change: e => this.setState({ draft: e.target.value }),
+        commit: () => this.setState(s => { if (s.editing !== id) return null; const v = s.draft.trim(); return { editing:null, names: v ? { ...s.names, [id]: v } : s.names }; }),
+        key: e => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') this.setState({ editing:null }); },
+        toggle: () => this.setState(s => ({ expanded: { ...s.expanded, [id]: !s.expanded[id] } })),
+        toTop: e => { e.stopPropagation(); this.move(id, 0); },
+        up: e => { e.stopPropagation(); this.move(id, i - 1); },
+        down: e => { e.stopPropagation(); this.move(id, i + 1); },
+        enter: () => this.setState({ hoverId: id }),
+        leave: () => this.setState(s => s.hoverId === id ? { hoverId: null } : null),
+        dragStart: e => { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', id); } catch (_) {} this.setState({ dragId: id }); },
+        dragOver: e => {
+          e.preventDefault();
+          const s = this.state;
+          if (s.dragPat) { const t = s.dragPat.from === id ? null : id; if (s.dropId !== t) this.setState({ dropId: t }); return; }
+          const from = s.dragId;
+          if (!from || from === id || Date.now() - this.lastSwap < 160) return;
+          const o = [...s.order];
+          o.splice(o.indexOf(from), 1); o.splice(o.indexOf(id) + (o.indexOf(id) >= s.order.indexOf(from) ? 1 : 0), 0, from);
+          this.lastSwap = Date.now();
+          this.reorder(o);
+        },
+        drop: e => { e.preventDefault(); const s = this.state; if (s.dragPat) this.movePat(s.dragPat.pid, s.dragPat.from, id); },
+        dragEnd: () => this.setState({ dragId: null })
+      };
+    });
+    const segments = areas.map((a, i) => ({
+      rank: a.rank, title: `${a.rank}. ${a.name}: +${a.points}`,
+      enter: () => this.setState({ hoverId: a.id }),
+      leave: () => this.setState({ hoverId: null }),
+      style: { flex: `${a.points} 0 0`, minWidth:0, overflow:'hidden', display: a.points ? 'flex' : 'none', alignItems:'center', justifyContent:'center', fontSize:13,
+        background: hoverId === a.id ? 'var(--bc)' : 'var(--unch-bg)', color: hoverId === a.id ? 'var(--s0)' : 'var(--ink2)',
+        borderRadius: i === n - 1 ? '0 6px 6px 0' : 0, transition:'background 120ms, color 120ms', cursor:'default' }
+    }));
+    return {
+      rootStyle: { ...Component.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
+      listRef: this.listRef, areas, segments,
+      readiness: this.props.readiness || 'setup',
+      ...(() => {
+        const key = C.READY[this.props.readiness] ? this.props.readiness : 'setup', R = C.READY[key];
+        const st = this.state.ready || {}, left = R.controls.filter(k => k[2] !== 'done').length;
+        const word = { done:'Done', progress:'In progress', todo:'Not started' }, col = { done:'var(--pass)', progress:'var(--ink)', todo:'var(--ink3)' };
+        return {
+          readyOpen: R.pct < 100, readyDone: R.pct >= 100, readyPct: R.pct,
+          readyFill: { width: R.pct + '%', height:'100%', background:'var(--ink)', borderRadius:3 },
+          readyLeft: (() => { const t = R.controls.filter(k => k[2] === 'todo').length, p = R.controls.filter(k => k[2] === 'progress').length;
+            return [t ? `${t} not started` : '', p ? `${p} in progress` : ''].filter(Boolean).join(' · ') || `${left} left`; })(),
+          doneOpen: !!st.all, doneShut: !st.all, toggleReady: () => this.setState(s => ({ ready: { ...(s.ready || {}), all: !(s.ready || {}).all } })),
+          ...(() => { const m = C.GETTING.concat(R.controls).map(([id, name, state, detail, agents]) => {
+            const can = agents.length > 0, open = can && (st[id] ?? false);
+            return { name, detail, status: word[state], isDone: state === 'done', isProgress: state === 'progress', isTodo: state === 'todo',
+              statusStyle: { fontSize:13, color: col[state], fontWeight: state === 'progress' ? 500 : 400 },
+              expanded: open, collapsed: can && !open,
+              rowStyle: { display:'grid', gridTemplateColumns:'16px minmax(0,1fr) 200px 120px 16px', gap:16, alignItems:'center', minHeight:48, padding:'6px 24px', cursor: can ? 'pointer' : 'default', userSelect:'none' },
+              toggle: () => { if (can) this.setState(s => ({ ready: { ...(s.ready || {}), [id]: !open } })); },
+              agents: agents.map(([a, what]) => ({ name: C.AGENT_NAMES[a], what, href: 'Connexity Agent Profile.dc.html?agent=' + a })) };
+          }); return { gsSteps: m.slice(0, 4), controls: m.slice(4) }; })()
+        };
+      })()
+    };
+  }
+}
+</script>
+</body>
+</html>

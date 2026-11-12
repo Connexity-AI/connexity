@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>@keyframes cxGlow{0%,100%{opacity:.6}50%{opacity:1;filter:drop-shadow(0 0 3px currentColor)}}body{margin:0}*{box-sizing:border-box}button{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<dc-import name="Connexity Readiness Bar" hint-size="100%,36px"></dc-import>
+<div style="display:flex;min-height:inherit">
+<div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="home" style="height:100%" hint-size="220px,280px"></dc-import></div>
+<main style="flex:1;min-width:944px;padding:24px 32px 48px">
+<div style="max-width:1120px;min-width:880px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:40px">
+<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+<h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Home</h1>
+<span style="font-size:13px;color:var(--ink3);white-space:nowrap">Retell · synced 5 minutes ago</span>
+</div>
+<div ref="{{ pickerRef }}" style="position:relative">
+<button onClick="{{ togglePeriod }}" style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>
+<span>{{ period }}</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{ periodOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;right:0;top:42px;z-index:20;min-width:200px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18)">
+<sc-for list="{{ periods }}" as="p" hint-placeholder-count="0">
+<div onClick="{{ p.pick }}" style="display:flex;align-items:center;justify-content:space-between;height:36px;padding:0 12px;border-radius:6px;font-size:15px;cursor:pointer" style-hover="background:var(--wash)">
+<span>{{ p.label }}</span>
+<sc-if value="{{ p.current }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:12px">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Agents</span><span style="font-size:30px;line-height:36px;font-weight:500">5</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Calls</span><span style="font-size:30px;line-height:36px;font-weight:500">1,284</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Latency</span><span style="font-size:30px;line-height:36px;font-weight:500">1.1<span style="font-size:20px;color:var(--ink2)"> s</span></span></div>
+<a href="Connexity Issues.dc.html" style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;color:var(--ink);text-decoration:none" style-hover="background:var(--wash);opacity:1"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Issues</span><span style="display:flex;align-items:baseline;gap:6px"><span style="font-size:30px;line-height:36px;font-weight:500">64</span><span style="font-size:13px;color:var(--ink2);white-space:nowrap">212 calls</span></span></a>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px">
+<span style="display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--crit)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Critical</span>
+<span style="display:flex;align-items:baseline;gap:6px"><span style="font-size:30px;line-height:36px;font-weight:500;color:var(--crit)">9</span><span style="font-size:13px;color:var(--ink2);white-space:nowrap">127 calls</span></span>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px">
+<span style="display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--warn)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Warnings</span>
+<span style="display:flex;align-items:baseline;gap:6px"><span style="font-size:30px;line-height:36px;font-weight:500;color:var(--warn)">55</span><span style="font-size:13px;color:var(--ink2);white-space:nowrap">141 calls</span></span>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Clarifications</span><span style="font-size:30px;line-height:36px;font-weight:500">4</span></div>
+</div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Fleet score</h2>
+<div style="display:flex;align-items:baseline;gap:6px"><span style="font-size:48px;line-height:52px;font-weight:500;letter-spacing:-0.01em">59</span><span style="font-size:20px;color:var(--ink3)">/ 100</span></div>
+<div style="border:1px solid var(--border);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+<div style="display:flex;flex-direction:column;gap:2px">
+<span style="font-size:15px;line-height:22px;font-weight:500">Next milestone: 62</span>
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">0 of 3 points</span>
+</div>
+<button onClick="{{ send }}" style="display:flex;align-items:center;gap:6px;height:28px;padding:0 8px;margin:-4px -8px 0 0;border:0;border-radius:8px;background:transparent;color:var(--ink2);font-size:13px;cursor:pointer;white-space:nowrap" style-hover="background:var(--wash);color:var(--ink)">
+<sc-if value="{{ sent }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg><span>Sent</span></sc-if>
+<sc-if value="{{ notSent }}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"></path><path d="m21.854 2.147-10.94 10.939"></path></svg><span>Send to assistant</span></sc-if>
+</button>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="height:6px;border-radius:3px;background:var(--unch-bg);overflow:hidden"><div style="width:0%;height:100%;background:var(--ink);border-radius:3px"></div></div>
+<div style="display:flex;justify-content:space-between;font-size:13px;line-height:18px;color:var(--ink3)"><span>59</span><span>62</span></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;padding-top:4px">
+<div style="display:flex;align-items:flex-start;gap:12px">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:3px;color:var(--ink3)"><circle cx="12" cy="12" r="10"></circle></svg>
+<span style="flex:1;font-size:15px;line-height:22px;text-wrap:pretty">Get Dental reception's average latency under 1 s</span>
+<span style="font-size:13px;line-height:22px;color:var(--ink2)">+1</span>
+</div>
+<div style="display:flex;align-items:flex-start;gap:12px">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:3px;color:var(--ink3)"><circle cx="12" cy="12" r="10"></circle></svg>
+<span style="flex:1;font-size:15px;line-height:22px;text-wrap:pretty">Get Car service booking's average latency under 1.5 s</span>
+<span style="font-size:13px;line-height:22px;color:var(--ink2)">+1</span>
+</div>
+<div style="display:flex;align-items:flex-start;gap:12px">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:3px;color:var(--ink3)"><circle cx="12" cy="12" r="10"></circle></svg>
+<span style="flex:1;font-size:15px;line-height:22px;text-wrap:pretty">Keep dropped transfers in Insurance renewals under 1 in 100 calls</span>
+<span style="font-size:13px;line-height:22px;color:var(--ink2)">+1</span>
+</div>
+</div>
+</div>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Calls per day</h2>
+<div style="display:flex;align-items:center;gap:16px;font-size:13px;color:var(--ink2)">
+<span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:var(--bc)"></span>Calls</span>
+<span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:var(--crit)"></span>With a critical issue</span>
+</div>
+</div>
+<div style="flex:1;min-height:200px;display:flex;flex-direction:column;gap:8px">
+<div style="flex:1;position:relative">
+<div style="position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:8px"><span style="width:24px;font-size:13px;line-height:1;color:var(--ink3);text-align:right">60</span><span style="flex:1;border-top:1px solid var(--border)"></span></div>
+<div style="position:absolute;left:0;right:0;top:50%;display:flex;align-items:center;gap:8px"><span style="width:24px;font-size:13px;line-height:1;color:var(--ink3);text-align:right">30</span><span style="flex:1;border-top:1px solid var(--border)"></span></div>
+<div style="position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:8px"><span style="width:24px;font-size:13px;line-height:1;color:var(--ink3);text-align:right">0</span><span style="flex:1;border-top:1px solid var(--border)"></span></div>
+<div style="position:absolute;top:0;bottom:0;left:32px;right:0;display:grid;grid-template-columns:repeat(30,minmax(0,1fr));gap:3px;align-items:end">
+<sc-for list="{{ days }}" as="d" hint-placeholder-count="30">
+<div title="{{ d.title }}" style="{{ d.bar }}"><div style="{{ d.n }}"></div><div style="{{ d.c }}"></div></div>
+</sc-for>
+</div>
+</div>
+<div style="margin-left:32px;display:grid;grid-template-columns:repeat(30,minmax(0,1fr));gap:3px;font-size:13px;line-height:18px;color:var(--ink3)">
+<sc-for list="{{ days }}" as="d" hint-placeholder-count="0"><span style="white-space:nowrap;overflow:visible">{{ d.label }}</span></sc-for>
+</div>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;border-top:1px solid var(--border)">
+<span style="font-size:15px">3 clarifications this week</span>
+<button style="height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:13px;cursor:pointer" style-hover="background:var(--wash)">Answer</button>
+</div>
+</div>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Agents</h2></div>
+<div style="display:grid;grid-template-columns:minmax(0,2fr) 128px minmax(0,2.2fr) 80px 96px 72px 72px;gap:16px;align-items:center;height:40px;padding:0 24px;border-bottom:1px solid var(--border);font-size:13px;color:var(--ink2)">
+<span>Agent</span><span>Status</span><span>Top issue</span><span style="text-align:right">Calls</span><span style="text-align:right">Latency</span><span style="text-align:right">Issues</span><span style="text-align:right">Score</span>
+</div>
+<sc-for list="{{ agents }}" as="a" hint-placeholder-count="5">
+<div style="display:grid;grid-template-columns:minmax(0,2fr) 128px minmax(0,2.2fr) 80px 96px 72px 72px;gap:16px;align-items:center;min-height:52px;padding:0 24px;border-bottom:1px solid var(--border);font-size:15px" style-hover="background:var(--wash)">
+<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ a.name }}</span>
+<span><span style="{{ a.badge }}">
+<sc-if value="{{ a.isCrit }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg></sc-if>
+<sc-if value="{{ a.isWarn }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></sc-if>
+<sc-if value="{{ a.isPass }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></sc-if>
+{{ a.word }}</span></span>
+<span style="color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ a.top }}</span>
+<span style="text-align:right">{{ a.calls }}</span>
+<span style="display:flex;justify-content:flex-end">
+<sc-if value="{{ a.over }}"><span title="Over its 1.5 s goal" style="display:inline-flex;align-items:center;gap:4px;color:var(--warn)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>{{ a.lat }}</span></sc-if>
+<sc-if value="{{ a.under }}"><span>{{ a.lat }}</span></sc-if>
+</span>
+<span style="text-align:right">{{ a.issues }}</span>
+<span style="text-align:right;font-weight:500">{{ a.score }}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;}}">
+class Component extends DCLogic {
+  static THEMES = {
+    dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
+    light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
+  };
+  static AGENTS = [
+    { name:'Insurance renewals', sev:'critical', top:'Transfer to the renewals team dropped the call', calls:96, lat:'1.0 s', over:false, issues:17, score:41 },
+    { name:'Car service booking', sev:'critical', top:'Booking tool returned an error', calls:310, lat:'1.8 s', over:true, issues:15, score:48 },
+    { name:'Restaurant reservations', sev:'critical', top:'Booking not read back', calls:488, lat:'0.8 s', over:false, issues:13, score:63 },
+    { name:'Clinic after-hours', sev:'critical', top:'Asked for the date of birth twice', calls:160, lat:'1.1 s', over:false, issues:11, score:66 },
+    { name:'Dental reception', sev:'critical', top:'Booking tool returned an error', calls:230, lat:'1.2 s', over:false, issues:8, score:78 }
+  ];
+  glimmer() {
+    let rm = false; try { rm = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) {}
+    return React.createElement('span', { title:'An incident is active', style:{ display:'inline-flex', color:'var(--crit)', animation: rm ? 'none' : 'cxGlow 2s ease-in-out infinite' } },
+      React.createElement('svg', { width:14, height:14, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:2.25, strokeLinecap:'round', strokeLinejoin:'round' },
+        React.createElement('circle', { cx:12, cy:12, r:10 }), React.createElement('line', { x1:12, x2:12, y1:8, y2:12 }), React.createElement('line', { x1:12, x2:12.01, y1:16, y2:16 })));
+  }
+  constructor(props) {
+    super(props);
+    this.state = { periodOpen:false, period:'Last 30 days', sent:false };
+    this.pickerRef = React.createRef();
+    this.days = this.buildDays();
+  }
+  componentDidMount() {
+    this.onDoc = e => { if (this.state.periodOpen && this.pickerRef.current && !this.pickerRef.current.contains(e.target)) this.setState({ periodOpen:false }); };
+    document.addEventListener('mousedown', this.onDoc);
+  }
+  componentWillUnmount() { document.removeEventListener('mousedown', this.onDoc); clearTimeout(this.sentT); }
+  buildDays() {
+    const noise = [3,-2,1,4,-1,0,2,-3,1,2,-1,3,0,-2,2,1,-1,0,3,-2,1,2,0,-1,2,1,-3,0,1,2];
+    const crit = [1,0,2,1,0,0,0,2,1,0,3,1,0,0,2,1,1,0,2,0,0,1,3,2,1,0,1,0,1,2];
+    const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const start = new Date(2026, 9, 12);
+    const out = [];
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(start); d.setDate(start.getDate() + i);
+      const wk = d.getDay() === 0 || d.getDay() === 6;
+      out.push({ d, v: (wk ? 30 : 48) + noise[i], c: crit[i] * 4 });
+    }
+    let diff = 1284 - out.reduce((s, x) => s + x.v, 0);
+    for (let k = 0; diff !== 0; k++) { const s = Math.sign(diff); out[(k * 7 + 3) % 30].v += s; diff -= s; }
+    let cd = 127 - out.reduce((s, x) => s + x.c, 0);
+    for (let k = 0; cd !== 0; k++) { const s = Math.sign(cd), x = out[(k * 11 + 5) % 30]; if (s > 0 || x.c > 0) { x.c += s; cd -= s; } }
+    return out.map((x, i) => {
+      const date = M[x.d.getMonth()] + ' ' + x.d.getDate();
+      return {
+        label: i % 7 === 0 ? date : '',
+        title: `${date}: ${x.v} calls, ${x.c} with a critical issue`,
+        bar: { height: (x.v / 60 * 100) + '%', display:'flex', flexDirection:'column', borderRadius:'2px 2px 0 0', overflow:'hidden' },
+        n: { flex: `${x.v - x.c} 0 0`, background:'var(--bc)' },
+        c: { flex: `${x.c} 0 0`, background:'var(--crit)' }
+      };
+    });
+  }
+  renderVals() {
+    const sev = {
+      critical: { word:'Critical', fg:'var(--crit)', bg:'var(--crit-bg)' },
+      warning: { word:'Warning', fg:'var(--warn)', bg:'var(--warn-bg)' },
+      passed: { word:'Passed', fg:'var(--pass)', bg:'var(--pass-bg)' }
+    };
+    const agents = Component.AGENTS.map(a => ({ ...a, word: sev[a.sev].word, isCrit: a.sev === 'critical', isWarn: a.sev === 'warning', isPass: a.sev === 'passed', under: !a.over,
+      badge: { display:'inline-flex', alignItems:'center', gap:4, height:22, padding:'0 8px', borderRadius:6, fontSize:13, fontWeight:500, color: sev[a.sev].fg, background: sev[a.sev].bg } }));
+    return {
+      rootStyle: { ...Component.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
+      pickerRef: this.pickerRef,
+      period: this.state.period, periodOpen: this.state.periodOpen,
+      togglePeriod: () => this.setState(s => ({ periodOpen: !s.periodOpen })),
+      periods: ['Last 7 days','Last 30 days','Last 90 days'].map(l => ({ label:l, current: l === this.state.period, pick: () => this.setState({ period:l, periodOpen:false }) })),
+      sent: this.state.sent, notSent: !this.state.sent,
+      send: () => { this.setState({ sent:true }); clearTimeout(this.sentT); this.sentT = setTimeout(() => this.setState({ sent:false }), 2400); },
+      days: this.days, agents
+    };
+  }
+}
+</script>
+</body>
+</html>
