@@ -115,9 +115,10 @@ def test_list_workspaces_returns_the_persons_workspace(
 
 
 def test_workspace_name_comes_from_the_email_domain() -> None:
-    assert workspace_name_from_email("Ann@Bright-Dental.com") == "bright-dental.com"
-    assert workspace_name_from_email("no-at-sign") == "Workspace"
-    assert workspace_name_from_email("trailing@") == "Workspace"
+    assert workspace_name_from_email("Ann@bright-dental.com") == "Bright Dental"
+    assert workspace_name_from_email("bob@kestrel_plumbing.co.uk") == "Kestrel Plumbing"
+    assert workspace_name_from_email("no-at-sign") == "My workspace"
+    assert workspace_name_from_email("trailing@") == "My workspace"
 
 
 # ── list_agents ──
@@ -239,3 +240,45 @@ def test_list_agents_searches_by_name(
     none = client.get(url, headers=headers, params={"query": "100%_"}).json()
     assert none["data"] == []
     assert any("without `query`" in step for step in none["next_steps"])
+
+
+# ── create_workspace ──
+
+
+def test_create_workspace_adds_one_the_person_can_reach(
+    client: TestClient, db: Session, monkeypatch
+) -> None:
+    user = _new_user(db)
+    headers = _token_for(user, monkeypatch)
+
+    created = client.post(
+        f"{MCP_PREFIX}/workspaces", headers=headers, json={"name": " Kestrel Plumbing "}
+    )
+
+    assert created.status_code == 200, created.text
+    body = created.json()
+    _assert_answer_shape(body)
+    assert body["data"]["name"] == "Kestrel Plumbing"
+    listed = client.get(f"{MCP_PREFIX}/workspaces", headers=headers).json()["data"]
+    assert {w["id"] for w in listed} == {str(user.company_id), body["data"]["id"]}
+    agents = client.get(
+        f"{MCP_PREFIX}/workspaces/{body['data']['id']}/agents", headers=headers
+    )
+    assert agents.status_code == 200
+    assert agents.json()["data"] == []
+    # Creating through MCP does not change the workspace open on the web.
+    db.refresh(user)
+    assert str(user.company_id) != body["data"]["id"]
+
+
+def test_create_workspace_refuses_a_blank_name(
+    client: TestClient, db: Session, monkeypatch
+) -> None:
+    headers = _token_for(_new_user(db), monkeypatch)
+
+    response = client.post(
+        f"{MCP_PREFIX}/workspaces", headers=headers, json={"name": "  "}
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["error"] == "A workspace needs a name"

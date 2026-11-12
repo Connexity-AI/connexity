@@ -1,12 +1,14 @@
 import uuid
 from typing import Any
 
-from sqlmodel import Session, col, select
+from sqlmodel import Session, col, func, select
 
 from app.core.security import get_password_hash, verify_password
 from app.models import User, UserCreate, UserUpdate
 from app.models.company import Company, workspace_name_from_email
 from app.models.custom_metric import CustomMetric
+from app.models.user import AuthProvider
+from app.models.workspace_member import WorkspaceMember
 
 
 def _seed_predefined_metrics_for_company(
@@ -62,14 +64,8 @@ def create_user(
     only when adding a user to an existing company (e.g. from a manual admin
     script); in that case no metric seeding happens.
     """
-    seed_metrics = company_id is None
     if company_id is None:
-        company = Company(name=workspace_name_from_email(user_create.email))
-        session.add(company)
-        session.flush()
-        company_id = company.id
-    if seed_metrics:
-        _seed_predefined_metrics_for_company(session=session, company_id=company_id)
+        company_id = _create_first_workspace(session=session, email=user_create.email)
     db_obj = User.model_validate(
         user_create,
         update={
@@ -78,9 +74,39 @@ def create_user(
         },
     )
     session.add(db_obj)
+    session.flush()
+    session.add(WorkspaceMember(user_id=db_obj.id, company_id=company_id))
     session.commit()
     session.refresh(db_obj)
     return db_obj
+
+
+def create_google_user(*, session: Session, email: str, full_name: str | None) -> User:
+    """An account made by signing in with Google: no password, its first workspace
+    named from the email domain."""
+    company_id = _create_first_workspace(session=session, email=email)
+    db_obj = User(
+        email=email,
+        full_name=full_name,
+        provider=AuthProvider.google,
+        hashed_password=None,
+        company_id=company_id,
+    )
+    session.add(db_obj)
+    session.flush()
+    session.add(WorkspaceMember(user_id=db_obj.id, company_id=company_id))
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
+def _create_first_workspace(*, session: Session, email: str) -> uuid.UUID:
+    """A new person's first workspace, with its copy of the built-in metrics."""
+    company = Company(name=workspace_name_from_email(email))
+    session.add(company)
+    session.flush()
+    _seed_predefined_metrics_for_company(session=session, company_id=company.id)
+    return company.id
 
 
 def update_user(*, session: Session, db_user: User, user_in: UserUpdate) -> Any:
@@ -95,6 +121,13 @@ def update_user(*, session: Session, db_user: User, user_in: UserUpdate) -> Any:
     session.commit()
     session.refresh(db_user)
     return db_user
+
+
+def find_user_by_email_ignoring_case(*, session: Session, email: str) -> User | None:
+    """For sign-in from an identity provider, which may change an email's case."""
+    return session.exec(
+        select(User).where(func.lower(User.email) == email.strip().lower())
+    ).first()
 
 
 def get_user_by_email(*, session: Session, email: str) -> User | None:

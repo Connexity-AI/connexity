@@ -1,5 +1,4 @@
 import logging
-from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -37,24 +36,10 @@ def login_access_token(
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
 
-    expires_delta = timedelta(hours=settings.ACCESS_TOKEN_EXPIRE_HOURS)
-
-    access_token = security.create_access_token(
-        user.id,
-        expires_delta,
-        additional_claims={"cid": str(user.company_id)},
+    access_token, expires = security.create_session_token(
+        user_id=user.id, company_id=user.company_id
     )
-
-    # Absolute expiration Unix time (UTC)
-    expires_at = datetime.now(UTC) + expires_delta
-    expires_timestamp = int(expires_at.timestamp())
-
-    token = Token(
-        access_token=access_token,
-        expires=expires_timestamp,
-    )
-
-    return token
+    return Token(access_token=access_token, expires=expires)
 
 
 @router.post("/login/test-token", response_model=UserPublic)

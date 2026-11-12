@@ -17,6 +17,7 @@ from app.api.deps import (
     SessionDep,
     require_mcp_user,
 )
+from app.models import WorkspaceCreate
 from app.models.mcp import (
     GUIDE_GETTING_STARTED,
     GUIDE_WORKSPACES,
@@ -80,6 +81,36 @@ def list_workspaces(
         next_steps=[
             "Pass a workspace's `id` as `workspace_id` to every other Connexity tool.",
             "Call `list_agents` with that `workspace_id` to see its agents.",
+        ],
+        guide=GUIDE_WORKSPACES,
+    )
+
+
+@router.post("/workspaces", response_model=McpAnswer[McpWorkspace])
+def create_workspace(
+    session: SessionDep, current_user: McpCurrentUser, workspace_in: WorkspaceCreate
+) -> McpAnswer[McpWorkspace]:
+    name = workspace_in.name.strip()
+    if not name:
+        raise HTTPException(
+            status_code=422,
+            detail=McpErrorDetail(
+                error="A workspace needs a name",
+                next_steps=["Call `create_workspace` again with the client's name."],
+                guide=GUIDE_WORKSPACES,
+            ).model_dump(),
+        )
+    workspace = crud.create_workspace(session=session, user=current_user, name=name)
+    return McpAnswer[McpWorkspace](
+        data=McpWorkspace(id=workspace.id, name=workspace.name),
+        rules=[
+            "A workspace holds one client's agents, calls and settings; it starts empty.",
+            "Only the person who created it is a member; there are no invitations yet.",
+        ],
+        next_steps=[
+            "Pass this `id` as `workspace_id` to every tool that should act in it.",
+            "Tell the person the workspace exists; they can open it from the profile "
+            "menu in the web app.",
         ],
         guide=GUIDE_WORKSPACES,
     )

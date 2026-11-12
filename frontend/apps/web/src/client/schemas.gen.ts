@@ -1584,7 +1584,7 @@ export const AggregateMetricsSchema = {
 
 export const AuthProviderSchema = {
   type: 'string',
-  enum: ['email', 'github'],
+  enum: ['email', 'google'],
   title: 'AuthProvider',
 } as const;
 
@@ -1664,7 +1664,7 @@ export const Body_login_login_access_tokenSchema = {
   title: 'Body_login-login_access_token',
 } as const;
 
-export const Body_oauth_authorize_confirmSchema = {
+export const Body_oauth_authorize_allowSchema = {
   properties: {
     response_type: {
       type: 'string',
@@ -1677,14 +1677,6 @@ export const Body_oauth_authorize_confirmSchema = {
     redirect_uri: {
       type: 'string',
       title: 'Redirect Uri',
-    },
-    email: {
-      type: 'string',
-      title: 'Email',
-    },
-    password: {
-      type: 'string',
-      title: 'Password',
     },
     code_challenge: {
       type: 'string',
@@ -1733,8 +1725,150 @@ export const Body_oauth_authorize_confirmSchema = {
     'response_type',
     'client_id',
     'redirect_uri',
-    'email',
-    'password',
+    'code_challenge',
+    'code_challenge_method',
+  ],
+  title: 'Body_oauth-authorize_allow',
+} as const;
+
+export const Body_oauth_authorize_cancelSchema = {
+  properties: {
+    response_type: {
+      type: 'string',
+      title: 'Response Type',
+    },
+    client_id: {
+      type: 'string',
+      title: 'Client Id',
+    },
+    redirect_uri: {
+      type: 'string',
+      title: 'Redirect Uri',
+    },
+    code_challenge: {
+      type: 'string',
+      title: 'Code Challenge',
+    },
+    code_challenge_method: {
+      type: 'string',
+      title: 'Code Challenge Method',
+    },
+    scope: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Scope',
+    },
+    state: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'State',
+    },
+    resource: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Resource',
+    },
+  },
+  type: 'object',
+  required: [
+    'response_type',
+    'client_id',
+    'redirect_uri',
+    'code_challenge',
+    'code_challenge_method',
+  ],
+  title: 'Body_oauth-authorize_cancel',
+} as const;
+
+export const Body_oauth_authorize_confirmSchema = {
+  properties: {
+    response_type: {
+      type: 'string',
+      title: 'Response Type',
+    },
+    client_id: {
+      type: 'string',
+      title: 'Client Id',
+    },
+    redirect_uri: {
+      type: 'string',
+      title: 'Redirect Uri',
+    },
+    code_challenge: {
+      type: 'string',
+      title: 'Code Challenge',
+    },
+    code_challenge_method: {
+      type: 'string',
+      title: 'Code Challenge Method',
+    },
+    email: {
+      type: 'string',
+      title: 'Email',
+      default: '',
+    },
+    password: {
+      type: 'string',
+      title: 'Password',
+      default: '',
+    },
+    scope: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Scope',
+    },
+    state: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'State',
+    },
+    resource: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Resource',
+    },
+  },
+  type: 'object',
+  required: [
+    'response_type',
+    'client_id',
+    'redirect_uri',
     'code_challenge',
     'code_challenge_method',
   ],
@@ -1755,14 +1889,6 @@ export const Body_oauth_authorize_signup_confirmSchema = {
       type: 'string',
       title: 'Redirect Uri',
     },
-    email: {
-      type: 'string',
-      title: 'Email',
-    },
-    password: {
-      type: 'string',
-      title: 'Password',
-    },
     code_challenge: {
       type: 'string',
       title: 'Code Challenge',
@@ -1770,6 +1896,16 @@ export const Body_oauth_authorize_signup_confirmSchema = {
     code_challenge_method: {
       type: 'string',
       title: 'Code Challenge Method',
+    },
+    email: {
+      type: 'string',
+      title: 'Email',
+      default: '',
+    },
+    password: {
+      type: 'string',
+      title: 'Password',
+      default: '',
     },
     full_name: {
       anyOf: [
@@ -1821,8 +1957,6 @@ export const Body_oauth_authorize_signup_confirmSchema = {
     'response_type',
     'client_id',
     'redirect_uri',
-    'email',
-    'password',
     'code_challenge',
     'code_challenge_method',
   ],
@@ -4161,6 +4295,18 @@ export const GenerateResultSchema = {
   description: 'Output from test case generation.',
 } as const;
 
+export const GoogleSignInStatusSchema = {
+  properties: {
+    enabled: {
+      type: 'boolean',
+      title: 'Enabled',
+    },
+  },
+  type: 'object',
+  required: ['enabled'],
+  title: 'GoogleSignInStatus',
+} as const;
+
 export const HTTPValidationErrorSchema = {
   properties: {
     detail: {
@@ -5325,6 +5471,51 @@ export const McpAgentSchema = {
   title: 'McpAgent',
 } as const;
 
+export const McpAnswer_McpWorkspace_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/McpWorkspace',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[McpWorkspace]',
+} as const;
+
 export const McpAnswer_list_McpAgent__Schema = {
   properties: {
     data: {
@@ -5980,23 +6171,6 @@ export const OnConflictSchema = {
   type: 'string',
   enum: ['skip', 'overwrite'],
   title: 'OnConflict',
-} as const;
-
-export const OnboardingStatusPublicSchema = {
-  properties: {
-    has_llm_key: {
-      type: 'boolean',
-      title: 'Has Llm Key',
-    },
-    onboarding_complete: {
-      type: 'boolean',
-      title: 'Onboarding Complete',
-    },
-  },
-  type: 'object',
-  required: ['has_llm_key', 'onboarding_complete'],
-  title: 'OnboardingStatusPublic',
-  description: 'Whether the user has completed the post-signup setup steps.',
 } as const;
 
 export const PlatformSchema = {
@@ -9646,13 +9820,13 @@ export const UpdatePasswordSchema = {
     current_password: {
       type: 'string',
       maxLength: 40,
-      minLength: 6,
+      minLength: 1,
       title: 'Current Password',
     },
     new_password: {
       type: 'string',
       maxLength: 40,
-      minLength: 6,
+      minLength: 8,
       title: 'New Password',
     },
   },
@@ -9717,7 +9891,7 @@ export const UserRegisterSchema = {
     password: {
       type: 'string',
       maxLength: 40,
-      minLength: 6,
+      minLength: 8,
       title: 'Password',
     },
     full_name: {
@@ -10033,4 +10207,39 @@ export const WorkflowSummarySchema = {
   type: 'object',
   required: ['id', 'name'],
   title: 'WorkflowSummary',
+} as const;
+
+export const WorkspaceCreateSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      maxLength: 255,
+      minLength: 1,
+      title: 'Name',
+    },
+  },
+  type: 'object',
+  required: ['name'],
+  title: 'WorkspaceCreate',
+} as const;
+
+export const WorkspacePublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    is_open: {
+      type: 'boolean',
+      title: 'Is Open',
+    },
+  },
+  type: 'object',
+  required: ['id', 'name', 'is_open'],
+  title: 'WorkspacePublic',
 } as const;

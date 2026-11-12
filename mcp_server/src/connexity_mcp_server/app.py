@@ -22,7 +22,14 @@ from connexity_mcp_server.guides import (
     INSTRUCTIONS,
     read_guide,
 )
-from connexity_mcp_server.models import ListAgentsResult, ListWorkspacesResult
+from connexity_mcp_server.models import (
+    CreateWorkspaceResult,
+    ListAgentsResult,
+    ListWorkspacesResult,
+)
+from connexity_mcp_server.tools import (
+    create_workspace as _create_workspace,
+)
 from connexity_mcp_server.tools import (
     list_agents as _list_agents,
 )
@@ -77,6 +84,12 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         """The workspaces you can reach: one per client. Call this first; every
         other tool takes a `workspace_id` from here."""
         return await _list_workspaces(client=backend_client)
+
+    @mcp_server.tool()
+    async def create_workspace(name: str) -> CreateWorkspaceResult:
+        """Create a workspace for a new client, with the person you act for as its only
+        member. Ask the person for the client's name first."""
+        return await _create_workspace(client=backend_client, name=name)
 
     @mcp_server.tool()
     async def list_agents(
@@ -224,6 +237,18 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     )
     async def oauth_authorize_confirm_proxy(request: Request) -> Response:
         return await proxy_oauth_request(request, "/oauth/authorize/confirm")
+
+    @app.api_route("/oauth/authorize/allow", methods=["POST", "OPTIONS"])
+    async def oauth_authorize_allow_proxy(request: Request) -> Response:
+        return await proxy_oauth_request(request, "/oauth/authorize/allow")
+
+    @app.api_route("/oauth/authorize/cancel", methods=["POST", "OPTIONS"])
+    async def oauth_authorize_cancel_proxy(request: Request) -> Response:
+        return await proxy_oauth_request(request, "/oauth/authorize/cancel")
+
+    @app.api_route("/oauth/authorize/switch", methods=["GET", "OPTIONS"])
+    async def oauth_authorize_switch_proxy(request: Request) -> Response:
+        return await proxy_oauth_request(request, "/oauth/authorize/switch")
 
     @app.api_route(
         "/oauth/authorize/signup",

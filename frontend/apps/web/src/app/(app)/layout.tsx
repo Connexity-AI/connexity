@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
+
+import { listWorkspaces } from '@/actions/workspaces';
 import Sidebar from '@/components/shell/sidebar';
 import { UsersService } from '@/client/sdk.gen';
 
@@ -26,9 +28,11 @@ const AppLayout: FC<Props> = async ({ children }) => {
 
   if (!currentUser) redirect(UrlGenerator.login());
 
+  const workspaces = await listWorkspaces();
+
   return (
     <div className="flex min-h-screen w-full bg-surface-0">
-      <Sidebar user={currentUser} />
+      <Sidebar user={currentUser} workspaces={workspaces} />
 
       <main className="min-w-0 flex-1 px-8 pt-6 pb-12">{children}</main>
     </div>

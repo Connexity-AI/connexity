@@ -21,6 +21,8 @@
   --color-unchecked: var(--unch);
   --color-unchecked-bg: var(--unch-bg);
   --shadow-menu: var(--menu-shadow);
+  --shadow-dialog: var(--dialog-shadow);
+  --color-backdrop: var(--backdrop);
 
   --font-sans: var(--font-figtree, system-ui), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono, ui-monospace), ui-monospace, monospace;
@@ -29,6 +31,8 @@
   --text-label--line-height: 18px;
   --text-body: 15px;
   --text-body--line-height: 22px;
+  --text-heading: 17px;
+  --text-heading--line-height: 24px;
   --text-title: 20px;
   --text-title--line-height: 28px;
   --text-tile: 30px;

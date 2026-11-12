@@ -860,7 +860,7 @@ export type AggregateMetrics = {
 /**
  * AuthProvider
  */
-export const AuthProvider = { EMAIL: 'email', GITHUB: 'github' } as const;
+export const AuthProvider = { EMAIL: 'email', GOOGLE: 'google' } as const;
 
 /**
  * AuthProvider
@@ -916,6 +916,82 @@ export type BodyLoginLoginAccessToken = {
 };
 
 /**
+ * Body_oauth-authorize_allow
+ */
+export type BodyOauthAuthorizeAllow = {
+  /**
+   * Response Type
+   */
+  response_type: string;
+  /**
+   * Client Id
+   */
+  client_id: string;
+  /**
+   * Redirect Uri
+   */
+  redirect_uri: string;
+  /**
+   * Code Challenge
+   */
+  code_challenge: string;
+  /**
+   * Code Challenge Method
+   */
+  code_challenge_method: string;
+  /**
+   * Scope
+   */
+  scope?: string | null;
+  /**
+   * State
+   */
+  state?: string | null;
+  /**
+   * Resource
+   */
+  resource?: string | null;
+};
+
+/**
+ * Body_oauth-authorize_cancel
+ */
+export type BodyOauthAuthorizeCancel = {
+  /**
+   * Response Type
+   */
+  response_type: string;
+  /**
+   * Client Id
+   */
+  client_id: string;
+  /**
+   * Redirect Uri
+   */
+  redirect_uri: string;
+  /**
+   * Code Challenge
+   */
+  code_challenge: string;
+  /**
+   * Code Challenge Method
+   */
+  code_challenge_method: string;
+  /**
+   * Scope
+   */
+  scope?: string | null;
+  /**
+   * State
+   */
+  state?: string | null;
+  /**
+   * Resource
+   */
+  resource?: string | null;
+};
+
+/**
  * Body_oauth-authorize_confirm
  */
 export type BodyOauthAuthorizeConfirm = {
@@ -932,14 +1008,6 @@ export type BodyOauthAuthorizeConfirm = {
    */
   redirect_uri: string;
   /**
-   * Email
-   */
-  email: string;
-  /**
-   * Password
-   */
-  password: string;
-  /**
    * Code Challenge
    */
   code_challenge: string;
@@ -947,6 +1015,14 @@ export type BodyOauthAuthorizeConfirm = {
    * Code Challenge Method
    */
   code_challenge_method: string;
+  /**
+   * Email
+   */
+  email?: string;
+  /**
+   * Password
+   */
+  password?: string;
   /**
    * Scope
    */
@@ -978,14 +1054,6 @@ export type BodyOauthAuthorizeSignupConfirm = {
    */
   redirect_uri: string;
   /**
-   * Email
-   */
-  email: string;
-  /**
-   * Password
-   */
-  password: string;
-  /**
    * Code Challenge
    */
   code_challenge: string;
@@ -993,6 +1061,14 @@ export type BodyOauthAuthorizeSignupConfirm = {
    * Code Challenge Method
    */
   code_challenge_method: string;
+  /**
+   * Email
+   */
+  email?: string;
+  /**
+   * Password
+   */
+  password?: string;
   /**
    * Full Name
    */
@@ -2611,6 +2687,16 @@ export type GenerateResult = {
 };
 
 /**
+ * GoogleSignInStatus
+ */
+export type GoogleSignInStatus = {
+  /**
+   * Enabled
+   */
+  enabled: boolean;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -3394,6 +3480,40 @@ export type McpAgent = {
 };
 
 /**
+ * McpAnswer[McpWorkspace]
+ */
+export type McpAnswerMcpWorkspace = {
+  /**
+   * The facts: the result of the call
+   */
+  data: McpWorkspace;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
  * McpAnswer[list[McpAgent]]
  */
 export type McpAnswerListMcpAgent = {
@@ -3829,22 +3949,6 @@ export const OnConflict = { SKIP: 'skip', OVERWRITE: 'overwrite' } as const;
  * OnConflict
  */
 export type OnConflict = (typeof OnConflict)[keyof typeof OnConflict];
-
-/**
- * OnboardingStatusPublic
- *
- * Whether the user has completed the post-signup setup steps.
- */
-export type OnboardingStatusPublic = {
-  /**
-   * Has Llm Key
-   */
-  has_llm_key: boolean;
-  /**
-   * Onboarding Complete
-   */
-  onboarding_complete: boolean;
-};
 
 /**
  * Platform
@@ -6224,6 +6328,34 @@ export type WorkflowSummary = {
   active?: boolean;
 };
 
+/**
+ * WorkspaceCreate
+ */
+export type WorkspaceCreate = {
+  /**
+   * Name
+   */
+  name: string;
+};
+
+/**
+ * WorkspacePublic
+ */
+export type WorkspacePublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Is Open
+   */
+  is_open: boolean;
+};
+
 export type HealthHealthData = {
   body?: never;
   path?: never;
@@ -6442,6 +6574,63 @@ export type OauthAuthorizeSignupResponses = {
   200: unknown;
 };
 
+export type OauthAuthorizeSwitchAccountData = {
+  body?: never;
+  path?: never;
+  query: {
+    /**
+     * Response Type
+     */
+    response_type: string;
+    /**
+     * Client Id
+     */
+    client_id: string;
+    /**
+     * Redirect Uri
+     */
+    redirect_uri: string;
+    /**
+     * Code Challenge
+     */
+    code_challenge?: string | null;
+    /**
+     * Code Challenge Method
+     */
+    code_challenge_method?: string | null;
+    /**
+     * Scope
+     */
+    scope?: string | null;
+    /**
+     * State
+     */
+    state?: string | null;
+    /**
+     * Resource
+     */
+    resource?: string | null;
+  };
+  url: '/oauth/authorize/switch';
+};
+
+export type OauthAuthorizeSwitchAccountErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type OauthAuthorizeSwitchAccountError =
+  OauthAuthorizeSwitchAccountErrors[keyof OauthAuthorizeSwitchAccountErrors];
+
+export type OauthAuthorizeSwitchAccountResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
 export type OauthAuthorizeConfirmData = {
   body: BodyOauthAuthorizeConfirm;
   path?: never;
@@ -6484,6 +6673,53 @@ export type OauthAuthorizeSignupConfirmError =
   OauthAuthorizeSignupConfirmErrors[keyof OauthAuthorizeSignupConfirmErrors];
 
 export type OauthAuthorizeSignupConfirmResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type OauthAuthorizeAllowData = {
+  body: BodyOauthAuthorizeAllow;
+  path?: never;
+  query?: never;
+  url: '/oauth/authorize/allow';
+};
+
+export type OauthAuthorizeAllowErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type OauthAuthorizeAllowError = OauthAuthorizeAllowErrors[keyof OauthAuthorizeAllowErrors];
+
+export type OauthAuthorizeAllowResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type OauthAuthorizeCancelData = {
+  body: BodyOauthAuthorizeCancel;
+  path?: never;
+  query?: never;
+  url: '/oauth/authorize/cancel';
+};
+
+export type OauthAuthorizeCancelErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type OauthAuthorizeCancelError =
+  OauthAuthorizeCancelErrors[keyof OauthAuthorizeCancelErrors];
+
+export type OauthAuthorizeCancelResponses = {
   /**
    * Successful Response
    */
@@ -6659,6 +6895,148 @@ export type LoginLogoutResponses = {
    */
   200: unknown;
 };
+
+export type AuthGoogleStatusData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/auth/google';
+};
+
+export type AuthGoogleStatusErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AuthGoogleStatusError = AuthGoogleStatusErrors[keyof AuthGoogleStatusErrors];
+
+export type AuthGoogleStatusResponses = {
+  /**
+   * Successful Response
+   */
+  200: GoogleSignInStatus;
+};
+
+export type AuthGoogleStatusResponse = AuthGoogleStatusResponses[keyof AuthGoogleStatusResponses];
+
+export type AuthStartData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/auth/google/start';
+};
+
+export type AuthStartErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AuthStartError = AuthStartErrors[keyof AuthStartErrors];
+
+export type AuthCallbackData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Code
+     */
+    code?: string | null;
+    /**
+     * State
+     */
+    state?: string | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+  };
+  url: '/api/v1/auth/google/callback';
+};
+
+export type AuthCallbackErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AuthCallbackError = AuthCallbackErrors[keyof AuthCallbackErrors];
 
 export type UsersRegisterUserData = {
   body: UserRegister;
@@ -6910,14 +7288,14 @@ export type UsersUpdatePasswordMeResponses = {
 export type UsersUpdatePasswordMeResponse =
   UsersUpdatePasswordMeResponses[keyof UsersUpdatePasswordMeResponses];
 
-export type UsersReadOnboardingStatusData = {
+export type WorkspacesListWorkspacesData = {
   body?: never;
   path?: never;
   query?: never;
-  url: '/api/v1/users/me/onboarding-status';
+  url: '/api/v1/workspaces/';
 };
 
-export type UsersReadOnboardingStatusErrors = {
+export type WorkspacesListWorkspacesErrors = {
   /**
    * Bad Request
    */
@@ -6948,18 +7326,127 @@ export type UsersReadOnboardingStatusErrors = {
   500: ErrorResponse;
 };
 
-export type UsersReadOnboardingStatusError =
-  UsersReadOnboardingStatusErrors[keyof UsersReadOnboardingStatusErrors];
+export type WorkspacesListWorkspacesError =
+  WorkspacesListWorkspacesErrors[keyof WorkspacesListWorkspacesErrors];
 
-export type UsersReadOnboardingStatusResponses = {
+export type WorkspacesListWorkspacesResponses = {
+  /**
+   * Response Workspaces-List Workspaces
+   *
+   * Successful Response
+   */
+  200: Array<WorkspacePublic>;
+};
+
+export type WorkspacesListWorkspacesResponse =
+  WorkspacesListWorkspacesResponses[keyof WorkspacesListWorkspacesResponses];
+
+export type WorkspacesCreateWorkspaceData = {
+  body: WorkspaceCreate;
+  path?: never;
+  query?: never;
+  url: '/api/v1/workspaces/';
+};
+
+export type WorkspacesCreateWorkspaceErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type WorkspacesCreateWorkspaceError =
+  WorkspacesCreateWorkspaceErrors[keyof WorkspacesCreateWorkspaceErrors];
+
+export type WorkspacesCreateWorkspaceResponses = {
   /**
    * Successful Response
    */
-  200: OnboardingStatusPublic;
+  200: WorkspacePublic;
 };
 
-export type UsersReadOnboardingStatusResponse =
-  UsersReadOnboardingStatusResponses[keyof UsersReadOnboardingStatusResponses];
+export type WorkspacesCreateWorkspaceResponse =
+  WorkspacesCreateWorkspaceResponses[keyof WorkspacesCreateWorkspaceResponses];
+
+export type WorkspacesOpenWorkspaceData = {
+  body?: never;
+  path: {
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/workspaces/{workspace_id}/open';
+};
+
+export type WorkspacesOpenWorkspaceErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type WorkspacesOpenWorkspaceError =
+  WorkspacesOpenWorkspaceErrors[keyof WorkspacesOpenWorkspaceErrors];
+
+export type WorkspacesOpenWorkspaceResponses = {
+  /**
+   * Successful Response
+   */
+  200: Token;
+};
+
+export type WorkspacesOpenWorkspaceResponse =
+  WorkspacesOpenWorkspaceResponses[keyof WorkspacesOpenWorkspaceResponses];
 
 export type McpListWorkspacesData = {
   body?: never;
@@ -7010,6 +7497,56 @@ export type McpListWorkspacesResponses = {
 
 export type McpListWorkspacesResponse =
   McpListWorkspacesResponses[keyof McpListWorkspacesResponses];
+
+export type McpCreateWorkspaceData = {
+  body: WorkspaceCreate;
+  path?: never;
+  query?: never;
+  url: '/api/v1/mcp/workspaces';
+};
+
+export type McpCreateWorkspaceErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpCreateWorkspaceError = McpCreateWorkspaceErrors[keyof McpCreateWorkspaceErrors];
+
+export type McpCreateWorkspaceResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerMcpWorkspace;
+};
+
+export type McpCreateWorkspaceResponse =
+  McpCreateWorkspaceResponses[keyof McpCreateWorkspaceResponses];
 
 export type McpListAgentsData = {
   body?: never;

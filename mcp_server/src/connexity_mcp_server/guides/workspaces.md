@@ -11,3 +11,6 @@ workspace per client; nothing is shared between workspaces.
   not exist.
 - When the person works with several clients, ask which client they mean before acting,
   and name the workspace in your answer.
+- For a new client, ask the person for the client's name, then call `create_workspace`.
+  Only the person is a member; there are no invitations yet. Creating one does not
+  change the workspace the person has open in the web app.
