@@ -428,7 +428,11 @@ def test_cancel_tells_the_assistant_access_was_denied(
 
     assert cancelled.status_code == 303
     query = parse_qs(urlparse(cancelled.headers["location"]).query)
-    assert query == {"error": ["access_denied"], "state": ["the-state"]}
+    assert query == {
+        "error": ["access_denied"],
+        "iss": ["https://backend.example.com"],
+        "state": ["the-state"],
+    }
 
 
 def test_allow_without_a_session_shows_sign_in(client: TestClient, monkeypatch) -> None:
@@ -495,3 +499,88 @@ def test_connection_pages_cannot_be_framed(client: TestClient, monkeypatch) -> N
 
     assert consent.headers["x-frame-options"] == "DENY"
     assert "frame-ancestors 'none'" in consent.headers["content-security-policy"]
+
+
+def _connect_like(
+    client: TestClient, monkeypatch, *, registered: str, used: str
+) -> httpx.Response:
+    """Register a client, sign up through the connection page and press Allow."""
+    monkeypatch.setattr(settings, "OAUTH_ISSUER_URL", "https://backend.example.com")
+    client.cookies.clear()
+    reg = client.post(
+        "/oauth/register",
+        json={
+            "client_name": "Claude Code",
+            "redirect_uris": [registered],
+            "grant_types": ["authorization_code", "refresh_token"],
+        },
+    )
+    assert reg.status_code == 200, reg.text
+    _, challenge = _pkce_pair()
+    fields = _authorize_fields(reg.json()["client_id"], challenge) | {
+        "redirect_uri": used
+    }
+    consent = client.post(
+        "/oauth/authorize/signup/confirm",
+        data=fields | {"email": random_email(), "password": random_lower_string()},
+    )
+    assert consent.status_code == 200, consent.text
+    return client.post("/oauth/authorize/allow", data=fields, follow_redirects=False)
+
+
+def test_claude_code_connects_with_a_loopback_callback_on_a_new_port(
+    client: TestClient, monkeypatch
+) -> None:
+    allowed = _connect_like(
+        client,
+        monkeypatch,
+        registered="http://localhost/callback",
+        used="http://localhost:53122/callback",
+    )
+
+    assert allowed.status_code == 303
+    location = urlparse(allowed.headers["location"])
+    assert (location.hostname, location.port, location.path) == (
+        "localhost",
+        53122,
+        "/callback",
+    )
+    query = parse_qs(location.query)
+    assert query["iss"] == ["https://backend.example.com"]
+    assert query["code"]
+
+
+def test_chatgpt_connects_with_its_stable_callback(
+    client: TestClient, monkeypatch
+) -> None:
+    stable = "https://chatgpt.com/connector_platform_oauth_redirect"
+
+    allowed = _connect_like(client, monkeypatch, registered=stable, used=stable)
+
+    assert allowed.status_code == 303
+    assert allowed.headers["location"].startswith(f"{stable}?")
+    assert "iss=https%3A%2F%2Fbackend.example.com" in allowed.headers["location"]
+
+
+def test_a_loopback_registration_cannot_send_codes_elsewhere(
+    client: TestClient, monkeypatch
+) -> None:
+    monkeypatch.setattr(settings, "OAUTH_ISSUER_URL", "https://backend.example.com")
+    reg = client.post(
+        "/oauth/register",
+        json={"client_name": "Local", "redirect_uris": ["http://localhost/callback"]},
+    )
+    _, challenge = _pkce_pair()
+    fields = _authorize_fields(reg.json()["client_id"], challenge) | {
+        "redirect_uri": "http://evil.example.com/callback"
+    }
+
+    response = client.get("/oauth/authorize", params=fields)
+
+    assert response.status_code == 400
+
+
+def test_metadata_advertises_issuer_identification(client: TestClient) -> None:
+    body = client.get("/.well-known/oauth-authorization-server").json()
+
+    assert body["authorization_response_iss_parameter_supported"] is True

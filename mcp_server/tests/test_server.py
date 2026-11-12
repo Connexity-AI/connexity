@@ -47,3 +47,16 @@ async def test_every_guide_is_served_as_a_resource() -> None:
         contents = list(await server.read_resource(f"connexity://guides/{name}"))
         assert contents[0].content.startswith("# ")
         assert contents[0].mime_type == "text/markdown"
+
+
+@pytest.mark.asyncio
+async def test_tools_say_whether_they_change_anything() -> None:
+    tools = {tool.name: tool.annotations for tool in await _server().list_tools()}
+
+    for name in ("list_workspaces", "list_agents", "get_readiness"):
+        assert tools[name] is not None
+        assert tools[name].readOnlyHint is True
+        assert tools[name].openWorldHint is False
+    assert tools["create_workspace"] is not None
+    assert tools["create_workspace"].readOnlyHint is False
+    assert tools["create_workspace"].destructiveHint is False

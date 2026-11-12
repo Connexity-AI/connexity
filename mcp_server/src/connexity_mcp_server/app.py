@@ -11,6 +11,7 @@ from mcp.server.auth.settings import AuthSettings
 from mcp.server.fastmcp import FastMCP
 from mcp.server.streamable_http import MCP_PROTOCOL_VERSION_HEADER
 from mcp.server.transport_security import TransportSecuritySettings
+from mcp.types import ToolAnnotations
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from connexity_mcp_server.auth import OidcTokenVerifier
@@ -39,6 +40,13 @@ from connexity_mcp_server.tools import (
 )
 from connexity_mcp_server.tools import (
     list_workspaces as _list_workspaces,
+)
+
+# Hints assistants read to decide whether to ask the person before a call. Every tool
+# acts only inside Connexity (`openWorldHint=False`).
+READ_ONLY = ToolAnnotations(readOnlyHint=True, openWorldHint=False)
+CREATES = ToolAnnotations(
+    readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=False
 )
 
 
@@ -83,25 +91,25 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         ),
     )
 
-    @mcp_server.tool()
+    @mcp_server.tool(annotations=READ_ONLY)
     async def list_workspaces() -> ListWorkspacesResult:
         """The workspaces you can reach: one per client. Call this first; every
         other tool takes a `workspace_id` from here."""
         return await _list_workspaces(client=backend_client)
 
-    @mcp_server.tool()
+    @mcp_server.tool(annotations=CREATES)
     async def create_workspace(name: str) -> CreateWorkspaceResult:
         """Create a workspace for a new client, with the person you act for as its only
         member. Ask the person for the client's name first."""
         return await _create_workspace(client=backend_client, name=name)
 
-    @mcp_server.tool()
+    @mcp_server.tool(annotations=READ_ONLY)
     async def get_readiness(workspace_id: str) -> GetReadinessResult:
         """How complete the workspace's setup is: each Getting started step, whether it
         is done, and what to do next. Call it after each setup step."""
         return await _get_readiness(client=backend_client, workspace_id=workspace_id)
 
-    @mcp_server.tool()
+    @mcp_server.tool(annotations=READ_ONLY)
     async def list_agents(
         workspace_id: str,
         query: str | None = None,

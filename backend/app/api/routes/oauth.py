@@ -22,7 +22,7 @@ from app.api.routes.oauth_pages import (
     consent_page,
     sign_in_page,
 )
-from app.core import security
+from app.core import oauth_redirects, security
 from app.core.config import settings
 from app.models import (
     OAuthAuthorizationCode,
@@ -65,6 +65,9 @@ def _metadata() -> dict[str, object]:
         "code_challenge_methods_supported": ["S256"],
         "token_endpoint_auth_methods_supported": ["none"],
         "scopes_supported": [SUPPORTED_SCOPE],
+        # Every authorization response carries `iss` (RFC 9207); ChatGPT then uses its
+        # stable callback address.
+        "authorization_response_iss_parameter_supported": True,
     }
 
 
@@ -125,7 +128,7 @@ def _validate_authorize_request(
     client = session.get(OAuthClient, client_id)
     if client is None:
         raise HTTPException(status_code=400, detail="Unknown client_id")
-    if redirect_uri not in client.redirect_uris:
+    if not oauth_redirects.matches_registered(redirect_uri, client.redirect_uris):
         raise HTTPException(status_code=400, detail="Invalid redirect_uri")
     return client
 
@@ -195,7 +198,7 @@ def _redirect_with_code(
     code: str,
     state: str | None,
 ) -> RedirectResponse:
-    params = {"code": code}
+    params = {"code": code, "iss": _issuer()}
     if state:
         params["state"] = state
     separator = "&" if "?" in redirect_uri else "?"
@@ -355,7 +358,9 @@ async def register_oauth_client(
 
     allowed_redirect_uris = _allowed_redirect_uris()
     invalid_redirects = [
-        uri for uri in body.redirect_uris if uri not in allowed_redirect_uris
+        uri
+        for uri in body.redirect_uris
+        if not oauth_redirects.may_register(uri, allowed_redirect_uris)
     ]
     if invalid_redirects:
         logger.warning(
@@ -657,7 +662,9 @@ def authorize_cancel(
         resource=resource,
     )
     _validated(session, params)
-    query = {"error": "access_denied"} | ({"state": state} if state else {})
+    query = {"error": "access_denied", "iss": _issuer()} | (
+        {"state": state} if state else {}
+    )
     separator = "&" if "?" in redirect_uri else "?"
     return RedirectResponse(
         f"{redirect_uri}{separator}{urlencode(query)}", status_code=303

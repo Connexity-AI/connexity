@@ -13,6 +13,7 @@ GUIDES = {
     "getting-started": "Getting started with Connexity",
     "workspaces": "Workspaces",
     "readiness": "Readiness",
+    "connect": "Connect an assistant to Connexity",
 }
 
 INSTRUCTIONS = (
