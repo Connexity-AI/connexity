@@ -4,7 +4,7 @@ This document covers how to cut a versioned release of the Connexity platform (b
 
 ## Why platform releases exist
 
-The platform deploys continuously on push-to-`main` (see `deploy-backend.yml` / `deploy-frontend.yml`), so platform tags are not required for code to ship — they are *informational*:
+The platform deploys continuously on push-to-`main` (Cloud Build to Cloud Run; see [`deployment.md`](../deployment.md)), so platform tags are not required for code to ship — they are *informational*:
 
 - mark "what shipped together" for change-log purposes
 - give support and ops a stable label to refer to ("the bug appeared in `v1.4.0`")
