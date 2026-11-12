@@ -1,15 +1,17 @@
 import secrets
 import uuid
+from collections.abc import Generator
 from datetime import timedelta
 
 import httpx
 import pytest
 import respx
+from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from app import crud
-from app.core import security
+from app.core import encryption, security
 from app.core.config import settings
 from app.core.encryption import decrypt
 from app.models import User, UserCreate
@@ -28,6 +30,17 @@ KEY = "key_" + "a1b2c3d4e5f6g7h8i9j0"
 def _mcp(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "OAUTH_DEFAULT_RESOURCE_URL", MCP_URL)
     monkeypatch.setattr(settings, "OAUTH_ISSUER_URL", ISSUER)
+
+
+@pytest.fixture(autouse=True)
+def _encryption_key(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
+    """A real Fernet key: CI's ENCRYPTION_KEY is a placeholder."""
+    monkeypatch.setattr(
+        encryption.settings, "ENCRYPTION_KEY", Fernet.generate_key().decode()
+    )
+    encryption._fernet.cache_clear()
+    yield
+    encryption._fernet.cache_clear()
 
 
 def _person(db: Session) -> User:
