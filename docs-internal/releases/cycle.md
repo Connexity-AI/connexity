@@ -18,7 +18,7 @@ The repo ships two independent artifact lines from the same monorepo. They use d
 
 > The legacy `v0.1.0` tag is a pre-namespace-split CLI release. Do not reuse it, and skip it when looking at "the latest `v*` tag".
 
-The platform deploys on every push to `main` via [`deploy-backend.yml`](../../.github/workflows/deploy-backend.yml) and [`deploy-frontend.yml`](../../.github/workflows/deploy-frontend.yml). Platform tags are **informational** — they label a coherent batch of shipped work, they do not gate deployment.
+The platform deploys on every merge to `main` through Cloud Build triggers on Google Cloud Run (see [`deployment.md`](../deployment.md)). Platform tags are **informational** — they label a coherent batch of shipped work, they do not gate deployment.
 
 The CLI does not deploy continuously; it ships only when a `cli-v*` tag is pushed.
 
@@ -94,7 +94,7 @@ The `publish-pypi.yml` workflow does not care how the tag was created.
 
 ### 0. Deploy already happened
 
-Every merge to `main` runs the build-and-push Docker workflow ([`publish-docker-ghcr.yml`](../../.github/workflows/publish-docker-ghcr.yml)) on the release event, and the deploy workflows ([`deploy-backend.yml`](../../.github/workflows/deploy-backend.yml) / [`deploy-frontend.yml`](../../.github/workflows/deploy-frontend.yml)) SSH into the host and `docker compose up -d` the new image. By the time you cut a platform tag, the code is already live.
+Every merge to `main` that touches `backend/`, `frontend/` or `mcp_server/` is built by Cloud Build and deployed to its Cloud Run service (see [`deployment.md`](../deployment.md)). By the time you cut a platform tag, the code is already live.
 
 The tag exists to label "this batch shipped" — for support, ops, and the [GitHub Releases](https://github.com/Connexity-AI/connexity/releases) page.
 
@@ -232,7 +232,7 @@ Use judgement. A silent release is fine if there's nothing for users to act on.
 │  Platform                                                       │
 │                                                                 │
 │  every merge to main                                            │
-│    → deploy-backend.yml + deploy-frontend.yml deploy live       │
+│    → Cloud Build triggers deploy to Cloud Run                   │
 │                                                                 │
 │  when ready to label a batch:                                   │
 │    → Actions → Release Platform → Run workflow (patch/minor/    │

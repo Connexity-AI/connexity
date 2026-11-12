@@ -18,6 +18,7 @@ instead.
 
 - [`data-model.md`](./data-model.md) - ER diagram and table-level schema reference
 - [`mcp-architecture.md`](./mcp-architecture.md) - MCP adapter architecture and how to add new tools
+- [`deployment.md`](./deployment.md) - how `main` reaches Google Cloud Run: services, triggers, secrets, the database
 - [`migrations.md`](./migrations.md) - Alembic workflow, conventions, gotchas
 - [`railway-template.md`](./railway-template.md) - source-controlled blueprint for the Railway template composer
 - [`releases/`](./releases) - release pipeline
