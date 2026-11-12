@@ -27,7 +27,7 @@ const FormRegister: FC = () => {
   if (success) {
     return (
       <div className="flex flex-col gap-4 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Registration successful</h1>
+        <h1 className="text-title font-medium">Registration successful</h1>
         <p className="text-sm text-muted-foreground">
           Your account has been created. You can now sign in.
         </p>

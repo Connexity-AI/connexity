@@ -92,6 +92,7 @@ history of a slice is its plan file in `plans/`.
 | 2.1 | Check engine | Done (PR #171) |
 | 2.2 | First rule checks and facts | Dropped: its engine pieces are folded into 2.3; checks are added only when Dmytro asks |
 | 2.3 | Check runs, issues and call status | Done (PR #172) |
+| M1.1 | Frontend foundation on the design system: 1.x screens deleted, empty shell on the design system | In review |
 
 **The order of work is Dmytro's feature roadmap (Decided 2026-11-12).** It lives
 outside the repo, which is public. Each feature has what done means, whether it is
@@ -196,11 +197,11 @@ three rows wrong. It was corrected against the code before anything was deleted.
 | What | Why it stays | Revisit |
 |---|---|---|
 | Vapi and ElevenLabs: connection test, agent listing, config import, call sync | They are working integrations for two more stacks, not planned stubs. Only their deploy functions were removed. | Phase 1, as reference mappings |
-| LLM key onboarding (`/onboarding`) | It is a single form for the company's LLM key, which judges still need. It is not a builder wizard. | Phase 6 onboarding |
+| LLM key onboarding (`/onboarding`) | Screen deleted in M1.1 (2026-11-12); the backend LLM-key routes stay for the judges. | Readiness replaces onboarding |
 | `Environment` | Nothing uses it since slice 1.3: call sync reads the agent's own provider link. The model, routes and the Environments tab remain. | Delete in a later slice (Dmytro, 2026-10-08) |
 | Backend draft, publish, rollback and version routes; CLI agent commands; the `AgentVersion` model | They sit under agent creation and the frozen eval stack (test runs point at `AgentVersion`). Observed versions live in a separate catalogue since slice 1.5. | Phase 4, with the eval stack (Dmytro, 2026-10-09) |
-| Create-agent form and the Integrations form | Kept under the 2026-10-09 rule that the UI may do anything the API does. That rule was retired on 2026-11-09: the web app is a dashboard for a quick glance, plus a single call. | Remove when the frontend moves onto the design system; ask first |
-| Editing UI inside the frozen eval stack: eval config detail form, test case detail drawer, the custom metrics page, the "Run" button | Out of the agreed scope for 0.2. Nothing new can be created from the UI, but existing items can still be edited. | Phase 4 |
+| Create-agent form and the Integrations form | Deleted in M1.1 (2026-11-12). The backend routes stay; the assistant connects through MCP. | Done |
+| Editing UI inside the frozen eval stack: eval config detail form, test case detail drawer, the custom metrics page, the "Run" button | Screens deleted in M1.1 (2026-11-12). The backend eval stack stays frozen. | Tests are redesigned in Milestone 6 |
 | Retell functions that nothing calls (`create_retell_batch_test`, `create_retell_chat*`, `list_retell_agent_versions`, and others) | Already unused before the rebuild. Batch tests and agent versions are likely inputs to Phases 1 and 4. | 1.5 and Phase 4 |
 
 ---
@@ -701,6 +702,9 @@ Dmytro's only when he stated it in his own words.
 | 2026-11-12 | Each agency client is a workspace under a thin agency account that holds billing and members; a superview comes later. MCP connections are per user and reach exactly that user's workspaces. No white-labelling. | Dmytro ("Everything will be super easy if thats just workspaces"; "it should be on user level not account level"; "we won't whitelabel") |
 | 2026-11-12 | Pricing has a limited Free plan and a Paid plan with credit top-ups. When credits run out, recording, checks, incidents and alerts keep running; simulations pause. | Dmytro ("free version but limited, and paid plan with ability to top up tokens"; "credits") |
 | 2026-11-12 | Categories are one fixed, Connexity-wide set kept in a database table. Nothing appears in the UI that does not work end to end. Every feature extends MCP with few, workflow-shaped tools. | Dmytro ("Need to have a table in db with categories"; "we don't develop anything that doesnt work - add that to rules"; "with every new feature we need to expand MCP - and in a smart way") |
+| 2026-11-12 | Every 1.x screen may be deleted; each is recreated from the new Claude Design. | Dmytro ("You can remove anything you need we will need to recreate it with new claude design") |
+| 2026-11-12 | The shell is built from the 2026-11-12 Claude Design export in `designs/screens/`: Sidebar, Onboarding and Design System. | Dmytro |
+| 2026-11-12 | The app shell ships with no sidebar pages and an empty landing page until Readiness; the theme on first open follows the system; the real three-loop logo is used and the Sidebar design is corrected to match. | Proposed by Claude; Dmytro accepted ("Accept, build") |
 
 ---
 

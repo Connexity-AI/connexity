@@ -8,7 +8,7 @@ as something a call's tool call triggered.
 
 ## 1. Connect n8n
 
-Add an n8n connection on the Integrations page, or with the API:
+Add an n8n connection with the API:
 
 ```bash
 curl -X POST "$CONNEXITY_URL/api/v1/integrations/" \

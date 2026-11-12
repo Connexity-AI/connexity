@@ -30,7 +30,7 @@ export function useLogin() {
     mutationFn: loginAction,
     onSuccess: (result) => {
       if (isErrorApiResult(result)) return;
-      router.push(UrlGenerator.dashboard());
+      router.push(UrlGenerator.home());
     },
   });
 

@@ -35,14 +35,14 @@ class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="p-4 border border-red-400 rounded-lg bg-red-50 text-red-800">
-          <h2 className="font-semibold text-lg truncate">
+        <div className="rounded-xl bg-critical-bg p-4 text-critical">
+          <h2 className="truncate text-body font-medium">
             Oops, something went wrong.
           </h2>
           <Button
-            variant="destructive"
+            variant="secondary"
             onClick={this.handleRetry}
-            className="mt-3 bg-red-600 hover:bg-red-700"
+            className="mt-3"
           >
             Try again
           </Button>

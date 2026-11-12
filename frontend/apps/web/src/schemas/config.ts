@@ -18,7 +18,3 @@ export const getProcessEnvSchemaProps = (zod: ZodType) => ({
 
 /** For schema type. */
 export const processEnvSchema = z.object(getProcessEnvSchemaProps(z));
-
-export const configClientSchema = z.object({
-  PAGE_SIZE_TABLE: z.number(),
-});

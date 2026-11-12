@@ -6,7 +6,6 @@ import { getPublicEnv } from '@/config/process-env';
 
 export const dynamic = 'force-static';
 
-// Todo: not important for dashboard, remove its routes
 const sitemap = (): MetadataRoute.Sitemap => {
   const { SITE_URL } = getPublicEnv();
 
@@ -14,9 +13,6 @@ const sitemap = (): MetadataRoute.Sitemap => {
     UrlGenerator.home(),
     UrlGenerator.login(),
     UrlGenerator.register(),
-    UrlGenerator.dashboard(),
-    UrlGenerator.agents(),
-    UrlGenerator.metrics(),
   ];
 
   const routes = sitemapRoutes.map((route) => ({

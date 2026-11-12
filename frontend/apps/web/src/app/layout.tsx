@@ -1,4 +1,4 @@
-import { Inter } from 'next/font/google';
+import { Figtree, JetBrains_Mono } from 'next/font/google';
 
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { Toaster } from '@workspace/ui/components/ui/toaster';
@@ -16,7 +16,17 @@ import { PublicEnv } from '@/config/process-env';
 import type { Metadata } from 'next';
 import type { FC, ReactNode } from 'react';
 
-const fontInter = Inter({ subsets: ['latin'] });
+const fontSans = Figtree({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-figtree',
+});
+
+const fontMono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-jetbrains-mono',
+});
 
 export const metadata: Metadata = METADATA;
 
@@ -26,7 +36,7 @@ interface Props {
 
 const RootLayout: FC<Props> = ({ children }) => (
   <html lang="en" suppressHydrationWarning>
-    <body className={fontInter.className}>
+    <body className={`${fontSans.variable} ${fontMono.variable}`}>
       <PublicEnv />
 
       <ThemeProvider
