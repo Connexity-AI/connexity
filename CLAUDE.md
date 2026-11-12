@@ -13,9 +13,9 @@ every decision made), the skills and know-how for operating conversational agent
 verification of its work, and the place where people approve.
 
 Connexity itself never changes an agent: no editing of prompts or workflows, no
-deploying, no chat. The assistant does the work; people approve. So the web app is only
-reports, things to do and a single call, easy to read, built from the Connexity Design
-System in Claude.
+deploying, no chat. The assistant does the work; people approve. So the web app is a
+dashboard for a quick glance at the fleet, plus a single call, built from the Connexity
+Design System in Claude.
 
 The code is mostly Connexity 1.x, being rebuilt in place into 2.0. Do not treat existing
 patterns as the direction.
