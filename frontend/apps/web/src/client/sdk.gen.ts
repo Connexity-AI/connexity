@@ -225,6 +225,9 @@ import type {
   LoginTestTokenData,
   LoginTestTokenErrors,
   LoginTestTokenResponses,
+  McpAddAgentsData,
+  McpAddAgentsErrors,
+  McpAddAgentsResponses,
   McpConnectVoicePlatformData,
   McpConnectVoicePlatformErrors,
   McpConnectVoicePlatformResponses,
@@ -1039,6 +1042,25 @@ export class McpService {
       url: '/api/v1/mcp/workspaces/{workspace_id}/agents',
       ...options,
     });
+  }
+
+  /**
+   * Add Agents
+   */
+  public static addAgents<ThrowOnError extends boolean = false>(
+    options: Options<McpAddAgentsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<McpAddAgentsResponses, McpAddAgentsErrors, ThrowOnError>(
+      {
+        security: [{ scheme: 'bearer', type: 'http' }],
+        url: '/api/v1/mcp/workspaces/{workspace_id}/agents',
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      }
+    );
   }
 
   /**

@@ -17,29 +17,15 @@ from app.services.connections import connection_problem
 from app.services.elevenlabs import list_elevenlabs_agents
 from app.services.n8n import N8nError, list_n8n_workflows
 from app.services.outbound_url import OutboundUrlError, normalize_base_url
-from app.services.retell import RetellAgentSummary, list_retell_agents
+from app.services.retell import (
+    RetellAgentSummary,
+    dedupe_retell_agents,
+    list_retell_agents,
+)
 from app.services.vapi import list_vapi_assistants
 
 # Providers whose connection is to the user's own instance, so it needs an address.
 _PROVIDERS_WITH_ADDRESS = {IntegrationProvider.N8N}
-
-
-def _agent_priority(agent: RetellAgentSummary) -> tuple[int, int]:
-    published_rank = 1 if agent.is_published else 0
-    version_rank = agent.version if agent.version is not None else -1
-    return (published_rank, version_rank)
-
-
-def _dedupe_agents(agents: list[RetellAgentSummary]) -> list[RetellAgentSummary]:
-    by_id: dict[str, RetellAgentSummary] = {}
-    for agent in agents:
-        existing = by_id.get(agent.agent_id)
-        if existing is None:
-            by_id[agent.agent_id] = agent
-            continue
-        if _agent_priority(agent) > _agent_priority(existing):
-            by_id[agent.agent_id] = agent
-    return list(by_id.values())
 
 
 router = APIRouter(
@@ -156,7 +142,7 @@ async def list_integration_agents(
     api_key = decrypt(integration.encrypted_api_key)
     if integration.provider == IntegrationProvider.RETELL:
         agents = await list_retell_agents(api_key)
-        return _dedupe_agents(agents)
+        return dedupe_retell_agents(agents)
     if integration.provider == IntegrationProvider.VAPI:
         assistants = await list_vapi_assistants(api_key)
         mapped = [
@@ -168,7 +154,7 @@ async def list_integration_agents(
             )
             for assistant in assistants
         ]
-        return _dedupe_agents(mapped)
+        return dedupe_retell_agents(mapped)
     if integration.provider == IntegrationProvider.ELEVENLABS:
         agents = await list_elevenlabs_agents(api_key)
         mapped = [
@@ -180,7 +166,7 @@ async def list_integration_agents(
             )
             for agent in agents
         ]
-        return _dedupe_agents(mapped)
+        return dedupe_retell_agents(mapped)
     raise HTTPException(status_code=400, detail="Provider does not expose agents")
 
 

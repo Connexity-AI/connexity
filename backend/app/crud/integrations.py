@@ -73,6 +73,17 @@ def connect_voice_platform(
     return integration, existing is not None
 
 
+def get_platform_integration(
+    *, session: Session, company_id: uuid.UUID, provider: IntegrationProvider
+) -> Integration | None:
+    """The workspace's connection to one platform (one per platform per workspace)."""
+    return session.exec(
+        select(Integration)
+        .where(Integration.company_id == company_id, Integration.provider == provider)
+        .order_by(col(Integration.created_at))
+    ).first()
+
+
 def get_integration(
     *,
     session: Session,

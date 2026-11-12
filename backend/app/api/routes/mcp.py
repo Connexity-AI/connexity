@@ -19,8 +19,11 @@ from app.api.deps import (
     require_mcp_user,
 )
 from app.core.config import settings
+from app.core.encryption import decrypt
 from app.models import (
+    Agent,
     IntegrationProvider,
+    Platform,
     ReadinessPublic,
     ReadinessStepKey,
     ReadinessStepState,
@@ -31,17 +34,25 @@ from app.models.mcp import (
     GUIDE_GETTING_STARTED,
     GUIDE_READINESS,
     GUIDE_WORKSPACES,
+    McpAddAgents,
+    McpAddedAgents,
     McpAgent,
     McpAnswer,
     McpConnection,
     McpConnectVoicePlatform,
     McpErrorDetail,
+    McpRefusedAgent,
     McpWorkspace,
 )
 from app.services.connections import (
     KEY_LOCATION,
     VOICE_PLATFORMS,
     voice_platform_key_status,
+)
+from app.services.retell import (
+    dedupe_retell_agents,
+    list_retell_agents,
+    retell_key_status,
 )
 
 router = APIRouter(
@@ -80,6 +91,17 @@ def _decode_cursor(cursor: str | None) -> int:
             ).model_dump(),
         )
     return offset
+
+
+def _mcp_agent(agent: Agent) -> McpAgent:
+    return McpAgent(
+        id=agent.id,
+        name=agent.name,
+        platform=agent.platform,
+        platform_agent_id=agent.platform_agent_id,
+        platform_agent_name=agent.platform_agent_name,
+        created_at=agent.created_at,
+    )
 
 
 @router.get("/workspaces", response_model=McpAnswer[list[McpWorkspace]])
@@ -164,16 +186,7 @@ def list_agents(
             "No agent's name matches. Call `list_agents` without `query` to see them all."
         )
     return McpAnswer[list[McpAgent]](
-        data=[
-            McpAgent(
-                id=agent.id,
-                name=agent.name,
-                platform=agent.platform,
-                platform_agent_name=agent.platform_agent_name,
-                created_at=agent.created_at,
-            )
-            for agent in agents
-        ],
+        data=[_mcp_agent(agent) for agent in agents],
         rules=[
             "Connexity never edits, deploys or calls an agent; it records and checks "
             "what the agent does.",
@@ -209,9 +222,10 @@ def get_readiness(
     if state[ReadinessStepKey.SYNC] != ReadinessStepState.DONE:
         if state[ReadinessStepKey.VOICE_PLATFORM] == ReadinessStepState.DONE:
             next_steps.append(
-                "The voice platform is connected. Choosing agents to sync and the "
-                "first scan are not available in Connexity yet; tell the person so, "
-                "and do not ask for the key again."
+                "The voice platform is connected; do not ask for the key again. Use "
+                "your own access to Retell to see its agents and their recent calls, "
+                "ask the person which belong to this client, then call `add_agents` "
+                "with their Retell agent ids."
             )
         else:
             next_steps.append(
@@ -303,6 +317,117 @@ async def connect_voice_platform(
             f"Connexity only reads from {platform_name}; it never changes agents there.",
             "One connection per platform per workspace; connecting again replaces "
             "the key.",
+        ],
+        next_steps=next_steps,
+        guide=GUIDE_CONNECT,
+    )
+
+
+@router.post(
+    "/workspaces/{workspace_id}/agents",
+    response_model=McpAnswer[McpAddedAgents],
+)
+async def add_agents(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    current_user: McpCurrentUser,
+    body: McpAddAgents,
+) -> McpAnswer[McpAddedAgents]:
+    integration = crud.get_platform_integration(
+        session=session, company_id=workspace.id, provider=IntegrationProvider.RETELL
+    )
+    if integration is None:
+        raise HTTPException(
+            status_code=409,
+            detail=McpErrorDetail(
+                error="This workspace has no Retell connection",
+                next_steps=[
+                    "Connect Retell first: ask the person for the API key and call "
+                    "`connect_voice_platform`, then call `add_agents` again.",
+                ],
+                guide=GUIDE_CONNECT,
+            ).model_dump(),
+        )
+    api_key = decrypt(integration.encrypted_api_key)
+    try:
+        account = {
+            agent.agent_id: agent
+            for agent in dedupe_retell_agents(await list_retell_agents(api_key))
+        }
+    except HTTPException:
+        if await retell_key_status(api_key) == "refused":
+            raise HTTPException(
+                status_code=409,
+                detail=McpErrorDetail(
+                    error="Retell refused the key stored for this workspace",
+                    next_steps=[
+                        "The key may have been revoked in Retell. Ask the person for "
+                        "a new key, call `connect_voice_platform` with it, then call "
+                        "`add_agents` again.",
+                    ],
+                    guide=GUIDE_CONNECT,
+                ).model_dump(),
+            )
+        raise HTTPException(
+            status_code=503,
+            detail=McpErrorDetail(
+                error="Retell could not be reached to check the agent ids",
+                next_steps=[
+                    "Nothing was added. Call `add_agents` again in a minute with the "
+                    "same ids.",
+                ],
+                guide=GUIDE_CONNECT,
+            ).model_dump(),
+        )
+
+    added: list[McpAgent] = []
+    already: list[McpAgent] = []
+    refused: list[McpRefusedAgent] = []
+    seen: set[str] = set()
+    for wanted in body.agents:
+        platform_id = wanted.platform_agent_id
+        if platform_id in seen:
+            continue
+        seen.add(platform_id)
+        found = account.get(platform_id)
+        if found is None:
+            refused.append(
+                McpRefusedAgent(
+                    platform_agent_id=platform_id,
+                    reason="Not an agent in the connected Retell account",
+                )
+            )
+            continue
+        agent, is_new = crud.add_platform_agent(
+            session=session,
+            company_id=workspace.id,
+            integration=integration,
+            platform=Platform.RETELL,
+            platform_agent_id=platform_id,
+            name=wanted.name or found.agent_name or platform_id,
+            platform_agent_name=found.agent_name,
+            created_by=current_user.id,
+        )
+        (added if is_new else already).append(_mcp_agent(agent))
+
+    next_steps = []
+    if refused:
+        next_steps.append(
+            "Check the refused ids against Retell and ask the person before adding "
+            "them again; they are not in the account connected to this workspace."
+        )
+    next_steps += [
+        "Tell the person which agents were added to this workspace.",
+        "Call `list_agents` to see them. Syncing their calls is not available in "
+        "Connexity yet.",
+    ]
+    return McpAnswer[McpAddedAgents](
+        data=McpAddedAgents(added=added, already_added=already, refused=refused),
+        rules=[
+            "Only agents added here are synced; one Retell account may hold several "
+            "clients' agents, so add only this client's.",
+            "Connexity reads from Retell and never changes the agent there.",
+            "Adding an agent that is already in the workspace changes nothing.",
         ],
         next_steps=next_steps,
         guide=GUIDE_CONNECT,

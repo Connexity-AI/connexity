@@ -97,7 +97,8 @@ history of a slice is its plan file in `plans/`.
 | M1.3 | Sign up and log in: workspaces per person, Google sign-in, sign-in screens, the assistant approval step | Done (PR #182) |
 | M1.4 | Readiness screen: the four Getting started steps, the connect command, `get_readiness` | Done (PR #183) |
 | M1.5 | Connect Claude Code and ChatGPT: loopback and ChatGPT callbacks, `iss` in authorization responses, tool hints | Done (PR #184) |
-| M1.6 | Connect Retell through the assistant: `connect_voice_platform`, who connected it | In review |
+| M1.6 | Connect Retell through the assistant: `connect_voice_platform`, who connected it | Done (PR #185) |
+| M1.7 | The assistant adds the agents to sync: `add_agents`, linked to Retell; Readiness step 3 in progress | In review |
 
 **The order of work is Dmytro's feature roadmap (Decided 2026-11-12).** It lives
 outside the repo, which is public. Each feature has what done means, whether it is
@@ -717,6 +718,8 @@ Dmytro's only when he stated it in his own words.
 | 2026-11-12 | The Readiness line "Your assistant is doing this. You can close this page." is hidden until the assistant can do the remaining steps. | Dmytro ("Hide it for now") |
 | 2026-11-12 | Assistants connect with loopback callbacks on any port (RFC 8252) and ChatGPT's two documented callbacks; every authorization response carries `iss` (RFC 9207); tools declare read-only hints; no Client ID Metadata Documents yet. Claude Code and ChatGPT are tested on app.connexity.ai after merge. | Proposed by Claude; Dmytro accepted ("accept build") |
 | 2026-11-12 | The assistant connects a voice platform through MCP (`connect_voice_platform`); one connection per platform per workspace, connecting again replaces the key; who connected it (person and assistant) is recorded; no disconnect tool until Settings. | Dmytro ("Accept, build") |
+| 2026-11-12 | The assistant uses its own access to Retell to see agents and calls; Connexity only lets it add and link agents (`add_agents`), checking the ids against the connected account. No removing agents yet; 1.x agents made by hand are left as they are. | Dmytro ("Assistant will have its own access to retell … he just needs to know how to create and link agents in connexity"; "Accept, build") |
+| 2026-11-12 | Readiness step 3 shows "in progress" (with its spinner) once agents are added, before sync exists. | Dmytro ("Keep it") |
 
 ---
 

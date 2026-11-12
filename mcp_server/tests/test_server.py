@@ -17,6 +17,7 @@ async def test_server_lists_only_the_workspace_tools() -> None:
     tools = await _server().list_tools()
 
     assert sorted(tool.name for tool in tools) == [
+        "add_agents",
         "connect_voice_platform",
         "create_workspace",
         "get_readiness",

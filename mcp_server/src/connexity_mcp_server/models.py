@@ -36,6 +36,7 @@ class Agent(BaseModel):
     id: str
     name: str
     platform: str | None = None
+    platform_agent_id: str | None = None
     platform_agent_name: str | None = None
     created_at: datetime
 
@@ -63,7 +64,26 @@ class Connection(BaseModel):
     connected_by: str | None = None
 
 
+class AgentToAdd(BaseModel):
+    platform_agent_id: str = Field(description="The agent's id in Retell")
+    name: str | None = Field(
+        default=None, description="Defaults to the agent's name in Retell"
+    )
+
+
+class RefusedAgent(BaseModel):
+    platform_agent_id: str
+    reason: str
+
+
+class AddedAgents(BaseModel):
+    added: list[Agent] = Field(default_factory=list)
+    already_added: list[Agent] = Field(default_factory=list)
+    refused: list[RefusedAgent] = Field(default_factory=list)
+
+
 ListWorkspacesResult = Answer[list[Workspace]]
+AddAgentsResult = Answer[AddedAgents]
 ConnectVoicePlatformResult = Answer[Connection]
 GetReadinessResult = Answer[Readiness]
 CreateWorkspaceResult = Answer[Workspace]

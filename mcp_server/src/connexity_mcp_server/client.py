@@ -50,6 +50,15 @@ class ConnexityBackendClient:
             json={"platform": platform, "api_key": api_key},
         )
 
+    async def add_agents(
+        self, *, workspace_id: str, agents: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        return await self._request_json(
+            "POST",
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/agents",
+            json={"agents": agents},
+        )
+
     async def get_readiness(self, *, workspace_id: str) -> dict[str, Any]:
         return await self._request_json(
             "GET", f"/mcp/workspaces/{quote(workspace_id, safe='')}/readiness"

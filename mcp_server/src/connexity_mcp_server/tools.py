@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from connexity_mcp_server.client import ConnexityBackendClient
 from connexity_mcp_server.models import (
+    AddAgentsResult,
+    AgentToAdd,
     ConnectVoicePlatformResult,
     CreateWorkspaceResult,
     GetReadinessResult,
@@ -29,6 +31,15 @@ async def connect_voice_platform(
         await client.connect_voice_platform(
             workspace_id=workspace_id, platform=platform, api_key=api_key
         )
+    )
+
+
+async def add_agents(
+    client: ConnexityBackendClient, workspace_id: str, agents: list[AgentToAdd]
+) -> AddAgentsResult:
+    payload = [agent.model_dump(exclude_none=True) for agent in agents]
+    return AddAgentsResult.model_validate(
+        await client.add_agents(workspace_id=workspace_id, agents=payload)
     )
 
 

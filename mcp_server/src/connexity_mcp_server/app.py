@@ -25,11 +25,16 @@ from connexity_mcp_server.guides import (
     read_guide,
 )
 from connexity_mcp_server.models import (
+    AddAgentsResult,
+    AgentToAdd,
     ConnectVoicePlatformResult,
     CreateWorkspaceResult,
     GetReadinessResult,
     ListAgentsResult,
     ListWorkspacesResult,
+)
+from connexity_mcp_server.tools import (
+    add_agents as _add_agents,
 )
 from connexity_mcp_server.tools import (
     connect_voice_platform as _connect_voice_platform,
@@ -126,6 +131,16 @@ def build_application(settings: Settings | None = None) -> FastAPI:
             workspace_id=workspace_id,
             platform=platform,
             api_key=api_key,
+        )
+
+    @mcp_server.tool(annotations=CREATES)
+    async def add_agents(workspace_id: str, agents: list[AgentToAdd]) -> AddAgentsResult:
+        """Add this client's agents to the workspace, linked to their Retell agents, so
+        Connexity syncs their calls. Use your own Retell access to see the agents and
+        their recent calls, ask the person which belong to this client, then pass their
+        Retell agent ids (up to 100). Adding one already there changes nothing."""
+        return await _add_agents(
+            client=backend_client, workspace_id=workspace_id, agents=agents
         )
 
     @mcp_server.tool(annotations=READ_ONLY)
