@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>@keyframes cxSpin{to{transform:rotate(360deg)}}body{margin:0}*{box-sizing:border-box}button{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<div style="display:flex;min-height:inherit">
+<div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="none" fresh="{{ true }}" style="height:100%" hint-size="220px,320px"></dc-import></div>
+<main style="flex:1;min-width:944px;padding:24px 32px 48px">
+<div style="max-width:760px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:40px">
+<h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Readiness</h1>
+<span style="font-size:20px;line-height:28px;font-weight:500">{{ pct }}%</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px;margin-top:-12px">
+<div style="height:6px;border-radius:3px;background:var(--unch-bg);overflow:hidden"><div style="{{ fill }}"></div></div>
+<span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ doneText }}</span>
+</div>
+<sc-for list="{{ parts }}" as="g" hint-placeholder-count="2">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="padding:16px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">{{ g.name }}</h2></div>
+<sc-for list="{{ g.steps }}" as="k" hint-placeholder-count="4">
+<div style="border-top:1px solid var(--border);padding:12px 24px;display:flex;flex-direction:column;gap:10px">
+<div style="display:grid;grid-template-columns:16px minmax(0,1fr) auto;gap:14px;align-items:center">
+<span style="display:flex">
+<sc-if value="{{ k.isDone }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--pass)"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></sc-if>
+<sc-if value="{{ k.isActive }}">{{ spinner }}</sc-if>
+<sc-if value="{{ k.isTodo }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--bc)"><circle cx="12" cy="12" r="10"></circle></svg></sc-if>
+</span>
+<span style="{{ k.nameStyle }}">{{ k.name }}</span>
+<span style="font-size:13px;line-height:18px;color:var(--ink2);text-align:right;white-space:nowrap">{{ k.detail }}</span>
+</div>
+<sc-if value="{{ k.hasBar }}">
+<div style="margin-left:30px;height:3px;border-radius:2px;background:var(--unch-bg);overflow:hidden"><div style="{{ k.bar }}"></div></div>
+</sc-if>
+<sc-if value="{{ k.hasLine }}"><span style="margin-left:30px;font-size:13px;line-height:18px;color:var(--ink2)">{{ k.line }}</span></sc-if>
+<sc-if value="{{ k.connect }}">
+<div style="margin-left:30px;display:flex;flex-direction:column;gap:10px">
+<span style="color:var(--ink2);text-wrap:pretty">Connect your AI assistant to Connexity. In Claude Code, run:</span>
+<div style="display:flex;align-items:center;gap:8px;padding:6px 6px 6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--s0)">
+<code style="flex:1;min-width:0;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:20px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ snippet }}</code>
+<button onClick="{{ copy }}" style="flex:none;height:28px;padding:0 10px;border-radius:6px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:13px;cursor:pointer" style-hover="background:var(--wash)">{{ copyLabel }}</button>
+</div>
+<a href="#" onClick="{{ noop }}" style="align-self:flex-start;font-size:13px;color:var(--ink2)">Using another assistant?</a>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</sc-for>
+<sc-if value="{{ working }}" hint-placeholder-val="{{ true }}"><p style="margin:0;color:var(--ink2)">Your assistant is doing this. You can close this page.</p></sc-if>
+<sc-if value="{{ scanned }}" hint-placeholder-val="{{ false }}"><a href="Connexity Home.dc.html" style="align-self:flex-start;display:flex;align-items:center;height:36px;padding:0 16px;border-radius:8px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;text-decoration:none" style-hover="opacity:.88">Open Home</a></sc-if>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;stage&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;noAssistant&quot;,&quot;syncing&quot;,&quot;scanned&quot;],&quot;default&quot;:&quot;syncing&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;live&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  static THEMES = {
+    dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
+    light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
+  };
+  static TOTAL = 1284;
+  static CONTROLS = ['Alerts go to Slack or another messenger','An incident channel the assistant watches','Every agent has a spec','Every agent\u2019s backends are connected','Tests cover at least 80% of each agent\u2019s spec rules','The deployment gate is on for every agent','Automatic roll back is on for every agent'];
+  constructor(props) {
+    super(props);
+    const stage = props.stage || 'syncing';
+    this.state = { stage, calls: stage === 'syncing' ? 640 : stage === 'scanned' ? Component.TOTAL : 0, copied:false };
+  }
+  componentDidMount() { if (this.props.live !== false && this.state.stage === 'syncing') this.run(); }
+  componentWillUnmount() { clearInterval(this.timer); clearTimeout(this.t2); clearTimeout(this.t3); }
+  run() {
+    this.timer = setInterval(() => this.setState(s => {
+      const calls = Math.min(Component.TOTAL, s.calls + 18);
+      if (calls >= Component.TOTAL) { clearInterval(this.timer); this.t2 = setTimeout(() => this.setState({ stage:'scanned' }), 3200); return { calls, stage:'scanning' }; }
+      return { calls };
+    }), 120);
+  }
+  spinner() {
+    let rm = false; try { rm = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) {}
+    return React.createElement('svg', { width:16, height:16, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:2, strokeLinecap:'round', style:{ color:'var(--ink)', animation: rm ? 'none' : 'cxSpin 1s linear infinite' } },
+      React.createElement('circle', { cx:12, cy:12, r:10, stroke:'var(--bc)', opacity:0.4 }), React.createElement('path', { d:'M12 2a10 10 0 0 1 10 10' }));
+  }
+  renderVals() {
+    const C = Component, st = this.state.stage, calls = this.state.calls;
+    const fmt = v => v.toLocaleString('en-US');
+    const noA = st === 'noAssistant';
+    // [name, done|active|todo, detail, extra line, progress bar]
+    const gs = [
+      ['Assistant connected', noA ? 'active' : 'done', noA ? 'Not connected yet' : 'Claude Code'],
+      ['Voice platform connected', noA ? 'todo' : 'done', noA ? '' : 'Retell'],
+      ['Agents and calls synced', noA ? 'todo' : st === 'syncing' ? 'active' : 'done', noA ? '' : st === 'syncing' ? `${fmt(calls)} of ${fmt(C.TOTAL)} calls` : `5 agents · ${fmt(C.TOTAL)} calls`, st === 'syncing' ? 'Your assistant is syncing calls' : '', st === 'syncing'],
+      ['First scan done', st === 'scanning' ? 'active' : st === 'scanned' ? 'done' : 'todo', st === 'scanned' ? '64 issues across 5 agents · 9 critical' : '', st === 'scanning' ? 'Your assistant is running the first scan' : '']
+    ];
+    const done = gs.filter(g => g[1] === 'done').length;
+    const pct = Math.round(done / 11 * 100);
+    const step = ([name, state, detail, line, bar], i) => ({
+      name, detail: detail || '', isDone: state === 'done', isActive: state === 'active', isTodo: state === 'todo',
+      nameStyle: { color: state === 'todo' ? 'var(--ink2)' : 'var(--ink)', fontWeight: state === 'active' ? 500 : 400 },
+      hasLine: !!line, line: line || '', hasBar: !!bar, bar: { width: (calls / C.TOTAL * 100) + '%', height:'100%', background:'var(--ink)', borderRadius:2 },
+      connect: noA && i === 0
+    });
+    return {
+      rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
+      pct, fill: { width: pct + '%', height:'100%', background:'var(--ink)', borderRadius:3, transition:'width 300ms' }, doneText: `${done} of 11 steps`,
+      spinner: this.spinner(),
+      parts: [
+        { name:'Getting started', steps: gs.map(step) },
+        { name:'Controls', steps: C.CONTROLS.map(n => step([n, 'todo', 'After the first scan'], 9)) }
+      ],
+      working: !noA && st !== 'scanned', scanned: st === 'scanned',
+      snippet: 'claude mcp add --transport http connexity https://mcp.connexity.ai/mcp',
+      copyLabel: this.state.copied ? 'Copied' : 'Copy',
+      copy: () => { try { navigator.clipboard.writeText('claude mcp add --transport http connexity https://mcp.connexity.ai/mcp'); } catch (_) {} this.setState({ copied:true }); clearTimeout(this.t3); this.t3 = setTimeout(() => this.setState({ copied:false }), 1800); },
+      noop: e => e.preventDefault()
+    };
+  }
+}
+</script>
+</body>
+</html>

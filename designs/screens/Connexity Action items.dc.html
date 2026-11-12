@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0}*{box-sizing:border-box}button,input{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<dc-import name="Connexity Readiness Bar" hint-size="100%,36px"></dc-import>
+<div style="display:flex;min-height:inherit">
+<div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="actions" style="height:100%" hint-size="220px,320px"></dc-import></div>
+<main style="flex:1;min-width:944px;padding:24px 32px 48px">
+<div style="max-width:1120px;min-width:880px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:40px">
+<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+<h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Action items</h1>
+<span style="font-size:13px;color:var(--ink3);white-space:nowrap">{{ caption }}</span>
+</div>
+<sc-if value="{{ filtered }}" hint-placeholder-val="{{ false }}">
+<a href="Connexity Action items.dc.html" title="Show all agents" style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);color:var(--ink);font-size:15px;text-decoration:none" style-hover="background:var(--wash);opacity:1">
+<span style="color:var(--ink2);font-size:13px">Agent</span><span>{{ filterName }}</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+</a>
+</sc-if>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Open</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ openCount }}</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--crit)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Critical</span><span style="font-size:30px;line-height:36px;font-weight:500;color:var(--crit)">{{ critCount }}</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Answered this week</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ answeredCount }}</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Parked</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ parkedCount }}</span></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px">
+<sc-for list="{{ versions }}" as="n" hint-placeholder-count="1">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;align-items:center;gap:8px;min-height:22px;font-size:13px;line-height:18px">
+<a href="{{ n.agentHref }}" style="color:var(--ink2);text-decoration:none" style-hover="color:var(--ink);opacity:1">{{ n.agentName }}</a>
+<span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Critical</span>
+<span style="margin-left:auto;color:var(--ink3)">Version live without passing its tests</span>
+</div>
+<p style="margin:0;font-size:15px;line-height:22px;text-wrap:pretty">{{ n.title }}</p>
+<span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ n.ev }}</span>
+</div>
+<sc-if value="{{ n.accepting }}">
+<div style="display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:8px;background:var(--s0);border:1px solid var(--border)">
+<label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Why it can stay live</span><input value="{{ fReason }}" onChange="{{ onReason }}" placeholder="The reason is recorded on the version" style="height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s1);color:var(--ink);font-size:15px;outline:none"></label>
+<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px"><button onClick="{{ cancelForm }}" style="height:36px;padding:0 12px;border-radius:8px;border:0;background:transparent;color:var(--ink2);font-size:15px;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)">Cancel</button><button onClick="{{ n.submitAccept }}" disabled="{{ cantAccept }}" style="{{ acceptBtnStyle }}">Accept version 15</button></div>
+</div>
+</sc-if>
+<sc-if value="{{ n.showActions }}">
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+<a href="{{ n.openHref }}" style="display:flex;align-items:center;height:36px;padding:0 12px;border:1px solid var(--bc);border-radius:8px;color:var(--ink);font-size:15px;text-decoration:none" style-hover="background:var(--wash);opacity:1">Open version</a>
+<button onClick="{{ n.accept }}" style="display:flex;align-items:center;height:36px;padding:0 12px;border:1px solid var(--bc);border-radius:8px;background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">Accept with a reason</button>
+</div>
+</sc-if>
+</div>
+</sc-for>
+<sc-for list="{{ items }}" as="it" hint-placeholder-count="5">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;align-items:center;gap:8px;min-height:22px;font-size:13px;line-height:18px">
+<a href="{{ it.agentHref }}" style="color:var(--ink2);text-decoration:none" style-hover="color:var(--ink);opacity:1">{{ it.agentName }}</a>
+<sc-if value="{{ it.crit }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Critical</span></sc-if>
+<span style="margin-left:auto;color:var(--ink3)">{{ it.kindLabel }}</span>
+</div>
+<p style="margin:0;font-size:15px;line-height:22px;text-wrap:pretty">{{ it.q }}</p>
+<span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ it.ev }} · <a href="#" onClick="{{ noop }}" style="color:var(--ink2)">Open a call</a></span>
+</div>
+<sc-if value="{{ it.hasQuotes }}">
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+<sc-for list="{{ it.quotes }}" as="qt" hint-placeholder-count="0">
+<div style="background:var(--s0);border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;flex-direction:column;gap:4px">
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">{{ qt.label }}</span>
+<span style="text-wrap:pretty">{{ qt.text }}</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+<sc-if value="{{ it.isIncident }}"><span style="font-size:13px;color:var(--ink2);margin-right:4px">Close as</span></sc-if>
+<sc-for list="{{ it.answers }}" as="an" hint-placeholder-count="3">
+<button onClick="{{ an.pick }}" style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border:1px solid var(--bc);border-radius:8px;background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink3)">{{ an.letter }}</span>{{ an.label }}</button>
+</sc-for>
+<button onClick="{{ it.park }}" title="Not important right now" style="margin-left:auto;display:flex;align-items:center;gap:6px;height:28px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:var(--ink2);font-size:13px;cursor:pointer" style-hover="background:var(--wash)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="4" width="4" height="16" rx="1"></rect><rect x="6" y="4" width="4" height="16" rx="1"></rect></svg>Park</button>
+</div>
+</div>
+</sc-for>
+<sc-if value="{{ noItems }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:8px;padding:16px 24px;background:var(--s1);border:1px solid var(--border);border-radius:12px;color:var(--ink2)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--pass)"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>Nothing needs your input</div>
+</sc-if>
+<sc-if value="{{ hasMore }}" hint-placeholder-val="{{ true }}">
+<button onClick="{{ showMore }}" style="align-self:flex-start;display:flex;align-items:center;gap:6px;height:28px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:var(--ink2);font-size:13px;cursor:pointer" style-hover="background:var(--wash)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>{{ moreCount }} more</button>
+</sc-if>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div onClick="{{ toggleAnswered }}" style="display:flex;align-items:center;gap:8px;min-height:52px;padding:0 24px;cursor:pointer;user-select:none" style-hover="background:var(--wash)">
+<span style="display:flex;color:var(--ink2)">
+<sc-if value="{{ answeredOpen }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
+<sc-if value="{{ answeredShut }}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
+</span>
+<span style="font-weight:500">Answered</span>
+<span style="font-size:13px;color:var(--ink2)">{{ answeredCount }}</span>
+</div>
+<sc-if value="{{ answeredOpen }}" hint-placeholder-val="{{ false }}">
+<div style="display:grid;grid-template-columns:176px minmax(0,1fr) 216px 232px;gap:16px;align-items:center;height:40px;padding:0 24px 0 48px;border-top:1px solid var(--border);font-size:13px;color:var(--ink2)"><span>Agent</span><span>Question</span><span>Answer</span><span>Answered by</span></div>
+<sc-for list="{{ answered }}" as="a" hint-placeholder-count="0">
+<div style="display:grid;grid-template-columns:176px minmax(0,1fr) 216px 232px;gap:16px;align-items:center;min-height:52px;padding:10px 24px 10px 48px;border-top:1px solid var(--border)">
+<span style="color:var(--ink2)">{{ a.agentName }}</span>
+<span style="text-wrap:pretty">{{ a.q }}</span>
+<span style="text-wrap:pretty">{{ a.answer }}</span>
+<span style="display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--ink2)">
+<sc-if value="{{ a.byAssistant }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path></svg></sc-if>
+{{ a.who }}</span>
+</div>
+</sc-for>
+<sc-if value="{{ hasAnsweredMore }}" hint-placeholder-val="{{ false }}"><div style="padding:12px 24px 12px 48px;border-top:1px solid var(--border);font-size:13px;color:var(--ink3)">{{ answeredMore }} more this week</div></sc-if>
+</sc-if>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div onClick="{{ toggleParked }}" style="display:flex;align-items:center;gap:8px;min-height:52px;padding:0 24px;cursor:pointer;user-select:none" style-hover="background:var(--wash)">
+<span style="display:flex;color:var(--ink2)">
+<sc-if value="{{ parkedOpen }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
+<sc-if value="{{ parkedShut }}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
+</span>
+<span style="font-weight:500">Parked</span>
+<span style="font-size:13px;color:var(--ink2)">{{ parkedCount }}</span>
+</div>
+<sc-if value="{{ parkedOpen }}" hint-placeholder-val="{{ false }}">
+<div style="display:grid;grid-template-columns:176px minmax(0,1fr) 96px 96px;gap:16px;align-items:center;height:40px;padding:0 24px 0 48px;border-top:1px solid var(--border);font-size:13px;color:var(--ink2)"><span>Agent</span><span>Question</span><span>Parked</span><span></span></div>
+<sc-for list="{{ parked }}" as="p" hint-placeholder-count="0">
+<div style="display:grid;grid-template-columns:176px minmax(0,1fr) 96px 96px;gap:16px;align-items:center;min-height:52px;padding:10px 24px 10px 48px;border-top:1px solid var(--border)">
+<span style="color:var(--ink2)">{{ p.agentName }}</span>
+<span style="text-wrap:pretty">{{ p.q }}</span>
+<span style="font-size:13px;color:var(--ink2)">{{ p.date }}</span>
+<span style="display:flex;justify-content:flex-end"><button onClick="{{ p.reopen }}" style="display:flex;align-items:center;gap:6px;height:28px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:var(--ink2);font-size:13px;cursor:pointer" style-hover="background:var(--wash)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>Reopen</button></span>
+</div>
+</sc-for>
+<sc-if value="{{ hasParkedMore }}" hint-placeholder-val="{{ false }}"><div style="padding:12px 24px 12px 48px;border-top:1px solid var(--border);font-size:13px;color:var(--ink3)">{{ parkedMore }} more</div></sc-if>
+</sc-if>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;agent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;&quot;,&quot;insurance&quot;,&quot;car&quot;,&quot;restaurant&quot;,&quot;clinic&quot;,&quot;dental&quot;],&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Filter&quot;},&quot;sectionsOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  static THEMES = {
+    dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
+    light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
+  };
+  static AGENTS = { insurance:'Insurance renewals', restaurant:'Restaurant reservations', car:'Car service booking', clinic:'Clinic after-hours', dental:'Dental reception' };
+  static KIND = { clar:'Clarification', conflict:'Conflict with an earlier answer', archive:'Archive proposal', auto:'Rule change for your assistant', check:'Check setting' };
+  // Open items in importance order (calls affected, recency, money/safety/compliance, critical issue depends on it)
+  static OPEN = [
+    { id:'check-over', agent:'restaurant', kind:'check', q:'Your assistant proposes setting \u201cTalking over the caller\u201d to Fails the call for Restaurant reservations.', ev:'Right 87% of the time \u00b7 22 calls in 30 days would have failed \u00b7 a decision record is kept', answers:['Fails the call for this agent','Keep it as Flags'] },
+    { id:'auto-car', agent:'car', kind:'auto', q:'Your assistant proposes a rule change: allow roll back for Car service booking, approved automatically. It would have rolled back version 15 at 09:15 today, 3 minutes into the booking tool incident.', ev:'Rule in Incidents \u00b7 Playbook \u00b7 only a person can change it \u00b7 the change is recorded', answers:['Allow, approved automatically','Allow, ask me first','Keep off'] },
+    { id:'car-courtesy', agent:'car', kind:'clar', crit:true, q:'Car service booking offered a free courtesy car on 14 calls. Is it allowed to?', ev:'14 calls since 3 Nov · not covered by the spec of version 14', answers:['Yes, always','Only for repairs over $500','Never'] },
+    { id:'ins-loyalty', agent:'insurance', kind:'conflict', crit:true, q:'The new prompt for Insurance renewals contradicts an earlier answer about the loyalty discount. Which one applies?', ev:'22 calls since 6 Nov mention the discount · version 14', quotes:[['Earlier answer, by Alex on 22 Sep','Offer the loyalty discount only to customers of 3 years or more.'],['New prompt, version 14','Offer the loyalty discount to every renewing customer.']], answers:['Keep the earlier answer','Follow the new prompt','Only for customers of 2 years or more'] },
+    { id:'rest-archive', agent:'restaurant', kind:'archive', q:'Your assistant proposes archiving \u201cHung up during a long silence\u201d on Restaurant reservations, until it gets worse.', ev:'3 calls in 30 days \u00b7 \u201cCallers leave the line to check their diary. The agent waits 20 s, as the spec says.\u201d', answers:['Archive until it gets worse','Archive forever','Keep open'] },
+    { id:'clinic-er', agent:'clinic', kind:'clar', q:'Clinic after-hours told 9 callers to go to the emergency room. Is it allowed to?', ev:'9 calls since 5 Nov · not covered by the spec of version 4', answers:['Yes, whenever symptoms sound urgent','Only after paging the on-call doctor','Never'] },
+    { id:'ins-backdate', agent:'insurance', kind:'clar', q:'Insurance renewals agreed to backdate a renewal on 4 calls. Is it allowed to?', ev:'4 calls since 8 Nov · not covered by the spec of version 14', answers:['Yes, up to 14 days','Only with a person\u2019s approval','Never'] },
+    { id:'rest-dogs', agent:'restaurant', kind:'clar', q:'Restaurant reservations agreed to seat dogs on the terrace on 6 calls. Is it allowed to?', ev:'6 calls since 1 Nov · not covered by the spec of version 6', answers:['Yes, on the terrace only','Only service dogs','Never'] },
+    { id:'ins-driver', agent:'insurance', kind:'clar', q:'Insurance renewals added a second driver during a renewal on 7 calls. Is it allowed to?', ev:'7 calls since 7 Nov · not covered by the spec of version 14', answers:['Yes','Only if they pass security','No, pass it to a person'] }
+  ];
+  static PARKED = [
+    { id:'clinic-lang', agent:'clinic', kind:'clar', date:'4 Nov', q:'Clinic after-hours switched to Spanish on 3 calls when the caller did. Is it allowed to?', ev:'3 calls since 28 Oct · not covered by the spec of version 4', answers:['Yes','Only if the caller asks','Never'] },
+    { id:'rest-specials', agent:'restaurant', kind:'clar', date:'2 Nov', q:'Restaurant reservations described the daily specials on 5 calls. Is it allowed to?', ev:'5 calls since 25 Oct · not covered by the spec of version 6', answers:['Yes','Only when asked','Never'] },
+  ];
+  static ANSWERED = [
+    { agent:'insurance', q:'Insurance renewals mentioned a cancellation fee the policy does not have on 4 calls. Is it allowed to?', answer:'Only fees listed on the policy', by:'assistant', date:'10 Nov' },
+    { agent:'restaurant', q:'Restaurant reservations held tables for late guests on 11 calls. For how long?', answer:'Up to 20 minutes', by:'assistant', date:'10 Nov' },
+    { agent:'car', q:'Car service booking gave pickup times before the work was done on 9 calls. Should it?', answer:'Only as an estimate', by:'Alex', date:'8 Nov' }
+  ];
+  static VERSIONS = [{ id:'car-v15', agent:'car', crit:true, title:'Car service booking \u00b7 version 15 is live but failed its tests', ev:'Live since 08:55 \u00b7 4 rules failed in the test gate \u00b7 no override recorded' }];
+  static HOWS = ['Rollback','Fix in a version','Outside recovery','Workaround'];
+  state = { st:{}, ans:{}, order:[], limit:5, answeredOpen:null, parkedOpen:null, nowDone:{}, form:null, reason:'' };
+  filterId() {
+    let q = null;
+    try { q = new URLSearchParams(window.location.search).get('agent'); } catch (_) {}
+    const id = this.props.agent || q;
+    return Component.AGENTS[id] ? id : null;
+  }
+  set(id, status, extra) {
+    this.setState(s => ({ st:{ ...s.st, [id]:status }, ans: extra ? { ...s.ans, [id]:extra } : s.ans, order:[id, ...s.order.filter(x => x !== id)] }));
+  }
+  renderVals() {
+    const C = Component, S = this.state, f = this.filterId();
+    const all = [...C.OPEN.map((x, i) => ({ ...x, def:'open', rank:i })), ...C.PARKED.map((x, i) => ({ ...x, def:'parked', rank:100 + i }))];
+    const status = x => S.st[x.id] || x.def || (C.PARKED.includes(x) ? 'parked' : 'open');
+    const mine = x => !f || x.agent === f;
+    const openAll = all.filter(x => status(x) === 'open').sort((a, b) => a.rank - b.rank);
+    const openList = openAll.filter(mine);
+    const shown = f ? openList : openList.slice(0, S.limit);
+    const moreCount = 35 + Math.max(0, openAll.length - S.limit);
+    const byOrder = (a, b) => S.order.indexOf(a.id) - S.order.indexOf(b.id);
+    const newlyAnswered = all.filter(x => status(x) === 'answered').sort(byOrder).map(x => ({ agent:x.agent, q:x.q, answer: x.kind === 'incident' ? 'Closed: ' + S.ans[x.id] : S.ans[x.id], by:'Alex', date:'11 Nov', verb: x.kind === 'incident' ? 'Closed' : 'Answered' }));
+    const parkedList = all.filter(x => status(x) === 'parked').sort((a, b) => (S.order.includes(a.id) || S.order.includes(b.id)) ? byOrder(a, b) : a.rank - b.rank)
+      .map(x => ({ ...x, date: x.def === 'open' ? '11 Nov' : x.date }));
+    const answeredList = [...newlyAnswered, ...C.ANSWERED].filter(mine);
+    const parkedShown = parkedList.filter(mine);
+    const todoNow = C.VERSIONS.filter(x => !S.nowDone[x.id] && (!f || x.agent === f));
+    const openCount = 13 + todoNow.length + C.PARKED.filter(x => status(x) === 'open').length - C.OPEN.filter(x => status(x) !== 'open').length;
+    const answeredCount = 9 + newlyAnswered.length;
+    const parkedCount = 31 - C.PARKED.filter(x => status(x) !== 'parked').length + C.OPEN.filter(x => status(x) === 'parked').length;
+    const name = id => C.AGENTS[id];
+    const aOpen = S.answeredOpen ?? !!this.props.sectionsOpen, pOpen = S.parkedOpen ?? !!this.props.sectionsOpen;
+    return {
+      rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
+      caption: f ? `${openList.length} open for this agent` : 'Across all agents · most important first',
+      filtered: !!f, filterName: f ? name(f) : '',
+      openCount, critCount: 3 + todoNow.filter(x => x.crit).length - C.OPEN.filter(x => x.crit && status(x) !== 'open').length, answeredCount, parkedCount,
+      versions: todoNow.map(x => {
+        const fm = S.form && S.form.id === x.id;
+        return { title:x.title, ev:x.ev, agentName: name(x.agent), agentHref:'Connexity Agent Profile.dc.html?agent=' + x.agent, openHref:'Connexity Agent Profile.dc.html?agent=' + x.agent + '&tab=tests',
+          accepting: fm, showActions: !fm, accept: () => this.setState({ form:{ id:x.id, type:'accept' }, reason:'' }),
+          submitAccept: () => { if (S.reason.trim()) this.setState(s => ({ nowDone:{ ...s.nowDone, [x.id]:true }, form:null, reason:'' })); } };
+      }),
+      fCause: S.cause, fReason: S.reason, onCause: e => this.setState({ cause: e.target.value }), onReason: e => this.setState({ reason: e.target.value }),
+      cancelForm: () => this.setState({ form:null }),
+      cantClose: !(S.how && S.cause.trim() && S.reason.trim()), cantAccept: !S.reason.trim(),
+      closeBtnStyle: { height:36, padding:'0 14px', borderRadius:8, border:0, background:'var(--accent)', color:'var(--on-accent)', fontSize:15, fontWeight:500, cursor:'pointer', opacity: (S.how && S.cause.trim() && S.reason.trim()) ? 1 : 0.4 },
+      acceptBtnStyle: { height:36, padding:'0 14px', borderRadius:8, border:0, background:'var(--accent)', color:'var(--on-accent)', fontSize:15, fontWeight:500, cursor:'pointer', opacity: S.reason.trim() ? 1 : 0.4 },
+      noop: e => e.preventDefault(),
+      items: shown.map(x => ({
+        agentName: name(x.agent), agentHref: `Connexity Agent Profile.dc.html?agent=${x.agent}`,
+        crit: !!x.crit, kindLabel: C.KIND[x.kind], q: x.q, ev: x.ev, isIncident: x.kind === 'incident',
+        hasQuotes: !!x.quotes, quotes: (x.quotes || []).map(([label, text]) => ({ label, text: `\u201c${text}\u201d` })),
+        answers: x.answers.map((label, i) => ({ label, letter: 'abcd'[i], pick: () => this.set(x.id, 'answered', label) })),
+        park: () => this.set(x.id, 'parked')
+      })),
+      noItems: shown.length === 0,
+      hasMore: !f && moreCount > 0, moreCount,
+      showMore: () => this.setState(s => ({ limit: s.limit + 5 })),
+      answeredOpen: aOpen, answeredShut: !aOpen,
+      toggleAnswered: () => this.setState({ answeredOpen: !aOpen }),
+      answered: answeredList.map(a => ({ agentName: name(a.agent), q: a.q, answer: a.answer, byAssistant: a.by === 'assistant', who: `${a.verb || 'Answered'} by ${a.by === 'assistant' ? 'your assistant' : a.by}, ${a.date}` })),
+      hasAnsweredMore: !f, answeredMore: answeredCount - answeredList.length,
+      parkedOpen: pOpen, parkedShut: !pOpen,
+      toggleParked: () => this.setState({ parkedOpen: !pOpen }),
+      parked: parkedShown.map(p => ({ agentName: name(p.agent), q: p.q, date: p.date, reopen: () => this.set(p.id, 'open') })),
+      hasParkedMore: !f, parkedMore: parkedCount - parkedList.length
+    };
+  }
+}
+</script>
+</body>
+</html>

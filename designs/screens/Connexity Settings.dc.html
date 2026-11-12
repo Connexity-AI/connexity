@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0}*{box-sizing:border-box}button,input{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}input::placeholder{color:var(--ink3)}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<dc-import name="Connexity Readiness Bar" credits="{{ creditsState }}" hint-size="100%,36px"></dc-import>
+<div style="display:flex;min-height:inherit">
+<div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="settings" credits="{{ creditsState }}" style="height:100%" hint-size="220px,320px"></dc-import></div>
+<main style="flex:1;min-width:944px;padding:24px 32px 48px">
+<div style="max-width:1120px;min-width:880px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:center;min-height:40px"><h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Settings</h1></div>
+<div style="display:grid;grid-template-columns:176px minmax(0,1fr);gap:32px;align-items:start">
+<nav style="display:flex;flex-direction:column;gap:2px">
+<sc-for list="{{ sections }}" as="n" hint-placeholder-count="6"><button onClick="{{ n.pick }}" style="{{ n.style }}">{{ n.label }}</button></sc-for>
+</nav>
+<div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+
+<sc-if value="{{ onConnections }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:16px">
+<sc-for list="{{ connGroups }}" as="grp" hint-placeholder-count="5">
+<div style="{{ grp.wrap }}">
+<div style="padding:14px 24px 2px;font-size:13px;line-height:18px;font-weight:500;color:var(--ink2)">{{ grp.name }}</div>
+<sc-for list="{{ grp.rows }}" as="c" hint-placeholder-count="1">
+<div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:16px;align-items:center;min-height:52px;padding:6px 16px 6px 24px">
+<div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+<span style="{{ c.nameStyle }}">{{ c.name }}</span>
+<sc-if value="{{ c.failing }}"><span style="font-size:13px;line-height:18px;color:var(--crit)">{{ c.fail }}</span><div style="display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:3px 3px 3px 10px;border-radius:8px;border:1px solid var(--border);background:var(--s0)"><code style="min-width:0;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:20px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.request }}</code><button onClick="{{ c.copy }}" style="flex:none;height:26px;padding:0 8px;border-radius:6px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:13px;cursor:pointer" style-hover="background:var(--wash)">{{ c.copyLabel }}</button></div></sc-if>
+<sc-if value="{{ c.suggested }}"><span style="font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">{{ c.why }}</span></sc-if>
+</div>
+<span style="display:flex;min-width:0">
+<sc-if value="{{ c.ok }}"><span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)"><span style="width:7px;height:7px;border-radius:4px;background:var(--pass)"></span>Connected</span></sc-if>
+<sc-if value="{{ c.failing }}"><span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--crit)"><span style="width:7px;height:7px;border-radius:4px;background:var(--crit)"></span>Failing</span></sc-if>
+<sc-if value="{{ c.gone }}"><span style="font-size:13px;color:var(--ink3)">Disconnected</span></sc-if>
+<sc-if value="{{ c.suggested }}"><div style="display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:3px 3px 3px 10px;border-radius:8px;border:1px solid var(--border);background:var(--s0)"><code style="min-width:0;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:20px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.request }}</code><button onClick="{{ c.copy }}" style="flex:none;height:26px;padding:0 8px;border-radius:6px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:13px;cursor:pointer" style-hover="background:var(--wash)">{{ c.copyLabel }}</button></div></sc-if>
+</span>
+<span style="display:flex;justify-content:flex-end;min-width:96px">
+<sc-if value="{{ c.canDisconnect }}"><button onClick="{{ c.ask }}" style="height:28px;padding:0 10px;border-radius:6px;border:0;background:transparent;color:var(--ink2);font-size:13px;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)">Disconnect</button></sc-if>
+</span>
+</div>
+<sc-if value="{{ c.confirming }}">
+<div style="display:flex;align-items:center;gap:12px;margin:0 16px 12px 24px;padding:10px 10px 10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--s0)">
+<span style="flex:1;font-size:13px;line-height:18px;text-wrap:pretty">{{ c.warn }}</span>
+<button onClick="{{ cancelDisc }}" style="height:32px;padding:0 12px;border-radius:8px;border:0;background:transparent;color:var(--ink2);font-size:13px;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)">Cancel</button>
+<button onClick="{{ c.confirm }}" style="height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--crit);background:transparent;color:var(--crit);font-size:13px;font-weight:500;cursor:pointer" style-hover="background:var(--crit-bg)">Disconnect</button>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ onChecks }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Check library</h2><span style="font-size:13px;color:var(--ink3)">Set for the whole fleet. Expand a check to set it differently for chosen agents.</span></div>
+<sc-for list="{{ checks }}" as="k" hint-placeholder-count="8">
+<div style="border-top:1px solid var(--border)">
+<div style="display:grid;grid-template-columns:16px minmax(0,1fr) 168px auto;gap:16px;align-items:center;min-height:60px;padding:8px 24px 8px 16px">
+<button onClick="{{ k.toggle }}" title="Set for chosen agents" style="display:flex;padding:0;border:0;background:transparent;color:var(--ink2);cursor:pointer">
+<sc-if value="{{ k.open }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
+<sc-if value="{{ k.shut }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
+</button>
+<div style="display:flex;flex-direction:column;min-width:0">
+<span><span style="font-weight:500">{{ k.name }}</span><sc-if value="{{ k.hasOverrides }}"><span style="font-size:13px;color:var(--ink3)"> · {{ k.overrides }}</span></sc-if></span>
+<span style="font-size:13px;line-height:18px;color:var(--ink2);text-wrap:pretty">{{ k.what }}</span>
+</div>
+<span style="font-size:13px;color:var(--ink3);text-align:right">{{ k.precision }}</span>
+<div style="display:flex;padding:2px;border-radius:8px;border:1px solid var(--bc)"><sc-for list="{{ k.modes }}" as="m" hint-placeholder-count="0"><button onClick="{{ m.pick }}" style="{{ m.style }}">{{ m.label }}</button></sc-for></div>
+</div>
+<sc-if value="{{ k.pending }}">
+<div style="display:flex;align-items:center;gap:10px;margin:0 24px 12px 48px;padding:10px 10px 10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--s0)">
+<span style="flex:none;font-size:13px;color:var(--ink2)">{{ k.pendingText }}</span>
+<input value="{{ reason }}" onChange="{{ onReason }}" placeholder="Reason (required)" style="flex:1;min-width:0;height:32px;padding:0 10px;border-radius:8px;border:1px solid var(--bc);background:var(--s1);color:var(--ink);font-size:13px;outline:none">
+<button onClick="{{ cancelPending }}" style="height:32px;padding:0 10px;border-radius:8px;border:0;background:transparent;color:var(--ink2);font-size:13px;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)">Cancel</button>
+<button onClick="{{ savePending }}" disabled="{{ noReason }}" style="{{ saveStyle }}">Save</button>
+</div>
+</sc-if>
+<sc-if value="{{ k.open }}">
+<div style="padding:0 24px 12px 48px">
+<sc-for list="{{ k.agents }}" as="g" hint-placeholder-count="0">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;min-height:40px">
+<span style="font-size:13px;color:var(--ink2)">{{ g.name }}</span>
+<div style="display:flex;padding:2px;border-radius:8px;border:1px solid var(--border)"><sc-for list="{{ g.modes }}" as="m" hint-placeholder-count="0"><button onClick="{{ m.pick }}" style="{{ m.style }}">{{ m.label }}</button></sc-for></div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ onGate }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:20px 24px 12px">
+<div style="display:flex;align-items:baseline;gap:12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Deployment gate</h2><span style="font-size:13px;color:var(--ink3)">What runs before a version may ship</span></div>
+<sc-if value="{{ gateCustom }}" hint-placeholder-val="{{ false }}"><button onClick="{{ resetGate }}" style="height:28px;padding:0 8px;border:0;border-radius:6px;background:transparent;color:var(--ink2);font-size:13px;cursor:pointer;text-decoration:underline" style-hover="color:var(--ink)">Reset to default</button></sc-if>
+</div>
+<div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;align-items:center;min-height:56px;padding:8px 24px;border-top:1px solid var(--border)">
+<span>Test levels</span>
+<div style="display:flex;gap:20px">
+<sc-for list="{{ levels }}" as="l" hint-placeholder-count="3">
+<label onClick="{{ l.toggle }}" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+<sc-if value="{{ l.on }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span></sc-if>
+<sc-if value="{{ l.off }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;border:1px solid var(--bc)"></span></sc-if>
+<span>{{ l.name }}</span>
+</label>
+</sc-for>
+</div>
+</div>
+<sc-for list="{{ steppers }}" as="t" hint-placeholder-count="2">
+<div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;align-items:center;min-height:56px;padding:8px 24px;border-top:1px solid var(--border)">
+<span>{{ t.name }}</span>
+<div style="display:flex;align-items:center;gap:12px">
+<div style="display:flex;align-items:center;border:1px solid var(--bc);border-radius:8px;height:32px">
+<button onClick="{{ t.dec }}" title="Less" style="width:32px;height:30px;border:0;background:transparent;color:var(--ink2);font-size:15px;cursor:pointer" style-hover="color:var(--ink)">−</button>
+<span style="min-width:48px;text-align:center;font-weight:500">{{ t.value }}</span>
+<button onClick="{{ t.inc }}" title="More" style="width:32px;height:30px;border:0;background:transparent;color:var(--ink2);font-size:15px;cursor:pointer" style-hover="color:var(--ink)">+</button>
+</div>
+<span style="font-size:13px;color:var(--ink2);text-wrap:pretty">{{ t.text }}</span>
+</div>
+</div>
+</sc-for>
+<sc-if value="{{ gateDirty }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:10px;padding:12px 24px;border-top:1px solid var(--border);background:var(--s0)">
+<input value="{{ reason }}" onChange="{{ onReason }}" placeholder="Reason for the change (required)" style="flex:1;min-width:0;height:32px;padding:0 10px;border-radius:8px;border:1px solid var(--bc);background:var(--s1);color:var(--ink);font-size:13px;outline:none">
+<button onClick="{{ cancelGate }}" style="height:32px;padding:0 10px;border-radius:8px;border:0;background:transparent;color:var(--ink2);font-size:13px;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)">Cancel</button>
+<button onClick="{{ saveGate }}" disabled="{{ noReason }}" style="{{ saveStyle }}">Save</button>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ onTeam }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:20px 24px 12px"><span style="color:var(--ink2)">People with access to Bright Dental</span><a href="Connexity Agency.dc.html?section=members" style="font-size:13px;color:var(--ink2)">Change access in Agency settings</a></div>
+<sc-for list="{{ people }}" as="u" hint-placeholder-count="4">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 140px;gap:16px;align-items:center;min-height:52px;padding:6px 24px;border-top:1px solid var(--border)">
+<span style="display:flex;align-items:center;gap:10px;min-width:0"><span style="flex:none;width:24px;height:24px;border-radius:12px;background:var(--unch-bg);color:var(--ink2);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center">{{ u.initial }}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ u.name }}</span></span>
+<span style="color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ u.email }}</span>
+<span style="font-size:13px;color:var(--ink2)">{{ u.canText }}</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ onAudit }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ filtRef }}" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+<sc-for list="{{ filters }}" as="f" hint-placeholder-count="4">
+<div style="position:relative">
+<button onClick="{{ f.toggle }}" style="{{ f.btnStyle }}" style-hover="background:var(--wash)"><span>{{ f.label }}</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg></button>
+<sc-if value="{{ f.open }}">
+<div style="position:absolute;left:0;top:42px;z-index:20;min-width:220px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18)">
+<sc-for list="{{ f.options }}" as="o" hint-placeholder-count="0">
+<div onClick="{{ o.pick }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;height:36px;padding:0 12px;border-radius:6px;font-size:15px;cursor:pointer;white-space:nowrap" style-hover="background:var(--wash)"><span>{{ o.label }}</span><sc-if value="{{ o.current }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if></div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-for>
+<sc-if value="{{ anyFilter }}" hint-placeholder-val="{{ false }}"><button onClick="{{ clearFilters }}" style="height:36px;padding:0 8px;border:0;background:transparent;color:var(--ink2);font-size:15px;cursor:pointer;text-decoration:underline">Clear</button></sc-if>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<sc-for list="{{ audit }}" as="r" hint-placeholder-count="10">
+<div style="{{ r.style }}"><span style="color:var(--ink2)">{{ r.when }} · </span>{{ r.what }}<span style="color:var(--ink2)"> · “{{ r.why }}”</span></div>
+</sc-for>
+<sc-if value="{{ noAudit }}" hint-placeholder-val="{{ false }}"><div style="padding:16px 24px;color:var(--ink2)">No decisions match.</div></sc-if>
+</div>
+</sc-if>
+
+
+
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;section&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;connections&quot;,&quot;checks&quot;,&quot;gate&quot;,&quot;team&quot;,&quot;audit&quot;],&quot;default&quot;:&quot;connections&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;plan&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;paid&quot;,&quot;free&quot;],&quot;default&quot;:&quot;paid&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;credits&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;ok&quot;,&quot;low&quot;,&quot;out&quot;],&quot;default&quot;:&quot;ok&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  static THEMES = {
+    dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
+    light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
+  };
+  static AGENTS = { insurance:'Insurance renewals', restaurant:'Restaurant reservations', car:'Car service booking', clinic:'Clinic after-hours', dental:'Dental reception' };
+  static SECTIONS = [['connections','Connections'],['checks','Checks'],['gate','Gate'],['team','Team'],['audit','Audit log']];
+  // [id, name, role, failing line or null, can disconnect]
+  static GROUPS = [['assistant','Assistant'],['voice','Voice platform'],['backends','Backends'],['crm','CRM'],['alerts','Alerts']];
+  // [id, group, name, failing line or null, request for the assistant]
+  static CONN = [['cc-alex','assistant','Claude Code \u00b7 Alex',null],['cd-alex','assistant','Claude Desktop \u00b7 Alex',null],['cc-dmytro','assistant','Claude Code \u00b7 Dmytro',null],['retell','voice','Retell',null],['n8n','backends','n8n','n8n: last 12 executions failed to load','Fix the n8n connection in Connexity.'],['ghl','crm','GoHighLevel',null],['email','alerts','Email to the on-call list',null]];
+  // missing, from Readiness or from what the agents call: [id, group, name, why, request]
+  static SUGGEST = [['make','backends','Make','Your agents call 3 Make webhooks that Connexity can\u2019t see yet','Connect our Make account to Connexity.'],['dentrix','backends','Dentrix','Dental reception books into Dentrix, which Connexity can\u2019t see yet','Connect our Dentrix to Connexity.'],['slack','alerts','Slack','Get incident alerts where your assistant can pick them up','Connect our Slack to Connexity for incident alerts.']];
+  // [id, name, what it catches, precision, fleet setting, overrides {agent: setting}]
+  static CHECKS = [
+    ['transfer','Dropped transfer','A transfer to a person ends the call instead of connecting.',98,'fail',{}],
+    ['tool','Tool error not handled','A tool fails and the agent carries on as if it worked.',97,'fail',{}],
+    ['price','Price mismatch','A quoted amount differs from what the backend returned.',96,'fail',{}],
+    ['identity','Identity not checked','Account details are shared before the caller is confirmed.',95,'fail',{}],
+    ['twice','Detail asked twice','The agent asks for something the caller already gave.',93,'flag',{}],
+    ['pause','Long pause','The agent is silent for more than 3 seconds mid-call.',91,'flag',{ clinic:'fail' }],
+    ['number','Misheard number','A number read back differs from what the caller said.',89,'flag',{}],
+    ['over','Talking over the caller','The agent speaks while the caller is still talking.',87,'flag',{}],
+    ['offtopic','Off-topic chat','The agent talks about things outside its job.',72,'off',{}]
+  ];
+  static GATE = { levels:{ text:true, audio:true, phone:false }, threshold:95, repeats:3 };
+  // members of the agency with access to this workspace
+  static PEOPLE = [['Alex Morgan','alex@example.com',true],['Sam Reyes','sam@example.com',true],['Dmytro Kovalenko','dmytro@example.com',true],['Priya Shah','priya@example.com',false],['Jonas Weber','jonas@example.com',false]];
+  // [days ago, who, person | assistant, kind, agent or null, what, why]
+  static AUDIT = [
+    [1,'Alex','person','close','restaurant','Alex closed the incident \u201cTable plan lookup failing\u201d','Rolled back; no failures for 20 minutes'],
+    [2,'Sam','person','close','insurance','Sam closed the incident \u201cTransfer line not answering\u201d','The carrier\u2019s line is back up'],
+    [2,'Alex','person','playbook',null,'Alex changed Roll back: Off \u2192 Some agents (3), approved automatically','The gate covers these three well'],
+    [2,'Alex','person','check','clinic','Alex set \u201cLong pause\u201d to Fails the call for Clinic after-hours','Callers here are often unwell'],
+    [3,'Alex','person','archive','insurance','Alex archived \u201cCaller hung up while on hold\u201d','Callers hang up during the carrier\u2019s hold music'],
+    [4,'Alex','person','close','car','Alex closed the incident \u201cBooking tool failing\u201d','No failures for over an hour after the rollback'],
+    [4,'Sam','person','gate','car','Sam overrode the gate for Car service booking version 14','The date fix is urgent'],
+    [6,'Alex','assistant','archive','dental','Your assistant archived \u201cPaused while the practice software loaded\u201d, approved by Alex','The practice software is slow, not the agent'],
+    [8,'Sam','person','archive','restaurant','Sam archived \u201cBackground noise taken as a reply\u201d','Kitchen noise on the line'],
+    [9,'Alex','person','merge','car','Alex merged two incidents into \u201cBooking tool failing\u201d','Same booking tool error'],
+    [10,'Sam','person','disconnect',null,'Sam disconnected Zapier','Replaced by n8n'],
+    [15,'Alex','person','archive','car','Alex archived \u201cCaller asked for a person straight away\u201d','Expected on this line']
+  ];
+  static KINDS = { archive:'Archive', close:'Incident close', merge:'Incident merge', gate:'Gate override', playbook:'Playbook change', check:'Check setting', disconnect:'Disconnection' };
+  static MODES = [['off','Off'],['flag','Flags'],['fail','Fails the call']];
+  constructor(props) {
+    super(props);
+    const checks = {}; Component.CHECKS.forEach(c => { checks[c[0]] = { fleet:c[4], over:{ ...c[5] } }; });
+    let qs = null; try { qs = new URLSearchParams(window.location.search).get('section'); } catch (_) {}
+    this.state = { section: props.section || qs || 'connections', copied:null, gone:{}, asking:null, checks, open:{}, pending:null, reason:'', gate:{ ...Component.GATE, levels:{ ...Component.GATE.levels } }, gateSaved:{ ...Component.GATE, levels:{ ...Component.GATE.levels } },
+      people: Component.PEOPLE.map(p => ({ name:p[0], email:p[1], can:p[2] })), invite:'', inviteCan:false, records:[], menu:null, agentF:'', whoF:'', kindF:'', periodF:30 };
+    this.filtRef = React.createRef();
+  }
+  componentDidMount() {
+    this.onDoc = e => { if (this.state.menu && this.filtRef.current && !this.filtRef.current.contains(e.target)) this.setState({ menu:null }); };
+    document.addEventListener('mousedown', this.onDoc);
+  }
+  componentWillUnmount() { document.removeEventListener('mousedown', this.onDoc); clearTimeout(this.ct); }
+  record(kind, agent, what, why) { this.setState(s => ({ records: [[0, 'You', 'person', kind, agent, what, why], ...s.records] })); }
+  renderVals() {
+    const C = Component, S = this.state;
+    const seg = (on, small) => ({ height: small ? 26 : 28, padding:'0 10px', borderRadius:6, border:0, background: on ? 'var(--wash)' : 'transparent', color: on ? 'var(--ink)' : 'var(--ink2)', fontSize:13, fontWeight: on ? 500 : 400, cursor:'pointer', whiteSpace:'nowrap' });
+    const modeName = m => (C.MODES.find(x => x[0] === m) || [0, 'Fleet setting'])[1];
+    const noReason = !S.reason.trim();
+    const sameGate = JSON.stringify(S.gate) === JSON.stringify(S.gateSaved);
+    const isDefault = JSON.stringify(S.gate) === JSON.stringify(C.GATE);
+    const fmtDate = d => { const x = new Date(2026, 10, 12 - d); return d === 0 ? 'Today' : `${x.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][x.getMonth()]}`; };
+    const all = S.records.concat(C.AUDIT);
+    const list = all.filter(r => (!S.agentF || r[4] === S.agentF) && (!S.whoF || r[2] === S.whoF) && (!S.kindF || r[3] === S.kindF) && r[0] <= S.periodF);
+    const btn = active => ({ display:'flex', alignItems:'center', gap:6, height:36, padding:'0 10px 0 12px', borderRadius:8, border:'1px solid ' + (active ? 'var(--ink2)' : 'var(--bc)'), background: active ? 'var(--wash)' : 'transparent', color:'var(--ink)', fontSize:15, cursor:'pointer', whiteSpace:'nowrap' });
+    const mk = (key, label, opts, cur, set, active) => ({ label, open: S.menu === key, btnStyle: btn(active), toggle: () => this.setState(s => ({ menu: s.menu === key ? null : key })),
+      options: opts.map(([v, l]) => ({ label:l, current: v === cur, pick: () => { set(v); this.setState({ menu:null }); } })) });
+    const pend = S.pending;
+    return {
+      rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
+      sections: C.SECTIONS.map(([id, label]) => ({ label, pick: () => this.setState({ section:id, pending:null, reason:'' }),
+        style: { display:'flex', alignItems:'center', height:36, padding:'0 12px', borderRadius:8, border:0, textAlign:'left', background: S.section === id ? 'var(--wash)' : 'transparent', color: S.section === id ? 'var(--ink)' : 'var(--ink2)', fontSize:15, cursor:'pointer' } })),
+      creditsState: this.props.credits || 'ok',
+      onConnections: S.section === 'connections', onChecks: S.section === 'checks', onGate: S.section === 'gate', onTeam: S.section === 'team', onAudit: S.section === 'audit',
+      cancelDisc: () => this.setState({ asking:null }),
+      connGroups: (() => {
+        const copyFn = (key, text) => () => { try { navigator.clipboard.writeText(text); } catch (_) {} this.setState({ copied:key }); clearTimeout(this.ct); this.ct = setTimeout(() => this.setState({ copied:null }), 1800); };
+        const live = C.CONN.map(([id, g, name, fail, request]) => { const gone = !!S.gone[id];
+          return { g, name, fail: fail || '', failing: !!fail && !gone, ok: !fail && !gone, gone, suggested:false, why:'', request: request || '', copy: copyFn(id, request || ''), copyLabel: S.copied === id ? 'Copied' : 'Copy',
+            nameStyle:{ fontWeight:500 }, canDisconnect: !gone && S.asking !== id, confirming: S.asking === id,
+            warn: g === 'assistant' ? `Disconnect ${name}? It loses access to Connexity right away, including the rules in the Playbook.` : `Disconnect ${name}? Connexity stops reading it, and traces into it stop.`,
+            ask: () => this.setState({ asking:id }),
+            confirm: () => { this.setState(s => ({ gone:{ ...s.gone, [id]:true }, asking:null })); this.record('disconnect', null, `You disconnected ${name}`, 'Disconnected from Settings'); } }; });
+        const sug = C.SUGGEST.map(([id, g, name, why, request]) => ({ g, name, why, request, suggested:true, failing:false, ok:false, gone:false, fail:'', copy: copyFn(id, request), copyLabel: S.copied === id ? 'Copied' : 'Copy',
+          nameStyle:{ color:'var(--ink2)' }, canDisconnect:false, confirming:false, warn:'', ask:() => {}, confirm:() => {} }));
+        return C.GROUPS.map(([g, name]) => ({ name, rows: live.filter(r => r.g === g).concat(sug.filter(r => r.g === g)) })).filter(x => x.rows.length)
+          .map(x => ({ ...x, wrap:{ background:'var(--s1)', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden', paddingBottom:6 } }));
+      })(),
+      checks: C.CHECKS.map(([id, name, what, prec]) => {
+        const v = S.checks[id], open = !!S.open[id], n = Object.keys(v.over).length;
+        const ask = (agent, val) => this.setState({ pending:{ id, agent, val }, reason:'' });
+        const shown = pend && pend.id === id && !pend.agent ? pend.val : v.fleet;
+        return { name, what, precision: `Right ${prec}% of the time`, open, shut: !open, hasOverrides: n > 0, overrides: n === 1 ? '1 agent set differently' : `${n} agents set differently`,
+          toggle: () => this.setState(s => ({ open:{ ...s.open, [id]: !open } })),
+          modes: C.MODES.map(([m, l]) => ({ label:l, style: seg(shown === m), pick: () => { if (m !== v.fleet) ask(null, m); else if (pend && pend.id === id && !pend.agent) this.setState({ pending:null }); } })),
+          pending: !!pend && pend.id === id, pendingText: pend && pend.id === id ? `${pend.agent ? C.AGENTS[pend.agent] : 'Whole fleet'} \u2192 ${modeName(pend.val)}` : '',
+          agents: Object.keys(C.AGENTS).map(a => { const cur = pend && pend.id === id && pend.agent === a ? pend.val : (v.over[a] || 'fleet');
+            return { name: C.AGENTS[a], modes: [['fleet','Fleet setting'], ...C.MODES].map(([m, l]) => ({ label:l, style: seg(cur === m, true), pick: () => { if (m !== (v.over[a] || 'fleet')) ask(a, m); } })) }; })
+        };
+      }),
+      reason: S.reason, onReason: e => this.setState({ reason: e.target.value }), noReason,
+      saveStyle: { height:32, padding:'0 14px', borderRadius:8, border:0, background:'var(--accent)', color:'var(--on-accent)', fontSize:13, fontWeight:500, cursor: noReason ? 'default' : 'pointer', opacity: noReason ? 0.4 : 1 },
+      cancelPending: () => this.setState({ pending:null, reason:'' }),
+      savePending: () => { if (noReason || !pend) return; const ck = C.CHECKS.find(c => c[0] === pend.id);
+        this.setState(s => { const v = s.checks[pend.id], over = { ...v.over }; let fleet = v.fleet;
+          if (pend.agent) { if (pend.val === 'fleet') delete over[pend.agent]; else over[pend.agent] = pend.val; } else fleet = pend.val;
+          return { checks:{ ...s.checks, [pend.id]:{ fleet, over } }, pending:null, reason:'' }; });
+        this.record('check', pend.agent, `You set \u201c${ck[1]}\u201d to ${modeName(pend.val)}${pend.agent ? ' for ' + C.AGENTS[pend.agent] : ' for the whole fleet'}`, S.reason.trim()); },
+      levels: [['text','Text'],['audio','Audio'],['phone','Phone']].map(([k, name]) => ({ name, on: !!S.gate.levels[k], off: !S.gate.levels[k],
+        toggle: e => { e.preventDefault(); this.setState(s => ({ gate:{ ...s.gate, levels:{ ...s.gate.levels, [k]: !s.gate.levels[k] } } })); } })),
+      steppers: [
+        { name:'Passing threshold', value: S.gate.threshold + '%', text:'Share of test cases that must pass before a version may ship.',
+          dec: () => this.setState(s => ({ gate:{ ...s.gate, threshold: Math.max(50, s.gate.threshold - 5) } })), inc: () => this.setState(s => ({ gate:{ ...s.gate, threshold: Math.min(100, s.gate.threshold + 5) } })) },
+        { name:'Repeats', value: String(S.gate.repeats), text:`Each case runs ${S.gate.repeats} times. A case whose runs disagree counts as flaky, not failed.`,
+          dec: () => this.setState(s => ({ gate:{ ...s.gate, repeats: Math.max(1, s.gate.repeats - 1) } })), inc: () => this.setState(s => ({ gate:{ ...s.gate, repeats: Math.min(10, s.gate.repeats + 1) } })) }
+      ],
+      gateDirty: !sameGate, gateCustom: !isDefault,
+      resetGate: () => this.setState({ gate:{ ...C.GATE, levels:{ ...C.GATE.levels } } }),
+      cancelGate: () => this.setState(s => ({ gate:{ ...s.gateSaved, levels:{ ...s.gateSaved.levels } }, reason:'' })),
+      saveGate: () => { if (noReason) return; const g = S.gate; this.setState(s => ({ gateSaved:{ ...s.gate, levels:{ ...s.gate.levels } }, reason:'' }));
+        this.record('gate', null, `You changed the gate: ${['text','audio','phone'].filter(k => g.levels[k]).map(k => k[0].toUpperCase() + k.slice(1)).join(', ')} \u00b7 ${g.threshold}% to pass \u00b7 ${g.repeats} repeats`, S.reason.trim()); },
+      people: S.people.map(p => ({ name:p.name, email:p.email, initial:p.name[0].toUpperCase(), canText: p.can ? 'Can approve' : 'View only' })),
+      invite: S.invite, onInvite: e => this.setState({ invite: e.target.value }), noInvite: !/.+@.+\..+/.test(S.invite.trim()),
+      inviteCan: S.inviteCan, inviteCannot: !S.inviteCan, toggleInviteCan: e => { e.preventDefault(); this.setState(s => ({ inviteCan: !s.inviteCan })); },
+      inviteStyle: { height:36, padding:'0 16px', borderRadius:8, border:0, background:'var(--accent)', color:'var(--on-accent)', fontSize:15, fontWeight:500, cursor:'pointer', opacity: /.+@.+\..+/.test(S.invite.trim()) ? 1 : 0.4 },
+      sendInvite: () => { const e = S.invite.trim(); if (!/.+@.+\..+/.test(e)) return; this.setState(s => ({ people:[...s.people, { name:e.split('@')[0].replace(/^./, c => c.toUpperCase()), email:e, can:s.inviteCan, invited:true }], invite:'', inviteCan:false })); },
+      filtRef: this.filtRef,
+      filters: [
+        mk('agent', S.agentF ? C.AGENTS[S.agentF] : 'All agents', [['', 'All agents'], ...Object.entries(C.AGENTS)], S.agentF, v => this.setState({ agentF:v }), !!S.agentF),
+        mk('who', S.whoF === 'person' ? 'People' : S.whoF === 'assistant' ? 'Your assistant' : 'Anyone', [['', 'Anyone'], ['person', 'People'], ['assistant', 'Your assistant']], S.whoF, v => this.setState({ whoF:v }), !!S.whoF),
+        mk('kind', S.kindF ? C.KINDS[S.kindF] : 'Any decision', [['', 'Any decision'], ...Object.entries(C.KINDS)], S.kindF, v => this.setState({ kindF:v }), !!S.kindF),
+        mk('period', 'Last ' + S.periodF + ' days', [[7, 'Last 7 days'], [30, 'Last 30 days'], [90, 'Last 90 days']], S.periodF, v => this.setState({ periodF:v }), S.periodF !== 30)
+      ],
+      anyFilter: !!(S.agentF || S.whoF || S.kindF || S.periodF !== 30), clearFilters: () => this.setState({ agentF:'', whoF:'', kindF:'', periodF:30 }),
+      audit: list.map(([d, , , , , what, why], i) => ({ when: fmtDate(d), what, why, style: { padding:'12px 24px', borderTop: i ? '1px solid var(--border)' : 0, textWrap:'pretty' } })),
+      noAudit: list.length === 0,
+      noop: e => e.preventDefault(),
+
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<sc-if value="{{ outOfCredits }}" hint-placeholder-val="{{ false }}">
+<a href="Connexity Agency.dc.html?section=billing" style="display:flex;align-items:center;gap:10px;min-height:36px;padding:0 16px;background:var(--wash);border-bottom:1px solid var(--border);font-family:'Figtree',system-ui,sans-serif;font-size:13px;line-height:18px;color:var(--ink);text-decoration:none" style-hover="opacity:1;background:var(--s1)">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;color:var(--ink2)"><circle cx="12" cy="12" r="10"></circle><path d="M8 12h8"></path></svg>
+<span><span style="font-weight:500">Out of credits:</span><span style="color:var(--ink2)"> tests are paused. Top up or turn on auto top-up</span></span>
+</a>
+</sc-if>
+<sc-if value="{{ show }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;align-items:center;gap:10px;min-height:36px;padding:0 12px 0 16px;background:var(--wash);border-bottom:1px solid var(--border);font-family:'Figtree',system-ui,sans-serif;font-size:13px;line-height:18px;color:var(--ink)">
+<svg width="14" height="14" viewBox="0 0 16 16" style="flex:none;transform:rotate(-90deg)"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--bc)" stroke-width="2" opacity=".45"></circle><circle cx="8" cy="8" r="6" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" stroke-dasharray="{{ dash }}"></circle></svg>
+<p style="flex:1;min-width:0;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><a href="Connexity Roadmap.dc.html#readiness" style="color:var(--ink);font-weight:500;text-decoration:none" style-hover="text-decoration:underline;opacity:1">Readiness {{ pct }}%</a><span style="color:var(--ink2)"> · {{ msg }}</span></p>
+<button onClick="{{ hide }}" title="Hide for today" style="flex:none;display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:0;border-radius:6px;background:transparent;color:var(--ink2);cursor:pointer" style-hover="background:var(--s1);color:var(--ink)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+</div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;state&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;setup&quot;,&quot;dropped&quot;,&quot;complete&quot;],&quot;default&quot;:&quot;setup&quot;,&quot;tsType&quot;:&quot;'setup' | 'dropped' | 'complete'&quot;}}">
+class Component extends DCLogic {
+  // setup: during onboarding · dropped: came back after reaching 100% · complete: hidden
+  static STATES = {
+    setup: { pct:60, msg:'2 steps left: connect alerts to Slack, turn on the deployment gate. Your assistant can finish this.' },
+    dropped: { pct:92, msg:'Dental reception has no tests' },
+    complete: { pct:100, msg:'' }
+  };
+  static KEY = 'cx-readiness-hidden';
+  state = { hidden:false };
+  componentDidMount() {
+    try { if (localStorage.getItem(Component.KEY) === new Date().toDateString()) this.setState({ hidden:true }); } catch (_) {}
+  }
+  renderVals() {
+    const r = Component.STATES[this.props.state] || Component.STATES.setup;
+    const c = 2 * Math.PI * 6;
+    return {
+      outOfCredits: this.props.credits === 'out',
+      show: r.pct < 100 && !this.state.hidden, pct: r.pct, msg: r.msg,
+      dash: `${(r.pct / 100 * c).toFixed(2)} ${c.toFixed(2)}`,
+      hide: () => { try { localStorage.setItem(Component.KEY, new Date().toDateString()); } catch (_) {} this.setState({ hidden:true }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

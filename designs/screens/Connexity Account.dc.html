@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0}*{box-sizing:border-box}button,input{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}input::placeholder{color:var(--ink3)}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<dc-import name="Connexity Readiness Bar" hint-size="100%,36px"></dc-import>
+<div style="display:flex;min-height:inherit">
+<div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="none" style="height:100%" hint-size="220px,320px"></dc-import></div>
+<main style="flex:1;min-width:944px;padding:24px 32px 48px">
+<div style="max-width:1120px;min-width:880px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:center;min-height:40px"><h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Account</h1></div>
+<div style="display:grid;grid-template-columns:176px minmax(0,1fr);gap:32px;align-items:start">
+<nav style="display:flex;flex-direction:column;gap:2px">
+<sc-for list="{{ sections }}" as="n" hint-placeholder-count="4"><button onClick="{{ n.pick }}" style="{{ n.style }}">{{ n.label }}</button></sc-for>
+<div style="height:1px;margin:8px 12px;background:var(--border)"></div>
+<button onClick="{{ pickDelete }}" style="{{ deleteNavStyle }}">Delete account</button>
+</nav>
+<div style="display:flex;flex-direction:column;gap:16px;min-width:0;max-width:760px">
+
+<sc-if value="{{ onProfile }}" hint-placeholder-val="{{ true }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="display:flex;align-items:center;gap:16px;padding:20px 24px">
+<span style="flex:none;width:48px;height:48px;border-radius:24px;background:var(--unch-bg);color:var(--ink);font-size:17px;font-weight:500;display:flex;align-items:center;justify-content:center">{{ initials }}</span>
+<span style="font-size:13px;color:var(--ink2)">Your avatar uses your initials.</span>
+</div>
+<div style="display:grid;grid-template-columns:120px minmax(0,1fr);gap:16px;align-items:center;min-height:60px;padding:8px 24px;border-top:1px solid var(--border)">
+<span style="color:var(--ink2)">Name</span>
+<input value="{{ name }}" onChange="{{ onName }}" style="height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s0);color:var(--ink);font-size:15px;outline:none;max-width:360px">
+</div>
+<div style="display:grid;grid-template-columns:120px minmax(0,1fr);gap:16px;align-items:center;min-height:60px;padding:8px 24px;border-top:1px solid var(--border)">
+<span style="color:var(--ink2)">Email</span>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;align-items:center;gap:12px"><span>{{ email }}</span><sc-if value="{{ emailIdle }}" hint-placeholder-val="{{ true }}"><button onClick="{{ startEmail }}" style="height:28px;padding:0 10px;border-radius:6px;border:0;background:transparent;color:var(--ink2);font-size:13px;cursor:pointer;text-decoration:underline" style-hover="color:var(--ink)">Change</button></sc-if></div>
+<sc-if value="{{ emailEditing }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:8px">
+<input value="{{ newEmail }}" onChange="{{ onNewEmail }}" placeholder="New email" style="flex:1;max-width:280px;height:32px;padding:0 10px;border-radius:8px;border:1px solid var(--bc);background:var(--s0);color:var(--ink);font-size:13px;outline:none">
+<button onClick="{{ cancelEmail }}" style="height:32px;padding:0 10px;border-radius:8px;border:0;background:transparent;color:var(--ink2);font-size:13px;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)">Cancel</button>
+<button onClick="{{ sendEmail }}" style="{{ sendEmailStyle }}">Send confirmation</button>
+</div>
+</sc-if>
+<sc-if value="{{ emailSent }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--ink2)">{{ emailSentText }}</span></sc-if>
+</div>
+</div>
+<sc-if value="{{ profileDirty }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;justify-content:flex-end;gap:8px;padding:12px 24px;border-top:1px solid var(--border)">
+<button onClick="{{ resetProfile }}" style="height:36px;padding:0 12px;border-radius:8px;border:0;background:transparent;color:var(--ink2);font-size:15px;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)">Cancel</button>
+<button onClick="{{ saveProfile }}" style="height:36px;padding:0 16px;border-radius:8px;border:0;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Save</button>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ onSecurity }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="display:flex;flex-direction:column;gap:12px;padding:16px 24px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span style="font-weight:500">Password</span><sc-if value="{{ pwIdle }}" hint-placeholder-val="{{ true }}"><button onClick="{{ startPw }}" style="height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:13px;cursor:pointer" style-hover="background:var(--wash)">Change password</button></sc-if><sc-if value="{{ pwDone }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:var(--ink2)">Password changed</span></sc-if></div>
+<sc-if value="{{ pwEditing }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:8px;max-width:320px">
+<input type="password" value="{{ pw1 }}" onChange="{{ onPw1 }}" placeholder="Current password" style="height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s0);color:var(--ink);font-size:15px;outline:none">
+<input type="password" value="{{ pw2 }}" onChange="{{ onPw2 }}" placeholder="New password" style="height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s0);color:var(--ink);font-size:15px;outline:none">
+<input type="password" value="{{ pw3 }}" onChange="{{ onPw3 }}" placeholder="Confirm new password" style="height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s0);color:var(--ink);font-size:15px;outline:none">
+<div style="display:flex;gap:8px"><button onClick="{{ cancelPw }}" style="height:36px;padding:0 12px;border-radius:8px;border:0;background:transparent;color:var(--ink2);font-size:15px;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)">Cancel</button><button onClick="{{ savePw }}" style="{{ savePwStyle }}">Change password</button></div>
+</div>
+</sc-if>
+</div>
+<div style="padding:16px 24px 8px;border-top:1px solid var(--border);font-weight:500">Sign-in methods</div>
+<sc-for list="{{ methods }}" as="m" hint-placeholder-count="2">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:0 24px">
+<span>{{ m.name }}</span>
+<sc-if value="{{ m.on }}"><span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)"><span style="width:7px;height:7px;border-radius:4px;background:var(--pass)"></span>Connected</span></sc-if>
+<sc-if value="{{ m.off }}"><button onClick="{{ m.connect }}" style="height:28px;padding:0 10px;border-radius:6px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:13px;cursor:pointer" style-hover="background:var(--wash)">Connect</button></sc-if>
+</div>
+</sc-for>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:8px 24px;border-top:1px solid var(--border)">
+<span style="display:flex;align-items:baseline;gap:10px"><span style="font-weight:500">Two-step verification</span><span style="font-size:13px;color:var(--ink2)">{{ tfaText }}</span></span>
+<button onClick="{{ toggleTfa }}" style="height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:13px;cursor:pointer" style-hover="background:var(--wash)">{{ tfaAction }}</button>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 24px 8px;border-top:1px solid var(--border)">
+<span style="font-weight:500">Sessions</span>
+<sc-if value="{{ hasOthers }}" hint-placeholder-val="{{ true }}"><button onClick="{{ signOutOthers }}" style="height:28px;padding:0 10px;border-radius:6px;border:0;background:transparent;color:var(--ink2);font-size:13px;cursor:pointer;text-decoration:underline" style-hover="color:var(--ink)">Sign out everywhere else</button></sc-if>
+</div>
+<sc-for list="{{ sessions }}" as="x" hint-placeholder-count="3">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:0 24px">
+<span>{{ x.text }}</span>
+<sc-if value="{{ x.current }}"><span style="font-size:13px;color:var(--ink3)">This device</span></sc-if>
+<sc-if value="{{ x.other }}"><button onClick="{{ x.out }}" style="height:28px;padding:0 10px;border-radius:6px;border:0;background:transparent;color:var(--ink2);font-size:13px;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)">Sign out</button></sc-if>
+</div>
+</sc-for>
+<div style="height:8px"></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ onAssist }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="padding:16px 24px;color:var(--ink2);text-wrap:pretty">Anything your assistant does is recorded as done by your assistant on your behalf. An assistant reaches exactly the workspaces you can access.</div>
+<sc-for list="{{ assistants }}" as="a" hint-placeholder-count="2">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:0 16px 0 24px;border-top:1px solid var(--border)">
+<span style="display:flex;flex-direction:column"><span style="{{ a.nameStyle }}">{{ a.name }}</span><span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ a.reach }}</span></span>
+<sc-if value="{{ a.live }}"><button onClick="{{ a.revoke }}" style="height:28px;padding:0 10px;border-radius:6px;border:0;background:transparent;color:var(--ink2);font-size:13px;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)">Revoke</button></sc-if>
+<sc-if value="{{ a.gone }}"><span style="font-size:13px;color:var(--ink3)">Revoked</span></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ onNotify }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="padding:16px 24px 8px;font-size:13px;color:var(--ink2)">Emails you get</div>
+<sc-for list="{{ notifs }}" as="n" hint-placeholder-count="4">
+<div onClick="{{ n.toggle }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:0 24px;border-top:1px solid var(--border);cursor:pointer;user-select:none" style-hover="background:var(--wash)">
+<span>{{ n.name }}</span>
+<span style="{{ n.track }}"><span style="{{ n.knob }}"></span></span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ onDelete }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:flex;flex-direction:column;gap:12px">
+<span style="font-weight:500">Delete account</span>
+<span style="color:var(--ink2);text-wrap:pretty">Deletes your account and signs you out everywhere. The workspace, its agents and its decision records stay.</span>
+<sc-if value="{{ blocked }}" hint-placeholder-val="{{ false }}">
+<p style="margin:0;padding:12px 14px;border-radius:8px;border:1px solid var(--border);background:var(--s0);text-wrap:pretty">You are the only person in this workspace who can approve. Let someone else approve first, in <a href="Connexity Settings.dc.html?section=team">Settings › Team</a>.</p>
+</sc-if>
+<sc-if value="{{ canDelete }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;align-items:center;gap:8px">
+<input value="{{ confirmText }}" onChange="{{ onConfirm }}" placeholder="{{ confirmHint }}" style="flex:1;max-width:320px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s0);color:var(--ink);font-size:15px;outline:none">
+<button onClick="{{ doDelete }}" disabled="{{ notTyped }}" style="{{ deleteStyle }}">Delete account</button>
+</div>
+<span style="font-size:13px;color:var(--ink3)">Type your email to confirm.</span>
+</sc-if>
+</div>
+</sc-if>
+
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;section&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;profile&quot;,&quot;security&quot;,&quot;assistant&quot;,&quot;notify&quot;,&quot;delete&quot;],&quot;default&quot;:&quot;profile&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onlyApprover&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  static THEMES = {
+    dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
+    light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
+  };
+  static SECTIONS = [['profile','Profile'],['security','Sign-in and security'],['assistant','Assistant access'],['notify','Notifications']];
+  static EMAIL = 'alex@example.com';
+  constructor(props) {
+    super(props);
+    this.state = { section: props.section || 'profile', name:'Alex Morgan', saved:'Alex Morgan', email:'idle', newEmail:'', pw:'idle', pw1:'', pw2:'', pw3:'', google:false, tfa:false,
+      sessions:[['Chrome on Mac · Kyiv · now', true], ['Safari on iPhone · Kyiv · 2 hours ago', false], ['Firefox on Windows · Warsaw · 3 days ago', false]],
+      revoked:{}, notifs:{ weekly:true, incidents:true, clar:true, billing:false }, confirmText:'' };
+  }
+  renderVals() {
+    const C = Component, S = this.state;
+    const nav = on => ({ display:'flex', alignItems:'center', height:36, padding:'0 12px', borderRadius:8, border:0, textAlign:'left', background: on ? 'var(--wash)' : 'transparent', color: on ? 'var(--ink)' : 'var(--ink2)', fontSize:15, cursor:'pointer' });
+    const initials = S.saved.split(/\s+/).filter(Boolean).map(w => w[0].toUpperCase()).slice(0, 2).join('') || '?';
+    const validEmail = /.+@.+\..+/.test(S.newEmail.trim()), pwOk = S.pw1 && S.pw2.length >= 8 && S.pw2 === S.pw3;
+    const typed = S.confirmText.trim().toLowerCase() === C.EMAIL;
+    const sw = on => ({ track:{ flex:'none', width:32, height:18, borderRadius:9, background: on ? 'var(--accent)' : 'var(--unch-bg)', border: on ? 0 : '1px solid var(--bc)', position:'relative' },
+      knob:{ position:'absolute', top: on ? 2 : 1, left: on ? 16 : 1, width:14, height:14, borderRadius:7, background: on ? 'var(--on-accent)' : 'var(--ink2)', transition:'left 150ms' } });
+    return {
+      rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
+      sections: C.SECTIONS.map(([id, label]) => ({ label, style: nav(S.section === id), pick: () => this.setState({ section:id }) })),
+      pickDelete: () => this.setState({ section:'delete' }),
+      deleteNavStyle: { ...nav(S.section === 'delete'), color: S.section === 'delete' ? 'var(--ink)' : 'var(--ink3)' },
+      onProfile: S.section === 'profile', onSecurity: S.section === 'security', onAssist: S.section === 'assistant', onNotify: S.section === 'notify', onDelete: S.section === 'delete',
+      initials, name: S.name, onName: e => this.setState({ name: e.target.value }),
+      profileDirty: S.name.trim() !== S.saved && !!S.name.trim(),
+      resetProfile: () => this.setState(s => ({ name: s.saved })), saveProfile: () => this.setState(s => ({ saved: s.name.trim() })),
+      email: C.EMAIL, emailIdle: S.email === 'idle', emailEditing: S.email === 'editing', emailSent: S.email === 'sent',
+      emailSentText: `We sent a link to ${S.newEmail.trim()}. Your email changes once you open it.`,
+      startEmail: () => this.setState({ email:'editing', newEmail:'' }), cancelEmail: () => this.setState({ email:'idle' }),
+      newEmail: S.newEmail, onNewEmail: e => this.setState({ newEmail: e.target.value }),
+      sendEmail: () => { if (validEmail) this.setState({ email:'sent' }); },
+      sendEmailStyle: { height:32, padding:'0 12px', borderRadius:8, border:0, background:'var(--accent)', color:'var(--on-accent)', fontSize:13, fontWeight:500, cursor:'pointer', opacity: validEmail ? 1 : 0.4 },
+      pwIdle: S.pw === 'idle', pwEditing: S.pw === 'editing', pwDone: S.pw === 'done',
+      startPw: () => this.setState({ pw:'editing', pw1:'', pw2:'', pw3:'' }), cancelPw: () => this.setState({ pw:'idle' }),
+      pw1: S.pw1, pw2: S.pw2, pw3: S.pw3, onPw1: e => this.setState({ pw1: e.target.value }), onPw2: e => this.setState({ pw2: e.target.value }), onPw3: e => this.setState({ pw3: e.target.value }),
+      savePw: () => { if (pwOk) this.setState({ pw:'done' }); },
+      savePwStyle: { height:36, padding:'0 16px', borderRadius:8, border:0, background:'var(--accent)', color:'var(--on-accent)', fontSize:15, fontWeight:500, cursor:'pointer', opacity: pwOk ? 1 : 0.4 },
+      methods: [['Email and password', true, null], ['Google', S.google, () => this.setState({ google:true })]].map(([name, on, connect]) => ({ name, on, off: !on, connect: connect || (() => {}) })),
+      tfaText: S.tfa ? 'On' : 'Off', tfaAction: S.tfa ? 'Turn off' : 'Set up', toggleTfa: () => this.setState(s => ({ tfa: !s.tfa })),
+      sessions: S.sessions.map(([text, current], i) => ({ text, current, other: !current, out: () => this.setState(s => ({ sessions: s.sessions.filter((_, j) => j !== i) })) })),
+      hasOthers: S.sessions.some(x => !x[1]), signOutOthers: () => this.setState(s => ({ sessions: s.sessions.filter(x => x[1]) })),
+      assistants: [['claude-code','Claude Code on Alex\u2019s MacBook'],['claude-desktop','Claude Desktop']].map(([id, name]) => ({ name, reach: S.revoked[id] ? 'No access' : 'Reaches 6 workspaces', live: !S.revoked[id], gone: !!S.revoked[id],
+        nameStyle:{ color: S.revoked[id] ? 'var(--ink3)' : 'var(--ink)' }, revoke: () => this.setState(s => ({ revoked:{ ...s.revoked, [id]:true } })) })),
+      notifs: [['weekly','Weekly report'],['incidents','Incident alerts'],['clar','Clarifications waiting for me'],['billing','Billing']].map(([k, name]) => ({ name, ...sw(S.notifs[k]), toggle: () => this.setState(s => ({ notifs:{ ...s.notifs, [k]: !s.notifs[k] } })) })),
+      blocked: !!this.props.onlyApprover, canDelete: !this.props.onlyApprover,
+      confirmText: S.confirmText, onConfirm: e => this.setState({ confirmText: e.target.value }), confirmHint: C.EMAIL, notTyped: !typed,
+      deleteStyle: { height:36, padding:'0 14px', borderRadius:8, border:'1px solid var(--crit)', background:'transparent', color:'var(--crit)', fontSize:15, fontWeight:500, cursor: typed ? 'pointer' : 'default', opacity: typed ? 1 : 0.5 },
+      doDelete: () => {}
+    };
+  }
+}
+</script>
+</body>
+</html>

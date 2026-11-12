@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><style>@keyframes cxGlow{0%,100%{opacity:.6}50%{opacity:1;filter:drop-shadow(0 0 3px currentColor)}}</style></helmet>
+<div style="height:100%;min-height:100%;display:flex;flex-direction:column">
+<aside style="flex:1;padding:16px 12px;display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;align-items:center;gap:8px;height:32px;padding:0 8px">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--brand)"><circle cx="9" cy="12" r="6"></circle><circle cx="15" cy="12" r="6"></circle></svg>
+    <span style="font-size:15px;font-weight:500;color:var(--ink)">Connexity</span>
+  </div>
+  <nav style="display:flex;flex-direction:column;gap:2px">
+    <a href="Connexity Home.dc.html" style="{{ navHome }}">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+      <span>Home</span>
+    </a>
+    <a href="Connexity Incidents.dc.html" style="{{ navIncidents }}">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"></path></svg>
+      <span>Incidents</span>
+      <sc-if value="{{ notFresh }}" hint-placeholder-val="{{ true }}"><span style="margin-left:auto;display:flex;align-items:center;gap:8px">{{ glimmer }}<span style="font-size:13px;color:var(--ink3)">2</span></span></sc-if>
+    </a>
+    <a href="Connexity Action items.dc.html" style="{{ navActions }}">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 2 2 4-4"></path><path d="m3 7 2 2 4-4"></path><path d="M13 6h8"></path><path d="M13 12h8"></path><path d="M13 18h8"></path></svg>
+      <span>Action items</span>
+      <sc-if value="{{ notFresh }}" hint-placeholder-val="{{ true }}"><span style="margin-left:auto;font-size:13px;color:var(--ink3)">14</span></sc-if>
+    </a>
+    <a href="Connexity Agents.dc.html" style="{{ navAgents }}">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg>
+      <span>Agents</span>
+    </a>
+    <a href="Connexity Calls.dc.html" style="{{ navCalls }}">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"></path></svg>
+      <span>Calls</span>
+    </a>
+    <a href="Connexity Roadmap.dc.html" style="{{ navRoadmap }}">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"></circle><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"></path><circle cx="18" cy="5" r="3"></circle></svg>
+      <span>Roadmap</span>
+    </a>
+    <a href="Connexity Issues.dc.html" style="{{ navIssues }}">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>
+      <span>Issues</span>
+    </a>
+    <a href="Connexity Settings.dc.html" style="{{ navSettings }}">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+      <span>Settings</span>
+    </a>
+  </nav>
+  <div style="margin-top:auto;position:sticky;bottom:0;display:flex;flex-direction:column;gap:4px;padding-top:12px;border-top:1px solid var(--border);background:var(--s1)">
+    <sc-if value="{{ showReady }}" hint-placeholder-val="{{ true }}">
+    <a href="Connexity Roadmap.dc.html#readiness" title="Open the Readiness stage of the Roadmap" style="display:flex;align-items:center;gap:10px;height:36px;padding:0 12px;border-radius:8px;color:var(--ink);font-size:13px;text-decoration:none" style-hover="background:var(--wash);opacity:1">
+      <svg width="16" height="16" viewBox="0 0 16 16" style="flex:none;transform:rotate(-90deg)"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--bc)" stroke-width="2" opacity=".45"></circle><circle cx="8" cy="8" r="6" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" stroke-dasharray="{{ readyDash }}"></circle></svg>
+      <span>Readiness {{ readyPct }}%</span>
+    </a>
+    </sc-if>
+    <sc-if value="{{ creditsLow }}" hint-placeholder-val="{{ false }}">
+    <a href="Connexity Agency.dc.html?section=billing" style="display:flex;align-items:center;gap:10px;height:32px;padding:0 12px;border-radius:8px;color:var(--ink);font-size:13px;text-decoration:none" style-hover="background:var(--wash);opacity:1">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;color:var(--ink2)"><circle cx="12" cy="12" r="10"></circle><path d="M8 12h8"></path></svg>
+      <span>Credits low · 3 days left</span>
+    </a>
+    </sc-if>
+    <div ref="{{ menuRef }}" style="position:relative">
+    <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;left:0;right:0;bottom:50px;z-index:30;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18);display:flex;flex-direction:column">
+      <span style="padding:6px 10px 4px;font-size:13px;line-height:18px;color:var(--ink3)">Workspaces</span>
+      <sc-if value="{{ wsSearchable }}"><input value="{{ wsQ }}" onChange="{{ onWsQ }}" placeholder="Find a workspace" style="height:32px;margin:2px 2px 4px;padding:0 10px;border-radius:6px;border:1px solid var(--bc);background:var(--s1);color:var(--ink);font:inherit;font-size:13px;outline:none"></sc-if>
+      <sc-for list="{{ workspaces }}" as="w" hint-placeholder-count="0">
+      <a href="Connexity Home.dc.html" style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:6px;color:var(--ink);font-size:13px;text-decoration:none" style-hover="background:var(--wash);opacity:1">
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ w.name }}</span>
+        <sc-if value="{{ w.current }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+      </a>
+      </sc-for>
+      <button style="display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--ink2);font-size:13px;text-align:left;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>New workspace</button>
+      <a href="Connexity Agency.dc.html" style="display:flex;align-items:center;height:34px;padding:0 10px;border-radius:6px;color:var(--ink);font-size:13px;text-decoration:none" style-hover="background:var(--wash);opacity:1">Agency settings</a>
+      <div style="height:1px;margin:4px 0;background:var(--border)"></div>
+      <a href="Connexity Account.dc.html" style="display:flex;align-items:center;height:36px;padding:0 10px;border-radius:6px;color:var(--ink);font-size:13px;text-decoration:none" style-hover="background:var(--wash);opacity:1">Account</a>
+      <div style="display:flex;flex-direction:column;gap:6px;padding:8px 10px">
+        <span style="font-size:13px;color:var(--ink2)">Theme</span>
+        <div style="display:flex;padding:2px;border-radius:8px;border:1px solid var(--bc)"><sc-for list="{{ themes }}" as="t" hint-placeholder-count="0"><button onClick="{{ t.pick }}" style="{{ t.style }}">{{ t.label }}</button></sc-for></div>
+      </div>
+      <div style="height:1px;margin:4px 0;background:var(--border)"></div>
+      <button onClick="{{ closeMenu }}" style="display:flex;align-items:center;height:36px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--ink);font-size:13px;text-align:left;cursor:pointer" style-hover="background:var(--wash)">Sign out</button>
+    </div>
+    </sc-if>
+    <button onClick="{{ toggleMenu }}" title="Workspaces, account and theme" style="width:100%;display:flex;align-items:center;gap:10px;min-height:44px;padding:4px 12px;border:0;border-radius:8px;background:transparent;cursor:pointer;text-align:left" style-hover="background:var(--wash)">
+      <span style="flex:none;width:24px;height:24px;border-radius:12px;background:var(--unch-bg);color:var(--ink2);font-size:12px;font-weight:500;display:flex;align-items:center;justify-content:center">A</span>
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column"><span style="font-size:13px;line-height:18px;color:var(--ink)">Alex</span><span style="font-size:13px;line-height:18px;color:var(--ink3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ wsName }}</span></span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink3)"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg>
+    </button>
+    </div>
+  </div>
+</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;home&quot;,&quot;actions&quot;,&quot;agents&quot;,&quot;calls&quot;,&quot;roadmap&quot;,&quot;issues&quot;,&quot;incidents&quot;],&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;'home' | 'actions' | 'agents' | 'calls' | 'roadmap' | 'issues'&quot;},&quot;incident&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;menuOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;readiness&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;setup&quot;,&quot;dropped&quot;,&quot;complete&quot;],&quot;default&quot;:&quot;setup&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    let t = null; try { t = localStorage.getItem('cx-theme'); } catch (_) {}
+    this.state = { menuOpen: !!props.menuOpen, wsQ:'', theme: t || 'system' };
+    this.menuRef = React.createRef();
+  }
+  componentDidMount() {
+    this.onDoc = e => {
+      if (this.state.menuOpen && this.menuRef.current && !this.menuRef.current.contains(e.target)) this.setState({ menuOpen:false });
+    };
+    document.addEventListener('mousedown', this.onDoc);
+  }
+  componentWillUnmount() { document.removeEventListener('mousedown', this.onDoc); }
+  static WS = ['Bright Dental','Northfield Group','Kestrel Plumbing','Maple Vets','Summit Legal','Harbor Hotels'];
+  glimmer() {
+    let rm = false; try { rm = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) {}
+    return React.createElement('span', { title:'An incident is active', style:{ display:'inline-flex', color:'var(--crit)', animation: rm ? 'none' : 'cxGlow 2s ease-in-out infinite' } },
+      React.createElement('svg', { width:14, height:14, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:2.25, strokeLinecap:'round', strokeLinejoin:'round' },
+        React.createElement('circle', { cx:12, cy:12, r:10 }), React.createElement('line', { x1:12, x2:12, y1:8, y2:12 }), React.createElement('line', { x1:12, x2:12.01, y1:16, y2:16 })));
+  }
+  navStyle(on) {
+    return { display:'flex', alignItems:'center', gap:12, height:36, padding:'0 12px', borderRadius:8, fontSize:15, cursor:'pointer', textDecoration:'none',
+      color: on ? 'var(--ink)' : 'var(--ink2)', background: on ? 'var(--wash)' : 'transparent' };
+  }
+  renderVals() {
+    const a = this.props.active || 'home';
+    const pct = { setup:60, dropped:92, complete:100 }[this.props.readiness] || 60, c = 2 * Math.PI * 6;
+    const fresh = !!this.props.fresh;
+    const seg = on => ({ flex:1, height:26, padding:'0 6px', borderRadius:6, border:0, background: on ? 'var(--wash)' : 'transparent', color: on ? 'var(--ink)' : 'var(--ink2)', fontSize:13, fontWeight: on ? 500 : 400, cursor:'pointer' });
+    const W = Component.WS, q = this.state.wsQ.trim().toLowerCase();
+    return { wsName: W[0], wsSearchable: W.length > 8, wsQ: this.state.wsQ, onWsQ: e => this.setState({ wsQ: e.target.value }),
+      workspaces: W.filter(n => !q || n.toLowerCase().includes(q)).map((name, i) => ({ name, initial: name[0], current: name === W[0] })),
+      menuRef: this.menuRef, menuOpen: this.state.menuOpen, toggleMenu: () => this.setState(st => ({ menuOpen: !st.menuOpen })), closeMenu: () => this.setState({ menuOpen:false }),
+      themes: [['dark','Dark'],['light','Light'],['system','System']].map(([v, label]) => ({ label, style: seg(this.state.theme === v), pick: () => { try { localStorage.setItem('cx-theme', v); } catch (_) {} this.setState({ theme:v }); } })),
+      creditsLow: this.props.credits === 'low' && !fresh, notFresh: !fresh, showReady: pct < 100 && !fresh, readyPct: pct, readyDash: `${(pct / 100 * c).toFixed(2)} ${c.toFixed(2)}`, glimmer: this.props.incident === false || fresh ? null : this.glimmer(), navHome: this.navStyle(a === 'home'), navActions: this.navStyle(a === 'actions'), navAgents: this.navStyle(a === 'agents'), navCalls: this.navStyle(a === 'calls'), navRoadmap: this.navStyle(a === 'roadmap'), navIssues: this.navStyle(a === 'issues'), navIncidents: this.navStyle(a === 'incidents'), navSettings: this.navStyle(a === 'settings') };
+  }
+}
+</script>
+</body>
+</html>

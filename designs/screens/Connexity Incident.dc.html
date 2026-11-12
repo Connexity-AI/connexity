@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0}*{box-sizing:border-box}button,textarea,input{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}textarea::placeholder,input::placeholder{color:var(--ink3)}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<dc-import name="Connexity Readiness Bar" hint-size="100%,36px"></dc-import>
+<div style="display:flex;min-height:inherit">
+<div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="incidents" style="height:100%" hint-size="220px,320px"></dc-import></div>
+<main style="flex:1;min-width:944px;padding:24px 32px 48px">
+<div style="max-width:1120px;min-width:880px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:40px">
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-width:0">
+<a href="Connexity Incidents.dc.html" title="Back to Incidents" style="flex:none;display:flex;align-items:center;justify-content:center;width:32px;height:32px;margin-left:-6px;border-radius:8px;color:var(--ink2);text-decoration:none" style-hover="background:var(--wash);opacity:1"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></a>
+<h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500"><span style="color:var(--ink2)">Incident · </span>{{ title }}</h1>
+<sc-if value="{{ isOpen }}" hint-placeholder-val="{{ true }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Active</span></sc-if>
+<sc-if value="{{ isClosed }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;border:1px solid var(--border);color:var(--ink2);font-size:13px">Closed</span></sc-if>
+<span style="font-size:13px;color:var(--ink3);white-space:nowrap">{{ meta }}</span>
+</div>
+<div ref="{{ actRef }}" style="position:relative;flex:none;display:flex;align-items:center;gap:8px">
+<sc-if value="{{ isOpen }}" hint-placeholder-val="{{ true }}">
+<button onClick="{{ toggleClose }}" style="height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">Close</button>
+</sc-if>
+<button onClick="{{ toggleMenu }}" title="More" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:0;background:transparent;color:var(--ink2);cursor:pointer" style-hover="background:var(--wash);color:var(--ink)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></button>
+<sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;right:0;top:42px;z-index:20;width:240px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18)">
+<div onClick="{{ closeMenu }}" style="display:flex;flex-direction:column;justify-content:center;min-height:44px;padding:4px 12px;border-radius:6px;cursor:pointer" style-hover="background:var(--wash)"><span>Merge</span><span style="font-size:13px;line-height:18px;color:var(--ink3)">Fold another incident into this one</span></div>
+<div onClick="{{ closeMenu }}" style="display:flex;flex-direction:column;justify-content:center;min-height:44px;padding:4px 12px;border-radius:6px;cursor:pointer" style-hover="background:var(--wash)"><span>Split</span><span style="font-size:13px;line-height:18px;color:var(--ink3)">Move agents into a separate incident</span></div>
+</div>
+</sc-if>
+<sc-if value="{{ closeOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;right:0;top:42px;z-index:20;width:420px;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;flex-direction:column;gap:4px">
+<span style="font-size:15px;line-height:22px;font-weight:500">Close the incident</span>
+<span style="font-size:13px;line-height:18px;color:var(--ink2);text-wrap:pretty">Close it once calls have stopped failing. Its issues stay open until a fixed version ships.</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">How it stopped</span>
+<div style="display:flex;flex-wrap:wrap;gap:6px">
+<sc-for list="{{ hows }}" as="h" hint-placeholder-count="0"><button onClick="{{ h.pick }}" style="{{ h.style }}">{{ h.label }}</button></sc-for>
+</div>
+</div>
+<label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Cause</span><input value="{{ cause }}" onChange="{{ onCause }}" placeholder="What made the calls fail" style="height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s1);color:var(--ink);font-size:15px;outline:none"></label>
+<label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Reason to close</span><textarea value="{{ reason }}" onChange="{{ onReason }}" rows="2" placeholder="Why the damage has stopped" style="resize:vertical;padding:8px 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s1);color:var(--ink);font-size:15px;line-height:22px;outline:none"></textarea></label>
+<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px">
+<button onClick="{{ cancelClose }}" style="height:36px;padding:0 12px;border-radius:8px;border:0;background:transparent;color:var(--ink2);font-size:15px;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)">Cancel</button>
+<button onClick="{{ confirmClose }}" disabled="{{ cantClose }}" style="{{ confirmStyle }}">Close incident</button>
+</div>
+</div>
+</sc-if>
+</div>
+</div>
+<sc-if value="{{ hasProposal }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:12px;padding:12px 12px 12px 16px;border-radius:12px;border:1px solid var(--bc);background:var(--s1)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;color:var(--ink2)"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path></svg>
+<span style="flex:1;text-wrap:pretty">{{ proposal }}</span>
+<button onClick="{{ rejectProposal }}" style="height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:13px;cursor:pointer" style-hover="background:var(--wash)">Reject</button>
+<button onClick="{{ confirmProposal }}" style="height:32px;padding:0 12px;border-radius:8px;border:0;background:var(--accent);color:var(--on-accent);font-size:13px;font-weight:500;cursor:pointer" style-hover="opacity:.9">Confirm and close</button>
+</div>
+</sc-if>
+<div style="display:flex;gap:12px">
+<div style="flex:1;min-width:0;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Agents</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ agentCount }}</span></div>
+<div style="flex:1;min-width:0;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Calls failed</span><span style="font-size:30px;line-height:36px;font-weight:500;color:var(--crit)">{{ failed }}</span></div>
+<div style="flex:1;min-width:0;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Callers</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ callers }}</span></div>
+<div style="flex:1;min-width:0;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Time to detect</span><span style="font-size:30px;line-height:36px;font-weight:500;white-space:nowrap">{{ detect }}</span></div>
+<sc-if value="{{ isClosed }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-width:0;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Time to close</span><span style="font-size:30px;line-height:36px;font-weight:500;white-space:nowrap">{{ toClose }}</span></div>
+</sc-if>
+</div>
+<sc-if value="{{ isClosed }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px">
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">How it stopped</span><span style="font-weight:500">{{ cHow }}</span></div>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Cause</span><span style="text-wrap:pretty">{{ cCause }}</span></div>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Closed by {{ cWho }}, {{ cWhen }}</span><span style="text-wrap:pretty">“{{ cReason }}”</span></div>
+</div>
+</sc-if>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px 20px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><div style="display:flex;align-items:baseline;gap:12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Blast radius</h2><span style="font-size:13px;color:var(--ink3)">Failed calls per 5 minutes</span></div><span style="font-size:13px;color:var(--ink2)">{{ trend }}</span></div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="position:relative;height:72px">
+<div style="position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:8px"><span style="width:24px;font-size:13px;line-height:1;color:var(--ink3);text-align:right">{{ yMax }}</span><span style="flex:1;border-top:1px solid var(--border)"></span></div>
+<div style="position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:8px"><span style="width:24px;font-size:13px;line-height:1;color:var(--ink3);text-align:right">0</span><span style="flex:1;border-top:1px solid var(--border)"></span></div>
+<div style="{{ barGrid }}">
+<sc-for list="{{ bars }}" as="c" hint-placeholder-count="24"><div title="{{ c.title }}" style="height:100%;display:flex;align-items:flex-end;justify-content:center"><div style="{{ c.bar }}"></div></div></sc-for>
+</div>
+</div>
+<div style="{{ axisGrid }}">
+<sc-for list="{{ axis }}" as="x" hint-placeholder-count="0"><span style="font-size:13px;line-height:18px;color:var(--ink3);white-space:nowrap;overflow:visible">{{ x.label }}</span></sc-for>
+</div>
+</div>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Agents and issues</h2></div>
+<div style="display:grid;grid-template-columns:200px minmax(0,1fr) 128px 88px 144px;gap:16px;align-items:center;height:40px;padding:0 24px;border-top:1px solid var(--border);font-size:13px;color:var(--ink2)"><span>Agent</span><span>Issue</span><span>Over the period</span><span style="text-align:right">Calls failed</span><span>Now</span></div>
+<sc-for list="{{ rows }}" as="r" hint-placeholder-count="4">
+<div style="display:grid;grid-template-columns:200px minmax(0,1fr) 128px 88px 144px;gap:16px;align-items:center;min-height:52px;padding:8px 24px;border-top:1px solid var(--border)">
+<a href="{{ r.agentHref }}" style="color:var(--ink);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" style-hover="text-decoration:underline">{{ r.agent }}</a>
+<div style="display:flex;flex-direction:column;min-width:0">
+<a href="{{ r.issueHref }}" style="text-wrap:pretty">{{ r.issue }}</a>
+<sc-if value="{{ r.hasNth }}"><span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ r.nth }}</span></sc-if>
+</div>
+<div style="display:flex;flex-direction:column;gap:2px;padding:4px 0">
+<span style="align-self:flex-end;font-size:13px;line-height:16px;color:var(--ink3);white-space:nowrap">{{ r.peak }}</span>
+<div title="Failed calls per 5 minutes" style="{{ r.sparkGrid }}"><sc-for list="{{ r.spark }}" as="b" hint-placeholder-count="0"><div style="height:100%;display:flex;align-items:flex-end"><div style="{{ b.style }}"></div></div></sc-for></div>
+<div style="display:flex;justify-content:space-between;font-size:13px;line-height:16px;color:var(--ink3)"><span>{{ r.sFrom }}</span><span>{{ r.sTo }}</span></div>
+</div>
+<span style="text-align:right">{{ r.failed }}</span>
+<span style="display:flex">
+<sc-if value="{{ r.failing }}"><span style="display:inline-flex;align-items:center;gap:6px;color:var(--crit);font-size:13px;font-weight:500"><span style="width:8px;height:8px;border-radius:4px;background:var(--crit)"></span>Still failing</span></sc-if>
+<sc-if value="{{ r.stopped }}"><span style="font-size:13px;color:var(--ink2)">{{ r.stateText }}</span></sc-if>
+</span>
+</div>
+</sc-for>
+</div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:16px;align-items:start">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">What changed just before</h2></div>
+<sc-for list="{{ changes }}" as="g" hint-placeholder-count="2">
+<div style="display:grid;grid-template-columns:48px 16px minmax(0,1fr);gap:12px;align-items:start;padding:12px 24px;border-top:1px solid var(--border)">
+<span style="font-size:13px;line-height:22px;color:var(--ink2)">{{ g.time }}</span>
+<span style="display:flex;padding-top:3px;color:var(--ink2)">
+<sc-if value="{{ g.isVersion }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><line x1="3" x2="9" y1="12" y2="12"></line><line x1="15" x2="21" y1="12" y2="12"></line></svg></sc-if>
+<sc-if value="{{ g.isTool }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg></sc-if>
+</span>
+<div style="display:flex;flex-direction:column;min-width:0">
+<span style="text-wrap:pretty">{{ g.text }}</span>
+<sc-if value="{{ g.hasLink }}"><a href="{{ g.href }}" style="font-size:13px;line-height:18px;color:var(--ink2)">{{ g.where }}</a></sc-if>
+<sc-if value="{{ g.noLink }}"><span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ g.where }}</span></sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Timeline</h2><span style="font-size:13px;color:var(--ink3)">Filled in automatically</span></div>
+<div style="padding:4px 0 12px;border-top:1px solid var(--border)">
+<sc-for list="{{ timeline }}" as="t" hint-placeholder-count="6">
+<div style="display:grid;grid-template-columns:48px 16px minmax(0,1fr);gap:12px;align-items:start;padding:8px 24px">
+<span style="font-size:13px;line-height:22px;color:var(--ink2)">{{ t.time }}</span>
+<span style="display:flex;justify-content:center;padding-top:3px;color:var(--ink2)">
+<sc-if value="{{ t.isEvent }}"><span style="width:7px;height:7px;margin-top:5px;border-radius:4px;background:var(--bc)"></span></sc-if>
+<sc-if value="{{ t.isFail }}"><span style="width:7px;height:7px;margin-top:5px;border-radius:4px;background:var(--crit)"></span></sc-if>
+<sc-if value="{{ t.isAlert }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg></sc-if>
+<sc-if value="{{ t.isPerson }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></sc-if>
+<sc-if value="{{ t.isAssistant }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path></svg></sc-if>
+<sc-if value="{{ t.isAuto }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg></sc-if>
+<sc-if value="{{ t.isClose }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--pass)"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></sc-if>
+</span>
+<span style="{{ t.textStyle }}">{{ t.text }}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Affected calls</h2><span style="font-size:13px;color:var(--ink3)">Latest first</span></div>
+<div style="display:grid;grid-template-columns:128px 200px 88px 72px 104px minmax(0,1fr) 16px;gap:16px;align-items:center;height:40px;padding:0 24px;border-top:1px solid var(--border);font-size:13px;color:var(--ink2)"><span>Time</span><span>Agent</span><span>Caller</span><span style="text-align:right">Duration</span><span>Result</span><span>Moment</span><span></span></div>
+<sc-for list="{{ calls }}" as="o" hint-placeholder-count="6">
+<a href="{{ o.href }}" title="Open the call at this moment" style="display:grid;grid-template-columns:128px 200px 88px 72px 104px minmax(0,1fr) 16px;gap:16px;align-items:center;min-height:44px;padding:0 24px;border-top:1px solid var(--border);color:var(--ink);text-decoration:none" style-hover="background:var(--wash);opacity:1">
+<span style="white-space:nowrap">{{ o.when }}</span>
+<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ o.agent }}</span>
+<span style="color:var(--ink2);white-space:nowrap">{{ o.caller }}</span>
+<span style="color:var(--ink2);text-align:right">{{ o.dur }}</span>
+<span style="display:flex"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Failed</span></span>
+<span style="color:var(--ink2)">{{ o.at }}</span>
+<span style="display:flex;color:var(--ink3)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></span>
+</a>
+</sc-for>
+<a href="{{ allHref }}" style="display:flex;align-items:center;gap:6px;padding:14px 24px;border-top:1px solid var(--border);font-size:13px;line-height:18px;color:var(--ink2);text-decoration:none" style-hover="color:var(--ink);background:var(--wash);opacity:1">{{ allText }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></a>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;incident&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;INC-0412&quot;,&quot;INC-0411&quot;,&quot;INC-0398&quot;],&quot;default&quot;:&quot;INC-0412&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  static THEMES = {
+    dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
+    light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
+  };
+  static AGENTS = { insurance:'Insurance renewals', restaurant:'Restaurant reservations', car:'Car service booking', clinic:'Clinic after-hours', dental:'Dental reception' };
+  // rows: [agent, issue title, issue id, calls failed, 'failing' | stopped text, nth incident note]
+  // changes: [time, text, where, version|tool, link to the agent's Tests tab]
+  // timeline: [time, text, event|fail|alert|person|assistant|close]
+  // calls: [when, agent, last4, seconds, moment s]
+  static D = {
+    'INC-0412': { title:'Booking tool failing', status:'open', meta:'Started today 09:12 · 2 h', periodVal:'2 h', periodSub:'since 09:12', failed:31, callers:27, detect:'3 min',
+      binStart:540, nowBin:true,
+      lanes:{ car:[1,2,2,2,1,2,1,1,1], restaurant:[0,0,1,2,1,1,2,1,1], clinic:[0,0,0,0,1,2,1,1,1], dental:[0,0,1,1,1,0,0,0,0] },
+      rows:[['car','Booking tool returned an error','I-1042',13,'failing','3rd incident on this issue'],['restaurant','Booking tool returned an error','I-1091',9,'failing',''],['clinic','Booking tool returned an error','I-1094',6,'failing',''],['dental','Booking tool returned an error','I-1090',3,'Stopped at 10:22','']],
+      changes:[['08:55','Version 15 went live on Car service booking','Failed its tests · open version','version','car'],['09:04','The booking tool started returning errors','Used by all 4 agents','tool',null]],
+      timeline:[['09:12','Opened. First failed call on Car service booking','fail'],['09:15','Alert emailed to the on-call list','alert'],['09:31','Restaurant reservations joined','fail'],['09:44','Dental reception joined','fail'],['09:44','Alert emailed: the incident grew to 3 agents','alert'],['10:02','Clinic after-hours joined','fail'],['10:02','Alert emailed: the incident grew to 4 agents','alert'],['10:22','Dental reception stopped failing','event'],['11:08','Latest failure, on Car service booking','fail']],
+      calls:[['Today 11:08','car','5316',134,102],['Today 11:03','restaurant','2741',88,51],['Today 10:57','clinic','6094',142,77],['Today 10:49','car','8830',187,121],['Today 10:44','restaurant','1385',96,63],['Today 10:36','clinic','4472',119,58]] },
+    'INC-0411': { title:'Quote lookup timing out', status:'open', meta:'Started today 10:05 · 1 h 9 min', periodVal:'1 h 9 min', periodSub:'since 10:05', failed:6, callers:6, detect:'2 min',
+      binStart:600, nowBin:true, proposal:'Your assistant proposes closing: rolled back to version 14. No failures since 10:41.', propCause:'Version 15 called the quote lookup without a timeout', propHow:'Rollback',
+      lanes:{ insurance:[2,3,1,0,0] },
+      rows:[['insurance','Quote lookup timed out','I-1092',6,'Stopped at 10:41','']],
+      changes:[['10:00','Version 15 went live on Insurance renewals','Open version','version','insurance'],['10:03','The quote lookup started timing out','Used by Insurance renewals','tool',null]],
+      timeline:[['10:05','Opened. First failed call on Insurance renewals','fail'],['10:07','Alert emailed to the on-call list','alert'],['10:38','Rolled back by your assistant at 10:38 \u00b7 approved automatically (rule by Alex, 10 Nov)','auto'],['10:41','Last failure','fail'],['10:58','Your assistant proposed closing: rolled back to version 14','assistant']],
+      calls:[['Today 10:41','insurance','7720',211,96],['Today 10:33','insurance','3159',178,84],['Today 10:24','insurance','6408',240,102],['Today 10:16','insurance','9921',197,91],['Today 10:09','insurance','4821',298,126]] },
+    'INC-0398': { title:'Booking tool failing', status:'closed', meta:'8 Nov 09:00 – 11:50 · 2 h 50 min', periodVal:'2 h 50 min', periodSub:'8 Nov', failed:8, callers:8, detect:'4 min', toClose:'2 h 50 min',
+      binStart:540, nowBin:false,
+      lanes:{ car:[1,1,0,1,1,0,1,0,0,0,0,0], restaurant:[0,0,1,0,1,1,0,0,0,0,0,0] },
+      rows:[['car','Booking tool returned an error','I-1042',5,'Stopped at 10:38','2nd incident on this issue'],['restaurant','Booking tool returned an error','I-1091',3,'Stopped at 10:21','']],
+      changes:[['08:41','Version 14 went live on Car service booking','Open version','version','car']],
+      timeline:[['09:00','Opened. First failed call on Car service booking','fail'],['09:04','Alert emailed to the on-call list','alert'],['09:33','Restaurant reservations joined','fail'],['09:33','Alert emailed: the incident grew to 2 agents','alert'],['10:21','Restaurant reservations stopped failing','event'],['10:36','Rolled back Car service booking to version 13, by Sam','person'],['10:38','Last failure','fail'],['11:50','Closed by Alex: no failures for over an hour after the rollback','close'],['11:50','Alert emailed: the incident is closed','alert']],
+      calls:[['8 Nov 10:38','car','2207',151,96],['8 Nov 10:17','restaurant','5530',102,47],['8 Nov 10:05','car','3866',139,88],['8 Nov 09:49','restaurant','7012',94,52],['8 Nov 09:41','car','1189',166,104],['8 Nov 09:33','restaurant','6255',120,61]],
+      closure:{ how:'Rollback', cause:'Version 14 sent dates without a year to the booking tool', who:'Alex', when:'8 Nov 11:50', reason:'No failures for over an hour after the rollback' } }
+  };
+  static HOWS = ['Rollback','Fix in a version','Outside recovery','Workaround'];
+  constructor(props) {
+    super(props);
+    this.state = { menuOpen:false, closeOpen:false, how:'', cause:'', reason:'', closed:null, rejected:false };
+    this.actRef = React.createRef();
+  }
+  componentDidMount() {
+    this.onDoc = e => { if ((this.state.menuOpen || this.state.closeOpen) && this.actRef.current && !this.actRef.current.contains(e.target)) this.setState({ menuOpen:false, closeOpen:false }); };
+    document.addEventListener('mousedown', this.onDoc);
+  }
+  componentWillUnmount() { document.removeEventListener('mousedown', this.onDoc); }
+  incId() {
+    let q = null;
+    try { q = new URLSearchParams(window.location.search).get('incident'); } catch (_) {}
+    const id = this.props.incident || q || 'INC-0412';
+    return Component.D[id] ? id : 'INC-0412';
+  }
+  renderVals() {
+    const C = Component, id = this.incId(), d = C.D[id], st = this.state;
+    const closure = st.closed || d.closure || null;
+    const isClosed = !!closure;
+    const mmss = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    const hm = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+    // 15-minute counts are spread into 5-minute buckets, then trimmed to the first failure
+    const split = a => { const o = []; a.forEach((v, i) => { const t = [0, 0, 0]; for (let k = 0; k < v; k++) t[(2 + k * 2 + i) % 3]++; o.push(...t); }); return o; };
+    const ids = Object.keys(d.lanes), five = {};
+    ids.forEach(a => { five[a] = split(d.lanes[a]); });
+    const full = five[ids[0]].map((_, i) => ids.reduce((s, a) => s + five[a][i], 0));
+    const first = Math.max(0, full.findIndex(v => v > 0));
+    const total = full.slice(first), n = total.length, t0 = d.binStart + first * 5;
+    ids.forEach(a => { five[a] = five[a].slice(first); });
+    const max = Math.max(...total), live = !isClosed && d.nowBin;
+    const barStyle = (v, mx, last, w) => ({ width:w, height: v ? Math.max(6, v / mx * 100) + '%' : 1, background: v ? 'var(--crit)' : 'var(--bc)', opacity: v ? (last && live ? 1 : 0.4) : 1, borderRadius:1 });
+    const bars = total.map((v, i) => ({ title: `${hm(t0 + i * 5)}: ${v} failed`, bar: barStyle(v, max, i === n - 1, '40%') }));
+    const axis = total.map((_, i) => ({ label: i === n - 1 && live ? 'Now' : i % 6 === 0 && i < n - 3 ? hm(t0 + i * 5) : '' }));
+    const last3 = total.slice(-3).reduce((s, v) => s + v, 0), prev3 = total.slice(-6, -3).reduce((s, v) => s + v, 0);
+    const trend = isClosed ? 'Stopped' : (total[n - 1] === 0 && total[n - 2] === 0) ? 'No failures in the last 30 minutes' : last3 > prev3 ? 'Still failing · growing' : last3 < prev3 ? 'Still failing · slowing down' : 'Still failing · steady';
+    const extra = [];
+    if (st.rejected) extra.push(['11:14', 'You rejected the proposal to close', 'person']);
+    if (st.closed) extra.push(['11:14', `Closed by you: ${st.closed.reason}`, 'close'], ['11:14', 'Alert emailed: the incident is closed', 'alert']);
+    const timeline = d.timeline.concat(extra).map(([time, text, k]) => ({ time, text, isEvent: k === 'event', isFail: k === 'fail', isAlert: k === 'alert', isPerson: k === 'person', isAssistant: k === 'assistant', isClose: k === 'close', isAuto: k === 'auto',
+      textStyle: { textWrap:'pretty', color: k === 'alert' ? 'var(--ink2)' : 'var(--ink)' } }));
+    const cantClose = !(st.how && st.cause.trim() && st.reason.trim());
+    return {
+      rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
+      title: d.title, isOpen: !isClosed, isClosed, meta: d.meta,
+      actRef: this.actRef, menuOpen: st.menuOpen, closeOpen: st.closeOpen && !isClosed,
+      toggleMenu: () => this.setState(s => ({ menuOpen: !s.menuOpen, closeOpen:false })),
+      closeMenu: () => this.setState({ menuOpen:false }),
+      toggleClose: () => this.setState(s => ({ closeOpen: !s.closeOpen, menuOpen:false })),
+      cancelClose: () => this.setState({ closeOpen:false }),
+      hows: C.HOWS.map(h => ({ label:h, pick: () => this.setState({ how:h }),
+        style: { height:32, padding:'0 10px', borderRadius:8, border:'1px solid ' + (st.how === h ? 'var(--ink)' : 'var(--bc)'), background: st.how === h ? 'var(--wash)' : 'transparent', color:'var(--ink)', fontSize:13, fontWeight: st.how === h ? 500 : 400, cursor:'pointer' } })),
+      cause: st.cause, onCause: e => this.setState({ cause: e.target.value }),
+      reason: st.reason, onReason: e => this.setState({ reason: e.target.value }),
+      cantClose,
+      confirmStyle: { height:36, padding:'0 14px', borderRadius:8, border:0, background:'var(--accent)', color:'var(--on-accent)', fontSize:15, fontWeight:500, cursor: cantClose ? 'default' : 'pointer', opacity: cantClose ? 0.4 : 1 },
+      confirmClose: () => { if (cantClose) return; this.setState(s => ({ closed:{ how:s.how, cause:s.cause.trim(), who:'you', when:'today 11:14', reason:s.reason.trim() }, closeOpen:false })); },
+      hasProposal: !!d.proposal && !isClosed && !st.rejected, proposal: d.proposal || '',
+      rejectProposal: () => this.setState({ rejected:true }),
+      confirmProposal: () => this.setState({ closed:{ how:d.propHow, cause:d.propCause, who:'you', when:'today 11:14', reason:'Confirmed your assistant\u2019s proposal: no failures since the rollback' } }),
+      periodVal: d.periodVal, periodSub: d.periodSub, agentCount: d.rows.length, failed: d.failed, callers: d.callers, detect: d.detect, toClose: d.toClose || '1 h 9 min',
+      cHow: closure ? closure.how : '', cCause: closure ? closure.cause : '', cWho: closure ? closure.who : '', cWhen: closure ? closure.when : '', cReason: closure ? closure.reason : '',
+      trend, bars, axis, yMax: max,
+      barGrid: { position:'absolute', top:0, bottom:0, left:32, right:0, display:'grid', gridTemplateColumns:`repeat(${n}, minmax(0,1fr))` },
+      axisGrid: { marginLeft:32, display:'grid', gridTemplateColumns:`repeat(${n}, minmax(0,1fr))` },
+      rows: d.rows.map(([a, issue, iid, failed, state, nth]) => ({ agent: C.AGENTS[a], agentHref: 'Connexity Agent Profile.dc.html?agent=' + a, issue, issueHref: 'Connexity Issue.dc.html?issue=' + iid, failed,
+        spark: (() => { const o = five[a] || [], mx = Math.max(...o, 1); return o.map((v, i) => ({ style: { ...barStyle(v, mx, i === o.length - 1 && state === 'failing', '100%'), ...(v ? {} : { background:'var(--bc)', opacity:0.6 }) } })); })(),
+        peak: `${Math.max(...(five[a] || [0]))} per 5 min`, sFrom: hm(t0), sTo: live ? 'Now' : hm(t0 + n * 5),
+        sparkGrid: { height:20, display:'grid', gridTemplateColumns:`repeat(${n}, minmax(0,1fr))`, gap:1, alignItems:'end' },
+        failing: state === 'failing' && !st.closed, stopped: state !== 'failing' || !!st.closed, stateText: state === 'failing' ? 'Stopped' : state, hasNth: !!nth, nth })),
+      changes: d.changes.map(([time, text, where, k, link]) => ({ time, text, where, isVersion: k === 'version', isTool: k === 'tool', hasLink: !!link, noLink: !link, href: link ? 'Connexity Agent Profile.dc.html?agent=' + link + '&tab=tests' : '' })),
+      timeline,
+      calls: d.calls.map(([when, a, last4, dur, at]) => ({ when, agent: C.AGENTS[a], caller:'•••• ' + last4, dur: mmss(dur), at:'at ' + mmss(at), href: 'Connexity Call.dc.html?call=C-20466&t=102' })),
+      allText: `All ${d.failed} calls`, allHref: 'Connexity Calls.dc.html?issue=' + id
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0}*{box-sizing:border-box}button{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<dc-import name="Connexity Readiness Bar" hint-size="100%,36px"></dc-import>
+<div style="display:flex;min-height:inherit">
+<div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="calls" style="height:100%" hint-size="220px,320px"></dc-import></div>
+<main style="flex:1;min-width:944px;padding:24px 32px 48px">
+<div style="max-width:1120px;min-width:880px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;align-items:center;gap:12px;min-height:40px;flex-wrap:wrap">
+<a href="Connexity Calls.dc.html" title="Back to Calls" style="flex:none;display:flex;align-items:center;justify-content:center;width:32px;height:32px;margin-left:-6px;border-radius:8px;color:var(--ink2);text-decoration:none" style-hover="background:var(--wash);opacity:1"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></a>
+<h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">{{ agent }}</h1>
+<span style="font-size:13px;color:var(--ink3);white-space:nowrap">{{ meta }}</span>
+<sc-if value="{{ isFailed }}" hint-placeholder-val="{{ true }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Failed</span></sc-if>
+<sc-if value="{{ isDegraded }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Degraded</span></sc-if>
+<sc-if value="{{ isClean }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;border:1px solid var(--border);color:var(--ink2);font-size:13px">Clean</span></sc-if>
+<sc-if value="{{ hasSrc }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;border:1px solid var(--bc);color:var(--ink2);font-size:13px">{{ srcLabel }}</span></sc-if>
+</div>
+<sc-if value="{{ isSim }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding-left:30px;font-size:15px">
+<a href="{{ testsHref }}" title="Open in Tests" style="color:var(--ink)">{{ testCase }}</a>
+<span style="color:var(--ink3)">·</span>
+<span style="color:var(--ink2)">Proves: {{ testRule }}</span>
+<span style="color:var(--ink3)">·</span>
+<span style="color:var(--crit);font-weight:500">{{ testResult }}</span>
+</div>
+</sc-if>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:flex;align-items:center;gap:16px">
+<button onClick="{{ togglePlay }}" title="{{ playTitle }}" style="flex:none;display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:20px;border:0;background:var(--accent);color:var(--on-accent);cursor:pointer" style-hover="opacity:.9">
+<sc-if value="{{ paused }}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z"></path></svg></sc-if>
+<sc-if value="{{ playing }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg></sc-if>
+</button>
+<span style="flex:none;width:40px;font-size:13px;color:var(--ink)">{{ curText }}</span>
+<div onClick="{{ seekWave }}" style="position:relative;flex:1;min-width:0;height:56px;margin:16px 0 8px;cursor:pointer">
+<svg width="100%" height="100%" viewBox="0 0 1000 100" preserveAspectRatio="none" style="position:absolute;inset:0;display:block"><path d="{{ wavePath }}" fill="var(--bc)" opacity=".55"></path></svg>
+<div style="{{ playedStyle }}"><svg width="100%" height="100%" viewBox="0 0 1000 100" preserveAspectRatio="none" style="display:block"><path d="{{ wavePath }}" fill="var(--ink)"></path></svg></div>
+<sc-for list="{{ marks }}" as="k" hint-placeholder-count="0">
+<button onClick="{{ k.jump }}" title="{{ k.title }}" style="{{ k.style }}">
+<sc-if value="{{ k.isCrit }}"><span style="position:absolute;left:7px;top:-4px;bottom:-4px;width:2px;border-radius:1px;background:var(--crit)"></span><span style="position:absolute;left:0;top:-22px;display:flex;color:var(--crit)"><svg width="16" height="16" viewBox="0 0 24 24" fill="var(--crit-bg)" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg></span></sc-if>
+<sc-if value="{{ k.isWarn }}"><span style="position:absolute;left:7px;bottom:-8px;width:2px;height:12px;border-radius:1px;background:var(--warn)"></span></sc-if>
+</button>
+</sc-for>
+<div style="{{ headStyle }}"></div>
+</div>
+<span style="flex:none;width:40px;font-size:13px;color:var(--ink2);text-align:right">{{ durText }}</span>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Findings</h2><span style="font-size:13px;color:var(--ink3)">{{ findCount }}</span></div>
+<sc-for list="{{ findings }}" as="f" hint-placeholder-count="3">
+<div onClick="{{ f.jump }}" title="Jump to this moment" style="display:grid;grid-template-columns:48px 16px minmax(0,1fr) auto;gap:12px;align-items:center;min-height:56px;padding:8px 24px;border-top:1px solid var(--border);cursor:pointer" style-hover="background:var(--wash)">
+<span style="font-size:13px;color:var(--ink2)">{{ f.time }}</span>
+<span style="display:flex">
+<sc-if value="{{ f.isCrit }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--crit)"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg></sc-if>
+<sc-if value="{{ f.isWarn }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--warn)"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></sc-if>
+</span>
+<div style="display:flex;flex-direction:column;min-width:0"><span style="text-wrap:pretty">{{ f.text }}</span><span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ f.cat }}</span></div>
+<a href="{{ f.href }}" onClick="{{ f.stop }}" title="{{ f.linkTitle }}" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink2);white-space:nowrap">{{ f.link }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg></a>
+</div>
+</sc-for>
+<sc-if value="{{ noFindings }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:8px;padding:16px 24px 20px;border-top:1px solid var(--border);color:var(--ink2)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--pass)"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>No findings on this call</div>
+</sc-if>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px;border-bottom:1px solid var(--border)"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Transcript</h2></div>
+<div ref="{{ trRef }}" style="position:relative;max-height:560px;overflow:auto;padding:8px 0">
+<sc-for list="{{ entries }}" as="e" hint-placeholder-count="10">
+<div data-entry="{{ e.i }}" onClick="{{ e.jump }}" style="{{ e.rowStyle }}" style-hover="background:var(--wash)">
+<span style="font-size:13px;line-height:22px;color:var(--ink3)">{{ e.time }}</span>
+<sc-if value="{{ e.isTurn }}">
+<div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
+<span style="font-size:13px;line-height:22px;color:var(--ink2)">{{ e.who }}</span>
+<sc-if value="{{ e.hasDelay }}"><span title="Reply delay" style="font-size:13px;line-height:18px;color:var(--warn);font-weight:500">{{ e.delay }}</span></sc-if>
+</div>
+<div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0">
+<span style="text-wrap:pretty">{{ e.text }}</span>
+<sc-if value="{{ e.findCrit }}"><span style="display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;line-height:18px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>{{ e.find }}</span></sc-if>
+<sc-if value="{{ e.findWarn }}"><span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--warn)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>{{ e.find }}</span></sc-if>
+</div>
+</sc-if>
+<sc-if value="{{ e.isTool }}">
+<span></span>
+<div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0">
+<span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;line-height:22px;color:var(--ink3)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>{{ e.text }}</span>
+<sc-if value="{{ e.findCrit }}"><span style="display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;line-height:18px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>{{ e.find }}</span></sc-if>
+<sc-if value="{{ e.findWarn }}"><span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--warn)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>{{ e.find }}</span></sc-if>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;call&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;C-20481&quot;,&quot;C-20477&quot;,&quot;C-20470&quot;,&quot;C-20466&quot;,&quot;S-0915&quot;],&quot;default&quot;:&quot;C-20481&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  static THEMES = {
+    dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
+    light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
+  };
+  static CATS = { greet:'Greeting and identification', collect:'Information collection', book:'Booking', resched:'Rescheduling and cancelling', price:'Pricing and quotes', objection:'Objection handling', transfer:'Transfers and escalation', compliance:'Compliance and privacy', flow:'Conversation flow quality', end:'Ending the call', fast:'Responsiveness', tools:'Tools and integrations', speech:'Speech recognition', other:'Other' };
+  // findings: [t seconds, crit|warn, sentence, category, issue name or null]
+  // entries: [t, 'A'|'C'|'T', text, finding index or -1, flagged reply delay]
+  static CALLS = {
+    'C-20481': { agentId:'insurance', agent:'Insurance renewals', when:'Today 09:42', dur:298, last4:'4821', result:'failed', src:'real', version:14,
+      findings:[[292,'crit','Transfer to the renewals team dropped the call','transfer','Transfers to a person drop the call'],[126,'warn','Paused 3.4 s before giving the quote','fast','Long pause after looking up a quote'],[170,'warn','Mentioned a $75 cancellation fee the policy does not have','price','Cancellation fee stated that the policy does not have']],
+      entries:[
+        [0,'A','Thanks for calling Northfield Insurance. This call may be recorded. How can I help?'],
+        [7,'C','Hi, my car insurance is up for renewal and I wanted to check the price.'],
+        [13,'A','I can help with that. Can I take your date of birth and policy number?'],
+        [20,'C','Fourteenth of March, 1986. The policy number is M-T-4-4-0-9-2-1.'],
+        [31,'A','Thank you. That’s MT440921. Have any drivers or vehicles changed since last year?'],
+        [40,'C','No, same car, same drivers.'],
+        [45,'A','Great. Have you made any claims in the last year?'],
+        [50,'C','No claims.'],
+        [55,'A','Thanks. Let me look up your renewal quote.'],
+        [62,'C','Is it going to be much more than last year? It went up a lot last time.'],
+        [70,'A','I’ll check that for you now. One moment.'],
+        [118,'C','Hello? Are you still there?'],
+        [126,'A','Sorry for the wait. Your renewal price is $684 for the year, or $59 a month.',1,'3.4 s'],
+        [139,'C','That’s more than I paid last year.'],
+        [146,'A','I understand. You qualify for our loyalty discount, which brings it to $642.'],
+        [160,'C','And if I cancel instead, is there a fee?'],
+        [170,'A','There is a $75 cancellation fee if you cancel before the renewal date.',2],
+        [182,'C','I don’t think my policy has that. Can I speak to someone, please?'],
+        [190,'A','Of course. I’ll transfer you to the renewals team. Please hold.'],
+        [196,'C','Okay.'],
+        [281,'A','Thanks for holding. I’m still connecting you to the renewals team.'],
+        [288,'C','Fine, I’ll wait.'],
+        [292,'T','Tool call failed: transfer',0]
+      ]},
+    'S-0915': { agentId:'insurance', agent:'Insurance renewals', when:'Today 09:40', dur:110, last4:'0100', result:'failed', src:'sim', version:15,
+      test:{ name:'Price went up since last year', rule:'Never quote a renewal price above the price in the quote lookup', result:'Failed' },
+      findings:[[41,'crit','Quoted $712, above the $668 in the quote lookup','price',null]],
+      entries:[
+        [0,'A','Thanks for calling Northfield Insurance. This call may be recorded. How can I help?'],
+        [6,'C','Hi, I’m calling about my renewal. My price went up last year and I want to check this year’s.'],
+        [14,'A','I can help. Can I take your date of birth and policy number?'],
+        [21,'C','Second of June, 1979. Policy MT-55-1873.'],
+        [30,'A','Thank you. Let me look up your renewal quote.'],
+        [41,'A','Your renewal price is $712 for the year.',0],
+        [50,'C','That’s a big jump. Is that the final price?'],
+        [57,'A','Yes, $712 is the final price for the same cover.'],
+        [66,'C','Can you check whether there are any discounts?'],
+        [74,'A','You qualify for the loyalty discount, which brings it to $676.'],
+        [86,'C','Okay. I’ll think about it.'],
+        [92,'A','Of course. Would you like me to book a callback?'],
+        [99,'C','No, I’ll call back myself. Thanks.'],
+        [104,'A','Thanks for calling. Goodbye.']
+      ]},
+    'C-20477': { agentId:'car', agent:'Car service booking', when:'Today 09:18', dur:94, last4:'7390', result:'degraded', src:'real', version:9,
+      findings:[[62,'warn','Confirmation text was not sent','tools','Confirmation text not sent'],[22,'warn','Registration misheard as KD21 OXP','speech','Vehicle registration misheard']],
+      entries:[
+        [0,'A','Thanks for calling Riverside Motors service desk. How can I help?'],
+        [6,'C','Hi, I’d like to book my car in for a service.'],
+        [11,'A','Sure. What’s the registration?'],
+        [15,'C','K-D-2-1, O-X-R.'],
+        [22,'A','Thanks, that’s KD21 OXP.',1],
+        [27,'C','No, R at the end. O-X-R.'],
+        [33,'A','Sorry, KD21 OXR. When would suit you?'],
+        [40,'C','Thursday morning, if possible.'],
+        [46,'A','I have 8:30 or 10:00 on Thursday.'],
+        [52,'C','8:30 is great.'],
+        [57,'A','Booked for Thursday at 8:30. I’ll send you a confirmation text.'],
+        [62,'T','Tool call failed: send text',0],
+        [70,'C','Thanks. How much will it be?'],
+        [76,'A','A standard service is $189 including tax.'],
+        [84,'C','Perfect. That’s all.'],
+        [88,'A','See you on Thursday. Goodbye.']
+      ]},
+    'C-20466': { agentId:'car', agent:'Car service booking', when:'Today 11:08', dur:134, last4:'5316', result:'failed', src:'real', version:9,
+      findings:[[102,'crit','Booking tool returned an error','tools','Booking tool returned an error','I-1042']],
+      entries:[
+        [0,'A','Thanks for calling Riverside Motors service desk. How can I help?'],
+        [6,'C','Hi, I need to book my car in for its yearly service.'],
+        [12,'A','Sure. What\u2019s the registration?'],
+        [16,'C','L-M-1-9, K-T-V.'],
+        [24,'A','Thanks, that\u2019s LM19 KTV. When would suit you?'],
+        [30,'C','The second of January, if you have anything.'],
+        [38,'A','Let me check the second of January.'],
+        [52,'A','I have 9:00 or 11:30 on Friday the second of January.'],
+        [61,'C','9:00, please.'],
+        [66,'A','Booking 9:00 on the second of January. One moment.'],
+        [95,'C','Hello?'],
+        [102,'T','Tool call failed: create booking',0],
+        [106,'A','Sorry, I wasn\u2019t able to save that booking. Could you call back later?'],
+        [114,'C','Call back? I\u2019ve just given you everything.'],
+        [121,'A','I\u2019m sorry. Is there anything else I can help with?'],
+        [127,'C','No. I\u2019ll ring the garage directly.']
+      ]},
+    'C-20470': { agentId:'restaurant', agent:'Restaurant reservations', when:'Today 09:31', dur:50, last4:'1187', result:'clean', src:'real', version:6,
+      findings:[],
+      entries:[
+        [0,'A','Good morning, Luca’s Trattoria. How can I help?'],
+        [5,'C','Hi, could I book a table for four on Friday at seven?'],
+        [11,'A','Let me check. Yes, Friday at 7 pm for four is free. Can I take a name?'],
+        [19,'C','Patel.'],
+        [22,'A','And a number in case we need to reach you?'],
+        [27,'C','The one I’m calling from.'],
+        [31,'A','Thank you. That’s a table for four, Friday at 7 pm, under Patel. Is that right?'],
+        [40,'C','Yes, perfect.'],
+        [44,'A','We’ll see you on Friday. Goodbye.']
+      ]}
+  };
+  constructor(props) {
+    super(props);
+    const c = this.call();
+    const crit = c.findings.find(f => f[1] === 'crit');
+    let tq = null;
+    try { tq = new URLSearchParams(window.location.search).get('t'); } catch (_) {}
+    const tp = props.t != null ? Number(props.t) : tq != null ? Number(tq) : null;
+    this.startAt = tp != null && !isNaN(tp) ? Math.max(0, Math.min(c.dur, tp)) : null;
+    this.state = { t: this.startAt != null ? this.startAt : crit ? crit[0] : 0, playing:false };
+    this.trRef = React.createRef();
+    this.lastActive = -1;
+  }
+  callId() {
+    let q = null;
+    try { q = new URLSearchParams(window.location.search).get('call'); } catch (_) {}
+    const id = this.props.call || q || 'C-20481';
+    return Component.CALLS[id] ? id : 'C-20481';
+  }
+  call() { return Component.CALLS[this.callId()]; }
+  activeIdx(t) { const e = this.call().entries; let a = 0; e.forEach((x, i) => { if (x[0] <= t + 0.01) a = i; }); return a; }
+  scrollTo(i, always) {
+    const p = this.trRef.current; if (!p) return;
+    const el = p.querySelector('[data-entry="' + i + '"]'); if (!el) return;
+    const top = el.offsetTop, bottom = top + el.offsetHeight;
+    if (always || top < p.scrollTop || bottom > p.scrollTop + p.clientHeight) p.scrollTop = Math.max(0, top - 48);
+  }
+  componentDidMount() {
+    const c = this.call();
+    if (this.startAt != null || c.findings.some(f => f[1] === 'crit')) { const i = this.activeIdx(this.state.t); setTimeout(() => this.scrollTo(i, true), 60); }
+  }
+  componentDidUpdate() {
+    const i = this.activeIdx(this.state.t);
+    if (i !== this.lastActive) { this.lastActive = i; if (this.state.playing || this.jumped) this.scrollTo(i, !!this.jumped); this.jumped = false; }
+  }
+  componentWillUnmount() { clearInterval(this.timer); }
+  seek(t) { this.jumped = true; this.lastActive = -1; this.setState({ t: Math.max(0, Math.min(this.call().dur, t)) }); }
+  togglePlay() {
+    if (this.state.playing) { clearInterval(this.timer); this.setState({ playing:false }); return; }
+    const dur = this.call().dur;
+    if (this.state.t >= dur) this.setState({ t:0 });
+    this.setState({ playing:true });
+    this.timer = setInterval(() => this.setState(s => {
+      const t = s.t + 0.25;
+      if (t >= dur) { clearInterval(this.timer); return { t: dur, playing:false }; }
+      return { t };
+    }), 250);
+  }
+  renderVals() {
+    const C = Component, c = this.call(), id = this.callId(), dur = c.dur, t = this.state.t;
+    const mmss = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+    const N = 200, bw = 1000 / N;
+    let seed = id.split('').reduce((a, ch) => a + ch.charCodeAt(0), 0) || 7;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    let d = '';
+    for (let i = 0; i < N; i++) {
+      const tb = (i + 0.5) / N * dur;
+      let ei = 0; c.entries.forEach((e, j) => { if (e[0] <= tb) ei = j; });
+      const e = c.entries[ei], next = c.entries[ei + 1], end = next ? next[0] : dur;
+      const quiet = end - e[0] > 16 && tb > e[0] + 6;
+      const amp = quiet ? 0.05 + rnd() * 0.06 : 0.18 + rnd() * 0.72 * (e[1] === 'C' ? 0.8 : 1);
+      const h = Math.max(4, amp * 100), y = (100 - h) / 2;
+      d += `M${(i * bw + bw * 0.2).toFixed(1)} ${y.toFixed(1)}h${(bw * 0.6).toFixed(1)}v${h.toFixed(1)}h-${(bw * 0.6).toFixed(1)}z`;
+    }
+    const pct = dur ? t / dur * 100 : 0;
+    const fOrder = c.findings.map((f, i) => ({ f, i })).sort((a, b) => (a.f[1] === 'crit' ? 0 : 1) - (b.f[1] === 'crit' ? 0 : 1) || a.f[0] - b.f[0]);
+    const issuesHref = 'Connexity Agent Profile.dc.html?agent=' + c.agentId + '&tab=issues';
+    const testsHref = 'Connexity Agent Profile.dc.html?agent=' + c.agentId + '&tab=tests';
+    const active = this.activeIdx(t);
+    const res = c.result;
+    return {
+      rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
+      agent: c.agent,
+      meta: `${c.when} · ${Math.floor(dur / 60)} min ${dur % 60} s · •••• ${c.last4} · Version ${c.version}`,
+      isFailed: res === 'failed', isDegraded: res === 'degraded', isClean: res === 'clean',
+      hasSrc: c.src !== 'real', srcLabel: c.src === 'sim' ? 'Simulated' : 'Test',
+      isSim: !!c.test, testCase: c.test ? c.test.name : '', testRule: c.test ? c.test.rule : '', testResult: c.test ? c.test.result : '', testsHref,
+      paused: !this.state.playing, playing: this.state.playing, playTitle: this.state.playing ? 'Pause' : 'Play',
+      togglePlay: () => this.togglePlay(),
+      curText: mmss(t), durText: mmss(dur), wavePath: d,
+      playedStyle: { position:'absolute', inset:0, clipPath:`inset(0 ${(100 - pct).toFixed(2)}% 0 0)`, pointerEvents:'none' },
+      headStyle: { position:'absolute', top:-4, bottom:-4, left: pct + '%', width:2, marginLeft:-1, borderRadius:1, background:'var(--ink)', pointerEvents:'none' },
+      seekWave: e => { const r = e.currentTarget.getBoundingClientRect(); this.seek((e.clientX - r.left) / r.width * dur); },
+      marks: c.findings.map(f => ({
+        isCrit: f[1] === 'crit', isWarn: f[1] === 'warn', title: mmss(f[0]) + ' · ' + f[2],
+        jump: e => { e.stopPropagation(); this.seek(f[0]); },
+        style: { position:'absolute', top:0, bottom:0, left:`calc(${f[0] / dur * 100}% - 8px)`, width:16, padding:0, border:0, background:'transparent', cursor:'pointer', zIndex: f[1] === 'crit' ? 2 : 1 }
+      })),
+      findCount: c.findings.length ? String(c.findings.length) : '',
+      noFindings: c.findings.length === 0,
+      findings: fOrder.map(({ f }) => ({
+        time: mmss(f[0]), isCrit: f[1] === 'crit', isWarn: f[1] === 'warn', text: f[2], cat: C.CATS[f[3]],
+        link: f[4] || 'The rule in Tests', linkTitle: f[4] ? 'Open the issue' : 'Open the rule this test proves', href: f[5] ? 'Connexity Issue.dc.html?issue=' + f[5] : f[4] ? issuesHref : testsHref,
+        stop: e => e.stopPropagation(), jump: () => this.seek(f[0])
+      })),
+      trRef: this.trRef,
+      entries: c.entries.map(([et, who, text, fi, delay], i) => {
+        const f = fi != null && fi >= 0 ? c.findings[fi] : null, on = i === active;
+        return { i, time: mmss(et), isTurn: who !== 'T', isTool: who === 'T', who: who === 'A' ? 'Agent' : 'Caller', text,
+          hasDelay: !!delay, delay: delay || '', find: f ? f[2] : '', findCrit: !!f && f[1] === 'crit', findWarn: !!f && f[1] === 'warn',
+          jump: () => this.seek(et),
+          rowStyle: { display:'grid', gridTemplateColumns:'40px 56px minmax(0,1fr)', gap:16, alignItems:'start', padding:'8px 24px', cursor:'pointer', background: on ? 'var(--wash)' : 'transparent', boxShadow: on ? 'inset 2px 0 0 var(--ink)' : 'none' } };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

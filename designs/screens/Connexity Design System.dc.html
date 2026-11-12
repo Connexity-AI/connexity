@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0}*{box-sizing:border-box}button{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<div style="padding:48px;display:flex;flex-direction:column;gap:48px">
+<div style="display:flex;align-items:baseline;gap:12px">
+<h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Design system</h1>
+<span style="font-size:13px;color:var(--ink3)">{{ themeName }}</span>
+</div>
+<section style="display:flex;flex-direction:column;gap:16px">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Colour</h2>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+<sc-for list="{{ tokens }}" as="t" hint-placeholder-count="12">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="{{ t.swatch }}"></div>
+<div style="padding:12px;display:flex;flex-direction:column;gap:2px">
+<span style="font-family:'JetBrains Mono',monospace;font-size:13px;line-height:18px">{{ t.name }}</span>
+<span style="font-family:'JetBrains Mono',monospace;font-size:13px;line-height:18px;color:var(--ink3)">{{ t.hex }}</span>
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">{{ t.use }}</span>
+</div>
+</div>
+</sc-for>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+<sc-for list="{{ states }}" as="s" hint-placeholder-count="4">
+<div style="{{ s.box }}">
+<span style="font-size:15px;font-weight:500">{{ s.word }}</span>
+<span style="font-family:'JetBrains Mono',monospace;font-size:13px">{{ s.hex }}</span>
+</div>
+</sc-for>
+</div>
+</section>
+<section style="display:flex;flex-direction:column;gap:16px">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Type</h2>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px">
+<div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:24px;align-items:baseline;padding:16px 24px;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--ink2)">30 · 500 · tile number</span><span style="font-size:30px;line-height:36px;font-weight:500">838</span></div>
+<div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:24px;align-items:baseline;padding:16px 24px;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--ink2)">20 · 500 · page title</span><span style="font-size:20px;line-height:28px;font-weight:500">Roadmap</span></div>
+<div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:24px;align-items:baseline;padding:16px 24px;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--ink2)">15 · 400 / 500 · body</span><span style="font-size:15px;line-height:22px">Get Car service booking's average latency under 1.5 s</span></div>
+<div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:24px;align-items:baseline;padding:16px 24px;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--ink2)">13 · 400 · label</span><span style="font-size:13px;line-height:18px;color:var(--ink2)">Calls · Latency · Issues · Done by</span></div>
+<div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:24px;align-items:baseline;padding:16px 24px"><span style="font-size:13px;color:var(--ink2)">JetBrains Mono 13 · IDs</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px">agent_7f3a2c91</span></div>
+</div>
+</section>
+<section style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Space</h2>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;align-items:flex-end;gap:16px;min-height:120px">
+<div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:4px;height:4px;background:var(--bc)"></div><span style="font-size:13px;color:var(--ink3)">4</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:8px;height:8px;background:var(--bc)"></div><span style="font-size:13px;color:var(--ink3)">8</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:12px;height:12px;background:var(--bc)"></div><span style="font-size:13px;color:var(--ink3)">12</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:16px;height:16px;background:var(--bc)"></div><span style="font-size:13px;color:var(--ink3)">16</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:24px;height:24px;background:var(--bc)"></div><span style="font-size:13px;color:var(--ink3)">24</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:32px;height:32px;background:var(--bc)"></div><span style="font-size:13px;color:var(--ink3)">32</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:48px;height:48px;background:var(--bc)"></div><span style="font-size:13px;color:var(--ink3)">48</span></div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:16px">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Radius</h2>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;align-items:flex-end;gap:24px;min-height:120px">
+<div style="display:flex;flex-direction:column;gap:8px"><div style="width:64px;height:40px;border:1px solid var(--bc);border-radius:6px"></div><span style="font-size:13px;color:var(--ink3)">6 · badge</span></div>
+<div style="display:flex;flex-direction:column;gap:8px"><div style="width:64px;height:40px;border:1px solid var(--bc);border-radius:8px"></div><span style="font-size:13px;color:var(--ink3)">8 · button, sidebar item</span></div>
+<div style="display:flex;flex-direction:column;gap:8px"><div style="width:64px;height:40px;border:1px solid var(--bc);border-radius:12px"></div><span style="font-size:13px;color:var(--ink3)">12 · tile, card</span></div>
+</div>
+</div>
+</section>
+<section style="display:flex;flex-direction:column;gap:16px">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Components</h2>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+<span style="font-size:13px;color:var(--ink2)">Button</span>
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+<button style="height:36px;padding:0 16px;border:0;border-radius:8px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Answer</button>
+<button style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border:1px solid var(--bc);border-radius:8px;background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">Last 30 days<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg></button>
+<button style="display:flex;align-items:center;gap:6px;height:28px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:var(--ink2);font-size:13px;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"></path><path d="m21.854 2.147-10.94 10.939"></path></svg>Send to assistant</button>
+</div>
+<div style="display:flex;gap:24px;font-size:13px;color:var(--ink3)"><span>Primary</span><span>Secondary</span><span>Ghost</span></div>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+<span style="font-size:13px;color:var(--ink2)">Severity badge</span>
+<div style="display:flex;flex-wrap:wrap;gap:8px">
+<span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Critical</span>
+<span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Warning</span>
+<span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--pass-bg);color:var(--pass);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>Passed</span>
+<span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--unch-bg);color:var(--unch);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.1 2.182a10 10 0 0 1 3.8 0"></path><path d="M13.9 21.818a10 10 0 0 1-3.8 0"></path><path d="M17.609 3.721a10 10 0 0 1 2.69 2.7"></path><path d="M2.182 13.9a10 10 0 0 1 0-3.8"></path><path d="M20.279 17.609a10 10 0 0 1-2.7 2.69"></path><path d="M21.818 10.1a10 10 0 0 1 0 3.8"></path><path d="M3.721 6.391a10 10 0 0 1 2.7-2.69"></path><path d="M6.391 20.279a10 10 0 0 1-2.69-2.7"></path></svg>Unchecked</span>
+</div>
+<span style="font-size:13px;color:var(--ink3)">Colour, icon and word, always together</span>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+<span style="font-size:13px;color:var(--ink2)">Sidebar item</span>
+<div style="display:flex;flex-direction:column;gap:2px">
+<div style="display:flex;align-items:center;gap:12px;height:36px;padding:0 12px;border-radius:8px;font-size:15px;color:var(--ink);background:var(--wash)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Home</div>
+<div style="display:flex;align-items:center;gap:12px;height:36px;padding:0 12px;border-radius:8px;font-size:15px;color:var(--ink2)" style-hover="background:var(--wash)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"></circle><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"></path><circle cx="18" cy="5" r="3"></circle></svg>Roadmap</div>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Calls</span><span style="font-size:30px;line-height:36px;font-weight:500">838</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Latency</span><span style="font-size:30px;line-height:36px;font-weight:500">1.1<span style="font-size:20px;color:var(--ink2)"> s</span></span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px">
+<span style="display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--crit)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Critical</span>
+<span style="font-size:30px;line-height:36px;font-weight:500;color:var(--crit)">3</span>
+</div>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+<span style="font-size:13px;color:var(--ink2)">Progress bar</span>
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="height:6px;border-radius:3px;background:var(--unch-bg);overflow:hidden"><div style="width:33%;height:100%;background:var(--ink);border-radius:3px"></div></div>
+<div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink3)"><span>58</span><span>61</span></div>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<div style="flex:1;height:6px;border-radius:3px;background:var(--unch-bg);overflow:hidden"><div style="width:44%;height:100%;background:var(--ink);border-radius:3px"></div></div>
+<span style="font-size:13px;color:var(--ink2)">44%</span>
+</div>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:12px">
+<span style="font-size:13px;color:var(--ink2)">Icons · Lucide outline</span>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;font-size:13px">
+<span style="display:flex;align-items:center;gap:8px;color:var(--crit)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>octagon-alert</span>
+<span style="display:flex;align-items:center;gap:8px;color:var(--warn)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>triangle-alert</span>
+<span style="display:flex;align-items:center;gap:8px;color:var(--pass)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>circle-check</span>
+<span style="display:flex;align-items:center;gap:8px;color:var(--unch)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.1 2.182a10 10 0 0 1 3.8 0"></path><path d="M13.9 21.818a10 10 0 0 1-3.8 0"></path><path d="M17.609 3.721a10 10 0 0 1 2.69 2.7"></path><path d="M2.182 13.9a10 10 0 0 1 0-3.8"></path><path d="M20.279 17.609a10 10 0 0 1-2.7 2.69"></path><path d="M21.818 10.1a10 10 0 0 1 0 3.8"></path><path d="M3.721 6.391a10 10 0 0 1 2.7-2.69"></path><path d="M6.391 20.279a10 10 0 0 1-2.69-2.7"></path></svg>circle-dashed</span>
+</div>
+</div>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="padding:20px 24px 12px"><span style="font-size:15px;font-weight:500">Card with table</span></div>
+<div style="display:grid;grid-template-columns:minmax(0,2fr) 128px 80px 96px 72px;gap:16px;align-items:center;height:40px;padding:0 24px;border-bottom:1px solid var(--border);font-size:13px;color:var(--ink2)"><span>Agent</span><span>Status</span><span style="text-align:right">Calls</span><span style="text-align:right">Latency</span><span style="text-align:right">Score</span></div>
+<div style="display:grid;grid-template-columns:minmax(0,2fr) 128px 80px 96px 72px;gap:16px;align-items:center;height:52px;padding:0 24px;border-bottom:1px solid var(--border);font-size:15px">
+<span>Car service booking</span>
+<span><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Critical</span></span>
+<span style="text-align:right">168</span>
+<span style="display:flex;justify-content:flex-end;align-items:center;gap:4px;color:var(--warn)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>1.8 s</span>
+<span style="text-align:right;font-weight:500">48</span>
+</div>
+<div style="display:grid;grid-template-columns:minmax(0,2fr) 128px 80px 96px 72px;gap:16px;align-items:center;height:52px;padding:0 24px;font-size:15px">
+<span>Dental reception</span>
+<span><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--pass-bg);color:var(--pass);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>Passed</span></span>
+<span style="text-align:right">120</span>
+<span style="text-align:right">0.9 s</span>
+<span style="text-align:right;font-weight:500">78</span>
+</div>
+</div>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:1800},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;}}">
+class Component extends DCLogic {
+  static TOKENS = [
+    ['surface-0','--s0','#121314','#f5f4f2','Page'],
+    ['surface-1','--s1','#1a1b1d','#ffffff','Sidebar, tiles, cards, tables'],
+    ['surface-2','--s2','#232427','#ffffff','Menus, popovers, dialogs'],
+    ['border','--border','#2a2c2f','#e3e1dd','Hairlines'],
+    ['border-control','--bc','#6b6f75','#85837e','Control edges, neutral chart data'],
+    ['ink','--ink','#ececea','#17181a','Text'],
+    ['ink-secondary','--ink2','#a3a5a9','#5e6065','Supporting text, labels'],
+    ['ink-muted','--ink3','#8b8e93','#6e7075','Captions, timestamps'],
+    ['accent','--accent','#ececea','#17181a','The one main action'],
+    ['on-accent','--on-accent','#121314','#f5f4f2','Text on accent'],
+    ['wash','--wash','#26282b','#efeeea','Current sidebar item, row hover'],
+    ['brand','--brand','#ee6a40','#e8552a','Logo only']
+  ];
+  static STATES = [
+    ['Critical','--crit','--crit-bg','#f59ab0 / #3a1420','#a3173f / #fbe4ea'],
+    ['Warning','--warn','--warn-bg','#f2c46b / #33260f','#7a4d07 / #fbf0d9'],
+    ['Passed','--pass','--pass-bg','#8fd3a9 / #14291d','#1c5c38 / #e2f2e8'],
+    ['Unchecked','--unch','--unch-bg','#b5b7ba / #2a2b2e','#45474b / #ecebe8']
+  ];
+  static THEMES = {
+    dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
+    light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
+  };
+  renderVals() {
+    const light = this.props.theme === 'light';
+    return {
+      themeName: light ? 'Light' : 'Dark',
+      rootStyle: { ...Component.THEMES[light ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', WebkitFontSmoothing:'antialiased' },
+      tokens: Component.TOKENS.map(([name, v, d, l, use]) => ({ name, use, hex: light ? l : d,
+        swatch: { height:56, background:`var(${v})`, borderBottom:'1px solid var(--border)' } })),
+      states: Component.STATES.map(([word, fg, bg, d, l]) => ({ word, hex: light ? l : d,
+        box: { display:'flex', flexDirection:'column', gap:4, padding:16, borderRadius:12, background:`var(${bg})`, color:`var(${fg})` } }))
+    };
+  }
+}
+</script>
+</body>
+</html>

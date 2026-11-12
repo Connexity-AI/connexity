@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#2c2d30;font-family:'Figtree',system-ui,sans-serif}*{box-sizing:border-box}a{color:#ececea}a:hover{color:#fff}</style>
+</helmet>
+<section id="onboarding-no-assistant" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Readiness · before the first scan, no assistant yet</span><span style="font-size:13px;color:#a3a5a9">After sign-up the app opens here. Step 1 shows the only setup instruction in the app.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Onboarding" theme="dark" stage="noAssistant" live="{{ false }}" hint-size="1440px,1000px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Onboarding" theme="light" stage="noAssistant" live="{{ false }}" hint-size="1440px,1000px"></dc-import></div></div>
+  </div>
+</section>
+<section id="onboarding-syncing" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Readiness · syncing</span><span style="font-size:13px;color:#a3a5a9">Steps tick live as the assistant works. Open the file on its own to watch the sync and the first scan finish.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Onboarding" theme="dark" stage="syncing" live="{{ false }}" hint-size="1440px,1000px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Onboarding" theme="light" stage="syncing" live="{{ false }}" hint-size="1440px,1000px"></dc-import></div></div>
+  </div>
+</section>
+<section id="onboarding-scanned" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Readiness · first scan done</span><span style="font-size:13px;color:#a3a5a9">Step 4 shows the result; Open Home appears. From now on the app opens on Home, and Readiness shrinks to the stripe and the ring.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Onboarding" theme="dark" stage="scanned" live="{{ false }}" hint-size="1440px,1000px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Onboarding" theme="light" stage="scanned" live="{{ false }}" hint-size="1440px,1000px"></dc-import></div></div>
+  </div>
+</section>
+<section id="home" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Home</span><span style="font-size:13px;color:#a3a5a9">Period picker and "Send to assistant" are live</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Home" theme="dark" hint-size="1440px,1320px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Home" theme="light" hint-size="1440px,1320px"></dc-import></div></div>
+  </div>
+</section>
+<section id="incidents" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Incidents</span><span style="font-size:13px;color:#a3a5a9">Incidents tab. Cards open the incident; Close, Confirm and Reject work in place.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Incidents" theme="dark" hint-size="1440px,800px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Incidents" theme="light" hint-size="1440px,800px"></dc-import></div></div>
+  </div>
+</section>
+<section id="incidents-auto" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Incidents · Playbook</span><span style="font-size:13px;color:#a3a5a9">Rules your assistant reads. "How the playbook works" starts collapsed once a rule is on. Allowed for, Approve automatically and the checklist are live; changes land in the Taken automatically log.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Incidents" theme="dark" tab="auto" hint-size="1440px,900px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Incidents" theme="light" tab="auto" hint-size="1440px,900px"></dc-import></div></div>
+  </div>
+</section>
+<section id="incidents-auto-unconnected" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Playbook · assistant not connected</span><span style="font-size:13px;color:#a3a5a9">The plain line under the steps links to Readiness.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Incidents" theme="dark" tab="auto" assistant-connected="{{ false }}" hint-size="1440px,900px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Incidents" theme="light" tab="auto" assistant-connected="{{ false }}" hint-size="1440px,900px"></dc-import></div></div>
+  </div>
+</section>
+<section id="action-items" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Action items</span><span style="font-size:13px;color:#a3a5a9">Everything that needs input: the version that failed its tests, the archive proposal and clarifications. No incidents here.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Action items" theme="dark" hint-size="1440px,1500px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Action items" theme="light" hint-size="1440px,1500px"></dc-import></div></div>
+  </div>
+</section>
+<section id="incident" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Incident · active</span><span style="font-size:13px;color:#a3a5a9">Booking tool failing on 4 agents. Close asks how it stopped, the cause and a reason. Merge and Split are in the ⋯ menu.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Incident" theme="dark" incident="INC-0412" hint-size="1440px,1700px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Incident" theme="light" incident="INC-0412" hint-size="1440px,1700px"></dc-import></div></div>
+  </div>
+</section>
+<section id="incident-proposed" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Incident · close proposed</span><span style="font-size:13px;color:#a3a5a9">Calls stopped after a rollback. The assistant proposes closing; a person confirms or rejects.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Incident" theme="dark" incident="INC-0411" hint-size="1440px,1500px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Incident" theme="light" incident="INC-0411" hint-size="1440px,1500px"></dc-import></div></div>
+  </div>
+</section>
+<section id="incident-closed" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Incident · closed</span><span style="font-size:13px;color:#a3a5a9">How it stopped, the cause, who closed it and why. Time to close appears once closed.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Incident" theme="dark" incident="INC-0398" hint-size="1440px,1700px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Incident" theme="light" incident="INC-0398" hint-size="1440px,1700px"></dc-import></div></div>
+  </div>
+</section>
+<section id="agents" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Agents</span><span style="font-size:13px;color:#a3a5a9">Worst score first. Click a row to open its profile.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agents" theme="dark" hint-size="1440px,560px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agents" theme="light" hint-size="1440px,560px"></dc-import></div></div>
+  </div>
+</section>
+<section id="calls" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Calls</span><span style="font-size:13px;color:#a3a5a9">Search by phone number or call ID; filters are live. Source shows real calls by default. Click a row to open the call.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Calls" theme="dark" hint-size="1440px,1500px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Calls" theme="light" hint-size="1440px,1500px"></dc-import></div></div>
+  </div>
+</section>
+<section id="call" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Call · failed</span><span style="font-size:13px;color:#a3a5a9">Opens at the critical moment. Play, click the waveform, a mark, a finding or a turn to jump.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Call" theme="dark" call="C-20481" hint-size="1440px,1200px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Call" theme="light" call="C-20481" hint-size="1440px,1200px"></dc-import></div></div>
+  </div>
+</section>
+<section id="call-simulated" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Call · simulated</span><span style="font-size:13px;color:#a3a5a9">Opened from a test. The line under the page bar shows the test case, the rule it proves and its result.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Call" theme="dark" call="S-0915" hint-size="1440px,1100px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Call" theme="light" call="S-0915" hint-size="1440px,1100px"></dc-import></div></div>
+  </div>
+</section>
+<section id="issues" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Issues</span><span style="font-size:13px;color:#a3a5a9">Grouped by the fixed categories, worst first inside each. Tools and integrations is open here. Search and filters are live; a row opens the issue.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Issues" theme="dark" open="tools" hint-size="1440px,1100px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Issues" theme="light" open="tools" hint-size="1440px,1100px"></dc-import></div></div>
+  </div>
+</section>
+<section id="issue" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Issue · critical, open</span><span style="font-size:13px;color:#a3a5a9">Part of an active incident. Archive asks for a reason and how long, and adds a history record. Progress steps link to Spec, Tests and the first call.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Issue" theme="dark" issue="I-1042" hint-size="1440px,1700px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Issue" theme="light" issue="I-1042" hint-size="1440px,1700px"></dc-import></div></div>
+  </div>
+</section>
+<section id="issue-clarification" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Issue · waiting for a clarification</span><span style="font-size:13px;color:#a3a5a9">A warning: no incidents. The behaviour is not in the spec yet, so the second step links to Action items.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Issue" theme="dark" issue="I-1053" hint-size="1440px,1300px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Issue" theme="light" issue="I-1053" hint-size="1440px,1300px"></dc-import></div></div>
+  </div>
+</section>
+<section id="issue-known" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Issue · archived</span><span style="font-size:13px;color:#a3a5a9">Proposed by the assistant, archived by a person until it gets worse. It came back once on 30 Oct. Occurrences are still recorded; the chart marks the archive.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Issue" theme="dark" issue="I-0988" hint-size="1440px,1300px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Issue" theme="light" issue="I-0988" hint-size="1440px,1300px"></dc-import></div></div>
+  </div>
+</section>
+<section id="agent-profile" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Agent profile · Overview</span><span style="font-size:13px;color:#a3a5a9">Insurance renewals. Tabs switch in place; hover the chart for daily values.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agent Profile" theme="dark" tab="overview" hint-size="1440px,900px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agent Profile" theme="light" tab="overview" hint-size="1440px,900px"></dc-import></div></div>
+  </div>
+</section>
+<section id="agent-profile-calls" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Agent profile · Calls</span><span style="font-size:13px;color:#a3a5a9">The same list, filtered to Insurance renewals, without the agent filter.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agent Profile" theme="dark" tab="calls" hint-size="1440px,1300px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agent Profile" theme="light" tab="calls" hint-size="1440px,1300px"></dc-import></div></div>
+  </div>
+</section>
+<section id="agent-profile-issues" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Agent profile · Issues</span><span style="font-size:13px;color:#a3a5a9">Groups start collapsed, critical first. Click a group to expand.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agent Profile" theme="dark" tab="issues" hint-size="1440px,700px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agent Profile" theme="light" tab="issues" hint-size="1440px,700px"></dc-import></div></div>
+  </div>
+</section>
+<section id="agent-profile-spec" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Agent profile · Spec</span><span style="font-size:13px;color:#a3a5a9">132 rules in collapsed groups; the first is open here. Conflicts and money, safety, compliance rules sort to the top.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agent Profile" theme="dark" tab="spec" expand-first="{{ true }}" hint-size="1440px,1500px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agent Profile" theme="light" tab="spec" expand-first="{{ true }}" hint-size="1440px,1500px"></dc-import></div></div>
+  </div>
+</section>
+<section id="agent-profile-no-spec" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Agent profile · Spec, no spec yet</span><span style="font-size:13px;color:#a3a5a9">Dental reception. The assistant writes the spec as a Readiness step; the agent shows "No spec" here and on Agents.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agent Profile" theme="dark" agent="dental" tab="spec" hint-size="1440px,520px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agent Profile" theme="light" agent="dental" tab="spec" hint-size="1440px,520px"></dc-import></div></div>
+  </div>
+</section>
+<section id="agent-profile-spec-compare" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Agent profile · Spec compared with version 13</span><span style="font-size:13px;color:#a3a5a9">Show changes only is on: kept rules are hidden.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agent Profile" theme="dark" tab="spec" compare-with="{{ 13 }}" changes-only="{{ true }}" hint-size="1440px,1100px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agent Profile" theme="light" tab="spec" compare-with="{{ 13 }}" changes-only="{{ true }}" hint-size="1440px,1100px"></dc-import></div></div>
+  </div>
+</section>
+<section id="agent-profile-tests" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Agent profile · Tests</span><span style="font-size:13px;color:#a3a5a9">Click a version to see its run and failing rules. The first failing group and rule are open here. Run tests opens the level menu.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agent Profile" theme="dark" tab="tests" expand-first="{{ true }}" hint-size="1440px,1300px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agent Profile" theme="light" tab="tests" expand-first="{{ true }}" hint-size="1440px,1300px"></dc-import></div></div>
+  </div>
+</section>
+<section id="roadmap" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Roadmap · readiness first</span><span style="font-size:13px;color:#a3a5a9">Stage 1 is Readiness at 60%: eleven steps, Getting started already done. Click a per-agent control to see which agents are missing it. Stage 2 is the milestones, unchanged. The stripe and the sidebar ring link here.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Roadmap" theme="dark" readiness="setup" hint-size="1440px,1500px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Roadmap" theme="light" readiness="setup" hint-size="1440px,1500px"></dc-import></div></div>
+  </div>
+</section>
+<section id="roadmap-dropped" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Roadmap · readiness came back</span><span style="font-size:13px;color:#a3a5a9">After reaching 100%, a drop brings back the stripe and the ring, naming what is missing.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Roadmap" theme="dark" readiness="dropped" hint-size="1440px,1300px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Roadmap" theme="light" readiness="dropped" hint-size="1440px,1300px"></dc-import></div></div>
+  </div>
+</section>
+<section id="roadmap-complete" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Roadmap · readiness complete</span><span style="font-size:13px;color:#a3a5a9">The stage collapses into one quiet line; the stripe and the ring are gone.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Roadmap" theme="dark" readiness="complete" hint-size="1440px,1100px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Roadmap" theme="light" readiness="complete" hint-size="1440px,1100px"></dc-import></div></div>
+  </div>
+</section>
+<section id="workspace-switcher" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Profile menu · workspaces</span><span style="font-size:13px;color:#a3a5a9">The profile area shows the current workspace under the name. The menu starts with Workspaces (a search field appears past eight), New workspace and Agency settings, then Account, Theme and Sign out.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start"><div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="--s0:#121314;--s1:#1a1b1d;--s2:#232427;--border:#2a2c2f;--bc:#6b6f75;--ink:#ececea;--ink2:#a3a5a9;--ink3:#8b8e93;--accent:#ececea;--on-accent:#121314;--brand:#ee6a40;--crit:#f59ab0;--crit-bg:#3a1420;--pass:#8fd3a9;--unch-bg:#2a2b2e;--wash:#26282b;width:220px;height:760px;border-radius:8px;overflow:hidden;background:var(--s1);color:var(--ink);font-family:'Figtree',system-ui,sans-serif;font-size:15px;line-height:22px"><dc-import name="Connexity Sidebar" active="home" menu-open="{{ true }}" style="height:100%" hint-size="220px,760px"></dc-import></div></div><div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="--s0:#f5f4f2;--s1:#ffffff;--s2:#ffffff;--border:#e3e1dd;--bc:#85837e;--ink:#17181a;--ink2:#5e6065;--ink3:#6e7075;--accent:#17181a;--on-accent:#f5f4f2;--brand:#e8552a;--crit:#a3173f;--crit-bg:#fbe4ea;--pass:#1c5c38;--unch-bg:#ecebe8;--wash:#efeeea;width:220px;height:760px;border-radius:8px;overflow:hidden;background:var(--s1);color:var(--ink);font-family:'Figtree',system-ui,sans-serif;font-size:15px;line-height:22px"><dc-import name="Connexity Sidebar" active="home" menu-open="{{ true }}" style="height:100%" hint-size="220px,760px"></dc-import></div></div></div>
+</section>
+<section id="agency-members" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Agency settings · Members</span><span style="font-size:13px;color:#a3a5a9">Everyone in the agency, which workspaces each can access, and who can approve. Invite by email.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agency" theme="dark" section="members" hint-size="1440px,760px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agency" theme="light" section="members" hint-size="1440px,760px"></dc-import></div></div>
+  </div>
+</section>
+<section id="agency-billing" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Agency settings · Billing</span><span style="font-size:13px;color:#a3a5a9">One balance for the agency, broken down by workspace so each client can be billed.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agency" theme="dark" section="billing" hint-size="1440px,1500px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agency" theme="light" section="billing" hint-size="1440px,1500px"></dc-import></div></div>
+  </div>
+</section>
+<section id="agency-billing-low" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Agency settings · Billing, credits low</span><span style="font-size:13px;color:#a3a5a9">A line appears under the Readiness ring in the sidebar.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agency" theme="dark" section="billing" credits="low" hint-size="1440px,1500px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agency" theme="light" section="billing" credits="low" hint-size="1440px,1500px"></dc-import></div></div>
+  </div>
+</section>
+<section id="agency-billing-out" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Agency settings · Billing, out of credits</span><span style="font-size:13px;color:#a3a5a9">The stripe at the top says tests are paused and links here.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agency" theme="dark" section="billing" credits="out" hint-size="1440px,1540px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Agency" theme="light" section="billing" credits="out" hint-size="1440px,1540px"></dc-import></div></div>
+  </div>
+</section>
+<section id="settings-connections" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Settings · Connections</span><span style="font-size:13px;color:#a3a5a9">Grouped by kind. Muted suggested rows and the failing row carry the exact request to copy for your assistant. Disconnect asks for confirmation.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Settings" theme="dark" section="connections" hint-size="1440px,700px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Settings" theme="light" section="connections" hint-size="1440px,700px"></dc-import></div></div>
+  </div>
+</section>
+<section id="settings-checks" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Settings · Checks</span><span style="font-size:13px;color:#a3a5a9">Off / Flags / Fails the call for the fleet; expand a check for chosen agents. A change asks for a reason.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Settings" theme="dark" section="checks" hint-size="1440px,1000px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Settings" theme="light" section="checks" hint-size="1440px,1000px"></dc-import></div></div>
+  </div>
+</section>
+<section id="settings-gate" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Settings · Gate</span><span style="font-size:13px;color:#a3a5a9">Pre-filled with the default. Editing shows a reason field; Reset to default appears once changed.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Settings" theme="dark" section="gate" hint-size="1440px,600px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Settings" theme="light" section="gate" hint-size="1440px,600px"></dc-import></div></div>
+  </div>
+</section>
+<section id="settings-team" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Settings · Team</span><span style="font-size:13px;color:#a3a5a9">People with access to this workspace; access is changed in Agency settings.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Settings" theme="dark" section="team" hint-size="1440px,600px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Settings" theme="light" section="team" hint-size="1440px,600px"></dc-import></div></div>
+  </div>
+</section>
+<section id="settings-audit" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Settings · Audit log</span><span style="font-size:13px;color:#a3a5a9">Every decision record, newest first. Filters are live; changes made on this page appear at the top.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Settings" theme="dark" section="audit" hint-size="1440px,900px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Settings" theme="light" section="audit" hint-size="1440px,900px"></dc-import></div></div>
+  </div>
+</section>
+<section id="account-profile" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Account · Profile</span><span style="font-size:13px;color:#a3a5a9">Opened from the profile menu at the bottom of the sidebar (Account, Theme, Sign out). Save appears after a change; email changes through a confirmation email.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Account" theme="dark" section="profile" hint-size="1440px,640px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Account" theme="light" section="profile" hint-size="1440px,640px"></dc-import></div></div>
+  </div>
+</section>
+<section id="account-security" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Account · Sign-in and security</span><span style="font-size:13px;color:#a3a5a9">Change password opens a small form. Sessions sign out one by one or everywhere else.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Account" theme="dark" section="security" hint-size="1440px,760px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Account" theme="light" section="security" hint-size="1440px,760px"></dc-import></div></div>
+  </div>
+</section>
+<section id="account-assistant" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Account · Assistant access</span><span style="font-size:13px;color:#a3a5a9">Assistants connected with this account act as this person. Revoke is live.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Account" theme="dark" section="assistant" hint-size="1440px,520px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Account" theme="light" section="assistant" hint-size="1440px,520px"></dc-import></div></div>
+  </div>
+</section>
+<section id="account-notify" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Account · Notifications</span><span style="font-size:13px;color:#a3a5a9">One switch per email.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Account" theme="dark" section="notify" hint-size="1440px,520px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Account" theme="light" section="notify" hint-size="1440px,520px"></dc-import></div></div>
+  </div>
+</section>
+<section id="account-delete" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Account · Delete account</span><span style="font-size:13px;color:#a3a5a9">Type the email to confirm. When this person is the only one who can approve, the second frame shows why they can’t yet.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Account" theme="dark" section="delete" hint-size="1440px,520px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Account" theme="light" section="delete" hint-size="1440px,520px"></dc-import></div></div>
+  </div>
+</section>
+<section id="account-delete-blocked" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Account · Delete account, only approver</span><span style="font-size:13px;color:#a3a5a9">Someone else must be able to approve first.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Account" theme="dark" section="delete" only-approver="{{ true }}" hint-size="1440px,520px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Account" theme="light" section="delete" only-approver="{{ true }}" hint-size="1440px,520px"></dc-import></div></div>
+  </div>
+</section>
+<section id="system" style="padding:48px;display:flex;flex-direction:column;gap:20px">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Design system</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1200px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Design System" theme="dark" hint-size="1200px,1800px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1200px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Design System" theme="light" hint-size="1200px,1800px"></dc-import></div></div>
+  </div>
+</section>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0}*{box-sizing:border-box}button,input{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}input::placeholder{color:var(--ink3)}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<dc-import name="Connexity Readiness Bar" hint-size="100%,36px"></dc-import>
+<div style="display:flex;min-height:inherit">
+<div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="incidents" style="height:100%" hint-size="220px,320px"></dc-import></div>
+<main style="flex:1;min-width:944px;padding:24px 32px 48px">
+<div style="max-width:1120px;min-width:880px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:40px">
+<h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Incidents</h1>
+<div ref="{{ pickerRef }}" style="position:relative">
+<button onClick="{{ togglePeriod }}" style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>
+<span>{{ period }}</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{ periodOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;right:0;top:42px;z-index:20;min-width:200px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18)">
+<sc-for list="{{ periods }}" as="p" hint-placeholder-count="0">
+<div onClick="{{ p.pick }}" style="display:flex;align-items:center;justify-content:space-between;height:36px;padding:0 12px;border-radius:6px;font-size:15px;cursor:pointer" style-hover="background:var(--wash)">
+<span>{{ p.label }}</span>
+<sc-if value="{{ p.current }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</div>
+<div style="display:flex;gap:24px;border-bottom:1px solid var(--border);margin-top:-8px">
+<button onClick="{{ tabInc }}" style="{{ tabIncStyle }}">Incidents<span style="font-size:13px;font-weight:400;color:var(--ink3)">{{ activeCount }}</span></button>
+<button onClick="{{ tabAuto }}" style="{{ tabAutoStyle }}">Playbook</button>
+</div>
+<sc-if value="{{ onInc }}" hint-placeholder-val="{{ true }}">
+<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Active</span><span style="font-size:30px;line-height:36px;font-weight:500;color:var(--crit)">{{ activeCount }}</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Calls failed</span><span style="font-size:30px;line-height:36px;font-weight:500;color:var(--crit)">{{ incFailed }}</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Agents</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ incAgents }}</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Closed</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ closedCount }}</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Time to close</span><span style="display:flex;align-items:baseline;gap:6px;white-space:nowrap"><span style="font-size:30px;line-height:36px;font-weight:500">{{ ttc }}</span><span style="font-size:13px;color:var(--ink3)">median</span></span></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px">
+<sc-for list="{{ incCards }}" as="n" hint-placeholder-count="2">
+<div style="position:relative;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:flex;flex-direction:column;gap:14px" style-hover="background:var(--wash)">
+<a href="{{ n.href }}" title="Open the incident" style="position:absolute;inset:0;border-radius:12px"></a>
+<div style="position:relative;display:flex;align-items:center;gap:32px;pointer-events:none">
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:6px">
+<sc-if value="{{ n.failing }}"><span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><span style="width:7px;height:7px;border-radius:4px;background:var(--crit)"></span>Still failing</span></sc-if>
+<sc-if value="{{ n.stopped }}"><span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;border:1px solid var(--border);color:var(--ink2);font-size:13px">{{ n.stoppedText }}</span></sc-if>
+<p style="margin:0;font-size:17px;line-height:24px;font-weight:500;text-wrap:pretty">{{ n.title }}</p>
+<span style="font-size:15px;line-height:22px;color:var(--ink2);text-wrap:pretty">{{ n.line }}</span>
+</div>
+<div style="flex:none;width:184px;display:flex;flex-direction:column;gap:4px">
+<span style="align-self:flex-end;font-size:13px;line-height:18px;color:var(--ink3);white-space:nowrap">{{ n.peak }}</span>
+<div title="Failed calls per 5 minutes" style="{{ n.barGrid }}"><sc-for list="{{ n.bars }}" as="b" hint-placeholder-count="0"><div style="height:100%;display:flex;align-items:flex-end"><div style="{{ b.style }}"></div></div></sc-for></div>
+<div style="display:flex;justify-content:space-between;font-size:13px;line-height:18px;color:var(--ink3)"><span>{{ n.from }}</span><span>{{ n.to }}</span></div>
+</div>
+</div>
+<sc-if value="{{ n.hasProposal }}">
+<div style="position:relative;display:flex;align-items:center;gap:12px;padding:10px 10px 10px 14px;border-radius:8px;background:var(--s0);border:1px solid var(--border)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;color:var(--ink2)"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path></svg>
+<span style="flex:1;text-wrap:pretty">{{ n.proposal }}</span>
+<button onClick="{{ n.reject }}" style="height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s1);color:var(--ink);font-size:13px;cursor:pointer" style-hover="background:var(--wash)">Reject</button>
+<button onClick="{{ n.confirmProposal }}" style="height:32px;padding:0 12px;border-radius:8px;border:0;background:var(--accent);color:var(--on-accent);font-size:13px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Confirm and close</button>
+</div>
+</sc-if>
+<sc-if value="{{ n.closing }}">
+<div style="position:relative;display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:8px;background:var(--s0);border:1px solid var(--border)">
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">How it stopped</span><div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ n.hows }}" as="h" hint-placeholder-count="0"><button onClick="{{ h.pick }}" style="{{ h.style }}">{{ h.label }}</button></sc-for></div></div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px">
+<label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Cause</span><input value="{{ fCause }}" onChange="{{ onCause }}" placeholder="What made the calls fail" style="height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s1);color:var(--ink);font-size:15px;outline:none"></label>
+<label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Reason to close</span><input value="{{ fReason }}" onChange="{{ onReason }}" placeholder="Why the damage has stopped" style="height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s1);color:var(--ink);font-size:15px;outline:none"></label>
+</div>
+<div style="display:flex;align-items:center;gap:8px"><span style="flex:1;font-size:13px;line-height:18px;color:var(--ink3)">Its issues stay open until a fixed version ships.</span><button onClick="{{ cancelForm }}" style="height:36px;padding:0 12px;border-radius:8px;border:0;background:transparent;color:var(--ink2);font-size:15px;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)">Cancel</button><button onClick="{{ n.submitClose }}" disabled="{{ cantClose }}" style="{{ closeBtnStyle }}">Close incident</button></div>
+</div>
+</sc-if>
+<sc-if value="{{ n.showClose }}"><div style="position:relative;display:flex"><button onClick="{{ n.openClose }}" style="height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s1);color:var(--ink);font-size:13px;cursor:pointer" style-hover="background:var(--wash)">Close</button></div></sc-if>
+</div>
+</sc-for>
+<sc-if value="{{ noActive }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:8px;padding:16px 24px;background:var(--s1);border:1px solid var(--border);border-radius:12px;color:var(--ink2)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--pass)"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>No active incidents</div>
+</sc-if>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div onClick="{{ toggleClosed }}" style="display:flex;align-items:center;gap:8px;min-height:52px;padding:0 24px;cursor:pointer;user-select:none" style-hover="background:var(--wash)">
+<span style="display:flex;color:var(--ink2)">
+<sc-if value="{{ closedOpen }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
+<sc-if value="{{ closedShut }}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
+</span>
+<span style="font-weight:500">Closed</span>
+<span style="font-size:13px;color:var(--ink2)">{{ closedCount }}</span>
+</div>
+<sc-if value="{{ closedOpen }}" hint-placeholder-val="{{ false }}">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 168px 96px 184px 136px 16px;gap:16px;align-items:center;height:40px;padding:0 24px 0 48px;border-top:1px solid var(--border);font-size:13px;color:var(--ink2)"><span>Incident</span><span>Agents</span><span style="text-align:right">Calls failed</span><span>Period</span><span>How it stopped</span><span></span></div>
+<sc-for list="{{ closedRows }}" as="c" hint-placeholder-count="0">
+<a href="{{ c.href }}" title="Open the incident" style="display:grid;grid-template-columns:minmax(0,1fr) 168px 96px 184px 136px 16px;gap:16px;align-items:center;min-height:52px;padding:8px 24px 8px 48px;border-top:1px solid var(--border);color:var(--ink);text-decoration:none" style-hover="background:var(--wash);opacity:1">
+<span style="display:flex;flex-direction:column;min-width:0"><span style="text-wrap:pretty">{{ c.title }}</span><span style="font-size:13px;line-height:18px;color:var(--ink3)">Closed by {{ c.by }}</span></span>
+<span style="font-size:13px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.agents }}</span>
+<span style="text-align:right">{{ c.failed }}</span>
+<span style="font-size:13px;color:var(--ink2);white-space:nowrap">{{ c.period }}</span>
+<span style="font-size:13px;color:var(--ink2)">{{ c.how }}</span>
+<span style="display:flex;color:var(--ink3)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></span>
+</a>
+</sc-for>
+<sc-if value="{{ hasMoreClosed }}" hint-placeholder-val="{{ false }}"><div style="padding:12px 24px 12px 48px;border-top:1px solid var(--border);font-size:13px;color:var(--ink3)">{{ moreClosed }} more in the period</div></sc-if>
+</sc-if>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ onAuto }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div onClick="{{ toggleHow }}" style="display:flex;align-items:center;gap:8px;min-height:48px;padding:0 24px;cursor:pointer;user-select:none" style-hover="background:var(--wash)">
+<span style="display:flex;color:var(--ink2)">
+<sc-if value="{{ howOpen }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
+<sc-if value="{{ howShut }}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
+</span>
+<span style="font-weight:500">How the playbook works</span>
+<span style="font-size:13px;color:var(--ink3)">Connexity never acts itself. It stores these rules; your AI assistant reads them.</span>
+</div>
+<sc-if value="{{ howOpen }}" hint-placeholder-val="{{ false }}">
+<div style="padding:0 24px 18px 48px">
+<ol style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px">
+<li style="display:flex;align-items:baseline;gap:12px"><span style="flex:none;width:20px;height:20px;border-radius:10px;border:1px solid var(--bc);color:var(--ink2);font-size:13px;line-height:18px;display:flex;align-items:center;justify-content:center">1</span><span style="text-wrap:pretty">Connexity opens an incident and sends an alert to your Slack (or other messenger).</span></li>
+<li style="display:flex;align-items:baseline;gap:12px"><span style="flex:none;width:20px;height:20px;border-radius:10px;border:1px solid var(--bc);color:var(--ink2);font-size:13px;line-height:18px;display:flex;align-items:center;justify-content:center">2</span><span style="text-wrap:pretty">If your AI assistant is connected to that channel, it picks the alert up.</span></li>
+<li style="display:flex;align-items:baseline;gap:12px"><span style="flex:none;width:20px;height:20px;border-radius:10px;border:1px solid var(--bc);color:var(--ink2);font-size:13px;line-height:18px;display:flex;align-items:center;justify-content:center">3</span><span style="text-wrap:pretty">It checks these rules in Connexity.</span></li>
+<li style="display:flex;align-items:baseline;gap:12px"><span style="flex:none;width:20px;height:20px;border-radius:10px;border:1px solid var(--bc);color:var(--ink2);font-size:13px;line-height:18px;display:flex;align-items:center;justify-content:center">4</span><span style="text-wrap:pretty">It acts: either it asks you for approval in its session, or, where you ticked “Approve automatically”, it goes ahead on its own (for example at 3 a.m.).</span></li>
+</ol>
+</div>
+</sc-if>
+<sc-if value="{{ notConnected }}" hint-placeholder-val="{{ false }}"><p style="margin:0;padding:12px 24px 14px 48px;border-top:1px solid var(--border);color:var(--ink2);text-wrap:pretty">Your assistant isn't connected to an alert channel yet, so these rules won't run. <a href="Connexity Roadmap.dc.html#readiness" style="color:var(--ink)">Open Readiness</a></p></sc-if>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Rules</h2><span style="font-size:13px;color:var(--ink3)">Only a person changes these. Every change is recorded.</span></div>
+<sc-for list="{{ rules }}" as="a" hint-placeholder-count="2">
+<div style="border-top:1px solid var(--border)">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:32px;align-items:start;padding:16px 24px">
+<div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+<span style="font-weight:500">{{ a.name }}</span>
+<span style="color:var(--ink2);text-wrap:pretty">{{ a.desc }}</span>
+</div>
+<div style="display:flex;flex-direction:column;align-items:flex-start;gap:10px;width:360px">
+<div style="display:flex;align-items:center;gap:10px"><span style="width:76px;font-size:13px;color:var(--ink2)">Allowed for</span>
+<div style="display:flex;padding:2px;border-radius:8px;border:1px solid var(--bc)"><sc-for list="{{ a.modes }}" as="m" hint-placeholder-count="0"><button onClick="{{ m.pick }}" style="{{ m.style }}">{{ m.label }}</button></sc-for></div>
+</div>
+<div onClick="{{ a.toggleAuto }}" style="{{ a.autoStyle }}">
+<sc-if value="{{ a.autoOn }}"><span style="flex:none;width:16px;height:16px;margin-top:3px;border-radius:4px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span></sc-if>
+<sc-if value="{{ a.autoOff }}"><span style="flex:none;width:16px;height:16px;margin-top:3px;border-radius:4px;border:1px solid var(--bc)"></span></sc-if>
+<span style="display:flex;flex-direction:column"><span>Approve automatically</span><span style="font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">{{ a.hint }}</span></span>
+</div>
+</div>
+</div>
+<sc-if value="{{ a.listOpen }}">
+<div style="display:flex;flex-wrap:wrap;gap:4px 20px;padding:0 24px 14px">
+<sc-for list="{{ a.agents }}" as="g" hint-placeholder-count="0">
+<label onClick="{{ g.toggle }}" style="display:flex;align-items:center;gap:8px;min-height:28px;font-size:13px;cursor:pointer">
+<sc-if value="{{ g.on }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span></sc-if>
+<sc-if value="{{ g.off }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;border:1px solid var(--bc)"></span></sc-if>
+<span>{{ g.name }}</span>
+</label>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-for>
+<div style="border-top:1px solid var(--border)">
+<div onClick="{{ toggleLog }}" style="display:flex;align-items:center;gap:8px;min-height:48px;padding:0 24px;cursor:pointer;user-select:none" style-hover="background:var(--wash)">
+<span style="display:flex;color:var(--ink2)">
+<sc-if value="{{ logOpen }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
+<sc-if value="{{ logShut }}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
+</span>
+<span style="font-weight:500">Taken automatically</span><span style="font-size:13px;color:var(--ink2)">{{ logCount }} this month</span>
+</div>
+<sc-if value="{{ logOpen }}" hint-placeholder-val="{{ false }}">
+<sc-for list="{{ log }}" as="l" hint-placeholder-count="0">
+<sc-if value="{{ l.isAction }}"><a href="{{ l.href }}" title="Open the incident" style="display:block;padding:10px 24px 10px 48px;border-top:1px solid var(--border);color:var(--ink);text-decoration:none;text-wrap:pretty" style-hover="background:var(--wash);opacity:1"><span style="color:var(--ink2)">{{ l.when }} · </span>{{ l.what }}<span style="color:var(--ink2)"> · {{ l.how }}</span></a></sc-if>
+<sc-if value="{{ l.isChange }}"><div style="padding:10px 24px 10px 48px;border-top:1px solid var(--border);color:var(--ink2);text-wrap:pretty">{{ l.when }} · {{ l.what }}</div></sc-if>
+</sc-for>
+</sc-if>
+</div>
+</div>
+</sc-if>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;tab&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;inc&quot;,&quot;auto&quot;],&quot;default&quot;:&quot;inc&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;assistantConnected&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  static THEMES = {
+    dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
+    light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
+  };
+  static AGENTS = { insurance:'Insurance renewals', restaurant:'Restaurant reservations', car:'Car service booking', clinic:'Clinic after-hours', dental:'Dental reception' };
+  // spark: failed calls per 15 minutes from the first bucket; from: start of the span
+  static INCS = [
+    { id:'INC-0412', agents:['car','restaurant','clinic','dental'], failed:31, failing:true, title:'Booking tool failing', line:'4 agents \u00b7 31 calls failed \u00b7 since 09:12 \u00b7 version 15 went live at 08:55, just before', spark:[1,2,4,5,4,5,4,3,3], from:'09:12' },
+    { id:'INC-0411', agents:['insurance'], failed:6, failing:false, stoppedText:'Stopped at 10:41', title:'Quote lookup timing out', line:'Insurance renewals \u00b7 6 calls failed \u00b7 since 10:05 \u00b7 version 15 went live at 10:00, just before', spark:[2,3,1,0,0], from:'10:05', proposal:'Your assistant proposes closing: rolled back to version 14' }
+  ];
+  static CLOSED = [['INC-0409','Table plan lookup failing','Restaurant reservations',3,'11 Nov 03:04 \u2013 03:31','Rollback','Alex'],['INC-0405','Transfer line not answering','Insurance renewals',4,'10 Nov 16:20 \u2013 17:02','Outside recovery','Sam'],['INC-0398','Booking tool failing','2 agents',8,'8 Nov 09:00 \u2013 11:50','Rollback','Alex']];
+  // closed in the period and median time to close
+  static PERIOD = { 'Last 7 days':[3,'1 h 40'], 'Last 30 days':[3,'1 h 40'], 'Last 90 days':[7,'1 h 52'] };
+  static HOWS = ['Rollback','Fix in a version','Outside recovery','Workaround'];
+  // rules your assistant reads: allowed for which agents, and whether it may go ahead without asking
+  static AUTO = [
+    { id:'rollback', name:'Roll back', desc:'Roll the agent back to the last version that passed its tests.', mode:'some', agents:['insurance','restaurant','clinic'], auto:true, rec:{ who:'Alex', when:'10 Nov', from:'Off', to:'Some agents (3), approved automatically' }, used:'Used twice this month' },
+    { id:'hotfix', name:'Hotfix', desc:'Write a fix and deploy it once it passes its tests in Connexity. It always passes its tests before it deploys, even when approved automatically.', mode:'off', agents:[], auto:false, rec:null, used:'Never used' }
+  ];
+  // [when, what, auto | person who approved it in the session, incident]
+  // newest first: [when, what, auto | person who approved it in the session | change, incident]
+  static LOG = [['Today 10:38','Rolled back Insurance renewals to version 14','auto','INC-0411'],['11 Nov 03:12','Rolled back Restaurant reservations to version 6','auto','INC-0409'],['10 Nov 16:02','Alex changed Roll back: Off \u2192 Some agents (3), approved automatically','change',null],['8 Nov 10:36','Rolled back Car service booking to version 13','Sam','INC-0398']];
+  constructor(props) {
+    super(props);
+    this.state = { tab: props.tab || 'inc', logOpen:false, auto:{}, lists:{}, changes:[], howOpen:null, periodOpen:false, period:'Last 30 days', done:{}, rejected:{}, form:null, how:'', cause:'', reason:'', closedOpen:false, closedNow:[] };
+    this.pickerRef = React.createRef();
+  }
+  componentDidMount() {
+    this.onDoc = e => { if (this.state.periodOpen && this.pickerRef.current && !this.pickerRef.current.contains(e.target)) this.setState({ periodOpen:false }); };
+    document.addEventListener('mousedown', this.onDoc);
+  }
+  componentWillUnmount() { document.removeEventListener('mousedown', this.onDoc); }
+  renderVals() {
+    const C = Component, S = this.state;
+    const incs = C.INCS.filter(x => !S.done[x.id]);
+    const split = a => { const o = []; a.forEach((v, i) => { const t = [0, 0, 0]; for (let k = 0; k < v; k++) t[(2 + k * 2 + i) % 3]++; o.push(...t); }); return o.slice(Math.max(0, o.findIndex(v => v > 0))); };
+    const closeIt = (x, how) => this.setState(s => ({ done:{ ...s.done, [x.id]:true }, form:null, how:'', cause:'', reason:'', closedNow:[[x.id, x.title, x.agents.length === 1 ? C.AGENTS[x.agents[0]] : x.agents.length + ' agents', x.failed, 'Today', how, 'you'], ...s.closedNow] }));
+    const [closedBase, ttc] = C.PERIOD[S.period] || C.PERIOD['Last 30 days'];
+    const closed = S.closedNow.concat(C.CLOSED);
+    const cantClose = !(S.how && S.cause.trim() && S.reason.trim());
+    const ids = Object.keys(C.AGENTS);
+    const cur = a => S.auto[a.id] || { mode:a.mode, agents:a.agents, auto:a.auto, rec:a.rec };
+    const label = v => (v.mode === 'off' ? 'Off' : v.mode === 'all' ? 'All agents' : `Some agents (${v.agents.length})`) + (v.mode !== 'off' ? (v.auto ? ', approved automatically' : ', ask first') : '');
+    const setAuto = (a, next) => this.setState(s => { const old = s.auto[a.id] || { mode:a.mode, agents:a.agents, auto:a.auto, rec:a.rec }; const nv = { ...old, ...next };
+      return { auto: { ...s.auto, [a.id]: { ...nv, rec: { who:'you', when:'today', from: label(old), to: label(nv) } } }, changes: [['Today', `You changed ${a.name}: ${label(old)} \u2192 ${label(nv)}`, 'change', null], ...s.changes] }; });
+    const tabStyle = on => ({ display:'flex', alignItems:'center', gap:6, height:40, padding:'0 2px', marginBottom:-1, border:0, borderBottom:'2px solid ' + (on ? 'var(--ink)' : 'transparent'), background:'transparent', color: on ? 'var(--ink)' : 'var(--ink2)', fontSize:15, fontWeight:500, cursor:'pointer' });
+    const tab = S.tab === 'auto' ? 'auto' : 'inc';
+    return {
+      onInc: tab === 'inc', onAuto: tab === 'auto', tabIncStyle: tabStyle(tab === 'inc'), tabAutoStyle: tabStyle(tab === 'auto'),
+      tabInc: () => this.setState({ tab:'inc' }), tabAuto: () => this.setState({ tab:'auto' }),
+      notConnected: this.props.assistantConnected === false,
+      ...(() => { let saved = null; try { saved = localStorage.getItem('cx-playbook-how'); } catch (_) {}
+        const anyOn = C.AUTO.some(a => cur(a).mode !== 'off');
+        const open = S.howOpen != null ? S.howOpen : saved ? saved === 'open' : !anyOn;
+        return { howOpen: open, howShut: !open, toggleHow: () => { try { localStorage.setItem('cx-playbook-how', open ? 'closed' : 'open'); } catch (_) {} this.setState({ howOpen: !open }); } }; })(),
+      logOpen: S.logOpen, logShut: !S.logOpen, toggleLog: () => this.setState(s => ({ logOpen: !s.logOpen })), logCount: String(C.LOG.filter(x => x[2] !== 'change').length),
+      log: S.changes.concat(C.LOG).map(([when, what, by, id]) => ({ when, what, isChange: by === 'change', isAction: by !== 'change', how: by === 'auto' ? 'approved automatically' : by === 'change' ? 'rule change' : `approved by ${by} in the session`, href:'Connexity Incident.dc.html?incident=' + (['INC-0411','INC-0398'].includes(id) ? id : 'INC-0398') })),
+      rules: C.AUTO.map(a => { const v = cur(a), open = v.mode === 'some' && (S.lists[a.id] ?? false), off = v.mode === 'off';
+        return { name:a.name, desc:a.desc,
+          meta: (v.rec ? `${v.rec.who === 'you' ? 'You' : v.rec.who}, ${v.rec.when}` : 'Never switched on') + ' \u00b7 ' + a.used,
+          record: v.rec ? `${v.rec.from} \u2192 ${v.rec.to}` : 'No changes yet',
+          listOpen: open, autoOn: !!v.auto, autoOff: !v.auto,
+          hint: v.auto ? 'No one has to approve it in the moment, for example at 3 a.m.' : 'Your assistant asks a person in its session before acting.',
+          autoStyle: { display:'flex', alignItems:'flex-start', gap:10, cursor: off ? 'default' : 'pointer', opacity: off ? 0.5 : 1, userSelect:'none' },
+          toggleAuto: () => { if (!off) setAuto(a, { auto: !v.auto }); },
+          modes: [['off','Off'],['all','All agents'],['some','Some agents']].map(([m, l]) => ({ label: m === 'some' && v.mode === 'some' ? `Some \u00b7 ${v.agents.length} of ${ids.length}` : l,
+            pick: () => { if (m === 'some' && v.mode === 'some') { this.setState(s => ({ lists: { ...s.lists, [a.id]: !open } })); return; }
+              if (m !== v.mode) { setAuto(a, { mode:m, agents: m === 'some' && !v.agents.length ? ['insurance'] : v.agents }); if (m === 'some') this.setState(s => ({ lists: { ...s.lists, [a.id]: true } })); } },
+            style:{ height:28, padding:'0 10px', borderRadius:6, border:0, background: v.mode === m ? 'var(--wash)' : 'transparent', color: v.mode === m ? 'var(--ink)' : 'var(--ink2)', fontSize:13, fontWeight: v.mode === m ? 500 : 400, cursor:'pointer', whiteSpace:'nowrap' } })),
+          agents: ids.map(g => ({ name: C.AGENTS[g], on: v.agents.includes(g), off: !v.agents.includes(g),
+            toggle: e => { e.preventDefault(); const list = v.agents.includes(g) ? v.agents.filter(x => x !== g) : [...v.agents, g]; setAuto(a, { agents: list, mode: list.length ? 'some' : 'off' }); } })) };
+      }),
+      rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
+      pickerRef: this.pickerRef, period: S.period, periodOpen: S.periodOpen,
+      togglePeriod: () => this.setState(s => ({ periodOpen: !s.periodOpen })),
+      periods: ['Last 7 days','Last 30 days','Last 90 days'].map(l => ({ label:l, current: l === S.period, pick: () => this.setState({ period:l, periodOpen:false }) })),
+      activeCount: incs.length, incFailed: incs.reduce((n, x) => n + x.failed, 0), incAgents: new Set(incs.flatMap(x => x.agents)).size,
+      closedCount: closedBase + S.closedNow.length, ttc, noActive: incs.length === 0,
+      incCards: incs.map(x => {
+        const fm = S.form === x.id, o = split(x.spark), mx = Math.max(...o, 1);
+        return {
+          href:'Connexity Incident.dc.html?incident=' + x.id, title:x.title, line:x.line, failing:x.failing, stopped:!x.failing, stoppedText:x.stoppedText || '',
+          peak: `${mx} per 5 min`, from: x.from, to:'Now',
+          barGrid: { height:40, display:'grid', gridTemplateColumns:`repeat(${o.length}, minmax(0,1fr))`, gap:2, alignItems:'end' },
+          bars: o.map((v, i) => ({ style:{ width:'100%', height: v ? Math.max(10, v / mx * 100) + '%' : 1, background: v ? 'var(--crit)' : 'var(--bc)', opacity: v ? (i === o.length - 1 && x.failing ? 1 : 0.4) : 0.6, borderRadius:1 } })),
+          hasProposal: !!x.proposal && !S.rejected[x.id] && !fm, proposal: x.proposal || '',
+          reject: e => { e.stopPropagation(); this.setState(s => ({ rejected:{ ...s.rejected, [x.id]:true } })); },
+          confirmProposal: e => { e.stopPropagation(); closeIt(x, 'Rollback'); },
+          closing: fm, showClose: !fm && !(x.proposal && !S.rejected[x.id]),
+          openClose: e => { e.stopPropagation(); this.setState({ form:x.id, how:'', cause:'', reason:'' }); },
+          hows: C.HOWS.map(h => ({ label:h, pick: () => this.setState({ how:h }), style:{ height:32, padding:'0 10px', borderRadius:8, border:'1px solid ' + (S.how === h ? 'var(--ink)' : 'var(--bc)'), background: S.how === h ? 'var(--wash)' : 'transparent', color:'var(--ink)', fontSize:13, fontWeight: S.how === h ? 500 : 400, cursor:'pointer' } })),
+          submitClose: () => { if (!cantClose) closeIt(x, S.how); }
+        };
+      }),
+      fCause: S.cause, fReason: S.reason, onCause: e => this.setState({ cause: e.target.value }), onReason: e => this.setState({ reason: e.target.value }),
+      cancelForm: () => this.setState({ form:null }), cantClose,
+      closeBtnStyle: { height:36, padding:'0 16px', borderRadius:8, border:0, background:'var(--accent)', color:'var(--on-accent)', fontSize:15, fontWeight:500, cursor: cantClose ? 'default' : 'pointer', opacity: cantClose ? 0.4 : 1 },
+      closedOpen: S.closedOpen, closedShut: !S.closedOpen, toggleClosed: () => this.setState(s => ({ closedOpen: !s.closedOpen })),
+      closedRows: closed.map(([id, title, agents, failed, period, how, by]) => ({ href:'Connexity Incident.dc.html?incident=' + (['INC-0398','INC-0411','INC-0412'].includes(id) ? id : 'INC-0398'), title, agents, failed, period, how, by })),
+      hasMoreClosed: closedBase > C.CLOSED.length, moreClosed: closedBase - C.CLOSED.length
+    };
+  }
+}
+</script>
+</body>
+</html>

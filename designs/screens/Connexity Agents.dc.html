@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0}*{box-sizing:border-box}button{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<dc-import name="Connexity Readiness Bar" hint-size="100%,36px"></dc-import>
+<div style="display:flex;min-height:inherit">
+<div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="agents" style="height:100%" hint-size="220px,280px"></dc-import></div>
+<main style="flex:1;min-width:944px;padding:24px 32px 48px">
+<div style="max-width:1120px;min-width:880px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:40px">
+<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+<h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Agents</h1>
+<span style="font-size:13px;color:var(--ink3);white-space:nowrap">Retell · synced 5 minutes ago</span>
+</div>
+<div ref="{{ pickerRef }}" style="position:relative">
+<button onClick="{{ togglePeriod }}" style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>
+<span>{{ period }}</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{ periodOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;right:0;top:42px;z-index:20;min-width:200px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18)">
+<sc-for list="{{ periods }}" as="p" hint-placeholder-count="0">
+<div onClick="{{ p.pick }}" style="display:flex;align-items:center;justify-content:space-between;height:36px;padding:0 12px;border-radius:6px;font-size:15px;cursor:pointer" style-hover="background:var(--wash)">
+<span>{{ p.label }}</span>
+<sc-if value="{{ p.current }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 80px 128px 104px 88px;gap:16px;align-items:center;height:40px;padding:0 24px;font-size:13px;color:var(--ink2)">
+<span>Agent</span><span style="text-align:right">Score</span><span style="text-align:right">Critical issues</span><span style="text-align:right">Latency</span><span style="text-align:right">Calls</span>
+</div>
+<sc-for list="{{ agents }}" as="a" hint-placeholder-count="5">
+<a href="{{ a.href }}" style="display:grid;grid-template-columns:minmax(0,1fr) 80px 128px 104px 88px;gap:16px;align-items:center;min-height:64px;padding:10px 24px;border-top:1px solid var(--border);font-size:15px;color:var(--ink);text-decoration:none;cursor:pointer" style-hover="background:var(--wash);opacity:1">
+<div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+<span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ a.name }}</span><sc-if value="{{ a.noSpec }}"><span style="flex:none;display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:6px;border:1px solid var(--border);color:var(--ink3);font-size:13px;line-height:18px">No spec</span></sc-if></span>
+<span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ a.sub }}</span>
+</div>
+<span style="text-align:right;font-weight:500">{{ a.score }}</span>
+<span style="display:flex;justify-content:flex-end">
+<sc-if value="{{ a.hasCrit }}"><span style="display:inline-flex;align-items:center;gap:4px;color:var(--crit)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>{{ a.crit }}</span></sc-if>
+<sc-if value="{{ a.noCrit }}"><span style="color:var(--ink2)">0</span></sc-if>
+</span>
+<span style="display:flex;justify-content:flex-end">
+<sc-if value="{{ a.over }}"><span title="{{ a.goalTitle }}" style="display:inline-flex;align-items:center;gap:4px;color:var(--warn)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>{{ a.lat }}</span></sc-if>
+<sc-if value="{{ a.under }}"><span title="{{ a.goalTitle }}">{{ a.lat }}</span></sc-if>
+</span>
+<span style="text-align:right">{{ a.calls }}</span>
+</a>
+</sc-for>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;}}">
+class Component extends DCLogic {
+  static THEMES = {
+    dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
+    light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
+  };
+  static AGENTS = [
+    { id:'restaurant', name:'Restaurant reservations', type:'conversational flow', score:63, crit:2, lat:0.8, goal:1.5, calls:488 },
+    { id:'insurance', name:'Insurance renewals', type:'conversational flow', score:41, crit:3, lat:1.0, goal:1.5, calls:96 },
+    { id:'dental', name:'Dental reception', type:'conversational flow', noSpec:true, score:78, crit:1, lat:1.2, goal:1.0, calls:230 },
+    { id:'car', name:'Car service booking', type:'single prompt', score:48, crit:1, lat:1.8, goal:1.5, calls:310 },
+    { id:'clinic', name:'Clinic after-hours', type:'single prompt', score:66, crit:2, lat:1.1, goal:1.5, calls:160 }
+  ];
+  constructor(props) {
+    super(props);
+    this.state = { periodOpen:false, period:'Last 30 days' };
+    this.pickerRef = React.createRef();
+  }
+  componentDidMount() {
+    this.onDoc = e => { if (this.state.periodOpen && this.pickerRef.current && !this.pickerRef.current.contains(e.target)) this.setState({ periodOpen:false }); };
+    document.addEventListener('mousedown', this.onDoc);
+  }
+  componentWillUnmount() { document.removeEventListener('mousedown', this.onDoc); }
+  renderVals() {
+    const agents = [...Component.AGENTS].sort((a, b) => a.score - b.score).map(a => ({
+      ...a, sub: 'Retell · ' + a.type, href: 'Connexity Agent Profile.dc.html?agent=' + a.id,
+      hasCrit: a.crit > 0, noCrit: a.crit === 0, noSpec: !!a.noSpec,
+      lat: a.lat.toFixed(1) + ' s', over: a.lat > a.goal, under: a.lat <= a.goal,
+      goalTitle: (a.lat > a.goal ? 'Over' : 'Within') + ' its ' + a.goal.toFixed(1) + ' s goal'
+    }));
+    return {
+      rootStyle: { ...Component.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
+      pickerRef: this.pickerRef,
+      period: this.state.period, periodOpen: this.state.periodOpen,
+      togglePeriod: () => this.setState(s => ({ periodOpen: !s.periodOpen })),
+      periods: ['Last 7 days','Last 30 days','Last 90 days'].map(l => ({ label:l, current: l === this.state.period, pick: () => this.setState({ period:l, periodOpen:false }) })),
+      agents
+    };
+  }
+}
+</script>
+</body>
+</html>

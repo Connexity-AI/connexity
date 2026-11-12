@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0}*{box-sizing:border-box}button,textarea{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}textarea::placeholder{color:var(--ink3)}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<dc-import name="Connexity Readiness Bar" hint-size="100%,36px"></dc-import>
+<div style="display:flex;min-height:inherit">
+<div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="issues" style="height:100%" hint-size="220px,320px"></dc-import></div>
+<main style="flex:1;min-width:944px;padding:24px 32px 48px">
+<div style="max-width:1120px;min-width:880px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:40px">
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-width:0">
+<a href="Connexity Issues.dc.html" title="Back to Issues" style="flex:none;display:flex;align-items:center;justify-content:center;width:32px;height:32px;margin-left:-6px;border-radius:8px;color:var(--ink2);text-decoration:none" style-hover="background:var(--wash);opacity:1"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></a>
+<h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">{{ title }}</h1>
+<a href="{{ agentHref }}" style="font-size:13px;color:var(--ink2);white-space:nowrap">{{ agent }}</a>
+<sc-if value="{{ isCrit }}" hint-placeholder-val="{{ true }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Critical</span></sc-if>
+<sc-if value="{{ isWarn }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Warning</span></sc-if>
+<sc-if value="{{ stOpen }}" hint-placeholder-val="{{ true }}"><span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;border:1px solid var(--bc);color:var(--ink);font-size:13px">Open</span></sc-if>
+<sc-if value="{{ stReop }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--accent);color:var(--on-accent);font-size:13px;font-weight:500"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>Reopened</span></sc-if>
+<sc-if value="{{ stRes }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;background:var(--pass-bg);color:var(--pass);font-size:13px;font-weight:500">{{ resText }}</span></sc-if>
+<sc-if value="{{ stKnown }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;border:1px solid var(--border);color:var(--ink2);font-size:13px">Archived</span></sc-if>
+</div>
+<div ref="{{ askRef }}" style="position:relative;flex:none">
+<sc-if value="{{ canAccept }}" hint-placeholder-val="{{ true }}">
+<button onClick="{{ toggleAsk }}" style="display:flex;align-items:center;gap:6px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer;white-space:nowrap" style-hover="background:var(--wash)">Archive</button>
+</sc-if>
+<sc-if value="{{ askOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;right:0;top:42px;z-index:20;width:380px;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;flex-direction:column;gap:4px">
+<span style="font-size:15px;line-height:22px;font-weight:500">Archive this issue</span>
+<span style="font-size:13px;line-height:18px;color:var(--ink2);text-wrap:pretty">It leaves the open lists, Home and the roadmap, and stops counting against the agent’s score from today. Occurrences are still recorded.</span>
+</div>
+<textarea ref="{{ reasonRef }}" value="{{ reason }}" onChange="{{ onReason }}" rows="3" placeholder="Why it can be archived (required)" style="width:100%;resize:vertical;padding:8px 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s1);color:var(--ink);font-size:15px;line-height:22px;outline:none"></textarea>
+<div style="display:flex;flex-direction:column;gap:6px">
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">How long</span>
+<sc-for list="{{ durs }}" as="u" hint-placeholder-count="0">
+<div onClick="{{ u.pick }}" style="{{ u.style }}">
+<sc-if value="{{ u.on }}"><span style="flex:none;width:16px;height:16px;margin-top:3px;border-radius:8px;border:5px solid var(--ink)"></span></sc-if>
+<sc-if value="{{ u.off }}"><span style="flex:none;width:16px;height:16px;margin-top:3px;border-radius:8px;border:1.5px solid var(--bc)"></span></sc-if>
+<span style="display:flex;flex-direction:column"><span>{{ u.label }}</span><span style="font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">{{ u.sub }}</span></span>
+</div>
+</sc-for>
+</div>
+<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px">
+<button onClick="{{ closeAsk }}" style="height:36px;padding:0 12px;border-radius:8px;border:0;background:transparent;color:var(--ink2);font-size:15px;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)">Cancel</button>
+<button onClick="{{ confirm }}" disabled="{{ noReason }}" style="{{ confirmStyle }}">Archive</button>
+</div>
+<span style="font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">Only a person can confirm this. Your assistant can propose it, and the proposal shows up in Action items.</span>
+</div>
+</sc-if>
+</div>
+</div>
+<sc-if value="{{ isArchived }}" hint-placeholder-val="{{ false }}">
+<p style="margin:-12px 0 0 30px;font-size:15px;line-height:22px;color:var(--ink2);text-wrap:pretty">{{ archLine }}</p>
+</sc-if>
+<sc-if value="{{ inIncident }}" hint-placeholder-val="{{ false }}">
+<a href="{{ incHref }}" style="display:flex;align-items:center;gap:10px;min-height:44px;padding:0 16px;margin-top:-8px;border-radius:12px;border:1px solid var(--crit);background:var(--s1);color:var(--ink);text-decoration:none" style-hover="background:var(--wash);opacity:1">
+<span style="width:8px;height:8px;border-radius:4px;background:var(--crit);flex:none"></span>
+<span style="flex:1">{{ incText }}</span>
+<span style="display:flex;align-items:center;gap:4px;font-size:13px;color:var(--ink2)">Open incident<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></span>
+</a>
+</sc-if>
+<div style="display:flex;gap:12px">
+<div style="flex:1;min-width:0;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Calls affected</span><span style="display:flex;align-items:baseline;gap:6px"><span style="font-size:30px;line-height:36px;font-weight:500">{{ calls }}</span><span style="font-size:15px;color:var(--ink3)">of {{ callsOf }}</span></span></div>
+<div style="flex:1;min-width:0;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">First seen</span><span style="font-size:30px;line-height:36px;font-weight:500;white-space:nowrap">{{ first }}</span></div>
+<div style="flex:1;min-width:0;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Last seen</span><span style="font-size:30px;line-height:36px;font-weight:500;white-space:nowrap">{{ last }}</span></div>
+<sc-if value="{{ isCrit }}" hint-placeholder-val="{{ true }}">
+<div style="flex:1;min-width:0;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Incidents</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ incidentCount }}</span></div>
+</sc-if>
+<div style="flex:1;min-width:0;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Milestone</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ milestone }}</span></div>
+</div>
+<div style="display:flex;gap:14px;padding:16px 20px;border-radius:12px;border:1px solid var(--border)">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex:none;margin-top:2px;color:var(--brand)"><circle cx="9" cy="12" r="6"></circle><circle cx="15" cy="12" r="6"></circle></svg>
+<div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">Connexity · likely cause</span>
+<p style="margin:0;font-size:15px;line-height:22px;text-wrap:pretty;max-width:760px">{{ tip }}</p>
+</div>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px 24px;display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Progress</h2>
+<sc-if value="{{ stopped }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:var(--ink2)">{{ stoppedNote }}</span></sc-if>
+</div>
+<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr))">
+<sc-for list="{{ steps }}" as="s" hint-placeholder-count="5">
+<div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+<div style="display:flex;align-items:center">
+<sc-if value="{{ s.isDone }}"><span style="flex:none;width:20px;height:20px;border-radius:10px;background:var(--ink);color:var(--s1);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span></sc-if>
+<sc-if value="{{ s.isCurrent }}"><span style="flex:none;width:20px;height:20px;border-radius:10px;border:2px solid var(--ink);display:flex;align-items:center;justify-content:center"><span style="width:8px;height:8px;border-radius:4px;background:var(--ink)"></span></span></sc-if>
+<sc-if value="{{ s.isLater }}"><span style="flex:none;width:20px;height:20px;border-radius:10px;border:1.5px solid var(--bc)"></span></sc-if>
+<span style="{{ s.lineStyle }}"></span>
+</div>
+<div style="display:flex;flex-direction:column;gap:2px;padding-right:20px">
+<span style="{{ s.nameStyle }}">{{ s.name }}</span>
+<sc-if value="{{ s.hasLink }}"><a href="{{ s.href }}" style="font-size:13px;line-height:18px;color:var(--ink2);text-wrap:pretty">{{ s.detail }}</a></sc-if>
+<sc-if value="{{ s.noLink }}"><span style="font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">{{ s.detail }}</span></sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px 24px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:baseline;gap:12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Affected calls per day</h2><span style="font-size:13px;color:var(--ink3)">Last 30 days</span></div>
+<div style="display:flex;flex-direction:column;gap:8px;padding-top:20px">
+<div style="position:relative;height:160px">
+<div style="position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:8px"><span style="width:24px;font-size:13px;line-height:1;color:var(--ink3);text-align:right">{{ yMax }}</span><span style="flex:1;border-top:1px solid var(--border)"></span></div>
+<div style="position:absolute;left:0;right:0;top:50%;display:flex;align-items:center;gap:8px"><span style="width:24px;font-size:13px;line-height:1;color:var(--ink3);text-align:right">{{ yMid }}</span><span style="flex:1;border-top:1px solid var(--border)"></span></div>
+<div style="position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:8px"><span style="width:24px;font-size:13px;line-height:1;color:var(--ink3);text-align:right">0</span><span style="flex:1;border-top:1px solid var(--border)"></span></div>
+<div style="position:absolute;top:0;bottom:0;left:32px;right:0;display:grid;grid-template-columns:repeat(30,minmax(0,1fr));gap:3px;align-items:end">
+<sc-for list="{{ days }}" as="d" hint-placeholder-count="30"><div title="{{ d.title }}" style="{{ d.bar }}"></div></sc-for>
+</div>
+<div style="position:absolute;top:0;bottom:0;left:32px;right:0;pointer-events:none">
+<sc-for list="{{ marks }}" as="m" hint-placeholder-count="0">
+<div style="{{ m.style }}"><span style="position:absolute;left:6px;top:-22px;font-size:13px;line-height:18px;color:var(--ink2);white-space:nowrap">{{ m.label }}</span></div>
+</sc-for>
+</div>
+</div>
+<div style="margin-left:32px;display:grid;grid-template-columns:repeat(30,minmax(0,1fr));gap:3px;font-size:13px;line-height:18px;color:var(--ink3)">
+<sc-for list="{{ days }}" as="d" hint-placeholder-count="0"><span style="white-space:nowrap;overflow:visible">{{ d.label }}</span></sc-for>
+</div>
+</div>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Occurrences</h2><span style="font-size:13px;color:var(--ink3)">Latest first</span></div>
+<div style="display:grid;grid-template-columns:136px 96px 72px 104px minmax(0,1fr) 16px;gap:16px;align-items:center;height:40px;padding:0 24px;border-top:1px solid var(--border);font-size:13px;color:var(--ink2)">
+<span>Time</span><span>Caller</span><span style="text-align:right">Duration</span><span>Result</span><span>Moment</span><span></span>
+</div>
+<sc-for list="{{ occ }}" as="o" hint-placeholder-count="6">
+<a href="{{ o.href }}" title="Open the call at this moment" style="display:grid;grid-template-columns:136px 96px 72px 104px minmax(0,1fr) 16px;gap:16px;align-items:center;min-height:44px;padding:0 24px;border-top:1px solid var(--border);color:var(--ink);text-decoration:none" style-hover="background:var(--wash);opacity:1">
+<span style="white-space:nowrap">{{ o.when }}</span>
+<span style="color:var(--ink2);white-space:nowrap">{{ o.caller }}</span>
+<span style="color:var(--ink2);text-align:right">{{ o.dur }}</span>
+<span style="display:flex">
+<sc-if value="{{ o.isFailed }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Failed</span></sc-if>
+<sc-if value="{{ o.isDegraded }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Degraded</span></sc-if>
+</span>
+<span style="color:var(--ink2)">{{ o.at }}</span>
+<span style="display:flex;color:var(--ink3)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></span>
+</a>
+</sc-for>
+<a href="{{ allHref }}" style="display:flex;align-items:center;gap:6px;padding:14px 24px;border-top:1px solid var(--border);font-size:13px;line-height:18px;color:var(--ink2);text-decoration:none" style-hover="color:var(--ink);background:var(--wash);opacity:1">{{ allText }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></a>
+</div>
+<sc-if value="{{ isCrit }}" hint-placeholder-val="{{ true }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Past incidents</h2><span style="font-size:13px;color:var(--ink3)">{{ pastCount }}</span></div>
+<div style="display:grid;grid-template-columns:232px 96px minmax(0,1fr) 16px;gap:16px;align-items:center;height:40px;padding:0 24px;border-top:1px solid var(--border);font-size:13px;color:var(--ink2)">
+<span>Period</span><span style="text-align:right">Calls failed</span><span>How it stopped</span><span></span>
+</div>
+<sc-for list="{{ incidents }}" as="n" hint-placeholder-count="2">
+<a href="{{ n.href }}" title="Open the incident" style="display:grid;grid-template-columns:232px 96px minmax(0,1fr) 16px;gap:16px;align-items:center;min-height:44px;padding:0 24px;border-top:1px solid var(--border);color:var(--ink);text-decoration:none" style-hover="background:var(--wash);opacity:1">
+<span style="white-space:nowrap">{{ n.period }}</span>
+<span style="text-align:right">{{ n.failed }}</span>
+<span style="color:var(--ink2)">{{ n.how }}</span>
+<span style="display:flex;color:var(--ink3)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></span>
+</a>
+</sc-for>
+</div>
+</sc-if>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">History</h2></div>
+<sc-for list="{{ history }}" as="h" hint-placeholder-count="4">
+<div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:12px 24px;border-top:1px solid var(--border)">
+<p style="margin:0;text-wrap:pretty"><span>{{ h.what }}</span><span style="color:var(--ink2)">{{ h.meta }}</span></p>
+<sc-if value="{{ h.hasLink }}"><a href="Connexity Action items.dc.html" style="flex:none;font-size:13px;color:var(--ink2);white-space:nowrap">In Action items</a></sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;issue&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;I-1042&quot;,&quot;I-1053&quot;,&quot;I-0988&quot;],&quot;default&quot;:&quot;I-1042&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  static THEMES = {
+    dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
+    light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
+  };
+  // steps: [name, done|current|later, detail, href]; series: 30 days ending 12 Nov; occ: [when, last4, seconds, result, moment s]
+  static D = {
+    'I-1042': { title:'Booking tool returned an error', agentId:'car', agent:'Car service booking', sev:'c', status:'o', calls:38, of:'1,120', first:'2 Nov', last:'4 minutes ago', milestone:'64', incident:['INC-0412','Part of an active incident across 4 agents'],
+      tip:'The booking tool times out when the caller gives a date without a year. Send the year explicitly, or handle an empty result by offering to call back.',
+      steps:[['Found','done','2 Nov · call •••• 2207','call'],['In the spec','done','Offer a callback when the booking tool fails','spec'],['Tested','current','4 test cases · 3 failing','tests'],['Fixed in a version','later','Not yet',null],['Confirmed on real calls','later','After the fix ships',null]],
+      series:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,5,4,2,1,1,5,2,2,2,13], marks:[[18,'Version 9']],
+      occ:[['Today 11:08','5316',134,'failed',102],['Today 10:49','8830',187,'failed',121],['Today 10:12','3074',96,'failed',58],['Today 09:12','6612',212,'failed',143],['10 Nov 09:13','1459',165,'failed',97],['9 Nov 17:31','2948',148,'failed',110]],
+      occTotal:41, callId:'C-20466',
+      incidents:[['INC-0398','8 Nov 09:00 – 11:50',5,'Rollback'],['INC-0377','3 Nov 08:10 – 4 Nov 17:30',9,'Outside recovery']],
+      history:[['Incident opened with 3 other agents','Connexity','today 09:12','3rd incident on this issue'],['Test cases added','your assistant','9 Nov','Four cases built from the calls on 3 and 8 Nov'],['Proposal to archive declined','Sam','6 Nov','It loses real bookings. Not a caller problem',true],['Rule added to the spec','Sam','5 Nov','Offer a callback when the booking tool fails'],['Marked critical','Connexity','3 Nov','Failed 9 calls during an incident'],['Opened','Connexity','2 Nov','First seen on call •••• 2207']] },
+    'I-1053': { title:'Told the caller to go to the emergency room', agentId:'clinic', agent:'Clinic after-hours', sev:'w', status:'o', calls:9, of:'160', first:'5 Nov', last:'6 hours ago', milestone:'62',
+      tip:'Clinic after-hours sends callers to the emergency room when they mention chest pain or trouble breathing. The spec does not say what it should do. Answer the clarification so the rule can be written and tested.',
+      steps:[['Found','done','5 Nov · call •••• 6630','call'],['Waiting for a clarification','current','Answer it in Action items','actions'],['Tested','later','After the rule is written',null],['Fixed in a version','later','Not yet',null],['Confirmed on real calls','later','After the fix ships',null]],
+      series:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,1,0,2,1,1,1], marks:[[13,'Version 4']],
+      occ:[['Today 03:18','6630',241,'degraded',88],['Yesterday 23:52','1904',198,'degraded',64],['Yesterday 21:07','7215',176,'degraded',102],['10 Nov 22:40','3388',205,'degraded',71]],
+      occTotal:10, callId:'C-20481', incidents:[],
+      history:[['Clarification asked','Connexity','5 Nov','Not covered by the spec of version 4',true],['Opened','Connexity','5 Nov','First seen on call •••• 6630']] },
+    'I-0988': { title:'Caller hung up while on hold', agentId:'insurance', agent:'Insurance renewals', sev:'w', status:'k', archived:{ who:'Alex', when:'9 Nov', dur:'until it gets worse', why:'Callers hang up during the carrier’s hold music' }, calls:12, of:'96', first:'21 Oct', last:'3 hours ago', milestone:'\u2014',
+      tip:'Callers hang up about 40 seconds into the hold music while the renewals team picks up. Offering a callback after 30 seconds on hold would keep most of them.',
+      steps:[['Found','done','21 Oct · call •••• 7718','call'],['In the spec','later','\u2014',null],['Tested','later','\u2014',null],['Fixed in a version','later','\u2014',null],['Confirmed on real calls','later','\u2014',null]],
+      series:[0,1,0,0,1,0,1,0,0,0,1,0,0,1,0,0,1,0,0,1,0,1,0,0,1,0,1,0,1,0], marks:[[14,'Version 14'],[26,'Archived by Alex']],
+      occ:[['Today 06:41','8152',344,'degraded',236],['Yesterday 14:26','2290',312,'degraded',198],['9 Nov 10:03','6047',287,'degraded',214],['7 Nov 15:39','9513',301,'degraded',226]],
+      occTotal:13, callId:'C-20481', incidents:[],
+      history:[['Archived','Alex','9 Nov','Callers hang up during the carrier’s hold music',false,'until it gets worse'],['Proposed for archiving','your assistant','8 Nov','Hang-ups start about 40 s into the hold music on every call',true],['Came back: happening 3× more often',null,'30 Oct','12 calls in a week, up from 4'],['Archived','Sam','24 Oct','Caller-side hang-ups during hold',false,'until it gets worse'],['Opened','Connexity','21 Oct','First seen on call •••• 7718']] }
+  };
+  static M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  constructor(props) {
+    super(props);
+    this.state = { askOpen:false, reason:'', dur:'worse', accepted:null };
+    this.askRef = React.createRef();
+    this.reasonRef = React.createRef();
+  }
+  componentDidMount() {
+    this.onDoc = e => { if (this.state.askOpen && this.askRef.current && !this.askRef.current.contains(e.target)) this.setState({ askOpen:false }); };
+    document.addEventListener('mousedown', this.onDoc);
+  }
+  componentWillUnmount() { document.removeEventListener('mousedown', this.onDoc); }
+  issueId() {
+    let q = null;
+    try { q = new URLSearchParams(window.location.search).get('issue'); } catch (_) {}
+    const id = this.props.issue || q || 'I-1042';
+    return Component.D[id] ? id : 'I-1042';
+  }
+  renderVals() {
+    const C = Component, id = this.issueId(), d = C.D[id], st = this.state;
+    const status = st.accepted ? 'k' : d.status;
+    const arch = st.accepted || d.archived || null;
+    const mmss = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    const profile = 'Connexity Agent Profile.dc.html?agent=' + d.agentId;
+    const callHref = (t) => 'Connexity Call.dc.html?call=' + d.callId + '&t=' + t;
+    const links = { call: callHref(d.occ[d.occ.length - 1][4]), spec: profile + '&tab=spec', tests: profile + '&tab=tests', actions: 'Connexity Action items.dc.html' };
+    const steps = d.steps.map(([name, state, detail, link], i) => {
+      const next = d.steps[i + 1];
+      return {
+        name, detail, href: link ? links[link] : '', hasLink: !!link, noLink: !link,
+        isDone: state === 'done', isCurrent: state === 'current', isLater: state === 'later',
+        nameStyle: { fontSize:15, lineHeight:'22px', fontWeight: state === 'current' ? 500 : 400, color: state === 'later' ? 'var(--ink2)' : 'var(--ink)' },
+        lineStyle: { flex:1, height:2, margin:'0 8px', borderRadius:1, display: next ? 'block' : 'none', background: next && next[1] !== 'later' ? 'var(--ink)' : 'var(--border)' }
+      };
+    });
+    const max = Math.max(...d.series), yMax = Math.max(2, Math.ceil(max / 2) * 2);
+    const start = new Date(2026, 9, 14);
+    const barColor = d.sev === 'c' ? 'var(--crit)' : 'var(--warn)';
+    const days = d.series.map((v, i) => {
+      const dt = new Date(start); dt.setDate(start.getDate() + i);
+      const date = dt.getDate() + ' ' + C.M[dt.getMonth()];
+      return { label: i % 7 === 0 ? date : '', title: `${date}: ${v} ${v === 1 ? 'call' : 'calls'}`,
+        bar: { height: (v / yMax * 100) + '%', minHeight: v ? 2 : 0, background: barColor, borderRadius:'2px 2px 0 0' } };
+    });
+    const marks = d.marks.map(([i, label]) => ({ label, style: { position:'absolute', top:0, bottom:0, left: `calc(${(i + 0.5) / 30 * 100}% )`, borderLeft:'1px dashed var(--ink3)' } }));
+    const history = (st.accepted ? [['Archived', 'you', st.accepted.when, st.accepted.why, false, st.accepted.dur]] : []).concat(d.history)
+      .map(([what, who, when, why, link, dur]) => ({ what, hasLink: !!link, meta: (who ? ` by ${who}, ${when}` : `, ${when}`) + (dur ? ` · ${dur}` : '') + ` · “${why}”` }));
+    const noReason = !st.reason.trim();
+    return {
+      rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
+      title: d.title, agent: d.agent, agentHref: profile + '&tab=issues',
+      isCrit: d.sev === 'c', isWarn: d.sev === 'w',
+      stOpen: status === 'o', stReop: status === 'r', stRes: status === 'd', stKnown: status === 'k', resText: 'Resolved in version ' + (d.version || ''),
+      canAccept: status !== 'k', askOpen: st.askOpen && status !== 'k', askRef: this.askRef, reasonRef: this.reasonRef,
+      toggleAsk: () => { this.setState(s => ({ askOpen: !s.askOpen })); setTimeout(() => this.reasonRef.current && this.reasonRef.current.focus(), 30); },
+      closeAsk: () => this.setState({ askOpen:false }),
+      reason: st.reason, onReason: e => this.setState({ reason: e.target.value }), noReason,
+      confirm: () => { if (noReason) return; this.setState(s => ({ accepted: { who:'you', when:'12 Nov', why: s.reason.trim(), dur: s.dur === 'worse' ? 'until it gets worse' : 'forever' }, askOpen:false, reason:'' })); },
+      durs: [['worse','Until it gets worse','Comes back on its own when it starts happening much more often'],['forever','Forever','Stays archived until someone unarchives it']].map(([v, label, sub]) => ({ label, sub, on: st.dur === v, off: st.dur !== v, pick: () => this.setState({ dur:v }),
+        style: { display:'flex', alignItems:'flex-start', gap:10, padding:'8px 10px', borderRadius:8, cursor:'pointer', border:'1px solid ' + (st.dur === v ? 'var(--bc)' : 'transparent'), background: st.dur === v ? 'var(--wash)' : 'transparent' } })),
+      isArchived: status === 'k', archLine: arch ? `Archived by ${arch.who}, ${arch.when} · ${arch.dur} · “${arch.why}”` : '',
+      confirmStyle: { height:36, padding:'0 14px', borderRadius:8, border:0, background:'var(--accent)', color:'var(--on-accent)', fontSize:15, fontWeight:500, cursor: noReason ? 'default' : 'pointer', opacity: noReason ? 0.4 : 1 },
+      calls: d.calls, callsOf: d.of, first: d.first, last: d.last, milestone: d.milestone, incidentCount: d.incidents.length + (d.incident ? 1 : 0),
+      inIncident: !!d.incident, incHref: d.incident ? 'Connexity Incident.dc.html?incident=' + d.incident[0] : '', incText: d.incident ? d.incident[1] : '',
+      pastCount: String(d.incidents.length),
+      tip: d.tip,
+      stopped: status === 'k', stoppedNote: 'Stopped: archived on ' + (arch ? arch.when : ''),
+      steps, days, marks, yMax, yMid: yMax / 2,
+      occ: d.occ.map(([when, last4, dur, res, at]) => ({ when, caller: '•••• ' + last4, dur: mmss(dur), isFailed: res === 'failed', isDegraded: res === 'degraded', at: 'at ' + mmss(at), href: callHref(at) })),
+      allText: `All ${d.occTotal} occurrences on ${d.calls} calls`, allHref: 'Connexity Calls.dc.html?issue=' + id,
+      incidents: d.incidents.map(([iid, period, failed, how]) => ({ period, failed, how, href:'Connexity Incident.dc.html?incident=' + iid })),
+      history
+    };
+  }
+}
+</script>
+</body>
+</html>
