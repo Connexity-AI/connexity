@@ -17,9 +17,16 @@ from app.api.deps import (
     SessionDep,
     require_mcp_user,
 )
-from app.models import WorkspaceCreate
+from app.core.config import settings
+from app.models import (
+    ReadinessPublic,
+    ReadinessStepKey,
+    ReadinessStepState,
+    WorkspaceCreate,
+)
 from app.models.mcp import (
     GUIDE_GETTING_STARTED,
+    GUIDE_READINESS,
     GUIDE_WORKSPACES,
     McpAgent,
     McpAnswer,
@@ -166,4 +173,54 @@ def list_agents(
         next_steps=next_steps,
         guide=GUIDE_GETTING_STARTED,
         next_cursor=_encode_cursor(offset + limit) if has_more else None,
+    )
+
+
+@router.get(
+    "/workspaces/{workspace_id}/readiness",
+    response_model=McpAnswer[ReadinessPublic],
+)
+def get_readiness(
+    session: SessionDep, workspace: McpWorkspaceDep
+) -> McpAnswer[ReadinessPublic]:
+    readiness = crud.get_readiness(
+        session=session,
+        company_id=workspace.id,
+        mcp_url=settings.oauth_default_resource_url,
+    )
+    state = {step.key: step.state for step in readiness.steps}
+    next_steps: list[str] = []
+    if state[ReadinessStepKey.VOICE_PLATFORM] != ReadinessStepState.DONE:
+        next_steps.append(
+            "Connect the voice platform (Retell): ask the person for their Retell API "
+            "key. Connexity's tool for registering it is not available yet; until "
+            "then the person adds it through the API."
+        )
+    if state[ReadinessStepKey.SYNC] != ReadinessStepState.DONE:
+        if state[ReadinessStepKey.VOICE_PLATFORM] == ReadinessStepState.DONE:
+            next_steps.append(
+                "The voice platform is connected. Choosing agents to sync and the "
+                "first scan are not available in Connexity yet; tell the person so, "
+                "and do not ask for the key again."
+            )
+        else:
+            next_steps.append(
+                "Syncing agents and calls and the first scan come after the voice "
+                "platform is connected."
+            )
+    next_steps.append(
+        "Call `get_readiness` again after each step to see what is left, and tell the "
+        "person what changed."
+    )
+    return McpAnswer[ReadinessPublic](
+        data=readiness,
+        rules=[
+            "Readiness is how complete the workspace's setup is; it never changes the "
+            "agents' score.",
+            "Getting started has four steps; the controls (alerts, spec, backends, "
+            "tests, the gate, rollback) come later.",
+            "You do the setup; the person gives keys and approves.",
+        ],
+        next_steps=next_steps,
+        guide=GUIDE_READINESS,
     )

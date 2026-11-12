@@ -17,6 +17,7 @@ For the contributor-facing architecture and tool-extension guide, see
 
 - `list_workspaces`: the workspaces the connected person can reach. Call it first.
 - `create_workspace(name)`: a new workspace for a client, with the person as its member.
+- `get_readiness(workspace_id)`: how complete the workspace's setup is, and what to do next.
 - `list_agents(workspace_id, query?, cursor?, limit?)`: a workspace's agents.
 
 Every tool answers in the standard shape (`data`, `rules`, `next_steps`, `guide`,

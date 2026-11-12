@@ -18,6 +18,7 @@ T = TypeVar("T")
 
 GUIDE_GETTING_STARTED = "connexity://guides/getting-started"
 GUIDE_WORKSPACES = "connexity://guides/workspaces"
+GUIDE_READINESS = "connexity://guides/readiness"
 
 
 class McpAnswer(BaseModel, Generic[T]):

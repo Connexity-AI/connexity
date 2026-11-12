@@ -3,6 +3,7 @@ from __future__ import annotations
 from connexity_mcp_server.client import ConnexityBackendClient
 from connexity_mcp_server.models import (
     CreateWorkspaceResult,
+    GetReadinessResult,
     ListAgentsResult,
     ListWorkspacesResult,
 )
@@ -17,6 +18,14 @@ async def create_workspace(
 ) -> CreateWorkspaceResult:
     return CreateWorkspaceResult.model_validate(
         await client.create_workspace(name=name)
+    )
+
+
+async def get_readiness(
+    client: ConnexityBackendClient, workspace_id: str
+) -> GetReadinessResult:
+    return GetReadinessResult.model_validate(
+        await client.get_readiness(workspace_id=workspace_id)
     )
 
 

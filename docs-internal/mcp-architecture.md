@@ -156,6 +156,7 @@ They own validation, CRUD calls, state changes and the answer's rules and next s
 |---|---|
 | `list_workspaces` | `GET /api/v1/mcp/workspaces` |
 | `create_workspace(name)` | `POST /api/v1/mcp/workspaces` |
+| `get_readiness(workspace_id)` | `GET /api/v1/mcp/workspaces/{workspace_id}/readiness` |
 | `list_agents(workspace_id, query?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/agents` |
 
 ## What not to do

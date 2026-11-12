@@ -20,6 +20,7 @@ from app.api.routes import (
     login,
     mcp,
     oauth,
+    readiness,
     runs,
     test_case_results,
     test_cases,
@@ -39,6 +40,7 @@ api_router.include_router(login.router)
 api_router.include_router(google_auth.router)
 api_router.include_router(users.router)
 api_router.include_router(workspaces.router)
+api_router.include_router(readiness.router)
 api_router.include_router(mcp.router)
 api_router.include_router(agents.router)
 api_router.include_router(test_cases.router)

@@ -18,6 +18,7 @@ async def test_server_lists_only_the_workspace_tools() -> None:
 
     assert sorted(tool.name for tool in tools) == [
         "create_workspace",
+        "get_readiness",
         "list_agents",
         "list_workspaces",
     ]

@@ -228,6 +228,9 @@ import type {
   McpCreateWorkspaceData,
   McpCreateWorkspaceErrors,
   McpCreateWorkspaceResponses,
+  McpGetReadinessData,
+  McpGetReadinessErrors,
+  McpGetReadinessResponses,
   McpListAgentsData,
   McpListAgentsErrors,
   McpListAgentsResponses,
@@ -267,6 +270,9 @@ import type {
   OauthTokenData,
   OauthTokenErrors,
   OauthTokenResponses,
+  ReadinessReadReadinessData,
+  ReadinessReadReadinessErrors,
+  ReadinessReadReadinessResponses,
   RunsCancelRunEndpointData,
   RunsCancelRunEndpointErrors,
   RunsCancelRunEndpointResponses,
@@ -948,6 +954,34 @@ export class WorkspacesService {
   }
 }
 
+export class ReadinessService {
+  /**
+   * Read Readiness
+   *
+   * Readiness of the workspace open on the web.
+   */
+  public static readReadiness<ThrowOnError extends boolean = false>(
+    options?: Options<ReadinessReadReadinessData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      ReadinessReadReadinessResponses,
+      ReadinessReadReadinessErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/readiness',
+      ...options,
+    });
+  }
+}
+
 export class McpService {
   /**
    * List Workspaces
@@ -1000,6 +1034,23 @@ export class McpService {
     >({
       security: [{ scheme: 'bearer', type: 'http' }],
       url: '/api/v1/mcp/workspaces/{workspace_id}/agents',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Readiness
+   */
+  public static getReadiness<ThrowOnError extends boolean = false>(
+    options: Options<McpGetReadinessData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      McpGetReadinessResponses,
+      McpGetReadinessErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/readiness',
       ...options,
     });
   }

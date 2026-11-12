@@ -5516,6 +5516,51 @@ export const McpAnswer_McpWorkspace_Schema = {
   title: 'McpAnswer[McpWorkspace]',
 } as const;
 
+export const McpAnswer_ReadinessPublic_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/ReadinessPublic',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[ReadinessPublic]',
+} as const;
+
 export const McpAnswer_list_McpAgent__Schema = {
   properties: {
     data: {
@@ -6275,6 +6320,95 @@ export const PublishRequestSchema = {
   },
   type: 'object',
   title: 'PublishRequest',
+} as const;
+
+export const ReadinessPublicSchema = {
+  properties: {
+    steps: {
+      items: {
+        $ref: '#/components/schemas/ReadinessStep',
+      },
+      type: 'array',
+      title: 'Steps',
+    },
+    done: {
+      type: 'integer',
+      title: 'Done',
+      description: 'Steps done, of the steps shown',
+    },
+    total: {
+      type: 'integer',
+      title: 'Total',
+      description: 'Steps shown',
+    },
+    percent: {
+      type: 'integer',
+      title: 'Percent',
+      description: 'done / total, rounded to a whole percent',
+    },
+    first_scan_done: {
+      type: 'boolean',
+      title: 'First Scan Done',
+    },
+    connect_command: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Connect Command',
+      description:
+        'The Claude Code command that connects an assistant, while none is connected and the MCP address is configured',
+    },
+  },
+  type: 'object',
+  required: ['steps', 'done', 'total', 'percent', 'first_scan_done'],
+  title: 'ReadinessPublic',
+} as const;
+
+export const ReadinessStepSchema = {
+  properties: {
+    key: {
+      $ref: '#/components/schemas/ReadinessStepKey',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    state: {
+      $ref: '#/components/schemas/ReadinessStepState',
+    },
+    detail: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Detail',
+      description: "One short fact: the assistant's or platform's name",
+    },
+  },
+  type: 'object',
+  required: ['key', 'name', 'state'],
+  title: 'ReadinessStep',
+} as const;
+
+export const ReadinessStepKeySchema = {
+  type: 'string',
+  enum: ['assistant', 'voice_platform', 'sync', 'first_scan'],
+  title: 'ReadinessStepKey',
+} as const;
+
+export const ReadinessStepStateSchema = {
+  type: 'string',
+  enum: ['done', 'in_progress', 'not_started'],
+  title: 'ReadinessStepState',
 } as const;
 
 export const RegressionAnalysisSchema = {
