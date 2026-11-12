@@ -59,6 +59,12 @@ MCP settings (`CONNEXITY_API_URL`, `MCP_PUBLIC_BASE_URL`, `MCP_OAUTH_ISSUER_URL`
 `MCP_OAUTH_AUDIENCE`) and the backend's `OAUTH_ISSUER_URL` and `MCP_OAUTH_AUDIENCE` point the
 services at each other.
 
+**Sign in with Google** needs two backend settings: `GOOGLE_CLIENT_ID` (a plain
+environment variable) and `GOOGLE_CLIENT_SECRET` (a secret, for example
+`connexity-google-client-secret`). Neither is set yet; without both, the Google button
+does not appear. The Google OAuth client must list the redirect URI
+`<OAUTH_ISSUER_URL>/api/v1/auth/google/callback`, or set `GOOGLE_REDIRECT_URI` to match.
+
 ## Things to know
 
 - **Migrations run on start.** A migration that fails stops the new backend revision from

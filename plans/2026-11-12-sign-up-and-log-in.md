@@ -208,6 +208,8 @@ Dmytro accepted the plan and its recommendations ("Accept", 2026-11-12):
   each in one place, and plain state matched that more simply. A reviewer may ask for
   the convention.
 - **Accounts marked GitHub** (never offered) become email accounts in the migration.
+- **`docs-internal/deployment.md`** (merged from main while this was open) now lists the
+  Google settings for the hosted services.
 
 ### Check results
 
