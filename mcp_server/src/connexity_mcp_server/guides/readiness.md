@@ -10,8 +10,8 @@ next. Call it again after each step and tell the person what changed.
 
 1. **Assistant connected:** done once you are connected, as now.
 2. **Voice platform connected:** the workspace has a voice platform connection (Retell
-   first). Ask the person for their API key; never ask them to paste it where others can
-   read it.
+   first). Ask the person for their API key and call `connect_voice_platform`. Never
+   repeat the key.
 3. **Agents and calls synced:** the agents the person chose, and their calls, are in
    Connexity.
 4. **First scan done:** every synced call is turned into a trace with its versions.

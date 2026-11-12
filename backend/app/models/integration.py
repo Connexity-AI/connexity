@@ -28,6 +28,12 @@ class Integration(IntegrationBase, table=True):
         default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"server_default": text("now()")},
     )
+    # Who connected it: the person, and the assistant (OAuth client name) when it came
+    # through MCP. Kept when the key is replaced by the latest connect.
+    created_by_user_id: uuid.UUID | None = Field(
+        default=None, foreign_key="user.id", ondelete="SET NULL"
+    )
+    created_via: str | None = Field(default=None, max_length=255)
 
 
 class IntegrationCreate(IntegrationBase):

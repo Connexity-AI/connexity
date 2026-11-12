@@ -76,7 +76,7 @@ def _agent(client: TestClient, cookies: dict[str, str], db: Session) -> Agent:
 
 def _n8n(client: TestClient, cookies: dict[str, str]) -> str:
     ok = AsyncMock(return_value=N8nConnectionResult(ok=True, base_url=N8N_URL))
-    with patch("app.api.routes.integrations.check_n8n_connection", ok):
+    with patch("app.services.connections.check_n8n_connection", ok):
         r = client.post(
             f"{API}/integrations/",
             json={
@@ -280,7 +280,7 @@ def test_mapping_is_refused_for_a_missing_workflow_a_voice_account_or_a_dead_n8n
     assert r.status_code == 502
 
     with patch.dict(
-        "app.api.routes.integrations._CONNECTION_TESTERS",
+        "app.services.connections.CONNECTION_TESTERS",
         {"retell": AsyncMock(return_value=True)},
         clear=False,
     ):
@@ -601,7 +601,7 @@ def _link_retell(
     client: TestClient, cookies: dict[str, str], db: Session, agent: Agent
 ) -> None:
     with patch.dict(
-        "app.api.routes.integrations._CONNECTION_TESTERS",
+        "app.services.connections.CONNECTION_TESTERS",
         {"retell": AsyncMock(return_value=True)},
         clear=False,
     ):

@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
+from sqlmodel import Session, select
 
 from app.core import encryption
 from app.core.config import settings
@@ -46,7 +47,7 @@ def test_create_returns_400_when_connection_fails(
     client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     with patch.dict(
-        "app.api.routes.integrations._CONNECTION_TESTERS",
+        "app.services.connections.CONNECTION_TESTERS",
         {IntegrationProvider.RETELL: AsyncMock(return_value=False)},
         clear=False,
     ):
@@ -63,7 +64,7 @@ def test_create_list_get_test_delete_flow(
 ) -> None:
     api_key = "sk_test_super_secret_value_xyz"
     with patch.dict(
-        "app.api.routes.integrations._CONNECTION_TESTERS",
+        "app.services.connections.CONNECTION_TESTERS",
         {IntegrationProvider.RETELL: AsyncMock(return_value=True)},
         clear=False,
     ):
@@ -95,7 +96,7 @@ def test_create_list_get_test_delete_flow(
         assert "encrypted_api_key" not in item
 
     with patch.dict(
-        "app.api.routes.integrations._CONNECTION_TESTERS",
+        "app.services.connections.CONNECTION_TESTERS",
         {IntegrationProvider.RETELL: AsyncMock(return_value=True)},
         clear=False,
     ):
@@ -125,7 +126,7 @@ def test_integration_is_isolated_per_company(
 ) -> None:
     """Integrations are scoped per company — another company's user can't see, test, or delete them."""
     with patch.dict(
-        "app.api.routes.integrations._CONNECTION_TESTERS",
+        "app.services.connections.CONNECTION_TESTERS",
         {IntegrationProvider.RETELL: AsyncMock(return_value=True)},
         clear=False,
     ):
@@ -147,7 +148,7 @@ def test_integration_is_isolated_per_company(
 
     # ...nor test it.
     with patch.dict(
-        "app.api.routes.integrations._CONNECTION_TESTERS",
+        "app.services.connections.CONNECTION_TESTERS",
         {IntegrationProvider.RETELL: AsyncMock(return_value=True)},
         clear=False,
     ):
@@ -176,7 +177,7 @@ def test_list_integration_agents_deduplicates_by_agent_id(
     client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     with patch.dict(
-        "app.api.routes.integrations._CONNECTION_TESTERS",
+        "app.services.connections.CONNECTION_TESTERS",
         {IntegrationProvider.RETELL: AsyncMock(return_value=True)},
         clear=False,
     ):
@@ -255,7 +256,7 @@ def test_create_n8n_stores_the_address_and_never_returns_the_key(
     client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
     checker = _n8n_ok()
-    with patch("app.api.routes.integrations.check_n8n_connection", checker):
+    with patch("app.services.connections.check_n8n_connection", checker):
         r = client.post(
             f"{settings.API_V1_STR}/integrations/",
             json=_n8n_body(base_url=f"{N8N_URL}/"),
@@ -269,7 +270,7 @@ def test_create_n8n_stores_the_address_and_never_returns_the_key(
     assert "n8n_api_invented_key" not in r.text
     checker.assert_awaited_once_with(N8N_URL, "n8n_api_invented_key")
 
-    with patch("app.api.routes.integrations.check_n8n_connection", checker):
+    with patch("app.services.connections.check_n8n_connection", checker):
         test_r = client.post(
             f"{settings.API_V1_STR}/integrations/{body['id']}/test",
             cookies=auth_cookies,
@@ -293,7 +294,7 @@ def test_create_n8n_needs_a_usable_address(
     client: TestClient, auth_cookies: dict[str, str], base_url: str | None
 ) -> None:
     checker = _n8n_ok()
-    with patch("app.api.routes.integrations.check_n8n_connection", checker):
+    with patch("app.services.connections.check_n8n_connection", checker):
         r = client.post(
             f"{settings.API_V1_STR}/integrations/",
             json=_n8n_body(base_url=base_url),
@@ -314,7 +315,7 @@ def test_create_n8n_reports_what_went_wrong(
             message="n8n refused the API key",
         )
     )
-    with patch("app.api.routes.integrations.check_n8n_connection", failed):
+    with patch("app.services.connections.check_n8n_connection", failed):
         r = client.post(
             f"{settings.API_V1_STR}/integrations/",
             json=_n8n_body(),
@@ -334,7 +335,7 @@ def test_a_voice_provider_does_not_take_an_address(
     assert r.status_code == 400
     # An empty address is no address.
     with patch.dict(
-        "app.api.routes.integrations._CONNECTION_TESTERS",
+        "app.services.connections.CONNECTION_TESTERS",
         {IntegrationProvider.RETELL: AsyncMock(return_value=True)},
         clear=False,
     ):
@@ -350,7 +351,7 @@ def test_a_voice_provider_does_not_take_an_address(
 def test_an_n8n_connection_has_no_agents_to_list(
     client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
-    with patch("app.api.routes.integrations.check_n8n_connection", _n8n_ok()):
+    with patch("app.services.connections.check_n8n_connection", _n8n_ok()):
         created = client.post(
             f"{settings.API_V1_STR}/integrations/",
             json=_n8n_body(),
@@ -361,3 +362,30 @@ def test_an_n8n_connection_has_no_agents_to_list(
         cookies=auth_cookies,
     )
     assert r.status_code == 400
+
+
+def test_create_records_who_connected_it(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    import uuid as _uuid
+
+    from app.models import User
+    from app.models.integration import Integration
+    from app.tests.utils.utils import AUTH_USER_EMAIL
+
+    with patch.dict(
+        "app.services.connections.CONNECTION_TESTERS",
+        {IntegrationProvider.RETELL: AsyncMock(return_value=True)},
+        clear=False,
+    ):
+        r = client.post(
+            f"{settings.API_V1_STR}/integrations/",
+            json=_create_body("retell-who", api_key="sk_test_who_connected"),
+            cookies=auth_cookies,
+        )
+
+    assert r.status_code == 200, r.text
+    integration = db.get(Integration, _uuid.UUID(r.json()["id"]))
+    user = db.exec(select(User).where(User.email == AUTH_USER_EMAIL)).one()
+    assert integration is not None
+    assert integration.created_by_user_id == user.id

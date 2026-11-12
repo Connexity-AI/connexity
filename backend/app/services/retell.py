@@ -3,7 +3,7 @@ import copy
 import logging
 import time
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 from fastapi import HTTPException
@@ -150,6 +150,26 @@ def _is_finished_retell_call(
 
 _LIST_AGENTS_URL = "https://api.retellai.com/v2/list-agents"
 _LIST_AGENTS_MAX_PAGES = 50
+
+
+async def retell_key_status(api_key: str) -> Literal["ok", "refused", "unreachable"]:
+    """Whether Retell accepts the key, refuses it, or could not be asked."""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                _LIST_AGENTS_URL,
+                headers={"Authorization": f"Bearer {api_key}"},
+                params={"limit": 1},
+                json={},
+                timeout=10.0,
+            )
+    except httpx.HTTPError:
+        return "unreachable"
+    if response.status_code == 200:
+        return "ok"
+    if response.status_code in (401, 403):
+        return "refused"
+    return "unreachable"
 
 
 async def test_retell_connection(api_key: str) -> bool:

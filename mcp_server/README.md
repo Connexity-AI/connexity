@@ -18,6 +18,8 @@ For the contributor-facing architecture and tool-extension guide, see
 - `list_workspaces`: the workspaces the connected person can reach. Call it first.
 - `create_workspace(name)`: a new workspace for a client, with the person as its member.
 - `get_readiness(workspace_id)`: how complete the workspace's setup is, and what to do next.
+- `connect_voice_platform(workspace_id, api_key, platform)`: connect Retell (or Vapi,
+  ElevenLabs); the key is checked and stored encrypted.
 
 Claude.ai, Claude Code and ChatGPT can connect; see "Supported assistants" in
 `docs-internal/mcp-architecture.md`.

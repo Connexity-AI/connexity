@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app import crud
-from app.api.deps import CurrentCompany, SessionDep, get_current_user
+from app.api.deps import CurrentCompany, CurrentUser, SessionDep, get_current_user
 from app.core.encryption import decrypt
 from app.models import (
     IntegrationCreate,
@@ -13,40 +13,15 @@ from app.models import (
     Message,
     WorkflowSummary,
 )
-from app.services.elevenlabs import check_elevenlabs_connection, list_elevenlabs_agents
-from app.services.n8n import N8nError, check_n8n_connection, list_n8n_workflows
+from app.services.connections import connection_problem
+from app.services.elevenlabs import list_elevenlabs_agents
+from app.services.n8n import N8nError, list_n8n_workflows
 from app.services.outbound_url import OutboundUrlError, normalize_base_url
-from app.services.retell import (
-    RetellAgentSummary,
-    list_retell_agents,
-    test_retell_connection,
-)
-from app.services.vapi import list_vapi_assistants, test_vapi_connection
-
-_CONNECTION_TESTERS = {
-    IntegrationProvider.RETELL: test_retell_connection,
-    IntegrationProvider.VAPI: test_vapi_connection,
-    IntegrationProvider.ELEVENLABS: check_elevenlabs_connection,
-}
-
+from app.services.retell import RetellAgentSummary, list_retell_agents
+from app.services.vapi import list_vapi_assistants
 
 # Providers whose connection is to the user's own instance, so it needs an address.
 _PROVIDERS_WITH_ADDRESS = {IntegrationProvider.N8N}
-
-
-async def _test_connection(
-    provider: IntegrationProvider, api_key: str, base_url: str | None
-) -> str | None:
-    """Try the connection. Returns ``None`` when it works, else what went wrong."""
-    if provider == IntegrationProvider.N8N:
-        if not base_url:
-            return "An n8n connection needs the address of the n8n instance"
-        result = await check_n8n_connection(base_url, api_key)
-        return None if result.ok else result.message
-    tester = _CONNECTION_TESTERS.get(provider)
-    if tester is None or not await tester(api_key):
-        return "Could not connect to provider — check your API key and try again"
-    return None
 
 
 def _agent_priority(agent: RetellAgentSummary) -> tuple[int, int]:
@@ -78,6 +53,7 @@ router = APIRouter(
 async def create_integration(
     session: SessionDep,
     company_id: CurrentCompany,
+    current_user: CurrentUser,
     integration_in: IntegrationCreate,
 ) -> IntegrationPublic:
     if integration_in.provider in _PROVIDERS_WITH_ADDRESS:
@@ -91,13 +67,16 @@ async def create_integration(
         raise HTTPException(
             status_code=400, detail="This provider does not take an address"
         )
-    problem = await _test_connection(
+    problem = await connection_problem(
         integration_in.provider, integration_in.api_key, integration_in.base_url
     )
     if problem is not None:
         raise HTTPException(status_code=400, detail=problem)
     db_obj = crud.create_integration(
-        session=session, data=integration_in, company_id=company_id
+        session=session,
+        data=integration_in,
+        company_id=company_id,
+        created_by_user_id=current_user.id,
     )
     return IntegrationPublic.model_validate(db_obj)
 
@@ -153,7 +132,7 @@ async def test_integration(
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
     api_key = decrypt(integration.encrypted_api_key)
-    problem = await _test_connection(
+    problem = await connection_problem(
         integration.provider, api_key, integration.base_url
     )
     if problem is not None:

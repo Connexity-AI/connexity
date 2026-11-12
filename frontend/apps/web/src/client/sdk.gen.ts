@@ -225,6 +225,9 @@ import type {
   LoginTestTokenData,
   LoginTestTokenErrors,
   LoginTestTokenResponses,
+  McpConnectVoicePlatformData,
+  McpConnectVoicePlatformErrors,
+  McpConnectVoicePlatformResponses,
   McpCreateWorkspaceData,
   McpCreateWorkspaceErrors,
   McpCreateWorkspaceResponses,
@@ -1052,6 +1055,27 @@ export class McpService {
       security: [{ scheme: 'bearer', type: 'http' }],
       url: '/api/v1/mcp/workspaces/{workspace_id}/readiness',
       ...options,
+    });
+  }
+
+  /**
+   * Connect Voice Platform
+   */
+  public static connectVoicePlatform<ThrowOnError extends boolean = false>(
+    options: Options<McpConnectVoicePlatformData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      McpConnectVoicePlatformResponses,
+      McpConnectVoicePlatformErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/connections',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
     });
   }
 }

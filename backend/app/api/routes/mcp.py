@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app import crud
 from app.api.deps import (
+    McpAssistantName,
     McpCurrentUser,
     McpWorkspaceDep,
     SessionDep,
@@ -19,19 +20,28 @@ from app.api.deps import (
 )
 from app.core.config import settings
 from app.models import (
+    IntegrationProvider,
     ReadinessPublic,
     ReadinessStepKey,
     ReadinessStepState,
     WorkspaceCreate,
 )
 from app.models.mcp import (
+    GUIDE_CONNECT,
     GUIDE_GETTING_STARTED,
     GUIDE_READINESS,
     GUIDE_WORKSPACES,
     McpAgent,
     McpAnswer,
+    McpConnection,
+    McpConnectVoicePlatform,
     McpErrorDetail,
     McpWorkspace,
+)
+from app.services.connections import (
+    KEY_LOCATION,
+    VOICE_PLATFORMS,
+    voice_platform_key_status,
 )
 
 router = APIRouter(
@@ -192,9 +202,9 @@ def get_readiness(
     next_steps: list[str] = []
     if state[ReadinessStepKey.VOICE_PLATFORM] != ReadinessStepState.DONE:
         next_steps.append(
-            "Connect the voice platform (Retell): ask the person for their Retell API "
-            "key. Connexity's tool for registering it is not available yet; until "
-            "then the person adds it through the API."
+            "Connect the voice platform: ask the person for their Retell API key "
+            "(Retell's dashboard, under API Keys), then call `connect_voice_platform` "
+            "with it. Do not repeat the key in your reply."
         )
     if state[ReadinessStepKey.SYNC] != ReadinessStepState.DONE:
         if state[ReadinessStepKey.VOICE_PLATFORM] == ReadinessStepState.DONE:
@@ -223,4 +233,77 @@ def get_readiness(
         ],
         next_steps=next_steps,
         guide=GUIDE_READINESS,
+    )
+
+
+@router.post(
+    "/workspaces/{workspace_id}/connections",
+    response_model=McpAnswer[McpConnection],
+)
+async def connect_voice_platform(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    current_user: McpCurrentUser,
+    assistant: McpAssistantName,
+    body: McpConnectVoicePlatform,
+) -> McpAnswer[McpConnection]:
+    provider = IntegrationProvider(body.platform.value)
+    platform_name = VOICE_PLATFORMS[provider]
+    api_key = body.api_key
+    status = await voice_platform_key_status(provider, api_key)
+    if status == "unreachable":
+        raise HTTPException(
+            status_code=503,
+            detail=McpErrorDetail(
+                error=f"{platform_name} could not be reached to check the key",
+                next_steps=[
+                    "Try `connect_voice_platform` again in a minute with the same key; "
+                    "nothing was stored.",
+                ],
+                guide=GUIDE_CONNECT,
+            ).model_dump(),
+        )
+    if status == "refused":
+        raise HTTPException(
+            status_code=400,
+            detail=McpErrorDetail(
+                error=f"{platform_name} refused this API key",
+                next_steps=[
+                    f"Ask the person to check the key in {KEY_LOCATION[provider]}, "
+                    "then call `connect_voice_platform` again with the new key.",
+                ],
+                guide=GUIDE_CONNECT,
+            ).model_dump(),
+        )
+    integration, replaced = crud.connect_voice_platform(
+        session=session,
+        company_id=workspace.id,
+        provider=provider,
+        name=platform_name,
+        api_key=api_key,
+        user_id=current_user.id,
+        via=assistant,
+    )
+    person = current_user.full_name or current_user.email
+    next_steps = [
+        "Tell the person the connection is made, naming the workspace"
+        + (" and that the earlier key was replaced." if replaced else "."),
+        "Call `get_readiness` to see the next step. Choosing which agents to sync "
+        "is not available in Connexity yet.",
+    ]
+    return McpAnswer[McpConnection](
+        data=McpConnection(
+            platform=platform_name,
+            masked_api_key=integration.masked_api_key,
+            replaced_earlier_key=replaced,
+            connected_by=f"{person} through {assistant}" if assistant else person,
+        ),
+        rules=[
+            "The key is stored encrypted and is never shown again; do not repeat it.",
+            f"Connexity only reads from {platform_name}; it never changes agents there.",
+            "One connection per platform per workspace; connecting again replaces "
+            "the key.",
+        ],
+        next_steps=next_steps,
+        guide=GUIDE_CONNECT,
     )
