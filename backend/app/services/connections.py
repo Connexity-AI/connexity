@@ -4,8 +4,10 @@ Shared by the web route (`/integrations`) and the MCP route that lets the assist
 connect a voice platform. Connexity only reads from providers; the check is a read.
 """
 
+import uuid
 from typing import Literal
 
+from app.core.config import settings
 from app.models import IntegrationProvider
 from app.services.elevenlabs import check_elevenlabs_connection
 from app.services.n8n import check_n8n_connection
@@ -57,4 +59,12 @@ async def voice_platform_key_status(
         return await retell_key_status(api_key)
     return (
         "ok" if await connection_problem(provider, api_key, None) is None else "refused"
+    )
+
+
+def webhook_address(integration_id: uuid.UUID) -> str:
+    """Where the platform sends finished calls for this connection (Retell's webhook)."""
+    return (
+        f"{settings.oauth_issuer_url}{settings.API_V1_STR}"
+        f"/webhooks/retell/{integration_id}"
     )

@@ -48,6 +48,7 @@ from app.services.connections import (
     KEY_LOCATION,
     VOICE_PLATFORMS,
     voice_platform_key_status,
+    webhook_address,
 )
 from app.services.retell import (
     dedupe_retell_agents,
@@ -219,7 +220,22 @@ def get_readiness(
             "(Retell's dashboard, under API Keys), then call `connect_voice_platform` "
             "with it. Do not repeat the key in your reply."
         )
-    if state[ReadinessStepKey.SYNC] != ReadinessStepState.DONE:
+    added = crud.linked_agents(session=session, company_id=workspace.id)
+    waiting = [
+        agent
+        for agent in added
+        if agent.platform == Platform.RETELL and agent.last_webhook_call_at is None
+    ]
+    if waiting and waiting[0].integration_id is not None:
+        names = ", ".join(agent.name for agent in waiting[:10])
+        more = f" and {len(waiting) - 10} more" if len(waiting) > 10 else ""
+        next_steps.append(
+            f"No call has arrived by webhook yet for: {names}{more}. With your own "
+            "Retell access, set this as each agent's webhook in Retell: "
+            f"{webhook_address(waiting[0].integration_id)}. Calls arrive seconds after "
+            "they end; make a test call to check."
+        )
+    if state[ReadinessStepKey.SYNC] != ReadinessStepState.DONE and not added:
         if state[ReadinessStepKey.VOICE_PLATFORM] == ReadinessStepState.DONE:
             next_steps.append(
                 "The voice platform is connected; do not ask for the key again. Use "
@@ -418,8 +434,10 @@ async def add_agents(
         )
     next_steps += [
         "Tell the person which agents were added to this workspace.",
-        "Call `list_agents` to see them. Syncing their calls is not available in "
-        "Connexity yet.",
+        "With your own Retell access, set this as each added agent's webhook in "
+        f"Retell: {webhook_address(integration.id)}. Every call then arrives here "
+        "seconds after it ends.",
+        "After the next call, call `get_readiness` to check that calls arrive.",
     ]
     return McpAnswer[McpAddedAgents](
         data=McpAddedAgents(added=added, already_added=already, refused=refused),

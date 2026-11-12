@@ -13,7 +13,8 @@ next. Call it again after each step and tell the person what changed.
    first). Ask the person for their API key and call `connect_voice_platform`. Never
    repeat the key.
 3. **Agents and calls synced:** the agents the person chose are added with `add_agents`
-   (in progress), and their calls are in Connexity (done).
+   and their webhook is set in Retell (in progress, counting calls as they arrive), and
+   their past calls are in Connexity (done, with the first scan).
 4. **First scan done:** every synced call is turned into a trace with its versions.
 
 Until the first scan is done, the web app shows Readiness instead of everything else.

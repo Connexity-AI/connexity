@@ -1,9 +1,12 @@
 import uuid
+from datetime import UTC, datetime
 from typing import Any
 
+from cryptography.fernet import InvalidToken
 from sqlalchemy import func
 from sqlmodel import Session, col, select
 
+from app.core.encryption import decrypt
 from app.crud import agent_version as agent_version_crud
 from app.models import (
     Agent,
@@ -14,7 +17,13 @@ from app.models import (
     AggregateMetrics,
     Run,
 )
-from app.models.enums import AgentMode, AgentVersionStatus, Platform, RunStatus
+from app.models.enums import (
+    AgentMode,
+    AgentVersionStatus,
+    IntegrationProvider,
+    Platform,
+    RunStatus,
+)
 from app.models.imported_platform_config import ImportedPlatformConfig
 from app.models.integration import Integration
 from app.services.agent_tool_definitions import normalize_and_validate_agent_tools
@@ -249,6 +258,55 @@ def add_platform_agent(
     session.commit()
     session.refresh(agent)
     return agent, True
+
+
+def retell_agents_for_webhook(
+    *,
+    session: Session,
+    integration: Integration,
+    api_key: str,
+    platform_agent_id: str,
+) -> list[Agent]:
+    """The added agents a Retell webhook call belongs to, in every workspace.
+
+    Retell sends a call to one address, the connection of one workspace. The same
+    Retell account may be connected in other workspaces (one per client) that added
+    the same agent: those connections hold the same key.
+    """
+    if not platform_agent_id:
+        return []
+    connections = [integration.id]
+    others = session.exec(
+        select(Integration).where(
+            Integration.provider == IntegrationProvider.RETELL,
+            Integration.id != integration.id,
+        )
+    ).all()
+    for other in others:
+        try:
+            if decrypt(other.encrypted_api_key) == api_key:
+                connections.append(other.id)
+        except InvalidToken:
+            # A key stored under another encryption key: not this account's.
+            continue
+    return list(
+        session.exec(
+            select(Agent)
+            .where(
+                col(Agent.integration_id).in_(connections),
+                Agent.platform == Platform.RETELL,
+                Agent.platform_agent_id == platform_agent_id,
+            )
+            .order_by(col(Agent.created_at))
+        ).all()
+    )
+
+
+def mark_webhook_call(*, session: Session, agent: Agent) -> None:
+    """Record that a call of this agent just arrived by webhook."""
+    agent.last_webhook_call_at = datetime.now(UTC)
+    session.add(agent)
+    session.commit()
 
 
 def search_agents(
