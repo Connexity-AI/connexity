@@ -6608,6 +6608,10 @@ export type WebhookResult = {
    * Call Id
    */
   call_id?: string | null;
+  /**
+   * Call Ids
+   */
+  call_ids?: Array<string>;
 };
 
 /**

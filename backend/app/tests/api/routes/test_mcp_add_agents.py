@@ -142,8 +142,18 @@ def test_adding_agents_links_them_to_the_retell_connection(
     ).json()["data"]["steps"][2]
     assert (readiness["state"], readiness["detail"]) == (
         "in_progress",
-        "2 agents added",
+        "2 agents · 0 calls",
     )
+
+    address = f"{ISSUER}{API}/webhooks/retell/{integration.id}"
+    assert any(address in step for step in body["next_steps"])
+    readiness_steps = client.get(
+        f"{API}/mcp/workspaces/{user.company_id}/readiness", headers=_headers(user)
+    ).json()["next_steps"]
+    waiting = next(s for s in readiness_steps if "No call has arrived by webhook" in s)
+    assert "Front desk" in waiting
+    assert "Clinic after-hours" in waiting
+    assert address in waiting
 
 
 @respx.mock

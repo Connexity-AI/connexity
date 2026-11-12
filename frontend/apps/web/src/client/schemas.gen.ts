@@ -10563,6 +10563,15 @@ export const WebhookResultSchema = {
       ],
       title: 'Call Id',
     },
+    call_ids: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      title: 'Call Ids',
+      default: [],
+    },
   },
   type: 'object',
   required: ['status'],

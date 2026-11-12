@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from pydantic import ConfigDict, model_validator
-from sqlalchemy import Column, text
+from sqlalchemy import Column, DateTime, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -164,6 +164,15 @@ class Agent(AgentBase, table=True):
             "Stale-while-revalidate marker for Observer. Stamped each time the "
             "GET /calls endpoint kicks off a background Retell sync; gates dedup "
             "and TTL backoff. Operational state, not part of the public API."
+        ),
+    )
+
+    last_webhook_call_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+        description=(
+            "When a call of this agent last arrived by the platform's webhook; empty "
+            "until the webhook is set up in the platform and a call ends."
         ),
     )
 

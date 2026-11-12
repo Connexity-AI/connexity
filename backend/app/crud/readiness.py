@@ -14,6 +14,7 @@ from sqlmodel import Session, col, func, select
 
 from app.core.config import settings
 from app.models.agent import Agent
+from app.models.call import Call
 from app.models.enums import IntegrationProvider
 from app.models.integration import Integration
 from app.models.oauth import OAuthAuthorizationCode, OAuthClient, OAuthRefreshToken
@@ -111,6 +112,39 @@ def linked_agent_count(*, session: Session, company_id: uuid.UUID) -> int:
     ).one()
 
 
+def linked_agents(*, session: Session, company_id: uuid.UUID) -> list[Agent]:
+    """The workspace's agents linked to a voice platform agent (added to sync)."""
+    return list(
+        session.exec(
+            select(Agent)
+            .where(
+                Agent.company_id == company_id,
+                col(Agent.integration_id).is_not(None),
+                col(Agent.platform_agent_id).is_not(None),
+            )
+            .order_by(col(Agent.created_at))
+        ).all()
+    )
+
+
+def synced_call_count(*, session: Session, company_id: uuid.UUID) -> int:
+    """Calls stored for the workspace's added agents."""
+    linked = select(Agent.id).where(
+        Agent.company_id == company_id,
+        col(Agent.integration_id).is_not(None),
+        col(Agent.platform_agent_id).is_not(None),
+    )
+    return session.exec(
+        select(func.count())
+        .select_from(Call)
+        .where(
+            Call.company_id == company_id,
+            col(Call.agent_id).in_(linked),
+            col(Call.deleted_at).is_(None),
+        )
+    ).one()
+
+
 def get_readiness(
     *, session: Session, company_id: uuid.UUID, mcp_url: str | None
 ) -> ReadinessPublic:
@@ -121,6 +155,9 @@ def get_readiness(
     )
     platforms = connected_voice_platforms(session=session, company_id=company_id)
     agents_added = linked_agent_count(session=session, company_id=company_id)
+    calls = (
+        synced_call_count(session=session, company_id=company_id) if agents_added else 0
+    )
 
     def state(done: bool) -> ReadinessStepState:
         return ReadinessStepState.DONE if done else ReadinessStepState.NOT_STARTED
@@ -147,7 +184,8 @@ def get_readiness(
                 else ReadinessStepState.NOT_STARTED
             ),
             detail=(
-                f"{agents_added} agent{'s' if agents_added != 1 else ''} added"
+                f"{agents_added} agent{'s' if agents_added != 1 else ''} · "
+                f"{calls:,} call{'s' if calls != 1 else ''}"
                 if agents_added
                 else None
             ),

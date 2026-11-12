@@ -18,6 +18,7 @@ instead.
 
 - [`data-model.md`](./data-model.md) - ER diagram and table-level schema reference
 - [`mcp-architecture.md`](./mcp-architecture.md) - MCP adapter architecture and how to add new tools
+- [`call-ingestion.md`](./call-ingestion.md) - how calls reach Connexity: the Retell webhook now, the first scan for history, a safety-net pull later
 - [`deployment.md`](./deployment.md) - how `main` reaches Google Cloud Run: services, triggers, secrets, the database
 - [`migrations.md`](./migrations.md) - Alembic workflow, conventions, gotchas
 - [`railway-template.md`](./railway-template.md) - source-controlled blueprint for the Railway template composer

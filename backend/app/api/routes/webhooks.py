@@ -14,13 +14,12 @@ import uuid
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from pydantic import BaseModel
-from sqlmodel import select
 
 from app import crud
 from app.api.deps import SessionDep
 from app.core.encryption import decrypt
-from app.models import Agent, Integration
-from app.models.enums import IntegrationProvider, Platform
+from app.models import Integration
+from app.models.enums import IntegrationProvider
 from app.services.checks.engine import check_call_safely
 from app.services.component_versions import add_retell_components
 from app.services.executions import sync_call_executions_in_background
@@ -43,6 +42,7 @@ class WebhookResult(BaseModel):
     status: str
     reason: str | None = None
     call_id: uuid.UUID | None = None
+    call_ids: list[uuid.UUID] = []
 
 
 def retell_signature_is_valid(
@@ -97,35 +97,43 @@ async def retell_webhook(
     if event not in _RETELL_CALL_EVENTS or not isinstance(payload, dict):
         return WebhookResult(status="ignored", reason="event not handled")
 
-    agent = session.exec(
-        select(Agent).where(
-            Agent.integration_id == integration.id,
-            Agent.platform == Platform.RETELL,
-            Agent.platform_agent_id == payload.get("agent_id"),
-        )
-    ).first()
-    if agent is None:
+    agents = crud.retell_agents_for_webhook(
+        session=session,
+        integration=integration,
+        api_key=api_key,
+        platform_agent_id=str(payload.get("agent_id") or ""),
+    )
+    if not agents:
         return WebhookResult(status="ignored", reason="agent not connected")
 
     try:
-        trace = retell_call_to_trace(payload)
+        retell_call_to_trace(payload)
     except RetellMappingError as exc:
         logger.warning("Retell webhook call could not be mapped: %s", exc)
         return WebhookResult(status="ignored", reason="call could not be mapped")
-    trace = await add_retell_components(
-        session=session, agent=agent, api_key=api_key, trace=trace
-    )
 
-    stored = crud.store_trace(
-        session=session,
-        trace=trace,
-        agent_id=agent.id,
-        company_id=agent.company_id,
-        integration_id=integration.id,
-        raw=payload,
-    )
-    check_call_safely(session=session, call=stored.call)
-    # After the response: Retell waits only ten seconds for an answer. Both events
-    # look, because the executions exist as soon as the call has ended.
-    background_tasks.add_task(sync_call_executions_in_background, stored.call.id)
-    return WebhookResult(status="stored", call_id=stored.call.id)
+    # The same Retell agent may be added in several workspaces from one Retell
+    # account, but Retell sends each call to one address: store it in every one.
+    call_ids: list[uuid.UUID] = []
+    for agent in agents:
+        trace = await add_retell_components(
+            session=session,
+            agent=agent,
+            api_key=api_key,
+            trace=retell_call_to_trace(payload),
+        )
+        stored = crud.store_trace(
+            session=session,
+            trace=trace,
+            agent_id=agent.id,
+            company_id=agent.company_id,
+            integration_id=agent.integration_id or integration.id,
+            raw=payload,
+        )
+        check_call_safely(session=session, call=stored.call)
+        crud.mark_webhook_call(session=session, agent=agent)
+        # After the response: Retell waits only ten seconds for an answer. Both
+        # events look, because the executions exist as soon as the call has ended.
+        background_tasks.add_task(sync_call_executions_in_background, stored.call.id)
+        call_ids.append(stored.call.id)
+    return WebhookResult(status="stored", call_id=call_ids[0], call_ids=call_ids)

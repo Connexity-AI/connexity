@@ -18,7 +18,14 @@ from app import crud
 from app.api.routes.webhooks import retell_signature_is_valid
 from app.core import encryption
 from app.core.config import settings
-from app.models import Agent, Call, IntegrationCreate, IntegrationProvider, Platform
+from app.models import (
+    Agent,
+    Call,
+    IntegrationCreate,
+    IntegrationProvider,
+    Platform,
+    UserCreate,
+)
 from app.models.call import CallEvent
 from app.models.integration import Integration
 from app.tests.utils.eval import create_test_agent, get_test_company_id
@@ -247,6 +254,7 @@ def test_a_call_for_an_unknown_agent_is_acknowledged_and_not_stored(
         "status": "ignored",
         "reason": "agent not connected",
         "call_id": None,
+        "call_ids": [],
     }
     assert _calls(db, agent.id) == 0
 
@@ -312,3 +320,100 @@ def test_a_stored_call_is_looked_up_for_executions_after_the_response(
     assert looked_up.await_count == 1
     call = db.exec(select(Call).where(Call.agent_id == agent.id)).one()
     assert looked_up.await_args.args == (call.id,)
+
+
+def test_a_stored_call_records_when_the_webhook_last_brought_one(
+    client: TestClient, db: Session
+) -> None:
+    agent, integration, provider_agent_id = _retell_agent(db)
+    assert agent.last_webhook_call_at is None
+
+    _post(
+        client,
+        integration.id,
+        {
+            "event": "call_ended",
+            "call": retell_call("call_wh_mark", agent_id=provider_agent_id),
+        },
+    )
+
+    db.refresh(agent)
+    assert agent.last_webhook_call_at is not None
+
+
+def test_the_same_retell_agent_in_two_workspaces_gets_the_call_in_both(
+    client: TestClient, db: Session
+) -> None:
+    agent, integration, provider_agent_id = _retell_agent(db)
+    other_user = crud.create_user(
+        session=db,
+        user_create=UserCreate(
+            email=f"ws-{uuid.uuid4().hex[:6]}@clinic.io", password="password-123"
+        ),
+    )
+    other_connection = crud.create_integration(
+        session=db,
+        data=IntegrationCreate(
+            provider=IntegrationProvider.RETELL, name="Retell", api_key=API_KEY
+        ),
+        company_id=other_user.company_id,
+    )
+    unrelated = crud.create_integration(
+        session=db,
+        data=IntegrationCreate(
+            provider=IntegrationProvider.RETELL,
+            name="Retell",
+            api_key="key_other_account",
+        ),
+        company_id=other_user.company_id,
+    )
+    twin = create_test_agent(db, company_id=other_user.company_id)
+    twin.platform = Platform.RETELL
+    twin.integration_id = other_connection.id
+    twin.platform_agent_id = provider_agent_id
+    stranger = create_test_agent(db, company_id=other_user.company_id)
+    stranger.platform = Platform.RETELL
+    stranger.integration_id = unrelated.id
+    stranger.platform_agent_id = provider_agent_id
+    db.add(twin)
+    db.add(stranger)
+    db.commit()
+
+    r = _post(
+        client,
+        integration.id,
+        {
+            "event": "call_ended",
+            "call": retell_call("call_wh_twin", agent_id=provider_agent_id),
+        },
+    )
+
+    assert r.status_code == 200, r.text
+    assert len(r.json()["call_ids"]) == 2
+    assert _calls(db, agent.id) == 1
+    assert _calls(db, twin.id) == 1
+    assert _calls(db, stranger.id) == 0
+    twin_call = db.exec(select(Call).where(Call.agent_id == twin.id)).one()
+    assert twin_call.company_id == other_user.company_id
+    assert twin_call.integration_id == other_connection.id
+
+
+def test_a_replaced_key_verifies_the_webhook(client: TestClient, db: Session) -> None:
+    agent, integration, provider_agent_id = _retell_agent(db)
+    new_key = "key_rotated_webhook_badge"
+    integration.encrypted_api_key = encryption.encrypt(new_key)
+    db.add(integration)
+    db.commit()
+    body = json.dumps(
+        {
+            "event": "call_ended",
+            "call": retell_call("call_wh_rotated", agent_id=provider_agent_id),
+        }
+    ).encode()
+
+    old = _post(client, integration.id, body, signature=_sign(body, key=API_KEY))
+    new = _post(client, integration.id, body, signature=_sign(body, key=new_key))
+
+    assert old.status_code == 401
+    assert new.status_code == 200
+    assert _calls(db, agent.id) == 1
