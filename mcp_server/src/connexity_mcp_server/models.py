@@ -40,6 +40,23 @@ class Agent(BaseModel):
     created_at: datetime
 
 
+class ReadinessStep(BaseModel):
+    key: str
+    name: str
+    state: str = Field(description="done, in_progress or not_started")
+    detail: str | None = None
+
+
+class Readiness(BaseModel):
+    steps: list[ReadinessStep]
+    done: int
+    total: int
+    percent: int
+    first_scan_done: bool
+    connect_command: str | None = None
+
+
 ListWorkspacesResult = Answer[list[Workspace]]
+GetReadinessResult = Answer[Readiness]
 CreateWorkspaceResult = Answer[Workspace]
 ListAgentsResult = Answer[list[Agent]]

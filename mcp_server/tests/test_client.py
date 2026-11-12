@@ -2,7 +2,12 @@ import httpx
 import pytest
 from connexity_mcp_server.client import ConnexityBackendClient, ConnexityBackendError
 from connexity_mcp_server.config import Settings
-from connexity_mcp_server.tools import create_workspace, list_agents, list_workspaces
+from connexity_mcp_server.tools import (
+    create_workspace,
+    get_readiness,
+    list_agents,
+    list_workspaces,
+)
 from mcp.server.auth.middleware.auth_context import auth_context_var
 from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser
 from mcp.server.auth.provider import AccessToken
@@ -182,3 +187,39 @@ async def test_create_workspace_posts_the_name() -> None:
     )
 
     assert result.data.name == "Kestrel Plumbing"
+
+
+@pytest.mark.asyncio
+async def test_get_readiness_reads_the_workspace_steps() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/readiness"
+        assert request.headers["Authorization"] == "Bearer user-oauth-token"
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "steps": [
+                        {
+                            "key": "assistant",
+                            "name": "Assistant connected",
+                            "state": "done",
+                            "detail": "Claude",
+                        }
+                    ],
+                    "done": 1,
+                    "total": 4,
+                    "percent": 25,
+                    "first_scan_done": False,
+                    "connect_command": None,
+                },
+                "next_cursor": None,
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler, lambda client: get_readiness(client, workspace_id=WORKSPACE_ID)
+    )
+
+    assert result.data.percent == 25
+    assert result.data.steps[0].state == "done"

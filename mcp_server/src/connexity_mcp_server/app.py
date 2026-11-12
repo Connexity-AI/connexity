@@ -24,11 +24,15 @@ from connexity_mcp_server.guides import (
 )
 from connexity_mcp_server.models import (
     CreateWorkspaceResult,
+    GetReadinessResult,
     ListAgentsResult,
     ListWorkspacesResult,
 )
 from connexity_mcp_server.tools import (
     create_workspace as _create_workspace,
+)
+from connexity_mcp_server.tools import (
+    get_readiness as _get_readiness,
 )
 from connexity_mcp_server.tools import (
     list_agents as _list_agents,
@@ -90,6 +94,12 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         """Create a workspace for a new client, with the person you act for as its only
         member. Ask the person for the client's name first."""
         return await _create_workspace(client=backend_client, name=name)
+
+    @mcp_server.tool()
+    async def get_readiness(workspace_id: str) -> GetReadinessResult:
+        """How complete the workspace's setup is: each Getting started step, whether it
+        is done, and what to do next. Call it after each setup step."""
+        return await _get_readiness(client=backend_client, workspace_id=workspace_id)
 
     @mcp_server.tool()
     async def list_agents(

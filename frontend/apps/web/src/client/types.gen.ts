@@ -3514,6 +3514,40 @@ export type McpAnswerMcpWorkspace = {
 };
 
 /**
+ * McpAnswer[ReadinessPublic]
+ */
+export type McpAnswerReadinessPublic = {
+  /**
+   * The facts: the result of the call
+   */
+  data: ReadinessPublic;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
  * McpAnswer[list[McpAgent]]
  */
 export type McpAnswerListMcpAgent = {
@@ -4028,6 +4062,91 @@ export type PublishRequest = {
    */
   version_description?: string | null;
 };
+
+/**
+ * ReadinessPublic
+ */
+export type ReadinessPublic = {
+  /**
+   * Steps
+   */
+  steps: Array<ReadinessStep>;
+  /**
+   * Done
+   *
+   * Steps done, of the steps shown
+   */
+  done: number;
+  /**
+   * Total
+   *
+   * Steps shown
+   */
+  total: number;
+  /**
+   * Percent
+   *
+   * done / total, rounded to a whole percent
+   */
+  percent: number;
+  /**
+   * First Scan Done
+   */
+  first_scan_done: boolean;
+  /**
+   * Connect Command
+   *
+   * The Claude Code command that connects an assistant, while none is connected and the MCP address is configured
+   */
+  connect_command?: string | null;
+};
+
+/**
+ * ReadinessStep
+ */
+export type ReadinessStep = {
+  key: ReadinessStepKey;
+  /**
+   * Name
+   */
+  name: string;
+  state: ReadinessStepState;
+  /**
+   * Detail
+   *
+   * One short fact: the assistant's or platform's name
+   */
+  detail?: string | null;
+};
+
+/**
+ * ReadinessStepKey
+ */
+export const ReadinessStepKey = {
+  ASSISTANT: 'assistant',
+  VOICE_PLATFORM: 'voice_platform',
+  SYNC: 'sync',
+  FIRST_SCAN: 'first_scan',
+} as const;
+
+/**
+ * ReadinessStepKey
+ */
+export type ReadinessStepKey = (typeof ReadinessStepKey)[keyof typeof ReadinessStepKey];
+
+/**
+ * ReadinessStepState
+ */
+export const ReadinessStepState = {
+  DONE: 'done',
+  IN_PROGRESS: 'in_progress',
+  NOT_STARTED: 'not_started',
+} as const;
+
+/**
+ * ReadinessStepState
+ */
+export type ReadinessStepState = (typeof ReadinessStepState)[keyof typeof ReadinessStepState];
 
 /**
  * RegressionAnalysis
@@ -7448,6 +7567,57 @@ export type WorkspacesOpenWorkspaceResponses = {
 export type WorkspacesOpenWorkspaceResponse =
   WorkspacesOpenWorkspaceResponses[keyof WorkspacesOpenWorkspaceResponses];
 
+export type ReadinessReadReadinessData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/readiness';
+};
+
+export type ReadinessReadReadinessErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ReadinessReadReadinessError =
+  ReadinessReadReadinessErrors[keyof ReadinessReadReadinessErrors];
+
+export type ReadinessReadReadinessResponses = {
+  /**
+   * Successful Response
+   */
+  200: ReadinessPublic;
+};
+
+export type ReadinessReadReadinessResponse =
+  ReadinessReadReadinessResponses[keyof ReadinessReadReadinessResponses];
+
 export type McpListWorkspacesData = {
   body?: never;
   path?: never;
@@ -7614,6 +7784,60 @@ export type McpListAgentsResponses = {
 };
 
 export type McpListAgentsResponse = McpListAgentsResponses[keyof McpListAgentsResponses];
+
+export type McpGetReadinessData = {
+  body?: never;
+  path: {
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/readiness';
+};
+
+export type McpGetReadinessErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpGetReadinessError = McpGetReadinessErrors[keyof McpGetReadinessErrors];
+
+export type McpGetReadinessResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerReadinessPublic;
+};
+
+export type McpGetReadinessResponse = McpGetReadinessResponses[keyof McpGetReadinessResponses];
 
 export type AgentsListAgentsData = {
   body?: never;

@@ -12,12 +12,14 @@ GUIDE_URI_PREFIX = "connexity://guides/"
 GUIDES = {
     "getting-started": "Getting started with Connexity",
     "workspaces": "Workspaces",
+    "readiness": "Readiness",
 }
 
 INSTRUCTIONS = (
     "Connexity records and checks every call of a team's conversational AI agents. "
     "You do the operational work through these tools; people approve where a decision "
     "is theirs. Start with `list_workspaces`: every other tool needs a `workspace_id`. "
+    "Then call `get_readiness` to see what is left to set up in that workspace. "
     "Every answer has `data`, the `rules` that apply (follow them), numbered "
     "`next_steps` and a `guide`; read the guide at that URI when you need more. "
     "Connexity never edits, deploys or calls an agent."
