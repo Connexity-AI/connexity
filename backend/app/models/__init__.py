@@ -198,6 +198,14 @@ from app.models.oauth import (  # noqa: F401
     OAuthClientRegistrationResponse,
     OAuthRefreshToken,
 )
+
+# ── Personal access tokens ─────────────────────────────────────────
+from app.models.personal_access_token import (  # noqa: F401
+    PersonalAccessToken,
+    PersonalAccessTokenCreated,
+    PersonalAccessTokenPublic,
+    PersonalAccessTokensPublic,
+)
 from app.models.readiness import (  # noqa: F401
     ReadinessPublic,
     ReadinessStep,

@@ -1,7 +1,7 @@
 """What is set up in a workspace, step by step.
 
-- Assistant connected: a member of the workspace holds a usable assistant connection
-  (see `connected_assistants`).
+- Assistant connected: a member of the workspace holds a usable assistant connection,
+  OAuth or a personal access token (see `connected_assistants`).
 - Voice platform connected: the workspace has a voice platform integration.
 - Agents and calls synced: in progress once agents linked to a voice platform are added;
   done once every added Retell agent's first scan has finished.
@@ -39,8 +39,11 @@ def connected_assistants(
     An assistant is connected while it holds a refresh token that is neither revoked
     nor expired, or an access token that has not expired yet (its authorization code
     was exchanged within the access token's lifetime). Clients that never ask for a
-    refresh token count only for that hour.
+    refresh token count only for that hour. A personal access token counts from its
+    first use until it is revoked.
     """
+    from app.crud.personal_access_token import assistants_by_token
+
     now = datetime.now(UTC)
     members = select(WorkspaceMember.user_id).where(
         WorkspaceMember.company_id == company_id
@@ -74,6 +77,8 @@ def connected_assistants(
     for code, client in exchanged:
         if code.consumed_at is not None and _aware(code.consumed_at) > recent:
             found.append((_aware(code.consumed_at), _client_name(client)))
+
+    found.extend(assistants_by_token(session=session, company_id=company_id))
 
     names: list[str] = []
     for _, name in sorted(found):
@@ -262,16 +267,11 @@ def get_readiness(
         ),
     ]
     done = sum(step.state == ReadinessStepState.DONE for step in steps)
-    command = (
-        f"claude mcp add --transport http connexity {mcp_url}"
-        if mcp_url and not assistants
-        else None
-    )
     return ReadinessPublic(
         steps=steps,
         done=done,
         total=len(steps),
         percent=round(done / len(steps) * 100),
         first_scan_done=first_scan_done,
-        connect_command=command,
+        mcp_url=mcp_url,
     )

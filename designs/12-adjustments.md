@@ -312,3 +312,23 @@ The single call screen shows tool calls, not only findings on them. This replace
 - **When the tool ran an n8n workflow,** the expanded block ends with one quiet line, "Workflow: quote-lookup v7 · 9 steps", without opening the workflow's steps on screen.
 - The recording's timeline gets a small tick for each tool call, so clicking a tick jumps the audio and the transcript to it.
 - Nothing else changes: findings still show inline, and the screen stays read only.
+
+## 26. Readiness step 1: connect Claude Code with a setup prompt
+
+This replaces the single Claude Code snippet from item 19; everything else on the screen stays as it is.
+
+While no assistant is connected, step 1 "Assistant connected" is expanded and shows two small tabs inside the step, under the step's name: **Claude Code** (selected by default) and **Claude.ai or ChatGPT**. Keep them quiet: text tabs with a thin underline on the selected one, not buttons.
+
+- **Claude Code tab:**
+  - One line: "Paste this into Claude Code, in the app or the terminal."
+  - A primary button: **Copy setup prompt**. The prompt itself is never shown on screen, because it contains a personal token.
+  - Under the button, one muted line: "Creates a personal access token for you. You can revoke it in Account." The word "Account" links to the Account page, Assistant access section.
+  - After a click, the button reads "Copied" for about two seconds, then goes back to "Copy setup prompt".
+  - If the prompt cannot be created, the muted line is replaced by: "Could not create the setup prompt. Try again."
+- **Claude.ai or ChatGPT tab:**
+  - One line: "Settings → Connectors → Add custom connector".
+  - The address `https://mcp.connexity.ai/mcp` in a monospace field, with a small **Copy** button at its right end (the same field and button style the current snippet uses).
+  - One line under it: "then click Connect and sign in."
+- **When the assistant first connects,** the step ticks on its own, with no reload: the tabs collapse, the check mark appears, and the step's detail on the right reads "Connected: Claude Code" (or the assistant's name, for example "Connected: ChatGPT"). Show this connected state as a second variant of the screen.
+
+Keep the calm tone of the screen: no illustrations, no extra explanation, no other setup instructions anywhere else.

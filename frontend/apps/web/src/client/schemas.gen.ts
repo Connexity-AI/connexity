@@ -6577,6 +6577,113 @@ export const OnConflictSchema = {
   title: 'OnConflict',
 } as const;
 
+export const PersonalAccessTokenCreatedSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    prefix: {
+      type: 'string',
+      title: 'Prefix',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+    },
+    last_used_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Last Used At',
+      description: 'When an assistant last called Connexity with it; empty if never',
+    },
+    token: {
+      type: 'string',
+      title: 'Token',
+      description: 'The token itself. Shown only in this response.',
+    },
+    setup_prompt: {
+      type: 'string',
+      title: 'Setup Prompt',
+      description: 'The prompt to paste into Claude Code; it contains the token',
+    },
+  },
+  type: 'object',
+  required: ['id', 'name', 'prefix', 'created_at', 'last_used_at', 'token', 'setup_prompt'],
+  title: 'PersonalAccessTokenCreated',
+} as const;
+
+export const PersonalAccessTokenPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    prefix: {
+      type: 'string',
+      title: 'Prefix',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+    },
+    last_used_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Last Used At',
+      description: 'When an assistant last called Connexity with it; empty if never',
+    },
+  },
+  type: 'object',
+  required: ['id', 'name', 'prefix', 'created_at', 'last_used_at'],
+  title: 'PersonalAccessTokenPublic',
+} as const;
+
+export const PersonalAccessTokensPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/PersonalAccessTokenPublic',
+      },
+      type: 'array',
+      title: 'Data',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'PersonalAccessTokensPublic',
+} as const;
+
 export const PlatformSchema = {
   type: 'string',
   enum: ['retell', 'vapi', 'elevenlabs', 'webhook'],
@@ -6709,7 +6816,7 @@ export const ReadinessPublicSchema = {
       type: 'boolean',
       title: 'First Scan Done',
     },
-    connect_command: {
+    mcp_url: {
       anyOf: [
         {
           type: 'string',
@@ -6718,9 +6825,9 @@ export const ReadinessPublicSchema = {
           type: 'null',
         },
       ],
-      title: 'Connect Command',
+      title: 'Mcp Url',
       description:
-        'The Claude Code command that connects an assistant, while none is connected and the MCP address is configured',
+        'The MCP address assistants connect to (Claude.ai and ChatGPT connectors use it as is); empty when it is not configured',
     },
   },
   type: 'object',

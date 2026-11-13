@@ -2,7 +2,7 @@ import { Circle, CircleCheck } from 'lucide-react';
 
 import { cn } from '@workspace/ui/lib/utils';
 
-import { ConnectCommand } from '@/components/readiness/connect-command';
+import { ConnectAssistant } from '@/components/readiness/connect-assistant';
 
 import type { ReadinessPublic, ReadinessStep } from '@/client/types.gen';
 import type { FC } from 'react';
@@ -27,6 +27,14 @@ interface Props {
 export const ReadinessView: FC<Props> = ({ readiness }) => {
   const assistant = readiness.steps.find((step) => step.key === 'assistant');
   const assistantConnected = assistant?.state === 'done';
+  const platform = readiness.steps.find((step) => step.key === 'voice_platform');
+  // Right after an assistant connects, and before anything else is set up, step 1 says so
+  // (designs: Onboarding, "connected").
+  const justConnected = assistantConnected && platform?.state !== 'done';
+  const detail = (step: ReadinessStep) =>
+    step.key === 'assistant' && justConnected && step.detail
+      ? `Connected: ${step.detail}`
+      : (step.detail ?? '');
 
   return (
     <div className="flex max-w-[760px] flex-col gap-6">
@@ -73,16 +81,16 @@ export const ReadinessView: FC<Props> = ({ readiness }) => {
                 {step.name}
               </span>
               <span className="text-right text-label whitespace-nowrap text-ink-secondary">
-                {step.detail ?? ''}
+                {detail(step)}
               </span>
             </div>
-            {step.key === 'assistant' && !assistantConnected && readiness.connect_command && (
-              <ConnectCommand command={readiness.connect_command} />
+            {step.key === 'assistant' && !assistantConnected && readiness.mcp_url && (
+              <ConnectAssistant mcpUrl={readiness.mcp_url} />
             )}
-            {step.key === 'assistant' && !assistantConnected && !readiness.connect_command && (
+            {step.key === 'assistant' && !assistantConnected && !readiness.mcp_url && (
               <span className="ml-[30px] text-label text-ink-secondary">
-                The MCP address is not configured on this deployment, so there is no command to show
-                yet.
+                The MCP address is not configured on this deployment, so there is no way to
+                connect an assistant yet.
               </span>
             )}
           </div>

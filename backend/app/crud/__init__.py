@@ -133,6 +133,14 @@ from app.crud.integrations import (  # noqa: F401
     list_tool_backends,
     set_tool_backend,
 )
+from app.crud.personal_access_token import (  # noqa: F401
+    assistants_by_token,
+    create_personal_access_token,
+    get_personal_access_token,
+    list_personal_access_tokens,
+    revoke_personal_access_token,
+    use_personal_access_token,
+)
 from app.crud.readiness import (  # noqa: F401
     calls_without_versions,
     get_readiness,

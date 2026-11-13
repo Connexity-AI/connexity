@@ -4256,6 +4256,88 @@ export const OnConflict = { SKIP: 'skip', OVERWRITE: 'overwrite' } as const;
 export type OnConflict = (typeof OnConflict)[keyof typeof OnConflict];
 
 /**
+ * PersonalAccessTokenCreated
+ */
+export type PersonalAccessTokenCreated = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Prefix
+   */
+  prefix: string;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Last Used At
+   *
+   * When an assistant last called Connexity with it; empty if never
+   */
+  last_used_at: string | null;
+  /**
+   * Token
+   *
+   * The token itself. Shown only in this response.
+   */
+  token: string;
+  /**
+   * Setup Prompt
+   *
+   * The prompt to paste into Claude Code; it contains the token
+   */
+  setup_prompt: string;
+};
+
+/**
+ * PersonalAccessTokenPublic
+ */
+export type PersonalAccessTokenPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Prefix
+   */
+  prefix: string;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Last Used At
+   *
+   * When an assistant last called Connexity with it; empty if never
+   */
+  last_used_at: string | null;
+};
+
+/**
+ * PersonalAccessTokensPublic
+ */
+export type PersonalAccessTokensPublic = {
+  /**
+   * Data
+   */
+  data: Array<PersonalAccessTokenPublic>;
+  /**
+   * Count
+   */
+  count: number;
+};
+
+/**
  * Platform
  */
 export const Platform = {
@@ -4365,11 +4447,11 @@ export type ReadinessPublic = {
    */
   first_scan_done: boolean;
   /**
-   * Connect Command
+   * Mcp Url
    *
-   * The Claude Code command that connects an assistant, while none is connected and the MCP address is configured
+   * The MCP address assistants connect to (Claude.ai and ChatGPT connectors use it as is); empty when it is not configured
    */
-  connect_command?: string | null;
+  mcp_url?: string | null;
 };
 
 /**
@@ -7892,6 +7974,164 @@ export type ReadinessReadReadinessResponses = {
 
 export type ReadinessReadReadinessResponse =
   ReadinessReadReadinessResponses[keyof ReadinessReadReadinessResponses];
+
+export type TokensListPersonalAccessTokensData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/personal-access-tokens';
+};
+
+export type TokensListPersonalAccessTokensErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type TokensListPersonalAccessTokensError =
+  TokensListPersonalAccessTokensErrors[keyof TokensListPersonalAccessTokensErrors];
+
+export type TokensListPersonalAccessTokensResponses = {
+  /**
+   * Successful Response
+   */
+  200: PersonalAccessTokensPublic;
+};
+
+export type TokensListPersonalAccessTokensResponse =
+  TokensListPersonalAccessTokensResponses[keyof TokensListPersonalAccessTokensResponses];
+
+export type TokensCreatePersonalAccessTokenData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/personal-access-tokens';
+};
+
+export type TokensCreatePersonalAccessTokenErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type TokensCreatePersonalAccessTokenError =
+  TokensCreatePersonalAccessTokenErrors[keyof TokensCreatePersonalAccessTokenErrors];
+
+export type TokensCreatePersonalAccessTokenResponses = {
+  /**
+   * Successful Response
+   */
+  201: PersonalAccessTokenCreated;
+};
+
+export type TokensCreatePersonalAccessTokenResponse =
+  TokensCreatePersonalAccessTokenResponses[keyof TokensCreatePersonalAccessTokenResponses];
+
+export type TokensRevokePersonalAccessTokenData = {
+  body?: never;
+  path: {
+    /**
+     * Token Id
+     */
+    token_id: string;
+  };
+  query?: never;
+  url: '/api/v1/personal-access-tokens/{token_id}';
+};
+
+export type TokensRevokePersonalAccessTokenErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type TokensRevokePersonalAccessTokenError =
+  TokensRevokePersonalAccessTokenErrors[keyof TokensRevokePersonalAccessTokenErrors];
+
+export type TokensRevokePersonalAccessTokenResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type TokensRevokePersonalAccessTokenResponse =
+  TokensRevokePersonalAccessTokenResponses[keyof TokensRevokePersonalAccessTokenResponses];
 
 export type McpListWorkspacesData = {
   body?: never;

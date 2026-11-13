@@ -159,7 +159,7 @@ class Component extends DCLogic {
   static EMAIL = 'alex@example.com';
   constructor(props) {
     super(props);
-    this.state = { section: props.section || 'profile', name:'Alex Morgan', saved:'Alex Morgan', email:'idle', newEmail:'', pw:'idle', pw1:'', pw2:'', pw3:'', google:false, tfa:false,
+    this.state = { section: props.section || (() => { try { return new URLSearchParams(location.search).get('section'); } catch (_) { return null; } })() || 'profile', name:'Alex Morgan', saved:'Alex Morgan', email:'idle', newEmail:'', pw:'idle', pw1:'', pw2:'', pw3:'', google:false, tfa:false,
       sessions:[['Chrome on Mac · Kyiv · now', true], ['Safari on iPhone · Kyiv · 2 hours ago', false], ['Firefox on Windows · Warsaw · 3 days ago', false]],
       revoked:{}, notifs:{ weekly:true, incidents:true, clar:true, billing:false }, confirmText:'' };
   }

@@ -100,3 +100,12 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
+
+
+def hash_api_token(token: str) -> str:
+    """Hash of a long random token (ingest or personal access), as stored.
+
+    Tokens are long random strings, so a fast hash is enough: there is nothing to
+    brute-force, and it lets a request be matched by one indexed lookup.
+    """
+    return hashlib.sha256(token.encode()).hexdigest()

@@ -36,7 +36,7 @@ screen looks, the exported page wins over the prompts that produced it.
 | `Connexity Roadmap.dc.html` | The roadmap page | Not scheduled |
 | `Connexity.dc.html` | The whole project on one canvas | Reference |
 
-The export is a snapshot (2026-11-12). When Dmytro changes a screen in Claude Design, he
+The export is a snapshot (2026-11-13). When Dmytro changes a screen in Claude Design, he
 exports again and the files here are replaced in a pull request. A feature's plan names
 the page and the export date it was built against.
 

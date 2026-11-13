@@ -36,10 +36,10 @@ class ReadinessPublic(BaseModel):
     total: int = Field(description="Steps shown")
     percent: int = Field(description="done / total, rounded to a whole percent")
     first_scan_done: bool
-    connect_command: str | None = Field(
+    mcp_url: str | None = Field(
         default=None,
         description=(
-            "The Claude Code command that connects an assistant, while none is "
-            "connected and the MCP address is configured"
+            "The MCP address assistants connect to (Claude.ai and ChatGPT connectors "
+            "use it as is); empty when it is not configured"
         ),
     )

@@ -101,6 +101,7 @@ history of a slice is its plan file in `plans/`.
 | M1.7 | The assistant adds the agents to sync: `add_agents`, linked to Retell; Readiness step 3 in progress | Done (PR #186) |
 | M1.8 | Continuous call sync through the Retell webhook, set up by the assistant; call-ingestion recommendation (feature 9) | Done (PR #187) |
 | M1.10 | First scan: the assistant brings in the last 30 days of each added agent's calls in steps (`scan_calls`); Readiness steps 3 and 4 tick | In review |
+| D.1 | Frictionless assistant connection: personal access tokens for Claude Code, the setup prompt, Account › Assistant access, `mcp.connexity.ai` | In review |
 
 **The order of work is Dmytro's feature roadmap (Decided 2026-11-12).** It lives
 outside the repo, which is public. Each feature has what done means, whether it is
