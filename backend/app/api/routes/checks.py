@@ -16,8 +16,8 @@ from app.models import (
 from app.models.enums import DecisionKind
 from app.services.checks.base import RuleCheck
 from app.services.checks.engine import (
-    check_unchecked_calls,
-    count_unchecked_calls,
+    check_calls_needing_it,
+    count_calls_needing_it,
     current_mode,
     is_loosening,
 )
@@ -118,17 +118,17 @@ def set_agent_check_mode(
 def run_agent_checks(
     session: SessionDep, company_id: CurrentCompany, agent_id: uuid.UUID
 ) -> ChecksRunResult:
-    """Check the agent's stored calls that some check has never run on.
+    """Check the agent's stored calls that some current check version never ran on.
 
-    This also happens by itself when the agent's calls are opened. Up to 200 calls per
-    request; ``remaining`` says how many are left. Findings on calls that started before
-    a check existed are retroactive.
+    The scheduled call pull also does this every minute. Up to 200 calls per request;
+    ``remaining`` says how many are left. Findings on calls that started before a check
+    existed are retroactive.
     """
     _require_agent(session, company_id, agent_id)
-    checked = check_unchecked_calls(session=session, agent_id=agent_id)
+    checked = check_calls_needing_it(session=session, agent_ids=[agent_id])
     return ChecksRunResult(
         checked=checked,
-        remaining=count_unchecked_calls(session=session, agent_id=agent_id),
+        remaining=count_calls_needing_it(session=session, agent_id=agent_id),
     )
 
 

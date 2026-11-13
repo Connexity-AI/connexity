@@ -237,6 +237,10 @@ async def test_a_run_stores_new_calls_per_account_and_in_every_workspace(
     assert retell.lists.count(key_b) == 1
     assert sorted(retell.reads) == ["call_a1", "call_a2", "call_b1"]
     assert _state(db, key_a).last_pulled_at is not None
+    # Checked as they arrived.
+    for agent in (first, second, elsewhere):
+        for call in db.exec(select(Call).where(Call.agent_id == agent.id)).all():
+            assert call.checked_at is not None
 
 
 @respx.mock

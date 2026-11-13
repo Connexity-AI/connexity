@@ -5,6 +5,7 @@ was set to when the call started, and stores the result.
 """
 
 import logging
+import time
 import uuid
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -255,22 +256,32 @@ def is_loosening(old: CheckMode, new: CheckMode) -> bool:
 MAX_CALLS_PER_PASS = 200
 
 
-def check_unchecked_calls(
-    *, session: Session, agent_id: uuid.UUID, limit: int = MAX_CALLS_PER_PASS
+def check_calls_needing_it(
+    *,
+    session: Session,
+    agent_ids: list[uuid.UUID],
+    limit: int = MAX_CALLS_PER_PASS,
+    deadline: float | None = None,
 ) -> int:
-    """Check the agent's stored calls that some check has never run on.
+    """Check these agents' stored calls that some current check version never ran on,
+    newest first: calls stored before a check existed, or checked by an older version
+    of it (which is also how a call a check broke on is tried again with its fix).
 
-    A call is picked up once: after this it has a row for every check, whatever the
-    outcome. Findings on calls that started before a check existed are retroactive.
+    Stops at ``limit`` calls or at ``deadline`` (a ``time.monotonic()`` value). A call
+    is picked up once per version: after this it has a run of every current check,
+    whatever the outcome. Findings on calls that started before a check existed are
+    retroactive.
 
     Returns:
         How many calls were checked.
     """
     versions = {check.type: check.version for check in CHECKS}
     checked = 0
-    for call in crud.calls_missing_check_runs(
-        session=session, agent_id=agent_id, check_types=list(versions), limit=limit
+    for call in crud.calls_needing_checks(
+        session=session, agent_ids=agent_ids, versions=versions, limit=limit
     ):
+        if deadline is not None and time.monotonic() >= deadline:
+            break
         call_id, company_id = call.id, call.company_id
         if check_call_safely(session=session, call=call) is not None:
             checked += 1
@@ -283,16 +294,18 @@ def check_unchecked_calls(
     return checked
 
 
+def count_calls_needing_it(*, session: Session, agent_id: uuid.UUID) -> int:
+    return crud.count_calls_needing_checks(
+        session=session,
+        agent_ids=[agent_id],
+        versions={check.type: check.version for check in CHECKS},
+    )
+
+
 def check_unchecked_calls_in_background(agent_id: uuid.UUID) -> None:
     """For a worker thread: its own database session, never raises."""
     try:
         with Session(engine) as session:
-            check_unchecked_calls(session=session, agent_id=agent_id)
+            check_calls_needing_it(session=session, agent_ids=[agent_id])
     except Exception:  # noqa: BLE001 - a background task has no one to raise to
         logger.exception("Stored calls of agent %s could not be checked", agent_id)
-
-
-def count_unchecked_calls(*, session: Session, agent_id: uuid.UUID) -> int:
-    return crud.count_calls_missing_check_runs(
-        session=session, agent_id=agent_id, check_types=[c.type for c in CHECKS]
-    )

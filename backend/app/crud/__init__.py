@@ -47,9 +47,9 @@ from app.crud.call import (  # noqa: F401
 from app.crud.category import categories_by_id, list_categories  # noqa: F401
 from app.crud.check import (  # noqa: F401
     call_check_statuses,
-    calls_missing_check_runs,
+    calls_needing_checks,
     check_setting_history,
-    count_calls_missing_check_runs,
+    count_calls_needing_checks,
     ensure_check_releases,
     get_call_checks,
     get_findings,
