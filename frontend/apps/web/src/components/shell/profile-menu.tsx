@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
@@ -168,6 +169,9 @@ export const ProfileMenu: FC<Props> = ({ name, workspaces }) => {
         >
           <WorkspaceList workspaces={workspaces} onNew={() => setDialogOpen(true)} />
           <DropdownMenuSeparator className="mx-0 my-1 bg-hairline" />
+          <DropdownMenuItem asChild className="h-9 cursor-pointer rounded-sm px-2.5 text-label text-ink focus:bg-wash">
+            <Link href={UrlGenerator.account()}>Account</Link>
+          </DropdownMenuItem>
           <ThemePicker />
           <DropdownMenuSeparator className="mx-0 my-1 bg-hairline" />
           <DropdownMenuItem

@@ -19,6 +19,7 @@ from app.core.db import engine
 from app.models import Agent, TokenPayload, User
 from app.models.company import Company
 from app.models.mcp import GUIDE_WORKSPACES, McpErrorDetail
+from app.models.personal_access_token import PERSONAL_ACCESS_TOKEN_PREFIX
 
 cookie_scheme = APIKeyCookie(name=settings.AUTH_COOKIE, auto_error=False)
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -155,6 +156,7 @@ def require_llm_key(session: SessionDep, current_user: CurrentUser) -> None:
 
 
 def require_mcp_user(request: Request, session: SessionDep, bearer: BearerDep) -> User:
+    """The person an MCP call acts for: an OAuth access token or a personal one."""
     token = bearer.credentials if bearer else None
     audience = settings.oauth_default_resource_url
     if not token:
@@ -162,6 +164,8 @@ def require_mcp_user(request: Request, session: SessionDep, bearer: BearerDep) -
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
         )
+    if token.startswith(PERSONAL_ACCESS_TOKEN_PREFIX):
+        return _personal_token_user(request=request, session=session, token=token)
     if not audience:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -216,15 +220,34 @@ def require_mcp_user(request: Request, session: SessionDep, bearer: BearerDep) -
     return user
 
 
+def _personal_token_user(*, request: Request, session: Session, token: str) -> User:
+    from app import crud
+
+    row = crud.use_personal_access_token(session=session, token=token)
+    user = session.get(User, row.user_id) if row else None
+    if row is None or user is None or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized",
+        )
+    request.state.mcp_client_id = None
+    request.state.mcp_token_name = row.name
+    return user
+
+
 McpCurrentUser = Annotated[User, Depends(require_mcp_user)]
 
 
 def mcp_assistant_name(
     request: Request, session: SessionDep, _user: McpCurrentUser
 ) -> str | None:
-    """The name of the assistant making this MCP call, as it registered ("Claude")."""
+    """The name of the assistant making this MCP call: as it registered ("Claude"), or
+    its personal access token's name ("Claude Code")."""
     from app.models.oauth import OAuthClient
 
+    token_name = getattr(request.state, "mcp_token_name", None)
+    if isinstance(token_name, str) and token_name.strip():
+        return token_name.strip()[:255]
     client_id = getattr(request.state, "mcp_client_id", None)
     if not client_id:
         return None

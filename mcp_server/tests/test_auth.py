@@ -240,3 +240,65 @@ async def test_oidc_token_verifier_rejects_wrong_audience() -> None:
         access_token = await verifier.verify_token(token)
 
     assert access_token is None
+
+
+def _personal_token_settings() -> Settings:
+    return Settings(
+        connexity_api_url="https://backend.example.com/api/v1",
+        mcp_public_base_url="https://mcp.example.com",
+        mcp_oauth_issuer_url="https://backend.example.com",
+    )
+
+
+@pytest.mark.asyncio
+async def test_a_personal_access_token_is_checked_with_the_backend() -> None:
+    token = "cxp_" + "a" * 43
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(200, json={"data": []})
+
+    settings = _personal_token_settings()
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
+        verifier = OidcTokenVerifier(settings=settings, http_client=http_client)
+        first = await verifier.verify_token(token)
+        second = await verifier.verify_token(token)
+
+    assert first is not None and second is not None
+    assert first.token == token
+    assert first.scopes == ["mcp:access"]
+    assert first.expires_at is None
+    assert first.resource == "https://mcp.example.com/mcp"
+    assert len(seen) == 1, "an accepted token is trusted for a minute without asking again"
+    assert str(seen[0].url) == "https://backend.example.com/api/v1/mcp/workspaces"
+    assert seen[0].headers["authorization"] == f"Bearer {token}"
+
+
+@pytest.mark.asyncio
+async def test_a_personal_access_token_the_backend_refuses_is_refused() -> None:
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return httpx.Response(401, json={"detail": "Unauthorized"})
+
+    settings = _personal_token_settings()
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
+        verifier = OidcTokenVerifier(settings=settings, http_client=http_client)
+        assert await verifier.verify_token("cxp_revoked") is None
+        assert await verifier.verify_token("cxp_revoked") is None
+
+    assert calls == 2, "a refusal is not cached"
+
+
+@pytest.mark.asyncio
+async def test_a_personal_access_token_is_refused_when_the_backend_is_down() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("down")
+
+    settings = _personal_token_settings()
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
+        verifier = OidcTokenVerifier(settings=settings, http_client=http_client)
+        assert await verifier.verify_token("cxp_whatever") is None

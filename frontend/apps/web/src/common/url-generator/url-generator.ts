@@ -8,6 +8,10 @@ export class UrlGenerator {
     return '/' as Route;
   }
 
+  static account() {
+    return '/account/' as Route;
+  }
+
   // ── Auth ──
 
   static login({ options, values }: AuthType = {}) {

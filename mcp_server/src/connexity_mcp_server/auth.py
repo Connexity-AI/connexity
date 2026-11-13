@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import time
 from typing import Any
@@ -11,9 +12,22 @@ from mcp.server.auth.provider import AccessToken, TokenVerifier
 
 from connexity_mcp_server.config import Settings
 
+PERSONAL_ACCESS_TOKEN_PREFIX = "cxp_"
+PERSONAL_ACCESS_TOKEN_CLIENT_ID = "personal-access-token"
+# How long a personal access token the backend accepted is trusted without asking
+# again. Tool calls are checked by the backend every time, so revoking a token stops
+# them at once; this only delays refusing the connection handshake.
+PERSONAL_ACCESS_TOKEN_CACHE_SECONDS = 60.0
+
 
 class OidcTokenVerifier(TokenVerifier):
-    """Validate OIDC/OAuth access tokens for the MCP resource server."""
+    """Validate the bearer tokens of the MCP resource server.
+
+    Two kinds: OAuth access tokens the backend signed (Claude.ai, ChatGPT, Claude Code
+    after a sign-in), checked here against the backend's keys; and personal access
+    tokens (`cxp_…`, Claude Code without a sign-in), which only the backend can check,
+    so it is asked.
+    """
 
     def __init__(
         self,
@@ -31,12 +45,15 @@ class OidcTokenVerifier(TokenVerifier):
         self._jwks_uri: str | None = settings.resolved_mcp_oauth_jwks_url
         self._jwks_cache: dict[str, Any] | None = None
         self._jwks_cache_expires_at = 0.0
+        self._personal_tokens: dict[str, float] = {}
 
     async def aclose(self) -> None:
         if self._owns_http_client:
             await self._http_client.aclose()
 
     async def verify_token(self, token: str) -> AccessToken | None:
+        if token.startswith(PERSONAL_ACCESS_TOKEN_PREFIX):
+            return await self._verify_personal_token(token)
         try:
             unverified_header = jwt.get_unverified_header(token)
             algorithm = unverified_header.get("alg")
@@ -76,6 +93,32 @@ class OidcTokenVerifier(TokenVerifier):
             client_id=_extract_client_id(payload),
             scopes=scopes,
             expires_at=_coerce_int(payload.get("exp")),
+            resource=self._settings.resolved_mcp_oauth_resource_server_url,
+        )
+
+    async def _verify_personal_token(self, token: str) -> AccessToken | None:
+        """Ask the backend whether the token works, by listing the person's workspaces."""
+        key = hashlib.sha256(token.encode()).hexdigest()
+        now = time.monotonic()
+        if self._personal_tokens.get(key, 0.0) <= now:
+            try:
+                response = await self._http_client.get(
+                    f"{self._settings.normalized_api_url}/mcp/workspaces",
+                    headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+                )
+            except httpx.HTTPError:
+                return None
+            if response.status_code != 200:
+                self._personal_tokens.pop(key, None)
+                return None
+            self._personal_tokens = {k: t for k, t in self._personal_tokens.items() if t > now}
+            self._personal_tokens[key] = now + PERSONAL_ACCESS_TOKEN_CACHE_SECONDS
+
+        return AccessToken(
+            token=token,
+            client_id=PERSONAL_ACCESS_TOKEN_CLIENT_ID,
+            scopes=self._settings.resolved_mcp_oauth_required_scopes,
+            expires_at=None,
             resource=self._settings.resolved_mcp_oauth_resource_server_url,
         )
 

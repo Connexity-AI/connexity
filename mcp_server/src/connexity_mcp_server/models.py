@@ -54,7 +54,7 @@ class Readiness(BaseModel):
     total: int
     percent: int
     first_scan_done: bool
-    connect_command: str | None = None
+    mcp_url: str | None = None
 
 
 class Connection(BaseModel):

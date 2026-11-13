@@ -11,7 +11,7 @@ Google Cloud project `connexity-490409`, region `europe-west1` (next to the data
 |---|---|---|
 | `connexity-backend` | `backend/Dockerfile` | The API. Runs the migrations on every start (`scripts/entrypoint.sh`). |
 | `connexity-ui` | `frontend/Dockerfile` | The web app. |
-| `connexity-mcp` | `mcp_server/Dockerfile` | The MCP server the user's assistant connects to. Public, protected by OAuth that the backend issues. |
+| `connexity-mcp` | `mcp_server/Dockerfile` | The MCP server the user's assistant connects to, at `https://mcp.connexity.ai/mcp`. Public, protected by OAuth that the backend issues or a personal access token. |
 
 The database is Supabase (Postgres, session pooler, `eu-west-3`). The backend reads its
 address from the `DATABASE_URL` secret.
@@ -58,6 +58,23 @@ environment variables.
 MCP settings (`CONNEXITY_API_URL`, `MCP_PUBLIC_BASE_URL`, `MCP_OAUTH_ISSUER_URL`,
 `MCP_OAUTH_AUDIENCE`) and the backend's `OAUTH_ISSUER_URL` and `MCP_OAUTH_AUDIENCE` point the
 services at each other.
+
+## Addresses
+
+| Address | Service | How |
+|---|---|---|
+| `app.connexity.ai` | `connexity-ui` | Cloud Run domain mapping |
+| `mcp.connexity.ai` | `connexity-mcp` | Cloud Run domain mapping (2026-11-13) |
+
+Each needs a DNS record in Cloudflare, `CNAME` to `ghs.googlehosted.com`, **DNS only**
+(not proxied), or the certificate is never issued. The backend keeps its Cloud Run
+address, which is also the OAuth issuer.
+
+The MCP address assistants use is `https://mcp.connexity.ai/mcp`: `MCP_PUBLIC_BASE_URL`
+is `https://mcp.connexity.ai` and `MCP_OAUTH_AUDIENCE` (on both services) is
+`https://mcp.connexity.ai/mcp`. Changing the audience makes every OAuth connection
+issued for the old address stop working; those assistants must be connected again.
+Personal access tokens do not depend on it.
 
 **Sign in with Google** needs two backend settings: `GOOGLE_CLIENT_ID` (a plain
 environment variable) and `GOOGLE_CLIENT_SECRET` (a secret, for example

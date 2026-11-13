@@ -213,7 +213,7 @@ async def test_get_readiness_reads_the_workspace_steps() -> None:
                     "total": 4,
                     "percent": 25,
                     "first_scan_done": False,
-                    "connect_command": None,
+                    "mcp_url": None,
                 },
                 "next_cursor": None,
                 **ANSWER,

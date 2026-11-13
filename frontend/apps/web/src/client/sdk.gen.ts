@@ -354,6 +354,15 @@ import type {
   TestCasesUpdateTestCaseData,
   TestCasesUpdateTestCaseErrors,
   TestCasesUpdateTestCaseResponses,
+  TokensCreatePersonalAccessTokenData,
+  TokensCreatePersonalAccessTokenErrors,
+  TokensCreatePersonalAccessTokenResponses,
+  TokensListPersonalAccessTokensData,
+  TokensListPersonalAccessTokensErrors,
+  TokensListPersonalAccessTokensResponses,
+  TokensRevokePersonalAccessTokenData,
+  TokensRevokePersonalAccessTokenErrors,
+  TokensRevokePersonalAccessTokenResponses,
   ToolBackendsClearAgentToolBackendData,
   ToolBackendsClearAgentToolBackendErrors,
   ToolBackendsClearAgentToolBackendResponses,
@@ -986,6 +995,89 @@ export class ReadinessService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/readiness',
+      ...options,
+    });
+  }
+}
+
+export class TokensService {
+  /**
+   * List Personal Access Tokens
+   *
+   * The person's tokens that still work, newest first. Never the token itself.
+   */
+  public static listPersonalAccessTokens<ThrowOnError extends boolean = false>(
+    options?: Options<TokensListPersonalAccessTokensData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      TokensListPersonalAccessTokensResponses,
+      TokensListPersonalAccessTokensErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/personal-access-tokens',
+      ...options,
+    });
+  }
+
+  /**
+   * Create Personal Access Token
+   *
+   * Create a token for Claude Code and the setup prompt that carries it.
+   *
+   * The token is shown only in this answer. The person's earlier tokens that were never
+   * used are revoked.
+   */
+  public static createPersonalAccessToken<ThrowOnError extends boolean = false>(
+    options?: Options<TokensCreatePersonalAccessTokenData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).post<
+      TokensCreatePersonalAccessTokenResponses,
+      TokensCreatePersonalAccessTokenErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/personal-access-tokens',
+      ...options,
+    });
+  }
+
+  /**
+   * Revoke Personal Access Token
+   *
+   * Revoke one of the person's tokens. The next call with it is refused.
+   */
+  public static revokePersonalAccessToken<ThrowOnError extends boolean = false>(
+    options: Options<TokensRevokePersonalAccessTokenData, ThrowOnError>
+  ) {
+    return (options.client ?? client).delete<
+      TokensRevokePersonalAccessTokenResponses,
+      TokensRevokePersonalAccessTokenErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/personal-access-tokens/{token_id}',
       ...options,
     });
   }

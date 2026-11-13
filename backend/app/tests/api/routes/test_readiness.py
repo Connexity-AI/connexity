@@ -92,7 +92,7 @@ def _steps(client: TestClient, user: User) -> dict[str, tuple[str, str | None]]:
     return {s["key"]: (s["state"], s["detail"]) for s in r.json()["steps"]}
 
 
-def test_a_new_workspace_has_nothing_done_and_offers_the_connect_command(
+def test_a_new_workspace_has_nothing_done_and_gives_the_mcp_address(
     client: TestClient, db: Session
 ) -> None:
     user = _person(db)
@@ -107,10 +107,7 @@ def test_a_new_workspace_has_nothing_done_and_offers_the_connect_command(
     ]
     assert (body["done"], body["total"], body["percent"]) == (0, 4, 0)
     assert body["first_scan_done"] is False
-    assert (
-        body["connect_command"]
-        == f"claude mcp add --transport http connexity {MCP_URL}"
-    )
+    assert body["mcp_url"] == MCP_URL
 
 
 def test_a_connected_assistant_ticks_step_one(client: TestClient, db: Session) -> None:
@@ -126,7 +123,6 @@ def test_a_connected_assistant_ticks_step_one(client: TestClient, db: Session) -
         "detail": "Claude Code",
     }
     assert (body["done"], body["percent"]) == (1, 25)
-    assert body["connect_command"] is None
 
 
 @pytest.mark.parametrize(
@@ -167,7 +163,7 @@ def test_another_workspace_does_not_count(client: TestClient, db: Session) -> No
     assert steps["voice_platform"][0] == "not_started"
 
 
-def test_without_an_mcp_address_there_is_no_command(
+def test_without_an_mcp_address_there_is_none(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(settings, "OAUTH_DEFAULT_RESOURCE_URL", None)
@@ -176,7 +172,7 @@ def test_without_an_mcp_address_there_is_no_command(
 
     body = client.get(f"{API}/readiness", cookies=_web(user)).json()
 
-    assert body["connect_command"] is None
+    assert body["mcp_url"] is None
 
 
 def _mcp(user: User) -> dict[str, str]:

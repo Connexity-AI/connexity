@@ -76,10 +76,10 @@ export const ReadinessView: FC<Props> = ({ readiness }) => {
                 {step.detail ?? ''}
               </span>
             </div>
-            {step.key === 'assistant' && !assistantConnected && readiness.connect_command && (
-              <ConnectCommand command={readiness.connect_command} />
+            {step.key === 'assistant' && !assistantConnected && readiness.mcp_url && (
+              <ConnectCommand command={`claude mcp add --transport http connexity ${readiness.mcp_url}`} />
             )}
-            {step.key === 'assistant' && !assistantConnected && !readiness.connect_command && (
+            {step.key === 'assistant' && !assistantConnected && !readiness.mcp_url && (
               <span className="ml-[30px] text-label text-ink-secondary">
                 The MCP address is not configured on this deployment, so there is no command to show
                 yet.

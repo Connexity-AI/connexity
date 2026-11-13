@@ -45,6 +45,22 @@ refresh tokens are stored per person and client. A person may connect as many
 assistants as they like. Each reaches exactly the workspaces that person can reach
 (Decided 2026-11-12). The token carries no workspace.
 
+### Two kinds of token
+
+| Kind | Who uses it | How it is checked |
+|---|---|---|
+| OAuth access token (a signed JWT) | Claude.ai, ChatGPT, Claude Code after `/mcp` sign-in | The adapter checks the signature against the backend's keys; the backend checks it again on every call |
+| Personal access token (`cxp_…`) | Claude Code without a sign-in: the setup prompt from Readiness | The adapter asks the backend (`GET /mcp/workspaces` with the token) and trusts a yes for 60 seconds; the backend looks the hash up on every call |
+
+Personal access tokens (Decided by Dmytro, 2026-11-13) belong to a person, never expire,
+are shown once and stored hashed (`personal_access_token`). The person creates one with
+**Copy setup prompt** on Readiness and revokes it in Account › Assistant access; the web
+routes are `/api/v1/personal-access-tokens`. A revoked token is refused on its next tool
+call; the adapter's cache only delays refusing the connection handshake. Records of who
+did what name the token's name ("Claude Code") where they name the OAuth client for
+OAuth. There are no MCP tools to create or revoke tokens: an assistant does not manage
+the credential it runs on (Decided by Dmytro, 2026-11-13).
+
 ### Every call is scoped to a workspace
 
 A workspace is a company: one client of an agency. Every backend `/mcp` route except
@@ -108,7 +124,7 @@ in `backend/app/core/oauth_redirects.py`:
 | Assistant | Callback |
 |---|---|
 | Claude.ai, Claude Desktop | `https://claude.ai/api/mcp/auth_callback` (and the `claude.com` one) |
-| Claude Code and other local apps | `http://localhost`, `127.0.0.1` or `[::1]` on any port (RFC 8252). A registered loopback callback matches on any port. |
+| Claude Code and other local apps (when signing in instead of using a personal access token) | `http://localhost`, `127.0.0.1` or `[::1]` on any port (RFC 8252). A registered loopback callback matches on any port. |
 | ChatGPT | `https://chatgpt.com/connector_platform_oauth_redirect`, or `https://chatgpt.com/connector/oauth/{callback_id}` |
 | Others | Exact addresses in `OAUTH_ALLOWED_REDIRECT_URIS` |
 
@@ -132,8 +148,9 @@ serves the OAuth protected-resource metadata. Keep it orchestration only.
 
 ### MCP token verification (`mcp_server/.../auth.py`)
 
-`OidcTokenVerifier` validates issuer, audience, JWKS signature and scopes, and puts the
-token in the MCP auth context for the client to forward.
+`OidcTokenVerifier` validates issuer, audience, JWKS signature and scopes of OAuth
+tokens, asks the backend about personal access tokens, and puts the token in the MCP
+auth context for the client to forward.
 
 ### Backend forwarding client (`mcp_server/.../client.py`)
 
@@ -147,8 +164,9 @@ database, ownership or business logic here.
 
 ### Backend MCP routes (`backend/app/api/routes/mcp.py`)
 
-Protected by `require_mcp_user` (bearer token, audience, issuer, `mcp:access` scope, an
-active user) and, below `/mcp/workspaces/{workspace_id}`, by `require_mcp_workspace`.
+Protected by `require_mcp_user` (an OAuth token with the right audience, issuer and
+`mcp:access` scope, or a personal access token that is not revoked; either for an active
+user) and, below `/mcp/workspaces/{workspace_id}`, by `require_mcp_workspace`.
 They own validation, CRUD calls, state changes and the answer's rules and next steps.
 
 ## How to add a tool

@@ -230,3 +230,19 @@ def test_an_unknown_platform_or_blank_key_is_invalid(
         ).status_code
         == 422
     )
+
+
+@respx.mock
+def test_a_personal_access_token_is_recorded_by_its_name(
+    client: TestClient, db: Session
+) -> None:
+    user = _person(db)
+    _, token = crud.create_personal_access_token(
+        session=db, user_id=user.id, name="Claude Code"
+    )
+    respx.post(RETELL_LIST_AGENTS).mock(return_value=httpx.Response(200, json=[]))
+
+    r = _connect(client, {"Authorization": f"Bearer {token}"}, user.company_id)
+
+    assert r.status_code == 200, r.text
+    assert r.json()["data"]["connected_by"] == "Ann through Claude Code"

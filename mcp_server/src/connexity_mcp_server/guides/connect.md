@@ -7,9 +7,27 @@ their assistant. Use the MCP address of your Connexity, for example
 
 ## Claude Code
 
-1. Run `claude mcp add --transport http connexity <MCP address>`.
-2. In Claude Code, run `/mcp`, choose `connexity` and authenticate. A browser opens.
-3. Sign in to Connexity (or create an account) and press **Allow**.
+Claude Code connects with a personal access token, without a browser sign-in. It works
+the same in the Claude Code app and in a terminal.
+
+1. On Connexity's Readiness screen, the person presses **Copy setup prompt** and pastes
+   it into Claude Code.
+2. Run the `claude mcp add … --header "Authorization: Bearer cxp_…"` command it contains.
+   Never repeat the token in a reply or write it anywhere else.
+3. The person starts a new Claude Code session, where Connexity's tools load.
+
+The token acts as that person in every workspace they can reach, and works until they
+revoke it in Account › Assistant access. Pressing the button again replaces a token that
+was never used.
+
+If a token cannot be used, the sign-in route still works from a terminal: run
+`claude mcp add --transport http --scope user connexity <MCP address>`, then `/mcp`,
+choose `connexity` and authenticate in the browser that opens.
+
+## Claude.ai
+
+In Settings, then Connectors, add a custom connector with the MCP address, click
+Connect, sign in to Connexity (or create an account) and press **Allow**.
 
 ## ChatGPT
 
@@ -24,7 +42,8 @@ Custom connectors need ChatGPT's developer mode, which depends on your ChatGPT p
 ## After connecting
 
 Call `list_workspaces`, then `get_readiness` for the workspace you work in. Readiness's
-first step, "Assistant connected", shows your assistant's name.
+first step, "Assistant connected", ticks on your first call and shows your assistant's
+name ("Claude Code" for a personal access token).
 
 ## Voice platforms
 
