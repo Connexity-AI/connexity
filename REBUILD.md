@@ -102,7 +102,8 @@ history of a slice is its plan file in `plans/`.
 | M1.8 | Continuous call sync through the Retell webhook, set up by the assistant; call-ingestion recommendation (feature 9) | Done (PR #187) |
 | M1.10 | First scan: the assistant brings in the last 30 days of each added agent's calls in steps (`scan_calls`); Readiness steps 3 and 4 tick | Done (PR #188) |
 | Demo 10.009 | Scheduled call pull, the main way new calls arrive: Cloud Scheduler every minute, one list per Retell account, capped reads, 429 backoff; the webhook becomes optional and leaves Readiness | Done (PR #190; scheduler job live 2026-11-13) |
-| Demo 10.02 | Categories table: the 14 fixed categories in the database; issues take their check's category; `list_categories` | In review |
+| Demo 10.02 | Categories table: the 14 fixed categories in the database; issues take their check's category; `list_categories` | Done (PR #191) |
+| Demo 10.03 | Check every call: the minute pull checks stored calls that a current check version never ran on (new checks, new versions, broken checks after their fix) | In review |
 | D.1 | Frictionless assistant connection: personal access tokens for Claude Code, the setup prompt, Account › Assistant access, `mcp.connexity.ai` | In review |
 
 **The order of work is Dmytro's feature roadmap (Decided 2026-11-12).** It lives
@@ -146,13 +147,14 @@ Open, carried from earlier slices:
   server error stops that agent's scan until Retell serves it.
 - Node data from n8n is stored without redaction.
 - `Environment` has no remaining purpose (see the table below).
-- From 2.1: calls stored before the check engine are unchecked until they are sent
-  again; a call a check broke on is not retried; a check's setting can be changed
+- From 2.1 (closed by Demo 10.03 for checking: stored calls are checked by every current
+  check version within minutes, and a broken check's calls are retried with its next
+  version). Still open: unresolved versions and missing n8n executions are retried only
+  from the 1.x calls route, which has no screen; a check's setting can be changed
   through the API only (no screen, no MCP tool); any signed-in user or token of the
   company can change it, so "the assistant proposes, a person confirms" is not enforced.
 - From 2.3: a call is "unchecked" when its mapping does not say whether it reports tool
-  calls and the agent called none; a new version of a check does not run over stored
-  calls; the test for "is anything unchecked" looks at every call of the agent.
+  calls and the agent called none; the test for "is anything unchecked" looks at every call of the agent.
 - Deleting an agent that has calls answers 500: `call.agent_id` has no rule for it.
   Found in 2.1; it predates it.
 - Retell's prompt versions include each tool's address. That could suggest the
@@ -734,6 +736,7 @@ Dmytro's only when he stated it in his own words.
 | 2026-11-13 | The first scan brings in each added agent's calls from the last 30 days, driven by the assistant through `scan_calls` in steps of about 40 seconds (no background work, because of Cloud Run), reading 5 calls at a time. Each agent keeps its own scan position; step 4 ticks the first time every added agent is scanned and stays done. Checks are not part of it. | Dmytro (roadmap entry; "accept") |
 | 2026-11-13 | A scheduled pull is the main way new calls arrive: Cloud Scheduler every minute, per Retell account one list and at most 50 reads, idle accounts every 10 minutes, a re-read for late analysis, 429 pauses only that account. The webhook is optional, used only where an agent's is empty, and leaves Readiness and onboarding (its "last webhook call" is deleted). Retell's limit is 30 requests per 10 seconds per organization and route. Replaces "nothing beyond the Retell webhook". | Dmytro ("option A, go, Demo milestone"; "yes"; "from real limits of retell"; "sure") |
 | 2026-11-13 | Categories: a `category` table seeded with design prompt 06's 14 (key, name, order, behaviour or technical), edited by the Connexity team in the database. Each check declares its category and an issue takes it; moving an issue waits for the Issues page. `list_categories` for the assistant. | Dmytro (roadmap entry; "Accept, build") |
+| 2026-11-13 | Every stored call is checked by every current check version: the minute pull checks calls that need it (up to 200 a run), and a new version of a check re-runs over every stored call so issue counts match what the check says now. | Dmytro (roadmap entry; "Accept, build") |
 
 ---
 

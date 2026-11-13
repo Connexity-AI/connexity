@@ -14,8 +14,11 @@ A run, one at a time (a lease row in the database):
    ended is read in full and stored in every workspace that added its agent, through
    the webhook's path. The position stops just before a call still in progress.
 3. Reads again, once, calls stored without Retell's post-call analysis.
-4. Stops at `MAX_READS` full reads or `RUN_SECONDS`. A 429 or another failure pauses
-   that account with a growing wait; the other accounts carry on.
+4. Checks stored calls that some current check version never ran on: calls stored
+   before a check existed, or checked by an older version (`check_calls_needing_it`).
+5. Stops at `MAX_READS` full reads, `CHECK_LIMIT` checks or `RUN_SECONDS`. A 429 or
+   another failure pauses that account with a growing wait; the other accounts carry
+   on.
 
 Storing is idempotent, so the pull, the webhook and the first scan never duplicate a
 call.
@@ -42,6 +45,8 @@ from app.models.call_pull import CallPullAccount, CallPullLease
 from app.models.enums import IntegrationProvider
 from app.models.integration import Integration
 from app.services.call_sync import emit, store_retell_calls
+from app.services.checks import engine as checks_engine
+from app.services.checks.engine import check_calls_needing_it
 from app.services.retell import (
     RetellCallSummary,
     RetellRateLimited,
@@ -53,6 +58,8 @@ logger = logging.getLogger(__name__)
 
 # Full call reads in one run, across all accounts: a backlog drains over several runs.
 MAX_READS = 50
+# Stored calls checked in one run (calls that need a current check version).
+CHECK_LIMIT = 200
 # Work in one run, below Cloud Scheduler's 60-second deadline.
 RUN_SECONDS = 45.0
 LIST_LIMIT = 1000
@@ -75,6 +82,7 @@ class PullRun(BaseModel):
     accounts_pulled: int = 0
     calls_stored: int = 0
     calls_reread: int = 0
+    calls_checked: int = 0
     reads: int = 0
     skipped: dict[str, int] = {}
 
@@ -400,6 +408,32 @@ async def _reread(
     return reread
 
 
+# ── Checks the stored calls need ───────────────────────────────────────────
+
+# New calls are checked as they arrive, so the backlog only grows when a deploy adds
+# or changes a check, or a check could not run on arrival. A pass that found nothing is
+# not repeated until the checks change, or for `BACKLOG_EVERY`. Kept in this process
+# only: another instance may look once more, which is harmless.
+BACKLOG_EVERY = 600.0
+_backlog_empty: tuple[tuple[tuple[str, int], ...], float] | None = None
+
+
+def _check_versions() -> tuple[tuple[str, int], ...]:
+    return tuple(sorted((check.type, check.version) for check in checks_engine.CHECKS))
+
+
+def _backlog_due() -> bool:
+    if _backlog_empty is None:
+        return True
+    versions, at = _backlog_empty
+    return versions != _check_versions() or time.monotonic() - at >= BACKLOG_EVERY
+
+
+def _backlog_done(*, empty: bool) -> None:
+    global _backlog_empty
+    _backlog_empty = (_check_versions(), time.monotonic()) if empty else None
+
+
 # ── A run ──────────────────────────────────────────────────────────────────
 
 
@@ -454,6 +488,18 @@ async def run_pull(*, session: Session) -> PullRun:
             run.accounts_pulled += 1
         run.calls_reread = await _reread(session, accounts, budget, now)
         run.reads = budget.reads
+        # Calls stored before a check existed, or checked by an older version of it.
+        # Checks are code with no network: they share the run's time, not its reads.
+        if _backlog_due():
+            run.calls_checked = check_calls_needing_it(
+                session=session,
+                agent_ids=[
+                    agent.id for account in accounts for agent in account.agents
+                ],
+                limit=CHECK_LIMIT,
+                deadline=budget.deadline,
+            )
+            _backlog_done(empty=run.calls_checked == 0)
         return run
     finally:
         give_back_lease(session=session, holder=holder)
@@ -463,6 +509,7 @@ async def run_pull(*, session: Session) -> PullRun:
             accounts_pulled=run.accounts_pulled,
             calls_stored=run.calls_stored,
             calls_reread=run.calls_reread,
+            calls_checked=run.calls_checked,
             reads=budget.reads,
             skipped=run.skipped,
             duration_ms=int((time.monotonic() - started) * 1000),

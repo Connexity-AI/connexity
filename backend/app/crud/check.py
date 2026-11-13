@@ -344,73 +344,97 @@ def record_checks_broke(
     company_id: uuid.UUID,
     versions: Mapping[str, int],
 ) -> None:
-    """Record each check in ``versions`` as broke on a call, where it has no row yet."""
+    """Record each check in ``versions`` as broke on a call, replacing a run by an
+    older version, so the call is not picked up again until the check changes."""
     if not versions:
         return
+    insert_stmt = pg_insert(_CALL_CHECK_TABLE).values(
+        [
+            {
+                "call_id": call_id,
+                "check_type": check_type,
+                "company_id": company_id,
+                "check_version": version,
+                "outcome": CheckOutcome.BROKE,
+            }
+            for check_type, version in versions.items()
+        ]
+    )
     session.execute(
-        pg_insert(_CALL_CHECK_TABLE)
-        .values(
-            [
-                {
-                    "call_id": call_id,
-                    "check_type": check_type,
-                    "company_id": company_id,
-                    "check_version": version,
-                    "outcome": CheckOutcome.BROKE,
-                }
-                for check_type, version in versions.items()
-            ]
+        insert_stmt.on_conflict_do_update(
+            index_elements=["call_id", "check_type"],
+            set_={
+                "check_version": insert_stmt.excluded.check_version,
+                "outcome": CheckOutcome.BROKE,
+                "missing": None,
+            },
+            # Only a run by another version: a run of this version stays as it is.
+            where=_CALL_CHECK_TABLE.c.check_version
+            != insert_stmt.excluded.check_version,
         )
-        .on_conflict_do_nothing(index_elements=["call_id", "check_type"])
     )
     session.commit()
 
 
-def _missing_check_runs(
-    agent_id: uuid.UUID, check_types: list[str]
+def _needs_checking(
+    agent_ids: list[uuid.UUID], versions: Mapping[str, int]
 ) -> ColumnElement[bool]:
-    """Condition: the agent's calls with a trace that lack a run row for some check."""
-    recorded = (
+    """Condition: calls with a trace that lack a run of some current check version.
+
+    A call checked by an older version of a check, or never by a check, needs
+    checking. A call is never checked twice by the same version, whatever the outcome.
+    """
+    current = (
         select(func.count())
         .select_from(CallCheck)
-        .where(CallCheck.call_id == Call.id, col(CallCheck.check_type).in_(check_types))
+        .where(
+            CallCheck.call_id == Call.id,
+            tuple_(col(CallCheck.check_type), col(CallCheck.check_version)).in_(
+                list(versions.items())
+            ),
+        )
         .correlate(Call)
         .scalar_subquery()
     )
     return and_(
-        Call.agent_id == agent_id,
+        col(Call.agent_id).in_(agent_ids),
         col(Call.deleted_at).is_(None),
         col(Call.schema_version).is_not(None),
-        recorded < len(check_types),
+        current < len(versions),
     )
 
 
-def calls_missing_check_runs(
-    *, session: Session, agent_id: uuid.UUID, check_types: list[str], limit: int
+def calls_needing_checks(
+    *,
+    session: Session,
+    agent_ids: list[uuid.UUID],
+    versions: Mapping[str, int],
+    limit: int,
 ) -> list[Call]:
-    """The agent's stored calls that some check in ``check_types`` never ran on."""
-    if not check_types:
+    """These agents' stored calls that some current check version never ran on,
+    newest first."""
+    if not versions or not agent_ids:
         return []
     return list(
         session.exec(
             select(Call)
-            .where(_missing_check_runs(agent_id, check_types))
+            .where(_needs_checking(agent_ids, versions))
             .order_by(col(Call.started_at).desc())
             .limit(limit)
         ).all()
     )
 
 
-def count_calls_missing_check_runs(
-    *, session: Session, agent_id: uuid.UUID, check_types: list[str]
+def count_calls_needing_checks(
+    *, session: Session, agent_ids: list[uuid.UUID], versions: Mapping[str, int]
 ) -> int:
-    if not check_types:
+    if not versions or not agent_ids:
         return 0
     return int(
         session.exec(
             select(func.count())
             .select_from(Call)
-            .where(_missing_check_runs(agent_id, check_types))
+            .where(_needs_checking(agent_ids, versions))
         ).one()
     )
 

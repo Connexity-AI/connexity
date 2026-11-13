@@ -3570,11 +3570,11 @@ export class ChecksService {
   /**
    * Run Agent Checks
    *
-   * Check the agent's stored calls that some check has never run on.
+   * Check the agent's stored calls that some current check version never ran on.
    *
-   * This also happens by itself when the agent's calls are opened. Up to 200 calls per
-   * request; ``remaining`` says how many are left. Findings on calls that started before
-   * a check existed are retroactive.
+   * The scheduled call pull also does this every minute. Up to 200 calls per request;
+   * ``remaining`` says how many are left. Findings on calls that started before a check
+   * existed are retroactive.
    */
   public static runAgentChecks<ThrowOnError extends boolean = false>(
     options: Options<ChecksRunAgentChecksData, ThrowOnError>
