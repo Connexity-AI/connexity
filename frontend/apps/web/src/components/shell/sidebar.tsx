@@ -24,8 +24,13 @@ export const Sidebar: FC<Props> = ({ user, workspaces }) => (
 
     {NAV_ITEMS.length > 0 && (
       <nav aria-label="Pages" className="flex flex-col gap-0.5">
-        {NAV_ITEMS.map((item) => (
-          <NavLink key={item.url} item={item} />
+        {NAV_ITEMS.map(({ title, url, icon: Icon }) => (
+          <NavLink
+            key={url}
+            title={title}
+            url={url}
+            icon={<Icon className="size-4 shrink-0" aria-hidden />}
+          />
         ))}
       </nav>
     )}
