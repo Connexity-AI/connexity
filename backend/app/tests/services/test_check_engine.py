@@ -55,6 +55,7 @@ def _check(
         title="Invented",
         description="For tests.",
         default_mode=CheckMode.FLAGS,
+        category="other",
         run=run,
         facts=facts,
     )

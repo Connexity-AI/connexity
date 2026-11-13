@@ -22,6 +22,7 @@ async def test_server_lists_only_the_workspace_tools() -> None:
         "create_workspace",
         "get_readiness",
         "list_agents",
+        "list_categories",
         "list_workspaces",
         "scan_calls",
     ]
@@ -56,7 +57,7 @@ async def test_every_guide_is_served_as_a_resource() -> None:
 async def test_tools_say_whether_they_change_anything() -> None:
     tools = {tool.name: tool.annotations for tool in await _server().list_tools()}
 
-    for name in ("list_workspaces", "list_agents", "get_readiness"):
+    for name in ("list_workspaces", "list_agents", "list_categories", "get_readiness"):
         assert tools[name] is not None
         assert tools[name].readOnlyHint is True
         assert tools[name].openWorldHint is False

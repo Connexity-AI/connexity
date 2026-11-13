@@ -8,6 +8,8 @@ from app import crud
 from app.api.deps import CurrentCompany, CurrentUser, SessionDep, get_current_user
 from app.crud.check import IssueSummary
 from app.models import (
+    Category,
+    CategoryPublic,
     IssueDetailPublic,
     IssueFindingPublic,
     IssuePublic,
@@ -21,14 +23,23 @@ router = APIRouter(tags=["issues"], dependencies=[Depends(get_current_user)])
 _MAX_FINDINGS = 200
 
 
-def _public(summary: IssueSummary) -> IssuePublic:
+def _public(
+    summary: IssueSummary, categories: dict[uuid.UUID, Category]
+) -> IssuePublic:
     issue = summary.issue
+    category = categories[issue.category_id]
     check = get_check(issue.check_type)
     return IssuePublic(
         id=issue.id,
         agent_id=issue.agent_id,
         check_type=issue.check_type,
         title=check.title if check else "",
+        category=CategoryPublic(
+            key=category.key,
+            name=category.name,
+            position=category.position,
+            kind=category.kind,
+        ),
         key=issue.key or None,
         state=issue.state,
         resolved_at=issue.resolved_at,
@@ -51,8 +62,9 @@ def list_agent_issues(
         is None
     ):
         raise HTTPException(status_code=404, detail="Agent not found")
+    categories = crud.categories_by_id(session=session)
     return [
-        _public(summary)
+        _public(summary, categories)
         for summary in crud.list_issues(session=session, agent_id=agent_id)
     ]
 
@@ -65,7 +77,10 @@ def get_issue(
     issue = crud.get_issue(session=session, issue_id=issue_id, company_id=company_id)
     if issue is None:
         raise HTTPException(status_code=404, detail="Issue not found")
-    summary = _public(crud.summarise_issue(session=session, issue=issue))
+    summary = _public(
+        crud.summarise_issue(session=session, issue=issue),
+        crud.categories_by_id(session=session),
+    )
     return IssueDetailPublic(
         **summary.model_dump(),
         findings=[
@@ -121,4 +136,7 @@ def set_issue_state(
         reason=reason,
         decided_by=current_user,
     )
-    return _public(crud.summarise_issue(session=session, issue=issue))
+    return _public(
+        crud.summarise_issue(session=session, issue=issue),
+        crud.categories_by_id(session=session),
+    )

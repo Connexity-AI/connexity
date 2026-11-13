@@ -59,6 +59,8 @@ class RuleCheck:
     title: str
     description: str
     default_mode: CheckMode
+    # The key of the category its issues belong to (`app/models/category.py`).
+    category: str
     run: Callable[[CheckInput], list[Raised]]
     facts: tuple[str, ...] = ()
     # What a trace must have for the check to say anything. On a call without it the

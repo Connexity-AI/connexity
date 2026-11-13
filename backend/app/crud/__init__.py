@@ -44,6 +44,7 @@ from app.crud.call import (  # noqa: F401
     upsert_calls_from_elevenlabs,
     upsert_calls_from_vapi,
 )
+from app.crud.category import categories_by_id, list_categories  # noqa: F401
 from app.crud.check import (  # noqa: F401
     call_check_statuses,
     calls_missing_check_runs,

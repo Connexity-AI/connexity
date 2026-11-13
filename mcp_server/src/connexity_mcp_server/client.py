@@ -71,6 +71,11 @@ class ConnexityBackendClient:
             timeout=SCAN_TIMEOUT_SECONDS,
         )
 
+    async def list_categories(self, *, workspace_id: str) -> dict[str, Any]:
+        return await self._request_json(
+            "GET", f"/mcp/workspaces/{quote(workspace_id, safe='')}/categories"
+        )
+
     async def get_readiness(self, *, workspace_id: str) -> dict[str, Any]:
         return await self._request_json(
             "GET", f"/mcp/workspaces/{quote(workspace_id, safe='')}/readiness"

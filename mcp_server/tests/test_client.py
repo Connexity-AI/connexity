@@ -4,6 +4,7 @@ from connexity_mcp_server.client import ConnexityBackendClient, ConnexityBackend
 from connexity_mcp_server.config import Settings
 from connexity_mcp_server.tools import (
     add_agents,
+    list_categories,
     scan_calls,
     connect_voice_platform,
     create_workspace,
@@ -346,3 +347,27 @@ async def test_scan_calls_posts_and_waits_for_a_step() -> None:
 
     assert result.data.agents[0].stored == 40
     assert result.data.finished is False
+
+
+@pytest.mark.asyncio
+async def test_list_categories_reads_the_fixed_set() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET"
+        assert request.url.path == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/categories"
+        assert request.headers["Authorization"] == "Bearer user-oauth-token"
+        return httpx.Response(
+            200,
+            json={
+                "data": [
+                    {"key": "booking", "name": "Booking", "position": 3, "kind": "behaviour"}
+                ],
+                "next_cursor": None,
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler, lambda client: list_categories(client, workspace_id=WORKSPACE_ID)
+    )
+
+    assert result.data[0].name == "Booking"

@@ -21,6 +21,7 @@ GUIDE_GETTING_STARTED = "connexity://guides/getting-started"
 GUIDE_WORKSPACES = "connexity://guides/workspaces"
 GUIDE_READINESS = "connexity://guides/readiness"
 GUIDE_CONNECT = "connexity://guides/connect"
+GUIDE_CATEGORIES = "connexity://guides/categories"
 
 
 class McpAnswer(BaseModel, Generic[T]):

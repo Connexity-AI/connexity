@@ -22,6 +22,7 @@ from app.core.config import settings
 from app.core.encryption import decrypt
 from app.models import (
     Agent,
+    CategoryPublic,
     IntegrationProvider,
     Platform,
     ReadinessPublic,
@@ -30,6 +31,7 @@ from app.models import (
     WorkspaceCreate,
 )
 from app.models.mcp import (
+    GUIDE_CATEGORIES,
     GUIDE_CONNECT,
     GUIDE_GETTING_STARTED,
     GUIDE_READINESS,
@@ -155,6 +157,40 @@ def create_workspace(
             "menu in the web app.",
         ],
         guide=GUIDE_WORKSPACES,
+    )
+
+
+@router.get(
+    "/workspaces/{workspace_id}/categories",
+    response_model=McpAnswer[list[CategoryPublic]],
+)
+def list_categories(
+    session: SessionDep, workspace: McpWorkspaceDep
+) -> McpAnswer[list[CategoryPublic]]:
+    # The same set for every workspace; the workspace keeps this route scoped like the
+    # others, and leaves room for counts per category later.
+    del workspace
+    return McpAnswer[list[CategoryPublic]](
+        data=[
+            CategoryPublic(
+                key=category.key,
+                name=category.name,
+                position=category.position,
+                kind=category.kind,
+            )
+            for category in crud.list_categories(session=session)
+        ],
+        rules=[
+            "One fixed set, the same for every workspace; only the Connexity team "
+            "changes it.",
+            "Group issues and spec rules under these categories, in this order, and "
+            "use their names when you talk to the person.",
+            "Behaviour categories describe what the agent does; technical ones are "
+            "problems any agent can have, whatever its spec says.",
+            "Every issue belongs to the category of the check that found it.",
+        ],
+        next_steps=[],
+        guide=GUIDE_CATEGORIES,
     )
 
 

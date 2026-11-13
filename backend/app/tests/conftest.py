@@ -9,6 +9,8 @@ from sqlmodel import Session
 from app.core.config import settings
 from app.core.db import engine
 from app.main import app
+from app.models.category import SEED as CATEGORY_SEED
+from app.models.category import Category
 from app.models.custom_metric import CustomMetric
 from app.services.n8n import N8nError
 from app.services.predefined_metrics import PREDEFINED_METRICS
@@ -62,10 +64,21 @@ def _ensure_predefined_metrics(session: Session) -> None:
     session.commit()
 
 
+def _ensure_categories(session: Session) -> None:
+    """Seed the categories if missing: the session-end TRUNCATE wipes the migration's
+    seed, as it does the predefined metrics."""
+    existing = set(session.execute(text("SELECT key FROM category")).scalars().all())
+    for position, (key, name, kind) in enumerate(CATEGORY_SEED, start=1):
+        if key not in existing:
+            session.add(Category(key=key, name=name, position=position, kind=kind))
+    session.commit()
+
+
 @pytest.fixture(scope="session", autouse=True)
 def db() -> Generator[Session, None, None]:
     with Session(engine) as session:
         _ensure_predefined_metrics(session)
+        _ensure_categories(session)
         yield session
         # Wipe every application table so tables without an FK to "user"
         # (agent, eval_config, test_case, ...) don't accumulate orphans

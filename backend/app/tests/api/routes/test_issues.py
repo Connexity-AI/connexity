@@ -83,6 +83,13 @@ def test_the_same_failure_on_three_calls_is_one_issue_and_another_tool_is_a_seco
     assert set(issues) == {"find_table", "send_text"}
     issue = issues["find_table"]
     assert (issue["check_type"], issue["title"]) == (CHECK, "Tool call failed")
+    # It takes its check's category.
+    assert issue["category"] == {
+        "key": "tools_and_integrations",
+        "name": "Tools and integrations",
+        "position": 12,
+        "kind": "technical",
+    }
     assert issue["state"] == "open"
     assert (issue["finding_count"], issue["call_count"]) == (3, 3)
     assert issue["first_seen_at"] <= issue["last_seen_at"]

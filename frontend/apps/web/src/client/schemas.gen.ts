@@ -2374,6 +2374,35 @@ export const CallsPublicSchema = {
   title: 'CallsPublic',
 } as const;
 
+export const CategoryKindSchema = {
+  type: 'string',
+  enum: ['behaviour', 'technical'],
+  title: 'CategoryKind',
+} as const;
+
+export const CategoryPublicSchema = {
+  properties: {
+    key: {
+      type: 'string',
+      title: 'Key',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    position: {
+      type: 'integer',
+      title: 'Position',
+    },
+    kind: {
+      $ref: '#/components/schemas/CategoryKind',
+    },
+  },
+  type: 'object',
+  required: ['key', 'name', 'position', 'kind'],
+  title: 'CategoryPublic',
+} as const;
+
 export const CauseAnalysisItemSchema = {
   properties: {
     metric: {
@@ -4729,6 +4758,9 @@ export const IssueDetailPublicSchema = {
       title: 'Title',
       description: "The check's name; empty for a check since removed",
     },
+    category: {
+      $ref: '#/components/schemas/CategoryPublic',
+    },
     key: {
       anyOf: [
         {
@@ -4820,6 +4852,7 @@ export const IssueDetailPublicSchema = {
     'agent_id',
     'check_type',
     'title',
+    'category',
     'state',
     'finding_count',
     'call_count',
@@ -4913,6 +4946,9 @@ export const IssuePublicSchema = {
       title: 'Title',
       description: "The check's name; empty for a check since removed",
     },
+    category: {
+      $ref: '#/components/schemas/CategoryPublic',
+    },
     key: {
       anyOf: [
         {
@@ -4996,6 +5032,7 @@ export const IssuePublicSchema = {
     'agent_id',
     'check_type',
     'title',
+    'category',
     'state',
     'finding_count',
     'call_count',
@@ -5817,6 +5854,55 @@ export const McpAnswer_ReadinessPublic_Schema = {
   type: 'object',
   required: ['data', 'guide'],
   title: 'McpAnswer[ReadinessPublic]',
+} as const;
+
+export const McpAnswer_list_CategoryPublic__Schema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/CategoryPublic',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[list[CategoryPublic]]',
 } as const;
 
 export const McpAnswer_list_McpAgent__Schema = {

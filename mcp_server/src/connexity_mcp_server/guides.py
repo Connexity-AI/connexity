@@ -14,6 +14,7 @@ GUIDES = {
     "workspaces": "Workspaces",
     "readiness": "Readiness",
     "connect": "Connect an assistant to Connexity",
+    "categories": "Categories",
 }
 
 INSTRUCTIONS = (

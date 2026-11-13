@@ -74,6 +74,11 @@ cause is recorded on each incident.
 
 - **Each occurrence is a finding** with its call and time; an issue's size is the number
   of calls it affected.
+- **Category:** every issue belongs to the category its check declares, one of a fixed,
+  Connexity-wide set kept in the `category` table (Decided 2026-11-12; built with
+  `plans/2026-11-13-categories-table.md`). Code refers to a category by its stable
+  `key`; the Connexity team edits names and order in the database. Spec rules will point
+  at the same table.
 - **Severity:** an issue is Critical when its check fails the call, otherwise a Warning.
 - **Resolved:** the assistant or a person marks an issue fixed, linked to the version
   that carries the fix. There is no confirmation on real calls yet; if the issue happens

@@ -166,6 +166,13 @@ class TraceCapability(StrEnum):
     OUTPUTS = "outputs"
 
 
+class CategoryKind(StrEnum):
+    # How the agent behaves: what its spec describes.
+    BEHAVIOUR = "behaviour"
+    # Problems any agent can have, whatever its spec says.
+    TECHNICAL = "technical"
+
+
 class CheckKind(StrEnum):
     # Code over the trace, no model.
     RULE = "rule"
