@@ -5954,6 +5954,55 @@ export const McpAnswer_list_McpAgent__Schema = {
   title: 'McpAnswer[list[McpAgent]]',
 } as const;
 
+export const McpAnswer_list_McpIssue__Schema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/McpIssue',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[list[McpIssue]]',
+} as const;
+
 export const McpAnswer_list_McpWorkspace__Schema = {
   properties: {
     data: {
@@ -6051,6 +6100,101 @@ export const McpConnectionSchema = {
   type: 'object',
   required: ['platform', 'masked_api_key', 'replaced_earlier_key'],
   title: 'McpConnection',
+} as const;
+
+export const McpIssueSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    agent_name: {
+      type: 'string',
+      title: 'Agent Name',
+    },
+    type: {
+      type: 'string',
+      title: 'Type',
+      description: 'The check that finds it, e.g. booking_duplicated',
+    },
+    title: {
+      type: 'string',
+      title: 'Title',
+    },
+    category: {
+      type: 'string',
+      title: 'Category',
+    },
+    severity: {
+      type: 'string',
+      enum: ['critical', 'warning'],
+      title: 'Severity',
+    },
+    found_by: {
+      type: 'string',
+      enum: ['rule', 'model'],
+      title: 'Found By',
+      description: 'rule: deterministic code over the call; model: a classifier or judge',
+    },
+    state: {
+      type: 'string',
+      title: 'State',
+    },
+    calls_affected: {
+      type: 'integer',
+      title: 'Calls Affected',
+    },
+    calls_total: {
+      type: 'integer',
+      title: 'Calls Total',
+      description: "The agent's stored calls: 'in N of M calls'",
+    },
+    first_seen_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'First Seen At',
+    },
+    last_seen_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Last Seen At',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'agent_id',
+    'agent_name',
+    'type',
+    'title',
+    'category',
+    'severity',
+    'found_by',
+    'state',
+    'calls_affected',
+    'calls_total',
+  ],
+  title: 'McpIssue',
 } as const;
 
 export const McpRefusedAgentSchema = {

@@ -103,7 +103,8 @@ history of a slice is its plan file in `plans/`.
 | M1.10 | First scan: the assistant brings in the last 30 days of each added agent's calls in steps (`scan_calls`); Readiness steps 3 and 4 tick | Done (PR #188) |
 | Demo 10.009 | Scheduled call pull, the main way new calls arrive: Cloud Scheduler every minute, one list per Retell account, capped reads, 429 backoff; the webhook becomes optional and leaves Readiness | Done (PR #190; scheduler job live 2026-11-13) |
 | Demo 10.02 | Categories table: the 14 fixed categories in the database; issues take their check's category; `list_categories` | Done (PR #191) |
-| Demo 10.03 | Check every call: the minute pull checks stored calls that a current check version never ran on (new checks, new versions, broken checks after their fix) | In review |
+| Demo 10.03 | Check every call: the minute pull checks stored calls that a current check version never ran on (new checks, new versions, broken checks after their fix) | Done (PR #192) |
+| Demo 10.06 | Two demo checks (rules, Critical): booking with missing or placeholder details, two bookings for one slot; the issue type library doc; `list_issues` with `found_by` | In review |
 | D.1 | Frictionless assistant connection: personal access tokens for Claude Code, the setup prompt, Account › Assistant access, `mcp.connexity.ai` | In review |
 
 **The order of work is Dmytro's feature roadmap (Decided 2026-11-12).** It lives
@@ -737,6 +738,7 @@ Dmytro's only when he stated it in his own words.
 | 2026-11-13 | A scheduled pull is the main way new calls arrive: Cloud Scheduler every minute, per Retell account one list and at most 50 reads, idle accounts every 10 minutes, a re-read for late analysis, 429 pauses only that account. The webhook is optional, used only where an agent's is empty, and leaves Readiness and onboarding (its "last webhook call" is deleted). Retell's limit is 30 requests per 10 seconds per organization and route. Replaces "nothing beyond the Retell webhook". | Dmytro ("option A, go, Demo milestone"; "yes"; "from real limits of retell"; "sure") |
 | 2026-11-13 | Categories: a `category` table seeded with design prompt 06's 14 (key, name, order, behaviour or technical), edited by the Connexity team in the database. Each check declares its category and an issue takes it; moving an issue waits for the Issues page. `list_categories` for the assistant. | Dmytro (roadmap entry; "Accept, build") |
 | 2026-11-13 | Every stored call is checked by every current check version: the minute pull checks calls that need it (up to 200 a run), and a new version of a check re-runs over every stored call so issue counts match what the check says now. | Dmytro (roadmap entry; "Accept, build") |
+| 2026-11-13 | Two demo checks, both rules (deterministic) and Critical: booking with missing or placeholder details, and two bookings for one slot; booking tools are recognised by name. "A change confirmed without a tool" moves to model-based checks (10.16), classifier or LLM to be decided. Every issue says whether a rule or a model found it. The issue type library starts as `docs-internal/issue-types.md`. `list_issues` for the assistant. | Dmytro ("lets do only 1 and 2. Check 3 move and we will have to decide if thats a classifier or llm"; "I always want to know when issue is found via determenistic check or model"; "Accept, build") |
 
 ---
 

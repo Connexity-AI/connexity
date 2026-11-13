@@ -12,6 +12,8 @@ from app import crud
 from app.core.config import settings
 from app.models import Agent, CallCheck, DecisionRecord
 from app.models.trace import Trace
+from app.services.checks import engine
+from app.services.checks.rules.tool_call_failed import TOOL_CALL_FAILED
 from app.tests.api.routes.test_checks import (
     CHECK,
     _agent,
@@ -65,6 +67,13 @@ def _status(client: TestClient, cookies: dict[str, str], call_id: str) -> str:
 
 def _later() -> datetime:
     return datetime.now(UTC) + timedelta(seconds=1)
+
+
+@pytest.fixture
+def only_tool_call_failed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The call status rules, shown with "Tool call failed" as the only check. With
+    more checks, a call one check skipped or was off for is still checked by others."""
+    monkeypatch.setattr(engine, "CHECKS", (TOOL_CALL_FAILED,))
 
 
 # ── Findings become issues ─────────────────────────────────────────
@@ -138,6 +147,7 @@ def test_an_issue_outlives_its_findings(
 # ── Call status ────────────────────────────────────────────────────
 
 
+@pytest.mark.usefixtures("only_tool_call_failed")
 def test_a_call_is_failed_degraded_clean_or_unchecked(
     client: TestClient, auth_cookies: dict[str, str], token: str
 ) -> None:
@@ -172,6 +182,7 @@ def test_a_call_is_failed_degraded_clean_or_unchecked(
     }
 
 
+@pytest.mark.usefixtures("only_tool_call_failed")
 def test_a_check_is_skipped_on_a_call_that_lacks_what_it_needs(
     client: TestClient, auth_cookies: dict[str, str], token: str
 ) -> None:
@@ -326,6 +337,7 @@ def _store_unchecked(db: Session, agent_id: str, trace: dict[str, Any]) -> uuid.
     ).call.id
 
 
+@pytest.mark.usefixtures("only_tool_call_failed")
 def test_stored_calls_never_checked_are_checked_on_request_and_only_once(
     client: TestClient, auth_cookies: dict[str, str], token: str, db: Session
 ) -> None:

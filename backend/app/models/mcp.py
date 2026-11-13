@@ -9,7 +9,7 @@ Lists add `next_cursor`. Errors carry a message, next steps and a guide in the s
 import uuid
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Generic, TypeVar
+from typing import Annotated, Generic, Literal, TypeVar
 
 from pydantic import BaseModel, Field, StringConstraints
 
@@ -22,6 +22,7 @@ GUIDE_WORKSPACES = "connexity://guides/workspaces"
 GUIDE_READINESS = "connexity://guides/readiness"
 GUIDE_CONNECT = "connexity://guides/connect"
 GUIDE_CATEGORIES = "connexity://guides/categories"
+GUIDE_ISSUES = "connexity://guides/issues"
 
 
 class McpAnswer(BaseModel, Generic[T]):
@@ -128,3 +129,21 @@ class McpScanProgress(BaseModel):
     calls_without_versions: int = Field(
         description="Stored calls whose agent version could not be resolved"
     )
+
+
+class McpIssue(BaseModel):
+    id: uuid.UUID
+    agent_id: uuid.UUID
+    agent_name: str
+    type: str = Field(description="The check that finds it, e.g. booking_duplicated")
+    title: str
+    category: str
+    severity: Literal["critical", "warning"]
+    found_by: Literal["rule", "model"] = Field(
+        description="rule: deterministic code over the call; model: a classifier or judge"
+    )
+    state: str
+    calls_affected: int
+    calls_total: int = Field(description="The agent's stored calls: 'in N of M calls'")
+    first_seen_at: datetime | None = None
+    last_seen_at: datetime | None = None

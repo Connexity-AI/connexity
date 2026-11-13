@@ -1,9 +1,15 @@
 """The built-in checks and fact sources."""
 
 from app.services.checks.base import FactSource, RuleCheck
+from app.services.checks.rules.booking_details_missing import BOOKING_DETAILS_MISSING
+from app.services.checks.rules.booking_duplicated import BOOKING_DUPLICATED
 from app.services.checks.rules.tool_call_failed import TOOL_CALL_FAILED
 
-CHECKS: tuple[RuleCheck, ...] = (TOOL_CALL_FAILED,)
+CHECKS: tuple[RuleCheck, ...] = (
+    TOOL_CALL_FAILED,
+    BOOKING_DETAILS_MISSING,
+    BOOKING_DUPLICATED,
+)
 
 FACT_SOURCES: tuple[FactSource, ...] = ()
 

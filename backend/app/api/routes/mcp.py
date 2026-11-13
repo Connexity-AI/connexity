@@ -7,8 +7,10 @@ to a workspace in its path, resolved by `require_mcp_workspace`.
 
 import base64
 import binascii
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlmodel import col, select
 
 from app import crud
 from app.api.deps import (
@@ -30,10 +32,12 @@ from app.models import (
     ReadinessStepState,
     WorkspaceCreate,
 )
+from app.models.enums import CheckKind
 from app.models.mcp import (
     GUIDE_CATEGORIES,
     GUIDE_CONNECT,
     GUIDE_GETTING_STARTED,
+    GUIDE_ISSUES,
     GUIDE_READINESS,
     GUIDE_WORKSPACES,
     McpAddAgents,
@@ -43,10 +47,12 @@ from app.models.mcp import (
     McpConnection,
     McpConnectVoicePlatform,
     McpErrorDetail,
+    McpIssue,
     McpRefusedAgent,
     McpScanProgress,
     McpWorkspace,
 )
+from app.services.checks.registry import get_check
 from app.services.connections import (
     KEY_LOCATION,
     VOICE_PLATFORMS,
@@ -191,6 +197,94 @@ def list_categories(
         ],
         next_steps=[],
         guide=GUIDE_CATEGORIES,
+    )
+
+
+@router.get(
+    "/workspaces/{workspace_id}/issues",
+    response_model=McpAnswer[list[McpIssue]],
+)
+def list_issues(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    agent_id: uuid.UUID | None = Query(default=None),
+    cursor: str | None = Query(default=None, max_length=255),
+    limit: int = Query(default=25, ge=1, le=100),
+) -> McpAnswer[list[McpIssue]]:
+    offset = _decode_cursor(cursor)
+    if agent_id is not None and (
+        crud.get_agent(session=session, agent_id=agent_id, company_id=workspace.id)
+        is None
+    ):
+        raise HTTPException(
+            status_code=404,
+            detail=McpErrorDetail(
+                error="Agent not found in this workspace",
+                next_steps=["Call `list_agents` for this workspace's agent ids."],
+                guide=GUIDE_ISSUES,
+            ).model_dump(),
+        )
+    summaries = crud.list_workspace_issues(
+        session=session, company_id=workspace.id, agent_id=agent_id
+    )
+    page = summaries[offset : offset + limit]
+    has_more = offset + limit < len(summaries)
+    agent_ids = list({s.issue.agent_id for s in page})
+    names = {
+        agent.id: agent.name
+        for agent in session.exec(
+            select(Agent).where(col(Agent.id).in_(agent_ids))
+        ).all()
+    }
+    totals = crud.stored_call_counts(session=session, agent_ids=agent_ids)
+    categories = crud.categories_by_id(session=session)
+    data = []
+    for summary in page:
+        issue = summary.issue
+        check = get_check(issue.check_type)
+        kind = check.kind if check else summary.kind
+        data.append(
+            McpIssue(
+                id=issue.id,
+                agent_id=issue.agent_id,
+                agent_name=names.get(issue.agent_id, ""),
+                type=issue.check_type,
+                title=check.title if check else issue.check_type,
+                category=categories[issue.category_id].name,
+                severity="critical" if summary.critical else "warning",
+                found_by="rule" if kind in (None, CheckKind.RULE) else "model",
+                state=issue.state.value,
+                calls_affected=summary.call_count,
+                calls_total=totals.get(issue.agent_id, 0),
+                first_seen_at=summary.first_seen_at,
+                last_seen_at=summary.last_seen_at,
+            )
+        )
+    next_steps = []
+    if has_more:
+        next_steps.append(
+            "Call `list_issues` again with `cursor` set to `next_cursor` for the next "
+            "page."
+        )
+    if not summaries:
+        next_steps.append(
+            "No issues yet. Calls are checked within a minute of arriving; if the "
+            "workspace has no calls, call `get_readiness`."
+        )
+    return McpAnswer[list[McpIssue]](
+        data=data,
+        rules=[
+            "Worst first: open issues, then critical, then by calls affected.",
+            "Say how each issue was found: found_by rule means deterministic code over "
+            "the call; model means a classifier or judge.",
+            "Give the size as 'in N of M calls' (calls_affected of calls_total), and "
+            "group by category when you list several.",
+            "Never quote what a caller said or a tool's arguments back to the person "
+            "unless they ask for one call.",
+        ],
+        next_steps=next_steps,
+        guide=GUIDE_ISSUES,
+        next_cursor=_encode_cursor(offset + limit) if has_more else None,
     )
 
 

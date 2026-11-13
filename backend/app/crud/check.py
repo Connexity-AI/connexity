@@ -15,6 +15,7 @@ from app.models.category import OTHER, Category
 from app.models.check import CallCheck, CheckRelease, DecisionRecord, Finding, Issue
 from app.models.enums import (
     CallCheckStatus,
+    CheckKind,
     CheckOutcome,
     DecisionKind,
     FindingEffect,
@@ -448,6 +449,10 @@ class IssueSummary(NamedTuple):
     call_count: int
     first_seen_at: datetime | None
     last_seen_at: datetime | None
+    # Any of its findings fails the call: the issue is Critical, otherwise a Warning.
+    critical: bool = False
+    # How its check finds things (rule, classifier, judge), from its findings.
+    kind: CheckKind | None = None
 
 
 def _summaries(session: Session, issues: list[Issue]) -> list[IssueSummary]:
@@ -462,6 +467,8 @@ def _summaries(session: Session, issues: list[Issue]) -> list[IssueSummary]:
                 func.count(func.distinct(col(Finding.call_id))),
                 func.min(col(Call.started_at)),
                 func.max(col(Call.started_at)),
+                func.bool_or(col(Finding.effect) == FindingEffect.FAILS),
+                func.max(col(Finding.kind)),
             )
             .join(Call, col(Call.id) == col(Finding.call_id))
             .where(col(Finding.issue_id).in_([issue.id for issue in issues]))
@@ -470,7 +477,9 @@ def _summaries(session: Session, issues: list[Issue]) -> list[IssueSummary]:
     }
     summaries = []
     for issue in issues:
-        findings, calls, first, last = totals.get(issue.id, (0, 0, None, None))
+        findings, calls, first, last, critical, kind = totals.get(
+            issue.id, (0, 0, None, None, False, None)
+        )
         summaries.append(
             IssueSummary(
                 issue=issue,
@@ -478,6 +487,8 @@ def _summaries(session: Session, issues: list[Issue]) -> list[IssueSummary]:
                 call_count=calls,
                 first_seen_at=first.replace(tzinfo=UTC) if first else None,
                 last_seen_at=last.replace(tzinfo=UTC) if last else None,
+                critical=bool(critical),
+                kind=CheckKind(kind) if kind else None,
             )
         )
     return summaries
@@ -492,6 +503,48 @@ def list_issues(*, session: Session, agent_id: uuid.UUID) -> list[IssueSummary]:
         key=lambda summary: (summary.last_seen_at or oldest, summary.issue.created_at),
         reverse=True,
     )
+
+
+_OPEN_STATES = (IssueState.OPEN, IssueState.REGRESSED)
+
+
+def list_workspace_issues(
+    *, session: Session, company_id: uuid.UUID, agent_id: uuid.UUID | None = None
+) -> list[IssueSummary]:
+    """The workspace's issues, worst first: open ones first, then Critical, then by
+    calls affected, then most recently seen."""
+    query = select(Issue).where(Issue.company_id == company_id)
+    if agent_id is not None:
+        query = query.where(Issue.agent_id == agent_id)
+    summaries = _summaries(session, list(session.exec(query).all()))
+    oldest = datetime.min.replace(tzinfo=UTC)
+    return sorted(
+        summaries,
+        key=lambda s: (
+            s.issue.state in _OPEN_STATES,
+            s.critical,
+            s.call_count,
+            s.last_seen_at or oldest,
+        ),
+        reverse=True,
+    )
+
+
+def stored_call_counts(
+    *, session: Session, agent_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, int]:
+    """How many calls each agent has stored, not deleted."""
+    if not agent_ids:
+        return {}
+    rows = session.exec(
+        select(Call.agent_id, func.count())
+        .where(col(Call.agent_id).in_(agent_ids), col(Call.deleted_at).is_(None))
+        .group_by(col(Call.agent_id))
+    ).all()
+    counts = dict.fromkeys(agent_ids, 0)
+    for agent_id, count in rows:
+        counts[agent_id] = count
+    return counts
 
 
 def get_issue(
