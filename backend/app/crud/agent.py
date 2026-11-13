@@ -1,12 +1,11 @@
 import uuid
-from datetime import UTC, datetime
 from typing import Any
 
 from cryptography.fernet import InvalidToken
 from sqlalchemy import func
 from sqlmodel import Session, col, select
 
-from app.core.encryption import decrypt
+from app.core.encryption import decrypt, key_fingerprint
 from app.crud import agent_version as agent_version_crud
 from app.models import (
     Agent,
@@ -260,53 +259,53 @@ def add_platform_agent(
     return agent, True
 
 
-def retell_agents_for_webhook(
+def fill_key_fingerprints(*, session: Session) -> None:
+    """Give a fingerprint to connections stored before fingerprints existed.
+
+    Decrypts only those. A key stored under another encryption key cannot be read and
+    keeps no fingerprint: it belongs to no account Connexity can reach.
+    """
+    missing = session.exec(
+        select(Integration).where(col(Integration.key_fingerprint).is_(None))
+    ).all()
+    for integration in missing:
+        try:
+            integration.key_fingerprint = key_fingerprint(
+                decrypt(integration.encrypted_api_key)
+            )
+        except InvalidToken:
+            continue
+        session.add(integration)
+    if missing:
+        session.commit()
+
+
+def retell_agents_for_account(
     *,
     session: Session,
-    integration: Integration,
-    api_key: str,
-    platform_agent_id: str,
+    fingerprint: str,
+    platform_agent_id: str | None = None,
 ) -> list[Agent]:
-    """The added agents a Retell webhook call belongs to, in every workspace.
+    """The added Retell agents of one Retell account, in every workspace.
 
-    Retell sends a call to one address, the connection of one workspace. The same
-    Retell account may be connected in other workspaces (one per client) that added
-    the same agent: those connections hold the same key.
+    A Retell account may be connected in several workspaces (one per client), and each
+    may have added the same agent: those connections hold the same key, so the same
+    fingerprint. With ``platform_agent_id``, only that Retell agent's copies.
     """
-    if not platform_agent_id:
-        return []
-    connections = [integration.id]
-    others = session.exec(
-        select(Integration).where(
+    query = (
+        select(Agent)
+        .join(Integration, col(Integration.id) == col(Agent.integration_id))
+        .where(
             Integration.provider == IntegrationProvider.RETELL,
-            Integration.id != integration.id,
+            Integration.key_fingerprint == fingerprint,
+            Agent.platform == Platform.RETELL,
+            col(Agent.platform_agent_id).is_not(None),
         )
-    ).all()
-    for other in others:
-        try:
-            if decrypt(other.encrypted_api_key) == api_key:
-                connections.append(other.id)
-        except InvalidToken:
-            # A key stored under another encryption key: not this account's.
-            continue
-    return list(
-        session.exec(
-            select(Agent)
-            .where(
-                col(Agent.integration_id).in_(connections),
-                Agent.platform == Platform.RETELL,
-                Agent.platform_agent_id == platform_agent_id,
-            )
-            .order_by(col(Agent.created_at))
-        ).all()
+        .order_by(col(Agent.created_at))
     )
-
-
-def mark_webhook_call(*, session: Session, agent: Agent) -> None:
-    """Record that a call of this agent just arrived by webhook."""
-    agent.last_webhook_call_at = datetime.now(UTC)
-    session.add(agent)
-    session.commit()
+    if platform_agent_id is not None:
+        query = query.where(Agent.platform_agent_id == platform_agent_id)
+    return list(session.exec(query).all())
 
 
 def search_agents(

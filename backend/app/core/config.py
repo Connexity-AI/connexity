@@ -68,6 +68,11 @@ class Settings(BaseSettings):
     OAUTH_DEFAULT_RESOURCE_URL: str | None = None
     OAUTH_AUTH_CODE_EXPIRE_MINUTES: int = 10
     OAUTH_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    # The scheduled call pull (`POST /api/v1/internal/calls/pull`). Cloud Scheduler calls
+    # it with a Google-signed identity token for this audience (the route's address),
+    # sent as this service account. Without both, the route answers 404.
+    CALL_PULL_AUDIENCE: str | None = None
+    CALL_PULL_INVOKER: str | None = None
     # Sign in with Google. Without both, the Google option is not offered.
     GOOGLE_CLIENT_ID: str | None = None
     GOOGLE_CLIENT_SECRET: str | None = None

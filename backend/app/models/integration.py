@@ -24,6 +24,9 @@ class Integration(IntegrationBase, table=True):
     company_id: uuid.UUID = Field(foreign_key="company.id", index=True)
     encrypted_api_key: str = Field(sa_column=Column(Text, nullable=False))
     masked_api_key: str = Field(max_length=255)
+    # A keyed hash of the API key (never the key), to find connections that hold the
+    # same provider account without decrypting every key. Set whenever the key is.
+    key_fingerprint: str | None = Field(default=None, max_length=64, index=True)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"server_default": text("now()")},

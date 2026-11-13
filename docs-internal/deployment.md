@@ -65,10 +65,12 @@ services at each other.
 |---|---|---|
 | `app.connexity.ai` | `connexity-ui` | Cloud Run domain mapping |
 | `mcp.connexity.ai` | `connexity-mcp` | Cloud Run domain mapping (2026-11-13) |
+| `api.connexity.ai` | `connexity-backend` | Cloud Run domain mapping (2026-11-13) |
 
 Each needs a DNS record in Cloudflare, `CNAME` to `ghs.googlehosted.com`, **DNS only**
-(not proxied), or the certificate is never issued. The backend keeps its Cloud Run
-address, which is also the OAuth issuer.
+(not proxied), or the certificate is never issued. The backend's address,
+`https://api.connexity.ai`, is also the OAuth issuer (`OAUTH_ISSUER_URL`); webhook
+addresses are built from it.
 
 The MCP address assistants use is `https://mcp.connexity.ai/mcp`: `MCP_PUBLIC_BASE_URL`
 is `https://mcp.connexity.ai` and `MCP_OAUTH_AUDIENCE` (on both services) is
@@ -90,5 +92,32 @@ does not appear. The Google OAuth client must list the redirect URI
   use it for checks; Cloud Run checks that the port is listening.
 - **The database starts empty.** The 1.x data was wiped on 2026-11-12 when the rebuild's
   migrations were applied (accepted on 2026-10-06).
-- **Continuous call sync** will need the backend to keep at least one instance and its CPU
-  running; set that when the sync feature ships.
+- **The scheduled call pull** runs inside Cloud Scheduler's minute requests (see below),
+  so the backend needs no instance kept running.
+
+## The scheduled call pull
+
+Cloud Scheduler calls the backend every minute to pull new calls
+(`docs-internal/call-ingestion.md`). It is set up once, by hand, with Dmytro's approval:
+
+```bash
+gcloud iam service-accounts create connexity-call-pull \
+  --project connexity-490409 --display-name "Connexity call pull (Cloud Scheduler)"
+
+gcloud scheduler jobs create http connexity-call-pull \
+  --project connexity-490409 --location europe-west1 \
+  --schedule "* * * * *" --time-zone "Etc/UTC" \
+  --http-method POST \
+  --uri https://api.connexity.ai/api/v1/internal/calls/pull \
+  --oidc-service-account-email connexity-call-pull@connexity-490409.iam.gserviceaccount.com \
+  --oidc-token-audience https://api.connexity.ai/api/v1/internal/calls/pull \
+  --attempt-deadline 60s --max-retry-attempts 0
+
+gcloud run services update connexity-backend \
+  --project connexity-490409 --region europe-west1 \
+  --update-env-vars CALL_PULL_AUDIENCE=https://api.connexity.ai/api/v1/internal/calls/pull,CALL_PULL_INVOKER=connexity-call-pull@connexity-490409.iam.gserviceaccount.com
+```
+
+The service account needs no roles: the backend checks its identity itself. Pause the
+pull with `gcloud scheduler jobs pause connexity-call-pull --location europe-west1`.
+Each run logs a `call_pull` line in the backend's logs.

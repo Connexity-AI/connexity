@@ -105,7 +105,7 @@ async def _count_window(
     while True:
         page = await list_retell_call_summaries(
             api_key,
-            agent_id=agent.platform_agent_id,
+            agent_ids=[agent.platform_agent_id],
             after=after,
             until=until,
             limit=COUNT_PAGE,
@@ -144,7 +144,7 @@ async def _scan_page(*, session: Session, agent: Agent, api_key: str) -> int | N
     # the last one dealt with are listed again; those already stored are skipped.
     page = await list_retell_call_summaries(
         api_key,
-        agent_id=agent.platform_agent_id,
+        agent_ids=[agent.platform_agent_id],
         after=_aware(agent.scan_cursor) - timedelta(milliseconds=1),
         until=_aware(agent.scan_until),
         limit=READ_PAGE,

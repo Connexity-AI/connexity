@@ -12,8 +12,8 @@ next. Call it again after each step and tell the person what changed.
 2. **Voice platform connected:** the workspace has a voice platform connection (Retell
    first). Ask the person for their API key and call `connect_voice_platform`. Never
    repeat the key.
-3. **Agents and calls synced:** the agents the person chose are added with `add_agents`
-   and their webhook is set in Retell. In progress while their past calls come in
+3. **Agents and calls synced:** the agents the person chose are added with `add_agents`.
+   In progress while their past calls come in
    ("640 of 1,284 calls · 2 of 5 agents"); done when every added agent's first scan has
    finished.
 4. **First scan done:** done the first time step 3 is done, with how many calls and
@@ -28,8 +28,9 @@ it has got; tell the person now and then.
 
 - It brings in each added agent's calls from the last 30 days, reads each in full,
   turns it into a trace and resolves the agent version that served it.
-- Calls after the scan starts arrive by webhook, so set the webhook first.
-- Calls already stored, by the webhook or an earlier step, are skipped. If Retell
+- Calls after the scan starts are pulled from Retell every minute; nothing needs setting
+  in Retell.
+- Calls already stored, by the minute pull or an earlier step, are skipped. If Retell
   cannot be reached, call it again: it carries on where it stopped.
 - An agent added later is scanned the next time you call `scan_calls`.
 - A call whose version Retell no longer has is stored without one and counted; nothing

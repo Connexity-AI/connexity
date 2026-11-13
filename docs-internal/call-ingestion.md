@@ -1,26 +1,70 @@
 # Call ingestion
 
-How calls reach Connexity. This is the written recommendation of roadmap feature 9
-("Research: efficient call ingestion"), approved with the continuous call sync plan
-(`plans/2026-11-12-continuous-call-sync.md`).
+How calls reach Connexity: the scheduled pull for new calls, the first scan for history,
+and an optional webhook. The pull replaces "nothing beyond the Retell webhook"
+(2026-11-12): "option A, go, Demo milestone" (Dmytro, 2026-11-13). Plan:
+`plans/2026-11-13-scheduled-call-pull.md`.
 
-## Now: the webhook, set up by the assistant (Decided 2026-11-12)
+## Why a pull
 
-"We dont need anything beyond retell webhook right now its part of setup" (Dmytro).
+Retell allows one webhook per agent, and customers already use it for their own
+automation (n8n). So Connexity cannot rely on it: a scheduled pull is the main path, and
+the webhook is used only where an agent's webhook is free. A relay that forwards a
+customer's webhook was rejected.
 
-- **Retell sends every finished call** (`call_ended`, then `call_analyzed`) to
-  `<backend>/api/v1/webhooks/retell/<connection id>`. The address is built from
-  `OAUTH_ISSUER_URL`.
-- **Connexity never writes to Retell,** so the assistant sets that address as each
-  added agent's webhook, using its own Retell access. `add_agents` and `get_readiness`
-  give the address.
-- **The webhook is verified** with the connection's current key (Retell signs every
-  request with it). It maps the call to a trace, resolves its versions, checks it, and
-  stores it in every workspace that added that Retell agent from the same account. The
-  second event for a call replaces the first.
-- **Each agent records when its last call arrived by webhook.** Readiness step 3 and
-  `get_readiness` name the added agents that have had none yet, so the person can tell
-  "set up" from "not yet".
+## Now: the scheduled pull (Decided 2026-11-13)
+
+Cloud Scheduler calls `POST /api/v1/internal/calls/pull` every minute
+(`app/services/call_pull.py`, route in `app/api/routes/internal.py`).
+
+- **Only Cloud Scheduler can call it.** It sends a Google-signed identity token. The
+  backend checks the signature against Google's keys, the audience
+  (`CALL_PULL_AUDIENCE`, the route's address) and the sender (`CALL_PULL_INVOKER`, the
+  scheduler's service account). Without both settings the route answers 404, so local
+  setups never pull.
+- **The work runs inside that request.** Cloud Run gives CPU only while it answers, and
+  the minute requests are what keep the pull going.
+- **One run at a time:** a lease row (`call_pull_lease`), taken with one update, held
+  for at most 2 minutes. It is not an advisory lock, because the database is reached
+  through Supabase's pooler, which does not keep a session's state.
+- **Per Retell account,** meaning per API key. Each connection stores a keyed hash of
+  its key (`Integration.key_fingerprint`), so connections holding the same account are
+  found without decrypting every key. The webhook uses the same lookup. Each account
+  keeps its position, pause and failure count in `call_pull_account`.
+- **Each run, per account,** oldest pulled first:
+  1. **One list request** for the account's added agents' calls since its position (up
+     to 1,000, oldest first, no transcripts). Lists are never sent in parallel within an
+     account.
+  2. **Calls already stored are skipped.** Each new call that has ended is read in full
+     (one at a time) and stored, through the webhook's path, in every workspace that
+     added its agent.
+  3. **The position moves past what was dealt with,** stopping just before a call still
+     in progress, so that call is listed again next run. A call "in progress" for more
+     than 2 hours is passed over.
+- **A new account starts from its first run.** Its history is the first scan's.
+- **Late analysis:** a call stored without Retell's post-call analysis is read once
+  more, 2 minutes to a day after it ended (`Call.reread_at`).
+- **Idle accounts** (no call in the last hour) are pulled every 10 minutes.
+- **Limits per run:** 50 full reads across all accounts, and 45 seconds (Cloud
+  Scheduler's deadline is 60). A backlog drains over several runs.
+- **Retell's limit:** 30 requests per 10 seconds per organization and route (Dmytro,
+  2026-11-13; not in Retell's public documentation). A run sends one list and at most 50
+  sequential reads per account, which stays under it.
+- **On a 429 or another failure,** that account stops for this run with its position
+  kept. It waits `Retry-After` or `RateLimit-Reset` if Retell sends one, otherwise
+  1 minute doubling to 10, plus jitter. The other accounts carry on, with no quick
+  retries.
+- **Each run logs one `call_pull` line:** accounts, calls stored and re-read, reads,
+  skips and duration, never call content.
+
+## Optional: the webhook
+
+`POST /api/v1/webhooks/retell/<connection id>`, verified with the connection's key.
+It stores a call seconds after it ends, in every workspace that added that agent from
+the same account. The assistant sets it only where an added agent's webhook in Retell is
+empty, never replacing one; `add_agents` gives the address. It is not part of Readiness
+or onboarding. Whichever of the pull and the webhook arrives first stores the call, and
+the other replaces it.
 
 ## History: the first scan
 
@@ -37,7 +81,7 @@ drives it through MCP, calling `scan_calls` until it says finished:
   one webhook call would hide the whole history from it.
 - **The first step for an agent lists the window** from Retell (no transcripts, 1,000
   per page) to know the total, and fixes its end at that moment. Later calls are the
-  webhook's.
+  pull's.
 - **Every step lists the next 25 calls** from the agent's position (including the
   position's own millisecond, so calls that started together are not skipped), skips
   those already stored, reads the rest in full 5 at a time, and stores them through the webhook's path.
@@ -48,25 +92,9 @@ drives it through MCP, calling `scan_calls` until it says finished:
   steps never miscount. The workspace records when the first scan first finished
   (`Company.first_scan_done_at`); step 4 stays done after that.
 
-## Known gap, accepted (2026-11-12)
+## Known gaps
 
-Retell retries a webhook a few times. A call that ends while the backend cannot answer,
-for example during a deploy or an outage, is lost once the retries run out.
-
-## Later, if needed: a safety-net pull
-
-Not built, by decision. If missed calls start to matter, add a scheduled pull of every
-added agent whose newest call is older than a few minutes. Cloud Run scales to zero, so
-a loop inside the backend would stop; Cloud Scheduler calling a protected backend
-endpoint wakes it instead. That costs nothing between runs, whereas keeping an instance
-always on costs money every minute.
-
-What bounds the load:
-
-- each run asks only for calls newer than the newest stored;
-- a few agents at a time;
-- a time budget below Cloud Run's request limit;
-- a database lock, so two runs never overlap.
-
-Retell's call list carries no transcripts, so each new call is read once in full, by
-whichever path brings it. That full read is the main cost either way.
+- **A call that ends while its account is paused** after a 429 or a failure arrives a
+  few minutes late, not lost.
+- **The fingerprint is keyed by the encryption key.** If that key changes, stored keys
+  become unreadable anyway, and connections must be made again.

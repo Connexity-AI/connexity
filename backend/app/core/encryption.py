@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 from functools import lru_cache
 
 from cryptography.fernet import Fernet
@@ -30,3 +32,14 @@ def mask_key(key: str, visible: int = 4, dot_count: int = 4) -> str:
     if len(key) <= visible * 2:
         return "•" * len(key)
     return key[:visible] + "•" * dot_count + key[-visible:]
+
+
+def key_fingerprint(value: str) -> str:
+    """A keyed hash of a provider key: equal for equal keys, and not the key.
+
+    Keyed by the encryption key, which already guards every stored key: if it changes,
+    stored keys and fingerprints both have to be set again.
+    """
+    return hmac.new(
+        settings.ENCRYPTION_KEY.encode(), value.encode(), hashlib.sha256
+    ).hexdigest()

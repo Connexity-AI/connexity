@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import AwareDatetime
-from sqlalchemy import Column, Index, Text, UniqueConstraint, text
+from sqlalchemy import Column, DateTime, Index, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
@@ -75,6 +75,12 @@ class Call(SQLModel, table=True):
     executions_checked_at: datetime | None = Field(default=None)
     # When the checks last ran over this call. Empty means never, or a check broke.
     checked_at: datetime | None = Field(default=None)
+    # When the scheduled pull read this call again for its post-call analysis
+    # (`app/services/call_pull.py`). Once per call at most.
+    reread_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+    )
     inputs: dict[str, Any] | None = Field(
         default=None, sa_column=Column("inputs", JSONB(none_as_null=True))
     )

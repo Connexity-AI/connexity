@@ -49,6 +49,7 @@ from app.models.call import (  # noqa: F401
     CallsPublic,
     CallTracePublic,
 )
+from app.models.call_pull import CallPullAccount, CallPullLease  # noqa: F401
 from app.models.check import (  # noqa: F401
     AgentCheckPublic,
     CallCheck,

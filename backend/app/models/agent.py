@@ -167,15 +167,6 @@ class Agent(AgentBase, table=True):
         ),
     )
 
-    last_webhook_call_at: datetime | None = Field(
-        default=None,
-        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
-        description=(
-            "When a call of this agent last arrived by the platform's webhook; empty "
-            "until the webhook is set up in the platform and a call ends."
-        ),
-    )
-
     # The first scan: the agent's past calls, pulled once in steps (see
     # `app/services/first_scan.py`). Empty until the first step lists the window.
     scan_from: datetime | None = Field(

@@ -76,18 +76,14 @@ Connexity does not list Retell's agents for you; use your own access to Retell.
 Only added agents are synced. An agent cannot be removed from a workspace yet, so ask
 before adding.
 
-## Webhook
+## How calls arrive
 
-Calls reach Connexity through Retell's webhook, seconds after each call ends. Connexity
-never changes anything in Retell, so you set it:
+Connexity pulls new calls of every added agent from Retell every minute, so each call
+appears within about a minute of ending. Nothing needs setting in Retell. Only added
+agents' calls are stored. Calls from before the agents were added come in with the first
+scan: call `scan_calls` until it says finished (see `connexity://guides/readiness`).
 
-1. `add_agents` (and `get_readiness`) give the webhook address of this workspace's Retell
-   connection.
-2. With your own Retell access, set it as the webhook of each added agent (or as the
-   account's webhook, if every agent in the account belongs to this client).
-3. After the next call ends, call `get_readiness`. Step 3 counts the calls, and its next
-   steps name any added agent with no call by webhook yet.
-
-Only added agents' calls are stored. Calls from before the webhook was set come in with
-the first scan: call `scan_calls` until it says finished (see
-`connexity://guides/readiness`).
+**The webhook is optional.** Retell allows one webhook per agent, and customers often use
+it for their own automation. Only where an added agent's webhook is empty, you may set it
+to the address `add_agents` gives; calls then arrive seconds after they end. Never
+replace a webhook that is already set.
