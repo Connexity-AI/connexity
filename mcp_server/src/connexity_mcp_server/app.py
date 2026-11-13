@@ -31,6 +31,7 @@ from connexity_mcp_server.models import (
     CreateWorkspaceResult,
     GetReadinessResult,
     ListAgentsResult,
+    ListCallsResult,
     ListCategoriesResult,
     ListIssuesResult,
     ListWorkspacesResult,
@@ -53,6 +54,9 @@ from connexity_mcp_server.tools import (
 )
 from connexity_mcp_server.tools import (
     list_categories as _list_categories,
+)
+from connexity_mcp_server.tools import (
+    list_calls as _list_calls,
 )
 from connexity_mcp_server.tools import (
     list_issues as _list_issues,
@@ -166,6 +170,33 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         has got; keep calling it until it says finished. Safe to repeat: it carries on
         where it stopped and skips calls already stored."""
         return await _scan_calls(client=backend_client, workspace_id=workspace_id)
+
+    @mcp_server.tool(annotations=READ_ONLY)
+    async def list_calls(
+        workspace_id: str,
+        query: str | None = None,
+        agent_id: str | None = None,
+        result: str | None = None,
+        category: str | None = None,
+        period: str | None = None,
+        cursor: str | None = None,
+        limit: int | None = None,
+    ) -> ListCallsResult:
+        """The workspace's calls, newest first, with counts for the period. query is a
+        phone number (matches the end of the caller's number) or a call id. Filters:
+        agent_id, result (failed, degraded, clean, unchecked), category (a category
+        key), period (7d, 30d, 90d). Callers come as their last four digits."""
+        return await _list_calls(
+            client=backend_client,
+            workspace_id=workspace_id,
+            query=query,
+            agent_id=agent_id,
+            result=result,
+            category=category,
+            period=period,
+            cursor=cursor,
+            limit=limit,
+        )
 
     @mcp_server.tool(annotations=READ_ONLY)
     async def list_issues(

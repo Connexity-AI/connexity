@@ -29,6 +29,7 @@ from app.api.routes import (
     tool_backends,
     users,
     webhooks,
+    workspace_calls,
     workspaces,
 )
 from app.models import ErrorResponse
@@ -54,6 +55,7 @@ api_router.include_router(test_case_results.router)
 api_router.include_router(config.router)
 api_router.include_router(integrations.router)
 api_router.include_router(environments.router)
+api_router.include_router(workspace_calls.router)
 api_router.include_router(calls.router)
 api_router.include_router(ingest.router)
 api_router.include_router(ingest.tokens_router)

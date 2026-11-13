@@ -4,6 +4,7 @@ from connexity_mcp_server.client import ConnexityBackendClient, ConnexityBackend
 from connexity_mcp_server.config import Settings
 from connexity_mcp_server.tools import (
     add_agents,
+    list_calls,
     list_categories,
     list_issues,
     scan_calls,
@@ -408,3 +409,58 @@ async def test_list_issues_sends_the_agent_and_keeps_how_it_was_found() -> None:
     )
 
     assert (result.data[0].found_by, result.data[0].calls_affected) == ("rule", 4)
+
+
+@pytest.mark.asyncio
+async def test_list_calls_sends_the_search_and_filters() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/calls"
+        assert dict(request.url.params) == {
+            "query": "4821",
+            "result": "failed",
+            "period": "7d",
+        }
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "tiles": {
+                        "calls": 1,
+                        "failed": 1,
+                        "degraded": 0,
+                        "clean": 0,
+                        "unchecked": 0,
+                    },
+                    "calls": [
+                        {
+                            "id": "c1",
+                            "started_at": "2026-11-13T09:42:00",
+                            "agent_id": "a1",
+                            "agent_name": "Front desk",
+                            "caller_last_four": "4821",
+                            "duration_seconds": 73,
+                            "result": "failed",
+                            "worst_finding": {
+                                "title": "Two bookings for one slot",
+                                "key": "schedule_appointment",
+                                "category": "Booking",
+                                "severity": "critical",
+                                "found_by": "rule",
+                            },
+                        }
+                    ],
+                },
+                "next_cursor": None,
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: list_calls(
+            client, workspace_id=WORKSPACE_ID, query="4821", result="failed", period="7d"
+        ),
+    )
+
+    assert result.data.calls[0].caller_last_four == "4821"
+    assert result.data.calls[0].worst_finding.found_by == "rule"

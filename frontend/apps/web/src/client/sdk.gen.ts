@@ -64,6 +64,9 @@ import type {
   CallsListAgentCallsData,
   CallsListAgentCallsErrors,
   CallsListAgentCallsResponses,
+  CallsListCallsData,
+  CallsListCallsErrors,
+  CallsListCallsResponses,
   CallsMarkCallSeenEndpointData,
   CallsMarkCallSeenEndpointErrors,
   CallsMarkCallSeenEndpointResponses,
@@ -240,6 +243,9 @@ import type {
   McpListAgentsData,
   McpListAgentsErrors,
   McpListAgentsResponses,
+  McpListCallsData,
+  McpListCallsErrors,
+  McpListCallsResponses,
   McpListCategoriesData,
   McpListCategoriesErrors,
   McpListCategoriesResponses,
@@ -1140,6 +1146,19 @@ export class McpService {
     >({
       security: [{ scheme: 'bearer', type: 'http' }],
       url: '/api/v1/mcp/workspaces/{workspace_id}/categories',
+      ...options,
+    });
+  }
+
+  /**
+   * List Calls
+   */
+  public static listCalls<ThrowOnError extends boolean = false>(
+    options: Options<McpListCallsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<McpListCallsResponses, McpListCallsErrors, ThrowOnError>({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/calls',
       ...options,
     });
   }
@@ -3049,6 +3068,35 @@ export class EnvironmentsService {
 }
 
 export class CallsService {
+  /**
+   * List Calls
+   *
+   * The workspace's calls in the period, newest first, with tiles for the period.
+   *
+   * ``q`` is a phone number (its last digits match the end of the caller's number) or a
+   * call id (Connexity's or the platform's). Callers are shown as their last four digits.
+   */
+  public static listCalls<ThrowOnError extends boolean = false>(
+    options?: Options<CallsListCallsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      CallsListCallsResponses,
+      CallsListCallsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/calls',
+      ...options,
+    });
+  }
+
   /**
    * List Agent Calls
    */

@@ -8,6 +8,7 @@ from connexity_mcp_server.models import (
     CreateWorkspaceResult,
     GetReadinessResult,
     ListAgentsResult,
+    ListCallsResult,
     ListCategoriesResult,
     ListIssuesResult,
     ListWorkspacesResult,
@@ -94,5 +95,30 @@ async def list_issues(
     return ListIssuesResult.model_validate(
         await client.list_issues(
             workspace_id=workspace_id, agent_id=agent_id, cursor=cursor, limit=limit
+        )
+    )
+
+
+async def list_calls(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    query: str | None = None,
+    agent_id: str | None = None,
+    result: str | None = None,
+    category: str | None = None,
+    period: str | None = None,
+    cursor: str | None = None,
+    limit: int | None = None,
+) -> ListCallsResult:
+    return ListCallsResult.model_validate(
+        await client.list_calls(
+            workspace_id=workspace_id,
+            query=query,
+            agent_id=agent_id,
+            result=result,
+            category=category,
+            period=period,
+            cursor=cursor,
+            limit=limit,
         )
     )

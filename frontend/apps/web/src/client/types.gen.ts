@@ -1207,6 +1207,20 @@ export const CallEndReason = {
 export type CallEndReason = (typeof CallEndReason)[keyof typeof CallEndReason];
 
 /**
+ * CallFilterOption
+ */
+export type CallFilterOption = {
+  /**
+   * Value
+   */
+  value: string;
+  /**
+   * Label
+   */
+  label: string;
+};
+
+/**
  * CallLabel
  */
 export const CallLabel = { GOOD: 'good', BAD: 'bad' } as const;
@@ -1221,6 +1235,71 @@ export type CallLabel = (typeof CallLabel)[keyof typeof CallLabel];
  */
 export type CallLabelUpdate = {
   label?: CallLabel | null;
+};
+
+/**
+ * CallListItemPublic
+ */
+export type CallListItemPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Started At
+   */
+  started_at: string;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Name
+   */
+  agent_name: string;
+  /**
+   * Caller Last Four
+   *
+   * The caller's last four digits; never the number
+   */
+  caller_last_four?: string | null;
+  /**
+   * Duration Seconds
+   */
+  duration_seconds?: number | null;
+  result: CallCheckStatus;
+  worst_finding?: WorstFindingPublic | null;
+};
+
+/**
+ * CallListPublic
+ */
+export type CallListPublic = {
+  /**
+   * Data
+   */
+  data: Array<CallListItemPublic>;
+  tiles: CallTilesPublic;
+  /**
+   * Has More
+   */
+  has_more: boolean;
+  /**
+   * Period
+   */
+  period: string;
+  /**
+   * Agents
+   *
+   * The agents to filter by
+   */
+  agents: Array<CallFilterOption>;
+  /**
+   * Categories
+   *
+   * The fixed categories, in order
+   */
+  categories: Array<CallFilterOption>;
 };
 
 /**
@@ -1322,6 +1401,32 @@ export type CallRefreshResult = {
    * Total call rows in DB for this agent after refresh
    */
   total: number;
+};
+
+/**
+ * CallTilesPublic
+ */
+export type CallTilesPublic = {
+  /**
+   * Calls
+   */
+  calls: number;
+  /**
+   * Failed
+   */
+  failed: number;
+  /**
+   * Degraded
+   */
+  degraded: number;
+  /**
+   * Clean
+   */
+  clean: number;
+  /**
+   * Unchecked
+   */
+  unchecked: number;
 };
 
 /**
@@ -3625,6 +3730,40 @@ export type McpAnswerMcpAddedAgents = {
 };
 
 /**
+ * McpAnswer[McpCalls]
+ */
+export type McpAnswerMcpCalls = {
+  /**
+   * The facts: the result of the call
+   */
+  data: McpCalls;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
  * McpAnswer[McpConnection]
  */
 export type McpAnswerMcpConnection = {
@@ -3902,6 +4041,20 @@ export type McpAnswerListMcpWorkspace = {
    * On lists: pass as `cursor` for the next page; empty on the last
    */
   next_cursor?: string | null;
+};
+
+/**
+ * McpCalls
+ */
+export type McpCalls = {
+  /**
+   * Counts for the filters and period
+   */
+  tiles: CallTilesPublic;
+  /**
+   * Calls
+   */
+  calls: Array<CallListItemPublic>;
 };
 
 /**
@@ -6999,6 +7152,40 @@ export type WorkspacePublic = {
   is_open: boolean;
 };
 
+/**
+ * WorstFindingPublic
+ */
+export type WorstFindingPublic = {
+  /**
+   * Title
+   *
+   * The check's name
+   */
+  title: string;
+  /**
+   * Key
+   *
+   * What broke, e.g. the tool's name
+   */
+  key?: string | null;
+  /**
+   * Category
+   */
+  category: string;
+  /**
+   * Severity
+   *
+   * critical or warning
+   */
+  severity: string;
+  /**
+   * Found By
+   *
+   * rule (deterministic) or model
+   */
+  found_by: string;
+};
+
 export type HealthHealthData = {
   body?: never;
   path?: never;
@@ -8454,6 +8641,89 @@ export type McpListCategoriesResponses = {
 
 export type McpListCategoriesResponse =
   McpListCategoriesResponses[keyof McpListCategoriesResponses];
+
+export type McpListCallsData = {
+  body?: never;
+  path: {
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: {
+    /**
+     * Query
+     */
+    query?: string | null;
+    /**
+     * Agent Id
+     */
+    agent_id?: string | null;
+    /**
+     * Result
+     */
+    result?: CallCheckStatus | null;
+    /**
+     * Category
+     */
+    category?: string | null;
+    /**
+     * Period
+     */
+    period?: '7d' | '30d' | '90d';
+    /**
+     * Cursor
+     */
+    cursor?: string | null;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/mcp/workspaces/{workspace_id}/calls';
+};
+
+export type McpListCallsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpListCallsError = McpListCallsErrors[keyof McpListCallsErrors];
+
+export type McpListCallsResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerMcpCalls;
+};
+
+export type McpListCallsResponse = McpListCallsResponses[keyof McpListCallsResponses];
 
 export type McpListIssuesData = {
   body?: never;
@@ -12786,6 +13056,84 @@ export type EnvironmentsUpdateEnvironmentResponses = {
 
 export type EnvironmentsUpdateEnvironmentResponse =
   EnvironmentsUpdateEnvironmentResponses[keyof EnvironmentsUpdateEnvironmentResponses];
+
+export type CallsListCallsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Period
+     */
+    period?: '7d' | '30d' | '90d';
+    /**
+     * Agent Id
+     */
+    agent_id?: string | null;
+    /**
+     * Result
+     */
+    result?: CallCheckStatus | null;
+    /**
+     * Category
+     */
+    category?: string | null;
+    /**
+     * Q
+     */
+    q?: string | null;
+    /**
+     * Skip
+     */
+    skip?: number;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/calls';
+};
+
+export type CallsListCallsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CallsListCallsError = CallsListCallsErrors[keyof CallsListCallsErrors];
+
+export type CallsListCallsResponses = {
+  /**
+   * Successful Response
+   */
+  200: CallListPublic;
+};
+
+export type CallsListCallsResponse = CallsListCallsResponses[keyof CallsListCallsResponses];
 
 export type CallsListAgentCallsData = {
   body?: never;

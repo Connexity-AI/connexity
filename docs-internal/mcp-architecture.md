@@ -202,6 +202,7 @@ They own validation, CRUD calls, state changes and the answer's rules and next s
 | `list_agents(workspace_id, query?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/agents` |
 | `scan_calls(workspace_id)` | `POST /api/v1/mcp/workspaces/{workspace_id}/scan` |
 | `list_categories(workspace_id)` | `GET /api/v1/mcp/workspaces/{workspace_id}/categories` |
+| `list_calls(workspace_id, query?, agent_id?, result?, category?, period?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/calls` |
 | `list_issues(workspace_id, agent_id?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/issues` |
 
 ## What not to do
