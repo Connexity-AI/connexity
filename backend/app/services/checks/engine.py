@@ -195,6 +195,7 @@ def check_call(
     return crud.replace_findings(
         session=session,
         call=call,
+        categories={check.type: check.category for check in checks},
         # A broken check keeps the findings it had: the fault is ours, not the call's.
         check_types={check.type for check in checks} - set(run.broken),
         findings=[

@@ -1372,6 +1372,35 @@ export type CallsPublic = {
 };
 
 /**
+ * CategoryKind
+ */
+export const CategoryKind = { BEHAVIOUR: 'behaviour', TECHNICAL: 'technical' } as const;
+
+/**
+ * CategoryKind
+ */
+export type CategoryKind = (typeof CategoryKind)[keyof typeof CategoryKind];
+
+/**
+ * CategoryPublic
+ */
+export type CategoryPublic = {
+  /**
+   * Key
+   */
+  key: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Position
+   */
+  position: number;
+  kind: CategoryKind;
+};
+
+/**
  * CauseAnalysisItem
  */
 export type CauseAnalysisItem = {
@@ -2994,6 +3023,7 @@ export type IssueDetailPublic = {
    * The check's name; empty for a check since removed
    */
   title: string;
+  category: CategoryPublic;
   /**
    * Key
    */
@@ -3098,6 +3128,7 @@ export type IssuePublic = {
    * The check's name; empty for a check since removed
    */
   title: string;
+  category: CategoryPublic;
   /**
    * Key
    */
@@ -3703,6 +3734,42 @@ export type McpAnswerReadinessPublic = {
    * The facts: the result of the call
    */
   data: ReadinessPublic;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
+ * McpAnswer[list[CategoryPublic]]
+ */
+export type McpAnswerListCategoryPublic = {
+  /**
+   * Data
+   *
+   * The facts: the result of the call
+   */
+  data: Array<CategoryPublic>;
   /**
    * Rules
    *
@@ -8232,6 +8299,61 @@ export type McpCreateWorkspaceResponses = {
 
 export type McpCreateWorkspaceResponse =
   McpCreateWorkspaceResponses[keyof McpCreateWorkspaceResponses];
+
+export type McpListCategoriesData = {
+  body?: never;
+  path: {
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/categories';
+};
+
+export type McpListCategoriesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpListCategoriesError = McpListCategoriesErrors[keyof McpListCategoriesErrors];
+
+export type McpListCategoriesResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerListCategoryPublic;
+};
+
+export type McpListCategoriesResponse =
+  McpListCategoriesResponses[keyof McpListCategoriesResponses];
 
 export type McpListAgentsData = {
   body?: never;

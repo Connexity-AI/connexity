@@ -13,6 +13,7 @@ from sqlalchemy import Column, DateTime, ForeignKey, Index, Text, UniqueConstrai
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
+from app.models.category import CategoryPublic
 from app.models.columns import enum_type
 from app.models.enums import (
     CheckKind,
@@ -94,6 +95,13 @@ class Issue(SQLModel, table=True):
         )
     )
     check_type: str = Field(max_length=CHECK_TYPE_MAX_LENGTH)
+    # Its check's category (`app/models/category.py`). A category in use cannot be
+    # deleted.
+    category_id: uuid.UUID = Field(
+        sa_column=Column(
+            ForeignKey("category.id", ondelete="RESTRICT"), nullable=False, index=True
+        )
+    )
     # Empty for a type with no key, so that the identity is still unique.
     key: str = Field(default="", max_length=255)
     state: IssueState = Field(
@@ -259,6 +267,7 @@ class IssuePublic(SQLModel):
     agent_id: uuid.UUID
     check_type: str
     title: str = Field(description="The check's name; empty for a check since removed")
+    category: CategoryPublic
     key: str | None = None
     state: IssueState
     resolved_at: AwareDatetime | None = None

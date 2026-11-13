@@ -26,6 +26,7 @@ TOOL_CALL_FAILED = RuleCheck(
     title="Tool call failed",
     description="A tool the agent called returned an error or timed out.",
     default_mode=CheckMode.FAILS,
+    category="tools_and_integrations",
     run=_run,
     needs=(TraceCapability.TOOL_RESULTS,),
 )

@@ -240,6 +240,9 @@ import type {
   McpListAgentsData,
   McpListAgentsErrors,
   McpListAgentsResponses,
+  McpListCategoriesData,
+  McpListCategoriesErrors,
+  McpListCategoriesResponses,
   McpListWorkspacesData,
   McpListWorkspacesErrors,
   McpListWorkspacesResponses,
@@ -1118,6 +1121,23 @@ export class McpService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+    });
+  }
+
+  /**
+   * List Categories
+   */
+  public static listCategories<ThrowOnError extends boolean = false>(
+    options: Options<McpListCategoriesData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      McpListCategoriesResponses,
+      McpListCategoriesErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/categories',
+      ...options,
     });
   }
 

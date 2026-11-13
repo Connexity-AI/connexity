@@ -11,6 +11,7 @@ from sqlmodel import Session, col, func, select
 
 from app.models.agent import Agent
 from app.models.call import Call
+from app.models.category import OTHER, Category
 from app.models.check import CallCheck, CheckRelease, DecisionRecord, Finding, Issue
 from app.models.enums import (
     CallCheckStatus,
@@ -167,10 +168,23 @@ def lock_call(*, session: Session, call_id: uuid.UUID) -> Call:
     ).one()
 
 
+def _category_id(key: str) -> ColumnElement[uuid.UUID]:
+    named = select(Category.id).where(Category.key == key).scalar_subquery()
+    other = select(Category.id).where(Category.key == OTHER).scalar_subquery()
+    return func.coalesce(named, other)
+
+
 def _issues_for(
-    session: Session, call: Call, identities: set[tuple[str, str]]
+    session: Session,
+    call: Call,
+    identities: set[tuple[str, str]],
+    categories: Mapping[str, str],
 ) -> dict[tuple[str, str], Issue]:
-    """The agent's issues for ``identities`` (check type, key), created where missing."""
+    """The agent's issues for ``identities`` (check type, key), created where missing.
+
+    A new issue takes its check's category (``categories``: check type to category
+    key); a check with none, or one not in the table, gets "Other".
+    """
     if not identities:
         return {}
     session.execute(
@@ -182,6 +196,7 @@ def _issues_for(
                     "company_id": call.company_id,
                     "agent_id": call.agent_id,
                     "check_type": check_type,
+                    "category_id": _category_id(categories.get(check_type, OTHER)),
                     "key": key,
                     "state": IssueState.OPEN,
                 }
@@ -206,6 +221,7 @@ def replace_findings(
     check_types: set[str],
     findings: list[Finding],
     runs: list[CallCheck],
+    categories: Mapping[str, str] | None = None,
 ) -> int:
     """Leave ``call`` with exactly ``findings`` for the checks in ``check_types``.
 
@@ -231,7 +247,10 @@ def replace_findings(
     }
     wanted = {_identity(finding): finding for finding in findings}
     issues = _issues_for(
-        session, call, {(finding.check_type, finding.key or "") for finding in findings}
+        session,
+        call,
+        {(finding.check_type, finding.key or "") for finding in findings},
+        categories or {},
     )
     started = call.started_at.replace(tzinfo=UTC)
     for identity, row in stored.items():

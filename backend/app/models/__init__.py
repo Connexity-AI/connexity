@@ -50,6 +50,7 @@ from app.models.call import (  # noqa: F401
     CallTracePublic,
 )
 from app.models.call_pull import CallPullAccount, CallPullLease  # noqa: F401
+from app.models.category import Category, CategoryPublic  # noqa: F401
 from app.models.check import (  # noqa: F401
     AgentCheckPublic,
     CallCheck,

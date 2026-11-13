@@ -221,6 +221,7 @@ def test_a_check_that_breaks_leaves_the_call_stored_and_unchecked(
                 title="Broken",
                 description="For tests.",
                 default_mode=CheckMode.FAILS,
+                category="other",
                 run=broken,
             ),
         ),

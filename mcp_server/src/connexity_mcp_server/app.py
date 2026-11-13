@@ -31,6 +31,7 @@ from connexity_mcp_server.models import (
     CreateWorkspaceResult,
     GetReadinessResult,
     ListAgentsResult,
+    ListCategoriesResult,
     ListWorkspacesResult,
     ScanCallsResult,
 )
@@ -48,6 +49,9 @@ from connexity_mcp_server.tools import (
 )
 from connexity_mcp_server.tools import (
     list_agents as _list_agents,
+)
+from connexity_mcp_server.tools import (
+    list_categories as _list_categories,
 )
 from connexity_mcp_server.tools import (
     list_workspaces as _list_workspaces,
@@ -158,6 +162,13 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         has got; keep calling it until it says finished. Safe to repeat: it carries on
         where it stopped and skips calls already stored."""
         return await _scan_calls(client=backend_client, workspace_id=workspace_id)
+
+    @mcp_server.tool(annotations=READ_ONLY)
+    async def list_categories(workspace_id: str) -> ListCategoriesResult:
+        """The fixed categories every issue and spec rule belongs to, in their order:
+        key, name and kind (behaviour or technical). The same set for every workspace;
+        group issues and spec rules by it and use its names with the person."""
+        return await _list_categories(client=backend_client, workspace_id=workspace_id)
 
     @mcp_server.tool(annotations=READ_ONLY)
     async def get_readiness(workspace_id: str) -> GetReadinessResult:

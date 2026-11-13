@@ -97,6 +97,13 @@ class ScanProgress(BaseModel):
     calls_without_versions: int = 0
 
 
+class Category(BaseModel):
+    key: str
+    name: str
+    position: int
+    kind: str
+
+
 ListWorkspacesResult = Answer[list[Workspace]]
 AddAgentsResult = Answer[AddedAgents]
 ConnectVoicePlatformResult = Answer[Connection]
@@ -104,3 +111,4 @@ GetReadinessResult = Answer[Readiness]
 CreateWorkspaceResult = Answer[Workspace]
 ListAgentsResult = Answer[list[Agent]]
 ScanCallsResult = Answer[ScanProgress]
+ListCategoriesResult = Answer[list[Category]]
