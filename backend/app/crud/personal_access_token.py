@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 from sqlmodel import Session, col, select
 
-from app.crud.ingest_token import hash_ingest_token as hash_token
+from app.core.security import hash_api_token as hash_token
 from app.models.personal_access_token import (
     PERSONAL_ACCESS_TOKEN_PREFIX,
     PERSONAL_ACCESS_TOKEN_VISIBLE_CHARS,
@@ -22,21 +22,9 @@ def create_personal_access_token(
 ) -> tuple[PersonalAccessToken, str]:
     """Create a token for the person and return it with its secret.
 
-    The person's earlier tokens that were never used are revoked, so copying the setup
-    prompt twice does not leave a stray working token behind.
+    Earlier tokens keep working: one may be installed on another machine and not used
+    yet. The person revokes them in Account.
     """
-    now = datetime.now(UTC)
-    unused = session.exec(
-        select(PersonalAccessToken).where(
-            PersonalAccessToken.user_id == user_id,
-            col(PersonalAccessToken.revoked_at).is_(None),
-            col(PersonalAccessToken.last_used_at).is_(None),
-        )
-    ).all()
-    for row in unused:
-        row.revoked_at = now
-        session.add(row)
-
     token = f"{PERSONAL_ACCESS_TOKEN_PREFIX}{secrets.token_urlsafe(32)}"
     created = PersonalAccessToken(
         user_id=user_id,
@@ -91,8 +79,6 @@ def use_personal_access_token(
     *, session: Session, token: str
 ) -> PersonalAccessToken | None:
     """The token's row if it still works, recording that it was used."""
-    if not token.startswith(PERSONAL_ACCESS_TOKEN_PREFIX):
-        return None
     row = session.exec(
         select(PersonalAccessToken).where(
             PersonalAccessToken.token_hash == hash_token(token)

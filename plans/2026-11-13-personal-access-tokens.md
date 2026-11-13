@@ -3,10 +3,10 @@
 - **Owner:** Dmytro
 - **Slice:** Demo milestone, roadmap feature "Frictionless assistant connection (personal
   access tokens)".
-- **Design:** Readiness step 1 follows the design adjustment on the roadmap feature's page
-  (two tabs, "Copy setup prompt"), built only after Dmytro applies it in Claude Design and
-  exports `Connexity Onboarding.dc.html` again; the current export (2026-11-12) still shows
-  the old `claude mcp add` snippet. Account › Assistant access follows
+- **Design:** Readiness step 1 follows `designs/12-adjustments.md` item 26 (two tabs,
+  "Copy setup prompt"), built against Dmytro's export of 2026-11-13
+  (`Connexity Onboarding.dc.html`, connected variant in `Connexity.dc.html`), which this
+  pull request puts in `designs/screens/`. Account › Assistant access follows
   `Connexity Account.dc.html` (export 2026-11-12), section 3 only. `designs/12-adjustments.md`
   items 19 and 23.
 - **MCP:** no new tools (Decided by Dmytro, 2026-11-13). The MCP server accepts a personal access
@@ -38,9 +38,8 @@ OAuth stays for Claude.ai and ChatGPT connectors. Both use the new address
   carries no workspace, and access is still decided in `crud/workspace.py`.
 - **Web routes** (cookie sign-in, the person's own tokens only):
   - `POST /api/v1/personal-access-tokens`: creates a token named "Claude Code" and answers
-    with the token and the setup prompt, ready to copy. Creating one revokes this
-    person's earlier tokens that were never used (Proposed, so pressing the button twice
-    does not leave stray working tokens).
+    with the token and the setup prompt, ready to copy. Earlier tokens keep working
+    (see Decisions).
   - `GET /api/v1/personal-access-tokens`: name, prefix, created, last used. Revoked tokens
     are not listed.
   - `DELETE /api/v1/personal-access-tokens/{id}`: revokes it. The next call with it is
@@ -130,7 +129,10 @@ works), `deployment.md`, the `connect` guide, and the status line in `REBUILD.md
   Proposed.
 - The MCP server asks the backend about `cxp_` tokens instead of reading the database.
   Proposed; it keeps the rule that `mcp_server/` holds no database or access logic.
-- A new copy revokes this person's never-used tokens. Proposed.
+- A new copy leaves earlier tokens working; the person revokes them in Account. Decided
+  by Dmytro, 2026-11-13, after review found that revoking never-used tokens kills one
+  installed on a second machine before its first call. (The plan first proposed
+  revoking them.)
 - Domain mapping rather than a load balancer: free and already used for the app.
   Proposed.
 - No MCP tools to create or revoke tokens: an assistant does not manage the credential
@@ -146,7 +148,7 @@ works), `deployment.md`, the `connect` guide, and the status line in `REBUILD.md
 Against the running backend and MCP server (local), recorded in the Outcome:
 
 - `POST /personal-access-tokens` answers the token once and the prompt containing it; a
-  second `POST` revokes the first while it is unused; `GET` never shows a token.
+  second `POST` leaves the first working; `GET` never shows a token.
 - An MCP call with the token reaches `list_workspaces` and lists exactly that person's
   workspaces; a workspace they cannot reach answers 404.
 - After the first call, `get_readiness` step 1 is done with "Claude Code" for every
@@ -195,11 +197,10 @@ Live, after merge:
 
 ## Outcome
 
-Written while the Readiness step 1 tabs still wait for Dmytro's design export; this
-section is completed when they are built.
-
 ### Deviations from the plan
 
+- **A new copy no longer revokes unused tokens** (Dmytro's decision after review); see
+  Decisions.
 - **No separate check route.** The MCP server checks a `cxp_` token by calling the
   existing `GET /api/v1/mcp/workspaces` with it: a 200 means the token works. Same
   result, one route fewer, and no exception to the rule that every other `/mcp` route
@@ -211,19 +212,30 @@ section is completed when they are built.
   also as in the design.
 - **The web routes' tag is `tokens`**, so the generated client reads
   `TokensService.listPersonalAccessTokens` instead of a doubled prefix.
-- **Readiness keeps its current snippet until the tabs are built.** The backend no
-  longer sends `connect_command`; the screen builds the same command from `mcp_url`.
+- **Step 1's "Connected: Claude Code" is worded on screen.** The backend's detail stays
+  the assistant's name; the screen adds "Connected:" while the voice platform is not
+  connected yet, as the design's connected variant shows.
+- **Readiness reloads every 5 seconds while step 1 is open**, so the step ticks without
+  a reload. The plan wrongly said Readiness already refreshed.
+- **Copying the prompt hands the clipboard a promise of the text**, because the prompt
+  comes from the server after the click and Safari refuses a clipboard write that starts
+  later. If the copy fails, the screen shows the design's error line; the token created
+  for it stays listed in Account, unused, until revoked.
+- **The "Using another assistant?" link is gone**, as in the new design; its place is the
+  Claude.ai or ChatGPT tab. The old copy snippet became a plain copy field used there.
+- **The migration is `0015_personal_access_token`**, after first-scan's `0014`, because
+  first-scan merged first.
 - **The domain mapping and the Cloudflare record already existed** (created 2026-11-13,
   12:48 UTC). The certificate was still being issued at the time of writing.
 
 ### Check results
 
-`make check` (with the branch's own test database): every step passed except "Plan
-present and complete", which passes once this Outcome is complete.
+`make check` after rebasing onto first-scan (with the branch's own test database):
 
 | Step | Result |
 |---|---|
-| Backend lint and format | ok (after `ruff --fix` sorted one import block) |
+| Plan present and complete | ok |
+| Backend lint and format | ok |
 | Backend types (pyright) | ok |
 | Backend tests and coverage | ok |
 | MCP server tests | ok |
@@ -236,8 +248,8 @@ API calls against a local backend and MCP server, two people (Ann and Bob):
 | Request | Expected | Got |
 |---|---|---|
 | POST /personal-access-tokens | 201, `cxp_` token inside the setup prompt | 201, token in prompt, `--scope user` present |
-| POST again, then GET | first (unused) revoked; list has only the second, no token | as expected |
-| MCP `list_workspaces` with the first token | 401 | 401 |
+| POST again, then GET | first (unused) revoked; list has only the second, no token | as expected (before the auto-revoke was dropped; now covered by `test_creating_again_keeps_earlier_tokens_working`) |
+| MCP `list_workspaces` with the first token | 401 | 401 (same) |
 | GET /readiness before first use | step 1 not started, `mcp_url` set | as expected |
 | MCP `list_workspaces` with the second token | 200, exactly Ann's workspace | 200, 1 workspace |
 | MCP `get_readiness` for Bob's workspace with Ann's token | Workspace not found | Workspace not found |
@@ -258,26 +270,44 @@ workspace of the same person, and `connect_voice_platform` recording "Ann throug
 Code" for a token. Adapter tests cover the backend check, its 60-second cache, a refusal
 not being cached, and the backend being down.
 
+Claude Code itself, with the setup prompt's command against the local servers (in a
+throwaway folder, local scope): `claude mcp add … --header "Authorization: Bearer cxp_…"`
+added the server, `claude mcp list` showed it **Connected**, and the backend logged the
+token's check (`GET /mcp/workspaces` 200). The server was removed afterwards.
+
+`/code-review` (high) reported 7 findings. Fixed: Readiness stops reloading while its
+tab is hidden; the token hash moved to `core/security.py` (shared with ingest tokens);
+the `cxp_` prefix is checked in one place; and, after Dmytro's decision, a new copy no
+longer revokes a token that is installed in Claude Code but not used yet. Left, with
+reasons:
+
+- Every token is named "Claude Code", so two rows in Assistant access look alike. The
+  design shows no more than the name; telling them apart comes with the Account
+  feature.
+- When the backend cannot answer, the MCP server refuses a valid token (401) instead of
+  an error the client retries. The token verifier can only accept or refuse; left as is.
+- The MCP server checks a token by listing the person's workspaces, a few rows; left as
+  is.
+
 For Dmytro to check on screen:
 
 - The profile menu has **Account** under the workspaces; it opens Account with one
   section, Assistant access.
-- After copying a token (for now via the API or, once built, the Readiness button) and
-  using it once, the token appears there as "Claude Code · Reaches N workspaces";
-  **Revoke** turns it to "Revoked" and the assistant is refused.
-- Readiness step 1 still shows the `claude mcp add` snippet, now with the address from
-  `mcp_url`.
+- In a workspace with no assistant, Readiness step 1 shows the two tabs. **Copy setup
+  prompt** puts the prompt on the clipboard (paste it somewhere to see it) and reads
+  "Copied" for two seconds; the Claude.ai or ChatGPT tab shows the MCP address with Copy.
+- Paste the prompt into Claude Code (the app, and a terminal): Claude runs the command,
+  and after a new session the tools load. Readiness step 1 ticks within a few seconds,
+  without a reload, and reads "Connected: Claude Code".
+- Account › Assistant access lists the token as "Claude Code · Reaches N workspaces";
+  **Revoke** turns it to "Revoked" and the assistant is refused on its next call.
 
 ### Not done
 
-- **Readiness step 1 tabs and "Copy setup prompt"**: waiting for the design export.
-  The plan said Readiness already refreshes; it does not (it loads once), so the step
-  ticking "on its own" needs a refresh while the step is open. Built with the tabs.
 - **The live switch to `mcp.connexity.ai`**: the MCP service's `MCP_PUBLIC_BASE_URL` and
   `MCP_OAUTH_AUDIENCE` and the backend's `MCP_OAUTH_AUDIENCE` are changed after merge,
   once the certificate is issued. Not yet done.
-- **Whether Claude Code needs a new session** after `claude mcp add`: not checked yet;
-  the prompt currently says to start one.
-- `/code-review`: run when the pull request is complete.
-- The migration is `0014_personal_access_token` on top of `0013`. The first-scan branch
-  also adds a `0014`; whichever merges second moves its `down_revision`.
+- **Whether Claude Code picks the server up without a new session**: not checked (it
+  needs an interactive session). The prompt asks for a new session, which works either
+  way; Dmytro's check above settles whether that line can go.
+- The screens were not opened in a browser by the session; Dmytro checks them.

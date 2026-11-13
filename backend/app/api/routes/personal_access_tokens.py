@@ -46,8 +46,7 @@ def create_personal_access_token(
 ) -> PersonalAccessTokenCreated:
     """Create a token for Claude Code and the setup prompt that carries it.
 
-    The token is shown only in this answer. The person's earlier tokens that were never
-    used are revoked.
+    The token is shown only in this answer. The person's earlier tokens keep working.
     """
     mcp_url = settings.oauth_default_resource_url
     if not mcp_url:

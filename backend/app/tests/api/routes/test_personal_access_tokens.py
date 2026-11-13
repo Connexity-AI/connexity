@@ -98,19 +98,18 @@ def test_creating_answers_the_token_once_inside_the_setup_prompt(
     assert token not in (stored.token_hash, stored.prefix)
 
 
-def test_creating_again_revokes_the_unused_one_but_not_a_used_one(
+def test_creating_again_keeps_earlier_tokens_working(
     client: TestClient, db: Session
 ) -> None:
+    """One token may be installed on another machine and not used yet."""
     user = _person(db)
-    used = _create(client, user)
-    assert _workspaces(client, used["token"]).status_code == 200
-    unused = _create(client, user)
+    first = _create(client, user)
 
-    latest = _create(client, user)
+    second = _create(client, user)
 
-    assert {t["id"] for t in _listed(client, user)} == {used["id"], latest["id"]}
-    assert _workspaces(client, unused["token"]).status_code == 401
-    assert _workspaces(client, used["token"]).status_code == 200
+    assert {t["id"] for t in _listed(client, user)} == {first["id"], second["id"]}
+    assert _workspaces(client, first["token"]).status_code == 200
+    assert _workspaces(client, second["token"]).status_code == 200
 
 
 def test_tokens_need_a_signed_in_person(client: TestClient) -> None:

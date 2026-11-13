@@ -1,10 +1,10 @@
-import hashlib
 import secrets
 import uuid
 from datetime import UTC, datetime
 
 from sqlmodel import Session, col, select
 
+from app.core.security import hash_api_token
 from app.models.ingest_token import (
     INGEST_TOKEN_PREFIX,
     INGEST_TOKEN_VISIBLE_CHARS,
@@ -13,9 +13,7 @@ from app.models.ingest_token import (
 
 
 def hash_ingest_token(token: str) -> str:
-    # Tokens are long random strings, so a fast hash is enough: there is nothing to
-    # brute-force, and it lets a request be matched by one indexed lookup.
-    return hashlib.sha256(token.encode()).hexdigest()
+    return hash_api_token(token)
 
 
 def create_ingest_token(

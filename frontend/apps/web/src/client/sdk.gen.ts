@@ -1032,8 +1032,7 @@ export class TokensService {
    *
    * Create a token for Claude Code and the setup prompt that carries it.
    *
-   * The token is shown only in this answer. The person's earlier tokens that were never
-   * used are revoked.
+   * The token is shown only in this answer. The person's earlier tokens keep working.
    */
   public static createPersonalAccessToken<ThrowOnError extends boolean = false>(
     options?: Options<TokensCreatePersonalAccessTokenData, ThrowOnError>

@@ -17,8 +17,8 @@ the same in the Claude Code app and in a terminal.
 3. The person starts a new Claude Code session, where Connexity's tools load.
 
 The token acts as that person in every workspace they can reach, and works until they
-revoke it in Account › Assistant access. Pressing the button again replaces a token that
-was never used.
+revoke it in Account › Assistant access. Each copy creates a new token; earlier ones keep
+working until revoked.
 
 If a token cannot be used, the sign-in route still works from a terminal: run
 `claude mcp add --transport http --scope user connexity <MCP address>`, then `/mcp`,

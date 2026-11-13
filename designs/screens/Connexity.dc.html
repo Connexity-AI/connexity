@@ -74,6 +74,13 @@
     <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Onboarding" theme="light" stage="noAssistant" live="{{ false }}" hint-size="1440px,1000px"></dc-import></div></div>
   </div>
 </section>
+<section id="onboarding-connected" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Readiness · assistant just connected</span><span style="font-size:13px;color:#a3a5a9">Step 1 ticks on its own, with no reload. The tabs collapse and the detail names the assistant.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Onboarding" theme="dark" stage="connected" assistant="Claude Code" live="{{ false }}" hint-size="1440px,1000px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Onboarding" theme="light" stage="connected" assistant="ChatGPT" live="{{ false }}" hint-size="1440px,1000px"></dc-import></div></div>
+  </div>
+</section>
 <section id="onboarding-syncing" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
   <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Readiness · syncing</span><span style="font-size:13px;color:#a3a5a9">Steps tick live as the assistant works. Open the file on its own to watch the sync and the first scan finish.</span></div>
   <div style="display:flex;gap:48px;align-items:flex-start">
