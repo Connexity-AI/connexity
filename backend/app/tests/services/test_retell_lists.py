@@ -9,7 +9,12 @@ import respx
 from fastapi import HTTPException
 
 from app.services import retell as retell_api
-from app.services.retell import list_retell_agents, list_retell_calls
+from app.services.retell import (
+    get_retell_call,
+    list_retell_agents,
+    list_retell_call_summaries,
+    list_retell_calls,
+)
 from app.tests.utils.retell_payloads import retell_call
 
 LIST_CALLS = "https://api.retellai.com/v3/list-calls"
@@ -285,3 +290,93 @@ async def test_when_no_call_can_be_read_the_pull_fails_instead_of_looking_empty(
     with pytest.raises(HTTPException) as raised:
         await list_retell_calls("key_invented", agent_id="agent_invented_1")
     assert raised.value.status_code == 502
+
+
+UNTIL = datetime(2026, 11, 8, 15, 40, 34, tzinfo=UTC)
+
+
+async def _summaries() -> list[retell_api.RetellCallSummary]:
+    return await list_retell_call_summaries(
+        "key_invented", agent_id="agent_invented_1", after=AFTER, until=UNTIL, limit=25
+    )
+
+
+@respx.mock
+async def test_summaries_list_by_agent_and_window_without_reading_calls() -> None:
+    late = _list_item("call_late")
+    late["start_timestamp"] = int(UNTIL.timestamp() * 1000) + 1
+    listing = respx.post(LIST_CALLS).mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "items": [
+                    _list_item("call_a"),
+                    _list_item("call_live", status="ongoing"),
+                    {"call_id": "call_no_start"},
+                    "not a call",
+                    late,
+                ]
+            },
+        )
+    )
+    reads = _serve_calls()
+
+    summaries = await _summaries()
+
+    assert [(c.call_id, c.finished) for c in summaries] == [
+        ("call_a", True),
+        ("call_live", False),
+    ]
+    sent = json.loads(listing.calls.last.request.content)
+    assert sent["filter_criteria"]["agent"] == [{"agent_id": "agent_invented_1"}]
+    assert sent["filter_criteria"]["start_timestamp"]["op"] == "gt"
+    assert sent["limit"] == 25
+    assert sent["sort_order"] == "ascending"
+    assert not reads.called
+
+
+@respx.mock
+async def test_summaries_of_an_empty_window() -> None:
+    respx.post(LIST_CALLS).mock(return_value=httpx.Response(200, json={"items": []}))
+
+    assert await _summaries() == []
+
+
+@respx.mock
+@pytest.mark.parametrize(
+    "answer",
+    [
+        httpx.Response(500, text="error"),
+        httpx.Response(200, json={"unexpected": True}),
+        httpx.Response(200, text="not json"),
+        httpx.TimeoutException("timed out"),
+    ],
+    ids=["error", "malformed", "not-json", "timeout"],
+)
+async def test_summaries_fail_cleanly(answer: httpx.Response | Exception) -> None:
+    route = respx.post(LIST_CALLS)
+    if isinstance(answer, Exception):
+        route.mock(side_effect=answer)
+    else:
+        route.mock(return_value=answer)
+
+    with pytest.raises(HTTPException) as raised:
+        await _summaries()
+
+    assert raised.value.status_code == 502
+
+
+@respx.mock
+@pytest.mark.parametrize("status", [400, 404, 422])
+async def test_a_call_retell_will_never_return_reads_as_none(status: int) -> None:
+    respx.get(url__startswith=GET_CALL).mock(return_value=httpx.Response(status))
+
+    assert await get_retell_call("key_invented", "call_gone") is None
+
+
+@respx.mock
+async def test_a_call_retell_fails_to_serve_is_an_error() -> None:
+    respx.get(url__startswith=GET_CALL).mock(return_value=httpx.Response(503))
+
+    with pytest.raises(HTTPException):
+        await get_retell_call("key_invented", "call_later")

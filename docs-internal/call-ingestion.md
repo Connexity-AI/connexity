@@ -24,9 +24,29 @@ How calls reach Connexity. This is the written recommendation of roadmap feature
 
 ## History: the first scan
 
-Calls from before the webhook was set are pulled once, on request, by the first scan
-(roadmap feature 10), using the incremental pull (`sync_agent_calls`). That pull asks
-Retell for an agent's calls after the newest stored one, 100 at a time.
+The last 30 days of each added agent's calls are pulled once by the first scan
+(`app/services/first_scan.py`, plan `plans/2026-11-12-first-scan.md`). The assistant
+drives it through MCP, calling `scan_calls` until it says finished:
+
+- **Each step works for up to about 40 seconds** and stops; nothing runs after the answer,
+  because Cloud Run slows work once a request has been answered. The MCP server waits up
+  to 180 seconds for a step: a page that started before the 40 seconds ran out is
+  finished, and counting a large window takes a step of its own.
+- **Each agent keeps its own position** (`Agent.scan_cursor`), separate from its newest
+  stored call. The 1.x pull (`sync_agent_calls`) starts after the newest stored call, so
+  one webhook call would hide the whole history from it.
+- **The first step for an agent lists the window** from Retell (no transcripts, 1,000
+  per page) to know the total, and fixes its end at that moment. Later calls are the
+  webhook's.
+- **Every step lists the next 25 calls** from the agent's position (including the
+  position's own millisecond, so calls that started together are not skipped), skips
+  those already stored, reads the rest in full 5 at a time, and stores them through the webhook's path.
+  If a read fails, the position stops just before it and the step answers with an error;
+  the next step asks for it again.
+- **When an agent's window is done,** one pass resolves any versions still missing.
+- **Readiness** counts "stored of total" from the database, so repeated or overlapping
+  steps never miscount. The workspace records when the first scan first finished
+  (`Company.first_scan_done_at`); step 4 stays done after that.
 
 ## Known gap, accepted (2026-11-12)
 

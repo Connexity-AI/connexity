@@ -182,6 +182,7 @@ They own validation, CRUD calls, state changes and the answer's rules and next s
 | `connect_voice_platform(workspace_id, api_key, platform)` | `POST /api/v1/mcp/workspaces/{workspace_id}/connections` |
 | `add_agents(workspace_id, agents)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents` |
 | `list_agents(workspace_id, query?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/agents` |
+| `scan_calls(workspace_id)` | `POST /api/v1/mcp/workspaces/{workspace_id}/scan` |
 
 ## What not to do
 

@@ -9,6 +9,11 @@ from mcp.server.auth.middleware.auth_context import get_access_token
 from connexity_mcp_server.config import Settings
 
 
+# A scan step works for about 40 seconds, past that only to finish a page or to count
+# a large window.
+SCAN_TIMEOUT_SECONDS = 180.0
+
+
 class ConnexityBackendError(RuntimeError):
     """Raised when the Connexity backend request fails."""
 
@@ -57,6 +62,13 @@ class ConnexityBackendClient:
             "POST",
             f"/mcp/workspaces/{quote(workspace_id, safe='')}/agents",
             json={"agents": agents},
+        )
+
+    async def scan_calls(self, *, workspace_id: str) -> dict[str, Any]:
+        return await self._request_json(
+            "POST",
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/scan",
+            timeout=SCAN_TIMEOUT_SECONDS,
         )
 
     async def get_readiness(self, *, workspace_id: str) -> dict[str, Any]:

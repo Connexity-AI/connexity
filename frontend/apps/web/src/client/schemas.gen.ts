@@ -5529,6 +5529,44 @@ export const McpAgentSchema = {
   title: 'McpAgent',
 } as const;
 
+export const McpAgentScanSchema = {
+  properties: {
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    stored: {
+      type: 'integer',
+      title: 'Stored',
+      description: "Calls stored from the agent's scan window",
+    },
+    total: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Total',
+      description: 'Finished calls Retell listed in the window; empty until listed',
+    },
+    finished: {
+      type: 'boolean',
+      title: 'Finished',
+    },
+  },
+  type: 'object',
+  required: ['agent_id', 'name', 'stored', 'total', 'finished'],
+  title: 'McpAgentScan',
+} as const;
+
 export const McpAgentToAddSchema = {
   properties: {
     platform_agent_id: {
@@ -5644,6 +5682,51 @@ export const McpAnswer_McpConnection_Schema = {
   type: 'object',
   required: ['data', 'guide'],
   title: 'McpAnswer[McpConnection]',
+} as const;
+
+export const McpAnswer_McpScanProgress_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/McpScanProgress',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[McpScanProgress]',
 } as const;
 
 export const McpAnswer_McpWorkspace_Schema = {
@@ -5898,6 +5981,35 @@ export const McpRefusedAgentSchema = {
   type: 'object',
   required: ['platform_agent_id', 'reason'],
   title: 'McpRefusedAgent',
+} as const;
+
+export const McpScanProgressSchema = {
+  properties: {
+    agents: {
+      items: {
+        $ref: '#/components/schemas/McpAgentScan',
+      },
+      type: 'array',
+      title: 'Agents',
+    },
+    stored_this_step: {
+      type: 'integer',
+      title: 'Stored This Step',
+    },
+    finished: {
+      type: 'boolean',
+      title: 'Finished',
+      description: "Every added agent's first scan has finished",
+    },
+    calls_without_versions: {
+      type: 'integer',
+      title: 'Calls Without Versions',
+      description: 'Stored calls whose agent version could not be resolved',
+    },
+  },
+  type: 'object',
+  required: ['agents', 'stored_this_step', 'finished', 'calls_without_versions'],
+  title: 'McpScanProgress',
 } as const;
 
 export const McpVoicePlatformSchema = {

@@ -70,4 +70,5 @@ never changes anything in Retell, so you set it:
    steps name any added agent with no call by webhook yet.
 
 Only added agents' calls are stored. Calls from before the webhook was set come in with
-the first scan.
+the first scan: call `scan_calls` until it says finished (see
+`connexity://guides/readiness`).

@@ -4,6 +4,7 @@ from connexity_mcp_server.client import ConnexityBackendClient, ConnexityBackend
 from connexity_mcp_server.config import Settings
 from connexity_mcp_server.tools import (
     add_agents,
+    scan_calls,
     connect_voice_platform,
     create_workspace,
     get_readiness,
@@ -308,3 +309,40 @@ async def test_add_agents_posts_the_platform_ids() -> None:
 
     assert [a.platform_agent_id for a in result.data.added] == ["agent_2"]
     assert result.data.refused[0].platform_agent_id == "agent_1"
+
+
+@pytest.mark.asyncio
+async def test_scan_calls_posts_and_waits_for_a_step() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url.path == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/scan"
+        assert request.headers["Authorization"] == "Bearer user-oauth-token"
+        assert request.extensions["timeout"]["read"] == 180.0
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "agents": [
+                        {
+                            "agent_id": "a1",
+                            "name": "Front desk",
+                            "stored": 40,
+                            "total": 120,
+                            "finished": False,
+                        }
+                    ],
+                    "stored_this_step": 40,
+                    "finished": False,
+                    "calls_without_versions": 0,
+                },
+                "next_cursor": None,
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler, lambda client: scan_calls(client, workspace_id=WORKSPACE_ID)
+    )
+
+    assert result.data.agents[0].stored == 40
+    assert result.data.finished is False

@@ -9,6 +9,7 @@ from connexity_mcp_server.models import (
     GetReadinessResult,
     ListAgentsResult,
     ListWorkspacesResult,
+    ScanCallsResult,
 )
 
 
@@ -65,3 +66,9 @@ async def list_agents(
         limit=max(1, min(limit, 100)),
     )
     return ListAgentsResult.model_validate(payload)
+
+
+async def scan_calls(client: ConnexityBackendClient, workspace_id: str) -> ScanCallsResult:
+    return ScanCallsResult.model_validate(
+        await client.scan_calls(workspace_id=workspace_id)
+    )

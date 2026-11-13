@@ -243,6 +243,9 @@ import type {
   McpListWorkspacesData,
   McpListWorkspacesErrors,
   McpListWorkspacesResponses,
+  McpScanCallsData,
+  McpScanCallsErrors,
+  McpScanCallsResponses,
   OauthAuthorizeAllowData,
   OauthAuthorizeAllowErrors,
   OauthAuthorizeAllowResponses,
@@ -1099,6 +1102,21 @@ export class McpService {
         ...options.headers,
       },
     });
+  }
+
+  /**
+   * Scan Calls
+   */
+  public static scanCalls<ThrowOnError extends boolean = false>(
+    options: Options<McpScanCallsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<McpScanCallsResponses, McpScanCallsErrors, ThrowOnError>(
+      {
+        security: [{ scheme: 'bearer', type: 'http' }],
+        url: '/api/v1/mcp/workspaces/{workspace_id}/scan',
+        ...options,
+      }
+    );
   }
 }
 

@@ -108,3 +108,22 @@ class McpAddedAgents(BaseModel):
     added: list[McpAgent]
     already_added: list[McpAgent]
     refused: list[McpRefusedAgent]
+
+
+class McpAgentScan(BaseModel):
+    agent_id: uuid.UUID
+    name: str
+    stored: int = Field(description="Calls stored from the agent's scan window")
+    total: int | None = Field(
+        description="Finished calls Retell listed in the window; empty until listed"
+    )
+    finished: bool
+
+
+class McpScanProgress(BaseModel):
+    agents: list[McpAgentScan]
+    stored_this_step: int
+    finished: bool = Field(description="Every added agent's first scan has finished")
+    calls_without_versions: int = Field(
+        description="Stored calls whose agent version could not be resolved"
+    )

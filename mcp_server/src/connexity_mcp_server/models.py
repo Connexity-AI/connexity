@@ -82,9 +82,25 @@ class AddedAgents(BaseModel):
     refused: list[RefusedAgent] = Field(default_factory=list)
 
 
+class AgentScan(BaseModel):
+    agent_id: str
+    name: str
+    stored: int
+    total: int | None = None
+    finished: bool
+
+
+class ScanProgress(BaseModel):
+    agents: list[AgentScan] = Field(default_factory=list)
+    stored_this_step: int
+    finished: bool
+    calls_without_versions: int = 0
+
+
 ListWorkspacesResult = Answer[list[Workspace]]
 AddAgentsResult = Answer[AddedAgents]
 ConnectVoicePlatformResult = Answer[Connection]
 GetReadinessResult = Answer[Readiness]
 CreateWorkspaceResult = Answer[Workspace]
 ListAgentsResult = Answer[list[Agent]]
+ScanCallsResult = Answer[ScanProgress]
