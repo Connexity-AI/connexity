@@ -231,7 +231,7 @@ def test_a_resolved_issue_regresses_only_on_a_call_that_started_afterwards(
 
     _send(client, token, agent_id, _trace(started_at=_later()))
     (after,) = _issues(client, auth_cookies, agent_id)
-    assert (after["state"], after["call_count"]) == ("regressed", 3)
+    assert (after["state"], after["call_count"]) == ("reopened", 3)
     # What it was resolved in is kept as history.
     assert after["resolved_version"] == "agent v12"
 
@@ -247,7 +247,7 @@ def test_a_resolved_issue_regresses_only_on_a_call_that_started_afterwards(
     assert str(record.agent_id) == agent_id
 
 
-def test_accepting_needs_a_reason_and_an_accepted_issue_stays_accepted(
+def test_archiving_needs_a_reason_and_an_archived_issue_stays_archived(
     client: TestClient, auth_cookies: dict[str, str], token: str
 ) -> None:
     agent_id = _agent(client, auth_cookies)
@@ -255,34 +255,34 @@ def test_accepting_needs_a_reason_and_an_accepted_issue_stays_accepted(
     (issue,) = _issues(client, auth_cookies, agent_id)
 
     for reason in (None, "   "):
-        refused = _state(client, auth_cookies, issue["id"], "accepted", reason)
+        refused = _state(client, auth_cookies, issue["id"], "archived", reason)
         assert refused.status_code == 422, refused.text
         assert "reason is required" in refused.json()["detail"]
     assert _issues(client, auth_cookies, agent_id)[0]["state"] == "open"
 
-    accepted = _state(
-        client, auth_cookies, issue["id"], "accepted", "Known, vendor bug"
+    archived = _state(
+        client, auth_cookies, issue["id"], "archived", "Known, vendor bug"
     )
-    assert accepted.status_code == 200, accepted.text
+    assert archived.status_code == 200, archived.text
     _send(client, token, agent_id, _trace(started_at=_later()))
     (after,) = _issues(client, auth_cookies, agent_id)
-    assert (after["state"], after["call_count"]) == ("accepted", 2)
+    assert (after["state"], after["call_count"]) == ("archived", 2)
 
     decisions = client.get(f"{API}/agents/{agent_id}/decisions", cookies=auth_cookies)
     (record,) = decisions.json()
     assert (record["kind"], record["subject"]) == ("issue_state", issue["id"])
-    assert (record["old_value"], record["new_value"]) == ("open", "accepted")
+    assert (record["old_value"], record["new_value"]) == ("open", "archived")
     assert record["reason"] == "Known, vendor bug"
 
 
-def test_an_issue_can_be_reopened_and_cannot_be_set_to_regressed(
+def test_an_issue_can_be_opened_again_and_cannot_be_set_to_reopened(
     client: TestClient, auth_cookies: dict[str, str], token: str
 ) -> None:
     agent_id = _agent(client, auth_cookies)
     _send(client, token, agent_id, _trace())
     (issue,) = _issues(client, auth_cookies, agent_id)
 
-    assert _state(client, auth_cookies, issue["id"], "regressed").status_code == 422
+    assert _state(client, auth_cookies, issue["id"], "reopened").status_code == 422
     assert _state(client, auth_cookies, issue["id"], "sometimes").status_code == 422
     assert _state(client, auth_cookies, issue["id"], "resolved").status_code == 200
     reopened = _state(client, auth_cookies, issue["id"], "open")

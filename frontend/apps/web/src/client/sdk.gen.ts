@@ -222,6 +222,9 @@ import type {
   IssuesListAgentIssuesData,
   IssuesListAgentIssuesErrors,
   IssuesListAgentIssuesResponses,
+  IssuesListIssuesData,
+  IssuesListIssuesErrors,
+  IssuesListIssuesResponses,
   IssuesSetIssueStateData,
   IssuesSetIssueStateErrors,
   IssuesSetIssueStateResponses,
@@ -3771,6 +3774,35 @@ export class ChecksService {
 
 export class IssuesService {
   /**
+   * List Issues
+   *
+   * The Issues page: the open workspace's issues grouped by category, worst first.
+   *
+   * The tiles follow the agent and the period only. ``q`` matches words in an issue's
+   * title, or its whole id.
+   */
+  public static listIssues<ThrowOnError extends boolean = false>(
+    options?: Options<IssuesListIssuesData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      IssuesListIssuesResponses,
+      IssuesListIssuesErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/issues',
+      ...options,
+    });
+  }
+
+  /**
    * List Agent Issues
    *
    * The agent's issues, the one seen most recently first.
@@ -3825,9 +3857,9 @@ export class IssuesService {
   /**
    * Set Issue State
    *
-   * Resolve an issue, accept it as known, or reopen it.
+   * Resolve an issue, archive it, or open it again.
    *
-   * Kept as a decision record. Accepting requires a reason. "Regressed" is not
+   * Kept as a decision record. Archiving requires a reason. "Reopened" is not
    * something a person sets: it happens when a resolved issue is found again on a call
    * that started after the resolution.
    */

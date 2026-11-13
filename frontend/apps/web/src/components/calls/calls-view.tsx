@@ -1,25 +1,21 @@
 'use client';
 
-import { Calendar, Check, ChevronDown, OctagonAlert, Search, TriangleAlert } from 'lucide-react';
+import { useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, useTransition } from 'react';
+
+import { UrlGenerator } from '@/common/url-generator/url-generator';
+import { Calendar, OctagonAlert, Search, TriangleAlert } from 'lucide-react';
 
 import { NumberTile } from '@workspace/ui/components/number-tile';
 import { PageBar } from '@workspace/ui/components/page-bar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@workspace/ui/components/ui/dropdown-menu';
 import { cn } from '@workspace/ui/lib/utils';
 
-import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { clock, timeLabel } from '@/components/calls/format';
+import { Picker } from '@/components/common/picker';
 
 import type { CallListItemPublic, CallListPublic } from '@/client/types.gen';
-import type { FC, ReactNode } from 'react';
+import type { FC } from 'react';
 
 const PERIOD_LABELS: Record<string, string> = {
   '7d': 'Last 7 days',
@@ -51,61 +47,13 @@ const ResultLabel: FC<{ result: CallListItemPublic['result'] }> = ({ result }) =
         Degraded
       </span>
     );
-  return (
-    <span className="text-ink-secondary">{result === 'clean' ? 'Clean' : 'Unchecked'}</span>
-  );
+  return <span className="text-ink-secondary">{result === 'clean' ? 'Clean' : 'Unchecked'}</span>;
 };
 
 const worstLine = (call: CallListItemPublic) => {
   const worst = call.worst_finding;
   if (!worst) return '';
   return worst.key ? `${worst.title}: ${worst.key}` : worst.title;
-};
-
-interface Option {
-  value: string;
-  label: string;
-}
-
-const Picker: FC<{
-  label: string;
-  value: string | undefined;
-  options: Option[];
-  onPick: (value: string | undefined) => void;
-  icon?: ReactNode;
-  align?: 'start' | 'end';
-  clearable?: boolean;
-}> = ({ label, value, options, onPick, icon, align = 'start', clearable = true }) => {
-  const current = options.find((option) => option.value === value);
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        className={cn(
-          'flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border pr-2.5 pl-3 text-body text-ink hover:bg-wash',
-          current && clearable ? 'border-ink-secondary bg-wash' : 'border-border-control'
-        )}
-      >
-        {icon}
-        <span>{current?.label ?? label}</span>
-        <ChevronDown className="size-4 text-ink-secondary" aria-hidden />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align={align} className="max-h-[360px] min-w-[220px] overflow-auto">
-        {clearable && current && (
-          <DropdownMenuItem onSelect={() => onPick(undefined)}>All</DropdownMenuItem>
-        )}
-        {options.map((option) => (
-          <DropdownMenuItem
-            key={option.value}
-            onSelect={() => onPick(option.value)}
-            className="flex items-center justify-between gap-3"
-          >
-            <span>{option.label}</span>
-            {option.value === value && <Check className="size-4" aria-hidden />}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
 };
 
 interface Props {
@@ -139,7 +87,8 @@ export const CallsView: FC<Props> = ({ calls, shown, pageSize }) => {
   const result = params.get('result') ?? undefined;
   const category = params.get('category') ?? undefined;
   const anyFilter = Boolean(params.get('q') || agent || result || category);
-  const clearAll = () => go({ q: undefined, agent: undefined, result: undefined, category: undefined });
+  const clearAll = () =>
+    go({ q: undefined, agent: undefined, result: undefined, category: undefined });
 
   return (
     <div className={cn('flex max-w-[1120px] flex-col gap-6', pending && 'opacity-70')}>
@@ -160,7 +109,11 @@ export const CallsView: FC<Props> = ({ calls, shown, pageSize }) => {
 
       <div className="grid grid-cols-4 gap-3">
         <NumberTile label="Calls" value={calls.tiles.calls.toLocaleString()} />
-        <NumberTile label="Failed" value={calls.tiles.failed.toLocaleString()} severity="critical" />
+        <NumberTile
+          label="Failed"
+          value={calls.tiles.failed.toLocaleString()}
+          severity="critical"
+        />
         <NumberTile
           label="Degraded"
           value={calls.tiles.degraded.toLocaleString()}

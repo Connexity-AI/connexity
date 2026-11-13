@@ -245,7 +245,7 @@ def replace_findings(
     was first raised and the effect it had do not change.
 
     Each finding joins the issue for its agent, check type and key, created if it does
-    not exist. A resolved issue becomes regressed when a finding is first stored on a
+    not exist. A resolved issue reopens when a finding is first stored on a
     call that started after it was resolved.
 
     ``runs`` replace what each of those checks was recorded as doing on this call. The
@@ -288,7 +288,7 @@ def replace_findings(
             and issue.resolved_at is not None
             and started > issue.resolved_at
         ):
-            issue.state = IssueState.REGRESSED
+            issue.state = IssueState.REOPENED
             session.add(issue)
     for run in runs:
         session.merge(run)
@@ -518,29 +518,15 @@ def list_issues(*, session: Session, agent_id: uuid.UUID) -> list[IssueSummary]:
     )
 
 
-_OPEN_STATES = (IssueState.OPEN, IssueState.REGRESSED)
-
-
 def list_workspace_issues(
     *, session: Session, company_id: uuid.UUID, agent_id: uuid.UUID | None = None
 ) -> list[IssueSummary]:
-    """The workspace's issues, worst first: open ones first, then Critical, then by
-    calls affected, then most recently seen."""
+    """The workspace's issues, in no order: `app/services/issue_list.py` orders them
+    for the period."""
     query = select(Issue).where(Issue.company_id == company_id)
     if agent_id is not None:
         query = query.where(Issue.agent_id == agent_id)
-    summaries = _summaries(session, list(session.exec(query).all()))
-    oldest = datetime.min.replace(tzinfo=UTC)
-    return sorted(
-        summaries,
-        key=lambda s: (
-            s.issue.state in _OPEN_STATES,
-            s.critical,
-            s.call_count,
-            s.last_seen_at or oldest,
-        ),
-        reverse=True,
-    )
+    return _summaries(session, list(session.exec(query).all()))
 
 
 def stored_call_counts(

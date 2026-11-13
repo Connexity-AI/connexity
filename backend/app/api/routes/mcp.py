@@ -11,7 +11,6 @@ import uuid
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlmodel import col, select
 
 from app import crud
 from app.api.deps import (
@@ -35,7 +34,8 @@ from app.models import (
     ReadinessStepState,
     WorkspaceCreate,
 )
-from app.models.enums import CallCheckStatus, CheckKind
+from app.models.enums import CallCheckStatus
+from app.models.issue_list import IssuePeriod, IssueStatusFilter
 from app.models.mcp import (
     GUIDE_CALLS,
     GUIDE_CATEGORIES,
@@ -52,14 +52,13 @@ from app.models.mcp import (
     McpConnection,
     McpConnectVoicePlatform,
     McpErrorDetail,
-    McpIssue,
+    McpIssues,
     McpRefusedAgent,
     McpScanProgress,
     McpWorkspace,
 )
 from app.services.call_list import workspace_calls
 from app.services.call_screen import call_screen
-from app.services.checks.registry import get_check
 from app.services.connections import (
     KEY_LOCATION,
     VOICE_PLATFORMS,
@@ -67,6 +66,7 @@ from app.services.connections import (
     webhook_address,
 )
 from app.services.first_scan import SCAN_DAYS, scan_agents, scan_step
+from app.services.issue_list import IssueFilters, workspace_issues
 from app.services.retell import (
     dedupe_retell_agents,
     list_retell_agents,
@@ -314,15 +314,20 @@ def get_call(
 
 @router.get(
     "/workspaces/{workspace_id}/issues",
-    response_model=McpAnswer[list[McpIssue]],
+    response_model=McpAnswer[McpIssues],
 )
 def list_issues(
     session: SessionDep,
     workspace: McpWorkspaceDep,
+    query: str | None = Query(default=None, max_length=255),
     agent_id: uuid.UUID | None = Query(default=None),
+    category: str | None = Query(default=None, max_length=64),
+    severity: Literal["critical", "warning"] | None = Query(default=None),
+    status: IssueStatusFilter = "open",
+    period: IssuePeriod = "30d",
     cursor: str | None = Query(default=None, max_length=255),
     limit: int = Query(default=25, ge=1, le=100),
-) -> McpAnswer[list[McpIssue]]:
+) -> McpAnswer[McpIssues]:
     offset = _decode_cursor(cursor)
     if agent_id is not None and (
         crud.get_agent(session=session, agent_id=agent_id, company_id=workspace.id)
@@ -336,61 +341,53 @@ def list_issues(
                 guide=GUIDE_ISSUES,
             ).model_dump(),
         )
-    summaries = crud.list_workspace_issues(
-        session=session, company_id=workspace.id, agent_id=agent_id
+    page, matching = workspace_issues(
+        session=session,
+        company_id=workspace.id,
+        filters=IssueFilters(
+            period=period,
+            agent_id=agent_id,
+            category=category,
+            severity=severity,
+            status=status,
+            query=query,
+        ),
     )
-    page = summaries[offset : offset + limit]
-    has_more = offset + limit < len(summaries)
-    agent_ids = list({s.issue.agent_id for s in page})
-    names = {
-        agent.id: agent.name
-        for agent in session.exec(
-            select(Agent).where(col(Agent.id).in_(agent_ids))
-        ).all()
-    }
-    totals = crud.stored_call_counts(session=session, agent_ids=agent_ids)
-    categories = crud.categories_by_id(session=session)
-    data = []
-    for summary in page:
-        issue = summary.issue
-        check = get_check(issue.check_type)
-        kind = check.kind if check else summary.kind
-        data.append(
-            McpIssue(
-                id=issue.id,
-                agent_id=issue.agent_id,
-                agent_name=names.get(issue.agent_id, ""),
-                type=issue.check_type,
-                title=check.title if check else issue.check_type,
-                category=categories[issue.category_id].name,
-                severity="critical" if summary.critical else "warning",
-                found_by="rule" if kind in (None, CheckKind.RULE) else "model",
-                state=issue.state.value,
-                calls_affected=summary.call_count,
-                calls_total=totals.get(issue.agent_id, 0),
-                first_seen_at=summary.first_seen_at,
-                last_seen_at=summary.last_seen_at,
-            )
-        )
+    issues = matching[offset : offset + limit]
+    has_more = offset + limit < len(matching)
     next_steps = []
     if has_more:
         next_steps.append(
             "Call `list_issues` again with `cursor` set to `next_cursor` for the next "
             "page."
         )
-    if not summaries:
-        next_steps.append(
-            "No issues yet. Calls are checked within a minute of arriving; if the "
-            "workspace has no calls, call `get_readiness`."
-        )
-    return McpAnswer[list[McpIssue]](
-        data=data,
+    if not matching and offset == 0:
+        if query or category or severity or status != "open":
+            next_steps.append(
+                "No issue matches. Clear the search or filters, or try a longer period "
+                "or another status."
+            )
+        else:
+            next_steps.append(
+                "No open issues. Calls are checked within a minute of arriving; if the "
+                "workspace has no calls, call `get_readiness`."
+            )
+    if category and category not in {c.value for c in page.categories}:
+        next_steps.append("Call `list_categories` for the category keys.")
+    return McpAnswer[McpIssues](
+        data=McpIssues(tiles=page.tiles, issues=issues),
         rules=[
-            "Worst first: open issues, then critical, then by calls affected.",
+            "Worst first: open or reopened Critical issues and reopened ones, then the "
+            "other open ones, then by calls affected in the period.",
+            "status defaults to open, which includes reopened. Open and reopened issues "
+            "show whatever the period; a resolved one only if it was resolved in the "
+            "period; archived ones always.",
+            "The tiles follow agent_id and the period only, never the search or the "
+            "other filters.",
             "Say how each issue was found: found_by rule means deterministic code over "
             "the call; model means a classifier or judge.",
-            "Give the size as 'in N of M calls' (calls_affected of calls_total), and "
-            "group by category when you list several.",
+            "Give the size as 'in N of M calls' (calls_affected of calls_total, both in "
+            "the period), and group by category when you list several.",
             "Never quote what a caller said or a tool's arguments back to the person "
             "unless they ask for one call.",
         ],

@@ -1,11 +1,28 @@
 # Issues
 
 An issue is one problem found on an agent's real calls: every call where Connexity's
-checks found the same thing. Call `list_issues` with a `workspace_id` (and an
-`agent_id` for one agent). Issues come worst first: open ones, then critical, then the
-most calls affected.
+checks found the same thing. Call `list_issues` with a `workspace_id`. It answers the
+same issues and counts as the Issues page.
 
-Each issue has:
+## Finding issues
+
+- **`query`:** words in the title, or a whole issue id.
+- **`agent_id`**, **`category`** (a key from `list_categories`), **`severity`**
+  (`critical` or `warning`).
+- **`status`:** `open` by default, which includes reopened; or `reopened`, `resolved`,
+  `archived`.
+- **`period`:** `7d`, `30d` (default) or `90d`. Open and reopened issues show whatever
+  the period. A resolved issue shows only if it was resolved in the period. Archived
+  issues always show under their status.
+
+Issues come worst first: open or reopened Critical issues and reopened ones, then the
+other open ones, then by calls affected in the period.
+
+`tiles` counts Open, Critical, Reopened, Resolved in the period, and Calls affected of
+all calls in the period. The tiles follow `agent_id` and `period` only, never the search
+or the other filters.
+
+## Each issue
 
 - **`severity`:** `critical` when its check fails the call, otherwise `warning`. Each
   check has a default; a person can change it per agent.
@@ -13,9 +30,13 @@ Each issue has:
   answer every time; `model` when a classifier or judge did. Always tell the person
   which.
 - **`category`:** one of the fixed categories (see `connexity://guides/categories`).
-- **Its size:** `calls_affected` of `calls_total`. Say "in 11 of 78 calls".
-- **`state`:** open, resolved, regressed (found again after it was resolved) or
-  accepted.
+- **Its size:** `calls_affected` of `calls_total`, both in the period. Say "in 11 of
+  78 calls".
+- **`state`:**
+  - `open`;
+  - `resolved` (with `resolved_version` when one was given);
+  - `reopened`: found again on a call that started after it was resolved;
+  - `archived`: real, and nobody will fix it. Only a person archives, with a reason.
 
 ## How to talk about them
 

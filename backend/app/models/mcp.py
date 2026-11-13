@@ -9,12 +9,13 @@ Lists add `next_cursor`. Errors carry a message, next steps and a guide in the s
 import uuid
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Generic, Literal, TypeVar
+from typing import Annotated, Generic, TypeVar
 
 from pydantic import BaseModel, Field, StringConstraints
 
 from app.models.call_list import CallListItemPublic, CallTilesPublic
 from app.models.enums import Platform
+from app.models.issue_list import IssueListItemPublic, IssueTilesPublic
 
 T = TypeVar("T")
 
@@ -133,22 +134,9 @@ class McpScanProgress(BaseModel):
     )
 
 
-class McpIssue(BaseModel):
-    id: uuid.UUID
-    agent_id: uuid.UUID
-    agent_name: str
-    type: str = Field(description="The check that finds it, e.g. booking_duplicated")
-    title: str
-    category: str
-    severity: Literal["critical", "warning"]
-    found_by: Literal["rule", "model"] = Field(
-        description="rule: deterministic code over the call; model: a classifier or judge"
-    )
-    state: str
-    calls_affected: int
-    calls_total: int = Field(description="The agent's stored calls: 'in N of M calls'")
-    first_seen_at: datetime | None = None
-    last_seen_at: datetime | None = None
+class McpIssues(BaseModel):
+    tiles: IssueTilesPublic = Field(description="Counts for the agent and period")
+    issues: list[IssueListItemPublic] = Field(description="Worst first")
 
 
 class McpCalls(BaseModel):
