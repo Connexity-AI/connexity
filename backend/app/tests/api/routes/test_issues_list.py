@@ -9,12 +9,13 @@ from app.core.config import settings
 from app.models import User
 from app.models.check import Issue
 from app.models.enums import IssueState
-from app.tests.api.routes.test_mcp_issues import (
+from app.tests.api.routes.test_mcp_issues import (  # noqa: F401
     FULL,
     _agent,
     _booking,
     _call,
     _person,
+    _settings,  # the autouse fixture that sets an encryption key
 )
 from app.tests.utils.retell_payloads import invocation, result
 from app.tests.utils.utils import extract_cookies, random_email, random_lower_string

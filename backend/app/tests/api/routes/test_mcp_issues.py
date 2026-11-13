@@ -220,7 +220,8 @@ def test_the_search_and_filters_narrow_the_issues(
 
     assert types(query="two bookings") == ["booking_duplicated"]
     assert types(severity="warning") == []
-    assert types(category="booking", severity="critical") == [
+    # One call each, so their order is by when they were last seen.
+    assert sorted(types(category="booking", severity="critical")) == [
         "booking_details_missing",
         "booking_duplicated",
     ]
