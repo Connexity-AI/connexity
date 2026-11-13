@@ -71,6 +71,27 @@ class ConnexityBackendClient:
             timeout=SCAN_TIMEOUT_SECONDS,
         )
 
+    async def list_issues(
+        self,
+        *,
+        workspace_id: str,
+        agent_id: str | None = None,
+        cursor: str | None = None,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {}
+        if agent_id:
+            params["agent_id"] = agent_id
+        if cursor:
+            params["cursor"] = cursor
+        if limit is not None:
+            params["limit"] = limit
+        return await self._request_json(
+            "GET",
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/issues",
+            params=params,
+        )
+
     async def list_categories(self, *, workspace_id: str) -> dict[str, Any]:
         return await self._request_json(
             "GET", f"/mcp/workspaces/{quote(workspace_id, safe='')}/categories"

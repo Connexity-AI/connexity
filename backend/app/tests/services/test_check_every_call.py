@@ -35,6 +35,8 @@ def _isolated(
     db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> Generator[None, None, None]:
     monkeypatch.setattr(call_pull, "_backlog_empty", None)
+    # The pass shown with one check; which checks exist is the registry's business.
+    monkeypatch.setattr(engine, "CHECKS", (TOOL_CALL_FAILED,))
     original = encryption.settings.ENCRYPTION_KEY
     encryption.settings.ENCRYPTION_KEY = Fernet.generate_key().decode()
     encryption._fernet.cache_clear()

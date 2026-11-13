@@ -3833,6 +3833,42 @@ export type McpAnswerListMcpAgent = {
 };
 
 /**
+ * McpAnswer[list[McpIssue]]
+ */
+export type McpAnswerListMcpIssue = {
+  /**
+   * Data
+   *
+   * The facts: the result of the call
+   */
+  data: Array<McpIssue>;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
  * McpAnswer[list[McpWorkspace]]
  */
 export type McpAnswerListMcpWorkspace = {
@@ -3901,6 +3937,70 @@ export type McpConnection = {
    * The person, and the assistant, who connected it
    */
   connected_by?: string | null;
+};
+
+/**
+ * McpIssue
+ */
+export type McpIssue = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Name
+   */
+  agent_name: string;
+  /**
+   * Type
+   *
+   * The check that finds it, e.g. booking_duplicated
+   */
+  type: string;
+  /**
+   * Title
+   */
+  title: string;
+  /**
+   * Category
+   */
+  category: string;
+  /**
+   * Severity
+   */
+  severity: 'critical' | 'warning';
+  /**
+   * Found By
+   *
+   * rule: deterministic code over the call; model: a classifier or judge
+   */
+  found_by: 'rule' | 'model';
+  /**
+   * State
+   */
+  state: string;
+  /**
+   * Calls Affected
+   */
+  calls_affected: number;
+  /**
+   * Calls Total
+   *
+   * The agent's stored calls: 'in N of M calls'
+   */
+  calls_total: number;
+  /**
+   * First Seen At
+   */
+  first_seen_at?: string | null;
+  /**
+   * Last Seen At
+   */
+  last_seen_at?: string | null;
 };
 
 /**
@@ -8354,6 +8454,73 @@ export type McpListCategoriesResponses = {
 
 export type McpListCategoriesResponse =
   McpListCategoriesResponses[keyof McpListCategoriesResponses];
+
+export type McpListIssuesData = {
+  body?: never;
+  path: {
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: {
+    /**
+     * Agent Id
+     */
+    agent_id?: string | null;
+    /**
+     * Cursor
+     */
+    cursor?: string | null;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/mcp/workspaces/{workspace_id}/issues';
+};
+
+export type McpListIssuesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpListIssuesError = McpListIssuesErrors[keyof McpListIssuesErrors];
+
+export type McpListIssuesResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerListMcpIssue;
+};
+
+export type McpListIssuesResponse = McpListIssuesResponses[keyof McpListIssuesResponses];
 
 export type McpListAgentsData = {
   body?: never;

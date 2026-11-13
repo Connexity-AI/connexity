@@ -243,6 +243,9 @@ import type {
   McpListCategoriesData,
   McpListCategoriesErrors,
   McpListCategoriesResponses,
+  McpListIssuesData,
+  McpListIssuesErrors,
+  McpListIssuesResponses,
   McpListWorkspacesData,
   McpListWorkspacesErrors,
   McpListWorkspacesResponses,
@@ -1137,6 +1140,23 @@ export class McpService {
     >({
       security: [{ scheme: 'bearer', type: 'http' }],
       url: '/api/v1/mcp/workspaces/{workspace_id}/categories',
+      ...options,
+    });
+  }
+
+  /**
+   * List Issues
+   */
+  public static listIssues<ThrowOnError extends boolean = false>(
+    options: Options<McpListIssuesData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      McpListIssuesResponses,
+      McpListIssuesErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/issues',
       ...options,
     });
   }

@@ -131,7 +131,7 @@ def test_a_failing_tool_call_is_found_when_the_call_arrives(
     assert finding["effect"] == "fails"
     assert finding["retroactive"] is False
     assert body["checked_at"] is not None
-    (ran,) = body["checks"]
+    (ran,) = (c for c in body["checks"] if c["check_type"] == CHECK)
     assert (ran["check_type"], ran["title"], ran["check_version"]) == (
         CHECK,
         "Tool call failed",
@@ -317,7 +317,9 @@ def test_switching_a_check_off_applies_to_later_calls_of_that_agent_only(
 
     assert quiet["findings"] == []
     assert quiet["checked_at"] is not None
-    assert [c["outcome"] for c in quiet["checks"]] == ["off"]
+    assert [c["outcome"] for c in quiet["checks"] if c["check_type"] == CHECK] == [
+        "off"
+    ]
     assert len(loud["findings"]) == 1
 
 

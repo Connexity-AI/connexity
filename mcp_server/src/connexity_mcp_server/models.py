@@ -97,6 +97,22 @@ class ScanProgress(BaseModel):
     calls_without_versions: int = 0
 
 
+class Issue(BaseModel):
+    id: str
+    agent_id: str
+    agent_name: str
+    type: str
+    title: str
+    category: str
+    severity: str
+    found_by: str
+    state: str
+    calls_affected: int
+    calls_total: int
+    first_seen_at: str | None = None
+    last_seen_at: str | None = None
+
+
 class Category(BaseModel):
     key: str
     name: str
@@ -112,3 +128,4 @@ CreateWorkspaceResult = Answer[Workspace]
 ListAgentsResult = Answer[list[Agent]]
 ScanCallsResult = Answer[ScanProgress]
 ListCategoriesResult = Answer[list[Category]]
+ListIssuesResult = Answer[list[Issue]]

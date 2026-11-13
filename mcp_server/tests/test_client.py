@@ -5,6 +5,7 @@ from connexity_mcp_server.config import Settings
 from connexity_mcp_server.tools import (
     add_agents,
     list_categories,
+    list_issues,
     scan_calls,
     connect_voice_platform,
     create_workspace,
@@ -371,3 +372,39 @@ async def test_list_categories_reads_the_fixed_set() -> None:
     )
 
     assert result.data[0].name == "Booking"
+
+
+@pytest.mark.asyncio
+async def test_list_issues_sends_the_agent_and_keeps_how_it_was_found() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/issues"
+        assert request.url.params["agent_id"] == "a1"
+        return httpx.Response(
+            200,
+            json={
+                "data": [
+                    {
+                        "id": "i1",
+                        "agent_id": "a1",
+                        "agent_name": "Front desk",
+                        "type": "booking_duplicated",
+                        "title": "Two bookings for one slot",
+                        "category": "Booking",
+                        "severity": "critical",
+                        "found_by": "rule",
+                        "state": "open",
+                        "calls_affected": 4,
+                        "calls_total": 78,
+                    }
+                ],
+                "next_cursor": None,
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: list_issues(client, workspace_id=WORKSPACE_ID, agent_id="a1"),
+    )
+
+    assert (result.data[0].found_by, result.data[0].calls_affected) == ("rule", 4)

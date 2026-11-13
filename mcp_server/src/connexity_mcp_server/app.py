@@ -32,6 +32,7 @@ from connexity_mcp_server.models import (
     GetReadinessResult,
     ListAgentsResult,
     ListCategoriesResult,
+    ListIssuesResult,
     ListWorkspacesResult,
     ScanCallsResult,
 )
@@ -52,6 +53,9 @@ from connexity_mcp_server.tools import (
 )
 from connexity_mcp_server.tools import (
     list_categories as _list_categories,
+)
+from connexity_mcp_server.tools import (
+    list_issues as _list_issues,
 )
 from connexity_mcp_server.tools import (
     list_workspaces as _list_workspaces,
@@ -162,6 +166,25 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         has got; keep calling it until it says finished. Safe to repeat: it carries on
         where it stopped and skips calls already stored."""
         return await _scan_calls(client=backend_client, workspace_id=workspace_id)
+
+    @mcp_server.tool(annotations=READ_ONLY)
+    async def list_issues(
+        workspace_id: str,
+        agent_id: str | None = None,
+        cursor: str | None = None,
+        limit: int | None = None,
+    ) -> ListIssuesResult:
+        """The workspace's issues, worst first: what Connexity's checks found on real
+        calls. Each has its severity (critical or warning), how it was found (found_by:
+        rule, deterministic code; or model), its category, and its size as calls
+        affected of the agent's calls. Pass agent_id for one agent."""
+        return await _list_issues(
+            client=backend_client,
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            cursor=cursor,
+            limit=limit,
+        )
 
     @mcp_server.tool(annotations=READ_ONLY)
     async def list_categories(workspace_id: str) -> ListCategoriesResult:
