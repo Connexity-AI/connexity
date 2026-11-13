@@ -5,29 +5,37 @@ import { usePathname } from 'next/navigation';
 
 import { cn } from '@workspace/ui/lib/utils';
 
-import type { NavItem } from '@/components/shell/nav-items';
-import type { FC } from 'react';
+import type { Route } from 'next';
+import type { FC, ReactNode } from 'react';
 
 interface Props {
-  item: NavItem;
+  title: string;
+  url: Route;
+  /**
+   * The icon, already rendered by the server component. A component itself (a function)
+   * cannot be passed to a client component; an element can.
+   */
+  icon: ReactNode;
 }
 
-export const NavLink: FC<Props> = ({ item }) => {
-  const pathname = usePathname();
-  const isActive = pathname === item.url || pathname.startsWith(`${item.url}/`);
-  const Icon = item.icon;
+const base = (path: string) => (path.length > 1 ? path.replace(/\/+$/, '') : path);
+
+export const NavLink: FC<Props> = ({ title, url, icon }) => {
+  const pathname = base(usePathname());
+  const target = base(url);
+  const isActive = pathname === target || pathname.startsWith(`${target}/`);
 
   return (
     <Link
-      href={item.url}
+      href={url}
       aria-current={isActive ? 'page' : undefined}
       className={cn(
         'flex h-9 items-center gap-3 rounded-md px-3 text-body no-underline',
         isActive ? 'bg-wash text-ink' : 'text-ink-secondary hover:bg-wash'
       )}
     >
-      <Icon className="size-4 shrink-0" aria-hidden />
-      <span>{item.title}</span>
+      {icon}
+      <span>{title}</span>
     </Link>
   );
 };
