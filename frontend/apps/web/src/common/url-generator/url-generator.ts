@@ -8,6 +8,10 @@ export class UrlGenerator {
     return '/' as Route;
   }
 
+  static calls() {
+    return '/calls/' as Route;
+  }
+
   static account() {
     return '/account/' as Route;
   }

@@ -1,3 +1,7 @@
+import { Phone } from 'lucide-react';
+
+import { UrlGenerator } from '@/common/url-generator/url-generator';
+
 import type { LucideIcon } from 'lucide-react';
 import type { Route } from 'next';
 
@@ -15,4 +19,6 @@ export interface NavItem {
  * screen that does not work end to end (CLAUDE.md rule 14). Keep the decided order when
  * adding one.
  */
-export const NAV_ITEMS: readonly NavItem[] = [];
+export const NAV_ITEMS: readonly NavItem[] = [
+  { title: 'Calls', url: UrlGenerator.calls(), icon: Phone },
+];

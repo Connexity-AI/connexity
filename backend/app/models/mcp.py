@@ -13,6 +13,7 @@ from typing import Annotated, Generic, Literal, TypeVar
 
 from pydantic import BaseModel, Field, StringConstraints
 
+from app.models.call_list import CallListItemPublic, CallTilesPublic
 from app.models.enums import Platform
 
 T = TypeVar("T")
@@ -23,6 +24,7 @@ GUIDE_READINESS = "connexity://guides/readiness"
 GUIDE_CONNECT = "connexity://guides/connect"
 GUIDE_CATEGORIES = "connexity://guides/categories"
 GUIDE_ISSUES = "connexity://guides/issues"
+GUIDE_CALLS = "connexity://guides/calls"
 
 
 class McpAnswer(BaseModel, Generic[T]):
@@ -147,3 +149,8 @@ class McpIssue(BaseModel):
     calls_total: int = Field(description="The agent's stored calls: 'in N of M calls'")
     first_seen_at: datetime | None = None
     last_seen_at: datetime | None = None
+
+
+class McpCalls(BaseModel):
+    tiles: CallTilesPublic = Field(description="Counts for the filters and period")
+    calls: list[CallListItemPublic]

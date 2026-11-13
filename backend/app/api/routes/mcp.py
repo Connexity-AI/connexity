@@ -8,6 +8,7 @@ to a workspace in its path, resolved by `require_mcp_workspace`.
 import base64
 import binascii
 import uuid
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import col, select
@@ -22,6 +23,7 @@ from app.api.deps import (
 )
 from app.core.config import settings
 from app.core.encryption import decrypt
+from app.crud.call_list import CallFilters
 from app.models import (
     Agent,
     CategoryPublic,
@@ -32,8 +34,9 @@ from app.models import (
     ReadinessStepState,
     WorkspaceCreate,
 )
-from app.models.enums import CheckKind
+from app.models.enums import CallCheckStatus, CheckKind
 from app.models.mcp import (
+    GUIDE_CALLS,
     GUIDE_CATEGORIES,
     GUIDE_CONNECT,
     GUIDE_GETTING_STARTED,
@@ -44,6 +47,7 @@ from app.models.mcp import (
     McpAddedAgents,
     McpAgent,
     McpAnswer,
+    McpCalls,
     McpConnection,
     McpConnectVoicePlatform,
     McpErrorDetail,
@@ -52,6 +56,7 @@ from app.models.mcp import (
     McpScanProgress,
     McpWorkspace,
 )
+from app.services.call_list import workspace_calls
 from app.services.checks.registry import get_check
 from app.services.connections import (
     KEY_LOCATION,
@@ -197,6 +202,68 @@ def list_categories(
         ],
         next_steps=[],
         guide=GUIDE_CATEGORIES,
+    )
+
+
+@router.get(
+    "/workspaces/{workspace_id}/calls",
+    response_model=McpAnswer[McpCalls],
+)
+def list_calls(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    query: str | None = Query(default=None, max_length=255),
+    agent_id: uuid.UUID | None = Query(default=None),
+    result: CallCheckStatus | None = Query(default=None),
+    category: str | None = Query(default=None, max_length=64),
+    period: Literal["7d", "30d", "90d"] = "30d",
+    cursor: str | None = Query(default=None, max_length=255),
+    limit: int = Query(default=25, ge=1, le=100),
+) -> McpAnswer[McpCalls]:
+    offset = _decode_cursor(cursor)
+    page = workspace_calls(
+        session=session,
+        company_id=workspace.id,
+        filters=CallFilters(
+            period=period,
+            agent_id=agent_id,
+            result=result,
+            category=category,
+            query=query,
+        ),
+        offset=offset,
+        limit=limit,
+    )
+    next_steps = []
+    if page.has_more:
+        next_steps.append(
+            "Call `list_calls` again with `cursor` set to `next_cursor` for the next "
+            "page."
+        )
+    if query and not page.data and offset == 0:
+        next_steps.append(
+            "No call matches. A number matches the end of the caller's number; "
+            "anything else must be a whole call id (Connexity's or Retell's). Try a "
+            "longer period."
+        )
+    if page.tiles.failed:
+        next_steps.append(
+            "Call `list_issues` to see what the failed calls have in common."
+        )
+    return McpAnswer[McpCalls](
+        data=McpCalls(tiles=page.tiles, calls=page.data),
+        rules=[
+            "Calls come newest first; the tiles count every call matching the "
+            "filters in the period, whatever the result filter.",
+            "Callers are shown as their last four digits only; never ask Connexity or "
+            "repeat a full number.",
+            "A result is failed when a finding fails the call, degraded when one only "
+            "flags it, clean when checks ran and found nothing, unchecked otherwise. "
+            "Say whether the worst finding was found by a rule or a model.",
+        ],
+        next_steps=next_steps,
+        guide=GUIDE_CALLS,
+        next_cursor=_encode_cursor(offset + limit) if page.has_more else None,
     )
 
 

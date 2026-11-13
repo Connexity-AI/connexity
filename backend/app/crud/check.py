@@ -301,7 +301,9 @@ def call_check_statuses(
 ) -> dict[uuid.UUID, CallCheckStatus]:
     """Failed, degraded, clean or unchecked for each call, read from what is stored.
 
-    Retroactive findings count for nothing.
+    Every finding counts, including one found by a check added after the call: "its
+    still an issue" (Dmytro, 2026-11-13). Findings stay marked retroactive, for anything
+    that must leave them out later (a reliability score's history).
     """
     if not call_ids:
         return {}
@@ -309,9 +311,7 @@ def call_check_statuses(
     found = dict(
         session.exec(
             select(Finding.call_id, fails)
-            .where(
-                col(Finding.call_id).in_(call_ids), col(Finding.retroactive).is_(False)
-            )
+            .where(col(Finding.call_id).in_(call_ids))
             .group_by(col(Finding.call_id))
         ).all()
     )

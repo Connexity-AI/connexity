@@ -16,6 +16,7 @@ GUIDES = {
     "connect": "Connect an assistant to Connexity",
     "categories": "Categories",
     "issues": "Issues",
+    "calls": "Calls",
 }
 
 INSTRUCTIONS = (

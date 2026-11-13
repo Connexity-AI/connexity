@@ -1,7 +1,7 @@
 import { cn } from '@workspace/ui/lib/utils';
-import { SEVERITY } from '@workspace/ui/components/severity';
+import { SEVERITY } from './severity';
 
-import type { Severity } from '@workspace/ui/components/severity';
+import type { Severity } from './severity';
 import type { FC, ReactNode } from 'react';
 
 interface Props {

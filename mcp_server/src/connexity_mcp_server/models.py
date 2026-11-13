@@ -97,6 +97,38 @@ class ScanProgress(BaseModel):
     calls_without_versions: int = 0
 
 
+class WorstFinding(BaseModel):
+    title: str
+    key: str | None = None
+    category: str
+    severity: str
+    found_by: str
+
+
+class CallItem(BaseModel):
+    id: str
+    started_at: str
+    agent_id: str
+    agent_name: str
+    caller_last_four: str | None = None
+    duration_seconds: int | None = None
+    result: str
+    worst_finding: WorstFinding | None = None
+
+
+class CallTiles(BaseModel):
+    calls: int
+    failed: int
+    degraded: int
+    clean: int
+    unchecked: int
+
+
+class Calls(BaseModel):
+    tiles: CallTiles
+    calls: list[CallItem] = Field(default_factory=list)
+
+
 class Issue(BaseModel):
     id: str
     agent_id: str
@@ -129,3 +161,4 @@ ListAgentsResult = Answer[list[Agent]]
 ScanCallsResult = Answer[ScanProgress]
 ListCategoriesResult = Answer[list[Category]]
 ListIssuesResult = Answer[list[Issue]]
+ListCallsResult = Answer[Calls]

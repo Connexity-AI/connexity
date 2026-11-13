@@ -168,8 +168,9 @@ def test_a_call_is_failed_degraded_clean_or_unchecked(
     assert _status(client, auth_cookies, degraded) == "degraded"
     assert _status(client, auth_cookies, no_results) == "unchecked"
     assert _status(client, auth_cookies, off) == "unchecked"
-    # A retroactive finding is shown on the call and counts for nothing.
-    assert _status(client, auth_cookies, before_the_check) == "clean"
+    # A finding from a check added after the call still counts: "its still an issue"
+    # (Dmytro, 2026-11-13; it used to count for nothing).
+    assert _status(client, auth_cookies, before_the_check) == "failed"
 
     listed = client.get(f"{API}/agents/{agent_id}/calls", cookies=auth_cookies).json()
     assert {item["id"]: item["check_status"] for item in listed["data"]} == {
@@ -178,7 +179,7 @@ def test_a_call_is_failed_degraded_clean_or_unchecked(
         degraded: "degraded",
         no_results: "unchecked",
         off: "unchecked",
-        before_the_check: "clean",
+        before_the_check: "failed",
     }
 
 

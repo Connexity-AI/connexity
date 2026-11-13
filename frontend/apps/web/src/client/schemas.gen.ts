@@ -2097,6 +2097,22 @@ export const CallEndReasonSchema = {
   title: 'CallEndReason',
 } as const;
 
+export const CallFilterOptionSchema = {
+  properties: {
+    value: {
+      type: 'string',
+      title: 'Value',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+    },
+  },
+  type: 'object',
+  required: ['value', 'label'],
+  title: 'CallFilterOption',
+} as const;
+
 export const CallLabelSchema = {
   type: 'string',
   enum: ['good', 'bad'],
@@ -2118,6 +2134,111 @@ export const CallLabelUpdateSchema = {
   },
   type: 'object',
   title: 'CallLabelUpdate',
+} as const;
+
+export const CallListItemPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    started_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Started At',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    agent_name: {
+      type: 'string',
+      title: 'Agent Name',
+    },
+    caller_last_four: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Caller Last Four',
+      description: "The caller's last four digits; never the number",
+    },
+    duration_seconds: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Duration Seconds',
+    },
+    result: {
+      $ref: '#/components/schemas/CallCheckStatus',
+    },
+    worst_finding: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/WorstFindingPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+  },
+  type: 'object',
+  required: ['id', 'started_at', 'agent_id', 'agent_name', 'result'],
+  title: 'CallListItemPublic',
+} as const;
+
+export const CallListPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/CallListItemPublic',
+      },
+      type: 'array',
+      title: 'Data',
+    },
+    tiles: {
+      $ref: '#/components/schemas/CallTilesPublic',
+    },
+    has_more: {
+      type: 'boolean',
+      title: 'Has More',
+    },
+    period: {
+      type: 'string',
+      title: 'Period',
+    },
+    agents: {
+      items: {
+        $ref: '#/components/schemas/CallFilterOption',
+      },
+      type: 'array',
+      title: 'Agents',
+      description: 'The agents to filter by',
+    },
+    categories: {
+      items: {
+        $ref: '#/components/schemas/CallFilterOption',
+      },
+      type: 'array',
+      title: 'Categories',
+      description: 'The fixed categories, in order',
+    },
+  },
+  type: 'object',
+  required: ['data', 'tiles', 'has_more', 'period', 'agents', 'categories'],
+  title: 'CallListPublic',
 } as const;
 
 export const CallPublicSchema = {
@@ -2290,6 +2411,34 @@ export const CallRefreshResultSchema = {
   type: 'object',
   required: ['created', 'total'],
   title: 'CallRefreshResult',
+} as const;
+
+export const CallTilesPublicSchema = {
+  properties: {
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+    },
+    failed: {
+      type: 'integer',
+      title: 'Failed',
+    },
+    degraded: {
+      type: 'integer',
+      title: 'Degraded',
+    },
+    clean: {
+      type: 'integer',
+      title: 'Clean',
+    },
+    unchecked: {
+      type: 'integer',
+      title: 'Unchecked',
+    },
+  },
+  type: 'object',
+  required: ['calls', 'failed', 'degraded', 'clean', 'unchecked'],
+  title: 'CallTilesPublic',
 } as const;
 
 export const CallTracePublicSchema = {
@@ -5676,6 +5825,51 @@ export const McpAnswer_McpAddedAgents_Schema = {
   title: 'McpAnswer[McpAddedAgents]',
 } as const;
 
+export const McpAnswer_McpCalls_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/McpCalls',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[McpCalls]',
+} as const;
+
 export const McpAnswer_McpConnection_Schema = {
   properties: {
     data: {
@@ -6050,6 +6244,25 @@ export const McpAnswer_list_McpWorkspace__Schema = {
   type: 'object',
   required: ['data', 'guide'],
   title: 'McpAnswer[list[McpWorkspace]]',
+} as const;
+
+export const McpCallsSchema = {
+  properties: {
+    tiles: {
+      $ref: '#/components/schemas/CallTilesPublic',
+      description: 'Counts for the filters and period',
+    },
+    calls: {
+      items: {
+        $ref: '#/components/schemas/CallListItemPublic',
+      },
+      type: 'array',
+      title: 'Calls',
+    },
+  },
+  type: 'object',
+  required: ['tiles', 'calls'],
+  title: 'McpCalls',
 } as const;
 
 export const McpConnectVoicePlatformSchema = {
@@ -11081,4 +11294,43 @@ export const WorkspacePublicSchema = {
   type: 'object',
   required: ['id', 'name', 'is_open'],
   title: 'WorkspacePublic',
+} as const;
+
+export const WorstFindingPublicSchema = {
+  properties: {
+    title: {
+      type: 'string',
+      title: 'Title',
+      description: "The check's name",
+    },
+    key: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Key',
+      description: "What broke, e.g. the tool's name",
+    },
+    category: {
+      type: 'string',
+      title: 'Category',
+    },
+    severity: {
+      type: 'string',
+      title: 'Severity',
+      description: 'critical or warning',
+    },
+    found_by: {
+      type: 'string',
+      title: 'Found By',
+      description: 'rule (deterministic) or model',
+    },
+  },
+  type: 'object',
+  required: ['title', 'category', 'severity', 'found_by'],
+  title: 'WorstFindingPublic',
 } as const;
