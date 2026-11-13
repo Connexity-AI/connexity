@@ -71,6 +71,13 @@ class ConnexityBackendClient:
             timeout=SCAN_TIMEOUT_SECONDS,
         )
 
+    async def get_call(self, *, workspace_id: str, call_id: str) -> dict[str, Any]:
+        return await self._request_json(
+            "GET",
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/calls/"
+            f"{quote(call_id, safe='')}",
+        )
+
     async def list_calls(
         self,
         *,

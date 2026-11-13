@@ -12,6 +12,10 @@ export class UrlGenerator {
     return '/calls/' as Route;
   }
 
+  static call(id: string) {
+    return `/calls/${id}/` as Route;
+  }
+
   static account() {
     return '/account/' as Route;
   }

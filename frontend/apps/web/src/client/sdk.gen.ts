@@ -58,6 +58,12 @@ import type {
   CallsGetCallDetailData,
   CallsGetCallDetailErrors,
   CallsGetCallDetailResponses,
+  CallsGetCallRecordingData,
+  CallsGetCallRecordingErrors,
+  CallsGetCallRecordingResponses,
+  CallsGetCallScreenData,
+  CallsGetCallScreenErrors,
+  CallsGetCallScreenResponses,
   CallsGetCallTraceData,
   CallsGetCallTraceErrors,
   CallsGetCallTraceResponses,
@@ -237,6 +243,9 @@ import type {
   McpCreateWorkspaceData,
   McpCreateWorkspaceErrors,
   McpCreateWorkspaceResponses,
+  McpGetCallData,
+  McpGetCallErrors,
+  McpGetCallResponses,
   McpGetReadinessData,
   McpGetReadinessErrors,
   McpGetReadinessResponses,
@@ -1159,6 +1168,19 @@ export class McpService {
     return (options.client ?? client).get<McpListCallsResponses, McpListCallsErrors, ThrowOnError>({
       security: [{ scheme: 'bearer', type: 'http' }],
       url: '/api/v1/mcp/workspaces/{workspace_id}/calls',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Call
+   */
+  public static getCall<ThrowOnError extends boolean = false>(
+    options: Options<McpGetCallData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<McpGetCallResponses, McpGetCallErrors, ThrowOnError>({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/calls/{call_id}',
       ...options,
     });
   }
@@ -3093,6 +3115,61 @@ export class CallsService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/calls',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Call Screen
+   *
+   * The single call as its screen shows it: header, timeline and findings.
+   *
+   * The caller shows as their last four digits; secret-looking tool values are masked.
+   */
+  public static getCallScreen<ThrowOnError extends boolean = false>(
+    options: Options<CallsGetCallScreenData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      CallsGetCallScreenResponses,
+      CallsGetCallScreenErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/calls/{call_id}/screen',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Call Recording
+   *
+   * Where the call's recording plays from, asked of the voice platform each time:
+   * its addresses can be signed and expire. Falls back to the stored address.
+   */
+  public static getCallRecording<ThrowOnError extends boolean = false>(
+    options: Options<CallsGetCallRecordingData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      CallsGetCallRecordingResponses,
+      CallsGetCallRecordingErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/calls/{call_id}/recording',
       ...options,
     });
   }

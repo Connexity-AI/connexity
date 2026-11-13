@@ -1,6 +1,7 @@
 'use client';
 
 import { Calendar, Check, ChevronDown, OctagonAlert, Search, TriangleAlert } from 'lucide-react';
+import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 
@@ -13,6 +14,9 @@ import {
   DropdownMenuTrigger,
 } from '@workspace/ui/components/ui/dropdown-menu';
 import { cn } from '@workspace/ui/lib/utils';
+
+import { UrlGenerator } from '@/common/url-generator/url-generator';
+import { clock, timeLabel } from '@/components/calls/format';
 
 import type { CallListItemPublic, CallListPublic } from '@/client/types.gen';
 import type { FC, ReactNode } from 'react';
@@ -28,24 +32,9 @@ const RESULT_OPTIONS = [
   { value: 'clean', label: 'Clean' },
   { value: 'unchecked', label: 'Unchecked' },
 ];
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const COLUMNS = 'grid-cols-[128px_200px_88px_72px_104px_minmax(0,1fr)]';
 
-/** "Today 09:42", "Yesterday 18:05", "6 Nov 11:20", in the viewer's time zone. */
-const timeLabel = (iso: string) => {
-  // Stored in UTC without a zone.
-  const date = new Date(/[zZ]|[+-]\d\d:\d\d$/.test(iso) ? iso : `${iso}Z`);
-  const hm = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-  const today = new Date();
-  const startOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const days = Math.round((startOf(today) - startOf(date)) / 864e5);
-  const day =
-    days === 0 ? 'Today' : days === 1 ? 'Yesterday' : `${date.getDate()} ${MONTHS[date.getMonth()]}`;
-  return `${day} ${hm}`;
-};
-
-const duration = (seconds: number | null | undefined) =>
-  seconds == null ? '' : `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+const duration = (seconds: number | null | undefined) => (seconds == null ? '' : clock(seconds));
 
 const ResultLabel: FC<{ result: CallListItemPublic['result'] }> = ({ result }) => {
   if (result === 'failed')
@@ -125,7 +114,7 @@ interface Props {
   pageSize: number;
 }
 
-/** Calls (designs/screens/Connexity Calls.dc.html). Rows open with the single call (10.08). */
+/** Calls (designs/screens/Connexity Calls.dc.html). A row opens the single call. */
 export const CallsView: FC<Props> = ({ calls, shown, pageSize }) => {
   const router = useRouter();
   const pathname = usePathname();
@@ -245,10 +234,11 @@ export const CallsView: FC<Props> = ({ calls, shown, pageSize }) => {
           <span>Worst finding</span>
         </div>
         {calls.data.map((call) => (
-          <div
+          <Link
             key={call.id}
+            href={UrlGenerator.call(call.id)}
             className={cn(
-              'grid min-h-11 items-center gap-4 border-t border-hairline px-6 text-body text-ink',
+              'grid min-h-11 items-center gap-4 border-t border-hairline px-6 text-body text-ink no-underline hover:bg-wash',
               COLUMNS
             )}
           >
@@ -262,7 +252,7 @@ export const CallsView: FC<Props> = ({ calls, shown, pageSize }) => {
               <ResultLabel result={call.result} />
             </span>
             <span className="truncate">{worstLine(call)}</span>
-          </div>
+          </Link>
         ))}
         {calls.data.length === 0 && (
           <div className="flex items-center gap-3 border-t border-hairline px-6 py-5 text-ink-secondary">

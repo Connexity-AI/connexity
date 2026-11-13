@@ -151,6 +151,19 @@ def get_findings(*, session: Session, call: Call) -> list[Finding]:
     )
 
 
+def issues_of_findings(*, session: Session, call: Call) -> list[Issue]:
+    """The issues the call's findings belong to."""
+    return list(
+        session.exec(
+            select(Issue).where(
+                col(Issue.id).in_(
+                    select(Finding.issue_id).where(Finding.call_id == call.id)
+                )
+            )
+        ).all()
+    )
+
+
 def _identity(finding: Finding) -> tuple[str, tuple[str, ...]]:
     return finding.check_type, tuple(finding.event_keys)
 

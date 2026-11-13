@@ -29,6 +29,7 @@ from connexity_mcp_server.models import (
     AgentToAdd,
     ConnectVoicePlatformResult,
     CreateWorkspaceResult,
+    GetCallResult,
     GetReadinessResult,
     ListAgentsResult,
     ListCallsResult,
@@ -54,6 +55,9 @@ from connexity_mcp_server.tools import (
 )
 from connexity_mcp_server.tools import (
     list_categories as _list_categories,
+)
+from connexity_mcp_server.tools import (
+    get_call as _get_call,
 )
 from connexity_mcp_server.tools import (
     list_calls as _list_calls,
@@ -170,6 +174,16 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         has got; keep calling it until it says finished. Safe to repeat: it carries on
         where it stopped and skips calls already stored."""
         return await _scan_calls(client=backend_client, workspace_id=workspace_id)
+
+    @mcp_server.tool(annotations=READ_ONLY)
+    async def get_call(workspace_id: str, call_id: str) -> GetCallResult:
+        """One call in full: its timeline in order (agent and caller turns, and tool
+        calls with arguments and result, secrets masked) and what the checks found,
+        worst first, each pointing at its entry and saying whether a rule or a model
+        found it. Find the call_id with list_calls."""
+        return await _get_call(
+            client=backend_client, workspace_id=workspace_id, call_id=call_id
+        )
 
     @mcp_server.tool(annotations=READ_ONLY)
     async def list_calls(

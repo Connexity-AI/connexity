@@ -4,7 +4,7 @@ Prompts written for Claude Design, where Dmytro designs the web app's screens, a
 table of who does what. They are reference for the sessions that build each feature;
 the screens themselves live in Claude Design.
 
-- **Numbered prompts (`01-` to `12-`)** were pasted into Claude Design in order. Each
+- **Numbered prompts (`01-` to `13-`)** were pasted into Claude Design in order. Each
   later prompt changes earlier ones, so read a screen's prompts in order: a later prompt
   wins. `12-adjustments.md` holds many small numbered changes across the app; a later
   item wins over an earlier one.

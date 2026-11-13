@@ -2395,6 +2395,24 @@ export const CallPublicSchema = {
   title: 'CallPublic',
 } as const;
 
+export const CallRecordingSchema = {
+  properties: {
+    url: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Url',
+    },
+  },
+  type: 'object',
+  title: 'CallRecording',
+} as const;
+
 export const CallRefreshResultSchema = {
   properties: {
     created: {
@@ -2411,6 +2429,265 @@ export const CallRefreshResultSchema = {
   type: 'object',
   required: ['created', 'total'],
   title: 'CallRefreshResult',
+} as const;
+
+export const CallScreenEntrySchema = {
+  properties: {
+    kind: {
+      type: 'string',
+      enum: ['turn', 'tool'],
+      title: 'Kind',
+    },
+    at_seconds: {
+      type: 'number',
+      title: 'At Seconds',
+    },
+    end_seconds: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'End Seconds',
+    },
+    speaker: {
+      anyOf: [
+        {
+          type: 'string',
+          enum: ['agent', 'caller', 'other'],
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Speaker',
+    },
+    text: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Text',
+    },
+    tool: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Tool',
+    },
+    status: {
+      anyOf: [
+        {
+          type: 'string',
+          enum: ['ok', 'failed', 'timed out', 'no result'],
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Status',
+    },
+    duration_ms: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Duration Ms',
+    },
+    arguments: {
+      items: {
+        $ref: '#/components/schemas/KeyValue',
+      },
+      type: 'array',
+      title: 'Arguments',
+    },
+    result: {
+      items: {
+        $ref: '#/components/schemas/KeyValue',
+      },
+      type: 'array',
+      title: 'Result',
+    },
+    workflow: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Workflow',
+      description: "The n8n workflow it ran: 'quote-lookup v7 · 9 steps'",
+    },
+    finding_ids: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      title: 'Finding Ids',
+    },
+  },
+  type: 'object',
+  required: ['kind', 'at_seconds'],
+  title: 'CallScreenEntry',
+} as const;
+
+export const CallScreenFindingSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    at_seconds: {
+      type: 'number',
+      title: 'At Seconds',
+    },
+    text: {
+      type: 'string',
+      title: 'Text',
+      description: "The check's title and what broke",
+    },
+    category: {
+      type: 'string',
+      title: 'Category',
+    },
+    severity: {
+      type: 'string',
+      enum: ['critical', 'warning'],
+      title: 'Severity',
+    },
+    found_by: {
+      type: 'string',
+      enum: ['rule', 'model'],
+      title: 'Found By',
+    },
+    entry_index: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Entry Index',
+      description: 'The timeline entry it sits on',
+    },
+  },
+  type: 'object',
+  required: ['id', 'at_seconds', 'text', 'category', 'severity', 'found_by'],
+  title: 'CallScreenFinding',
+} as const;
+
+export const CallScreenPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    agent_name: {
+      type: 'string',
+      title: 'Agent Name',
+    },
+    started_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Started At',
+    },
+    duration_seconds: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Duration Seconds',
+    },
+    caller_last_four: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Caller Last Four',
+      description: "The caller's last four digits; never the number",
+    },
+    result: {
+      $ref: '#/components/schemas/CallCheckStatus',
+    },
+    version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version',
+    },
+    has_recording: {
+      type: 'boolean',
+      title: 'Has Recording',
+    },
+    entries: {
+      items: {
+        $ref: '#/components/schemas/CallScreenEntry',
+      },
+      type: 'array',
+      title: 'Entries',
+    },
+    findings: {
+      items: {
+        $ref: '#/components/schemas/CallScreenFinding',
+      },
+      type: 'array',
+      title: 'Findings',
+      description: 'Worst first: critical, then by time',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'agent_id',
+    'agent_name',
+    'started_at',
+    'result',
+    'has_recording',
+    'entries',
+    'findings',
+  ],
+  title: 'CallScreenPublic',
 } as const;
 
 export const CallTilesPublicSchema = {
@@ -5405,6 +5682,22 @@ export const JudgeVerdictSchema = {
   title: 'JudgeVerdict',
 } as const;
 
+export const KeyValueSchema = {
+  properties: {
+    key: {
+      type: 'string',
+      title: 'Key',
+    },
+    value: {
+      type: 'string',
+      title: 'Value',
+    },
+  },
+  type: 'object',
+  required: ['key', 'value'],
+  title: 'KeyValue',
+} as const;
+
 export const LLMModelProviderPublicSchema = {
   properties: {
     provider: {
@@ -5778,6 +6071,51 @@ export const McpAgentToAddSchema = {
   type: 'object',
   required: ['platform_agent_id'],
   title: 'McpAgentToAdd',
+} as const;
+
+export const McpAnswer_CallScreenPublic_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/CallScreenPublic',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[CallScreenPublic]',
 } as const;
 
 export const McpAnswer_McpAddedAgents_Schema = {

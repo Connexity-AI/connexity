@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from app.api.routes import (
     agents,
+    call_screen,
     calls,
     checks,
     company,
@@ -56,6 +57,7 @@ api_router.include_router(config.router)
 api_router.include_router(integrations.router)
 api_router.include_router(environments.router)
 api_router.include_router(workspace_calls.router)
+api_router.include_router(call_screen.router)
 api_router.include_router(calls.router)
 api_router.include_router(ingest.router)
 api_router.include_router(ingest.tokens_router)

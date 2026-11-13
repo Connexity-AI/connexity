@@ -1386,6 +1386,16 @@ export type CallPublic = {
 };
 
 /**
+ * CallRecording
+ */
+export type CallRecording = {
+  /**
+   * Url
+   */
+  url?: string | null;
+};
+
+/**
  * CallRefreshResult
  */
 export type CallRefreshResult = {
@@ -1401,6 +1411,151 @@ export type CallRefreshResult = {
    * Total call rows in DB for this agent after refresh
    */
   total: number;
+};
+
+/**
+ * CallScreenEntry
+ */
+export type CallScreenEntry = {
+  /**
+   * Kind
+   */
+  kind: 'turn' | 'tool';
+  /**
+   * At Seconds
+   */
+  at_seconds: number;
+  /**
+   * End Seconds
+   */
+  end_seconds?: number | null;
+  /**
+   * Speaker
+   */
+  speaker?: 'agent' | 'caller' | 'other' | null;
+  /**
+   * Text
+   */
+  text?: string | null;
+  /**
+   * Tool
+   */
+  tool?: string | null;
+  /**
+   * Status
+   */
+  status?: 'ok' | 'failed' | 'timed out' | 'no result' | null;
+  /**
+   * Duration Ms
+   */
+  duration_ms?: number | null;
+  /**
+   * Arguments
+   */
+  arguments?: Array<KeyValue>;
+  /**
+   * Result
+   */
+  result?: Array<KeyValue>;
+  /**
+   * Workflow
+   *
+   * The n8n workflow it ran: 'quote-lookup v7 · 9 steps'
+   */
+  workflow?: string | null;
+  /**
+   * Finding Ids
+   */
+  finding_ids?: Array<string>;
+};
+
+/**
+ * CallScreenFinding
+ */
+export type CallScreenFinding = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * At Seconds
+   */
+  at_seconds: number;
+  /**
+   * Text
+   *
+   * The check's title and what broke
+   */
+  text: string;
+  /**
+   * Category
+   */
+  category: string;
+  /**
+   * Severity
+   */
+  severity: 'critical' | 'warning';
+  /**
+   * Found By
+   */
+  found_by: 'rule' | 'model';
+  /**
+   * Entry Index
+   *
+   * The timeline entry it sits on
+   */
+  entry_index?: number | null;
+};
+
+/**
+ * CallScreenPublic
+ */
+export type CallScreenPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Name
+   */
+  agent_name: string;
+  /**
+   * Started At
+   */
+  started_at: string;
+  /**
+   * Duration Seconds
+   */
+  duration_seconds?: number | null;
+  /**
+   * Caller Last Four
+   *
+   * The caller's last four digits; never the number
+   */
+  caller_last_four?: string | null;
+  result: CallCheckStatus;
+  /**
+   * Version
+   */
+  version?: string | null;
+  /**
+   * Has Recording
+   */
+  has_recording: boolean;
+  /**
+   * Entries
+   */
+  entries: Array<CallScreenEntry>;
+  /**
+   * Findings
+   *
+   * Worst first: critical, then by time
+   */
+  findings: Array<CallScreenFinding>;
 };
 
 /**
@@ -3419,6 +3574,20 @@ export type JudgeVerdict = {
 };
 
 /**
+ * KeyValue
+ */
+export type KeyValue = {
+  /**
+   * Key
+   */
+  key: string;
+  /**
+   * Value
+   */
+  value: string;
+};
+
+/**
  * LLMModelProviderPublic
  */
 export type LlmModelProviderPublic = {
@@ -3693,6 +3862,40 @@ export type McpAgentToAdd = {
    * Defaults to the agent's name on the platform
    */
   name?: string | null;
+};
+
+/**
+ * McpAnswer[CallScreenPublic]
+ */
+export type McpAnswerCallScreenPublic = {
+  /**
+   * The facts: the result of the call
+   */
+  data: CallScreenPublic;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
 };
 
 /**
@@ -8725,6 +8928,64 @@ export type McpListCallsResponses = {
 
 export type McpListCallsResponse = McpListCallsResponses[keyof McpListCallsResponses];
 
+export type McpGetCallData = {
+  body?: never;
+  path: {
+    /**
+     * Call Id
+     */
+    call_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/calls/{call_id}';
+};
+
+export type McpGetCallErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpGetCallError = McpGetCallErrors[keyof McpGetCallErrors];
+
+export type McpGetCallResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerCallScreenPublic;
+};
+
+export type McpGetCallResponse = McpGetCallResponses[keyof McpGetCallResponses];
+
 export type McpListIssuesData = {
   body?: never;
   path: {
@@ -13134,6 +13395,117 @@ export type CallsListCallsResponses = {
 };
 
 export type CallsListCallsResponse = CallsListCallsResponses[keyof CallsListCallsResponses];
+
+export type CallsGetCallScreenData = {
+  body?: never;
+  path: {
+    /**
+     * Call Id
+     */
+    call_id: string;
+  };
+  query?: never;
+  url: '/api/v1/calls/{call_id}/screen';
+};
+
+export type CallsGetCallScreenErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CallsGetCallScreenError = CallsGetCallScreenErrors[keyof CallsGetCallScreenErrors];
+
+export type CallsGetCallScreenResponses = {
+  /**
+   * Successful Response
+   */
+  200: CallScreenPublic;
+};
+
+export type CallsGetCallScreenResponse =
+  CallsGetCallScreenResponses[keyof CallsGetCallScreenResponses];
+
+export type CallsGetCallRecordingData = {
+  body?: never;
+  path: {
+    /**
+     * Call Id
+     */
+    call_id: string;
+  };
+  query?: never;
+  url: '/api/v1/calls/{call_id}/recording';
+};
+
+export type CallsGetCallRecordingErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CallsGetCallRecordingError =
+  CallsGetCallRecordingErrors[keyof CallsGetCallRecordingErrors];
+
+export type CallsGetCallRecordingResponses = {
+  /**
+   * Successful Response
+   */
+  200: CallRecording;
+};
+
+export type CallsGetCallRecordingResponse =
+  CallsGetCallRecordingResponses[keyof CallsGetCallRecordingResponses];
 
 export type CallsListAgentCallsData = {
   body?: never;

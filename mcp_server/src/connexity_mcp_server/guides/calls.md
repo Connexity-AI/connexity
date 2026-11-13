@@ -17,3 +17,12 @@ with a `workspace_id`.
 
 Results: **failed** when a finding fails the call, **degraded** when one only flags it,
 **clean** when checks ran and found nothing, **unchecked** when none could run.
+
+## One call
+
+Call `get_call` with the call's `id` from `list_calls`. It answers the call's timeline in
+order: each turn (agent or caller) with its text, and each tool call with its name,
+status, duration, arguments and result (secret-looking values masked), and the n8n
+workflow it ran. Its findings come worst first, each pointing at the entry it sits on
+(`entry_index`) and saying whether a rule or a model found it. The caller shows as their
+last four digits only; do not repeat their personal details unless the person asks.
