@@ -4,7 +4,9 @@
   (see `connected_assistants`).
 - Voice platform connected: the workspace has a voice platform integration.
 - Agents and calls synced: in progress once agents linked to a voice platform are added;
-  "done" and the first scan come with "First scan" (roadmap feature 10).
+  done once every added Retell agent's first scan has finished.
+- First scan done: done the first time step 3 is done, and stays done when agents are
+  added later (`Company.first_scan_done_at`).
 """
 
 import uuid
@@ -15,7 +17,8 @@ from sqlmodel import Session, col, func, select
 from app.core.config import settings
 from app.models.agent import Agent
 from app.models.call import Call
-from app.models.enums import IntegrationProvider
+from app.models.company import Company
+from app.models.enums import IntegrationProvider, Platform
 from app.models.integration import Integration
 from app.models.oauth import OAuthAuthorizationCode, OAuthClient, OAuthRefreshToken
 from app.models.readiness import (
@@ -99,19 +102,6 @@ def connected_voice_platforms(*, session: Session, company_id: uuid.UUID) -> lis
     return sorted(VOICE_PLATFORMS[IntegrationProvider(p)] for p in providers)
 
 
-def linked_agent_count(*, session: Session, company_id: uuid.UUID) -> int:
-    """Agents in the workspace linked to a voice platform agent (added to sync)."""
-    return session.exec(
-        select(func.count())
-        .select_from(Agent)
-        .where(
-            Agent.company_id == company_id,
-            col(Agent.integration_id).is_not(None),
-            col(Agent.platform_agent_id).is_not(None),
-        )
-    ).one()
-
-
 def linked_agents(*, session: Session, company_id: uuid.UUID) -> list[Agent]:
     """The workspace's agents linked to a voice platform agent (added to sync)."""
     return list(
@@ -145,6 +135,79 @@ def synced_call_count(*, session: Session, company_id: uuid.UUID) -> int:
     ).one()
 
 
+def _plural(n: int, word: str) -> str:
+    return f"{n:,} {word}{'' if n == 1 else 's'}"
+
+
+def _sync_step(
+    *, session: Session, company_id: uuid.UUID, agents: list[Agent]
+) -> tuple[ReadinessStepState, str | None]:
+    """Step 3's state and detail."""
+    if not agents:
+        return ReadinessStepState.NOT_STARTED, None
+    calls = synced_call_count(session=session, company_id=company_id)
+    scanned = [a for a in agents if a.platform == Platform.RETELL]
+    finished = [a for a in scanned if a.scan_done_at is not None]
+    if scanned and len(finished) == len(scanned):
+        return (
+            ReadinessStepState.DONE,
+            f"{_plural(len(agents), 'agent')} · {_plural(calls, 'call')}",
+        )
+    started = [a for a in scanned if a.scan_total is not None]
+    if not started:
+        return (
+            ReadinessStepState.IN_PROGRESS,
+            f"{_plural(len(agents), 'agent')} · {_plural(calls, 'call')}",
+        )
+    total = sum(a.scan_total or 0 for a in started)
+    stored = sum(stored_in_window(session=session, agent=a) for a in started)
+    return (
+        ReadinessStepState.IN_PROGRESS,
+        f"{min(stored, total):,} of {_plural(total, 'call')} · "
+        f"{len(finished)} of {_plural(len(scanned), 'agent')}",
+    )
+
+
+def stored_in_window(*, session: Session, agent: Agent) -> int:
+    """Stored calls of the agent inside its first scan's window."""
+    if agent.scan_from is None or agent.scan_until is None:
+        return 0
+    return session.exec(
+        select(func.count())
+        .select_from(Call)
+        .where(
+            Call.agent_id == agent.id,
+            col(Call.deleted_at).is_(None),
+            col(Call.started_at) > _naive(agent.scan_from),
+            col(Call.started_at) <= _naive(agent.scan_until),
+        )
+    ).one()
+
+
+def _naive(moment: datetime) -> datetime:
+    # Call times are stored naive, in UTC.
+    return _aware(moment).astimezone(UTC).replace(tzinfo=None)
+
+
+def calls_without_versions(*, session: Session, company_id: uuid.UUID) -> int:
+    """Stored calls of the workspace's added agents whose versions are not resolved."""
+    linked = select(Agent.id).where(
+        Agent.company_id == company_id,
+        col(Agent.integration_id).is_not(None),
+        col(Agent.platform_agent_id).is_not(None),
+    )
+    return session.exec(
+        select(func.count())
+        .select_from(Call)
+        .where(
+            Call.company_id == company_id,
+            col(Call.agent_id).in_(linked),
+            col(Call.deleted_at).is_(None),
+            col(Call.state_fingerprint).is_(None),
+        )
+    ).one()
+
+
 def get_readiness(
     *, session: Session, company_id: uuid.UUID, mcp_url: str | None
 ) -> ReadinessPublic:
@@ -154,10 +217,20 @@ def get_readiness(
         access_token_minutes=settings.OAUTH_ACCESS_TOKEN_EXPIRE_MINUTES,
     )
     platforms = connected_voice_platforms(session=session, company_id=company_id)
-    agents_added = linked_agent_count(session=session, company_id=company_id)
-    calls = (
-        synced_call_count(session=session, company_id=company_id) if agents_added else 0
+    agents = linked_agents(session=session, company_id=company_id)
+    sync_state, sync_detail = _sync_step(
+        session=session, company_id=company_id, agents=agents
     )
+    company = session.get(Company, company_id)
+    # Set by the scan step that finished every agent (`app/services/first_scan.py`).
+    first_scan_done = company is not None and company.first_scan_done_at is not None
+    scan_detail: str | None = None
+    if first_scan_done:
+        calls = synced_call_count(session=session, company_id=company_id)
+        scan_detail = f"{_plural(calls, 'call')} across {_plural(len(agents), 'agent')}"
+        missing = calls_without_versions(session=session, company_id=company_id)
+        if missing:
+            scan_detail += f" · {_plural(missing, 'call')} without versions"
 
     def state(done: bool) -> ReadinessStepState:
         return ReadinessStepState.DONE if done else ReadinessStepState.NOT_STARTED
@@ -178,22 +251,14 @@ def get_readiness(
         ReadinessStep(
             key=ReadinessStepKey.SYNC,
             name="Agents and calls synced",
-            state=(
-                ReadinessStepState.IN_PROGRESS
-                if agents_added
-                else ReadinessStepState.NOT_STARTED
-            ),
-            detail=(
-                f"{agents_added} agent{'s' if agents_added != 1 else ''} · "
-                f"{calls:,} call{'s' if calls != 1 else ''}"
-                if agents_added
-                else None
-            ),
+            state=sync_state,
+            detail=sync_detail,
         ),
         ReadinessStep(
             key=ReadinessStepKey.FIRST_SCAN,
             name="First scan done",
-            state=ReadinessStepState.NOT_STARTED,
+            state=state(first_scan_done),
+            detail=scan_detail,
         ),
     ]
     done = sum(step.state == ReadinessStepState.DONE for step in steps)
@@ -207,6 +272,6 @@ def get_readiness(
         done=done,
         total=len(steps),
         percent=round(done / len(steps) * 100),
-        first_scan_done=False,
+        first_scan_done=first_scan_done,
         connect_command=command,
     )

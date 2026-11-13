@@ -3514,6 +3514,36 @@ export type McpAgent = {
 };
 
 /**
+ * McpAgentScan
+ */
+export type McpAgentScan = {
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Stored
+   *
+   * Calls stored from the agent's scan window
+   */
+  stored: number;
+  /**
+   * Total
+   *
+   * Finished calls Retell listed in the window; empty until listed
+   */
+  total: number | null;
+  /**
+   * Finished
+   */
+  finished: boolean;
+};
+
+/**
  * McpAgentToAdd
  */
 export type McpAgentToAdd = {
@@ -3571,6 +3601,40 @@ export type McpAnswerMcpConnection = {
    * The facts: the result of the call
    */
   data: McpConnection;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
+ * McpAnswer[McpScanProgress]
+ */
+export type McpAnswerMcpScanProgress = {
+  /**
+   * The facts: the result of the call
+   */
+  data: McpScanProgress;
   /**
    * Rules
    *
@@ -3784,6 +3848,32 @@ export type McpRefusedAgent = {
    * Reason
    */
   reason: string;
+};
+
+/**
+ * McpScanProgress
+ */
+export type McpScanProgress = {
+  /**
+   * Agents
+   */
+  agents: Array<McpAgentScan>;
+  /**
+   * Stored This Step
+   */
+  stored_this_step: number;
+  /**
+   * Finished
+   *
+   * Every added agent's first scan has finished
+   */
+  finished: boolean;
+  /**
+   * Calls Without Versions
+   *
+   * Stored calls whose agent version could not be resolved
+   */
+  calls_without_versions: number;
 };
 
 /**
@@ -8133,6 +8223,60 @@ export type McpConnectVoicePlatformResponses = {
 
 export type McpConnectVoicePlatformResponse =
   McpConnectVoicePlatformResponses[keyof McpConnectVoicePlatformResponses];
+
+export type McpScanCallsData = {
+  body?: never;
+  path: {
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/scan';
+};
+
+export type McpScanCallsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpScanCallsError = McpScanCallsErrors[keyof McpScanCallsErrors];
+
+export type McpScanCallsResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerMcpScanProgress;
+};
+
+export type McpScanCallsResponse = McpScanCallsResponses[keyof McpScanCallsResponses];
 
 export type AgentsListAgentsData = {
   body?: never;

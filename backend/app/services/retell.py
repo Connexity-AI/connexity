@@ -668,6 +668,23 @@ async def list_retell_calls(
         ):
             finished.append(item)
 
+    calls = await read_retell_calls(
+        api_key, [str(item["call_id"]) for item in finished]
+    )
+    return [call for call in calls if call is not None]
+
+
+async def read_retell_calls(
+    api_key: str, call_ids: list[str]
+) -> list[RetellCall | None]:
+    """Read calls in full, a few at a time, in the order given.
+
+    ``None`` stands for a call Retell no longer has. If reading one fails, the result
+    stops just before it, so the caller asks for it again.
+
+    Raises:
+        HTTPException: 502 when the first call could not be read.
+    """
     semaphore = asyncio.Semaphore(_CALL_READ_CONCURRENCY)
 
     async def read(call_id: str) -> RetellCall | None:
@@ -675,9 +692,9 @@ async def list_retell_calls(
             return await get_retell_call(api_key, call_id)
 
     results = await asyncio.gather(
-        *(read(str(item["call_id"])) for item in finished), return_exceptions=True
+        *(read(call_id) for call_id in call_ids), return_exceptions=True
     )
-    calls: list[RetellCall] = []
+    calls: list[RetellCall | None] = []
     for result in results:
         if isinstance(result, BaseException):
             # Stop before the call that could not be read, so it is asked for again.
@@ -689,9 +706,92 @@ async def list_retell_calls(
                     detail="Retell API returned an error reading a call",
                 ) from result
             break
-        if result is not None:
-            calls.append(result)
+        calls.append(result)
     return calls
+
+
+class RetellCallSummary(BaseModel):
+    """One call as Retell's call list shows it: no transcript."""
+
+    call_id: str
+    start_timestamp: int
+    finished: bool
+
+
+async def list_retell_call_summaries(
+    api_key: str,
+    *,
+    agent_id: str,
+    after: datetime,
+    until: datetime,
+    limit: int,
+) -> list[RetellCallSummary]:
+    """Calls of one Retell agent that started after ``after`` and by ``until``.
+
+    Oldest first, at most ``limit``. Listing carries no transcripts, so it is cheap.
+
+    Raises:
+        HTTPException: 502 when Retell cannot be reached or answers unexpectedly.
+    """
+    body = {
+        "filter_criteria": {
+            "agent": [{"agent_id": agent_id}],
+            # Retell timestamps are epoch milliseconds.
+            "start_timestamp": {
+                "type": "number",
+                "op": "gt",
+                "value": int(after.timestamp() * 1000),
+            },
+        },
+        "limit": limit,
+        "sort_order": "ascending",
+    }
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                _LIST_CALLS_URL,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=body,
+                timeout=15.0,
+            )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502, detail="Failed to reach Retell API"
+        ) from exc
+    if response.status_code != 200:
+        raise HTTPException(status_code=502, detail="Retell API returned an error")
+    payload = _json_or_none(response)
+    items = payload.get("items") if isinstance(payload, dict) else None
+    if not isinstance(items, list):
+        raise HTTPException(
+            status_code=502, detail="Retell API returned an unexpected answer"
+        )
+
+    last = int(until.timestamp() * 1000)
+    summaries: list[RetellCallSummary] = []
+    for item in items:
+        if not isinstance(item, dict) or not item.get("call_id"):
+            continue
+        started = item.get("start_timestamp")
+        if not isinstance(started, int):
+            continue
+        if started > last:
+            break
+        summaries.append(
+            RetellCallSummary(
+                call_id=str(item["call_id"]),
+                start_timestamp=started,
+                finished=_is_finished_retell_call(
+                    status=item.get("call_status"),
+                    start_timestamp=started,
+                    end_timestamp=item.get("end_timestamp"),
+                ),
+            )
+        )
+    return summaries
 
 
 _RETELL_ALLOWED_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE"}
@@ -1451,7 +1551,8 @@ async def create_retell_web_call(
 
 
 async def get_retell_call(api_key: str, call_id: str) -> RetellCall | None:
-    """Fetch a single Retell call by id (used for polling). Returns ``None`` on 404."""
+    """Fetch a single Retell call by id. Returns ``None`` for a call Retell will never
+    return (404, or the id refused with 400 or 422)."""
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(
@@ -1464,7 +1565,8 @@ async def get_retell_call(api_key: str, call_id: str) -> RetellCall | None:
             status_code=502, detail=f"Failed to reach Retell API: {exc}"
         ) from exc
 
-    if response.status_code == 404:
+    # Retell will never return this call: it no longer has it, or refuses the id.
+    if response.status_code in (400, 404, 422):
         return None
     if response.status_code >= 400:
         raise HTTPException(

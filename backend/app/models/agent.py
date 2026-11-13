@@ -176,6 +176,32 @@ class Agent(AgentBase, table=True):
         ),
     )
 
+    # The first scan: the agent's past calls, pulled once in steps (see
+    # `app/services/first_scan.py`). Empty until the first step lists the window.
+    scan_from: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+        description="Start of the first scan's window",
+    )
+    scan_until: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+        description="End of the first scan's window; later calls come by webhook",
+    )
+    scan_total: int | None = Field(
+        default=None, description="Finished calls the platform listed in the window"
+    )
+    scan_cursor: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+        description="Start time of the last call the first scan has dealt with",
+    )
+    scan_done_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+        description="When the first scan of this agent finished",
+    )
+
     # Relationships
     runs: list["Run"] = Relationship(
         back_populates="agent",

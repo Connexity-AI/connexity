@@ -23,6 +23,7 @@ async def test_server_lists_only_the_workspace_tools() -> None:
         "get_readiness",
         "list_agents",
         "list_workspaces",
+        "scan_calls",
     ]
     list_agents = next(tool for tool in tools if tool.name == "list_agents")
     assert list_agents.inputSchema["required"] == ["workspace_id"]
@@ -65,3 +66,7 @@ async def test_tools_say_whether_they_change_anything() -> None:
     assert tools["connect_voice_platform"] is not None
     assert tools["connect_voice_platform"].readOnlyHint is False
     assert tools["connect_voice_platform"].destructiveHint is False
+    assert tools["scan_calls"] is not None
+    assert tools["scan_calls"].readOnlyHint is False
+    assert tools["scan_calls"].destructiveHint is False
+    assert tools["scan_calls"].idempotentHint is True

@@ -32,6 +32,7 @@ from connexity_mcp_server.models import (
     GetReadinessResult,
     ListAgentsResult,
     ListWorkspacesResult,
+    ScanCallsResult,
 )
 from connexity_mcp_server.tools import (
     add_agents as _add_agents,
@@ -51,12 +52,19 @@ from connexity_mcp_server.tools import (
 from connexity_mcp_server.tools import (
     list_workspaces as _list_workspaces,
 )
+from connexity_mcp_server.tools import (
+    scan_calls as _scan_calls,
+)
 
 # Hints assistants read to decide whether to ask the person before a call. Every tool
 # acts only inside Connexity (`openWorldHint=False`).
 READ_ONLY = ToolAnnotations(readOnlyHint=True, openWorldHint=False)
 CREATES = ToolAnnotations(
     readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=False
+)
+# Reads calls from the voice platform into Connexity; repeating it carries on.
+SCANS = ToolAnnotations(
+    readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
 )
 # Reads from the voice platform to check the key; replaces an earlier key.
 CONNECTS = ToolAnnotations(
@@ -142,6 +150,14 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         return await _add_agents(
             client=backend_client, workspace_id=workspace_id, agents=agents
         )
+
+    @mcp_server.tool(annotations=SCANS)
+    async def scan_calls(workspace_id: str) -> ScanCallsResult:
+        """The first scan: bring the added agents' calls from the last 30 days into
+        Connexity. Each call does one step of up to about a minute and says how far it
+        has got; keep calling it until it says finished. Safe to repeat: it carries on
+        where it stopped and skips calls already stored."""
+        return await _scan_calls(client=backend_client, workspace_id=workspace_id)
 
     @mcp_server.tool(annotations=READ_ONLY)
     async def get_readiness(workspace_id: str) -> GetReadinessResult:

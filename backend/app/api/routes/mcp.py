@@ -42,6 +42,7 @@ from app.models.mcp import (
     McpConnectVoicePlatform,
     McpErrorDetail,
     McpRefusedAgent,
+    McpScanProgress,
     McpWorkspace,
 )
 from app.services.connections import (
@@ -50,6 +51,7 @@ from app.services.connections import (
     voice_platform_key_status,
     webhook_address,
 )
+from app.services.first_scan import SCAN_DAYS, scan_agents, scan_step
 from app.services.retell import (
     dedupe_retell_agents,
     list_retell_agents,
@@ -234,6 +236,13 @@ def get_readiness(
             "Retell access, set this as each agent's webhook in Retell: "
             f"{webhook_address(waiting[0].integration_id)}. Calls arrive seconds after "
             "they end; make a test call to check."
+        )
+    to_scan = [agent for agent in added if agent.platform == Platform.RETELL]
+    if to_scan and state[ReadinessStepKey.SYNC] != ReadinessStepState.DONE:
+        next_steps.append(
+            f"Bring in the added agents' calls from the last {SCAN_DAYS} days: call "
+            "`scan_calls` and keep calling it until it says finished. Tell the person "
+            "how far it has got from time to time."
         )
     if state[ReadinessStepKey.SYNC] != ReadinessStepState.DONE and not added:
         if state[ReadinessStepKey.VOICE_PLATFORM] == ReadinessStepState.DONE:
@@ -437,6 +446,8 @@ async def add_agents(
         "With your own Retell access, set this as each added agent's webhook in "
         f"Retell: {webhook_address(integration.id)}. Every call then arrives here "
         "seconds after it ends.",
+        f"Call `scan_calls` until it says finished to bring in the last {SCAN_DAYS} "
+        "days of these agents' calls.",
         "After the next call, call `get_readiness` to check that calls arrive.",
     ]
     return McpAnswer[McpAddedAgents](
@@ -449,4 +460,94 @@ async def add_agents(
         ],
         next_steps=next_steps,
         guide=GUIDE_CONNECT,
+    )
+
+
+@router.post(
+    "/workspaces/{workspace_id}/scan",
+    response_model=McpAnswer[McpScanProgress],
+)
+async def scan_calls(
+    session: SessionDep, workspace: McpWorkspaceDep
+) -> McpAnswer[McpScanProgress]:
+    if not scan_agents(session=session, company_id=workspace.id):
+        raise HTTPException(
+            status_code=409,
+            detail=McpErrorDetail(
+                error="This workspace has no added Retell agents to scan",
+                next_steps=[
+                    "Add this client's agents first with `add_agents`, then call "
+                    "`scan_calls`.",
+                ],
+                guide=GUIDE_READINESS,
+            ).model_dump(),
+        )
+    try:
+        progress = await scan_step(session=session, company_id=workspace.id)
+    except HTTPException:
+        integration = crud.get_platform_integration(
+            session=session,
+            company_id=workspace.id,
+            provider=IntegrationProvider.RETELL,
+        )
+        if (
+            integration is not None
+            and await retell_key_status(decrypt(integration.encrypted_api_key))
+            == "refused"
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail=McpErrorDetail(
+                    error="Retell refused the key stored for this workspace",
+                    next_steps=[
+                        "The key may have been revoked in Retell. Ask the person for "
+                        "a new key, call `connect_voice_platform` with it, then call "
+                        "`scan_calls` again; it carries on where it stopped.",
+                    ],
+                    guide=GUIDE_CONNECT,
+                ).model_dump(),
+            )
+        raise HTTPException(
+            status_code=503,
+            detail=McpErrorDetail(
+                error="Retell could not be reached during the scan",
+                next_steps=[
+                    "Calls stored so far are kept. Call `scan_calls` again in a "
+                    "minute; it carries on where it stopped.",
+                ],
+                guide=GUIDE_READINESS,
+            ).model_dump(),
+        )
+
+    stored = sum(agent.stored for agent in progress.agents)
+    total = sum(agent.total or 0 for agent in progress.agents)
+    if progress.finished:
+        next_steps = [
+            "Tell the person the first scan is finished: "
+            f"{stored:,} call{'' if stored == 1 else 's'} from {len(progress.agents)} "
+            f"agent{'' if len(progress.agents) == 1 else 's'} are in Connexity.",
+        ]
+        if progress.calls_without_versions:
+            next_steps.append(
+                f"{progress.calls_without_versions:,} calls have no resolved agent "
+                "version: Retell no longer has the version that served them. Mention "
+                "it; nothing needs doing."
+            )
+        next_steps.append("Call `get_readiness` to see the next step.")
+    else:
+        next_steps = [
+            f"Call `scan_calls` again: {stored:,} of {total:,} calls stored so far. "
+            "Keep calling it until it says finished.",
+        ]
+    return McpAnswer[McpScanProgress](
+        data=progress,
+        rules=[
+            f"The first scan brings in each added agent's calls from the last "
+            f"{SCAN_DAYS} days; later calls arrive by webhook.",
+            "Each call does up to about a minute of work and carries on where the last "
+            "one stopped; calls already stored are skipped.",
+            "Connexity only reads from Retell; it never changes the agents there.",
+        ],
+        next_steps=next_steps,
+        guide=GUIDE_READINESS,
     )

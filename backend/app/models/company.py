@@ -44,6 +44,12 @@ class Company(SQLModel, table=True):
     )
     # A company is a workspace: one client of an agency (Decided 2026-11-12).
     name: str = Field(default="Workspace", max_length=255)
+    # When every added agent's first scan had finished, the first time. Stays set when
+    # agents are added later (their own scans still run).
+    first_scan_done_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+    )
 
     # ── Per-tenant LLM credentials ─────────────────────────────────────
     # Encrypted (Fernet) provider keys + masked previews for the UI. At least
