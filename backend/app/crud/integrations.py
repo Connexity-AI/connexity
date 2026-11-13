@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import func
 from sqlmodel import Session, col, select
 
-from app.core.encryption import encrypt, mask_key
+from app.core.encryption import encrypt, key_fingerprint, mask_key
 from app.crud.call import soft_delete_calls_for_integration
 from app.models.call import Call, CallEvent
 from app.models.enums import CallEventType, IntegrationProvider
@@ -28,6 +28,7 @@ def create_integration(
         name=data.name,
         base_url=data.base_url,
         encrypted_api_key=encrypt(data.api_key),
+        key_fingerprint=key_fingerprint(data.api_key),
         masked_api_key=mask_key(data.api_key),
     )
     session.add(db_obj)
@@ -64,6 +65,7 @@ def connect_voice_platform(
         masked_api_key="",
     )
     integration.encrypted_api_key = encrypt(api_key)
+    integration.key_fingerprint = key_fingerprint(api_key)
     integration.masked_api_key = mask_key(api_key)
     integration.created_by_user_id = user_id
     integration.created_via = via

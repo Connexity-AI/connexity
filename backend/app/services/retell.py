@@ -710,23 +710,43 @@ async def read_retell_calls(
     return calls
 
 
+class RetellRateLimited(HTTPException):
+    """Retell answered 429. ``retry_after`` is how long it asked to wait, if it said."""
+
+    def __init__(self, retry_after: float | None) -> None:
+        super().__init__(status_code=502, detail="Retell rate limited the request")
+        self.retry_after = retry_after
+
+
+def _retry_after(response: httpx.Response) -> float | None:
+    for header in ("retry-after", "ratelimit-reset", "x-ratelimit-reset"):
+        seconds = _parse_retry_after_seconds(response.headers.get(header))
+        if seconds is not None:
+            # A reset given as a Unix time, not a number of seconds.
+            return seconds - time.time() if seconds > 10**9 else seconds
+    return None
+
+
 class RetellCallSummary(BaseModel):
     """One call as Retell's call list shows it: no transcript."""
 
     call_id: str
+    agent_id: str
     start_timestamp: int
     finished: bool
+    # Registered or ongoing: it may still end and be worth storing.
+    in_progress: bool
 
 
 async def list_retell_call_summaries(
     api_key: str,
     *,
-    agent_id: str,
+    agent_ids: list[str],
     after: datetime,
     until: datetime,
     limit: int,
 ) -> list[RetellCallSummary]:
-    """Calls of one Retell agent that started after ``after`` and by ``until``.
+    """Calls of these Retell agents that started after ``after`` and by ``until``.
 
     Oldest first, at most ``limit``. Listing carries no transcripts, so it is cheap.
 
@@ -735,7 +755,7 @@ async def list_retell_call_summaries(
     """
     body = {
         "filter_criteria": {
-            "agent": [{"agent_id": agent_id}],
+            "agent": [{"agent_id": agent_id} for agent_id in agent_ids],
             # Retell timestamps are epoch milliseconds.
             "start_timestamp": {
                 "type": "number",
@@ -761,6 +781,8 @@ async def list_retell_call_summaries(
         raise HTTPException(
             status_code=502, detail="Failed to reach Retell API"
         ) from exc
+    if response.status_code == 429:
+        raise RetellRateLimited(_retry_after(response))
     if response.status_code != 200:
         raise HTTPException(status_code=502, detail="Retell API returned an error")
     payload = _json_or_none(response)
@@ -783,7 +805,10 @@ async def list_retell_call_summaries(
         summaries.append(
             RetellCallSummary(
                 call_id=str(item["call_id"]),
+                agent_id=str(item.get("agent_id") or ""),
                 start_timestamp=started,
+                in_progress=str(item.get("call_status") or "").lower()
+                in _RETELL_IN_PROGRESS,
                 finished=_is_finished_retell_call(
                     status=item.get("call_status"),
                     start_timestamp=started,
@@ -1565,6 +1590,8 @@ async def get_retell_call(api_key: str, call_id: str) -> RetellCall | None:
             status_code=502, detail=f"Failed to reach Retell API: {exc}"
         ) from exc
 
+    if response.status_code == 429:
+        raise RetellRateLimited(_retry_after(response))
     # Retell will never return this call: it no longer has it, or refuses the id.
     if response.status_code in (400, 404, 422):
         return None

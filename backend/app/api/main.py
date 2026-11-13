@@ -16,6 +16,7 @@ from app.api.routes import (
     health,
     ingest,
     integrations,
+    internal,
     issues,
     login,
     mcp,
@@ -57,6 +58,7 @@ api_router.include_router(calls.router)
 api_router.include_router(ingest.router)
 api_router.include_router(ingest.tokens_router)
 api_router.include_router(webhooks.router)
+api_router.include_router(internal.router)
 api_router.include_router(tool_backends.router)
 api_router.include_router(component_versions.router)
 api_router.include_router(checks.router)

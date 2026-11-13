@@ -100,7 +100,8 @@ history of a slice is its plan file in `plans/`.
 | M1.6 | Connect Retell through the assistant: `connect_voice_platform`, who connected it | Done (PR #185) |
 | M1.7 | The assistant adds the agents to sync: `add_agents`, linked to Retell; Readiness step 3 in progress | Done (PR #186) |
 | M1.8 | Continuous call sync through the Retell webhook, set up by the assistant; call-ingestion recommendation (feature 9) | Done (PR #187) |
-| M1.10 | First scan: the assistant brings in the last 30 days of each added agent's calls in steps (`scan_calls`); Readiness steps 3 and 4 tick | In review |
+| M1.10 | First scan: the assistant brings in the last 30 days of each added agent's calls in steps (`scan_calls`); Readiness steps 3 and 4 tick | Done (PR #188) |
+| Demo 10.009 | Scheduled call pull, the main way new calls arrive: Cloud Scheduler every minute, one list per Retell account, capped reads, 429 backoff; the webhook becomes optional and leaves Readiness | In review |
 | D.1 | Frictionless assistant connection: personal access tokens for Claude Code, the setup prompt, Account › Assistant access, `mcp.connexity.ai` | In review |
 
 **The order of work is Dmytro's feature roadmap (Decided 2026-11-12).** It lives
@@ -137,9 +138,9 @@ Open, carried from earlier slices:
   only on request, one call at a time.
 - An n8n that hosted Connexity cannot reach needs the workflow to push its execution.
   Not built.
-- Calls reach Connexity only through the Retell webhook (M1.8). A call that ends while
-  the backend cannot answer is lost once Retell's retries run out; a safety-net pull is
-  described in `docs-internal/call-ingestion.md`, not built.
+- New calls arrive through the scheduled pull (Demo 10.009), once its Cloud Scheduler job
+  is created after merge; until then only through the webhook where it is set. A call
+  Retell keeps failing to serve is passed over after 3 runs.
 - The first scan (M1.10) goes back 30 days. A call Retell keeps failing to serve with a
   server error stops that agent's scan until Retell serves it.
 - Node data from n8n is stored without redaction.
@@ -730,6 +731,7 @@ Dmytro's only when he stated it in his own words.
 | 2026-11-12 | Readiness step 3 shows "in progress" (with its spinner) once agents are added, before sync exists. | Dmytro ("Keep it") |
 | 2026-11-12 | The Retell webhook is the only continuous path for now; setting it in Retell is a setup step the assistant does. No scheduled pull, no scheduler. Feature 9's recommendation is `docs-internal/call-ingestion.md`. Calls missed during a deploy or outage are accepted for now. | Dmytro ("We dont need anything beyond retell webhook right now its part of setup"; "Accept, build") |
 | 2026-11-13 | The first scan brings in each added agent's calls from the last 30 days, driven by the assistant through `scan_calls` in steps of about 40 seconds (no background work, because of Cloud Run), reading 5 calls at a time. Each agent keeps its own scan position; step 4 ticks the first time every added agent is scanned and stays done. Checks are not part of it. | Dmytro (roadmap entry; "accept") |
+| 2026-11-13 | A scheduled pull is the main way new calls arrive: Cloud Scheduler every minute, per Retell account one list and at most 50 reads, idle accounts every 10 minutes, a re-read for late analysis, 429 pauses only that account. The webhook is optional, used only where an agent's is empty, and leaves Readiness and onboarding (its "last webhook call" is deleted). Retell's limit is 30 requests per 10 seconds per organization and route. Replaces "nothing beyond the Retell webhook". | Dmytro ("option A, go, Demo milestone"; "yes"; "from real limits of retell"; "sure") |
 
 ---
 

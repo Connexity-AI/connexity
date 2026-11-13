@@ -297,7 +297,11 @@ UNTIL = datetime(2026, 11, 8, 15, 40, 34, tzinfo=UTC)
 
 async def _summaries() -> list[retell_api.RetellCallSummary]:
     return await list_retell_call_summaries(
-        "key_invented", agent_id="agent_invented_1", after=AFTER, until=UNTIL, limit=25
+        "key_invented",
+        agent_ids=["agent_invented_1", "agent_invented_2"],
+        after=AFTER,
+        until=UNTIL,
+        limit=25,
     )
 
 
@@ -323,12 +327,15 @@ async def test_summaries_list_by_agent_and_window_without_reading_calls() -> Non
 
     summaries = await _summaries()
 
-    assert [(c.call_id, c.finished) for c in summaries] == [
-        ("call_a", True),
-        ("call_live", False),
+    assert [(c.call_id, c.agent_id, c.finished, c.in_progress) for c in summaries] == [
+        ("call_a", "agent_invented_1", True, False),
+        ("call_live", "agent_invented_1", False, True),
     ]
     sent = json.loads(listing.calls.last.request.content)
-    assert sent["filter_criteria"]["agent"] == [{"agent_id": "agent_invented_1"}]
+    assert sent["filter_criteria"]["agent"] == [
+        {"agent_id": "agent_invented_1"},
+        {"agent_id": "agent_invented_2"},
+    ]
     assert sent["filter_criteria"]["start_timestamp"]["op"] == "gt"
     assert sent["limit"] == 25
     assert sent["sort_order"] == "ascending"
@@ -380,3 +387,29 @@ async def test_a_call_retell_fails_to_serve_is_an_error() -> None:
 
     with pytest.raises(HTTPException):
         await get_retell_call("key_invented", "call_later")
+
+
+@respx.mock
+@pytest.mark.parametrize(
+    ("headers", "wait"),
+    [({"Retry-After": "30"}, 30.0), ({"RateLimit-Reset": "7"}, 7.0), ({}, None)],
+    ids=["retry-after", "ratelimit-reset", "no-header"],
+)
+async def test_a_429_says_how_long_to_wait(
+    headers: dict[str, str], wait: float | None
+) -> None:
+    rate_limited = httpx.Response(
+        429,
+        headers=headers,
+        json={"status": "error", "message": "Account rate limited"},
+    )
+    respx.post(LIST_CALLS).mock(return_value=rate_limited)
+    respx.get(url__startswith=GET_CALL).mock(return_value=rate_limited)
+
+    with pytest.raises(retell_api.RetellRateLimited) as listed:
+        await _summaries()
+    with pytest.raises(retell_api.RetellRateLimited) as read:
+        await get_retell_call("key_invented", "call_x")
+
+    assert listed.value.retry_after == wait
+    assert read.value.retry_after == wait

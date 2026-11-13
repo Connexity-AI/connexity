@@ -145,15 +145,19 @@ def test_adding_agents_links_them_to_the_retell_connection(
         "2 agents · 0 calls",
     )
 
+    # Setting the webhook is optional, offered only where an agent's is empty, and
+    # not part of Readiness.
     address = f"{ISSUER}{API}/webhooks/retell/{integration.id}"
-    assert any(address in step for step in body["next_steps"])
+    optional = next(s for s in body["next_steps"] if address in s)
+    assert optional.startswith("Optional, only where an added agent's webhook")
+    assert "Never replace a webhook" in optional
+    assert any(
+        "New calls are pulled from Retell every minute" in r for r in body["rules"]
+    )
     readiness_steps = client.get(
         f"{API}/mcp/workspaces/{user.company_id}/readiness", headers=_headers(user)
     ).json()["next_steps"]
-    waiting = next(s for s in readiness_steps if "No call has arrived by webhook" in s)
-    assert "Front desk" in waiting
-    assert "Clinic after-hours" in waiting
-    assert address in waiting
+    assert not any("webhook" in s.lower() for s in readiness_steps)
 
 
 @respx.mock

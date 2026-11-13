@@ -97,11 +97,17 @@ async def retell_webhook(
     if event not in _RETELL_CALL_EVENTS or not isinstance(payload, dict):
         return WebhookResult(status="ignored", reason="event not handled")
 
-    agents = crud.retell_agents_for_webhook(
-        session=session,
-        integration=integration,
-        api_key=api_key,
-        platform_agent_id=str(payload.get("agent_id") or ""),
+    platform_agent_id = str(payload.get("agent_id") or "")
+    if integration.key_fingerprint is None:
+        crud.fill_key_fingerprints(session=session)
+    agents = (
+        crud.retell_agents_for_account(
+            session=session,
+            fingerprint=integration.key_fingerprint or "",
+            platform_agent_id=platform_agent_id,
+        )
+        if platform_agent_id
+        else []
     )
     if not agents:
         return WebhookResult(status="ignored", reason="agent not connected")
@@ -131,7 +137,6 @@ async def retell_webhook(
             raw=payload,
         )
         check_call_safely(session=session, call=stored.call)
-        crud.mark_webhook_call(session=session, agent=agent)
         # After the response: Retell waits only ten seconds for an answer. Both
         # events look, because the executions exist as soon as the call has ended.
         background_tasks.add_task(sync_call_executions_in_background, stored.call.id)

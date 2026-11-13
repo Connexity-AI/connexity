@@ -322,25 +322,6 @@ def test_a_stored_call_is_looked_up_for_executions_after_the_response(
     assert looked_up.await_args.args == (call.id,)
 
 
-def test_a_stored_call_records_when_the_webhook_last_brought_one(
-    client: TestClient, db: Session
-) -> None:
-    agent, integration, provider_agent_id = _retell_agent(db)
-    assert agent.last_webhook_call_at is None
-
-    _post(
-        client,
-        integration.id,
-        {
-            "event": "call_ended",
-            "call": retell_call("call_wh_mark", agent_id=provider_agent_id),
-        },
-    )
-
-    db.refresh(agent)
-    assert agent.last_webhook_call_at is not None
-
-
 def test_the_same_retell_agent_in_two_workspaces_gets_the_call_in_both(
     client: TestClient, db: Session
 ) -> None:
