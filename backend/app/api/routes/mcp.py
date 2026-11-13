@@ -26,6 +26,7 @@ from app.core.encryption import decrypt
 from app.crud.call_list import CallFilters
 from app.models import (
     Agent,
+    CallScreenPublic,
     CategoryPublic,
     IntegrationProvider,
     Platform,
@@ -57,6 +58,7 @@ from app.models.mcp import (
     McpWorkspace,
 )
 from app.services.call_list import workspace_calls
+from app.services.call_screen import call_screen
 from app.services.checks.registry import get_check
 from app.services.connections import (
     KEY_LOCATION,
@@ -264,6 +266,49 @@ def list_calls(
         next_steps=next_steps,
         guide=GUIDE_CALLS,
         next_cursor=_encode_cursor(offset + limit) if page.has_more else None,
+    )
+
+
+@router.get(
+    "/workspaces/{workspace_id}/calls/{call_id}",
+    response_model=McpAnswer[CallScreenPublic],
+)
+def get_call(
+    session: SessionDep, workspace: McpWorkspaceDep, call_id: uuid.UUID
+) -> McpAnswer[CallScreenPublic]:
+    call = crud.get_call(session=session, call_id=call_id, company_id=workspace.id)
+    screen = call_screen(session=session, call=call) if call is not None else None
+    if screen is None:
+        raise HTTPException(
+            status_code=404,
+            detail=McpErrorDetail(
+                error="Call not found in this workspace"
+                if call is None
+                else "This call has no transcript yet",
+                next_steps=[
+                    "Call `list_calls` to find the call; pass its `id`.",
+                ],
+                guide=GUIDE_CALLS,
+            ).model_dump(),
+        )
+    next_steps = []
+    if screen.findings:
+        next_steps.append(
+            "Call `list_issues` with this agent's id to see how often each finding "
+            "happens across calls."
+        )
+    return McpAnswer[CallScreenPublic](
+        data=screen,
+        rules=[
+            "The timeline is in order: turns (agent or caller) and tool calls with "
+            "their arguments and result; secret-looking values are masked.",
+            "Findings are worst first and point at the entry they sit on; say whether "
+            "a rule or a model found each.",
+            "Do not repeat a caller's name, address or other personal details back "
+            "unless the person asks about this call.",
+        ],
+        next_steps=next_steps,
+        guide=GUIDE_CALLS,
     )
 
 

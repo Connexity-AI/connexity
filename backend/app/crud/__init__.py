@@ -60,6 +60,7 @@ from app.crud.check import (  # noqa: F401
     get_call_checks,
     get_findings,
     get_issue,
+    issues_of_findings,
     list_decision_records,
     list_issue_findings,
     list_issues,

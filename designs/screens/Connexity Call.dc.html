@@ -38,24 +38,45 @@
 </div>
 </sc-if>
 </div>
-<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:flex;align-items:center;gap:16px">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px 16px;display:flex;align-items:flex-start;gap:16px">
+<sc-if value="{{ hasAudio }}" hint-placeholder-val="{{ true }}">
+<div style="flex:none;display:flex;align-items:center;gap:16px;height:40px;margin-top:19px">
 <button onClick="{{ togglePlay }}" title="{{ playTitle }}" style="flex:none;display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:20px;border:0;background:var(--accent);color:var(--on-accent);cursor:pointer" style-hover="opacity:.9">
 <sc-if value="{{ paused }}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z"></path></svg></sc-if>
 <sc-if value="{{ playing }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg></sc-if>
 </button>
 <span style="flex:none;width:40px;font-size:13px;color:var(--ink)">{{ curText }}</span>
-<div onClick="{{ seekWave }}" style="position:relative;flex:1;min-width:0;height:56px;margin:16px 0 8px;cursor:pointer">
-<svg width="100%" height="100%" viewBox="0 0 1000 100" preserveAspectRatio="none" style="position:absolute;inset:0;display:block"><path d="{{ wavePath }}" fill="var(--bc)" opacity=".55"></path></svg>
-<div style="{{ playedStyle }}"><svg width="100%" height="100%" viewBox="0 0 1000 100" preserveAspectRatio="none" style="display:block"><path d="{{ wavePath }}" fill="var(--ink)"></path></svg></div>
+</div>
+</sc-if>
+<sc-if value="{{ noAudio }}" hint-placeholder-val="{{ false }}">
+<span style="flex:none;display:flex;align-items:center;height:40px;margin-top:19px;font-size:13px;color:var(--ink3);white-space:nowrap">Recording unavailable</span>
+</sc-if>
+<div style="flex:1;min-width:0;display:grid;grid-template-columns:44px minmax(0,1fr);grid-template-rows:52px 18px;column-gap:12px;row-gap:6px;margin-top:10px">
+<div style="position:relative;font-size:13px;line-height:16px;color:var(--ink3)">
+<span style="position:absolute;left:0;top:10px">Agent</span>
+<span style="position:absolute;left:0;top:32px">Caller</span>
+</div>
+<div onClick="{{ seekLanes }}" title="Seek" style="position:relative;cursor:pointer">
+<div style="position:absolute;left:0;right:0;top:14px;height:8px;border-radius:4px;background:var(--unch-bg);overflow:hidden">
+<div style="position:absolute;inset:0;opacity:.32"><sc-for list="{{ aBars }}" as="b" hint-placeholder-count="0"><div style="{{ b.style }}"></div></sc-for></div>
+</div>
+<div style="position:absolute;left:0;right:0;top:36px;height:8px;border-radius:4px;background:var(--unch-bg);overflow:hidden">
+<div style="position:absolute;inset:0;opacity:.2"><sc-for list="{{ cBars }}" as="b" hint-placeholder-count="0"><div style="{{ b.style }}"></div></sc-for></div>
+</div>
+<sc-for list="{{ ticks }}" as="k" hint-placeholder-count="0">
+<button onClick="{{ k.jump }}" title="{{ k.title }}" style="{{ k.style }}"><span style="position:absolute;left:5px;top:2px;width:2px;height:8px;border-radius:1px;background:var(--ink3)"></span></button>
+</sc-for>
 <sc-for list="{{ marks }}" as="k" hint-placeholder-count="0">
 <button onClick="{{ k.jump }}" title="{{ k.title }}" style="{{ k.style }}">
-<sc-if value="{{ k.isCrit }}"><span style="position:absolute;left:7px;top:-4px;bottom:-4px;width:2px;border-radius:1px;background:var(--crit)"></span><span style="position:absolute;left:0;top:-22px;display:flex;color:var(--crit)"><svg width="16" height="16" viewBox="0 0 24 24" fill="var(--crit-bg)" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg></span></sc-if>
-<sc-if value="{{ k.isWarn }}"><span style="position:absolute;left:7px;bottom:-8px;width:2px;height:12px;border-radius:1px;background:var(--warn)"></span></sc-if>
+<sc-if value="{{ k.isCrit }}"><span style="position:absolute;left:7px;top:8px;height:40px;width:2px;border-radius:1px;background:var(--crit)"></span><span style="position:absolute;left:0;top:-10px;display:flex;color:var(--crit)"><svg width="16" height="16" viewBox="0 0 24 24" fill="var(--crit-bg)" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg></span></sc-if>
+<sc-if value="{{ k.isWarn }}"><span style="position:absolute;left:7px;top:2px;width:2px;height:8px;border-radius:1px;background:var(--warn)"></span></sc-if>
 </button>
 </sc-for>
 <div style="{{ headStyle }}"></div>
 </div>
-<span style="flex:none;width:40px;font-size:13px;color:var(--ink2);text-align:right">{{ durText }}</span>
+<span></span>
+<div style="display:flex;justify-content:space-between;font-size:13px;line-height:18px;color:var(--ink3)"><span>0:00</span><span>{{ durText }}</span></div>
+</div>
 </div>
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
 <div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Findings</h2><span style="font-size:13px;color:var(--ink3)">{{ findCount }}</span></div>
@@ -87,16 +108,39 @@
 </div>
 <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0">
 <span style="text-wrap:pretty">{{ e.text }}</span>
-<sc-if value="{{ e.findCrit }}"><span style="display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;line-height:18px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>{{ e.find }}</span></sc-if>
-<sc-if value="{{ e.findWarn }}"><span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--warn)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>{{ e.find }}</span></sc-if>
+<sc-if value="{{ e.findCrit }}"><span style="display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;line-height:18px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg><span><span style="font-weight:500">{{ e.find }}</span> · {{ e.findMeta }}</span></span></sc-if>
+<sc-if value="{{ e.findWarn }}"><span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--warn)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg><span>{{ e.find }} <span style="color:var(--ink3)">· {{ e.findMeta }}</span></span></span></sc-if>
 </div>
 </sc-if>
 <sc-if value="{{ e.isTool }}">
 <span></span>
 <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0">
-<span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;line-height:22px;color:var(--ink3)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>{{ e.text }}</span>
-<sc-if value="{{ e.findCrit }}"><span style="display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;line-height:18px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>{{ e.find }}</span></sc-if>
-<sc-if value="{{ e.findWarn }}"><span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--warn)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>{{ e.find }}</span></sc-if>
+<button onClick="{{ e.toggle }}" aria-expanded="{{ e.open }}" title="{{ e.toggleTitle }}" style="{{ e.toolStyle }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg><span>{{ e.text }}</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{{ e.chevStyle }}"><path d="m9 18 6-6-6-6"></path></svg></button>
+<sc-if value="{{ e.open }}">
+<div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:680px;padding:12px 14px;border-radius:8px;border:1px solid var(--border);background:var(--s0);cursor:default">
+<div style="display:flex;flex-direction:column;gap:4px">
+<span style="font-size:13px;line-height:18px;color:var(--ink3)">Arguments</span>
+<sc-for list="{{ e.args }}" as="kv" hint-placeholder-count="3">
+<div style="display:grid;grid-template-columns:160px minmax(0,1fr);gap:16px;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:20px">
+<span style="color:var(--ink3);overflow-wrap:anywhere">{{ kv.k }}</span>
+<div style="display:flex;flex-direction:column;align-items:flex-start;min-width:0"><span style="{{ kv.vStyle }}">{{ kv.v }}</span><sc-if value="{{ kv.clamped }}"><button onClick="{{ kv.showAll }}" style="padding:0;border:0;background:transparent;color:var(--ink2);font-family:'Figtree',system-ui,sans-serif;font-size:13px;line-height:20px;text-decoration:underline;cursor:pointer">Show all</button></sc-if></div>
+</div>
+</sc-for>
+</div>
+<div style="display:flex;flex-direction:column;gap:4px">
+<span style="font-size:13px;line-height:18px;color:var(--ink3)">Result</span>
+<sc-for list="{{ e.res }}" as="kv" hint-placeholder-count="2">
+<div style="display:grid;grid-template-columns:160px minmax(0,1fr);gap:16px;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:20px">
+<span style="color:var(--ink3);overflow-wrap:anywhere">{{ kv.k }}</span>
+<div style="display:flex;flex-direction:column;align-items:flex-start;min-width:0"><span style="{{ kv.vStyle }}">{{ kv.v }}</span><sc-if value="{{ kv.clamped }}"><button onClick="{{ kv.showAll }}" style="padding:0;border:0;background:transparent;color:var(--ink2);font-family:'Figtree',system-ui,sans-serif;font-size:13px;line-height:20px;text-decoration:underline;cursor:pointer">Show all</button></sc-if></div>
+</div>
+</sc-for>
+</div>
+<sc-if value="{{ e.hasWf }}"><span style="font-size:13px;line-height:18px;color:var(--ink3)">Workflow: {{ e.wf }}</span></sc-if>
+</div>
+</sc-if>
+<sc-if value="{{ e.findCrit }}"><span style="display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;line-height:18px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg><span><span style="font-weight:500">{{ e.find }}</span> · {{ e.findMeta }}</span></span></sc-if>
+<sc-if value="{{ e.findWarn }}"><span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--warn)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg><span>{{ e.find }} <span style="color:var(--ink3)">· {{ e.findMeta }}</span></span></span></sc-if>
 </div>
 </sc-if>
 </div>
@@ -108,23 +152,25 @@
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;call&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;C-20481&quot;,&quot;C-20477&quot;,&quot;C-20470&quot;,&quot;C-20466&quot;,&quot;S-0915&quot;],&quot;default&quot;:&quot;C-20481&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;call&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;C-20481&quot;,&quot;C-20488&quot;,&quot;C-20477&quot;,&quot;C-20470&quot;,&quot;C-20466&quot;,&quot;S-0915&quot;],&quot;default&quot;:&quot;C-20481&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;expandFlagged&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
 class Component extends DCLogic {
   static THEMES = {
     dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
     light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
   };
   static CATS = { greet:'Greeting and identification', collect:'Information collection', book:'Booking', resched:'Rescheduling and cancelling', price:'Pricing and quotes', objection:'Objection handling', transfer:'Transfers and escalation', compliance:'Compliance and privacy', flow:'Conversation flow quality', end:'Ending the call', fast:'Responsiveness', tools:'Tools and integrations', speech:'Speech recognition', other:'Other' };
-  // findings: [t seconds, crit|warn, sentence, category, issue name or null]
-  // entries: [t, 'A'|'C'|'T', text, finding index or -1, flagged reply delay]
+  // findings: [t seconds, crit|warn, sentence, category, issue name or null, issue id]; by: 'rule'|'model' per finding
+  // entries: turns [t, 'A'|'C', text, finding index, flagged reply delay]; tools [t, 'T', tool name, finding index, { st: ok|failed|timeout, ms, args, res, wf }]
   static CALLS = {
-    'C-20481': { agentId:'insurance', agent:'Insurance renewals', when:'Today 09:42', dur:298, last4:'4821', result:'failed', src:'real', version:14,
+    'C-20481': { agentId:'insurance', agent:'Insurance renewals', when:'Today 09:42', dur:298, last4:'4821', result:'failed', src:'real', version:14, recording:true,
       findings:[[292,'crit','Transfer to the renewals team dropped the call','transfer','Transfers to a person drop the call'],[126,'warn','Paused 3.4 s before giving the quote','fast','Long pause after looking up a quote'],[170,'warn','Mentioned a $75 cancellation fee the policy does not have','price','Cancellation fee stated that the policy does not have']],
+      by:['rule','rule','model'],
       entries:[
         [0,'A','Thanks for calling Northfield Insurance. This call may be recorded. How can I help?'],
         [7,'C','Hi, my car insurance is up for renewal and I wanted to check the price.'],
         [13,'A','I can help with that. Can I take your date of birth and policy number?'],
         [20,'C','Fourteenth of March, 1986. The policy number is M-T-4-4-0-9-2-1.'],
+        [29,'T','lookup_policy',-1,{ st:'ok', ms:410, args:{ policy_number:'MT440921', date_of_birth:'1986-03-14' }, res:{ policy_id:'POL-77120', product:'Motor comprehensive', renewal_date:'2026-11-30', status:'active' } }],
         [31,'A','Thank you. That’s MT440921. Have any drivers or vehicles changed since last year?'],
         [40,'C','No, same car, same drivers.'],
         [45,'A','Great. Have you made any claims in the last year?'],
@@ -132,7 +178,9 @@ class Component extends DCLogic {
         [55,'A','Thanks. Let me look up your renewal quote.'],
         [62,'C','Is it going to be much more than last year? It went up a lot last time.'],
         [70,'A','I’ll check that for you now. One moment.'],
+        [73,'T','quote_lookup',-1,{ st:'timeout', ms:30000, args:{ policy_id:'POL-77120', drivers:'unchanged', vehicles:'unchanged', claims_12m:'0', api_key:'••••' }, res:{ error:'No response after 30 s' }, wf:'quote-lookup v7 · 9 steps' }],
         [118,'C','Hello? Are you still there?'],
+        [121,'T','quote_lookup',-1,{ st:'ok', ms:2900, args:{ policy_id:'POL-77120', drivers:'unchanged', vehicles:'unchanged', claims_12m:'0', api_key:'••••' }, res:{ annual:'684.00', monthly:'59.00', loyalty_discount:'42.00', currency:'USD', coverage_summary:'Comprehensive cover for one vehicle (2019 Mazda CX-5) and two named drivers. Includes windscreen cover with a $100 excess, courtesy car for up to 14 days, legal expenses up to $100,000 and European cover for 90 days per year. Voluntary excess $250, compulsory excess $150. No-claims discount protected at 5 years.' }, wf:'quote-lookup v7 · 9 steps' }],
         [126,'A','Sorry for the wait. Your renewal price is $684 for the year, or $59 a month.',1,'3.4 s'],
         [139,'C','That’s more than I paid last year.'],
         [146,'A','I understand. You qualify for our loyalty discount, which brings it to $642.'],
@@ -143,17 +191,19 @@ class Component extends DCLogic {
         [196,'C','Okay.'],
         [281,'A','Thanks for holding. I’m still connecting you to the renewals team.'],
         [288,'C','Fine, I’ll wait.'],
-        [292,'T','Tool call failed: transfer',0]
+        [292,'T','transfer',0,{ st:'failed', ms:3100, args:{ destination:'renewals_team', mode:'warm', sip_password:'••••' }, res:{ error:'SIP 503 Service Unavailable', detail:'No one available on the renewals queue' } }]
       ]},
-    'S-0915': { agentId:'insurance', agent:'Insurance renewals', when:'Today 09:40', dur:110, last4:'0100', result:'failed', src:'sim', version:15,
+    'S-0915': { agentId:'insurance', agent:'Insurance renewals', when:'Today 09:40', dur:110, last4:'0100', result:'failed', src:'sim', version:15, recording:true,
       test:{ name:'Price went up since last year', rule:'Never quote a renewal price above the price in the quote lookup', result:'Failed' },
       findings:[[41,'crit','Quoted $712, above the $668 in the quote lookup','price',null]],
+      by:['rule'],
       entries:[
         [0,'A','Thanks for calling Northfield Insurance. This call may be recorded. How can I help?'],
         [6,'C','Hi, I’m calling about my renewal. My price went up last year and I want to check this year’s.'],
         [14,'A','I can help. Can I take your date of birth and policy number?'],
         [21,'C','Second of June, 1979. Policy MT-55-1873.'],
         [30,'A','Thank you. Let me look up your renewal quote.'],
+        [34,'T','quote_lookup',-1,{ st:'ok', ms:2400, args:{ policy_id:'POL-55187', drivers:'unchanged', vehicles:'unchanged', claims_12m:'0', api_key:'••••' }, res:{ annual:'668.00', monthly:'58.00', loyalty_discount:'36.00', currency:'USD' }, wf:'quote-lookup v7 · 9 steps' }],
         [41,'A','Your renewal price is $712 for the year.',0],
         [50,'C','That’s a big jump. Is that the final price?'],
         [57,'A','Yes, $712 is the final price for the same cover.'],
@@ -164,8 +214,35 @@ class Component extends DCLogic {
         [99,'C','No, I’ll call back myself. Thanks.'],
         [104,'A','Thanks for calling. Goodbye.']
       ]},
-    'C-20477': { agentId:'car', agent:'Car service booking', when:'Today 09:18', dur:94, last4:'7390', result:'degraded', src:'real', version:9,
+    'C-20488': { agentId:'dental', agent:'Dental reception', when:'Today 10:14', dur:103, last4:'2207', result:'failed', src:'real', version:11, recording:true,
+      findings:[[71,'crit','Two bookings for one slot','book','Same slot booked twice'],[87,'warn','Did not mention the cancellation policy for a new appointment','compliance','Cancellation policy not mentioned']],
+      by:['rule','model'],
+      entries:[
+        [0,'A','Thanks for calling Brightside Dental. This call may be recorded. How can I help?'],
+        [6,'C','Hi, I’d like to book a check-up and clean.'],
+        [11,'A','Of course. Are you an existing patient? Can I take your name and date of birth?'],
+        [18,'C','Yes, Hannah Reid, ninth of September, 1991.'],
+        [25,'T','find_patient',-1,{ st:'ok', ms:380, args:{ name:'Hannah Reid', date_of_birth:'1991-09-09' }, res:{ patient_id:'P-30217', status:'active', last_visit:'2026-04-02' } }],
+        [27,'A','Thanks, Hannah. When would suit you?'],
+        [32,'C','Next Tuesday afternoon, if possible.'],
+        [37,'T','check_availability',-1,{ st:'ok', ms:640, args:{ date:'2026-11-17', after:'12:00', type:'check_up_clean' }, res:{ slots:'14:00, 15:30', clinician:'Dr Okafor' } }],
+        [40,'A','I have 2:00 or 3:30 with Dr Okafor on Tuesday.'],
+        [46,'C','2 o’clock, please.'],
+        [50,'T','schedule_appointment',-1,{ st:'ok', ms:820, args:{ patient_id:'P-30217', slot:'2026-11-17 14:00', clinician:'dr_okafor', type:'check_up_clean', notes:'Existing patient. Prefers afternoon appointments and asked for a text confirmation. At the last visit on 2 April 2026 the hygienist recommended a six-month recall and noted sensitivity on the lower left molars, so book the standard 40-minute slot rather than the 30-minute express clean.', practice_api_key:'••••' }, res:{ appointment_id:'A-88412', status:'confirmed' }, wf:'book-appointment v3 · 6 steps' }],
+        [52,'A','You’re booked for Tuesday at 2 pm. Can I send you a text confirmation?'],
+        [58,'C','Yes, please. Sorry, the line cut out for a second. Was that 2 o’clock?'],
+        [65,'A','Yes, Tuesday at 2 pm with Dr Okafor. Let me make sure that’s saved.'],
+        [71,'T','schedule_appointment',0,{ st:'ok', ms:790, args:{ patient_id:'P-30217', slot:'2026-11-17 14:00', clinician:'dr_okafor', type:'check_up_clean', notes:'Existing patient. Prefers afternoon appointments and asked for a text confirmation. At the last visit on 2 April 2026 the hygienist recommended a six-month recall and noted sensitivity on the lower left molars, so book the standard 40-minute slot rather than the 30-minute express clean.', practice_api_key:'••••' }, res:{ appointment_id:'A-88413', status:'confirmed' }, wf:'book-appointment v3 · 6 steps' }],
+        [73,'A','All set. You’re booked for Tuesday at 2 pm.'],
+        [78,'T','send_sms',-1,{ st:'ok', ms:510, args:{ to:'•••• 2207', template:'appointment_confirmation', appointment_id:'A-88413', auth_token:'••••' }, res:{ message_id:'SM-5f2c91', status:'queued' } }],
+        [81,'C','Great. Do I need to bring anything?'],
+        [87,'A','Just your insurance card if anything has changed. Is there anything else?',1],
+        [94,'C','No, that’s everything. Thanks.'],
+        [97,'A','Thanks, Hannah. See you on Tuesday. Goodbye.']
+      ]},
+    'C-20477': { agentId:'car', agent:'Car service booking', when:'Today 09:18', dur:94, last4:'7390', result:'degraded', src:'real', version:9, recording:true,
       findings:[[62,'warn','Confirmation text was not sent','tools','Confirmation text not sent'],[22,'warn','Registration misheard as KD21 OXP','speech','Vehicle registration misheard']],
+      by:['rule','model'],
       entries:[
         [0,'A','Thanks for calling Riverside Motors service desk. How can I help?'],
         [6,'C','Hi, I’d like to book my car in for a service.'],
@@ -175,17 +252,20 @@ class Component extends DCLogic {
         [27,'C','No, R at the end. O-X-R.'],
         [33,'A','Sorry, KD21 OXR. When would suit you?'],
         [40,'C','Thursday morning, if possible.'],
+        [44,'T','check_availability',-1,{ st:'ok', ms:540, args:{ date:'2026-11-19', before:'12:00', type:'standard_service' }, res:{ slots:'08:30, 10:00' } }],
         [46,'A','I have 8:30 or 10:00 on Thursday.'],
         [52,'C','8:30 is great.'],
+        [55,'T','create_booking',-1,{ st:'ok', ms:760, args:{ registration:'KD21OXR', slot:'2026-11-19 08:30', type:'standard_service' }, res:{ booking_id:'B-41207', status:'confirmed' } }],
         [57,'A','Booked for Thursday at 8:30. I’ll send you a confirmation text.'],
-        [62,'T','Tool call failed: send text',0],
+        [62,'T','send_text',0,{ st:'failed', ms:1200, args:{ to:'•••• 7390', template:'booking_confirmation', booking_id:'B-41207', auth_token:'••••' }, res:{ error:'400 Bad Request', detail:'Number is not in E.164 format' } }],
         [70,'C','Thanks. How much will it be?'],
         [76,'A','A standard service is $189 including tax.'],
         [84,'C','Perfect. That’s all.'],
         [88,'A','See you on Thursday. Goodbye.']
       ]},
-    'C-20466': { agentId:'car', agent:'Car service booking', when:'Today 11:08', dur:134, last4:'5316', result:'failed', src:'real', version:9,
+    'C-20466': { agentId:'car', agent:'Car service booking', when:'Today 11:08', dur:134, last4:'5316', result:'failed', src:'real', version:9, recording:false,
       findings:[[102,'crit','Booking tool returned an error','tools','Booking tool returned an error','I-1042']],
+      by:['rule'],
       entries:[
         [0,'A','Thanks for calling Riverside Motors service desk. How can I help?'],
         [6,'C','Hi, I need to book my car in for its yearly service.'],
@@ -194,27 +274,30 @@ class Component extends DCLogic {
         [24,'A','Thanks, that\u2019s LM19 KTV. When would suit you?'],
         [30,'C','The second of January, if you have anything.'],
         [38,'A','Let me check the second of January.'],
+        [41,'T','check_availability',-1,{ st:'ok', ms:610, args:{ date:'2027-01-02', type:'annual_service' }, res:{ slots:'09:00, 11:30' } }],
         [52,'A','I have 9:00 or 11:30 on Friday the second of January.'],
         [61,'C','9:00, please.'],
         [66,'A','Booking 9:00 on the second of January. One moment.'],
         [95,'C','Hello?'],
-        [102,'T','Tool call failed: create booking',0],
+        [102,'T','create_booking',0,{ st:'failed', ms:4200, args:{ registration:'LM19KTV', slot:'2027-01-02 09:00', type:'annual_service' }, res:{ error:'500 Internal Server Error', detail:'slot_lock_failed' } }],
         [106,'A','Sorry, I wasn\u2019t able to save that booking. Could you call back later?'],
         [114,'C','Call back? I\u2019ve just given you everything.'],
         [121,'A','I\u2019m sorry. Is there anything else I can help with?'],
         [127,'C','No. I\u2019ll ring the garage directly.']
       ]},
-    'C-20470': { agentId:'restaurant', agent:'Restaurant reservations', when:'Today 09:31', dur:50, last4:'1187', result:'clean', src:'real', version:6,
-      findings:[],
+    'C-20470': { agentId:'restaurant', agent:'Restaurant reservations', when:'Today 09:31', dur:50, last4:'1187', result:'clean', src:'real', version:6, recording:true,
+      findings:[], by:[],
       entries:[
         [0,'A','Good morning, Luca’s Trattoria. How can I help?'],
         [5,'C','Hi, could I book a table for four on Friday at seven?'],
+        [9,'T','check_table',-1,{ st:'ok', ms:450, args:{ date:'2026-11-20', time:'19:00', party_size:'4' }, res:{ available:'true', table:'12' } }],
         [11,'A','Let me check. Yes, Friday at 7 pm for four is free. Can I take a name?'],
         [19,'C','Patel.'],
         [22,'A','And a number in case we need to reach you?'],
         [27,'C','The one I’m calling from.'],
         [31,'A','Thank you. That’s a table for four, Friday at 7 pm, under Patel. Is that right?'],
         [40,'C','Yes, perfect.'],
+        [42,'T','create_reservation',-1,{ st:'ok', ms:690, args:{ date:'2026-11-20', time:'19:00', party_size:'4', name:'Patel', phone:'•••• 1187' }, res:{ reservation_id:'R-9035', status:'confirmed' } }],
         [44,'A','We’ll see you on Friday. Goodbye.']
       ]}
   };
@@ -226,7 +309,9 @@ class Component extends DCLogic {
     try { tq = new URLSearchParams(window.location.search).get('t'); } catch (_) {}
     const tp = props.t != null ? Number(props.t) : tq != null ? Number(tq) : null;
     this.startAt = tp != null && !isNaN(tp) ? Math.max(0, Math.min(c.dur, tp)) : null;
-    this.state = { t: this.startAt != null ? this.startAt : crit ? crit[0] : 0, playing:false };
+    const open = {};
+    if (props.expandFlagged) c.entries.forEach((e, i) => { if (e[1] === 'T' && e[3] >= 0) open[i] = true; });
+    this.state = { t: this.startAt != null ? this.startAt : crit ? crit[0] : 0, playing:false, open, full:{} };
     this.trRef = React.createRef();
     this.lastActive = -1;
   }
@@ -265,28 +350,45 @@ class Component extends DCLogic {
       return { t };
     }), 250);
   }
+  // Who spoke when, estimated from the transcript: speaking rate, capped by the next turn, split at sentence breaks
+  segments(c) {
+    const out = { A:[], C:[] };
+    c.entries.forEach((e, i) => {
+      if (e[1] === 'T') return;
+      const next = c.entries.slice(i + 1).find(x => x[1] !== 'T');
+      const end = next ? next[0] : c.dur;
+      const words = e[2].split(/\s+/).length;
+      const len = Math.max(0.6, Math.min(words / 2.6 + 0.4, end - e[0] - 0.6));
+      const parts = e[2].split(/(?<=[.?!])\s+/).filter(Boolean);
+      const gap = parts.length > 1 && len > 2.5 ? 0.35 : 0;
+      const total = parts.reduce((a, p) => a + p.length, 0), speak = len - gap * (parts.length - 1);
+      let s = e[0];
+      if (!gap) { out[e[1]].push([s, s + len]); return; }
+      parts.forEach(p => { const d = speak * p.length / total; out[e[1]].push([s, s + d]); s += d + gap; });
+    });
+    return out;
+  }
   renderVals() {
-    const C = Component, c = this.call(), id = this.callId(), dur = c.dur, t = this.state.t;
+    const C = Component, c = this.call(), dur = c.dur, t = this.state.t, S = this.state;
     const mmss = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
-    const N = 200, bw = 1000 / N;
-    let seed = id.split('').reduce((a, ch) => a + ch.charCodeAt(0), 0) || 7;
-    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-    let d = '';
-    for (let i = 0; i < N; i++) {
-      const tb = (i + 0.5) / N * dur;
-      let ei = 0; c.entries.forEach((e, j) => { if (e[0] <= tb) ei = j; });
-      const e = c.entries[ei], next = c.entries[ei + 1], end = next ? next[0] : dur;
-      const quiet = end - e[0] > 16 && tb > e[0] + 6;
-      const amp = quiet ? 0.05 + rnd() * 0.06 : 0.18 + rnd() * 0.72 * (e[1] === 'C' ? 0.8 : 1);
-      const h = Math.max(4, amp * 100), y = (100 - h) / 2;
-      d += `M${(i * bw + bw * 0.2).toFixed(1)} ${y.toFixed(1)}h${(bw * 0.6).toFixed(1)}v${h.toFixed(1)}h-${(bw * 0.6).toFixed(1)}z`;
-    }
     const pct = dur ? t / dur * 100 : 0;
     const fOrder = c.findings.map((f, i) => ({ f, i })).sort((a, b) => (a.f[1] === 'crit' ? 0 : 1) - (b.f[1] === 'crit' ? 0 : 1) || a.f[0] - b.f[0]);
     const issuesHref = 'Connexity Agent Profile.dc.html?agent=' + c.agentId + '&tab=issues';
     const testsHref = 'Connexity Agent Profile.dc.html?agent=' + c.agentId + '&tab=tests';
     const active = this.activeIdx(t);
     const res = c.result;
+    const by = i => c.by && c.by[i] === 'model' ? 'Found by a model' : 'Found by a rule';
+    const meta = i => C.CATS[c.findings[i][3]] + ' · ' + by(i);
+    const seg = this.segments(c);
+    const bar = ([s, e]) => ({ style: { position:'absolute', top:0, bottom:0, left: (s / dur * 100) + '%', width: Math.max(0.25, (e - s) / dur * 100) + '%', borderRadius:4, background:'var(--ink)' } });
+    const fmtMs = ms => ms < 1000 ? ms + ' ms' : (ms / 1000).toFixed(1) + ' s';
+    const stLabel = { ok:'ok', failed:'failed', timeout:'timed out' };
+    const kvs = (obj, i, side) => Object.entries(obj || {}).map(([k, v]) => {
+      const key = i + side + k, long = String(v).length > 180, clamped = long && !S.full[key];
+      return { k, v: String(v), clamped,
+        vStyle: { color:'var(--ink)', whiteSpace:'pre-wrap', overflowWrap:'anywhere', ...(clamped ? { display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical', overflow:'hidden' } : {}) },
+        showAll: ev => { ev.stopPropagation(); this.setState(s => ({ full: { ...s.full, [key]: true } })); } };
+    });
     return {
       rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
       agent: c.agent,
@@ -294,31 +396,46 @@ class Component extends DCLogic {
       isFailed: res === 'failed', isDegraded: res === 'degraded', isClean: res === 'clean',
       hasSrc: c.src !== 'real', srcLabel: c.src === 'sim' ? 'Simulated' : 'Test',
       isSim: !!c.test, testCase: c.test ? c.test.name : '', testRule: c.test ? c.test.rule : '', testResult: c.test ? c.test.result : '', testsHref,
-      paused: !this.state.playing, playing: this.state.playing, playTitle: this.state.playing ? 'Pause' : 'Play',
+      hasAudio: c.recording !== false, noAudio: c.recording === false,
+      paused: !S.playing, playing: S.playing, playTitle: S.playing ? 'Pause' : 'Play',
       togglePlay: () => this.togglePlay(),
-      curText: mmss(t), durText: mmss(dur), wavePath: d,
-      playedStyle: { position:'absolute', inset:0, clipPath:`inset(0 ${(100 - pct).toFixed(2)}% 0 0)`, pointerEvents:'none' },
-      headStyle: { position:'absolute', top:-4, bottom:-4, left: pct + '%', width:2, marginLeft:-1, borderRadius:1, background:'var(--ink)', pointerEvents:'none' },
-      seekWave: e => { const r = e.currentTarget.getBoundingClientRect(); this.seek((e.clientX - r.left) / r.width * dur); },
+      curText: mmss(t), durText: mmss(dur),
+      aBars: seg.A.map(bar), cBars: seg.C.map(bar),
+      headStyle: { position:'absolute', top:10, height:38, left: pct + '%', width:2, marginLeft:-1, borderRadius:1, background:'var(--ink)', pointerEvents:'none' },
+      seekLanes: e => { const r = e.currentTarget.getBoundingClientRect(); this.seek((e.clientX - r.left) / r.width * dur); },
+      ticks: c.entries.filter(e => e[1] === 'T').map(e => ({
+        title: mmss(e[0]) + ' · ' + e[2] + ' · ' + stLabel[e[4].st],
+        jump: ev => { ev.stopPropagation(); this.seek(e[0]); },
+        style: { position:'absolute', top:23, width:12, height:12, left:`calc(${e[0] / dur * 100}% - 6px)`, padding:0, border:0, background:'transparent', cursor:'pointer', zIndex:1 }
+      })),
       marks: c.findings.map(f => ({
         isCrit: f[1] === 'crit', isWarn: f[1] === 'warn', title: mmss(f[0]) + ' · ' + f[2],
         jump: e => { e.stopPropagation(); this.seek(f[0]); },
-        style: { position:'absolute', top:0, bottom:0, left:`calc(${f[0] / dur * 100}% - 8px)`, width:16, padding:0, border:0, background:'transparent', cursor:'pointer', zIndex: f[1] === 'crit' ? 2 : 1 }
+        style: { position:'absolute', top:0, height:12, left:`calc(${f[0] / dur * 100}% - 8px)`, width:16, padding:0, border:0, background:'transparent', cursor:'pointer', zIndex: f[1] === 'crit' ? 3 : 2 }
       })),
       findCount: c.findings.length ? String(c.findings.length) : '',
       noFindings: c.findings.length === 0,
-      findings: fOrder.map(({ f }) => ({
-        time: mmss(f[0]), isCrit: f[1] === 'crit', isWarn: f[1] === 'warn', text: f[2], cat: C.CATS[f[3]],
+      findings: fOrder.map(({ f, i }) => ({
+        time: mmss(f[0]), isCrit: f[1] === 'crit', isWarn: f[1] === 'warn', text: f[2], cat: meta(i),
         link: f[4] || 'The rule in Tests', linkTitle: f[4] ? 'Open the issue' : 'Open the rule this test proves', href: f[5] ? 'Connexity Issue.dc.html?issue=' + f[5] : f[4] ? issuesHref : testsHref,
         stop: e => e.stopPropagation(), jump: () => this.seek(f[0])
       })),
       trRef: this.trRef,
-      entries: c.entries.map(([et, who, text, fi, delay], i) => {
-        const f = fi != null && fi >= 0 ? c.findings[fi] : null, on = i === active;
-        return { i, time: mmss(et), isTurn: who !== 'T', isTool: who === 'T', who: who === 'A' ? 'Agent' : 'Caller', text,
-          hasDelay: !!delay, delay: delay || '', find: f ? f[2] : '', findCrit: !!f && f[1] === 'crit', findWarn: !!f && f[1] === 'warn',
+      entries: c.entries.map(([et, who, text, fi, x], i) => {
+        const f = fi != null && fi >= 0 ? c.findings[fi] : null, on = i === active, tool = who === 'T', open = tool && !!S.open[i];
+        const bad = tool && x.st !== 'ok';
+        return { i, time: mmss(et), isTurn: !tool, isTool: tool, who: who === 'A' ? 'Agent' : 'Caller',
+          text: tool ? `${text} · ${stLabel[x.st]} · ${fmtMs(x.ms)}` : text,
+          hasDelay: !tool && !!x, delay: !tool && x ? x : '',
+          find: f ? f[2] : '', findMeta: f ? meta(fi) : '', findCrit: !!f && f[1] === 'crit', findWarn: !!f && f[1] === 'warn',
+          open, toggleTitle: open ? 'Hide arguments and result' : 'Show arguments and result',
+          toggle: () => this.setState(s => ({ open: { ...s.open, [i]: !s.open[i] } })),
+          toolStyle: { display:'inline-flex', alignItems:'center', gap:6, padding:0, border:0, background:'transparent', color: bad ? 'var(--crit)' : 'var(--ink3)', fontSize:13, lineHeight:'22px', textAlign:'left', cursor:'pointer' },
+          chevStyle: { flex:'none', transform: open ? 'rotate(90deg)' : 'none', transition:'transform 120ms' },
+          args: tool ? kvs(x.args, i, 'a') : [], res: tool ? kvs(x.res, i, 'r') : [],
+          hasWf: tool && !!x.wf, wf: tool && x.wf ? x.wf : '',
           jump: () => this.seek(et),
-          rowStyle: { display:'grid', gridTemplateColumns:'40px 56px minmax(0,1fr)', gap:16, alignItems:'start', padding:'8px 24px', cursor:'pointer', background: on ? 'var(--wash)' : 'transparent', boxShadow: on ? 'inset 2px 0 0 var(--ink)' : 'none' } };
+          rowStyle: { display:'grid', gridTemplateColumns:'40px 56px minmax(0,1fr)', gap:16, alignItems:'start', padding: tool ? '4px 24px' : '8px 24px', cursor:'pointer', background: on ? 'var(--wash)' : 'transparent', boxShadow: on ? 'inset 2px 0 0 var(--ink)' : 'none' } };
       })
     };
   }

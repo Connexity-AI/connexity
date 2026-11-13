@@ -4,6 +4,7 @@ from connexity_mcp_server.client import ConnexityBackendClient, ConnexityBackend
 from connexity_mcp_server.config import Settings
 from connexity_mcp_server.tools import (
     add_agents,
+    get_call,
     list_calls,
     list_categories,
     list_issues,
@@ -464,3 +465,52 @@ async def test_list_calls_sends_the_search_and_filters() -> None:
 
     assert result.data.calls[0].caller_last_four == "4821"
     assert result.data.calls[0].worst_finding.found_by == "rule"
+
+
+@pytest.mark.asyncio
+async def test_get_call_reads_one_call() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/calls/c1"
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "id": "c1",
+                    "agent_id": "a1",
+                    "agent_name": "Front desk",
+                    "started_at": "2026-11-13T09:42:00",
+                    "result": "failed",
+                    "has_recording": True,
+                    "entries": [
+                        {
+                            "kind": "tool",
+                            "at_seconds": 41.2,
+                            "tool": "schedule_appointment",
+                            "status": "ok",
+                            "arguments": [{"key": "postalCode", "value": "00000"}],
+                            "finding_ids": ["f1"],
+                        }
+                    ],
+                    "findings": [
+                        {
+                            "id": "f1",
+                            "at_seconds": 41.2,
+                            "text": "Booking with missing or placeholder details",
+                            "category": "Booking",
+                            "severity": "critical",
+                            "found_by": "rule",
+                            "entry_index": 0,
+                        }
+                    ],
+                },
+                "next_cursor": None,
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler, lambda client: get_call(client, workspace_id=WORKSPACE_ID, call_id="c1")
+    )
+
+    assert result.data.entries[0].tool == "schedule_appointment"
+    assert result.data.findings[0].found_by == "rule"

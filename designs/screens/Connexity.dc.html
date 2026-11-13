@@ -166,7 +166,7 @@
   </div>
 </section>
 <section id="call" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
-  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Call · failed</span><span style="font-size:13px;color:#a3a5a9">Opens at the critical moment. Play, click the waveform, a mark, a finding or a turn to jump.</span></div>
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Call · failed</span><span style="font-size:13px;color:#a3a5a9">Opens at the critical moment. Play, click the speech timeline, a mark, a tool tick, a finding or a turn to jump. Click a tool line to see its arguments and result.</span></div>
   <div style="display:flex;gap:48px;align-items:flex-start">
     <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Call" theme="dark" call="C-20481" hint-size="1440px,1200px"></dc-import></div></div>
     <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Call" theme="light" call="C-20481" hint-size="1440px,1200px"></dc-import></div></div>
@@ -177,6 +177,20 @@
   <div style="display:flex;gap:48px;align-items:flex-start">
     <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Call" theme="dark" call="S-0915" hint-size="1440px,1100px"></dc-import></div></div>
     <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Call" theme="light" call="S-0915" hint-size="1440px,1100px"></dc-import></div></div>
+  </div>
+</section>
+<section id="call-booking" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Call · two bookings for one slot</span><span style="font-size:13px;color:#a3a5a9">The second, identical booking call is flagged by a rule. Its tool line is shown expanded: arguments, result, a clamped long value and the workflow.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Call" theme="dark" call="C-20488" expand-flagged="{{ true }}" hint-size="1440px,1300px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Call" theme="light" call="C-20488" expand-flagged="{{ true }}" hint-size="1440px,1300px"></dc-import></div></div>
+  </div>
+</section>
+<section id="call-no-recording" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Call · recording unavailable</span><span style="font-size:13px;color:#a3a5a9">The timeline still shows from the transcript. Clicking it, a finding or a turn moves the highlight by time.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Call" theme="dark" call="C-20466" hint-size="1440px,1100px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Call" theme="light" call="C-20466" hint-size="1440px,1100px"></dc-import></div></div>
   </div>
 </section>
 <section id="issues" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">

@@ -6,6 +6,7 @@ from connexity_mcp_server.models import (
     AgentToAdd,
     ConnectVoicePlatformResult,
     CreateWorkspaceResult,
+    GetCallResult,
     GetReadinessResult,
     ListAgentsResult,
     ListCallsResult,
@@ -121,4 +122,12 @@ async def list_calls(
             cursor=cursor,
             limit=limit,
         )
+    )
+
+
+async def get_call(
+    client: ConnexityBackendClient, workspace_id: str, call_id: str
+) -> GetCallResult:
+    return GetCallResult.model_validate(
+        await client.get_call(workspace_id=workspace_id, call_id=call_id)
     )

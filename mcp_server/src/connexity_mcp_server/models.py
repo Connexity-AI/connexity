@@ -129,6 +129,50 @@ class Calls(BaseModel):
     calls: list[CallItem] = Field(default_factory=list)
 
 
+class KeyValue(BaseModel):
+    key: str
+    value: str
+
+
+class CallEntry(BaseModel):
+    kind: str
+    at_seconds: float
+    end_seconds: float | None = None
+    speaker: str | None = None
+    text: str | None = None
+    tool: str | None = None
+    status: str | None = None
+    duration_ms: int | None = None
+    arguments: list[KeyValue] = Field(default_factory=list)
+    result: list[KeyValue] = Field(default_factory=list)
+    workflow: str | None = None
+    finding_ids: list[str] = Field(default_factory=list)
+
+
+class CallFinding(BaseModel):
+    id: str
+    at_seconds: float
+    text: str
+    category: str
+    severity: str
+    found_by: str
+    entry_index: int | None = None
+
+
+class CallDetail(BaseModel):
+    id: str
+    agent_id: str
+    agent_name: str
+    started_at: str
+    duration_seconds: int | None = None
+    caller_last_four: str | None = None
+    result: str
+    version: str | None = None
+    has_recording: bool
+    entries: list[CallEntry] = Field(default_factory=list)
+    findings: list[CallFinding] = Field(default_factory=list)
+
+
 class Issue(BaseModel):
     id: str
     agent_id: str
@@ -162,3 +206,4 @@ ScanCallsResult = Answer[ScanProgress]
 ListCategoriesResult = Answer[list[Category]]
 ListIssuesResult = Answer[list[Issue]]
 ListCallsResult = Answer[Calls]
+GetCallResult = Answer[CallDetail]
