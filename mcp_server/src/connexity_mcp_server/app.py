@@ -367,15 +367,19 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     async def list_agents(
         workspace_id: str,
         query: str | None = None,
+        period: str | None = None,
         cursor: str | None = None,
         limit: int = 25,
     ) -> ListAgentsResult:
-        """The agents in a workspace, newest first. `query` matches part of the
-        name. Pass `next_cursor` back as `cursor` for the next page (limit 1 to 100)."""
+        """The agents in a workspace, newest first, each with its type
+        (single_prompt or conversational_flow), its calls in the period (7d, 30d by
+        default, 90d) and its spec state. `query` matches part of the name. Pass
+        `next_cursor` back as `cursor` for the next page (limit 1 to 100)."""
         return await _list_agents(
             client=backend_client,
             workspace_id=workspace_id,
             query=query,
+            period=period,
             cursor=cursor,
             limit=limit,
         )

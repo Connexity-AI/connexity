@@ -63,12 +63,14 @@ async def list_agents(
     client: ConnexityBackendClient,
     workspace_id: str,
     query: str | None = None,
+    period: str | None = None,
     cursor: str | None = None,
     limit: int = 25,
 ) -> ListAgentsResult:
     payload = await client.list_agents(
         workspace_id=workspace_id,
         query=query,
+        period=period,
         cursor=cursor,
         limit=max(1, min(limit, 100)),
     )

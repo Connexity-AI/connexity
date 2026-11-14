@@ -23,6 +23,7 @@ from app.api.deps import (
 from app.core.config import settings
 from app.core.encryption import decrypt
 from app.crud.call_list import CallFilters
+from app.crud.issue_list import calls_by_agent, period_start
 from app.models import (
     Agent,
     CallScreenPublic,
@@ -64,6 +65,7 @@ from app.models.mcp import (
     McpWriteSpec,
 )
 from app.models.spec import SpecPublic, SpecWrittenPublic
+from app.services.agent_list import agent_types
 from app.services.call_list import workspace_calls
 from app.services.call_screen import call_screen
 from app.services.connections import (
@@ -569,6 +571,7 @@ def list_agents(
     session: SessionDep,
     workspace: McpWorkspaceDep,
     query: str | None = Query(default=None, max_length=255),
+    period: Literal["7d", "30d", "90d"] = "30d",
     cursor: str | None = Query(default=None, max_length=255),
     limit: int = Query(default=25, ge=1, le=100),
 ) -> McpAnswer[list[McpAgent]]:
@@ -594,9 +597,15 @@ def list_agents(
     ids = [agent.id for agent in agents]
     specs = crud.latest_specs(session=session, agent_ids=ids)
     currents = crud.current_agent_versions(session=session, agent_ids=ids)
+    types = agent_types(session=session, agents=list(agents), currents=currents)
+    calls = calls_by_agent(
+        session=session, company_id=workspace.id, since=period_start(period)
+    )
     data = []
     for agent in agents:
         row = _mcp_agent(agent)
+        row.type = types.get(agent.id)
+        row.calls = calls.get(agent.id, 0)
         spec = specs.get(agent.id)
         row.spec = spec_state(spec, currents.get(agent.id))
         row.spec_version = spec.version if spec else None
@@ -617,6 +626,8 @@ def list_agents(
             "what the agent does.",
             "Agents are listed newest first; `query` matches part of the name, "
             "ignoring case.",
+            "calls counts the agent's calls in the period (30d by default); type is "
+            "read from its current version, and is empty until Connexity has read it.",
         ],
         next_steps=next_steps,
         guide=GUIDE_GETTING_STARTED,

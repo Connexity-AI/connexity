@@ -13,6 +13,7 @@ from typing import Annotated, Generic, Literal, TypeVar
 
 from pydantic import BaseModel, Field, StringConstraints
 
+from app.models.agent_list import AgentType
 from app.models.call_list import CallListItemPublic, CallTilesPublic
 from app.models.enums import Platform, SpecRuleTouches
 from app.models.issue_list import IssueListItemPublic, IssueTilesPublic
@@ -76,6 +77,10 @@ class McpAgent(BaseModel):
     spec_version: int | None = Field(
         default=None, description="Its latest spec version"
     )
+    type: AgentType | None = Field(
+        default=None, description="single_prompt or conversational_flow, when known"
+    )
+    calls: int | None = Field(default=None, description="Calls in the period")
 
 
 class McpVoicePlatform(StrEnum):

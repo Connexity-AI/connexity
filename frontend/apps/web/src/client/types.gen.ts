@@ -231,6 +231,61 @@ export type AgentLatestPublishedVersionPublic = {
 };
 
 /**
+ * AgentListItemPublic
+ */
+export type AgentListItemPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  platform?: Platform | null;
+  /**
+   * Type
+   *
+   * From its current version in Connexity's catalogue; None if unknown
+   */
+  type?: 'single_prompt' | 'conversational_flow' | null;
+  /**
+   * Calls
+   *
+   * Calls in the period
+   */
+  calls: number;
+  /**
+   * Spec
+   *
+   * none, current, or needs_review
+   */
+  spec: 'none' | 'current' | 'needs_review';
+};
+
+/**
+ * AgentListPublic
+ */
+export type AgentListPublic = {
+  /**
+   * Data
+   *
+   * Most calls first, then by name
+   */
+  data: Array<AgentListItemPublic>;
+  /**
+   * Period
+   */
+  period: '7d' | '30d' | '90d';
+  /**
+   * Synced At
+   *
+   * When calls were last pulled for the workspace's Retell accounts
+   */
+  synced_at?: string | null;
+};
+
+/**
  * AgentMode
  */
 export const AgentMode = { ENDPOINT: 'endpoint', PLATFORM: 'platform' } as const;
@@ -4226,6 +4281,18 @@ export type McpAgent = {
    * Its latest spec version
    */
   spec_version?: number | null;
+  /**
+   * Type
+   *
+   * single_prompt or conversational_flow, when known
+   */
+  type?: 'single_prompt' | 'conversational_flow' | null;
+  /**
+   * Calls
+   *
+   * Calls in the period
+   */
+  calls?: number | null;
 };
 
 /**
@@ -10050,6 +10117,10 @@ export type McpListAgentsData = {
      */
     query?: string | null;
     /**
+     * Period
+     */
+    period?: '7d' | '30d' | '90d';
+    /**
      * Cursor
      */
     cursor?: string | null;
@@ -10445,6 +10516,62 @@ export type McpScanCallsResponses = {
 };
 
 export type McpScanCallsResponse = McpScanCallsResponses[keyof McpScanCallsResponses];
+
+export type AgentsListWorkspaceAgentsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Period
+     */
+    period?: '7d' | '30d' | '90d';
+  };
+  url: '/api/v1/agents/list';
+};
+
+export type AgentsListWorkspaceAgentsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsListWorkspaceAgentsError =
+  AgentsListWorkspaceAgentsErrors[keyof AgentsListWorkspaceAgentsErrors];
+
+export type AgentsListWorkspaceAgentsResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentListPublic;
+};
+
+export type AgentsListWorkspaceAgentsResponse =
+  AgentsListWorkspaceAgentsResponses[keyof AgentsListWorkspaceAgentsResponses];
 
 export type AgentsListAgentsData = {
   body?: never;
