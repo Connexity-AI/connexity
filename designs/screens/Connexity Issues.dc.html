@@ -139,7 +139,7 @@ class Component extends DCLogic {
   static DAYS = { 'Last 7 days':7, 'Last 30 days':30, 'Last 90 days':90 };
   static CATS = { greet:'Greeting and identification', collect:'Information collection', book:'Booking', resched:'Rescheduling and cancelling', price:'Pricing and quotes', objection:'Objection handling', transfer:'Transfers and escalation', compliance:'Compliance and privacy', flow:'Conversation flow quality', end:'Ending the call', fast:'Responsiveness', tools:'Tools and integrations', speech:'Speech recognition', other:'Other' };
   static CAT_ORDER = ['greet','collect','book','resched','price','objection','transfer','compliance','flow','end','fast','tools','speech','other'];
-  static DETAIL = ['I-1042','I-1053','I-0988'];
+  static DETAIL = ['I-1042','I-1053','I-0988','I-1043'];
   // open incidents: [id, title, agents, calls failed, since, still failing or stopped text]
   static INCIDENTS = [['INC-0412','Booking tool failing',['car','restaurant','clinic','dental'],31,'since 09:12',null],['INC-0411','Quote lookup timing out',['insurance'],6,'since 10:05','Stopped at 10:41']];
   // [id, category, agent, title, c|w, calls in 30 days, o open | r reopened | d resolved | k known, milestone, minutes since last seen, resolved in version]
@@ -178,7 +178,7 @@ class Component extends DCLogic {
     ['I-1061','price','restaurant','Quoted the set menu at last year\u2019s price','w',2,'o',67,5200],
     ['I-1065','price','car','Inspection price given without the retest fee','w',2,'o',67,6100],
     ['I-1036','speech','car','Registration misheard','w',15,'o',70,140],
-    ['I-1043','speech','restaurant','Party size misheard','w',10,'o',70,110],
+    ['I-1043','speech','restaurant','Party size misheard','w',18,'r',70,25],
     ['I-1068','speech','insurance','Policy number misheard','w',7,'o',70,480],
     ['I-1070','speech','clinic','Medication name misheard','w',4,'o',70,1400],
     ['I-1071','speech','dental','Patient name misheard','w',4,'o',70,1600],

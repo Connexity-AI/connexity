@@ -18,6 +18,13 @@ class WorstFindingPublic(BaseModel):
     found_by: str = Field(description="rule (deterministic) or model")
 
 
+class IssueMomentPublic(BaseModel):
+    at_seconds: float = Field(
+        description="When it first happened, from the call's start"
+    )
+    times: int = Field(description="How many times it happened in the call")
+
+
 class CallListItemPublic(BaseModel):
     id: uuid.UUID
     started_at: datetime
@@ -29,6 +36,10 @@ class CallListItemPublic(BaseModel):
     duration_seconds: int | None = None
     result: CallCheckStatus
     worst_finding: WorstFindingPublic | None = None
+    moment: IssueMomentPublic | None = Field(
+        default=None,
+        description="With an issue filter: where the issue first happened in the call",
+    )
 
 
 class CallTilesPublic(BaseModel):
@@ -52,4 +63,7 @@ class CallListPublic(BaseModel):
     agents: list[CallFilterOption] = Field(description="The agents to filter by")
     categories: list[CallFilterOption] = Field(
         description="The fixed categories, in order"
+    )
+    issue: CallFilterOption | None = Field(
+        default=None, description="With an issue filter: the issue's id and title"
     )

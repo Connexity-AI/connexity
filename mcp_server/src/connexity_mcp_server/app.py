@@ -31,6 +31,7 @@ from connexity_mcp_server.models import (
     CreateWorkspaceResult,
     GetCallResult,
     GetReadinessResult,
+    IssueResult,
     ListAgentsResult,
     ListCallsResult,
     ListCategoriesResult,
@@ -66,6 +67,15 @@ from connexity_mcp_server.tools import (
     list_issues as _list_issues,
 )
 from connexity_mcp_server.tools import (
+    get_issue as _get_issue,
+)
+from connexity_mcp_server.tools import (
+    archive_issue as _archive_issue,
+)
+from connexity_mcp_server.tools import (
+    unarchive_issue as _unarchive_issue,
+)
+from connexity_mcp_server.tools import (
     list_workspaces as _list_workspaces,
 )
 from connexity_mcp_server.tools import (
@@ -81,6 +91,11 @@ CREATES = ToolAnnotations(
 # Reads calls from the voice platform into Connexity; repeating it carries on.
 SCANS = ToolAnnotations(
     readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
+)
+# Archives or unarchives an issue: a person's decision the assistant makes only with
+# their yes. Not destructive (nothing is deleted); repeating it changes nothing.
+DECIDES = ToolAnnotations(
+    readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False
 )
 # Reads from the voice platform to check the key; replaces an earlier key.
 CONNECTS = ToolAnnotations(
@@ -193,13 +208,15 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         result: str | None = None,
         category: str | None = None,
         period: str | None = None,
+        issue_id: str | None = None,
         cursor: str | None = None,
         limit: int | None = None,
     ) -> ListCallsResult:
         """The workspace's calls, newest first, with counts for the period. query is a
         phone number (matches the end of the caller's number) or a call id. Filters:
         agent_id, result (failed, degraded, clean, unchecked), category (a category
-        key), period (7d, 30d, 90d). Callers come as their last four digits."""
+        key), period (7d, 30d, 90d), issue_id (only the calls that issue was found on,
+        each with its moment). Callers come as their last four digits."""
         return await _list_calls(
             client=backend_client,
             workspace_id=workspace_id,
@@ -208,6 +225,7 @@ def build_application(settings: Settings | None = None) -> FastAPI:
             result=result,
             category=category,
             period=period,
+            issue_id=issue_id,
             cursor=cursor,
             limit=limit,
         )
@@ -243,6 +261,48 @@ def build_application(settings: Settings | None = None) -> FastAPI:
             period=period,
             cursor=cursor,
             limit=limit,
+        )
+
+    @mcp_server.tool(annotations=READ_ONLY)
+    async def get_issue(workspace_id: str, issue_id: str) -> IssueResult:
+        """One issue: its size over the last 30 days (calls affected of the agent's
+        calls), first and last seen, whether it is fixed in a version, calls per day
+        with version marks, the latest calls it hit with the moment in each, and its
+        history of decisions."""
+        return await _get_issue(
+            client=backend_client, workspace_id=workspace_id, issue_id=issue_id
+        )
+
+    @mcp_server.tool(annotations=DECIDES)
+    async def archive_issue(
+        workspace_id: str,
+        issue_id: str,
+        reason: str,
+        duration: Literal["until_spike", "forever"] = "until_spike",
+    ) -> IssueResult:
+        """Archive an issue nobody will fix: it is then hidden on every call and counts
+        for nothing. A person's decision: first tell them the issue, its size and the
+        duration, and call this only after they say yes, with their words as the
+        reason. until_spike brings it back if it starts happening twice as often."""
+        return await _archive_issue(
+            client=backend_client,
+            workspace_id=workspace_id,
+            issue_id=issue_id,
+            reason=reason,
+            duration=duration,
+        )
+
+    @mcp_server.tool(annotations=DECIDES)
+    async def unarchive_issue(
+        workspace_id: str, issue_id: str, reason: str | None = None
+    ) -> IssueResult:
+        """Bring an archived issue back: all its calls count again. Ask the person
+        first, as for archiving."""
+        return await _unarchive_issue(
+            client=backend_client,
+            workspace_id=workspace_id,
+            issue_id=issue_id,
+            reason=reason,
         )
 
     @mcp_server.tool(annotations=READ_ONLY)

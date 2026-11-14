@@ -105,6 +105,11 @@ class WorstFinding(BaseModel):
     found_by: str
 
 
+class IssueMoment(BaseModel):
+    at_seconds: float
+    times: int
+
+
 class CallItem(BaseModel):
     id: str
     started_at: str
@@ -114,6 +119,7 @@ class CallItem(BaseModel):
     duration_seconds: int | None = None
     result: str
     worst_finding: WorstFinding | None = None
+    moment: IssueMoment | None = None
 
 
 class CallTiles(BaseModel):
@@ -219,6 +225,90 @@ CreateWorkspaceResult = Answer[Workspace]
 ListAgentsResult = Answer[list[Agent]]
 ScanCallsResult = Answer[ScanProgress]
 ListCategoriesResult = Answer[list[Category]]
+class IssueArchive(BaseModel):
+    by: str
+    assistant: str | None = None
+    at: str
+    duration: str
+    reason: str | None = None
+
+
+class IssuePageTiles(BaseModel):
+    calls_affected: int
+    calls_total: int
+    first_seen_at: str | None = None
+    last_seen_at: str | None = None
+
+
+class IssueFound(BaseModel):
+    at: str
+    call_id: str
+    caller_last_four: str | None = None
+
+
+class IssueFixed(BaseModel):
+    version: str | None = None
+    at: str
+
+
+class IssueChain(BaseModel):
+    found: IssueFound | None = None
+    fixed: IssueFixed | None = None
+
+
+class IssueDay(BaseModel):
+    day: str
+    calls: int
+
+
+class IssueMark(BaseModel):
+    day: str
+    kind: str
+    label: str
+
+
+class IssueAffectedCall(BaseModel):
+    call_id: str
+    started_at: str
+    caller_last_four: str | None = None
+    duration_seconds: int | None = None
+    result: str
+    moment: IssueMoment
+
+
+class IssueHistoryLine(BaseModel):
+    kind: str
+    what: str
+    by: str | None = None
+    assistant: str | None = None
+    at: str
+    reason: str | None = None
+    duration: str | None = None
+
+
+class IssuePage(BaseModel):
+    id: str
+    title: str
+    check_type: str
+    key: str | None = None
+    agent_id: str
+    agent_name: str
+    category: dict[str, str]
+    severity: str
+    found_by: str
+    state: str
+    resolved_version: str | None = None
+    archive: IssueArchive | None = None
+    tiles: IssuePageTiles
+    chain: IssueChain
+    days: list[IssueDay] = Field(default_factory=list)
+    marks: list[IssueMark] = Field(default_factory=list)
+    peak: int = 0
+    affected_calls: list[IssueAffectedCall] = Field(default_factory=list)
+    history: list[IssueHistoryLine] = Field(default_factory=list)
+
+
 ListIssuesResult = Answer[Issues]
+IssueResult = Answer[IssuePage]
 ListCallsResult = Answer[Calls]
 GetCallResult = Answer[CallDetail]

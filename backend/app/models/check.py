@@ -6,7 +6,7 @@ not a row.
 
 import uuid
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import AwareDatetime, JsonValue
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Text, UniqueConstraint, text
@@ -114,6 +114,17 @@ class Issue(SQLModel, table=True):
     )
     # The version said to carry the fix, as the person wrote it. A note, not a rule.
     resolved_version: str | None = Field(default=None, max_length=255)
+    # The last archive (plans/2026-11-13-issue-page.md). While archived, the issue's
+    # findings are left out of every call's result and findings. Kept when it comes back.
+    archived_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+    )
+    # True: "until it spikes"; False: "forever".
+    archive_until_spike: bool | None = Field(default=None)
+    # Its share of the agent's calls in the 30 days before the archive, fixed then: the
+    # spike rule's baseline.
+    archive_baseline_share: float | None = Field(default=None)
     created_at: datetime = Field(
         default_factory=_now,
         sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
@@ -172,7 +183,15 @@ class DecisionRecord(SQLModel, table=True):
         ),
     )
     # Kept beside the id so the record still says who after the user is removed.
+    # "Connexity" for a decision Connexity made on its own (an issue that spiked).
     decided_by_email: str = Field(max_length=255)
+    # The assistant that acted, approved by the person in ``decided_by`` ("Claude Code").
+    assistant_name: str | None = Field(default=None, max_length=255)
+    # What the decision carried beyond old and new value: an archive's duration and
+    # baseline, a spike's numbers.
+    detail: dict[str, Any] | None = Field(
+        default=None, sa_column=Column("detail", JSONB(none_as_null=True))
+    )
     created_at: datetime = Field(
         default_factory=_now,
         sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
@@ -283,23 +302,6 @@ class IssuePublic(SQLModel):
     created_at: AwareDatetime
 
 
-class IssueFindingPublic(SQLModel):
-    id: uuid.UUID
-    call_id: uuid.UUID
-    call_started_at: AwareDatetime
-    check_version: int
-    event_ids: list[str]
-    detail: dict[str, JsonValue] | None = None
-    effect: FindingEffect
-    retroactive: bool
-
-
-class IssueDetailPublic(IssuePublic):
-    findings: list[IssueFindingPublic] = Field(
-        description="Newest call first; at most 200"
-    )
-
-
 class IssueStateUpdate(SQLModel):
     state: IssueState = Field(description="open, resolved or archived")
     reason: str | None = Field(
@@ -309,4 +311,8 @@ class IssueStateUpdate(SQLModel):
         default=None,
         max_length=255,
         description="When resolving: the version that carried the fix",
+    )
+    duration: Literal["until_spike", "forever"] = Field(
+        default="until_spike",
+        description="When archiving: until it spikes, or forever",
     )

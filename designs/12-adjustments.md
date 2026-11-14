@@ -9,11 +9,16 @@ Apply these small adjustments across the whole app, in dark and light. Keep ever
 ## 1. "Accept as known" becomes "Archive"
 
 - Rename the issue status **Accepted as known** to **Archived** everywhere: the issue page, the Issues page filters and rows, tiles, history lines and Action items cards.
-- The action on the issue page becomes **Archive**. It opens a small dialog: a required reason, and how long, **Until it gets worse** (the default: the issue comes back on its own when it starts happening much more often) or **Forever**.
-- An archived issue leaves the open lists, Home counts and the roadmap, but its occurrences are still recorded. On the issue page it shows "Archived by Alex, 9 Nov · until it gets worse · 'Callers hang up during the carrier's hold music'".
-- An archived issue **stops counting** against the agent's score, reliability and quality from the moment it is archived. The past is never rewritten: the agent's quality chart and the score history get a small mark on that date ("Issue archived by Alex"), so a jump in the number is always explained.
-- Every archive is **recorded**: who archived it (a person, or the assistant with the person who approved it), when, the reason and the duration. The record shows on the issue page's history, as a mark on the charts, and in the Archived rows of the Issues page ("Archived by Alex, 9 Nov"). Unarchiving and an automatic return ("Came back: happening 3× more often") are recorded the same way.
-- Only a person confirms archiving; when the assistant proposes it, it shows as an Action items card.
+- The action on the issue page becomes **Archive**. It opens a small dialog: a required reason, and how long, **Until it spikes** (the default) or **Forever** (see item 28).
+- An archived issue leaves the open lists, Home counts and the roadmap. On the issue page it shows "Archived by Alex, 9 Nov · until it spikes · 'Callers hang up during the carrier's hold music'".
+- **While an issue is archived, it is hidden everywhere, on every call, including calls from before it was archived** (replaces "from the moment it is archived; the past is never rewritten"):
+  - it does not appear on calls: no finding on the single call, never a call's worst finding;
+  - it does not make calls fail or degrade, so a call with only this issue reads Clean;
+  - it does not count against the agent's score, reliability or quality;
+  - the assistant does not see it on calls either.
+- **It is still found and stored behind the scenes.** When it is unarchived, by a person, by the assistant with a person's approval, or by a spike, every call it hit counts again, including those from while it was archived. The quality chart and the score history get a small mark on each archive and unarchive date ("Issue archived by Alex"), so a jump in the number is always explained.
+- Every archive is **recorded**: who archived it (a person, or the assistant with the person who approved it), when, the reason and the duration. The record shows on the issue page's history, as a mark on the charts, and in the Archived rows of the Issues page ("Archived by Alex, 9 Nov"). Unarchiving and an automatic return ("Came back: it spiked") are recorded the same way.
+- Only a person confirms archiving, on the issue page or by approving it when their assistant asks (item 28).
 - The Issues page status filter reads: Open, Reopened, Resolved, Archived.
 
 ## 2. Incident page: a lighter blast radius chart
@@ -332,3 +337,54 @@ While no assistant is connected, step 1 "Assistant connected" is expanded and sh
 - **When the assistant first connects,** the step ticks on its own, with no reload: the tabs collapse, the check mark appears, and the step's detail on the right reads "Connected: Claude Code" (or the assistant's name, for example "Connected: ChatGPT"). Show this connected state as a second variant of the screen.
 
 Keep the calm tone of the screen: no illustrations, no extra explanation, no other setup instructions anywhere else.
+
+## 27. Issue page and Calls page: affected calls, not occurrences
+
+Everything about an issue is counted in calls. The word "occurrence" leaves the screen.
+
+**On the issue page:**
+
+- **The Occurrences section becomes Affected calls**, "Latest first", with one row per call. A call where the issue happened twice is still one row.
+- **Columns:** Time, Caller, Duration, Result, Moment.
+  - **Moment** shows the first time it happened in that call ("at 2:01").
+  - When it happened more than once, a quiet "· 2 times" follows ("at 2:01 · 2 times").
+- **Clicking a row** opens the single call at that first moment.
+- **The link under the list** reads "All 38 calls" instead of "All 41 occurrences on 38 calls", and opens the Calls page filtered to this issue.
+
+**On the Calls page, when it is opened from an issue:**
+
+- **The filter row** shows one extra chip before the other filters: the issue's title ("Booking tool returned an error") with a small ×. Clicking × removes it and shows every call again.
+  - The chip only appears when the page is opened from an issue. It is not a dropdown, and the other filters stay as they are.
+- **The tiles and the list** show only calls this issue affected. Search, the other filters and the period still work on top of it.
+- **The last column** reads **Moment** instead of Worst finding, with the same "at 2:01 · 2 times" as on the issue page. A row opens the call at that moment.
+- **The empty state:** "No calls match" with "Clear the search and filters" keeps the issue chip and clears only the others.
+
+## 28. Archive: "Until it spikes", and archiving through the assistant
+
+This replaces "Until it gets worse" from item 1. Everything else in item 1 stays.
+
+**The Archive dialog on the issue page:**
+
+- **The reason** stays required, as it is now.
+- **"How long"** offers two options:
+  - **Until it spikes** (the default): "Comes back if it starts happening twice as often as now."
+  - **Forever**: "Stays archived until someone unarchives it."
+- **The line under the buttons** reads only "Only a person can confirm this, here or through your assistant." Remove the sentence about proposals showing up in Action items.
+
+**The archived line in the page bar:**
+
+- **Archived by a person:** "Archived by Alex, 9 Nov · until it spikes · 'Callers hang up during the carrier's hold music'".
+- **Archived through the assistant:** "Archived by your assistant, approved by Dmytro, 9 Nov · until it spikes · '…'".
+- **Forever** reads "· forever" in place of "· until it spikes".
+
+**When an archived issue spikes:**
+
+- **It becomes Reopened** (the same dark Reopened label as everywhere else) and returns to the Issues page's Open list.
+- **History gets a line,** decided by Connexity: "Came back: it spiked · 8 calls this week, twice as often as when it was archived".
+- **The chart's "Archived by …" mark** stays where it was, and a second mark "Spiked" appears on the day it came back.
+
+**Hidden while archived:** item 1 says how. When the issue comes back, its calls from the archived period show it again.
+
+**Unarchiving** has no button on screen. When it happens through the assistant, history reads "Unarchived by your assistant, approved by Dmytro, 12 Nov · 'reason'".
+
+Keep the word "spike" for this only. Never use "escalation" for an issue getting worse, because it means handing a call to a person ("Transfers and escalation").

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
-import { Calendar, OctagonAlert, Search, TriangleAlert } from 'lucide-react';
+import { Calendar, OctagonAlert, Search, TriangleAlert, X } from 'lucide-react';
 
 import { NumberTile } from '@workspace/ui/components/number-tile';
 import { PageBar } from '@workspace/ui/components/page-bar';
@@ -123,6 +123,22 @@ export const CallsView: FC<Props> = ({ calls, shown, pageSize }) => {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        {calls.issue && (
+          <span className="flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-ink-secondary bg-wash pr-1 pl-3 text-body">
+            <Link href={UrlGenerator.issue(calls.issue.value)} className="text-ink no-underline">
+              {calls.issue.label}
+            </Link>
+            <button
+              type="button"
+              title="Remove"
+              aria-label="Remove the issue filter"
+              onClick={() => go({ issue: undefined })}
+              className="flex size-7 items-center justify-center rounded-md border-0 bg-transparent text-ink-secondary hover:text-ink"
+            >
+              <X className="size-4" aria-hidden />
+            </button>
+          </span>
+        )}
         <form
           role="search"
           className="flex h-9 w-[280px] items-center gap-2 rounded-lg border border-border-control bg-surface-1 px-3"
@@ -184,12 +200,12 @@ export const CallsView: FC<Props> = ({ calls, shown, pageSize }) => {
           <span>Caller</span>
           <span className="text-right">Duration</span>
           <span>Result</span>
-          <span>Worst finding</span>
+          <span>{calls.issue ? 'Moment' : 'Worst finding'}</span>
         </div>
         {calls.data.map((call) => (
           <Link
             key={call.id}
-            href={UrlGenerator.call(call.id)}
+            href={UrlGenerator.call(call.id, calls.issue ? call.moment?.at_seconds : undefined)}
             className={cn(
               'grid min-h-11 items-center gap-4 border-t border-hairline px-6 text-body text-ink no-underline hover:bg-wash',
               COLUMNS
@@ -204,7 +220,16 @@ export const CallsView: FC<Props> = ({ calls, shown, pageSize }) => {
             <span className="flex">
               <ResultLabel result={call.result} />
             </span>
-            <span className="truncate">{worstLine(call)}</span>
+            {calls.issue ? (
+              <span className="whitespace-nowrap text-ink-secondary">
+                {call.moment ? `at ${clock(call.moment.at_seconds)}` : ''}
+                {call.moment && call.moment.times > 1 && (
+                  <span className="text-ink-muted"> · {call.moment.times} times</span>
+                )}
+              </span>
+            ) : (
+              <span className="truncate">{worstLine(call)}</span>
+            )}
           </Link>
         ))}
         {calls.data.length === 0 && (

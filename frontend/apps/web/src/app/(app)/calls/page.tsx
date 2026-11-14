@@ -1,5 +1,5 @@
-import ErrorBoundarySuspense from '@/components/common/error-boundary-suspense';
 import { CallsView } from '@/components/calls/calls-view';
+import ErrorBoundarySuspense from '@/components/common/error-boundary-suspense';
 import { CallsService } from '@/client/sdk.gen';
 
 import type { CallCheckStatus } from '@/client/types.gen';
@@ -8,6 +8,7 @@ import type { FC } from 'react';
 const PERIODS = ['7d', '30d', '90d'] as const;
 const RESULTS = ['failed', 'degraded', 'clean', 'unchecked'] as const;
 const PAGE = 25;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type Period = (typeof PERIODS)[number];
 
@@ -18,9 +19,7 @@ const one = (value: string | string[] | undefined) =>
 
 const Calls: FC<{ params: SearchParams }> = async ({ params }) => {
   const periodParam = one(params.period);
-  const period: Period = PERIODS.includes(periodParam as Period)
-    ? (periodParam as Period)
-    : '30d';
+  const period: Period = PERIODS.includes(periodParam as Period) ? (periodParam as Period) : '30d';
   const resultParam = one(params.result);
   const result = RESULTS.includes(resultParam as (typeof RESULTS)[number])
     ? (resultParam as CallCheckStatus)
@@ -34,6 +33,7 @@ const Calls: FC<{ params: SearchParams }> = async ({ params }) => {
       result,
       category: one(params.category),
       q: one(params.q),
+      issue_id: UUID.test(one(params.issue) ?? '') ? one(params.issue) : undefined,
       skip: 0,
       limit: shown,
     },

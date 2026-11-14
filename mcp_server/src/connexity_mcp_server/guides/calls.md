@@ -11,6 +11,10 @@ with a `workspace_id`.
   call id: Connexity's or Retell's.
 - **Filters:** `agent_id`, `result` (failed, degraded, clean, unchecked), `category` (a key
   from `list_categories`) and `period` (7d, 30d or 90d; 30d by default).
+- **One issue's calls:** pass `issue_id` (from `list_issues`). Each call then has its
+  `moment`: when the issue first happened in it and how many times.
+- **Archived issues are hidden:** their findings never make a call failed or degraded and
+  are never its worst finding, until the issue is unarchived.
 - **Each call** has its time, agent, the caller's last four digits (never the number),
   duration, result and worst finding: the check's title, what broke (`key`), its
   category, severity and whether a rule or a model found it.

@@ -2193,6 +2193,17 @@ export const CallListItemPublicSchema = {
         },
       ],
     },
+    moment: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/IssueMomentPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'With an issue filter: where the issue first happened in the call',
+    },
   },
   type: 'object',
   required: ['id', 'started_at', 'agent_id', 'agent_name', 'result'],
@@ -2234,6 +2245,17 @@ export const CallListPublicSchema = {
       type: 'array',
       title: 'Categories',
       description: 'The fixed categories, in order',
+    },
+    issue: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/CallFilterOption',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: "With an issue filter: the issue's id and title",
     },
   },
   type: 'object',
@@ -5163,192 +5185,196 @@ export const IntegrationsPublicSchema = {
   title: 'IntegrationsPublic',
 } as const;
 
-export const IssueDetailPublicSchema = {
+export const IssueAffectedCallPublicSchema = {
   properties: {
-    id: {
+    call_id: {
       type: 'string',
       format: 'uuid',
-      title: 'Id',
+      title: 'Call Id',
     },
-    agent_id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Agent Id',
-    },
-    check_type: {
-      type: 'string',
-      title: 'Check Type',
-    },
-    title: {
-      type: 'string',
-      title: 'Title',
-      description: "The check's name; empty for a check since removed",
-    },
-    category: {
-      $ref: '#/components/schemas/CategoryPublic',
-    },
-    key: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Key',
-    },
-    state: {
-      $ref: '#/components/schemas/IssueState',
-    },
-    resolved_at: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'date-time',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Resolved At',
-    },
-    resolved_version: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Resolved Version',
-    },
-    finding_count: {
-      type: 'integer',
-      title: 'Finding Count',
-    },
-    call_count: {
-      type: 'integer',
-      title: 'Call Count',
-    },
-    first_seen_at: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'date-time',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'First Seen At',
-      description: 'When the earliest call it was found on started',
-    },
-    last_seen_at: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'date-time',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Last Seen At',
-      description: 'When the latest call it was found on started',
-    },
-    created_at: {
+    started_at: {
       type: 'string',
       format: 'date-time',
-      title: 'Created At',
+      title: 'Started At',
     },
-    findings: {
-      items: {
-        $ref: '#/components/schemas/IssueFindingPublic',
-      },
-      type: 'array',
-      title: 'Findings',
-      description: 'Newest call first; at most 200',
+    caller_last_four: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Caller Last Four',
+      description: "The caller's last four digits; never the number",
+    },
+    duration_seconds: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Duration Seconds',
+    },
+    result: {
+      $ref: '#/components/schemas/CallCheckStatus',
+    },
+    moment: {
+      $ref: '#/components/schemas/IssueMomentPublic',
     },
   },
   type: 'object',
-  required: [
-    'id',
-    'agent_id',
-    'check_type',
-    'title',
-    'category',
-    'state',
-    'finding_count',
-    'call_count',
-    'created_at',
-    'findings',
-  ],
-  title: 'IssueDetailPublic',
+  required: ['call_id', 'started_at', 'result', 'moment'],
+  title: 'IssueAffectedCallPublic',
 } as const;
 
-export const IssueFindingPublicSchema = {
+export const IssueArchivePublicSchema = {
   properties: {
-    id: {
+    by: {
       type: 'string',
-      format: 'uuid',
-      title: 'Id',
+      title: 'By',
+      description: 'The person who archived it or approved it',
+    },
+    assistant: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Assistant',
+      description: 'The assistant that archived it with their approval',
+    },
+    at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'At',
+    },
+    duration: {
+      type: 'string',
+      enum: ['until_spike', 'forever'],
+      title: 'Duration',
+    },
+    reason: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Reason',
+    },
+  },
+  type: 'object',
+  required: ['by', 'at', 'duration'],
+  title: 'IssueArchivePublic',
+} as const;
+
+export const IssueChainPublicSchema = {
+  properties: {
+    found: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/IssueFoundPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    fixed: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/IssueFixedPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Set while the issue is resolved',
+    },
+  },
+  type: 'object',
+  title: 'IssueChainPublic',
+} as const;
+
+export const IssueDayPublicSchema = {
+  properties: {
+    day: {
+      type: 'string',
+      format: 'date',
+      title: 'Day',
+    },
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+    },
+  },
+  type: 'object',
+  required: ['day', 'calls'],
+  title: 'IssueDayPublic',
+} as const;
+
+export const IssueFixedPublicSchema = {
+  properties: {
+    version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version',
+    },
+    at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'At',
+    },
+  },
+  type: 'object',
+  required: ['at'],
+  title: 'IssueFixedPublic',
+} as const;
+
+export const IssueFoundPublicSchema = {
+  properties: {
+    at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'At',
+      description: 'When the first call it was found on started',
     },
     call_id: {
       type: 'string',
       format: 'uuid',
       title: 'Call Id',
     },
-    call_started_at: {
-      type: 'string',
-      format: 'date-time',
-      title: 'Call Started At',
-    },
-    check_version: {
-      type: 'integer',
-      title: 'Check Version',
-    },
-    event_ids: {
-      items: {
-        type: 'string',
-      },
-      type: 'array',
-      title: 'Event Ids',
-    },
-    detail: {
+    caller_last_four: {
       anyOf: [
         {
-          additionalProperties: {
-            $ref: '#/components/schemas/JsonValue',
-          },
-          type: 'object',
+          type: 'string',
         },
         {
           type: 'null',
         },
       ],
-      title: 'Detail',
-    },
-    effect: {
-      $ref: '#/components/schemas/FindingEffect',
-    },
-    retroactive: {
-      type: 'boolean',
-      title: 'Retroactive',
+      title: 'Caller Last Four',
     },
   },
   type: 'object',
-  required: [
-    'id',
-    'call_id',
-    'call_started_at',
-    'check_version',
-    'event_ids',
-    'effect',
-    'retroactive',
-  ],
-  title: 'IssueFindingPublic',
+  required: ['at', 'call_id'],
+  title: 'IssueFoundPublic',
 } as const;
 
 export const IssueGroupPublicSchema = {
@@ -5383,6 +5409,75 @@ export const IssueGroupPublicSchema = {
   type: 'object',
   required: ['category', 'issue_count', 'calls_affected', 'critical', 'issues'],
   title: 'IssueGroupPublic',
+} as const;
+
+export const IssueHistoryPublicSchema = {
+  properties: {
+    kind: {
+      type: 'string',
+      enum: ['opened', 'archived', 'unarchived', 'spiked', 'resolved', 'reopened', 'changed'],
+      title: 'Kind',
+    },
+    what: {
+      type: 'string',
+      title: 'What',
+      description: "'Archived', 'Came back: it spiked'",
+    },
+    by: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'By',
+      description: "The person; None for Connexity's own decision",
+    },
+    assistant: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Assistant',
+    },
+    at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'At',
+    },
+    reason: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Reason',
+    },
+    duration: {
+      anyOf: [
+        {
+          type: 'string',
+          enum: ['until_spike', 'forever'],
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Duration',
+    },
+  },
+  type: 'object',
+  required: ['kind', 'what', 'at'],
+  title: 'IssueHistoryPublic',
 } as const;
 
 export const IssueListItemPublicSchema = {
@@ -5548,6 +5643,229 @@ export const IssueListPublicSchema = {
   title: 'IssueListPublic',
 } as const;
 
+export const IssueMarkPublicSchema = {
+  properties: {
+    day: {
+      type: 'string',
+      format: 'date',
+      title: 'Day',
+    },
+    kind: {
+      type: 'string',
+      enum: ['version', 'archived', 'spiked'],
+      title: 'Kind',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+      description: "'Version 9', 'Archived by Alex', 'Spiked'",
+    },
+  },
+  type: 'object',
+  required: ['day', 'kind', 'label'],
+  title: 'IssueMarkPublic',
+} as const;
+
+export const IssueMomentPublicSchema = {
+  properties: {
+    at_seconds: {
+      type: 'number',
+      title: 'At Seconds',
+      description: "When it first happened, from the call's start",
+    },
+    times: {
+      type: 'integer',
+      title: 'Times',
+      description: 'How many times it happened in the call',
+    },
+  },
+  type: 'object',
+  required: ['at_seconds', 'times'],
+  title: 'IssueMomentPublic',
+} as const;
+
+export const IssuePagePublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    title: {
+      type: 'string',
+      title: 'Title',
+      description: "The check's name and, if it has one, the key",
+    },
+    check_type: {
+      type: 'string',
+      title: 'Check Type',
+    },
+    key: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Key',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    agent_name: {
+      type: 'string',
+      title: 'Agent Name',
+    },
+    category: {
+      $ref: '#/components/schemas/CallFilterOption',
+    },
+    severity: {
+      type: 'string',
+      enum: ['critical', 'warning'],
+      title: 'Severity',
+    },
+    found_by: {
+      type: 'string',
+      enum: ['rule', 'model'],
+      title: 'Found By',
+    },
+    state: {
+      $ref: '#/components/schemas/IssueState',
+    },
+    resolved_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Resolved Version',
+    },
+    archive: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/IssueArchivePublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'While archived: who, when, how long and why',
+    },
+    tiles: {
+      $ref: '#/components/schemas/IssuePageTilesPublic',
+    },
+    chain: {
+      $ref: '#/components/schemas/IssueChainPublic',
+    },
+    days: {
+      items: {
+        $ref: '#/components/schemas/IssueDayPublic',
+      },
+      type: 'array',
+      title: 'Days',
+      description: 'The last 30 days, oldest first',
+    },
+    marks: {
+      items: {
+        $ref: '#/components/schemas/IssueMarkPublic',
+      },
+      type: 'array',
+      title: 'Marks',
+      description: 'Marks on the chart, oldest first',
+    },
+    peak: {
+      type: 'integer',
+      title: 'Peak',
+      description: 'The most calls on one day in the period',
+    },
+    affected_calls: {
+      items: {
+        $ref: '#/components/schemas/IssueAffectedCallPublic',
+      },
+      type: 'array',
+      title: 'Affected Calls',
+      description: 'The latest 10 calls in the period, newest first, one row per call',
+    },
+    history: {
+      items: {
+        $ref: '#/components/schemas/IssueHistoryPublic',
+      },
+      type: 'array',
+      title: 'History',
+      description: 'Decisions about it, newest first, ending with when it was opened',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'title',
+    'check_type',
+    'agent_id',
+    'agent_name',
+    'category',
+    'severity',
+    'found_by',
+    'state',
+    'tiles',
+    'chain',
+    'days',
+    'marks',
+    'peak',
+    'affected_calls',
+    'history',
+  ],
+  title: 'IssuePagePublic',
+} as const;
+
+export const IssuePageTilesPublicSchema = {
+  properties: {
+    calls_affected: {
+      type: 'integer',
+      title: 'Calls Affected',
+      description: 'Calls in the last 30 days it was found on',
+    },
+    calls_total: {
+      type: 'integer',
+      title: 'Calls Total',
+      description: "The agent's calls in the last 30 days",
+    },
+    first_seen_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'First Seen At',
+    },
+    last_seen_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Last Seen At',
+    },
+  },
+  type: 'object',
+  required: ['calls_affected', 'calls_total'],
+  title: 'IssuePageTilesPublic',
+} as const;
+
 export const IssuePublicSchema = {
   properties: {
     id: {
@@ -5701,6 +6019,13 @@ export const IssueStateUpdateSchema = {
       ],
       title: 'Version',
       description: 'When resolving: the version that carried the fix',
+    },
+    duration: {
+      type: 'string',
+      enum: ['until_spike', 'forever'],
+      title: 'Duration',
+      description: 'When archiving: until it spikes, or forever',
+      default: 'until_spike',
     },
   },
   type: 'object',
@@ -6352,6 +6677,51 @@ export const McpAnswer_CallScreenPublic_Schema = {
   title: 'McpAnswer[CallScreenPublic]',
 } as const;
 
+export const McpAnswer_IssuePagePublic_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/IssuePagePublic',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[IssuePagePublic]',
+} as const;
+
 export const McpAnswer_McpAddedAgents_Schema = {
   properties: {
     data: {
@@ -6814,6 +7184,27 @@ export const McpAnswer_list_McpWorkspace__Schema = {
   title: 'McpAnswer[list[McpWorkspace]]',
 } as const;
 
+export const McpArchiveIssueSchema = {
+  properties: {
+    reason: {
+      type: 'string',
+      maxLength: 2000,
+      minLength: 1,
+      title: 'Reason',
+      description: "Why, in the person's own words",
+    },
+    duration: {
+      type: 'string',
+      enum: ['until_spike', 'forever'],
+      title: 'Duration',
+      default: 'until_spike',
+    },
+  },
+  type: 'object',
+  required: ['reason'],
+  title: 'McpArchiveIssue',
+} as const;
+
 export const McpCallsSchema = {
   properties: {
     tiles: {
@@ -6946,6 +7337,25 @@ export const McpScanProgressSchema = {
   type: 'object',
   required: ['agents', 'stored_this_step', 'finished', 'calls_without_versions'],
   title: 'McpScanProgress',
+} as const;
+
+export const McpUnarchiveIssueSchema = {
+  properties: {
+    reason: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 2000,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Reason',
+    },
+  },
+  type: 'object',
+  title: 'McpUnarchiveIssue',
 } as const;
 
 export const McpVoicePlatformSchema = {

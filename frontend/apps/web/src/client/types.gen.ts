@@ -1269,6 +1269,10 @@ export type CallListItemPublic = {
   duration_seconds?: number | null;
   result: CallCheckStatus;
   worst_finding?: WorstFindingPublic | null;
+  /**
+   * With an issue filter: where the issue first happened in the call
+   */
+  moment?: IssueMomentPublic | null;
 };
 
 /**
@@ -1300,6 +1304,10 @@ export type CallListPublic = {
    * The fixed categories, in order
    */
   categories: Array<CallFilterOption>;
+  /**
+   * With an issue filter: the issue's id and title
+   */
+  issue?: CallFilterOption | null;
 };
 
 /**
@@ -3262,108 +3270,118 @@ export type IntegrationsPublic = {
 };
 
 /**
- * IssueDetailPublic
+ * IssueAffectedCallPublic
  */
-export type IssueDetailPublic = {
-  /**
-   * Id
-   */
-  id: string;
-  /**
-   * Agent Id
-   */
-  agent_id: string;
-  /**
-   * Check Type
-   */
-  check_type: string;
-  /**
-   * Title
-   *
-   * The check's name; empty for a check since removed
-   */
-  title: string;
-  category: CategoryPublic;
-  /**
-   * Key
-   */
-  key?: string | null;
-  state: IssueState;
-  /**
-   * Resolved At
-   */
-  resolved_at?: string | null;
-  /**
-   * Resolved Version
-   */
-  resolved_version?: string | null;
-  /**
-   * Finding Count
-   */
-  finding_count: number;
-  /**
-   * Call Count
-   */
-  call_count: number;
-  /**
-   * First Seen At
-   *
-   * When the earliest call it was found on started
-   */
-  first_seen_at?: string | null;
-  /**
-   * Last Seen At
-   *
-   * When the latest call it was found on started
-   */
-  last_seen_at?: string | null;
-  /**
-   * Created At
-   */
-  created_at: string;
-  /**
-   * Findings
-   *
-   * Newest call first; at most 200
-   */
-  findings: Array<IssueFindingPublic>;
-};
-
-/**
- * IssueFindingPublic
- */
-export type IssueFindingPublic = {
-  /**
-   * Id
-   */
-  id: string;
+export type IssueAffectedCallPublic = {
   /**
    * Call Id
    */
   call_id: string;
   /**
-   * Call Started At
+   * Started At
    */
-  call_started_at: string;
+  started_at: string;
   /**
-   * Check Version
+   * Caller Last Four
+   *
+   * The caller's last four digits; never the number
    */
-  check_version: number;
+  caller_last_four?: string | null;
   /**
-   * Event Ids
+   * Duration Seconds
    */
-  event_ids: Array<string>;
+  duration_seconds?: number | null;
+  result: CallCheckStatus;
+  moment: IssueMomentPublic;
+};
+
+/**
+ * IssueArchivePublic
+ */
+export type IssueArchivePublic = {
   /**
-   * Detail
+   * By
+   *
+   * The person who archived it or approved it
    */
-  detail?: {
-    [key: string]: JsonValue;
-  } | null;
-  effect: FindingEffect;
+  by: string;
   /**
-   * Retroactive
+   * Assistant
+   *
+   * The assistant that archived it with their approval
    */
-  retroactive: boolean;
+  assistant?: string | null;
+  /**
+   * At
+   */
+  at: string;
+  /**
+   * Duration
+   */
+  duration: 'until_spike' | 'forever';
+  /**
+   * Reason
+   */
+  reason?: string | null;
+};
+
+/**
+ * IssueChainPublic
+ */
+export type IssueChainPublic = {
+  found?: IssueFoundPublic | null;
+  /**
+   * Set while the issue is resolved
+   */
+  fixed?: IssueFixedPublic | null;
+};
+
+/**
+ * IssueDayPublic
+ */
+export type IssueDayPublic = {
+  /**
+   * Day
+   */
+  day: string;
+  /**
+   * Calls
+   */
+  calls: number;
+};
+
+/**
+ * IssueFixedPublic
+ */
+export type IssueFixedPublic = {
+  /**
+   * Version
+   */
+  version?: string | null;
+  /**
+   * At
+   */
+  at: string;
+};
+
+/**
+ * IssueFoundPublic
+ */
+export type IssueFoundPublic = {
+  /**
+   * At
+   *
+   * When the first call it was found on started
+   */
+  at: string;
+  /**
+   * Call Id
+   */
+  call_id: string;
+  /**
+   * Caller Last Four
+   */
+  caller_last_four?: string | null;
 };
 
 /**
@@ -3396,6 +3414,44 @@ export type IssueGroupPublic = {
    * Worst first
    */
   issues: Array<IssueListItemPublic>;
+};
+
+/**
+ * IssueHistoryPublic
+ */
+export type IssueHistoryPublic = {
+  /**
+   * Kind
+   */
+  kind: 'opened' | 'archived' | 'unarchived' | 'spiked' | 'resolved' | 'reopened' | 'changed';
+  /**
+   * What
+   *
+   * 'Archived', 'Came back: it spiked'
+   */
+  what: string;
+  /**
+   * By
+   *
+   * The person; None for Connexity's own decision
+   */
+  by?: string | null;
+  /**
+   * Assistant
+   */
+  assistant?: string | null;
+  /**
+   * At
+   */
+  at: string;
+  /**
+   * Reason
+   */
+  reason?: string | null;
+  /**
+   * Duration
+   */
+  duration?: 'until_spike' | 'forever' | null;
 };
 
 /**
@@ -3517,6 +3573,152 @@ export type IssueListPublic = {
 };
 
 /**
+ * IssueMarkPublic
+ */
+export type IssueMarkPublic = {
+  /**
+   * Day
+   */
+  day: string;
+  /**
+   * Kind
+   */
+  kind: 'version' | 'archived' | 'spiked';
+  /**
+   * Label
+   *
+   * 'Version 9', 'Archived by Alex', 'Spiked'
+   */
+  label: string;
+};
+
+/**
+ * IssueMomentPublic
+ */
+export type IssueMomentPublic = {
+  /**
+   * At Seconds
+   *
+   * When it first happened, from the call's start
+   */
+  at_seconds: number;
+  /**
+   * Times
+   *
+   * How many times it happened in the call
+   */
+  times: number;
+};
+
+/**
+ * IssuePagePublic
+ */
+export type IssuePagePublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Title
+   *
+   * The check's name and, if it has one, the key
+   */
+  title: string;
+  /**
+   * Check Type
+   */
+  check_type: string;
+  /**
+   * Key
+   */
+  key?: string | null;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Name
+   */
+  agent_name: string;
+  category: CallFilterOption;
+  /**
+   * Severity
+   */
+  severity: 'critical' | 'warning';
+  /**
+   * Found By
+   */
+  found_by: 'rule' | 'model';
+  state: IssueState;
+  /**
+   * Resolved Version
+   */
+  resolved_version?: string | null;
+  /**
+   * While archived: who, when, how long and why
+   */
+  archive?: IssueArchivePublic | null;
+  tiles: IssuePageTilesPublic;
+  chain: IssueChainPublic;
+  /**
+   * Days
+   *
+   * The last 30 days, oldest first
+   */
+  days: Array<IssueDayPublic>;
+  /**
+   * Marks
+   *
+   * Marks on the chart, oldest first
+   */
+  marks: Array<IssueMarkPublic>;
+  /**
+   * Peak
+   *
+   * The most calls on one day in the period
+   */
+  peak: number;
+  /**
+   * Affected Calls
+   *
+   * The latest 10 calls in the period, newest first, one row per call
+   */
+  affected_calls: Array<IssueAffectedCallPublic>;
+  /**
+   * History
+   *
+   * Decisions about it, newest first, ending with when it was opened
+   */
+  history: Array<IssueHistoryPublic>;
+};
+
+/**
+ * IssuePageTilesPublic
+ */
+export type IssuePageTilesPublic = {
+  /**
+   * Calls Affected
+   *
+   * Calls in the last 30 days it was found on
+   */
+  calls_affected: number;
+  /**
+   * Calls Total
+   *
+   * The agent's calls in the last 30 days
+   */
+  calls_total: number;
+  /**
+   * First Seen At
+   */
+  first_seen_at?: string | null;
+  /**
+   * Last Seen At
+   */
+  last_seen_at?: string | null;
+};
+
+/**
  * IssuePublic
  */
 export type IssuePublic = {
@@ -3613,6 +3815,12 @@ export type IssueStateUpdate = {
    * When resolving: the version that carried the fix
    */
   version?: string | null;
+  /**
+   * Duration
+   *
+   * When archiving: until it spikes, or forever
+   */
+  duration?: 'until_spike' | 'forever';
 };
 
 /**
@@ -4089,6 +4297,40 @@ export type McpAnswerCallScreenPublic = {
 };
 
 /**
+ * McpAnswer[IssuePagePublic]
+ */
+export type McpAnswerIssuePagePublic = {
+  /**
+   * The facts: the result of the call
+   */
+  data: IssuePagePublic;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
  * McpAnswer[McpAddedAgents]
  */
 export type McpAnswerMcpAddedAgents = {
@@ -4435,6 +4677,22 @@ export type McpAnswerListMcpWorkspace = {
 };
 
 /**
+ * McpArchiveIssue
+ */
+export type McpArchiveIssue = {
+  /**
+   * Reason
+   *
+   * Why, in the person's own words
+   */
+  reason: string;
+  /**
+   * Duration
+   */
+  duration?: 'until_spike' | 'forever';
+};
+
+/**
  * McpCalls
  */
 export type McpCalls = {
@@ -4537,6 +4795,16 @@ export type McpScanProgress = {
    * Stored calls whose agent version could not be resolved
    */
   calls_without_versions: number;
+};
+
+/**
+ * McpUnarchiveIssue
+ */
+export type McpUnarchiveIssue = {
+  /**
+   * Reason
+   */
+  reason?: string | null;
 };
 
 /**
@@ -9015,6 +9283,10 @@ export type McpListCallsData = {
      */
     period?: '7d' | '30d' | '90d';
     /**
+     * Issue Id
+     */
+    issue_id?: string | null;
+    /**
      * Cursor
      */
     cursor?: string | null;
@@ -9212,6 +9484,181 @@ export type McpListIssuesResponses = {
 };
 
 export type McpListIssuesResponse = McpListIssuesResponses[keyof McpListIssuesResponses];
+
+export type McpGetIssueData = {
+  body?: never;
+  path: {
+    /**
+     * Issue Id
+     */
+    issue_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}';
+};
+
+export type McpGetIssueErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpGetIssueError = McpGetIssueErrors[keyof McpGetIssueErrors];
+
+export type McpGetIssueResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerIssuePagePublic;
+};
+
+export type McpGetIssueResponse = McpGetIssueResponses[keyof McpGetIssueResponses];
+
+export type McpArchiveIssueData = {
+  body: McpArchiveIssue;
+  path: {
+    /**
+     * Issue Id
+     */
+    issue_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}/archive';
+};
+
+export type McpArchiveIssueErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpArchiveIssueError = McpArchiveIssueErrors[keyof McpArchiveIssueErrors];
+
+export type McpArchiveIssueResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerIssuePagePublic;
+};
+
+export type McpArchiveIssueResponse = McpArchiveIssueResponses[keyof McpArchiveIssueResponses];
+
+export type McpUnarchiveIssueData = {
+  body: McpUnarchiveIssue;
+  path: {
+    /**
+     * Issue Id
+     */
+    issue_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}/unarchive';
+};
+
+export type McpUnarchiveIssueErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpUnarchiveIssueError = McpUnarchiveIssueErrors[keyof McpUnarchiveIssueErrors];
+
+export type McpUnarchiveIssueResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerIssuePagePublic;
+};
+
+export type McpUnarchiveIssueResponse =
+  McpUnarchiveIssueResponses[keyof McpUnarchiveIssueResponses];
 
 export type McpListAgentsData = {
   body?: never;
@@ -13503,6 +13950,10 @@ export type CallsListCallsData = {
      */
     q?: string | null;
     /**
+     * Issue Id
+     */
+    issue_id?: string | null;
+    /**
      * Skip
      */
     skip?: number;
@@ -15109,7 +15560,7 @@ export type IssuesGetIssueResponses = {
   /**
    * Successful Response
    */
-  200: IssueDetailPublic;
+  200: IssuePagePublic;
 };
 
 export type IssuesGetIssueResponse = IssuesGetIssueResponses[keyof IssuesGetIssueResponses];

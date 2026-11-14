@@ -34,8 +34,10 @@ from app.models import (
     ReadinessStepState,
     WorkspaceCreate,
 )
-from app.models.enums import CallCheckStatus
+from app.models.check import Issue
+from app.models.enums import CallCheckStatus, IssueState
 from app.models.issue_list import IssuePeriod, IssueStatusFilter
+from app.models.issue_page import IssuePagePublic
 from app.models.mcp import (
     GUIDE_CALLS,
     GUIDE_CATEGORIES,
@@ -48,6 +50,7 @@ from app.models.mcp import (
     McpAddedAgents,
     McpAgent,
     McpAnswer,
+    McpArchiveIssue,
     McpCalls,
     McpConnection,
     McpConnectVoicePlatform,
@@ -55,6 +58,7 @@ from app.models.mcp import (
     McpIssues,
     McpRefusedAgent,
     McpScanProgress,
+    McpUnarchiveIssue,
     McpWorkspace,
 )
 from app.services.call_list import workspace_calls
@@ -67,6 +71,7 @@ from app.services.connections import (
 )
 from app.services.first_scan import SCAN_DAYS, scan_agents, scan_step
 from app.services.issue_list import IssueFilters, workspace_issues
+from app.services.issue_page import issue_page
 from app.services.retell import (
     dedupe_retell_agents,
     list_retell_agents,
@@ -219,6 +224,7 @@ def list_calls(
     result: CallCheckStatus | None = Query(default=None),
     category: str | None = Query(default=None, max_length=64),
     period: Literal["7d", "30d", "90d"] = "30d",
+    issue_id: uuid.UUID | None = Query(default=None),
     cursor: str | None = Query(default=None, max_length=255),
     limit: int = Query(default=25, ge=1, le=100),
 ) -> McpAnswer[McpCalls]:
@@ -232,6 +238,7 @@ def list_calls(
             result=result,
             category=category,
             query=query,
+            issue_id=issue_id,
         ),
         offset=offset,
         limit=limit,
@@ -262,6 +269,10 @@ def list_calls(
             "A result is failed when a finding fails the call, degraded when one only "
             "flags it, clean when checks ran and found nothing, unchecked otherwise. "
             "Say whether the worst finding was found by a rule or a model.",
+            "Findings of archived issues are left out of every call's result, worst "
+            "finding and findings, until the issue is unarchived.",
+            "With issue_id, only the calls that issue was found on are listed, each with "
+            "its moment: when it first happened in the call and how many times.",
         ],
         next_steps=next_steps,
         guide=GUIDE_CALLS,
@@ -361,6 +372,11 @@ def list_issues(
             "Call `list_issues` again with `cursor` set to `next_cursor` for the next "
             "page."
         )
+    if issues:
+        next_steps.append(
+            "Call `get_issue` with an issue's id for its calls per day, the latest "
+            "calls it hit and its history."
+        )
     if not matching and offset == 0:
         if query or category or severity or status != "open":
             next_steps.append(
@@ -395,6 +411,143 @@ def list_issues(
         guide=GUIDE_ISSUES,
         next_cursor=_encode_cursor(offset + limit) if has_more else None,
     )
+
+
+def _mcp_issue(
+    session: SessionDep, workspace: McpWorkspaceDep, issue_id: uuid.UUID
+) -> Issue:
+    issue = crud.get_issue(session=session, issue_id=issue_id, company_id=workspace.id)
+    if issue is None:
+        raise HTTPException(
+            status_code=404,
+            detail=McpErrorDetail(
+                error="Issue not found in this workspace",
+                next_steps=["Call `list_issues` for this workspace's issue ids."],
+                guide=GUIDE_ISSUES,
+            ).model_dump(),
+        )
+    return issue
+
+
+_ISSUE_RULES = [
+    "Give the size as 'in N of M calls' (tiles.calls_affected of tiles.calls_total, "
+    "the last 30 days), and say how it was found: found_by rule means deterministic "
+    "code over the call; model means a classifier or judge.",
+    "An affected call's moment is when the issue first happened in it, and how many "
+    "times; open the call with `get_call` to see it.",
+    "Archiving is the person's decision. Before `archive_issue` or `unarchive_issue`, "
+    "say which issue, its size and the duration, and wait for the person's yes; put "
+    "their words in the reason.",
+    "While archived, the issue is hidden on every call, including earlier ones, and "
+    "counts for nothing; until_spike brings it back as reopened when it starts "
+    "happening twice as often.",
+]
+
+
+def _issue_answer(
+    session: SessionDep, issue: Issue, next_steps: list[str]
+) -> McpAnswer[IssuePagePublic]:
+    page = issue_page(
+        session=session,
+        issue=issue,
+        summary=crud.summarise_issue(session=session, issue=issue),
+    )
+    if page.tiles.calls_affected:
+        next_steps.append(
+            f"Call `list_calls` with issue_id {issue.id} for every call it was found on."
+        )
+    return McpAnswer[IssuePagePublic](
+        data=page, rules=_ISSUE_RULES, next_steps=next_steps, guide=GUIDE_ISSUES
+    )
+
+
+@router.get(
+    "/workspaces/{workspace_id}/issues/{issue_id}",
+    response_model=McpAnswer[IssuePagePublic],
+)
+def get_issue(
+    session: SessionDep, workspace: McpWorkspaceDep, issue_id: uuid.UUID
+) -> McpAnswer[IssuePagePublic]:
+    issue = _mcp_issue(session, workspace, issue_id)
+    next_steps = []
+    if issue.state is not IssueState.ARCHIVED:
+        next_steps.append(
+            "If the person decides nobody will fix it, ask them, then call "
+            "`archive_issue` with their reason."
+        )
+    return _issue_answer(session, issue, next_steps)
+
+
+@router.post(
+    "/workspaces/{workspace_id}/issues/{issue_id}/archive",
+    response_model=McpAnswer[IssuePagePublic],
+)
+def archive_issue(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    current_user: McpCurrentUser,
+    assistant: McpAssistantName,
+    issue_id: uuid.UUID,
+    body: McpArchiveIssue,
+) -> McpAnswer[IssuePagePublic]:
+    issue = _mcp_issue(session, workspace, issue_id)
+    if issue.state is IssueState.ARCHIVED:
+        how = "until it spikes" if issue.archive_until_spike else "forever"
+        return _issue_answer(
+            session,
+            issue,
+            [
+                f"It was already archived ({how}); nothing changed. To change how long, "
+                "ask the person, call `unarchive_issue`, then `archive_issue` again."
+            ],
+        )
+    issue = crud.set_issue_state(
+        session=session,
+        issue_id=issue.id,
+        state=IssueState.ARCHIVED,
+        version=None,
+        reason=body.reason,
+        decided_by=current_user,
+        until_spike=body.duration == "until_spike",
+        assistant_name=assistant or "your assistant",
+    )
+    return _issue_answer(
+        session,
+        issue,
+        [
+            "Tell the person it is archived and recorded as approved by them; "
+            "`unarchive_issue` brings it back."
+        ],
+    )
+
+
+@router.post(
+    "/workspaces/{workspace_id}/issues/{issue_id}/unarchive",
+    response_model=McpAnswer[IssuePagePublic],
+)
+def unarchive_issue(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    current_user: McpCurrentUser,
+    assistant: McpAssistantName,
+    issue_id: uuid.UUID,
+    body: McpUnarchiveIssue,
+) -> McpAnswer[IssuePagePublic]:
+    issue = _mcp_issue(session, workspace, issue_id)
+    if issue.state is IssueState.ARCHIVED:
+        issue = crud.set_issue_state(
+            session=session,
+            issue_id=issue.id,
+            state=IssueState.OPEN,
+            version=None,
+            reason=body.reason or None,
+            decided_by=current_user,
+            assistant_name=assistant or "your assistant",
+        )
+        steps = ["Its calls count again, including those from while it was archived."]
+    else:
+        steps = ["It was not archived; nothing changed."]
+    return _issue_answer(session, issue, steps)
 
 
 @router.get(

@@ -1,3 +1,4 @@
+import json
 import httpx
 import pytest
 from connexity_mcp_server.client import ConnexityBackendClient, ConnexityBackendError
@@ -7,6 +8,7 @@ from connexity_mcp_server.tools import (
     get_call,
     list_calls,
     list_categories,
+    archive_issue,
     list_issues,
     scan_calls,
     connect_voice_platform,
@@ -543,3 +545,95 @@ async def test_get_call_reads_one_call() -> None:
 
     assert result.data.entries[0].tool == "schedule_appointment"
     assert result.data.findings[0].found_by == "rule"
+
+
+@pytest.mark.asyncio
+async def test_archive_issue_sends_the_reason_and_duration() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url.path == (
+            f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/issues/i1/archive"
+        )
+        assert json.loads(request.content) == {
+            "reason": "Known, approved by Dmytro",
+            "duration": "forever",
+        }
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "id": "i1",
+                    "title": "Two bookings for one slot: book",
+                    "check_type": "booking_duplicated",
+                    "agent_id": "a1",
+                    "agent_name": "Front desk",
+                    "category": {"value": "booking", "label": "Booking"},
+                    "severity": "critical",
+                    "found_by": "rule",
+                    "state": "archived",
+                    "archive": {
+                        "by": "Dmytro",
+                        "assistant": "Claude Code",
+                        "at": "2026-11-14T10:00:00Z",
+                        "duration": "forever",
+                        "reason": "Known, approved by Dmytro",
+                    },
+                    "tiles": {"calls_affected": 4, "calls_total": 78},
+                    "chain": {},
+                },
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: archive_issue(
+            client,
+            workspace_id=WORKSPACE_ID,
+            issue_id="i1",
+            reason="Known, approved by Dmytro",
+            duration="forever",
+        ),
+    )
+
+    assert result.data.archive is not None
+    assert result.data.archive.assistant == "Claude Code"
+
+
+@pytest.mark.asyncio
+async def test_list_calls_sends_the_issue() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.params["issue_id"] == "i1"
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "tiles": {
+                        "calls": 1,
+                        "failed": 1,
+                        "degraded": 0,
+                        "clean": 0,
+                        "unchecked": 0,
+                    },
+                    "calls": [
+                        {
+                            "id": "c1",
+                            "started_at": "2026-11-14T10:00:00Z",
+                            "agent_id": "a1",
+                            "agent_name": "Front desk",
+                            "result": "failed",
+                            "moment": {"at_seconds": 121.0, "times": 2},
+                        }
+                    ],
+                },
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: list_calls(client, workspace_id=WORKSPACE_ID, issue_id="i1"),
+    )
+
+    assert result.data.calls[0].moment is not None
+    assert result.data.calls[0].moment.times == 2

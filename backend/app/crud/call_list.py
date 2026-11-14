@@ -15,6 +15,7 @@ from typing import NamedTuple
 from sqlalchemy import ColumnElement, String, and_, case, cast, exists, func, or_
 from sqlmodel import Session, col, select
 
+from app.crud.check import shown_finding
 from app.models.agent import Agent
 from app.models.call import Call
 from app.models.category import Category
@@ -34,6 +35,8 @@ class CallFilters(NamedTuple):
     result: CallCheckStatus | None = None
     category: str | None = None  # a category key
     query: str | None = None
+    # Only calls this issue was found on, archived or not (the issue page's link).
+    issue_id: uuid.UUID | None = None
 
 
 class WorstFinding(NamedTuple):
@@ -59,8 +62,8 @@ class CallTiles(NamedTuple):
 
 
 def _counting(effect: FindingEffect | None = None) -> ColumnElement[bool]:
-    """The call has a finding, of ``effect`` if given."""
-    condition: ColumnElement[bool] = Finding.call_id == Call.id
+    """The call has a shown finding, of ``effect`` if given."""
+    condition: ColumnElement[bool] = and_(Finding.call_id == Call.id, shown_finding())
     if effect is not None:
         condition = and_(condition, Finding.effect == effect)
     return exists().where(condition)
@@ -120,6 +123,13 @@ def _where(
                 Issue.id == Finding.issue_id,
                 Category.id == Issue.category_id,
                 Category.key == filters.category,
+                shown_finding(),
+            )
+        )
+    if filters.issue_id is not None:
+        conditions.append(
+            exists().where(
+                Finding.call_id == Call.id, Finding.issue_id == filters.issue_id
             )
         )
     if with_result and filters.result is not None:
@@ -170,7 +180,7 @@ def _worst(
         )
         .join(Issue, col(Issue.id) == col(Finding.issue_id))
         .join(Category, col(Category.id) == col(Issue.category_id))
-        .where(col(Finding.call_id).in_(call_ids))
+        .where(col(Finding.call_id).in_(call_ids), shown_finding())
         .order_by(
             col(Finding.call_id),
             case((col(Finding.effect) == FindingEffect.FAILS, 0), else_=1),

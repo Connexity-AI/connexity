@@ -76,8 +76,6 @@ from app.models.check import (  # noqa: F401
     Finding,
     FindingPublic,
     Issue,
-    IssueDetailPublic,
-    IssueFindingPublic,
     IssuePublic,
     IssueStateUpdate,
 )

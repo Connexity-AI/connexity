@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app import crud
 from app.core.config import settings
@@ -106,10 +106,10 @@ def test_the_same_failure_on_three_calls_is_one_issue_and_another_tool_is_a_seco
 
     r = client.get(f"{API}/issues/{issue['id']}", cookies=auth_cookies)
     assert r.status_code == 200, r.text
-    detail = r.json()
-    assert {f["call_id"] for f in detail["findings"]} == set(calls)
-    assert detail["findings"][0]["event_ids"] == ["t1"]
-    assert detail["findings"][0]["effect"] == "fails"
+    page = r.json()
+    assert {c["call_id"] for c in page["affected_calls"]} == set(calls)
+    assert page["affected_calls"][0]["moment"]["times"] == 1
+    assert (page["severity"], page["tiles"]["calls_affected"]) == ("critical", 3)
     # Each finding on the call names its issue.
     (finding,) = _read(client, auth_cookies, calls[0])["findings"]
     assert finding["issue_id"] == issue["id"]
@@ -235,8 +235,10 @@ def test_a_resolved_issue_regresses_only_on_a_call_that_started_afterwards(
     # What it was resolved in is kept as history.
     assert after["resolved_version"] == "agent v12"
 
-    (record,) = db.exec(
-        select(DecisionRecord).where(DecisionRecord.subject == issue["id"])
+    record, again = db.exec(
+        select(DecisionRecord)
+        .where(DecisionRecord.subject == issue["id"])
+        .order_by(col(DecisionRecord.created_at))
     ).all()
     assert (record.kind, record.old_value, record.new_value) == (
         "issue_state",
@@ -245,6 +247,9 @@ def test_a_resolved_issue_regresses_only_on_a_call_that_started_afterwards(
     )
     assert record.decided_by_email
     assert str(record.agent_id) == agent_id
+    # Coming back is recorded too, as Connexity's own decision.
+    assert (again.old_value, again.new_value) == ("resolved", "reopened")
+    assert (again.decided_by, again.decided_by_email) == (None, "Connexity")
 
 
 def test_archiving_needs_a_reason_and_an_archived_issue_stays_archived(
