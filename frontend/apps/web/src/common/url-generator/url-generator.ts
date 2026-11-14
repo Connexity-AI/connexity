@@ -1,7 +1,8 @@
-import { createTypedLink } from '@/common/url-generator/typed-links';
 import { emptyParser } from '@/common/url-generator/parsers';
-import type { Route } from 'next';
+import { createTypedLink } from '@/common/url-generator/typed-links';
+
 import type { AuthType } from '@/common/url-generator/types';
+import type { Route } from 'next';
 
 export class UrlGenerator {
   static home() {
@@ -12,12 +13,21 @@ export class UrlGenerator {
     return '/calls/' as Route;
   }
 
-  static call(id: string) {
-    return `/calls/${id}/` as Route;
+  static call(id: string, atSeconds?: number) {
+    const at = atSeconds != null ? `?t=${Math.floor(atSeconds)}` : '';
+    return `/calls/${id}/${at}` as Route;
   }
 
   static issues() {
     return '/issues/' as Route;
+  }
+
+  static issue(id: string) {
+    return `/issues/${id}/` as Route;
+  }
+
+  static issueCalls(id: string) {
+    return `/calls/?issue=${id}` as Route;
   }
 
   static account() {

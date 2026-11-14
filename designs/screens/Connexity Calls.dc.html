@@ -49,11 +49,11 @@
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Clean</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ tClean }}</span></div>
 </div>
 <div ref="{{ filtRef }}" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+<sc-if value="{{ hasIssue }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:6px;height:36px;padding:0 4px 0 12px;border-radius:8px;border:1px solid var(--ink2);background:var(--wash);font-size:15px;white-space:nowrap"><sc-if value="{{ hasKind }}"><span style="color:var(--ink2)">{{ issueKind }}</span></sc-if><a href="{{ issueHref }}" style="color:var(--ink);text-decoration:none">{{ issueTitle }}</a><button onClick="{{ clearIssue }}" title="Remove" style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:0;border-radius:6px;background:transparent;color:var(--ink2);cursor:pointer" style-hover="color:var(--ink)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button></span></sc-if>
 <div style="display:flex;align-items:center;gap:8px;width:280px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s1)">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;color:var(--ink2)"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
 <input value="{{ q }}" onChange="{{ onQ }}" placeholder="Phone number or call ID" style="flex:1;min-width:0;height:34px;border:0;outline:none;background:transparent;color:var(--ink);font-size:15px">
 </div>
-<sc-if value="{{ hasIssue }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:6px;height:36px;padding:0 4px 0 12px;border-radius:8px;border:1px solid var(--ink2);background:var(--wash);font-size:15px;white-space:nowrap"><span style="color:var(--ink2)">{{ issueKind }}</span><a href="{{ issueHref }}" style="color:var(--ink);text-decoration:none">{{ issueTitle }}</a><button onClick="{{ clearIssue }}" title="Remove" style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:0;border-radius:6px;background:transparent;color:var(--ink2);cursor:pointer" style-hover="color:var(--ink)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button></span></sc-if>
 <sc-for list="{{ filters }}" as="f" hint-placeholder-count="4">
 <div style="position:relative">
 <button onClick="{{ f.toggle }}" style="{{ f.btnStyle }}" style-hover="background:var(--wash)">
@@ -78,7 +78,9 @@
 <div style="{{ headStyle }}">
 <span>Time</span>
 <sc-if value="{{ showAgent }}" hint-placeholder-val="{{ true }}"><span>Agent</span></sc-if>
-<span>Caller</span><span style="text-align:right">Duration</span><span>Result</span><span>Worst finding</span>
+<span>Caller</span><span style="text-align:right">Duration</span><span>Result</span>
+<sc-if value="{{ showFind }}" hint-placeholder-val="{{ true }}"><span>Worst finding</span></sc-if>
+<sc-if value="{{ showMoment }}" hint-placeholder-val="{{ false }}"><span>Moment</span></sc-if>
 </div>
 <sc-for list="{{ rows }}" as="r" hint-placeholder-count="12">
 <a href="{{ r.href }}" style="{{ r.rowStyle }}" style-hover="background:var(--wash);opacity:1">
@@ -91,10 +93,11 @@
 <sc-if value="{{ r.isDegraded }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Degraded</span></sc-if>
 <sc-if value="{{ r.isClean }}"><span style="color:var(--ink2)">Clean</span></sc-if>
 </span>
-<span style="display:flex;align-items:center;gap:8px;min-width:0">
+<sc-if value="{{ r.showMoment }}"><span style="color:var(--ink2);white-space:nowrap">{{ r.at }}<span style="color:var(--ink3)">{{ r.times }}</span></span></sc-if>
+<sc-if value="{{ r.showFind }}"><span style="display:flex;align-items:center;gap:8px;min-width:0">
 <sc-if value="{{ r.hasSrc }}"><span style="flex:none;display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:6px;border:1px solid var(--bc);color:var(--ink2);font-size:13px;line-height:18px">{{ r.srcLabel }}</span></sc-if>
 <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.find }}</span>
-</span>
+</span></sc-if>
 </a>
 </sc-for>
 <sc-if value="{{ noRows }}" hint-placeholder-val="{{ false }}">
@@ -209,12 +212,15 @@ class Component extends DCLogic {
     const rowStyle = { display:'grid', gridTemplateColumns:cols, gap:16, alignItems:'center', minHeight:44, padding:'0 24px', borderTop:'1px solid var(--border)', color:'var(--ink)', textDecoration:'none', cursor:'pointer' };
     const fallback = { failed:'C-20481', degraded:'C-20477', clean:'C-20470' };
     const href = r => 'Connexity Call.dc.html?call=' + (C.FIXED.some(f => f.id === r.id) ? r.id : r.src === 'sim' ? 'S-0915' : r.find === 'Booking tool returned an error' ? 'C-20466' : fallback[r.result]);
-    const rows = list.slice(0, st.shown).map(r => ({
-      href: href(r), rowStyle, showAgent, time: this.timeLabel(r.m), agent: C.AGENTS[r.agent], caller: '•••• ' + r.last4,
+    const byIssue = !!(iss && !iss[3]);
+    const mmss = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    const moment = r => r.id === 'C-20466' ? [102, 2] : [Math.round(r.dur * (0.3 + (+r.last4 % 40) / 100)), +r.last4 % 3 === 0 ? 2 : 1];
+    const rows = list.slice(0, st.shown).map(r => { const [at, times] = moment(r); return {
+      href: href(r) + (byIssue ? '&t=' + at : ''), showMoment: byIssue, showFind: !byIssue, at: 'at ' + mmss(at), times: times > 1 ? ` · ${times} times` : '', rowStyle, showAgent, time: this.timeLabel(r.m), agent: C.AGENTS[r.agent], caller: '•••• ' + r.last4,
       dur: Math.floor(r.dur / 60) + ':' + String(r.dur % 60).padStart(2, '0'),
       isFailed: r.result === 'failed', isDegraded: r.result === 'degraded', isClean: r.result === 'clean',
       hasSrc: r.src !== 'real', srcLabel: r.src === 'sim' ? 'Simulated' : 'Test', find: r.find
-    }));
+    }; });
     const btn = active => ({ display:'flex', alignItems:'center', gap:6, height:36, padding:'0 10px 0 12px', borderRadius:8, border:'1px solid ' + (active ? 'var(--ink2)' : 'var(--bc)'), background: active ? 'var(--wash)' : 'transparent', color:'var(--ink)', fontSize:15, cursor:'pointer', whiteSpace:'nowrap' });
     const mk = (key, label, opts, isCur, set, active, keepOpen) => ({
       key, label, open: st.menu === key, btnStyle: btn(active),
@@ -230,7 +236,7 @@ class Component extends DCLogic {
     filters.push(mk('cat', st.catF ? C.CATS[st.catF] : 'Any category', [['', 'Any category'], ...C.CAT_ORDER.map(c => [c, C.CATS[c]])], v => v === st.catF, v => this.setState({ catF:v, shown:25 }), !!st.catF));
     filters.push(mk('src', srcDefault ? 'Real calls' : srcOn.map(s => srcNames[s]).join(', '), Object.entries(srcNames), v => !!st.src[v],
       v => this.setState(s => { const next = { ...s.src, [v]: !s.src[v] }; return Object.values(next).some(Boolean) ? { src: next, shown:25 } : null; }), !srcDefault, true));
-    const anyFilter = !!(q || st.agentF || st.resultF || st.catF || !srcDefault || st.issue);
+    const anyFilter = !!(q || st.agentF || st.resultF || st.catF || !srcDefault);
     return {
       standalone: !embedded, rowStyle: embedded ? { display:'block' } : { display:'flex', flex:1 },
       rootStyle: embedded ? { display:'block', color:'var(--ink)', fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums' }
@@ -244,9 +250,9 @@ class Component extends DCLogic {
       tCalls: fmt(sc(tot[0])), tFailed: fmt(sc(tot[1])), tDegraded: fmt(sc(tot[2])), tClean: fmt(sc(tot[0]) - sc(tot[1]) - sc(tot[2])),
       q: st.q, onQ: e => this.setState({ q: e.target.value, shown:25 }),
       filters, anyFilter,
-      hasIssue: !!iss, issueKind: iss && iss[3] ? iss[3] : 'Issue', issueTitle: iss ? (iss[4] || iss[1]) : '', issueHref: (iss && iss[3] ? 'Connexity Incident.dc.html?incident=' : 'Connexity Issue.dc.html?issue=') + (st.issue || ''),
+      hasIssue: !!iss, hasKind: !!(iss && iss[3]), showMoment: byIssue, showFind: !byIssue, issueKind: iss && iss[3] ? iss[3] : 'Issue', issueTitle: iss ? (iss[4] || iss[1]) : '', issueHref: (iss && iss[3] ? 'Connexity Incident.dc.html?incident=' : 'Connexity Issue.dc.html?issue=') + (st.issue || ''),
       clearIssue: () => this.setState({ issue:null, shown:25 }),
-      clearAll: () => this.setState({ q:'', agentF:'', resultF:'', catF:'', src:{ real:true }, menu:null, shown:25, issue:null }),
+      clearAll: () => this.setState({ q:'', agentF:'', resultF:'', catF:'', src:{ real:true }, menu:null, shown:25 }),
       showAgent, headStyle: { ...rowStyle, minHeight:40, borderTop:0, fontSize:13, color:'var(--ink2)', cursor:'default' },
       rows, noRows: list.length === 0, hasMore: list.length > st.shown,
       showMore: () => this.setState(s => ({ shown: s.shown + 25 }))

@@ -9,7 +9,7 @@ Lists add `next_cursor`. Errors carry a message, next steps and a guide in the s
 import uuid
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Generic, TypeVar
+from typing import Annotated, Generic, Literal, TypeVar
 
 from pydantic import BaseModel, Field, StringConstraints
 
@@ -132,6 +132,19 @@ class McpScanProgress(BaseModel):
     calls_without_versions: int = Field(
         description="Stored calls whose agent version could not be resolved"
     )
+
+
+class McpArchiveIssue(BaseModel):
+    reason: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)
+    ] = Field(description="Why, in the person's own words")
+    duration: Literal["until_spike", "forever"] = "until_spike"
+
+
+class McpUnarchiveIssue(BaseModel):
+    reason: Annotated[
+        str | None, StringConstraints(strip_whitespace=True, max_length=2000)
+    ] = None
 
 
 class McpIssues(BaseModel):

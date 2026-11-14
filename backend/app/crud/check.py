@@ -2,11 +2,12 @@
 
 import uuid
 from collections.abc import Mapping
-from datetime import UTC, datetime
-from typing import NamedTuple
+from datetime import UTC, datetime, timedelta
+from typing import Any, NamedTuple
 
-from sqlalchemy import ColumnElement, and_, tuple_
+from sqlalchemy import ColumnElement, and_, exists, tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.orm import aliased
 from sqlmodel import Session, col, func, select
 
 from app.models.agent import Agent
@@ -22,6 +23,15 @@ from app.models.enums import (
     IssueState,
 )
 from app.models.user import User
+
+# Who a decision Connexity makes on its own is recorded as.
+CONNEXITY = "Connexity"
+# The spike rule (Dmytro, 2026-11-14): over the last 7 days, at least 3 calls and at
+# least twice the share of the agent's calls it had in the 30 days before the archive.
+SPIKE_WINDOW = timedelta(days=7)
+SPIKE_MIN_CALLS = 3
+SPIKE_FACTOR = 2.0
+BASELINE_WINDOW = timedelta(days=30)
 
 _RELEASE_TABLE = CheckRelease.__table__  # type: ignore[attr-defined]
 _ISSUE_TABLE = Issue.__table__  # type: ignore[attr-defined]
@@ -140,14 +150,32 @@ def list_decision_records(
     )
 
 
-def get_findings(*, session: Session, call: Call) -> list[Finding]:
-    """The findings on ``call``, in the order they were first raised."""
+def shown_finding() -> ColumnElement[bool]:
+    """The finding's issue is not archived.
+
+    While an issue is archived its findings are hidden on every call, whatever the
+    call's date: they make no call fail or degrade and are never shown, to a person or
+    the assistant. They are still stored, and count again once it is unarchived
+    (Dmytro, 2026-11-14). Every query that works out a call's result or findings uses
+    this.
+    """
+    # An alias, so the check never binds to an `issue` the outer query already joins.
+    archived = aliased(Issue)
+    return ~exists().where(
+        archived.id == Finding.issue_id, archived.state == IssueState.ARCHIVED
+    )
+
+
+def get_findings(
+    *, session: Session, call: Call, shown_only: bool = False
+) -> list[Finding]:
+    """The findings on ``call``, in the order they were first raised. ``shown_only``
+    leaves out those of archived issues, for anything a person or assistant sees."""
+    query = select(Finding).where(Finding.call_id == call.id)
+    if shown_only:
+        query = query.where(shown_finding())
     return list(
-        session.exec(
-            select(Finding)
-            .where(Finding.call_id == call.id)
-            .order_by(col(Finding.created_at), col(Finding.id))
-        ).all()
+        session.exec(query.order_by(col(Finding.created_at), col(Finding.id))).all()
     )
 
 
@@ -277,12 +305,14 @@ def replace_findings(
         row.detail = finding.detail
         row.issue_id = issues[(finding.check_type, finding.key or "")].id
         session.add(row)
+    added: dict[uuid.UUID, Issue] = {}
     for identity, finding in wanted.items():
         if identity in stored:
             continue
         issue = issues[(finding.check_type, finding.key or "")]
         finding.issue_id = issue.id
         session.add(finding)
+        added[issue.id] = issue
         if (
             issue.state is IssueState.RESOLVED
             and issue.resolved_at is not None
@@ -290,8 +320,30 @@ def replace_findings(
         ):
             issue.state = IssueState.REOPENED
             session.add(issue)
+            session.add(
+                _connexity_decision(
+                    issue,
+                    old=IssueState.RESOLVED,
+                    reason="Found again on a call after it was resolved",
+                )
+            )
     for run in runs:
         session.merge(run)
+    session.flush()
+    for issue in added.values():
+        if issue.state is IssueState.ARCHIVED and issue.archive_until_spike:
+            spike = issue_spike(session=session, issue=issue, now=datetime.now(UTC))
+            if spike is not None:
+                issue.state = IssueState.REOPENED
+                session.add(issue)
+                session.add(
+                    _connexity_decision(
+                        issue,
+                        old=IssueState.ARCHIVED,
+                        reason=spike_line(spike),
+                        detail=spike,
+                    )
+                )
     call.checked_at = datetime.now(UTC).replace(tzinfo=None)
     session.add(call)
     session.commit()
@@ -315,7 +367,7 @@ def call_check_statuses(
     """Failed, degraded, clean or unchecked for each call, read from what is stored.
 
     Every finding counts, including one found by a check added after the call: "its
-    still an issue" (Dmytro, 2026-11-13). Findings stay marked retroactive, for anything
+    still an issue" (Dmytro, 2026-11-13), except those of an archived issue. Findings stay marked retroactive, for anything
     that must leave them out later (a reliability score's history).
     """
     if not call_ids:
@@ -324,7 +376,7 @@ def call_check_statuses(
     found = dict(
         session.exec(
             select(Finding.call_id, fails)
-            .where(col(Finding.call_id).in_(call_ids))
+            .where(col(Finding.call_id).in_(call_ids), shown_finding())
             .group_by(col(Finding.call_id))
         ).all()
     )
@@ -558,18 +610,92 @@ def summarise_issue(*, session: Session, issue: Issue) -> IssueSummary:
     return _summaries(session, [issue])[0]
 
 
-def list_issue_findings(
-    *, session: Session, issue_id: uuid.UUID, limit: int
-) -> list[tuple[Finding, datetime]]:
-    """An issue's findings with when their call started, newest call first."""
-    rows = session.exec(
-        select(Finding, Call.started_at)
-        .join(Call, col(Call.id) == col(Finding.call_id))
-        .where(Finding.issue_id == issue_id)
-        .order_by(col(Call.started_at).desc(), col(Finding.id))
-        .limit(limit)
-    ).all()
-    return [(finding, started.replace(tzinfo=UTC)) for finding, started in rows]
+def _connexity_decision(
+    issue: Issue,
+    *,
+    old: IssueState,
+    reason: str,
+    detail: dict[str, Any] | None = None,
+) -> DecisionRecord:
+    return DecisionRecord(
+        company_id=issue.company_id,
+        agent_id=issue.agent_id,
+        kind=DecisionKind.ISSUE_STATE,
+        subject=str(issue.id),
+        old_value=old.value,
+        new_value=issue.state.value,
+        reason=reason,
+        decided_by=None,
+        decided_by_email=CONNEXITY,
+        detail=detail,
+    )
+
+
+def _share(calls: int, of: int) -> float:
+    return calls / of if of else 0.0
+
+
+def baseline_share(*, session: Session, issue: Issue, at: datetime) -> float:
+    """The issue's share of the agent's calls in the 30 days before ``at``."""
+    from app.crud.issue_page import agent_calls_between, issue_calls_between
+
+    start = at - BASELINE_WINDOW
+    return _share(
+        issue_calls_between(session=session, issue_id=issue.id, start=start, end=at),
+        agent_calls_between(
+            session=session, agent_id=issue.agent_id, start=start, end=at
+        ),
+    )
+
+
+def issue_spike(
+    *, session: Session, issue: Issue, now: datetime
+) -> dict[str, Any] | None:
+    """The spike's numbers if the archived issue spiked in the last 7 days since it was
+    archived, else None.
+
+    A spike is at least 3 calls, and at least twice the baseline share fixed when it
+    was archived. With a baseline of 0, any 3 calls are a spike.
+    """
+    from app.crud.issue_page import agent_calls_between, issue_calls_between
+
+    # Only calls since the archive count: a busy week before it is what was archived.
+    start = now - SPIKE_WINDOW
+    if issue.archived_at is not None:
+        archived_at = issue.archived_at
+        if archived_at.tzinfo is None:
+            archived_at = archived_at.replace(tzinfo=UTC)
+        start = max(start, archived_at)
+    calls = issue_calls_between(
+        session=session, issue_id=issue.id, start=start, end=now
+    )
+    if calls < SPIKE_MIN_CALLS:
+        return None
+    agent_calls = agent_calls_between(
+        session=session, agent_id=issue.agent_id, start=start, end=now
+    )
+    share = _share(calls, agent_calls)
+    baseline = issue.archive_baseline_share or 0.0
+    if baseline > 0 and share < SPIKE_FACTOR * baseline:
+        return None
+    return {
+        "calls": calls,
+        "agent_calls": agent_calls,
+        "share": round(share, 4),
+        "baseline_share": round(baseline, 4),
+    }
+
+
+def spike_line(spike: dict[str, Any]) -> str:
+    """'8 calls this week, twice as often as when it was archived'."""
+    calls = spike["calls"]
+    noun = "call" if calls == 1 else "calls"
+    baseline = spike["baseline_share"]
+    if not baseline:
+        return f"{calls} {noun} this week; it had stopped when it was archived"
+    ratio = spike["share"] / baseline
+    how = "twice" if ratio < 2.5 else f"{ratio:.0f} times"
+    return f"{calls} {noun} this week, {how} as often as when it was archived"
 
 
 def set_issue_state(
@@ -580,10 +706,14 @@ def set_issue_state(
     version: str | None,
     reason: str | None,
     decided_by: User,
+    until_spike: bool = True,
+    assistant_name: str | None = None,
 ) -> Issue:
     """Set an issue's state and record the decision. A no-op if it is already there.
 
-    Two decisions on one issue are made in turn: the row is locked.
+    Archiving fixes its duration ("until it spikes" or forever) and, for a spike, the
+    baseline share. ``assistant_name`` is the assistant that acted with the person's
+    approval. Two decisions on one issue are made in turn: the row is locked.
     """
     issue = session.exec(
         select(Issue)
@@ -596,9 +726,22 @@ def set_issue_state(
         return issue
     old = issue.state
     issue.state = state
+    now = datetime.now(UTC)
+    detail: dict[str, Any] | None = None
     if state is IssueState.RESOLVED:
-        issue.resolved_at = datetime.now(UTC)
+        issue.resolved_at = now
         issue.resolved_version = version
+    if state is IssueState.ARCHIVED:
+        issue.archived_at = now
+        issue.archive_until_spike = until_spike
+        issue.archive_baseline_share = (
+            baseline_share(session=session, issue=issue, at=now)
+            if until_spike
+            else None
+        )
+        detail = {"duration": "until_spike" if until_spike else "forever"}
+        if until_spike:
+            detail["baseline_share"] = round(issue.archive_baseline_share or 0.0, 4)
     session.add(issue)
     session.add(
         DecisionRecord(
@@ -611,6 +754,8 @@ def set_issue_state(
             reason=reason,
             decided_by=decided_by.id,
             decided_by_email=decided_by.email,
+            assistant_name=assistant_name,
+            detail=detail,
         )
     )
     session.commit()

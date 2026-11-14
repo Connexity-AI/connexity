@@ -38,7 +38,7 @@
 <div style="position:absolute;right:0;top:42px;z-index:20;width:380px;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:12px">
 <div style="display:flex;flex-direction:column;gap:4px">
 <span style="font-size:15px;line-height:22px;font-weight:500">Archive this issue</span>
-<span style="font-size:13px;line-height:18px;color:var(--ink2);text-wrap:pretty">It leaves the open lists, Home and the roadmap, and stops counting against the agent’s score from today. Occurrences are still recorded.</span>
+<span style="font-size:13px;line-height:18px;color:var(--ink2);text-wrap:pretty">It leaves the open lists, Home and the roadmap, and is hidden on every call until it is unarchived. Its calls are still recorded.</span>
 </div>
 <textarea ref="{{ reasonRef }}" value="{{ reason }}" onChange="{{ onReason }}" rows="3" placeholder="Why it can be archived (required)" style="width:100%;resize:vertical;padding:8px 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s1);color:var(--ink);font-size:15px;line-height:22px;outline:none"></textarea>
 <div style="display:flex;flex-direction:column;gap:6px">
@@ -55,7 +55,7 @@
 <button onClick="{{ closeAsk }}" style="height:36px;padding:0 12px;border-radius:8px;border:0;background:transparent;color:var(--ink2);font-size:15px;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)">Cancel</button>
 <button onClick="{{ confirm }}" disabled="{{ noReason }}" style="{{ confirmStyle }}">Archive</button>
 </div>
-<span style="font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">Only a person can confirm this. Your assistant can propose it, and the proposal shows up in Action items.</span>
+<span style="font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">Only a person can confirm this, here or through your assistant.</span>
 </div>
 </sc-if>
 </div>
@@ -131,7 +131,7 @@
 </div>
 </div>
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-<div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Occurrences</h2><span style="font-size:13px;color:var(--ink3)">Latest first</span></div>
+<div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Affected calls</h2><span style="font-size:13px;color:var(--ink3)">Latest first</span></div>
 <div style="display:grid;grid-template-columns:136px 96px 72px 104px minmax(0,1fr) 16px;gap:16px;align-items:center;height:40px;padding:0 24px;border-top:1px solid var(--border);font-size:13px;color:var(--ink2)">
 <span>Time</span><span>Caller</span><span style="text-align:right">Duration</span><span>Result</span><span>Moment</span><span></span>
 </div>
@@ -144,7 +144,7 @@
 <sc-if value="{{ o.isFailed }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Failed</span></sc-if>
 <sc-if value="{{ o.isDegraded }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Degraded</span></sc-if>
 </span>
-<span style="color:var(--ink2)">{{ o.at }}</span>
+<span style="color:var(--ink2);white-space:nowrap">{{ o.at }}<span style="color:var(--ink3)">{{ o.times }}</span></span>
 <span style="display:flex;color:var(--ink3)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></span>
 </a>
 </sc-for>
@@ -180,7 +180,7 @@
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;issue&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;I-1042&quot;,&quot;I-1053&quot;,&quot;I-0988&quot;],&quot;default&quot;:&quot;I-1042&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;issue&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;I-1042&quot;,&quot;I-1053&quot;,&quot;I-0988&quot;,&quot;I-1043&quot;],&quot;default&quot;:&quot;I-1042&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
 class Component extends DCLogic {
   static THEMES = {
     dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
@@ -192,29 +192,36 @@ class Component extends DCLogic {
       tip:'The booking tool times out when the caller gives a date without a year. Send the year explicitly, or handle an empty result by offering to call back.',
       steps:[['Found','done','2 Nov · call •••• 2207','call'],['In the spec','done','Offer a callback when the booking tool fails','spec'],['Tested','current','4 test cases · 3 failing','tests'],['Fixed in a version','later','Not yet',null],['Confirmed on real calls','later','After the fix ships',null]],
       series:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,5,4,2,1,1,5,2,2,2,13], marks:[[18,'Version 9']],
-      occ:[['Today 11:08','5316',134,'failed',102],['Today 10:49','8830',187,'failed',121],['Today 10:12','3074',96,'failed',58],['Today 09:12','6612',212,'failed',143],['10 Nov 09:13','1459',165,'failed',97],['9 Nov 17:31','2948',148,'failed',110]],
-      occTotal:41, callId:'C-20466',
+      occ:[['Today 11:08','5316',134,'failed',102,2],['Today 10:49','8830',187,'failed',121,1],['Today 10:12','3074',96,'failed',58,1],['Today 09:12','6612',212,'failed',143,2],['10 Nov 09:13','1459',165,'failed',97,1],['9 Nov 17:31','2948',148,'failed',110,1]],
+      callId:'C-20466',
       incidents:[['INC-0398','8 Nov 09:00 – 11:50',5,'Rollback'],['INC-0377','3 Nov 08:10 – 4 Nov 17:30',9,'Outside recovery']],
       history:[['Incident opened with 3 other agents','Connexity','today 09:12','3rd incident on this issue'],['Test cases added','your assistant','9 Nov','Four cases built from the calls on 3 and 8 Nov'],['Proposal to archive declined','Sam','6 Nov','It loses real bookings. Not a caller problem',true],['Rule added to the spec','Sam','5 Nov','Offer a callback when the booking tool fails'],['Marked critical','Connexity','3 Nov','Failed 9 calls during an incident'],['Opened','Connexity','2 Nov','First seen on call •••• 2207']] },
     'I-1053': { title:'Told the caller to go to the emergency room', agentId:'clinic', agent:'Clinic after-hours', sev:'w', status:'o', calls:9, of:'160', first:'5 Nov', last:'6 hours ago', milestone:'62',
       tip:'Clinic after-hours sends callers to the emergency room when they mention chest pain or trouble breathing. The spec does not say what it should do. Answer the clarification so the rule can be written and tested.',
       steps:[['Found','done','5 Nov · call •••• 6630','call'],['Waiting for a clarification','current','Answer it in Action items','actions'],['Tested','later','After the rule is written',null],['Fixed in a version','later','Not yet',null],['Confirmed on real calls','later','After the fix ships',null]],
       series:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,1,0,2,1,1,1], marks:[[13,'Version 4']],
-      occ:[['Today 03:18','6630',241,'degraded',88],['Yesterday 23:52','1904',198,'degraded',64],['Yesterday 21:07','7215',176,'degraded',102],['10 Nov 22:40','3388',205,'degraded',71]],
-      occTotal:10, callId:'C-20481', incidents:[],
+      occ:[['Today 03:18','6630',241,'degraded',88,2],['Yesterday 23:52','1904',198,'degraded',64,1],['Yesterday 21:07','7215',176,'degraded',102,1],['10 Nov 22:40','3388',205,'degraded',71,1]],
+      callId:'C-20481', incidents:[],
       history:[['Clarification asked','Connexity','5 Nov','Not covered by the spec of version 4',true],['Opened','Connexity','5 Nov','First seen on call •••• 6630']] },
-    'I-0988': { title:'Caller hung up while on hold', agentId:'insurance', agent:'Insurance renewals', sev:'w', status:'k', archived:{ who:'Alex', when:'9 Nov', dur:'until it gets worse', why:'Callers hang up during the carrier’s hold music' }, calls:12, of:'96', first:'21 Oct', last:'3 hours ago', milestone:'\u2014',
+    'I-0988': { title:'Caller hung up while on hold', agentId:'insurance', agent:'Insurance renewals', sev:'w', status:'k', archived:{ who:'Alex', when:'9 Nov', dur:'until it spikes', why:'Callers hang up during the carrier’s hold music' }, calls:12, of:'96', first:'21 Oct', last:'3 hours ago', milestone:'\u2014',
       tip:'Callers hang up about 40 seconds into the hold music while the renewals team picks up. Offering a callback after 30 seconds on hold would keep most of them.',
       steps:[['Found','done','21 Oct · call •••• 7718','call'],['In the spec','later','\u2014',null],['Tested','later','\u2014',null],['Fixed in a version','later','\u2014',null],['Confirmed on real calls','later','\u2014',null]],
       series:[0,1,0,0,1,0,1,0,0,0,1,0,0,1,0,0,1,0,0,1,0,1,0,0,1,0,1,0,1,0], marks:[[14,'Version 14'],[26,'Archived by Alex']],
-      occ:[['Today 06:41','8152',344,'degraded',236],['Yesterday 14:26','2290',312,'degraded',198],['9 Nov 10:03','6047',287,'degraded',214],['7 Nov 15:39','9513',301,'degraded',226]],
-      occTotal:13, callId:'C-20481', incidents:[],
-      history:[['Archived','Alex','9 Nov','Callers hang up during the carrier’s hold music',false,'until it gets worse'],['Proposed for archiving','your assistant','8 Nov','Hang-ups start about 40 s into the hold music on every call',true],['Came back: happening 3× more often',null,'30 Oct','12 calls in a week, up from 4'],['Archived','Sam','24 Oct','Caller-side hang-ups during hold',false,'until it gets worse'],['Opened','Connexity','21 Oct','First seen on call •••• 7718']] }
+      occ:[['Today 06:41','8152',344,'degraded',236,1],['Yesterday 14:26','2290',312,'degraded',198,2],['9 Nov 10:03','6047',287,'degraded',214,1],['7 Nov 15:39','9513',301,'degraded',226,1]],
+      callId:'C-20481', incidents:[],
+      history:[['Archived','Alex','9 Nov','Callers hang up during the carrier’s hold music',false,'until it spikes'],['Unarchived','your assistant, approved by Dmytro','30 Oct','Hang-ups tripled after the carrier changed its hold music'],['Archived','Sam','24 Oct','Caller-side hang-ups during hold',false,'forever'],['Opened','Connexity','21 Oct','First seen on call •••• 7718']] },
+    'I-1043': { title:'Party size misheard', agentId:'restaurant', agent:'Restaurant reservations', sev:'w', status:'r', calls:18, of:'488', first:'19 Oct', last:'25 minutes ago', milestone:'70',
+      tip:'The agent hears “for two” as “for ten” when there is noise in the background. Reading the party size back before saving the booking would catch it.',
+      steps:[['Found','done','19 Oct · call •••• 4410','call'],['In the spec','later','Not yet',null],['Tested','later','Not yet',null],['Fixed in a version','later','Not yet',null],['Confirmed on real calls','later','After the fix ships',null]],
+      series:[0,0,0,0,0,1,0,1,0,1,0,1,0,1,1,0,1,0,0,1,0,1,1,1,1,2,0,2,1,1], marks:[[3,'Version 6'],[17,'Archived by your assistant'],[27,'Spiked']],
+      occ:[['Today 09:24','2251',142,'degraded',38,1],['Yesterday 19:02','7730',96,'degraded',21,2],['Yesterday 12:47','4106',188,'degraded',44,1],['10 Nov 20:15','9902',121,'degraded',30,2],['10 Nov 18:33','3365',77,'degraded',19,1],['10 Nov 13:08','6081',163,'degraded',52,1]],
+      callId:'C-20470', incidents:[],
+      history:[['Came back: it spiked',null,'10 Nov','8 calls this week, twice as often as when it was archived',false,null,true],['Archived','your assistant, approved by Dmytro','31 Oct','Most of these calls come from the patio during dinner service',false,'until it spikes'],['Opened','Connexity','19 Oct','First seen on call •••• 4410']] }
   };
   static M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   constructor(props) {
     super(props);
-    this.state = { askOpen:false, reason:'', dur:'worse', accepted:null };
+    this.state = { askOpen:false, reason:'', dur:'spike', accepted:null };
     this.askRef = React.createRef();
     this.reasonRef = React.createRef();
   }
@@ -257,7 +264,7 @@ class Component extends DCLogic {
     });
     const marks = d.marks.map(([i, label]) => ({ label, style: { position:'absolute', top:0, bottom:0, left: `calc(${(i + 0.5) / 30 * 100}% )`, borderLeft:'1px dashed var(--ink3)' } }));
     const history = (st.accepted ? [['Archived', 'you', st.accepted.when, st.accepted.why, false, st.accepted.dur]] : []).concat(d.history)
-      .map(([what, who, when, why, link, dur]) => ({ what, hasLink: !!link, meta: (who ? ` by ${who}, ${when}` : `, ${when}`) + (dur ? ` · ${dur}` : '') + ` · “${why}”` }));
+      .map(([what, who, when, why, link, dur, plain]) => ({ what, hasLink: !!link, meta: plain ? ` · ${why} · ${when}` : (who ? ` by ${who}, ${when}` : `, ${when}`) + (dur ? ` · ${dur}` : '') + ` · “${why}”` }));
     const noReason = !st.reason.trim();
     return {
       rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
@@ -268,8 +275,8 @@ class Component extends DCLogic {
       toggleAsk: () => { this.setState(s => ({ askOpen: !s.askOpen })); setTimeout(() => this.reasonRef.current && this.reasonRef.current.focus(), 30); },
       closeAsk: () => this.setState({ askOpen:false }),
       reason: st.reason, onReason: e => this.setState({ reason: e.target.value }), noReason,
-      confirm: () => { if (noReason) return; this.setState(s => ({ accepted: { who:'you', when:'12 Nov', why: s.reason.trim(), dur: s.dur === 'worse' ? 'until it gets worse' : 'forever' }, askOpen:false, reason:'' })); },
-      durs: [['worse','Until it gets worse','Comes back on its own when it starts happening much more often'],['forever','Forever','Stays archived until someone unarchives it']].map(([v, label, sub]) => ({ label, sub, on: st.dur === v, off: st.dur !== v, pick: () => this.setState({ dur:v }),
+      confirm: () => { if (noReason) return; this.setState(s => ({ accepted: { who:'you', when:'12 Nov', why: s.reason.trim(), dur: s.dur === 'spike' ? 'until it spikes' : 'forever' }, askOpen:false, reason:'' })); },
+      durs: [['spike','Until it spikes','Comes back if it starts happening twice as often as now.'],['forever','Forever','Stays archived until someone unarchives it.']].map(([v, label, sub]) => ({ label, sub, on: st.dur === v, off: st.dur !== v, pick: () => this.setState({ dur:v }),
         style: { display:'flex', alignItems:'flex-start', gap:10, padding:'8px 10px', borderRadius:8, cursor:'pointer', border:'1px solid ' + (st.dur === v ? 'var(--bc)' : 'transparent'), background: st.dur === v ? 'var(--wash)' : 'transparent' } })),
       isArchived: status === 'k', archLine: arch ? `Archived by ${arch.who}, ${arch.when} · ${arch.dur} · “${arch.why}”` : '',
       confirmStyle: { height:36, padding:'0 14px', borderRadius:8, border:0, background:'var(--accent)', color:'var(--on-accent)', fontSize:15, fontWeight:500, cursor: noReason ? 'default' : 'pointer', opacity: noReason ? 0.4 : 1 },
@@ -279,8 +286,8 @@ class Component extends DCLogic {
       tip: d.tip,
       stopped: status === 'k', stoppedNote: 'Stopped: archived on ' + (arch ? arch.when : ''),
       steps, days, marks, yMax, yMid: yMax / 2,
-      occ: d.occ.map(([when, last4, dur, res, at]) => ({ when, caller: '•••• ' + last4, dur: mmss(dur), isFailed: res === 'failed', isDegraded: res === 'degraded', at: 'at ' + mmss(at), href: callHref(at) })),
-      allText: `All ${d.occTotal} occurrences on ${d.calls} calls`, allHref: 'Connexity Calls.dc.html?issue=' + id,
+      occ: d.occ.map(([when, last4, dur, res, at, times]) => ({ when, caller: '•••• ' + last4, dur: mmss(dur), isFailed: res === 'failed', isDegraded: res === 'degraded', at: 'at ' + mmss(at), times: times > 1 ? ` · ${times} times` : '', href: callHref(at) })),
+      allText: `All ${d.calls} calls`, allHref: 'Connexity Calls.dc.html?issue=' + id,
       incidents: d.incidents.map(([iid, period, failed, how]) => ({ period, failed, how, href:'Connexity Incident.dc.html?incident=' + iid })),
       history
     };

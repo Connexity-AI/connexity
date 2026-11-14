@@ -6,19 +6,22 @@ from sqlmodel import Session, col, select
 
 from app import crud
 from app.crud.call_list import CallFilters, CallRow
+from app.crud.issue_page import Moment, issue_moments
 from app.models.agent import Agent
 from app.models.call_list import (
     CallFilterOption,
     CallListItemPublic,
     CallListPublic,
     CallTilesPublic,
+    IssueMomentPublic,
     WorstFindingPublic,
 )
 from app.models.enums import CheckKind
 from app.services.checks.registry import get_check
+from app.services.issue_list import issue_title
 
 
-def _item(row: CallRow) -> CallListItemPublic:
+def _item(row: CallRow, moment: Moment | None = None) -> CallListItemPublic:
     call = row.call
     duration = None
     if call.ended_at is not None:
@@ -44,6 +47,9 @@ def _item(row: CallRow) -> CallListItemPublic:
         duration_seconds=duration,
         result=row.result,
         worst_finding=worst,
+        moment=IssueMomentPublic(at_seconds=moment.at_seconds, times=moment.times)
+        if moment is not None
+        else None,
     )
 
 
@@ -74,8 +80,17 @@ def workspace_calls(
         )
         .order_by(col(Agent.name))
     ).all()
+    moments = (
+        issue_moments(
+            session=session,
+            issue_id=filters.issue_id,
+            call_ids=[row.call.id for row in rows],
+        )
+        if filters.issue_id is not None
+        else {}
+    )
     return CallListPublic(
-        data=[_item(row) for row in rows],
+        data=[_item(row, moments.get(row.call.id)) for row in rows],
         tiles=CallTilesPublic(**tiles._asdict()),
         has_more=has_more,
         period=filters.period,
@@ -84,4 +99,18 @@ def workspace_calls(
             CallFilterOption(value=c.key, label=c.name)
             for c in crud.list_categories(session=session)
         ],
+        issue=_issue_option(session, company_id, filters.issue_id),
+    )
+
+
+def _issue_option(
+    session: Session, company_id: uuid.UUID, issue_id: uuid.UUID | None
+) -> CallFilterOption | None:
+    if issue_id is None:
+        return None
+    issue = crud.get_issue(session=session, issue_id=issue_id, company_id=company_id)
+    if issue is None:
+        return None
+    return CallFilterOption(
+        value=str(issue.id), label=issue_title(issue.check_type, issue.key or None)
     )

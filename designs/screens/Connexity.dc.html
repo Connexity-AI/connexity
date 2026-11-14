@@ -165,6 +165,13 @@
     <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Calls" theme="light" hint-size="1440px,1500px"></dc-import></div></div>
   </div>
 </section>
+<section id="calls-issue" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Calls · opened from an issue</span><span style="font-size:13px;color:#a3a5a9">The issue chip comes first; × removes it. Only affected calls are counted and listed. Moment shows the first time it happened; a row opens the call there.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Calls" theme="dark" issue="I-1042" hint-size="1440px,900px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Calls" theme="light" issue="I-1042" hint-size="1440px,900px"></dc-import></div></div>
+  </div>
+</section>
 <section id="call" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
   <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Call · failed</span><span style="font-size:13px;color:#a3a5a9">Opens at the critical moment. Play, click the speech timeline, a mark, a tool tick, a finding or a turn to jump. Click a tool line to see its arguments and result.</span></div>
   <div style="display:flex;gap:48px;align-items:flex-start">
@@ -215,10 +222,17 @@
   </div>
 </section>
 <section id="issue-known" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
-  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Issue · archived</span><span style="font-size:13px;color:#a3a5a9">Proposed by the assistant, archived by a person until it gets worse. It came back once on 30 Oct. Occurrences are still recorded; the chart marks the archive.</span></div>
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Issue · archived</span><span style="font-size:13px;color:#a3a5a9">Archived by a person until it spikes. Unarchived once through the assistant. Affected calls are still recorded; the chart marks the archive.</span></div>
   <div style="display:flex;gap:48px;align-items:flex-start">
     <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Issue" theme="dark" issue="I-0988" hint-size="1440px,1300px"></dc-import></div></div>
     <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Issue" theme="light" issue="I-0988" hint-size="1440px,1300px"></dc-import></div></div>
+  </div>
+</section>
+<section id="issue-spiked" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Issue · reopened after a spike</span><span style="font-size:13px;color:#a3a5a9">Archived through the assistant until it spikes. It came back on 10 Nov at twice the rate; the chart marks both days.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Issue" theme="dark" issue="I-1043" hint-size="1440px,1300px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Issue" theme="light" issue="I-1043" hint-size="1440px,1300px"></dc-import></div></div>
   </div>
 </section>
 <section id="agent-profile" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">

@@ -11,19 +11,17 @@ from app.crud.check import IssueSummary
 from app.models import (
     Category,
     CategoryPublic,
-    IssueDetailPublic,
-    IssueFindingPublic,
     IssuePublic,
     IssueStateUpdate,
 )
 from app.models.enums import IssueState
 from app.models.issue_list import IssueListPublic, IssuePeriod, IssueStatusFilter
+from app.models.issue_page import IssuePagePublic
 from app.services.checks.registry import get_check
 from app.services.issue_list import IssueFilters, workspace_issues
+from app.services.issue_page import issue_page
 
 router = APIRouter(tags=["issues"], dependencies=[Depends(get_current_user)])
-
-_MAX_FINDINGS = 200
 
 
 def _public(
@@ -103,35 +101,19 @@ def list_agent_issues(
     ]
 
 
-@router.get("/issues/{issue_id}", response_model=IssueDetailPublic)
+@router.get("/issues/{issue_id}", response_model=IssuePagePublic)
 def get_issue(
     session: SessionDep, company_id: CurrentCompany, issue_id: uuid.UUID
-) -> IssueDetailPublic:
-    """One issue with its findings and the calls they are on."""
+) -> IssuePagePublic:
+    """One issue's page: tiles, the chain, affected calls per day with marks, the latest
+    affected calls with their moment, and history. The last 30 days."""
     issue = crud.get_issue(session=session, issue_id=issue_id, company_id=company_id)
     if issue is None:
         raise HTTPException(status_code=404, detail="Issue not found")
-    summary = _public(
-        crud.summarise_issue(session=session, issue=issue),
-        crud.categories_by_id(session=session),
-    )
-    return IssueDetailPublic(
-        **summary.model_dump(),
-        findings=[
-            IssueFindingPublic(
-                id=finding.id,
-                call_id=finding.call_id,
-                call_started_at=started,
-                check_version=finding.check_version,
-                event_ids=finding.event_keys,
-                detail=finding.detail,
-                effect=finding.effect,
-                retroactive=finding.retroactive,
-            )
-            for finding, started in crud.list_issue_findings(
-                session=session, issue_id=issue.id, limit=_MAX_FINDINGS
-            )
-        ],
+    return issue_page(
+        session=session,
+        issue=issue,
+        summary=crud.summarise_issue(session=session, issue=issue),
     )
 
 
@@ -145,7 +127,8 @@ def set_issue_state(
 ) -> IssuePublic:
     """Resolve an issue, archive it, or open it again.
 
-    Kept as a decision record. Archiving requires a reason. "Reopened" is not
+    Kept as a decision record. Archiving requires a reason and takes a duration: until
+    it spikes (the default) or forever. "Reopened" is not
     something a person sets: it happens when a resolved issue is found again on a call
     that started after the resolution.
     """
@@ -169,6 +152,7 @@ def set_issue_state(
         version=(body.version or "").strip() or None,
         reason=reason,
         decided_by=current_user,
+        until_spike=body.duration != "forever",
     )
     return _public(
         crud.summarise_issue(session=session, issue=issue),

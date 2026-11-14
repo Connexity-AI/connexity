@@ -83,11 +83,24 @@ cause is recorded on each incident.
 - **Resolved:** the assistant or a person marks an issue fixed, linked to the version
   that carries the fix. There is no confirmation on real calls yet; if the issue happens
   again on a call that started after that, it reopens (Decided 2026-11-12).
-- **Archived** replaces "accepted as known": the issue is real and nobody will fix it. A
-  person confirms it (the assistant may propose) with a reason and a duration, "until it
-  gets worse" by default or "forever". It stops counting against the score, reliability
-  and quality from that day, the charts are marked, and it comes back on its own when it
-  gets worse. Every archive, unarchive and return is a decision record.
+- **Archived** replaces "accepted as known": the issue is real and nobody will fix it.
+  - **Who:** a person, on the issue page or by saying yes when their assistant asks
+    (`archive_issue`, recorded as "your assistant, approved by …"). It needs a reason
+    and a duration: "until it spikes" (the default) or "forever".
+  - **Hidden while archived** (Decided 2026-11-14, replacing "from that day; the past is
+    never rewritten"): its findings are left out of every call's result, worst finding
+    and findings, whatever the call's date. It makes no call fail and counts nothing
+    toward the score, for the person and the assistant alike. It is still found and
+    stored, and when it is unarchived, all its calls count again, including those from
+    while it was archived. One rule, `shown_finding()` in `app/crud/check.py`, does
+    this everywhere a call's result or findings are worked out.
+  - **Spike:** an archived "until it spikes" issue comes back as reopened when, over the
+    last 7 days, it hit at least 3 calls and at least twice the share of the agent's
+    calls it had in the 30 days before the archive (any 3 calls if that was 0). The
+    baseline is fixed when it is archived. It is checked as findings arrive. "Spike" is
+    the word for this; "escalation" means handing a call to a person.
+  - Every archive, unarchive and return is a decision record, and so is a resolved issue
+    reopening, decided by Connexity.
 - **Every issue carries a tip** from Connexity: the likely cause and what to change.
 
 Starting types. The first group is true under any prompt and is what Phase 2 builds.

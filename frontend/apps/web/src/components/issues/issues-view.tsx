@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
+import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
+import { UrlGenerator } from '@/common/url-generator/url-generator';
 import {
   Calendar,
   ChevronDown,
@@ -52,7 +54,7 @@ const share = (issue: IssueListItemPublic) => {
 };
 
 /** "12 minutes ago", "3 hours ago", "Yesterday", "4 days ago". */
-const lastSeen = (iso: string | null | undefined) => {
+export const lastSeen = (iso: string | null | undefined) => {
   if (!iso) return '—';
   const minutes = Math.max(0, Math.round((Date.now() - parseTime(iso).getTime()) / 60000));
   if (minutes < 60) return minutes === 1 ? '1 minute ago' : `${minutes} minutes ago`;
@@ -129,10 +131,12 @@ const Group: FC<{ group: IssueGroupPublic; expanded: boolean; onToggle: () => vo
     {expanded && (
       <div className="pb-2">
         {group.issues.map((issue) => (
-          <div
+          <Link
             key={issue.id}
+            href={UrlGenerator.issue(issue.id)}
+            title="Open the issue"
             className={cn(
-              'grid min-h-11 items-center gap-4 pr-6 pl-12 text-body text-ink',
+              'grid min-h-11 items-center gap-4 pr-6 pl-12 text-body text-ink no-underline hover:bg-wash',
               COLUMNS
             )}
           >
@@ -151,7 +155,7 @@ const Group: FC<{ group: IssueGroupPublic; expanded: boolean; onToggle: () => vo
             <span className="whitespace-nowrap text-label text-ink-secondary">
               {lastSeen(issue.last_seen_at)}
             </span>
-          </div>
+          </Link>
         ))}
       </div>
     )}
@@ -163,8 +167,8 @@ interface Props {
 }
 
 /**
- * Issues (designs/screens/Connexity Issues.dc.html). Rows open nothing until the single
- * issue page exists, and there is no Milestone column until the roadmap does (rule 14).
+ * Issues (designs/screens/Connexity Issues.dc.html). A row opens its issue. There is no
+ * Milestone column until the roadmap exists (rule 14).
  */
 export const IssuesView: FC<Props> = ({ issues }) => {
   const router = useRouter();

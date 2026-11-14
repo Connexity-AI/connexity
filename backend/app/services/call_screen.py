@@ -132,7 +132,7 @@ def call_screen(*, session: Session, call: Call) -> CallScreenPublic | None:
         issue.id: issue for issue in crud.issues_of_findings(session=session, call=call)
     }
     findings: list[CallScreenFinding] = []
-    for row in crud.get_findings(session=session, call=call):
+    for row in crud.get_findings(session=session, call=call, shown_only=True):
         check = get_check(row.check_type)
         title = check.title if check else row.check_type
         issue = issues.get(row.issue_id)

@@ -87,6 +87,7 @@ class ConnexityBackendClient:
         result: str | None = None,
         category: str | None = None,
         period: str | None = None,
+        issue_id: str | None = None,
         cursor: str | None = None,
         limit: int | None = None,
     ) -> dict[str, Any]:
@@ -98,6 +99,7 @@ class ConnexityBackendClient:
                 "result": result,
                 "category": category,
                 "period": period,
+                "issue_id": issue_id,
                 "cursor": cursor,
                 "limit": limit,
             }.items()
@@ -140,6 +142,33 @@ class ConnexityBackendClient:
             "GET",
             f"/mcp/workspaces/{quote(workspace_id, safe='')}/issues",
             params=params,
+        )
+
+    def _issue_path(self, workspace_id: str, issue_id: str) -> str:
+        return (
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/issues/"
+            f"{quote(issue_id, safe='')}"
+        )
+
+    async def get_issue(self, *, workspace_id: str, issue_id: str) -> dict[str, Any]:
+        return await self._request_json("GET", self._issue_path(workspace_id, issue_id))
+
+    async def archive_issue(
+        self, *, workspace_id: str, issue_id: str, reason: str, duration: str
+    ) -> dict[str, Any]:
+        return await self._request_json(
+            "POST",
+            f"{self._issue_path(workspace_id, issue_id)}/archive",
+            json={"reason": reason, "duration": duration},
+        )
+
+    async def unarchive_issue(
+        self, *, workspace_id: str, issue_id: str, reason: str | None = None
+    ) -> dict[str, Any]:
+        return await self._request_json(
+            "POST",
+            f"{self._issue_path(workspace_id, issue_id)}/unarchive",
+            json={"reason": reason},
         )
 
     async def list_categories(self, *, workspace_id: str) -> dict[str, Any]:

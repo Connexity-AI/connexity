@@ -62,7 +62,6 @@ from app.crud.check import (  # noqa: F401
     get_issue,
     issues_of_findings,
     list_decision_records,
-    list_issue_findings,
     list_issues,
     list_workspace_issues,
     lock_agent,

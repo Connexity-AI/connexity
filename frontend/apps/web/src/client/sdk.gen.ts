@@ -240,6 +240,9 @@ import type {
   McpAddAgentsData,
   McpAddAgentsErrors,
   McpAddAgentsResponses,
+  McpArchiveIssueData,
+  McpArchiveIssueErrors,
+  McpArchiveIssueResponses,
   McpConnectVoicePlatformData,
   McpConnectVoicePlatformErrors,
   McpConnectVoicePlatformResponses,
@@ -249,6 +252,9 @@ import type {
   McpGetCallData,
   McpGetCallErrors,
   McpGetCallResponses,
+  McpGetIssueData,
+  McpGetIssueErrors,
+  McpGetIssueResponses,
   McpGetReadinessData,
   McpGetReadinessErrors,
   McpGetReadinessResponses,
@@ -270,6 +276,9 @@ import type {
   McpScanCallsData,
   McpScanCallsErrors,
   McpScanCallsResponses,
+  McpUnarchiveIssueData,
+  McpUnarchiveIssueErrors,
+  McpUnarchiveIssueResponses,
   OauthAuthorizeAllowData,
   OauthAuthorizeAllowErrors,
   OauthAuthorizeAllowResponses,
@@ -1202,6 +1211,61 @@ export class McpService {
       security: [{ scheme: 'bearer', type: 'http' }],
       url: '/api/v1/mcp/workspaces/{workspace_id}/issues',
       ...options,
+    });
+  }
+
+  /**
+   * Get Issue
+   */
+  public static getIssue<ThrowOnError extends boolean = false>(
+    options: Options<McpGetIssueData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<McpGetIssueResponses, McpGetIssueErrors, ThrowOnError>({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Archive Issue
+   */
+  public static archiveIssue<ThrowOnError extends boolean = false>(
+    options: Options<McpArchiveIssueData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      McpArchiveIssueResponses,
+      McpArchiveIssueErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}/archive',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Unarchive Issue
+   */
+  public static unarchiveIssue<ThrowOnError extends boolean = false>(
+    options: Options<McpUnarchiveIssueData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      McpUnarchiveIssueResponses,
+      McpUnarchiveIssueErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}/unarchive',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
     });
   }
 
@@ -3100,6 +3164,7 @@ export class CallsService {
    *
    * ``q`` is a phone number (its last digits match the end of the caller's number) or a
    * call id (Connexity's or the platform's). Callers are shown as their last four digits.
+   * ``issue_id`` keeps only the calls that issue was found on, each with its moment.
    */
   public static listCalls<ThrowOnError extends boolean = false>(
     options?: Options<CallsListCallsData, ThrowOnError>
@@ -3831,7 +3896,8 @@ export class IssuesService {
   /**
    * Get Issue
    *
-   * One issue with its findings and the calls they are on.
+   * One issue's page: tiles, the chain, affected calls per day with marks, the latest
+   * affected calls with their moment, and history. The last 30 days.
    */
   public static getIssue<ThrowOnError extends boolean = false>(
     options: Options<IssuesGetIssueData, ThrowOnError>
@@ -3859,7 +3925,8 @@ export class IssuesService {
    *
    * Resolve an issue, archive it, or open it again.
    *
-   * Kept as a decision record. Archiving requires a reason. "Reopened" is not
+   * Kept as a decision record. Archiving requires a reason and takes a duration: until
+   * it spikes (the default) or forever. "Reopened" is not
    * something a person sets: it happens when a resolved issue is found again on a call
    * that started after the resolution.
    */

@@ -8,6 +8,7 @@ from connexity_mcp_server.models import (
     CreateWorkspaceResult,
     GetCallResult,
     GetReadinessResult,
+    IssueResult,
     ListAgentsResult,
     ListCallsResult,
     ListCategoriesResult,
@@ -121,6 +122,7 @@ async def list_calls(
     result: str | None = None,
     category: str | None = None,
     period: str | None = None,
+    issue_id: str | None = None,
     cursor: str | None = None,
     limit: int | None = None,
 ) -> ListCallsResult:
@@ -132,6 +134,7 @@ async def list_calls(
             result=result,
             category=category,
             period=period,
+            issue_id=issue_id,
             cursor=cursor,
             limit=limit,
         )
@@ -143,4 +146,42 @@ async def get_call(
 ) -> GetCallResult:
     return GetCallResult.model_validate(
         await client.get_call(workspace_id=workspace_id, call_id=call_id)
+    )
+
+
+async def get_issue(
+    client: ConnexityBackendClient, workspace_id: str, issue_id: str
+) -> IssueResult:
+    return IssueResult.model_validate(
+        await client.get_issue(workspace_id=workspace_id, issue_id=issue_id)
+    )
+
+
+async def archive_issue(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    issue_id: str,
+    reason: str,
+    duration: str = "until_spike",
+) -> IssueResult:
+    return IssueResult.model_validate(
+        await client.archive_issue(
+            workspace_id=workspace_id,
+            issue_id=issue_id,
+            reason=reason,
+            duration=duration,
+        )
+    )
+
+
+async def unarchive_issue(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    issue_id: str,
+    reason: str | None = None,
+) -> IssueResult:
+    return IssueResult.model_validate(
+        await client.unarchive_issue(
+            workspace_id=workspace_id, issue_id=issue_id, reason=reason
+        )
     )

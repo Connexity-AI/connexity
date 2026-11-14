@@ -1,5 +1,9 @@
 'use client';
 
+import { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
+
+import { UrlGenerator } from '@/common/url-generator/url-generator';
 import {
   ArrowLeft,
   ChevronRight,
@@ -10,12 +14,9 @@ import {
   TriangleAlert,
   Wrench,
 } from 'lucide-react';
-import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { cn } from '@workspace/ui/lib/utils';
 
-import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { clock, shortDuration, timeLabel } from '@/components/calls/format';
 
 import type {
@@ -58,7 +59,8 @@ const FindingChip: FC<{ finding: CallScreenFinding }> = ({ finding }) =>
     <span className="inline-flex min-h-6 items-center gap-1.5 rounded-md bg-critical-bg px-2 py-0.5 text-label text-critical">
       <OctagonAlert className="size-3.5 flex-none" aria-hidden />
       <span>
-        <span className="font-medium">{finding.text}</span> · {finding.category} · {foundBy(finding)}
+        <span className="font-medium">{finding.text}</span> · {finding.category} ·{' '}
+        {foundBy(finding)}
       </span>
     </span>
   ) : (
@@ -89,7 +91,9 @@ const Values: FC<{ title: string; values: KeyValue[]; id: string }> = ({ title, 
           >
             <span className="break-all text-ink-muted">{kv.key}</span>
             <div className="flex min-w-0 flex-col items-start">
-              <span className={cn('whitespace-pre-wrap break-all text-ink', clamped && 'line-clamp-3')}>
+              <span
+                className={cn('whitespace-pre-wrap break-all text-ink', clamped && 'line-clamp-3')}
+              >
                 {kv.value}
               </span>
               {clamped && (
@@ -120,10 +124,12 @@ const toolLine = (entry: CallScreenEntry) =>
 interface Props {
   call: CallScreenPublic;
   recordingUrl: string | null;
+  /** Seconds from the call's start to open at, from a link (`?t=102`). */
+  startAt?: number;
 }
 
 /** A single call (designs/screens/Connexity Call.dc.html). Read only. */
-export const CallView: FC<Props> = ({ call, recordingUrl }) => {
+export const CallView: FC<Props> = ({ call, recordingUrl, startAt }) => {
   const audio = useRef<HTMLAudioElement>(null);
   const transcript = useRef<HTMLDivElement>(null);
   const [t, setT] = useState(0);
@@ -165,8 +171,18 @@ export const CallView: FC<Props> = ({ call, recordingUrl }) => {
     if (audio.current && hasAudio) audio.current.currentTime = at;
   };
 
-  // Open at the critical moment, when there is one.
+  // Open at the moment a link asked for, else at the critical moment, when there is one.
   useEffect(() => {
+    if (startAt != null) {
+      const at = Math.min(Math.max(startAt, 0), duration);
+      setT(at);
+      let index = 0;
+      call.entries.forEach((entry, i) => {
+        if (entry.at_seconds <= at + 0.05) index = i;
+      });
+      setTimeout(() => scrollTo(index, true), 60);
+      return;
+    }
     const critical = call.findings.find((f) => f.severity === 'critical');
     if (critical) {
       setT(critical.at_seconds);
@@ -244,7 +260,11 @@ export const CallView: FC<Props> = ({ call, recordingUrl }) => {
               title={playing ? 'Pause' : 'Play'}
               className="flex size-10 flex-none items-center justify-center rounded-full border-0 bg-ink text-on-accent hover:opacity-90"
             >
-              {playing ? <Pause className="size-4" aria-hidden /> : <Play className="size-4" aria-hidden />}
+              {playing ? (
+                <Pause className="size-4" aria-hidden />
+              ) : (
+                <Play className="size-4" aria-hidden />
+              )}
             </button>
             <span className="w-10 flex-none text-label text-ink">{clock(t)}</span>
             <audio
@@ -317,7 +337,10 @@ export const CallView: FC<Props> = ({ call, recordingUrl }) => {
                 {finding.severity === 'critical' ? (
                   <>
                     <span className="absolute top-2 left-[7px] h-10 w-0.5 rounded-[1px] bg-critical" />
-                    <OctagonAlert className="absolute -top-2.5 left-0 size-4 text-critical" aria-hidden />
+                    <OctagonAlert
+                      className="absolute -top-2.5 left-0 size-4 text-critical"
+                      aria-hidden
+                    />
                   </>
                 ) : (
                   <span className="absolute top-0.5 left-[7px] h-2 w-0.5 rounded-[1px] bg-warning" />
@@ -398,11 +421,17 @@ export const CallView: FC<Props> = ({ call, recordingUrl }) => {
                   on && 'bg-wash shadow-[inset_2px_0_0_var(--color-ink)]'
                 )}
               >
-                <span className="text-label leading-[22px] text-ink-muted">{clock(entry.at_seconds)}</span>
+                <span className="text-label leading-[22px] text-ink-muted">
+                  {clock(entry.at_seconds)}
+                </span>
                 {entry.kind === 'turn' ? (
                   <>
                     <span className="text-label leading-[22px] text-ink-secondary">
-                      {entry.speaker === 'agent' ? 'Agent' : entry.speaker === 'caller' ? 'Caller' : 'Other'}
+                      {entry.speaker === 'agent'
+                        ? 'Agent'
+                        : entry.speaker === 'caller'
+                          ? 'Caller'
+                          : 'Other'}
                     </span>
                     <div className="flex min-w-0 flex-col items-start gap-1.5">
                       <span className="text-body text-ink">{entry.text}</span>
@@ -431,7 +460,10 @@ export const CallView: FC<Props> = ({ call, recordingUrl }) => {
                         <Wrench className="size-3.5 flex-none" aria-hidden />
                         <span>{toolLine(entry)}</span>
                         <ChevronRight
-                          className={cn('size-3.5 flex-none transition-transform', open[i] && 'rotate-90')}
+                          className={cn(
+                            'size-3.5 flex-none transition-transform',
+                            open[i] && 'rotate-90'
+                          )}
                           aria-hidden
                         />
                       </button>
@@ -443,7 +475,9 @@ export const CallView: FC<Props> = ({ call, recordingUrl }) => {
                           <Values title="Arguments" values={entry.arguments ?? []} id={`${i}a`} />
                           <Values title="Result" values={entry.result ?? []} id={`${i}r`} />
                           {entry.workflow && (
-                            <span className="text-label text-ink-muted">Workflow: {entry.workflow}</span>
+                            <span className="text-label text-ink-muted">
+                              Workflow: {entry.workflow}
+                            </span>
                           )}
                         </div>
                       )}
