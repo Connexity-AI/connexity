@@ -1,8 +1,10 @@
 'use client';
 
 import { useTransition } from 'react';
+import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
+import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { Calendar } from 'lucide-react';
 
 import { cn } from '@workspace/ui/lib/utils';
@@ -18,23 +20,27 @@ const PERIOD_LABELS: Record<string, string> = {
   '30d': 'Last 30 days',
   '90d': 'Last 90 days',
 };
-const PLATFORMS: Record<string, string> = {
+export const PLATFORMS: Record<string, string> = {
   retell: 'Retell',
   vapi: 'Vapi',
   elevenlabs: 'ElevenLabs',
 };
-const TYPES: Record<string, string> = {
+export const TYPES: Record<string, string> = {
   single_prompt: 'Single prompt',
   conversational_flow: 'Conversational flow',
 };
-// The design's columns without Score, Critical issues and Latency (rule 14).
-const COLUMNS = 'grid-cols-[minmax(0,1fr)_88px]';
+// The design's columns without Score and Critical issues (rule 14).
+const COLUMNS = 'grid-cols-[minmax(0,1fr)_104px_88px]';
 
 /** "Retell · Conversational flow" */
-const subline = (agent: AgentListItemPublic) =>
+export const subline = (agent: AgentListItemPublic) =>
   [agent.platform ? PLATFORMS[agent.platform] : null, agent.type ? TYPES[agent.type] : null]
     .filter(Boolean)
     .join(' · ');
+
+/** "1.2 s", or a dash with no latency. */
+export const seconds = (value: number | null | undefined) =>
+  value == null ? '—' : `${value.toFixed(1)} s`;
 
 /** "synced 5 minutes ago" */
 const synced = (iso: string | null | undefined) => {
@@ -53,8 +59,8 @@ interface Props {
 }
 
 /**
- * Agents (designs/screens/Connexity Agents.dc.html). Rows open nothing until the agent
- * page exists; Score, Critical issues and Latency wait for their features (rule 14).
+ * Agents (designs/screens/Connexity Agents.dc.html). A row opens the agent's page;
+ * Score and Critical issues wait for their features (rule 14).
  */
 export const AgentsView: FC<Props> = ({ agents }) => {
   const router = useRouter();
@@ -96,13 +102,15 @@ export const AgentsView: FC<Props> = ({ agents }) => {
           className={cn('grid h-10 items-center gap-4 px-6 text-label text-ink-secondary', COLUMNS)}
         >
           <span>Agent</span>
+          <span className="text-right">Latency</span>
           <span className="text-right">Calls</span>
         </div>
         {agents.data.map((agent) => (
-          <div
+          <Link
             key={agent.id}
+            href={UrlGenerator.agent(agent.id)}
             className={cn(
-              'grid min-h-16 items-center gap-4 border-t border-hairline px-6 py-2.5 text-body text-ink',
+              'grid min-h-16 items-center gap-4 border-t border-hairline px-6 py-2.5 text-body text-ink no-underline hover:bg-wash',
               COLUMNS
             )}
           >
@@ -119,8 +127,9 @@ export const AgentsView: FC<Props> = ({ agents }) => {
                 <span className="text-label text-ink-muted">{subline(agent)}</span>
               )}
             </div>
+            <span className="text-right">{seconds(agent.latency_seconds)}</span>
             <span className="text-right">{agent.calls.toLocaleString()}</span>
-          </div>
+          </Link>
         ))}
         {agents.data.length === 0 && (
           <div className="border-t border-hairline px-6 py-5 text-ink-secondary">

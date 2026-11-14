@@ -393,6 +393,36 @@ export const AgentLastEvalSummarySchema = {
   title: 'AgentLastEvalSummary',
 } as const;
 
+export const AgentLatencyDayPublicSchema = {
+  properties: {
+    day: {
+      type: 'string',
+      format: 'date',
+      title: 'Day',
+    },
+    seconds: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Seconds',
+      description: "The day's average latency; None with no calls",
+    },
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+      description: 'Calls that day with a latency',
+    },
+  },
+  type: 'object',
+  required: ['day', 'calls'],
+  title: 'AgentLatencyDayPublic',
+} as const;
+
 export const AgentLatestPublishedVersionPublicSchema = {
   properties: {
     version: {
@@ -467,6 +497,18 @@ export const AgentListItemPublicSchema = {
       title: 'Calls',
       description: 'Calls in the period',
     },
+    latency_seconds: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Latency Seconds',
+      description: "Average of its calls' latencies in the period",
+    },
     spec: {
       type: 'string',
       enum: ['none', 'current', 'needs_review'],
@@ -517,6 +559,159 @@ export const AgentModeSchema = {
   type: 'string',
   enum: ['endpoint', 'platform'],
   title: 'AgentMode',
+} as const;
+
+export const AgentPagePublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    platform: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Platform',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    type: {
+      anyOf: [
+        {
+          type: 'string',
+          enum: ['single_prompt', 'conversational_flow'],
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Type',
+    },
+    live_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Live Version',
+      description: 'The agent version of its most recent call',
+    },
+    live_since: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Live Since',
+      description: 'When the first call on the live version started',
+    },
+    model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Model',
+      description: "The live version's model",
+    },
+    systems: {
+      items: {
+        $ref: '#/components/schemas/AgentSystemPublic',
+      },
+      type: 'array',
+      title: 'Systems',
+      description: 'Workflows its tool calls ran in the period',
+    },
+    spec: {
+      type: 'string',
+      enum: ['none', 'current', 'needs_review'],
+      title: 'Spec',
+    },
+    period: {
+      type: 'string',
+      enum: ['7d', '30d', '90d'],
+      title: 'Period',
+    },
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+      description: 'Calls in the period',
+    },
+    latency_seconds: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Latency Seconds',
+      description: "Average of its calls' latencies in the period",
+    },
+    latency_calls: {
+      type: 'integer',
+      title: 'Latency Calls',
+      description: 'Calls in the period with a latency',
+    },
+    latency_days: {
+      items: {
+        $ref: '#/components/schemas/AgentLatencyDayPublic',
+      },
+      type: 'array',
+      title: 'Latency Days',
+      description: 'Each day of the period, oldest first',
+    },
+    latency_peak: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Latency Peak',
+      description: 'The highest daily average in the period',
+    },
+    version_marks: {
+      items: {
+        $ref: '#/components/schemas/AgentVersionMarkPublic',
+      },
+      type: 'array',
+      title: 'Version Marks',
+      description: 'Each new agent version that started in the period',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'name',
+    'spec',
+    'period',
+    'calls',
+    'latency_calls',
+    'latency_days',
+    'version_marks',
+  ],
+  title: 'AgentPagePublic',
 } as const;
 
 export const AgentPromptTypeSchema = {
@@ -780,6 +975,35 @@ export const AgentRollbackRequestSchema = {
   type: 'object',
   required: ['version'],
   title: 'AgentRollbackRequest',
+} as const;
+
+export const AgentSystemPublicSchema = {
+  properties: {
+    kind: {
+      type: 'string',
+      title: 'Kind',
+      description: 'What it is, e.g. n8n workflow',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version',
+      description: 'The latest version used',
+    },
+  },
+  type: 'object',
+  required: ['kind', 'name'],
+  title: 'AgentSystemPublic',
 } as const;
 
 export const AgentToolDefinitionSchema = {
@@ -1107,6 +1331,24 @@ export const AgentVersionDiffSchema = {
   required: ['from_version', 'to_version'],
   title: 'AgentVersionDiff',
   description: 'Structured diff between two immutable agent_version snapshots.',
+} as const;
+
+export const AgentVersionMarkPublicSchema = {
+  properties: {
+    day: {
+      type: 'string',
+      format: 'date',
+      title: 'Day',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+      description: "'Version 9'",
+    },
+  },
+  type: 'object',
+  required: ['day', 'label'],
+  title: 'AgentVersionMarkPublic',
 } as const;
 
 export const AgentVersionPublicSchema = {
@@ -6696,6 +6938,18 @@ export const McpAgentSchema = {
       title: 'Calls',
       description: 'Calls in the period',
     },
+    latency_seconds: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Latency Seconds',
+      description: "Average of its calls' latencies in the period",
+    },
   },
   type: 'object',
   required: ['id', 'name', 'created_at'],
@@ -6765,6 +7019,51 @@ export const McpAgentToAddSchema = {
   type: 'object',
   required: ['platform_agent_id'],
   title: 'McpAgentToAdd',
+} as const;
+
+export const McpAnswer_AgentPagePublic_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/AgentPagePublic',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[AgentPagePublic]',
 } as const;
 
 export const McpAnswer_CallScreenPublic_Schema = {

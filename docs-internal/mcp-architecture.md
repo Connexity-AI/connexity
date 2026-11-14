@@ -205,6 +205,7 @@ They own validation, CRUD calls, state changes and the answer's rules and next s
 | `get_call(workspace_id, call_id)` | `GET /api/v1/mcp/workspaces/{workspace_id}/calls/{call_id}` |
 | `list_calls(workspace_id, query?, agent_id?, result?, category?, period?, issue_id?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/calls` |
 | `list_issues(workspace_id, query?, agent_id?, category?, severity?, status?, period?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/issues` |
+| `get_agent(workspace_id, agent_id, period?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}` |
 | `get_spec(workspace_id, agent_id, version?, include_prompt?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/spec` |
 | `write_spec(workspace_id, agent_id, rules)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/spec` |
 | `get_issue(workspace_id, issue_id)` | `GET /api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}` |

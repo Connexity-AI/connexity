@@ -211,6 +211,28 @@ export type AgentLastEvalSummary = {
 };
 
 /**
+ * AgentLatencyDayPublic
+ */
+export type AgentLatencyDayPublic = {
+  /**
+   * Day
+   */
+  day: string;
+  /**
+   * Seconds
+   *
+   * The day's average latency; None with no calls
+   */
+  seconds?: number | null;
+  /**
+   * Calls
+   *
+   * Calls that day with a latency
+   */
+  calls: number;
+};
+
+/**
  * AgentLatestPublishedVersionPublic
  */
 export type AgentLatestPublishedVersionPublic = {
@@ -256,6 +278,12 @@ export type AgentListItemPublic = {
    */
   calls: number;
   /**
+   * Latency Seconds
+   *
+   * Average of its calls' latencies in the period
+   */
+  latency_seconds?: number | null;
+  /**
    * Spec
    *
    * none, current, or needs_review
@@ -294,6 +322,93 @@ export const AgentMode = { ENDPOINT: 'endpoint', PLATFORM: 'platform' } as const
  * AgentMode
  */
 export type AgentMode = (typeof AgentMode)[keyof typeof AgentMode];
+
+/**
+ * AgentPagePublic
+ */
+export type AgentPagePublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  platform?: Platform | null;
+  /**
+   * Type
+   */
+  type?: 'single_prompt' | 'conversational_flow' | null;
+  /**
+   * Live Version
+   *
+   * The agent version of its most recent call
+   */
+  live_version?: string | null;
+  /**
+   * Live Since
+   *
+   * When the first call on the live version started
+   */
+  live_since?: string | null;
+  /**
+   * Model
+   *
+   * The live version's model
+   */
+  model?: string | null;
+  /**
+   * Systems
+   *
+   * Workflows its tool calls ran in the period
+   */
+  systems?: Array<AgentSystemPublic>;
+  /**
+   * Spec
+   */
+  spec: 'none' | 'current' | 'needs_review';
+  /**
+   * Period
+   */
+  period: '7d' | '30d' | '90d';
+  /**
+   * Calls
+   *
+   * Calls in the period
+   */
+  calls: number;
+  /**
+   * Latency Seconds
+   *
+   * Average of its calls' latencies in the period
+   */
+  latency_seconds?: number | null;
+  /**
+   * Latency Calls
+   *
+   * Calls in the period with a latency
+   */
+  latency_calls: number;
+  /**
+   * Latency Days
+   *
+   * Each day of the period, oldest first
+   */
+  latency_days: Array<AgentLatencyDayPublic>;
+  /**
+   * Latency Peak
+   *
+   * The highest daily average in the period
+   */
+  latency_peak?: number | null;
+  /**
+   * Version Marks
+   *
+   * Each new agent version that started in the period
+   */
+  version_marks: Array<AgentVersionMarkPublic>;
+};
 
 /**
  * AgentPromptType
@@ -450,6 +565,28 @@ export type AgentRollbackRequest = {
    * Version Description
    */
   version_description?: string | null;
+};
+
+/**
+ * AgentSystemPublic
+ */
+export type AgentSystemPublic = {
+  /**
+   * Kind
+   *
+   * What it is, e.g. n8n workflow
+   */
+  kind: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Version
+   *
+   * The latest version used
+   */
+  version?: string | null;
 };
 
 /**
@@ -612,6 +749,22 @@ export type AgentVersionDiff = {
   model_changed?: FieldChange | null;
   provider_changed?: FieldChange | null;
   endpoint_url_changed?: FieldChange | null;
+};
+
+/**
+ * AgentVersionMarkPublic
+ */
+export type AgentVersionMarkPublic = {
+  /**
+   * Day
+   */
+  day: string;
+  /**
+   * Label
+   *
+   * 'Version 9'
+   */
+  label: string;
 };
 
 /**
@@ -4293,6 +4446,12 @@ export type McpAgent = {
    * Calls in the period
    */
   calls?: number | null;
+  /**
+   * Latency Seconds
+   *
+   * Average of its calls' latencies in the period
+   */
+  latency_seconds?: number | null;
 };
 
 /**
@@ -4339,6 +4498,40 @@ export type McpAgentToAdd = {
    * Defaults to the agent's name on the platform
    */
   name?: string | null;
+};
+
+/**
+ * McpAnswer[AgentPagePublic]
+ */
+export type McpAnswerAgentPagePublic = {
+  /**
+   * The facts: the result of the call
+   */
+  data: AgentPagePublic;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
 };
 
 /**
@@ -10353,6 +10546,69 @@ export type McpWriteSpecResponses = {
 
 export type McpWriteSpecResponse = McpWriteSpecResponses[keyof McpWriteSpecResponses];
 
+export type McpGetAgentData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: {
+    /**
+     * Period
+     */
+    period?: '7d' | '30d' | '90d';
+  };
+  url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}';
+};
+
+export type McpGetAgentErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpGetAgentError = McpGetAgentErrors[keyof McpGetAgentErrors];
+
+export type McpGetAgentResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerAgentPagePublic;
+};
+
+export type McpGetAgentResponse = McpGetAgentResponses[keyof McpGetAgentResponses];
+
 export type McpGetReadinessData = {
   body?: never;
   path: {
@@ -10572,6 +10828,66 @@ export type AgentsListWorkspaceAgentsResponses = {
 
 export type AgentsListWorkspaceAgentsResponse =
   AgentsListWorkspaceAgentsResponses[keyof AgentsListWorkspaceAgentsResponses];
+
+export type AgentsGetAgentPageData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: {
+    /**
+     * Period
+     */
+    period?: '7d' | '30d' | '90d';
+  };
+  url: '/api/v1/agents/{agent_id}/page';
+};
+
+export type AgentsGetAgentPageErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsGetAgentPageError = AgentsGetAgentPageErrors[keyof AgentsGetAgentPageErrors];
+
+export type AgentsGetAgentPageResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentPagePublic;
+};
+
+export type AgentsGetAgentPageResponse =
+  AgentsGetAgentPageResponses[keyof AgentsGetAgentPageResponses];
 
 export type AgentsListAgentsData = {
   body?: never;
