@@ -169,6 +169,15 @@ from app.crud.run import (  # noqa: F401
     set_baseline,
     update_run,
 )
+from app.crud.spec import (  # noqa: F401
+    agent_prompt,
+    current_agent_version,
+    current_agent_versions,
+    get_spec_version,
+    latest_spec,
+    latest_specs,
+    spec_rules,
+)
 from app.crud.test_case import (  # noqa: F401
     bulk_import_test_cases,
     create_test_case,

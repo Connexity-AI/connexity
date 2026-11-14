@@ -25,6 +25,7 @@ from app.api.routes import (
     personal_access_tokens,
     readiness,
     runs,
+    spec,
     test_case_results,
     test_cases,
     tool_backends,
@@ -67,6 +68,7 @@ api_router.include_router(tool_backends.router)
 api_router.include_router(component_versions.router)
 api_router.include_router(checks.router)
 api_router.include_router(issues.router)
+api_router.include_router(spec.router)
 api_router.include_router(company.router)
 
 root_router = APIRouter()

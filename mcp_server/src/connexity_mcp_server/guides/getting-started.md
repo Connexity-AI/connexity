@@ -18,6 +18,13 @@ theirs.
      on the last page.
 3. **Errors** have the same shape: an `error` message and `next_steps` to recover.
 
+## After setup: the spec
+
+Once the first scan is done, write each agent's spec: what it is supposed to do, as
+plain rules from its prompt. Read `connexity://guides/spec`, call `get_spec` with
+`include_prompt` for the prompt Connexity recorded, then `write_spec`. When an agent
+moves to a new version, Connexity copies its spec and `get_spec` says it needs review.
+
 ## What Connexity never does
 
 Connexity never edits, deploys or calls an agent, and never writes to a voice platform,

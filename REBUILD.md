@@ -109,7 +109,8 @@ history of a slice is its plan file in `plans/`.
 | Demo 10.08 | Single call: recording with a speech timeline, transcript, tool calls inline (arguments and result, secrets masked), findings at their moment; `get_call` | In review |
 | Demo 10.09 | Issues page: tiles, search and filters, issues grouped by category and worst first; rows do not open yet; states renamed to reopened and archived; `list_issues` with the same filters and tiles | Done (PR #197) |
 | Demo 10.1 | Issue page: tiles, the chain (Found, Fixed in a version), affected calls per day with version, archive and spike marks, affected calls with their moment, history; Archive with "until it spikes" or "forever", hidden on every call while archived; the Calls page issue filter; the call opens at a moment; `get_issue`, `archive_issue`, `unarchive_issue` | Done (PR #198) |
-| Demo 10.11 | Spec (epic), part 1 of 3: the `spec` and `spec_rule` tables and the spec guide (served with the tools in part 2); then API and MCP, then the Spec tab | In review |
+| Demo 10.11 | Spec (epic), part 1 of 3: the `spec` and `spec_rule` tables and the spec guide (served with the tools in part 2); then API and MCP, then the Spec tab | Done (PR #199) |
+| Demo 10.11 (2) | Spec part 2 of 3: `write_spec` and `get_spec` (with the recorded prompt, quotes checked against it), adoption when a call arrives on a new agent version, spec state on `list_agents` and Readiness next steps, the read-only web route, the spec guide served | In review |
 | D.1 | Frictionless assistant connection: personal access tokens for Claude Code, the setup prompt, Account › Assistant access, `mcp.connexity.ai` | In review |
 
 **The order of work is Dmytro's feature roadmap (Decided 2026-11-12).** It lives

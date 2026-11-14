@@ -12,6 +12,7 @@ from sqlalchemy import Table
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlmodel import Session, col, delete, select
 
+from app.crud.spec import adopt_spec_safely
 from app.models.call import Call, CallComponent, CallEvent
 from app.models.component_version import STATE_KINDS
 from app.models.enums import CallEventType
@@ -220,6 +221,8 @@ def store_trace(
             )
         )
     session.commit()
+    # A call on a new agent version moves the agent's spec along with it.
+    adopt_spec_safely(session=session, agent_id=agent_id)
     session.refresh(call)
     return StoredTrace(call=call, created=created)
 

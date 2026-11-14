@@ -8,7 +8,9 @@ See `plans/2026-11-14-spec.md`.
 
 import uuid
 from datetime import UTC, datetime
+from typing import Literal
 
+from pydantic import BaseModel, JsonValue
 from sqlalchemy import Column, DateTime, ForeignKey, Text, UniqueConstraint, text
 from sqlmodel import Field, SQLModel
 
@@ -101,3 +103,77 @@ class SpecRule(SQLModel, table=True):
     touches: SpecRuleTouches | None = Field(
         default=None, sa_type=enum_type(SpecRuleTouches)
     )
+
+
+SpecState = Literal["none", "current", "needs_review"]
+
+
+class SpecRulePublic(BaseModel):
+    key: str = Field(
+        description="The same across versions; pass it back to keep a rule"
+    )
+    text: str
+    source: SpecRuleSource
+    quote: str | None = Field(
+        default=None, description="The prompt's words it rests on"
+    )
+    touches: SpecRuleTouches | None = None
+
+
+class SpecGroupPublic(BaseModel):
+    category: str = Field(description="The category's key")
+    name: str
+    rules: list[SpecRulePublic]
+
+
+class SpecVersionPublic(BaseModel):
+    version: int
+    agent_version: str = Field(description="The agent version it was written for")
+    origin: SpecOrigin
+    written_by: str | None = Field(
+        default=None, description="The person; None for a copy Connexity adopted"
+    )
+    assistant: str | None = None
+    created_at: datetime
+    rule_count: int
+
+
+class SpecPromptPublic(BaseModel):
+    kind: str = Field(description="prompt or flow")
+    version: str
+    content: JsonValue = Field(description="As Connexity recorded it, secrets masked")
+
+
+class SpecPublic(BaseModel):
+    agent_id: uuid.UUID
+    agent_name: str
+    current_agent_version: str | None = Field(
+        default=None, description="The agent version of its most recent call"
+    )
+    state: SpecState
+    spec: SpecVersionPublic | None = Field(
+        default=None, description="None while the agent has no spec"
+    )
+    latest_version: int | None = Field(
+        default=None, description="The agent's newest spec version"
+    )
+    groups: list[SpecGroupPublic] = Field(
+        default_factory=list, description="In the fixed categories' order"
+    )
+    prompt: SpecPromptPublic | None = Field(
+        default=None, description="With include_prompt: the current version's prompt"
+    )
+
+
+class SpecChangesPublic(BaseModel):
+    rules: int
+    kept: int
+    added: int
+    dropped: int
+    quotes_checked: bool = Field(
+        description="False when Connexity has no prompt for the version to check against"
+    )
+
+
+class SpecWrittenPublic(SpecPublic):
+    changes: SpecChangesPublic

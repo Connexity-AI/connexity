@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel, Field
 
@@ -38,6 +38,8 @@ class Agent(BaseModel):
     platform: str | None = None
     platform_agent_id: str | None = None
     platform_agent_name: str | None = None
+    spec: str | None = None
+    spec_version: int | None = None
     created_at: datetime
 
 
@@ -312,3 +314,70 @@ ListIssuesResult = Answer[Issues]
 IssueResult = Answer[IssuePage]
 ListCallsResult = Answer[Calls]
 GetCallResult = Answer[CallDetail]
+
+
+class SpecRule(BaseModel):
+    key: str
+    text: str
+    source: str
+    quote: str | None = None
+    touches: str | None = None
+
+
+class SpecGroup(BaseModel):
+    category: str
+    name: str
+    rules: list[SpecRule] = Field(default_factory=list)
+
+
+class SpecVersion(BaseModel):
+    version: int
+    agent_version: str
+    origin: str
+    written_by: str | None = None
+    assistant: str | None = None
+    created_at: str
+    rule_count: int
+
+
+class SpecPrompt(BaseModel):
+    kind: str
+    version: str
+    content: Any = None
+
+
+class SpecChanges(BaseModel):
+    rules: int
+    kept: int
+    added: int
+    dropped: int
+    quotes_checked: bool
+
+
+class Spec(BaseModel):
+    agent_id: str
+    agent_name: str
+    current_agent_version: str | None = None
+    state: str
+    spec: SpecVersion | None = None
+    latest_version: int | None = None
+    groups: list[SpecGroup] = Field(default_factory=list)
+    prompt: SpecPrompt | None = None
+    changes: SpecChanges | None = None
+
+
+class SpecRuleToWrite(BaseModel):
+    """One rule for `write_spec`."""
+
+    text: str = Field(description="The rule in one plain sentence")
+    category: str = Field(description="A category key from `list_categories`")
+    quote: str = Field(description="The prompt's words the rule rests on, exactly")
+    touches: str | None = Field(
+        default=None, description="money, safety or compliance, when it protects one"
+    )
+    key: str | None = Field(
+        default=None, description="Only for a rule kept from the previous version"
+    )
+
+
+SpecResult = Answer[Spec]

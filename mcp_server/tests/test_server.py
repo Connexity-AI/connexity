@@ -24,6 +24,7 @@ async def test_server_lists_only_the_workspace_tools() -> None:
         "get_call",
         "get_issue",
         "get_readiness",
+        "get_spec",
         "list_agents",
         "list_calls",
         "list_categories",
@@ -31,6 +32,7 @@ async def test_server_lists_only_the_workspace_tools() -> None:
         "list_workspaces",
         "scan_calls",
         "unarchive_issue",
+        "write_spec",
     ]
     list_agents = next(tool for tool in tools if tool.name == "list_agents")
     assert list_agents.inputSchema["required"] == ["workspace_id"]
@@ -63,7 +65,7 @@ async def test_every_guide_is_served_as_a_resource() -> None:
 async def test_tools_say_whether_they_change_anything() -> None:
     tools = {tool.name: tool.annotations for tool in await _server().list_tools()}
 
-    for name in ("list_workspaces", "get_call", "list_agents", "list_calls", "list_categories", "list_issues", "get_issue", "get_readiness"):
+    for name in ("list_workspaces", "get_call", "list_agents", "list_calls", "list_categories", "list_issues", "get_issue", "get_readiness", "get_spec"):
         assert tools[name] is not None
         assert tools[name].readOnlyHint is True
         assert tools[name].openWorldHint is False
@@ -77,6 +79,9 @@ async def test_tools_say_whether_they_change_anything() -> None:
     assert tools["scan_calls"].readOnlyHint is False
     assert tools["scan_calls"].destructiveHint is False
     assert tools["scan_calls"].idempotentHint is True
+    assert tools["write_spec"] is not None
+    assert tools["write_spec"].readOnlyHint is False
+    assert tools["write_spec"].destructiveHint is False
     for name in ("archive_issue", "unarchive_issue"):
         assert tools[name] is not None
         assert tools[name].readOnlyHint is False

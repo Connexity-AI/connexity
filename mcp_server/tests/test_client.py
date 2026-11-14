@@ -3,12 +3,14 @@ import httpx
 import pytest
 from connexity_mcp_server.client import ConnexityBackendClient, ConnexityBackendError
 from connexity_mcp_server.config import Settings
+from connexity_mcp_server.models import SpecRuleToWrite
 from connexity_mcp_server.tools import (
     add_agents,
     get_call,
     list_calls,
     list_categories,
     archive_issue,
+    write_spec,
     list_issues,
     scan_calls,
     connect_voice_platform,
@@ -637,3 +639,72 @@ async def test_list_calls_sends_the_issue() -> None:
 
     assert result.data.calls[0].moment is not None
     assert result.data.calls[0].moment.times == 2
+
+
+@pytest.mark.asyncio
+async def test_write_spec_sends_every_rule_without_empty_fields() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url.path == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/agents/a1/spec"
+        assert json.loads(request.content) == {
+            "rules": [
+                {
+                    "text": "Never book outside opening hours",
+                    "category": "booking",
+                    "quote": "only book within opening hours",
+                },
+                {
+                    "text": "Never quote a price",
+                    "category": "pricing_and_quotes",
+                    "quote": "do not discuss prices",
+                    "touches": "money",
+                    "key": "k1",
+                },
+            ]
+        }
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "agent_id": "a1",
+                    "agent_name": "Front desk",
+                    "current_agent_version": "7",
+                    "state": "current",
+                    "groups": [],
+                    "changes": {
+                        "rules": 2,
+                        "kept": 1,
+                        "added": 1,
+                        "dropped": 0,
+                        "quotes_checked": True,
+                    },
+                },
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: write_spec(
+            client,
+            workspace_id=WORKSPACE_ID,
+            agent_id="a1",
+            rules=[
+                SpecRuleToWrite(
+                    text="Never book outside opening hours",
+                    category="booking",
+                    quote="only book within opening hours",
+                ),
+                SpecRuleToWrite(
+                    text="Never quote a price",
+                    category="pricing_and_quotes",
+                    quote="do not discuss prices",
+                    touches="money",
+                    key="k1",
+                ),
+            ],
+        ),
+    )
+
+    assert result.data.changes is not None
+    assert result.data.changes.kept == 1

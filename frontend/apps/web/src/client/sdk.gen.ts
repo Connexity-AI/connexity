@@ -258,6 +258,9 @@ import type {
   McpGetReadinessData,
   McpGetReadinessErrors,
   McpGetReadinessResponses,
+  McpGetSpecData,
+  McpGetSpecErrors,
+  McpGetSpecResponses,
   McpListAgentsData,
   McpListAgentsErrors,
   McpListAgentsResponses,
@@ -279,6 +282,9 @@ import type {
   McpUnarchiveIssueData,
   McpUnarchiveIssueErrors,
   McpUnarchiveIssueResponses,
+  McpWriteSpecData,
+  McpWriteSpecErrors,
+  McpWriteSpecResponses,
   OauthAuthorizeAllowData,
   OauthAuthorizeAllowErrors,
   OauthAuthorizeAllowResponses,
@@ -348,6 +354,9 @@ import type {
   RunsUpdateRunData,
   RunsUpdateRunErrors,
   RunsUpdateRunResponses,
+  SpecGetAgentSpecData,
+  SpecGetAgentSpecErrors,
+  SpecGetAgentSpecResponses,
   TestCaseResultsCreateTestCaseResultData,
   TestCaseResultsCreateTestCaseResultErrors,
   TestCaseResultsCreateTestCaseResultResponses,
@@ -1296,6 +1305,38 @@ export class McpService {
       {
         security: [{ scheme: 'bearer', type: 'http' }],
         url: '/api/v1/mcp/workspaces/{workspace_id}/agents',
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      }
+    );
+  }
+
+  /**
+   * Get Spec
+   */
+  public static getSpec<ThrowOnError extends boolean = false>(
+    options: Options<McpGetSpecData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<McpGetSpecResponses, McpGetSpecErrors, ThrowOnError>({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/spec',
+      ...options,
+    });
+  }
+
+  /**
+   * Write Spec
+   */
+  public static writeSpec<ThrowOnError extends boolean = false>(
+    options: Options<McpWriteSpecData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<McpWriteSpecResponses, McpWriteSpecErrors, ThrowOnError>(
+      {
+        security: [{ scheme: 'bearer', type: 'http' }],
+        url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/spec',
         ...options,
         headers: {
           'Content-Type': 'application/json',
@@ -3952,6 +3993,34 @@ export class IssuesService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+    });
+  }
+}
+
+export class SpecService {
+  /**
+   * Get Agent Spec
+   *
+   * The agent's spec, latest or ``version``, rules grouped by the fixed categories.
+   */
+  public static getAgentSpec<ThrowOnError extends boolean = false>(
+    options: Options<SpecGetAgentSpecData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      SpecGetAgentSpecResponses,
+      SpecGetAgentSpecErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/spec',
+      ...options,
     });
   }
 }
