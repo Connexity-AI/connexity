@@ -29,6 +29,8 @@ const RESULT_OPTIONS = [
   { value: 'unchecked', label: 'Unchecked' },
 ];
 const COLUMNS = 'grid-cols-[128px_200px_88px_72px_104px_minmax(0,1fr)]';
+// On an agent's page the agent is fixed, so its column goes.
+const COLUMNS_ONE_AGENT = 'grid-cols-[128px_88px_72px_104px_minmax(0,1fr)]';
 
 const duration = (seconds: number | null | undefined) => (seconds == null ? '' : clock(seconds));
 
@@ -60,10 +62,13 @@ interface Props {
   calls: CallListPublic;
   shown: number;
   pageSize: number;
+  /** On an agent's page: no page bar, no Agent filter or column. */
+  embedded?: boolean;
 }
 
 /** Calls (designs/screens/Connexity Calls.dc.html). A row opens the single call. */
-export const CallsView: FC<Props> = ({ calls, shown, pageSize }) => {
+export const CallsView: FC<Props> = ({ calls, shown, pageSize, embedded = false }) => {
+  const columns = embedded ? COLUMNS_ONE_AGENT : COLUMNS;
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -83,7 +88,7 @@ export const CallsView: FC<Props> = ({ calls, shown, pageSize }) => {
     startTransition(() => router.replace(search ? `${pathname}?${search}` : pathname));
   };
 
-  const agent = params.get('agent') ?? undefined;
+  const agent = embedded ? undefined : (params.get('agent') ?? undefined);
   const result = params.get('result') ?? undefined;
   const category = params.get('category') ?? undefined;
   const anyFilter = Boolean(params.get('q') || agent || result || category);
@@ -92,20 +97,22 @@ export const CallsView: FC<Props> = ({ calls, shown, pageSize }) => {
 
   return (
     <div className={cn('flex max-w-[1120px] flex-col gap-6', pending && 'opacity-70')}>
-      <PageBar
-        title="Calls"
-        actions={
-          <Picker
-            label="Last 30 days"
-            value={calls.period}
-            options={Object.entries(PERIOD_LABELS).map(([value, label]) => ({ value, label }))}
-            onPick={(value) => go({ period: value === '30d' ? undefined : value })}
-            icon={<Calendar className="size-4 text-ink-secondary" aria-hidden />}
-            align="end"
-            clearable={false}
-          />
-        }
-      />
+      {!embedded && (
+        <PageBar
+          title="Calls"
+          actions={
+            <Picker
+              label="Last 30 days"
+              value={calls.period}
+              options={Object.entries(PERIOD_LABELS).map(([value, label]) => ({ value, label }))}
+              onPick={(value) => go({ period: value === '30d' ? undefined : value })}
+              icon={<Calendar className="size-4 text-ink-secondary" aria-hidden />}
+              align="end"
+              clearable={false}
+            />
+          }
+        />
+      )}
 
       <div className="grid grid-cols-4 gap-3">
         <NumberTile label="Calls" value={calls.tiles.calls.toLocaleString()} />
@@ -159,12 +166,14 @@ export const CallsView: FC<Props> = ({ calls, shown, pageSize }) => {
             className="h-[34px] min-w-0 flex-1 border-0 bg-transparent text-body text-ink outline-none"
           />
         </form>
-        <Picker
-          label="Agent"
-          value={agent}
-          options={calls.agents}
-          onPick={(value) => go({ agent: value })}
-        />
+        {!embedded && (
+          <Picker
+            label="Agent"
+            value={agent}
+            options={calls.agents}
+            onPick={(value) => go({ agent: value })}
+          />
+        )}
         <Picker
           label="Result"
           value={result}
@@ -192,11 +201,11 @@ export const CallsView: FC<Props> = ({ calls, shown, pageSize }) => {
         <div
           className={cn(
             'grid min-h-10 items-center gap-4 px-6 text-label text-ink-secondary',
-            COLUMNS
+            columns
           )}
         >
           <span>Time</span>
-          <span>Agent</span>
+          {!embedded && <span>Agent</span>}
           <span>Caller</span>
           <span className="text-right">Duration</span>
           <span>Result</span>
@@ -208,11 +217,11 @@ export const CallsView: FC<Props> = ({ calls, shown, pageSize }) => {
             href={UrlGenerator.call(call.id, calls.issue ? call.moment?.at_seconds : undefined)}
             className={cn(
               'grid min-h-11 items-center gap-4 border-t border-hairline px-6 text-body text-ink no-underline hover:bg-wash',
-              COLUMNS
+              columns
             )}
           >
             <span className="whitespace-nowrap">{timeLabel(call.started_at)}</span>
-            <span className="truncate">{call.agent_name}</span>
+            {!embedded && <span className="truncate">{call.agent_name}</span>}
             <span className="whitespace-nowrap text-ink-secondary">
               {call.caller_last_four ? `•••• ${call.caller_last_four}` : '—'}
             </span>

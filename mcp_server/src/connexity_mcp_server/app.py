@@ -31,6 +31,7 @@ from connexity_mcp_server.models import (
     CreateWorkspaceResult,
     GetCallResult,
     GetReadinessResult,
+    AgentResult,
     IssueResult,
     SpecResult,
     SpecRuleToWrite,
@@ -73,6 +74,9 @@ from connexity_mcp_server.tools import (
 )
 from connexity_mcp_server.tools import (
     get_spec as _get_spec,
+)
+from connexity_mcp_server.tools import (
+    get_agent as _get_agent,
 )
 from connexity_mcp_server.tools import (
     write_spec as _write_spec,
@@ -311,6 +315,21 @@ def build_application(settings: Settings | None = None) -> FastAPI:
             workspace_id=workspace_id,
             issue_id=issue_id,
             reason=reason,
+        )
+
+    @mcp_server.tool(annotations=READ_ONLY)
+    async def get_agent(
+        workspace_id: str, agent_id: str, period: str | None = None
+    ) -> AgentResult:
+        """One agent at a glance for the period (7d, 30d by default, 90d): platform,
+        type, live version and since when, model, the n8n workflows it used, calls,
+        latency (a basic measure from its calls' turns) per day with version marks,
+        and its spec state."""
+        return await _get_agent(
+            client=backend_client,
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            period=period,
         )
 
     @mcp_server.tool(annotations=READ_ONLY)
