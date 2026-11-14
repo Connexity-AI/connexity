@@ -4214,6 +4214,18 @@ export type McpAgent = {
    * Created At
    */
   created_at: string;
+  /**
+   * Spec
+   *
+   * none, current, or needs_review (adopted, or behind the agent)
+   */
+  spec?: 'none' | 'current' | 'needs_review' | null;
+  /**
+   * Spec Version
+   *
+   * Its latest spec version
+   */
+  spec_version?: number | null;
 };
 
 /**
@@ -4569,6 +4581,74 @@ export type McpAnswerReadinessPublic = {
 };
 
 /**
+ * McpAnswer[SpecPublic]
+ */
+export type McpAnswerSpecPublic = {
+  /**
+   * The facts: the result of the call
+   */
+  data: SpecPublic;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
+ * McpAnswer[SpecWrittenPublic]
+ */
+export type McpAnswerSpecWrittenPublic = {
+  /**
+   * The facts: the result of the call
+   */
+  data: SpecWrittenPublic;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
  * McpAnswer[list[CategoryPublic]]
  */
 export type McpAnswerListCategoryPublic = {
@@ -4798,6 +4878,38 @@ export type McpScanProgress = {
 };
 
 /**
+ * McpSpecRule
+ */
+export type McpSpecRule = {
+  /**
+   * Text
+   */
+  text: string;
+  /**
+   * Category
+   *
+   * A category key from `list_categories`
+   */
+  category: string;
+  /**
+   * Quote
+   *
+   * The prompt's words the rule rests on
+   */
+  quote?: string | null;
+  /**
+   * money, safety or compliance, when it protects one
+   */
+  touches?: SpecRuleTouches | null;
+  /**
+   * Key
+   *
+   * Only for a rule kept from the previous version
+   */
+  key?: string | null;
+};
+
+/**
  * McpUnarchiveIssue
  */
 export type McpUnarchiveIssue = {
@@ -4833,6 +4945,16 @@ export type McpWorkspace = {
    * Name
    */
   name: string;
+};
+
+/**
+ * McpWriteSpec
+ */
+export type McpWriteSpec = {
+  /**
+   * Rules
+   */
+  rules: Array<McpSpecRule>;
 };
 
 /**
@@ -6189,6 +6311,260 @@ export const Speaker = {
  * Speaker
  */
 export type Speaker = (typeof Speaker)[keyof typeof Speaker];
+
+/**
+ * SpecChangesPublic
+ */
+export type SpecChangesPublic = {
+  /**
+   * Rules
+   */
+  rules: number;
+  /**
+   * Kept
+   */
+  kept: number;
+  /**
+   * Added
+   */
+  added: number;
+  /**
+   * Dropped
+   */
+  dropped: number;
+  /**
+   * Quotes Checked
+   *
+   * False when Connexity has no prompt for the version to check against
+   */
+  quotes_checked: boolean;
+};
+
+/**
+ * SpecGroupPublic
+ */
+export type SpecGroupPublic = {
+  /**
+   * Category
+   *
+   * The category's key
+   */
+  category: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Rules
+   */
+  rules: Array<SpecRulePublic>;
+};
+
+/**
+ * SpecOrigin
+ */
+export const SpecOrigin = { WRITTEN: 'written', ADOPTED: 'adopted' } as const;
+
+/**
+ * SpecOrigin
+ */
+export type SpecOrigin = (typeof SpecOrigin)[keyof typeof SpecOrigin];
+
+/**
+ * SpecPromptPublic
+ */
+export type SpecPromptPublic = {
+  /**
+   * Kind
+   *
+   * prompt or flow
+   */
+  kind: string;
+  /**
+   * Version
+   */
+  version: string;
+  /**
+   * As Connexity recorded it, secrets masked
+   */
+  content: JsonValue;
+};
+
+/**
+ * SpecPublic
+ */
+export type SpecPublic = {
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Name
+   */
+  agent_name: string;
+  /**
+   * Current Agent Version
+   *
+   * The agent version of its most recent call
+   */
+  current_agent_version?: string | null;
+  /**
+   * State
+   */
+  state: 'none' | 'current' | 'needs_review';
+  /**
+   * None while the agent has no spec
+   */
+  spec?: SpecVersionPublic | null;
+  /**
+   * Latest Version
+   *
+   * The agent's newest spec version
+   */
+  latest_version?: number | null;
+  /**
+   * Groups
+   *
+   * In the fixed categories' order
+   */
+  groups?: Array<SpecGroupPublic>;
+  /**
+   * With include_prompt: the current version's prompt
+   */
+  prompt?: SpecPromptPublic | null;
+};
+
+/**
+ * SpecRulePublic
+ */
+export type SpecRulePublic = {
+  /**
+   * Key
+   *
+   * The same across versions; pass it back to keep a rule
+   */
+  key: string;
+  /**
+   * Text
+   */
+  text: string;
+  source: SpecRuleSource;
+  /**
+   * Quote
+   *
+   * The prompt's words it rests on
+   */
+  quote?: string | null;
+  touches?: SpecRuleTouches | null;
+};
+
+/**
+ * SpecRuleSource
+ */
+export const SpecRuleSource = { PROMPT: 'prompt', CLARIFICATION: 'clarification' } as const;
+
+/**
+ * SpecRuleSource
+ */
+export type SpecRuleSource = (typeof SpecRuleSource)[keyof typeof SpecRuleSource];
+
+/**
+ * SpecRuleTouches
+ *
+ * What a rule protects, so it stands out: money, safety or compliance.
+ */
+export const SpecRuleTouches = {
+  MONEY: 'money',
+  SAFETY: 'safety',
+  COMPLIANCE: 'compliance',
+} as const;
+
+/**
+ * SpecRuleTouches
+ *
+ * What a rule protects, so it stands out: money, safety or compliance.
+ */
+export type SpecRuleTouches = (typeof SpecRuleTouches)[keyof typeof SpecRuleTouches];
+
+/**
+ * SpecVersionPublic
+ */
+export type SpecVersionPublic = {
+  /**
+   * Version
+   */
+  version: number;
+  /**
+   * Agent Version
+   *
+   * The agent version it was written for
+   */
+  agent_version: string;
+  origin: SpecOrigin;
+  /**
+   * Written By
+   *
+   * The person; None for a copy Connexity adopted
+   */
+  written_by?: string | null;
+  /**
+   * Assistant
+   */
+  assistant?: string | null;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Rule Count
+   */
+  rule_count: number;
+};
+
+/**
+ * SpecWrittenPublic
+ */
+export type SpecWrittenPublic = {
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Name
+   */
+  agent_name: string;
+  /**
+   * Current Agent Version
+   *
+   * The agent version of its most recent call
+   */
+  current_agent_version?: string | null;
+  /**
+   * State
+   */
+  state: 'none' | 'current' | 'needs_review';
+  /**
+   * None while the agent has no spec
+   */
+  spec?: SpecVersionPublic | null;
+  /**
+   * Latest Version
+   *
+   * The agent's newest spec version
+   */
+  latest_version?: number | null;
+  /**
+   * Groups
+   *
+   * In the fixed categories' order
+   */
+  groups?: Array<SpecGroupPublic>;
+  /**
+   * With include_prompt: the current version's prompt
+   */
+  prompt?: SpecPromptPublic | null;
+  changes: SpecChangesPublic;
+};
 
 /**
  * SuggestionsRequest
@@ -9780,6 +10156,131 @@ export type McpAddAgentsResponses = {
 };
 
 export type McpAddAgentsResponse = McpAddAgentsResponses[keyof McpAddAgentsResponses];
+
+export type McpGetSpecData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: {
+    /**
+     * Version
+     */
+    version?: number | null;
+    /**
+     * Include Prompt
+     */
+    include_prompt?: boolean;
+  };
+  url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/spec';
+};
+
+export type McpGetSpecErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpGetSpecError = McpGetSpecErrors[keyof McpGetSpecErrors];
+
+export type McpGetSpecResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerSpecPublic;
+};
+
+export type McpGetSpecResponse = McpGetSpecResponses[keyof McpGetSpecResponses];
+
+export type McpWriteSpecData = {
+  body: McpWriteSpec;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/spec';
+};
+
+export type McpWriteSpecErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpWriteSpecError = McpWriteSpecErrors[keyof McpWriteSpecErrors];
+
+export type McpWriteSpecResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerSpecWrittenPublic;
+};
+
+export type McpWriteSpecResponse = McpWriteSpecResponses[keyof McpWriteSpecResponses];
 
 export type McpGetReadinessData = {
   body?: never;
@@ -15619,6 +16120,65 @@ export type IssuesSetIssueStateResponses = {
 
 export type IssuesSetIssueStateResponse =
   IssuesSetIssueStateResponses[keyof IssuesSetIssueStateResponses];
+
+export type SpecGetAgentSpecData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: {
+    /**
+     * Version
+     */
+    version?: number | null;
+  };
+  url: '/api/v1/agents/{agent_id}/spec';
+};
+
+export type SpecGetAgentSpecErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type SpecGetAgentSpecError = SpecGetAgentSpecErrors[keyof SpecGetAgentSpecErrors];
+
+export type SpecGetAgentSpecResponses = {
+  /**
+   * Successful Response
+   */
+  200: SpecPublic;
+};
+
+export type SpecGetAgentSpecResponse = SpecGetAgentSpecResponses[keyof SpecGetAgentSpecResponses];
 
 export type CompanyGetLlmCredentialsData = {
   body?: never;

@@ -6561,6 +6561,31 @@ export const McpAgentSchema = {
       format: 'date-time',
       title: 'Created At',
     },
+    spec: {
+      anyOf: [
+        {
+          type: 'string',
+          enum: ['none', 'current', 'needs_review'],
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Spec',
+      description: 'none, current, or needs_review (adopted, or behind the agent)',
+    },
+    spec_version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Spec Version',
+      description: 'Its latest spec version',
+    },
   },
   type: 'object',
   required: ['id', 'name', 'created_at'],
@@ -7037,6 +7062,96 @@ export const McpAnswer_ReadinessPublic_Schema = {
   title: 'McpAnswer[ReadinessPublic]',
 } as const;
 
+export const McpAnswer_SpecPublic_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/SpecPublic',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[SpecPublic]',
+} as const;
+
+export const McpAnswer_SpecWrittenPublic_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/SpecWrittenPublic',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[SpecWrittenPublic]',
+} as const;
+
 export const McpAnswer_list_CategoryPublic__Schema = {
   properties: {
     data: {
@@ -7339,6 +7454,62 @@ export const McpScanProgressSchema = {
   title: 'McpScanProgress',
 } as const;
 
+export const McpSpecRuleSchema = {
+  properties: {
+    text: {
+      type: 'string',
+      maxLength: 2000,
+      title: 'Text',
+    },
+    category: {
+      type: 'string',
+      maxLength: 64,
+      title: 'Category',
+      description: 'A category key from `list_categories`',
+    },
+    quote: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 4000,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Quote',
+      description: "The prompt's words the rule rests on",
+    },
+    touches: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SpecRuleTouches',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'money, safety or compliance, when it protects one',
+    },
+    key: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 64,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Key',
+      description: 'Only for a rule kept from the previous version',
+    },
+  },
+  type: 'object',
+  required: ['text', 'category'],
+  title: 'McpSpecRule',
+} as const;
+
 export const McpUnarchiveIssueSchema = {
   properties: {
     reason: {
@@ -7379,6 +7550,22 @@ export const McpWorkspaceSchema = {
   type: 'object',
   required: ['id', 'name'],
   title: 'McpWorkspace',
+} as const;
+
+export const McpWriteSpecSchema = {
+  properties: {
+    rules: {
+      items: {
+        $ref: '#/components/schemas/McpSpecRule',
+      },
+      type: 'array',
+      maxItems: 1000,
+      title: 'Rules',
+    },
+  },
+  type: 'object',
+  required: ['rules'],
+  title: 'McpWriteSpec',
 } as const;
 
 export const MessageSchema = {
@@ -9468,6 +9655,348 @@ export const SpeakerSchema = {
   type: 'string',
   enum: ['agent', 'caller', 'other'],
   title: 'Speaker',
+} as const;
+
+export const SpecChangesPublicSchema = {
+  properties: {
+    rules: {
+      type: 'integer',
+      title: 'Rules',
+    },
+    kept: {
+      type: 'integer',
+      title: 'Kept',
+    },
+    added: {
+      type: 'integer',
+      title: 'Added',
+    },
+    dropped: {
+      type: 'integer',
+      title: 'Dropped',
+    },
+    quotes_checked: {
+      type: 'boolean',
+      title: 'Quotes Checked',
+      description: 'False when Connexity has no prompt for the version to check against',
+    },
+  },
+  type: 'object',
+  required: ['rules', 'kept', 'added', 'dropped', 'quotes_checked'],
+  title: 'SpecChangesPublic',
+} as const;
+
+export const SpecGroupPublicSchema = {
+  properties: {
+    category: {
+      type: 'string',
+      title: 'Category',
+      description: "The category's key",
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    rules: {
+      items: {
+        $ref: '#/components/schemas/SpecRulePublic',
+      },
+      type: 'array',
+      title: 'Rules',
+    },
+  },
+  type: 'object',
+  required: ['category', 'name', 'rules'],
+  title: 'SpecGroupPublic',
+} as const;
+
+export const SpecOriginSchema = {
+  type: 'string',
+  enum: ['written', 'adopted'],
+  title: 'SpecOrigin',
+} as const;
+
+export const SpecPromptPublicSchema = {
+  properties: {
+    kind: {
+      type: 'string',
+      title: 'Kind',
+      description: 'prompt or flow',
+    },
+    version: {
+      type: 'string',
+      title: 'Version',
+    },
+    content: {
+      $ref: '#/components/schemas/JsonValue',
+      description: 'As Connexity recorded it, secrets masked',
+    },
+  },
+  type: 'object',
+  required: ['kind', 'version', 'content'],
+  title: 'SpecPromptPublic',
+} as const;
+
+export const SpecPublicSchema = {
+  properties: {
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    agent_name: {
+      type: 'string',
+      title: 'Agent Name',
+    },
+    current_agent_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Current Agent Version',
+      description: 'The agent version of its most recent call',
+    },
+    state: {
+      type: 'string',
+      enum: ['none', 'current', 'needs_review'],
+      title: 'State',
+    },
+    spec: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SpecVersionPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'None while the agent has no spec',
+    },
+    latest_version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Latest Version',
+      description: "The agent's newest spec version",
+    },
+    groups: {
+      items: {
+        $ref: '#/components/schemas/SpecGroupPublic',
+      },
+      type: 'array',
+      title: 'Groups',
+      description: "In the fixed categories' order",
+    },
+    prompt: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SpecPromptPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: "With include_prompt: the current version's prompt",
+    },
+  },
+  type: 'object',
+  required: ['agent_id', 'agent_name', 'state'],
+  title: 'SpecPublic',
+} as const;
+
+export const SpecRulePublicSchema = {
+  properties: {
+    key: {
+      type: 'string',
+      title: 'Key',
+      description: 'The same across versions; pass it back to keep a rule',
+    },
+    text: {
+      type: 'string',
+      title: 'Text',
+    },
+    source: {
+      $ref: '#/components/schemas/SpecRuleSource',
+    },
+    quote: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Quote',
+      description: "The prompt's words it rests on",
+    },
+    touches: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SpecRuleTouches',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+  },
+  type: 'object',
+  required: ['key', 'text', 'source'],
+  title: 'SpecRulePublic',
+} as const;
+
+export const SpecRuleSourceSchema = {
+  type: 'string',
+  enum: ['prompt', 'clarification'],
+  title: 'SpecRuleSource',
+} as const;
+
+export const SpecRuleTouchesSchema = {
+  type: 'string',
+  enum: ['money', 'safety', 'compliance'],
+  title: 'SpecRuleTouches',
+  description: 'What a rule protects, so it stands out: money, safety or compliance.',
+} as const;
+
+export const SpecVersionPublicSchema = {
+  properties: {
+    version: {
+      type: 'integer',
+      title: 'Version',
+    },
+    agent_version: {
+      type: 'string',
+      title: 'Agent Version',
+      description: 'The agent version it was written for',
+    },
+    origin: {
+      $ref: '#/components/schemas/SpecOrigin',
+    },
+    written_by: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Written By',
+      description: 'The person; None for a copy Connexity adopted',
+    },
+    assistant: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Assistant',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+    },
+    rule_count: {
+      type: 'integer',
+      title: 'Rule Count',
+    },
+  },
+  type: 'object',
+  required: ['version', 'agent_version', 'origin', 'created_at', 'rule_count'],
+  title: 'SpecVersionPublic',
+} as const;
+
+export const SpecWrittenPublicSchema = {
+  properties: {
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    agent_name: {
+      type: 'string',
+      title: 'Agent Name',
+    },
+    current_agent_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Current Agent Version',
+      description: 'The agent version of its most recent call',
+    },
+    state: {
+      type: 'string',
+      enum: ['none', 'current', 'needs_review'],
+      title: 'State',
+    },
+    spec: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SpecVersionPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'None while the agent has no spec',
+    },
+    latest_version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Latest Version',
+      description: "The agent's newest spec version",
+    },
+    groups: {
+      items: {
+        $ref: '#/components/schemas/SpecGroupPublic',
+      },
+      type: 'array',
+      title: 'Groups',
+      description: "In the fixed categories' order",
+    },
+    prompt: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SpecPromptPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: "With include_prompt: the current version's prompt",
+    },
+    changes: {
+      $ref: '#/components/schemas/SpecChangesPublic',
+    },
+  },
+  type: 'object',
+  required: ['agent_id', 'agent_name', 'state', 'changes'],
+  title: 'SpecWrittenPublic',
 } as const;
 
 export const SuggestionsRequestSchema = {

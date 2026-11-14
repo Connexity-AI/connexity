@@ -14,8 +14,9 @@ from typing import Annotated, Generic, Literal, TypeVar
 from pydantic import BaseModel, Field, StringConstraints
 
 from app.models.call_list import CallListItemPublic, CallTilesPublic
-from app.models.enums import Platform
+from app.models.enums import Platform, SpecRuleTouches
 from app.models.issue_list import IssueListItemPublic, IssueTilesPublic
+from app.models.spec import SpecState
 
 T = TypeVar("T")
 
@@ -25,6 +26,7 @@ GUIDE_READINESS = "connexity://guides/readiness"
 GUIDE_CONNECT = "connexity://guides/connect"
 GUIDE_CATEGORIES = "connexity://guides/categories"
 GUIDE_ISSUES = "connexity://guides/issues"
+GUIDE_SPEC = "connexity://guides/spec"
 GUIDE_CALLS = "connexity://guides/calls"
 
 
@@ -67,6 +69,13 @@ class McpAgent(BaseModel):
     )
     platform_agent_name: str | None = None
     created_at: datetime
+    spec: SpecState | None = Field(
+        default=None,
+        description="none, current, or needs_review (adopted, or behind the agent)",
+    )
+    spec_version: int | None = Field(
+        default=None, description="Its latest spec version"
+    )
 
 
 class McpVoicePlatform(StrEnum):
@@ -132,6 +141,28 @@ class McpScanProgress(BaseModel):
     calls_without_versions: int = Field(
         description="Stored calls whose agent version could not be resolved"
     )
+
+
+class McpSpecRule(BaseModel):
+    text: Annotated[str, StringConstraints(strip_whitespace=True, max_length=2000)]
+    category: Annotated[
+        str, StringConstraints(strip_whitespace=True, max_length=64)
+    ] = Field(description="A category key from `list_categories`")
+    quote: Annotated[
+        str | None, StringConstraints(strip_whitespace=True, max_length=4000)
+    ] = Field(default=None, description="The prompt's words the rule rests on")
+    touches: SpecRuleTouches | None = Field(
+        default=None, description="money, safety or compliance, when it protects one"
+    )
+    key: Annotated[
+        str | None, StringConstraints(strip_whitespace=True, max_length=64)
+    ] = Field(
+        default=None, description="Only for a rule kept from the previous version"
+    )
+
+
+class McpWriteSpec(BaseModel):
+    rules: list[McpSpecRule] = Field(max_length=1000)
 
 
 class McpArchiveIssue(BaseModel):

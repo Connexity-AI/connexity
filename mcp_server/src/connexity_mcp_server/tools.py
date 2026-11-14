@@ -9,6 +9,8 @@ from connexity_mcp_server.models import (
     GetCallResult,
     GetReadinessResult,
     IssueResult,
+    SpecResult,
+    SpecRuleToWrite,
     ListAgentsResult,
     ListCallsResult,
     ListCategoriesResult,
@@ -183,5 +185,37 @@ async def unarchive_issue(
     return IssueResult.model_validate(
         await client.unarchive_issue(
             workspace_id=workspace_id, issue_id=issue_id, reason=reason
+        )
+    )
+
+
+async def get_spec(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    agent_id: str,
+    version: int | None = None,
+    include_prompt: bool = False,
+) -> SpecResult:
+    return SpecResult.model_validate(
+        await client.get_spec(
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            version=version,
+            include_prompt=include_prompt,
+        )
+    )
+
+
+async def write_spec(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    agent_id: str,
+    rules: list[SpecRuleToWrite],
+) -> SpecResult:
+    return SpecResult.model_validate(
+        await client.write_spec(
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            rules=[rule.model_dump(exclude_none=True) for rule in rules],
         )
     )

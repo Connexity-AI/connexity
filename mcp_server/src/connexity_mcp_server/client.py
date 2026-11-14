@@ -171,6 +171,36 @@ class ConnexityBackendClient:
             json={"reason": reason},
         )
 
+    def _spec_path(self, workspace_id: str, agent_id: str) -> str:
+        return (
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/agents/"
+            f"{quote(agent_id, safe='')}/spec"
+        )
+
+    async def get_spec(
+        self,
+        *,
+        workspace_id: str,
+        agent_id: str,
+        version: int | None = None,
+        include_prompt: bool = False,
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {}
+        if version is not None:
+            params["version"] = version
+        if include_prompt:
+            params["include_prompt"] = "true"
+        return await self._request_json(
+            "GET", self._spec_path(workspace_id, agent_id), params=params
+        )
+
+    async def write_spec(
+        self, *, workspace_id: str, agent_id: str, rules: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        return await self._request_json(
+            "POST", self._spec_path(workspace_id, agent_id), json={"rules": rules}
+        )
+
     async def list_categories(self, *, workspace_id: str) -> dict[str, Any]:
         return await self._request_json(
             "GET", f"/mcp/workspaces/{quote(workspace_id, safe='')}/categories"

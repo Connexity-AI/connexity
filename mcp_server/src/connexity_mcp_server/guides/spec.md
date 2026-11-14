@@ -11,6 +11,9 @@ You write it from the agent's prompt; Connexity stores it, one version at a time
   previous spec to the new version; review it (see "A new agent version" below).
 
 Read the agent's spec with `get_spec` before you write, and write it with `write_spec`.
+Pass `include_prompt` to `get_spec` for the prompt Connexity recorded for the agent's
+current version; write against that prompt, because Connexity checks every quote
+against it.
 
 ## How to write a rule
 

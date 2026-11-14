@@ -32,6 +32,8 @@ from connexity_mcp_server.models import (
     GetCallResult,
     GetReadinessResult,
     IssueResult,
+    SpecResult,
+    SpecRuleToWrite,
     ListAgentsResult,
     ListCallsResult,
     ListCategoriesResult,
@@ -68,6 +70,12 @@ from connexity_mcp_server.tools import (
 )
 from connexity_mcp_server.tools import (
     get_issue as _get_issue,
+)
+from connexity_mcp_server.tools import (
+    get_spec as _get_spec,
+)
+from connexity_mcp_server.tools import (
+    write_spec as _write_spec,
 )
 from connexity_mcp_server.tools import (
     archive_issue as _archive_issue,
@@ -303,6 +311,43 @@ def build_application(settings: Settings | None = None) -> FastAPI:
             workspace_id=workspace_id,
             issue_id=issue_id,
             reason=reason,
+        )
+
+    @mcp_server.tool(annotations=READ_ONLY)
+    async def get_spec(
+        workspace_id: str,
+        agent_id: str,
+        version: int | None = None,
+        include_prompt: bool = False,
+    ) -> SpecResult:
+        """An agent's spec: what it is supposed to do, as plain rules grouped by the
+        fixed categories, each with its source and the prompt's words it rests on.
+        state says none, current, or needs_review (the agent moved to a new version).
+        include_prompt adds the prompt Connexity recorded for the agent's current
+        version, to write against. Read connexity://guides/spec first."""
+        return await _get_spec(
+            client=backend_client,
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            version=version,
+            include_prompt=include_prompt,
+        )
+
+    @mcp_server.tool(annotations=CREATES)
+    async def write_spec(
+        workspace_id: str, agent_id: str, rules: list[SpecRuleToWrite]
+    ) -> SpecResult:
+        """Write the agent's whole spec for its current version, as a new version.
+        Each rule: one plain sentence, a category key, the prompt's exact words it
+        rests on, touches (money, safety, compliance) when it protects one, and the key
+        of a rule kept from the previous version. Only what the prompt settles;
+        behaviour the prompt does not settle is a question for the person. Follow
+        connexity://guides/spec."""
+        return await _write_spec(
+            client=backend_client,
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            rules=rules,
         )
 
     @mcp_server.tool(annotations=READ_ONLY)

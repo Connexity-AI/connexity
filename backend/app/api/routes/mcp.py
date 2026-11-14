@@ -45,6 +45,7 @@ from app.models.mcp import (
     GUIDE_GETTING_STARTED,
     GUIDE_ISSUES,
     GUIDE_READINESS,
+    GUIDE_SPEC,
     GUIDE_WORKSPACES,
     McpAddAgents,
     McpAddedAgents,
@@ -60,7 +61,9 @@ from app.models.mcp import (
     McpScanProgress,
     McpUnarchiveIssue,
     McpWorkspace,
+    McpWriteSpec,
 )
+from app.models.spec import SpecPublic, SpecWrittenPublic
 from app.services.call_list import workspace_calls
 from app.services.call_screen import call_screen
 from app.services.connections import (
@@ -76,6 +79,14 @@ from app.services.retell import (
     dedupe_retell_agents,
     list_retell_agents,
     retell_key_status,
+)
+from app.services.spec import (
+    RuleDraft,
+    SpecRefused,
+    agents_needing_specs,
+    spec_answer,
+    spec_state,
+    write_agent_spec,
 )
 
 router = APIRouter(
@@ -580,8 +591,27 @@ def list_agents(
         next_steps.append(
             "No agent's name matches. Call `list_agents` without `query` to see them all."
         )
+    ids = [agent.id for agent in agents]
+    specs = crud.latest_specs(session=session, agent_ids=ids)
+    currents = crud.current_agent_versions(session=session, agent_ids=ids)
+    data = []
+    for agent in agents:
+        row = _mcp_agent(agent)
+        spec = specs.get(agent.id)
+        row.spec = spec_state(spec, currents.get(agent.id))
+        row.spec_version = spec.version if spec else None
+        data.append(row)
+    waiting = [
+        row.name for row in data if row.spec != "current" and currents.get(row.id)
+    ]
+    if waiting:
+        next_steps.append(
+            f"{len(waiting)} {'agent has' if len(waiting) == 1 else 'agents have'} no "
+            "spec, or one to review: call `get_spec` and then `write_spec` for each, "
+            "following connexity://guides/spec."
+        )
     return McpAnswer[list[McpAgent]](
-        data=[_mcp_agent(agent) for agent in agents],
+        data=data,
         rules=[
             "Connexity never edits, deploys or calls an agent; it records and checks "
             "what the agent does.",
@@ -591,6 +621,161 @@ def list_agents(
         next_steps=next_steps,
         guide=GUIDE_GETTING_STARTED,
         next_cursor=_encode_cursor(offset + limit) if has_more else None,
+    )
+
+
+def _mcp_agent_in(
+    session: SessionDep, workspace: McpWorkspaceDep, agent_id: uuid.UUID
+) -> Agent:
+    agent = crud.get_agent(session=session, agent_id=agent_id, company_id=workspace.id)
+    if agent is None:
+        raise HTTPException(
+            status_code=404,
+            detail=McpErrorDetail(
+                error="Agent not found in this workspace",
+                next_steps=["Call `list_agents` for this workspace's agent ids."],
+                guide=GUIDE_SPEC,
+            ).model_dump(),
+        )
+    return agent
+
+
+_SPEC_RULES = [
+    "Write rules only for what the prompt settles, each with the prompt's words it rests "
+    "on; behaviour the prompt does not settle is a question for the person, never a "
+    "rule.",
+    "Keep a rule across versions by passing its key; a kept rule without its key reads "
+    "as dropped and added again.",
+    "Rules are never edited: every `write_spec` is a new version, and earlier versions "
+    "stay as they were.",
+]
+
+
+def _spec_steps(answer: SpecPublic) -> list[str]:
+    steps = []
+    if answer.current_agent_version is None:
+        steps.append(
+            "The agent has no calls yet, so its version is not known; write its spec "
+            "after its first call."
+        )
+    elif answer.state == "none":
+        steps.append(
+            "Write the spec: call `get_spec` with include_prompt for the prompt "
+            "Connexity recorded, then `write_spec`."
+        )
+    elif answer.state == "needs_review":
+        steps.append(
+            f"The agent moved to version {answer.current_agent_version}; Connexity "
+            "copied the previous spec to it. Compare the prompts, keep what holds (with "
+            "keys), write what changed with `write_spec`, and list to the person what the "
+            "change leaves unsettled."
+        )
+    return steps
+
+
+@router.get(
+    "/workspaces/{workspace_id}/agents/{agent_id}/spec",
+    response_model=McpAnswer[SpecPublic],
+)
+def get_spec(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    agent_id: uuid.UUID,
+    version: int | None = Query(default=None, ge=1),
+    include_prompt: bool = False,
+) -> McpAnswer[SpecPublic]:
+    agent = _mcp_agent_in(session, workspace, agent_id)
+    answer = spec_answer(
+        session=session, agent=agent, version=version, include_prompt=include_prompt
+    )
+    if answer is None:
+        raise HTTPException(
+            status_code=404,
+            detail=McpErrorDetail(
+                error=f"The agent has no spec version {version}",
+                next_steps=["Call `get_spec` without a version for the latest."],
+                guide=GUIDE_SPEC,
+            ).model_dump(),
+        )
+    steps = _spec_steps(answer)
+    if include_prompt and answer.current_agent_version and answer.prompt is None:
+        steps.append(
+            "Connexity has no recorded prompt for this version; read it from the voice "
+            "platform. Quotes will be stored without being checked."
+        )
+    return McpAnswer[SpecPublic](
+        data=answer, rules=_SPEC_RULES, next_steps=steps, guide=GUIDE_SPEC
+    )
+
+
+@router.post(
+    "/workspaces/{workspace_id}/agents/{agent_id}/spec",
+    response_model=McpAnswer[SpecWrittenPublic],
+)
+def write_spec(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    current_user: McpCurrentUser,
+    assistant: McpAssistantName,
+    agent_id: uuid.UUID,
+    body: McpWriteSpec,
+) -> McpAnswer[SpecWrittenPublic]:
+    agent = _mcp_agent_in(session, workspace, agent_id)
+    try:
+        written = write_agent_spec(
+            session=session,
+            agent=agent,
+            drafts=[
+                RuleDraft(
+                    text=r.text,
+                    category=r.category,
+                    quote=r.quote,
+                    touches=r.touches,
+                    key=r.key or None,
+                )
+                for r in body.rules
+            ],
+            author=current_user,
+            assistant_name=assistant or "your assistant",
+        )
+    except SpecRefused as refused:
+        raise HTTPException(
+            status_code=422,
+            detail=McpErrorDetail(
+                error=refused.error,
+                next_steps=[
+                    *refused.problems[:20],
+                    *(
+                        [
+                            f"… and {len(refused.problems) - 20} more problems like these."
+                        ]
+                        if len(refused.problems) > 20
+                        else []
+                    ),
+                    "Fix these and call `write_spec` again with every rule; nothing "
+                    "was stored.",
+                ],
+                guide=GUIDE_SPEC,
+            ).model_dump(),
+        ) from None
+    steps = []
+    changes = written.changes
+    if changes.kept == 0 and written.spec and written.spec.version > 1:
+        steps.append(
+            "No rule kept its key from the previous version. If you meant to keep rules, "
+            "write the spec again passing their keys."
+        )
+    if not changes.quotes_checked:
+        steps.append(
+            "Connexity has no recorded prompt for this version, so quotes were not "
+            "checked."
+        )
+    steps.append(
+        "Tell the person the spec is written, and list the behaviour you have seen on "
+        "calls that the prompt does not settle, as questions for them."
+    )
+    return McpAnswer[SpecWrittenPublic](
+        data=written, rules=_SPEC_RULES, next_steps=steps, guide=GUIDE_SPEC
     )
 
 
@@ -634,6 +819,16 @@ def get_readiness(
             next_steps.append(
                 "Syncing agents and calls and the first scan come after the voice "
                 "platform is connected."
+            )
+    if state[ReadinessStepKey.FIRST_SCAN] == ReadinessStepState.DONE:
+        waiting = agents_needing_specs(session=session, company_id=workspace.id)
+        if waiting:
+            names = ", ".join(agent.name for agent, _ in waiting[:5])
+            more = f" and {len(waiting) - 5} more" if len(waiting) > 5 else ""
+            next_steps.append(
+                f"Write each agent's spec from its prompt: {names}{more}. Read "
+                "connexity://guides/spec, then call `get_spec` with include_prompt and "
+                "`write_spec`."
             )
     next_steps.append(
         "Call `get_readiness` again after each step to see what is left, and tell the "
