@@ -213,8 +213,9 @@ class IssueState(StrEnum):
     OPEN = "open"
     RESOLVED = "resolved"
     # Found again on a call that started after it was resolved.
-    REGRESSED = "regressed"
-    ACCEPTED = "accepted"
+    REOPENED = "reopened"
+    # Real, and nobody will fix it: it stops counting. A person decides, with a reason.
+    ARCHIVED = "archived"
 
 
 class CallCheckStatus(StrEnum):

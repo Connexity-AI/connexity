@@ -215,18 +215,32 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     @mcp_server.tool(annotations=READ_ONLY)
     async def list_issues(
         workspace_id: str,
+        query: str | None = None,
         agent_id: str | None = None,
+        category: str | None = None,
+        severity: str | None = None,
+        status: str | None = None,
+        period: str | None = None,
         cursor: str | None = None,
         limit: int | None = None,
     ) -> ListIssuesResult:
-        """The workspace's issues, worst first: what Connexity's checks found on real
-        calls. Each has its severity (critical or warning), how it was found (found_by:
-        rule, deterministic code; or model), its category, and its size as calls
-        affected of the agent's calls. Pass agent_id for one agent."""
+        """The workspace's issues, worst first, with counts (tiles) for the period:
+        what Connexity's checks found on real calls. Each has its severity (critical or
+        warning), how it was found (found_by: rule, deterministic code; or model), its
+        category, and its size as calls affected of the agent's calls in the period.
+        query matches words in the title or a whole issue id. Filters: agent_id,
+        category (a category key), severity (critical, warning), status (open, the
+        default and including reopened; reopened, resolved, archived), period (7d,
+        30d, 90d)."""
         return await _list_issues(
             client=backend_client,
             workspace_id=workspace_id,
+            query=query,
             agent_id=agent_id,
+            category=category,
+            severity=severity,
+            status=status,
+            period=period,
             cursor=cursor,
             limit=limit,
         )

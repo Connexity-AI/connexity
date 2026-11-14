@@ -1,8 +1,9 @@
 """Issues: all findings with the same symptom on one agent."""
 
 import uuid
+from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app import crud
 from app.api.deps import CurrentCompany, CurrentUser, SessionDep, get_current_user
@@ -16,7 +17,9 @@ from app.models import (
     IssueStateUpdate,
 )
 from app.models.enums import IssueState
+from app.models.issue_list import IssueListPublic, IssuePeriod, IssueStatusFilter
 from app.services.checks.registry import get_check
+from app.services.issue_list import IssueFilters, workspace_issues
 
 router = APIRouter(tags=["issues"], dependencies=[Depends(get_current_user)])
 
@@ -50,6 +53,37 @@ def _public(
         last_seen_at=summary.last_seen_at,
         created_at=issue.created_at,
     )
+
+
+@router.get("/issues", response_model=IssueListPublic)
+def list_issues(
+    session: SessionDep,
+    company_id: CurrentCompany,
+    period: IssuePeriod = "30d",
+    agent_id: uuid.UUID | None = None,
+    category: str | None = Query(default=None, max_length=64),
+    severity: Literal["critical", "warning"] | None = None,
+    status: IssueStatusFilter = "open",
+    q: str | None = Query(default=None, max_length=255),
+) -> IssueListPublic:
+    """The Issues page: the open workspace's issues grouped by category, worst first.
+
+    The tiles follow the agent and the period only. ``q`` matches words in an issue's
+    title, or its whole id.
+    """
+    page, _ = workspace_issues(
+        session=session,
+        company_id=company_id,
+        filters=IssueFilters(
+            period=period,
+            agent_id=agent_id,
+            category=category,
+            severity=severity,
+            status=status,
+            query=q,
+        ),
+    )
+    return page
 
 
 @router.get("/agents/{agent_id}/issues", response_model=list[IssuePublic])
@@ -109,24 +143,24 @@ def set_issue_state(
     issue_id: uuid.UUID,
     body: IssueStateUpdate,
 ) -> IssuePublic:
-    """Resolve an issue, accept it as known, or reopen it.
+    """Resolve an issue, archive it, or open it again.
 
-    Kept as a decision record. Accepting requires a reason. "Regressed" is not
+    Kept as a decision record. Archiving requires a reason. "Reopened" is not
     something a person sets: it happens when a resolved issue is found again on a call
     that started after the resolution.
     """
     issue = crud.get_issue(session=session, issue_id=issue_id, company_id=company_id)
     if issue is None:
         raise HTTPException(status_code=404, detail="Issue not found")
-    if body.state is IssueState.REGRESSED:
+    if body.state is IssueState.REOPENED:
         raise HTTPException(
             status_code=422,
-            detail="An issue is set to open, resolved or accepted, not to regressed",
+            detail="An issue is set to open, resolved or archived, not to reopened",
         )
     reason = (body.reason or "").strip() or None
-    if body.state is IssueState.ACCEPTED and reason is None:
+    if body.state is IssueState.ARCHIVED and reason is None:
         raise HTTPException(
-            status_code=422, detail="A reason is required to accept an issue as known"
+            status_code=422, detail="A reason is required to archive an issue"
         )
     issue = crud.set_issue_state(
         session=session,

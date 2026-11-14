@@ -113,17 +113,29 @@ class ConnexityBackendClient:
         self,
         *,
         workspace_id: str,
+        query: str | None = None,
         agent_id: str | None = None,
+        category: str | None = None,
+        severity: str | None = None,
+        status: str | None = None,
+        period: str | None = None,
         cursor: str | None = None,
         limit: int | None = None,
     ) -> dict[str, Any]:
-        params: dict[str, Any] = {}
-        if agent_id:
-            params["agent_id"] = agent_id
-        if cursor:
-            params["cursor"] = cursor
-        if limit is not None:
-            params["limit"] = limit
+        params = {
+            key: value
+            for key, value in {
+                "query": query,
+                "agent_id": agent_id,
+                "category": category,
+                "severity": severity,
+                "status": status,
+                "period": period,
+                "cursor": cursor,
+                "limit": limit,
+            }.items()
+            if value not in (None, "")
+        }
         return await self._request_json(
             "GET",
             f"/mcp/workspaces/{quote(workspace_id, safe='')}/issues",

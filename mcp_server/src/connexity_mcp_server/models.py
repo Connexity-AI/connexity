@@ -177,16 +177,31 @@ class Issue(BaseModel):
     id: str
     agent_id: str
     agent_name: str
-    type: str
     title: str
+    check_type: str
+    key: str | None = None
     category: str
     severity: str
     found_by: str
     state: str
+    resolved_version: str | None = None
     calls_affected: int
     calls_total: int
-    first_seen_at: str | None = None
     last_seen_at: str | None = None
+
+
+class IssueTiles(BaseModel):
+    open: int
+    critical: int
+    reopened: int
+    resolved: int
+    calls_affected: int
+    calls: int
+
+
+class Issues(BaseModel):
+    tiles: IssueTiles
+    issues: list[Issue] = Field(default_factory=list)
 
 
 class Category(BaseModel):
@@ -204,6 +219,6 @@ CreateWorkspaceResult = Answer[Workspace]
 ListAgentsResult = Answer[list[Agent]]
 ScanCallsResult = Answer[ScanProgress]
 ListCategoriesResult = Answer[list[Category]]
-ListIssuesResult = Answer[list[Issue]]
+ListIssuesResult = Answer[Issues]
 ListCallsResult = Answer[Calls]
 GetCallResult = Answer[CallDetail]

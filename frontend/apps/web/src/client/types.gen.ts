@@ -3367,6 +3367,156 @@ export type IssueFindingPublic = {
 };
 
 /**
+ * IssueGroupPublic
+ */
+export type IssueGroupPublic = {
+  /**
+   * The category's key and name
+   */
+  category: CallFilterOption;
+  /**
+   * Issue Count
+   */
+  issue_count: number;
+  /**
+   * Calls Affected
+   *
+   * Distinct calls in the period any issue in the group was found on
+   */
+  calls_affected: number;
+  /**
+   * Critical
+   *
+   * Open or reopened Critical issues in the group
+   */
+  critical: number;
+  /**
+   * Issues
+   *
+   * Worst first
+   */
+  issues: Array<IssueListItemPublic>;
+};
+
+/**
+ * IssueListItemPublic
+ */
+export type IssueListItemPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Name
+   */
+  agent_name: string;
+  /**
+   * Title
+   *
+   * The check's name and, if it has one, the key
+   */
+  title: string;
+  /**
+   * Check Type
+   */
+  check_type: string;
+  /**
+   * Key
+   *
+   * What broke, e.g. a tool's name
+   */
+  key?: string | null;
+  /**
+   * Category
+   *
+   * The category's key
+   */
+  category: string;
+  /**
+   * Severity
+   */
+  severity: 'critical' | 'warning';
+  /**
+   * Found By
+   *
+   * rule: deterministic code over the call; model: a classifier or judge
+   */
+  found_by: 'rule' | 'model';
+  state: IssueState;
+  /**
+   * Resolved Version
+   */
+  resolved_version?: string | null;
+  /**
+   * Calls Affected
+   *
+   * Calls in the period it was found on
+   */
+  calls_affected: number;
+  /**
+   * Calls Total
+   *
+   * The agent's calls in the period
+   */
+  calls_total: number;
+  /**
+   * Last Seen At
+   *
+   * When the latest call it was found on started
+   */
+  last_seen_at?: string | null;
+};
+
+/**
+ * IssueListPublic
+ */
+export type IssueListPublic = {
+  tiles: IssueTilesPublic;
+  /**
+   * Groups
+   *
+   * In the categories' fixed order; empty categories are left out
+   */
+  groups: Array<IssueGroupPublic>;
+  /**
+   * Total
+   *
+   * Issues matching the search and filters
+   */
+  total: number;
+  /**
+   * Truncated
+   *
+   * True when more matched than were returned
+   */
+  truncated: boolean;
+  /**
+   * Period
+   */
+  period: '7d' | '30d' | '90d';
+  /**
+   * Status
+   */
+  status: 'open' | 'reopened' | 'resolved' | 'archived';
+  /**
+   * Agents
+   *
+   * The agents to filter by
+   */
+  agents: Array<CallFilterOption>;
+  /**
+   * Categories
+   *
+   * The fixed categories, in order
+   */
+  categories: Array<CallFilterOption>;
+};
+
+/**
  * IssuePublic
  */
 export type IssuePublic = {
@@ -3434,8 +3584,8 @@ export type IssuePublic = {
 export const IssueState = {
   OPEN: 'open',
   RESOLVED: 'resolved',
-  REGRESSED: 'regressed',
-  ACCEPTED: 'accepted',
+  REOPENED: 'reopened',
+  ARCHIVED: 'archived',
 } as const;
 
 /**
@@ -3448,13 +3598,13 @@ export type IssueState = (typeof IssueState)[keyof typeof IssueState];
  */
 export type IssueStateUpdate = {
   /**
-   * open, resolved or accepted
+   * open, resolved or archived
    */
   state: IssueState;
   /**
    * Reason
    *
-   * Required to accept an issue
+   * Required to archive an issue
    */
   reason?: string | null;
   /**
@@ -3463,6 +3613,46 @@ export type IssueStateUpdate = {
    * When resolving: the version that carried the fix
    */
   version?: string | null;
+};
+
+/**
+ * IssueTilesPublic
+ */
+export type IssueTilesPublic = {
+  /**
+   * Open
+   *
+   * Open and reopened issues
+   */
+  open: number;
+  /**
+   * Critical
+   *
+   * Open or reopened issues that are Critical
+   */
+  critical: number;
+  /**
+   * Reopened
+   */
+  reopened: number;
+  /**
+   * Resolved
+   *
+   * Issues resolved in the period
+   */
+  resolved: number;
+  /**
+   * Calls Affected
+   *
+   * Calls in the period with a finding from an open or reopened issue
+   */
+  calls_affected: number;
+  /**
+   * Calls
+   *
+   * All calls in the period
+   */
+  calls: number;
 };
 
 export type JsonValue = unknown;
@@ -4001,6 +4191,40 @@ export type McpAnswerMcpConnection = {
 };
 
 /**
+ * McpAnswer[McpIssues]
+ */
+export type McpAnswerMcpIssues = {
+  /**
+   * The facts: the result of the call
+   */
+  data: McpIssues;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
  * McpAnswer[McpScanProgress]
  */
 export type McpAnswerMcpScanProgress = {
@@ -4175,42 +4399,6 @@ export type McpAnswerListMcpAgent = {
 };
 
 /**
- * McpAnswer[list[McpIssue]]
- */
-export type McpAnswerListMcpIssue = {
-  /**
-   * Data
-   *
-   * The facts: the result of the call
-   */
-  data: Array<McpIssue>;
-  /**
-   * Rules
-   *
-   * The rules that apply to what was returned, one sentence each
-   */
-  rules?: Array<string>;
-  /**
-   * Next Steps
-   *
-   * Steps the assistant can take next, in order, naming the tool
-   */
-  next_steps?: Array<string>;
-  /**
-   * Guide
-   *
-   * The guide for this part of Connexity
-   */
-  guide: string;
-  /**
-   * Next Cursor
-   *
-   * On lists: pass as `cursor` for the next page; empty on the last
-   */
-  next_cursor?: string | null;
-};
-
-/**
  * McpAnswer[list[McpWorkspace]]
  */
 export type McpAnswerListMcpWorkspace = {
@@ -4296,67 +4484,19 @@ export type McpConnection = {
 };
 
 /**
- * McpIssue
+ * McpIssues
  */
-export type McpIssue = {
+export type McpIssues = {
   /**
-   * Id
+   * Counts for the agent and period
    */
-  id: string;
+  tiles: IssueTilesPublic;
   /**
-   * Agent Id
-   */
-  agent_id: string;
-  /**
-   * Agent Name
-   */
-  agent_name: string;
-  /**
-   * Type
+   * Issues
    *
-   * The check that finds it, e.g. booking_duplicated
+   * Worst first
    */
-  type: string;
-  /**
-   * Title
-   */
-  title: string;
-  /**
-   * Category
-   */
-  category: string;
-  /**
-   * Severity
-   */
-  severity: 'critical' | 'warning';
-  /**
-   * Found By
-   *
-   * rule: deterministic code over the call; model: a classifier or judge
-   */
-  found_by: 'rule' | 'model';
-  /**
-   * State
-   */
-  state: string;
-  /**
-   * Calls Affected
-   */
-  calls_affected: number;
-  /**
-   * Calls Total
-   *
-   * The agent's stored calls: 'in N of M calls'
-   */
-  calls_total: number;
-  /**
-   * First Seen At
-   */
-  first_seen_at?: string | null;
-  /**
-   * Last Seen At
-   */
-  last_seen_at?: string | null;
+  issues: Array<IssueListItemPublic>;
 };
 
 /**
@@ -8996,9 +9136,29 @@ export type McpListIssuesData = {
   };
   query?: {
     /**
+     * Query
+     */
+    query?: string | null;
+    /**
      * Agent Id
      */
     agent_id?: string | null;
+    /**
+     * Category
+     */
+    category?: string | null;
+    /**
+     * Severity
+     */
+    severity?: 'critical' | 'warning' | null;
+    /**
+     * Status
+     */
+    status?: 'open' | 'reopened' | 'resolved' | 'archived';
+    /**
+     * Period
+     */
+    period?: '7d' | '30d' | '90d';
     /**
      * Cursor
      */
@@ -9048,7 +9208,7 @@ export type McpListIssuesResponses = {
   /**
    * Successful Response
    */
-  200: McpAnswerListMcpIssue;
+  200: McpAnswerMcpIssues;
 };
 
 export type McpListIssuesResponse = McpListIssuesResponses[keyof McpListIssuesResponses];
@@ -14767,6 +14927,80 @@ export type ChecksListAgentDecisionsResponses = {
 
 export type ChecksListAgentDecisionsResponse =
   ChecksListAgentDecisionsResponses[keyof ChecksListAgentDecisionsResponses];
+
+export type IssuesListIssuesData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Period
+     */
+    period?: '7d' | '30d' | '90d';
+    /**
+     * Agent Id
+     */
+    agent_id?: string | null;
+    /**
+     * Category
+     */
+    category?: string | null;
+    /**
+     * Severity
+     */
+    severity?: 'critical' | 'warning' | null;
+    /**
+     * Status
+     */
+    status?: 'open' | 'reopened' | 'resolved' | 'archived';
+    /**
+     * Q
+     */
+    q?: string | null;
+  };
+  url: '/api/v1/issues';
+};
+
+export type IssuesListIssuesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type IssuesListIssuesError = IssuesListIssuesErrors[keyof IssuesListIssuesErrors];
+
+export type IssuesListIssuesResponses = {
+  /**
+   * Successful Response
+   */
+  200: IssueListPublic;
+};
+
+export type IssuesListIssuesResponse = IssuesListIssuesResponses[keyof IssuesListIssuesResponses];
 
 export type IssuesListAgentIssuesData = {
   body?: never;

@@ -5351,6 +5351,203 @@ export const IssueFindingPublicSchema = {
   title: 'IssueFindingPublic',
 } as const;
 
+export const IssueGroupPublicSchema = {
+  properties: {
+    category: {
+      $ref: '#/components/schemas/CallFilterOption',
+      description: "The category's key and name",
+    },
+    issue_count: {
+      type: 'integer',
+      title: 'Issue Count',
+    },
+    calls_affected: {
+      type: 'integer',
+      title: 'Calls Affected',
+      description: 'Distinct calls in the period any issue in the group was found on',
+    },
+    critical: {
+      type: 'integer',
+      title: 'Critical',
+      description: 'Open or reopened Critical issues in the group',
+    },
+    issues: {
+      items: {
+        $ref: '#/components/schemas/IssueListItemPublic',
+      },
+      type: 'array',
+      title: 'Issues',
+      description: 'Worst first',
+    },
+  },
+  type: 'object',
+  required: ['category', 'issue_count', 'calls_affected', 'critical', 'issues'],
+  title: 'IssueGroupPublic',
+} as const;
+
+export const IssueListItemPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    agent_name: {
+      type: 'string',
+      title: 'Agent Name',
+    },
+    title: {
+      type: 'string',
+      title: 'Title',
+      description: "The check's name and, if it has one, the key",
+    },
+    check_type: {
+      type: 'string',
+      title: 'Check Type',
+    },
+    key: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Key',
+      description: "What broke, e.g. a tool's name",
+    },
+    category: {
+      type: 'string',
+      title: 'Category',
+      description: "The category's key",
+    },
+    severity: {
+      type: 'string',
+      enum: ['critical', 'warning'],
+      title: 'Severity',
+    },
+    found_by: {
+      type: 'string',
+      enum: ['rule', 'model'],
+      title: 'Found By',
+      description: 'rule: deterministic code over the call; model: a classifier or judge',
+    },
+    state: {
+      $ref: '#/components/schemas/IssueState',
+    },
+    resolved_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Resolved Version',
+    },
+    calls_affected: {
+      type: 'integer',
+      title: 'Calls Affected',
+      description: 'Calls in the period it was found on',
+    },
+    calls_total: {
+      type: 'integer',
+      title: 'Calls Total',
+      description: "The agent's calls in the period",
+    },
+    last_seen_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Last Seen At',
+      description: 'When the latest call it was found on started',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'agent_id',
+    'agent_name',
+    'title',
+    'check_type',
+    'category',
+    'severity',
+    'found_by',
+    'state',
+    'calls_affected',
+    'calls_total',
+  ],
+  title: 'IssueListItemPublic',
+} as const;
+
+export const IssueListPublicSchema = {
+  properties: {
+    tiles: {
+      $ref: '#/components/schemas/IssueTilesPublic',
+    },
+    groups: {
+      items: {
+        $ref: '#/components/schemas/IssueGroupPublic',
+      },
+      type: 'array',
+      title: 'Groups',
+      description: "In the categories' fixed order; empty categories are left out",
+    },
+    total: {
+      type: 'integer',
+      title: 'Total',
+      description: 'Issues matching the search and filters',
+    },
+    truncated: {
+      type: 'boolean',
+      title: 'Truncated',
+      description: 'True when more matched than were returned',
+    },
+    period: {
+      type: 'string',
+      enum: ['7d', '30d', '90d'],
+      title: 'Period',
+    },
+    status: {
+      type: 'string',
+      enum: ['open', 'reopened', 'resolved', 'archived'],
+      title: 'Status',
+    },
+    agents: {
+      items: {
+        $ref: '#/components/schemas/CallFilterOption',
+      },
+      type: 'array',
+      title: 'Agents',
+      description: 'The agents to filter by',
+    },
+    categories: {
+      items: {
+        $ref: '#/components/schemas/CallFilterOption',
+      },
+      type: 'array',
+      title: 'Categories',
+      description: 'The fixed categories, in order',
+    },
+  },
+  type: 'object',
+  required: ['tiles', 'groups', 'total', 'truncated', 'period', 'status', 'agents', 'categories'],
+  title: 'IssueListPublic',
+} as const;
+
 export const IssuePublicSchema = {
   properties: {
     id: {
@@ -5469,7 +5666,7 @@ export const IssuePublicSchema = {
 
 export const IssueStateSchema = {
   type: 'string',
-  enum: ['open', 'resolved', 'regressed', 'accepted'],
+  enum: ['open', 'resolved', 'reopened', 'archived'],
   title: 'IssueState',
 } as const;
 
@@ -5477,7 +5674,7 @@ export const IssueStateUpdateSchema = {
   properties: {
     state: {
       $ref: '#/components/schemas/IssueState',
-      description: 'open, resolved or accepted',
+      description: 'open, resolved or archived',
     },
     reason: {
       anyOf: [
@@ -5490,7 +5687,7 @@ export const IssueStateUpdateSchema = {
         },
       ],
       title: 'Reason',
-      description: 'Required to accept an issue',
+      description: 'Required to archive an issue',
     },
     version: {
       anyOf: [
@@ -5509,6 +5706,43 @@ export const IssueStateUpdateSchema = {
   type: 'object',
   required: ['state'],
   title: 'IssueStateUpdate',
+} as const;
+
+export const IssueTilesPublicSchema = {
+  properties: {
+    open: {
+      type: 'integer',
+      title: 'Open',
+      description: 'Open and reopened issues',
+    },
+    critical: {
+      type: 'integer',
+      title: 'Critical',
+      description: 'Open or reopened issues that are Critical',
+    },
+    reopened: {
+      type: 'integer',
+      title: 'Reopened',
+    },
+    resolved: {
+      type: 'integer',
+      title: 'Resolved',
+      description: 'Issues resolved in the period',
+    },
+    calls_affected: {
+      type: 'integer',
+      title: 'Calls Affected',
+      description: 'Calls in the period with a finding from an open or reopened issue',
+    },
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+      description: 'All calls in the period',
+    },
+  },
+  type: 'object',
+  required: ['open', 'critical', 'reopened', 'resolved', 'calls_affected', 'calls'],
+  title: 'IssueTilesPublic',
 } as const;
 
 export const JsonValueSchema = {} as const;
@@ -6253,6 +6487,51 @@ export const McpAnswer_McpConnection_Schema = {
   title: 'McpAnswer[McpConnection]',
 } as const;
 
+export const McpAnswer_McpIssues_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/McpIssues',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[McpIssues]',
+} as const;
+
 export const McpAnswer_McpScanProgress_Schema = {
   properties: {
     data: {
@@ -6486,55 +6765,6 @@ export const McpAnswer_list_McpAgent__Schema = {
   title: 'McpAnswer[list[McpAgent]]',
 } as const;
 
-export const McpAnswer_list_McpIssue__Schema = {
-  properties: {
-    data: {
-      items: {
-        $ref: '#/components/schemas/McpIssue',
-      },
-      type: 'array',
-      title: 'Data',
-      description: 'The facts: the result of the call',
-    },
-    rules: {
-      items: {
-        type: 'string',
-      },
-      type: 'array',
-      title: 'Rules',
-      description: 'The rules that apply to what was returned, one sentence each',
-    },
-    next_steps: {
-      items: {
-        type: 'string',
-      },
-      type: 'array',
-      title: 'Next Steps',
-      description: 'Steps the assistant can take next, in order, naming the tool',
-    },
-    guide: {
-      type: 'string',
-      title: 'Guide',
-      description: 'The guide for this part of Connexity',
-    },
-    next_cursor: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Next Cursor',
-      description: 'On lists: pass as `cursor` for the next page; empty on the last',
-    },
-  },
-  type: 'object',
-  required: ['data', 'guide'],
-  title: 'McpAnswer[list[McpIssue]]',
-} as const;
-
 export const McpAnswer_list_McpWorkspace__Schema = {
   properties: {
     data: {
@@ -6653,99 +6883,24 @@ export const McpConnectionSchema = {
   title: 'McpConnection',
 } as const;
 
-export const McpIssueSchema = {
+export const McpIssuesSchema = {
   properties: {
-    id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Id',
+    tiles: {
+      $ref: '#/components/schemas/IssueTilesPublic',
+      description: 'Counts for the agent and period',
     },
-    agent_id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Agent Id',
-    },
-    agent_name: {
-      type: 'string',
-      title: 'Agent Name',
-    },
-    type: {
-      type: 'string',
-      title: 'Type',
-      description: 'The check that finds it, e.g. booking_duplicated',
-    },
-    title: {
-      type: 'string',
-      title: 'Title',
-    },
-    category: {
-      type: 'string',
-      title: 'Category',
-    },
-    severity: {
-      type: 'string',
-      enum: ['critical', 'warning'],
-      title: 'Severity',
-    },
-    found_by: {
-      type: 'string',
-      enum: ['rule', 'model'],
-      title: 'Found By',
-      description: 'rule: deterministic code over the call; model: a classifier or judge',
-    },
-    state: {
-      type: 'string',
-      title: 'State',
-    },
-    calls_affected: {
-      type: 'integer',
-      title: 'Calls Affected',
-    },
-    calls_total: {
-      type: 'integer',
-      title: 'Calls Total',
-      description: "The agent's stored calls: 'in N of M calls'",
-    },
-    first_seen_at: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'date-time',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'First Seen At',
-    },
-    last_seen_at: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'date-time',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Last Seen At',
+    issues: {
+      items: {
+        $ref: '#/components/schemas/IssueListItemPublic',
+      },
+      type: 'array',
+      title: 'Issues',
+      description: 'Worst first',
     },
   },
   type: 'object',
-  required: [
-    'id',
-    'agent_id',
-    'agent_name',
-    'type',
-    'title',
-    'category',
-    'severity',
-    'found_by',
-    'state',
-    'calls_affected',
-    'calls_total',
-  ],
-  title: 'McpIssue',
+  required: ['tiles', 'issues'],
+  title: 'McpIssues',
 } as const;
 
 export const McpRefusedAgentSchema = {

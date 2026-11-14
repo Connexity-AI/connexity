@@ -301,9 +301,9 @@ class IssueDetailPublic(IssuePublic):
 
 
 class IssueStateUpdate(SQLModel):
-    state: IssueState = Field(description="open, resolved or accepted")
+    state: IssueState = Field(description="open, resolved or archived")
     reason: str | None = Field(
-        default=None, max_length=2000, description="Required to accept an issue"
+        default=None, max_length=2000, description="Required to archive an issue"
     )
     version: str | None = Field(
         default=None,

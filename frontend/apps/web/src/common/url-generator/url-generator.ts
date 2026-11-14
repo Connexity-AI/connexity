@@ -16,6 +16,10 @@ export class UrlGenerator {
     return `/calls/${id}/` as Route;
   }
 
+  static issues() {
+    return '/issues/' as Route;
+  }
+
   static account() {
     return '/account/' as Route;
   }

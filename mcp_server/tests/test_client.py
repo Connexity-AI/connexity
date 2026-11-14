@@ -377,28 +377,46 @@ async def test_list_categories_reads_the_fixed_set() -> None:
 
 
 @pytest.mark.asyncio
-async def test_list_issues_sends_the_agent_and_keeps_how_it_was_found() -> None:
+async def test_list_issues_sends_the_search_and_filters_and_keeps_how_it_was_found() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/issues"
-        assert request.url.params["agent_id"] == "a1"
+        assert dict(request.url.params) == {
+            "query": "slot",
+            "agent_id": "a1",
+            "category": "booking",
+            "severity": "critical",
+            "status": "reopened",
+            "period": "7d",
+        }
         return httpx.Response(
             200,
             json={
-                "data": [
-                    {
-                        "id": "i1",
-                        "agent_id": "a1",
-                        "agent_name": "Front desk",
-                        "type": "booking_duplicated",
-                        "title": "Two bookings for one slot",
-                        "category": "Booking",
-                        "severity": "critical",
-                        "found_by": "rule",
-                        "state": "open",
-                        "calls_affected": 4,
-                        "calls_total": 78,
-                    }
-                ],
+                "data": {
+                    "tiles": {
+                        "open": 2,
+                        "critical": 1,
+                        "reopened": 1,
+                        "resolved": 0,
+                        "calls_affected": 5,
+                        "calls": 78,
+                    },
+                    "issues": [
+                        {
+                            "id": "i1",
+                            "agent_id": "a1",
+                            "agent_name": "Front desk",
+                            "title": "Two bookings for one slot: book",
+                            "check_type": "booking_duplicated",
+                            "key": "book",
+                            "category": "booking",
+                            "severity": "critical",
+                            "found_by": "rule",
+                            "state": "reopened",
+                            "calls_affected": 4,
+                            "calls_total": 78,
+                        }
+                    ],
+                },
                 "next_cursor": None,
                 **ANSWER,
             },
@@ -406,10 +424,21 @@ async def test_list_issues_sends_the_agent_and_keeps_how_it_was_found() -> None:
 
     result = await _call(
         handler,
-        lambda client: list_issues(client, workspace_id=WORKSPACE_ID, agent_id="a1"),
+        lambda client: list_issues(
+            client,
+            workspace_id=WORKSPACE_ID,
+            query="slot",
+            agent_id="a1",
+            category="booking",
+            severity="critical",
+            status="reopened",
+            period="7d",
+        ),
     )
 
-    assert (result.data[0].found_by, result.data[0].calls_affected) == ("rule", 4)
+    assert result.data.tiles.open == 2
+    issue = result.data.issues[0]
+    assert (issue.found_by, issue.calls_affected, issue.state) == ("rule", 4, "reopened")
 
 
 @pytest.mark.asyncio

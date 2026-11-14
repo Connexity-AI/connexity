@@ -89,13 +89,26 @@ async def list_categories(
 async def list_issues(
     client: ConnexityBackendClient,
     workspace_id: str,
+    query: str | None = None,
     agent_id: str | None = None,
+    category: str | None = None,
+    severity: str | None = None,
+    status: str | None = None,
+    period: str | None = None,
     cursor: str | None = None,
     limit: int | None = None,
 ) -> ListIssuesResult:
     return ListIssuesResult.model_validate(
         await client.list_issues(
-            workspace_id=workspace_id, agent_id=agent_id, cursor=cursor, limit=limit
+            workspace_id=workspace_id,
+            query=query,
+            agent_id=agent_id,
+            category=category,
+            severity=severity,
+            status=status,
+            period=period,
+            cursor=cursor,
+            limit=limit,
         )
     )
 

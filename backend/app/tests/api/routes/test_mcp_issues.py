@@ -1,6 +1,7 @@
 """`list_issues` through MCP, on invented calls checked by the real engine."""
 
 import json
+import time
 import uuid
 from collections.abc import Generator
 from datetime import timedelta
@@ -97,11 +98,17 @@ def _booking(n: int, args: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
-def _call(db: Session, agent: Agent, *bookings: list[dict[str, Any]]) -> None:
+DAY_MS = 86_400_000
+
+
+def _call(
+    db: Session, agent: Agent, *bookings: list[dict[str, Any]], days_ago: float = 1
+) -> uuid.UUID:
     payload = retell_call(
         f"call_{uuid.uuid4().hex[:8]}",
         agent_id=agent.platform_agent_id or "",
         timeline=[speech("agent", "Hello", 0.5)] + [e for b in bookings for e in b],
+        start_ms=int(time.time() * 1000 - days_ago * DAY_MS),
     )
     stored = crud.store_trace(
         session=db,
@@ -113,6 +120,7 @@ def _call(db: Session, agent: Agent, *bookings: list[dict[str, Any]]) -> None:
     )
     db.commit()
     check_call_safely(session=db, call=stored.call)
+    return stored.call.id
 
 
 def _issues(client: TestClient, user: User, **params: str) -> Any:
@@ -137,23 +145,34 @@ def test_issues_come_worst_first_with_how_they_were_found(
 
     assert r.status_code == 200, r.text
     body = r.json()
+    issues = body["data"]["issues"]
     rows = [
         (
-            i["type"],
+            i["check_type"],
             i["severity"],
             i["found_by"],
             i["category"],
             i["calls_affected"],
             i["calls_total"],
         )
-        for i in body["data"]
+        for i in issues
     ]
     assert rows == [
-        ("booking_details_missing", "critical", "rule", "Booking", 2, 3),
-        ("booking_duplicated", "critical", "rule", "Booking", 1, 3),
+        ("booking_details_missing", "critical", "rule", "booking", 2, 3),
+        ("booking_duplicated", "critical", "rule", "booking", 1, 3),
     ]
-    assert body["data"][0]["agent_name"] == "Front desk"
-    assert body["data"][0]["title"] == "Booking with missing or placeholder details"
+    assert issues[0]["agent_name"] == "Front desk"
+    assert issues[0]["title"] == (
+        "Booking with missing or placeholder details: schedule_appointment"
+    )
+    assert body["data"]["tiles"] == {
+        "open": 2,
+        "critical": 2,
+        "reopened": 0,
+        "resolved": 0,
+        "calls_affected": 2,
+        "calls": 3,
+    }
     assert body["guide"] == "connexity://guides/issues"
     assert any("found_by" in rule for rule in body["rules"])
 
@@ -166,14 +185,16 @@ def test_issues_of_one_agent_and_paging(client: TestClient, db: Session) -> None
     _call(db, second, _booking(1, FULL), _booking(2, FULL))
 
     only = _issues(client, user, agent_id=str(second.id)).json()["data"]
-    assert [i["type"] for i in only] == ["booking_duplicated"]
+    assert [i["check_type"] for i in only["issues"]] == ["booking_duplicated"]
+    assert only["tiles"]["calls"] == 1
 
     page = _issues(client, user, limit="1").json()
-    assert len(page["data"]) == 1
+    assert len(page["data"]["issues"]) == 1
     assert page["next_cursor"]
     rest = _issues(client, user, limit="1", cursor=page["next_cursor"]).json()
-    assert len(rest["data"]) == 1
-    assert rest["data"][0]["id"] != page["data"][0]["id"]
+    assert len(rest["data"]["issues"]) == 1
+    assert rest["data"]["issues"][0]["id"] != page["data"]["issues"][0]["id"]
+    assert rest["next_cursor"] is None
 
 
 def test_no_issues_says_what_to_do(client: TestClient, db: Session) -> None:
@@ -181,8 +202,33 @@ def test_no_issues_says_what_to_do(client: TestClient, db: Session) -> None:
 
     body = _issues(client, user).json()
 
-    assert body["data"] == []
+    assert body["data"]["issues"] == []
     assert any("get_readiness" in s for s in body["next_steps"])
+
+
+def test_the_search_and_filters_narrow_the_issues(
+    client: TestClient, db: Session
+) -> None:
+    user = _person(db)
+    agent = _agent(db, user, "Front desk")
+    _call(db, agent, _booking(1, FULL | {"streetAddress": ""}), _booking(2, FULL))
+
+    def types(**params: str) -> list[str]:
+        r = _issues(client, user, **params)
+        assert r.status_code == 200, r.text
+        return [i["check_type"] for i in r.json()["data"]["issues"]]
+
+    assert types(query="two bookings") == ["booking_duplicated"]
+    assert types(severity="warning") == []
+    # One call each, so their order is by when they were last seen.
+    assert sorted(types(category="booking", severity="critical")) == [
+        "booking_details_missing",
+        "booking_duplicated",
+    ]
+    assert types(status="archived") == []
+    nothing = _issues(client, user, query="nothing like this").json()
+    assert any("No issue matches" in s for s in nothing["next_steps"])
+    assert _issues(client, user, status="regressed").status_code == 422
 
 
 def test_another_workspace_or_agent_is_not_found(
