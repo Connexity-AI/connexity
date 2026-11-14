@@ -1,4 +1,4 @@
-import { Inbox, Phone } from 'lucide-react';
+import { Bot, Inbox, Phone } from 'lucide-react';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
 
@@ -20,6 +20,7 @@ export interface NavItem {
  * adding one.
  */
 export const NAV_ITEMS: readonly NavItem[] = [
+  { title: 'Agents', url: UrlGenerator.agents(), icon: Bot },
   { title: 'Calls', url: UrlGenerator.calls(), icon: Phone },
   { title: 'Issues', url: UrlGenerator.issues(), icon: Inbox },
 ];

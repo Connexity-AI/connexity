@@ -40,6 +40,8 @@ class Agent(BaseModel):
     platform_agent_name: str | None = None
     spec: str | None = None
     spec_version: int | None = None
+    type: str | None = None
+    calls: int | None = None
     created_at: datetime
 
 

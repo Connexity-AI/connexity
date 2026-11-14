@@ -30,6 +30,9 @@ import type {
   AgentsListAgentVersionsData,
   AgentsListAgentVersionsErrors,
   AgentsListAgentVersionsResponses,
+  AgentsListWorkspaceAgentsData,
+  AgentsListWorkspaceAgentsErrors,
+  AgentsListWorkspaceAgentsResponses,
   AgentsPublishDraftData,
   AgentsPublishDraftErrors,
   AgentsPublishDraftResponses,
@@ -1401,6 +1404,33 @@ export class McpService {
 }
 
 export class AgentsService {
+  /**
+   * List Workspace Agents
+   *
+   * The workspace's agents with their platform and type and calls in the period,
+   * most calls first, and when calls were last pulled.
+   */
+  public static listWorkspaceAgents<ThrowOnError extends boolean = false>(
+    options?: Options<AgentsListWorkspaceAgentsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      AgentsListWorkspaceAgentsResponses,
+      AgentsListWorkspaceAgentsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/list',
+      ...options,
+    });
+  }
+
   /**
    * List Agents
    */

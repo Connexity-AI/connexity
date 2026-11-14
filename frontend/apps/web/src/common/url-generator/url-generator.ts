@@ -9,6 +9,10 @@ export class UrlGenerator {
     return '/' as Route;
   }
 
+  static agents() {
+    return '/agents/' as Route;
+  }
+
   static calls() {
     return '/calls/' as Route;
   }

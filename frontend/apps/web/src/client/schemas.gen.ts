@@ -428,6 +428,91 @@ export const AgentLatestPublishedVersionPublicSchema = {
   title: 'AgentLatestPublishedVersionPublic',
 } as const;
 
+export const AgentListItemPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    platform: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Platform',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    type: {
+      anyOf: [
+        {
+          type: 'string',
+          enum: ['single_prompt', 'conversational_flow'],
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Type',
+      description: "From its current version in Connexity's catalogue; None if unknown",
+    },
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+      description: 'Calls in the period',
+    },
+    spec: {
+      type: 'string',
+      enum: ['none', 'current', 'needs_review'],
+      title: 'Spec',
+      description: 'none, current, or needs_review',
+    },
+  },
+  type: 'object',
+  required: ['id', 'name', 'calls', 'spec'],
+  title: 'AgentListItemPublic',
+} as const;
+
+export const AgentListPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/AgentListItemPublic',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Most calls first, then by name',
+    },
+    period: {
+      type: 'string',
+      enum: ['7d', '30d', '90d'],
+      title: 'Period',
+    },
+    synced_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Synced At',
+      description: "When calls were last pulled for the workspace's Retell accounts",
+    },
+  },
+  type: 'object',
+  required: ['data', 'period'],
+  title: 'AgentListPublic',
+} as const;
+
 export const AgentModeSchema = {
   type: 'string',
   enum: ['endpoint', 'platform'],
@@ -6585,6 +6670,31 @@ export const McpAgentSchema = {
       ],
       title: 'Spec Version',
       description: 'Its latest spec version',
+    },
+    type: {
+      anyOf: [
+        {
+          type: 'string',
+          enum: ['single_prompt', 'conversational_flow'],
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Type',
+      description: 'single_prompt or conversational_flow, when known',
+    },
+    calls: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Calls',
+      description: 'Calls in the period',
     },
   },
   type: 'object',

@@ -216,12 +216,15 @@ class ConnexityBackendClient:
         *,
         workspace_id: str,
         query: str | None = None,
+        period: str | None = None,
         cursor: str | None = None,
         limit: int = 25,
     ) -> dict[str, Any]:
         params: dict[str, str | int] = {"limit": limit}
         if query:
             params["query"] = query
+        if period:
+            params["period"] = period
         if cursor:
             params["cursor"] = cursor
         return await self._request_json(
