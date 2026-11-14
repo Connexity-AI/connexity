@@ -224,3 +224,23 @@ class CallCheckStatus(StrEnum):
     CLEAN = "clean"
     # No check ran on the call: never checked, or every check was skipped, broke or off.
     UNCHECKED = "unchecked"
+
+
+class SpecOrigin(StrEnum):
+    # Written by the assistant (or a person) for the agent version.
+    WRITTEN = "written"
+    # Copied by Connexity from the previous spec when the agent moved to a new version.
+    ADOPTED = "adopted"
+
+
+class SpecRuleSource(StrEnum):
+    PROMPT = "prompt"
+    CLARIFICATION = "clarification"
+
+
+class SpecRuleTouches(StrEnum):
+    """What a rule protects, so it stands out: money, safety or compliance."""
+
+    MONEY = "money"
+    SAFETY = "safety"
+    COMPLIANCE = "compliance"

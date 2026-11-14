@@ -18,6 +18,8 @@ GUIDES = {
     "issues": "Issues",
     "calls": "Calls",
 }
+# Written and reviewed, but not served until the tools they name exist.
+NOT_YET_SERVED = {"spec"}  # write_spec and get_spec: 10.11 part 2
 
 INSTRUCTIONS = (
     "Connexity records and checks every call of a team's conversational AI agents. "

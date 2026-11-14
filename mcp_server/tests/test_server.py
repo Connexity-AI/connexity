@@ -82,3 +82,17 @@ async def test_tools_say_whether_they_change_anything() -> None:
         assert tools[name].readOnlyHint is False
         assert tools[name].destructiveHint is False
         assert tools[name].openWorldHint is False
+
+
+def test_every_guide_file_is_served_or_waiting_for_its_tools() -> None:
+    from importlib import resources
+
+    from connexity_mcp_server.guides import NOT_YET_SERVED
+
+    files = {
+        path.name.removesuffix(".md")
+        for path in resources.files("connexity_mcp_server").joinpath("guides").iterdir()
+        if path.name.endswith(".md")
+    }
+    assert files == set(GUIDES) | NOT_YET_SERVED
+    assert not set(GUIDES) & NOT_YET_SERVED

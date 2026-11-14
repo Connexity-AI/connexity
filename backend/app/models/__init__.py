@@ -264,6 +264,7 @@ from app.models.schemas import (  # noqa: F401
     ToolPlatformConfig,
     UserSimulatorConfig,
 )
+from app.models.spec import Spec, SpecRule  # noqa: F401
 
 # ── Test case ──────────────────────────────────────────────────────
 from app.models.test_case import (  # noqa: F401
