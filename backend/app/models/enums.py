@@ -196,6 +196,8 @@ class FindingEffect(StrEnum):
 class DecisionKind(StrEnum):
     CHECK_SETTING = "check_setting"
     ISSUE_STATE = "issue_state"
+    CLARIFICATION_ANSWERED = "clarification_answered"
+    CLARIFICATION_PARKED = "clarification_parked"
 
 
 class CheckOutcome(StrEnum):
@@ -231,11 +233,21 @@ class SpecOrigin(StrEnum):
     WRITTEN = "written"
     # Copied by Connexity from the previous spec when the agent moved to a new version.
     ADOPTED = "adopted"
+    # The previous spec plus the rules from answered clarifications.
+    ANSWERED = "answered"
 
 
 class SpecRuleSource(StrEnum):
     PROMPT = "prompt"
     CLARIFICATION = "clarification"
+
+
+class ClarificationState(StrEnum):
+    OPEN = "open"
+    # Final: the answer is a spec rule. A changed answer is a new clarification.
+    ANSWERED = "answered"
+    # Not important now; it can still be answered.
+    PARKED = "parked"
 
 
 class SpecRuleTouches(StrEnum):

@@ -79,6 +79,7 @@ from app.models.check import (  # noqa: F401
     IssuePublic,
     IssueStateUpdate,
 )
+from app.models.clarification import Clarification  # noqa: F401
 
 # ── Common ─────────────────────────────────────────────────────────
 from app.models.common import ConfigPublic, ErrorResponse  # noqa: F401

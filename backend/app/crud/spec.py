@@ -212,7 +212,9 @@ def write_spec(
     """A new spec version with ``rules`` for ``agent_version``. Commits.
 
     Rules keep their key when given one; new rules get a fresh key. Positions follow
-    the order the rules were given, within each category.
+    the order the rules were given, within each category. Every rule of the previous
+    version that came from a clarification is carried over unchanged: a person's
+    answer changes only through another clarification.
 
     Two writes for one agent are made in turn: the agent row is locked, so each takes
     the next version number.
@@ -229,6 +231,7 @@ def write_spec(
         agent_version=agent_version,
         prompt_fingerprint=prompt_fingerprint,
         origin=SpecOrigin.WRITTEN,
+        written_for=agent_version,
         previous_id=previous.id if previous else None,
         created_by=author.id,
         created_by_email=author.email,
@@ -252,9 +255,37 @@ def write_spec(
                 touches=rule.touches,
             )
         )
+    if previous is not None:
+        for kept in answered_rules(session=session, spec_id=previous.id):
+            session.add(copy_rule(kept, spec_id=spec.id))
     session.commit()
     session.refresh(spec)
     return spec, previous
+
+
+def answered_rules(*, session: Session, spec_id: uuid.UUID) -> list[SpecRule]:
+    """The rules of a spec version that came from answered clarifications."""
+    return [
+        r
+        for r in spec_rules(session=session, spec_id=spec_id)
+        if r.source is SpecRuleSource.CLARIFICATION
+    ]
+
+
+def copy_rule(rule: SpecRule, *, spec_id: uuid.UUID) -> SpecRule:
+    """The same rule, unchanged, in another spec version."""
+    return SpecRule(
+        company_id=rule.company_id,
+        spec_id=spec_id,
+        key=rule.key,
+        position=rule.position,
+        category_id=rule.category_id,
+        text=rule.text,
+        source=rule.source,
+        quote=rule.quote,
+        clarification_id=rule.clarification_id,
+        touches=rule.touches,
+    )
 
 
 def _adopt(session: Session, agent_id: uuid.UUID) -> Spec | None:
@@ -281,25 +312,13 @@ def _adopt(session: Session, agent_id: uuid.UUID) -> Spec | None:
         agent_version=current,
         prompt_fingerprint=prompt.fingerprint if prompt else None,
         origin=SpecOrigin.ADOPTED,
+        written_for=previous.written_for,
         previous_id=previous.id,
     )
     session.add(spec)
     session.flush()
     for rule in spec_rules(session=session, spec_id=previous.id):
-        session.add(
-            SpecRule(
-                company_id=rule.company_id,
-                spec_id=spec.id,
-                key=rule.key,
-                position=rule.position,
-                category_id=rule.category_id,
-                text=rule.text,
-                source=rule.source,
-                quote=rule.quote,
-                clarification_id=rule.clarification_id,
-                touches=rule.touches,
-            )
-        )
+        session.add(copy_rule(rule, spec_id=spec.id))
     session.commit()
     return spec
 

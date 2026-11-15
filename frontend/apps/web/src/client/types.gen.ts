@@ -2421,7 +2421,12 @@ export type CustomMetricsPublic = {
 /**
  * DecisionKind
  */
-export const DecisionKind = { CHECK_SETTING: 'check_setting', ISSUE_STATE: 'issue_state' } as const;
+export const DecisionKind = {
+  CHECK_SETTING: 'check_setting',
+  ISSUE_STATE: 'issue_state',
+  CLARIFICATION_ANSWERED: 'clarification_answered',
+  CLARIFICATION_PARKED: 'clarification_parked',
+} as const;
 
 /**
  * DecisionKind
@@ -6593,6 +6598,12 @@ export type SpecChangesPublic = {
    */
   dropped: number;
   /**
+   * Carried
+   *
+   * Rules from answered clarifications, carried over unchanged
+   */
+  carried: number;
+  /**
    * Quotes Checked
    *
    * False when Connexity has no prompt for the version to check against
@@ -6623,7 +6634,11 @@ export type SpecGroupPublic = {
 /**
  * SpecOrigin
  */
-export const SpecOrigin = { WRITTEN: 'written', ADOPTED: 'adopted' } as const;
+export const SpecOrigin = {
+  WRITTEN: 'written',
+  ADOPTED: 'adopted',
+  ANSWERED: 'answered',
+} as const;
 
 /**
  * SpecOrigin

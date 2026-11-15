@@ -10,7 +10,7 @@ from sqlmodel import Session, col, select
 from app import crud
 from app.crud.spec import RuleInput, normalise, prompt_text, write_spec
 from app.models.agent import Agent
-from app.models.enums import SpecOrigin, SpecRuleTouches
+from app.models.enums import SpecRuleSource, SpecRuleTouches
 from app.models.spec import (
     Spec,
     SpecChangesPublic,
@@ -31,11 +31,15 @@ MIN_QUOTE_WORDS = 3
 
 
 def spec_state(spec: Spec | None, current: str | None) -> SpecState:
+    """Current while its prompt rules were written for the agent's current version.
+
+    An adopted version, or an answered one built on it, keeps the agent version its
+    rules were last written for, so it needs review until the assistant writes the spec
+    for the new prompt.
+    """
     if spec is None:
         return "none"
-    if spec.origin is SpecOrigin.ADOPTED:
-        return "needs_review"
-    if current is not None and current != spec.agent_version:
+    if spec.written_for is None or spec.written_for != (current or spec.agent_version):
         return "needs_review"
     return "current"
 
@@ -159,11 +163,14 @@ def write_agent_spec(
 
     categories = {c.key: c.id for c in crud.list_categories(session=session)}
     previous = crud.latest_spec(session=session, agent_id=agent.id)
-    previous_keys = (
-        {r.key for r in crud.spec_rules(session=session, spec_id=previous.id)}
-        if previous
-        else set()
+    previous_rules = (
+        crud.spec_rules(session=session, spec_id=previous.id) if previous else []
     )
+    # Rules from answered clarifications are carried over by Connexity, not rewritten.
+    answered_keys = {
+        r.key for r in previous_rules if r.source is SpecRuleSource.CLARIFICATION
+    }
+    previous_keys = {r.key for r in previous_rules} - answered_keys
     prompt = crud.agent_prompt(session=session, agent=agent, agent_version=current)
     text = prompt_text(prompt.content) if prompt is not None else None
 
@@ -183,6 +190,12 @@ def write_agent_spec(
         if draft.key is not None:
             if draft.key in seen:
                 problems.append(f"{rule}: key '{draft.key}' is used twice.")
+            elif draft.key in answered_keys:
+                problems.append(
+                    f"{rule}: key '{draft.key}' is a rule from the person's answer to a "
+                    "clarification. Connexity carries it over unchanged; leave it out. "
+                    "To change it, raise a clarification that replaces it."
+                )
             elif draft.key not in previous_keys:
                 problems.append(
                     f"{rule}: key '{draft.key}' is not in the previous version; leave "
@@ -236,6 +249,7 @@ def write_agent_spec(
             kept=kept,
             added=len(drafts) - kept,
             dropped=len(previous_keys) - kept if before else 0,
+            carried=len(answered_keys),
             quotes_checked=text is not None,
         ),
     )
