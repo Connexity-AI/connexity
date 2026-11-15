@@ -126,7 +126,7 @@ When Readiness is at 100%, the stage collapses into one quiet line at the top, "
 The spec is no longer created automatically when an agent connects; the AI assistant writes it, guided by Connexity, as a Readiness step.
 
 - Change any copy that says the spec is inferred on connection or that no agent is ever without one.
-- **Spec tab with no spec yet:** a calm empty state, "No spec yet. Your assistant writes it from the agent's prompt; until then, checks that need a spec are paused for this agent." No button.
+- **Spec tab with no spec yet:** a calm empty state, "No spec yet. Your assistant writes it from the agent's prompt." No button. (Until a check needs a spec, the build leaves out "until then, checks that need a spec are paused for this agent"; Dmytro, 2026-11-15.)
 - **Agents list and agent profile:** an agent without a spec shows a small muted "No spec" label next to its name.
 - Clarifications only appear for agents that have a spec.
 

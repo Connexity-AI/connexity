@@ -3,21 +3,26 @@
 
 import uuid
 from collections.abc import Sequence
-from typing import NamedTuple
+from datetime import datetime
+from typing import Literal, NamedTuple
 
 from sqlmodel import Session, col, select
 
 from app import crud
-from app.crud.clarification import state_counts
+from app.crud.clarification import state_counts, unanswered
 from app.crud.spec import RuleInput, normalise, prompt_text, write_spec
 from app.models.agent import Agent
+from app.models.clarification import Clarification
 from app.models.enums import ClarificationState, SpecRuleSource, SpecRuleTouches
 from app.models.spec import (
     Spec,
     SpecChangesPublic,
+    SpecComparisonPublic,
+    SpecCountsPublic,
     SpecGroupPublic,
     SpecPromptPublic,
     SpecPublic,
+    SpecRule,
     SpecRulePublic,
     SpecState,
     SpecVersionPublic,
@@ -26,6 +31,7 @@ from app.models.spec import (
 from app.models.user import User
 
 MAX_RULES = 500
+type RuleChange = Literal["kept", "added", "dropped"]
 MAX_RULE_LENGTH = 500
 # A quote shorter than this is found in almost any prompt, so it proves nothing.
 MIN_QUOTE_WORDS = 3
@@ -53,14 +59,58 @@ def _author(session: Session, spec: Spec) -> str | None:
     return spec.created_by_email.split("@")[0] if spec.created_by_email else None
 
 
+def _version_public(session: Session, spec: Spec, rule_count: int) -> SpecVersionPublic:
+    return SpecVersionPublic(
+        version=spec.version,
+        agent_version=spec.agent_version,
+        origin=spec.origin,
+        written_by=_author(session, spec),
+        assistant=spec.assistant_name,
+        created_at=spec.created_at,
+        rule_count=rule_count,
+    )
+
+
+def _answers(
+    session: Session, rules: list[SpecRule]
+) -> dict[uuid.UUID, tuple[str | None, datetime | None]]:
+    """Who answered, and when, each clarification behind ``rules``."""
+    ids = {r.clarification_id for r in rules if r.clarification_id}
+    if not ids:
+        return {}
+    found = session.exec(
+        select(Clarification).where(col(Clarification.id).in_(ids))
+    ).all()
+    user_ids = {c.decided_by for c in found if c.decided_by}
+    users = {
+        u.id: u
+        for u in session.exec(select(User).where(col(User.id).in_(user_ids))).all()
+    }
+    out: dict[uuid.UUID, tuple[str | None, datetime | None]] = {}
+    for c in found:
+        user = users.get(c.decided_by) if c.decided_by else None
+        if user is not None:
+            name = (user.full_name or "").strip() or user.email.split("@")[0]
+        else:
+            name = c.decided_by_email.split("@")[0] if c.decided_by_email else None
+        out[c.id] = (name, c.decided_at)
+    return out
+
+
 def spec_answer(
     *,
     session: Session,
     agent: Agent,
     version: int | None = None,
     include_prompt: bool = False,
+    compare: int | None = None,
 ) -> SpecPublic | None:
-    """The agent's spec, latest or ``version``. None when ``version`` does not exist."""
+    """The agent's spec, latest or ``version``, optionally compared with an earlier
+    version ``compare``. None when ``version`` or ``compare`` does not exist.
+
+    Compared, a rule is kept when the earlier version has its key with the same text;
+    one whose text changed reads as the old text dropped and the new text added.
+    """
     latest = crud.latest_spec(session=session, agent_id=agent.id)
     spec = (
         crud.get_spec_version(session=session, agent_id=agent.id, version=version)
@@ -69,40 +119,91 @@ def spec_answer(
     )
     if version is not None and spec is None:
         return None
+    earlier = (
+        crud.get_spec_version(session=session, agent_id=agent.id, version=compare)
+        if compare is not None
+        else None
+    )
+    if compare is not None and earlier is None:
+        return None
     current = crud.current_agent_version(session=session, agent_id=agent.id)
     categories = crud.list_categories(session=session)
     groups: list[SpecGroupPublic] = []
     summary = None
+    counts = None
+    comparison = None
     if spec is not None:
         rules = crud.spec_rules(session=session, spec_id=spec.id)
+        old_rules = (
+            crud.spec_rules(session=session, spec_id=earlier.id) if earlier else []
+        )
+        old_text = {r.key: r.text for r in old_rules}
+        new_text = {r.key: r.text for r in rules}
+        dropped = [r for r in old_rules if new_text.get(r.key) != r.text]
+        conflicts = (
+            {
+                c.replaces_key
+                for c in unanswered(session=session, agent_id=agent.id)
+                if c.replaces_key
+            }
+            if latest is not None and spec.id == latest.id
+            else set()
+        )
+        answers = _answers(session, rules + dropped)
+
+        def public(r: SpecRule, change: RuleChange | None) -> SpecRulePublic:
+            who, when = (
+                answers.get(r.clarification_id, (None, None))
+                if (r.clarification_id)
+                else (None, None)
+            )
+            return SpecRulePublic(
+                key=r.key,
+                text=r.text,
+                source=r.source,
+                quote=r.quote,
+                touches=r.touches,
+                answered_by=who,
+                answered_at=when,
+                in_conflict=change != "dropped" and r.key in conflicts,
+                change=change,
+            )
+
+        def change_of(r: SpecRule) -> RuleChange | None:
+            if earlier is None:
+                return None
+            return "kept" if old_text.get(r.key) == r.text else "added"
+
         for category in categories:
-            in_group = [r for r in rules if r.category_id == category.id]
-            if in_group:
+            shown = [
+                public(r, change_of(r)) for r in rules if r.category_id == category.id
+            ]
+            shown += [
+                public(r, "dropped") for r in dropped if r.category_id == category.id
+            ]
+            if shown:
                 groups.append(
                     SpecGroupPublic(
-                        category=category.key,
-                        name=category.name,
-                        rules=[
-                            SpecRulePublic(
-                                key=r.key,
-                                text=r.text,
-                                source=r.source,
-                                quote=r.quote,
-                                touches=r.touches,
-                            )
-                            for r in in_group
-                        ],
+                        category=category.key, name=category.name, rules=shown
                     )
                 )
-        summary = SpecVersionPublic(
-            version=spec.version,
-            agent_version=spec.agent_version,
-            origin=spec.origin,
-            written_by=_author(session, spec),
-            assistant=spec.assistant_name,
-            created_at=spec.created_at,
-            rule_count=len(rules),
+        summary = _version_public(session, spec, len(rules))
+        from_clarifications = sum(
+            1 for r in rules if r.source is SpecRuleSource.CLARIFICATION
         )
+        counts = SpecCountsPublic(
+            from_prompt=len(rules) - from_clarifications,
+            from_clarifications=from_clarifications,
+            in_conflict=sum(1 for r in rules if r.key in conflicts),
+        )
+        if earlier is not None:
+            kept = sum(1 for r in rules if old_text.get(r.key) == r.text)
+            comparison = SpecComparisonPublic(
+                version=earlier.version,
+                kept=kept,
+                added=len(rules) - kept,
+                dropped=len(dropped),
+            )
     prompt = None
     if include_prompt and current is not None:
         found = crud.agent_prompt(session=session, agent=agent, agent_version=current)
@@ -110,6 +211,10 @@ def spec_answer(
             prompt = SpecPromptPublic(
                 kind=found.kind, version=found.version, content=found.content
             )
+    versions = [
+        _version_public(session, v, n)
+        for v, n in crud.spec_versions(session=session, agent_id=agent.id)
+    ]
     return SpecPublic(
         agent_id=agent.id,
         agent_name=agent.name,
@@ -122,6 +227,9 @@ def spec_answer(
         open_clarifications=state_counts(
             session=session, company_id=agent.company_id, agent_id=agent.id
         )[ClarificationState.OPEN],
+        counts=counts,
+        versions=versions,
+        comparison=comparison,
     )
 
 

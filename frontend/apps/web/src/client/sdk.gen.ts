@@ -4145,7 +4145,8 @@ export class SpecService {
   /**
    * Get Agent Spec
    *
-   * The agent's spec, latest or ``version``, rules grouped by the fixed categories.
+   * The agent's spec, latest or ``version``, rules grouped by the fixed categories;
+   * with ``compare``, each rule marked kept, added or dropped against that version.
    */
   public static getAgentSpec<ThrowOnError extends boolean = false>(
     options: Options<SpecGetAgentSpecData, ThrowOnError>

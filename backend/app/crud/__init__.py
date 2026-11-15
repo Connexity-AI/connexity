@@ -177,6 +177,7 @@ from app.crud.spec import (  # noqa: F401
     latest_spec,
     latest_specs,
     spec_rules,
+    spec_versions,
 )
 from app.crud.test_case import (  # noqa: F401
     bulk_import_test_cases,

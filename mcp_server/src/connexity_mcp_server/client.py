@@ -184,10 +184,13 @@ class ConnexityBackendClient:
         agent_id: str,
         version: int | None = None,
         include_prompt: bool = False,
+        compare: int | None = None,
     ) -> dict[str, Any]:
         params: dict[str, Any] = {}
         if version is not None:
             params["version"] = version
+        if compare is not None:
+            params["compare"] = compare
         if include_prompt:
             params["include_prompt"] = "true"
         return await self._request_json(

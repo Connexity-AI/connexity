@@ -691,6 +691,9 @@ _SPEC_RULES = [
     "as dropped and added again.",
     "Rules are never edited: every `write_spec` is a new version, and earlier versions "
     "stay as they were.",
+    "in_conflict means an open question replaces the rule; answering it changes the "
+    "rule. With compare, each rule is kept, added or dropped against that version; a "
+    "rule whose text changed reads as dropped and added.",
     "Rules with source clarification are the person's answers: Connexity carries them "
     "into every version; never pass them to `write_spec`. To change one, raise a "
     "clarification that replaces it.",
@@ -762,17 +765,26 @@ def get_spec(
     agent_id: uuid.UUID,
     version: int | None = Query(default=None, ge=1),
     include_prompt: bool = False,
+    compare: int | None = Query(default=None, ge=1),
 ) -> McpAnswer[SpecPublic]:
     agent = _mcp_agent_in(session, workspace, agent_id)
     answer = spec_answer(
-        session=session, agent=agent, version=version, include_prompt=include_prompt
+        session=session,
+        agent=agent,
+        version=version,
+        include_prompt=include_prompt,
+        compare=compare,
     )
     if answer is None:
+        asked = ", ".join(str(v) for v in (version, compare) if v is not None)
         raise HTTPException(
             status_code=404,
             detail=McpErrorDetail(
-                error=f"The agent has no spec version {version}",
-                next_steps=["Call `get_spec` without a version for the latest."],
+                error=f"The agent has no spec version {asked}",
+                next_steps=[
+                    "Call `get_spec` without a version for the latest; its `versions` "
+                    "lists every version."
+                ],
                 guide=GUIDE_SPEC,
             ).model_dump(),
         )

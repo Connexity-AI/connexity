@@ -7040,6 +7040,48 @@ export type SpecChangesPublic = {
 };
 
 /**
+ * SpecComparisonPublic
+ */
+export type SpecComparisonPublic = {
+  /**
+   * Version
+   *
+   * The earlier version compared with
+   */
+  version: number;
+  /**
+   * Kept
+   */
+  kept: number;
+  /**
+   * Added
+   */
+  added: number;
+  /**
+   * Dropped
+   */
+  dropped: number;
+};
+
+/**
+ * SpecCountsPublic
+ */
+export type SpecCountsPublic = {
+  /**
+   * From Prompt
+   */
+  from_prompt: number;
+  /**
+   * From Clarifications
+   */
+  from_clarifications: number;
+  /**
+   * In Conflict
+   */
+  in_conflict: number;
+};
+
+/**
  * SpecGroupPublic
  */
 export type SpecGroupPublic = {
@@ -7141,6 +7183,20 @@ export type SpecPublic = {
    * Questions about this agent waiting for the person
    */
   open_clarifications?: number;
+  /**
+   * The shown version's rules by source, and conflicts
+   */
+  counts?: SpecCountsPublic | null;
+  /**
+   * Versions
+   *
+   * Every version of the agent's spec, newest first
+   */
+  versions?: Array<SpecVersionPublic>;
+  /**
+   * With compare: how the shown version differs
+   */
+  comparison?: SpecComparisonPublic | null;
 };
 
 /**
@@ -7165,6 +7221,28 @@ export type SpecRulePublic = {
    */
   quote?: string | null;
   touches?: SpecRuleTouches | null;
+  /**
+   * Answered By
+   *
+   * For a rule from a clarification: who answered it
+   */
+  answered_by?: string | null;
+  /**
+   * Answered At
+   */
+  answered_at?: string | null;
+  /**
+   * In Conflict
+   *
+   * An open or parked clarification replaces this rule
+   */
+  in_conflict?: boolean;
+  /**
+   * Change
+   *
+   * With compare: kept, added, or dropped (only in the earlier version)
+   */
+  change?: 'kept' | 'added' | 'dropped' | null;
 };
 
 /**
@@ -7278,6 +7356,20 @@ export type SpecWrittenPublic = {
    * Questions about this agent waiting for the person
    */
   open_clarifications?: number;
+  /**
+   * The shown version's rules by source, and conflicts
+   */
+  counts?: SpecCountsPublic | null;
+  /**
+   * Versions
+   *
+   * Every version of the agent's spec, newest first
+   */
+  versions?: Array<SpecVersionPublic>;
+  /**
+   * With compare: how the shown version differs
+   */
+  comparison?: SpecComparisonPublic | null;
   changes: SpecChangesPublic;
 };
 
@@ -10897,6 +10989,10 @@ export type McpGetSpecData = {
      * Include Prompt
      */
     include_prompt?: boolean;
+    /**
+     * Compare
+     */
+    compare?: number | null;
   };
   url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/spec';
 };
@@ -17218,6 +17314,10 @@ export type SpecGetAgentSpecData = {
      * Version
      */
     version?: number | null;
+    /**
+     * Compare
+     */
+    compare?: number | null;
   };
   url: '/api/v1/agents/{agent_id}/spec';
 };

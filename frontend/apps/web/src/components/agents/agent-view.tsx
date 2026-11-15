@@ -11,10 +11,11 @@ import { NumberTile } from '@workspace/ui/components/number-tile';
 import { cn } from '@workspace/ui/lib/utils';
 
 import { PLATFORMS, seconds, TYPES } from '@/components/agents/agents-view';
+import { SpecTab } from '@/components/agents/spec-tab';
 import { parseTime } from '@/components/calls/format';
 import { Picker } from '@/components/common/picker';
 
-import type { AgentPagePublic } from '@/client/types.gen';
+import type { AgentPagePublic, SpecPublic } from '@/client/types.gen';
 import type { FC, ReactNode } from 'react';
 
 const PERIOD_LABELS: Record<string, string> = {
@@ -191,16 +192,18 @@ const Overview: FC<{ agent: AgentPagePublic }> = ({ agent }) => (
 
 interface Props {
   agent: AgentPagePublic;
-  tab: 'overview' | 'calls';
+  tab: 'overview' | 'calls' | 'spec';
+  /** The agent's spec, loaded on the server; shown on the Spec tab and in its label. */
+  spec?: SpecPublic | null;
   /** The Calls tab's list, loaded on the server. */
   children?: ReactNode;
 }
 
 /**
- * One agent (designs/screens/Connexity Agent Profile.dc.html): Overview and Calls. The
- * Issues, Spec and Tests tabs, score and critical issues wait for their features (rule 14).
+ * One agent (designs/screens/Connexity Agent Profile.dc.html): Overview, Calls and Spec.
+ * The Issues and Tests tabs, score and critical issues wait for their features (rule 14).
  */
-export const AgentView: FC<Props> = ({ agent, tab, children }) => {
+export const AgentView: FC<Props> = ({ agent, tab, spec, children }) => {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -219,6 +222,7 @@ export const AgentView: FC<Props> = ({ agent, tab, children }) => {
   const tabs = [
     { key: 'overview' as const, label: 'Overview', count: null },
     { key: 'calls' as const, label: 'Calls', count: agent.calls },
+    { key: 'spec' as const, label: 'Spec', count: spec?.spec?.rule_count ?? null },
   ];
 
   return (
@@ -260,7 +264,9 @@ export const AgentView: FC<Props> = ({ agent, tab, children }) => {
               type="button"
               role="tab"
               aria-selected={active}
-              onClick={() => go({ tab: item.key === 'overview' ? undefined : item.key })}
+              onClick={() =>
+                go({ tab: item.key === 'overview' ? undefined : item.key, compare: undefined })
+              }
               className={cn(
                 '-mb-px flex h-10 items-center gap-1.5 border-0 border-b-2 bg-transparent px-0 text-body',
                 active
@@ -277,7 +283,15 @@ export const AgentView: FC<Props> = ({ agent, tab, children }) => {
         })}
       </div>
 
-      {tab === 'overview' ? <Overview agent={agent} /> : children}
+      {tab === 'overview' && <Overview agent={agent} />}
+      {tab === 'calls' && children}
+      {tab === 'spec' && spec && (
+        <SpecTab
+          spec={spec}
+          liveSince={agent.live_since}
+          onCompare={(version) => go({ compare: version })}
+        />
+      )}
     </div>
   );
 };

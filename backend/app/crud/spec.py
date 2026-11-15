@@ -112,6 +112,18 @@ def get_spec_version(
     ).first()
 
 
+def spec_versions(*, session: Session, agent_id: uuid.UUID) -> list[tuple[Spec, int]]:
+    """Every version of the agent's spec with its rule count, newest first."""
+    rows = session.exec(
+        select(Spec, func.count(col(SpecRule.id)))
+        .outerjoin(SpecRule, col(SpecRule.spec_id) == col(Spec.id))
+        .where(Spec.agent_id == agent_id)
+        .group_by(col(Spec.id))
+        .order_by(col(Spec.version).desc())
+    ).all()
+    return [(spec, int(count)) for spec, count in rows]
+
+
 def spec_rules(*, session: Session, spec_id: uuid.UUID) -> list[SpecRule]:
     return list(
         session.exec(

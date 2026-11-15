@@ -21,12 +21,14 @@ def get_agent_spec(
     company_id: CurrentCompany,
     agent_id: uuid.UUID,
     version: int | None = Query(default=None, ge=1),
+    compare: int | None = Query(default=None, ge=1),
 ) -> SpecPublic:
-    """The agent's spec, latest or ``version``, rules grouped by the fixed categories."""
+    """The agent's spec, latest or ``version``, rules grouped by the fixed categories;
+    with ``compare``, each rule marked kept, added or dropped against that version."""
     agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
-    answer = spec_answer(session=session, agent=agent, version=version)
+    answer = spec_answer(session=session, agent=agent, version=version, compare=compare)
     if answer is None:
         raise HTTPException(status_code=404, detail="Spec version not found")
     return answer
