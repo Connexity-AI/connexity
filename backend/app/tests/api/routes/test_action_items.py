@@ -107,3 +107,43 @@ def test_refusals_and_other_workspaces(client: TestClient, db: Session) -> None:
         ).status_code
         == 404
     )
+
+
+def test_a_batch_of_confident_suggestions_across_two_agents(
+    client: TestClient, db: Session
+) -> None:
+    user, cookies = _signed_in(client, db)
+    _, front, _ = _ready(db, owner=user)
+    _, night, _ = _ready(db, owner=user)
+    sure = {"suggested_answer": "c", "suggestion_why": "The prompt says so."}
+    a, b = _raise(
+        db,
+        user,
+        front,
+        CHANGE._replace(**sure, suggestion_confident=True),
+        DEPOSIT._replace(suggested_answer="b", suggestion_why="Unsure."),
+    )
+    [c] = _raise(db, user, night, CHANGE._replace(**sure, suggestion_confident=True))
+
+    batch = client.get(
+        f"{API}/clarifications",
+        cookies=cookies,
+        params={"confident": True, "limit": 200},
+    ).json()
+    assert {x["id"] for x in batch["data"]} == {str(a.id), str(c.id)}
+    assert batch["counts"]["suggested_confident"] == 2
+
+    done = _decide(client, cookies, (str(a.id), "c"), (str(c.id), "c"))
+
+    assert done.status_code == 200, done.text
+    specs = done.json()["specs"]
+    assert sorted(s["rules_added"] for s in specs) == [1, 1]
+    assert {s["agent_id"] for s in specs} == {str(front.id), str(night.id)}
+    left = client.get(
+        f"{API}/clarifications", cookies=cookies, params={"confident": True}
+    ).json()
+    assert left["data"] == []
+    assert str(b.id) in {
+        x["id"]
+        for x in client.get(f"{API}/clarifications", cookies=cookies).json()["data"]
+    }

@@ -21,3 +21,20 @@ export const decideClarificationAction = async (
   revalidatePath('/', 'layout');
   return result;
 };
+
+/**
+ * Confirm a batch of the assistant's suggested answers: one request, one spec version
+ * per agent. Each is recorded as the person's answer.
+ */
+export const confirmSuggestionsAction = async (
+  answers: { clarificationId: string; answer: string }[]
+): Promise<ApiResult> => {
+  const apiResponse = await ClarificationsService.answerWorkspaceClarifications({
+    body: {
+      answers: answers.map((a) => ({ clarification_id: a.clarificationId, answer: a.answer })),
+    },
+  });
+  const { response: _, ...result } = apiResponse;
+  revalidatePath('/', 'layout');
+  return result;
+};

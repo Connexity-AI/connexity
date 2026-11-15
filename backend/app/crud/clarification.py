@@ -271,6 +271,7 @@ def list_page(
     offset: int,
     limit: int,
     decided_since: datetime | None = None,
+    confident_only: bool = False,
 ) -> tuple[list[Clarification], bool]:
     """A page of the workspace's clarifications in ``state`` and whether more follow:
     open ones most important first, answered and parked ones newest first."""
@@ -281,6 +282,8 @@ def list_page(
         query = query.where(Clarification.agent_id == agent_id)
     if decided_since is not None:
         query = query.where(col(Clarification.decided_at) >= decided_since)
+    if confident_only:
+        query = query.where(col(Clarification.suggestion_confident).is_(True))
     if state is ClarificationState.OPEN:
         # Most important first: seen on more calls, then touching money, safety or
         # compliance, then the newest. No criticality yet.

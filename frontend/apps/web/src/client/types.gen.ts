@@ -11774,6 +11774,12 @@ export type ClarificationsListWorkspaceClarificationsData = {
      * Only those decided in the last 7 days
      */
     this_week?: boolean;
+    /**
+     * Confident
+     *
+     * Only those with a confident suggestion
+     */
+    confident?: boolean;
   };
   url: '/api/v1/clarifications';
 };

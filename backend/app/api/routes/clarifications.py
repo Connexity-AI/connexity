@@ -71,6 +71,9 @@ def list_workspace_clarifications(
     this_week: bool = Query(
         default=False, description="Only those decided in the last 7 days"
     ),
+    confident: bool = Query(
+        default=False, description="Only those with a confident suggestion"
+    ),
 ) -> ClarificationListPage:
     """Open questions most important first; answered and parked ones newest first."""
     if agent_id is not None and (
@@ -87,6 +90,7 @@ def list_workspace_clarifications(
         offset=offset,
         limit=limit,
         decided_since=datetime.now(UTC) - timedelta(days=7) if this_week else None,
+        confident_only=confident,
     )
     return ClarificationListPage(
         counts=counts_public(session=session, company_id=company_id, agent_id=agent_id),

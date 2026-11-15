@@ -12,6 +12,7 @@ import { PageBar } from '@workspace/ui/components/page-bar';
 import { cn } from '@workspace/ui/lib/utils';
 
 import { decideClarificationAction } from '@/actions/clarifications';
+import { SuggestionsPanel } from '@/components/action-items/suggestions-panel';
 import { parseTime } from '@/components/calls/format';
 import { Picker } from '@/components/common/picker';
 import { isErrorApiResult } from '@/utils/api';
@@ -52,7 +53,18 @@ const MoreLine: FC<{ count: number; onMore: () => void; label?: string }> = ({
     </button>
   ) : null;
 
-const Card: FC<{ item: ClarificationPublic }> = ({ item }) => {
+/** "Your assistant suggests b: Only when asked · not sure: …" */
+const suggestionLine = (item: ClarificationPublic) => {
+  const s = item.suggestion;
+  const answer = item.answers.find((a) => a.letter === s?.answer);
+  if (!s || !answer) return null;
+  return `Your assistant suggests ${s.answer}: ${answer.label} · ${s.confident ? '' : 'not sure: '}${s.why}`;
+};
+
+const Card: FC<{ item: ClarificationPublic; showSuggestion: boolean }> = ({
+  item,
+  showSuggestion,
+}) => {
   const router = useRouter();
   const [picked, setPicked] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -105,6 +117,11 @@ const Card: FC<{ item: ClarificationPublic }> = ({ item }) => {
           <span className="text-body text-ink">“{item.replaces.text}”</span>
         </div>
       )}
+      {showSuggestion && suggestionLine(item) && (
+        <span className="-mb-1.5 text-pretty text-label text-ink-muted">
+          {suggestionLine(item)}
+        </span>
+      )}
       {choice ? (
         <div className="flex flex-col gap-3 rounded-lg border border-border-control bg-wash px-4 py-3">
           <p className="m-0 text-body text-ink">
@@ -134,19 +151,26 @@ const Card: FC<{ item: ClarificationPublic }> = ({ item }) => {
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
-          {item.answers.map((answer) => (
-            <button
-              key={answer.letter}
-              type="button"
-              title={answer.rule}
-              disabled={pending}
-              onClick={() => setPicked(answer.letter)}
-              className="flex h-9 items-center gap-2 rounded-lg border border-border-control bg-transparent px-3 text-body text-ink hover:bg-wash"
-            >
-              <span className="text-label text-ink-muted">{answer.letter}</span>
-              {answer.label}
-            </button>
-          ))}
+          {item.answers.map((answer) => {
+            const isSuggested = showSuggestion && item.suggestion?.answer === answer.letter;
+            return (
+              <button
+                key={answer.letter}
+                type="button"
+                title={answer.rule}
+                disabled={pending}
+                onClick={() => setPicked(answer.letter)}
+                className={cn(
+                  'flex h-9 items-center gap-2 rounded-lg border bg-transparent px-3 text-body text-ink hover:bg-wash',
+                  isSuggested ? 'border-accent-ink' : 'border-border-control'
+                )}
+              >
+                <span className="text-label text-ink-muted">{answer.letter}</span>
+                {answer.label}
+                {isSuggested && <span className="text-label text-ink-secondary">Suggested</span>}
+              </button>
+            );
+          })}
           <button
             type="button"
             disabled={pending}
@@ -194,6 +218,8 @@ const ROW = 'grid grid-cols-[200px_minmax(0,1fr)_minmax(0,240px)_160px] items-ce
 
 interface Props {
   open: ClarificationListPage;
+  /** Open questions with a confident suggestion, for the batch panel. */
+  confident: ClarificationListPage;
   /** Answered ones of the last 7 days, newest first; counts for the whole workspace. */
   answered: ClarificationListPage;
   parked: ClarificationListPage;
@@ -203,7 +229,15 @@ interface Props {
 }
 
 /** Action items (designs/screens/Connexity Action items.dc.html): clarifications only. */
-export const ActionItemsView: FC<Props> = ({ open, answered, parked, agents, agentId, shown }) => {
+export const ActionItemsView: FC<Props> = ({
+  open,
+  confident,
+  answered,
+  parked,
+  agents,
+  agentId,
+  shown,
+}) => {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -230,6 +264,21 @@ export const ActionItemsView: FC<Props> = ({ open, answered, parked, agents, age
 
   const counts = open.counts;
   const thisWeek = answered.data;
+  const [collapsed, setCollapsed] = useState(false);
+  const [off, setOff] = useState<Set<string>>(new Set());
+  const [confirmed, setConfirmed] = useState<{ answers: number; agents: number } | null>(null);
+  const panel = confident.data.length > 0;
+  const panelOpen = panel && !collapsed;
+  // A confident, ticked suggestion is decided in the panel while it is open.
+  const inBatch = (item: ClarificationPublic) =>
+    Boolean(item.suggestion?.confident) && panelOpen && !off.has(item.id);
+  const toggle = (id: string) =>
+    setOff((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   return (
     <div className={cn('flex max-w-[1120px] flex-col gap-6', pending && 'opacity-70')}>
@@ -260,11 +309,33 @@ export const ActionItemsView: FC<Props> = ({ open, answered, parked, agents, age
         <NumberTile label="Parked" value={counts.parked.toLocaleString()} />
       </div>
 
+      {panel && (
+        <SuggestionsPanel
+          items={confident.data}
+          collapsed={collapsed}
+          onCollapsed={setCollapsed}
+          off={off}
+          onToggle={toggle}
+          onConfirmed={(answers, agentCount) => {
+            setConfirmed({ answers, agents: agentCount });
+            setOff(new Set());
+          }}
+        />
+      )}
+      {confirmed && (
+        <p className="m-0 text-label text-ink-muted">
+          {confirmed.answers} {confirmed.answers === 1 ? 'answer' : 'answers'} confirmed · added to{' '}
+          {confirmed.agents} {confirmed.agents === 1 ? "agent's spec" : "agents' specs"}
+        </p>
+      )}
+
       <section className="overflow-hidden rounded-xl border border-hairline bg-surface-1">
         {open.data.length === 0 ? (
           <div className="px-6 py-8 text-center text-ink-secondary">Nothing needs your input</div>
         ) : (
-          open.data.map((item) => <Card key={item.id} item={item} />)
+          open.data.map((item) => (
+            <Card key={item.id} item={item} showSuggestion={!inBatch(item)} />
+          ))
         )}
         <MoreLine
           count={counts.open - open.data.length}
@@ -289,6 +360,7 @@ export const ActionItemsView: FC<Props> = ({ open, answered, parked, agents, age
               <span className="text-ink">{answerOf(a)?.label ?? a.answer}</span>
               <span className="text-label text-ink-muted">
                 {a.decided_by ? `${a.decided_by}, ` : ''}
+                {a.from_suggestion ? 'suggested by your assistant, ' : ''}
                 {a.decided_at ? dayLabel(a.decided_at) : ''}
               </span>
             </div>

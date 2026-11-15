@@ -21,28 +21,32 @@ const ActionItems: FC<{ params: SearchParams }> = async ({ params }) => {
   const openShown = shown(params.shown, agentId ? 50 : PAGE);
   const answeredShown = shown(params.answered);
   const parkedShown = shown(params.parked);
-  const list = (state: 'open' | 'answered' | 'parked', limit: number) =>
+  const list = (state: 'open' | 'answered' | 'parked', limit: number, confident = false) =>
     ClarificationsService.listWorkspaceClarifications({
       query: {
         state,
         limit,
         this_week: state === 'answered',
+        confident,
         ...(agentId ? { agent_id: agentId } : {}),
       },
     });
-  const [open, answered, parked, agents] = await Promise.all([
+  const [open, confident, answered, parked, agents] = await Promise.all([
     list('open', openShown),
+    // Every confident suggestion, for the batch panel, not only those on the page.
+    list('open', 200, true),
     list('answered', answeredShown),
     list('parked', parkedShown),
     AgentsService.listWorkspaceAgents({ query: { period: '30d' } }),
   ]);
-  if (!open.data || !answered.data || !parked.data) {
+  if (!open.data || !confident.data || !answered.data || !parked.data) {
     throw new Error('Action items could not be loaded.');
   }
 
   return (
     <ActionItemsView
       open={open.data}
+      confident={confident.data}
       answered={answered.data}
       parked={parked.data}
       agents={(agents.data?.data ?? []).map((a) => ({ value: a.id, label: a.name }))}
