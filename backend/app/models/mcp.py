@@ -81,6 +81,9 @@ class McpAgent(BaseModel):
         default=None, description="single_prompt or conversational_flow, when known"
     )
     calls: int | None = Field(default=None, description="Calls in the period")
+    latency_seconds: float | None = Field(
+        default=None, description="Average of its calls' latencies in the period"
+    )
 
 
 class McpVoicePlatform(StrEnum):

@@ -18,6 +18,9 @@ import type {
   AgentsDiscardDraftData,
   AgentsDiscardDraftErrors,
   AgentsDiscardDraftResponses,
+  AgentsGetAgentPageData,
+  AgentsGetAgentPageErrors,
+  AgentsGetAgentPageResponses,
   AgentsGetDraftData,
   AgentsGetDraftErrors,
   AgentsGetDraftResponses,
@@ -252,6 +255,9 @@ import type {
   McpCreateWorkspaceData,
   McpCreateWorkspaceErrors,
   McpCreateWorkspaceResponses,
+  McpGetAgentData,
+  McpGetAgentErrors,
+  McpGetAgentResponses,
   McpGetCallData,
   McpGetCallErrors,
   McpGetCallResponses,
@@ -1350,6 +1356,19 @@ export class McpService {
   }
 
   /**
+   * Get Agent
+   */
+  public static getAgent<ThrowOnError extends boolean = false>(
+    options: Options<McpGetAgentData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<McpGetAgentResponses, McpGetAgentErrors, ThrowOnError>({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}',
+      ...options,
+    });
+  }
+
+  /**
    * Get Readiness
    */
   public static getReadiness<ThrowOnError extends boolean = false>(
@@ -1427,6 +1446,33 @@ export class AgentsService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/agents/list',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Agent Page
+   *
+   * The agent page's Overview: the caption, tiles, details and latency over time
+   * with version marks, for the period.
+   */
+  public static getAgentPage<ThrowOnError extends boolean = false>(
+    options: Options<AgentsGetAgentPageData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      AgentsGetAgentPageResponses,
+      AgentsGetAgentPageErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/page',
       ...options,
     });
   }

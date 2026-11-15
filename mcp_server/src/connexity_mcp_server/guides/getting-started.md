@@ -18,6 +18,13 @@ theirs.
      on the last page.
 3. **Errors** have the same shape: an `error` message and `next_steps` to recover.
 
+## One agent at a glance
+
+`get_agent` answers what the agent page shows: its platform, type, live version and
+model, the workflows it used, its calls and its latency per day with version marks.
+Latency is a basic measure from the calls' turns; the answer's rules say how it is
+worked out.
+
 ## After setup: the spec
 
 Once the first scan is done, write each agent's spec: what it is supposed to do, as

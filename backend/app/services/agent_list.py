@@ -8,6 +8,7 @@ from sqlmodel import Session, col, func, select
 
 from app import crud
 from app.crud.issue_list import calls_by_agent, period_start
+from app.crud.latency import agent_latencies
 from app.models.agent import Agent
 from app.models.agent_list import (
     AgentListItemPublic,
@@ -90,6 +91,9 @@ def workspace_agents(
     currents = crud.current_agent_versions(session=session, agent_ids=ids)
     types = agent_types(session=session, agents=agents, currents=currents)
     specs = crud.latest_specs(session=session, agent_ids=ids)
+    latency = agent_latencies(
+        session=session, agent_ids=ids, since=period_start(period)
+    )
     rows = [
         AgentListItemPublic(
             id=agent.id,
@@ -97,6 +101,7 @@ def workspace_agents(
             platform=agent.platform,
             type=types.get(agent.id),
             calls=calls.get(agent.id, 0),
+            latency_seconds=latency.get(agent.id),
             spec=spec_state(specs.get(agent.id), currents.get(agent.id)),
         )
         for agent in agents

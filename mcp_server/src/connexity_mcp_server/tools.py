@@ -8,6 +8,7 @@ from connexity_mcp_server.models import (
     CreateWorkspaceResult,
     GetCallResult,
     GetReadinessResult,
+    AgentResult,
     IssueResult,
     SpecResult,
     SpecRuleToWrite,
@@ -219,5 +220,18 @@ async def write_spec(
             workspace_id=workspace_id,
             agent_id=agent_id,
             rules=[rule.model_dump(exclude_none=True) for rule in rules],
+        )
+    )
+
+
+async def get_agent(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    agent_id: str,
+    period: str | None = None,
+) -> AgentResult:
+    return AgentResult.model_validate(
+        await client.get_agent(
+            workspace_id=workspace_id, agent_id=agent_id, period=period
         )
     )

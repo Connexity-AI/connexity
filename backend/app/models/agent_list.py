@@ -22,6 +22,9 @@ class AgentListItemPublic(BaseModel):
         description="From its current version in Connexity's catalogue; None if unknown",
     )
     calls: int = Field(description="Calls in the period")
+    latency_seconds: float | None = Field(
+        default=None, description="Average of its calls' latencies in the period"
+    )
     spec: SpecState = Field(description="none, current, or needs_review")
 
 

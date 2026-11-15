@@ -201,6 +201,16 @@ class ConnexityBackendClient:
             "POST", self._spec_path(workspace_id, agent_id), json={"rules": rules}
         )
 
+    async def get_agent(
+        self, *, workspace_id: str, agent_id: str, period: str | None = None
+    ) -> dict[str, Any]:
+        return await self._request_json(
+            "GET",
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/agents/"
+            f"{quote(agent_id, safe='')}",
+            params={"period": period} if period else {},
+        )
+
     async def list_categories(self, *, workspace_id: str) -> dict[str, Any]:
         return await self._request_json(
             "GET", f"/mcp/workspaces/{quote(workspace_id, safe='')}/categories"

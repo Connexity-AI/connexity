@@ -42,6 +42,7 @@ class Agent(BaseModel):
     spec_version: int | None = None
     type: str | None = None
     calls: int | None = None
+    latency_seconds: float | None = None
     created_at: datetime
 
 
@@ -383,3 +384,42 @@ class SpecRuleToWrite(BaseModel):
 
 
 SpecResult = Answer[Spec]
+
+
+class AgentSystem(BaseModel):
+    kind: str
+    name: str
+    version: str | None = None
+
+
+class AgentLatencyDay(BaseModel):
+    day: str
+    seconds: float | None = None
+    calls: int = 0
+
+
+class AgentVersionMark(BaseModel):
+    day: str
+    label: str
+
+
+class AgentPage(BaseModel):
+    id: str
+    name: str
+    platform: str | None = None
+    type: str | None = None
+    live_version: str | None = None
+    live_since: str | None = None
+    model: str | None = None
+    systems: list[AgentSystem] = Field(default_factory=list)
+    spec: str
+    period: str
+    calls: int
+    latency_seconds: float | None = None
+    latency_calls: int = 0
+    latency_days: list[AgentLatencyDay] = Field(default_factory=list)
+    latency_peak: float | None = None
+    version_marks: list[AgentVersionMark] = Field(default_factory=list)
+
+
+AgentResult = Answer[AgentPage]

@@ -13,6 +13,10 @@ export class UrlGenerator {
     return '/agents/' as Route;
   }
 
+  static agent(id: string) {
+    return `/agents/${id}/` as Route;
+  }
+
   static calls() {
     return '/calls/' as Route;
   }
