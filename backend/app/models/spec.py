@@ -44,6 +44,10 @@ class Spec(SQLModel, table=True):
     # The fingerprint of that version's prompt or flow in the catalogue, when known.
     prompt_fingerprint: str | None = Field(default=None, max_length=64)
     origin: SpecOrigin = Field(sa_type=enum_type(SpecOrigin))
+    # The agent version its prompt rules were last written for. A written version sets
+    # it; an adopted or answered one keeps its predecessor's, so answering questions
+    # never stands in for reviewing a new prompt. None until a version is written.
+    written_for: str | None = Field(default=None, max_length=255)
     # The spec version this one follows; none for the first.
     previous_id: uuid.UUID | None = Field(
         default=None,
@@ -97,9 +101,15 @@ class SpecRule(SQLModel, table=True):
     source: SpecRuleSource = Field(sa_type=enum_type(SpecRuleSource))
     # For a rule from the prompt: the prompt's words it rests on.
     quote: str | None = Field(default=None, sa_column=Column("quote", Text))
-    # For a rule from a clarification. A plain id until clarifications (10.12) add
-    # their table and its foreign key.
-    clarification_id: uuid.UUID | None = Field(default=None)
+    # For a rule from a clarification: the clarification whose answer it is.
+    clarification_id: uuid.UUID | None = Field(
+        default=None,
+        sa_column=Column(
+            ForeignKey("clarification.id", ondelete="SET NULL"),
+            nullable=True,
+            index=True,
+        ),
+    )
     touches: SpecRuleTouches | None = Field(
         default=None, sa_type=enum_type(SpecRuleTouches)
     )
@@ -170,6 +180,9 @@ class SpecChangesPublic(BaseModel):
     kept: int
     added: int
     dropped: int
+    carried: int = Field(
+        description="Rules from answered clarifications, carried over unchanged"
+    )
     quotes_checked: bool = Field(
         description="False when Connexity has no prompt for the version to check against"
     )

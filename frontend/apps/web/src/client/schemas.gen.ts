@@ -3947,7 +3947,7 @@ export const CustomMetricsPublicSchema = {
 
 export const DecisionKindSchema = {
   type: 'string',
-  enum: ['check_setting', 'issue_state'],
+  enum: ['check_setting', 'issue_state', 'clarification_answered', 'clarification_parked'],
   title: 'DecisionKind',
 } as const;
 
@@ -10084,6 +10084,11 @@ export const SpecChangesPublicSchema = {
       type: 'integer',
       title: 'Dropped',
     },
+    carried: {
+      type: 'integer',
+      title: 'Carried',
+      description: 'Rules from answered clarifications, carried over unchanged',
+    },
     quotes_checked: {
       type: 'boolean',
       title: 'Quotes Checked',
@@ -10091,7 +10096,7 @@ export const SpecChangesPublicSchema = {
     },
   },
   type: 'object',
-  required: ['rules', 'kept', 'added', 'dropped', 'quotes_checked'],
+  required: ['rules', 'kept', 'added', 'dropped', 'carried', 'quotes_checked'],
   title: 'SpecChangesPublic',
 } as const;
 
@@ -10121,7 +10126,7 @@ export const SpecGroupPublicSchema = {
 
 export const SpecOriginSchema = {
   type: 'string',
-  enum: ['written', 'adopted'],
+  enum: ['written', 'adopted', 'answered'],
   title: 'SpecOrigin',
 } as const;
 
