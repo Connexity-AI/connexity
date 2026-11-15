@@ -203,6 +203,7 @@ async def get_spec(
     agent_id: str,
     version: int | None = None,
     include_prompt: bool = False,
+    compare: int | None = None,
 ) -> SpecResult:
     return SpecResult.model_validate(
         await client.get_spec(
@@ -210,6 +211,7 @@ async def get_spec(
             agent_id=agent_id,
             version=version,
             include_prompt=include_prompt,
+            compare=compare,
         )
     )
 

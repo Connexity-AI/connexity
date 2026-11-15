@@ -10702,6 +10702,51 @@ export const SpecChangesPublicSchema = {
   title: 'SpecChangesPublic',
 } as const;
 
+export const SpecComparisonPublicSchema = {
+  properties: {
+    version: {
+      type: 'integer',
+      title: 'Version',
+      description: 'The earlier version compared with',
+    },
+    kept: {
+      type: 'integer',
+      title: 'Kept',
+    },
+    added: {
+      type: 'integer',
+      title: 'Added',
+    },
+    dropped: {
+      type: 'integer',
+      title: 'Dropped',
+    },
+  },
+  type: 'object',
+  required: ['version', 'kept', 'added', 'dropped'],
+  title: 'SpecComparisonPublic',
+} as const;
+
+export const SpecCountsPublicSchema = {
+  properties: {
+    from_prompt: {
+      type: 'integer',
+      title: 'From Prompt',
+    },
+    from_clarifications: {
+      type: 'integer',
+      title: 'From Clarifications',
+    },
+    in_conflict: {
+      type: 'integer',
+      title: 'In Conflict',
+    },
+  },
+  type: 'object',
+  required: ['from_prompt', 'from_clarifications', 'in_conflict'],
+  title: 'SpecCountsPublic',
+} as const;
+
 export const SpecGroupPublicSchema = {
   properties: {
     category: {
@@ -10829,6 +10874,36 @@ export const SpecPublicSchema = {
       description: 'Questions about this agent waiting for the person',
       default: 0,
     },
+    counts: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SpecCountsPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: "The shown version's rules by source, and conflicts",
+    },
+    versions: {
+      items: {
+        $ref: '#/components/schemas/SpecVersionPublic',
+      },
+      type: 'array',
+      title: 'Versions',
+      description: "Every version of the agent's spec, newest first",
+    },
+    comparison: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SpecComparisonPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'With compare: how the shown version differs',
+    },
   },
   type: 'object',
   required: ['agent_id', 'agent_name', 'state'],
@@ -10870,6 +10945,49 @@ export const SpecRulePublicSchema = {
           type: 'null',
         },
       ],
+    },
+    answered_by: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Answered By',
+      description: 'For a rule from a clarification: who answered it',
+    },
+    answered_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Answered At',
+    },
+    in_conflict: {
+      type: 'boolean',
+      title: 'In Conflict',
+      description: 'An open or parked clarification replaces this rule',
+      default: false,
+    },
+    change: {
+      anyOf: [
+        {
+          type: 'string',
+          enum: ['kept', 'added', 'dropped'],
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Change',
+      description: 'With compare: kept, added, or dropped (only in the earlier version)',
     },
   },
   type: 'object',
@@ -11017,6 +11135,36 @@ export const SpecWrittenPublicSchema = {
       title: 'Open Clarifications',
       description: 'Questions about this agent waiting for the person',
       default: 0,
+    },
+    counts: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SpecCountsPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: "The shown version's rules by source, and conflicts",
+    },
+    versions: {
+      items: {
+        $ref: '#/components/schemas/SpecVersionPublic',
+      },
+      type: 'array',
+      title: 'Versions',
+      description: "Every version of the agent's spec, newest first",
+    },
+    comparison: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SpecComparisonPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'With compare: how the shown version differs',
     },
     changes: {
       $ref: '#/components/schemas/SpecChangesPublic',

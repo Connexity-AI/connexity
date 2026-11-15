@@ -128,6 +128,18 @@ class SpecRulePublic(BaseModel):
         default=None, description="The prompt's words it rests on"
     )
     touches: SpecRuleTouches | None = None
+    answered_by: str | None = Field(
+        default=None, description="For a rule from a clarification: who answered it"
+    )
+    answered_at: datetime | None = None
+    in_conflict: bool = Field(
+        default=False,
+        description="An open or parked clarification replaces this rule",
+    )
+    change: Literal["kept", "added", "dropped"] | None = Field(
+        default=None,
+        description="With compare: kept, added, or dropped (only in the earlier version)",
+    )
 
 
 class SpecGroupPublic(BaseModel):
@@ -146,6 +158,19 @@ class SpecVersionPublic(BaseModel):
     assistant: str | None = None
     created_at: datetime
     rule_count: int
+
+
+class SpecCountsPublic(BaseModel):
+    from_prompt: int
+    from_clarifications: int
+    in_conflict: int
+
+
+class SpecComparisonPublic(BaseModel):
+    version: int = Field(description="The earlier version compared with")
+    kept: int
+    added: int
+    dropped: int
 
 
 class SpecPromptPublic(BaseModel):
@@ -175,6 +200,16 @@ class SpecPublic(BaseModel):
     )
     open_clarifications: int = Field(
         default=0, description="Questions about this agent waiting for the person"
+    )
+    counts: SpecCountsPublic | None = Field(
+        default=None, description="The shown version's rules by source, and conflicts"
+    )
+    versions: list[SpecVersionPublic] = Field(
+        default_factory=list,
+        description="Every version of the agent's spec, newest first",
+    )
+    comparison: SpecComparisonPublic | None = Field(
+        default=None, description="With compare: how the shown version differs"
     )
 
 

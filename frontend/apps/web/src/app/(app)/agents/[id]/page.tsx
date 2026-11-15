@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { AgentView } from '@/components/agents/agent-view';
 import { CallsList, one } from '@/components/calls/calls-list';
 import ErrorBoundarySuspense from '@/components/common/error-boundary-suspense';
-import { AgentsService } from '@/client/sdk.gen';
+import { AgentsService, SpecService } from '@/client/sdk.gen';
 
 import type { SearchParams } from '@/components/calls/calls-list';
 import type { FC } from 'react';
@@ -18,10 +18,23 @@ const Agent: FC<{ id: string; params: SearchParams }> = async ({ id, params }) =
   });
   if (response.response?.status === 404 || response.response?.status === 422) notFound();
   if (!response.data) throw new Error('The agent could not be loaded.');
-  const tab = one(params.tab) === 'calls' ? 'calls' : 'overview';
+  const asked = one(params.tab);
+  const tab = asked === 'calls' || asked === 'spec' ? asked : 'overview';
+  const compare = Number(one(params.compare)) || undefined;
+  const specResponse = await SpecService.getAgentSpec({
+    path: { agent_id: id },
+    query: tab === 'spec' && compare ? { compare } : {},
+  });
+  // An unknown version to compare with falls back to the spec alone.
+  const spec =
+    specResponse.data ??
+    (compare
+      ? (await SpecService.getAgentSpec({ path: { agent_id: id }, query: {} })).data
+      : undefined);
+  if (!spec) throw new Error('The spec could not be loaded.');
 
   return (
-    <AgentView agent={response.data} tab={tab}>
+    <AgentView agent={response.data} tab={tab} spec={spec}>
       {tab === 'calls' ? <CallsList params={params} agentId={id} /> : null}
     </AgentView>
   );

@@ -325,6 +325,10 @@ class SpecRule(BaseModel):
     source: str
     quote: str | None = None
     touches: str | None = None
+    answered_by: str | None = None
+    answered_at: str | None = None
+    in_conflict: bool = False
+    change: str | None = None
 
 
 class SpecGroup(BaseModel):
@@ -349,6 +353,19 @@ class SpecPrompt(BaseModel):
     content: Any = None
 
 
+class SpecCounts(BaseModel):
+    from_prompt: int = 0
+    from_clarifications: int = 0
+    in_conflict: int = 0
+
+
+class SpecComparison(BaseModel):
+    version: int
+    kept: int
+    added: int
+    dropped: int
+
+
 class SpecChanges(BaseModel):
     rules: int
     kept: int
@@ -368,6 +385,9 @@ class Spec(BaseModel):
     groups: list[SpecGroup] = Field(default_factory=list)
     prompt: SpecPrompt | None = None
     open_clarifications: int = 0
+    counts: SpecCounts | None = None
+    versions: list[SpecVersion] = Field(default_factory=list)
+    comparison: SpecComparison | None = None
     changes: SpecChanges | None = None
 
 

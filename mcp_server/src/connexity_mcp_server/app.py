@@ -352,18 +352,23 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         agent_id: str,
         version: int | None = None,
         include_prompt: bool = False,
+        compare: int | None = None,
     ) -> SpecResult:
         """An agent's spec: what it is supposed to do, as plain rules grouped by the
-        fixed categories, each with its source and the prompt's words it rests on.
-        state says none, current, or needs_review (the agent moved to a new version).
-        include_prompt adds the prompt Connexity recorded for the agent's current
-        version, to write against. Read connexity://guides/spec first."""
+        fixed categories, each with its source (the prompt's words it rests on, or who
+        answered the clarification) and whether an open question replaces it
+        (in_conflict). state says none, current, or needs_review (the agent moved to a
+        new version). versions lists every version; compare marks each rule kept,
+        added or dropped against an earlier one. include_prompt adds the prompt
+        Connexity recorded for the agent's current version, to write against. Read
+        connexity://guides/spec first."""
         return await _get_spec(
             client=backend_client,
             workspace_id=workspace_id,
             agent_id=agent_id,
             version=version,
             include_prompt=include_prompt,
+            compare=compare,
         )
 
     @mcp_server.tool(annotations=CREATES)
