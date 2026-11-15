@@ -8,9 +8,10 @@ from typing import NamedTuple
 from sqlmodel import Session, col, select
 
 from app import crud
+from app.crud.clarification import state_counts
 from app.crud.spec import RuleInput, normalise, prompt_text, write_spec
 from app.models.agent import Agent
-from app.models.enums import SpecRuleSource, SpecRuleTouches
+from app.models.enums import ClarificationState, SpecRuleSource, SpecRuleTouches
 from app.models.spec import (
     Spec,
     SpecChangesPublic,
@@ -118,6 +119,9 @@ def spec_answer(
         latest_version=latest.version if latest else None,
         groups=groups,
         prompt=prompt,
+        open_clarifications=state_counts(
+            session=session, company_id=agent.company_id, agent_id=agent.id
+        )[ClarificationState.OPEN],
     )
 
 

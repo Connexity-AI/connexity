@@ -1909,6 +1909,32 @@ export const AggregateMetricsSchema = {
   title: 'AggregateMetrics',
 } as const;
 
+export const AnsweredSpecPublicSchema = {
+  properties: {
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    agent_name: {
+      type: 'string',
+      title: 'Agent Name',
+    },
+    spec_version: {
+      type: 'integer',
+      title: 'Spec Version',
+      description: 'The new spec version the answers made',
+    },
+    rules_added: {
+      type: 'integer',
+      title: 'Rules Added',
+    },
+  },
+  type: 'object',
+  required: ['agent_id', 'agent_name', 'spec_version', 'rules_added'],
+  title: 'AnsweredSpecPublic',
+} as const;
+
 export const AuthProviderSchema = {
   type: 'string',
   enum: ['email', 'google'],
@@ -3268,6 +3294,285 @@ export const ChecksRunResultSchema = {
   type: 'object',
   required: ['checked', 'remaining'],
   title: 'ChecksRunResult',
+} as const;
+
+export const ClarificationAnswerPublicSchema = {
+  properties: {
+    letter: {
+      type: 'string',
+      title: 'Letter',
+      description: 'a to d; pass it to `answer_clarifications`',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+    },
+    rule: {
+      type: 'string',
+      title: 'Rule',
+      description: 'The spec rule this answer becomes',
+    },
+  },
+  type: 'object',
+  required: ['letter', 'label', 'rule'],
+  title: 'ClarificationAnswerPublic',
+} as const;
+
+export const ClarificationCountsPublicSchema = {
+  properties: {
+    open: {
+      type: 'integer',
+      title: 'Open',
+    },
+    answered: {
+      type: 'integer',
+      title: 'Answered',
+    },
+    parked: {
+      type: 'integer',
+      title: 'Parked',
+    },
+  },
+  type: 'object',
+  required: ['open', 'answered', 'parked'],
+  title: 'ClarificationCountsPublic',
+} as const;
+
+export const ClarificationListPublicSchema = {
+  properties: {
+    counts: {
+      $ref: '#/components/schemas/ClarificationCountsPublic',
+      description: 'For the same agent filter, every state',
+    },
+    data: {
+      items: {
+        $ref: '#/components/schemas/ClarificationPublic',
+      },
+      type: 'array',
+      title: 'Data',
+    },
+  },
+  type: 'object',
+  required: ['counts', 'data'],
+  title: 'ClarificationListPublic',
+} as const;
+
+export const ClarificationPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    agent_name: {
+      type: 'string',
+      title: 'Agent Name',
+    },
+    question: {
+      type: 'string',
+      title: 'Question',
+    },
+    answers: {
+      items: {
+        $ref: '#/components/schemas/ClarificationAnswerPublic',
+      },
+      type: 'array',
+      title: 'Answers',
+    },
+    category: {
+      type: 'string',
+      title: 'Category',
+      description: 'The category key the rule takes',
+    },
+    category_name: {
+      type: 'string',
+      title: 'Category Name',
+    },
+    touches: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SpecRuleTouches',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    calls_seen: {
+      type: 'integer',
+      title: 'Calls Seen',
+      description: 'How many calls were given as evidence',
+    },
+    call_ids: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      title: 'Call Ids',
+    },
+    spec_version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Spec Version',
+      description: 'The spec version it was raised against',
+    },
+    replaces: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/ReplacedRulePublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'The spec rule the answer replaces',
+    },
+    state: {
+      $ref: '#/components/schemas/ClarificationState',
+    },
+    raised_by: {
+      type: 'string',
+      title: 'Raised By',
+    },
+    raised_assistant: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Raised Assistant',
+    },
+    raised_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Raised At',
+    },
+    answer: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Answer',
+      description: 'The chosen letter',
+    },
+    answer_spec_version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Answer Spec Version',
+      description: 'The spec version the answer made',
+    },
+    decided_by: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Decided By',
+      description: 'The person who answered or parked it',
+    },
+    decided_assistant: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Decided Assistant',
+      description: 'The assistant that acted for them',
+    },
+    decided_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Decided At',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'agent_id',
+    'agent_name',
+    'question',
+    'answers',
+    'category',
+    'category_name',
+    'calls_seen',
+    'call_ids',
+    'state',
+    'raised_by',
+    'raised_at',
+  ],
+  title: 'ClarificationPublic',
+} as const;
+
+export const ClarificationStateSchema = {
+  type: 'string',
+  enum: ['open', 'answered', 'parked'],
+  title: 'ClarificationState',
+} as const;
+
+export const ClarificationsAnsweredPublicSchema = {
+  properties: {
+    answered: {
+      type: 'integer',
+      title: 'Answered',
+    },
+    parked: {
+      type: 'integer',
+      title: 'Parked',
+    },
+    specs: {
+      items: {
+        $ref: '#/components/schemas/AnsweredSpecPublic',
+      },
+      type: 'array',
+      title: 'Specs',
+    },
+    open: {
+      type: 'integer',
+      title: 'Open',
+      description: 'Open clarifications left in the workspace',
+    },
+  },
+  type: 'object',
+  required: ['answered', 'parked', 'specs', 'open'],
+  title: 'ClarificationsAnsweredPublic',
 } as const;
 
 export const CompanyLLMCredentialsPublicSchema = {
@@ -7021,6 +7326,22 @@ export const McpAgentToAddSchema = {
   title: 'McpAgentToAdd',
 } as const;
 
+export const McpAnswerClarificationsSchema = {
+  properties: {
+    answers: {
+      items: {
+        $ref: '#/components/schemas/McpClarificationDecision',
+      },
+      type: 'array',
+      maxItems: 50,
+      title: 'Answers',
+    },
+  },
+  type: 'object',
+  required: ['answers'],
+  title: 'McpAnswerClarifications',
+} as const;
+
 export const McpAnswer_AgentPagePublic_Schema = {
   properties: {
     data: {
@@ -7109,6 +7430,96 @@ export const McpAnswer_CallScreenPublic_Schema = {
   type: 'object',
   required: ['data', 'guide'],
   title: 'McpAnswer[CallScreenPublic]',
+} as const;
+
+export const McpAnswer_ClarificationListPublic_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/ClarificationListPublic',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[ClarificationListPublic]',
+} as const;
+
+export const McpAnswer_ClarificationsAnsweredPublic_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/ClarificationsAnsweredPublic',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[ClarificationsAnsweredPublic]',
 } as const;
 
 export const McpAnswer_IssuePagePublic_Schema = {
@@ -7610,6 +8021,55 @@ export const McpAnswer_list_CategoryPublic__Schema = {
   title: 'McpAnswer[list[CategoryPublic]]',
 } as const;
 
+export const McpAnswer_list_ClarificationPublic__Schema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/ClarificationPublic',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[list[ClarificationPublic]]',
+} as const;
+
 export const McpAnswer_list_McpAgent__Schema = {
   properties: {
     data: {
@@ -7748,6 +8208,108 @@ export const McpCallsSchema = {
   title: 'McpCalls',
 } as const;
 
+export const McpClarificationAnswerSchema = {
+  properties: {
+    label: {
+      type: 'string',
+      maxLength: 2000,
+      title: 'Label',
+      description: "A short answer the person picks, e.g. 'Only when the caller asks'",
+    },
+    rule: {
+      type: 'string',
+      maxLength: 2000,
+      title: 'Rule',
+      description: 'The spec rule this answer becomes, in one plain sentence',
+    },
+  },
+  type: 'object',
+  required: ['label', 'rule'],
+  title: 'McpClarificationAnswer',
+} as const;
+
+export const McpClarificationDecisionSchema = {
+  properties: {
+    clarification_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Clarification Id',
+    },
+    answer: {
+      type: 'string',
+      maxLength: 16,
+      title: 'Answer',
+      description: "The letter the person chose (a to d), or 'park'",
+    },
+  },
+  type: 'object',
+  required: ['clarification_id', 'answer'],
+  title: 'McpClarificationDecision',
+} as const;
+
+export const McpClarificationQuestionSchema = {
+  properties: {
+    question: {
+      type: 'string',
+      maxLength: 2000,
+      title: 'Question',
+      description: 'One plain sentence, with how often it happened',
+    },
+    answers: {
+      items: {
+        $ref: '#/components/schemas/McpClarificationAnswer',
+      },
+      type: 'array',
+      maxItems: 10,
+      title: 'Answers',
+      description: 'Two to four, a to d',
+    },
+    category: {
+      type: 'string',
+      maxLength: 64,
+      title: 'Category',
+      description: 'A category key from `list_categories`',
+    },
+    touches: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SpecRuleTouches',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'money, safety or compliance, when it protects one',
+    },
+    call_ids: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      maxItems: 200,
+      title: 'Call Ids',
+      description: 'The calls where it was seen, at most 50; none for a prompt change',
+    },
+    replaces_key: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 64,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Replaces Key',
+      description: 'The key of the spec rule the answer replaces',
+    },
+  },
+  type: 'object',
+  required: ['question', 'answers', 'category'],
+  title: 'McpClarificationQuestion',
+} as const;
+
 export const McpConnectVoicePlatformSchema = {
   properties: {
     platform: {
@@ -7816,6 +8378,22 @@ export const McpIssuesSchema = {
   type: 'object',
   required: ['tiles', 'issues'],
   title: 'McpIssues',
+} as const;
+
+export const McpRaiseClarificationsSchema = {
+  properties: {
+    questions: {
+      items: {
+        $ref: '#/components/schemas/McpClarificationQuestion',
+      },
+      type: 'array',
+      maxItems: 100,
+      title: 'Questions',
+    },
+  },
+  type: 'object',
+  required: ['questions'],
+  title: 'McpRaiseClarifications',
 } as const;
 
 export const McpRefusedAgentSchema = {
@@ -8917,6 +9495,30 @@ export const RegressionVerdictSchema = {
   type: 'object',
   required: ['regression_detected', 'reasons', 'thresholds_used'],
   title: 'RegressionVerdict',
+} as const;
+
+export const ReplacedRulePublicSchema = {
+  properties: {
+    key: {
+      type: 'string',
+      title: 'Key',
+    },
+    text: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Text',
+      description: "The rule's text in the agent's latest spec; None if dropped since",
+    },
+  },
+  type: 'object',
+  required: ['key'],
+  title: 'ReplacedRulePublic',
 } as const;
 
 export const RetellAgentSummarySchema = {
@@ -10221,6 +10823,12 @@ export const SpecPublicSchema = {
       ],
       description: "With include_prompt: the current version's prompt",
     },
+    open_clarifications: {
+      type: 'integer',
+      title: 'Open Clarifications',
+      description: 'Questions about this agent waiting for the person',
+      default: 0,
+    },
   },
   type: 'object',
   required: ['agent_id', 'agent_name', 'state'],
@@ -10403,6 +11011,12 @@ export const SpecWrittenPublicSchema = {
         },
       ],
       description: "With include_prompt: the current version's prompt",
+    },
+    open_clarifications: {
+      type: 'integer',
+      title: 'Open Clarifications',
+      description: 'Questions about this agent waiting for the person',
+      default: 0,
     },
     changes: {
       $ref: '#/components/schemas/SpecChangesPublic',

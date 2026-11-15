@@ -22,6 +22,7 @@ from app.api.deps import (
 )
 from app.core.config import settings
 from app.core.encryption import decrypt
+from app.crud import clarification as crud_clarification
 from app.crud.call_list import CallFilters
 from app.crud.issue_list import calls_by_agent, period_start
 from app.crud.latency import agent_latencies
@@ -38,7 +39,12 @@ from app.models import (
 )
 from app.models.agent_page import AgentPagePublic
 from app.models.check import Issue
-from app.models.enums import CallCheckStatus, IssueState
+from app.models.clarification import (
+    ClarificationListPublic,
+    ClarificationPublic,
+    ClarificationsAnsweredPublic,
+)
+from app.models.enums import CallCheckStatus, ClarificationState, IssueState
 from app.models.issue_list import IssuePeriod, IssueStatusFilter
 from app.models.issue_page import IssuePagePublic
 from app.models.mcp import (
@@ -54,12 +60,14 @@ from app.models.mcp import (
     McpAddedAgents,
     McpAgent,
     McpAnswer,
+    McpAnswerClarifications,
     McpArchiveIssue,
     McpCalls,
     McpConnection,
     McpConnectVoicePlatform,
     McpErrorDetail,
     McpIssues,
+    McpRaiseClarifications,
     McpRefusedAgent,
     McpScanProgress,
     McpUnarchiveIssue,
@@ -71,6 +79,17 @@ from app.services.agent_list import agent_types
 from app.services.agent_page import agent_page
 from app.services.call_list import workspace_calls
 from app.services.call_screen import call_screen
+from app.services.clarification import (
+    AnswerDraft,
+    ClarificationRefused,
+    Decision,
+    QuestionDraft,
+    answer_clarifications,
+    answered_public,
+    clarifications_public,
+    counts_public,
+    raise_clarifications,
+)
 from app.services.connections import (
     KEY_LOCATION,
     VOICE_PLATFORMS,
@@ -491,6 +510,11 @@ def get_issue(
             "If the person decides nobody will fix it, ask them, then call "
             "`archive_issue` with their reason."
         )
+    if crud.latest_spec(session=session, agent_id=issue.agent_id) is not None:
+        next_steps.append(
+            "If the agent's spec does not say whether this behaviour is allowed, raise "
+            "a question with `raise_clarifications` and these calls as evidence."
+        )
     return _issue_answer(session, issue, next_steps)
 
 
@@ -667,7 +691,42 @@ _SPEC_RULES = [
     "as dropped and added again.",
     "Rules are never edited: every `write_spec` is a new version, and earlier versions "
     "stay as they were.",
+    "Rules with source clarification are the person's answers: Connexity carries them "
+    "into every version; never pass them to `write_spec`. To change one, raise a "
+    "clarification that replaces it.",
 ]
+
+
+def _waiting_step(
+    session: SessionDep, company_id: uuid.UUID, agent_id: uuid.UUID | None = None
+) -> str | None:
+    """How many questions wait for the person, as a next step; None when none do."""
+    if agent_id is not None:
+        count = crud_clarification.state_counts(
+            session=session, company_id=company_id, agent_id=agent_id
+        )[ClarificationState.OPEN]
+        where = "on this agent"
+    else:
+        per_agent = crud_clarification.open_counts(
+            session=session, company_id=company_id
+        )
+        count = sum(per_agent.values())
+        agents = len(per_agent)
+        where = f"on {agents} {'agent' if agents == 1 else 'agents'}"
+    if not count:
+        return None
+    return _waiting_text(count, agent_id, where)
+
+
+def _waiting_text(
+    count: int, agent_id: uuid.UUID | None, where: str = "on this agent"
+) -> str:
+    agent_arg = f" with agent_id {agent_id}" if agent_id is not None else ""
+    return (
+        f"{count} {'question waits' if count == 1 else 'questions wait'} for the person "
+        f"{where}: call `list_clarifications`{agent_arg}, then confirm the answers with "
+        "them and call `answer_clarifications`."
+    )
 
 
 def _spec_steps(answer: SpecPublic) -> list[str]:
@@ -686,8 +745,9 @@ def _spec_steps(answer: SpecPublic) -> list[str]:
         steps.append(
             f"The agent moved to version {answer.current_agent_version}; Connexity "
             "copied the previous spec to it. Compare the prompts, keep what holds (with "
-            "keys), write what changed with `write_spec`, and list to the person what the "
-            "change leaves unsettled."
+            "keys), and write what changed with `write_spec`. Raise what the change "
+            "leaves unsettled with `raise_clarifications`, and replace (`replaces_key`) "
+            "any answered rule it contradicts."
         )
     return steps
 
@@ -722,6 +782,8 @@ def get_spec(
             "Connexity has no recorded prompt for this version; read it from the voice "
             "platform. Quotes will be stored without being checked."
         )
+    if answer.open_clarifications:
+        steps.append(_waiting_text(answer.open_clarifications, agent.id))
     return McpAnswer[SpecPublic](
         data=answer, rules=_SPEC_RULES, next_steps=steps, guide=GUIDE_SPEC
     )
@@ -789,12 +851,191 @@ def write_spec(
             "Connexity has no recorded prompt for this version, so quotes were not "
             "checked."
         )
+    if changes.carried:
+        steps.append(
+            f"{changes.carried} rules from the person's answers were carried over "
+            "unchanged."
+        )
     steps.append(
-        "Tell the person the spec is written, and list the behaviour you have seen on "
-        "calls that the prompt does not settle, as questions for them."
+        f"Look at the agent's recent calls (`list_calls` with agent_id {agent.id}) for "
+        "behaviour these rules do not settle, and raise each as a question with "
+        "`raise_clarifications`, following connexity://guides/spec."
     )
+    steps.append("Tell the person the spec is written, and what you raised.")
     return McpAnswer[SpecWrittenPublic](
         data=written, rules=_SPEC_RULES, next_steps=steps, guide=GUIDE_SPEC
+    )
+
+
+_CLARIFICATION_RULES = [
+    "A clarification is a question about behaviour the agent's spec does not settle. "
+    "Each answer carries the rule it becomes; the chosen answer's rule is added to the "
+    "spec in a new version.",
+    "The person answers. Confirm every answer with them before `answer_clarifications`, "
+    "in one batch: say which you can answer confidently and which need them. When they "
+    "leave a decision to you, it is still recorded as theirs, with you as the assistant "
+    "that acted; tell them so.",
+    "An answer is final. To change one, raise a clarification that replaces its rule "
+    "(`replaces_key`), quoting the earlier answer.",
+    "calls_seen counts the calls given as evidence; a question raised from a prompt "
+    "change may have none.",
+]
+
+
+def _refused(refused: ClarificationRefused, retry: str) -> HTTPException:
+    problems = refused.problems
+    return HTTPException(
+        status_code=422,
+        detail=McpErrorDetail(
+            error=refused.error,
+            next_steps=[
+                *problems[:20],
+                *(
+                    [f"… and {len(problems) - 20} more problems like these."]
+                    if len(problems) > 20
+                    else []
+                ),
+                retry,
+            ],
+            guide=GUIDE_SPEC,
+        ).model_dump(),
+    )
+
+
+@router.post(
+    "/workspaces/{workspace_id}/agents/{agent_id}/clarifications",
+    response_model=McpAnswer[list[ClarificationPublic]],
+)
+def raise_agent_clarifications(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    current_user: McpCurrentUser,
+    assistant: McpAssistantName,
+    agent_id: uuid.UUID,
+    body: McpRaiseClarifications,
+) -> McpAnswer[list[ClarificationPublic]]:
+    agent = _mcp_agent_in(session, workspace, agent_id)
+    try:
+        stored = raise_clarifications(
+            session=session,
+            agent=agent,
+            drafts=[
+                QuestionDraft(
+                    question=q.question,
+                    answers=[AnswerDraft(a.label, a.rule) for a in q.answers],
+                    category=q.category,
+                    touches=q.touches,
+                    call_ids=q.call_ids,
+                    replaces_key=q.replaces_key or None,
+                )
+                for q in body.questions
+            ],
+            raised_by=current_user,
+            assistant_name=assistant or "your assistant",
+        )
+    except ClarificationRefused as refused:
+        raise _refused(
+            refused,
+            "Fix these and call `raise_clarifications` again with every question; "
+            "nothing was stored.",
+        ) from None
+    return McpAnswer[list[ClarificationPublic]](
+        data=clarifications_public(session=session, rows=stored),
+        rules=_CLARIFICATION_RULES,
+        next_steps=[
+            "Confirm the answers with the person in one batch: say which you can answer "
+            "confidently and which need them, then call `answer_clarifications`. Never "
+            "answer without them.",
+        ],
+        guide=GUIDE_SPEC,
+    )
+
+
+@router.get(
+    "/workspaces/{workspace_id}/clarifications",
+    response_model=McpAnswer[ClarificationListPublic],
+)
+def list_clarifications(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    agent_id: uuid.UUID | None = None,
+    state: ClarificationState = ClarificationState.OPEN,
+    cursor: str | None = Query(default=None, max_length=255),
+    limit: int = Query(default=20, ge=1, le=50),
+) -> McpAnswer[ClarificationListPublic]:
+    if agent_id is not None:
+        _mcp_agent_in(session, workspace, agent_id)
+    offset = _decode_cursor(cursor)
+    rows, has_more = crud_clarification.list_page(
+        session=session,
+        company_id=workspace.id,
+        state=state,
+        agent_id=agent_id,
+        offset=offset,
+        limit=limit,
+    )
+    counts = counts_public(session=session, company_id=workspace.id, agent_id=agent_id)
+    steps = []
+    if has_more:
+        steps.append(
+            "Call `list_clarifications` again with `cursor` set to `next_cursor` for "
+            "the next page."
+        )
+    if state is ClarificationState.OPEN and rows:
+        steps.append(
+            "Confirm the answers with the person in one batch, then call "
+            "`answer_clarifications`; park what is not important now."
+        )
+    if not rows and state is ClarificationState.OPEN:
+        steps.append("No questions wait for the person.")
+    return McpAnswer[ClarificationListPublic](
+        data=ClarificationListPublic(
+            counts=counts, data=clarifications_public(session=session, rows=rows)
+        ),
+        rules=_CLARIFICATION_RULES,
+        next_steps=steps,
+        guide=GUIDE_SPEC,
+        next_cursor=_encode_cursor(offset + limit) if has_more else None,
+    )
+
+
+@router.post(
+    "/workspaces/{workspace_id}/clarifications/answers",
+    response_model=McpAnswer[ClarificationsAnsweredPublic],
+)
+def answer_workspace_clarifications(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    current_user: McpCurrentUser,
+    assistant: McpAssistantName,
+    body: McpAnswerClarifications,
+) -> McpAnswer[ClarificationsAnsweredPublic]:
+    try:
+        result = answer_clarifications(
+            session=session,
+            company_id=workspace.id,
+            decisions=[Decision(a.clarification_id, a.answer) for a in body.answers],
+            decided_by=current_user,
+            assistant_name=assistant or "your assistant",
+        )
+    except ClarificationRefused as refused:
+        raise _refused(
+            refused,
+            "Fix these and call `answer_clarifications` again with every answer; "
+            "nothing was recorded.",
+        ) from None
+    data = answered_public(session=session, company_id=workspace.id, result=result)
+    steps = [
+        "Tell the person what was recorded: their answers are now spec rules, carried "
+        "into every later version, and recorded as theirs."
+    ]
+    if data.open:
+        steps.append(
+            f"{data.open} {'question is' if data.open == 1 else 'questions are'} still "
+            "open: call `list_clarifications`."
+        )
+    return McpAnswer[ClarificationsAnsweredPublic](
+        data=data, rules=_CLARIFICATION_RULES, next_steps=steps, guide=GUIDE_SPEC
     )
 
 
@@ -824,8 +1065,12 @@ def get_agent(
     if page.spec != "current" and page.live_version:
         next_steps.append(
             "The agent's spec is missing or needs review: call `get_spec` and "
-            "`write_spec`, following connexity://guides/spec."
+            "`write_spec`, following connexity://guides/spec. When it needs review, raise "
+            "what the new version leaves unsettled with `raise_clarifications`."
         )
+    waiting = _waiting_step(session, workspace.id, agent.id)
+    if waiting:
+        next_steps.append(waiting)
     return McpAnswer[AgentPagePublic](
         data=page,
         rules=[
@@ -890,6 +1135,9 @@ def get_readiness(
                 "connexity://guides/spec, then call `get_spec` with include_prompt and "
                 "`write_spec`."
             )
+    waiting = _waiting_step(session, workspace.id)
+    if waiting:
+        next_steps.append(waiting)
     next_steps.append(
         "Call `get_readiness` again after each step to see what is left, and tell the "
         "person what changed."

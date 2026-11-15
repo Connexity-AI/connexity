@@ -18,6 +18,7 @@ async def test_server_lists_only_the_workspace_tools() -> None:
 
     assert sorted(tool.name for tool in tools) == [
         "add_agents",
+        "answer_clarifications",
         "archive_issue",
         "connect_voice_platform",
         "create_workspace",
@@ -29,8 +30,10 @@ async def test_server_lists_only_the_workspace_tools() -> None:
         "list_agents",
         "list_calls",
         "list_categories",
+        "list_clarifications",
         "list_issues",
         "list_workspaces",
+        "raise_clarifications",
         "scan_calls",
         "unarchive_issue",
         "write_spec",
@@ -45,6 +48,7 @@ def test_server_sends_connect_instructions() -> None:
     assert instructions is not None
     assert "list_workspaces" in instructions
     assert "workspace_id" in instructions
+    assert "raise_clarifications" in instructions
 
 
 @pytest.mark.asyncio
@@ -66,7 +70,7 @@ async def test_every_guide_is_served_as_a_resource() -> None:
 async def test_tools_say_whether_they_change_anything() -> None:
     tools = {tool.name: tool.annotations for tool in await _server().list_tools()}
 
-    for name in ("list_workspaces", "get_call", "list_agents", "list_calls", "list_categories", "list_issues", "get_issue", "get_readiness", "get_spec", "get_agent"):
+    for name in ("list_workspaces", "get_call", "list_agents", "list_calls", "list_categories", "list_issues", "get_issue", "get_readiness", "get_spec", "get_agent", "list_clarifications"):
         assert tools[name] is not None
         assert tools[name].readOnlyHint is True
         assert tools[name].openWorldHint is False
@@ -83,7 +87,10 @@ async def test_tools_say_whether_they_change_anything() -> None:
     assert tools["write_spec"] is not None
     assert tools["write_spec"].readOnlyHint is False
     assert tools["write_spec"].destructiveHint is False
-    for name in ("archive_issue", "unarchive_issue"):
+    assert tools["raise_clarifications"] is not None
+    assert tools["raise_clarifications"].readOnlyHint is False
+    assert tools["raise_clarifications"].destructiveHint is False
+    for name in ("archive_issue", "unarchive_issue", "answer_clarifications"):
         assert tools[name] is not None
         assert tools[name].readOnlyHint is False
         assert tools[name].destructiveHint is False

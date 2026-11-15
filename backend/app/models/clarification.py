@@ -9,6 +9,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
+from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
@@ -120,3 +121,78 @@ class Clarification(SQLModel, table=True):
         default=None,
         sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
     )
+
+
+class ClarificationAnswerPublic(BaseModel):
+    letter: str = Field(description="a to d; pass it to `answer_clarifications`")
+    label: str
+    rule: str = Field(description="The spec rule this answer becomes")
+
+
+class ReplacedRulePublic(BaseModel):
+    key: str
+    text: str | None = Field(
+        default=None,
+        description="The rule's text in the agent's latest spec; None if dropped since",
+    )
+
+
+class ClarificationPublic(BaseModel):
+    id: uuid.UUID
+    agent_id: uuid.UUID
+    agent_name: str
+    question: str
+    answers: list[ClarificationAnswerPublic]
+    category: str = Field(description="The category key the rule takes")
+    category_name: str
+    touches: SpecRuleTouches | None = None
+    calls_seen: int = Field(description="How many calls were given as evidence")
+    call_ids: list[uuid.UUID]
+    spec_version: int | None = Field(
+        default=None, description="The spec version it was raised against"
+    )
+    replaces: ReplacedRulePublic | None = Field(
+        default=None, description="The spec rule the answer replaces"
+    )
+    state: ClarificationState
+    raised_by: str
+    raised_assistant: str | None = None
+    raised_at: datetime
+    answer: str | None = Field(default=None, description="The chosen letter")
+    answer_spec_version: int | None = Field(
+        default=None, description="The spec version the answer made"
+    )
+    decided_by: str | None = Field(
+        default=None, description="The person who answered or parked it"
+    )
+    decided_assistant: str | None = Field(
+        default=None, description="The assistant that acted for them"
+    )
+    decided_at: datetime | None = None
+
+
+class ClarificationCountsPublic(BaseModel):
+    open: int
+    answered: int
+    parked: int
+
+
+class ClarificationListPublic(BaseModel):
+    counts: ClarificationCountsPublic = Field(
+        description="For the same agent filter, every state"
+    )
+    data: list[ClarificationPublic]
+
+
+class AnsweredSpecPublic(BaseModel):
+    agent_id: uuid.UUID
+    agent_name: str
+    spec_version: int = Field(description="The new spec version the answers made")
+    rules_added: int
+
+
+class ClarificationsAnsweredPublic(BaseModel):
+    answered: int
+    parked: int
+    specs: list[AnsweredSpecPublic]
+    open: int = Field(description="Open clarifications left in the workspace")

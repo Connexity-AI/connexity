@@ -29,6 +29,8 @@ INSTRUCTIONS = (
     "Then call `get_readiness` and do its first next step: while setup is not done, "
     "that continues onboarding (connect the voice platform, add the agents, run the "
     "first scan). "
+    "Behaviour an agent's spec does not settle is a question for the person: raise it "
+    "with `raise_clarifications`, never decide it. "
     "Every answer has `data`, the `rules` that apply (follow them), numbered "
     "`next_steps` and a `guide`; read the guide at that URI when you need more. "
     "Connexity never edits, deploys or calls an agent."

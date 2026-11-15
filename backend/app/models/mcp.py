@@ -173,6 +173,53 @@ class McpWriteSpec(BaseModel):
     rules: list[McpSpecRule] = Field(max_length=1000)
 
 
+class McpClarificationAnswer(BaseModel):
+    label: Annotated[str, StringConstraints(max_length=2000)] = Field(
+        description="A short answer the person picks, e.g. 'Only when the caller asks'"
+    )
+    rule: Annotated[str, StringConstraints(max_length=2000)] = Field(
+        description="The spec rule this answer becomes, in one plain sentence"
+    )
+
+
+class McpClarificationQuestion(BaseModel):
+    question: Annotated[str, StringConstraints(max_length=2000)] = Field(
+        description="One plain sentence, with how often it happened"
+    )
+    answers: list[McpClarificationAnswer] = Field(
+        max_length=10, description="Two to four, a to d"
+    )
+    category: Annotated[
+        str, StringConstraints(strip_whitespace=True, max_length=64)
+    ] = Field(description="A category key from `list_categories`")
+    touches: SpecRuleTouches | None = Field(
+        default=None, description="money, safety or compliance, when it protects one"
+    )
+    call_ids: list[uuid.UUID] = Field(
+        default_factory=list,
+        max_length=200,
+        description="The calls where it was seen, at most 50; none for a prompt change",
+    )
+    replaces_key: Annotated[
+        str | None, StringConstraints(strip_whitespace=True, max_length=64)
+    ] = Field(default=None, description="The key of the spec rule the answer replaces")
+
+
+class McpRaiseClarifications(BaseModel):
+    questions: list[McpClarificationQuestion] = Field(max_length=100)
+
+
+class McpClarificationDecision(BaseModel):
+    clarification_id: uuid.UUID
+    answer: Annotated[str, StringConstraints(max_length=16)] = Field(
+        description="The letter the person chose (a to d), or 'park'"
+    )
+
+
+class McpAnswerClarifications(BaseModel):
+    answers: list[McpClarificationDecision] = Field(max_length=50)
+
+
 class McpArchiveIssue(BaseModel):
     reason: Annotated[
         str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)

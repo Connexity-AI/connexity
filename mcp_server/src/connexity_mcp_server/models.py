@@ -354,6 +354,7 @@ class SpecChanges(BaseModel):
     kept: int
     added: int
     dropped: int
+    carried: int = 0
     quotes_checked: bool
 
 
@@ -366,6 +367,7 @@ class Spec(BaseModel):
     latest_version: int | None = None
     groups: list[SpecGroup] = Field(default_factory=list)
     prompt: SpecPrompt | None = None
+    open_clarifications: int = 0
     changes: SpecChanges | None = None
 
 
@@ -384,6 +386,105 @@ class SpecRuleToWrite(BaseModel):
 
 
 SpecResult = Answer[Spec]
+
+
+class ClarificationAnswer(BaseModel):
+    letter: str
+    label: str
+    rule: str
+
+
+class ReplacedRule(BaseModel):
+    key: str
+    text: str | None = None
+
+
+class Clarification(BaseModel):
+    id: str
+    agent_id: str
+    agent_name: str
+    question: str
+    answers: list[ClarificationAnswer] = Field(default_factory=list)
+    category: str
+    category_name: str
+    touches: str | None = None
+    calls_seen: int = 0
+    call_ids: list[str] = Field(default_factory=list)
+    spec_version: int | None = None
+    replaces: ReplacedRule | None = None
+    state: str
+    raised_by: str
+    raised_assistant: str | None = None
+    raised_at: str
+    answer: str | None = None
+    answer_spec_version: int | None = None
+    decided_by: str | None = None
+    decided_assistant: str | None = None
+    decided_at: str | None = None
+
+
+class ClarificationCounts(BaseModel):
+    open: int = 0
+    answered: int = 0
+    parked: int = 0
+
+
+class Clarifications(BaseModel):
+    counts: ClarificationCounts
+    data: list[Clarification] = Field(default_factory=list)
+
+
+class AnsweredSpec(BaseModel):
+    agent_id: str
+    agent_name: str
+    spec_version: int
+    rules_added: int
+
+
+class ClarificationsAnswered(BaseModel):
+    answered: int
+    parked: int
+    specs: list[AnsweredSpec] = Field(default_factory=list)
+    open: int
+
+
+class AnswerToRaise(BaseModel):
+    """One answer of a question for `raise_clarifications`."""
+
+    label: str = Field(description="What the person picks, e.g. 'Only when asked'")
+    rule: str = Field(description="The spec rule this answer becomes, one sentence")
+
+
+class QuestionToRaise(BaseModel):
+    """One question for `raise_clarifications`."""
+
+    question: str = Field(
+        description="One plain sentence, with how often it happened"
+    )
+    answers: list[AnswerToRaise] = Field(description="Two to four, a to d")
+    category: str = Field(description="A category key from `list_categories`")
+    touches: str | None = Field(
+        default=None, description="money, safety or compliance, when it protects one"
+    )
+    call_ids: list[str] | None = Field(
+        default=None,
+        description="The calls where it was seen, at most 50; none for a prompt change",
+    )
+    replaces_key: str | None = Field(
+        default=None, description="The key of the spec rule the answer replaces"
+    )
+
+
+class AnswerToGive(BaseModel):
+    """One decision for `answer_clarifications`."""
+
+    clarification_id: str
+    answer: str = Field(description="The letter the person chose (a to d), or 'park'")
+
+
+RaiseClarificationsResult = Answer[list[Clarification]]
+ListClarificationsResult = Answer[Clarifications]
+AnswerClarificationsResult = Answer[ClarificationsAnswered]
 
 
 class AgentSystem(BaseModel):
