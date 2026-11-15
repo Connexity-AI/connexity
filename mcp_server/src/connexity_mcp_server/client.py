@@ -201,6 +201,50 @@ class ConnexityBackendClient:
             "POST", self._spec_path(workspace_id, agent_id), json={"rules": rules}
         )
 
+    async def raise_clarifications(
+        self, *, workspace_id: str, agent_id: str, questions: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        return await self._request_json(
+            "POST",
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/agents/"
+            f"{quote(agent_id, safe='')}/clarifications",
+            json={"questions": questions},
+        )
+
+    async def list_clarifications(
+        self,
+        *,
+        workspace_id: str,
+        agent_id: str | None = None,
+        state: str | None = None,
+        cursor: str | None = None,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
+        params = {
+            key: value
+            for key, value in {
+                "agent_id": agent_id,
+                "state": state,
+                "cursor": cursor,
+                "limit": limit,
+            }.items()
+            if value not in (None, "")
+        }
+        return await self._request_json(
+            "GET",
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/clarifications",
+            params=params,
+        )
+
+    async def answer_clarifications(
+        self, *, workspace_id: str, answers: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        return await self._request_json(
+            "POST",
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/clarifications/answers",
+            json={"answers": answers},
+        )
+
     async def get_agent(
         self, *, workspace_id: str, agent_id: str, period: str | None = None
     ) -> dict[str, Any]:

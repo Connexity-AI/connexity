@@ -9,7 +9,12 @@ from connexity_mcp_server.models import (
     GetCallResult,
     GetReadinessResult,
     AgentResult,
+    AnswerClarificationsResult,
+    AnswerToGive,
     IssueResult,
+    ListClarificationsResult,
+    QuestionToRaise,
+    RaiseClarificationsResult,
     SpecResult,
     SpecRuleToWrite,
     ListAgentsResult,
@@ -233,5 +238,51 @@ async def get_agent(
     return AgentResult.model_validate(
         await client.get_agent(
             workspace_id=workspace_id, agent_id=agent_id, period=period
+        )
+    )
+
+
+async def raise_clarifications(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    agent_id: str,
+    questions: list[QuestionToRaise],
+) -> RaiseClarificationsResult:
+    return RaiseClarificationsResult.model_validate(
+        await client.raise_clarifications(
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            questions=[q.model_dump(exclude_none=True) for q in questions],
+        )
+    )
+
+
+async def list_clarifications(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    agent_id: str | None = None,
+    state: str | None = None,
+    cursor: str | None = None,
+    limit: int | None = None,
+) -> ListClarificationsResult:
+    return ListClarificationsResult.model_validate(
+        await client.list_clarifications(
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            state=state,
+            cursor=cursor,
+            limit=limit,
+        )
+    )
+
+
+async def answer_clarifications(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    answers: list[AnswerToGive],
+) -> AnswerClarificationsResult:
+    return AnswerClarificationsResult.model_validate(
+        await client.answer_clarifications(
+            workspace_id=workspace_id, answers=[a.model_dump() for a in answers]
         )
     )

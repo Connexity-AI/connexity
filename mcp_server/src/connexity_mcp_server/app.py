@@ -32,7 +32,12 @@ from connexity_mcp_server.models import (
     GetCallResult,
     GetReadinessResult,
     AgentResult,
+    AnswerClarificationsResult,
+    AnswerToGive,
     IssueResult,
+    ListClarificationsResult,
+    QuestionToRaise,
+    RaiseClarificationsResult,
     SpecResult,
     SpecRuleToWrite,
     ListAgentsResult,
@@ -44,6 +49,15 @@ from connexity_mcp_server.models import (
 )
 from connexity_mcp_server.tools import (
     add_agents as _add_agents,
+)
+from connexity_mcp_server.tools import (
+    answer_clarifications as _answer_clarifications,
+)
+from connexity_mcp_server.tools import (
+    list_clarifications as _list_clarifications,
+)
+from connexity_mcp_server.tools import (
+    raise_clarifications as _raise_clarifications,
 )
 from connexity_mcp_server.tools import (
     connect_voice_platform as _connect_voice_platform,
@@ -360,13 +374,66 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         Each rule: one plain sentence, a category key, the prompt's exact words it
         rests on, touches (money, safety, compliance) when it protects one, and the key
         of a rule kept from the previous version. Only what the prompt settles;
-        behaviour the prompt does not settle is a question for the person. Follow
-        connexity://guides/spec."""
+        behaviour the prompt does not settle is a question for the person
+        (`raise_clarifications`). Rules from the person's answers are carried over by
+        Connexity; never pass them. Follow connexity://guides/spec."""
         return await _write_spec(
             client=backend_client,
             workspace_id=workspace_id,
             agent_id=agent_id,
             rules=rules,
+        )
+
+    @mcp_server.tool(annotations=CREATES)
+    async def raise_clarifications(
+        workspace_id: str, agent_id: str, questions: list[QuestionToRaise]
+    ) -> RaiseClarificationsResult:
+        """Raise questions for the person about behaviour the agent's spec does not
+        settle, never deciding it yourself. Each question: one plain sentence with how
+        often it happened, two to four answers each with the spec rule it becomes, a
+        category key, touches when it protects money, safety or compliance, the calls
+        where it was seen (none for a prompt change), and replaces_key to replace an
+        answered rule a new prompt contradicts. Up to 20 per call; check
+        `list_clarifications` first. Follow connexity://guides/spec."""
+        return await _raise_clarifications(
+            client=backend_client,
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            questions=questions,
+        )
+
+    @mcp_server.tool(annotations=READ_ONLY)
+    async def list_clarifications(
+        workspace_id: str,
+        agent_id: str | None = None,
+        state: Literal["open", "answered", "parked"] | None = None,
+        cursor: str | None = None,
+        limit: int | None = None,
+    ) -> ListClarificationsResult:
+        """Questions for the person about the workspace's agents, newest first: open
+        by default, or answered or parked. Each has its answers (a to d) with the rule
+        each becomes, how many calls it was seen on, and, once answered, the choice,
+        who made it and the spec version it made. Counts of every state come with each
+        page; pass `next_cursor` as `cursor` for the next."""
+        return await _list_clarifications(
+            client=backend_client,
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            state=state,
+            cursor=cursor,
+            limit=limit,
+        )
+
+    @mcp_server.tool(annotations=DECIDES)
+    async def answer_clarifications(
+        workspace_id: str, answers: list[AnswerToGive]
+    ) -> AnswerClarificationsResult:
+        """Record the person's answers (a to d) or park questions (`park`); each
+        answer's rule is added to its agent's spec in a new version. The person's
+        decision: confirm every answer with them first, in one batch. One left to you
+        is still recorded as theirs. An answer is final."""
+        return await _answer_clarifications(
+            client=backend_client, workspace_id=workspace_id, answers=answers
         )
 
     @mcp_server.tool(annotations=READ_ONLY)

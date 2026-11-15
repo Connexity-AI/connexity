@@ -223,3 +223,29 @@ def decide(
             detail=detail,
         )
     )
+
+
+def list_page(
+    *,
+    session: Session,
+    company_id: uuid.UUID,
+    state: ClarificationState,
+    agent_id: uuid.UUID | None,
+    offset: int,
+    limit: int,
+) -> tuple[list[Clarification], bool]:
+    """A page of the workspace's clarifications in ``state``, newest first, and
+    whether more follow."""
+    query = select(Clarification).where(
+        Clarification.company_id == company_id, Clarification.state == state
+    )
+    if agent_id is not None:
+        query = query.where(Clarification.agent_id == agent_id)
+    rows = list(
+        session.exec(
+            query.order_by(col(Clarification.raised_at).desc(), col(Clarification.id))
+            .offset(offset)
+            .limit(limit + 1)
+        ).all()
+    )
+    return rows[:limit], len(rows) > limit

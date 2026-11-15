@@ -208,6 +208,9 @@ They own validation, CRUD calls, state changes and the answer's rules and next s
 | `get_agent(workspace_id, agent_id, period?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}` |
 | `get_spec(workspace_id, agent_id, version?, include_prompt?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/spec` |
 | `write_spec(workspace_id, agent_id, rules)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/spec` |
+| `raise_clarifications(workspace_id, agent_id, questions)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/clarifications` |
+| `list_clarifications(workspace_id, agent_id?, state?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/clarifications` |
+| `answer_clarifications(workspace_id, answers)` | `POST /api/v1/mcp/workspaces/{workspace_id}/clarifications/answers` |
 | `get_issue(workspace_id, issue_id)` | `GET /api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}` |
 | `archive_issue(workspace_id, issue_id, reason, duration?)` | `POST /api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}/archive` |
 | `unarchive_issue(workspace_id, issue_id, reason?)` | `POST /api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}/unarchive` |

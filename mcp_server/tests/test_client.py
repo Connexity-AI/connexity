@@ -3,13 +3,21 @@ import httpx
 import pytest
 from connexity_mcp_server.client import ConnexityBackendClient, ConnexityBackendError
 from connexity_mcp_server.config import Settings
-from connexity_mcp_server.models import SpecRuleToWrite
+from connexity_mcp_server.models import (
+    AnswerToGive,
+    AnswerToRaise,
+    QuestionToRaise,
+    SpecRuleToWrite,
+)
 from connexity_mcp_server.tools import (
     add_agents,
     get_call,
     list_calls,
     list_categories,
     archive_issue,
+    answer_clarifications,
+    list_clarifications,
+    raise_clarifications,
     write_spec,
     list_issues,
     scan_calls,
@@ -708,3 +716,144 @@ async def test_write_spec_sends_every_rule_without_empty_fields() -> None:
 
     assert result.data.changes is not None
     assert result.data.changes.kept == 1
+
+
+_CLARIFICATION = {
+    "id": "c1",
+    "agent_id": "a1",
+    "agent_name": "Front desk",
+    "question": "The agent changed an existing appointment on 2 calls. Is it allowed to?",
+    "answers": [
+        {"letter": "a", "label": "Yes", "rule": "The agent may change appointments"},
+        {"letter": "b", "label": "Never", "rule": "Never change an appointment"},
+    ],
+    "category": "booking",
+    "category_name": "Booking",
+    "calls_seen": 0,
+    "call_ids": [],
+    "spec_version": 1,
+    "state": "open",
+    "raised_by": "dmytro",
+    "raised_at": "2026-11-15T12:00:00Z",
+}
+
+
+@pytest.mark.asyncio
+async def test_raise_clarifications_sends_questions_without_empty_fields() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert (
+            request.url.path
+            == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/agents/a1/clarifications"
+        )
+        assert json.loads(request.content) == {
+            "questions": [
+                {
+                    "question": _CLARIFICATION["question"],
+                    "answers": [
+                        {"label": "Yes", "rule": "The agent may change appointments"},
+                        {"label": "Never", "rule": "Never change an appointment"},
+                    ],
+                    "category": "booking",
+                }
+            ]
+        }
+        return httpx.Response(200, json={"data": [_CLARIFICATION], **ANSWER})
+
+    result = await _call(
+        handler,
+        lambda client: raise_clarifications(
+            client,
+            workspace_id=WORKSPACE_ID,
+            agent_id="a1",
+            questions=[
+                QuestionToRaise(
+                    question=str(_CLARIFICATION["question"]),
+                    answers=[
+                        AnswerToRaise(
+                            label="Yes", rule="The agent may change appointments"
+                        ),
+                        AnswerToRaise(label="Never", rule="Never change an appointment"),
+                    ],
+                    category="booking",
+                )
+            ],
+        ),
+    )
+
+    assert result.data[0].answers[1].letter == "b"
+
+
+@pytest.mark.asyncio
+async def test_list_clarifications_passes_only_given_filters() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/clarifications"
+        assert dict(request.url.params) == {"agent_id": "a1", "state": "parked"}
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "counts": {"open": 0, "answered": 0, "parked": 1},
+                    "data": [_CLARIFICATION | {"state": "parked"}],
+                },
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: list_clarifications(
+            client, workspace_id=WORKSPACE_ID, agent_id="a1", state="parked"
+        ),
+    )
+
+    assert result.data.counts.parked == 1
+
+
+@pytest.mark.asyncio
+async def test_answer_clarifications_sends_each_answer() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert (
+            request.url.path
+            == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/clarifications/answers"
+        )
+        assert json.loads(request.content) == {
+            "answers": [
+                {"clarification_id": "c1", "answer": "b"},
+                {"clarification_id": "c2", "answer": "park"},
+            ]
+        }
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "answered": 1,
+                    "parked": 1,
+                    "specs": [
+                        {
+                            "agent_id": "a1",
+                            "agent_name": "Front desk",
+                            "spec_version": 2,
+                            "rules_added": 1,
+                        }
+                    ],
+                    "open": 0,
+                },
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: answer_clarifications(
+            client,
+            workspace_id=WORKSPACE_ID,
+            answers=[
+                AnswerToGive(clarification_id="c1", answer="b"),
+                AnswerToGive(clarification_id="c2", answer="park"),
+            ],
+        ),
+    )
+
+    assert result.data.specs[0].spec_version == 2

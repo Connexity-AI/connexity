@@ -1066,6 +1066,30 @@ export type AggregateMetrics = {
 };
 
 /**
+ * AnsweredSpecPublic
+ */
+export type AnsweredSpecPublic = {
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Name
+   */
+  agent_name: string;
+  /**
+   * Spec Version
+   *
+   * The new spec version the answers made
+   */
+  spec_version: number;
+  /**
+   * Rules Added
+   */
+  rules_added: number;
+};
+
+/**
  * AuthProvider
  */
 export const AuthProvider = { EMAIL: 'email', GOOGLE: 'google' } as const;
@@ -1982,6 +2006,196 @@ export type ChecksRunResult = {
    * Stored calls a check has still never run on
    */
   remaining: number;
+};
+
+/**
+ * ClarificationAnswerPublic
+ */
+export type ClarificationAnswerPublic = {
+  /**
+   * Letter
+   *
+   * a to d; pass it to `answer_clarifications`
+   */
+  letter: string;
+  /**
+   * Label
+   */
+  label: string;
+  /**
+   * Rule
+   *
+   * The spec rule this answer becomes
+   */
+  rule: string;
+};
+
+/**
+ * ClarificationCountsPublic
+ */
+export type ClarificationCountsPublic = {
+  /**
+   * Open
+   */
+  open: number;
+  /**
+   * Answered
+   */
+  answered: number;
+  /**
+   * Parked
+   */
+  parked: number;
+};
+
+/**
+ * ClarificationListPublic
+ */
+export type ClarificationListPublic = {
+  /**
+   * For the same agent filter, every state
+   */
+  counts: ClarificationCountsPublic;
+  /**
+   * Data
+   */
+  data: Array<ClarificationPublic>;
+};
+
+/**
+ * ClarificationPublic
+ */
+export type ClarificationPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Name
+   */
+  agent_name: string;
+  /**
+   * Question
+   */
+  question: string;
+  /**
+   * Answers
+   */
+  answers: Array<ClarificationAnswerPublic>;
+  /**
+   * Category
+   *
+   * The category key the rule takes
+   */
+  category: string;
+  /**
+   * Category Name
+   */
+  category_name: string;
+  touches?: SpecRuleTouches | null;
+  /**
+   * Calls Seen
+   *
+   * How many calls were given as evidence
+   */
+  calls_seen: number;
+  /**
+   * Call Ids
+   */
+  call_ids: Array<string>;
+  /**
+   * Spec Version
+   *
+   * The spec version it was raised against
+   */
+  spec_version?: number | null;
+  /**
+   * The spec rule the answer replaces
+   */
+  replaces?: ReplacedRulePublic | null;
+  state: ClarificationState;
+  /**
+   * Raised By
+   */
+  raised_by: string;
+  /**
+   * Raised Assistant
+   */
+  raised_assistant?: string | null;
+  /**
+   * Raised At
+   */
+  raised_at: string;
+  /**
+   * Answer
+   *
+   * The chosen letter
+   */
+  answer?: string | null;
+  /**
+   * Answer Spec Version
+   *
+   * The spec version the answer made
+   */
+  answer_spec_version?: number | null;
+  /**
+   * Decided By
+   *
+   * The person who answered or parked it
+   */
+  decided_by?: string | null;
+  /**
+   * Decided Assistant
+   *
+   * The assistant that acted for them
+   */
+  decided_assistant?: string | null;
+  /**
+   * Decided At
+   */
+  decided_at?: string | null;
+};
+
+/**
+ * ClarificationState
+ */
+export const ClarificationState = {
+  OPEN: 'open',
+  ANSWERED: 'answered',
+  PARKED: 'parked',
+} as const;
+
+/**
+ * ClarificationState
+ */
+export type ClarificationState = (typeof ClarificationState)[keyof typeof ClarificationState];
+
+/**
+ * ClarificationsAnsweredPublic
+ */
+export type ClarificationsAnsweredPublic = {
+  /**
+   * Answered
+   */
+  answered: number;
+  /**
+   * Parked
+   */
+  parked: number;
+  /**
+   * Specs
+   */
+  specs: Array<AnsweredSpecPublic>;
+  /**
+   * Open
+   *
+   * Open clarifications left in the workspace
+   */
+  open: number;
 };
 
 /**
@@ -4506,6 +4720,16 @@ export type McpAgentToAdd = {
 };
 
 /**
+ * McpAnswerClarifications
+ */
+export type McpAnswerClarifications = {
+  /**
+   * Answers
+   */
+  answers: Array<McpClarificationDecision>;
+};
+
+/**
  * McpAnswer[AgentPagePublic]
  */
 export type McpAnswerAgentPagePublic = {
@@ -4547,6 +4771,74 @@ export type McpAnswerCallScreenPublic = {
    * The facts: the result of the call
    */
   data: CallScreenPublic;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
+ * McpAnswer[ClarificationListPublic]
+ */
+export type McpAnswerClarificationListPublic = {
+  /**
+   * The facts: the result of the call
+   */
+  data: ClarificationListPublic;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
+ * McpAnswer[ClarificationsAnsweredPublic]
+ */
+export type McpAnswerClarificationsAnsweredPublic = {
+  /**
+   * The facts: the result of the call
+   */
+  data: ClarificationsAnsweredPublic;
   /**
    * Rules
    *
@@ -4950,6 +5242,42 @@ export type McpAnswerListCategoryPublic = {
 };
 
 /**
+ * McpAnswer[list[ClarificationPublic]]
+ */
+export type McpAnswerListClarificationPublic = {
+  /**
+   * Data
+   *
+   * The facts: the result of the call
+   */
+  data: Array<ClarificationPublic>;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
  * McpAnswer[list[McpAgent]]
  */
 export type McpAnswerListMcpAgent = {
@@ -5052,6 +5380,80 @@ export type McpCalls = {
 };
 
 /**
+ * McpClarificationAnswer
+ */
+export type McpClarificationAnswer = {
+  /**
+   * Label
+   *
+   * A short answer the person picks, e.g. 'Only when the caller asks'
+   */
+  label: string;
+  /**
+   * Rule
+   *
+   * The spec rule this answer becomes, in one plain sentence
+   */
+  rule: string;
+};
+
+/**
+ * McpClarificationDecision
+ */
+export type McpClarificationDecision = {
+  /**
+   * Clarification Id
+   */
+  clarification_id: string;
+  /**
+   * Answer
+   *
+   * The letter the person chose (a to d), or 'park'
+   */
+  answer: string;
+};
+
+/**
+ * McpClarificationQuestion
+ */
+export type McpClarificationQuestion = {
+  /**
+   * Question
+   *
+   * One plain sentence, with how often it happened
+   */
+  question: string;
+  /**
+   * Answers
+   *
+   * Two to four, a to d
+   */
+  answers: Array<McpClarificationAnswer>;
+  /**
+   * Category
+   *
+   * A category key from `list_categories`
+   */
+  category: string;
+  /**
+   * money, safety or compliance, when it protects one
+   */
+  touches?: SpecRuleTouches | null;
+  /**
+   * Call Ids
+   *
+   * The calls where it was seen, at most 50; none for a prompt change
+   */
+  call_ids?: Array<string>;
+  /**
+   * Replaces Key
+   *
+   * The key of the spec rule the answer replaces
+   */
+  replaces_key?: string | null;
+};
+
+/**
  * McpConnectVoicePlatform
  */
 export type McpConnectVoicePlatform = {
@@ -5100,6 +5502,16 @@ export type McpIssues = {
    * Worst first
    */
   issues: Array<IssueListItemPublic>;
+};
+
+/**
+ * McpRaiseClarifications
+ */
+export type McpRaiseClarifications = {
+  /**
+   * Questions
+   */
+  questions: Array<McpClarificationQuestion>;
 };
 
 /**
@@ -5888,6 +6300,22 @@ export type RegressionVerdict = {
    */
   reasons: Array<string>;
   thresholds_used: RegressionThresholds;
+};
+
+/**
+ * ReplacedRulePublic
+ */
+export type ReplacedRulePublic = {
+  /**
+   * Key
+   */
+  key: string;
+  /**
+   * Text
+   *
+   * The rule's text in the agent's latest spec; None if dropped since
+   */
+  text?: string | null;
 };
 
 /**
@@ -6707,6 +7135,12 @@ export type SpecPublic = {
    * With include_prompt: the current version's prompt
    */
   prompt?: SpecPromptPublic | null;
+  /**
+   * Open Clarifications
+   *
+   * Questions about this agent waiting for the person
+   */
+  open_clarifications?: number;
 };
 
 /**
@@ -6838,6 +7272,12 @@ export type SpecWrittenPublic = {
    * With include_prompt: the current version's prompt
    */
   prompt?: SpecPromptPublic | null;
+  /**
+   * Open Clarifications
+   *
+   * Questions about this agent waiting for the person
+   */
+  open_clarifications?: number;
   changes: SpecChangesPublic;
 };
 
@@ -10560,6 +11000,192 @@ export type McpWriteSpecResponses = {
 };
 
 export type McpWriteSpecResponse = McpWriteSpecResponses[keyof McpWriteSpecResponses];
+
+export type McpRaiseAgentClarificationsData = {
+  body: McpRaiseClarifications;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/clarifications';
+};
+
+export type McpRaiseAgentClarificationsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpRaiseAgentClarificationsError =
+  McpRaiseAgentClarificationsErrors[keyof McpRaiseAgentClarificationsErrors];
+
+export type McpRaiseAgentClarificationsResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerListClarificationPublic;
+};
+
+export type McpRaiseAgentClarificationsResponse =
+  McpRaiseAgentClarificationsResponses[keyof McpRaiseAgentClarificationsResponses];
+
+export type McpListClarificationsData = {
+  body?: never;
+  path: {
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: {
+    /**
+     * Agent Id
+     */
+    agent_id?: string | null;
+    state?: ClarificationState;
+    /**
+     * Cursor
+     */
+    cursor?: string | null;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/mcp/workspaces/{workspace_id}/clarifications';
+};
+
+export type McpListClarificationsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpListClarificationsError =
+  McpListClarificationsErrors[keyof McpListClarificationsErrors];
+
+export type McpListClarificationsResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerClarificationListPublic;
+};
+
+export type McpListClarificationsResponse =
+  McpListClarificationsResponses[keyof McpListClarificationsResponses];
+
+export type McpAnswerWorkspaceClarificationsData = {
+  body: McpAnswerClarifications;
+  path: {
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/clarifications/answers';
+};
+
+export type McpAnswerWorkspaceClarificationsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpAnswerWorkspaceClarificationsError =
+  McpAnswerWorkspaceClarificationsErrors[keyof McpAnswerWorkspaceClarificationsErrors];
+
+export type McpAnswerWorkspaceClarificationsResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerClarificationsAnsweredPublic;
+};
+
+export type McpAnswerWorkspaceClarificationsResponse =
+  McpAnswerWorkspaceClarificationsResponses[keyof McpAnswerWorkspaceClarificationsResponses];
 
 export type McpGetAgentData = {
   body?: never;

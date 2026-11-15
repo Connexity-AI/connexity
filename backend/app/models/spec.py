@@ -173,6 +173,9 @@ class SpecPublic(BaseModel):
     prompt: SpecPromptPublic | None = Field(
         default=None, description="With include_prompt: the current version's prompt"
     )
+    open_clarifications: int = Field(
+        default=0, description="Questions about this agent waiting for the person"
+    )
 
 
 class SpecChangesPublic(BaseModel):

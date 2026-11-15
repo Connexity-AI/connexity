@@ -246,6 +246,9 @@ import type {
   McpAddAgentsData,
   McpAddAgentsErrors,
   McpAddAgentsResponses,
+  McpAnswerWorkspaceClarificationsData,
+  McpAnswerWorkspaceClarificationsErrors,
+  McpAnswerWorkspaceClarificationsResponses,
   McpArchiveIssueData,
   McpArchiveIssueErrors,
   McpArchiveIssueResponses,
@@ -279,12 +282,18 @@ import type {
   McpListCategoriesData,
   McpListCategoriesErrors,
   McpListCategoriesResponses,
+  McpListClarificationsData,
+  McpListClarificationsErrors,
+  McpListClarificationsResponses,
   McpListIssuesData,
   McpListIssuesErrors,
   McpListIssuesResponses,
   McpListWorkspacesData,
   McpListWorkspacesErrors,
   McpListWorkspacesResponses,
+  McpRaiseAgentClarificationsData,
+  McpRaiseAgentClarificationsErrors,
+  McpRaiseAgentClarificationsResponses,
   McpScanCallsData,
   McpScanCallsErrors,
   McpScanCallsResponses,
@@ -1353,6 +1362,65 @@ export class McpService {
         },
       }
     );
+  }
+
+  /**
+   * Raise Agent Clarifications
+   */
+  public static raiseAgentClarifications<ThrowOnError extends boolean = false>(
+    options: Options<McpRaiseAgentClarificationsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      McpRaiseAgentClarificationsResponses,
+      McpRaiseAgentClarificationsErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/clarifications',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * List Clarifications
+   */
+  public static listClarifications<ThrowOnError extends boolean = false>(
+    options: Options<McpListClarificationsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      McpListClarificationsResponses,
+      McpListClarificationsErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/clarifications',
+      ...options,
+    });
+  }
+
+  /**
+   * Answer Workspace Clarifications
+   */
+  public static answerWorkspaceClarifications<ThrowOnError extends boolean = false>(
+    options: Options<McpAnswerWorkspaceClarificationsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      McpAnswerWorkspaceClarificationsResponses,
+      McpAnswerWorkspaceClarificationsErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/clarifications/answers',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
   }
 
   /**

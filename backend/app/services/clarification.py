@@ -12,7 +12,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from typing import NamedTuple
 
-from sqlmodel import Session
+from sqlmodel import Session, col, select
 
 from app import crud
 from app.crud.check import lock_agent
@@ -21,12 +21,22 @@ from app.crud.clarification import (
     agent_call_ids,
     decide,
     get_clarifications,
+    state_counts,
     unanswered,
     write_answered_spec,
 )
 from app.crud.spec import normalise
 from app.models.agent import Agent
-from app.models.clarification import ANSWER_LETTERS, Clarification
+from app.models.clarification import (
+    ANSWER_LETTERS,
+    AnsweredSpecPublic,
+    Clarification,
+    ClarificationAnswerPublic,
+    ClarificationCountsPublic,
+    ClarificationPublic,
+    ClarificationsAnsweredPublic,
+    ReplacedRulePublic,
+)
 from app.models.enums import ClarificationState, SpecRuleTouches
 from app.models.spec import Spec
 from app.models.user import User
@@ -219,6 +229,8 @@ class AnswerResult(NamedTuple):
     specs: dict[uuid.UUID, Spec]
     answered: int
     parked: int
+    # Rules each agent's new spec version gained: one per answer.
+    rules_added: dict[uuid.UUID, int]
 
 
 def answer_clarifications(
@@ -341,4 +353,124 @@ def answer_clarifications(
         specs=specs,
         answered=sum(len(a) for a in by_agent.values()),
         parked=len(parks),
+        rules_added={agent_id: len(a) for agent_id, a in by_agent.items()},
+    )
+
+
+def _name(user: User | None, email: str | None) -> str:
+    if user is not None:
+        return (user.full_name or "").strip() or user.email.split("@")[0]
+    return email.split("@")[0] if email else "someone"
+
+
+def clarifications_public(
+    *, session: Session, rows: Sequence[Clarification]
+) -> list[ClarificationPublic]:
+    """``rows`` as the assistant reads them, in their order."""
+    if not rows:
+        return []
+    agents = {
+        a.id: a
+        for a in session.exec(
+            select(Agent).where(col(Agent.id).in_({r.agent_id for r in rows}))
+        ).all()
+    }
+    categories = {c.id: c for c in crud.list_categories(session=session)}
+    spec_ids = {i for r in rows for i in (r.spec_id, r.answer_spec_id) if i}
+    versions = {
+        s.id: s.version
+        for s in session.exec(select(Spec).where(col(Spec.id).in_(spec_ids))).all()
+    }
+    user_ids = {i for r in rows for i in (r.raised_by, r.decided_by) if i}
+    users = {
+        u.id: u
+        for u in session.exec(select(User).where(col(User.id).in_(user_ids))).all()
+    }
+    current_text: dict[tuple[uuid.UUID, str], str] = {}
+    for agent_id in {r.agent_id for r in rows if r.replaces_key}:
+        latest = crud.latest_spec(session=session, agent_id=agent_id)
+        if latest is not None:
+            for rule in crud.spec_rules(session=session, spec_id=latest.id):
+                current_text[(agent_id, rule.key)] = rule.text
+    out = []
+    for r in rows:
+        agent = agents.get(r.agent_id)
+        category = categories.get(r.category_id)
+        out.append(
+            ClarificationPublic(
+                id=r.id,
+                agent_id=r.agent_id,
+                agent_name=agent.name if agent else "",
+                question=r.question,
+                answers=[
+                    ClarificationAnswerPublic(
+                        letter=letter, label=str(a["label"]), rule=str(a["rule"])
+                    )
+                    for letter, a in zip(ANSWER_LETTERS, r.answers, strict=False)
+                ],
+                category=category.key if category else "",
+                category_name=category.name if category else "",
+                touches=r.touches,
+                calls_seen=len(r.call_ids),
+                call_ids=[uuid.UUID(i) for i in r.call_ids],
+                spec_version=versions.get(r.spec_id) if r.spec_id else None,
+                replaces=ReplacedRulePublic(
+                    key=r.replaces_key,
+                    text=current_text.get((r.agent_id, r.replaces_key)),
+                )
+                if r.replaces_key
+                else None,
+                state=r.state,
+                raised_by=_name(
+                    users.get(r.raised_by) if r.raised_by else None, r.raised_by_email
+                ),
+                raised_assistant=r.raised_assistant,
+                raised_at=r.raised_at,
+                answer=r.answer,
+                answer_spec_version=versions.get(r.answer_spec_id)
+                if r.answer_spec_id
+                else None,
+                decided_by=_name(
+                    users.get(r.decided_by) if r.decided_by else None,
+                    r.decided_by_email,
+                )
+                if r.decided_by_email
+                else None,
+                decided_assistant=r.decided_assistant,
+                decided_at=r.decided_at,
+            )
+        )
+    return out
+
+
+def counts_public(
+    *, session: Session, company_id: uuid.UUID, agent_id: uuid.UUID | None = None
+) -> ClarificationCountsPublic:
+    counts = state_counts(session=session, company_id=company_id, agent_id=agent_id)
+    return ClarificationCountsPublic(
+        open=counts[ClarificationState.OPEN],
+        answered=counts[ClarificationState.ANSWERED],
+        parked=counts[ClarificationState.PARKED],
+    )
+
+
+def answered_public(
+    *, session: Session, company_id: uuid.UUID, result: AnswerResult
+) -> ClarificationsAnsweredPublic:
+    specs = []
+    for agent_id, spec in result.specs.items():
+        agent = session.get(Agent, agent_id)
+        specs.append(
+            AnsweredSpecPublic(
+                agent_id=agent_id,
+                agent_name=agent.name if agent else "",
+                spec_version=spec.version,
+                rules_added=result.rules_added.get(agent_id, 0),
+            )
+        )
+    return ClarificationsAnsweredPublic(
+        answered=result.answered,
+        parked=result.parked,
+        specs=specs,
+        open=counts_public(session=session, company_id=company_id).open,
     )
