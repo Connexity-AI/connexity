@@ -203,6 +203,19 @@ class McpClarificationQuestion(BaseModel):
     replaces_key: Annotated[
         str | None, StringConstraints(strip_whitespace=True, max_length=64)
     ] = Field(default=None, description="The key of the spec rule the answer replaces")
+    suggested_answer: Annotated[
+        str | None, StringConstraints(strip_whitespace=True, max_length=4)
+    ] = Field(
+        default=None,
+        description="The letter you would pick; a suggestion, not an answer",
+    )
+    why: Annotated[str | None, StringConstraints(max_length=2000)] = Field(
+        default=None, description="One sentence on why you suggest it"
+    )
+    confident: bool = Field(
+        default=False,
+        description="Only when the prompt or a clear pattern on calls settles it",
+    )
 
 
 class McpRaiseClarifications(BaseModel):

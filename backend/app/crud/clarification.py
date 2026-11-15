@@ -122,6 +122,20 @@ def answered_since(
     return session.exec(query).one()
 
 
+def confident_suggestions(
+    *, session: Session, company_id: uuid.UUID, agent_id: uuid.UUID | None = None
+) -> int:
+    """How many open clarifications carry a confident suggestion."""
+    query = select(func.count()).where(
+        Clarification.company_id == company_id,
+        Clarification.state == ClarificationState.OPEN,
+        col(Clarification.suggestion_confident).is_(True),
+    )
+    if agent_id is not None:
+        query = query.where(Clarification.agent_id == agent_id)
+    return session.exec(query).one()
+
+
 class Answer(NamedTuple):
     clarification: Clarification
     letter: str
@@ -206,9 +220,10 @@ def decide(
     answer_spec: Spec | None,
     decided_by: User,
     assistant_name: str | None,
+    from_suggestion: bool = False,
 ) -> None:
-    """Record an answer or a park on the clarification and as a decision record. Does
-    not commit."""
+    """Record an answer, park or reopen on the clarification and as a decision record.
+    Does not commit."""
     old = clarification.state
     clarification.state = state
     clarification.answer = letter
@@ -229,6 +244,7 @@ def decide(
         detail = {
             "rule": clarification.answers[ANSWER_LETTERS.index(letter)]["rule"],
             "spec_version": answer_spec.version,
+            "from_suggestion": from_suggestion,
         }
     session.add(
         DecisionRecord(

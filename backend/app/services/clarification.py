@@ -21,6 +21,7 @@ from app.crud.clarification import (
     Answer,
     agent_call_ids,
     answered_since,
+    confident_suggestions,
     decide,
     get_clarifications,
     state_counts,
@@ -38,6 +39,7 @@ from app.models.clarification import (
     ClarificationPublic,
     ClarificationsAnsweredPublic,
     ReplacedRulePublic,
+    SuggestionPublic,
 )
 from app.models.enums import ClarificationState, SpecRuleTouches
 from app.models.spec import Spec
@@ -48,6 +50,7 @@ MAX_QUESTIONS = 20
 MAX_QUESTION_LENGTH = 500
 MAX_LABEL_LENGTH = 100
 MAX_CALLS = 50
+MAX_WHY_LENGTH = 300
 PARK = "park"
 REOPEN = "reopen"
 
@@ -71,6 +74,10 @@ class QuestionDraft(NamedTuple):
     touches: SpecRuleTouches | None = None
     call_ids: Sequence[uuid.UUID] = ()
     replaces_key: str | None = None
+    # The assistant's suggested answer: a letter, why, and whether it is confident.
+    suggested_answer: str | None = None
+    suggestion_why: str | None = None
+    suggestion_confident: bool = False
 
 
 def _check_question(
@@ -116,6 +123,20 @@ def _check_question(
         )
     if len(set(draft.call_ids)) > MAX_CALLS:
         problems.append(f"{q}: at most {MAX_CALLS} calls.")
+    if draft.suggested_answer is not None:
+        letters = ANSWER_LETTERS[: len(draft.answers)]
+        if draft.suggested_answer.strip().lower() not in letters:
+            problems.append(
+                f"{q}: the suggested answer '{draft.suggested_answer}' is not one of "
+                f"its answers ({', '.join(letters)})."
+            )
+        why = (draft.suggestion_why or "").strip()
+        if not why:
+            problems.append(f"{q}: say in one sentence why you suggest that answer.")
+        elif len(why) > MAX_WHY_LENGTH:
+            problems.append(f"{q}: the why is longer than {MAX_WHY_LENGTH} characters.")
+    elif draft.suggestion_why or draft.suggestion_confident:
+        problems.append(f"{q}: a why or confident needs a suggested answer.")
     if draft.replaces_key is not None and draft.replaces_key not in rule_keys:
         problems.append(
             f"{q}: the rule '{draft.replaces_key}' it replaces is not in the agent's "
@@ -213,6 +234,13 @@ def raise_clarifications(
             raised_by_email=raised_by.email,
             raised_assistant=assistant_name,
         )
+        if draft.suggested_answer:
+            clarification.suggested_answer = draft.suggested_answer.strip().lower()
+            clarification.suggestion_why = (draft.suggestion_why or "").strip()
+            clarification.suggestion_confident = draft.suggestion_confident
+            clarification.suggested_by = raised_by.id
+            clarification.suggested_assistant = assistant_name
+            clarification.suggested_at = datetime.now(UTC)
         session.add(clarification)
         stored.append(clarification)
     session.commit()
@@ -339,14 +367,19 @@ def answer_clarifications(
         )
         specs[agent_id] = spec
         for answer in answers:
+            c = answer.clarification
+            suggested = c.suggested_answer == answer.letter
             decide(
                 session=session,
-                clarification=answer.clarification,
+                clarification=c,
                 state=ClarificationState.ANSWERED,
                 letter=answer.letter,
                 answer_spec=spec,
                 decided_by=decided_by,
-                assistant_name=assistant_name,
+                # Confirmed from a suggestion: the assistant that suggested it.
+                assistant_name=assistant_name
+                or (c.suggested_assistant if suggested else None),
+                from_suggestion=suggested,
             )
     for state, rows in (
         (ClarificationState.PARKED, parks),
@@ -398,7 +431,9 @@ def clarifications_public(
         s.id: s.version
         for s in session.exec(select(Spec).where(col(Spec.id).in_(spec_ids))).all()
     }
-    user_ids = {i for r in rows for i in (r.raised_by, r.decided_by) if i}
+    user_ids = {
+        i for r in rows for i in (r.raised_by, r.decided_by, r.suggested_by) if i
+    }
     users = {
         u.id: u
         for u in session.exec(select(User).where(col(User.id).in_(user_ids))).all()
@@ -438,6 +473,23 @@ def clarifications_public(
                 if r.replaces_key
                 else None,
                 state=r.state,
+                suggestion=SuggestionPublic(
+                    answer=r.suggested_answer,
+                    why=r.suggestion_why or "",
+                    confident=bool(r.suggestion_confident),
+                    suggested_by=_name(
+                        users.get(r.suggested_by) if r.suggested_by else None, None
+                    )
+                    if r.suggested_by
+                    else None,
+                    assistant=r.suggested_assistant,
+                    suggested_at=r.suggested_at,
+                )
+                if r.suggested_answer
+                else None,
+                from_suggestion=r.state is ClarificationState.ANSWERED
+                and r.answer is not None
+                and r.answer == r.suggested_answer,
                 raised_by=_name(
                     users.get(r.raised_by) if r.raised_by else None, r.raised_by_email
                 ),
@@ -468,6 +520,9 @@ def counts_public(
         open=counts[ClarificationState.OPEN],
         answered=counts[ClarificationState.ANSWERED],
         parked=counts[ClarificationState.PARKED],
+        suggested_confident=confident_suggestions(
+            session=session, company_id=company_id, agent_id=agent_id
+        ),
         answered_this_week=answered_since(
             session=session,
             company_id=company_id,
