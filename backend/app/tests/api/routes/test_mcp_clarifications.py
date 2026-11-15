@@ -98,6 +98,7 @@ def test_raise_list_answer_and_read_the_spec(client: TestClient, db: Session) ->
         "answered": 0,
         "parked": 0,
         "answered_this_week": 0,
+        "suggested_confident": 0,
     }
     assert {c["id"] for c in listed["data"]["data"]} == {change["id"], deposit["id"]}
 
@@ -263,3 +264,23 @@ def test_no_answers_is_refused_with_next_steps(client: TestClient, db: Session) 
 
     assert empty.status_code == 422
     assert empty.json()["detail"]["error"] == "Give at least one answer"
+
+
+def test_a_suggestion_through_mcp(client: TestClient, db: Session) -> None:
+    user, agent, _ = _ready(db)
+
+    raised = _raise(
+        client,
+        user,
+        agent,
+        QUESTION
+        | {"suggested_answer": "b", "why": "Callers ask first.", "confident": True},
+    )
+
+    assert raised.status_code == 200, raised.text
+    [item] = raised.json()["data"]
+    assert item["suggestion"]["answer"] == "b"
+    assert item["suggestion"]["confident"] is True
+    listed = client.get(f"{_base(user)}/clarifications", headers=_headers(user)).json()
+    assert listed["data"]["counts"]["suggested_confident"] == 1
+    assert any("A suggestion is your prepared answer" in r for r in listed["rules"])

@@ -3354,6 +3354,12 @@ export const ClarificationCountsPublicSchema = {
       description: 'Answered in the last 7 days',
       default: 0,
     },
+    suggested_confident: {
+      type: 'integer',
+      title: 'Suggested Confident',
+      description: 'Open ones with a confident suggestion',
+      default: 0,
+    },
   },
   type: 'object',
   required: ['open', 'answered', 'parked'],
@@ -3513,6 +3519,23 @@ export const ClarificationPublicSchema = {
     },
     state: {
       $ref: '#/components/schemas/ClarificationState',
+    },
+    suggestion: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SuggestionPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: "The assistant's suggested answer; not an answer until confirmed",
+    },
+    from_suggestion: {
+      type: 'boolean',
+      title: 'From Suggestion',
+      description: 'Answered with the suggested answer',
+      default: false,
     },
     raised_by: {
       type: 'string',
@@ -8387,6 +8410,38 @@ export const McpClarificationQuestionSchema = {
       title: 'Replaces Key',
       description: 'The key of the spec rule the answer replaces',
     },
+    suggested_answer: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 4,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Suggested Answer',
+      description: 'The letter you would pick; a suggestion, not an answer',
+    },
+    why: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 2000,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Why',
+      description: 'One sentence on why you suggest it',
+    },
+    confident: {
+      type: 'boolean',
+      title: 'Confident',
+      description: 'Only when the prompt or a clear pattern on calls settles it',
+      default: false,
+    },
   },
   type: 'object',
   required: ['question', 'answers', 'category'],
@@ -11256,6 +11311,62 @@ export const SpecWrittenPublicSchema = {
   type: 'object',
   required: ['agent_id', 'agent_name', 'state', 'changes'],
   title: 'SpecWrittenPublic',
+} as const;
+
+export const SuggestionPublicSchema = {
+  properties: {
+    answer: {
+      type: 'string',
+      title: 'Answer',
+      description: 'The suggested letter, a to d',
+    },
+    why: {
+      type: 'string',
+      title: 'Why',
+    },
+    confident: {
+      type: 'boolean',
+      title: 'Confident',
+    },
+    suggested_by: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Suggested By',
+      description: 'The person whose assistant suggested it',
+    },
+    assistant: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Assistant',
+    },
+    suggested_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Suggested At',
+    },
+  },
+  type: 'object',
+  required: ['answer', 'why', 'confident'],
+  title: 'SuggestionPublic',
 } as const;
 
 export const SuggestionsRequestSchema = {

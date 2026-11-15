@@ -891,6 +891,10 @@ _CLARIFICATION_RULES = [
     "(`replaces_key`), quoting the earlier answer.",
     "calls_seen counts the calls given as evidence; a question raised from a prompt "
     "change may have none.",
+    "A suggestion is your prepared answer, not an answer: it changes nothing until the "
+    "person confirms it, in the app (confident ones in one batch) or with you in your "
+    "session before `answer_clarifications`. Mark confident only when the prompt or a "
+    "clear pattern on calls settles it.",
     "Open questions are listed most important first: seen on more calls, then touching "
     "money, safety or compliance, then the newest. Answered and parked ones newest "
     "first. A parked question can be answered, or reopened with `reopen`.",
@@ -942,6 +946,9 @@ def raise_agent_clarifications(
                     touches=q.touches,
                     call_ids=q.call_ids,
                     replaces_key=q.replaces_key or None,
+                    suggested_answer=q.suggested_answer or None,
+                    suggestion_why=q.why,
+                    suggestion_confident=q.confident,
                 )
                 for q in body.questions
             ],
@@ -960,7 +967,8 @@ def raise_agent_clarifications(
         next_steps=[
             "Confirm the answers with the person in one batch: say which you can answer "
             "confidently and which need them, then call `answer_clarifications`. Never "
-            "answer without them.",
+            "answer without them. Your suggestions also wait for them on the Action "
+            "items page.",
         ],
         guide=GUIDE_SPEC,
     )
