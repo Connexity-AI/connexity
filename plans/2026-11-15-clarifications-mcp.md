@@ -1,9 +1,10 @@
 # Clarifications, part 2: MCP
 
 - **Owner:** Dmytro
-- **Slice:** Demo milestone, roadmap feature "Clarifications in Action items" (10.12),
-  part 2 of 3 (Decided, Dmytro: schema and logic first, then MCP, then the page). Part 1
-  is Connexity-AI/connexity#203. Part 3, the Action items page, comes after the demo.
+- **Slice:** Demo milestone, roadmap feature "Clarifications (MCP)" (10.12),
+  part 2 of 2. It was split schema and logic first, then MCP (Decided, Dmytro). Part 1 is
+  Connexity-AI/connexity#203. 10.12 is done when this merges. The Action items page is
+  its own row, 10.122, after the Spec tab, 10.121 (Dmytro, 2026-11-15).
 - **Design:** no UI change.
 - **MCP:**
   - adds `raise_clarifications`, `list_clarifications` and `answer_clarifications`;
@@ -136,7 +137,7 @@ From the plan of part 1, "How the assistant knows":
   2026-11-15: "on the backend it should be either answered or parked or open").
 - **The triggers and where the assistant is told.** Decided (Dmytro, 2026-11-15: "Accept
   all three, add it to the plan").
-- **No web routes yet.** The Action items page and its routes are part 3, after the
+- **No web routes yet.** The Action items page and its routes are 10.122, after the
   demo.
 
 ## Questions
@@ -175,8 +176,8 @@ From the plan of part 1, "How the assistant knows":
 ## Out of scope
 
 - The Action items page, its sidebar count, answering in the app and its web routes
-  (part 3).
-- The batch confirm flow and stored suggested answers (after the demo).
+  (10.122, after the Spec tab).
+- The batch confirm flow and stored suggested answers (10.122, unless Dmytro moves it).
 - Connexity raising clarifications from calls (later).
 - The Spec tab (Order 16.5).
 
@@ -256,5 +257,6 @@ Tests:
 
 ### Not done
 
-- The Action items page: part 3, after the demo. When it merges, 10.12 is done.
+- The Action items page: its own row, 10.122, after the Spec tab (10.121). 10.12 is
+  done when this pull request merges.
 - Reading a replaced rule's text with one query (see the review findings).
