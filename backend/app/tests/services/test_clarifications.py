@@ -8,7 +8,7 @@ import pytest
 from sqlmodel import Session, col, select
 
 from app import crud
-from app.crud.clarification import open_counts, state_counts
+from app.crud.clarification import list_page, open_counts, state_counts
 from app.crud.spec import adopt_spec_safely
 from app.models import Agent, Spec, SpecRule, User
 from app.models.check import DecisionRecord
@@ -80,9 +80,12 @@ DEPOSIT = QuestionDraft(
 )
 
 
-def _ready(db: Session, version: int = 7) -> tuple[User, Agent, list[uuid.UUID]]:
-    """A person and an agent with two calls on ``version`` and a written spec."""
-    user = _person(db)
+def _ready(
+    db: Session, version: int = 7, owner: User | None = None
+) -> tuple[User, Agent, list[uuid.UUID]]:
+    """A person (``owner`` if given) and an agent with two calls on ``version`` and a
+    written spec."""
+    user = owner or _person(db)
     agent = _agent(db, user, "Front desk")
     _catalogue(db, agent, str(version))
     calls = [
@@ -364,7 +367,9 @@ def test_answering_lists_every_problem_and_stores_nothing(db: Session) -> None:
     )
 
     assert problems[0] == "Answer 2: the same clarification is given twice."
-    assert problems[1] == "Answer 3: answer with one of a, b, or 'park'."
+    assert problems[1] == (
+        "Answer 3: answer with one of a, b, 'park', or 'reopen' for a parked question."
+    )
     assert problems[2].startswith("Answer 4: no clarification")
     db.refresh(change)
     assert change.state is ClarificationState.OPEN
@@ -467,3 +472,53 @@ def test_a_replaced_rule_dropped_since_is_not_brought_back(db: Session) -> None:
     rules = _rules(db, newest)
     assert dropped.key not in {r.key for r in rules}
     assert any(r.clarification_id == change.id for r in rules)
+
+
+def test_a_parked_question_can_be_reopened_and_only_then(db: Session) -> None:
+    user, agent, _ = _ready(db)
+    change, deposit = _raise(db, user, agent, CHANGE, DEPOSIT)
+    _answer(db, user, (change.id, "park"))
+
+    _answer(db, user, (change.id, "reopen"))
+
+    db.refresh(change)
+    assert change.state is ClarificationState.OPEN
+    assert (
+        "only a parked question"
+        in _refused(lambda: _answer(db, user, (deposit.id, "reopen")))[0]
+    )
+    record = db.exec(
+        select(DecisionRecord).where(
+            DecisionRecord.agent_id == agent.id,
+            DecisionRecord.kind == DecisionKind.CLARIFICATION_REOPENED,
+        )
+    ).one()
+    assert (record.subject, record.old_value, record.new_value) == (
+        str(change.id),
+        "parked",
+        "open",
+    )
+
+
+def test_open_questions_come_most_important_first(db: Session) -> None:
+    user, agent, calls = _ready(db)
+    plain, money, seen = _raise(
+        db,
+        user,
+        agent,
+        CHANGE._replace(question="A plain question?"),
+        DEPOSIT,
+        CHANGE._replace(question="Seen on calls?", call_ids=calls),
+    )
+
+    rows, more = list_page(
+        session=db,
+        company_id=user.company_id,
+        state=ClarificationState.OPEN,
+        agent_id=agent.id,
+        offset=0,
+        limit=10,
+    )
+
+    assert [r.id for r in rows] == [seen.id, money.id, plain.id]
+    assert more is False

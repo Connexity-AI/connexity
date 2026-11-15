@@ -2031,6 +2031,16 @@ export type ClarificationAnswerPublic = {
 };
 
 /**
+ * ClarificationAnswersIn
+ */
+export type ClarificationAnswersIn = {
+  /**
+   * Answers
+   */
+  answers: Array<ClarificationDecisionIn>;
+};
+
+/**
  * ClarificationCountsPublic
  */
 export type ClarificationCountsPublic = {
@@ -2046,6 +2056,48 @@ export type ClarificationCountsPublic = {
    * Parked
    */
   parked: number;
+  /**
+   * Answered This Week
+   *
+   * Answered in the last 7 days
+   */
+  answered_this_week?: number;
+};
+
+/**
+ * ClarificationDecisionIn
+ */
+export type ClarificationDecisionIn = {
+  /**
+   * Clarification Id
+   */
+  clarification_id: string;
+  /**
+   * Answer
+   *
+   * a to d, 'park', or 'reopen' for a parked one
+   */
+  answer: string;
+};
+
+/**
+ * ClarificationListPage
+ */
+export type ClarificationListPage = {
+  /**
+   * For the same agent filter, every state
+   */
+  counts: ClarificationCountsPublic;
+  /**
+   * Data
+   */
+  data: Array<ClarificationPublic>;
+  /**
+   * Next Cursor
+   *
+   * Pass as `cursor` for the next page
+   */
+  next_cursor?: string | null;
 };
 
 /**
@@ -2186,6 +2238,10 @@ export type ClarificationsAnsweredPublic = {
    * Parked
    */
   parked: number;
+  /**
+   * Reopened
+   */
+  reopened?: number;
   /**
    * Specs
    */
@@ -2640,6 +2696,7 @@ export const DecisionKind = {
   ISSUE_STATE: 'issue_state',
   CLARIFICATION_ANSWERED: 'clarification_answered',
   CLARIFICATION_PARKED: 'clarification_parked',
+  CLARIFICATION_REOPENED: 'clarification_reopened',
 } as const;
 
 /**
@@ -5408,7 +5465,7 @@ export type McpClarificationDecision = {
   /**
    * Answer
    *
-   * The letter the person chose (a to d), or 'park'
+   * The letter the person chose (a to d), 'park', or 'reopen' for a parked one
    */
   answer: string;
 };
@@ -11625,6 +11682,128 @@ export type AgentsGetAgentPageResponses = {
 
 export type AgentsGetAgentPageResponse =
   AgentsGetAgentPageResponses[keyof AgentsGetAgentPageResponses];
+
+export type ClarificationsListWorkspaceClarificationsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    state?: ClarificationState;
+    /**
+     * Agent Id
+     */
+    agent_id?: string | null;
+    /**
+     * Cursor
+     */
+    cursor?: string | null;
+    /**
+     * Limit
+     */
+    limit?: number;
+    /**
+     * This Week
+     *
+     * Only those decided in the last 7 days
+     */
+    this_week?: boolean;
+  };
+  url: '/api/v1/clarifications';
+};
+
+export type ClarificationsListWorkspaceClarificationsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ClarificationsListWorkspaceClarificationsError =
+  ClarificationsListWorkspaceClarificationsErrors[keyof ClarificationsListWorkspaceClarificationsErrors];
+
+export type ClarificationsListWorkspaceClarificationsResponses = {
+  /**
+   * Successful Response
+   */
+  200: ClarificationListPage;
+};
+
+export type ClarificationsListWorkspaceClarificationsResponse =
+  ClarificationsListWorkspaceClarificationsResponses[keyof ClarificationsListWorkspaceClarificationsResponses];
+
+export type ClarificationsAnswerWorkspaceClarificationsData = {
+  body: ClarificationAnswersIn;
+  path?: never;
+  query?: never;
+  url: '/api/v1/clarifications/answers';
+};
+
+export type ClarificationsAnswerWorkspaceClarificationsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ClarificationsAnswerWorkspaceClarificationsError =
+  ClarificationsAnswerWorkspaceClarificationsErrors[keyof ClarificationsAnswerWorkspaceClarificationsErrors];
+
+export type ClarificationsAnswerWorkspaceClarificationsResponses = {
+  /**
+   * Successful Response
+   */
+  200: ClarificationsAnsweredPublic;
+};
+
+export type ClarificationsAnswerWorkspaceClarificationsResponse =
+  ClarificationsAnswerWorkspaceClarificationsResponses[keyof ClarificationsAnswerWorkspaceClarificationsResponses];
 
 export type AgentsListAgentsData = {
   body?: never;

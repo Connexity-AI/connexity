@@ -93,7 +93,12 @@ def test_raise_list_answer_and_read_the_spec(client: TestClient, db: Session) ->
     assert any("The person answers" in rule for rule in body["rules"])
 
     listed = client.get(f"{_base(user)}/clarifications", headers=_headers(user)).json()
-    assert listed["data"]["counts"] == {"open": 2, "answered": 0, "parked": 0}
+    assert listed["data"]["counts"] == {
+        "open": 2,
+        "answered": 0,
+        "parked": 0,
+        "answered_this_week": 0,
+    }
     assert {c["id"] for c in listed["data"]["data"]} == {change["id"], deposit["id"]}
 
     spec = client.get(

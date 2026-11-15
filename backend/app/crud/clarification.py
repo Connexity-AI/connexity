@@ -104,6 +104,24 @@ def state_counts(
     return counts
 
 
+def answered_since(
+    *,
+    session: Session,
+    company_id: uuid.UUID,
+    since: datetime,
+    agent_id: uuid.UUID | None = None,
+) -> int:
+    """How many clarifications were answered since ``since``."""
+    query = select(func.count()).where(
+        Clarification.company_id == company_id,
+        Clarification.state == ClarificationState.ANSWERED,
+        col(Clarification.decided_at) >= since,
+    )
+    if agent_id is not None:
+        query = query.where(Clarification.agent_id == agent_id)
+    return session.exec(query).one()
+
+
 class Answer(NamedTuple):
     clarification: Clarification
     letter: str
@@ -201,6 +219,11 @@ def decide(
     clarification.decided_at = datetime.now(UTC)
     session.add(clarification)
     answered = state is ClarificationState.ANSWERED
+    kind = {
+        ClarificationState.ANSWERED: DecisionKind.CLARIFICATION_ANSWERED,
+        ClarificationState.PARKED: DecisionKind.CLARIFICATION_PARKED,
+        ClarificationState.OPEN: DecisionKind.CLARIFICATION_REOPENED,
+    }[state]
     detail = None
     if answered and letter is not None and answer_spec is not None:
         detail = {
@@ -211,9 +234,7 @@ def decide(
         DecisionRecord(
             company_id=clarification.company_id,
             agent_id=clarification.agent_id,
-            kind=DecisionKind.CLARIFICATION_ANSWERED
-            if answered
-            else DecisionKind.CLARIFICATION_PARKED,
+            kind=kind,
             subject=str(clarification.id),
             old_value=old.value,
             new_value=letter if answered else state.value,
@@ -233,19 +254,34 @@ def list_page(
     agent_id: uuid.UUID | None,
     offset: int,
     limit: int,
+    decided_since: datetime | None = None,
 ) -> tuple[list[Clarification], bool]:
-    """A page of the workspace's clarifications in ``state``, newest first, and
-    whether more follow."""
+    """A page of the workspace's clarifications in ``state`` and whether more follow:
+    open ones most important first, answered and parked ones newest first."""
     query = select(Clarification).where(
         Clarification.company_id == company_id, Clarification.state == state
     )
     if agent_id is not None:
         query = query.where(Clarification.agent_id == agent_id)
+    if decided_since is not None:
+        query = query.where(col(Clarification.decided_at) >= decided_since)
+    if state is ClarificationState.OPEN:
+        # Most important first: seen on more calls, then touching money, safety or
+        # compliance, then the newest. No criticality yet.
+        order = (
+            func.jsonb_array_length(col(Clarification.call_ids)).desc(),
+            col(Clarification.touches).is_(None),
+            col(Clarification.raised_at).desc(),
+            col(Clarification.id),
+        )
+    else:
+        order = (
+            func.coalesce(
+                col(Clarification.decided_at), col(Clarification.raised_at)
+            ).desc(),
+            col(Clarification.id),
+        )
     rows = list(
-        session.exec(
-            query.order_by(col(Clarification.raised_at).desc(), col(Clarification.id))
-            .offset(offset)
-            .limit(limit + 1)
-        ).all()
+        session.exec(query.order_by(*order).offset(offset).limit(limit + 1)).all()
     )
     return rows[:limit], len(rows) > limit

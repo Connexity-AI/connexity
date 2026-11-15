@@ -175,6 +175,9 @@ class ClarificationCountsPublic(BaseModel):
     open: int
     answered: int
     parked: int
+    answered_this_week: int = Field(
+        default=0, description="Answered in the last 7 days"
+    )
 
 
 class ClarificationListPublic(BaseModel):
@@ -194,5 +197,6 @@ class AnsweredSpecPublic(BaseModel):
 class ClarificationsAnsweredPublic(BaseModel):
     answered: int
     parked: int
+    reopened: int = 0
     specs: list[AnsweredSpecPublic]
     open: int = Field(description="Open clarifications left in the workspace")

@@ -198,6 +198,7 @@ class DecisionKind(StrEnum):
     ISSUE_STATE = "issue_state"
     CLARIFICATION_ANSWERED = "clarification_answered"
     CLARIFICATION_PARKED = "clarification_parked"
+    CLARIFICATION_REOPENED = "clarification_reopened"
 
 
 class CheckOutcome(StrEnum):

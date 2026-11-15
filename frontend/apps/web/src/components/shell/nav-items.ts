@@ -1,6 +1,5 @@
-import { Bot, Inbox, Phone } from 'lucide-react';
-
 import { UrlGenerator } from '@/common/url-generator/url-generator';
+import { Bot, Inbox, ListTodo, Phone } from 'lucide-react';
 
 import type { LucideIcon } from 'lucide-react';
 import type { Route } from 'next';
@@ -9,6 +8,8 @@ export interface NavItem {
   title: string;
   url: Route;
   icon: LucideIcon;
+  /** Shows a muted count next to the name (Action items: open questions). */
+  counted?: boolean;
 }
 
 /**
@@ -20,6 +21,7 @@ export interface NavItem {
  * adding one.
  */
 export const NAV_ITEMS: readonly NavItem[] = [
+  { title: 'Action items', url: UrlGenerator.actionItems(), icon: ListTodo, counted: true },
   { title: 'Agents', url: UrlGenerator.agents(), icon: Bot },
   { title: 'Calls', url: UrlGenerator.calls(), icon: Phone },
   { title: 'Issues', url: UrlGenerator.issues(), icon: Inbox },

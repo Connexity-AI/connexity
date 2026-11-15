@@ -8,6 +8,7 @@ from app.api.routes import (
     call_screen,
     calls,
     checks,
+    clarifications,
     company,
     component_versions,
     config,
@@ -51,6 +52,7 @@ api_router.include_router(personal_access_tokens.router)
 api_router.include_router(mcp.router)
 # Before agents.router: its /agents/{agent_id} would catch /agents/list.
 api_router.include_router(agent_list.router)
+api_router.include_router(clarifications.router)
 api_router.include_router(agents.router)
 api_router.include_router(test_cases.router)
 api_router.include_router(custom_metrics.router)

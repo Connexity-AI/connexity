@@ -10,6 +10,7 @@ is listed and nothing is stored unless all of it is right.
 import uuid
 from collections import defaultdict
 from collections.abc import Sequence
+from datetime import UTC, datetime, timedelta
 from typing import NamedTuple
 
 from sqlmodel import Session, col, select
@@ -19,6 +20,7 @@ from app.crud.check import lock_agent
 from app.crud.clarification import (
     Answer,
     agent_call_ids,
+    answered_since,
     decide,
     get_clarifications,
     state_counts,
@@ -47,6 +49,7 @@ MAX_QUESTION_LENGTH = 500
 MAX_LABEL_LENGTH = 100
 MAX_CALLS = 50
 PARK = "park"
+REOPEN = "reopen"
 
 
 class ClarificationRefused(Exception):
@@ -220,7 +223,7 @@ def raise_clarifications(
 
 class Decision(NamedTuple):
     clarification_id: uuid.UUID
-    # "a" to "d", or "park".
+    # "a" to "d", "park", or "reopen" for a parked one.
     answer: str
 
 
@@ -231,6 +234,7 @@ class AnswerResult(NamedTuple):
     parked: int
     # Rules each agent's new spec version gained: one per answer.
     rules_added: dict[uuid.UUID, int]
+    reopened: int = 0
 
 
 def answer_clarifications(
@@ -241,15 +245,15 @@ def answer_clarifications(
     decided_by: User,
     assistant_name: str | None,
 ) -> AnswerResult:
-    """Answer or park clarifications in the workspace. Commits.
+    """Answer, park or reopen clarifications in the workspace. Commits.
 
-    The answers for one agent make one new spec version. Each answer and each park is a
-    decision record.
+    The answers for one agent make one new spec version. Each answer, park and reopen
+    is a decision record. Only a parked clarification can be reopened.
 
     Raises:
         ClarificationRefused: A clarification is unknown, already answered or given
-            twice, or an answer is not a to d or "park"; every problem is listed and
-            nothing is stored.
+            twice, or an answer is not a to d, "park" or "reopen"; every problem is
+            listed and nothing is stored.
     """
     if not decisions:
         raise ClarificationRefused("Give at least one answer", [])
@@ -287,10 +291,15 @@ def answer_clarifications(
             if c.state is ClarificationState.PARKED:
                 problems.append(f"{d}: already parked.")
             continue
+        if decision.answer == REOPEN:
+            if c.state is not ClarificationState.PARKED:
+                problems.append(f"{d}: only a parked question can be reopened.")
+            continue
         letters = ANSWER_LETTERS[: len(c.answers)]
         if decision.answer not in letters:
             problems.append(
-                f"{d}: answer with one of {', '.join(letters)}, or '{PARK}'."
+                f"{d}: answer with one of {', '.join(letters)}, '{PARK}', or "
+                f"'{REOPEN}' for a parked question."
             )
             continue
         if c.replaces_key:
@@ -307,10 +316,13 @@ def answer_clarifications(
 
     by_agent: dict[uuid.UUID, list[Answer]] = defaultdict(list)
     parks: list[Clarification] = []
+    reopens: list[Clarification] = []
     for decision in decisions:
         c = found[decision.clarification_id]
         if decision.answer == PARK:
             parks.append(c)
+        elif decision.answer == REOPEN:
+            reopens.append(c)
         else:
             by_agent[c.agent_id].append(Answer(c, decision.answer))
 
@@ -336,16 +348,20 @@ def answer_clarifications(
                 decided_by=decided_by,
                 assistant_name=assistant_name,
             )
-    for c in parks:
-        decide(
-            session=session,
-            clarification=c,
-            state=ClarificationState.PARKED,
-            letter=None,
-            answer_spec=None,
-            decided_by=decided_by,
-            assistant_name=assistant_name,
-        )
+    for state, rows in (
+        (ClarificationState.PARKED, parks),
+        (ClarificationState.OPEN, reopens),
+    ):
+        for c in rows:
+            decide(
+                session=session,
+                clarification=c,
+                state=state,
+                letter=None,
+                answer_spec=None,
+                decided_by=decided_by,
+                assistant_name=assistant_name,
+            )
     session.commit()
     for spec in specs.values():
         session.refresh(spec)
@@ -354,6 +370,7 @@ def answer_clarifications(
         answered=sum(len(a) for a in by_agent.values()),
         parked=len(parks),
         rules_added={agent_id: len(a) for agent_id, a in by_agent.items()},
+        reopened=len(reopens),
     )
 
 
@@ -451,6 +468,12 @@ def counts_public(
         open=counts[ClarificationState.OPEN],
         answered=counts[ClarificationState.ANSWERED],
         parked=counts[ClarificationState.PARKED],
+        answered_this_week=answered_since(
+            session=session,
+            company_id=company_id,
+            agent_id=agent_id,
+            since=datetime.now(UTC) - timedelta(days=7),
+        ),
     )
 
 
@@ -471,6 +494,7 @@ def answered_public(
     return ClarificationsAnsweredPublic(
         answered=result.answered,
         parked=result.parked,
+        reopened=result.reopened,
         specs=specs,
         open=counts_public(session=session, company_id=company_id).open,
     )

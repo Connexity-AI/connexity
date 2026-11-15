@@ -3318,6 +3318,22 @@ export const ClarificationAnswerPublicSchema = {
   title: 'ClarificationAnswerPublic',
 } as const;
 
+export const ClarificationAnswersInSchema = {
+  properties: {
+    answers: {
+      items: {
+        $ref: '#/components/schemas/ClarificationDecisionIn',
+      },
+      type: 'array',
+      maxItems: 50,
+      title: 'Answers',
+    },
+  },
+  type: 'object',
+  required: ['answers'],
+  title: 'ClarificationAnswersIn',
+} as const;
+
 export const ClarificationCountsPublicSchema = {
   properties: {
     open: {
@@ -3332,10 +3348,66 @@ export const ClarificationCountsPublicSchema = {
       type: 'integer',
       title: 'Parked',
     },
+    answered_this_week: {
+      type: 'integer',
+      title: 'Answered This Week',
+      description: 'Answered in the last 7 days',
+      default: 0,
+    },
   },
   type: 'object',
   required: ['open', 'answered', 'parked'],
   title: 'ClarificationCountsPublic',
+} as const;
+
+export const ClarificationDecisionInSchema = {
+  properties: {
+    clarification_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Clarification Id',
+    },
+    answer: {
+      type: 'string',
+      maxLength: 16,
+      title: 'Answer',
+      description: "a to d, 'park', or 'reopen' for a parked one",
+    },
+  },
+  type: 'object',
+  required: ['clarification_id', 'answer'],
+  title: 'ClarificationDecisionIn',
+} as const;
+
+export const ClarificationListPageSchema = {
+  properties: {
+    counts: {
+      $ref: '#/components/schemas/ClarificationCountsPublic',
+      description: 'For the same agent filter, every state',
+    },
+    data: {
+      items: {
+        $ref: '#/components/schemas/ClarificationPublic',
+      },
+      type: 'array',
+      title: 'Data',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'Pass as `cursor` for the next page',
+    },
+  },
+  type: 'object',
+  required: ['counts', 'data'],
+  title: 'ClarificationListPage',
 } as const;
 
 export const ClarificationListPublicSchema = {
@@ -3556,6 +3628,11 @@ export const ClarificationsAnsweredPublicSchema = {
     parked: {
       type: 'integer',
       title: 'Parked',
+    },
+    reopened: {
+      type: 'integer',
+      title: 'Reopened',
+      default: 0,
     },
     specs: {
       items: {
@@ -4252,7 +4329,13 @@ export const CustomMetricsPublicSchema = {
 
 export const DecisionKindSchema = {
   type: 'string',
-  enum: ['check_setting', 'issue_state', 'clarification_answered', 'clarification_parked'],
+  enum: [
+    'check_setting',
+    'issue_state',
+    'clarification_answered',
+    'clarification_parked',
+    'clarification_reopened',
+  ],
   title: 'DecisionKind',
 } as const;
 
@@ -8239,7 +8322,7 @@ export const McpClarificationDecisionSchema = {
       type: 'string',
       maxLength: 16,
       title: 'Answer',
-      description: "The letter the person chose (a to d), or 'park'",
+      description: "The letter the person chose (a to d), 'park', or 'reopen' for a parked one",
     },
   },
   type: 'object',
