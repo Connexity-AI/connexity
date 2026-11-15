@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 
+import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { ChevronDown, ChevronRight, FileText, GitCompare, TriangleAlert } from 'lucide-react';
 
 import { NumberTile } from '@workspace/ui/components/number-tile';
@@ -11,6 +13,7 @@ import { parseTime } from '@/components/calls/format';
 import { Picker } from '@/components/common/picker';
 
 import type { SpecGroupPublic, SpecPublic, SpecRulePublic } from '@/client/types.gen';
+import type { Route } from 'next';
 import type { FC, ReactNode } from 'react';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -52,7 +55,10 @@ const Badge: FC<{ tone: 'warning' | 'passed' | 'plain'; children: ReactNode }> =
   </span>
 );
 
-const RuleRow: FC<{ rule: SpecRulePublic }> = ({ rule }) => {
+const RuleRow: FC<{ rule: SpecRulePublic; actionItemsHref: Route }> = ({
+  rule,
+  actionItemsHref,
+}) => {
   const dropped = rule.change === 'dropped';
   const touches = rule.touches ? TOUCHES[rule.touches] : undefined;
   return (
@@ -74,7 +80,13 @@ const RuleRow: FC<{ rule: SpecRulePublic }> = ({ rule }) => {
         <span className="text-label text-ink-muted">
           {source(rule)}
           {rule.in_conflict && (
-            <span className="text-warning"> · The new prompt says otherwise</span>
+            <span className="text-warning">
+              {' '}
+              · The new prompt says otherwise.{' '}
+              <Link href={actionItemsHref} className="text-warning">
+                Open the clarification
+              </Link>
+            </span>
           )}
         </span>
       </div>
@@ -92,7 +104,11 @@ const RuleRow: FC<{ rule: SpecRulePublic }> = ({ rule }) => {
   );
 };
 
-const Group: FC<{ group: SpecGroupPublic; changesOnly: boolean }> = ({ group, changesOnly }) => {
+const Group: FC<{ group: SpecGroupPublic; changesOnly: boolean; actionItemsHref: Route }> = ({
+  group,
+  changesOnly,
+  actionItemsHref,
+}) => {
   const [open, setOpen] = useState(false);
   const rules = (changesOnly ? group.rules.filter((r) => r.change !== 'kept') : group.rules)
     .map((rule, i) => ({ rule, i }))
@@ -126,7 +142,11 @@ const Group: FC<{ group: SpecGroupPublic; changesOnly: boolean }> = ({ group, ch
       {open && (
         <div className="pb-2">
           {rules.map((rule) => (
-            <RuleRow key={`${rule.key}-${rule.change ?? ''}`} rule={rule} />
+            <RuleRow
+              key={`${rule.key}-${rule.change ?? ''}`}
+              rule={rule}
+              actionItemsHref={actionItemsHref}
+            />
           ))}
         </div>
       )}
@@ -143,7 +163,7 @@ interface Props {
 
 /**
  * The Spec tab (designs/screens/Connexity Agent Profile.dc.html; plans/2026-11-15-spec-tab.md):
- * read only. The open-clarifications tile links nowhere until the Action items page exists.
+ * read only. The open-clarifications tile and "In conflict" lead to Action items.
  */
 export const SpecTab: FC<Props> = ({ spec, liveSince, onCompare }) => {
   const [changesOnly, setChangesOnly] = useState(false);
@@ -197,10 +217,16 @@ export const SpecTab: FC<Props> = ({ spec, liveSince, onCompare }) => {
             value={conflicts.toLocaleString()}
             severity={conflicts > 0 ? 'warning' : undefined}
           />
-          <NumberTile
-            label="Open clarifications"
-            value={(spec.open_clarifications ?? 0).toLocaleString()}
-          />
+          <Link
+            href={UrlGenerator.actionItems(spec.agent_id)}
+            title="Open in Action items"
+            className="rounded-xl text-ink no-underline hover:opacity-90"
+          >
+            <NumberTile
+              label="Open clarifications"
+              value={(spec.open_clarifications ?? 0).toLocaleString()}
+            />
+          </Link>
         </div>
       )}
 
@@ -258,7 +284,12 @@ export const SpecTab: FC<Props> = ({ spec, liveSince, onCompare }) => {
           </div>
         </div>
         {(spec.groups ?? []).map((group) => (
-          <Group key={group.category} group={group} changesOnly={changesOnly} />
+          <Group
+            key={group.category}
+            group={group}
+            changesOnly={changesOnly}
+            actionItemsHref={UrlGenerator.actionItems(spec.agent_id)}
+          />
         ))}
       </section>
     </div>

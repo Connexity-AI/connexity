@@ -447,6 +447,7 @@ class ClarificationCounts(BaseModel):
     open: int = 0
     answered: int = 0
     parked: int = 0
+    answered_this_week: int = 0
 
 
 class Clarifications(BaseModel):
@@ -464,6 +465,7 @@ class AnsweredSpec(BaseModel):
 class ClarificationsAnswered(BaseModel):
     answered: int
     parked: int
+    reopened: int = 0
     specs: list[AnsweredSpec] = Field(default_factory=list)
     open: int
 
@@ -499,7 +501,10 @@ class AnswerToGive(BaseModel):
     """One decision for `answer_clarifications`."""
 
     clarification_id: str
-    answer: str = Field(description="The letter the person chose (a to d), or 'park'")
+    answer: str = Field(
+        description="The letter the person chose (a to d), 'park', or 'reopen' for a "
+        "parked one"
+    )
 
 
 RaiseClarificationsResult = Answer[list[Clarification]]

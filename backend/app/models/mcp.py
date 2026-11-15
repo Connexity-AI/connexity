@@ -212,7 +212,8 @@ class McpRaiseClarifications(BaseModel):
 class McpClarificationDecision(BaseModel):
     clarification_id: uuid.UUID
     answer: Annotated[str, StringConstraints(max_length=16)] = Field(
-        description="The letter the person chose (a to d), or 'park'"
+        description="The letter the person chose (a to d), 'park', or 'reopen' for a "
+        "parked one"
     )
 
 

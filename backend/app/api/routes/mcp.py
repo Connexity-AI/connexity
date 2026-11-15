@@ -891,6 +891,9 @@ _CLARIFICATION_RULES = [
     "(`replaces_key`), quoting the earlier answer.",
     "calls_seen counts the calls given as evidence; a question raised from a prompt "
     "change may have none.",
+    "Open questions are listed most important first: seen on more calls, then touching "
+    "money, safety or compliance, then the newest. Answered and parked ones newest "
+    "first. A parked question can be answered, or reopened with `reopen`.",
 ]
 
 

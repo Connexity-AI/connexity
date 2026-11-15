@@ -16,11 +16,13 @@ interface Props {
    * cannot be passed to a client component; an element can.
    */
   icon: ReactNode;
+  /** A muted count after the name; none when zero. */
+  count?: number;
 }
 
 const base = (path: string) => (path.length > 1 ? path.replace(/\/+$/, '') : path);
 
-export const NavLink: FC<Props> = ({ title, url, icon }) => {
+export const NavLink: FC<Props> = ({ title, url, icon, count }) => {
   const pathname = base(usePathname());
   const target = base(url);
   const isActive = pathname === target || pathname.startsWith(`${target}/`);
@@ -36,6 +38,9 @@ export const NavLink: FC<Props> = ({ title, url, icon }) => {
     >
       {icon}
       <span>{title}</span>
+      {count ? (
+        <span className="ml-auto text-label text-ink-muted">{count.toLocaleString()}</span>
+      ) : null}
     </Link>
   );
 };

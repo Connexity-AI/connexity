@@ -85,11 +85,14 @@ and the new prompt's words in the question. Its answer replaces the rule.
 - **The person answers, never you alone.** Prepare the answers, then confirm them in one
   batch: "I can answer 6 confidently; I need your help with the other 1."
 - **Submit with `answer_clarifications`:** a letter, or `park` for what is not important
-  now. A parked question can still be answered later.
+  now. A parked question can still be answered later, or brought back to the open
+  list with `reopen`.
 - **When the person leaves a decision to you,** it is still recorded as theirs, with you
   as the assistant that acted. Tell them so.
 - **Answers for one agent make one new spec version.** Tell the person which rules were
   added.
+- **The person can also answer in the app,** on the Action items page. Check
+  `list_clarifications` before asking them, so you never ask what they already answered.
 
 ## A new agent version
 

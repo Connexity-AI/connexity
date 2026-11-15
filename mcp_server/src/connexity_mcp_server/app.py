@@ -415,8 +415,9 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         cursor: str | None = None,
         limit: int | None = None,
     ) -> ListClarificationsResult:
-        """Questions for the person about the workspace's agents, newest first: open
-        by default, or answered or parked. Each has its answers (a to d) with the rule
+        """Questions for the person about the workspace's agents: open by default,
+        most important first (seen on more calls, then money, safety or compliance,
+        then newest), or answered or parked, newest first. Each has its answers (a to d) with the rule
         each becomes, how many calls it was seen on, and, once answered, the choice,
         who made it and the spec version it made. Counts of every state come with each
         page; pass `next_cursor` as `cursor` for the next."""
@@ -433,8 +434,9 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     async def answer_clarifications(
         workspace_id: str, answers: list[AnswerToGive]
     ) -> AnswerClarificationsResult:
-        """Record the person's answers (a to d) or park questions (`park`); each
-        answer's rule is added to its agent's spec in a new version. The person's
+        """Record the person's answers (a to d), park questions (`park`), or bring a
+        parked one back (`reopen`); each answer's rule is added to its agent's spec in
+        a new version. The person's
         decision: confirm every answer with them first, in one batch. One left to you
         is still recorded as theirs. An answer is final."""
         return await _answer_clarifications(

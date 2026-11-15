@@ -103,6 +103,12 @@ import type {
   ChecksSetAgentCheckModeData,
   ChecksSetAgentCheckModeErrors,
   ChecksSetAgentCheckModeResponses,
+  ClarificationsAnswerWorkspaceClarificationsData,
+  ClarificationsAnswerWorkspaceClarificationsErrors,
+  ClarificationsAnswerWorkspaceClarificationsResponses,
+  ClarificationsListWorkspaceClarificationsData,
+  ClarificationsListWorkspaceClarificationsErrors,
+  ClarificationsListWorkspaceClarificationsResponses,
   CompanyGetLlmCredentialsData,
   CompanyGetLlmCredentialsErrors,
   CompanyGetLlmCredentialsResponses,
@@ -1923,6 +1929,64 @@ export class AgentsService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/agents/{agent_id}',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+}
+
+export class ClarificationsService {
+  /**
+   * List Workspace Clarifications
+   *
+   * Open questions most important first; answered and parked ones newest first.
+   */
+  public static listWorkspaceClarifications<ThrowOnError extends boolean = false>(
+    options?: Options<ClarificationsListWorkspaceClarificationsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      ClarificationsListWorkspaceClarificationsResponses,
+      ClarificationsListWorkspaceClarificationsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/clarifications',
+      ...options,
+    });
+  }
+
+  /**
+   * Answer Workspace Clarifications
+   *
+   * Answer, park or reopen; answers become spec rules. Refusals list every problem.
+   */
+  public static answerWorkspaceClarifications<ThrowOnError extends boolean = false>(
+    options: Options<ClarificationsAnswerWorkspaceClarificationsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      ClarificationsAnswerWorkspaceClarificationsResponses,
+      ClarificationsAnswerWorkspaceClarificationsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/clarifications/answers',
       ...options,
       headers: {
         'Content-Type': 'application/json',
