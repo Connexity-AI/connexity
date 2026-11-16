@@ -275,6 +275,15 @@ class ConnexityBackendClient:
             params=params,
         )
 
+    async def move_task(
+        self, *, workspace_id: str, key: str, before: str | None = None
+    ) -> dict[str, Any]:
+        return await self._request_json(
+            "POST",
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/tasks/move",
+            json={"key": key, "before": before},
+        )
+
     async def get_next_task(
         self, *, workspace_id: str, session: str | None = None
     ) -> dict[str, Any]:

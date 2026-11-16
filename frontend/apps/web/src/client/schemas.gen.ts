@@ -14392,6 +14392,33 @@ export const WorkHolderPublicSchema = {
   description: 'Who holds a task: the person, their assistant and its session.',
 } as const;
 
+export const WorkMoveInSchema = {
+  properties: {
+    key: {
+      type: 'string',
+      maxLength: 128,
+      title: 'Key',
+      description: 'The To do task to move',
+    },
+    before: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 128,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Before',
+      description: 'The To do task it now sits before; none for the end',
+    },
+  },
+  type: 'object',
+  required: ['key'],
+  title: 'WorkMoveIn',
+} as const;
+
 export const WorkPublicSchema = {
   properties: {
     in_progress: {

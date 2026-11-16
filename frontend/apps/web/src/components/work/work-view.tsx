@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
 import {
@@ -12,6 +13,7 @@ import {
   FileText,
   Flag,
   FlaskConical,
+  GripVertical,
   LoaderCircle,
   Lock,
   Pause,
@@ -24,7 +26,9 @@ import {
 import { PageBar } from '@workspace/ui/components/page-bar';
 import { cn } from '@workspace/ui/lib/utils';
 
+import { moveWorkTaskAction } from '@/actions/work';
 import { timeLabel } from '@/components/calls/format';
+import { isErrorApiResult } from '@/utils/api';
 
 import type {
   TaskKind,
@@ -84,7 +88,18 @@ const action = (task: WorkTaskPublic): { label: string; href: Route } | undefine
   return undefined;
 };
 
-const Marker: FC<{ task: WorkTaskPublic }> = ({ task }) => {
+/** To do rows show a drag handle in the marker column on hover (designs/16-work.md). */
+const Handle: FC<{ children: ReactNode }> = ({ children }) => (
+  <span className="flex size-4 items-center justify-center">
+    <span className="flex group-hover:hidden">{children}</span>
+    <GripVertical
+      className="hidden size-4 cursor-grab text-ink-muted group-hover:block"
+      aria-label="Drag to reorder"
+    />
+  </span>
+);
+
+const Marker: FC<{ task: WorkTaskPublic; movable?: boolean }> = ({ task, movable }) => {
   if (task.state === 'in_progress') {
     return (
       <LoaderCircle
@@ -96,15 +111,15 @@ const Marker: FC<{ task: WorkTaskPublic }> = ({ task }) => {
   if (task.state === 'waiting') {
     return <Pause className="size-4 fill-current text-warning" aria-label="Waiting for you" />;
   }
-  if (isBlocked(task)) {
-    return (
-      <Lock
-        className={cn('size-4', warmLock(task) ? 'text-warning' : 'text-ink-muted')}
-        aria-label="Blocked"
-      />
-    );
-  }
-  return <span className="size-4" aria-hidden />;
+  const idle = isBlocked(task) ? (
+    <Lock
+      className={cn('size-4', warmLock(task) ? 'text-warning' : 'text-ink-muted')}
+      aria-label="Blocked"
+    />
+  ) : (
+    <span className="size-4" aria-hidden />
+  );
+  return movable ? <Handle>{idle}</Handle> : idle;
 };
 
 const TypeIcon: FC<{ kind: TaskKind; dim?: boolean }> = ({ kind, dim }) => {
@@ -168,6 +183,17 @@ const Chip: FC<{ children: ReactNode; warm?: boolean; initial?: string }> = ({
   </span>
 );
 
+interface Drag {
+  onStart: () => void;
+  /** Over this row: the drop goes before it (upper half) or after it (lower half). */
+  onOver: (after: boolean) => void;
+  onDrop: () => void;
+  onEnd: () => void;
+  /** A drop line above (before) or below (after) this row. */
+  line?: 'before' | 'after';
+  dragging: boolean;
+}
+
 interface RowProps {
   task: WorkTaskPublic;
   lit: boolean;
@@ -175,9 +201,11 @@ interface RowProps {
   selected: boolean;
   onOpen: () => void;
   onHover: (key: string | null) => void;
+  /** To do rows only: reordering by drag. */
+  drag?: Drag;
 }
 
-const Row: FC<RowProps> = ({ task, lit, dimmed, selected, onOpen, onHover }) => {
+const Row: FC<RowProps> = ({ task, lit, dimmed, selected, onOpen, onHover, drag }) => {
   const waiting = task.state === 'waiting';
   const blocked = isBlocked(task);
   const act = waiting ? action(task) : undefined;
@@ -194,20 +222,57 @@ const Row: FC<RowProps> = ({ task, lit, dimmed, selected, onOpen, onHover }) => 
       }}
       onMouseEnter={() => onHover(task.key)}
       onMouseLeave={() => onHover(null)}
+      draggable={drag ? true : undefined}
+      onDragStart={
+        drag
+          ? (e) => {
+              e.dataTransfer.effectAllowed = 'move';
+              drag.onStart();
+            }
+          : undefined
+      }
+      onDragOver={
+        drag
+          ? (e) => {
+              e.preventDefault();
+              const box = e.currentTarget.getBoundingClientRect();
+              drag.onOver(e.clientY > box.top + box.height / 2);
+            }
+          : undefined
+      }
+      onDrop={
+        drag
+          ? (e) => {
+              e.preventDefault();
+              drag.onDrop();
+            }
+          : undefined
+      }
+      onDragEnd={drag ? drag.onEnd : undefined}
       className={cn(
-        'relative grid cursor-pointer grid-cols-[16px_28px_minmax(0,1fr)_auto] items-center gap-3 border-t border-hairline px-5 py-3 first:border-t-0 hover:bg-wash',
+        'group relative grid cursor-pointer grid-cols-[16px_28px_minmax(0,1fr)_auto] items-center gap-3 border-t border-hairline px-5 py-3 first:border-t-0 hover:bg-wash',
         waiting && 'bg-warning-bg/40',
         selected && 'bg-wash',
-        dimmed && 'opacity-60'
+        dimmed && 'opacity-60',
+        drag?.dragging && 'opacity-50'
       )}
     >
+      {drag?.line && (
+        <span
+          className={cn(
+            'absolute right-5 left-5 h-0.5 rounded-full bg-warning',
+            drag.line === 'before' ? '-top-px' : '-bottom-px'
+          )}
+          aria-hidden
+        />
+      )}
       {(waiting || lit) && (
         <span
           className="absolute top-3 bottom-3 left-0 w-[3px] rounded-r-sm bg-warning"
           aria-hidden
         />
       )}
-      <Marker task={task} />
+      <Marker task={task} movable={Boolean(drag)} />
       <TypeIcon kind={task.kind} dim={blocked} />
       <span className="flex min-w-0 flex-col gap-0.5">
         <span className={cn('truncate text-body', blocked ? 'text-ink-secondary' : 'text-ink')}>
@@ -367,9 +432,50 @@ export const WorkView: FC<{ work: WorkPublic }> = ({ work }) => {
   const [hovered, setHovered] = useState<string | null>(null);
   const [doneOpen, setDoneOpen] = useState(false);
   const [teamOpen, setTeamOpen] = useState(false);
+  const router = useRouter();
+  const [moving, startMove] = useTransition();
+  // A move shows at once; it applies only to the page it was made on, so a refresh
+  // brings the server's order back.
+  const [optimistic, setOptimistic] = useState<{ basedOn: WorkPublic; keys: string[] } | null>(
+    null
+  );
+  const [dragKey, setDragKey] = useState<string | null>(null);
+  const [drop, setDrop] = useState<{ key: string; after: boolean } | null>(null);
+  const [moveError, setMoveError] = useState<string | null>(null);
 
   const all = [...work.in_progress, ...work.to_do];
   const byKey = new Map(all.map((task) => [task.key, task]));
+  const toDo =
+    optimistic && optimistic.basedOn === work
+      ? optimistic.keys.flatMap((key) => byKey.get(key) ?? [])
+      : work.to_do;
+
+  const endDrag = () => {
+    setDragKey(null);
+    setDrop(null);
+  };
+
+  const move = () => {
+    const key = dragKey;
+    const target = drop;
+    endDrag();
+    if (!key || !target || target.key === key) return;
+    const keys = toDo.map((task) => task.key).filter((k) => k !== key);
+    const at = keys.indexOf(target.key) + (target.after ? 1 : 0);
+    keys.splice(at, 0, key);
+    const before = keys[at + 1] ?? null;
+    setMoveError(null);
+    setOptimistic({ basedOn: work, keys });
+    startMove(async () => {
+      const result = await moveWorkTaskAction(key, before);
+      if (isErrorApiResult(result)) {
+        setOptimistic(null);
+        const detail = (result.error as { detail?: unknown } | undefined)?.detail;
+        setMoveError(typeof detail === 'string' ? detail : 'That move did not go through.');
+      }
+      router.refresh();
+    });
+  };
   const hover = hovered ? byKey.get(hovered) : undefined;
   const related = new Set(
     hover ? [...(hover.blocks ?? []), ...(hover.blocked_by ?? [])].map((ref) => ref.key) : []
@@ -385,6 +491,23 @@ export const WorkView: FC<{ work: WorkPublic }> = ({ work }) => {
       selected={task.key === selected}
       onOpen={() => setSelected(task.key)}
       onHover={setHovered}
+      drag={
+        task.state === 'to_do' && task.kind !== 'incident'
+          ? {
+              onStart: () => setDragKey(task.key),
+              onOver: (after) => setDrop({ key: task.key, after }),
+              onDrop: move,
+              onEnd: endDrag,
+              line:
+                dragKey && drop?.key === task.key && dragKey !== task.key
+                  ? drop.after
+                    ? 'after'
+                    : 'before'
+                  : undefined,
+              dragging: dragKey === task.key,
+            }
+          : undefined
+      }
     />
   );
 
@@ -418,7 +541,8 @@ export const WorkView: FC<{ work: WorkPublic }> = ({ work }) => {
       <div className="flex flex-col gap-1">
         <h2 className="m-0 text-body font-medium text-ink">Assistant tasks</h2>
         <span className="text-label text-ink-muted">
-          Your assistant works down this list from the top.
+          Your assistant works down this list from the top. You can reorder what hasn&apos;t
+          started.
         </span>
       </div>
 
@@ -431,7 +555,12 @@ export const WorkView: FC<{ work: WorkPublic }> = ({ work }) => {
           {work.in_progress.length > 0 && (
             <Group label="In progress">{work.in_progress.map(row)}</Group>
           )}
-          {work.to_do.length > 0 && <Group label="To do">{work.to_do.map(row)}</Group>}
+          {toDo.length > 0 && (
+            <div className={cn('flex flex-col gap-2', moving && 'opacity-80')}>
+              <Group label="To do">{toDo.map(row)}</Group>
+              {moveError && <span className="px-1 text-label text-critical">{moveError}</span>}
+            </div>
+          )}
         </>
       )}
 

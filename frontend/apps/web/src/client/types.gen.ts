@@ -9338,6 +9338,24 @@ export type WorkHolderPublic = {
 };
 
 /**
+ * WorkMoveIn
+ */
+export type WorkMoveIn = {
+  /**
+   * Key
+   *
+   * The To do task to move
+   */
+  key: string;
+  /**
+   * Before
+   *
+   * The To do task it now sits before; none for the end
+   */
+  before?: string | null;
+};
+
+/**
  * WorkPublic
  */
 export type WorkPublic = {
@@ -12055,6 +12073,62 @@ export type McpListTasksResponses = {
 
 export type McpListTasksResponse = McpListTasksResponses[keyof McpListTasksResponses];
 
+export type McpMoveWorkspaceTaskData = {
+  body: WorkMoveIn;
+  path: {
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/tasks/move';
+};
+
+export type McpMoveWorkspaceTaskErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpMoveWorkspaceTaskError =
+  McpMoveWorkspaceTaskErrors[keyof McpMoveWorkspaceTaskErrors];
+
+export type McpMoveWorkspaceTaskResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerMcpTaskList;
+};
+
+export type McpMoveWorkspaceTaskResponse =
+  McpMoveWorkspaceTaskResponses[keyof McpMoveWorkspaceTaskResponses];
+
 export type McpGetReadinessData = {
   body?: never;
   path: {
@@ -12555,6 +12629,55 @@ export type WorkReadWorkCountsResponses = {
 
 export type WorkReadWorkCountsResponse =
   WorkReadWorkCountsResponses[keyof WorkReadWorkCountsResponses];
+
+export type WorkMoveWorkTaskData = {
+  body: WorkMoveIn;
+  path?: never;
+  query?: never;
+  url: '/api/v1/work/order';
+};
+
+export type WorkMoveWorkTaskErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type WorkMoveWorkTaskError = WorkMoveWorkTaskErrors[keyof WorkMoveWorkTaskErrors];
+
+export type WorkMoveWorkTaskResponses = {
+  /**
+   * Successful Response
+   */
+  200: WorkPublic;
+};
+
+export type WorkMoveWorkTaskResponse = WorkMoveWorkTaskResponses[keyof WorkMoveWorkTaskResponses];
 
 export type AgentsListAgentsData = {
   body?: never;

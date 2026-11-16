@@ -74,6 +74,9 @@ from connexity_mcp_server.tools import (
     list_tasks as _list_tasks,
 )
 from connexity_mcp_server.tools import (
+    move_task as _move_task,
+)
+from connexity_mcp_server.tools import (
     get_readiness as _get_readiness,
 )
 from connexity_mcp_server.tools import (
@@ -470,6 +473,19 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         1 to 100)."""
         return await _list_tasks(
             client=backend_client, workspace_id=workspace_id, cursor=cursor, limit=limit
+        )
+
+    @mcp_server.tool(annotations=DECIDES)
+    async def move_task(
+        workspace_id: str, key: str, before: str | None = None
+    ) -> ListTasksResult:
+        """Move a To do task (its `key` from `list_tasks`) to sit just before another
+        (`before`; none for the end of the list). Only when the person asks, such as
+        "do Night line first"; never reorder on your own. Recorded as theirs with you as
+        the assistant that acted. Tasks in progress or waiting, and incidents, do not
+        move. Answers the list in its new order."""
+        return await _move_task(
+            client=backend_client, workspace_id=workspace_id, key=key, before=before
         )
 
     # Takes the task for the caller and ends its previous one; asking again moves on.

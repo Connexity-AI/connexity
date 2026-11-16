@@ -25,6 +25,7 @@ from connexity_mcp_server.tools import (
     create_workspace,
     get_next_task,
     list_tasks,
+    move_task,
     get_readiness,
     list_agents,
     list_workspaces,
@@ -244,6 +245,31 @@ async def test_get_readiness_reads_the_workspace_steps() -> None:
 
     assert result.data.percent == 25
     assert result.data.steps[0].state == "done"
+
+
+@pytest.mark.asyncio
+async def test_move_task_posts_the_key_and_its_place() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url.path == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/tasks/move"
+        assert json.loads(request.content) == {"key": "spec:a1", "before": "issue:i1"}
+        return httpx.Response(
+            200,
+            json={
+                "data": {"tasks": [], "done": [], "sessions": [], "waiting": 0, "total": 0},
+                "next_cursor": None,
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: move_task(
+            client, workspace_id=WORKSPACE_ID, key="spec:a1", before="issue:i1"
+        ),
+    )
+
+    assert result.data.total == 0
 
 
 @pytest.mark.asyncio
