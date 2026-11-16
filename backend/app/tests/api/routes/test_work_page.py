@@ -6,6 +6,7 @@ from typing import Any
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
+from app import crud
 from app.core.config import settings
 from app.services.work import next_task
 from app.tests.api.routes.test_issue_page import _call
@@ -235,3 +236,42 @@ def test_move_task_through_mcp(client: TestClient, db: Session) -> None:
     assert any("only when the person asks" in rule for rule in r.json()["rules"])
     assert refused.status_code == 422
     assert refused.json()["detail"]["error"] == "No task with that key is in To do."
+
+
+def test_a_new_workspace_lands_on_onboarding_rows(
+    client: TestClient, db: Session
+) -> None:
+    user, cookies = _signed_in(client, db)
+
+    page = client.get(f"{API}/work", cookies=cookies).json()
+
+    assert page["assistant_connected"] is False
+    [connect] = page["in_progress"]
+    assert (connect["key"], connect["state"]) == ("onboarding:assistant", "waiting")
+    assert connect["title"] == "Connect your AI assistant"
+    titles = [t["title"] for t in page["to_do"]]
+    assert titles == [
+        "Connect your voice platform",
+        "Add the agents to watch",
+        "Scan recent calls",
+        "Write the spec for each agent",
+    ]
+    # Each step is blocked by the one before.
+    chain = [connect, *page["to_do"]]
+    for before, after in zip(chain, chain[1:], strict=False):
+        assert [r["key"] for r in after["blocked_by"]] == [before["key"]]
+
+    # Once an assistant connects, its step leaves and is done; the platform is next.
+    row, secret = crud.create_personal_access_token(
+        session=db, user_id=user.id, name="Claude Code"
+    )
+    crud.use_personal_access_token(session=db, token=secret)
+    after = client.get(f"{API}/work", cookies=cookies).json()
+
+    assert after["assistant_connected"] is True
+    assert after["in_progress"] == []
+    assert after["to_do"][0]["title"] == "Connect your voice platform"
+    assert after["to_do"][0]["blocked_by"] == []
+    done = {d["title"]: d["by"] for d in after["done"]}
+    assert done["Assistant connected"].endswith("'s Claude Code")
+    assert row.id

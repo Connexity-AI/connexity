@@ -71,6 +71,12 @@ class WorkPublic(BaseModel):
     done: list[WorkDonePublic] = Field(description="The last 7 days, newest first")
     sessions: list[WorkSessionPublic] = Field(description="Sessions working now")
     waiting: int = Field(description="Tasks waiting for the person")
+    assistant_connected: bool = Field(
+        default=False, description="An assistant of the workspace is connected"
+    )
+    mcp_url: str | None = Field(
+        default=None, description="The MCP address assistants connect to"
+    )
 
 
 class WorkMoveIn(BaseModel):

@@ -9407,6 +9407,18 @@ export type WorkPublic = {
    * Tasks waiting for the person
    */
   waiting: number;
+  /**
+   * Assistant Connected
+   *
+   * An assistant of the workspace is connected
+   */
+  assistant_connected?: boolean;
+  /**
+   * Mcp Url
+   *
+   * The MCP address assistants connect to
+   */
+  mcp_url?: string | null;
 };
 
 /**
