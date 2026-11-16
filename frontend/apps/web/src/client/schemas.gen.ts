@@ -3377,7 +3377,20 @@ export const ClarificationDecisionInSchema = {
       type: 'string',
       maxLength: 16,
       title: 'Answer',
-      description: "a to d, 'park', or 'reopen' for a parked one",
+      description: "a to d, 'other' with text, 'park', or 'reopen' for a parked one",
+    },
+    text: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 500,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Text',
+      description: "For 'other': the person's answer, as the rule",
     },
   },
   type: 'object',
@@ -3550,7 +3563,19 @@ export const ClarificationPublicSchema = {
         },
       ],
       title: 'Answer',
-      description: 'The chosen letter',
+      description: "The chosen letter, or 'other' with answer_text",
+    },
+    answer_text: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Answer Text',
+      description: "For 'other': the person's words, now the rule",
     },
     answer_spec_version: {
       anyOf: [
@@ -8418,7 +8443,21 @@ export const McpClarificationDecisionSchema = {
       type: 'string',
       maxLength: 16,
       title: 'Answer',
-      description: "The letter the person chose (a to d), 'park', or 'reopen' for a parked one",
+      description:
+        "The letter the person chose (a to d), 'other' with text, 'park', or 'reopen' for a parked one",
+    },
+    text: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 500,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Text',
+      description: "For 'other': the person's own answer, as the rule the agent should follow",
     },
   },
   type: 'object',

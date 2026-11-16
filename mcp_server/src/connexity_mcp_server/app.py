@@ -445,7 +445,8 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     async def answer_clarifications(
         workspace_id: str, answers: list[AnswerToGive]
     ) -> AnswerClarificationsResult:
-        """Record the person's answers (a to d), park questions (`park`), or bring a
+        """Record the person's answers (a to d, or `other` with their own words as
+        `text` when none of the choices fits), park questions (`park`), or bring a
         parked one back (`reopen`); each answer's rule is added to its agent's spec in
         a new version. The person's decision: ask them in your chat and confirm every
         answer first. One left to you is still recorded as theirs. An answer is

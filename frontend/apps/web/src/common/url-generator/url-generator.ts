@@ -9,12 +9,9 @@ export class UrlGenerator {
     return '/' as Route;
   }
 
-  static work() {
-    return '/work/' as Route;
-  }
-
-  static actionItems(agentId?: string) {
-    return (agentId ? `/action-items/?agent=${agentId}` : '/action-items/') as Route;
+  /** Work; with an agent, its question cards open under its waiting row. */
+  static work(answerAgentId?: string) {
+    return (answerAgentId ? `/work/?answer=${answerAgentId}` : '/work/') as Route;
   }
 
   static agents() {

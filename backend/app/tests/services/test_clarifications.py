@@ -372,7 +372,7 @@ def test_answering_lists_every_problem_and_stores_nothing(db: Session) -> None:
 
     assert problems[0] == "Answer 2: the same clarification is given twice."
     assert problems[1] == (
-        "Answer 3: answer with one of a, b, 'park', or 'reopen' for a parked question."
+        "Answer 3: answer with one of a, b, 'other' with text, 'park', or 'reopen' for a parked question."
     )
     assert problems[2].startswith("Answer 4: no clarification")
     db.refresh(change)

@@ -13,14 +13,12 @@ import type { FC } from 'react';
 interface Props {
   user: UserPublic;
   workspaces: WorkspacePublic[];
-  /** Open clarifications in the workspace, for the Action items entry. */
-  openActionItems?: number;
   /** Tasks waiting for the person, for the Work entry. */
   waitingWork?: number;
 }
 
 /** Connexity Sidebar (designs/screens/Connexity Sidebar.dc.html). */
-export const Sidebar: FC<Props> = ({ user, workspaces, openActionItems, waitingWork }) => (
+export const Sidebar: FC<Props> = ({ user, workspaces, waitingWork }) => (
   <aside className="sticky top-0 flex h-screen w-[220px] flex-none flex-col gap-6 border-r border-hairline bg-surface-1 px-3 py-4">
     <Link href={UrlGenerator.home()} className="px-2 no-underline">
       <Brand />
@@ -34,13 +32,7 @@ export const Sidebar: FC<Props> = ({ user, workspaces, openActionItems, waitingW
             title={title}
             url={url}
             icon={<Icon className="size-4 shrink-0" aria-hidden />}
-            count={
-              counted === 'work'
-                ? waitingWork || undefined
-                : counted === 'actionItems'
-                  ? openActionItems || undefined
-                  : undefined
-            }
+            count={counted === 'work' ? waitingWork || undefined : undefined}
             warm={counted === 'work'}
           />
         ))}

@@ -31,6 +31,7 @@ from app.crud.spec import normalise
 from app.models.agent import Agent
 from app.models.clarification import (
     ANSWER_LETTERS,
+    OTHER,
     AnsweredSpecPublic,
     Clarification,
     ClarificationAnswerPublic,
@@ -49,6 +50,7 @@ MAX_QUESTION_LENGTH = 500
 MAX_LABEL_LENGTH = 100
 MAX_CALLS = 50
 PARK = "park"
+MAX_OTHER_LENGTH = 500
 REOPEN = "reopen"
 
 
@@ -223,8 +225,10 @@ def raise_clarifications(
 
 class Decision(NamedTuple):
     clarification_id: uuid.UUID
-    # "a" to "d", "park", or "reopen" for a parked one.
+    # "a" to "d", "other" with ``text``, "park", or "reopen" for a parked one.
     answer: str
+    # For "other": the person's own words, which become the rule.
+    text: str | None = None
 
 
 class AnswerResult(NamedTuple):
@@ -296,10 +300,23 @@ def answer_clarifications(
                 problems.append(f"{d}: only a parked question can be reopened.")
             continue
         letters = ANSWER_LETTERS[: len(c.answers)]
-        if decision.answer not in letters:
+        if decision.answer == OTHER:
+            text = (decision.text or "").strip()
+            if not text:
+                problems.append(
+                    f"{d}: '{OTHER}' needs the person's answer as text: the rule the "
+                    "agent should follow."
+                )
+                continue
+            if len(text) > MAX_OTHER_LENGTH:
+                problems.append(
+                    f"{d}: the answer is longer than {MAX_OTHER_LENGTH} characters."
+                )
+                continue
+        elif decision.answer not in letters:
             problems.append(
-                f"{d}: answer with one of {', '.join(letters)}, '{PARK}', or "
-                f"'{REOPEN}' for a parked question."
+                f"{d}: answer with one of {', '.join(letters)}, '{OTHER}' with text, "
+                f"'{PARK}', or '{REOPEN}' for a parked question."
             )
             continue
         if c.replaces_key:
@@ -324,7 +341,8 @@ def answer_clarifications(
         elif decision.answer == REOPEN:
             reopens.append(c)
         else:
-            by_agent[c.agent_id].append(Answer(c, decision.answer))
+            text = (decision.text or "").strip() if decision.answer == OTHER else None
+            by_agent[c.agent_id].append(Answer(c, decision.answer, text))
 
     specs: dict[uuid.UUID, Spec] = {}
     for agent_id, answers in by_agent.items():
@@ -347,6 +365,7 @@ def answer_clarifications(
                 answer_spec=spec,
                 decided_by=decided_by,
                 assistant_name=assistant_name,
+                text=answer.text,
             )
     for state, rows in (
         (ClarificationState.PARKED, parks),
@@ -444,6 +463,7 @@ def clarifications_public(
                 raised_assistant=r.raised_assistant,
                 raised_at=r.raised_at,
                 answer=r.answer,
+                answer_text=r.answer_text,
                 answer_spec_version=versions.get(r.answer_spec_id)
                 if r.answer_spec_id
                 else None,

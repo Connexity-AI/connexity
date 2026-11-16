@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { Fragment, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
 import {
@@ -28,6 +28,7 @@ import { cn } from '@workspace/ui/lib/utils';
 
 import { moveWorkTaskAction } from '@/actions/work';
 import { timeLabel } from '@/components/calls/format';
+import { QuestionCards } from '@/components/work/question-cards';
 import { isErrorApiResult } from '@/utils/api';
 
 import type {
@@ -78,7 +79,7 @@ const warmLock = (task: WorkTaskPublic) =>
 /** Where the person acts on a task that waits for them. */
 const action = (task: WorkTaskPublic): { label: string; href: Route } | undefined => {
   if (task.kind === 'clarifications' && task.agent_id) {
-    return { label: 'Answer questions →', href: UrlGenerator.actionItems(task.agent_id) };
+    return { label: 'Answer questions →', href: UrlGenerator.work(task.agent_id) };
   }
   if (task.kind === 'issue_fix' && task.issue_id) {
     return { label: 'Resolve the issue →', href: UrlGenerator.issue(task.issue_id) };
@@ -295,6 +296,7 @@ const Row: FC<RowProps> = ({ task, lit, dimmed, selected, onOpen, onHover, drag 
         {act && (
           <Link
             href={act.href}
+            scroll={false}
             onClick={(e) => e.stopPropagation()}
             className="text-label text-ink-secondary no-underline hover:text-ink"
           >
@@ -399,7 +401,12 @@ const Panel: FC<{
       <RefList title="Blocked by" refs={task.blocked_by ?? []} onOpen={onOpen} />
       <div className="flex flex-col gap-2 border-t border-hairline pt-4">
         {act && (
-          <Link href={act.href} className="text-body text-ink no-underline hover:underline">
+          <Link
+            href={act.href}
+            scroll={false}
+            onClick={onClose}
+            className="text-body text-ink no-underline hover:underline"
+          >
             {act.label}
           </Link>
         )}
@@ -433,6 +440,9 @@ export const WorkView: FC<{ work: WorkPublic }> = ({ work }) => {
   const [doneOpen, setDoneOpen] = useState(false);
   const [teamOpen, setTeamOpen] = useState(false);
   const router = useRouter();
+  // The agent whose question cards are open under its row (?answer=<agent id>).
+  const answering = useSearchParams().get('answer');
+  const closeCards = () => router.replace(UrlGenerator.work(), { scroll: false });
   const [moving, startMove] = useTransition();
   // A move shows at once; it applies only to the page it was made on, so a refresh
   // brings the server's order back.
@@ -483,32 +493,39 @@ export const WorkView: FC<{ work: WorkPublic }> = ({ work }) => {
   const open = selected ? byKey.get(selected) : undefined;
 
   const row = (task: WorkTaskPublic) => (
-    <Row
-      key={task.key}
-      task={task}
-      lit={related.has(task.key)}
-      dimmed={related.size > 0 && !related.has(task.key) && task.key !== hovered}
-      selected={task.key === selected}
-      onOpen={() => setSelected(task.key)}
-      onHover={setHovered}
-      drag={
-        task.state === 'to_do' && task.kind !== 'incident'
-          ? {
-              onStart: () => setDragKey(task.key),
-              onOver: (after) => setDrop({ key: task.key, after }),
-              onDrop: move,
-              onEnd: endDrag,
-              line:
-                dragKey && drop?.key === task.key && dragKey !== task.key
-                  ? drop.after
-                    ? 'after'
-                    : 'before'
-                  : undefined,
-              dragging: dragKey === task.key,
-            }
-          : undefined
-      }
-    />
+    <Fragment key={task.key}>
+      <Row
+        task={task}
+        lit={related.has(task.key)}
+        dimmed={related.size > 0 && !related.has(task.key) && task.key !== hovered}
+        selected={task.key === selected}
+        onOpen={() => setSelected(task.key)}
+        onHover={setHovered}
+        drag={
+          task.state === 'to_do' && task.kind !== 'incident'
+            ? {
+                onStart: () => setDragKey(task.key),
+                onOver: (after) => setDrop({ key: task.key, after }),
+                onDrop: move,
+                onEnd: endDrag,
+                line:
+                  dragKey && drop?.key === task.key && dragKey !== task.key
+                    ? drop.after
+                      ? 'after'
+                      : 'before'
+                    : undefined,
+                dragging: dragKey === task.key,
+              }
+            : undefined
+        }
+      />
+      {task.kind === 'clarifications' &&
+        task.state === 'waiting' &&
+        task.agent_id &&
+        task.agent_id === answering && (
+          <QuestionCards agentId={task.agent_id} onClose={closeCards} />
+        )}
+    </Fragment>
   );
 
   const sessions = work.sessions;

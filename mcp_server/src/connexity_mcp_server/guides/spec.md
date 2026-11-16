@@ -85,6 +85,8 @@ and the new prompt's words in the question. Its answer replaces the rule.
 - **The person answers, never you alone.** Ask them in your chat, one question at a time
   or in one batch, as suits them. You may say which answer you would pick and why;
   Connexity records only the answer they give, never a suggestion.
+- **When none of the choices fits,** submit `other` with the person's words as `text`,
+  written as the rule the agent should follow. It goes into the spec as written.
 - **Submit with `answer_clarifications`:** a letter, or `park` for what is not important
   now. A parked question can still be answered later, or brought back to the open
   list with `reopen`.

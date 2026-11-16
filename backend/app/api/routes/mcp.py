@@ -906,6 +906,8 @@ _CLARIFICATION_RULES = [
     "`answer_clarifications`; you may tell them what you would pick and why. Connexity "
     "records only the answer. When they leave a decision to you, it is still recorded "
     "as theirs, with you as the assistant that acted; tell them so.",
+    "When the person's answer is none of the choices, answer `other` with their words as "
+    "`text`: it becomes the rule as written.",
     "An answer is final. To change one, raise a clarification that replaces its rule "
     "(`replaces_key`), quoting the earlier answer.",
     "calls_seen counts the calls given as evidence; a question raised from a prompt "
@@ -1049,7 +1051,9 @@ def answer_workspace_clarifications(
         result = answer_clarifications(
             session=session,
             company_id=workspace.id,
-            decisions=[Decision(a.clarification_id, a.answer) for a in body.answers],
+            decisions=[
+                Decision(a.clarification_id, a.answer, a.text) for a in body.answers
+            ],
             decided_by=current_user,
             assistant_name=assistant or "your assistant",
         )

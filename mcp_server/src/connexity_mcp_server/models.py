@@ -548,6 +548,7 @@ class Clarification(BaseModel):
     raised_assistant: str | None = None
     raised_at: str
     answer: str | None = None
+    answer_text: str | None = None
     answer_spec_version: int | None = None
     decided_by: str | None = None
     decided_assistant: str | None = None
@@ -613,8 +614,13 @@ class AnswerToGive(BaseModel):
 
     clarification_id: str
     answer: str = Field(
-        description="The letter the person chose (a to d), 'park', or 'reopen' for a "
-        "parked one"
+        description="The letter the person chose (a to d), 'other' with text, 'park', "
+        "or 'reopen' for a parked one"
+    )
+    text: str | None = Field(
+        default=None,
+        description="For 'other': the person's own answer, as the rule the agent "
+        "should follow",
     )
 
 

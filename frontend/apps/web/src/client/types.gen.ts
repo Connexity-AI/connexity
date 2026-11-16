@@ -2090,9 +2090,15 @@ export type ClarificationDecisionIn = {
   /**
    * Answer
    *
-   * a to d, 'park', or 'reopen' for a parked one
+   * a to d, 'other' with text, 'park', or 'reopen' for a parked one
    */
   answer: string;
+  /**
+   * Text
+   *
+   * For 'other': the person's answer, as the rule
+   */
+  text?: string | null;
 };
 
 /**
@@ -2200,9 +2206,15 @@ export type ClarificationPublic = {
   /**
    * Answer
    *
-   * The chosen letter
+   * The chosen letter, or 'other' with answer_text
    */
   answer?: string | null;
+  /**
+   * Answer Text
+   *
+   * For 'other': the person's words, now the rule
+   */
+  answer_text?: string | null;
   /**
    * Answer Spec Version
    *
@@ -5548,9 +5560,15 @@ export type McpClarificationDecision = {
   /**
    * Answer
    *
-   * The letter the person chose (a to d), 'park', or 'reopen' for a parked one
+   * The letter the person chose (a to d), 'other' with text, 'park', or 'reopen' for a parked one
    */
   answer: string;
+  /**
+   * Text
+   *
+   * For 'other': the person's own answer, as the rule the agent should follow
+   */
+  text?: string | null;
 };
 
 /**
@@ -12426,12 +12444,6 @@ export type ClarificationsListWorkspaceClarificationsData = {
      * Limit
      */
     limit?: number;
-    /**
-     * This Week
-     *
-     * Only those decided in the last 7 days
-     */
-    this_week?: boolean;
   };
   url: '/api/v1/clarifications';
 };

@@ -55,10 +55,7 @@ const Badge: FC<{ tone: 'warning' | 'passed' | 'plain'; children: ReactNode }> =
   </span>
 );
 
-const RuleRow: FC<{ rule: SpecRulePublic; actionItemsHref: Route }> = ({
-  rule,
-  actionItemsHref,
-}) => {
+const RuleRow: FC<{ rule: SpecRulePublic; questionsHref: Route }> = ({ rule, questionsHref }) => {
   const dropped = rule.change === 'dropped';
   const touches = rule.touches ? TOUCHES[rule.touches] : undefined;
   return (
@@ -83,7 +80,7 @@ const RuleRow: FC<{ rule: SpecRulePublic; actionItemsHref: Route }> = ({
             <span className="text-warning">
               {' '}
               · The new prompt says otherwise.{' '}
-              <Link href={actionItemsHref} className="text-warning">
+              <Link href={questionsHref} className="text-warning">
                 Open the clarification
               </Link>
             </span>
@@ -104,10 +101,10 @@ const RuleRow: FC<{ rule: SpecRulePublic; actionItemsHref: Route }> = ({
   );
 };
 
-const Group: FC<{ group: SpecGroupPublic; changesOnly: boolean; actionItemsHref: Route }> = ({
+const Group: FC<{ group: SpecGroupPublic; changesOnly: boolean; questionsHref: Route }> = ({
   group,
   changesOnly,
-  actionItemsHref,
+  questionsHref,
 }) => {
   const [open, setOpen] = useState(false);
   const rules = (changesOnly ? group.rules.filter((r) => r.change !== 'kept') : group.rules)
@@ -145,7 +142,7 @@ const Group: FC<{ group: SpecGroupPublic; changesOnly: boolean; actionItemsHref:
             <RuleRow
               key={`${rule.key}-${rule.change ?? ''}`}
               rule={rule}
-              actionItemsHref={actionItemsHref}
+              questionsHref={questionsHref}
             />
           ))}
         </div>
@@ -163,7 +160,7 @@ interface Props {
 
 /**
  * The Spec tab (designs/screens/Connexity Agent Profile.dc.html; plans/2026-11-15-spec-tab.md):
- * read only. The open-clarifications tile and "In conflict" lead to Action items.
+ * read only. The open-clarifications tile and "In conflict" open the questions on Work.
  */
 export const SpecTab: FC<Props> = ({ spec, liveSince, onCompare }) => {
   const [changesOnly, setChangesOnly] = useState(false);
@@ -218,8 +215,8 @@ export const SpecTab: FC<Props> = ({ spec, liveSince, onCompare }) => {
             severity={conflicts > 0 ? 'warning' : undefined}
           />
           <Link
-            href={UrlGenerator.actionItems(spec.agent_id)}
-            title="Open in Action items"
+            href={UrlGenerator.work(spec.agent_id)}
+            title="Answer on Work"
             className="rounded-xl text-ink no-underline hover:opacity-90"
           >
             <NumberTile
@@ -288,7 +285,7 @@ export const SpecTab: FC<Props> = ({ spec, liveSince, onCompare }) => {
             key={group.category}
             group={group}
             changesOnly={changesOnly}
-            actionItemsHref={UrlGenerator.actionItems(spec.agent_id)}
+            questionsHref={UrlGenerator.work(spec.agent_id)}
           />
         ))}
       </section>

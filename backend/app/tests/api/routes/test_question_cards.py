@@ -1,5 +1,7 @@
-"""The Action items web routes: listing, answering, parking and reopening as the
-person, on invented agents and calls (plan `plans/2026-11-15-action-items.md`)."""
+"""The clarification web routes behind the question cards on Work: listing,
+answering (a to d, or "other" with the person's words), parking and reopening as the
+person, on invented agents and calls (plans `plans/2026-11-15-action-items.md` and
+`plans/2026-11-16-question-cards.md`)."""
 
 import uuid
 from typing import Any
@@ -12,6 +14,7 @@ from app.core.config import settings
 from app.tests.api.routes.test_issues_list import _signed_in
 from app.tests.api.routes.test_mcp_issues import (  # noqa: F401
     _agent,
+    _headers,
     _person,
     _settings,  # the autouse fixture that sets an encryption key
 )
@@ -21,12 +24,21 @@ API = settings.API_V1_STR
 
 
 def _decide(
-    client: TestClient, cookies: dict[str, str], *answers: tuple[str, str]
+    client: TestClient, cookies: dict[str, str], *answers: tuple[str, ...]
 ) -> Any:
     return client.post(
         f"{API}/clarifications/answers",
         cookies=cookies,
-        json={"answers": [{"clarification_id": i, "answer": a} for i, a in answers]},
+        json={
+            "answers": [
+                {
+                    "clarification_id": a[0],
+                    "answer": a[1],
+                    "text": a[2] if len(a) > 2 else None,
+                }
+                for a in answers
+            ]
+        },
     )
 
 
@@ -57,7 +69,7 @@ def test_the_person_lists_answers_parks_and_reopens(
     week = client.get(
         f"{API}/clarifications",
         cookies=cookies,
-        params={"state": "answered", "this_week": True},
+        params={"state": "answered"},
     ).json()
     assert week["counts"]["answered_this_week"] == 1
     assert week["data"][0]["decided_assistant"] is None  # answered in the app
@@ -106,3 +118,59 @@ def test_refusals_and_other_workspaces(client: TestClient, db: Session) -> None:
         ).status_code
         == 404
     )
+
+
+def test_something_else_becomes_the_rule_as_written(
+    client: TestClient, db: Session
+) -> None:
+    user, cookies = _signed_in(client, db)
+    _, agent, _ = _ready(db, owner=user)
+    change, deposit = _raise(db, user, agent, CHANGE, DEPOSIT)
+    before = crud.latest_spec(session=db, agent_id=agent.id)
+    assert before is not None
+    words = "Change an appointment only when the caller gives their date of birth"
+
+    empty = _decide(client, cookies, (str(change.id), "other", "  "))
+    answered = _decide(
+        client, cookies, (str(change.id), "other", words), (str(deposit.id), "b")
+    )
+
+    assert empty.status_code == 422
+    assert "needs the person's answer as text" in str(empty.json())
+    assert answered.status_code == 200, answered.text
+    spec = crud.latest_spec(session=db, agent_id=agent.id)
+    assert spec is not None and spec.version == before.version + 1  # one version
+    rules = {r.text for r in crud.spec_rules(session=db, spec_id=spec.id)}
+    assert words in rules and "Never mention a deposit" in rules
+    shown = client.get(
+        f"{API}/clarifications",
+        cookies=cookies,
+        params={"state": "answered", "agent_id": str(agent.id)},
+    ).json()["data"]
+    other = next(c for c in shown if c["id"] == str(change.id))
+    assert (other["answer"], other["answer_text"]) == ("other", words)
+
+
+def test_something_else_through_mcp(client: TestClient, db: Session) -> None:
+    user = _person(db)
+    _, agent, _ = _ready(db, owner=user)
+    [change] = _raise(db, user, agent, CHANGE)
+
+    r = client.post(
+        f"{API}/mcp/workspaces/{user.company_id}/clarifications/answers",
+        headers=_headers(user),
+        json={
+            "answers": [
+                {
+                    "clarification_id": str(change.id),
+                    "answer": "other",
+                    "text": "Ask first",
+                }
+            ]
+        },
+    )
+
+    assert r.status_code == 200, r.text
+    spec = crud.latest_spec(session=db, agent_id=agent.id)
+    assert spec is not None
+    assert "Ask first" in {r.text for r in crud.spec_rules(session=db, spec_id=spec.id)}

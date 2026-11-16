@@ -1,4 +1,4 @@
-"""Clarifications for the Action items page (plan `plans/2026-11-15-action-items.md`).
+"""Clarifications for the question cards on Work (plan `plans/2026-11-16-question-cards.md`).
 
 The same service as the MCP tools: the person reads and answers here, the assistant
 there. An answer given here records the person alone, with no assistant.
@@ -6,7 +6,6 @@ there. An answer given here records the person alone, with no assistant.
 
 import base64
 import uuid
-from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -41,7 +40,10 @@ class ClarificationListPage(ClarificationListPublic):
 class ClarificationDecisionIn(BaseModel):
     clarification_id: uuid.UUID
     answer: Annotated[str, StringConstraints(max_length=16)] = Field(
-        description="a to d, 'park', or 'reopen' for a parked one"
+        description="a to d, 'other' with text, 'park', or 'reopen' for a parked one"
+    )
+    text: Annotated[str | None, StringConstraints(max_length=500)] = Field(
+        default=None, description="For 'other': the person's answer, as the rule"
     )
 
 
@@ -68,9 +70,6 @@ def list_workspace_clarifications(
     agent_id: uuid.UUID | None = None,
     cursor: str | None = Query(default=None, max_length=255),
     limit: int = Query(default=5, ge=1, le=200),
-    this_week: bool = Query(
-        default=False, description="Only those decided in the last 7 days"
-    ),
 ) -> ClarificationListPage:
     """Open questions most important first; answered and parked ones newest first."""
     if agent_id is not None and (
@@ -86,7 +85,6 @@ def list_workspace_clarifications(
         agent_id=agent_id,
         offset=offset,
         limit=limit,
-        decided_since=datetime.now(UTC) - timedelta(days=7) if this_week else None,
     )
     return ClarificationListPage(
         counts=counts_public(session=session, company_id=company_id, agent_id=agent_id),
@@ -109,7 +107,9 @@ def answer_workspace_clarifications(
         result = answer_clarifications(
             session=session,
             company_id=company_id,
-            decisions=[Decision(a.clarification_id, a.answer) for a in body.answers],
+            decisions=[
+                Decision(a.clarification_id, a.answer, a.text) for a in body.answers
+            ],
             decided_by=current_user,
             assistant_name=None,
         )

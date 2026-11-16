@@ -24,6 +24,8 @@ def _now() -> datetime:
 
 # The answers' letters, in order.
 ANSWER_LETTERS = ("a", "b", "c", "d")
+# "Something else": the person writes the rule themselves (answer_text).
+OTHER = "other"
 
 
 class Clarification(SQLModel, table=True):
@@ -85,7 +87,11 @@ class Clarification(SQLModel, table=True):
         default=ClarificationState.OPEN, sa_type=enum_type(ClarificationState)
     )
     # The chosen answer's letter, once answered.
-    answer: str | None = Field(default=None, max_length=1)
+    answer: str | None = Field(default=None, max_length=8)
+    # For the answer "other": the person's own words, which became the rule.
+    answer_text: str | None = Field(
+        default=None, sa_column=Column("answer_text", Text, nullable=True)
+    )
     # The spec version the answer made.
     answer_spec_id: uuid.UUID | None = Field(
         default=None,
@@ -158,7 +164,12 @@ class ClarificationPublic(BaseModel):
     raised_by: str
     raised_assistant: str | None = None
     raised_at: datetime
-    answer: str | None = Field(default=None, description="The chosen letter")
+    answer: str | None = Field(
+        default=None, description="The chosen letter, or 'other' with answer_text"
+    )
+    answer_text: str | None = Field(
+        default=None, description="For 'other': the person's words, now the rule"
+    )
     answer_spec_version: int | None = Field(
         default=None, description="The spec version the answer made"
     )
