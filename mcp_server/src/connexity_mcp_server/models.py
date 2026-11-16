@@ -249,11 +249,19 @@ class TaskCounts(BaseModel):
     in_progress_elsewhere: int = 0
 
 
+class HeldTask(BaseModel):
+    task: Task
+    person: str
+    assistant: str
+    session: str = ""
+
+
 class NextTask(BaseModel):
     task: Task | None = None
     previous: EndedTask | None = None
     waiting_for_person: list[Task] = Field(default_factory=list)
     counts: TaskCounts
+    in_progress: list[HeldTask] = Field(default_factory=list)
     readiness_percent: int | None = None
 
 

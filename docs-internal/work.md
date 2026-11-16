@@ -44,7 +44,7 @@ wins. What `get_next_task` hands out is planned in the
 ## Proposed (in the design, not decided)
 
 - An assistant is a named connection ("Alex's Claude Code"), and each session has a name ("Onboarding"). The row's chip shows "assistant · session".
-- The assistant names its session in its MCP calls. Connexity keys sessions by the MCP session id and shows the name.
+- The assistant names its session in its MCP calls, and Connexity shows the name. Built in 10.125, keyed by the name: the stateless MCP adapter passes no session id.
 - The task types and their icons: Clarifications, Issue fix, Setup, Incident, Spec, Calls to review, Tests, Onboarding.
 - The side panel fields: type, agent, assistant, session, latest step, worked on for, blocks / blocked by, links.
 
@@ -52,7 +52,7 @@ wins. What `get_next_task` hands out is planned in the
 
 2. **The Action items page (10.122, built).** Decision 12 means its answering moves into the cards on Work and the page goes away. When, and in which roadmap row?
 3. **Questions per fix.** The spec after onboarding leaves 7 clarifications at once. Is the under-4 rule a limit on how many the assistant raises per fix, or must the cards also handle more?
-4. **Does our MCP adapter pass the session id through?** Not checked yet.
+4. **Does our MCP adapter pass the session id through?** No: it is stateless, so 10.125 keys sessions by their name.
 5. **Connexity triggering an assistant** (a Slack thread, a routine webhook, a schedule). Brainstormed, not chosen.
 6. **Regular issues.** Settled by decision 25.
 7. **Setup rows.** Six setup tasks can bury the real work. Should they become one row, "Finish setup · 4 of 6"?

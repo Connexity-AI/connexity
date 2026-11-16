@@ -261,3 +261,60 @@ def test_tools_that_finish_a_task_point_at_get_next_task(
 
     assert r.status_code == 200, r.text
     assert any("`get_next_task`" in s for s in r.json()["next_steps"])
+
+
+def _in(db: Session, user: User, session_name: str) -> NextTask:
+    return next_task(
+        session=db,
+        company_id=user.company_id,
+        person=user,
+        assistant_name="Claude Code",
+        session_name=session_name,
+    )
+
+
+def test_each_session_of_one_assistant_holds_its_own_task(db: Session) -> None:
+    user, _, _ = _workspace(db)
+
+    onboarding = _in(db, user, "Onboarding")
+    specs = _in(db, user, "Specs")
+
+    assert onboarding.task is not None and specs.task is not None
+    assert onboarding.task.key != specs.task.key
+    # Each sees what the other is on, with its session's name.
+    [held] = specs.held
+    assert (held.task.key, held.assistant, held.session) == (
+        onboarding.task.key,
+        "Claude Code",
+        "Onboarding",
+    )
+
+    # Asking again in one session ends only that session's task.
+    again = _in(db, user, "Specs")
+    assert again.ended is not None and again.ended.title == specs.task.title
+    rows = db.exec(
+        select(AssistantTask).where(
+            AssistantTask.company_id == user.company_id,
+            AssistantTask.state == AssistantTaskState.IN_PROGRESS,
+        )
+    ).all()
+    assert {(r.session_name, r.task_key) for r in rows} >= {
+        ("Onboarding", onboarding.task.key)
+    }
+
+
+def test_the_session_name_through_mcp(client: TestClient, db: Session) -> None:
+    user, _, _ = _workspace(db)
+    url = f"{API}/mcp/workspaces/{user.company_id}/next-task"
+
+    first = client.get(url, headers=_headers(user), params={"session": "Onboarding"})
+    second = client.get(url, headers=_headers(user), params={"session": "Specs"})
+    too_long = client.get(url, headers=_headers(user), params={"session": "x" * 41})
+
+    assert first.status_code == 200 and second.status_code == 200, second.text
+    held = second.json()["data"]["in_progress"]
+    assert [(h["session"], h["task"]["key"], h["task"]["position"]) for h in held] == [
+        ("Onboarding", first.json()["data"]["task"]["key"], 1)
+    ]
+    assert any("pass the same `session`" in r for r in second.json()["rules"])
+    assert too_long.status_code == 422

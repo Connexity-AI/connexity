@@ -59,10 +59,10 @@ async def add_agents(
 
 
 async def get_next_task(
-    client: ConnexityBackendClient, workspace_id: str
+    client: ConnexityBackendClient, workspace_id: str, session: str | None = None
 ) -> GetNextTaskResult:
     return GetNextTaskResult.model_validate(
-        await client.get_next_task(workspace_id=workspace_id)
+        await client.get_next_task(workspace_id=workspace_id, session=session)
     )
 
 

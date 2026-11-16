@@ -30,6 +30,7 @@ REVIEW_DAYS = 7
 # A busier agent's spec comes first, by its calls in this many days.
 SPEC_CALL_DAYS = 7
 NO_ASSISTANT = "your assistant"
+MAX_SESSION = 40
 
 
 class Group:
@@ -276,6 +277,16 @@ class Ended(NamedTuple):
     state: AssistantTaskState
 
 
+class Held(NamedTuple):
+    """A task another session is working on."""
+
+    task: Task
+    position: int
+    person: str
+    assistant: str
+    session: str
+
+
 @dataclass
 class NextTask:
     task: Task | None
@@ -286,6 +297,16 @@ class NextTask:
     waiting: list[Task]
     to_do: int
     in_progress_elsewhere: int
+    # What other sessions hold, in list order.
+    held: list[Held] = field(default_factory=list)
+
+
+def _person_name(session: Session, row: AssistantTask) -> str:
+    """The person's name as the app shows it, or their email's first part."""
+    user = session.get(User, row.taken_by) if row.taken_by else None
+    if user is not None and (user.full_name or "").strip():
+        return (user.full_name or "").strip()
+    return row.taken_by_email.split("@")[0]
 
 
 def _ending(row: AssistantTask, live: Mapping[str, Task]) -> AssistantTaskState:
@@ -306,10 +327,12 @@ def next_task(
     company_id: uuid.UUID,
     person: User,
     assistant_name: str | None,
+    session_name: str | None = None,
 ) -> NextTask:
     """End the caller's current task, then take the first task that is neither the
     person's to do nor held by another assistant."""
     assistant = assistant_name or NO_ASSISTANT
+    label = (session_name or "").strip()[:MAX_SESSION]
     tasks = work_list(session=session, company_id=company_id)
     live = {task.key: task for task in tasks}
 
@@ -320,6 +343,7 @@ def next_task(
         if row.state is AssistantTaskState.IN_PROGRESS
         and row.taken_by == person.id
         and row.assistant_name == assistant
+        and row.session_name == label
     ]
     ended: Ended | None = None
     # A task the caller just handed back goes to someone else, or to the caller later:
@@ -353,11 +377,21 @@ def next_task(
         ]
         if len(free) > 1:
             free = [task for task in free if task.key not in returned] or free
-        elsewhere = sum(
-            1 for row in held if row.state is AssistantTaskState.IN_PROGRESS
-        )
+        others = [
+            Held(
+                live[row.task_key],
+                tasks.index(live[row.task_key]) + 1,
+                _person_name(session, row),
+                row.assistant_name,
+                row.session_name,
+            )
+            for row in held
+            if row.state is AssistantTaskState.IN_PROGRESS and row.task_key in live
+        ]
+        others.sort(key=lambda h: h.position)
+        elsewhere = len(others)
         if not free:
-            return NextTask(None, None, ended, waiting, 0, elsewhere)
+            return NextTask(None, None, ended, waiting, 0, elsewhere, others)
         task = free[0]
         session.add(
             AssistantTask(
@@ -369,6 +403,7 @@ def next_task(
                 taken_by=person.id,
                 taken_by_email=person.email,
                 assistant_name=assistant,
+                session_name=label,
             )
         )
         try:
@@ -386,5 +421,6 @@ def next_task(
             waiting=waiting,
             to_do=len(free) - 1,
             in_progress_elsewhere=elsewhere,
+            held=others,
         )
     raise AssertionError("unreachable")

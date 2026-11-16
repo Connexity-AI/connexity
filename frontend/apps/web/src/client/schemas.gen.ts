@@ -8511,6 +8511,31 @@ export const McpEndedTaskSchema = {
   title: 'McpEndedTask',
 } as const;
 
+export const McpHeldTaskSchema = {
+  properties: {
+    task: {
+      $ref: '#/components/schemas/McpTask',
+    },
+    person: {
+      type: 'string',
+      title: 'Person',
+      description: 'Whose assistant holds it',
+    },
+    assistant: {
+      type: 'string',
+      title: 'Assistant',
+    },
+    session: {
+      type: 'string',
+      title: 'Session',
+      description: "The session's name; empty when it gave none",
+    },
+  },
+  type: 'object',
+  required: ['task', 'person', 'assistant', 'session'],
+  title: 'McpHeldTask',
+} as const;
+
 export const McpIssuesSchema = {
   properties: {
     tiles: {
@@ -8565,6 +8590,14 @@ export const McpNextTaskSchema = {
     },
     counts: {
       $ref: '#/components/schemas/McpTaskCounts',
+    },
+    in_progress: {
+      items: {
+        $ref: '#/components/schemas/McpHeldTask',
+      },
+      type: 'array',
+      title: 'In Progress',
+      description: 'Tasks other sessions are working on, top first (up to 10)',
     },
     readiness_percent: {
       anyOf: [
