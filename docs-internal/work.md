@@ -43,6 +43,7 @@ wins. What `get_next_task` hands out is planned in the
 | 26 | Which task blocks which, worked out by Connexity: an agent's open questions block every issue fix on that agent; its spec to write or update blocks its fixes and calls to review; each onboarding step blocks the next; the first scan blocks every spec. | "Accept, build" on `plans/2026-11-16-blocks.md` | 2026-11-16 |
 | 27 | Built (10.127): Work at `/work`, first in the sidebar with a warm count of what waits for the person; `/` keeps Readiness until the first scan is done, then opens Work; "done" lists the last 7 days from what Connexity records; "Answer questions →" opens Action items until 10.128; decision 9 wins over "give before asking" on Work; reordering is its own roadmap row. | "Accept, build" on `plans/2026-11-16-work-page.md` | 2026-11-16 |
 | 28 | Reordering (10.1271): drag on To do rows only, no keyboard; the person's order wins for the tasks they moved, new tasks fall in by Connexity's order, and a task's blockers come up with it; incidents stay first; the assistant moves a task only when the person asks (`move_task`); no reset for now. | "no need any keyboards"; "Accept, build" on `plans/2026-11-16-reorder.md` | 2026-11-16 |
+| 29 | Questions are answered on Work as cards (10.128): sent together after the last card (one spec version), "Something else" becomes the rule as written, no Park on the cards (Skip leaves a question open; parking stays with the assistant), the earlier answer shown on a replacing question; Action items is deleted. | "Accept, build" on `plans/2026-11-16-question-cards.md` | 2026-11-16 |
 
 ## Proposed (in the design, not decided)
 
@@ -53,7 +54,7 @@ wins. What `get_next_task` hands out is planned in the
 
 ## Open
 
-2. **The Action items page (10.122, built).** Decision 12 means its answering moves into the cards on Work and the page goes away. When, and in which roadmap row?
+2. **The Action items page.** Settled by decision 29: deleted with 10.128.
 3. **Questions per fix.** The spec after onboarding leaves 7 clarifications at once. Is the under-4 rule a limit on how many the assistant raises per fix, or must the cards also handle more?
 4. **Does our MCP adapter pass the session id through?** No: it is stateless, so 10.125 keys sessions by their name.
 5. **Connexity triggering an assistant** (a Slack thread, a routine webhook, a schedule). Brainstormed, not chosen.

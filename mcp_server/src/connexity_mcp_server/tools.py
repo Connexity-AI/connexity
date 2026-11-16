@@ -317,6 +317,7 @@ async def answer_clarifications(
 ) -> AnswerClarificationsResult:
     return AnswerClarificationsResult.model_validate(
         await client.answer_clarifications(
-            workspace_id=workspace_id, answers=[a.model_dump() for a in answers]
+            workspace_id=workspace_id,
+            answers=[a.model_dump(exclude_none=True) for a in answers],
         )
     )

@@ -12,7 +12,7 @@ from app.crud.spec import copy_rule, latest_spec, spec_rules
 from app.models.agent import Agent
 from app.models.call import Call
 from app.models.check import DecisionRecord
-from app.models.clarification import ANSWER_LETTERS, Clarification
+from app.models.clarification import ANSWER_LETTERS, OTHER, Clarification
 from app.models.enums import (
     ClarificationState,
     DecisionKind,
@@ -125,6 +125,15 @@ def answered_since(
 class Answer(NamedTuple):
     clarification: Clarification
     letter: str
+    # For OTHER: the person's own words.
+    text: str | None = None
+
+
+def rule_text(clarification: Clarification, letter: str, text: str | None) -> str:
+    """The rule an answer becomes: the chosen answer's rule, or the person's words."""
+    if letter == OTHER:
+        return text or ""
+    return str(clarification.answers[ANSWER_LETTERS.index(letter)]["rule"])
 
 
 def write_answered_spec(
@@ -187,7 +196,7 @@ def write_answered_spec(
                 key=old.key if old is not None else uuid.uuid4().hex[:12],
                 position=position,
                 category_id=c.category_id,
-                text=str(c.answers[ANSWER_LETTERS.index(answer.letter)]["rule"]),
+                text=rule_text(c, answer.letter, answer.text),
                 source=SpecRuleSource.CLARIFICATION,
                 clarification_id=c.id,
                 touches=c.touches,
@@ -206,12 +215,14 @@ def decide(
     answer_spec: Spec | None,
     decided_by: User,
     assistant_name: str | None,
+    text: str | None = None,
 ) -> None:
     """Record an answer, park or reopen on the clarification and as a decision record.
     Does not commit."""
     old = clarification.state
     clarification.state = state
     clarification.answer = letter
+    clarification.answer_text = text if letter == OTHER else None
     clarification.answer_spec_id = answer_spec.id if answer_spec else None
     clarification.decided_by = decided_by.id
     clarification.decided_by_email = decided_by.email
@@ -227,7 +238,7 @@ def decide(
     detail = None
     if answered and letter is not None and answer_spec is not None:
         detail = {
-            "rule": clarification.answers[ANSWER_LETTERS.index(letter)]["rule"],
+            "rule": rule_text(clarification, letter, text),
             "spec_version": answer_spec.version,
         }
     session.add(
@@ -254,7 +265,6 @@ def list_page(
     agent_id: uuid.UUID | None,
     offset: int,
     limit: int,
-    decided_since: datetime | None = None,
 ) -> tuple[list[Clarification], bool]:
     """A page of the workspace's clarifications in ``state`` and whether more follow:
     open ones most important first, answered and parked ones newest first."""
@@ -263,8 +273,6 @@ def list_page(
     )
     if agent_id is not None:
         query = query.where(Clarification.agent_id == agent_id)
-    if decided_since is not None:
-        query = query.where(col(Clarification.decided_at) >= decided_since)
     if state is ClarificationState.OPEN:
         # Most important first: seen on more calls, then touching money, safety or
         # compliance, then the newest. No criticality yet.

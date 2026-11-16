@@ -30,7 +30,7 @@ screen looks, the exported page wins over the prompts that produced it.
 | `Connexity Agents.dc.html` | The agents list | Milestones 1 and 2 |
 | `Connexity Agent Profile.dc.html` | The agent page and its tabs (`... v1` is an older version; ignore it) | Milestones 2 and 6 |
 | `Connexity Work.dc.html` | Work: the assistant's tasks, what waits for the person, onboarding as tasks; the page a person lands on ([`docs-internal/work.md`](../docs-internal/work.md)) | Demo, after the next task feature |
-| `Connexity Action items.dc.html` | Replaced by Work; still shows the suggested answers of the deleted prompt 14, which Work rules out | Superseded |
+| `Connexity Action items.dc.html` | Replaced by Work; the page was deleted with 10.128, when its questions moved onto Work as cards | Deleted |
 | `Connexity Issues.dc.html`, `Connexity Issue.dc.html` | The issues list and a single issue | Milestones 3 and 4 |
 | `Connexity Incidents.dc.html`, `Connexity Incident.dc.html` | Incidents and the Playbook | Milestone 5 (Playbook later) |
 | `Connexity Settings.dc.html` | Workspace settings | Milestones 7, 8 and 10 |
