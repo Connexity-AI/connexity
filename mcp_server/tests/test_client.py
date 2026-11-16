@@ -23,6 +23,7 @@ from connexity_mcp_server.tools import (
     scan_calls,
     connect_voice_platform,
     create_workspace,
+    get_next_task,
     get_readiness,
     list_agents,
     list_workspaces,
@@ -242,6 +243,49 @@ async def test_get_readiness_reads_the_workspace_steps() -> None:
 
     assert result.data.percent == 25
     assert result.data.steps[0].state == "done"
+
+
+@pytest.mark.asyncio
+async def test_get_next_task_reads_the_workspace_task() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET"
+        assert request.url.path == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/next-task"
+        assert request.headers["Authorization"] == "Bearer user-oauth-token"
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "task": {
+                        "key": "spec:a1",
+                        "kind": "spec",
+                        "title": "Write the spec for Front desk",
+                        "position": 2,
+                        "agent_id": "a1",
+                        "agent_name": "Front desk",
+                        "facts": ["Spec · no spec yet"],
+                        "waiting_for_person": False,
+                    },
+                    "previous": {"title": "Scan recent calls", "state": "done"},
+                    "waiting_for_person": [],
+                    "counts": {
+                        "to_do": 3,
+                        "waiting_for_person": 1,
+                        "in_progress_elsewhere": 0,
+                    },
+                    "readiness_percent": None,
+                },
+                "next_cursor": None,
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler, lambda client: get_next_task(client, workspace_id=WORKSPACE_ID)
+    )
+
+    assert result.data.task is not None and result.data.task.kind == "spec"
+    assert result.data.previous is not None and result.data.previous.state == "done"
+    assert result.data.counts.to_do == 3
 
 
 @pytest.mark.asyncio

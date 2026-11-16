@@ -273,6 +273,9 @@ import type {
   McpGetIssueData,
   McpGetIssueErrors,
   McpGetIssueResponses,
+  McpGetNextTaskData,
+  McpGetNextTaskErrors,
+  McpGetNextTaskResponses,
   McpGetReadinessData,
   McpGetReadinessErrors,
   McpGetReadinessResponses,
@@ -1438,6 +1441,23 @@ export class McpService {
     return (options.client ?? client).get<McpGetAgentResponses, McpGetAgentErrors, ThrowOnError>({
       security: [{ scheme: 'bearer', type: 'http' }],
       url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Next Task
+   */
+  public static getNextTask<ThrowOnError extends boolean = false>(
+    options: Options<McpGetNextTaskData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      McpGetNextTaskResponses,
+      McpGetNextTaskErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/next-task',
       ...options,
     });
   }

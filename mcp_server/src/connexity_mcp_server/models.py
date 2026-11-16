@@ -222,14 +222,52 @@ class Category(BaseModel):
     kind: str
 
 
+class Task(BaseModel):
+    key: str
+    kind: str = Field(
+        description=(
+            "incident, issue_fix, onboarding, spec, clarifications, calls_to_review or "
+            "tests"
+        )
+    )
+    title: str
+    position: int | None = None
+    agent_id: str | None = None
+    agent_name: str | None = None
+    facts: list[str] = Field(default_factory=list)
+    waiting_for_person: bool = False
+
+
+class EndedTask(BaseModel):
+    title: str
+    state: str = Field(description="done, waiting (for the person) or returned")
+
+
+class TaskCounts(BaseModel):
+    to_do: int = 0
+    waiting_for_person: int = 0
+    in_progress_elsewhere: int = 0
+
+
+class NextTask(BaseModel):
+    task: Task | None = None
+    previous: EndedTask | None = None
+    waiting_for_person: list[Task] = Field(default_factory=list)
+    counts: TaskCounts
+    readiness_percent: int | None = None
+
+
 ListWorkspacesResult = Answer[list[Workspace]]
 AddAgentsResult = Answer[AddedAgents]
 ConnectVoicePlatformResult = Answer[Connection]
 GetReadinessResult = Answer[Readiness]
+GetNextTaskResult = Answer[NextTask]
 CreateWorkspaceResult = Answer[Workspace]
 ListAgentsResult = Answer[list[Agent]]
 ScanCallsResult = Answer[ScanProgress]
 ListCategoriesResult = Answer[list[Category]]
+
+
 class IssueArchive(BaseModel):
     by: str
     assistant: str | None = None

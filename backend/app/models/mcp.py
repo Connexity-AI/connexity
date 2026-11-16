@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field, StringConstraints
 
 from app.models.agent_list import AgentType
 from app.models.call_list import CallListItemPublic, CallTilesPublic
-from app.models.enums import Platform, SpecRuleTouches
+from app.models.enums import AssistantTaskState, Platform, SpecRuleTouches, TaskKind
 from app.models.issue_list import IssueListItemPublic, IssueTilesPublic
 from app.models.spec import SpecState
 
@@ -242,3 +242,54 @@ class McpIssues(BaseModel):
 class McpCalls(BaseModel):
     tiles: CallTilesPublic = Field(description="Counts for the filters and period")
     calls: list[CallListItemPublic]
+
+
+class McpTask(BaseModel):
+    key: str = Field(
+        description="Stays the same while the task exists: spec:<agent id>"
+    )
+    kind: TaskKind
+    title: str = Field(description="The task in one plain sentence")
+    position: int | None = Field(
+        default=None, description="Its place in the workspace's list, 1 at the top"
+    )
+    agent_id: uuid.UUID | None = None
+    agent_name: str | None = None
+    facts: list[str] = Field(description="Short facts: counts, versions, the size")
+    waiting_for_person: bool = Field(
+        default=False, description="The next move is the person's, not yours"
+    )
+
+
+class McpEndedTask(BaseModel):
+    title: str
+    state: AssistantTaskState = Field(
+        description=(
+            "done; waiting (your part is done, the rest is the person's); returned "
+            "(back in the list, its work still there)"
+        )
+    )
+
+
+class McpTaskCounts(BaseModel):
+    to_do: int = Field(description="Tasks after this one that an assistant can take")
+    waiting_for_person: int
+    in_progress_elsewhere: int = Field(
+        description="Tasks other assistants are working on"
+    )
+
+
+class McpNextTask(BaseModel):
+    task: McpTask | None = Field(
+        default=None, description="Yours now; None when nothing waits for you"
+    )
+    previous: McpEndedTask | None = Field(
+        default=None, description="Your previous task, ended by asking for this one"
+    )
+    waiting_for_person: list[McpTask] = Field(
+        description="Tasks only the person can move on, top first (up to 10)"
+    )
+    counts: McpTaskCounts
+    readiness_percent: int | None = Field(
+        default=None, description="Setup completeness, when nothing waits for you"
+    )

@@ -1935,6 +1935,12 @@ export const AnsweredSpecPublicSchema = {
   title: 'AnsweredSpecPublic',
 } as const;
 
+export const AssistantTaskStateSchema = {
+  type: 'string',
+  enum: ['in_progress', 'waiting', 'returned', 'done'],
+  title: 'AssistantTaskState',
+} as const;
+
 export const AuthProviderSchema = {
   type: 'string',
   enum: ['email', 'google'],
@@ -7830,6 +7836,51 @@ export const McpAnswer_McpIssues_Schema = {
   title: 'McpAnswer[McpIssues]',
 } as const;
 
+export const McpAnswer_McpNextTask_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/McpNextTask',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[McpNextTask]',
+} as const;
+
 export const McpAnswer_McpScanProgress_Schema = {
   properties: {
     data: {
@@ -8443,6 +8494,23 @@ export const McpConnectionSchema = {
   title: 'McpConnection',
 } as const;
 
+export const McpEndedTaskSchema = {
+  properties: {
+    title: {
+      type: 'string',
+      title: 'Title',
+    },
+    state: {
+      $ref: '#/components/schemas/AssistantTaskState',
+      description:
+        "done; waiting (your part is done, the rest is the person's); returned (back in the list, its work still there)",
+    },
+  },
+  type: 'object',
+  required: ['title', 'state'],
+  title: 'McpEndedTask',
+} as const;
+
 export const McpIssuesSchema = {
   properties: {
     tiles: {
@@ -8461,6 +8529,59 @@ export const McpIssuesSchema = {
   type: 'object',
   required: ['tiles', 'issues'],
   title: 'McpIssues',
+} as const;
+
+export const McpNextTaskSchema = {
+  properties: {
+    task: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/McpTask',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Yours now; None when nothing waits for you',
+    },
+    previous: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/McpEndedTask',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Your previous task, ended by asking for this one',
+    },
+    waiting_for_person: {
+      items: {
+        $ref: '#/components/schemas/McpTask',
+      },
+      type: 'array',
+      title: 'Waiting For Person',
+      description: 'Tasks only the person can move on, top first (up to 10)',
+    },
+    counts: {
+      $ref: '#/components/schemas/McpTaskCounts',
+    },
+    readiness_percent: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Readiness Percent',
+      description: 'Setup completeness, when nothing waits for you',
+    },
+  },
+  type: 'object',
+  required: ['waiting_for_person', 'counts'],
+  title: 'McpNextTask',
 } as const;
 
 export const McpRaiseClarificationsSchema = {
@@ -8578,6 +8699,98 @@ export const McpSpecRuleSchema = {
   type: 'object',
   required: ['text', 'category'],
   title: 'McpSpecRule',
+} as const;
+
+export const McpTaskSchema = {
+  properties: {
+    key: {
+      type: 'string',
+      title: 'Key',
+      description: 'Stays the same while the task exists: spec:<agent id>',
+    },
+    kind: {
+      $ref: '#/components/schemas/TaskKind',
+    },
+    title: {
+      type: 'string',
+      title: 'Title',
+      description: 'The task in one plain sentence',
+    },
+    position: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Position',
+      description: "Its place in the workspace's list, 1 at the top",
+    },
+    agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Id',
+    },
+    agent_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Name',
+    },
+    facts: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Facts',
+      description: 'Short facts: counts, versions, the size',
+    },
+    waiting_for_person: {
+      type: 'boolean',
+      title: 'Waiting For Person',
+      description: "The next move is the person's, not yours",
+      default: false,
+    },
+  },
+  type: 'object',
+  required: ['key', 'kind', 'title', 'facts'],
+  title: 'McpTask',
+} as const;
+
+export const McpTaskCountsSchema = {
+  properties: {
+    to_do: {
+      type: 'integer',
+      title: 'To Do',
+      description: 'Tasks after this one that an assistant can take',
+    },
+    waiting_for_person: {
+      type: 'integer',
+      title: 'Waiting For Person',
+    },
+    in_progress_elsewhere: {
+      type: 'integer',
+      title: 'In Progress Elsewhere',
+      description: 'Tasks other assistants are working on',
+    },
+  },
+  type: 'object',
+  required: ['to_do', 'waiting_for_person', 'in_progress_elsewhere'],
+  title: 'McpTaskCounts',
 } as const;
 
 export const McpUnarchiveIssueSchema = {
@@ -11274,6 +11487,22 @@ export const SuggestionsRequestSchema = {
   type: 'object',
   required: ['baseline_run_id', 'candidate_run_id'],
   title: 'SuggestionsRequest',
+} as const;
+
+export const TaskKindSchema = {
+  type: 'string',
+  enum: [
+    'incident',
+    'issue_fix',
+    'onboarding',
+    'spec',
+    'clarifications',
+    'calls_to_review',
+    'tests',
+  ],
+  title: 'TaskKind',
+  description:
+    'The kinds of work Connexity hands an assistant (`docs-internal/work.md`), named\nas the Work page names its types.',
 } as const;
 
 export const TestCaseComparisonSchema = {

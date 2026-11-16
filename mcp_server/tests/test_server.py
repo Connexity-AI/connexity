@@ -25,6 +25,7 @@ async def test_server_lists_only_the_workspace_tools() -> None:
         "get_agent",
         "get_call",
         "get_issue",
+        "get_next_task",
         "get_readiness",
         "get_spec",
         "list_agents",
@@ -49,6 +50,7 @@ def test_server_sends_connect_instructions() -> None:
     assert "list_workspaces" in instructions
     assert "workspace_id" in instructions
     assert "raise_clarifications" in instructions
+    assert "get_next_task" in instructions
 
 
 @pytest.mark.asyncio
