@@ -15,19 +15,19 @@
     <span style="font-size:15px;font-weight:500;color:var(--ink)">Connexity</span>
   </div>
   <nav style="display:flex;flex-direction:column;gap:2px">
+    <a href="Connexity Work.dc.html" style="{{ navWork }}">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"></circle><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"></path><circle cx="18" cy="5" r="3"></circle></svg>
+      <span>Work</span>
+      <sc-if value="{{ notFresh }}" hint-placeholder-val="{{ true }}"><span title="1 task waiting for you" style="margin-left:auto;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--warn-bg);color:var(--warn);font-size:13px;line-height:18px;font-weight:500;display:flex;align-items:center;justify-content:center">1</span></sc-if>
+    </a>
     <a href="Connexity Home.dc.html" style="{{ navHome }}">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
-      <span>Home</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>
+      <span>Dashboard</span>
     </a>
     <a href="Connexity Incidents.dc.html" style="{{ navIncidents }}">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"></path></svg>
       <span>Incidents</span>
       <sc-if value="{{ notFresh }}" hint-placeholder-val="{{ true }}"><span style="margin-left:auto;display:flex;align-items:center;gap:8px">{{ glimmer }}<span style="font-size:13px;color:var(--ink3)">2</span></span></sc-if>
-    </a>
-    <a href="Connexity Action items.dc.html" style="{{ navActions }}">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 2 2 4-4"></path><path d="m3 7 2 2 4-4"></path><path d="M13 6h8"></path><path d="M13 12h8"></path><path d="M13 18h8"></path></svg>
-      <span>Action items</span>
-      <sc-if value="{{ notFresh }}" hint-placeholder-val="{{ true }}"><span style="margin-left:auto;font-size:13px;color:var(--ink3)">14</span></sc-if>
     </a>
     <a href="Connexity Agents.dc.html" style="{{ navAgents }}">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg>
@@ -36,10 +36,6 @@
     <a href="Connexity Calls.dc.html" style="{{ navCalls }}">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"></path></svg>
       <span>Calls</span>
-    </a>
-    <a href="Connexity Roadmap.dc.html" style="{{ navRoadmap }}">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"></circle><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"></path><circle cx="18" cy="5" r="3"></circle></svg>
-      <span>Roadmap</span>
     </a>
     <a href="Connexity Issues.dc.html" style="{{ navIssues }}">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>
@@ -114,7 +110,7 @@
 </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;home&quot;,&quot;actions&quot;,&quot;agents&quot;,&quot;calls&quot;,&quot;roadmap&quot;,&quot;issues&quot;,&quot;incidents&quot;],&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;'home' | 'actions' | 'agents' | 'calls' | 'roadmap' | 'issues'&quot;},&quot;incident&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;menuOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;readiness&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;setup&quot;,&quot;dropped&quot;,&quot;complete&quot;],&quot;default&quot;:&quot;setup&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;workspaceCount&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:9,&quot;default&quot;:6,&quot;tsType&quot;:&quot;number&quot;},&quot;wsDialog&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;closed&quot;,&quot;open&quot;,&quot;tooLong&quot;],&quot;default&quot;:&quot;closed&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;home&quot;,&quot;actions&quot;,&quot;agents&quot;,&quot;calls&quot;,&quot;work&quot;,&quot;issues&quot;,&quot;incidents&quot;],&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;'home' | 'actions' | 'agents' | 'calls' | 'work' | 'issues'&quot;},&quot;incident&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;menuOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;readiness&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;setup&quot;,&quot;dropped&quot;,&quot;complete&quot;],&quot;default&quot;:&quot;setup&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;workspaceCount&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:9,&quot;default&quot;:6,&quot;tsType&quot;:&quot;number&quot;},&quot;wsDialog&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;closed&quot;,&quot;open&quot;,&quot;tooLong&quot;],&quot;default&quot;:&quot;closed&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
 class Component extends DCLogic {
   constructor(props) {
     super(props);
@@ -165,7 +161,7 @@ class Component extends DCLogic {
       workspaces: W.filter(n => !q || n.toLowerCase().includes(q)).map((name, i) => ({ name, initial: name[0], current: name === cur })),
       menuRef: this.menuRef, menuOpen: this.state.menuOpen, toggleMenu: () => this.setState(st => ({ menuOpen: !st.menuOpen })), closeMenu: () => this.setState({ menuOpen:false }),
       themes: [['dark','Dark'],['light','Light'],['system','System']].map(([v, label]) => ({ label, style: seg(this.state.theme === v), pick: () => { try { localStorage.setItem('cx-theme', v); } catch (_) {} this.setState({ theme:v }); } })),
-      creditsLow: this.props.credits === 'low' && !fresh, notFresh: !fresh, showReady: pct < 100 && !fresh, readyPct: pct, readyDash: `${(pct / 100 * c).toFixed(2)} ${c.toFixed(2)}`, glimmer: this.props.incident === false || fresh ? null : this.glimmer(), navHome: this.navStyle(a === 'home'), navActions: this.navStyle(a === 'actions'), navAgents: this.navStyle(a === 'agents'), navCalls: this.navStyle(a === 'calls'), navRoadmap: this.navStyle(a === 'roadmap'), navIssues: this.navStyle(a === 'issues'), navIncidents: this.navStyle(a === 'incidents'), navSettings: this.navStyle(a === 'settings') };
+      creditsLow: this.props.credits === 'low' && !fresh, notFresh: !fresh, showReady: pct < 100 && !fresh, readyPct: pct, readyDash: `${(pct / 100 * c).toFixed(2)} ${c.toFixed(2)}`, glimmer: this.props.incident === false || fresh ? null : this.glimmer(), navHome: this.navStyle(a === 'home'), navActions: this.navStyle(a === 'actions'), navAgents: this.navStyle(a === 'agents'), navCalls: this.navStyle(a === 'calls'), navWork: this.navStyle(a === 'work' || a === 'roadmap'), navIssues: this.navStyle(a === 'issues'), navIncidents: this.navStyle(a === 'incidents'), navSettings: this.navStyle(a === 'settings') };
   }
 }
 </script>

@@ -233,8 +233,9 @@ assistant is to have a quick glance of whats going on and thats what dashboards 
 for" (Dmytro). Screens are dashboards: numbers that show their base (agents, calls,
 period), findings and progress before anything that asks the person, a score for the
 fleet and each agent, and a single call's recording and transcript as the deepest view.
-The sidebar is Home, Incidents, Action items, Agents, Calls, Roadmap, Issues and
-Settings (Decided 2026-11-12). Calls can be browsed and searched, and the single call
+The sidebar is Work, Dashboard, Incidents, Agents, Calls, Issues and Settings, and a
+person lands on Work (Decided 2026-11-16, replacing Home, Action items and Roadmap; see
+[`work.md`](./work.md)). Calls can be browsed and searched, and the single call
 shows tool calls inline. It is still not an
 observability tool: no trace explorers, no drilling down from an incident to the moment.
 This replaces the same morning's "reports and things to do". The rule that the UI may do

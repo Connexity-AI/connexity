@@ -4,9 +4,10 @@ Prompts written for Claude Design, where Dmytro designs the web app's screens, a
 table of who does what. They are reference for the sessions that build each feature;
 the screens themselves live in Claude Design.
 
-- **Numbered prompts (`01-` to `14-`)** were pasted into Claude Design in order. Each
+- **Numbered prompts (`01-` to `16-`)** were pasted into Claude Design in order. Each
   later prompt changes earlier ones, so read a screen's prompts in order: a later prompt
-  wins. `12-adjustments.md` holds many small numbered changes across the app; a later
+  wins. `15-assistant-tasks.md` arrives with the "Next task for the assistant" pull
+  request; `16-work.md` replaces it and prompt 14's suggested answers. `12-adjustments.md` holds many small numbered changes across the app; a later
   item wins over an earlier one.
 - **`who-does-what.md`** is the job-by-job split between Connexity, the assistant and the
   person. Its short form is [`docs-internal/responsibilities.md`](../docs-internal/responsibilities.md).
@@ -22,21 +23,22 @@ screen looks, the exported page wins over the prompts that produced it.
 |---|---|---|
 | `Connexity Design System.dc.html` | Tokens, type, components | Every UI feature |
 | `Connexity Sidebar.dc.html` | The app shell: sidebar, profile menu, workspace picker | Milestone 1 |
-| `Connexity Onboarding.dc.html` | Readiness as the first screen after sign-up | Milestone 1 |
+| `Connexity Onboarding.dc.html` | Readiness as the first screen after sign-up; replaced by onboarding tasks on Work | Superseded |
 | `Connexity Readiness Bar.dc.html` | The Readiness stripe and ring | Milestones 1 and 5 |
 | `Connexity Calls.dc.html`, `Connexity Call.dc.html` | The calls list and a single call | Milestone 1 |
 | `Connexity Agents.dc.html` | The agents list | Milestones 1 and 2 |
 | `Connexity Agent Profile.dc.html` | The agent page and its tabs (`... v1` is an older version; ignore it) | Milestones 2 and 6 |
-| `Connexity Action items.dc.html` | Clarifications and other items that need a person | Milestone 2 |
+| `Connexity Work.dc.html` | Work: the assistant's tasks, what waits for the person, onboarding as tasks; the page a person lands on ([`docs-internal/work.md`](../docs-internal/work.md)) | Demo, after the next task feature |
+| `Connexity Action items.dc.html` | Replaced by Work; still shows prompt 14's suggested answers, which Work rules out | Superseded |
 | `Connexity Issues.dc.html`, `Connexity Issue.dc.html` | The issues list and a single issue | Milestones 3 and 4 |
 | `Connexity Incidents.dc.html`, `Connexity Incident.dc.html` | Incidents and the Playbook | Milestone 5 (Playbook later) |
 | `Connexity Settings.dc.html` | Workspace settings | Milestones 7, 8 and 10 |
 | `Connexity Account.dc.html`, `Connexity Agency.dc.html` | Personal settings, agency settings and billing | Milestone 9 |
-| `Connexity Home.dc.html` | Home | Milestone 10 |
-| `Connexity Roadmap.dc.html` | The roadmap page | Not scheduled |
+| `Connexity Home.dc.html` | Dashboard (was Home) | Milestone 10 |
+| `Connexity Roadmap.dc.html` | Replaced by Work; the zoomed-out roadmap is parked until after the demo | Superseded |
 | `Connexity.dc.html` | The whole project on one canvas | Reference |
 
-The export is a snapshot (2026-11-13). When Dmytro changes a screen in Claude Design, he
+The export is a snapshot (2026-11-16). When Dmytro changes a screen in Claude Design, he
 exports again and the files here are replaced in a pull request. A feature's plan names
 the page and the export date it was built against.
 
