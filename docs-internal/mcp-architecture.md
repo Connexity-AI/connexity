@@ -196,6 +196,7 @@ They own validation, CRUD calls, state changes and the answer's rules and next s
 |---|---|
 | `list_workspaces` | `GET /api/v1/mcp/workspaces` |
 | `create_workspace(name)` | `POST /api/v1/mcp/workspaces` |
+| `get_next_task(workspace_id)` | `GET /api/v1/mcp/workspaces/{workspace_id}/next-task` |
 | `get_readiness(workspace_id)` | `GET /api/v1/mcp/workspaces/{workspace_id}/readiness` |
 | `connect_voice_platform(workspace_id, api_key, platform)` | `POST /api/v1/mcp/workspaces/{workspace_id}/connections` |
 | `add_agents(workspace_id, agents)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents` |

@@ -37,6 +37,7 @@ from app.models.agent_version import (  # noqa: F401
     AgentVersionsPublic,
     PublishRequest,
 )
+from app.models.assistant_task import AssistantTask  # noqa: F401
 
 # ── Call (Observer) ────────────────────────────────────────────────
 from app.models.call import (  # noqa: F401

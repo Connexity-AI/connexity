@@ -44,7 +44,13 @@ from app.models.clarification import (
     ClarificationPublic,
     ClarificationsAnsweredPublic,
 )
-from app.models.enums import CallCheckStatus, ClarificationState, IssueState
+from app.models.enums import (
+    AssistantTaskState,
+    CallCheckStatus,
+    ClarificationState,
+    IssueState,
+    TaskKind,
+)
 from app.models.issue_list import IssuePeriod, IssueStatusFilter
 from app.models.issue_page import IssuePagePublic
 from app.models.mcp import (
@@ -65,11 +71,15 @@ from app.models.mcp import (
     McpCalls,
     McpConnection,
     McpConnectVoicePlatform,
+    McpEndedTask,
     McpErrorDetail,
     McpIssues,
+    McpNextTask,
     McpRaiseClarifications,
     McpRefusedAgent,
     McpScanProgress,
+    McpTask,
+    McpTaskCounts,
     McpUnarchiveIssue,
     McpWorkspace,
     McpWriteSpec,
@@ -112,6 +122,7 @@ from app.services.spec import (
     spec_state,
     write_agent_spec,
 )
+from app.services.work import Task, next_task
 
 router = APIRouter(
     prefix="/mcp",
@@ -121,6 +132,8 @@ router = APIRouter(
 
 _CURSOR_PREFIX = "o:"
 _CURSOR_MAX_OFFSET = 1_000_000_000
+# The last next step of every tool that can finish a task.
+NEXT_TASK = "When this task is done, call `get_next_task` for the next one."
 
 
 def _encode_cursor(offset: int) -> str:
@@ -556,7 +569,8 @@ def archive_issue(
         issue,
         [
             "Tell the person it is archived and recorded as approved by them; "
-            "`unarchive_issue` brings it back."
+            "`unarchive_issue` brings it back.",
+            NEXT_TASK,
         ],
     )
 
@@ -874,6 +888,7 @@ def write_spec(
         "`raise_clarifications`, following connexity://guides/spec."
     )
     steps.append("Tell the person the spec is written, and what you raised.")
+    steps.append(NEXT_TASK)
     return McpAnswer[SpecWrittenPublic](
         data=written, rules=_SPEC_RULES, next_steps=steps, guide=GUIDE_SPEC
     )
@@ -961,6 +976,7 @@ def raise_agent_clarifications(
             "Ask the person in your chat, one question at a time or in one batch, then "
             "call `answer_clarifications` with what they pick. Never answer without "
             "them. They can also answer in Connexity.",
+            NEXT_TASK,
         ],
         guide=GUIDE_SPEC,
     )
@@ -1049,6 +1065,7 @@ def answer_workspace_clarifications(
             f"{data.open} {'question is' if data.open == 1 else 'questions are'} still "
             "open: call `list_clarifications`."
         )
+    steps.append(NEXT_TASK)
     return McpAnswer[ClarificationsAnsweredPublic](
         data=data, rules=_CLARIFICATION_RULES, next_steps=steps, guide=GUIDE_SPEC
     )
@@ -1095,6 +1112,145 @@ def get_agent(
             "systems are the n8n workflows its tool calls ran in the period.",
         ],
         next_steps=next_steps,
+        guide=GUIDE_GETTING_STARTED,
+    )
+
+
+_TASK_RULES = [
+    "Connexity sorts the workspace's tasks; take them in its order and do not pick "
+    "your own. The order: incidents, then Critical tasks, then setup (onboarding steps, "
+    "then specs), then everything else, most calls first. A task that blocks a higher "
+    "one sits above it.",
+    "Asking for your next task ends this one: done when its work is gone; waiting for "
+    "the person when the rest is theirs (resolving an issue); otherwise it goes back to "
+    "its place in the list. A review of calls is done once handed out.",
+    "Another assistant's task in progress is never handed to you. Tasks come from this "
+    "workspace only.",
+    "Tasks waiting for the person are theirs: ask them in your chat, and never decide "
+    "for them.",
+]
+
+
+def _task_public(task: Task, position: int | None = None) -> McpTask:
+    return McpTask(
+        key=task.key,
+        kind=task.kind,
+        title=task.title,
+        position=position,
+        agent_id=task.agent_id,
+        agent_name=task.agent_name,
+        facts=task.facts,
+        waiting_for_person=task.for_person,
+    )
+
+
+def _task_steps(task: Task) -> list[str]:
+    agent = f"`{task.agent_id}`"
+    if task.kind is TaskKind.ONBOARDING:
+        return [
+            "Call `get_readiness` and do its first next step with the person; follow "
+            "connexity://guides/readiness.",
+        ]
+    if task.kind is TaskKind.SPEC:
+        return [
+            f"Read connexity://guides/spec, then call `get_spec` for agent {agent} "
+            "with include_prompt.",
+            "Write the rules the prompt settles with `write_spec`.",
+            "Raise what the prompt does not settle with `raise_clarifications`; the "
+            "person answers it.",
+        ]
+    if task.kind is TaskKind.CALLS_TO_REVIEW:
+        return [
+            f"Call `list_calls` with agent_id {agent}, result `unchecked` and period "
+            "`7d`, and open a few with `get_call`.",
+            "Tell the person why they could not be checked (for example no tool calls, "
+            "or no recording), and what that hides.",
+            "Raise behaviour the spec does not settle with `raise_clarifications`.",
+        ]
+    if task.kind is TaskKind.ISSUE_FIX:
+        return [
+            f"Call `get_issue` with issue_id `{task.ref}`, and open its calls with "
+            "`get_call` to find the cause.",
+            "Propose the fix to the person. A change to the agent is made with their "
+            "approval, outside Connexity; Connexity never changes an agent.",
+            "Once the fix is live, the person resolves the issue in Connexity; if they "
+            "decide not to fix it, `archive_issue` with their reason.",
+        ]
+    return []
+
+
+def _waiting_steps(waiting: list[Task]) -> list[str]:
+    steps = []
+    questions = [t for t in waiting if t.kind is TaskKind.CLARIFICATIONS]
+    if questions:
+        names = ", ".join(t.agent_name or "" for t in questions[:3])
+        steps.append(
+            f"Questions wait for the person on {names}: ask them in your chat "
+            "(`list_clarifications` with the agent_id), then `answer_clarifications` "
+            "with what they pick. If they want to leave them, move on: they can answer "
+            "in Connexity."
+        )
+    others = [t for t in waiting if t.kind is not TaskKind.CLARIFICATIONS]
+    if others:
+        steps.append(
+            "Also waiting for the person: "
+            + "; ".join(f'"{t.title}"' for t in others[:3])
+            + ". Remind them when it fits."
+        )
+    return steps
+
+
+@router.get(
+    "/workspaces/{workspace_id}/next-task",
+    response_model=McpAnswer[McpNextTask],
+)
+def get_next_task(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    current_user: McpCurrentUser,
+    assistant: McpAssistantName,
+) -> McpAnswer[McpNextTask]:
+    result = next_task(
+        session=session,
+        company_id=workspace.id,
+        person=current_user,
+        assistant_name=assistant,
+    )
+    steps: list[str] = []
+    if result.ended is not None and result.ended.state is AssistantTaskState.WAITING:
+        steps.append(
+            f'Tell the person "{result.ended.title}" now waits for them to resolve '
+            "it in Connexity once the fix is live."
+        )
+    steps.extend(_waiting_steps(result.waiting))
+    readiness_percent = None
+    if result.task is not None:
+        steps.extend(_task_steps(result.task))
+        steps.append(NEXT_TASK)
+    else:
+        readiness_percent = crud.get_readiness(
+            session=session, company_id=workspace.id, mcp_url=None
+        ).percent
+        steps.append(
+            "Nothing else waits for you in this workspace. Call `get_next_task` again "
+            "later, or after the person acts."
+        )
+    return McpAnswer[McpNextTask](
+        data=McpNextTask(
+            task=_task_public(result.task, result.position) if result.task else None,
+            previous=McpEndedTask(title=result.ended.title, state=result.ended.state)
+            if result.ended
+            else None,
+            waiting_for_person=[_task_public(t) for t in result.waiting[:10]],
+            counts=McpTaskCounts(
+                to_do=result.to_do,
+                waiting_for_person=len(result.waiting),
+                in_progress_elsewhere=result.in_progress_elsewhere,
+            ),
+            readiness_percent=readiness_percent,
+        ),
+        rules=_TASK_RULES,
+        next_steps=steps,
         guide=GUIDE_GETTING_STARTED,
     )
 
@@ -1157,6 +1313,7 @@ def get_readiness(
         "Call `get_readiness` again after each step to see what is left, and tell the "
         "person what changed."
     )
+    next_steps.append(NEXT_TASK)
     return McpAnswer[ReadinessPublic](
         data=readiness,
         rules=[
@@ -1431,6 +1588,7 @@ async def scan_calls(
                 "it; nothing needs doing."
             )
         next_steps.append("Call `get_readiness` to see the next step.")
+        next_steps.append(NEXT_TASK)
     else:
         next_steps = [
             f"Call `scan_calls` again: {stored:,} of {total:,} calls stored so far. "

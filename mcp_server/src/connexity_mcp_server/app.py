@@ -30,6 +30,7 @@ from connexity_mcp_server.models import (
     ConnectVoicePlatformResult,
     CreateWorkspaceResult,
     GetCallResult,
+    GetNextTaskResult,
     GetReadinessResult,
     AgentResult,
     AnswerClarificationsResult,
@@ -64,6 +65,9 @@ from connexity_mcp_server.tools import (
 )
 from connexity_mcp_server.tools import (
     create_workspace as _create_workspace,
+)
+from connexity_mcp_server.tools import (
+    get_next_task as _get_next_task,
 )
 from connexity_mcp_server.tools import (
     get_readiness as _get_readiness,
@@ -449,6 +453,16 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         key, name and kind (behaviour or technical). The same set for every workspace;
         group issues and spec rules by it and use its names with the person."""
         return await _list_categories(client=backend_client, workspace_id=workspace_id)
+
+    # Takes the task for the caller and ends its previous one; asking again moves on.
+    @mcp_server.tool(annotations=CREATES)
+    async def get_next_task(workspace_id: str) -> GetNextTaskResult:
+        """Your next task in this workspace: the single most important thing to do,
+        sorted by Connexity, with its facts, the rules and numbered steps naming the
+        tools. Call it at the start of a session and after each task; asking again ends
+        your current task (done, waiting for the person, or back in the list). Also
+        lists what waits for the person, and how many tasks are left."""
+        return await _get_next_task(client=backend_client, workspace_id=workspace_id)
 
     @mcp_server.tool(annotations=READ_ONLY)
     async def get_readiness(workspace_id: str) -> GetReadinessResult:

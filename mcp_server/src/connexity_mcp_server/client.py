@@ -263,6 +263,11 @@ class ConnexityBackendClient:
             "GET", f"/mcp/workspaces/{quote(workspace_id, safe='')}/categories"
         )
 
+    async def get_next_task(self, *, workspace_id: str) -> dict[str, Any]:
+        return await self._request_json(
+            "GET", f"/mcp/workspaces/{quote(workspace_id, safe='')}/next-task"
+        )
+
     async def get_readiness(self, *, workspace_id: str) -> dict[str, Any]:
         return await self._request_json(
             "GET", f"/mcp/workspaces/{quote(workspace_id, safe='')}/readiness"

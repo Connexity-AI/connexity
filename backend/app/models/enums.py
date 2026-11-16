@@ -257,3 +257,28 @@ class SpecRuleTouches(StrEnum):
     MONEY = "money"
     SAFETY = "safety"
     COMPLIANCE = "compliance"
+
+
+class TaskKind(StrEnum):
+    """The kinds of work Connexity hands an assistant (`docs-internal/work.md`), named
+    as the Work page names its types."""
+
+    INCIDENT = "incident"
+    ISSUE_FIX = "issue_fix"
+    ONBOARDING = "onboarding"
+    SPEC = "spec"
+    CLARIFICATIONS = "clarifications"
+    CALLS_TO_REVIEW = "calls_to_review"
+    TESTS = "tests"
+
+
+class AssistantTaskState(StrEnum):
+    # An assistant took it and is working on it; other assistants skip it.
+    IN_PROGRESS = "in_progress"
+    # The assistant did its part; the rest is the person's (resolving an issue).
+    WAITING = "waiting"
+    # The assistant asked for its next task while this one's work was still there and
+    # still its to do: it goes back to its place in the list.
+    RETURNED = "returned"
+    # Its work is done, or a review was handed out.
+    DONE = "done"

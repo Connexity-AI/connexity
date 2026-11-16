@@ -1090,6 +1090,21 @@ export type AnsweredSpecPublic = {
 };
 
 /**
+ * AssistantTaskState
+ */
+export const AssistantTaskState = {
+  IN_PROGRESS: 'in_progress',
+  WAITING: 'waiting',
+  RETURNED: 'returned',
+  DONE: 'done',
+} as const;
+
+/**
+ * AssistantTaskState
+ */
+export type AssistantTaskState = (typeof AssistantTaskState)[keyof typeof AssistantTaskState];
+
+/**
  * AuthProvider
  */
 export const AuthProvider = { EMAIL: 'email', GOOGLE: 'google' } as const;
@@ -5093,6 +5108,40 @@ export type McpAnswerMcpIssues = {
 };
 
 /**
+ * McpAnswer[McpNextTask]
+ */
+export type McpAnswerMcpNextTask = {
+  /**
+   * The facts: the result of the call
+   */
+  data: McpNextTask;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
  * McpAnswer[McpScanProgress]
  */
 export type McpAnswerMcpScanProgress = {
@@ -5546,6 +5595,20 @@ export type McpConnection = {
 };
 
 /**
+ * McpEndedTask
+ */
+export type McpEndedTask = {
+  /**
+   * Title
+   */
+  title: string;
+  /**
+   * done; waiting (your part is done, the rest is the person's); returned (back in the list, its work still there)
+   */
+  state: AssistantTaskState;
+};
+
+/**
  * McpIssues
  */
 export type McpIssues = {
@@ -5559,6 +5622,33 @@ export type McpIssues = {
    * Worst first
    */
   issues: Array<IssueListItemPublic>;
+};
+
+/**
+ * McpNextTask
+ */
+export type McpNextTask = {
+  /**
+   * Yours now; None when nothing waits for you
+   */
+  task?: McpTask | null;
+  /**
+   * Your previous task, ended by asking for this one
+   */
+  previous?: McpEndedTask | null;
+  /**
+   * Waiting For Person
+   *
+   * Tasks only the person can move on, top first (up to 10)
+   */
+  waiting_for_person: Array<McpTask>;
+  counts: McpTaskCounts;
+  /**
+   * Readiness Percent
+   *
+   * Setup completeness, when nothing waits for you
+   */
+  readiness_percent?: number | null;
 };
 
 /**
@@ -5641,6 +5731,73 @@ export type McpSpecRule = {
    * Only for a rule kept from the previous version
    */
   key?: string | null;
+};
+
+/**
+ * McpTask
+ */
+export type McpTask = {
+  /**
+   * Key
+   *
+   * Stays the same while the task exists: spec:<agent id>
+   */
+  key: string;
+  kind: TaskKind;
+  /**
+   * Title
+   *
+   * The task in one plain sentence
+   */
+  title: string;
+  /**
+   * Position
+   *
+   * Its place in the workspace's list, 1 at the top
+   */
+  position?: number | null;
+  /**
+   * Agent Id
+   */
+  agent_id?: string | null;
+  /**
+   * Agent Name
+   */
+  agent_name?: string | null;
+  /**
+   * Facts
+   *
+   * Short facts: counts, versions, the size
+   */
+  facts: Array<string>;
+  /**
+   * Waiting For Person
+   *
+   * The next move is the person's, not yours
+   */
+  waiting_for_person?: boolean;
+};
+
+/**
+ * McpTaskCounts
+ */
+export type McpTaskCounts = {
+  /**
+   * To Do
+   *
+   * Tasks after this one that an assistant can take
+   */
+  to_do: number;
+  /**
+   * Waiting For Person
+   */
+  waiting_for_person: number;
+  /**
+   * In Progress Elsewhere
+   *
+   * Tasks other assistants are working on
+   */
+  in_progress_elsewhere: number;
 };
 
 /**
@@ -7443,6 +7600,30 @@ export type SuggestionsRequest = {
    */
   candidate_run_id: string;
 };
+
+/**
+ * TaskKind
+ *
+ * The kinds of work Connexity hands an assistant (`docs-internal/work.md`), named
+ * as the Work page names its types.
+ */
+export const TaskKind = {
+  INCIDENT: 'incident',
+  ISSUE_FIX: 'issue_fix',
+  ONBOARDING: 'onboarding',
+  SPEC: 'spec',
+  CLARIFICATIONS: 'clarifications',
+  CALLS_TO_REVIEW: 'calls_to_review',
+  TESTS: 'tests',
+} as const;
+
+/**
+ * TaskKind
+ *
+ * The kinds of work Connexity hands an assistant (`docs-internal/work.md`), named
+ * as the Work page names its types.
+ */
+export type TaskKind = (typeof TaskKind)[keyof typeof TaskKind];
 
 /**
  * TestCaseComparison
@@ -11402,6 +11583,60 @@ export type McpGetAgentResponses = {
 };
 
 export type McpGetAgentResponse = McpGetAgentResponses[keyof McpGetAgentResponses];
+
+export type McpGetNextTaskData = {
+  body?: never;
+  path: {
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/next-task';
+};
+
+export type McpGetNextTaskErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpGetNextTaskError = McpGetNextTaskErrors[keyof McpGetNextTaskErrors];
+
+export type McpGetNextTaskResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerMcpNextTask;
+};
+
+export type McpGetNextTaskResponse = McpGetNextTaskResponses[keyof McpGetNextTaskResponses];
 
 export type McpGetReadinessData = {
   body?: never;

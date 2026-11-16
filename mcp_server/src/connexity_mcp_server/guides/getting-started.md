@@ -18,6 +18,24 @@ theirs.
      on the last page.
 3. **Errors** have the same shape: an `error` message and `next_steps` to recover.
 
+## What to do next
+
+Call `get_next_task` at the start of a session and after each task. Connexity sorts the
+workspace's work and hands you the single most important task, with its facts, the
+rules and numbered steps. Take tasks in that order; do not pick your own.
+
+- **The order:** incidents, then Critical tasks, then setup (onboarding steps, then
+  specs), then everything else, most calls first. A task that blocks a higher one sits
+  above it.
+- **Asking again ends your current task.** It is done when its work is gone. It waits
+  for the person when the rest is theirs, such as resolving an issue once the fix is
+  live. Otherwise it goes back to its place in the list.
+- **Some tasks are the person's:** answering questions, connecting their assistant.
+  The answer lists them under `waiting_for_person`; ask the person in your chat, and
+  never decide for them.
+- **One workspace at a time.** Another assistant's task in progress is never handed to
+  you.
+
 ## One agent at a glance
 
 `get_agent` answers what the agent page shows: its platform, type, live version and
