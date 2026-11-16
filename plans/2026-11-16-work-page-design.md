@@ -88,6 +88,11 @@ or Action items work would build what this design replaces.
     export differs from the prompt (a dot instead of a pause icon, "blocks:" and "Up
     next", a leftover link to Action items), and says to build to the prompt.
 
+- CI failed on its first run, in every backend job, at `uv sync`. The runners started
+  choosing Python 3.14, which has no `psycopg-binary` 3.2.2 wheel. The same happened
+  locally. `backend/.python-version` now pins 3.12, the version `pyproject.toml` allows
+  and the main checkout runs. This fixes every pull request, not just this one.
+
 ### Check results
 
 | Step | Result |
