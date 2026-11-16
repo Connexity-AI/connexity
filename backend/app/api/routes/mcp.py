@@ -883,18 +883,14 @@ _CLARIFICATION_RULES = [
     "A clarification is a question about behaviour the agent's spec does not settle. "
     "Each answer carries the rule it becomes; the chosen answer's rule is added to the "
     "spec in a new version.",
-    "The person answers. Confirm every answer with them before `answer_clarifications`, "
-    "in one batch: say which you can answer confidently and which need them. When they "
-    "leave a decision to you, it is still recorded as theirs, with you as the assistant "
-    "that acted; tell them so.",
+    "The person answers. Ask them in your chat and confirm every answer with them before "
+    "`answer_clarifications`; you may tell them what you would pick and why. Connexity "
+    "records only the answer. When they leave a decision to you, it is still recorded "
+    "as theirs, with you as the assistant that acted; tell them so.",
     "An answer is final. To change one, raise a clarification that replaces its rule "
     "(`replaces_key`), quoting the earlier answer.",
     "calls_seen counts the calls given as evidence; a question raised from a prompt "
     "change may have none.",
-    "A suggestion is your prepared answer, not an answer: it changes nothing until the "
-    "person confirms it, in the app (confident ones in one batch) or with you in your "
-    "session before `answer_clarifications`. Mark confident only when the prompt or a "
-    "clear pattern on calls settles it.",
     "Open questions are listed most important first: seen on more calls, then touching "
     "money, safety or compliance, then the newest. Answered and parked ones newest "
     "first. A parked question can be answered, or reopened with `reopen`.",
@@ -946,9 +942,6 @@ def raise_agent_clarifications(
                     touches=q.touches,
                     call_ids=q.call_ids,
                     replaces_key=q.replaces_key or None,
-                    suggested_answer=q.suggested_answer or None,
-                    suggestion_why=q.why,
-                    suggestion_confident=q.confident,
                 )
                 for q in body.questions
             ],
@@ -965,10 +958,9 @@ def raise_agent_clarifications(
         data=clarifications_public(session=session, rows=stored),
         rules=_CLARIFICATION_RULES,
         next_steps=[
-            "Confirm the answers with the person in one batch: say which you can answer "
-            "confidently and which need them, then call `answer_clarifications`. Never "
-            "answer without them. Your suggestions also wait for them on the Action "
-            "items page.",
+            "Ask the person in your chat, one question at a time or in one batch, then "
+            "call `answer_clarifications` with what they pick. Never answer without "
+            "them. They can also answer in Connexity.",
         ],
         guide=GUIDE_SPEC,
     )
@@ -1006,8 +998,8 @@ def list_clarifications(
         )
     if state is ClarificationState.OPEN and rows:
         steps.append(
-            "Confirm the answers with the person in one batch, then call "
-            "`answer_clarifications`; park what is not important now."
+            "Ask the person in your chat, then call `answer_clarifications` with what "
+            "they pick; park what is not important now."
         )
     if not rows and state is ClarificationState.OPEN:
         steps.append("No questions wait for the person.")

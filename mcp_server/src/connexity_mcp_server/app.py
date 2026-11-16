@@ -398,10 +398,8 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         often it happened, two to four answers each with the spec rule it becomes, a
         category key, touches when it protects money, safety or compliance, the calls
         where it was seen (none for a prompt change), and replaces_key to replace an
-        answered rule a new prompt contradicts. You may suggest an answer
-        (suggested_answer, why, confident): it waits for the person and changes
-        nothing until they confirm. Up to 20 per call; check `list_clarifications`
-        first. Follow connexity://guides/spec."""
+        answered rule a new prompt contradicts. Up to 20 per call; check
+        `list_clarifications` first. Follow connexity://guides/spec."""
         return await _raise_clarifications(
             client=backend_client,
             workspace_id=workspace_id,
@@ -438,9 +436,9 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     ) -> AnswerClarificationsResult:
         """Record the person's answers (a to d), park questions (`park`), or bring a
         parked one back (`reopen`); each answer's rule is added to its agent's spec in
-        a new version. The person's
-        decision: confirm every answer with them first, in one batch. One left to you
-        is still recorded as theirs. An answer is final."""
+        a new version. The person's decision: ask them in your chat and confirm every
+        answer first. One left to you is still recorded as theirs. An answer is
+        final."""
         return await _answer_clarifications(
             client=backend_client, workspace_id=workspace_id, answers=answers
         )

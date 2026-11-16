@@ -9,7 +9,6 @@ from sqlmodel import Session, col, select
 
 from app import crud
 from app.crud.clarification import (
-    confident_suggestions,
     list_page,
     open_counts,
     state_counts,
@@ -32,7 +31,6 @@ from app.services.clarification import (
     Decision,
     QuestionDraft,
     answer_clarifications,
-    clarifications_public,
     raise_clarifications,
 )
 from app.services.spec import RuleDraft, SpecRefused, spec_state, write_agent_spec
@@ -353,7 +351,6 @@ def test_every_answer_and_park_is_a_decision_record(db: Session) -> None:
     assert answered.detail == {
         "rule": "Change an existing appointment only when the caller asks for it",
         "spec_version": 2,
-        "from_suggestion": False,
     }
 
 
@@ -531,75 +528,26 @@ def test_open_questions_come_most_important_first(db: Session) -> None:
     assert more is False
 
 
-def test_a_suggestion_waits_and_a_confirmed_one_says_so(db: Session) -> None:
+def test_an_answer_in_the_app_names_no_assistant(db: Session) -> None:
     user, agent, _ = _ready(db)
-    confident, unsure = _raise(
-        db,
-        user,
-        agent,
-        CHANGE._replace(
-            suggested_answer="C",
-            suggestion_why="The prompt lists booking and cancelling only.",
-            suggestion_confident=True,
-        ),
-        DEPOSIT._replace(
-            suggested_answer="b", suggestion_why="Nothing says either way."
-        ),
-    )
-    before = crud.latest_spec(session=db, agent_id=agent.id)
+    [change] = _raise(db, user, agent, CHANGE)
 
-    assert (confident.suggested_answer, confident.suggested_assistant) == (
-        "c",
-        ASSISTANT,
-    )
-    assert confident_suggestions(session=db, company_id=user.company_id) == 1
-    assert crud.latest_spec(session=db, agent_id=agent.id) == before  # nothing written
-    [shown] = clarifications_public(session=db, rows=[unsure])
-    assert shown.suggestion is not None
-    assert (shown.suggestion.answer, shown.suggestion.confident) == ("b", False)
-
-    # The person confirms in the app: no assistant of their own.
+    # The person answers in the app: no assistant acted for them.
     answer_clarifications(
         session=db,
         company_id=user.company_id,
-        decisions=[Decision(confident.id, "c"), Decision(unsure.id, "a")],
+        decisions=[Decision(change.id, "c")],
         decided_by=user,
         assistant_name=None,
     )
 
-    db.refresh(confident)
-    db.refresh(unsure)
-    assert confident.decided_assistant == ASSISTANT  # the one that suggested it
-    assert unsure.decided_assistant is None  # the person chose otherwise
-    rows = clarifications_public(session=db, rows=[confident, unsure])
-    assert [r.from_suggestion for r in rows] == [True, False]
+    db.refresh(change)
+    assert change.decided_assistant is None
     record = db.exec(
         select(DecisionRecord).where(
-            DecisionRecord.subject == str(confident.id),
+            DecisionRecord.subject == str(change.id),
             DecisionRecord.kind == DecisionKind.CLARIFICATION_ANSWERED,
         )
     ).one()
-    assert record.detail is not None and record.detail["from_suggestion"] is True
-
-
-def test_a_bad_suggestion_is_refused(db: Session) -> None:
-    user, agent, _ = _ready(db)
-
-    problems = _refused(
-        lambda: _raise(
-            db,
-            user,
-            agent,
-            CHANGE._replace(suggested_answer="d", suggestion_why="Because."),
-            DEPOSIT._replace(suggested_answer="a"),
-            DEPOSIT._replace(question="Another?", suggestion_confident=True),
-        )
-    )
-
-    joined = " | ".join(problems)
-    assert (
-        "Question 1: the suggested answer 'd' is not one of its answers (a, b, c)"
-        in joined
-    )
-    assert "Question 2: say in one sentence why" in joined
-    assert "Question 3: a why or confident needs a suggested answer" in joined
+    assert record.assistant_name is None
+    assert record.detail is not None and set(record.detail) == {"rule", "spec_version"}

@@ -107,25 +107,6 @@ class Clarification(SQLModel, table=True):
         sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
         sa_column_kwargs={"server_default": text("now()")},
     )
-    # The assistant's suggested answer, if any: a letter, why, and whether it is
-    # confident. A suggestion changes nothing until the person confirms it; it is kept
-    # after the answer, so the record says the answer came from it.
-    suggested_answer: str | None = Field(default=None, max_length=1)
-    suggestion_why: str | None = Field(
-        default=None, sa_column=Column("suggestion_why", Text)
-    )
-    suggestion_confident: bool | None = Field(default=None)
-    suggested_by: uuid.UUID | None = Field(
-        default=None,
-        sa_column=Column(
-            ForeignKey("user.id", ondelete="SET NULL"), nullable=True, index=True
-        ),
-    )
-    suggested_assistant: str | None = Field(default=None, max_length=255)
-    suggested_at: datetime | None = Field(
-        default=None,
-        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
-    )
     # The latest answer or park: who decided (the person, with the assistant that
     # acted for them) and when. Earlier parks are in the decision records.
     decided_by: uuid.UUID | None = Field(
@@ -146,17 +127,6 @@ class ClarificationAnswerPublic(BaseModel):
     letter: str = Field(description="a to d; pass it to `answer_clarifications`")
     label: str
     rule: str = Field(description="The spec rule this answer becomes")
-
-
-class SuggestionPublic(BaseModel):
-    answer: str = Field(description="The suggested letter, a to d")
-    why: str
-    confident: bool
-    suggested_by: str | None = Field(
-        default=None, description="The person whose assistant suggested it"
-    )
-    assistant: str | None = None
-    suggested_at: datetime | None = None
 
 
 class ReplacedRulePublic(BaseModel):
@@ -185,13 +155,6 @@ class ClarificationPublic(BaseModel):
         default=None, description="The spec rule the answer replaces"
     )
     state: ClarificationState
-    suggestion: SuggestionPublic | None = Field(
-        default=None,
-        description="The assistant's suggested answer; not an answer until confirmed",
-    )
-    from_suggestion: bool = Field(
-        default=False, description="Answered with the suggested answer"
-    )
     raised_by: str
     raised_assistant: str | None = None
     raised_at: datetime
@@ -214,9 +177,6 @@ class ClarificationCountsPublic(BaseModel):
     parked: int
     answered_this_week: int = Field(
         default=0, description="Answered in the last 7 days"
-    )
-    suggested_confident: int = Field(
-        default=0, description="Open ones with a confident suggestion"
     )
 
 

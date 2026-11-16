@@ -80,23 +80,11 @@ A person's answer is final, and Connexity carries its rule into every later vers
 question with `replaces_key` set to that rule's key, and quote both the earlier answer
 and the new prompt's words in the question. Its answer replaces the rule.
 
-### Suggesting an answer
-
-When you raise a question, you may suggest the answer you would pick
-(`suggested_answer`), with one sentence on why (`why`) and whether you are `confident`.
-
-- **A suggestion is not an answer.** Nothing goes into the spec until the person
-  confirms it.
-- **Confident only when the prompt or a clear pattern on calls settles it:** "the prompt
-  lists booking and cancelling only". When you are guessing, leave `confident` off and
-  say so in the why.
-- **The person confirms** the confident ones in one batch on the Action items page, and
-  decides the rest there or with you.
-
 ### Answering
 
-- **The person answers, never you alone.** Prepare the answers, then confirm them in one
-  batch: "I can answer 6 confidently; I need your help with the other 1."
+- **The person answers, never you alone.** Ask them in your chat, one question at a time
+  or in one batch, as suits them. You may say which answer you would pick and why;
+  Connexity records only the answer they give, never a suggestion.
 - **Submit with `answer_clarifications`:** a letter, or `park` for what is not important
   now. A parked question can still be answered later, or brought back to the open
   list with `reopen`.

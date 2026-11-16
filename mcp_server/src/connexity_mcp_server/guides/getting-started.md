@@ -33,8 +33,8 @@ plain rules from its prompt. Read `connexity://guides/spec`, call `get_spec` wit
 moves to a new version, Connexity copies its spec and `get_spec` says it needs review.
 
 Behaviour the prompt does not settle is a question for the person, never a rule you
-write: raise it with `raise_clarifications`, confirm the answers with the person in one
-batch, and submit them with `answer_clarifications`. Each answer becomes a spec rule.
+write: raise it with `raise_clarifications`, ask the person in your chat, and submit
+what they pick with `answer_clarifications`. Each answer becomes a spec rule.
 
 ## What Connexity never does
 

@@ -47,7 +47,6 @@ def test_the_person_lists_answers_parks_and_reopens(
         "answered": 0,
         "parked": 0,
         "answered_this_week": 0,
-        "suggested_confident": 0,
     }
 
     answered = _decide(

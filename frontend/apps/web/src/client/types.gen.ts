@@ -2062,12 +2062,6 @@ export type ClarificationCountsPublic = {
    * Answered in the last 7 days
    */
   answered_this_week?: number;
-  /**
-   * Suggested Confident
-   *
-   * Open ones with a confident suggestion
-   */
-  suggested_confident?: number;
 };
 
 /**
@@ -2176,16 +2170,6 @@ export type ClarificationPublic = {
    */
   replaces?: ReplacedRulePublic | null;
   state: ClarificationState;
-  /**
-   * The assistant's suggested answer; not an answer until confirmed
-   */
-  suggestion?: SuggestionPublic | null;
-  /**
-   * From Suggestion
-   *
-   * Answered with the suggested answer
-   */
-  from_suggestion?: boolean;
   /**
    * Raised By
    */
@@ -5524,24 +5508,6 @@ export type McpClarificationQuestion = {
    * The key of the spec rule the answer replaces
    */
   replaces_key?: string | null;
-  /**
-   * Suggested Answer
-   *
-   * The letter you would pick; a suggestion, not an answer
-   */
-  suggested_answer?: string | null;
-  /**
-   * Why
-   *
-   * One sentence on why you suggest it
-   */
-  why?: string | null;
-  /**
-   * Confident
-   *
-   * Only when the prompt or a clear pattern on calls settles it
-   */
-  confident?: boolean;
 };
 
 /**
@@ -7462,40 +7428,6 @@ export type SpecWrittenPublic = {
    */
   comparison?: SpecComparisonPublic | null;
   changes: SpecChangesPublic;
-};
-
-/**
- * SuggestionPublic
- */
-export type SuggestionPublic = {
-  /**
-   * Answer
-   *
-   * The suggested letter, a to d
-   */
-  answer: string;
-  /**
-   * Why
-   */
-  why: string;
-  /**
-   * Confident
-   */
-  confident: boolean;
-  /**
-   * Suggested By
-   *
-   * The person whose assistant suggested it
-   */
-  suggested_by?: string | null;
-  /**
-   * Assistant
-   */
-  assistant?: string | null;
-  /**
-   * Suggested At
-   */
-  suggested_at?: string | null;
 };
 
 /**
