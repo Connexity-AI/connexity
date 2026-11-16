@@ -244,6 +244,11 @@ class McpCalls(BaseModel):
     calls: list[CallListItemPublic]
 
 
+class McpTaskRef(BaseModel):
+    key: str
+    title: str
+
+
 class McpTask(BaseModel):
     key: str = Field(
         description="Stays the same while the task exists: spec:<agent id>"
@@ -259,6 +264,15 @@ class McpTask(BaseModel):
     waiting_for_person: bool = Field(
         default=False, description="The next move is the person's, not yours"
     )
+    blocks: list[McpTaskRef] = Field(
+        default_factory=list, description="Tasks that wait for this one (up to 5)"
+    )
+    blocks_count: int = 0
+    blocked_by: list[McpTaskRef] = Field(
+        default_factory=list,
+        description="Tasks this one waits for (up to 5); never handed out until done",
+    )
+    blocked_by_count: int = 0
 
 
 class McpEndedTask(BaseModel):
@@ -276,6 +290,9 @@ class McpTaskCounts(BaseModel):
     waiting_for_person: int
     in_progress_elsewhere: int = Field(
         description="Tasks other assistants are working on"
+    )
+    blocked: int = Field(
+        default=0, description="Tasks that wait for the tasks under their Blocked by"
     )
 
 

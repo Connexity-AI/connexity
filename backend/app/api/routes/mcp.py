@@ -81,6 +81,7 @@ from app.models.mcp import (
     McpScanProgress,
     McpTask,
     McpTaskCounts,
+    McpTaskRef,
     McpUnarchiveIssue,
     McpWorkspace,
     McpWriteSpec,
@@ -1132,10 +1133,24 @@ _TASK_RULES = [
     "pass the same `session` on every `get_next_task` in it.",
     "Tasks waiting for the person are theirs: ask them in your chat, and never decide "
     "for them.",
+    "A blocked task is never handed out: it waits for the tasks under Blocked by. A "
+    "task that blocks others sits above them. Connexity works this out itself.",
 ]
 
 
-def _task_public(task: Task, position: int | None = None) -> McpTask:
+def _named(keys: list[str], titles: dict[str, str]) -> str:
+    first = titles.get(keys[0], keys[0])
+    return f"{first} + {len(keys) - 1} more" if len(keys) > 1 else first
+
+
+def _task_public(
+    task: Task, titles: dict[str, str], position: int | None = None
+) -> McpTask:
+    facts = list(task.facts)
+    if task.blocks:
+        facts.append(f"Blocks: {_named(task.blocks, titles)}")
+    if task.blocked_by:
+        facts.append(f"Blocked by: {_named(task.blocked_by, titles)}")
     return McpTask(
         key=task.key,
         kind=task.kind,
@@ -1143,8 +1158,14 @@ def _task_public(task: Task, position: int | None = None) -> McpTask:
         position=position,
         agent_id=task.agent_id,
         agent_name=task.agent_name,
-        facts=task.facts,
+        facts=facts,
         waiting_for_person=task.for_person,
+        blocks=[McpTaskRef(key=k, title=titles.get(k, k)) for k in task.blocks[:5]],
+        blocks_count=len(task.blocks),
+        blocked_by=[
+            McpTaskRef(key=k, title=titles.get(k, k)) for k in task.blocked_by[:5]
+        ],
+        blocked_by_count=len(task.blocked_by),
     )
 
 
@@ -1242,20 +1263,32 @@ def get_next_task(
         readiness_percent = crud.get_readiness(
             session=session, company_id=workspace.id, mcp_url=None
         ).percent
-        steps.append(
-            "Nothing else waits for you in this workspace. Call `get_next_task` again "
-            "later, or after the person acts."
-        )
+        if result.blocked:
+            steps.append(
+                f"Nothing you can take now: {result.blocked} "
+                f"{'task is' if result.blocked == 1 else 'tasks are'} blocked by tasks "
+                "that wait for the person or for another session. Help the person with "
+                "the waiting ones above, then call `get_next_task` again."
+            )
+        else:
+            steps.append(
+                "Nothing else waits for you in this workspace. Call `get_next_task` "
+                "again later, or after the person acts."
+            )
     return McpAnswer[McpNextTask](
         data=McpNextTask(
-            task=_task_public(result.task, result.position) if result.task else None,
+            task=_task_public(result.task, result.titles, result.position)
+            if result.task
+            else None,
             previous=McpEndedTask(title=result.ended.title, state=result.ended.state)
             if result.ended
             else None,
-            waiting_for_person=[_task_public(t) for t in result.waiting[:10]],
+            waiting_for_person=[
+                _task_public(t, result.titles) for t in result.waiting[:10]
+            ],
             in_progress=[
                 McpHeldTask(
-                    task=_task_public(h.task, h.position),
+                    task=_task_public(h.task, result.titles, h.position),
                     person=h.person,
                     assistant=h.assistant,
                     session=h.session,
@@ -1266,6 +1299,7 @@ def get_next_task(
                 to_do=result.to_do,
                 waiting_for_person=len(result.waiting),
                 in_progress_elsewhere=result.in_progress_elsewhere,
+                blocked=result.blocked,
             ),
             readiness_percent=readiness_percent,
         ),

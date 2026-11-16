@@ -68,6 +68,9 @@ class Task:
     for_person: bool = False
     # Its id in its own area, for the steps (an issue id).
     ref: uuid.UUID | None = None
+    # Keys of the tasks it blocks, and of those that block it, in list order.
+    blocks: list[str] = field(default_factory=list)
+    blocked_by: list[str] = field(default_factory=list)
 
 
 def _aware(moment: datetime | None) -> datetime:
@@ -112,12 +115,16 @@ def _issue_tasks(session: Session, company_id: uuid.UUID) -> list[Task]:
     return tasks
 
 
-def _onboarding_tasks(session: Session, company_id: uuid.UUID) -> list[Task]:
+def _onboarding_tasks(
+    session: Session, company_id: uuid.UUID, assistant_asking: bool
+) -> list[Task]:
     readiness = crud.get_readiness(session=session, company_id=company_id, mcp_url=None)
     tasks = []
     for position, step in enumerate(readiness.steps):
         if step.state is ReadinessStepState.DONE:
             continue
+        if assistant_asking and step.key is ReadinessStepKey.ASSISTANT:
+            continue  # an assistant asking is connected, whatever Readiness has seen
         tasks.append(
             Task(
                 key=f"onboarding:{step.key.value}",
@@ -226,30 +233,81 @@ def _review_tasks(
     ]
 
 
+def links(tasks: Sequence[Task]) -> dict[str, list[str]]:
+    """Which task blocks which (plan `plans/2026-11-16-blocks.md`), worked out from the
+    tasks themselves:
+
+    - an agent's open questions block every issue fix on that agent;
+    - an agent's spec to write or update blocks its issue fixes and calls to review;
+    - each open onboarding step blocks the next one;
+    - the first scan blocks every spec task.
+    """
+    out: dict[str, list[str]] = {}
+
+    def add(blocker: Task, blocked: Task) -> None:
+        if blocker.key != blocked.key:
+            out.setdefault(blocker.key, []).append(blocked.key)
+
+    by_agent: dict[uuid.UUID, list[Task]] = {}
+    for task in tasks:
+        if task.agent_id is not None:
+            by_agent.setdefault(task.agent_id, []).append(task)
+    for agent_tasks in by_agent.values():
+        for blocker in agent_tasks:
+            for blocked in agent_tasks:
+                if blocker.kind is TaskKind.CLARIFICATIONS and blocked.kind is (
+                    TaskKind.ISSUE_FIX
+                ):
+                    add(blocker, blocked)
+                if blocker.kind is TaskKind.SPEC and blocked.kind in (
+                    TaskKind.ISSUE_FIX,
+                    TaskKind.CALLS_TO_REVIEW,
+                ):
+                    add(blocker, blocked)
+    steps = [task for task in tasks if task.kind is TaskKind.ONBOARDING]
+    for before, after in zip(steps, steps[1:], strict=False):
+        add(before, after)
+    scan = f"onboarding:{ReadinessStepKey.FIRST_SCAN.value}"
+    for step in steps:
+        if step.key == scan:
+            for task in tasks:
+                if task.kind is TaskKind.SPEC:
+                    add(step, task)
+    return out
+
+
 def lift_blockers(
     tasks: Sequence[Task], blocks: Mapping[str, Sequence[str]]
 ) -> list[Task]:
-    """Move each task that blocks others directly above the highest task it blocks.
-    ``blocks`` maps a task's key to the keys it blocks; which task blocks which is
-    roadmap feature 10.126, so today it is empty."""
+    """Move each task that blocks others directly above the highest task it blocks,
+    again until nothing moves, so chains stay in order. ``blocks`` maps a task's key to
+    the keys it blocks."""
     order = list(tasks)
-    for blocker, blocked in blocks.items():
-        keys = [task.key for task in order]
-        if blocker not in keys:
-            continue
-        targets = [keys.index(key) for key in blocked if key in keys]
-        if not targets:
-            continue
-        top = min(targets)
-        at = keys.index(blocker)
-        if at > top:
-            order.insert(top, order.pop(at))
+    for _ in range(len(order) + 1):
+        moved = False
+        for blocker, blocked in blocks.items():
+            keys = [task.key for task in order]
+            if blocker not in keys:
+                continue
+            targets = [keys.index(key) for key in blocked if key in keys]
+            if not targets:
+                continue
+            top = min(targets)
+            at = keys.index(blocker)
+            if at > top:
+                order.insert(top, order.pop(at))
+                moved = True
+        if not moved:
+            break
     return order
 
 
-def work_list(*, session: Session, company_id: uuid.UUID) -> list[Task]:
+def work_list(
+    *, session: Session, company_id: uuid.UUID, assistant_asking: bool = False
+) -> list[Task]:
     """Every task in the workspace, in Connexity's order. Incidents (Milestone 5) and
-    tests (10.17) have no source yet."""
+    tests (10.17) have no source yet. ``assistant_asking``: an assistant is asking, so
+    connecting one is done."""
     names = {
         agent.id: agent.name
         for agent in session.exec(
@@ -258,7 +316,9 @@ def work_list(*, session: Session, company_id: uuid.UUID) -> list[Task]:
     }
     issues = _issue_tasks(session, company_id)
     critical = [task for task in issues if task.group == Group.CRITICAL]
-    setup = _onboarding_tasks(session, company_id) + _spec_tasks(session, company_id)
+    setup = _onboarding_tasks(session, company_id, assistant_asking) + _spec_tasks(
+        session, company_id
+    )
     other = sorted(
         [task for task in issues if task.group == Group.OTHER]
         + _clarification_tasks(session, company_id, names)
@@ -266,7 +326,19 @@ def work_list(*, session: Session, company_id: uuid.UUID) -> list[Task]:
         key=lambda task: (-task.calls, task.since, task.key),
     )
     # Critical issues keep the Issues page's order; setup keeps Connexity's.
-    return lift_blockers(critical + setup + other, blocks={})
+    tasks = critical + setup + other
+    blocks = links(tasks)
+    order = lift_blockers(tasks, blocks)
+    position = {task.key: i for i, task in enumerate(order)}
+    by_key = {task.key: task for task in order}
+    for blocker, blocked in blocks.items():
+        for key in blocked:
+            by_key[blocker].blocks.append(key)
+            by_key[key].blocked_by.append(blocker)
+    for task in order:
+        task.blocks.sort(key=position.__getitem__)
+        task.blocked_by.sort(key=position.__getitem__)
+    return order
 
 
 # ── Handing tasks out ─────────────────────────────────────────────
@@ -299,6 +371,10 @@ class NextTask:
     in_progress_elsewhere: int
     # What other sessions hold, in list order.
     held: list[Held] = field(default_factory=list)
+    # Tasks no one can take until the tasks under their Blocked by are done.
+    blocked: int = 0
+    # Every task's title, to name what blocks what.
+    titles: dict[str, str] = field(default_factory=dict)
 
 
 def _person_name(session: Session, row: AssistantTask) -> str:
@@ -333,7 +409,7 @@ def next_task(
     person's to do nor held by another assistant."""
     assistant = assistant_name or NO_ASSISTANT
     label = (session_name or "").strip()[:MAX_SESSION]
-    tasks = work_list(session=session, company_id=company_id)
+    tasks = work_list(session=session, company_id=company_id, assistant_asking=True)
     live = {task.key: task for task in tasks}
 
     held = crud_work.open_tasks(session=session, company_id=company_id)
@@ -372,9 +448,11 @@ def next_task(
         waiting = [
             task for task in tasks if task.for_person or task.key in waiting_keys
         ]
-        free = [
+        takeable = [
             task for task in tasks if not task.for_person and task.key not in open_keys
         ]
+        free = [task for task in takeable if not task.blocked_by]
+        blocked = len(takeable) - len(free)
         if len(free) > 1:
             free = [task for task in free if task.key not in returned] or free
         others = [
@@ -391,7 +469,17 @@ def next_task(
         others.sort(key=lambda h: h.position)
         elsewhere = len(others)
         if not free:
-            return NextTask(None, None, ended, waiting, 0, elsewhere, others)
+            return NextTask(
+                None,
+                None,
+                ended,
+                waiting,
+                0,
+                elsewhere,
+                others,
+                blocked,
+                {t.key: t.title for t in tasks},
+            )
         task = free[0]
         session.add(
             AssistantTask(
@@ -422,5 +510,7 @@ def next_task(
             to_do=len(free) - 1,
             in_progress_elsewhere=elsewhere,
             held=others,
+            blocked=blocked,
+            titles={t.key: t.title for t in tasks},
         )
     raise AssertionError("unreachable")

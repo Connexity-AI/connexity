@@ -5805,6 +5805,26 @@ export type McpTask = {
    * The next move is the person's, not yours
    */
   waiting_for_person?: boolean;
+  /**
+   * Blocks
+   *
+   * Tasks that wait for this one (up to 5)
+   */
+  blocks?: Array<McpTaskRef>;
+  /**
+   * Blocks Count
+   */
+  blocks_count?: number;
+  /**
+   * Blocked By
+   *
+   * Tasks this one waits for (up to 5); never handed out until done
+   */
+  blocked_by?: Array<McpTaskRef>;
+  /**
+   * Blocked By Count
+   */
+  blocked_by_count?: number;
 };
 
 /**
@@ -5827,6 +5847,26 @@ export type McpTaskCounts = {
    * Tasks other assistants are working on
    */
   in_progress_elsewhere: number;
+  /**
+   * Blocked
+   *
+   * Tasks that wait for the tasks under their Blocked by
+   */
+  blocked?: number;
+};
+
+/**
+ * McpTaskRef
+ */
+export type McpTaskRef = {
+  /**
+   * Key
+   */
+  key: string;
+  /**
+   * Title
+   */
+  title: string;
 };
 
 /**

@@ -40,6 +40,7 @@ wins. What `get_next_task` hands out is planned in the
 | 23 | Every task can be reordered except one In progress. | "All tasks can be reordered except of in progress" | 2026-11-16 |
 | 24 | Connexity sorts; the assistant just gets its next task. The order: incidents always first, then Critical tasks, then setup tasks in Connexity's order, then all other issues and clarifications. A task that blocks a higher task sits above it. | "Incidents should go first always … Tasks that block high priority tasks should be obviously above them … The goal is that connexity does the sorting, AI assistant just gets next task thats it" | 2026-11-16 |
 | 25 | All issues are tasks, Critical on top. | "all issues get in the work, just critical on the top" | 2026-11-16 |
+| 26 | Which task blocks which, worked out by Connexity: an agent's open questions block every issue fix on that agent; its spec to write or update blocks its fixes and calls to review; each onboarding step blocks the next; the first scan blocks every spec. | "Accept, build" on `plans/2026-11-16-blocks.md` | 2026-11-16 |
 
 ## Proposed (in the design, not decided)
 
