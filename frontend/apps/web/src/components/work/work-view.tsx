@@ -28,6 +28,7 @@ import { cn } from '@workspace/ui/lib/utils';
 
 import { moveWorkTaskAction } from '@/actions/work';
 import { timeLabel } from '@/components/calls/format';
+import { ConnectAssistant } from '@/components/readiness/connect-assistant';
 import { QuestionCards } from '@/components/work/question-cards';
 import { isErrorApiResult } from '@/utils/api';
 
@@ -84,10 +85,11 @@ const action = (task: WorkTaskPublic): { label: string; href: Route } | undefine
   if (task.kind === 'issue_fix' && task.issue_id) {
     return { label: 'Resolve the issue →', href: UrlGenerator.issue(task.issue_id) };
   }
-  // Connecting the assistant is done under Account › Assistant access.
-  if (task.kind === 'onboarding') return { label: 'Show how →', href: UrlGenerator.account() };
   return undefined;
 };
+
+/** The person's own setup step: connecting their assistant. Its help is in the panel. */
+const CONNECT = 'onboarding:assistant';
 
 /** To do rows show a drag handle in the marker column on hover (designs/16-work.md). */
 const Handle: FC<{ children: ReactNode }> = ({ children }) => (
@@ -303,10 +305,44 @@ const Row: FC<RowProps> = ({ task, lit, dimmed, selected, onOpen, onHover, drag 
             {act.label}
           </Link>
         )}
+        {waiting && task.key === CONNECT && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpen();
+            }}
+            className="border-0 bg-transparent p-0 text-label text-ink-secondary hover:text-ink"
+          >
+            Show how →
+          </button>
+        )}
       </span>
     </div>
   );
 };
+
+/** "Show how": connecting an assistant (designs/16-work.md, frame 1). */
+const ConnectHelp: FC<{ mcpUrl?: string | null }> = ({ mcpUrl }) => (
+  <div className="flex flex-col gap-3">
+    <ol className="m-0 flex list-decimal flex-col gap-1 pl-5 text-body text-ink">
+      <li>Copy the Connexity MCP address.</li>
+      <li>Add it to Claude Code or another assistant.</li>
+      <li>Sign in when your assistant asks.</li>
+    </ol>
+    {mcpUrl ? (
+      <ConnectAssistant mcpUrl={mcpUrl} />
+    ) : (
+      <span className="text-label text-ink-secondary">
+        The MCP address is not configured on this deployment, so there is no way to connect an
+        assistant yet.
+      </span>
+    )}
+    <span className="text-label text-ink-muted">
+      From here on, your assistant does the setup with you.
+    </span>
+  </div>
+);
 
 const Group: FC<{ label: string; children: ReactNode }> = ({ label, children }) => (
   <div className="flex flex-col gap-2">
@@ -355,9 +391,10 @@ const RefList: FC<{
 
 const Panel: FC<{
   task: WorkTaskPublic;
+  mcpUrl?: string | null;
   onClose: () => void;
   onOpen: (key: string) => void;
-}> = ({ task, onClose, onOpen }) => {
+}> = ({ task, mcpUrl, onClose, onOpen }) => {
   const act = task.state === 'waiting' ? action(task) : undefined;
   return (
     <aside
@@ -397,6 +434,7 @@ const Panel: FC<{
           </>
         )}
       </div>
+      {task.key === CONNECT && task.state === 'waiting' && <ConnectHelp mcpUrl={mcpUrl} />}
       <RefList title="Blocks" refs={task.blocks ?? []} onOpen={onOpen} />
       <RefList title="Blocked by" refs={task.blocked_by ?? []} onOpen={onOpen} />
       <div className="flex flex-col gap-2 border-t border-hairline pt-4">
@@ -536,7 +574,11 @@ export const WorkView: FC<{ work: WorkPublic }> = ({ work }) => {
       onMouseLeave={() => setTeamOpen(false)}
     >
       <span className="cursor-default border-b border-dotted border-ink-muted">
-        {sessions.length ? `${plural(sessions.length, 'session')} working` : 'No assistant working'}
+        {!work.assistant_connected
+          ? 'No assistant connected'
+          : sessions.length
+            ? `${plural(sessions.length, 'session')} working`
+            : 'No assistant working'}
       </span>
       {teamOpen && sessions.length > 0 && (
         <span className="absolute top-6 left-0 z-10 flex w-[320px] flex-col gap-2 rounded-lg border border-hairline bg-surface-2 p-3 shadow-lg">
@@ -615,7 +657,12 @@ export const WorkView: FC<{ work: WorkPublic }> = ({ work }) => {
       )}
 
       {open && (
-        <Panel task={open} onClose={() => setSelected(null)} onOpen={(key) => setSelected(key)} />
+        <Panel
+          task={open}
+          mcpUrl={work.mcp_url}
+          onClose={() => setSelected(null)}
+          onOpen={(key) => setSelected(key)}
+        />
       )}
     </div>
   );

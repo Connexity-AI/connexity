@@ -4,7 +4,7 @@ import { UrlGenerator } from '@/common/url-generator/url-generator';
 
 import { listWorkspaces } from '@/actions/workspaces';
 import Sidebar from '@/components/shell/sidebar';
-import { UsersService, WorkService } from '@/client/sdk.gen';
+import { ReadinessService, UsersService, WorkService } from '@/client/sdk.gen';
 
 import type { UserPublic } from '@/client/types.gen';
 import type { FC, ReactNode } from 'react';
@@ -28,6 +28,16 @@ async function waitingWork(): Promise<number | undefined> {
   }
 }
 
+/** Setup completeness for the sidebar's ring; none when it cannot be read. */
+async function readinessPercent(): Promise<number | undefined> {
+  try {
+    const result = await ReadinessService.readReadiness();
+    return result.data?.percent;
+  } catch {
+    return undefined;
+  }
+}
+
 interface Props {
   children: ReactNode;
 }
@@ -39,11 +49,16 @@ const AppLayout: FC<Props> = async ({ children }) => {
   if (!currentUser) redirect(UrlGenerator.login());
 
   const workspaces = await listWorkspaces();
-  const waiting = await waitingWork();
+  const [waiting, readiness] = await Promise.all([waitingWork(), readinessPercent()]);
 
   return (
     <div className="flex min-h-screen w-full bg-surface-0">
-      <Sidebar user={currentUser} workspaces={workspaces} waitingWork={waiting} />
+      <Sidebar
+        user={currentUser}
+        workspaces={workspaces}
+        waitingWork={waiting}
+        readiness={readiness}
+      />
 
       <main className="min-w-0 flex-1 px-8 pt-6 pb-12">{children}</main>
     </div>

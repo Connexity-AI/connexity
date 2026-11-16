@@ -119,11 +119,12 @@ def test_the_list_is_in_connexitys_order(db: Session) -> None:
     assert tasks[0].kind is TaskKind.ISSUE_FIX and tasks[0].group == Group.CRITICAL
     assert tasks[0].agent_id == front.id
     setup = [t for t in tasks if t.group == Group.SETUP]
-    # Onboarding steps first, in Readiness's order, then specs.
-    kinds = _kinds(setup)
-    assert kinds[0] == "onboarding" and kinds[-1] == "spec"
-    assert kinds.index("spec") == len(kinds) - 1
-    assert setup[-1].key == f"spec:{night.id}"
+    # Onboarding steps in Readiness's order. Before the first scan, the specs are one
+    # onboarding row, and no agent has its own spec task yet.
+    assert set(_kinds(setup)) == {"onboarding"}
+    assert setup[-1].key == "onboarding:specs"
+    assert setup[-1].title == "Write the spec for each agent"
+    assert f"spec:{night.id}" not in {t.key for t in tasks}
     other = {t.kind: t for t in tasks if t.group == Group.OTHER}
     questions = other[TaskKind.CLARIFICATIONS]
     assert questions.for_person is True
@@ -421,3 +422,12 @@ def test_blocks_and_blocked_by_through_mcp(client: TestClient, db: Session) -> N
     assert any(f.startswith("Blocks: Booking with missing") for f in questions["facts"])
     assert body["data"]["counts"]["blocked"] >= 1
     assert any("A blocked task is never handed out" in r for r in body["rules"])
+
+
+def test_after_the_first_scan_each_agent_has_its_own_spec_task(db: Session) -> None:
+    user, _, night = _workspace(db)
+
+    keys = [t.key for t in work_list(session=db, company_id=user.company_id)]
+
+    assert "onboarding:specs" not in keys
+    assert f"spec:{night.id}" in keys

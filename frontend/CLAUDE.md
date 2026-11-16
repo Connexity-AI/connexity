@@ -32,7 +32,7 @@ System in Claude; see "UI: the design comes first" in the lifecycle guide.
 - **The sidebar** is Work, Dashboard, Incidents, Agents, Calls, Issues and Settings,
   and a person lands on Work (Decided 2026-11-16; Home became Dashboard, Action items and
   Roadmap folded into Work, see `docs-internal/work.md`). The Connexity logo stays at
-  the top; there is no white-labelling. The workspace picker, Account, Theme and Sign out live in the menu
+  the top; there is no white-labelling. The Readiness ring sits at the bottom until setup is done. The workspace picker, Account, Theme and Sign out live in the menu
   that opens from the person's name at the bottom.
 - **Only what works is on screen.** Pages and tabs appear when their feature is built;
   designs show more than a build does (`CLAUDE.md` rule 14).

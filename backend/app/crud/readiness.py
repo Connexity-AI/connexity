@@ -34,7 +34,34 @@ from app.services.connections import VOICE_PLATFORMS
 def connected_assistants(
     *, session: Session, company_id: uuid.UUID, access_token_minutes: int
 ) -> list[str]:
-    """Names of the assistants the workspace's members have connected, oldest first.
+    """Names of the assistants the workspace's members have connected, oldest first."""
+    names: list[str] = []
+    for _, name, _ in _connections(
+        session=session,
+        company_id=company_id,
+        access_token_minutes=access_token_minutes,
+    ):
+        if name not in names:
+            names.append(name)
+    return names
+
+
+def first_connection(
+    *, session: Session, company_id: uuid.UUID, access_token_minutes: int
+) -> tuple[datetime, str, uuid.UUID | None] | None:
+    """When the oldest assistant still connected was connected, its name and person."""
+    found = _connections(
+        session=session,
+        company_id=company_id,
+        access_token_minutes=access_token_minutes,
+    )
+    return found[0] if found else None
+
+
+def _connections(
+    *, session: Session, company_id: uuid.UUID, access_token_minutes: int
+) -> list[tuple[datetime, str, uuid.UUID | None]]:
+    """The workspace's assistant connections, oldest first: (when, name, person).
 
     An assistant is connected while it holds a refresh token that is neither revoked
     nor expired, or an access token that has not expired yet (its authorization code
@@ -48,7 +75,7 @@ def connected_assistants(
     members = select(WorkspaceMember.user_id).where(
         WorkspaceMember.company_id == company_id
     )
-    found: list[tuple[datetime, str]] = []
+    found: list[tuple[datetime, str, uuid.UUID | None]] = []
 
     refresh = session.exec(
         select(OAuthRefreshToken, OAuthClient)
@@ -61,7 +88,9 @@ def connected_assistants(
     ).all()
     for token, client in refresh:
         if _aware(token.expires_at) > now:
-            found.append((_aware(token.created_at), _client_name(client)))
+            found.append(
+                (_aware(token.created_at), _client_name(client), token.user_id)
+            )
 
     recent = now - timedelta(minutes=access_token_minutes)
     exchanged = session.exec(
@@ -76,15 +105,10 @@ def connected_assistants(
     ).all()
     for code, client in exchanged:
         if code.consumed_at is not None and _aware(code.consumed_at) > recent:
-            found.append((_aware(code.consumed_at), _client_name(client)))
+            found.append((_aware(code.consumed_at), _client_name(client), code.user_id))
 
     found.extend(assistants_by_token(session=session, company_id=company_id))
-
-    names: list[str] = []
-    for _, name in sorted(found):
-        if name not in names:
-            names.append(name)
-    return names
+    return sorted(found, key=lambda f: f[0])
 
 
 def _aware(moment: datetime) -> datetime:

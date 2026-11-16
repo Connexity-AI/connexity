@@ -100,11 +100,11 @@ def use_personal_access_token(
 
 def assistants_by_token(
     *, session: Session, company_id: uuid.UUID
-) -> list[tuple[datetime, str]]:
+) -> list[tuple[datetime, str, uuid.UUID]]:
     """Tokens of the workspace's members that an assistant has used and still work.
 
-    Each as (first seen, name); a token counts as connected from its first use until
-    it is revoked.
+    Each as (first seen, name, the person); a token counts as connected from its first
+    use until it is revoked.
     """
     members = select(WorkspaceMember.user_id).where(
         WorkspaceMember.company_id == company_id
@@ -116,10 +116,10 @@ def assistants_by_token(
             col(PersonalAccessToken.last_used_at).is_not(None),
         )
     ).all()
-    found: list[tuple[datetime, str]] = []
+    found: list[tuple[datetime, str, uuid.UUID]] = []
     for row in rows:
         created = row.created_at
         if created.tzinfo is None:
             created = created.replace(tzinfo=UTC)
-        found.append((created, row.name))
+        found.append((created, row.name, row.user_id))
     return found

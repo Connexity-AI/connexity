@@ -24,7 +24,7 @@ screen looks, the exported page wins over the prompts that produced it.
 |---|---|---|
 | `Connexity Design System.dc.html` | Tokens, type, components | Every UI feature |
 | `Connexity Sidebar.dc.html` | The app shell: sidebar, profile menu, workspace picker | Milestone 1 |
-| `Connexity Onboarding.dc.html` | Readiness as the first screen after sign-up; replaced by onboarding tasks on Work | Superseded |
+| `Connexity Onboarding.dc.html` | Readiness as the first screen after sign-up; replaced by onboarding tasks on Work, and the screen deleted with 10.129 | Superseded |
 | `Connexity Readiness Bar.dc.html` | The Readiness stripe and ring | Milestones 1 and 5 |
 | `Connexity Calls.dc.html`, `Connexity Call.dc.html` | The calls list and a single call | Milestone 1 |
 | `Connexity Agents.dc.html` | The agents list | Milestones 1 and 2 |

@@ -14497,6 +14497,24 @@ export const WorkPublicSchema = {
       title: 'Waiting',
       description: 'Tasks waiting for the person',
     },
+    assistant_connected: {
+      type: 'boolean',
+      title: 'Assistant Connected',
+      description: 'An assistant of the workspace is connected',
+      default: false,
+    },
+    mcp_url: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Mcp Url',
+      description: 'The MCP address assistants connect to',
+    },
   },
   type: 'object',
   required: ['in_progress', 'to_do', 'done', 'sessions', 'waiting'],

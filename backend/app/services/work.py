@@ -20,7 +20,7 @@ from app import crud
 from app.core.config import settings
 from app.crud import work as crud_work
 from app.crud.issue_list import calls_by_agent
-from app.crud.readiness import connected_assistants
+from app.crud.readiness import connected_assistants, first_connection
 from app.models import Agent, Company, ReadinessStepKey, ReadinessStepState, User
 from app.models.assistant_task import AssistantTask
 from app.models.check import Issue
@@ -43,6 +43,8 @@ REVIEW_DAYS = 7
 # A busier agent's spec comes first, by its calls in this many days.
 SPEC_CALL_DAYS = 7
 NO_ASSISTANT = "your assistant"
+# The onboarding row for the specs, until the first scan is done.
+SPECS_STEP = "onboarding:specs"
 MAX_SESSION = 40
 
 
@@ -58,7 +60,7 @@ class Group:
 _ONBOARDING = {
     ReadinessStepKey.ASSISTANT: "Connect your AI assistant",
     ReadinessStepKey.VOICE_PLATFORM: "Connect your voice platform",
-    ReadinessStepKey.SYNC: "Add the agents to watch and bring in their calls",
+    ReadinessStepKey.SYNC: "Add the agents to watch",
     ReadinessStepKey.FIRST_SCAN: "Scan recent calls",
 }
 
@@ -157,6 +159,28 @@ def _onboarding_tasks(
                 + ([step.detail] if step.detail else []),
                 # The assistant connecting is the person's own step.
                 for_person=step.key is ReadinessStepKey.ASSISTANT,
+                # Readiness's one fact, such as "2 agents · 40 calls", on the second line.
+                line=" · ".join(
+                    ["Onboarding"]
+                    + (
+                        [step.detail]
+                        if step.detail and step.key is not ReadinessStepKey.ASSISTANT
+                        else []
+                    )
+                ),
+            )
+        )
+    if not readiness.first_scan_done:
+        # Before the first scan, writing the specs is one onboarding step; after it,
+        # each agent's own spec task takes its place (plan
+        # `plans/2026-11-16-onboarding-on-work.md`).
+        tasks.append(
+            Task(
+                key=SPECS_STEP,
+                kind=TaskKind.ONBOARDING,
+                group=Group.SETUP,
+                title="Write the spec for each agent",
+                facts=["Onboarding · after the first scan"],
                 line="Onboarding",
             )
         )
@@ -376,9 +400,13 @@ def work_list(
     }
     issues = _issue_tasks(session, company_id)
     critical = [task for task in issues if task.group == Group.CRITICAL]
-    setup = _onboarding_tasks(session, company_id, assistant_asking) + _spec_tasks(
-        session, company_id
+    onboarding = _onboarding_tasks(session, company_id, assistant_asking)
+    specs = (
+        []
+        if any(task.key == SPECS_STEP for task in onboarding)
+        else _spec_tasks(session, company_id)
     )
+    setup = onboarding + specs
     other = sorted(
         [task for task in issues if task.group == Group.OTHER]
         + _clarification_tasks(session, company_id, names)
@@ -645,6 +673,20 @@ def _done(session: Session, company_id: uuid.UUID) -> list[WorkDonePublic]:
                 at=_aware(record.created_at),
             )
         )
+    first = first_connection(
+        session=session,
+        company_id=company_id,
+        access_token_minutes=settings.OAUTH_ACCESS_TOKEN_EXPIRE_MINUTES,
+    )
+    if first is not None and _aware(first[0]) >= since:
+        at, assistant, person_id = first
+        out.append(
+            WorkDonePublic(
+                title="Assistant connected",
+                by=_by(_display(session, person_id, None), assistant),
+                at=_aware(at),
+            )
+        )
     company = session.get(Company, company_id)
     if company is not None and company.first_scan_done_at is not None:
         at = _aware(company.first_scan_done_at)
@@ -741,7 +783,16 @@ def work_page(*, session: Session, company_id: uuid.UUID) -> WorkPublic:
         for row in held.values()
     ]
     in_progress = [t for t in public if t.state != "to_do"]
+    connected = bool(
+        connected_assistants(
+            session=session,
+            company_id=company_id,
+            access_token_minutes=settings.OAUTH_ACCESS_TOKEN_EXPIRE_MINUTES,
+        )
+    )
     return WorkPublic(
+        assistant_connected=connected,
+        mcp_url=settings.oauth_default_resource_url,
         in_progress=in_progress,
         to_do=[t for t in public if t.state == "to_do"],
         done=_done(session, company_id),
