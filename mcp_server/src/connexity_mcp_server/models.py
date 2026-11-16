@@ -414,15 +414,6 @@ class ClarificationAnswer(BaseModel):
     rule: str
 
 
-class Suggestion(BaseModel):
-    answer: str
-    why: str
-    confident: bool = False
-    suggested_by: str | None = None
-    assistant: str | None = None
-    suggested_at: str | None = None
-
-
 class ReplacedRule(BaseModel):
     key: str
     text: str | None = None
@@ -442,8 +433,6 @@ class Clarification(BaseModel):
     spec_version: int | None = None
     replaces: ReplacedRule | None = None
     state: str
-    suggestion: Suggestion | None = None
-    from_suggestion: bool = False
     raised_by: str
     raised_assistant: str | None = None
     raised_at: str
@@ -459,7 +448,6 @@ class ClarificationCounts(BaseModel):
     answered: int = 0
     parked: int = 0
     answered_this_week: int = 0
-    suggested_confident: int = 0
 
 
 class Clarifications(BaseModel):
@@ -506,14 +494,6 @@ class QuestionToRaise(BaseModel):
     )
     replaces_key: str | None = Field(
         default=None, description="The key of the spec rule the answer replaces"
-    )
-    suggested_answer: str | None = Field(
-        default=None, description="The letter you would pick; a suggestion, not an answer"
-    )
-    why: str | None = Field(default=None, description="One sentence on why you suggest it")
-    confident: bool | None = Field(
-        default=None,
-        description="Only when the prompt or a clear pattern on calls settles it",
     )
 
 

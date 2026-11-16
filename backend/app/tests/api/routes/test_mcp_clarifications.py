@@ -98,7 +98,6 @@ def test_raise_list_answer_and_read_the_spec(client: TestClient, db: Session) ->
         "answered": 0,
         "parked": 0,
         "answered_this_week": 0,
-        "suggested_confident": 0,
     }
     assert {c["id"] for c in listed["data"]["data"]} == {change["id"], deposit["id"]}
 
@@ -266,9 +265,10 @@ def test_no_answers_is_refused_with_next_steps(client: TestClient, db: Session) 
     assert empty.json()["detail"]["error"] == "Give at least one answer"
 
 
-def test_a_suggestion_through_mcp(client: TestClient, db: Session) -> None:
+def test_a_suggested_answer_is_not_stored(client: TestClient, db: Session) -> None:
     user, agent, _ = _ready(db)
 
+    # An assistant following an older guide still sends a suggestion: it is ignored.
     raised = _raise(
         client,
         user,
@@ -279,8 +279,8 @@ def test_a_suggestion_through_mcp(client: TestClient, db: Session) -> None:
 
     assert raised.status_code == 200, raised.text
     [item] = raised.json()["data"]
-    assert item["suggestion"]["answer"] == "b"
-    assert item["suggestion"]["confident"] is True
+    assert "suggestion" not in item and "from_suggestion" not in item
+    assert item["state"] == "open" and item["answer"] is None
     listed = client.get(f"{_base(user)}/clarifications", headers=_headers(user)).json()
-    assert listed["data"]["counts"]["suggested_confident"] == 1
-    assert any("A suggestion is your prepared answer" in r for r in listed["rules"])
+    assert "suggested_confident" not in listed["data"]["counts"]
+    assert not any("suggest" in r.lower() for r in listed["rules"])

@@ -47,8 +47,6 @@ wins. What `get_next_task` hands out is planned in the
 
 ## Open
 
-
-1. **10.123 Batch confirm.** Part 1 stores suggested answers (#207, merged), and part 2, the confirm panel from prompt 14, is open as #208. Decision 13 rules out showing suggestions in Connexity. Close #208, remove the stored suggestions, and close or rewrite 10.123?
 2. **The Action items page (10.122, built).** Decision 12 means its answering moves into the cards on Work and the page goes away. When, and in which roadmap row?
 3. **Questions per fix.** The spec after onboarding leaves 7 clarifications at once. Is the under-4 rule a limit on how many the assistant raises per fix, or must the cards also handle more?
 4. **Does our MCP adapter pass the session id through?** Not checked yet.
