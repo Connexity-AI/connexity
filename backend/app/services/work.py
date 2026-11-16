@@ -25,6 +25,7 @@ from app.models import Agent, Company, ReadinessStepKey, ReadinessStepState, Use
 from app.models.assistant_task import AssistantTask
 from app.models.check import Issue
 from app.models.enums import AssistantTaskState, IssueState, SpecOrigin, TaskKind
+from app.models.task_order import TaskOrder
 from app.models.work import (
     TaskState,
     WorkDonePublic,
@@ -258,6 +259,40 @@ def _review_tasks(
     ]
 
 
+def apply_order(tasks: Sequence[Task], keys: Sequence[str]) -> list[Task]:
+    """The person's order over Connexity's (plan `plans/2026-11-16-reorder.md`).
+
+    Tasks in ``keys`` keep the person's order among themselves. Any other task takes its
+    place by Connexity's order: just before the first listed task that Connexity ranks
+    below it. Incidents stay first.
+    """
+    base = list(tasks)
+    rank = {task.key: i for i, task in enumerate(base)}
+    wanted = [key for key in dict.fromkeys(keys) if key in rank]
+    listed = set(wanted)
+    by_key = {task.key: task for task in base}
+    incidents = [t for t in base if t.kind is TaskKind.INCIDENT]
+    result = [
+        by_key[key] for key in wanted if by_key[key].kind is not TaskKind.INCIDENT
+    ]
+    for task in base:
+        if task.key in listed or task.kind is TaskKind.INCIDENT:
+            continue
+        below = next(
+            (
+                i
+                for i, other in enumerate(result)
+                if other.key in listed and rank[other.key] > rank[task.key]
+            ),
+            None,
+        )
+        if below is None:
+            result.append(task)
+        else:
+            result.insert(below, task)
+    return incidents + result
+
+
 def links(tasks: Sequence[Task]) -> dict[str, list[str]]:
     """Which task blocks which (plan `plans/2026-11-16-blocks.md`), worked out from the
     tasks themselves:
@@ -350,8 +385,12 @@ def work_list(
         + _review_tasks(session, company_id, names),
         key=lambda task: (-task.calls, task.since, task.key),
     )
-    # Critical issues keep the Issues page's order; setup keeps Connexity's.
+    # Critical issues keep the Issues page's order; setup keeps Connexity's. Then the
+    # person's order, then the Blocks rule, so blockers still sit above what they block.
     tasks = critical + setup + other
+    saved = session.get(TaskOrder, company_id)
+    if saved is not None and saved.keys:
+        tasks = apply_order(tasks, saved.keys)
     blocks = links(tasks)
     order = lift_blockers(tasks, blocks)
     position = {task.key: i for i, task in enumerate(order)}
@@ -735,3 +774,55 @@ def waiting_count(*, session: Session, company_id: uuid.UUID) -> int:
         if issue is not None and issue.state in (IssueState.OPEN, IssueState.REOPENED):
             count += 1
     return count
+
+
+class MoveRefused(Exception):
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
+def move_task(
+    *,
+    session: Session,
+    company_id: uuid.UUID,
+    key: str,
+    before: str | None,
+    person: User,
+    assistant_name: str | None,
+) -> None:
+    """Move a To do task to sit just before ``before`` (None: the end), and keep the
+    person's order. Tasks in progress, waiting for the person, and incidents do not
+    move."""
+    page = work_page(session=session, company_id=company_id)
+    to_do = [task.key for task in page.to_do]
+    held = {task.key for task in page.in_progress}
+    if key in held:
+        raise MoveRefused(
+            "This task is in progress or waits for you; it does not move."
+        )
+    if key not in to_do:
+        raise MoveRefused("No task with that key is in To do.")
+    if key.startswith("incident:"):
+        raise MoveRefused("Incidents always come first; they do not move.")
+    if before == key:
+        raise MoveRefused("A task cannot move before itself.")
+    if before is not None and before not in to_do:
+        raise MoveRefused("The task to place it before is not in To do.")
+    order = [k for k in to_do if k != key]
+    order.insert(order.index(before) if before is not None else len(order), key)
+    saved = session.get(TaskOrder, company_id)
+    if saved is None:
+        saved = TaskOrder(
+            company_id=company_id,
+            moved_key=key,
+            moved_by_email=person.email,
+        )
+    saved.keys = order
+    saved.moved_key = key
+    saved.moved_by = person.id
+    saved.moved_by_email = person.email
+    saved.assistant_name = assistant_name
+    saved.moved_at = datetime.now(UTC)
+    session.add(saved)
+    session.commit()

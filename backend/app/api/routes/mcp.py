@@ -88,6 +88,7 @@ from app.models.mcp import (
     McpWriteSpec,
 )
 from app.models.spec import SpecPublic, SpecWrittenPublic
+from app.models.work import WorkMoveIn
 from app.services.agent_list import agent_types
 from app.services.agent_page import agent_page
 from app.services.call_list import workspace_calls
@@ -125,7 +126,7 @@ from app.services.spec import (
     spec_state,
     write_agent_spec,
 )
-from app.services.work import Task, next_task, work_page
+from app.services.work import MoveRefused, Task, move_task, next_task, work_page
 
 router = APIRouter(
     prefix="/mcp",
@@ -1352,6 +1353,63 @@ def list_tasks(
         next_steps=steps,
         guide=GUIDE_GETTING_STARTED,
         next_cursor=_encode_cursor(offset + limit) if more else None,
+    )
+
+
+@router.post(
+    "/workspaces/{workspace_id}/tasks/move",
+    response_model=McpAnswer[McpTaskList],
+)
+def move_workspace_task(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    current_user: McpCurrentUser,
+    assistant: McpAssistantName,
+    body: WorkMoveIn,
+) -> McpAnswer[McpTaskList]:
+    try:
+        move_task(
+            session=session,
+            company_id=workspace.id,
+            key=body.key,
+            before=body.before,
+            person=current_user,
+            assistant_name=assistant or "your assistant",
+        )
+    except MoveRefused as refused:
+        raise HTTPException(
+            status_code=422,
+            detail=McpErrorDetail(
+                error=refused.reason,
+                next_steps=[
+                    "Call `list_tasks` to see the To do keys, then `move_task` again "
+                    "with one of them."
+                ],
+                guide=GUIDE_GETTING_STARTED,
+            ).model_dump(),
+        ) from None
+    page = work_page(session=session, company_id=workspace.id)
+    tasks = sorted(page.in_progress + page.to_do, key=lambda t: t.position)
+    return McpAnswer[McpTaskList](
+        data=McpTaskList(
+            tasks=tasks[:25],
+            done=page.done[:20],
+            sessions=page.sessions,
+            waiting=page.waiting,
+            total=len(tasks),
+        ),
+        rules=[
+            "Move a task only when the person asks; never reorder on your own. The move "
+            "is recorded as theirs, with you as the assistant that acted.",
+            "The person's order wins over Connexity's for the tasks they moved; new tasks "
+            "fall in by Connexity's order. A task that blocks a moved one comes up with "
+            "it. Tasks in progress or waiting, and incidents, do not move.",
+        ],
+        next_steps=[
+            "Tell the person the new order: what is next now.",
+            "Call `get_next_task` when you are ready for your next task.",
+        ],
+        guide=GUIDE_GETTING_STARTED,
     )
 
 

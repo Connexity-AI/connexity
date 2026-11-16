@@ -73,5 +73,14 @@ class WorkPublic(BaseModel):
     waiting: int = Field(description="Tasks waiting for the person")
 
 
+class WorkMoveIn(BaseModel):
+    key: str = Field(max_length=128, description="The To do task to move")
+    before: str | None = Field(
+        default=None,
+        max_length=128,
+        description="The To do task it now sits before; none for the end",
+    )
+
+
 class WorkCountsPublic(BaseModel):
     waiting: int = Field(description="Tasks waiting for the person")

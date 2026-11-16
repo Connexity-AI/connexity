@@ -42,6 +42,9 @@ rules and numbered steps. Take tasks in that order; do not pick your own.
   `Onboarding`, and keep the same name for the whole session. Each session holds its
   own task, so several sessions of one assistant can work side by side; the answer's
   `in_progress` says what the others are on.
+- **The person can reorder To do.** Their order wins for the tasks they moved, and the
+  tasks you get follow it. When the person asks you to change the order ("do Night line
+  first"), call `move_task`; never reorder on your own.
 - **To see the whole list** without taking a task, call `list_tasks`: the Work page's
   list, with who is on what and what was done this week.
 - **One workspace at a time.** Another session's task in progress is never handed to

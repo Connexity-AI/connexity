@@ -70,6 +70,17 @@ async def list_tasks(
     )
 
 
+async def move_task(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    key: str,
+    before: str | None = None,
+) -> ListTasksResult:
+    return ListTasksResult.model_validate(
+        await client.move_task(workspace_id=workspace_id, key=key, before=before)
+    )
+
+
 async def get_next_task(
     client: ConnexityBackendClient, workspace_id: str, session: str | None = None
 ) -> GetNextTaskResult:

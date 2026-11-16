@@ -1,12 +1,13 @@
-"""The Work page (plan `plans/2026-11-16-work-page.md`): the assistant's tasks in
-Connexity's order, who is working on what, and what was done. Read only; the person
-reorders nothing here yet, and the assistant takes tasks through MCP."""
+"""The Work page (plans `plans/2026-11-16-work-page.md` and
+`plans/2026-11-16-reorder.md`): the assistant's tasks in order, who is working on what,
+and what was done. The person reorders To do here; the assistant takes tasks through
+MCP."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
-from app.api.deps import CurrentCompany, SessionDep, get_current_user
-from app.models.work import WorkCountsPublic, WorkPublic
-from app.services.work import waiting_count, work_page
+from app.api.deps import CurrentCompany, CurrentUser, SessionDep, get_current_user
+from app.models.work import WorkCountsPublic, WorkMoveIn, WorkPublic
+from app.services.work import MoveRefused, move_task, waiting_count, work_page
 
 router = APIRouter(tags=["work"], dependencies=[Depends(get_current_user)])
 
@@ -27,3 +28,26 @@ def read_work_counts(
     return WorkCountsPublic(
         waiting=waiting_count(session=session, company_id=company_id)
     )
+
+
+@router.post("/work/order", response_model=WorkPublic)
+def move_work_task(
+    session: SessionDep,
+    company_id: CurrentCompany,
+    current_user: CurrentUser,
+    body: WorkMoveIn,
+) -> WorkPublic:
+    """Move a To do task to sit just before another (or to the end). The assistant then
+    gets tasks in that order. Tasks in progress or waiting, and incidents, do not move."""
+    try:
+        move_task(
+            session=session,
+            company_id=company_id,
+            key=body.key,
+            before=body.before,
+            person=current_user,
+            assistant_name=None,
+        )
+    except MoveRefused as refused:
+        raise HTTPException(status_code=422, detail=refused.reason) from None
+    return work_page(session=session, company_id=company_id)

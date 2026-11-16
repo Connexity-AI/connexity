@@ -267,6 +267,7 @@ from app.models.schemas import (  # noqa: F401
     UserSimulatorConfig,
 )
 from app.models.spec import Spec, SpecRule  # noqa: F401
+from app.models.task_order import TaskOrder  # noqa: F401
 
 # ── Test case ──────────────────────────────────────────────────────
 from app.models.test_case import (  # noqa: F401

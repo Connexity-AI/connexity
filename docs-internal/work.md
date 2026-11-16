@@ -42,6 +42,7 @@ wins. What `get_next_task` hands out is planned in the
 | 25 | All issues are tasks, Critical on top. | "all issues get in the work, just critical on the top" | 2026-11-16 |
 | 26 | Which task blocks which, worked out by Connexity: an agent's open questions block every issue fix on that agent; its spec to write or update blocks its fixes and calls to review; each onboarding step blocks the next; the first scan blocks every spec. | "Accept, build" on `plans/2026-11-16-blocks.md` | 2026-11-16 |
 | 27 | Built (10.127): Work at `/work`, first in the sidebar with a warm count of what waits for the person; `/` keeps Readiness until the first scan is done, then opens Work; "done" lists the last 7 days from what Connexity records; "Answer questions →" opens Action items until 10.128; decision 9 wins over "give before asking" on Work; reordering is its own roadmap row. | "Accept, build" on `plans/2026-11-16-work-page.md` | 2026-11-16 |
+| 28 | Reordering (10.1271): drag on To do rows only, no keyboard; the person's order wins for the tasks they moved, new tasks fall in by Connexity's order, and a task's blockers come up with it; incidents stay first; the assistant moves a task only when the person asks (`move_task`); no reset for now. | "no need any keyboards"; "Accept, build" on `plans/2026-11-16-reorder.md` | 2026-11-16 |
 
 ## Proposed (in the design, not decided)
 

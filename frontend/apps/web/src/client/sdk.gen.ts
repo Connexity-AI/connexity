@@ -303,6 +303,9 @@ import type {
   McpListWorkspacesData,
   McpListWorkspacesErrors,
   McpListWorkspacesResponses,
+  McpMoveWorkspaceTaskData,
+  McpMoveWorkspaceTaskErrors,
+  McpMoveWorkspaceTaskResponses,
   McpRaiseAgentClarificationsData,
   McpRaiseAgentClarificationsErrors,
   McpRaiseAgentClarificationsResponses,
@@ -462,6 +465,9 @@ import type {
   WebhooksRetellWebhookData,
   WebhooksRetellWebhookErrors,
   WebhooksRetellWebhookResponses,
+  WorkMoveWorkTaskData,
+  WorkMoveWorkTaskErrors,
+  WorkMoveWorkTaskResponses,
   WorkReadWorkCountsData,
   WorkReadWorkCountsErrors,
   WorkReadWorkCountsResponses,
@@ -1485,6 +1491,27 @@ export class McpService {
   }
 
   /**
+   * Move Workspace Task
+   */
+  public static moveWorkspaceTask<ThrowOnError extends boolean = false>(
+    options: Options<McpMoveWorkspaceTaskData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      McpMoveWorkspaceTaskResponses,
+      McpMoveWorkspaceTaskErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/tasks/move',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
    * Get Readiness
    */
   public static getReadiness<ThrowOnError extends boolean = false>(
@@ -2088,6 +2115,37 @@ export class WorkService {
       ],
       url: '/api/v1/work/counts',
       ...options,
+    });
+  }
+
+  /**
+   * Move Work Task
+   *
+   * Move a To do task to sit just before another (or to the end). The assistant then
+   * gets tasks in that order. Tasks in progress or waiting, and incidents, do not move.
+   */
+  public static moveWorkTask<ThrowOnError extends boolean = false>(
+    options: Options<WorkMoveWorkTaskData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      WorkMoveWorkTaskResponses,
+      WorkMoveWorkTaskErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/work/order',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
     });
   }
 }
