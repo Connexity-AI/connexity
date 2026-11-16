@@ -8798,6 +8798,32 @@ export const McpTaskSchema = {
       description: "The next move is the person's, not yours",
       default: false,
     },
+    blocks: {
+      items: {
+        $ref: '#/components/schemas/McpTaskRef',
+      },
+      type: 'array',
+      title: 'Blocks',
+      description: 'Tasks that wait for this one (up to 5)',
+    },
+    blocks_count: {
+      type: 'integer',
+      title: 'Blocks Count',
+      default: 0,
+    },
+    blocked_by: {
+      items: {
+        $ref: '#/components/schemas/McpTaskRef',
+      },
+      type: 'array',
+      title: 'Blocked By',
+      description: 'Tasks this one waits for (up to 5); never handed out until done',
+    },
+    blocked_by_count: {
+      type: 'integer',
+      title: 'Blocked By Count',
+      default: 0,
+    },
   },
   type: 'object',
   required: ['key', 'kind', 'title', 'facts'],
@@ -8820,10 +8846,32 @@ export const McpTaskCountsSchema = {
       title: 'In Progress Elsewhere',
       description: 'Tasks other assistants are working on',
     },
+    blocked: {
+      type: 'integer',
+      title: 'Blocked',
+      description: 'Tasks that wait for the tasks under their Blocked by',
+      default: 0,
+    },
   },
   type: 'object',
   required: ['to_do', 'waiting_for_person', 'in_progress_elsewhere'],
   title: 'McpTaskCounts',
+} as const;
+
+export const McpTaskRefSchema = {
+  properties: {
+    key: {
+      type: 'string',
+      title: 'Key',
+    },
+    title: {
+      type: 'string',
+      title: 'Title',
+    },
+  },
+  type: 'object',
+  required: ['key', 'title'],
+  title: 'McpTaskRef',
 } as const;
 
 export const McpUnarchiveIssueSchema = {

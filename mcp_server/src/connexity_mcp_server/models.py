@@ -222,6 +222,11 @@ class Category(BaseModel):
     kind: str
 
 
+class TaskRef(BaseModel):
+    key: str
+    title: str
+
+
 class Task(BaseModel):
     key: str
     kind: str = Field(
@@ -236,6 +241,10 @@ class Task(BaseModel):
     agent_name: str | None = None
     facts: list[str] = Field(default_factory=list)
     waiting_for_person: bool = False
+    blocks: list[TaskRef] = Field(default_factory=list)
+    blocks_count: int = 0
+    blocked_by: list[TaskRef] = Field(default_factory=list)
+    blocked_by_count: int = 0
 
 
 class EndedTask(BaseModel):
@@ -247,6 +256,7 @@ class TaskCounts(BaseModel):
     to_do: int = 0
     waiting_for_person: int = 0
     in_progress_elsewhere: int = 0
+    blocked: int = 0
 
 
 class HeldTask(BaseModel):

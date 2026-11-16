@@ -27,6 +27,11 @@ rules and numbered steps. Take tasks in that order; do not pick your own.
 - **The order:** incidents, then Critical tasks, then setup (onboarding steps, then
   specs), then everything else, most calls first. A task that blocks a higher one sits
   above it.
+- **Blocks and Blocked by.** Connexity works out which work waits for other work: an
+  agent's open questions block its issue fixes, its spec to write or update blocks its
+  fixes and calls to review, each onboarding step blocks the next, and the first scan
+  blocks the specs. A blocked task is never handed to you; each task lists what it
+  blocks and what blocks it.
 - **Asking again ends your current task.** It is done when its work is gone. It waits
   for the person when the rest is theirs, such as resolving an issue once the fix is
   live. Otherwise it goes back to its place in the list.
