@@ -81,6 +81,7 @@ from app.models.mcp import (
     McpScanProgress,
     McpTask,
     McpTaskCounts,
+    McpTaskList,
     McpTaskRef,
     McpUnarchiveIssue,
     McpWorkspace,
@@ -124,7 +125,7 @@ from app.services.spec import (
     spec_state,
     write_agent_spec,
 )
-from app.services.work import Task, next_task
+from app.services.work import Task, next_task, work_page
 
 router = APIRouter(
     prefix="/mcp",
@@ -1306,6 +1307,51 @@ def get_next_task(
         rules=_TASK_RULES,
         next_steps=steps,
         guide=GUIDE_GETTING_STARTED,
+    )
+
+
+@router.get(
+    "/workspaces/{workspace_id}/tasks",
+    response_model=McpAnswer[McpTaskList],
+)
+def list_tasks(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    cursor: str | None = Query(default=None, max_length=255),
+    limit: int = Query(default=25, ge=1, le=100),
+) -> McpAnswer[McpTaskList]:
+    offset = _decode_cursor(cursor)
+    page = work_page(session=session, company_id=workspace.id)
+    tasks = sorted(page.in_progress + page.to_do, key=lambda t: t.position)
+    shown = tasks[offset : offset + limit]
+    more = offset + limit < len(tasks)
+    steps = []
+    if more:
+        steps.append(
+            "Call `list_tasks` again with `cursor` set to `next_cursor` for the next "
+            "page."
+        )
+    steps.append(
+        "This only reads the list. To take your next task, call `get_next_task`."
+    )
+    return McpAnswer[McpTaskList](
+        data=McpTaskList(
+            tasks=shown,
+            done=page.done[:20],
+            sessions=page.sessions,
+            waiting=page.waiting,
+            total=len(tasks),
+        ),
+        rules=[
+            "The list is the Work page's, in Connexity's order: the order "
+            "`get_next_task` hands tasks out in.",
+            "in_progress is held by a session; waiting is the person's to move on; to_do "
+            "is free unless Blocked by lists a task.",
+            "Done covers the last 7 days.",
+        ],
+        next_steps=steps,
+        guide=GUIDE_GETTING_STARTED,
+        next_cursor=_encode_cursor(offset + limit) if more else None,
     )
 
 

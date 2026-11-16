@@ -5176,6 +5176,40 @@ export type McpAnswerMcpScanProgress = {
 };
 
 /**
+ * McpAnswer[McpTaskList]
+ */
+export type McpAnswerMcpTaskList = {
+  /**
+   * The facts: the result of the call
+   */
+  data: McpTaskList;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
  * McpAnswer[McpWorkspace]
  */
 export type McpAnswerMcpWorkspace = {
@@ -5853,6 +5887,42 @@ export type McpTaskCounts = {
    * Tasks that wait for the tasks under their Blocked by
    */
   blocked?: number;
+};
+
+/**
+ * McpTaskList
+ */
+export type McpTaskList = {
+  /**
+   * Tasks
+   *
+   * This page of the list, in Connexity's order, each with its state
+   */
+  tasks: Array<WorkTaskPublic>;
+  /**
+   * Done
+   *
+   * The last 7 days, newest first
+   */
+  done: Array<WorkDonePublic>;
+  /**
+   * Sessions
+   *
+   * Sessions working now
+   */
+  sessions: Array<WorkSessionPublic>;
+  /**
+   * Waiting
+   *
+   * Tasks waiting for the person
+   */
+  waiting: number;
+  /**
+   * Total
+   *
+   * Tasks in the whole list
+   */
+  total: number;
 };
 
 /**
@@ -9208,6 +9278,214 @@ export type WebhookResult = {
 };
 
 /**
+ * WorkCountsPublic
+ */
+export type WorkCountsPublic = {
+  /**
+   * Waiting
+   *
+   * Tasks waiting for the person
+   */
+  waiting: number;
+};
+
+/**
+ * WorkDonePublic
+ */
+export type WorkDonePublic = {
+  /**
+   * Title
+   *
+   * What was done, with its result
+   */
+  title: string;
+  /**
+   * By
+   *
+   * A person, their assistant, or Connexity
+   */
+  by: string;
+  /**
+   * At
+   */
+  at: string;
+};
+
+/**
+ * WorkHolderPublic
+ *
+ * Who holds a task: the person, their assistant and its session.
+ */
+export type WorkHolderPublic = {
+  /**
+   * Person
+   */
+  person: string;
+  /**
+   * Assistant
+   */
+  assistant: string;
+  /**
+   * Session
+   *
+   * Empty when the session has no name
+   */
+  session?: string;
+  /**
+   * Taken At
+   */
+  taken_at: string;
+};
+
+/**
+ * WorkPublic
+ */
+export type WorkPublic = {
+  /**
+   * In Progress
+   *
+   * Tasks an assistant holds, and tasks waiting for the person
+   */
+  in_progress: Array<WorkTaskPublic>;
+  /**
+   * To Do
+   *
+   * Everything else, in order
+   */
+  to_do: Array<WorkTaskPublic>;
+  /**
+   * Done
+   *
+   * The last 7 days, newest first
+   */
+  done: Array<WorkDonePublic>;
+  /**
+   * Sessions
+   *
+   * Sessions working now
+   */
+  sessions: Array<WorkSessionPublic>;
+  /**
+   * Waiting
+   *
+   * Tasks waiting for the person
+   */
+  waiting: number;
+};
+
+/**
+ * WorkSessionPublic
+ */
+export type WorkSessionPublic = {
+  /**
+   * Person
+   */
+  person: string;
+  /**
+   * Assistant
+   */
+  assistant: string;
+  /**
+   * Session
+   */
+  session?: string;
+  /**
+   * Task
+   *
+   * The title of the task it is working on
+   */
+  task: string;
+};
+
+/**
+ * WorkTaskPublic
+ */
+export type WorkTaskPublic = {
+  /**
+   * Key
+   */
+  key: string;
+  kind: TaskKind;
+  /**
+   * Title
+   *
+   * The task in one plain sentence
+   */
+  title: string;
+  /**
+   * Line
+   *
+   * The type word, then the details
+   */
+  line: string;
+  /**
+   * Severity
+   *
+   * critical or warning, for an issue fix
+   */
+  severity?: string | null;
+  /**
+   * Position
+   *
+   * Its place in the list, 1 at the top
+   */
+  position: number;
+  /**
+   * State
+   */
+  state: 'in_progress' | 'waiting' | 'to_do';
+  /**
+   * Waiting For Person
+   *
+   * The next move is the person's
+   */
+  waiting_for_person?: boolean;
+  /**
+   * Agent Id
+   */
+  agent_id?: string | null;
+  /**
+   * Agent Name
+   */
+  agent_name?: string | null;
+  /**
+   * Issue Id
+   */
+  issue_id?: string | null;
+  holder?: WorkHolderPublic | null;
+  /**
+   * Blocks
+   */
+  blocks?: Array<WorkTaskRefPublic>;
+  /**
+   * Blocked By
+   */
+  blocked_by?: Array<WorkTaskRefPublic>;
+};
+
+/**
+ * WorkTaskRefPublic
+ */
+export type WorkTaskRefPublic = {
+  /**
+   * Key
+   */
+  key: string;
+  /**
+   * Title
+   */
+  title: string;
+  /**
+   * State
+   */
+  state: 'in_progress' | 'waiting' | 'to_do';
+  /**
+   * Waiting For Person
+   */
+  waiting_for_person?: boolean;
+};
+
+/**
  * WorkflowSummary
  */
 export type WorkflowSummary = {
@@ -11714,6 +11992,69 @@ export type McpGetNextTaskResponses = {
 
 export type McpGetNextTaskResponse = McpGetNextTaskResponses[keyof McpGetNextTaskResponses];
 
+export type McpListTasksData = {
+  body?: never;
+  path: {
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: {
+    /**
+     * Cursor
+     */
+    cursor?: string | null;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/mcp/workspaces/{workspace_id}/tasks';
+};
+
+export type McpListTasksErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpListTasksError = McpListTasksErrors[keyof McpListTasksErrors];
+
+export type McpListTasksResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerMcpTaskList;
+};
+
+export type McpListTasksResponse = McpListTasksResponses[keyof McpListTasksResponses];
+
 export type McpGetReadinessData = {
   body?: never;
   path: {
@@ -12115,6 +12456,105 @@ export type ClarificationsAnswerWorkspaceClarificationsResponses = {
 
 export type ClarificationsAnswerWorkspaceClarificationsResponse =
   ClarificationsAnswerWorkspaceClarificationsResponses[keyof ClarificationsAnswerWorkspaceClarificationsResponses];
+
+export type WorkReadWorkData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/work';
+};
+
+export type WorkReadWorkErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type WorkReadWorkError = WorkReadWorkErrors[keyof WorkReadWorkErrors];
+
+export type WorkReadWorkResponses = {
+  /**
+   * Successful Response
+   */
+  200: WorkPublic;
+};
+
+export type WorkReadWorkResponse = WorkReadWorkResponses[keyof WorkReadWorkResponses];
+
+export type WorkReadWorkCountsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/work/counts';
+};
+
+export type WorkReadWorkCountsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type WorkReadWorkCountsError = WorkReadWorkCountsErrors[keyof WorkReadWorkCountsErrors];
+
+export type WorkReadWorkCountsResponses = {
+  /**
+   * Successful Response
+   */
+  200: WorkCountsPublic;
+};
+
+export type WorkReadWorkCountsResponse =
+  WorkReadWorkCountsResponses[keyof WorkReadWorkCountsResponses];
 
 export type AgentsListAgentsData = {
   body?: never;

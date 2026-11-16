@@ -280,6 +280,61 @@ AddAgentsResult = Answer[AddedAgents]
 ConnectVoicePlatformResult = Answer[Connection]
 GetReadinessResult = Answer[Readiness]
 GetNextTaskResult = Answer[NextTask]
+
+
+class TaskHolder(BaseModel):
+    person: str
+    assistant: str
+    session: str = ""
+    taken_at: str
+
+
+class ListedTaskRef(BaseModel):
+    key: str
+    title: str
+    state: str
+    waiting_for_person: bool = False
+
+
+class ListedTask(BaseModel):
+    key: str
+    kind: str
+    title: str
+    line: str
+    severity: str | None = None
+    position: int
+    state: str = Field(description="in_progress, waiting (for the person) or to_do")
+    waiting_for_person: bool = False
+    agent_id: str | None = None
+    agent_name: str | None = None
+    issue_id: str | None = None
+    holder: TaskHolder | None = None
+    blocks: list[ListedTaskRef] = Field(default_factory=list)
+    blocked_by: list[ListedTaskRef] = Field(default_factory=list)
+
+
+class DoneItem(BaseModel):
+    title: str
+    by: str
+    at: str
+
+
+class WorkingSession(BaseModel):
+    person: str
+    assistant: str
+    session: str = ""
+    task: str
+
+
+class TaskList(BaseModel):
+    tasks: list[ListedTask] = Field(default_factory=list)
+    done: list[DoneItem] = Field(default_factory=list)
+    sessions: list[WorkingSession] = Field(default_factory=list)
+    waiting: int = 0
+    total: int = 0
+
+
+ListTasksResult = Answer[TaskList]
 CreateWorkspaceResult = Answer[Workspace]
 ListAgentsResult = Answer[list[Agent]]
 ScanCallsResult = Answer[ScanProgress]

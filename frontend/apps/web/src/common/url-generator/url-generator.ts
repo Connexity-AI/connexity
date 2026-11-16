@@ -9,6 +9,10 @@ export class UrlGenerator {
     return '/' as Route;
   }
 
+  static work() {
+    return '/work/' as Route;
+  }
+
   static actionItems(agentId?: string) {
     return (agentId ? `/action-items/?agent=${agentId}` : '/action-items/') as Route;
   }

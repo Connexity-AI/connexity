@@ -1,0 +1,478 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+
+import { UrlGenerator } from '@/common/url-generator/url-generator';
+import {
+  ChevronDown,
+  ChevronRight,
+  CircleCheck,
+  CircleHelp,
+  FileText,
+  Flag,
+  FlaskConical,
+  LoaderCircle,
+  Lock,
+  Pause,
+  Phone,
+  Siren,
+  Wrench,
+  X,
+} from 'lucide-react';
+
+import { PageBar } from '@workspace/ui/components/page-bar';
+import { cn } from '@workspace/ui/lib/utils';
+
+import { timeLabel } from '@/components/calls/format';
+
+import type {
+  TaskKind,
+  WorkHolderPublic,
+  WorkPublic,
+  WorkTaskPublic,
+  WorkTaskRefPublic,
+} from '@/client/types.gen';
+import type { LucideIcon } from 'lucide-react';
+import type { Route } from 'next';
+import type { FC, ReactNode } from 'react';
+
+/** The type icons (designs/16-work.md, "A row"). */
+const KIND: Record<TaskKind, { word: string; icon: LucideIcon }> = {
+  incident: { word: 'Incident', icon: Siren },
+  issue_fix: { word: 'Issue fix', icon: Wrench },
+  onboarding: { word: 'Onboarding', icon: Flag },
+  spec: { word: 'Spec', icon: FileText },
+  clarifications: { word: 'Clarifications', icon: CircleHelp },
+  calls_to_review: { word: 'Calls to review', icon: Phone },
+  tests: { word: 'Tests', icon: FlaskConical },
+};
+
+const STATE_NAME: Record<WorkTaskPublic['state'], string> = {
+  in_progress: 'In progress',
+  waiting: 'Waiting for you',
+  to_do: 'To do',
+};
+
+/** "Alex's Claude Code · Onboarding". */
+const holderName = (holder: WorkHolderPublic) => {
+  const who = `${holder.person}'s ${holder.assistant}`;
+  return holder.session ? `${who} · ${holder.session}` : who;
+};
+
+/** "The same booking is made twice + 1 more". */
+const named = (refs: WorkTaskRefPublic[]) =>
+  refs.length > 1 ? `${refs[0]!.title} + ${refs.length - 1} more` : (refs[0]?.title ?? '');
+
+const isBlocked = (task: WorkTaskPublic) =>
+  task.state === 'to_do' && (task.blocked_by?.length ?? 0) > 0;
+
+/** A blocked row's lock is warm when what blocks it waits for the person. */
+const warmLock = (task: WorkTaskPublic) =>
+  (task.blocked_by ?? []).some((ref) => ref.waiting_for_person);
+
+/** Where the person acts on a task that waits for them. */
+const action = (task: WorkTaskPublic): { label: string; href: Route } | undefined => {
+  if (task.kind === 'clarifications' && task.agent_id) {
+    return { label: 'Answer questions →', href: UrlGenerator.actionItems(task.agent_id) };
+  }
+  if (task.kind === 'issue_fix' && task.issue_id) {
+    return { label: 'Resolve the issue →', href: UrlGenerator.issue(task.issue_id) };
+  }
+  // Connecting the assistant is done under Account › Assistant access.
+  if (task.kind === 'onboarding') return { label: 'Show how →', href: UrlGenerator.account() };
+  return undefined;
+};
+
+const Marker: FC<{ task: WorkTaskPublic }> = ({ task }) => {
+  if (task.state === 'in_progress') {
+    return (
+      <LoaderCircle
+        className="size-4 text-ink-muted motion-safe:animate-spin"
+        aria-label="In progress"
+      />
+    );
+  }
+  if (task.state === 'waiting') {
+    return <Pause className="size-4 fill-current text-warning" aria-label="Waiting for you" />;
+  }
+  if (isBlocked(task)) {
+    return (
+      <Lock
+        className={cn('size-4', warmLock(task) ? 'text-warning' : 'text-ink-muted')}
+        aria-label="Blocked"
+      />
+    );
+  }
+  return <span className="size-4" aria-hidden />;
+};
+
+const TypeIcon: FC<{ kind: TaskKind; dim?: boolean }> = ({ kind, dim }) => {
+  const Icon = KIND[kind].icon;
+  return (
+    <span
+      className={cn(
+        'flex size-7 flex-none items-center justify-center rounded-md',
+        kind === 'incident' ? 'bg-critical-bg text-critical' : 'bg-unchecked-bg text-ink-secondary',
+        dim && 'opacity-55'
+      )}
+      aria-hidden
+    >
+      <Icon className="size-4" />
+    </span>
+  );
+};
+
+/** The second line, with severity as a quiet coloured word. */
+const Line: FC<{ task: WorkTaskPublic }> = ({ task }) => {
+  const parts = task.line.split(' · ');
+  return (
+    <span className="truncate text-label text-ink-muted">
+      {parts.map((part, i) => (
+        <span key={`${part}-${i}`}>
+          {i > 0 && ' · '}
+          <span
+            className={cn(
+              part === 'Critical' && 'text-critical',
+              part === 'Warning' && 'text-warning'
+            )}
+          >
+            {part}
+          </span>
+        </span>
+      ))}
+      {task.state !== 'to_do' && (task.blocks?.length ?? 0) > 0 && (
+        <> · Blocks: {named(task.blocks ?? [])}</>
+      )}
+    </span>
+  );
+};
+
+const Chip: FC<{ children: ReactNode; warm?: boolean; initial?: string }> = ({
+  children,
+  warm,
+  initial,
+}) => (
+  <span
+    className={cn(
+      'inline-flex h-7 max-w-[260px] items-center gap-2 rounded-full border px-2.5 text-label',
+      warm ? 'border-transparent bg-warning-bg text-warning' : 'border-hairline text-ink-secondary'
+    )}
+  >
+    {initial && (
+      <span className="flex size-5 flex-none items-center justify-center rounded-full bg-wash text-[11px] text-ink">
+        {initial}
+      </span>
+    )}
+    <span className="truncate">{children}</span>
+  </span>
+);
+
+interface RowProps {
+  task: WorkTaskPublic;
+  lit: boolean;
+  dimmed: boolean;
+  selected: boolean;
+  onOpen: () => void;
+  onHover: (key: string | null) => void;
+}
+
+const Row: FC<RowProps> = ({ task, lit, dimmed, selected, onOpen, onHover }) => {
+  const waiting = task.state === 'waiting';
+  const blocked = isBlocked(task);
+  const act = waiting ? action(task) : undefined;
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      onMouseEnter={() => onHover(task.key)}
+      onMouseLeave={() => onHover(null)}
+      className={cn(
+        'relative grid cursor-pointer grid-cols-[16px_28px_minmax(0,1fr)_auto] items-center gap-3 border-t border-hairline px-5 py-3 first:border-t-0 hover:bg-wash',
+        waiting && 'bg-warning-bg/40',
+        selected && 'bg-wash',
+        dimmed && 'opacity-60'
+      )}
+    >
+      {(waiting || lit) && (
+        <span
+          className="absolute top-3 bottom-3 left-0 w-[3px] rounded-r-sm bg-warning"
+          aria-hidden
+        />
+      )}
+      <Marker task={task} />
+      <TypeIcon kind={task.kind} dim={blocked} />
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className={cn('truncate text-body', blocked ? 'text-ink-secondary' : 'text-ink')}>
+          {task.title}
+        </span>
+        <Line task={task} />
+        {blocked && (
+          <span className="truncate text-label text-ink-muted">
+            Blocked by: {named(task.blocked_by ?? [])}
+          </span>
+        )}
+      </span>
+      <span className="flex flex-col items-end gap-1">
+        {task.holder && (
+          <Chip initial={task.holder.person.charAt(0).toUpperCase()}>
+            {holderName(task.holder)}
+          </Chip>
+        )}
+        {waiting && <Chip warm>Waiting for you</Chip>}
+        {act && (
+          <Link
+            href={act.href}
+            onClick={(e) => e.stopPropagation()}
+            className="text-label text-ink-secondary no-underline hover:text-ink"
+          >
+            {act.label}
+          </Link>
+        )}
+      </span>
+    </div>
+  );
+};
+
+const Group: FC<{ label: string; children: ReactNode }> = ({ label, children }) => (
+  <div className="flex flex-col gap-2">
+    <span className="px-1 text-label text-ink-muted">{label}</span>
+    <section className="overflow-hidden rounded-xl border border-hairline bg-surface-1">
+      {children}
+    </section>
+  </div>
+);
+
+const Fact: FC<{ label: string; children: ReactNode }> = ({ label, children }) => (
+  <div className="grid grid-cols-[120px_minmax(0,1fr)] gap-3 text-body">
+    <span className="text-ink-muted">{label}</span>
+    <span className="min-w-0 text-ink">{children}</span>
+  </div>
+);
+
+const RefList: FC<{
+  title: string;
+  refs: WorkTaskRefPublic[];
+  onOpen: (key: string) => void;
+}> = ({ title, refs, onOpen }) =>
+  refs.length ? (
+    <div className="flex flex-col gap-2">
+      <span className="text-label text-ink-muted">{title}</span>
+      {refs.map((ref) => (
+        <button
+          key={ref.key}
+          type="button"
+          onClick={() => onOpen(ref.key)}
+          className="flex items-center justify-between gap-3 rounded-lg border border-hairline bg-transparent px-3 py-2 text-left text-body text-ink hover:bg-wash"
+        >
+          <span className="truncate">{ref.title}</span>
+          <span
+            className={cn(
+              'flex-none text-label',
+              ref.waiting_for_person ? 'text-warning' : 'text-ink-muted'
+            )}
+          >
+            {STATE_NAME[ref.state]}
+          </span>
+        </button>
+      ))}
+    </div>
+  ) : null;
+
+const Panel: FC<{
+  task: WorkTaskPublic;
+  onClose: () => void;
+  onOpen: (key: string) => void;
+}> = ({ task, onClose, onOpen }) => {
+  const act = task.state === 'waiting' ? action(task) : undefined;
+  return (
+    <aside
+      aria-label="Task"
+      className="fixed top-0 right-0 z-20 flex h-screen w-[400px] max-w-full flex-col gap-5 overflow-y-auto border-l border-hairline bg-surface-1 px-6 py-5"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span
+          className={cn('text-label', task.state === 'waiting' ? 'text-warning' : 'text-ink-muted')}
+        >
+          {isBlocked(task) ? 'Blocked' : STATE_NAME[task.state]}
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="flex size-8 items-center justify-center rounded-md border-0 bg-transparent text-ink-secondary hover:bg-wash"
+        >
+          <X className="size-4" />
+        </button>
+      </div>
+      <div className="flex items-start gap-3">
+        <TypeIcon kind={task.kind} />
+        <h2 className="m-0 text-pretty text-title font-medium text-ink">{task.title}</h2>
+      </div>
+      <div className="flex flex-col gap-2">
+        <Fact label="Type">{KIND[task.kind].word}</Fact>
+        {task.agent_name && <Fact label="Agent">{task.agent_name}</Fact>}
+        <Fact label="Place">#{task.position} in the list</Fact>
+        {task.holder && (
+          <>
+            <Fact label="Assistant">
+              {task.holder.person}&apos;s {task.holder.assistant}
+            </Fact>
+            {task.holder.session && <Fact label="Session">{task.holder.session}</Fact>}
+            <Fact label="Working since">{timeLabel(task.holder.taken_at)}</Fact>
+          </>
+        )}
+      </div>
+      <RefList title="Blocks" refs={task.blocks ?? []} onOpen={onOpen} />
+      <RefList title="Blocked by" refs={task.blocked_by ?? []} onOpen={onOpen} />
+      <div className="flex flex-col gap-2 border-t border-hairline pt-4">
+        {act && (
+          <Link href={act.href} className="text-body text-ink no-underline hover:underline">
+            {act.label}
+          </Link>
+        )}
+        {task.issue_id && (
+          <Link
+            href={UrlGenerator.issue(task.issue_id)}
+            className="text-body text-ink-secondary no-underline hover:text-ink"
+          >
+            Open the issue
+          </Link>
+        )}
+        {task.agent_id && (
+          <Link
+            href={UrlGenerator.agent(task.agent_id)}
+            className="text-body text-ink-secondary no-underline hover:text-ink"
+          >
+            Open the agent
+          </Link>
+        )}
+      </div>
+    </aside>
+  );
+};
+
+const plural = (n: number, word: string) => `${n} ${n === 1 ? word : `${word}s`}`;
+
+/** Work (designs/screens/Connexity Work.dc.html), read only. */
+export const WorkView: FC<{ work: WorkPublic }> = ({ work }) => {
+  const [selected, setSelected] = useState<string | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [doneOpen, setDoneOpen] = useState(false);
+  const [teamOpen, setTeamOpen] = useState(false);
+
+  const all = [...work.in_progress, ...work.to_do];
+  const byKey = new Map(all.map((task) => [task.key, task]));
+  const hover = hovered ? byKey.get(hovered) : undefined;
+  const related = new Set(
+    hover ? [...(hover.blocks ?? []), ...(hover.blocked_by ?? [])].map((ref) => ref.key) : []
+  );
+  const open = selected ? byKey.get(selected) : undefined;
+
+  const row = (task: WorkTaskPublic) => (
+    <Row
+      key={task.key}
+      task={task}
+      lit={related.has(task.key)}
+      dimmed={related.size > 0 && !related.has(task.key) && task.key !== hovered}
+      selected={task.key === selected}
+      onOpen={() => setSelected(task.key)}
+      onHover={setHovered}
+    />
+  );
+
+  const sessions = work.sessions;
+  const caption = (
+    <span
+      className="relative inline-block"
+      onMouseEnter={() => setTeamOpen(true)}
+      onMouseLeave={() => setTeamOpen(false)}
+    >
+      <span className="cursor-default border-b border-dotted border-ink-muted">
+        {sessions.length ? `${plural(sessions.length, 'session')} working` : 'No assistant working'}
+      </span>
+      {teamOpen && sessions.length > 0 && (
+        <span className="absolute top-6 left-0 z-10 flex w-[320px] flex-col gap-2 rounded-lg border border-hairline bg-surface-2 p-3 shadow-lg">
+          {sessions.map((s) => (
+            <span key={`${s.person}-${s.assistant}-${s.session}`} className="flex flex-col">
+              <span className="text-body text-ink">{holderName({ ...s, taken_at: '' })}</span>
+              <span className="truncate text-label text-ink-muted">{s.task}</span>
+            </span>
+          ))}
+        </span>
+      )}
+    </span>
+  );
+
+  return (
+    <div className="flex max-w-[960px] flex-col gap-5">
+      <PageBar title="Work" caption={caption} />
+
+      <div className="flex flex-col gap-1">
+        <h2 className="m-0 text-body font-medium text-ink">Assistant tasks</h2>
+        <span className="text-label text-ink-muted">
+          Your assistant works down this list from the top.
+        </span>
+      </div>
+
+      {all.length === 0 ? (
+        <section className="rounded-xl border border-hairline bg-surface-1 px-6 py-8 text-center text-ink-secondary">
+          Nothing waits. Your assistant is up to date.
+        </section>
+      ) : (
+        <>
+          {work.in_progress.length > 0 && (
+            <Group label="In progress">{work.in_progress.map(row)}</Group>
+          )}
+          {work.to_do.length > 0 && <Group label="To do">{work.to_do.map(row)}</Group>}
+        </>
+      )}
+
+      {work.done.length > 0 && (
+        <section className="overflow-hidden rounded-xl border border-hairline bg-surface-1">
+          <button
+            type="button"
+            aria-expanded={doneOpen}
+            onClick={() => setDoneOpen(!doneOpen)}
+            className="flex min-h-12 w-full items-center gap-3 border-0 bg-transparent px-5 text-left text-body text-ink-secondary hover:bg-wash"
+          >
+            <CircleCheck className="size-4 text-passed" aria-hidden />
+            <span className="flex-1">{work.done.length} done this week</span>
+            {doneOpen ? (
+              <ChevronDown className="size-4" aria-hidden />
+            ) : (
+              <ChevronRight className="size-4" aria-hidden />
+            )}
+          </button>
+          {doneOpen &&
+            work.done.map((d) => (
+              <div
+                key={`${d.title}-${d.at}`}
+                className="grid min-h-11 grid-cols-[16px_minmax(0,1fr)_minmax(0,200px)_96px] items-center gap-3 border-t border-hairline px-5 py-2"
+              >
+                <span aria-hidden />
+                <span className="truncate text-body text-ink">{d.title}</span>
+                <span className="truncate text-label text-ink-secondary">{d.by}</span>
+                <span className="text-right text-label whitespace-nowrap text-ink-muted">
+                  {timeLabel(d.at)}
+                </span>
+              </div>
+            ))}
+        </section>
+      )}
+
+      {open && (
+        <Panel task={open} onClose={() => setSelected(null)} onOpen={(key) => setSelected(key)} />
+      )}
+    </div>
+  );
+};
+
+export default WorkView;

@@ -12,14 +12,18 @@ from app.crud.check import shown_finding
 from app.models.agent import Agent
 from app.models.assistant_task import AssistantTask
 from app.models.call import Call
-from app.models.check import CallCheck, Finding
+from app.models.check import CallCheck, DecisionRecord, Finding
 from app.models.clarification import Clarification
 from app.models.enums import (
     AssistantTaskState,
     CheckOutcome,
     ClarificationState,
+    DecisionKind,
+    IssueState,
+    SpecOrigin,
     TaskKind,
 )
+from app.models.spec import Spec
 
 OPEN_STATES = (AssistantTaskState.IN_PROGRESS, AssistantTaskState.WAITING)
 
@@ -146,3 +150,70 @@ def _naive(moment: datetime) -> datetime:
     if moment.tzinfo is None:
         return moment
     return moment.astimezone(UTC).replace(tzinfo=None)
+
+
+def done_tasks(
+    *,
+    session: Session,
+    company_id: uuid.UUID,
+    since: datetime,
+    kinds: Sequence[TaskKind],
+) -> list[AssistantTask]:
+    """Tasks of ``kinds`` that assistants finished since ``since``."""
+    return list(
+        session.exec(
+            select(AssistantTask).where(
+                AssistantTask.company_id == company_id,
+                AssistantTask.state == AssistantTaskState.DONE,
+                col(AssistantTask.kind).in_(kinds),
+                col(AssistantTask.done_at) >= since,
+            )
+        ).all()
+    )
+
+
+def specs_since(
+    *, session: Session, company_id: uuid.UUID, since: datetime
+) -> list[Spec]:
+    """Spec versions written or made by answers since ``since``."""
+    return list(
+        session.exec(
+            select(Spec).where(
+                Spec.company_id == company_id,
+                col(Spec.origin).in_((SpecOrigin.WRITTEN, SpecOrigin.ANSWERED)),
+                col(Spec.created_at) >= since,
+            )
+        ).all()
+    )
+
+
+def answers_by_spec(
+    *, session: Session, spec_ids: Sequence[uuid.UUID]
+) -> dict[uuid.UUID, int]:
+    """How many answers made each spec version."""
+    if not spec_ids:
+        return {}
+    rows = session.exec(
+        select(Clarification.answer_spec_id, func.count())
+        .where(col(Clarification.answer_spec_id).in_(spec_ids))
+        .group_by(col(Clarification.answer_spec_id))
+    ).all()
+    return {spec_id: n for spec_id, n in rows if spec_id is not None}
+
+
+def issue_decisions_since(
+    *, session: Session, company_id: uuid.UUID, since: datetime
+) -> list[DecisionRecord]:
+    """Issues resolved or archived since ``since``."""
+    return list(
+        session.exec(
+            select(DecisionRecord).where(
+                DecisionRecord.company_id == company_id,
+                DecisionRecord.kind == DecisionKind.ISSUE_STATE,
+                col(DecisionRecord.new_value).in_(
+                    (IssueState.RESOLVED.value, IssueState.ARCHIVED.value)
+                ),
+                col(DecisionRecord.created_at) >= since,
+            )
+        ).all()
+    )

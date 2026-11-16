@@ -4,7 +4,7 @@ import { UrlGenerator } from '@/common/url-generator/url-generator';
 
 import { listWorkspaces } from '@/actions/workspaces';
 import Sidebar from '@/components/shell/sidebar';
-import { ClarificationsService, UsersService } from '@/client/sdk.gen';
+import { ClarificationsService, UsersService, WorkService } from '@/client/sdk.gen';
 
 import type { UserPublic } from '@/client/types.gen';
 import type { FC, ReactNode } from 'react';
@@ -30,6 +30,16 @@ async function openClarifications(): Promise<number | undefined> {
   }
 }
 
+/** What waits for the person on Work, the same number as the page; none when unread. */
+async function waitingWork(): Promise<number | undefined> {
+  try {
+    const result = await WorkService.readWorkCounts();
+    return result.data?.waiting;
+  } catch {
+    return undefined;
+  }
+}
+
 interface Props {
   children: ReactNode;
 }
@@ -41,11 +51,16 @@ const AppLayout: FC<Props> = async ({ children }) => {
   if (!currentUser) redirect(UrlGenerator.login());
 
   const workspaces = await listWorkspaces();
-  const openActionItems = await openClarifications();
+  const [openActionItems, waiting] = await Promise.all([openClarifications(), waitingWork()]);
 
   return (
     <div className="flex min-h-screen w-full bg-surface-0">
-      <Sidebar user={currentUser} workspaces={workspaces} openActionItems={openActionItems} />
+      <Sidebar
+        user={currentUser}
+        workspaces={workspaces}
+        openActionItems={openActionItems}
+        waitingWork={waiting}
+      />
 
       <main className="min-w-0 flex-1 px-8 pt-6 pb-12">{children}</main>
     </div>

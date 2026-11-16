@@ -33,6 +33,7 @@ from app.api.routes import (
     tool_backends,
     users,
     webhooks,
+    work,
     workspace_calls,
     workspaces,
 )
@@ -53,6 +54,7 @@ api_router.include_router(mcp.router)
 # Before agents.router: its /agents/{agent_id} would catch /agents/list.
 api_router.include_router(agent_list.router)
 api_router.include_router(clarifications.router)
+api_router.include_router(work.router)
 api_router.include_router(agents.router)
 api_router.include_router(test_cases.router)
 api_router.include_router(custom_metrics.router)

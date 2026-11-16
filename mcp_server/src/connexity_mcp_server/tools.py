@@ -8,6 +8,7 @@ from connexity_mcp_server.models import (
     CreateWorkspaceResult,
     GetCallResult,
     GetNextTaskResult,
+    ListTasksResult,
     GetReadinessResult,
     AgentResult,
     AnswerClarificationsResult,
@@ -55,6 +56,17 @@ async def add_agents(
     payload = [agent.model_dump(exclude_none=True) for agent in agents]
     return AddAgentsResult.model_validate(
         await client.add_agents(workspace_id=workspace_id, agents=payload)
+    )
+
+
+async def list_tasks(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    cursor: str | None = None,
+    limit: int = 25,
+) -> ListTasksResult:
+    return ListTasksResult.model_validate(
+        await client.list_tasks(workspace_id=workspace_id, cursor=cursor, limit=limit)
     )
 
 
