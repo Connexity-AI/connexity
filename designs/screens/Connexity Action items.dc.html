@@ -37,6 +37,36 @@
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Parked</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ parkedCount }}</span></div>
 </div>
 <div style="display:flex;flex-direction:column;gap:12px">
+<sc-if value="{{ sugPanel }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div onClick="{{ sugToggle }}" style="display:flex;align-items:flex-start;gap:12px;padding:18px 24px;cursor:pointer;user-select:none" style-hover="background:var(--wash)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:3px;color:var(--ink2)"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path></svg>
+<div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-weight:500;text-wrap:pretty">{{ sugTitle }}</span><span style="font-size:13px;line-height:18px;color:var(--ink3)">Check them, then confirm. Each becomes a rule in its agent’s spec.</span></div>
+<span style="display:flex;flex:none;margin-top:3px;color:var(--ink2)">
+<sc-if value="{{ sugOpen }}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
+<sc-if value="{{ sugShut }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
+</span>
+</div>
+<sc-if value="{{ sugOpen }}" hint-placeholder-val="{{ true }}">
+<sc-for list="{{ sugRows }}" as="s" hint-placeholder-count="6">
+<div onClick="{{ s.toggle }}" style="display:grid;grid-template-columns:16px 160px minmax(0,1fr) minmax(0,1.2fr);gap:16px;align-items:start;padding:12px 24px;border-top:1px solid var(--border);cursor:pointer;user-select:none" style-hover="background:var(--wash)">
+<span style="{{ s.box }}"><sc-if value="{{ s.on }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if></span>
+<span style="font-size:13px;color:var(--ink2)">{{ s.agentName }}</span>
+<span title="{{ s.q }}" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.q }}</span>
+<div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-weight:500">{{ s.answer }}</span><span style="font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">{{ s.sub }}</span></div>
+</div>
+</sc-for>
+<sc-if value="{{ sugHasMore }}" hint-placeholder-val="{{ false }}"><div onClick="{{ sugShowAll }}" style="display:flex;align-items:center;min-height:40px;padding:0 24px 0 56px;border-top:1px solid var(--border);font-size:13px;color:var(--ink2);cursor:pointer;user-select:none" style-hover="background:var(--wash);color:var(--ink)">{{ sugMoreText }}</div></sc-if>
+<div style="display:flex;align-items:center;gap:8px;padding:16px 24px;border-top:1px solid var(--border)">
+<button onClick="{{ sugConfirm }}" disabled="{{ sugCant }}" style="{{ sugBtnStyle }}">{{ sugBtnText }}</button>
+<button onClick="{{ sugCollapse }}" style="height:36px;padding:0 12px;border-radius:8px;border:0;background:transparent;color:var(--ink2);font-size:15px;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)">Review one by one</button>
+</div>
+</sc-if>
+</div>
+</sc-if>
+<sc-if value="{{ sugDone }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:8px;min-height:22px;font-size:13px;line-height:18px;color:var(--ink3)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--pass)"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>{{ sugDoneText }}</div>
+</sc-if>
 <sc-for list="{{ versions }}" as="n" hint-placeholder-count="1">
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:flex;flex-direction:column;gap:16px">
 <div style="display:flex;flex-direction:column;gap:6px">
@@ -83,10 +113,12 @@
 </sc-for>
 </div>
 </sc-if>
+<sc-if value="{{ it.hasSug }}"><span style="margin-bottom:-6px;font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">{{ it.sugLine }}</span></sc-if>
 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
 <sc-if value="{{ it.isIncident }}"><span style="font-size:13px;color:var(--ink2);margin-right:4px">Close as</span></sc-if>
 <sc-for list="{{ it.answers }}" as="an" hint-placeholder-count="3">
-<button onClick="{{ an.pick }}" style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border:1px solid var(--bc);border-radius:8px;background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink3)">{{ an.letter }}</span>{{ an.label }}</button>
+<sc-if value="{{ an.plain }}" hint-placeholder-val="{{ true }}"><button onClick="{{ an.pick }}" style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border:1px solid var(--bc);border-radius:8px;background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink3)">{{ an.letter }}</span>{{ an.label }}</button></sc-if>
+<sc-if value="{{ an.sug }}" hint-placeholder-val="{{ false }}"><button onClick="{{ an.pick }}" style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border:1px solid var(--accent);border-radius:8px;background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink3)">{{ an.letter }}</span>{{ an.label }}<span style="font-size:13px;color:var(--ink2)">Suggested</span></button></sc-if>
 </sc-for>
 <button onClick="{{ it.park }}" title="Not important right now" style="margin-left:auto;display:flex;align-items:center;gap:6px;height:28px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:var(--ink2);font-size:13px;cursor:pointer" style-hover="background:var(--wash)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="4" width="4" height="16" rx="1"></rect><rect x="6" y="4" width="4" height="16" rx="1"></rect></svg>Park</button>
 </div>
@@ -152,7 +184,7 @@
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;agent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;&quot;,&quot;insurance&quot;,&quot;car&quot;,&quot;restaurant&quot;,&quot;clinic&quot;,&quot;dental&quot;],&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Filter&quot;},&quot;sectionsOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;agent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;&quot;,&quot;insurance&quot;,&quot;car&quot;,&quot;restaurant&quot;,&quot;clinic&quot;,&quot;dental&quot;],&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Filter&quot;},&quot;sectionsOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;suggestions&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;some&quot;,&quot;many&quot;],&quot;default&quot;:&quot;some&quot;,&quot;tsType&quot;:&quot;'none' | 'some' | 'many'&quot;}}">
 class Component extends DCLogic {
   static THEMES = {
     dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
@@ -182,6 +214,35 @@ class Component extends DCLogic {
     { agent:'car', q:'Car service booking gave pickup times before the work was done on 9 calls. Should it?', answer:'Only as an estimate', by:'Alex', date:'8 Nov' }
   ];
   static VERSIONS = [{ id:'car-v15', agent:'car', crit:true, title:'Car service booking \u00b7 version 15 is live but failed its tests', ev:'Live since 08:55 \u00b7 4 rules failed in the test gate \u00b7 no override recorded' }];
+  // confident suggestions: [id, agent, question, answers, suggested index, rule it writes, why]
+  static SUGGESTED = [
+    ['d-move','dental','Dental reception moved an existing appointment on 5 calls. Is it allowed to?',['Yes, to any free slot','Only to the same dentist','Never'],2,'Never change an existing appointment','The prompt lists booking and cancelling only.'],
+    ['d-price','dental','Dental reception quoted a price for whitening on 3 calls. Is it allowed to?',['Yes','Only the starting price','Never'],2,'Never quote treatment prices','The prompt says to book an exam before any price.'],
+    ['d-kids','dental','Dental reception booked children under 5 with any dentist on 4 calls. Should it?',['Yes','Only with Dr Okafor','Only with a children\u2019s dentist'],2,'Book children under 5 only with a children\u2019s dentist','The practice page lists children\u2019s care with Dr Lim only.'],
+    ['r-group','restaurant','Restaurant reservations took bookings for groups of 12 on 3 calls. Is it allowed to?',['Yes','Only up to 10 guests','Pass it to a person'],1,'Book groups of up to 10 guests','The floor plan has no table for more than 10.'],
+    ['r-window','restaurant','Restaurant reservations promised a window table on 8 calls. Should it?',['Yes','Only as a request','Never'],1,'Note window tables as a request, never a promise','The prompt says seating is assigned on arrival.'],
+    ['r-late','restaurant','Restaurant reservations took bookings for after 22:00 on 5 calls. Is it allowed to?',['Yes','Only on Fridays and Saturdays','Never'],1,'Take bookings after 22:00 only on Fridays and Saturdays','The opening hours in the prompt end at 22:00 on other days.'],
+    ['i-card','insurance','Insurance renewals read the full card number back on 6 calls. Should it?',['Yes','Only the last 4 digits','Never'],1,'Read back only the last 4 digits of a card','The compliance section of the prompt says last 4 only.'],
+    ['i-monthly','insurance','Insurance renewals offered monthly payments on 9 calls. Is it allowed to?',['Yes','Only for policies over $600','Never'],0,'Offer monthly payments on every renewal','The payment tool lists monthly plans for all policies.'],
+    ['i-holder','insurance','Insurance renewals renewed a policy for someone other than the holder on 2 calls. Is it allowed to?',['Yes','Only with the holder on the line','Never'],1,'Renew only with the policy holder on the line','The prompt asks to verify the holder before any change.'],
+    ['c-same','car','Car service booking booked a same-day service on 7 calls. Is it allowed to?',['Yes','Only before noon','Never'],1,'Book same-day services only before noon','The workshop calendar closes same-day slots at 12:00.'],
+    ['c-pads','car','Car service booking quoted the price of brake pads on 4 calls. Should it?',['Yes, from the price list','Only a range','Never'],0,'Quote parts from the price list','The price list tool is connected and returned the amounts.'],
+    ['c-ev','car','Car service booking took a booking for an electric car on 5 calls. Is it allowed to?',['Yes','Only at the north workshop','Never'],1,'Book electric cars only at the north workshop','Only the north workshop lists electric car service.'],
+    ['k-pharm','clinic','Clinic after-hours gave the pharmacy\u2019s opening hours on 6 calls. Should it?',['Yes','Only for the on-site pharmacy','Never'],1,'Give opening hours only for the on-site pharmacy','The prompt lists hours for the on-site pharmacy only.'],
+    ['k-msg','clinic','Clinic after-hours took a message for a named doctor on 8 calls. Is it allowed to?',['Yes','Only for the doctor on call','Never'],0,'Take messages for any named doctor','The message tool accepts any doctor on the rota.'],
+    ['k-results','clinic','Clinic after-hours repeated test results on 2 calls. Is it allowed to?',['Yes','Only normal results','Never'],2,'Never read test results to a caller','The prompt says results come from a doctor only.'],
+    ['d-clean','dental','Dental reception booked a cleaning without an exam on 3 calls. Is it allowed to?',['Yes','Only for existing patients','Never'],1,'Book a cleaning without an exam only for existing patients','The prompt says new patients need an exam first.'],
+    ['d-wait','dental','Dental reception added callers to a waiting list on 6 calls. Should it?',['Yes','Only for emergencies','Never'],0,'Add callers to the waiting list when no slot fits','The booking tool has a waiting list the prompt mentions.'],
+    ['r-deposit','restaurant','Restaurant reservations took deposit details on 4 calls. Is it allowed to?',['Yes','Only for groups of 8 or more','Never'],1,'Take a deposit only for groups of 8 or more','The group booking section sets the deposit at 8 guests.'],
+    ['r-allergy','restaurant','Restaurant reservations confirmed allergy requests on 10 calls. Should it?',['Yes','Only note them for the kitchen','Never'],1,'Note allergies for the kitchen, never confirm them','The prompt says the kitchen confirms allergies itself.'],
+    ['i-paper','insurance','Insurance renewals switched a caller to paperless billing on 5 calls. Is it allowed to?',['Yes','Only if the caller asks','Never'],1,'Switch to paperless billing only when the caller asks','The prompt lists billing changes as the caller\u2019s choice.'],
+    ['c-pickup','car','Car service booking offered a pickup from home on 3 calls. Is it allowed to?',['Yes','Only within 10 km','Never'],1,'Offer home pickup only within 10 km','The pickup tool rejects addresses further than 10 km.'],
+    ['k-next','clinic','Clinic after-hours booked next-day appointments on 7 calls. Is it allowed to?',['Yes','Only for existing patients','Never'],0,'Book next-day appointments for any caller','The booking tool shows next-day slots for all patients.'],
+    ['d-texts','dental','Dental reception sent appointment reminders by text on 9 calls. Should it?',['Yes','Only if the caller agrees','Never'],1,'Send text reminders only when the caller agrees','The privacy section asks for consent before texts.'],
+    ['r-change','restaurant','Restaurant reservations moved a booking to a different day on 4 calls. Is it allowed to?',['Yes','Only within the same week','Never'],0,'Move a booking to any free day','The booking tool allows changes, and the prompt lists them.']
+  ];
+  // suggestions the assistant is not sure about: id -> [suggested index, why]
+  static UNSURE = { 'car-courtesy':[1,'the prompt mentions courtesy cars only for long repairs'] };
   static HOWS = ['Rollback','Fix in a version','Outside recovery','Workaround'];
   state = { st:{}, ans:{}, order:[], limit:5, answeredOpen:null, parkedOpen:null, nowDone:{}, form:null, reason:'' };
   filterId() {
@@ -190,12 +251,18 @@ class Component extends DCLogic {
     const id = this.props.agent || q;
     return Component.AGENTS[id] ? id : null;
   }
+  answer(id, label, sug) {
+    this.setState(s => ({ st:{ ...s.st, [id]:'answered' }, ans:{ ...s.ans, [id]:label }, sugA:{ ...(s.sugA || {}), [id]:!!sug }, order:[id, ...s.order.filter(x => x !== id)] }));
+  }
   set(id, status, extra) {
     this.setState(s => ({ st:{ ...s.st, [id]:status }, ans: extra ? { ...s.ans, [id]:extra } : s.ans, order:[id, ...s.order.filter(x => x !== id)] }));
   }
   renderVals() {
     const C = Component, S = this.state, f = this.filterId();
-    const all = [...C.OPEN.map((x, i) => ({ ...x, def:'open', rank:i })), ...C.PARKED.map((x, i) => ({ ...x, def:'parked', rank:100 + i }))];
+    const mode = ['none','some','many'].includes(this.props.suggestions) ? this.props.suggestions : 'some';
+    const ex = mode === 'none' ? [] : C.SUGGESTED.slice(0, mode === 'many' ? 24 : 6).map(([id, agent, q, answers, pick, rule, why], i) => ({ id, agent, kind:'clar', q, answers, def:'open', rank:50 + i,
+      ev: `${(q.match(/on (\d+) calls/) || [])[1] || 2} calls since 9 Nov \u00b7 not covered by the current spec`, sug:{ pick, rule, why, sure:true } }));
+    const all = [...C.OPEN.map((x, i) => ({ ...x, def:'open', rank:i, sug: mode !== 'none' && C.UNSURE[x.id] ? { pick:C.UNSURE[x.id][0], why:C.UNSURE[x.id][1], sure:false } : null })), ...ex, ...C.PARKED.map((x, i) => ({ ...x, def:'parked', rank:100 + i }))];
     const status = x => S.st[x.id] || x.def || (C.PARKED.includes(x) ? 'parked' : 'open');
     const mine = x => !f || x.agent === f;
     const openAll = all.filter(x => status(x) === 'open').sort((a, b) => a.rank - b.rank);
@@ -203,13 +270,18 @@ class Component extends DCLogic {
     const shown = f ? openList : openList.slice(0, S.limit);
     const moreCount = 35 + Math.max(0, openAll.length - S.limit);
     const byOrder = (a, b) => S.order.indexOf(a.id) - S.order.indexOf(b.id);
-    const newlyAnswered = all.filter(x => status(x) === 'answered').sort(byOrder).map(x => ({ agent:x.agent, q:x.q, answer: x.kind === 'incident' ? 'Closed: ' + S.ans[x.id] : S.ans[x.id], by:'Alex', date:'11 Nov', verb: x.kind === 'incident' ? 'Closed' : 'Answered' }));
+    const newlyAnswered = all.filter(x => status(x) === 'answered').sort(byOrder).map(x => ({ agent:x.agent, q:x.q, answer: x.kind === 'incident' ? 'Closed: ' + S.ans[x.id] : S.ans[x.id], by:'Dmytro', date:'15 Nov', sug: !!(S.sugA || {})[x.id], verb: x.kind === 'incident' ? 'Closed' : 'Answered' }));
+    const off = S.sugOff || {}, ticked = x => !off[x.id];
+    const confident = openAll.filter(x => mine(x) && x.sug && x.sug.sure);
+    const panel = confident.length > 0 && !S.sugDone, panelOpen = panel && !S.sugCollapsed;
+    const picked = confident.filter(ticked);
+    const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
     const parkedList = all.filter(x => status(x) === 'parked').sort((a, b) => (S.order.includes(a.id) || S.order.includes(b.id)) ? byOrder(a, b) : a.rank - b.rank)
       .map(x => ({ ...x, date: x.def === 'open' ? '11 Nov' : x.date }));
     const answeredList = [...newlyAnswered, ...C.ANSWERED].filter(mine);
     const parkedShown = parkedList.filter(mine);
     const todoNow = C.VERSIONS.filter(x => !S.nowDone[x.id] && (!f || x.agent === f));
-    const openCount = 13 + todoNow.length + C.PARKED.filter(x => status(x) === 'open').length - C.OPEN.filter(x => status(x) !== 'open').length;
+    const openCount = 13 + todoNow.length + C.PARKED.filter(x => status(x) === 'open').length - C.OPEN.filter(x => status(x) !== 'open').length - ex.filter(x => status(x) !== 'open').length;
     const answeredCount = 9 + newlyAnswered.length;
     const parkedCount = 31 - C.PARKED.filter(x => status(x) !== 'parked').length + C.OPEN.filter(x => status(x) === 'parked').length;
     const name = id => C.AGENTS[id];
@@ -231,19 +303,43 @@ class Component extends DCLogic {
       closeBtnStyle: { height:36, padding:'0 14px', borderRadius:8, border:0, background:'var(--accent)', color:'var(--on-accent)', fontSize:15, fontWeight:500, cursor:'pointer', opacity: (S.how && S.cause.trim() && S.reason.trim()) ? 1 : 0.4 },
       acceptBtnStyle: { height:36, padding:'0 14px', borderRadius:8, border:0, background:'var(--accent)', color:'var(--on-accent)', fontSize:15, fontWeight:500, cursor:'pointer', opacity: S.reason.trim() ? 1 : 0.4 },
       noop: e => e.preventDefault(),
-      items: shown.map(x => ({
+      sugPanel: panel, sugOpen: panelOpen, sugShut: panel && !panelOpen,
+      sugToggle: () => this.setState(s => ({ sugCollapsed: !s.sugCollapsed })),
+      sugCollapse: () => this.setState({ sugCollapsed:true }),
+      sugTitle: `Your assistant suggests answers for ${plural(confident.length, 'question')} it is confident about.`,
+      sugRows: (S.sugAll ? confident : confident.slice(0, 10)).map(x => ({
+        agentName: name(x.agent), q: x.q, answer: x.answers[x.sug.pick], sub: `${x.sug.rule} \u00b7 ${x.sug.why}`, on: ticked(x),
+        box: { width:16, height:16, marginTop:3, borderRadius:4, display:'flex', alignItems:'center', justifyContent:'center', boxSizing:'border-box',
+          border: ticked(x) ? '0' : '1px solid var(--bc)', background: ticked(x) ? 'var(--accent)' : 'transparent', color:'var(--on-accent)' },
+        toggle: () => this.setState(s => ({ sugOff:{ ...(s.sugOff || {}), [x.id]: !(s.sugOff || {})[x.id] } }))
+      })),
+      sugHasMore: !S.sugAll && confident.length > 10, sugMoreText: `and ${confident.length - 10} more`,
+      sugShowAll: () => this.setState({ sugAll:true }),
+      sugBtnText: `Confirm ${plural(picked.length, 'answer')}`, sugCant: picked.length === 0,
+      sugBtnStyle: { height:36, padding:'0 14px', borderRadius:8, border:0, background:'var(--accent)', color:'var(--on-accent)', fontSize:15, fontWeight:500, cursor: picked.length ? 'pointer' : 'default', opacity: picked.length ? 1 : 0.4 },
+      sugConfirm: () => { if (!picked.length) return; const ids = picked.map(x => x.id), agents = new Set(picked.map(x => x.agent)).size;
+        this.setState(s => ({ st:{ ...s.st, ...Object.fromEntries(ids.map(id => [id, 'answered'])) },
+          ans:{ ...s.ans, ...Object.fromEntries(picked.map(x => [x.id, x.answers[x.sug.pick]])) },
+          sugA:{ ...(s.sugA || {}), ...Object.fromEntries(ids.map(id => [id, true])) },
+          order:[...ids, ...s.order.filter(x => !ids.includes(x))], sugDone:{ n:ids.length, agents } })); },
+      sugDone: !!S.sugDone, sugDoneText: S.sugDone ? `${plural(S.sugDone.n, 'answer')} confirmed \u00b7 added to ${S.sugDone.agents} agent${S.sugDone.agents === 1 ? '\u2019s spec' : 's\u2019 specs'}` : '',
+      items: shown.map(x => {
+        const batched = x.sug && x.sug.sure && panelOpen && ticked(x), hasSug = !!x.sug && !batched;
+        const sugLine = hasSug ? `Your assistant suggests ${'abcd'[x.sug.pick]}: ${x.answers[x.sug.pick]} \u00b7 ${x.sug.sure ? '' : 'not sure: '}${x.sug.why}` : '';
+        return {
+        hasSug, sugLine,
         agentName: name(x.agent), agentHref: `Connexity Agent Profile.dc.html?agent=${x.agent}`,
         crit: !!x.crit, kindLabel: C.KIND[x.kind], q: x.q, ev: x.ev, isIncident: x.kind === 'incident',
         hasQuotes: !!x.quotes, quotes: (x.quotes || []).map(([label, text]) => ({ label, text: `\u201c${text}\u201d` })),
-        answers: x.answers.map((label, i) => ({ label, letter: 'abcd'[i], pick: () => this.set(x.id, 'answered', label) })),
+        answers: x.answers.map((label, i) => { const s = hasSug && i === x.sug.pick; return { label, letter: 'abcd'[i], sug: s, plain: !s, pick: () => this.answer(x.id, label, x.sug && i === x.sug.pick) }; }),
         park: () => this.set(x.id, 'parked')
-      })),
+      }; }),
       noItems: shown.length === 0,
       hasMore: !f && moreCount > 0, moreCount,
       showMore: () => this.setState(s => ({ limit: s.limit + 5 })),
       answeredOpen: aOpen, answeredShut: !aOpen,
       toggleAnswered: () => this.setState({ answeredOpen: !aOpen }),
-      answered: answeredList.map(a => ({ agentName: name(a.agent), q: a.q, answer: a.answer, byAssistant: a.by === 'assistant', who: `${a.verb || 'Answered'} by ${a.by === 'assistant' ? 'your assistant' : a.by}, ${a.date}` })),
+      answered: answeredList.map(a => ({ agentName: name(a.agent), q: a.q, answer: a.answer, byAssistant: a.by === 'assistant', who: `${a.verb || 'Answered'} by ${a.by === 'assistant' ? 'your assistant' : a.by}${a.sug ? ', suggested by your assistant' : ''}, ${a.date}` })),
       hasAnsweredMore: !f, answeredMore: answeredCount - answeredList.length,
       parkedOpen: pOpen, parkedShut: !pOpen,
       toggleParked: () => this.setState({ parkedOpen: !pOpen }),

@@ -25,10 +25,12 @@ System in Claude; see "UI: the design comes first" in the lifecycle guide.
 
 - **Every number shows its base:** how many agents, how many calls, over what period.
 - **Give before asking:** a screen opens with findings and progress. What needs the
-  person (approvals, questions) is counted, never first.
-- **The sidebar** is Home, Incidents, Action items, Agents, Calls, Roadmap, Issues and
-  Settings (Decided 2026-11-12). The Connexity logo stays at the top; there is no
-  white-labelling. The workspace picker, Account, Theme and Sign out live in the menu
+  person (approvals, questions) is counted, never first. On Work this is open: a waiting task sits at
+  the top of In progress (`docs-internal/work.md`, open question 11).
+- **The sidebar** is Work, Dashboard, Incidents, Agents, Calls, Issues and Settings,
+  and a person lands on Work (Decided 2026-11-16; Home became Dashboard, Action items and
+  Roadmap folded into Work, see `docs-internal/work.md`). The Connexity logo stays at
+  the top; there is no white-labelling. The workspace picker, Account, Theme and Sign out live in the menu
   that opens from the person's name at the bottom.
 - **Only what works is on screen.** Pages and tabs appear when their feature is built;
   designs show more than a build does (`CLAUDE.md` rule 14).

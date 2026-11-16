@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>@keyframes cxSpin{to{transform:rotate(360deg)}}@keyframes cxGlow{0%,100%{opacity:.6}50%{opacity:1;filter:drop-shadow(0 0 3px currentColor)}}body{margin:0}*{box-sizing:border-box}button{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<div style="display:flex;min-height:inherit">
+<div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="work" style="height:100%" hint-size="220px,280px"></dc-import></div>
+<main style="flex:1;min-width:624px;padding:24px 32px 64px">
+<div style="max-width:960px;min-width:560px;display:flex;flex-direction:column;gap:20px">
+
+<div style="display:flex;align-items:baseline;gap:12px;min-height:40px;padding-top:6px;flex-wrap:wrap">
+<h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Work</h1>
+<div onMouseEnter="{{ teamEnter }}" onMouseLeave="{{ teamLeave }}" style="position:relative">
+<span style="font-size:13px;line-height:18px;color:var(--ink3);cursor:default;border-bottom:1px dotted var(--bc)">{{ teamLine }}</span>
+<sc-if value="{{ teamOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:0;top:26px;z-index:30;width:340px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.18);display:flex;flex-direction:column">
+<span style="padding:4px 10px 6px;font-size:13px;line-height:18px;color:var(--ink3)">Your assistants</span>
+<sc-for list="{{ team }}" as="m" hint-placeholder-count="3">
+<div style="display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:10px;align-items:center;min-height:36px;padding:0 10px;font-size:13px;line-height:18px">
+<span style="display:flex">{{ m.marker }}</span>
+<span style="color:var(--ink)">{{ m.name }}</span>
+<span style="color:var(--ink2);white-space:nowrap">{{ m.status }}</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</div>
+
+<sc-if value="{{ noTeam }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:14px 20px;background:var(--s1);border:1px solid var(--bc);border-radius:12px">
+<span style="text-wrap:pretty">Connect an assistant and it starts working down this list, from the top.</span>
+<a href="Connexity Account.dc.html?section=assistant" style="display:flex;align-items:center;height:36px;padding:0 16px;border-radius:8px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;text-decoration:none;white-space:nowrap" style-hover="opacity:.88">Connect an assistant</a>
+</div>
+</sc-if>
+
+<div style="display:flex;flex-direction:column;gap:10px">
+
+
+<div style="display:flex;flex-direction:column;gap:2px">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Assistant tasks</h2>
+<span style="font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">Your assistant works down this list from the top. You can reorder what hasn’t started.</span>
+</div>
+<div style="display:flex;flex-direction:column">
+<sc-for list="{{ rows }}" as="r" hint-placeholder-count="10">
+<div style="display:flex;flex-direction:column"><sc-if value="{{ r.hasTitle }}"><span style="{{ r.titleStyle }}">{{ r.title }}</span></sc-if>
+<div data-tid="{{ r.id }}" onClick="{{ r.open }}" draggable="{{ r.drag }}" onDragStart="{{ r.dragStart }}" onDragOver="{{ r.dragOver }}" onDragEnd="{{ r.dragEnd }}" onMouseEnter="{{ r.enter }}" onMouseLeave="{{ r.leave }}" style="{{ r.style }}">
+<sc-if value="{{ r.showBar }}"><span style="position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 2px 2px 0;background:var(--warn)"></span></sc-if>
+<span style="display:flex;color:var(--ink3)"><sc-if value="{{ r.isProgress }}">{{ r.marker }}</sc-if><sc-if value="{{ r.isWaiting }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="color:var(--warn)"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg></sc-if><sc-if value="{{ r.lockWarm }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--warn)"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></sc-if><sc-if value="{{ r.lockMuted }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink3)"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></sc-if><sc-if value="{{ r.showHandle }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"></circle><circle cx="9" cy="5" r="1"></circle><circle cx="9" cy="19" r="1"></circle><circle cx="15" cy="12" r="1"></circle><circle cx="15" cy="5" r="1"></circle><circle cx="15" cy="19" r="1"></circle></svg></sc-if></span>
+<span style="{{ r.iconBoxDim }}"><sc-if value="{{ r.tClar }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg></sc-if><sc-if value="{{ r.tFix }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg></sc-if><sc-if value="{{ r.tSetup }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></sc-if><sc-if value="{{ r.tInc }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18v-6a5 5 0 1 1 10 0v6"></path><path d="M5 21a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2z"></path><path d="M21 12h1"></path><path d="M18.5 4.5 18 5"></path><path d="M2 12h1"></path><path d="M12 2v1"></path><path d="m4.929 4.929.707.707"></path><path d="M12 12v6"></path></svg></sc-if><sc-if value="{{ r.tSpec }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></sc-if><sc-if value="{{ r.tCalls }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"></path></svg></sc-if><sc-if value="{{ r.tTests }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"></path><path d="M8.5 2h7"></path><path d="M7 16h10"></path></svg></sc-if><sc-if value="{{ r.tOnb }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" x2="4" y1="22" y2="15"></line></svg></sc-if></span>
+<div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+<span style="{{ r.textStyle }}">{{ r.text }}</span>
+<span style="display:flex;gap:6px;flex-wrap:wrap;font-size:13px;line-height:18px;color:var(--ink2)"><span>{{ r.typeWord }}</span><sc-if value="{{ r.isCrit }}"><span>·</span><span style="color:var(--crit);font-weight:500">Critical</span></sc-if><sc-if value="{{ r.hasSub }}"><span>·</span><span>{{ r.sub }}</span></sc-if></span>
+<sc-if value="{{ r.hasAfter }}"><span style="display:flex;gap:4px;flex-wrap:wrap;font-size:13px;line-height:18px;color:var(--ink3)"><span>Blocked by:</span><span onClick="{{ r.openAfter }}" style="color:var(--ink2);text-decoration:underline;text-decoration-color:var(--bc);text-underline-offset:2px;cursor:pointer" style-hover="color:var(--ink)">{{ r.after }}</span></span></sc-if>
+</div>
+<div style="display:flex;align-items:center;justify-content:flex-end;gap:12px">
+<sc-if value="{{ r.hasWho }}">
+<span style="display:flex;align-items:center;gap:12px"><span style="display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 3px;border:1px solid var(--border);border-radius:13px;font-size:13px;line-height:18px;color:var(--ink);white-space:nowrap"><span style="width:20px;height:20px;border-radius:10px;background:var(--unch-bg);color:var(--ink2);font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center">{{ r.initial }}</span>{{ r.who }}</span></span>
+</sc-if>
+<sc-if value="{{ r.isWaiting }}"><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span style="display:inline-flex;align-items:center;height:26px;padding:0 10px;border:1px solid var(--warn-bg);border-radius:13px;background:var(--warn-bg);color:var(--warn);font-size:13px;line-height:18px;font-weight:500;white-space:nowrap">Waiting for you</span><span onClick="{{ r.toggleQ }}" style="font-size:13px;line-height:18px;color:var(--ink2);cursor:pointer;white-space:nowrap" style-hover="color:var(--ink)">{{ r.qLink }}</span></div></sc-if>
+<sc-if value="{{ r.isUrgent }}"><span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;background:var(--unch-bg);color:var(--unch);font-size:13px;font-weight:500">Urgent</span></sc-if>
+</div>
+</div>
+<sc-if value="{{ r.showQ }}">
+<div style="{{ r.qStyle }}">
+<div style="display:flex;flex-direction:column;gap:4px">
+<span style="font-size:17px;line-height:24px;font-weight:500;text-wrap:pretty">{{ r.q.text }}</span>
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">{{ r.q.why }}</span>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">
+<sc-for list="{{ r.q.options }}" as="o" hint-placeholder-count="0">
+<button onClick="{{ o.pick }}" style="{{ o.style }}" style-hover="border-color:var(--ink)">{{ o.label }}</button>
+</sc-for>
+</div>
+<sc-if value="{{ r.q.otherOpen }}">
+<div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">
+<textarea value="{{ r.q.otherText }}" onChange="{{ r.q.onOther }}" placeholder="Tell the assistant what the agent should do" rows="3" style="width:100%;resize:vertical;padding:10px 12px;border:1px solid var(--bc);border-radius:8px;background:var(--s1);color:var(--ink);font:inherit;outline:none"></textarea>
+<button onClick="{{ r.q.saveOther }}" style="height:36px;padding:0 16px;border:0;border-radius:8px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Save answer</button>
+</div>
+</sc-if>
+<div style="display:flex;align-items:center;gap:4px">
+<span style="flex:1;font-size:13px;line-height:18px;color:var(--ink2)">{{ r.q.step }}</span>
+<button onClick="{{ r.q.back }}" disabled="{{ r.q.noBack }}" style="{{ r.q.backStyle }}">Back</button>
+<button onClick="{{ r.q.skip }}" style="height:32px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--ink2);font-size:13px;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)">Skip</button>
+</div>
+</div>
+</sc-if>
+</div>
+</sc-for>
+<sc-if value="{{ hasMore }}" hint-placeholder-val="{{ true }}">
+<div onClick="{{ toggleMore }}" style="display:flex;align-items:center;min-height:44px;padding:0 20px 0 52px;border-top:1px solid var(--border);font-size:13px;color:var(--ink2);cursor:pointer;user-select:none" style-hover="background:var(--wash);color:var(--ink)">{{ moreText }}</div>
+</sc-if>
+</div>
+</div>
+
+<sc-if value="{{ hasDone }}" hint-placeholder-val="{{ true }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div onClick="{{ toggleDone }}" style="display:flex;align-items:center;gap:12px;min-height:48px;padding:0 20px;cursor:pointer;user-select:none;color:var(--ink2)" style-hover="background:var(--wash)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--pass)"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>
+<span style="flex:1">{{ doneLine }}</span>
+<sc-if value="{{ doneOpen }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
+<sc-if value="{{ doneShut }}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
+</div>
+<sc-if value="{{ doneOpen }}">
+<sc-for list="{{ doneRows }}" as="d" hint-placeholder-count="0">
+<div style="display:grid;grid-template-columns:16px minmax(0,1fr) 148px 72px;gap:12px;align-items:center;min-height:44px;padding:6px 20px;border-top:1px solid var(--border)">
+<span></span>
+<span style="min-width:0;text-wrap:pretty">{{ d.text }}</span>
+<span style="font-size:13px;color:var(--ink2)">{{ d.by }}</span>
+<span style="font-size:13px;color:var(--ink3);text-align:right;white-space:nowrap">{{ d.when }}</span>
+</div>
+</sc-for>
+<sc-if value="{{ doneCanAll }}"><div onClick="{{ showAllDone }}" style="display:flex;align-items:center;min-height:44px;padding:0 20px 0 48px;border-top:1px solid var(--border);font-size:13px;color:var(--ink2);cursor:pointer;user-select:none" style-hover="background:var(--wash);color:var(--ink)">Show all</div></sc-if>
+</sc-if>
+</div>
+
+</sc-if>
+</div>
+</main>
+
+<sc-if value="{{ panelOpen }}" hint-placeholder-val="{{ false }}">
+<aside style="position:relative;z-index:1;width:440px;flex:none;background:var(--s1);border-left:1px solid var(--border)">
+<div style="position:sticky;top:0;max-height:100vh;overflow-y:auto;padding:20px 24px 32px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:28px">
+<span style="{{ pn.stateStyle }}">{{ pn.marker }}{{ pn.state }}</span>
+<button onClick="{{ closePanel }}" title="Close" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:0;border-radius:6px;background:transparent;color:var(--ink2);cursor:pointer" style-hover="background:var(--wash);color:var(--ink)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+</div>
+<span style="font-size:17px;line-height:24px;font-weight:500;text-wrap:pretty">{{ pn.text }}</span>
+</div>
+<div style="display:flex;flex-direction:column">
+<sc-for list="{{ pn.facts }}" as="f" hint-placeholder-count="6">
+<div style="display:grid;grid-template-columns:128px minmax(0,1fr);gap:16px;align-items:baseline;padding:10px 0;border-top:1px solid var(--border)">
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">{{ f.label }}</span>
+<div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+<sc-if value="{{ f.isChip }}"><span style="{{ f.chip }}">{{ f.value }}</span></sc-if>
+<sc-if value="{{ f.isText }}"><span style="text-wrap:pretty">{{ f.value }}</span></sc-if>
+<sc-if value="{{ f.hasNote }}"><span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ f.note }}</span></sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+<sc-if value="{{ pn.hasBlocked }}">
+<div style="display:flex;flex-direction:column;gap:6px;margin-top:-8px">
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">Blocked by</span>
+<div style="display:flex;flex-direction:column;gap:2px">
+<sc-for list="{{ pn.blocked }}" as="h" hint-placeholder-count="1">
+<div onClick="{{ h.open }}" style="display:grid;grid-template-columns:28px minmax(0,1fr) 16px;gap:12px;align-items:center;min-height:44px;margin:0 -10px;padding:6px 10px;border-radius:8px;cursor:pointer" style-hover="background:var(--wash)">
+<span style="{{ h.iconBox }}"><sc-if value="{{ h.tClar }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg></sc-if><sc-if value="{{ h.tFix }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg></sc-if><sc-if value="{{ h.tSetup }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></sc-if><sc-if value="{{ h.tInc }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18v-6a5 5 0 1 1 10 0v6"></path><path d="M5 21a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2z"></path><path d="M21 12h1"></path><path d="M18.5 4.5 18 5"></path><path d="M2 12h1"></path><path d="M12 2v1"></path><path d="m4.929 4.929.707.707"></path><path d="M12 12v6"></path></svg></sc-if><sc-if value="{{ h.tSpec }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></sc-if><sc-if value="{{ h.tCalls }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"></path></svg></sc-if><sc-if value="{{ h.tTests }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"></path><path d="M8.5 2h7"></path><path d="M7 16h10"></path></svg></sc-if><sc-if value="{{ h.tOnb }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" x2="4" y1="22" y2="15"></line></svg></sc-if></span>
+<div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="text-wrap:pretty">{{ h.text }}</span><span style="{{ h.stateStyle }}">{{ h.state }}</span></div>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink3)"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ pn.hasHolds }}">
+<div style="display:flex;flex-direction:column;gap:6px;margin-top:-8px">
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">Blocks</span>
+<div style="display:flex;flex-direction:column;gap:2px">
+<sc-for list="{{ pn.holds }}" as="h" hint-placeholder-count="1">
+<div onClick="{{ h.open }}" style="display:grid;grid-template-columns:28px minmax(0,1fr) 16px;gap:12px;align-items:center;min-height:44px;margin:0 -10px;padding:6px 10px;border-radius:8px;cursor:pointer" style-hover="background:var(--wash)">
+<span style="{{ h.iconBox }}"><sc-if value="{{ h.tClar }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg></sc-if><sc-if value="{{ h.tFix }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg></sc-if><sc-if value="{{ h.tSetup }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></sc-if><sc-if value="{{ h.tInc }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18v-6a5 5 0 1 1 10 0v6"></path><path d="M5 21a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2z"></path><path d="M21 12h1"></path><path d="M18.5 4.5 18 5"></path><path d="M2 12h1"></path><path d="M12 2v1"></path><path d="m4.929 4.929.707.707"></path><path d="M12 12v6"></path></svg></sc-if><sc-if value="{{ h.tSpec }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></sc-if><sc-if value="{{ h.tCalls }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"></path></svg></sc-if><sc-if value="{{ h.tTests }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"></path><path d="M8.5 2h7"></path><path d="M7 16h10"></path></svg></sc-if><sc-if value="{{ h.tOnb }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" x2="4" y1="22" y2="15"></line></svg></sc-if></span>
+<span style="text-wrap:pretty">{{ h.text }}</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink3)"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ pn.howTo }}">
+<div style="display:flex;flex-direction:column;gap:20px">
+<div style="display:grid;grid-template-columns:24px minmax(0,1fr);gap:12px;align-items:start">
+<span style="width:24px;height:24px;border-radius:12px;background:var(--unch-bg);color:var(--ink2);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center">1</span>
+<div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+<span style="line-height:24px">Copy the Connexity MCP address</span>
+<div style="display:flex;align-items:center;gap:8px;padding:6px 6px 6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--s0)">
+<code style="flex:1;min-width:0;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">https://mcp.connexity.ai/mcp</code>
+<button onClick="{{ pn.copy }}" style="flex:none;height:28px;padding:0 10px;border-radius:6px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:13px;cursor:pointer" style-hover="background:var(--wash)">{{ pn.copyLabel }}</button>
+</div>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:24px minmax(0,1fr);gap:12px;align-items:start">
+<span style="width:24px;height:24px;border-radius:12px;background:var(--unch-bg);color:var(--ink2);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center">2</span>
+<div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+<span style="line-height:24px">Add it to Claude Code, or another assistant</span>
+<span style="font-size:13px;line-height:18px;color:var(--ink2);text-wrap:pretty">Any assistant that supports MCP: Claude Code, Claude.ai, ChatGPT.</span>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:24px minmax(0,1fr);gap:12px;align-items:start">
+<span style="width:24px;height:24px;border-radius:12px;background:var(--unch-bg);color:var(--ink2);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center">3</span>
+<span style="line-height:24px">Sign in to Connexity when it asks</span>
+</div>
+<span style="color:var(--ink2);text-wrap:pretty">From here on, your assistant does the setup with you.</span>
+</div>
+</sc-if>
+<sc-if value="{{ pn.canAnswer }}"><button onClick="{{ pn.answer }}" style="align-self:flex-start;height:36px;padding:0 16px;border:0;border-radius:8px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Answer questions</button></sc-if>
+<div style="display:flex;flex-direction:column;gap:2px">
+<sc-for list="{{ pn.links }}" as="l" hint-placeholder-count="2">
+<a href="{{ l.href }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:40px;margin:0 -10px;padding:0 10px;border-radius:8px;color:var(--ink);text-decoration:none" style-hover="background:var(--wash);opacity:1"><span>{{ l.label }}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink3)"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></a>
+</sc-for>
+</div>
+</div>
+</aside>
+</sc-if>
+
+
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;view&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;onb0&quot;,&quot;onb1&quot;,&quot;default&quot;,&quot;answering&quot;,&quot;answered&quot;,&quot;panel&quot;],&quot;default&quot;:&quot;default&quot;,&quot;tsType&quot;:&quot;'onb0' | 'onb1' | 'default' | 'answering' | 'answered' | 'panel'&quot;}}">
+class Component extends DCLogic {
+  static THEMES = {
+    dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
+    light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
+  };
+  static AGENT = 'Car service booking';
+  static TYPES = { clar:'Clarifications', fix:'Issue fix', setup:'Setup', incident:'Incident', spec:'Spec', calls:'Calls to review', tests:'Tests', onb:'Onboarding' };
+  static ICONKEY = { clar:'tClar', fix:'tFix', setup:'tSetup', incident:'tInc', spec:'tSpec', calls:'tCalls', tests:'tTests', onb:'tOnb' };
+  static W = { id:'w1', st:'waiting', text:'Answer 3 questions about bookings', sub:'Car service booking', type:'clar', owner:'Alex', session:'Onboarding', step:'Found 3 questions the spec does not answer', ago:'4 minutes ago', on:'11 minutes' };
+  static QS = [
+    { text:'A caller asks for a time that is already booked. What should the agent do?', why:'Seen on 9 calls', options:['Offer the next free time','Offer the three nearest times','Take a callback request'] },
+    { text:'Can the agent book a service without the car\u2019s registration number?', why:'Seen on 14 calls', options:['Yes, with make and model','Yes, and flag it for the service desk','No, ask for it before booking'] },
+    { text:'How far ahead can a caller book a service?', why:'Seen on 6 calls', options:['Up to 2 weeks','Up to 4 weeks','Up to 3 months'] } ];
+  static ONB = [
+    { id:'o1', text:'Connect your AI assistant' },
+    { id:'o2', text:'Connect your voice platform', step:'Asked which voice platform you use', ago:'30 seconds ago', on:'1 minute' },
+    { id:'o3', text:'Add the agents to watch' },
+    { id:'o4', text:'Scan recent calls' },
+    { id:'o5', text:'Write the spec for each agent' } ].map(t => ({ ...t, sub:'', type:'onb' }));
+  static FIX1 = { id:'f1', text:'The booking tool fails', crit:true, sub:'23 calls', type:'fix', calls:23, issue:'I-1042' };
+  static FIX2 = { id:'f2', text:'The same booking is made twice', crit:true, sub:'9 calls', type:'fix', calls:9, issue:'I-1044' };
+  static SETUP = [
+    { id:'s1', text:'Connect to Slack' },
+    { id:'s2', text:'Choose the incident channel the assistant watches' },
+    { id:'s3', text:'Connect the agent\u2019s backends' },
+    { id:'s4', text:'Write tests for the spec' },
+    { id:'s5', text:'Turn on the deployment gate' },
+    { id:'s6', text:'Turn on automatic roll back' } ].map(t => ({ ...t, sub:'', type:'setup' }));
+  static GOALS = [
+    { id:'crit', name:'Fix the critical issues', line:'fix the critical issues', progress:'0 of 2', items:[['The booking tool fails',0],['The same booking is made twice',0]] },
+    { id:'setup', name:'Finish the setup', line:'finish the setup', progress:'0 of 6', items:[['Connect to Slack',0],['Choose the incident channel the assistant watches',0],['Connect the agent\u2019s backends',0],['Write tests for the spec',0],['Turn on the deployment gate',0],['Turn on automatic roll back',0]] } ];
+  static DONE = [
+    ['Onboarding finished','Alex',''],
+    ['Spec written for Car service booking \u00b7 version 1','Alex',''],
+    ['First scan: 5 issues found','Connexity',''] ];
+  constructor(props) {
+    super(props);
+    const v = props.view;
+    this.state = { sel: v === 'panel' ? 'w1' : null, qOpen: v === 'answering', qi: v === 'answering' ? 1 : 0,
+      answers: v === 'answering' ? ['Offer the next free time', null, null] : [null, null, null], answered: v === 'answered', other:false, otherText:'', flash:null, plan:false, nextOrder:null, goalOrder: Component.GOALS.map(g => g.id),
+      hover:null, drag:null, gDrag:null, done:false, team:false };
+    this.lastSwap = 0;
+  }
+  dot(kind) {
+    if (kind === 'live') {
+      let rm = false; try { rm = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) {}
+      return React.createElement('svg', { width:16, height:16, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:2.5, strokeLinecap:'round', style:{ flex:'none', color:'var(--pass)', animation: rm ? 'none' : 'cxSpin 1s linear infinite' } },
+        React.createElement('circle', { cx:12, cy:12, r:9, opacity:0.25 }), React.createElement('path', { d:'M21 12a9 9 0 0 0-9-9' }));
+    }
+    return React.createElement('span', { style:{ display:'inline-block', flex:'none', width:8, height:8, borderRadius:4, background:'var(--warn)' } });
+  }
+  renderVals() {
+    const C = Component, S = this.state;
+    const live = this.dot('live'), warn = this.dot('warn');
+    const lbl = t => ({ alignSelf:'flex-start', display:'inline-flex', alignItems:'center', height:22, padding:'0 8px', borderRadius:6, fontSize:13, fontWeight:500, whiteSpace:'nowrap',
+      background: t === 'incident' ? 'var(--crit-bg)' : 'var(--unch-bg)', color: t === 'incident' ? 'var(--crit)' : 'var(--unch)' });
+    const view = this.props.view, onb0 = view === 'onb0', onb1 = view === 'onb1', onb = onb0 || onb1;
+    const waiting = onb0 ? [{ ...C.ONB[0], st:'waiting' }] : onb1 || S.answered ? [] : [C.W];
+    const progress = onb0 ? [] : onb1 ? [{ ...C.ONB[1], st:'progress', owner:'Alex', session:'Onboarding' }] : [{ ...C.FIX1, st:'progress', owner:'Alex', session:'Onboarding', step:'Read 8 of the 23 failed calls', ago:'1 minute ago', on:'3 minutes', link:'calls' }];
+    if (!onb) progress.push({ ...C.SETUP[0], st:'progress', owner:'Alex', session:'Setup', step:'Started connecting the Slack workspace', ago:'1 minute ago', on:'2 minutes' });
+    let next = (onb ? C.ONB.slice(onb0 ? 1 : 2) : [C.FIX2].concat(C.SETUP.slice(1))).map(t => ({ ...t, st:'next' }));
+    if (S.nextOrder) { const ix = id => { const i = S.nextOrder.indexOf(id); return i < 0 ? 1000 : i; }; next = next.slice().sort((a, b) => ix(a.id) - ix(b.id)); }
+    const nextIds = next.map(t => t.id);
+    const all = waiting.concat(progress, next);
+    const moveNext = (id, to) => { const o = nextIds.filter(x => x !== id); o.splice(Math.max(0, Math.min(o.length, to)), 0, id); this.setState({ nextOrder:o }); };
+    const taken = t => t.st === 'waiting' || t.st === 'progress';
+    const depOf = { f2:'w1', s4:'w1', s2:'s1', s5:'s4', o2:'o1', o3:'o2', o4:'o3', o5:'o4' };
+    const byId = Object.fromEntries(all.map(t => [t.id, t]));
+    const heldBy = id => all.filter(t => t.st === 'next' && depOf[t.id] === id);
+    const iconFlags = t => Object.fromEntries(Object.values(C.ICONKEY).map(k => [k, C.ICONKEY[t.type] === k]));
+    const iconBoxSt = t => ({ width:28, height:28, borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', flex:'none', background: t.type === 'incident' ? 'var(--crit-bg)' : 'var(--unch-bg)', color: t.type === 'incident' ? 'var(--crit)' : 'var(--ink2)' });
+    const hovT = S.drag ? null : byId[S.hover];
+    const isBlocked = t => t.st === 'next' && !!byId[depOf[t.id]];
+    const lit = !hovT ? null : hovT.st === 'waiting' && heldBy(hovT.id).length ? heldBy(hovT.id).map(t => t.id) : isBlocked(hovT) ? [depOf[hovT.id]] : null;
+    const stLabel = { waiting:'Waiting for you', progress:'In progress', next:'To do' };
+    const QS = C.QS, qi = S.qi, cq = QS[qi];
+    const answerQ = val => { const st = this.state, i = st.qi, a = st.answers.slice(); a[i] = val;
+      const nx = QS.map((_, k) => (i + 1 + k) % QS.length).find(k => !a[k]);
+      if (nx === undefined) this.setState({ answers:a, answered:true, qOpen:false, other:false, otherText:'', sel:null, hover:null });
+      else this.setState({ answers:a, qi:nx, other:false, otherText:'' }); };
+    const optSt = on => ({ display:'flex', alignItems:'center', minHeight:48, padding:'12px 16px', borderRadius:8, border:'1px solid ' + (on ? 'var(--ink)' : 'var(--bc)'), background: on ? 'var(--wash)' : 'var(--s1)', color:'var(--ink)', fontSize:15, lineHeight:'22px', textAlign:'left', cursor:'pointer', textWrap:'pretty' });
+    const qv = {
+      text: cq.text, why: cq.why, step: `${qi + 1} of ${QS.length}`, noBack: qi === 0,
+      options: cq.options.map(label => ({ label, style: optSt(S.flash ? S.flash === label : S.answers[qi] === label),
+        pick: () => { this.setState({ flash:label, other:false }); clearTimeout(this.qT); this.qT = setTimeout(() => { this.setState({ flash:null }); answerQ(label); }, 220); } }))
+        .concat([{ label:'Something else', style: optSt(S.other), pick: () => this.setState(s => ({ other: !s.other })) }]),
+      otherOpen: S.other, otherText: S.otherText, onOther: e => this.setState({ otherText: e.target.value }),
+      saveOther: () => { const t = (this.state.otherText || '').trim(); if (t) answerQ(t); },
+      back: () => this.setState(s => ({ qi: Math.max(0, s.qi - 1), other:false, otherText:'' })),
+      backStyle: { height:32, padding:'0 10px', border:0, borderRadius:6, background:'transparent', color:'var(--ink2)', fontSize:13, cursor: qi ? 'pointer' : 'default', opacity: qi ? 1 : 0.4 },
+      skip: () => { const st = this.state; const nx = st.qi + 1 < QS.length ? st.qi + 1 : st.answers.findIndex((x, k) => !x && k !== st.qi);
+        if (nx < 0) this.setState({ qOpen:false, other:false }); else this.setState({ qi:nx, other:false, otherText:'' }); } };
+    const rows = all.map((t, i) => {
+      const gStart = i === 0 || taken(all[i - 1]) !== taken(t), gEnd = i === all.length - 1 || taken(all[i + 1]) !== taken(t);
+      const isW = t.st === 'waiting', isN = t.st === 'next', sel = S.sel === t.id, hov = S.hover === t.id && !S.drag;
+      return {
+        hasAfter: isN && !!byId[depOf[t.id]], after: isN && byId[depOf[t.id]] ? byId[depOf[t.id]].text : '',
+        openAfter: e => { e.stopPropagation(); this.setState({ sel: depOf[t.id], plan:false }); },
+        showBar: isW || (!!lit && lit.includes(t.id)),
+        lockWarm: isBlocked(t) && byId[depOf[t.id]].st === 'waiting', lockMuted: isBlocked(t) && byId[depOf[t.id]].st !== 'waiting',
+        textStyle: { textWrap:'pretty', color: isBlocked(t) ? 'var(--ink2)' : 'var(--ink)' }, preparedBy: t.owner ? `Prepared by ${t.owner}\u2019s Claude Code` : '',
+        showQ: isW && S.qOpen, q: isW ? qv : {}, qLink: onb ? 'Show how \u2192' : S.qOpen ? 'Hide questions' : 'Answer questions \u2192',
+        toggleQ: e => { e.stopPropagation(); if (onb) this.setState({ sel: t.id, plan:false }); else this.setState(s => ({ qOpen: !s.qOpen, sel:null })); },
+        qStyle: { display:'flex', flexDirection:'column', gap:16, padding:'4px 20px 20px 80px', border:'1px solid var(--border)', borderTopWidth:0, borderBottomWidth: gEnd ? 1 : 0,
+          borderRadius: gEnd ? '0 0 12px 12px' : 0, background:'color-mix(in oklch, var(--warn-bg) 45%, var(--s1))', cursor:'default' },
+        hasTitle: gStart, title: taken(t) ? 'In progress' : 'To do',
+        titleStyle: { fontSize:13, lineHeight:'18px', fontWeight:500, color:'var(--ink2)', padding:'0 2px 8px', marginTop: i ? 20 : 0 },
+        id: t.id, text: t.text, sub: isW && heldBy(t.id).length ? `${t.sub} \u00b7 blocks: ${heldBy(t.id)[0].text}${heldBy(t.id).length > 1 ? ` + ${heldBy(t.id).length - 1} more` : ''}` : t.sub, hasSub: !!t.sub, isCrit: !!t.crit, typeWord: C.TYPES[t.type], showHandle: isN && hov && !isBlocked(t),
+        ...Object.fromEntries(Object.values(C.ICONKEY).map(k => [k, C.ICONKEY[t.type] === k])),
+        iconBox: { width:28, height:28, borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', flex:'none',
+          background: t.type === 'incident' ? 'var(--crit-bg)' : isW ? 'var(--s1)' : 'var(--unch-bg)', color: t.type === 'incident' ? 'var(--crit)' : 'var(--ink2)' },
+        iconBoxDim: {  width:28, height:28, borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', flex:'none',
+          background: t.type === 'incident' ? 'var(--crit-bg)' : isW ? 'var(--s1)' : 'var(--unch-bg)', color: t.type === 'incident' ? 'var(--crit)' : 'var(--ink2)' , opacity: isBlocked(t) ? 0.55 : 1 },
+        isWaiting: isW, isNext: isN, isProgress: t.st === 'progress', isUrgent: false, hasWho: t.st === 'progress',
+        marker: live, initial: t.owner ? t.owner[0] : '', who: t.owner ? `${t.owner}\u2019s Claude Code \u00b7 ${t.session}` : '',
+        action: t.action, href: 'Connexity Action items.dc.html?agent=car', stop: e => e.stopPropagation(),
+        drag: isN ? 'true' : 'false',
+        style: { display:'grid', gridTemplateColumns:'16px 28px minmax(0,1fr) auto', gap:12, alignItems:'center', minHeight:64, padding:'10px 20px 10px 12px',
+          border:'1px solid var(--border)',
+          borderRadius: `${gStart ? '12px 12px' : '0 0'} ${gEnd && !(isW && S.qOpen) ? '12px 12px' : '0 0'}`, borderBottomWidth: gEnd && !(isW && S.qOpen) ? 1 : 0, cursor: isN ? 'grab' : 'pointer', userSelect:'none', opacity: S.drag === t.id ? 0.5 : lit && t.id !== hovT.id && !lit.includes(t.id) ? 0.6 : 1, transition:'opacity .15s',
+          background: isW ? (sel || hov ? 'color-mix(in oklch, var(--warn-bg) 70%, var(--s1))' : 'color-mix(in oklch, var(--warn-bg) 45%, var(--s1))') : sel || hov ? 'var(--wash)' : 'var(--s1)',
+          boxShadow: 'none', position:'relative' },
+        open: () => this.setState({ sel: t.id, plan:false }),
+        enter: () => this.setState({ hover: t.id }),
+        leave: () => this.setState(s => s.hover === t.id ? { hover:null } : null),
+        dragStart: e => { if (!isN) { e.preventDefault(); return; } e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', t.id); } catch (_) {} this.setState({ drag: t.id }); },
+        dragOver: e => { const from = this.state.drag; if (!from || !isN) return; e.preventDefault(); if (from === t.id || Date.now() - this.lastSwap < 160) return; this.lastSwap = Date.now(); moveNext(from, nextIds.indexOf(t.id)); },
+        dragEnd: () => this.setState({ drag:null })
+      };
+    });
+    const selT = all.find(t => t.id === S.sel);
+    let pn = { state:'', text:'', facts:[], links:[], holds:[], hasHolds:false, howTo:false, copyLabel:'', copy: () => {}, canAnswer:false, answer: () => {}, blocked:[], hasBlocked:false, marker:null, stateStyle:{} };
+    if (selT) {
+      const f = (label, value, note) => ({ label, value, note: note || '', hasNote: !!note, isChip:false, isText:true, chip:{} });
+      const stName = { waiting:'Waiting for you', progress:'In progress', next:'Up next' }[selT.st];
+      const facts = [{ label:'Type', value: C.TYPES[selT.type], isChip:true, isText:false, chip: lbl(selT.type), hasNote:false, note:'' }];
+      if (!onb) facts.push(f('Agent', C.AGENT));
+      if (selT.calls) facts.push(f('Calls affected', `${selT.calls} calls`));
+      if (selT.st === 'next') facts.push(f('Assistant', 'Not taken yet', onb ? 'Starts when the step before it is done.' : 'Taken in your order. Drag the row to change it.'));
+      else if (onb && selT.st === 'waiting') facts.push(f('Assistant', 'Not connected yet'));
+      else facts.push(f('Assistant', 'Alex\u2019s Claude Code'), f('Session', selT.session), f('Latest step', selT.step, selT.ago), f('Worked on for', selT.on));
+      const links = onb ? [] : [{ label:'Open ' + C.AGENT, href:'Connexity Agent Profile.dc.html?agent=car' }];
+      if (selT.issue) links.unshift({ label:'Open the issue', href:'Connexity Issue.dc.html?issue=' + selT.issue });
+      if (selT.calls) links.push({ label:`See the ${selT.calls} calls`, href:'Connexity Calls.dc.html?agent=car' });
+      const bt = isBlocked(selT) ? byId[depOf[selT.id]] : null;
+      const blocked = bt ? [{ text: bt.text, state: stLabel[bt.st], stateStyle:{ fontSize:13, lineHeight:'18px', fontWeight: bt.st === 'waiting' ? 500 : 400, color: bt.st === 'waiting' ? 'var(--warn)' : 'var(--ink2)' }, ...iconFlags(bt), iconBox: iconBoxSt(bt), open: () => this.setState({ sel: bt.id, plan:false }) }] : [];
+      const holds = heldBy(selT.id).map(h => ({ text: h.text, ...iconFlags(h), iconBox: iconBoxSt(h), open: () => this.setState({ sel: h.id, plan:false }) }));
+      pn = { state: stName, text: selT.text, facts, links, holds, hasHolds: holds.length > 0, howTo: onb0 && selT.id === 'o1', copyLabel: S.copied ? 'Copied' : 'Copy',
+        copy: () => { try { navigator.clipboard.writeText('https://mcp.connexity.ai/mcp'); } catch (_) {} this.setState({ copied:true }); clearTimeout(this.cT); this.cT = setTimeout(() => this.setState({ copied:false }), 2000); },
+        canAnswer: selT.st === 'waiting' && !onb, answer: () => this.setState({ qOpen:true, sel:null }), blocked, hasBlocked: blocked.length > 0, marker: selT.st === 'progress' ? live : selT.st === 'waiting' ? warn : null,
+        stateStyle: { display:'inline-flex', alignItems:'center', gap:8, fontSize:13, lineHeight:'18px', fontWeight:500, color: selT.st === 'waiting' ? 'var(--warn)' : selT.st === 'progress' ? 'var(--ink)' : 'var(--ink2)' } };
+    }
+    const gById = Object.fromEntries(C.GOALS.map(g => [g.id, g]));
+    const cur = gById[S.goalOrder[0]];
+    const goals = S.goalOrder.map((id, i) => { const g = gById[id]; return {
+      id, rank: i + 1, name: g.name, progress: g.progress, current: i === 0,
+      items: g.items.map(([text, d]) => ({ text, done: !!d, todo: !d, style:{ color: d ? 'var(--ink2)' : 'var(--ink)', textWrap:'pretty' } })),
+      wrap: { borderBottom:'1px solid var(--border)', opacity: S.gDrag === id ? 0.5 : 1, cursor:'grab' },
+      dragStart: e => { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', id); } catch (_) {} this.setState({ gDrag:id }); },
+      dragOver: e => { const from = this.state.gDrag; if (!from) return; e.preventDefault(); if (from === id || Date.now() - this.lastSwap < 160) return; this.lastSwap = Date.now();
+        const o = this.state.goalOrder.filter(x => x !== from); o.splice(this.state.goalOrder.indexOf(id), 0, from); this.setState({ goalOrder:o }); },
+      dragEnd: () => this.setState({ gDrag:null }) }; });
+    const done = onb0 ? [] : onb1 ? [['Assistant connected','Alex\u2019s Claude Code','']] : (S.answered ? [['3 answers added to the Car service booking spec','Alex','']] : []).concat(C.DONE);
+    return {
+      rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
+      teamLine: onb0 ? 'No assistant connected' : onb1 ? '1 session working' : '2 sessions working',
+      team: onb0 ? [] : [{ name:'Alex\u2019s Claude Code', status: onb1 ? '1 session working' : '2 sessions working', marker: live }], teamOpen: S.team && !onb0, hasDone: !onb0,
+      teamEnter: () => this.setState({ team:true }), teamLeave: () => this.setState({ team:false }),
+      noTeam: false,
+      goalLine: cur.line, goalProgress: cur.progress,
+      openPlan: () => this.setState(s => ({ plan: !s.plan, sel:null })),
+      rows, hasMore: false, moreText: '', toggleMore: () => {},
+      doneLine: `${done.length} done`, doneOpen: S.done, doneShut: !S.done, toggleDone: () => this.setState(s => ({ done: !s.done })),
+      doneRows: done.map(([text, by, when]) => ({ text, by, when })), doneCanAll: false, showAllDone: () => {},
+      panelOpen: !!selT && !S.plan, pn, planOpen: S.plan, goals,
+      closePanel: () => this.setState({ sel:null, plan:false })
+    };
+  }
+}
+</script>
+</body>
+</html>
