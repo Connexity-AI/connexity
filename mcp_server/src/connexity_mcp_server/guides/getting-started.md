@@ -33,7 +33,11 @@ rules and numbered steps. Take tasks in that order; do not pick your own.
 - **Some tasks are the person's:** answering questions, connecting their assistant.
   The answer lists them under `waiting_for_person`; ask the person in your chat, and
   never decide for them.
-- **One workspace at a time.** Another assistant's task in progress is never handed to
+- **Name your session.** Pass `session`, a few words for the work it is on such as
+  `Onboarding`, and keep the same name for the whole session. Each session holds its
+  own task, so several sessions of one assistant can work side by side; the answer's
+  `in_progress` says what the others are on.
+- **One workspace at a time.** Another session's task in progress is never handed to
   you.
 
 ## One agent at a glance

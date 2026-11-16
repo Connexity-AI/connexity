@@ -456,13 +456,20 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     # Takes the task for the caller and ends its previous one; asking again moves on.
     @mcp_server.tool(annotations=CREATES)
-    async def get_next_task(workspace_id: str) -> GetNextTaskResult:
+    async def get_next_task(
+        workspace_id: str, session: str | None = None
+    ) -> GetNextTaskResult:
         """Your next task in this workspace: the single most important thing to do,
         sorted by Connexity, with its facts, the rules and numbered steps naming the
         tools. Call it at the start of a session and after each task; asking again ends
-        your current task (done, waiting for the person, or back in the list). Also
-        lists what waits for the person, and how many tasks are left."""
-        return await _get_next_task(client=backend_client, workspace_id=workspace_id)
+        your current task (done, waiting for the person, or back in the list). Name
+        this session in a few words for the work it is on (`session`, such as
+        "Onboarding", up to 40 characters) and pass the same name on every call in it:
+        each session holds its own task. Also lists what waits for the person, what
+        other sessions are working on, and how many tasks are left."""
+        return await _get_next_task(
+            client=backend_client, workspace_id=workspace_id, session=session
+        )
 
     @mcp_server.tool(annotations=READ_ONLY)
     async def get_readiness(workspace_id: str) -> GetReadinessResult:

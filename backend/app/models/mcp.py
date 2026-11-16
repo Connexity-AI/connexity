@@ -279,6 +279,13 @@ class McpTaskCounts(BaseModel):
     )
 
 
+class McpHeldTask(BaseModel):
+    task: McpTask
+    person: str = Field(description="Whose assistant holds it")
+    assistant: str
+    session: str = Field(description="The session's name; empty when it gave none")
+
+
 class McpNextTask(BaseModel):
     task: McpTask | None = Field(
         default=None, description="Yours now; None when nothing waits for you"
@@ -290,6 +297,10 @@ class McpNextTask(BaseModel):
         description="Tasks only the person can move on, top first (up to 10)"
     )
     counts: McpTaskCounts
+    in_progress: list[McpHeldTask] = Field(
+        default_factory=list,
+        description="Tasks other sessions are working on, top first (up to 10)",
+    )
     readiness_percent: int | None = Field(
         default=None, description="Setup completeness, when nothing waits for you"
     )

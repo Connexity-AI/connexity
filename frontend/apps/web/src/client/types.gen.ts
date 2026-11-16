@@ -5609,6 +5609,29 @@ export type McpEndedTask = {
 };
 
 /**
+ * McpHeldTask
+ */
+export type McpHeldTask = {
+  task: McpTask;
+  /**
+   * Person
+   *
+   * Whose assistant holds it
+   */
+  person: string;
+  /**
+   * Assistant
+   */
+  assistant: string;
+  /**
+   * Session
+   *
+   * The session's name; empty when it gave none
+   */
+  session: string;
+};
+
+/**
  * McpIssues
  */
 export type McpIssues = {
@@ -5643,6 +5666,12 @@ export type McpNextTask = {
    */
   waiting_for_person: Array<McpTask>;
   counts: McpTaskCounts;
+  /**
+   * In Progress
+   *
+   * Tasks other sessions are working on, top first (up to 10)
+   */
+  in_progress?: Array<McpHeldTask>;
   /**
    * Readiness Percent
    *
@@ -11592,7 +11621,14 @@ export type McpGetNextTaskData = {
      */
     workspace_id: string;
   };
-  query?: never;
+  query?: {
+    /**
+     * Session
+     *
+     * This session's name, the same on every call in it
+     */
+    session?: string | null;
+  };
   url: '/api/v1/mcp/workspaces/{workspace_id}/next-task';
 };
 

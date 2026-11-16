@@ -54,6 +54,11 @@ class AssistantTask(SQLModel, table=True):
     )
     taken_by_email: str = Field(max_length=255)
     assistant_name: str = Field(max_length=255)
+    # The name the assistant gave this session ("Onboarding"); empty when it gave none.
+    # Sessions are told apart by the person, the assistant and this name.
+    session_name: str = Field(
+        default="", max_length=40, sa_column_kwargs={"server_default": ""}
+    )
     state: AssistantTaskState = Field(
         default=AssistantTaskState.IN_PROGRESS, sa_type=enum_type(AssistantTaskState)
     )

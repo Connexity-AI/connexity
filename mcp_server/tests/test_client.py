@@ -250,6 +250,7 @@ async def test_get_next_task_reads_the_workspace_task() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.method == "GET"
         assert request.url.path == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/next-task"
+        assert request.url.params.get("session") == "Onboarding"
         assert request.headers["Authorization"] == "Bearer user-oauth-token"
         return httpx.Response(
             200,
@@ -280,7 +281,10 @@ async def test_get_next_task_reads_the_workspace_task() -> None:
         )
 
     result = await _call(
-        handler, lambda client: get_next_task(client, workspace_id=WORKSPACE_ID)
+        handler,
+        lambda client: get_next_task(
+            client, workspace_id=WORKSPACE_ID, session="Onboarding"
+        ),
     )
 
     assert result.data.task is not None and result.data.task.kind == "spec"

@@ -73,6 +73,7 @@ from app.models.mcp import (
     McpConnectVoicePlatform,
     McpEndedTask,
     McpErrorDetail,
+    McpHeldTask,
     McpIssues,
     McpNextTask,
     McpRaiseClarifications,
@@ -1124,8 +1125,11 @@ _TASK_RULES = [
     "Asking for your next task ends this one: done when its work is gone; waiting for "
     "the person when the rest is theirs (resolving an issue); otherwise it goes back to "
     "its place in the list. A review of calls is done once handed out.",
-    "Another assistant's task in progress is never handed to you. Tasks come from this "
+    "Tasks are held per session: the person, the assistant and the session's name. "
+    "Another session's task in progress is never handed to you. Tasks come from this "
     "workspace only.",
+    "Name your session in a few words for the work it is on, such as `Onboarding`, and "
+    "pass the same `session` on every `get_next_task` in it.",
     "Tasks waiting for the person are theirs: ask them in your chat, and never decide "
     "for them.",
 ]
@@ -1209,12 +1213,19 @@ def get_next_task(
     workspace: McpWorkspaceDep,
     current_user: McpCurrentUser,
     assistant: McpAssistantName,
+    session_name: str | None = Query(
+        default=None,
+        alias="session",
+        max_length=40,
+        description="This session's name, the same on every call in it",
+    ),
 ) -> McpAnswer[McpNextTask]:
     result = next_task(
         session=session,
         company_id=workspace.id,
         person=current_user,
         assistant_name=assistant,
+        session_name=session_name,
     )
     steps: list[str] = []
     if result.ended is not None and result.ended.state is AssistantTaskState.WAITING:
@@ -1242,6 +1253,15 @@ def get_next_task(
             if result.ended
             else None,
             waiting_for_person=[_task_public(t) for t in result.waiting[:10]],
+            in_progress=[
+                McpHeldTask(
+                    task=_task_public(h.task, h.position),
+                    person=h.person,
+                    assistant=h.assistant,
+                    session=h.session,
+                )
+                for h in result.held[:10]
+            ],
             counts=McpTaskCounts(
                 to_do=result.to_do,
                 waiting_for_person=len(result.waiting),

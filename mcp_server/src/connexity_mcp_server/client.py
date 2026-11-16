@@ -263,9 +263,14 @@ class ConnexityBackendClient:
             "GET", f"/mcp/workspaces/{quote(workspace_id, safe='')}/categories"
         )
 
-    async def get_next_task(self, *, workspace_id: str) -> dict[str, Any]:
+    async def get_next_task(
+        self, *, workspace_id: str, session: str | None = None
+    ) -> dict[str, Any]:
+        params = {"session": session} if session else None
         return await self._request_json(
-            "GET", f"/mcp/workspaces/{quote(workspace_id, safe='')}/next-task"
+            "GET",
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/next-task",
+            params=params,
         )
 
     async def get_readiness(self, *, workspace_id: str) -> dict[str, Any]:
