@@ -18,6 +18,7 @@ from app.models.call_list import CallListItemPublic, CallTilesPublic
 from app.models.enums import AssistantTaskState, Platform, SpecRuleTouches, TaskKind
 from app.models.issue_list import IssueListItemPublic, IssueTilesPublic
 from app.models.spec import SpecState
+from app.models.work import WorkDonePublic, WorkSessionPublic, WorkTaskPublic
 
 T = TypeVar("T")
 
@@ -321,3 +322,13 @@ class McpNextTask(BaseModel):
     readiness_percent: int | None = Field(
         default=None, description="Setup completeness, when nothing waits for you"
     )
+
+
+class McpTaskList(BaseModel):
+    tasks: list[WorkTaskPublic] = Field(
+        description="This page of the list, in Connexity's order, each with its state"
+    )
+    done: list[WorkDonePublic] = Field(description="The last 7 days, newest first")
+    sessions: list[WorkSessionPublic] = Field(description="Sessions working now")
+    waiting: int = Field(description="Tasks waiting for the person")
+    total: int = Field(description="Tasks in the whole list")

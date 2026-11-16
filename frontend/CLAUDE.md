@@ -25,8 +25,10 @@ System in Claude; see "UI: the design comes first" in the lifecycle guide.
 
 - **Every number shows its base:** how many agents, how many calls, over what period.
 - **Give before asking:** a screen opens with findings and progress. What needs the
-  person (approvals, questions) is counted, never first. On Work this is open: a waiting task sits at
-  the top of In progress (`docs-internal/work.md`, open question 11).
+  person (approvals, questions) is counted, never first. On Work, a task waiting for the
+  person sits in In progress in its place in the list, highlighted (`docs-internal/work.md`
+  decision 9 wins there: it is the assistant's work needing the person, not a request
+  opening the page).
 - **The sidebar** is Work, Dashboard, Incidents, Agents, Calls, Issues and Settings,
   and a person lands on Work (Decided 2026-11-16; Home became Dashboard, Action items and
   Roadmap folded into Work, see `docs-internal/work.md`). The Connexity logo stays at

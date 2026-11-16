@@ -33,6 +33,7 @@ async def test_server_lists_only_the_workspace_tools() -> None:
         "list_categories",
         "list_clarifications",
         "list_issues",
+        "list_tasks",
         "list_workspaces",
         "raise_clarifications",
         "scan_calls",

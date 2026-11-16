@@ -7926,6 +7926,51 @@ export const McpAnswer_McpScanProgress_Schema = {
   title: 'McpAnswer[McpScanProgress]',
 } as const;
 
+export const McpAnswer_McpTaskList_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/McpTaskList',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[McpTaskList]',
+} as const;
+
 export const McpAnswer_McpWorkspace_Schema = {
   properties: {
     data: {
@@ -8856,6 +8901,48 @@ export const McpTaskCountsSchema = {
   type: 'object',
   required: ['to_do', 'waiting_for_person', 'in_progress_elsewhere'],
   title: 'McpTaskCounts',
+} as const;
+
+export const McpTaskListSchema = {
+  properties: {
+    tasks: {
+      items: {
+        $ref: '#/components/schemas/WorkTaskPublic',
+      },
+      type: 'array',
+      title: 'Tasks',
+      description: "This page of the list, in Connexity's order, each with its state",
+    },
+    done: {
+      items: {
+        $ref: '#/components/schemas/WorkDonePublic',
+      },
+      type: 'array',
+      title: 'Done',
+      description: 'The last 7 days, newest first',
+    },
+    sessions: {
+      items: {
+        $ref: '#/components/schemas/WorkSessionPublic',
+      },
+      type: 'array',
+      title: 'Sessions',
+      description: 'Sessions working now',
+    },
+    waiting: {
+      type: 'integer',
+      title: 'Waiting',
+      description: 'Tasks waiting for the person',
+    },
+    total: {
+      type: 'integer',
+      title: 'Total',
+      description: 'Tasks in the whole list',
+    },
+  },
+  type: 'object',
+  required: ['tasks', 'done', 'sessions', 'waiting', 'total'],
+  title: 'McpTaskList',
 } as const;
 
 export const McpTaskRefSchema = {
@@ -14239,6 +14326,279 @@ export const WebhookResultSchema = {
   type: 'object',
   required: ['status'],
   title: 'WebhookResult',
+} as const;
+
+export const WorkCountsPublicSchema = {
+  properties: {
+    waiting: {
+      type: 'integer',
+      title: 'Waiting',
+      description: 'Tasks waiting for the person',
+    },
+  },
+  type: 'object',
+  required: ['waiting'],
+  title: 'WorkCountsPublic',
+} as const;
+
+export const WorkDonePublicSchema = {
+  properties: {
+    title: {
+      type: 'string',
+      title: 'Title',
+      description: 'What was done, with its result',
+    },
+    by: {
+      type: 'string',
+      title: 'By',
+      description: 'A person, their assistant, or Connexity',
+    },
+    at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'At',
+    },
+  },
+  type: 'object',
+  required: ['title', 'by', 'at'],
+  title: 'WorkDonePublic',
+} as const;
+
+export const WorkHolderPublicSchema = {
+  properties: {
+    person: {
+      type: 'string',
+      title: 'Person',
+    },
+    assistant: {
+      type: 'string',
+      title: 'Assistant',
+    },
+    session: {
+      type: 'string',
+      title: 'Session',
+      description: 'Empty when the session has no name',
+      default: '',
+    },
+    taken_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Taken At',
+    },
+  },
+  type: 'object',
+  required: ['person', 'assistant', 'taken_at'],
+  title: 'WorkHolderPublic',
+  description: 'Who holds a task: the person, their assistant and its session.',
+} as const;
+
+export const WorkPublicSchema = {
+  properties: {
+    in_progress: {
+      items: {
+        $ref: '#/components/schemas/WorkTaskPublic',
+      },
+      type: 'array',
+      title: 'In Progress',
+      description: 'Tasks an assistant holds, and tasks waiting for the person',
+    },
+    to_do: {
+      items: {
+        $ref: '#/components/schemas/WorkTaskPublic',
+      },
+      type: 'array',
+      title: 'To Do',
+      description: 'Everything else, in order',
+    },
+    done: {
+      items: {
+        $ref: '#/components/schemas/WorkDonePublic',
+      },
+      type: 'array',
+      title: 'Done',
+      description: 'The last 7 days, newest first',
+    },
+    sessions: {
+      items: {
+        $ref: '#/components/schemas/WorkSessionPublic',
+      },
+      type: 'array',
+      title: 'Sessions',
+      description: 'Sessions working now',
+    },
+    waiting: {
+      type: 'integer',
+      title: 'Waiting',
+      description: 'Tasks waiting for the person',
+    },
+  },
+  type: 'object',
+  required: ['in_progress', 'to_do', 'done', 'sessions', 'waiting'],
+  title: 'WorkPublic',
+} as const;
+
+export const WorkSessionPublicSchema = {
+  properties: {
+    person: {
+      type: 'string',
+      title: 'Person',
+    },
+    assistant: {
+      type: 'string',
+      title: 'Assistant',
+    },
+    session: {
+      type: 'string',
+      title: 'Session',
+      default: '',
+    },
+    task: {
+      type: 'string',
+      title: 'Task',
+      description: 'The title of the task it is working on',
+    },
+  },
+  type: 'object',
+  required: ['person', 'assistant', 'task'],
+  title: 'WorkSessionPublic',
+} as const;
+
+export const WorkTaskPublicSchema = {
+  properties: {
+    key: {
+      type: 'string',
+      title: 'Key',
+    },
+    kind: {
+      $ref: '#/components/schemas/TaskKind',
+    },
+    title: {
+      type: 'string',
+      title: 'Title',
+      description: 'The task in one plain sentence',
+    },
+    line: {
+      type: 'string',
+      title: 'Line',
+      description: 'The type word, then the details',
+    },
+    severity: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Severity',
+      description: 'critical or warning, for an issue fix',
+    },
+    position: {
+      type: 'integer',
+      title: 'Position',
+      description: 'Its place in the list, 1 at the top',
+    },
+    state: {
+      type: 'string',
+      enum: ['in_progress', 'waiting', 'to_do'],
+      title: 'State',
+    },
+    waiting_for_person: {
+      type: 'boolean',
+      title: 'Waiting For Person',
+      description: "The next move is the person's",
+      default: false,
+    },
+    agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Id',
+    },
+    agent_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Name',
+    },
+    issue_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Issue Id',
+    },
+    holder: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/WorkHolderPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    blocks: {
+      items: {
+        $ref: '#/components/schemas/WorkTaskRefPublic',
+      },
+      type: 'array',
+      title: 'Blocks',
+    },
+    blocked_by: {
+      items: {
+        $ref: '#/components/schemas/WorkTaskRefPublic',
+      },
+      type: 'array',
+      title: 'Blocked By',
+    },
+  },
+  type: 'object',
+  required: ['key', 'kind', 'title', 'line', 'position', 'state'],
+  title: 'WorkTaskPublic',
+} as const;
+
+export const WorkTaskRefPublicSchema = {
+  properties: {
+    key: {
+      type: 'string',
+      title: 'Key',
+    },
+    title: {
+      type: 'string',
+      title: 'Title',
+    },
+    state: {
+      type: 'string',
+      enum: ['in_progress', 'waiting', 'to_do'],
+      title: 'State',
+    },
+    waiting_for_person: {
+      type: 'boolean',
+      title: 'Waiting For Person',
+      default: false,
+    },
+  },
+  type: 'object',
+  required: ['key', 'title', 'state'],
+  title: 'WorkTaskRefPublic',
 } as const;
 
 export const WorkflowSummarySchema = {

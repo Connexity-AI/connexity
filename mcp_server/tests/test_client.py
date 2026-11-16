@@ -24,6 +24,7 @@ from connexity_mcp_server.tools import (
     connect_voice_platform,
     create_workspace,
     get_next_task,
+    list_tasks,
     get_readiness,
     list_agents,
     list_workspaces,
@@ -243,6 +244,54 @@ async def test_get_readiness_reads_the_workspace_steps() -> None:
 
     assert result.data.percent == 25
     assert result.data.steps[0].state == "done"
+
+
+@pytest.mark.asyncio
+async def test_list_tasks_reads_a_page_of_the_list() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/tasks"
+        assert request.url.params.get("cursor") == "abc"
+        assert request.url.params.get("limit") == "10"
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "tasks": [
+                        {
+                            "key": "spec:a1",
+                            "kind": "spec",
+                            "title": "Write the spec for Front desk",
+                            "line": "Spec · Front desk",
+                            "position": 1,
+                            "state": "in_progress",
+                            "holder": {
+                                "person": "Alex",
+                                "assistant": "Claude Code",
+                                "session": "Specs",
+                                "taken_at": "2026-11-16T10:00:00Z",
+                            },
+                        }
+                    ],
+                    "done": [],
+                    "sessions": [],
+                    "waiting": 1,
+                    "total": 4,
+                },
+                "next_cursor": "def",
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: list_tasks(
+            client, workspace_id=WORKSPACE_ID, cursor="abc", limit=10
+        ),
+    )
+
+    assert result.data.tasks[0].holder is not None
+    assert result.data.tasks[0].holder.session == "Specs"
+    assert result.next_cursor == "def"
 
 
 @pytest.mark.asyncio

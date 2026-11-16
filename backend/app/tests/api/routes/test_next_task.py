@@ -62,11 +62,13 @@ def _unchecked(db: Session, agent: Agent) -> None:
     db.commit()
 
 
-def _workspace(db: Session, setup_done: bool = True) -> tuple[User, Agent, Agent]:
+def _workspace(
+    db: Session, setup_done: bool = True, owner: User | None = None
+) -> tuple[User, Agent, Agent]:
     """Front desk: a Critical issue on one call and a written spec. Back office: a
     written spec and two open questions. Night line: no spec, and a call no check
     could run on. With ``setup_done``, every agent's first scan has finished."""
-    user = _person(db)
+    user = owner or _person(db)
     front = _agent(db, user, "Front desk")
     _catalogue(db, front, "7")
     _call(db, front, _booking(1, MISSING), days_ago=2)

@@ -31,6 +31,7 @@ from connexity_mcp_server.models import (
     CreateWorkspaceResult,
     GetCallResult,
     GetNextTaskResult,
+    ListTasksResult,
     GetReadinessResult,
     AgentResult,
     AnswerClarificationsResult,
@@ -68,6 +69,9 @@ from connexity_mcp_server.tools import (
 )
 from connexity_mcp_server.tools import (
     get_next_task as _get_next_task,
+)
+from connexity_mcp_server.tools import (
+    list_tasks as _list_tasks,
 )
 from connexity_mcp_server.tools import (
     get_readiness as _get_readiness,
@@ -453,6 +457,20 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         key, name and kind (behaviour or technical). The same set for every workspace;
         group issues and spec rules by it and use its names with the person."""
         return await _list_categories(client=backend_client, workspace_id=workspace_id)
+
+    @mcp_server.tool(annotations=READ_ONLY)
+    async def list_tasks(
+        workspace_id: str, cursor: str | None = None, limit: int = 25
+    ) -> ListTasksResult:
+        """The workspace's whole task list, as the Work page shows it: in Connexity's
+        order, each task in progress (with whose session), waiting for the person, or
+        to do, with Blocks and Blocked by; what was done in the last 7 days; and the
+        sessions working now. Read only: it never takes or ends a task (that is
+        `get_next_task`). Pass `next_cursor` back as `cursor` for the next page (limit
+        1 to 100)."""
+        return await _list_tasks(
+            client=backend_client, workspace_id=workspace_id, cursor=cursor, limit=limit
+        )
 
     # Takes the task for the caller and ends its previous one; asking again moves on.
     @mcp_server.tool(annotations=CREATES)

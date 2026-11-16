@@ -297,6 +297,9 @@ import type {
   McpListIssuesData,
   McpListIssuesErrors,
   McpListIssuesResponses,
+  McpListTasksData,
+  McpListTasksErrors,
+  McpListTasksResponses,
   McpListWorkspacesData,
   McpListWorkspacesErrors,
   McpListWorkspacesResponses,
@@ -459,6 +462,12 @@ import type {
   WebhooksRetellWebhookData,
   WebhooksRetellWebhookErrors,
   WebhooksRetellWebhookResponses,
+  WorkReadWorkCountsData,
+  WorkReadWorkCountsErrors,
+  WorkReadWorkCountsResponses,
+  WorkReadWorkData,
+  WorkReadWorkErrors,
+  WorkReadWorkResponses,
   WorkspacesCreateWorkspaceData,
   WorkspacesCreateWorkspaceErrors,
   WorkspacesCreateWorkspaceResponses,
@@ -1463,6 +1472,19 @@ export class McpService {
   }
 
   /**
+   * List Tasks
+   */
+  public static listTasks<ThrowOnError extends boolean = false>(
+    options: Options<McpListTasksData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<McpListTasksResponses, McpListTasksErrors, ThrowOnError>({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/tasks',
+      ...options,
+    });
+  }
+
+  /**
    * Get Readiness
    */
   public static getReadiness<ThrowOnError extends boolean = false>(
@@ -2012,6 +2034,60 @@ export class ClarificationsService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+    });
+  }
+}
+
+export class WorkService {
+  /**
+   * Read Work
+   *
+   * The workspace's tasks: in progress (held, or waiting for the person), to do in
+   * order with Blocks and Blocked by, done in the last 7 days, and the sessions
+   * working now.
+   */
+  public static readWork<ThrowOnError extends boolean = false>(
+    options?: Options<WorkReadWorkData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<WorkReadWorkResponses, WorkReadWorkErrors, ThrowOnError>(
+      {
+        security: [
+          {
+            in: 'cookie',
+            name: 'auth_cookie',
+            type: 'apiKey',
+          },
+          { scheme: 'bearer', type: 'http' },
+        ],
+        url: '/api/v1/work',
+        ...options,
+      }
+    );
+  }
+
+  /**
+   * Read Work Counts
+   *
+   * The sidebar's number: tasks waiting for the person, the same as the page's.
+   */
+  public static readWorkCounts<ThrowOnError extends boolean = false>(
+    options?: Options<WorkReadWorkCountsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      WorkReadWorkCountsResponses,
+      WorkReadWorkCountsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/work/counts',
+      ...options,
     });
   }
 }

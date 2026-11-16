@@ -263,6 +263,18 @@ class ConnexityBackendClient:
             "GET", f"/mcp/workspaces/{quote(workspace_id, safe='')}/categories"
         )
 
+    async def list_tasks(
+        self, *, workspace_id: str, cursor: str | None = None, limit: int = 25
+    ) -> dict[str, Any]:
+        params: dict[str, str | int] = {"limit": limit}
+        if cursor:
+            params["cursor"] = cursor
+        return await self._request_json(
+            "GET",
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/tasks",
+            params=params,
+        )
+
     async def get_next_task(
         self, *, workspace_id: str, session: str | None = None
     ) -> dict[str, Any]:

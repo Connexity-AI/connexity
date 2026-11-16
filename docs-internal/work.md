@@ -41,6 +41,7 @@ wins. What `get_next_task` hands out is planned in the
 | 24 | Connexity sorts; the assistant just gets its next task. The order: incidents always first, then Critical tasks, then setup tasks in Connexity's order, then all other issues and clarifications. A task that blocks a higher task sits above it. | "Incidents should go first always … Tasks that block high priority tasks should be obviously above them … The goal is that connexity does the sorting, AI assistant just gets next task thats it" | 2026-11-16 |
 | 25 | All issues are tasks, Critical on top. | "all issues get in the work, just critical on the top" | 2026-11-16 |
 | 26 | Which task blocks which, worked out by Connexity: an agent's open questions block every issue fix on that agent; its spec to write or update blocks its fixes and calls to review; each onboarding step blocks the next; the first scan blocks every spec. | "Accept, build" on `plans/2026-11-16-blocks.md` | 2026-11-16 |
+| 27 | Built (10.127): Work at `/work`, first in the sidebar with a warm count of what waits for the person; `/` keeps Readiness until the first scan is done, then opens Work; "done" lists the last 7 days from what Connexity records; "Answer questions →" opens Action items until 10.128; decision 9 wins over "give before asking" on Work; reordering is its own roadmap row. | "Accept, build" on `plans/2026-11-16-work-page.md` | 2026-11-16 |
 
 ## Proposed (in the design, not decided)
 
@@ -58,6 +59,6 @@ wins. What `get_next_task` hands out is planned in the
 6. **Regular issues.** Settled by decision 25.
 7. **Setup rows.** Six setup tasks can bury the real work. Should they become one row, "Finish setup · 4 of 6"?
 8. **Setup that needs a person** (signing in to Slack). Is it "Waiting for you" from the start?
-9. **The sidebar counts** must match the list (incidents, what waits for you).
+9. **The sidebar counts.** Settled: Work's count is the page's waiting number (10.127).
 10. **Dashboard** keeps Home's content as it is?
-11. **"Give before asking"** (`frontend/CLAUDE.md`, the lifecycle guide) says what needs the person is never first. Work puts a task waiting for the person at the top of In progress. Which rule wins on Work?
+11. **"Give before asking" on Work.** Settled by decision 27: decision 9 wins on Work.
