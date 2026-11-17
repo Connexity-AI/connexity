@@ -211,6 +211,7 @@ They own validation, CRUD calls, state changes and the answer's rules and next s
 | `get_agent(workspace_id, agent_id, period?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}` |
 | `get_spec(workspace_id, agent_id, version?, include_prompt?, compare?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/spec` |
 | `write_spec(workspace_id, agent_id, rules)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/spec` |
+| `mark_critical_rules(workspace_id, agent_id, critical?, not_critical?)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/spec/critical` |
 | `raise_clarifications(workspace_id, agent_id, questions)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/clarifications` |
 | `list_clarifications(workspace_id, agent_id?, state?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/clarifications` |
 | `answer_clarifications(workspace_id, answers)` | `POST /api/v1/mcp/workspaces/{workspace_id}/clarifications/answers` |

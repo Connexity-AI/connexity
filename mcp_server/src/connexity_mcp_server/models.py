@@ -436,6 +436,7 @@ class SpecRule(BaseModel):
     source: str
     quote: str | None = None
     touches: str | None = None
+    critical: bool = False
     answered_by: str | None = None
     answered_at: str | None = None
     in_conflict: bool = False
@@ -468,6 +469,7 @@ class SpecCounts(BaseModel):
     from_prompt: int = 0
     from_clarifications: int = 0
     in_conflict: int = 0
+    critical: int = 0
 
 
 class SpecComparison(BaseModel):
@@ -513,6 +515,13 @@ class SpecRuleToWrite(BaseModel):
     )
     key: str | None = Field(
         default=None, description="Only for a rule kept from the previous version"
+    )
+    critical: bool | None = Field(
+        default=None,
+        description=(
+            "True when a failure of the rule must stop a release; left out, a kept "
+            "rule keeps its mark and a new one is not critical"
+        ),
     )
 
 

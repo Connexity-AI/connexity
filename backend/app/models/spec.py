@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from typing import Literal
 
 from pydantic import BaseModel, JsonValue
-from sqlalchemy import Column, DateTime, ForeignKey, Text, UniqueConstraint, text
+from sqlalchemy import Column, DateTime, ForeignKey, Text, UniqueConstraint, false, text
 from sqlmodel import Field, SQLModel
 
 from app.models.columns import enum_type
@@ -113,6 +113,9 @@ class SpecRule(SQLModel, table=True):
     touches: SpecRuleTouches | None = Field(
         default=None, sa_type=enum_type(SpecRuleTouches)
     )
+    # A failed critical rule fails the version in testing; any other is a Warning
+    # (`docs-internal/testing.md`, decision 6). Carried by key into later versions.
+    critical: bool = Field(default=False, sa_column_kwargs={"server_default": false()})
 
 
 SpecState = Literal["none", "current", "needs_review"]
@@ -128,6 +131,9 @@ class SpecRulePublic(BaseModel):
         default=None, description="The prompt's words it rests on"
     )
     touches: SpecRuleTouches | None = None
+    critical: bool = Field(
+        default=False, description="A failure of this rule must stop a release"
+    )
     answered_by: str | None = Field(
         default=None, description="For a rule from a clarification: who answered it"
     )
@@ -164,6 +170,7 @@ class SpecCountsPublic(BaseModel):
     from_prompt: int
     from_clarifications: int
     in_conflict: int
+    critical: int = Field(default=0, description="Rules marked critical")
 
 
 class SpecComparisonPublic(BaseModel):

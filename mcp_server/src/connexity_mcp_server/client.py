@@ -204,6 +204,20 @@ class ConnexityBackendClient:
             "POST", self._spec_path(workspace_id, agent_id), json={"rules": rules}
         )
 
+    async def mark_critical_rules(
+        self,
+        *,
+        workspace_id: str,
+        agent_id: str,
+        critical: list[str],
+        not_critical: list[str],
+    ) -> dict[str, Any]:
+        return await self._request_json(
+            "POST",
+            f"{self._spec_path(workspace_id, agent_id)}/critical",
+            json={"critical": critical, "not_critical": not_critical},
+        )
+
     async def raise_clarifications(
         self, *, workspace_id: str, agent_id: str, questions: list[dict[str, Any]]
     ) -> dict[str, Any]:

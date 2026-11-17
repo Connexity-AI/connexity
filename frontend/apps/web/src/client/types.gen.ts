@@ -5700,6 +5700,24 @@ export type McpIssues = {
 };
 
 /**
+ * McpMarkCritical
+ */
+export type McpMarkCritical = {
+  /**
+   * Critical
+   *
+   * Keys of rules whose failure must stop a release
+   */
+  critical?: Array<RuleKey>;
+  /**
+   * Not Critical
+   *
+   * Keys of rules whose failure is a Warning
+   */
+  not_critical?: Array<RuleKey>;
+};
+
+/**
  * McpNextTask
  */
 export type McpNextTask = {
@@ -5812,6 +5830,12 @@ export type McpSpecRule = {
    * Only for a rule kept from the previous version
    */
   key?: string | null;
+  /**
+   * Critical
+   *
+   * True when a failure of the rule must stop a release; left out, a kept rule keeps its mark and a new one is not critical
+   */
+  critical?: boolean | null;
 };
 
 /**
@@ -6726,6 +6750,8 @@ export type RetellRuntimeConfig = {
   kind?: 'retell';
 };
 
+export type RuleKey = string;
+
 /**
  * RunComparison
  */
@@ -7450,6 +7476,12 @@ export type SpecCountsPublic = {
    * In Conflict
    */
   in_conflict: number;
+  /**
+   * Critical
+   *
+   * Rules marked critical
+   */
+  critical?: number;
 };
 
 /**
@@ -7479,6 +7511,7 @@ export const SpecOrigin = {
   WRITTEN: 'written',
   ADOPTED: 'adopted',
   ANSWERED: 'answered',
+  MARKED: 'marked',
 } as const;
 
 /**
@@ -7592,6 +7625,12 @@ export type SpecRulePublic = {
    */
   quote?: string | null;
   touches?: SpecRuleTouches | null;
+  /**
+   * Critical
+   *
+   * A failure of this rule must stop a release
+   */
+  critical?: boolean;
   /**
    * Answered By
    *
@@ -11729,6 +11768,64 @@ export type McpWriteSpecResponses = {
 };
 
 export type McpWriteSpecResponse = McpWriteSpecResponses[keyof McpWriteSpecResponses];
+
+export type McpMarkCriticalData = {
+  body: McpMarkCritical;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/spec/critical';
+};
+
+export type McpMarkCriticalErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpMarkCriticalError = McpMarkCriticalErrors[keyof McpMarkCriticalErrors];
+
+export type McpMarkCriticalResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerSpecPublic;
+};
+
+export type McpMarkCriticalResponse = McpMarkCriticalResponses[keyof McpMarkCriticalResponses];
 
 export type McpRaiseAgentClarificationsData = {
   body: McpRaiseClarifications;

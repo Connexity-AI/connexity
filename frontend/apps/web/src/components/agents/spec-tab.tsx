@@ -4,7 +4,14 @@ import { useState } from 'react';
 import Link from 'next/link';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
-import { ChevronDown, ChevronRight, FileText, GitCompare, TriangleAlert } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  GitCompare,
+  OctagonAlert,
+  TriangleAlert,
+} from 'lucide-react';
 
 import { NumberTile } from '@workspace/ui/components/number-tile';
 import { cn } from '@workspace/ui/lib/utils';
@@ -39,16 +46,19 @@ const source = (rule: SpecRulePublic) => {
 /** In conflict first, then rules that touch money, safety or compliance, then the spec's order. */
 const rank = (rule: SpecRulePublic) => (rule.in_conflict ? 0 : rule.touches ? 1 : 2);
 
-const Badge: FC<{ tone: 'warning' | 'passed' | 'plain'; children: ReactNode }> = ({
-  tone,
-  children,
-}) => (
+const Badge: FC<{
+  tone: 'critical' | 'warning' | 'passed' | 'plain';
+  children: ReactNode;
+  className?: string;
+}> = ({ tone, children, className }) => (
   <span
     className={cn(
       'inline-flex h-[22px] flex-none items-center gap-1 rounded-md px-1.5 text-label font-medium',
+      tone === 'critical' && 'bg-critical-bg text-critical',
       tone === 'warning' && 'bg-warning-bg text-warning',
       tone === 'passed' && 'bg-passed-bg text-passed',
-      tone === 'plain' && 'border border-border-control text-ink-secondary'
+      tone === 'plain' && 'border border-border-control text-ink-secondary',
+      className
     )}
   >
     {children}
@@ -62,6 +72,12 @@ const RuleRow: FC<{ rule: SpecRulePublic; questionsHref: Route }> = ({ rule, que
     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-[7px] pr-6 pl-12 hover:bg-wash">
       <div className="flex min-w-0 flex-col">
         <div className="flex flex-wrap items-center gap-2">
+          {rule.critical && (
+            <Badge tone="critical" className="px-2">
+              <OctagonAlert className="size-3.5" aria-hidden />
+              Critical
+            </Badge>
+          )}
           <span className={cn('text-pretty', dropped && 'text-ink-muted line-through')}>
             {rule.text}
           </span>
@@ -112,6 +128,7 @@ const Group: FC<{ group: SpecGroupPublic; changesOnly: boolean; questionsHref: R
     .sort((a, b) => rank(a.rule) - rank(b.rule) || a.i - b.i)
     .map(({ rule }) => rule);
   if (rules.length === 0) return null;
+  const critical = rules.filter((r) => r.critical).length;
   const conflicts = rules.filter((r) => r.in_conflict).length;
   const added = rules.filter((r) => r.change === 'added').length;
   const dropped = rules.filter((r) => r.change === 'dropped').length;
@@ -127,6 +144,12 @@ const Group: FC<{ group: SpecGroupPublic; changesOnly: boolean; questionsHref: R
         <Chevron className="size-4 flex-none text-ink-secondary" aria-hidden />
         <span>{group.name}</span>
         <span className="text-label text-ink-secondary">{rules.length}</span>
+        {critical > 0 && (
+          <Badge tone="critical">
+            <OctagonAlert className="size-3.5" aria-hidden />
+            {critical} critical
+          </Badge>
+        )}
         {conflicts > 0 && (
           <Badge tone="warning">
             <TriangleAlert className="size-3.5" aria-hidden />

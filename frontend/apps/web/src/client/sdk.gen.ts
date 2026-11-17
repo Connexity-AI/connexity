@@ -303,6 +303,9 @@ import type {
   McpListWorkspacesData,
   McpListWorkspacesErrors,
   McpListWorkspacesResponses,
+  McpMarkCriticalData,
+  McpMarkCriticalErrors,
+  McpMarkCriticalResponses,
   McpMoveWorkspaceTaskData,
   McpMoveWorkspaceTaskErrors,
   McpMoveWorkspaceTaskResponses,
@@ -1386,6 +1389,27 @@ export class McpService {
         },
       }
     );
+  }
+
+  /**
+   * Mark Critical
+   */
+  public static markCritical<ThrowOnError extends boolean = false>(
+    options: Options<McpMarkCriticalData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      McpMarkCriticalResponses,
+      McpMarkCriticalErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/spec/critical',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
   }
 
   /**

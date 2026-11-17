@@ -107,6 +107,9 @@ from connexity_mcp_server.tools import (
     write_spec as _write_spec,
 )
 from connexity_mcp_server.tools import (
+    mark_critical_rules as _mark_critical_rules,
+)
+from connexity_mcp_server.tools import (
     archive_issue as _archive_issue,
 )
 from connexity_mcp_server.tools import (
@@ -388,8 +391,9 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     ) -> SpecResult:
         """Write the agent's whole spec for its current version, as a new version.
         Each rule: one plain sentence, a category key, the prompt's exact words it
-        rests on, touches (money, safety, compliance) when it protects one, and the key
-        of a rule kept from the previous version. Only what the prompt settles;
+        rests on, touches (money, safety, compliance) when it protects one, the key
+        of a rule kept from the previous version, and critical when a failure of the
+        rule must stop a release. Only what the prompt settles;
         behaviour the prompt does not settle is a question for the person
         (`raise_clarifications`). Rules from the person's answers are carried over by
         Connexity; never pass them. Follow connexity://guides/spec."""
@@ -398,6 +402,27 @@ def build_application(settings: Settings | None = None) -> FastAPI:
             workspace_id=workspace_id,
             agent_id=agent_id,
             rules=rules,
+        )
+
+    @mcp_server.tool(annotations=CREATES)
+    async def mark_critical_rules(
+        workspace_id: str,
+        agent_id: str,
+        critical: list[str] | None = None,
+        not_critical: list[str] | None = None,
+    ) -> SpecResult:
+        """Mark rules of the agent's latest spec critical (a failure stops a release)
+        or clear the mark (a failure is a Warning), by the keys `get_spec` answers,
+        without rewriting the spec. Rules from the person's answers can be marked too.
+        Makes a new spec version with the rules unchanged; makes none when nothing
+        changes. Yours to decide: no need to ask the person. Follow
+        connexity://guides/spec, "Critical rules"."""
+        return await _mark_critical_rules(
+            client=backend_client,
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            critical=critical or [],
+            not_critical=not_critical or [],
         )
 
     @mcp_server.tool(annotations=CREATES)

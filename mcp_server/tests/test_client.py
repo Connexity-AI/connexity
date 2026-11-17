@@ -19,6 +19,7 @@ from connexity_mcp_server.tools import (
     list_clarifications,
     raise_clarifications,
     write_spec,
+    mark_critical_rules,
     list_issues,
     scan_calls,
     connect_voice_platform,
@@ -790,6 +791,7 @@ async def test_write_spec_sends_every_rule_without_empty_fields() -> None:
                     "quote": "do not discuss prices",
                     "touches": "money",
                     "key": "k1",
+                    "critical": True,
                 },
             ]
         }
@@ -832,6 +834,7 @@ async def test_write_spec_sends_every_rule_without_empty_fields() -> None:
                     quote="do not discuss prices",
                     touches="money",
                     key="k1",
+                    critical=True,
                 ),
             ],
         ),
@@ -839,6 +842,67 @@ async def test_write_spec_sends_every_rule_without_empty_fields() -> None:
 
     assert result.data.changes is not None
     assert result.data.changes.kept == 1
+
+
+@pytest.mark.asyncio
+async def test_mark_critical_rules_sends_both_lists() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert (
+            request.url.path
+            == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/agents/a1/spec/critical"
+        )
+        assert json.loads(request.content) == {
+            "critical": ["k1"],
+            "not_critical": ["k2"],
+        }
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "agent_id": "a1",
+                    "agent_name": "Front desk",
+                    "current_agent_version": "7",
+                    "state": "current",
+                    "groups": [
+                        {
+                            "category": "pricing_and_quotes",
+                            "name": "Pricing and quotes",
+                            "rules": [
+                                {
+                                    "key": "k1",
+                                    "text": "Never quote a price",
+                                    "source": "prompt",
+                                    "critical": True,
+                                }
+                            ],
+                        }
+                    ],
+                    "counts": {
+                        "from_prompt": 1,
+                        "from_clarifications": 0,
+                        "in_conflict": 0,
+                        "critical": 1,
+                    },
+                },
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: mark_critical_rules(
+            client,
+            workspace_id=WORKSPACE_ID,
+            agent_id="a1",
+            critical=["k1"],
+            not_critical=["k2"],
+        ),
+    )
+
+    assert result.data.groups[0].rules[0].critical is True
+    assert result.data.counts is not None
+    assert result.data.counts.critical == 1
 
 
 _CLARIFICATION = {

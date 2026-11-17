@@ -168,10 +168,33 @@ class McpSpecRule(BaseModel):
     ] = Field(
         default=None, description="Only for a rule kept from the previous version"
     )
+    critical: bool | None = Field(
+        default=None,
+        description=(
+            "True when a failure of the rule must stop a release; left out, a kept "
+            "rule keeps its mark and a new one is not critical"
+        ),
+    )
 
 
 class McpWriteSpec(BaseModel):
     rules: list[McpSpecRule] = Field(max_length=1000)
+
+
+type RuleKey = Annotated[str, StringConstraints(strip_whitespace=True, max_length=64)]
+
+
+class McpMarkCritical(BaseModel):
+    critical: list[RuleKey] = Field(
+        default_factory=list,
+        max_length=500,
+        description="Keys of rules whose failure must stop a release",
+    )
+    not_critical: list[RuleKey] = Field(
+        default_factory=list,
+        max_length=500,
+        description="Keys of rules whose failure is a Warning",
+    )
 
 
 class McpClarificationAnswer(BaseModel):

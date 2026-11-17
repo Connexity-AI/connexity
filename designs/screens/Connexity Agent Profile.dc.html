@@ -267,6 +267,7 @@
 </span>
 <span>{{ g.name }}</span>
 <span style="font-size:13px;color:var(--ink2)">{{ g.count }}</span>
+<sc-if value="{{ g.hasCritRule }}"><span style="flex:none;display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 6px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>{{ g.critText }}</span></sc-if>
 <sc-if value="{{ g.hasConflict }}"><span style="flex:none;display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 6px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>{{ g.conflictText }}</span></sc-if>
 <sc-if value="{{ g.hasAdded }}"><span style="flex:none;display:inline-flex;align-items:center;height:22px;padding:0 6px;border-radius:6px;background:var(--pass-bg);color:var(--pass);font-size:13px;font-weight:500">{{ g.addedText }}</span></sc-if>
 <sc-if value="{{ g.hasDropped }}"><span style="flex:none;display:inline-flex;align-items:center;height:22px;padding:0 6px;border-radius:6px;border:1px solid var(--bc);color:var(--ink2);font-size:13px;font-weight:500">{{ g.droppedText }}</span></sc-if>
@@ -277,6 +278,7 @@
 <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;padding:7px 24px 7px 48px" style-hover="background:var(--wash)">
 <div style="display:flex;flex-direction:column;min-width:0">
 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+<sc-if value="{{ r.crit }}"><span style="flex:none;display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Critical</span></sc-if>
 <sc-if value="{{ r.dropped }}"><span style="text-decoration:line-through;color:var(--ink3);text-wrap:pretty">{{ r.text }}</span></sc-if>
 <sc-if value="{{ r.live }}"><span style="text-wrap:pretty">{{ r.text }}</span></sc-if>
 <sc-if value="{{ r.hasRisk }}"><span title="{{ r.riskTitle }}" style="display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px;border-radius:6px;background:var(--unch-bg);color:var(--unch);font-size:13px;line-height:18px;font-weight:500"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path></svg>{{ r.risk }}</span></sc-if>
@@ -319,6 +321,7 @@
 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:22px">
 <sc-if value="{{ v.isFail }}"><span style="flex:none;display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Failed</span><span style="color:var(--ink2)">{{ v.failNote }}</span></sc-if>
 <sc-if value="{{ v.isOk }}"><span style="color:var(--ink2)">{{ v.okNote }}</span></sc-if>
+<sc-if value="{{ v.hasOrigin }}"><span style="color:var(--ink2)">· {{ v.origin }}</span></sc-if>
 <sc-if value="{{ v.isOverride }}"><span style="flex:none;display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Shipped despite failure</span><span style="color:var(--ink2)">{{ v.byNote }}</span></sc-if>
 </div>
 <sc-if value="{{ v.hasWhy }}"><span style="text-wrap:pretty">{{ v.why }}</span></sc-if>
@@ -473,7 +476,7 @@ class Component extends DCLogic {
       systems:[['Booking','OpenTable',0],['n8n workflow','table-hold v2',0]],
       issues:[['warn','Bookings never read back','book',28,'14 Oct'],['warn','Party size misheard','speech',12,'20 Oct'],['warn','Wrong opening hours on public holidays','other',7,'2 Nov'],['warn','Request for a manager ignored','transfer',4,'5 Nov']] },
     clinic: { name:'Clinic after-hours', type:'Single prompt', model:'GPT-4.1', calls:97, lat:1.1, goal:1.5, seed:19,
-      versions:[[3,null,66,1.1],[4,[10,2],66,1.1]],
+      versions:[[3,null,66,1.1],[4,[10,2],66,1.1],[5,[10,17],66,1.1]],
       systems:[['n8n workflow','on-call-page v5',0],['CRM','GoHighLevel',0]],
       issues:[['warn','Date of birth asked twice','collect',19,'13 Oct'],['warn','Hang-up while the on-call line rings','transfer',6,'28 Oct'],['warn','Callback number not read back','collect',5,'4 Nov']] },
     dental: { name:'Dental reception', type:'Conversational flow', model:'GPT-4.1', calls:120, lat:1.2, goal:1.0, seed:23, noSpec:true,
@@ -482,39 +485,39 @@ class Component extends DCLogic {
       issues:[] }
   };
   static RISK = { m:['Money','Touches money'], s:['Safety','Touches caller safety'], c:['Compliance','Touches compliance'] };
-  // 'flags|rule|source'. flags: m/s/c risk, + new in live version, - dropped in live version, 3 since the previous version, ! in conflict. source: 'A d Mon' Alex, 'Y d Mon' your assistant; none = prompt.
+  // 'flags|rule|source'. flags: m/s/c risk, * critical, + new in live version, - dropped in live version, 3 since the previous version, ! in conflict. source: 'A d Mon' Alex, 'Y d Mon' your assistant; none = prompt.
   static SPECS = {
     insurance: { clar:3, rules:{
-      greet:["c|Confirm date of birth and policy number before discussing the policy.","-|Read the full policy number back to the caller.","c|Speak to a partner on the policy only if they are a named driver.","c|Say the call may be recorded at the start of every call.","|Skip the welcome for callers who call back within an hour.","|Greet callers with the company name."],
+      greet:["c*|Confirm date of birth and policy number before discussing the policy.","-|Read the full policy number back to the caller.","c|Speak to a partner on the policy only if they are a named driver.","c*|Say the call may be recorded at the start of every call.","|Skip the welcome for callers who call back within an hour.","|Greet callers with the company name."],
       collect:["|Use the postcode on the policy, not one heard on the call.","|Ask whether the caller wants to keep the same cover level.","|Ask whether any drivers or vehicles have changed.","c|Ask whether the caller has made a claim in the last year.","|Ask for an email address only if none is on the policy.","+|Spell back email addresses letter by letter.|Y 8 Nov","|Ask callers to repeat a policy number instead of guessing.|Y 18 Oct","|Read back the registration number letter by letter.","|Confirm the spelling of names.","|Repeat numbers back in groups of three.","|Ask the caller to slow down if a number is unclear.","|Use the phonetic alphabet when a letter is unclear.","|Repeat the postcode back to the caller.","3|Reuse the policy number given at the start of the call.|Y 30 Oct","|Never ask for the date of birth twice.","|Never ask for the registration if it is on the policy.","|Skip questions the caller has already answered."],
-      book:["|Give the renewal date exactly as it appears on the policy.","|Say the policy starts at midnight on the renewal date.","c|Renew a policy only after the caller agrees to the final price.","c|Repeat the renewal date and price before asking for agreement.|A 2 Oct","3|Send a renewal confirmation by text after every renewal.","-|Email the renewal documents within one hour."],
-      resched:["m+|Mention only the cancellation fees listed on the caller’s policy.|Y 10 Nov","m|Never promise a refund; pass refund questions to a person.","|Book a callback when the caller wants time to decide.","|Read the callback time back to the caller.","|Offer the next three callback slots, not more.","m|Cancel a renewal only after confirming the cancellation fee.","|Send the cancellation confirmation by text.","|Offer a callback if the caller has to go."],
-      price:["m|Quote renewal prices only from the quote lookup, never from memory.","m3|Never quote a renewal price above the price in the quote lookup.","m+|Offer the loyalty discount to every renewing customer.","m!|Offer the loyalty discount only to customers of 3 years or more.|A 22 Sep","m3|Round prices to the cent, never to the dollar.|Y 3 Nov","m|State the price including all taxes and fees.","m|Say the excess amount when the caller asks about claims.","m|Never say a price is final until the quote lookup confirms it.","m|Quote the no-claims discount from the policy record.","m|State the payment date for each instalment.","m|Never quote a price for a cover level the caller did not ask about.","m+|Offer monthly payments for renewals over $600."],
+      book:["|Give the renewal date exactly as it appears on the policy.","|Say the policy starts at midnight on the renewal date.","c*|Renew a policy only after the caller agrees to the final price.","c|Repeat the renewal date and price before asking for agreement.|A 2 Oct","3|Send a renewal confirmation by text after every renewal.","-|Email the renewal documents within one hour."],
+      resched:["m+|Mention only the cancellation fees listed on the caller’s policy.|Y 10 Nov","m*|Never promise a refund; pass refund questions to a person.","|Book a callback when the caller wants time to decide.","|Read the callback time back to the caller.","|Offer the next three callback slots, not more.","m*|Cancel a renewal only after confirming the cancellation fee.","|Send the cancellation confirmation by text.","|Offer a callback if the caller has to go."],
+      price:["m*|Quote renewal prices only from the quote lookup, never from memory.","m3*|Never quote a renewal price above the price in the quote lookup.","m+|Offer the loyalty discount to every renewing customer.","m!|Offer the loyalty discount only to customers of 3 years or more.|A 22 Sep","m3|Round prices to the cent, never to the dollar.|Y 3 Nov","m|State the price including all taxes and fees.","m|Say the excess amount when the caller asks about claims.","m|Never say a price is final until the quote lookup confirms it.","m|Quote the no-claims discount from the policy record.","m|State the payment date for each instalment.","m|Never quote a price for a cover level the caller did not ask about.","m+|Offer monthly payments for renewals over $600."],
       objection:["m|Explain a price increase only with reasons the lookup gives.","|Never compare the policy with another insurer’s.","|Answer questions about other insurers’ prices with “we can only speak to your policy.”|A 12 Oct","|Keep a calm tone when the caller is upset."],
-      transfer:["c|Transfer if the caller cannot pass security after two tries.","3|Stay on the line until a transfer is answered.|Y 28 Oct","|Warn the caller before a transfer.","|Give the caller the direct number before transferring.","|Transfer to a person whenever the caller asks for one.","|Offer a callback when no person is free within 2 minutes.|A 15 Oct","s|Transfer at once if the caller says they have been in an accident.","|Transfer complaints to the customer care team.","|Transfer callers who want to cancel and ask to speak to someone.","|Say who the caller is being transferred to.","|Pass the reason for the call to the person taking the transfer.","c|Transfer callers who say they are in financial hardship.","|Transfer calls about claims to the claims team.","|Give the opening hours when no team is available.","3|Transfer callers who sound confused after two explanations.","|Reuse the details passed on with a transfer.","|Never repeat security questions after a transfer back.","|Answer in English; transfer callers who need another language."],
-      compliance:["m|Take payment only through the secure payment line.","c|Never renew a policy for someone who is not the policyholder.","c|Record the caller’s agreement in the CRM before ending the call.","c|Never read out a full card or bank number.","c+|Ask for consent before recording the call.","c|Never confirm whether a person is a policyholder to a third party.|Y 10 Oct","c|Never say a caller’s address out loud; ask them to confirm it.","c|Read only the last four digits of a card.","|Never ask for a password or PIN.","c|Never discuss claims history with anyone but the policyholder.","|Never repeat a date of birth back in full.","|Never leave policy details in a voicemail.","c|Never send documents to a new email address without security checks.","|Ask the caller to move somewhere private if others can hear.","c|Never confirm medical information given for a policy.","c|Remove card details from call notes after payment.","|Never ask for the caller’s full bank details.","|Never pretend to be a person when asked.","|Never give legal advice.","|Never give financial advice beyond the policy.","|Never say anything about other customers."],
+      transfer:["c|Transfer if the caller cannot pass security after two tries.","3|Stay on the line until a transfer is answered.|Y 28 Oct","|Warn the caller before a transfer.","|Give the caller the direct number before transferring.","|Transfer to a person whenever the caller asks for one.","|Offer a callback when no person is free within 2 minutes.|A 15 Oct","s*|Transfer at once if the caller says they have been in an accident.","|Transfer complaints to the customer care team.","|Transfer callers who want to cancel and ask to speak to someone.","|Say who the caller is being transferred to.","|Pass the reason for the call to the person taking the transfer.","c|Transfer callers who say they are in financial hardship.","|Transfer calls about claims to the claims team.","|Give the opening hours when no team is available.","3|Transfer callers who sound confused after two explanations.","|Reuse the details passed on with a transfer.","|Never repeat security questions after a transfer back.","|Answer in English; transfer callers who need another language."],
+      compliance:["m*|Take payment only through the secure payment line.","c*|Never renew a policy for someone who is not the policyholder.","c|Record the caller’s agreement in the CRM before ending the call.","c*|Never read out a full card or bank number.","c+|Ask for consent before recording the call.","c|Never confirm whether a person is a policyholder to a third party.|Y 10 Oct","c|Never say a caller’s address out loud; ask them to confirm it.","c|Read only the last four digits of a card.","|Never ask for a password or PIN.","c|Never discuss claims history with anyone but the policyholder.","|Never repeat a date of birth back in full.","|Never leave policy details in a voicemail.","c|Never send documents to a new email address without security checks.","|Ask the caller to move somewhere private if others can hear.","c|Never confirm medical information given for a policy.","c|Remove card details from call notes after payment.","|Never ask for the caller’s full bank details.","|Never pretend to be a person when asked.","|Never give legal advice.","|Never give financial advice beyond the policy.","|Never say anything about other customers."],
       flow:["|Correct the caller politely when they state a wrong policy detail.","|Say “I’ll check” instead of guessing when a lookup is slow.","|If the line drops, call back within 2 minutes.|A 20 Oct","|Ask before putting a caller on hold.","|Never leave a caller on hold for more than 2 minutes.","|Check back with the caller every 30 seconds on hold.","|Never end the call while a lookup is still running.","|Tell the caller what is happening during a long lookup.","|Never hang up when the caller goes quiet; ask if they are still there.","|Ask one question at a time.","|Confirm the caller’s answer when it sounds unsure.","|Ask again rather than move on when an answer is unclear.","|Confirm yes or no answers before acting on them.","|Use the caller’s name once they have given it.","|Keep the caller’s chosen payment method for the whole call.","+|Say a short holding line before every quote lookup.","|Answer within one second of the caller finishing.","|Keep each reply under three sentences.","|Run the quote lookup while confirming security.","|Never read out the full policy summary unless asked.","|Speak in plain English and avoid insurance jargon.","|Never joke about accidents or claims."],
-      end:["+|Confirm the payment method before ending the call.|A 9 Nov","|Give a renewal reference number at the end of the call.","|Read the reference number back in groups of three.","|Offer to send the renewal summary by email.","|Ask if the caller needs anything else before closing.","|End the call only after the caller says goodbye.","|Ask twice before ending a silent call.","m3|Never end the call during a payment.","|Keep the call open while a text confirmation is sent.","|Thank the caller at the end of every call."],
+      end:["+|Confirm the payment method before ending the call.|A 9 Nov","|Give a renewal reference number at the end of the call.","|Read the reference number back in groups of three.","|Offer to send the renewal summary by email.","|Ask if the caller needs anything else before closing.","|End the call only after the caller says goodbye.","|Ask twice before ending a silent call.","m3*|Never end the call during a payment.","|Keep the call open while a text confirmation is sent.","|Thank the caller at the end of every call."],
       other:["|Name the cover level as it appears on the policy.","|Say which drivers are named on the policy when asked.","|Never guess a policy detail the lookup does not return.","|Describe what the policy covers only from the policy summary.","|Give the claims phone number from the policy summary.","|State the vehicle on the policy by make and model.","3|Give the office’s opening hours when asked.|Y 1 Nov","|Give the website address when asked.","|Give the company’s registered name when asked.","|Never comment on the caller’s driving."]
     }},
     car: { clar:1, rules:{
       collect:["|Spell the registration back letter by letter.|A 28 Aug"],
-      book:["+|Book only slots returned by the slot finder.","|Read the booking date and time back before ending the call."],
-      price:["m|Quote service prices including tax.","m|Never promise a repair price before the car is inspected."]
+      book:["+*|Book only slots returned by the slot finder.","|Read the booking date and time back before ending the call."],
+      price:["m|Quote service prices including tax.","m*|Never promise a repair price before the car is inspected."]
     }},
     restaurant: { clar:1, rules:{
       book:["|Read every booking back to the caller.","+|Take bookings for up to 10 guests and pass larger groups to a person.","+|Hold a table for late guests for up to 20 minutes.|Y 10 Nov"],
       transfer:["|Pass the call to the manager when asked."],
-      compliance:["c|Never take card details over the phone."],
+      compliance:["c*|Never take card details over the phone."],
       other:["|Give holiday opening hours from the booking system.|Y 12 Sep"]
     }},
     clinic: { clar:1, rules:{
       collect:["|Ask for the date of birth once and reuse it.|A 15 Oct","|Read the callback number back to the caller."],
-      transfer:["s|Tell callers with chest pain or trouble breathing to call 911.","s|Page the on-call doctor for any urgent symptom."],
-      compliance:["c|Never give test results over the phone."]
+      transfer:["s*|Tell callers with chest pain or trouble breathing to call 911.","s*|Page the on-call doctor for any urgent symptom."],
+      compliance:["c*|Never give test results over the phone."]
     }},
     dental: { clar:1, rules:{
-      greet:["c|Confirm the patient’s date of birth before discussing appointments."],
+      greet:["c*|Confirm the patient’s date of birth before discussing appointments."],
       collect:["-|Spell the patient’s surname back."],
       book:["|Offer the first free slot, then two alternatives.","+|Send a reminder text the day before each appointment.","+|Book two family members back to back when asked.|A 9 Nov"],
       price:["m|Never quote a price for treatment; offer a consultation instead."]
@@ -545,7 +548,8 @@ class Component extends DCLogic {
         ['book','Hold a table for late guests for up to 20 minutes.','','Text',2,5,[['Guest calls 15 minutes late','Text','fail'],['Guest calls 25 minutes late','Text','fail'],['Guest calls to say they are on time','Text','pass']]]] },
       { v:6, st:'ok', note:'live since 28 Oct', ranAt:'28 Oct', run:{ text:[51,0,1,'2 min'], audio:[15,0,0,'8 min'] }, failing:[] }]},
     clinic: { cases:44, setup:['text','audio','phone'], untested:{}, versions:[
-      { v:4, st:'ok', note:'live since 2 Nov', ranAt:'2 Nov', run:{ text:[44,0,0,'2 min'], audio:[16,0,0,'9 min'], phone:[2,0,0,'3 min'] }, failing:[] },
+      { v:5, st:'ok', note:'live since 17 Nov', origin:'Critical rules marked by Alex’s Claude Code · 17 Nov', ranAt:'17 Nov', run:{ text:[44,0,0,'2 min'], audio:[16,0,0,'9 min'], phone:[2,0,0,'3 min'] }, failing:[] },
+      { v:4, st:'ok', note:'live until 17 Nov', ranAt:'2 Nov', run:{ text:[44,0,0,'2 min'], audio:[16,0,0,'9 min'], phone:[2,0,0,'3 min'] }, failing:[] },
       { v:3, st:'ok', note:'live until 2 Nov', ranAt:'4 Sep', run:{ text:[41,0,0,'2 min'], audio:[15,0,0,'9 min'], phone:[2,0,0,'3 min'] }, failing:[] }]},
     dental: { cases:30, setup:['text'], untested:{ book:[2] }, versions:[
       { v:11, st:'ok', note:'live since 18 Oct', ranAt:'18 Oct', run:{ text:[30,0,0,'1 min'] }, failing:[] },
@@ -637,7 +641,7 @@ class Component extends DCLogic {
     Object.keys(SP.rules).forEach(area => SP.rules[area].forEach(s => {
       const [fl, text, src] = s.split('|');
       const inV = fl.includes('+') ? [lv] : fl.includes('-') ? allV.slice(0, -1) : fl.includes('3') ? allV.slice(-2) : allV;
-      parsed.push({ area, text, src, inV, risk: ['m','s','c'].find(k => fl.includes(k)), clar: !!src, conflictFlag: fl.includes('!') });
+      parsed.push({ area, text, src, inV, risk: ['m','s','c'].find(k => fl.includes(k)), crit: fl.includes('*'), clar: !!src, conflictFlag: fl.includes('!') });
     }));
     const liveRules = parsed.filter(r => r.inV.includes(lv));
     const rules = parsed.map(r => {
@@ -647,7 +651,7 @@ class Component extends DCLogic {
       const conflict = r.conflictFlag && inLive;
       return { area: r.area, st, text: r.text, src: srcText(r.src), href: actionsHref,
         hasRisk: !!r.risk, risk: r.risk ? C.RISK[r.risk][0] : '', riskTitle: r.risk ? C.RISK[r.risk][1] : '',
-        dropped: st === 'dropped', live: st !== 'dropped', added: st === 'added', addedLabel: 'Added', conflict, rank: conflict ? 0 : r.risk ? 1 : 2 };
+        crit: r.crit, dropped: st === 'dropped', live: st !== 'dropped', added: st === 'added', addedLabel: 'Added', conflict, rank: conflict ? 0 : r.risk ? 1 : 2 };
     }).filter(Boolean);
     const cnt = k => rules.filter(r => r.st === k).length;
     const so = this.state.specOpen || {};
@@ -655,11 +659,11 @@ class Component extends DCLogic {
       const all = rules.filter(r => r.area === a);
       const shown = (changesOnly ? all.filter(r => r.st !== 'kept') : all).map((r, i) => ({ ...r, i })).sort((x, y) => x.rank - y.rank || x.i - y.i);
       if (!shown.length) return null;
-      const nC = shown.filter(r => r.conflict).length, nA = shown.filter(r => r.added).length, nD = shown.filter(r => r.dropped).length;
+      const nK = shown.filter(r => r.crit).length, nC = shown.filter(r => r.conflict).length, nA = shown.filter(r => r.added).length, nD = shown.filter(r => r.dropped).length;
       const open = so[a] ?? (changesOnly || (!!this.props.expandFirst && gi === 0));
       return { name: C.CATS[a], count: shown.length, rules: shown, expanded: open, collapsed: !open,
         toggle: () => this.setState(s => ({ specOpen: { ...(s.specOpen || {}), [a]: !open } })),
-        hasConflict: nC > 0, conflictText: nC + ' in conflict', hasAdded: nA > 0, addedText: nA + ' added', hasDropped: nD > 0, droppedText: nD + ' dropped' };
+        hasCritRule: nK > 0, critText: nK + ' critical', hasConflict: nC > 0, conflictText: nC + ' in conflict', hasAdded: nA > 0, addedText: nA + ' added', hasDropped: nD > 0, droppedText: nD + ' dropped' };
     }).filter(Boolean);
     let urlTab = null;
     try { urlTab = new URLSearchParams(window.location.search).get('tab'); } catch (_) {}
@@ -714,7 +718,7 @@ class Component extends DCLogic {
         const sel = v.v === selV.v, nf = v.failing.length;
         return { label: 'Version ' + v.v, isFail: v.st === 'fail', isOk: v.st === 'ok', isOverride: v.st === 'override',
           failNote: `${nf} rule${nf === 1 ? '' : 's'} failing · ${v.when}`, okNote: 'Verified · ' + v.note, byNote: `by ${v.who}, ${v.when}`,
-          hasWhy: !!v.why, why: v.why ? '“' + v.why + '”' : '',
+          hasOrigin: !!v.origin, origin: v.origin || '', hasWhy: !!v.why, why: v.why ? '“' + v.why + '”' : '',
           pick: () => this.setState({ testVer: v.v }),
           rowStyle: { display:'grid', gridTemplateColumns:'96px minmax(0,1fr)', gap:12, alignItems:'start', padding:'13px 24px', borderTop:'1px solid var(--border)', cursor:'pointer', background: sel ? 'var(--wash)' : 'transparent', boxShadow: sel ? 'inset 2px 0 0 var(--ink)' : 'none' } };
       }),
