@@ -2562,6 +2562,36 @@ export type ConversationTurnOutput = {
 };
 
 /**
+ * CoveragePublic
+ *
+ * A rule is checked when a run judged it Passed or Failed at least once.
+ */
+export type CoveragePublic = {
+  /**
+   * Rules
+   *
+   * Rules in the agent's latest spec
+   */
+  rules: number;
+  /**
+   * Checked
+   */
+  checked: number;
+  /**
+   * Pct
+   *
+   * Checked rules as a whole percentage
+   */
+  pct: number;
+  /**
+   * Unchecked
+   *
+   * Critical first
+   */
+  unchecked?: Array<UncheckedRulePublic>;
+};
+
+/**
  * CustomEndpointRuntimeConfig
  *
  * Run evals against a user-provided HTTP endpoint.
@@ -3336,6 +3366,82 @@ export type ExpectedToolCall = {
   mock_response?: {
     [key: string]: unknown;
   } | null;
+};
+
+/**
+ * FailingCheckPublic
+ */
+export type FailingCheckPublic = {
+  /**
+   * Check Type
+   */
+  check_type: string;
+  /**
+   * Title
+   */
+  title: string;
+  /**
+   * Critical
+   */
+  critical?: boolean;
+  /**
+   * Found
+   */
+  found: number;
+  /**
+   * Of
+   *
+   * Simulated calls the version's runs made
+   */
+  of: number;
+  /**
+   * Calls
+   *
+   * At most 20
+   */
+  calls?: Array<JudgedCallPublic>;
+};
+
+/**
+ * FailingRulePublic
+ */
+export type FailingRulePublic = {
+  /**
+   * Key
+   */
+  key: string;
+  /**
+   * Text
+   */
+  text?: string | null;
+  /**
+   * Category
+   */
+  category: string;
+  /**
+   * Critical
+   */
+  critical?: boolean;
+  /**
+   * Failed
+   */
+  failed: number;
+  /**
+   * Judged
+   *
+   * Simulated calls that judged it
+   */
+  judged: number;
+  /**
+   * Flaky
+   */
+  flaky?: boolean;
+  /**
+   * Calls
+   *
+   * Failed first, at most 20
+   */
+  calls?: Array<JudgedCallPublic>;
 };
 
 /**
@@ -4536,6 +4642,28 @@ export type JudgeVerdict = {
    * LiteLLM-estimated USD cost for the judge completion
    */
   judge_cost_usd?: number | null;
+};
+
+/**
+ * JudgedCallPublic
+ */
+export type JudgedCallPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Scenario Name
+   */
+  scenario_name: string;
+  /**
+   * Repeat
+   */
+  repeat: number;
+  /**
+   * The rule's verdict here; none for a code check
+   */
+  outcome?: RuleOutcome | null;
 };
 
 /**
@@ -7201,6 +7329,20 @@ export type RetellRuntimeConfig = {
   version?: number | null;
 };
 
+/**
+ * RuleGroupPublic
+ */
+export type RuleGroupPublic = {
+  /**
+   * Category
+   */
+  category: string;
+  /**
+   * Rules
+   */
+  rules: Array<RuleRowPublic>;
+};
+
 export type RuleKey = string;
 
 /**
@@ -7220,6 +7362,36 @@ export const RuleOutcome = {
  * A spec rule's verdict in one simulated call.
  */
 export type RuleOutcome = (typeof RuleOutcome)[keyof typeof RuleOutcome];
+
+/**
+ * RuleRowPublic
+ */
+export type RuleRowPublic = {
+  /**
+   * Key
+   */
+  key: string;
+  /**
+   * Text
+   */
+  text: string;
+  /**
+   * Critical
+   */
+  critical?: boolean;
+  /**
+   * Passed
+   */
+  passed?: number;
+  /**
+   * Failed
+   */
+  failed?: number;
+  /**
+   * Did Not Come Up
+   */
+  did_not_come_up?: number;
+};
 
 /**
  * RuleTotalPublic
@@ -8002,6 +8174,32 @@ export type ScenarioPublic = {
 };
 
 /**
+ * ScenarioRowPublic
+ */
+export type ScenarioRowPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Caller Goal
+   */
+  caller_goal?: string | null;
+  /**
+   * Rules
+   */
+  rules: number;
+  /**
+   * Sets
+   */
+  sets?: Array<string>;
+};
+
+/**
  * ScenarioRulePublic
  */
 export type ScenarioRulePublic = {
@@ -8089,6 +8287,20 @@ export type ServedBy = {
    * Component Version Id
    */
   component_version_id?: string | null;
+};
+
+/**
+ * SetChipPublic
+ */
+export type SetChipPublic = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Scenarios
+   */
+  scenarios: number;
 };
 
 export type ShortText = string;
@@ -9645,6 +9857,46 @@ export type TestRunPublic = {
 };
 
 /**
+ * TestsTabPublic
+ *
+ * The agent's Tests tab: the newest tested version and what checked it.
+ */
+export type TestsTabPublic = {
+  /**
+   * Has Spec
+   */
+  has_spec: boolean;
+  results?: VersionResultsPublic | null;
+  coverage?: CoveragePublic | null;
+  /**
+   * Failing
+   *
+   * Critical first, then warnings
+   */
+  failing?: Array<FailingRulePublic>;
+  /**
+   * Failing Checks
+   *
+   * Critical first
+   */
+  failing_checks?: Array<FailingCheckPublic>;
+  /**
+   * All Rules
+   *
+   * The latest spec's rules by category
+   */
+  all_rules?: Array<RuleGroupPublic>;
+  /**
+   * Sets
+   */
+  sets?: Array<SetChipPublic>;
+  /**
+   * Scenarios
+   */
+  scenarios?: Array<ScenarioRowPublic>;
+};
+
+/**
  * TextRuntimeKind
  */
 export const TextRuntimeKind = { RETELL: 'retell', CUSTOM_ENDPOINT: 'custom_endpoint' } as const;
@@ -10132,6 +10384,34 @@ export const TurnRole = {
 export type TurnRole = (typeof TurnRole)[keyof typeof TurnRole];
 
 /**
+ * UncheckedRulePublic
+ */
+export type UncheckedRulePublic = {
+  /**
+   * Key
+   */
+  key: string;
+  /**
+   * Text
+   */
+  text: string;
+  /**
+   * Category
+   */
+  category: string;
+  /**
+   * Critical
+   */
+  critical?: boolean;
+  /**
+   * Why
+   *
+   * No scenario lists it, or its scenarios never reached it
+   */
+  why: 'no_scenario' | 'did_not_come_up';
+};
+
+/**
  * UpdatePassword
  */
 export type UpdatePassword = {
@@ -10444,6 +10724,10 @@ export type VersionResultsPublic = {
    * The runs that count, newest first
    */
   runs?: Array<TestRunPublic>;
+  /**
+   * The latest spec's rules these runs checked
+   */
+  coverage?: CoveragePublic | null;
 };
 
 /**
@@ -20022,6 +20306,61 @@ export type SpecGetAgentSpecResponses = {
 };
 
 export type SpecGetAgentSpecResponse = SpecGetAgentSpecResponses[keyof SpecGetAgentSpecResponses];
+
+export type TestsGetAgentTestsData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/tests';
+};
+
+export type TestsGetAgentTestsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type TestsGetAgentTestsError = TestsGetAgentTestsErrors[keyof TestsGetAgentTestsErrors];
+
+export type TestsGetAgentTestsResponses = {
+  /**
+   * Successful Response
+   */
+  200: TestsTabPublic;
+};
+
+export type TestsGetAgentTestsResponse =
+  TestsGetAgentTestsResponses[keyof TestsGetAgentTestsResponses];
 
 export type CompanyGetLlmCredentialsData = {
   body?: never;

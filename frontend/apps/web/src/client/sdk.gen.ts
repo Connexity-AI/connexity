@@ -447,6 +447,9 @@ import type {
   TestCasesUpdateTestCaseData,
   TestCasesUpdateTestCaseErrors,
   TestCasesUpdateTestCaseResponses,
+  TestsGetAgentTestsData,
+  TestsGetAgentTestsErrors,
+  TestsGetAgentTestsResponses,
   TokensCreatePersonalAccessTokenData,
   TokensCreatePersonalAccessTokenErrors,
   TokensCreatePersonalAccessTokenResponses,
@@ -4519,6 +4522,35 @@ export class SpecService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/agents/{agent_id}/spec',
+      ...options,
+    });
+  }
+}
+
+export class TestsService {
+  /**
+   * Get Agent Tests
+   *
+   * The newest tested version's verdict, what failed with its simulated calls,
+   * coverage of the latest spec, every rule's totals, and the scenarios and sets.
+   */
+  public static getAgentTests<ThrowOnError extends boolean = false>(
+    options: Options<TestsGetAgentTestsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      TestsGetAgentTestsResponses,
+      TestsGetAgentTestsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/tests',
       ...options,
     });
   }

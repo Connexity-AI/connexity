@@ -894,6 +894,21 @@ class TestRunDetail(TestRun):
     calls: list[SimulatedCall] = Field(default_factory=list)
 
 
+class UncheckedRule(BaseModel):
+    key: str
+    text: str
+    category: str
+    critical: bool = False
+    why: str = Field(description="no_scenario or did_not_come_up")
+
+
+class Coverage(BaseModel):
+    rules: int = Field(description="Rules in the agent's latest spec")
+    checked: int = Field(description="Rules judged Passed or Failed at least once")
+    pct: int
+    unchecked: list[UncheckedRule] = Field(default_factory=list)
+
+
 class VersionResults(BaseModel):
     version: str | None = None
     edited: bool = Field(
@@ -913,6 +928,7 @@ class VersionResults(BaseModel):
     rules: list[RuleTotal] = Field(default_factory=list)
     checks: list[CheckTotal] = Field(default_factory=list)
     runs: list[TestRun] = Field(default_factory=list)
+    coverage: Coverage | None = None
 
 
 class TestRuns(BaseModel):
