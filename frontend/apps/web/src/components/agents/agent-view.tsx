@@ -12,10 +12,11 @@ import { cn } from '@workspace/ui/lib/utils';
 
 import { PLATFORMS, seconds, TYPES } from '@/components/agents/agents-view';
 import { SpecTab } from '@/components/agents/spec-tab';
+import { TestsTab } from '@/components/agents/tests-tab';
 import { parseTime } from '@/components/calls/format';
 import { Picker } from '@/components/common/picker';
 
-import type { AgentPagePublic, SpecPublic } from '@/client/types.gen';
+import type { AgentPagePublic, SpecPublic, TestsTabPublic } from '@/client/types.gen';
 import type { FC, ReactNode } from 'react';
 
 const PERIOD_LABELS: Record<string, string> = {
@@ -192,18 +193,20 @@ const Overview: FC<{ agent: AgentPagePublic }> = ({ agent }) => (
 
 interface Props {
   agent: AgentPagePublic;
-  tab: 'overview' | 'calls' | 'spec';
+  tab: 'overview' | 'calls' | 'spec' | 'tests';
   /** The agent's spec, loaded on the server; shown on the Spec tab and in its label. */
   spec?: SpecPublic | null;
+  /** The Tests tab, loaded on the server; its coverage is in the tab's label. */
+  tests?: TestsTabPublic | null;
   /** The Calls tab's list, loaded on the server. */
   children?: ReactNode;
 }
 
 /**
- * One agent (designs/screens/Connexity Agent Profile.dc.html): Overview, Calls and Spec.
- * The Issues and Tests tabs, score and critical issues wait for their features (rule 14).
+ * One agent (designs/screens/Connexity Agent Profile.dc.html): Overview, Calls, Spec and
+ * Tests. The Issues tab, score and critical issues wait for their features (rule 14).
  */
-export const AgentView: FC<Props> = ({ agent, tab, spec, children }) => {
+export const AgentView: FC<Props> = ({ agent, tab, spec, tests, children }) => {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -223,6 +226,12 @@ export const AgentView: FC<Props> = ({ agent, tab, spec, children }) => {
     { key: 'overview' as const, label: 'Overview', count: null },
     { key: 'calls' as const, label: 'Calls', count: agent.calls },
     { key: 'spec' as const, label: 'Spec', count: spec?.spec?.rule_count ?? null },
+    {
+      key: 'tests' as const,
+      label: 'Tests',
+      count: null,
+      suffix: tests?.coverage ? `${tests.coverage.pct}%` : null,
+    },
   ];
 
   return (
@@ -278,6 +287,9 @@ export const AgentView: FC<Props> = ({ agent, tab, spec, children }) => {
               {item.count != null && (
                 <span className="text-label text-ink-muted">{item.count.toLocaleString()}</span>
               )}
+              {'suffix' in item && item.suffix && (
+                <span className="text-label font-normal text-ink-muted">{item.suffix}</span>
+              )}
             </button>
           );
         })}
@@ -285,6 +297,7 @@ export const AgentView: FC<Props> = ({ agent, tab, spec, children }) => {
 
       {tab === 'overview' && <Overview agent={agent} />}
       {tab === 'calls' && children}
+      {tab === 'tests' && tests && <TestsTab tests={tests} />}
       {tab === 'spec' && spec && (
         <SpecTab
           spec={spec}

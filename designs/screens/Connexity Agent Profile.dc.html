@@ -48,30 +48,6 @@
 <button onClick="{{ tabIssues }}" style="{{ tabIssuesStyle }}">Issues<span style="font-size:13px;font-weight:400;color:var(--ink3)">{{ issueCount }}</span></button>
 <button onClick="{{ tabSpec }}" style="{{ tabSpecStyle }}">Spec<span style="font-size:13px;font-weight:400;color:var(--ink3)">{{ specTotal }}</span></button>
 <button onClick="{{ tabTests }}" style="{{ tabTestsStyle }}">Tests<span style="font-size:13px;font-weight:400;color:var(--ink3)">{{ coverageText }}</span></button>
-<div ref="{{ runRef }}" style="position:relative;margin-left:auto;align-self:center">
-<sc-if value="{{ onTests }}" hint-placeholder-val="{{ false }}">
-<button onClick="{{ toggleRun }}" disabled="{{ running }}" style="display:flex;align-items:center;gap:6px;height:32px;padding:0 10px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:13px;cursor:pointer" style-hover="background:var(--wash)">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
-<span>{{ runLabel }}</span>
-<sc-if value="{{ notRunning }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
-</button>
-<sc-if value="{{ runOpen }}" hint-placeholder-val="{{ false }}">
-<div style="position:absolute;right:0;top:38px;z-index:20;width:264px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18);display:flex;flex-direction:column">
-<span style="padding:8px 12px 4px;font-size:13px;line-height:18px;color:var(--ink2)">Levels to run on version {{ selVer }}</span>
-<sc-for list="{{ runLevels }}" as="l" hint-placeholder-count="0">
-<div onClick="{{ l.toggle }}" style="display:flex;align-items:center;gap:10px;height:36px;padding:0 12px;border-radius:6px;font-size:15px;cursor:pointer" style-hover="background:var(--wash)">
-<sc-if value="{{ l.on }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span></sc-if>
-<sc-if value="{{ l.off }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;border:1px solid var(--bc)"></span></sc-if>
-<sc-if value="{{ l.enabled }}"><span>{{ l.name }}</span></sc-if>
-<sc-if value="{{ l.disabled }}"><span style="color:var(--ink3)">{{ l.name }}</span><span style="margin-left:auto;font-size:13px;color:var(--ink3)">Not set up</span></sc-if>
-</div>
-</sc-for>
-<div style="padding:8px 8px 4px"><button onClick="{{ runNow }}" style="width:100%;height:36px;border:0;border-radius:8px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.9">Run on version {{ selVer }}</button></div>
-<span style="padding:4px 12px 8px;font-size:13px;line-height:18px;color:var(--ink3)">Your assistant can also run tests through MCP.</span>
-</div>
-</sc-if>
-</sc-if>
-</div>
 </div>
 <sc-if value="{{ onOverview }}" hint-placeholder-val="{{ true }}">
 <div style="display:flex;flex-direction:column;gap:24px">
@@ -301,152 +277,191 @@
 </sc-if>
 <sc-if value="{{ onTests }}" hint-placeholder-val="{{ false }}">
 <div style="display:flex;flex-direction:column;gap:16px">
-<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px">
-<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Coverage</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ coverageText }}</span><span style="margin-top:-6px;font-size:13px;line-height:18px;color:var(--ink3)">{{ coverageSub }}</span></div>
-<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Test cases</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ caseCount }}</span></div>
-<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Passing</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ passingText }}</span></div>
-<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Flaky</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ flakyN }}</span></div>
-<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px">
-<sc-if value="{{ gateFailed }}" hint-placeholder-val="{{ true }}"><span style="display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--crit)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Version {{ newestVer }}</span><span style="font-size:30px;line-height:36px;font-weight:500;color:var(--crit)">Failed</span></sc-if>
-<sc-if value="{{ gateOk }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Version {{ newestVer }}</span><span style="font-size:30px;line-height:36px;font-weight:500">Verified</span></sc-if>
+<sc-if value="{{ tNoSpec }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:40px 24px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink3)"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path></svg>
+<p style="margin:0;max-width:520px;color:var(--ink2);text-wrap:pretty">No spec yet. The assistant writes the spec first; then it writes scenarios for the rules.</p>
 </div>
-</div>
-<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start">
-<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-<div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Versions</h2><span style="font-size:13px;color:var(--ink3)">Newest first</span></div>
-<sc-for list="{{ versionRows }}" as="v" hint-placeholder-count="3">
-<div onClick="{{ v.pick }}" style="{{ v.rowStyle }}" style-hover="background:var(--wash)">
-<span style="font-weight:500;white-space:nowrap;line-height:22px">{{ v.label }}</span>
-<div style="display:flex;flex-direction:column;gap:4px;min-width:0">
-<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:22px">
-<sc-if value="{{ v.isFail }}"><span style="flex:none;display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Failed</span><span style="color:var(--ink2)">{{ v.failNote }}</span></sc-if>
-<sc-if value="{{ v.isOk }}"><span style="color:var(--ink2)">{{ v.okNote }}</span></sc-if>
-<sc-if value="{{ v.hasOrigin }}"><span style="color:var(--ink2)">· {{ v.origin }}</span></sc-if>
-<sc-if value="{{ v.isOverride }}"><span style="flex:none;display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Shipped despite failure</span><span style="color:var(--ink2)">{{ v.byNote }}</span></sc-if>
-</div>
-<sc-if value="{{ v.hasWhy }}"><span style="text-wrap:pretty">{{ v.why }}</span></sc-if>
-</div>
-</div>
-</sc-for>
-</div>
-<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-<div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Latest run</h2><span style="font-size:13px;color:var(--ink3)">Version {{ selVer }} · {{ ranAt }}</span></div>
-<div style="display:grid;grid-template-columns:minmax(0,1fr) 64px 64px 64px 72px;gap:16px;align-items:center;height:40px;padding:0 24px;border-top:1px solid var(--border);font-size:13px;color:var(--ink2)"><span>Level</span><span style="text-align:right">Passed</span><span style="text-align:right">Failed</span><span style="text-align:right">Flaky</span><span style="text-align:right">Duration</span></div>
-<sc-for list="{{ levelRows }}" as="l" hint-placeholder-count="3">
-<div title="{{ l.desc }}" style="display:grid;grid-template-columns:minmax(0,1fr) 64px 64px 64px 72px;gap:16px;align-items:center;min-height:48px;padding:0 24px;border-top:1px solid var(--border)">
-<span>{{ l.name }}</span>
-<sc-if value="{{ l.setUp }}">
-<span style="text-align:right">{{ l.passed }}</span>
-<sc-if value="{{ l.hasFail }}"><span style="text-align:right;color:var(--crit);font-weight:500">{{ l.failed }}</span></sc-if>
-<sc-if value="{{ l.noFail }}"><span style="text-align:right;color:var(--ink3)">0</span></sc-if>
-<sc-if value="{{ l.hasFlaky }}"><span style="text-align:right;color:var(--warn);font-weight:500">{{ l.flaky }}</span></sc-if>
-<sc-if value="{{ l.noFlaky }}"><span style="text-align:right;color:var(--ink3)">0</span></sc-if>
-<span style="text-align:right;color:var(--ink2);white-space:nowrap">{{ l.dur }}</span>
 </sc-if>
-<sc-if value="{{ l.notSetUp }}"><span style="grid-column:2 / -1;color:var(--ink3)">Not set up</span></sc-if>
+<sc-if value="{{ tHasTiles }}" hint-placeholder-val="{{ true }}">
+<div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px">
+<sc-if value="{{ vFailed }}" hint-placeholder-val="{{ true }}">
+<div style="grid-column:span 2;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px">
+<span style="display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--crit)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Verdict</span>
+<span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;row-gap:0;font-size:24px;line-height:36px;font-weight:500;white-space:nowrap;color:var(--crit)"><span>Version {{ tVer }}</span><sc-if value="{{ tEdited }}"><span style="display:inline-flex;align-items:center;height:22px;padding:0 6px;border-radius:6px;border:1px solid var(--bc);color:var(--ink2);font-size:13px;line-height:18px;font-weight:500">Edited</span></sc-if><span>· Failed</span></span>
+<span style="margin-top:-6px;font-size:13px;line-height:18px;color:var(--ink3)">{{ tAt }}</span>
 </div>
-</sc-for>
+</sc-if>
+<sc-if value="{{ vVerified }}" hint-placeholder-val="{{ false }}">
+<div style="grid-column:span 2;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px">
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">Verdict</span>
+<span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;row-gap:0;font-size:24px;line-height:36px;font-weight:500;white-space:nowrap"><span>Version {{ tVer }}</span><sc-if value="{{ tEdited }}"><span style="display:inline-flex;align-items:center;height:22px;padding:0 6px;border-radius:6px;border:1px solid var(--bc);color:var(--ink2);font-size:13px;line-height:18px;font-weight:500">Edited</span></sc-if><span>· Verified</span></span>
+<span style="margin-top:-6px;font-size:13px;line-height:18px;color:var(--ink3)">{{ tAt }}</span>
 </div>
+</sc-if>
+<sc-if value="{{ vUntested }}" hint-placeholder-val="{{ false }}">
+<div style="grid-column:span 2;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px">
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">Verdict</span>
+<span style="font-size:30px;line-height:36px;font-weight:500;color:var(--ink2)">Not tested</span>
+<span style="display:flex;align-items:center;gap:8px;margin-top:-6px;font-size:13px;line-height:18px;color:var(--ink3)"><span>Version {{ tVer }}</span><sc-if value="{{ tEdited }}"><span style="display:inline-flex;align-items:center;height:22px;padding:0 6px;border-radius:6px;border:1px solid var(--bc);color:var(--ink2);font-size:13px;line-height:18px;font-weight:500">Edited</span></sc-if></span>
 </div>
+</sc-if>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Coverage</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ coverageText }}</span><span style="margin-top:-6px;font-size:13px;line-height:18px;color:var(--ink3)">{{ coverageSub }}</span></div>
+<sc-if value="{{ tShowScen }}" hint-placeholder-val="{{ true }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Scenarios</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ scenCount }}</span><span style="margin-top:-6px;font-size:13px;line-height:18px;color:var(--ink3)">{{ scenSub }}</span></div>
+</sc-if>
+<sc-if value="{{ tRan }}" hint-placeholder-val="{{ true }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Flaky</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ flakyN }}<span style="font-size:20px;color:var(--ink2)"> {{ flakyUnit }}</span></span><span style="margin-top:-6px;font-size:13px;line-height:18px;color:var(--ink3)">of {{ judgedN }} checked</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px">
+<sc-if value="{{ hasWarn }}" hint-placeholder-val="{{ true }}"><span style="display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--warn)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Warnings</span><span style="font-size:30px;line-height:36px;font-weight:500;color:var(--warn)">{{ warnN }}</span></sc-if>
+<sc-if value="{{ noWarn }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Warnings</span><span style="font-size:30px;line-height:36px;font-weight:500">0</span></sc-if>
+<span style="margin-top:-6px;font-size:13px;line-height:18px;color:var(--ink3)">{{ warnSub }}</span>
+</div>
+</sc-if>
+</div>
+</sc-if>
+<sc-if value="{{ tNoScen }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:40px 24px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink3)"><path d="M10 2v7.31"></path><path d="M14 9.3V1.99"></path><path d="M8.5 2h7"></path><path d="M14 9.3a6.5 6.5 0 1 1-4 0"></path><path d="M5.52 16h12.96"></path></svg>
+<p style="margin:0;max-width:520px;color:var(--ink2);text-wrap:pretty">No scenarios yet. The assistant writes them, one or more for each critical rule.</p>
+</div>
+</sc-if>
+<sc-if value="{{ tUntested }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:40px 24px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink3)"><path d="M10 2v7.31"></path><path d="M14 9.3V1.99"></path><path d="M8.5 2h7"></path><path d="M14 9.3a6.5 6.5 0 1 1-4 0"></path><path d="M5.52 16h12.96"></path></svg>
+<p style="margin:0;max-width:520px;color:var(--ink2);text-wrap:pretty">Not tested yet. The assistant runs the scenarios through MCP.</p>
+</div>
+</sc-if>
+<sc-if value="{{ hasWhy }}" hint-placeholder-val="{{ true }}">
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-<div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Failing rules</h2><span style="font-size:13px;color:var(--ink3)">{{ failCaption }}</span></div>
-<sc-if value="{{ hasFailing }}" hint-placeholder-val="{{ true }}">
-<div style="display:grid;grid-template-columns:minmax(0,1fr) 88px 148px 72px;gap:16px;align-items:center;height:40px;padding:0 24px 0 72px;border-top:1px solid var(--border);font-size:13px;color:var(--ink2)"><span>Rule</span><span>Failed at</span><span>Runs</span><span></span></div>
-<sc-for list="{{ failGroups }}" as="g" hint-placeholder-count="3">
-<div style="border-top:1px solid var(--border)">
-<div onClick="{{ g.toggle }}" style="display:flex;align-items:center;gap:8px;min-height:48px;padding:0 24px;cursor:pointer;user-select:none" style-hover="background:var(--wash)">
-<span style="display:flex;color:var(--ink2);flex:none">
-<sc-if value="{{ g.expanded }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
-<sc-if value="{{ g.collapsed }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
-</span>
-<span>{{ g.name }}</span>
-<span style="font-size:13px;color:var(--ink2)">{{ g.count }}</span>
+<div style="padding:20px 24px 12px">
+<sc-if value="{{ vFailed }}" hint-placeholder-val="{{ true }}"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Why it failed</h2></sc-if>
+<sc-if value="{{ vVerified }}" hint-placeholder-val="{{ false }}"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Warnings</h2></sc-if>
 </div>
-<sc-if value="{{ g.expanded }}">
-<div style="padding-bottom:8px">
-<sc-for list="{{ g.rules }}" as="r" hint-placeholder-count="0">
+<sc-for list="{{ whyGroups }}" as="g" hint-placeholder-count="2">
+<div style="border-top:1px solid var(--border);padding-bottom:8px">
+<div style="display:flex;align-items:center;gap:8px;height:40px;padding:0 24px;font-size:13px;line-height:18px">
+<sc-if value="{{ g.isCrit }}"><span style="color:var(--crit);font-weight:500">Critical</span></sc-if>
+<sc-if value="{{ g.isWarn }}"><span style="color:var(--ink2);font-weight:500">Warnings</span></sc-if>
+<span style="color:var(--ink3)">{{ g.count }}</span>
+</div>
+<sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="2">
 <div>
-<div onClick="{{ r.toggle }}" style="display:grid;grid-template-columns:minmax(0,1fr) 88px 148px 72px;gap:16px;align-items:center;min-height:56px;padding:8px 24px 8px 48px;cursor:pointer;user-select:none" style-hover="background:var(--wash)">
-<div style="display:flex;align-items:flex-start;gap:8px;min-width:0">
-<span style="display:flex;flex:none;color:var(--ink2);padding-top:3px">
-<sc-if value="{{ r.expanded }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
-<sc-if value="{{ r.collapsed }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
-</span>
-<div style="display:flex;flex-direction:column;min-width:0">
-<span style="text-wrap:pretty">{{ r.text }}</span>
-<sc-if value="{{ r.fromIssue }}"><span style="font-size:13px;line-height:18px;color:var(--ink3)">From the issue <a href="#issues" onClick="{{ r.openIssue }}" title="Open in Issues" style="color:var(--ink2)">{{ r.issueName }}</a>, {{ r.issueDate }}</span></sc-if>
-<sc-if value="{{ r.fromPrompt }}"><span style="font-size:13px;line-height:18px;color:var(--ink3)">From the prompt</span></sc-if>
+<div onClick="{{ r.toggle }}" style="display:grid;grid-template-columns:16px minmax(0,1fr) auto;gap:12px;align-items:start;padding:9px 24px;cursor:pointer;user-select:none" style-hover="background:var(--wash)">
+<span style="display:flex;color:var(--ink2);padding-top:3px"><sc-if value="{{ r.expanded }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if><sc-if value="{{ r.collapsed }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if></span>
+<div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+<sc-if value="{{ r.crit }}"><span style="flex:none;display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Critical</span></sc-if>
+<sc-if value="{{ r.loud }}"><span style="text-wrap:pretty">{{ r.text }}</span></sc-if>
+<sc-if value="{{ r.quiet }}"><span style="color:var(--ink2);text-wrap:pretty">{{ r.text }}</span></sc-if>
+<sc-if value="{{ r.flaky }}"><span style="flex:none;display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:13px;line-height:18px;font-weight:500">Flaky</span></sc-if>
 </div>
+<span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ r.sub }}</span>
 </div>
-<span>{{ r.level }}</span>
-<span style="color:var(--ink2);white-space:nowrap">{{ r.runs }}</span>
-<span></span>
+<sc-if value="{{ r.loud }}"><span style="font-size:13px;line-height:22px;white-space:nowrap">{{ r.count }}</span></sc-if>
+<sc-if value="{{ r.quiet }}"><span style="font-size:13px;line-height:22px;color:var(--ink2);white-space:nowrap">{{ r.count }}</span></sc-if>
 </div>
 <sc-if value="{{ r.expanded }}">
 <div style="padding-bottom:8px">
-<sc-for list="{{ r.cases }}" as="c" hint-placeholder-count="0">
-<div style="display:grid;grid-template-columns:minmax(0,1fr) 88px 148px 72px;gap:16px;align-items:center;min-height:52px;padding:6px 24px 6px 72px" style-hover="background:var(--wash)">
-<div style="display:flex;flex-direction:column;min-width:0"><span style="text-wrap:pretty">{{ c.name }}</span><span style="font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">{{ c.proves }}</span></div>
-<span style="color:var(--ink2)">{{ c.level }}</span>
-<span>
+<sc-for list="{{ r.calls }}" as="c" hint-placeholder-count="0">
+<a href="{{ c.href }}" title="Open the simulated call" style="display:grid;grid-template-columns:minmax(0,1fr) 88px 96px 16px;gap:12px;align-items:center;min-height:40px;padding:0 24px 0 52px;color:var(--ink);text-decoration:none" style-hover="background:var(--wash);opacity:1">
+<span style="text-wrap:pretty">{{ c.name }}</span>
+<span style="font-size:13px;color:var(--ink2)">{{ c.rep }}</span>
+<span style="font-size:13px">
 <sc-if value="{{ c.isFail }}"><span style="display:inline-flex;align-items:center;gap:6px;color:var(--crit);font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg>Failed</span></sc-if>
-<sc-if value="{{ c.isFlaky }}"><span style="display:inline-flex;align-items:center;gap:6px;color:var(--warn);font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Flaky</span></sc-if>
 <sc-if value="{{ c.isPass }}"><span style="display:inline-flex;align-items:center;gap:6px;color:var(--pass)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>Passed</span></sc-if>
+<sc-if value="{{ c.isFlag }}"><span style="display:inline-flex;align-items:center;gap:6px;color:var(--warn);font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Flagged</span></sc-if>
 </span>
-<a href="Connexity Call.dc.html?call=S-0915" title="Open the simulated call" style="justify-self:end;display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink2);white-space:nowrap">Open call<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg></a>
-</div>
+<span style="display:flex;color:var(--ink3)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg></span>
+</a>
 </sc-for>
 </div>
 </sc-if>
 </div>
 </sc-for>
 </div>
-</sc-if>
-</div>
 </sc-for>
-</sc-if>
-<sc-if value="{{ noFailing }}" hint-placeholder-val="{{ false }}">
-<div style="display:flex;align-items:center;gap:8px;padding:16px 24px 24px;border-top:1px solid var(--border);color:var(--ink2)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--pass)"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>Every rule passed in version {{ selVer }}</div>
-</sc-if>
 </div>
+</sc-if>
+<sc-if value="{{ tRan }}" hint-placeholder-val="{{ true }}">
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-<sc-if value="{{ hasGap }}" hint-placeholder-val="{{ true }}">
-<div onClick="{{ toggleGap }}" style="display:flex;align-items:center;gap:8px;min-height:56px;padding:0 24px;cursor:pointer;user-select:none" style-hover="background:var(--wash)">
-<span style="display:flex;color:var(--ink2);flex:none">
-<sc-if value="{{ gapOpen }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
-<sc-if value="{{ gapClosed }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
-</span>
-<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Rules without tests</h2>
-<span style="font-size:13px;color:var(--ink2)">{{ gapCount }}</span>
+<div onClick="{{ toggleAll }}" style="display:flex;align-items:center;gap:8px;min-height:56px;padding:0 24px;cursor:pointer;user-select:none" style-hover="background:var(--wash)">
+<span style="display:flex;color:var(--ink2);flex:none"><sc-if value="{{ allOpen }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if><sc-if value="{{ allClosed }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if></span>
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">All rules</h2>
+<span style="font-size:13px;color:var(--ink2)">{{ judgedN }}</span>
 </div>
-<sc-if value="{{ gapOpen }}">
-<div style="padding-bottom:8px">
-<sc-for list="{{ gapCats }}" as="g" hint-placeholder-count="0">
+<sc-if value="{{ allOpen }}">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 64px 64px 112px;gap:16px;align-items:center;height:36px;padding:0 24px 0 48px;border-top:1px solid var(--border);font-size:13px;color:var(--ink2)"><span>Rule</span><span style="text-align:right">Passed</span><span style="text-align:right">Failed</span><span style="text-align:right">Didn’t come up</span></div>
+<sc-for list="{{ allCats }}" as="g" hint-placeholder-count="0">
 <div style="border-top:1px solid var(--border)">
-<div onClick="{{ g.toggle }}" style="display:flex;align-items:center;gap:8px;min-height:44px;padding:0 24px 0 48px;cursor:pointer;user-select:none" style-hover="background:var(--wash)">
-<span style="display:flex;color:var(--ink2);flex:none">
-<sc-if value="{{ g.expanded }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
-<sc-if value="{{ g.collapsed }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
-</span>
+<div onClick="{{ g.toggle }}" style="display:flex;align-items:center;gap:8px;min-height:44px;padding:0 24px;cursor:pointer;user-select:none" style-hover="background:var(--wash)">
+<span style="display:flex;color:var(--ink2);flex:none"><sc-if value="{{ g.expanded }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if><sc-if value="{{ g.collapsed }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if></span>
 <span>{{ g.name }}</span>
 <span style="font-size:13px;color:var(--ink2)">{{ g.count }}</span>
 </div>
 <sc-if value="{{ g.expanded }}">
 <div style="padding-bottom:8px">
 <sc-for list="{{ g.rules }}" as="r" hint-placeholder-count="0">
-<div style="display:flex;flex-direction:column;padding:7px 24px 7px 72px"><span style="text-wrap:pretty">{{ r.text }}</span><span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ r.src }}</span></div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 64px 64px 112px;gap:16px;align-items:center;padding:7px 24px 7px 48px" style-hover="background:var(--wash)">
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0"><sc-if value="{{ r.crit }}"><span style="flex:none;display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Critical</span></sc-if><span style="text-wrap:pretty">{{ r.text }}</span></div>
+<span style="text-align:right;font-size:13px;color:var(--ink2)">{{ r.p }}</span>
+<sc-if value="{{ r.hasF }}"><span style="text-align:right;font-size:13px;color:var(--crit);font-weight:500">{{ r.f }}</span></sc-if>
+<sc-if value="{{ r.noF }}"><span style="text-align:right;font-size:13px;color:var(--ink3)">0</span></sc-if>
+<span style="text-align:right;font-size:13px;color:var(--ink3)">{{ r.d }}</span>
+</div>
 </sc-for>
 </div>
 </sc-if>
 </div>
 </sc-for>
-</div>
-</sc-if>
-</sc-if>
-<sc-if value="{{ noGap }}" hint-placeholder-val="{{ false }}">
-<div style="display:flex;align-items:center;gap:8px;min-height:56px;padding:0 24px;color:var(--ink2)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--pass)"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>Every rule has at least one test case</div>
 </sc-if>
 </div>
+</sc-if>
+<sc-if value="{{ hasNc }}" hint-placeholder-val="{{ true }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div onClick="{{ toggleNc }}" style="display:flex;align-items:center;gap:8px;min-height:56px;padding:0 24px;cursor:pointer;user-select:none" style-hover="background:var(--wash)">
+<span style="display:flex;color:var(--ink2);flex:none"><sc-if value="{{ ncOpen }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if><sc-if value="{{ ncClosed }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if></span>
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Not checked</h2>
+<span style="font-size:13px;color:var(--ink2)">{{ ncN }}</span>
+</div>
+<sc-if value="{{ ncOpen }}">
+<sc-for list="{{ ncCats }}" as="g" hint-placeholder-count="0">
+<div style="border-top:1px solid var(--border)">
+<div onClick="{{ g.toggle }}" style="display:flex;align-items:center;gap:8px;min-height:44px;padding:0 24px;cursor:pointer;user-select:none" style-hover="background:var(--wash)">
+<span style="display:flex;color:var(--ink2);flex:none"><sc-if value="{{ g.expanded }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></sc-if><sc-if value="{{ g.collapsed }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></sc-if></span>
+<span>{{ g.name }}</span>
+<span style="font-size:13px;color:var(--ink2)">{{ g.count }}</span>
+</div>
+<sc-if value="{{ g.expanded }}">
+<div style="padding-bottom:8px">
+<sc-for list="{{ g.rules }}" as="r" hint-placeholder-count="0">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:16px;align-items:center;padding:7px 24px 7px 48px" style-hover="background:var(--wash)">
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0"><sc-if value="{{ r.crit }}"><span style="flex:none;display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Critical</span></sc-if><span style="text-wrap:pretty">{{ r.text }}</span></div>
+<span style="text-align:right;font-size:13px;color:var(--ink2)">{{ r.why }}</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</sc-if>
+</div>
+</sc-if>
+<sc-if value="{{ tShowScen }}" hint-placeholder-val="{{ true }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Scenarios</h2><span style="font-size:13px;color:var(--ink2)">{{ scenCount }}</span></div>
+<div style="display:flex;flex-wrap:wrap;gap:8px;padding:0 24px 16px">
+<sc-for list="{{ setChips }}" as="s" hint-placeholder-count="3"><span style="display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:6px;border:1px solid var(--border);background:var(--s2);font-size:13px;line-height:18px;color:var(--ink2)">{{ s.label }}</span></sc-for>
+</div>
+<sc-for list="{{ scenRows }}" as="s" hint-placeholder-count="6">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 64px 200px;gap:16px;align-items:center;padding:9px 24px;border-top:1px solid var(--border)">
+<div style="display:flex;flex-direction:column;min-width:0"><span style="text-wrap:pretty">{{ s.name }}</span><span style="font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">{{ s.goal }}</span></div>
+<span style="font-size:13px;color:var(--ink2);white-space:nowrap">{{ s.rules }}</span>
+<div style="display:flex;flex-wrap:wrap;gap:4px"><sc-for list="{{ s.sets }}" as="t" hint-placeholder-count="0"><span style="display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:6px;border:1px solid var(--border);font-size:13px;line-height:18px;color:var(--ink2)">{{ t.name }}</span></sc-for></div>
+</div>
+</sc-for>
+</div>
+</sc-if>
 </div>
 </sc-if>
 </div>
@@ -490,9 +505,9 @@ class Component extends DCLogic {
     insurance: { clar:3, rules:{
       greet:["c*|Confirm date of birth and policy number before discussing the policy.","-|Read the full policy number back to the caller.","c|Speak to a partner on the policy only if they are a named driver.","c*|Say the call may be recorded at the start of every call.","|Skip the welcome for callers who call back within an hour.","|Greet callers with the company name."],
       collect:["|Use the postcode on the policy, not one heard on the call.","|Ask whether the caller wants to keep the same cover level.","|Ask whether any drivers or vehicles have changed.","c|Ask whether the caller has made a claim in the last year.","|Ask for an email address only if none is on the policy.","+|Spell back email addresses letter by letter.|Y 8 Nov","|Ask callers to repeat a policy number instead of guessing.|Y 18 Oct","|Read back the registration number letter by letter.","|Confirm the spelling of names.","|Repeat numbers back in groups of three.","|Ask the caller to slow down if a number is unclear.","|Use the phonetic alphabet when a letter is unclear.","|Repeat the postcode back to the caller.","3|Reuse the policy number given at the start of the call.|Y 30 Oct","|Never ask for the date of birth twice.","|Never ask for the registration if it is on the policy.","|Skip questions the caller has already answered."],
-      book:["|Give the renewal date exactly as it appears on the policy.","|Say the policy starts at midnight on the renewal date.","c*|Renew a policy only after the caller agrees to the final price.","c|Repeat the renewal date and price before asking for agreement.|A 2 Oct","3|Send a renewal confirmation by text after every renewal.","-|Email the renewal documents within one hour."],
-      resched:["m+|Mention only the cancellation fees listed on the caller’s policy.|Y 10 Nov","m*|Never promise a refund; pass refund questions to a person.","|Book a callback when the caller wants time to decide.","|Read the callback time back to the caller.","|Offer the next three callback slots, not more.","m*|Cancel a renewal only after confirming the cancellation fee.","|Send the cancellation confirmation by text.","|Offer a callback if the caller has to go."],
-      price:["m*|Quote renewal prices only from the quote lookup, never from memory.","m3*|Never quote a renewal price above the price in the quote lookup.","m+|Offer the loyalty discount to every renewing customer.","m!|Offer the loyalty discount only to customers of 3 years or more.|A 22 Sep","m3|Round prices to the cent, never to the dollar.|Y 3 Nov","m|State the price including all taxes and fees.","m|Say the excess amount when the caller asks about claims.","m|Never say a price is final until the quote lookup confirms it.","m|Quote the no-claims discount from the policy record.","m|State the payment date for each instalment.","m|Never quote a price for a cover level the caller did not ask about.","m+|Offer monthly payments for renewals over $600."],
+      book:["*|Ask for the date of birth before booking.","|Say the policy starts at midnight on the renewal date.","c*|Renew a policy only after the caller agrees to the final price.","c|Repeat the renewal date and price before asking for agreement.|A 2 Oct","3|Send a renewal confirmation by text after every renewal.","-|Email the renewal documents within one hour."],
+      resched:["m+|Mention only the cancellation fees listed on the caller’s policy.|Y 10 Nov","m*|Never promise a refund; pass refund questions to a person.","|Book a callback when the caller wants time to decide.","|Read the callback time back to the caller.","|Offer the earliest slot first.","m*|Cancel a renewal only after confirming the cancellation fee.","|Send the cancellation confirmation by text.","|Offer a callback if the caller has to go."],
+      price:["m*|Quote renewal prices only from the quote lookup, never from memory.","m3*|Never quote a price above the price list.","m+|Offer the loyalty discount to every renewing customer.","m!|Offer the loyalty discount only to customers of 3 years or more.|A 22 Sep","m3|Round prices to the cent, never to the dollar.|Y 3 Nov","m|State the price including all taxes and fees.","m|Say the excess amount when the caller asks about claims.","m|Never say a price is final until the quote lookup confirms it.","m|Quote the no-claims discount from the policy record.","m|State the payment date for each instalment.","m|Never quote a price for a cover level the caller did not ask about.","m+|Offer monthly payments for renewals over $600."],
       objection:["m|Explain a price increase only with reasons the lookup gives.","|Never compare the policy with another insurer’s.","|Answer questions about other insurers’ prices with “we can only speak to your policy.”|A 12 Oct","|Keep a calm tone when the caller is upset."],
       transfer:["c|Transfer if the caller cannot pass security after two tries.","3|Stay on the line until a transfer is answered.|Y 28 Oct","|Warn the caller before a transfer.","|Give the caller the direct number before transferring.","|Transfer to a person whenever the caller asks for one.","|Offer a callback when no person is free within 2 minutes.|A 15 Oct","s*|Transfer at once if the caller says they have been in an accident.","|Transfer complaints to the customer care team.","|Transfer callers who want to cancel and ask to speak to someone.","|Say who the caller is being transferred to.","|Pass the reason for the call to the person taking the transfer.","c|Transfer callers who say they are in financial hardship.","|Transfer calls about claims to the claims team.","|Give the opening hours when no team is available.","3|Transfer callers who sound confused after two explanations.","|Reuse the details passed on with a transfer.","|Never repeat security questions after a transfer back.","|Answer in English; transfer callers who need another language."],
       compliance:["m*|Take payment only through the secure payment line.","c*|Never renew a policy for someone who is not the policyholder.","c|Record the caller’s agreement in the CRM before ending the call.","c*|Never read out a full card or bank number.","c+|Ask for consent before recording the call.","c|Never confirm whether a person is a policyholder to a third party.|Y 10 Oct","c|Never say a caller’s address out loud; ask them to confirm it.","c|Read only the last four digits of a card.","|Never ask for a password or PIN.","c|Never discuss claims history with anyone but the policyholder.","|Never repeat a date of birth back in full.","|Never leave policy details in a voicemail.","c|Never send documents to a new email address without security checks.","|Ask the caller to move somewhere private if others can hear.","c|Never confirm medical information given for a policy.","c|Remove card details from call notes after payment.","|Never ask for the caller’s full bank details.","|Never pretend to be a person when asked.","|Never give legal advice.","|Never give financial advice beyond the policy.","|Never say anything about other customers."],
@@ -524,54 +539,36 @@ class Component extends DCLogic {
     }}
   };
   static CATS = { greet:'Greeting and identification', collect:'Information collection', book:'Booking', resched:'Rescheduling and cancelling', price:'Pricing and quotes', objection:'Objection handling', transfer:'Transfers and escalation', compliance:'Compliance and privacy', flow:'Conversation flow quality', end:'Ending the call', fast:'Responsiveness', tools:'Tools and integrations', speech:'Speech recognition', other:'Other' };
-  static LEVELS = [['text','Text','A simulated caller talks to the agent in text'],['audio','Audio','A simulated caller talks to the agent’s voice stack over a web call'],['phone','Phone','Real phone calls to the agent’s number before a release']];
-  // failing: [category, rule, 'issue name|date' or '' for the prompt, level failed at, runs passed, runs, [[test case, level, pass|fail|flaky]]]
+  // scen: 'name|caller goal|rules listed|sets'. failing: [category, rule index, [[scenario #, repeat, f|p]]]. checks: [title, crit|warn, found by, [[scenario #, repeat]]]. notChecked: n = no scenario, d = didn't come up, then the rule index.
   static TESTS = {
-    insurance: { cases:240, setup:['text','audio','phone'],
-      untested:{ collect:[10,11,12], price:[9,10], transfer:[13,14,16], compliance:[16,17,18,19], flow:[19,20,21], other:[7,8,9] },
-      versions:[
-        { v:15, st:'fail', when:'today', ranAt:'today, 9:40', run:{ text:[234,3,3,'6 min'], audio:[36,1,1,'22 min'], phone:[3,0,0,'5 min'] }, failing:[
-          ['resched','Mention only the cancellation fees listed on the caller’s policy.','Cancellation fee stated that the policy does not have|8 Nov','Text',1,5,[['Caller asks what it costs to cancel mid-term','Text','fail'],['Caller cancels within the cooling-off period','Text','fail'],['Caller on a monthly plan asks about fees','Text','pass']]],
-          ['price','Never quote a renewal price above the price in the quote lookup.','','Text',3,5,[['Price went up since last year','Text','fail'],['Quote lookup returns two cover levels','Text','flaky'],['Caller asks for the price twice','Text','pass']]],
-          ['transfer','Stay on the line until a transfer is answered.','Transfers that drop the call|2 Nov','Audio',2,5,[['Caller asks for a person during a quote lookup','Audio','fail'],['Transfer rings for 90 seconds before an answer','Audio','flaky'],['Caller asks for a person straight away','Text','pass']]]
-        ]},
-        { v:14, st:'ok', note:'live since 6 Nov', ranAt:'6 Nov', run:{ text:[237,0,3,'6 min'], audio:[37,0,1,'21 min'], phone:[3,0,0,'5 min'] }, failing:[] },
-        { v:13, st:'override', who:'Alex through the assistant', when:'2 Nov', why:'Holiday hours had to go live', ranAt:'2 Nov', run:{ text:[228,2,2,'5 min'], audio:[35,0,1,'20 min'], phone:[3,0,0,'4 min'] }, failing:[
-          ['other','Give the office’s opening hours when asked.','','Text',3,5,[['Caller asks if the office is open on a public holiday','Text','fail'],['Caller asks for Saturday hours','Text','pass']]]
-        ]}
-      ]},
-    car: { cases:38, setup:['text','audio'], untested:{ price:[1] }, versions:[
-      { v:9, st:'ok', note:'live since 20 Oct', ranAt:'20 Oct', run:{ text:[37,0,1,'1 min'], audio:[11,0,0,'6 min'] }, failing:[] },
-      { v:8, st:'ok', note:'live until 20 Oct', ranAt:'2 Sep', run:{ text:[34,0,0,'1 min'], audio:[10,0,0,'6 min'] }, failing:[] }]},
-    restaurant: { cases:52, setup:['text','audio'], untested:{ other:[0] }, versions:[
-      { v:7, st:'fail', when:'yesterday', ranAt:'yesterday, 16:05', run:{ text:[50,2,0,'2 min'], audio:[14,0,1,'8 min'] }, failing:[
-        ['book','Hold a table for late guests for up to 20 minutes.','','Text',2,5,[['Guest calls 15 minutes late','Text','fail'],['Guest calls 25 minutes late','Text','fail'],['Guest calls to say they are on time','Text','pass']]]] },
-      { v:6, st:'ok', note:'live since 28 Oct', ranAt:'28 Oct', run:{ text:[51,0,1,'2 min'], audio:[15,0,0,'8 min'] }, failing:[] }]},
-    clinic: { cases:44, setup:['text','audio','phone'], untested:{}, versions:[
-      { v:5, st:'ok', note:'live since 17 Nov', origin:'Critical rules marked by Alex’s Claude Code · 17 Nov', ranAt:'17 Nov', run:{ text:[44,0,0,'2 min'], audio:[16,0,0,'9 min'], phone:[2,0,0,'3 min'] }, failing:[] },
-      { v:4, st:'ok', note:'live until 17 Nov', ranAt:'2 Nov', run:{ text:[44,0,0,'2 min'], audio:[16,0,0,'9 min'], phone:[2,0,0,'3 min'] }, failing:[] },
-      { v:3, st:'ok', note:'live until 2 Nov', ranAt:'4 Sep', run:{ text:[41,0,0,'2 min'], audio:[15,0,0,'9 min'], phone:[2,0,0,'3 min'] }, failing:[] }]},
-    dental: { cases:30, setup:['text'], untested:{ book:[2] }, versions:[
-      { v:11, st:'ok', note:'live since 18 Oct', ranAt:'18 Oct', run:{ text:[30,0,0,'1 min'] }, failing:[] },
-      { v:10, st:'ok', note:'live until 18 Oct', ranAt:'1 Sep', run:{ text:[28,0,0,'1 min'] }, failing:[] }]}
+    insurance: { ver:15, edited:true, at:'today, 9:40', repeats:3, sets:['smoke','renewals','pricing'],
+      scen:['Same-price renewal|Renew without changes and pay by card|4|smoke,renewals','Price pushback|Check why the renewal price went up and push back on it|3|smoke,pricing','Price asked twice|Hear the renewal price again before agreeing|3|pricing','Two cover levels|Compare two cover levels before renewing|4|pricing','Cooling-off cancellation|Cancel within the cooling-off period|3|renewals','Cancellation mid-term|Learn the cancellation fee before deciding|3|pricing','Callback to decide later|Book a callback to decide on the renewal|3|renewals','Soonest callback|Get the earliest callback possible|2|renewals','Named driver renews|Renew on behalf of a partner on the policy|4|renewals','Failed security|Get through security after two wrong answers|3|smoke','Accident reported|Report an accident during a renewal call|2|smoke','Person straight away|Speak to a person at once|2|smoke','Person during a lookup|Ask for a person while the price is loading|3|','New email address|Get documents sent to a new email|4|renewals','Unusual surname|Have an unusual surname taken down correctly|2|','New driver|Add a driver before renewing|4|renewals,pricing','New vehicle|Renew with a different car|4|renewals,pricing','Claims history|Find out whether a past claim changes the price|3|pricing','Financial hardship|Ask for help paying the renewal|2|','Monthly payments|Spread the renewal over monthly payments|3|pricing','Loyalty discount|Get the loyalty discount after four years|3|pricing','Competitor price|Get a better price by naming another insurer|3|','Upset about the price|Complain about the renewal price|3|','Caller goes quiet|Come back to the call after a long pause|2|','Hold request|Find a document while on hold|3|','Line drops during payment|Finish paying after the call drops|3|renewals','Card payment|Pay the renewal through the secure line|3|smoke,renewals','Full card number read out|Read the card number aloud to pay|2|','Third-party enquiry|Find out whether someone has a policy|2|','Opening hours|Find out when the office is open|1|','What the policy covers|Check whether windscreens are covered|2|','Spanish speaker|Renew in Spanish|2|','Is this a person?|Find out whether a person is on the line|1|','Old postcode|Renew while giving an old postcode|2|renewals','Wrong policy detail|Renew while stating the wrong cover level|2|','Refund request|Get money back for an unused month|2|','Summary by email|Renew and get the summary emailed|3|renewals','Long transfer ring|Wait for a person to answer a transfer|2|'],
+      failing:[['price',1,[[2,1,'f'],[2,2,'p'],[2,3,'f'],[4,1,'p'],[3,2,'p']]],['book',0,[[7,1,'f'],[7,2,'f'],[8,3,'f']]],['resched',4,[[8,1,'f'],[8,3,'f']]],['collect',5,[[14,1,'f'],[14,2,'p'],[14,3,'p']]]],
+      checks:[['Tool call failed','crit','Found by a rule',[[13,2],[26,1]]],['Long silence before a reply','warn','Found by a rule',[[13,1],[25,2],[38,3]]]],
+      notChecked:{ collect:'n10 d11 n12', price:'d9 n10', transfer:'n13 d14 n16', compliance:'d3 n16 n17 d18', flow:'n19 d20 n21', other:'n7 n8 d9' } },
+    car: { ver:9, scen:[] },
+    restaurant: { ver:7, edited:true, repeats:3, sets:['smoke','bookings'],
+      scen:['Table for four tonight|Book a table for four at 19:30|2|smoke','Group of twelve|Book a table for twelve people|1|smoke,bookings','Fifteen minutes late|Keep the table while running late|1|bookings','Twenty-five minutes late|Keep the table after 20 minutes|1|bookings','Manager request|Speak to the manager|1|','Card for a deposit|Pay a deposit over the phone|1|smoke','Holiday hours|Find out whether the restaurant opens on a public holiday|1|'] },
+    clinic: { ver:5, at:'16 Nov, 18:20', repeats:3, sets:['smoke','urgent'],
+      scen:['Chest pain|Get help for chest pain after hours|2|smoke,urgent','Trouble breathing|Get help for trouble breathing|2|smoke,urgent','Child with a high fever|Reach the on-call doctor|2|urgent','Test results|Hear blood test results tonight|1|smoke','Callback tomorrow|Leave a number for a callback|2|','Date of birth given early|Book a callback without repeating details|2|','Mild cough|Find out whether it can wait until morning|2|urgent','Page follow-up|Check that the doctor was paged|2|','Number read too fast|Leave a callback number quickly|1|'],
+      checks:[['Long silence before a reply','warn','Found by a rule',[[7,2]]]] },
+    dental: { ver:12, scen:[] }
   };
   static CAT_ORDER = ['greet','collect','book','resched','price','objection','transfer','compliance','flow','end','fast','tools','speech','other'];
   constructor(props) {
     super(props);
-    this.state = { periodOpen:false, period:'Last 30 days', open:null, verOpen:false, compare:undefined, tab:null, changesOnly:null, specOpen:null, testVer:null, failOpen:null, ruleOpen:null, gapOpen:false, gapCat:null, runOpen:false, runLevels:null, running:false };
+    this.state = { periodOpen:false, period:'Last 30 days', open:null, verOpen:false, compare:undefined, tab:null, changesOnly:null, specOpen:null, whyOpen:null, allOpen:false, allCat:null, ncOpen:false, ncCat:null };
     this.pickerRef = React.createRef();
     this.verRef = React.createRef();
-    this.runRef = React.createRef();
   }
   componentDidMount() {
     this.onDoc = e => {
       if (this.state.periodOpen && this.pickerRef.current && !this.pickerRef.current.contains(e.target)) this.setState({ periodOpen:false });
       if (this.state.verOpen && this.verRef.current && !this.verRef.current.contains(e.target)) this.setState({ verOpen:false });
-      if (this.state.runOpen && this.runRef.current && !this.runRef.current.contains(e.target)) this.setState({ runOpen:false });
     };
     document.addEventListener('mousedown', this.onDoc);
   }
-  componentWillUnmount() { document.removeEventListener('mousedown', this.onDoc); clearTimeout(this.runT); }
+  componentWillUnmount() { document.removeEventListener('mousedown', this.onDoc); }
   agentId() {
     let q = null;
     try { q = new URLSearchParams(window.location.search).get('agent'); } catch (_) {}
@@ -638,10 +635,10 @@ class Component extends DCLogic {
     const actionsHref = 'Connexity Action items.dc.html?agent=' + aid;
     const srcText = src => { if (!src) return 'From the prompt'; const [w, ...d] = src.split(' '); return 'From a clarification, answered by ' + (w === 'Y' ? 'your assistant' : 'Alex') + ' on ' + d.join(' '); };
     const parsed = [];
-    Object.keys(SP.rules).forEach(area => SP.rules[area].forEach(s => {
+    Object.keys(SP.rules).forEach(area => SP.rules[area].forEach((s, idx) => {
       const [fl, text, src] = s.split('|');
       const inV = fl.includes('+') ? [lv] : fl.includes('-') ? allV.slice(0, -1) : fl.includes('3') ? allV.slice(-2) : allV;
-      parsed.push({ area, text, src, inV, risk: ['m','s','c'].find(k => fl.includes(k)), crit: fl.includes('*'), clar: !!src, conflictFlag: fl.includes('!') });
+      parsed.push({ area, idx, text, src, inV, risk: ['m','s','c'].find(k => fl.includes(k)), crit: fl.includes('*'), clar: !!src, conflictFlag: fl.includes('!') });
     }));
     const liveRules = parsed.filter(r => r.inV.includes(lv));
     const rules = parsed.map(r => {
@@ -671,70 +668,64 @@ class Component extends DCLogic {
     const tabStyle = on => ({ display:'flex', alignItems:'center', gap:6, height:40, padding:'0 2px', marginBottom:-1, border:0, borderBottom: '2px solid ' + (on ? 'var(--ink)' : 'transparent'), background:'transparent', color: on ? 'var(--ink)' : 'var(--ink2)', fontSize:15, fontWeight: on ? 500 : 400, cursor:'pointer' });
     const nConf = liveRules.filter(r => r.conflictFlag).length;
     const T = C.TESTS[aid];
-    const untested = [];
-    Object.keys(T.untested).forEach(a => T.untested[a].forEach(i => { const [, text, src] = SP.rules[a][i].split('|'); untested.push({ area:a, text, src: srcText(src) }); }));
-    const coverage = liveRules.length ? Math.round((liveRules.length - untested.length) / liveRules.length * 100) : 0;
-    const newest = T.versions[0];
-    const sumK = (v, k) => Object.values(v.run).reduce((s, r) => s + r[k], 0);
-    const runTot = sumK(newest, 0) + sumK(newest, 1) + sumK(newest, 2);
-    const selV = T.versions.find(v => v.v === this.state.testVer) || newest;
-    const ef = !!this.props.expandFirst, fo = this.state.failOpen || {}, ro = this.state.ruleOpen || {};
-    const failGroups = C.CAT_ORDER.filter(a => selV.failing.some(f => f[0] === a)).map((a, gi) => {
-      const key = selV.v + '|' + a, gOpen = fo[key] ?? (ef && gi === 0);
-      const rs = selV.failing.filter(f => f[0] === a).map(([, text, from, level, p, n, cases], ri) => {
-        const rk = key + '|' + ri, rOpen = ro[rk] ?? (ef && gi === 0 && ri === 0);
-        const [iss, idate] = (from || '').split('|');
-        const short = text.replace(/\.$/, '');
-        return { text, level, fromIssue: !!from, fromPrompt: !from, issueName: '‘' + iss + '’', issueDate: idate, runs: `Passed ${p} of ${n} runs`,
-          expanded: rOpen, collapsed: !rOpen,
-          toggle: () => this.setState(s => ({ ruleOpen: { ...(s.ruleOpen || {}), [rk]: !rOpen } })),
-          openIssue: e => { e.preventDefault(); e.stopPropagation(); this.setState({ tab:'issues' }); },
-          cases: cases.map(([name, lvl, res]) => ({ name, level: lvl, proves: 'Proves ‘' + short + '’', isPass: res === 'pass', isFail: res === 'fail', isFlaky: res === 'flaky' })) };
+    const scen = (T.scen || []).map(s => { const [name, goal, n, sets] = s.split('|'); return { name, goal, rules: n + (n === '1' ? ' rule' : ' rules'), setList: sets ? sets.split(',') : [], sets: (sets ? sets.split(',') : []).map(name => ({ name })) }; });
+    const tState = A.noSpec ? 'nospec' : !scen.length ? 'noscen' : !T.at ? 'untested' : 'ran', ran = tState === 'ran';
+    const nc = {};
+    Object.keys(T.notChecked || {}).forEach(a => T.notChecked[a].split(' ').forEach(t => { nc[a + '|' + t.slice(1)] = t[0]; }));
+    const failMap = {};
+    (T.failing || []).forEach(([a, i, cl]) => { failMap[a + '|' + i] = cl; });
+    const hash = s => { let x = 7; for (let i = 0; i < s.length; i++) x = (x * 31 + s.charCodeAt(i)) % 9973; return x; };
+    const judged = ran ? liveRules.filter(r => !nc[r.area + '|' + r.idx]) : [];
+    const coverage = ran && liveRules.length ? Math.round(judged.length / liveRules.length * 100) : 0;
+    const total = scen.length * (T.repeats || 1);
+    const callRows = (cl, sev) => cl.map(([si, rp, v]) => ({ name: scen[si - 1].name, rep: 'Repeat ' + rp, isFail: sev ? sev === 'crit' : v === 'f', isPass: !sev && v === 'p', isFlag: sev === 'warn', href: 'Connexity Call.dc.html?call=S-0915' }));
+    const ruleRows = ran ? (T.failing || []).map(([a, i, cl]) => {
+      const r = liveRules.find(x => x.area === a && x.idx === i), f = cl.filter(c => c[2] === 'f').length;
+      return { key: a + '|' + i, crit: r.crit, text: r.text, sub: C.CATS[a], flaky: cl.some(c => c[2] === 'p'), count: `Failed in ${f} of ${cl.length} simulated calls`, calls: callRows(cl) };
+    }) : [];
+    const checkRows = ran ? (T.checks || []).map(([title, sev, by, cl]) => ({ key: title, crit: false, critCheck: sev === 'crit', text: title, sub: by, flaky: false, count: `Found in ${cl.length} of ${total} simulated calls`, calls: callRows(cl, sev) })) : [];
+    const critRows = [...ruleRows.filter(r => r.crit), ...checkRows.filter(r => r.critCheck)];
+    const warnRules = ruleRows.filter(r => !r.crit), warnChecks = checkRows.filter(r => !r.critCheck), warnRows = [...warnRules, ...warnChecks];
+    const failed = ran && (critRows.length > 0 || warnRules.length > 5);
+    const wo = this.state.whyOpen || {}, ef = !!this.props.expandFirst;
+    const firstKey = (critRows[0] || warnRows[0] || {}).key;
+    const mk = (rows, loud) => rows.map(r => { const op = wo[r.key] ?? (ef && r.key === firstKey);
+      return { ...r, loud, quiet: !loud, expanded: op, collapsed: !op, toggle: () => this.setState(s => ({ whyOpen: { ...(s.whyOpen || {}), [r.key]: !op } })) }; });
+    const whyGroups = [critRows.length && { isCrit: true, isWarn: false, count: critRows.length, rows: mk(critRows, true) }, warnRows.length && { isCrit: false, isWarn: true, count: warnRows.length, rows: mk(warnRows, false) }].filter(Boolean);
+    const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+    const ac = this.state.allCat || {}, ncc = this.state.ncCat || {};
+    const allCats = C.CAT_ORDER.filter(a => judged.some(r => r.area === a)).map(a => {
+      const rs = judged.filter(r => r.area === a).map(r => {
+        const cl = failMap[a + '|' + r.idx], k = hash(r.text);
+        const f = cl ? cl.filter(c => c[2] === 'f').length : 0, p = cl ? cl.length - f : 2 + k % 6;
+        return { text: r.text, crit: r.crit, p, f, d: k % 3, hasF: f > 0, noF: f === 0 };
       });
-      return { name: C.CATS[a], count: rs.length, rules: rs, expanded: gOpen, collapsed: !gOpen,
-        toggle: () => this.setState(s => ({ failOpen: { ...(s.failOpen || {}), [key]: !gOpen } })) };
+      const op = !!ac[a];
+      return { name: C.CATS[a], count: rs.length, rules: rs, expanded: op, collapsed: !op, toggle: () => this.setState(s => ({ allCat: { ...(s.allCat || {}), [a]: !op } })) };
     });
-    const gc = this.state.gapCat || {};
-    const gapCats = C.CAT_ORDER.filter(a => untested.some(u => u.area === a)).map(a => {
-      const rs = untested.filter(u => u.area === a), op = !!gc[a];
-      return { name: C.CATS[a], count: rs.length, rules: rs, expanded: op, collapsed: !op, toggle: () => this.setState(s => ({ gapCat: { ...(s.gapCat || {}), [a]: !op } })) };
+    const ncRules = ran ? liveRules.filter(r => nc[r.area + '|' + r.idx]) : [];
+    const ncCats = C.CAT_ORDER.filter(a => ncRules.some(r => r.area === a)).map(a => {
+      const rs = ncRules.filter(r => r.area === a).sort((x, y) => (y.crit ? 1 : 0) - (x.crit ? 1 : 0)).map(r => ({ text: r.text, crit: r.crit, why: nc[a + '|' + r.idx] === 'n' ? 'No scenario' : 'Didn’t come up' }));
+      const op = !!ncc[a];
+      return { name: C.CATS[a], count: rs.length, rules: rs, expanded: op, collapsed: !op, toggle: () => this.setState(s => ({ ncCat: { ...(s.ncCat || {}), [a]: !op } })) };
     });
-    const rl = this.state.runLevels || {};
-    const runLevels = C.LEVELS.map(([k, name]) => {
-      const ok = T.setup.includes(k), on = ok && (rl[k] ?? true);
-      return { k, name, on, off: !on, enabled: ok, disabled: !ok, toggle: () => { if (ok) this.setState(s => ({ runLevels: { ...(s.runLevels || {}), [k]: !on } })); } };
-    });
-    const nFail = selV.failing.length;
+    const nSets = (T.sets || []).length;
     return {
       onCalls: tab === 'calls', tabCalls: () => this.setState({ tab:'calls' }), tabCallsStyle: tabStyle(tab === 'calls'), agentKey: aid,
       onOverview: tab === 'overview', onIssues: tab === 'issues', onSpec: tab === 'spec' && !A.noSpec, specEmpty: tab === 'spec' && !!A.noSpec, noSpec: !!A.noSpec, onTests: tab === 'tests',
       tabOverview: () => this.setState({ tab:'overview' }), tabIssues: () => this.setState({ tab:'issues' }), tabSpec: () => this.setState({ tab:'spec' }), tabTests: () => this.setState({ tab:'tests' }),
       tabOverviewStyle: tabStyle(tab === 'overview'), tabIssuesStyle: tabStyle(tab === 'issues'), tabSpecStyle: tabStyle(tab === 'spec'), tabTestsStyle: tabStyle(tab === 'tests'),
-      coverageText: coverage + '%', coverageSub: `${liveRules.length - untested.length} of ${liveRules.length} rules`,
-      caseCount: T.cases, passingText: Math.round(sumK(newest, 0) / runTot * 100) + '%', flakyN: sumK(newest, 2),
-      newestVer: newest.v, gateFailed: newest.st !== 'ok', gateOk: newest.st === 'ok',
-      selVer: selV.v, ranAt: selV.ranAt,
-      versionRows: T.versions.map(v => {
-        const sel = v.v === selV.v, nf = v.failing.length;
-        return { label: 'Version ' + v.v, isFail: v.st === 'fail', isOk: v.st === 'ok', isOverride: v.st === 'override',
-          failNote: `${nf} rule${nf === 1 ? '' : 's'} failing · ${v.when}`, okNote: 'Verified · ' + v.note, byNote: `by ${v.who}, ${v.when}`,
-          hasOrigin: !!v.origin, origin: v.origin || '', hasWhy: !!v.why, why: v.why ? '“' + v.why + '”' : '',
-          pick: () => this.setState({ testVer: v.v }),
-          rowStyle: { display:'grid', gridTemplateColumns:'96px minmax(0,1fr)', gap:12, alignItems:'start', padding:'13px 24px', borderTop:'1px solid var(--border)', cursor:'pointer', background: sel ? 'var(--wash)' : 'transparent', boxShadow: sel ? 'inset 2px 0 0 var(--ink)' : 'none' } };
-      }),
-      levelRows: C.LEVELS.map(([k, name, desc]) => {
-        const r = T.setup.includes(k) ? selV.run[k] : null;
-        return { name, desc, setUp: !!r, notSetUp: !r, passed: r ? r[0] : 0, failed: r ? r[1] : 0, flaky: r ? r[2] : 0, dur: r ? r[3] : '',
-          hasFail: !!r && r[1] > 0, noFail: !(r && r[1] > 0), hasFlaky: !!r && r[2] > 0, noFlaky: !(r && r[2] > 0) };
-      }),
-      failGroups, hasFailing: nFail > 0, noFailing: nFail === 0,
-      failCaption: nFail ? `${nFail} in version ${selV.v}` : `Version ${selV.v}`,
-      gapCats, gapCount: untested.length, hasGap: untested.length > 0, noGap: untested.length === 0,
-      gapOpen: this.state.gapOpen, gapClosed: !this.state.gapOpen, toggleGap: () => this.setState(s => ({ gapOpen: !s.gapOpen })),
-      runRef: this.runRef, runOpen: this.state.runOpen, runLevels, running: this.state.running, notRunning: !this.state.running,
-      runLabel: this.state.running ? `Running on version ${selV.v}…` : 'Run tests',
-      toggleRun: () => this.setState(s => ({ runOpen: !s.runOpen })),
-      runNow: () => { if (!runLevels.some(l => l.on)) return; this.setState({ runOpen:false, running:true }); clearTimeout(this.runT); this.runT = setTimeout(() => this.setState({ running:false }), 3000); },
+      coverageText: A.noSpec ? '' : coverage + '%', coverageSub: `${judged.length} of ${liveRules.length} rules`,
+      tNoSpec: tState === 'nospec', tHasTiles: tState !== 'nospec', tNoScen: tState === 'noscen', tUntested: tState === 'untested', tRan: ran, tShowScen: ran || tState === 'untested',
+      vFailed: failed, vVerified: ran && !failed, vUntested: tState === 'untested', tVer: T.ver, tEdited: !!T.edited, tAt: 'tested ' + (T.at || ''),
+      scenCount: scen.length, scenSub: 'in ' + plural(nSets, 'set'),
+      flakyN: ruleRows.filter(r => r.flaky).length, flakyUnit: ruleRows.filter(r => r.flaky).length === 1 ? 'rule' : 'rules', judgedN: judged.length,
+      warnN: warnRows.length, hasWarn: warnRows.length > 0, noWarn: warnRows.length === 0,
+      warnSub: warnRows.length ? [warnRules.length && plural(warnRules.length, 'rule'), warnChecks.length && plural(warnChecks.length, 'code check')].filter(Boolean).join(', ') : 'none',
+      hasWhy: whyGroups.length > 0, whyGroups,
+      allCats, allOpen: this.state.allOpen, allClosed: !this.state.allOpen, toggleAll: () => this.setState(s => ({ allOpen: !s.allOpen })),
+      ncCats, ncN: ncRules.length, hasNc: ncRules.length > 0, ncOpen: this.state.ncOpen, ncClosed: !this.state.ncOpen, toggleNc: () => this.setState(s => ({ ncOpen: !s.ncOpen })),
+      setChips: (T.sets || []).map(s => ({ label: s + ' · ' + scen.filter(x => x.setList.includes(s)).length })), scenRows: scen,
       specTotal: A.noSpec ? '' : liveRules.length, specPrompt: liveRules.filter(r => !r.clar).length, specClar: liveRules.filter(r => r.clar).length,
       specConflict: nConf, hasConflict: nConf > 0, noConflict: nConf === 0, clarCount: SP.clar,
       keptN: cnt('kept'), addedN: cnt('added'), droppedN: cnt('dropped'),

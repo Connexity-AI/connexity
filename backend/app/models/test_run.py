@@ -7,7 +7,7 @@ A run is a 1.x `run` and each simulated call a `test_case_result`, until test re
 
 import uuid
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel
 from pydantic import Field as PydanticField
@@ -208,3 +208,109 @@ class VersionResultsPublic(BaseModel):
     runs: list[TestRunPublic] = PydanticField(
         default_factory=list, description="The runs that count, newest first"
     )
+    coverage: "CoveragePublic | None" = PydanticField(
+        default=None, description="The latest spec's rules these runs checked"
+    )
+
+
+class UncheckedRulePublic(BaseModel):
+    key: str
+    text: str
+    category: str
+    critical: bool = False
+    why: Literal["no_scenario", "did_not_come_up"] = PydanticField(
+        description="No scenario lists it, or its scenarios never reached it"
+    )
+
+
+class CoveragePublic(BaseModel):
+    """A rule is checked when a run judged it Passed or Failed at least once."""
+
+    rules: int = PydanticField(description="Rules in the agent's latest spec")
+    checked: int
+    pct: int = PydanticField(description="Checked rules as a whole percentage")
+    unchecked: list[UncheckedRulePublic] = PydanticField(
+        default_factory=list, description="Critical first"
+    )
+
+
+class JudgedCallPublic(BaseModel):
+    id: uuid.UUID
+    scenario_name: str
+    repeat: int
+    outcome: RuleOutcome | None = PydanticField(
+        default=None, description="The rule's verdict here; none for a code check"
+    )
+
+
+class FailingRulePublic(BaseModel):
+    key: str
+    text: str | None = None
+    category: str
+    critical: bool = False
+    failed: int
+    judged: int = PydanticField(description="Simulated calls that judged it")
+    flaky: bool = False
+    calls: list[JudgedCallPublic] = PydanticField(
+        default_factory=list, description="Failed first, at most 20"
+    )
+
+
+class FailingCheckPublic(BaseModel):
+    check_type: str
+    title: str
+    critical: bool = False
+    found: int
+    of: int = PydanticField(description="Simulated calls the version's runs made")
+    calls: list[JudgedCallPublic] = PydanticField(
+        default_factory=list, description="At most 20"
+    )
+
+
+class RuleRowPublic(BaseModel):
+    key: str
+    text: str
+    critical: bool = False
+    passed: int = 0
+    failed: int = 0
+    did_not_come_up: int = 0
+
+
+class RuleGroupPublic(BaseModel):
+    category: str
+    rules: list[RuleRowPublic]
+
+
+class ScenarioRowPublic(BaseModel):
+    id: uuid.UUID
+    name: str
+    caller_goal: str | None = None
+    rules: int
+    sets: list[str] = PydanticField(default_factory=list)
+
+
+class SetChipPublic(BaseModel):
+    name: str
+    scenarios: int
+
+
+class TestsTabPublic(BaseModel):
+    """The agent's Tests tab: the newest tested version and what checked it."""
+
+    has_spec: bool
+    results: VersionResultsPublic | None = None
+    coverage: CoveragePublic | None = None
+    failing: list[FailingRulePublic] = PydanticField(
+        default_factory=list, description="Critical first, then warnings"
+    )
+    failing_checks: list[FailingCheckPublic] = PydanticField(
+        default_factory=list, description="Critical first"
+    )
+    all_rules: list[RuleGroupPublic] = PydanticField(
+        default_factory=list, description="The latest spec's rules by category"
+    )
+    sets: list[SetChipPublic] = PydanticField(default_factory=list)
+    scenarios: list[ScenarioRowPublic] = PydanticField(default_factory=list)
+
+
+VersionResultsPublic.model_rebuild()

@@ -552,7 +552,7 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     ) -> TestRunsResult:
         """Without `run_id`: a tested version's results (`version`, default the
         newest tested): Failed or Verified, the totals per rule across all its runs,
-        the code checks and warnings; then the agent's runs, newest first. With
+        the code checks, warnings and coverage of the spec; then the agent's runs, newest first. With
         `run_id`: the run's status, rule totals, findings, and a page of its
         simulated calls with each rule's verdict, reason and link (`url`)."""
         return await _get_test_runs(

@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { AgentView } from '@/components/agents/agent-view';
 import { CallsList, one } from '@/components/calls/calls-list';
 import ErrorBoundarySuspense from '@/components/common/error-boundary-suspense';
-import { AgentsService, SpecService } from '@/client/sdk.gen';
+import { AgentsService, SpecService, TestsService } from '@/client/sdk.gen';
 
 import type { SearchParams } from '@/components/calls/calls-list';
 import type { FC } from 'react';
@@ -19,7 +19,7 @@ const Agent: FC<{ id: string; params: SearchParams }> = async ({ id, params }) =
   if (response.response?.status === 404 || response.response?.status === 422) notFound();
   if (!response.data) throw new Error('The agent could not be loaded.');
   const asked = one(params.tab);
-  const tab = asked === 'calls' || asked === 'spec' ? asked : 'overview';
+  const tab = asked === 'calls' || asked === 'spec' || asked === 'tests' ? asked : 'overview';
   const compare = Number(one(params.compare)) || undefined;
   const specResponse = await SpecService.getAgentSpec({
     path: { agent_id: id },
@@ -32,9 +32,11 @@ const Agent: FC<{ id: string; params: SearchParams }> = async ({ id, params }) =
       ? (await SpecService.getAgentSpec({ path: { agent_id: id }, query: {} })).data
       : undefined);
   if (!spec) throw new Error('The spec could not be loaded.');
+  const tests = (await TestsService.getAgentTests({ path: { agent_id: id } })).data;
+  if (!tests) throw new Error('The tests could not be loaded.');
 
   return (
-    <AgentView agent={response.data} tab={tab} spec={spec}>
+    <AgentView agent={response.data} tab={tab} spec={spec} tests={tests}>
       {tab === 'calls' ? <CallsList params={params} agentId={id} /> : null}
     </AgentView>
   );
