@@ -162,6 +162,20 @@ class ConnexityBackendClient:
             json={"reason": reason, "duration": duration},
         )
 
+    async def mark_issue_fixed(
+        self,
+        *,
+        workspace_id: str,
+        issue_id: str,
+        version: str,
+        note: str | None = None,
+    ) -> dict[str, Any]:
+        return await self._request_json(
+            "POST",
+            f"{self._issue_path(workspace_id, issue_id)}/fixed",
+            json={"version": version, "note": note},
+        )
+
     async def unarchive_issue(
         self, *, workspace_id: str, issue_id: str, reason: str | None = None
     ) -> dict[str, Any]:

@@ -38,6 +38,10 @@ class IssueListItemPublic(BaseModel):
     )
     state: IssueState
     resolved_version: str | None = None
+    fix_live: bool | None = Field(
+        default=None,
+        description="Resolved in a version: whether that version went live yet",
+    )
     calls_affected: int = Field(description="Calls in the period it was found on")
     calls_total: int = Field(description="The agent's calls in the period")
     last_seen_at: datetime | None = Field(

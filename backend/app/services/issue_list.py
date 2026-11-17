@@ -140,6 +140,9 @@ def workspace_issues(
                 found_by="rule" if kind in (None, CheckKind.RULE) else "model",
                 state=issue.state,
                 resolved_version=issue.resolved_version,
+                fix_live=issue.fix_live_at is not None
+                if issue.state is IssueState.RESOLVED and issue.resolved_version
+                else None,
                 calls_affected=affected.get(issue.id, 0),
                 calls_total=per_agent.get(issue.agent_id, 0),
                 last_seen_at=summary.last_seen_at,

@@ -34,8 +34,8 @@ or the other filters.
   78 calls".
 - **`state`:**
   - `open`;
-  - `resolved` (with `resolved_version` when one was given);
-  - `reopened`: found again on a call that started after it was resolved;
+  - `resolved` (with `resolved_version`, and `fix_live` once that version went live);
+  - `reopened`: found again on a call after its fix went live;
   - `archived`: real, and nobody will fix it. Only a person archives, with a reason.
 
 ## One issue
@@ -50,6 +50,24 @@ Call `get_issue` with an issue's `id`. It answers, for the last 30 days:
   it first happened and how many times). `list_calls` with `issue_id` lists them all.
 - **`history`:** every decision, newest first, ending with when it was opened.
 - **`archive`:** while archived, who archived it, when, how long and why.
+
+## Marking fixed
+
+After you change the agent so an issue should stop, call `mark_issue_fixed` with the
+issue's `id` and the agent's `version` that carries the fix: its number on the
+platform. Add a `note` with what you changed.
+
+- **It becomes resolved** and leaves the open lists. No approval is needed: a wrong mark
+  reopens by itself.
+- **Connexity waits for that version to go live:** the first real call on it, or on a
+  higher number. Until then nothing reopens the issue, because calls still run the old
+  version. `get_issue` says "waiting for version 16 to go live".
+- **If it happens again** on a call after that, it reopens. The history reads "Came back
+  on version 17, after the fix in version 16 went live", and it is on Work again.
+- **Refused** when the issue is archived, already marked fixed in that version, or was
+  already found on calls of that version or later: then the fix is not in it.
+- **There is no confirmation on real calls yet:** "resolved" means nobody has seen it
+  since the fix went live.
 
 ## Archiving
 

@@ -76,8 +76,13 @@ const who = (by: string | null | undefined, assistant: string | null | undefined
 /** "by Alex, 9 Nov · until it spikes · 'reason'" */
 const historyMeta = (line: IssueHistoryPublic) => {
   if (line.kind === 'spiked') return ` · ${line.reason ?? ''} · ${dayLabel(line.at)}`;
+  // Marking fixed needs no approval; archiving and unarchiving do.
   const person =
-    line.kind === 'opened' ? 'Connexity' : (who(line.by, line.assistant) ?? 'Connexity');
+    line.kind === 'opened'
+      ? 'Connexity'
+      : line.kind === 'resolved' && line.assistant
+        ? 'your assistant'
+        : (who(line.by, line.assistant) ?? 'Connexity');
   const duration = line.duration ? ` · ${DURATIONS[line.duration]}` : '';
   const reason = line.reason ? ` · “${line.reason}”` : '';
   return ` by ${person}, ${dayLabel(line.at)}${duration}${reason}`;

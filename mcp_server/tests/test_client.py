@@ -24,6 +24,7 @@ from connexity_mcp_server.tools import (
     mark_critical_rules,
     get_test_runs,
     list_scenarios,
+    mark_issue_fixed,
     run_scenarios,
     write_scenario_set,
     write_scenarios,
@@ -1324,3 +1325,24 @@ async def test_get_test_runs_reads_a_versions_results() -> None:
     assert result.data.results.checks[0].critical is True
     assert result.data.results.coverage is not None
     assert result.data.results.coverage.unchecked[0].why == "no_scenario"
+
+
+@pytest.mark.asyncio
+async def test_mark_issue_fixed_sends_the_version_and_note() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url.path.endswith("/issues/i1/fixed")
+        assert json.loads(request.content) == {"version": "16", "note": "Asked first"}
+        return httpx.Response(422, json={"detail": {"error": "x", "next_steps": []}})
+
+    with pytest.raises(ConnexityBackendError):
+        await _call(
+            handler,
+            lambda client: mark_issue_fixed(
+                client,
+                workspace_id=WORKSPACE_ID,
+                issue_id="i1",
+                version="16",
+                note="Asked first",
+            ),
+        )

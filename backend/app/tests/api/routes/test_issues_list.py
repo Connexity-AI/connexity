@@ -161,15 +161,16 @@ def test_states_and_the_period(client: TestClient, db: Session) -> None:
         r = client.put(
             f"{API}/issues/{issues[check].id}/state",
             cookies=cookies,
-            json={"state": value, "version": "v15", "reason": reason},
+            json={"state": value, "version": "15", "reason": reason},
         )
         assert r.status_code == 200, r.text
 
     state("booking_duplicated", "resolved")
     state("tool_call_failed", "archived", "Vendor bug, known")
-    # Resolved, then found again on a later call: reopened.
+    # Resolved in version 15, then found again on a call on version 15: its fix went
+    # live with that call, and it came back.
     state("booking_details_missing", "resolved")
-    _call(db, desk, _booking(1, FULL | {"postalCode": ""}), days_ago=0)
+    _call(db, desk, _booking(1, FULL | {"postalCode": ""}), days_ago=0, version=15)
 
     body = _page(client, cookies)
     assert _rows(body) == [("booking", "booking_details_missing", "reopened")]
@@ -178,7 +179,9 @@ def test_states_and_the_period(client: TestClient, db: Session) -> None:
     assert _rows(_page(client, cookies, status="reopened")) == _rows(body)
     resolved = _page(client, cookies, status="resolved")
     assert _rows(resolved) == [("booking", "booking_duplicated", "resolved")]
-    assert resolved["groups"][0]["issues"][0]["resolved_version"] == "v15"
+    assert resolved["groups"][0]["issues"][0]["resolved_version"] == "15"
+    # The call on version 15 above made every fix in version 15 of this agent live.
+    assert resolved["groups"][0]["issues"][0]["fix_live"] is True
     archived = _page(client, cookies, status="archived")
     assert _rows(archived) == [
         ("tools_and_integrations", "tool_call_failed", "archived")

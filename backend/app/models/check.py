@@ -107,13 +107,19 @@ class Issue(SQLModel, table=True):
     state: IssueState = Field(
         default=IssueState.OPEN, sa_type=enum_type(IssueState), index=True
     )
-    # The last time a person resolved it. Kept when it regresses.
+    # The last time it was marked fixed. Kept when it reopens.
     resolved_at: datetime | None = Field(
         default=None,
         sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
     )
-    # The version said to carry the fix, as the person wrote it. A note, not a rule.
+    # The version said to carry the fix (`plans/2026-11-17-mark-fixed.md`).
     resolved_version: str | None = Field(default=None, max_length=255)
+    # When that version went live: the start of the first real call on it, or on a
+    # higher number. Until then nothing reopens the issue. Kept when it reopens.
+    fix_live_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+    )
     # The last archive (plans/2026-11-13-issue-page.md). While archived, the issue's
     # findings are left out of every call's result and findings. Kept when it comes back.
     archived_at: datetime | None = Field(
