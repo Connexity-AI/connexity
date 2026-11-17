@@ -23,7 +23,6 @@ from app.models.call_screen import (
 )
 from app.models.enums import (
     CallCheckStatus,
-    CheckKind,
     CheckMode,
     FindingEffect,
     RuleOutcome,
@@ -176,7 +175,7 @@ def call_screen(*, session: Session, call: Call) -> CallScreenPublic | None:
                 text=f"{title}: {row.key}" if row.key else title,
                 category=categories[issue.category_id].name if issue else "Other",
                 severity="critical" if row.effect == FindingEffect.FAILS else "warning",
-                found_by="rule" if row.kind == CheckKind.RULE else "model",
+                found_by=row.kind,
                 entry_index=index,
             )
         )
@@ -243,7 +242,7 @@ def simulated_call_screen(
                 text=f"{title}: {finding.key}" if finding.key else title,
                 category=categories.get(check.category, "Other") if check else "Other",
                 severity="critical" if finding.mode == CheckMode.FAILS else "warning",
-                found_by="rule" if finding.kind == CheckKind.RULE else "model",
+                found_by=finding.kind,
                 entry_index=index,
             )
         )

@@ -200,7 +200,7 @@ class CategoryKind(StrEnum):
 
 class CheckKind(StrEnum):
     # Code over the trace, no model.
-    RULE = "rule"
+    CODE_BASED = "code_based"
     CLASSIFIER = "classifier"
     JUDGE = "judge"
 
@@ -235,6 +235,15 @@ class CheckOutcome(StrEnum):
     BROKE = "broke"
     # The check was switched off for the agent when the call started.
     OFF = "off"
+    # A model check waiting for its model's answer (or for tomorrow's budget).
+    PENDING = "pending"
+
+
+class ModelAnswerStatus(StrEnum):
+    OK = "ok"
+    # The model call failed; tried again until it has failed MODEL_CHECK_MAX_ATTEMPTS
+    # times, then the check is recorded as broke on that call.
+    FAILED = "failed"
 
 
 class IssueState(StrEnum):

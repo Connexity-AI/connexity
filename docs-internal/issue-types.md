@@ -4,22 +4,26 @@ Every check Connexity runs, what it finds and how, its category and its default
 severity. This is the start of the issue type library (roadmap feature 23). A test
 (`test_issue_types_doc.py`) fails when a registered check is missing here.
 
-**Found by:** a **rule** is plain code over the call's stored trace: deterministic, free
-to run, and each finding points at the exact tool call or sentence. A **model** check (a
-classifier or a judge) asks a model; none exists yet (roadmap 10.16). Every check and
-finding carries which one it is (`CheckKind`), and the assistant sees it as `found_by`.
+**Found by:** a **code-based** check is plain code over the call's stored trace:
+deterministic, free to run, and each finding points at the exact tool call or sentence.
+A **classifier** asks a small model typed questions (Jev) and code turns the labels into
+findings; an **LLM judge** asks a language model. Every check and finding carries which
+one it is (`CheckKind`), and the assistant sees it as `found_by`. How model checks run
+is in [`checks-and-incidents.md`](./checks-and-incidents.md).
 
 **Severity:** a check that fails the call makes its issues **Critical**; one that only
-flags it makes them a **Warning**. The default is below; a person can change it per
-agent (a decision record).
+flags it makes them a **Warning**. The default is below, from the Issue library, and
+does not depend on what decides the check; a person can change it per agent (a
+decision record).
 
 Checks are a library: a check is added only when Dmytro names it.
 
 | Type | Title | Found by | Category | Default | Key |
 |---|---|---|---|---|---|
-| `tool_call_failed` | Tool call failed | Rule | Tools and integrations | Critical | The tool's name |
-| `booking_details_missing` | Booking with missing or placeholder details | Rule | Booking | Critical | The booking tool's name |
-| `booking_duplicated` | Two bookings for one slot | Rule | Booking | Critical | The booking tool's name |
+| `tool_call_failed` | Tool call failed | Code-based | Tools and integrations | Critical | The tool's name |
+| `booking_details_missing` | Booking with missing or placeholder details | Code-based | Booking | Critical | The booking tool's name |
+| `booking_duplicated` | Two bookings for one slot | Code-based | Booking | Critical | The booking tool's name |
+| `action_claimed_without_tool` | Action claimed without a tool call | Classifier | Tools and integrations | Critical | None: one issue per agent |
 
 ## Tool call failed
 
@@ -51,8 +55,24 @@ A booking tool was called twice or more in one call, without error, with the sam
 - **Limits:** a second booking at a different time (a change of mind) is not flagged,
   though it also leaves two appointments.
 
-## Later: found by a model (10.16)
+## Action claimed without a tool call
 
-- **A change confirmed without a tool:** the agent told the caller an appointment was
-  cancelled or moved, with no tool that could do it. A phrase rule was not good enough;
-  a classifier or an LLM is still to be decided (Dmytro, 2026-11-13).
+The agent told the caller it did something, with no tool call that did it, or after
+that tool call failed. Covers changes and read-only lookups with an invented answer
+(renamed from "A change confirmed without a tool", Dmytro 2026-11-17). Decided by a
+classifier (Jev), Dmytro 2026-11-17.
+
+- **Jev** labels each agent turn with what it says is already done: booked, cancelled,
+  moved, notified, looked up, or nothing. The state it reads is that turn and the
+  caller's turn before it. A label counts at a probability of 0.5 or more.
+- **Code** then looks for a tool call that could do it, earlier in the call or during
+  that turn, that did not fail. Which tools can back a claim is read from their names,
+  as the booking checks do.
+- **The finding** points at the turn, and at the failed tool calls when there were
+  some. Its detail has the action, Jev's probability, why (no tool call, or the tool
+  failed) and the model.
+- **Limits:** a tool whose name says nothing about what it does backs nothing, so a
+  claim it did back is flagged. A made-up fact the agent never says it looked up is a
+  different type. Needs the trace to report tool calls.
+- **Tried on real calls (2026-11-17):** 12 of 85 calls flagged, $0.015; not yet
+  reviewed by a person.

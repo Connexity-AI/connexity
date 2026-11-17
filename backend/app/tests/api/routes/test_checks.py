@@ -13,7 +13,7 @@ from app.core.config import settings
 from app.models import Call, DecisionRecord, Finding
 from app.models.enums import CheckMode
 from app.services.checks import engine
-from app.services.checks.base import CheckInput, Raised, RuleCheck
+from app.services.checks.base import Check, CheckInput, Raised
 from app.tests.utils.utils import extract_cookies, random_email, random_lower_string
 
 API = settings.API_V1_STR
@@ -123,7 +123,7 @@ def test_a_failing_tool_call_is_found_when_the_call_arrives(
     (finding,) = body["findings"]
     assert finding["check_type"] == CHECK
     assert finding["check_version"] == 1
-    assert finding["kind"] == "rule"
+    assert finding["kind"] == "code_based"
     assert finding["title"] == "Tool call failed"
     assert finding["event_ids"] == ["t1"]
     assert finding["key"] == "find_table"
@@ -215,7 +215,7 @@ def test_a_check_that_breaks_leaves_the_call_stored_and_unchecked(
         engine,
         "CHECKS",
         (
-            RuleCheck(
+            Check(
                 type=CHECK,
                 version=1,
                 title="Broken",
@@ -288,7 +288,7 @@ def test_checks_are_listed_with_their_default(
     assert r.status_code == 200, r.text
     (check,) = (item for item in r.json() if item["type"] == CHECK)
     assert check["title"] == "Tool call failed"
-    assert check["kind"] == "rule"
+    assert check["kind"] == "code_based"
     assert check["version"] == 1
     assert (check["default_mode"], check["mode"]) == ("fails", "fails")
 

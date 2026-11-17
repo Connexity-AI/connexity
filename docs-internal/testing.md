@@ -6,8 +6,8 @@ What was settled about scenarios, test runs and the gate, and what is still open
 
 - **Scenario:** what 1.x called a test case, reshaped. It is the stage for a simulated call. Dmytro's word in this conversation; decisions 1 and 2 were said about "test cases" and mean scenarios.
 - **Spec rule:** a rule in the agent's spec. A run judges spec rules and gives each a **rule verdict**.
-- **Code check:** Dmytro's word for a check found by a Rule (`CheckKind` rule, "Found by: Rule" in [`issue-types.md`](./issue-types.md)). Elsewhere in the docs these are called rule checks; here "rule" always means a spec rule.
-- **Model check:** a check found by a model (`CheckKind` model).
+- **Code check:** a code-based check (`CheckKind` `code_based`, "Found by: Code-based" in [`issue-types.md`](./issue-types.md)). "Rule" always means a spec rule (Dmytro, 2026-11-17).
+- **Model check:** a check decided by a model: a classifier or an LLM judge (`CheckKind` `classifier`, `judge`). Runs on simulated calls only with code checks for now; model checks there are open question 5.
 
 ## Decided
 

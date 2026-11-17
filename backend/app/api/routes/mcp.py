@@ -487,8 +487,8 @@ def list_issues(
             "period; archived ones always.",
             "The tiles follow agent_id and the period only, never the search or the "
             "other filters.",
-            "Say how each issue was found: found_by rule means deterministic code over "
-            "the call; model means a classifier or judge.",
+            "Say how each issue was found: found_by code_based means deterministic "
+            "code over the call; classifier or judge means a model.",
             "Give the size as 'in N of M calls' (calls_affected of calls_total, both in "
             "the period), and group by category when you list several.",
             "Never quote what a caller said or a tool's arguments back to the person "
@@ -518,8 +518,8 @@ def _mcp_issue(
 
 _ISSUE_RULES = [
     "Give the size as 'in N of M calls' (tiles.calls_affected of tiles.calls_total, "
-    "the last 30 days), and say how it was found: found_by rule means deterministic "
-    "code over the call; model means a classifier or judge.",
+    "the last 30 days), and say how it was found: found_by code_based means "
+    "deterministic code over the call; classifier or judge means a model.",
     "An affected call's moment is when the issue first happened in it, and how many "
     "times; open the call with `get_call` to see it.",
     "Archiving is the person's decision. Before `archive_issue` or `unarchive_issue`, "

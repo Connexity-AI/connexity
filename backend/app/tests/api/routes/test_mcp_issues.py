@@ -163,8 +163,8 @@ def test_issues_come_worst_first_with_how_they_were_found(
         for i in issues
     ]
     assert rows == [
-        ("booking_details_missing", "critical", "rule", "booking", 2, 3),
-        ("booking_duplicated", "critical", "rule", "booking", 1, 3),
+        ("booking_details_missing", "critical", "code_based", "booking", 2, 3),
+        ("booking_duplicated", "critical", "code_based", "booking", 1, 3),
     ]
     assert issues[0]["agent_name"] == "Front desk"
     assert issues[0]["title"] == (

@@ -1750,10 +1750,7 @@ export type CallScreenFinding = {
    * Severity
    */
   severity: 'critical' | 'warning';
-  /**
-   * Found By
-   */
-  found_by: 'rule' | 'model';
+  found_by: CheckKind;
   /**
    * Entry Index
    *
@@ -1949,7 +1946,7 @@ export type CauseAnalysisItem = {
  * CheckKind
  */
 export const CheckKind = {
-  RULE: 'rule',
+  CODE_BASED: 'code_based',
   CLASSIFIER: 'classifier',
   JUDGE: 'judge',
 } as const;
@@ -2000,6 +1997,7 @@ export const CheckOutcome = {
   SKIPPED: 'skipped',
   BROKE: 'broke',
   OFF: 'off',
+  PENDING: 'pending',
 } as const;
 
 /**
@@ -4184,11 +4182,9 @@ export type IssueListItemPublic = {
    */
   severity: 'critical' | 'warning';
   /**
-   * Found By
-   *
-   * rule: deterministic code over the call; model: a classifier or judge
+   * code_based: deterministic code over the call; classifier or judge: a model
    */
-  found_by: 'rule' | 'model';
+  found_by: CheckKind;
   state: IssueState;
   /**
    * Resolved Version
@@ -4338,10 +4334,7 @@ export type IssuePagePublic = {
    * Severity
    */
   severity: 'critical' | 'warning';
-  /**
-   * Found By
-   */
-  found_by: 'rule' | 'model';
+  found_by: CheckKind;
   state: IssueState;
   /**
    * Resolved Version
@@ -11119,11 +11112,9 @@ export type WorstFindingPublic = {
    */
   severity: string;
   /**
-   * Found By
-   *
-   * rule (deterministic) or model
+   * code_based (deterministic code), classifier or judge (a model)
    */
-  found_by: string;
+  found_by: CheckKind;
 };
 
 export type HealthHealthData = {

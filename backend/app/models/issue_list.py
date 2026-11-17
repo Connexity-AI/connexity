@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.models.call_list import CallFilterOption
-from app.models.enums import IssueState
+from app.models.enums import CheckKind, IssueState
 
 IssueStatusFilter = Literal["open", "reopened", "resolved", "archived"]
 IssuePeriod = Literal["7d", "30d", "90d"]
@@ -33,8 +33,8 @@ class IssueListItemPublic(BaseModel):
     key: str | None = Field(default=None, description="What broke, e.g. a tool's name")
     category: str = Field(description="The category's key")
     severity: Literal["critical", "warning"]
-    found_by: Literal["rule", "model"] = Field(
-        description="rule: deterministic code over the call; model: a classifier or judge"
+    found_by: CheckKind = Field(
+        description="code_based: deterministic code over the call; classifier or judge: a model"
     )
     state: IssueState
     resolved_version: str | None = None

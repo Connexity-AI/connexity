@@ -20,9 +20,10 @@ are designed separately and are not covered here.
 
 **Checks.** One concept with three kinds, by how the check decides:
 
-1. **Rule:** code over the trace, no model. Free and instant. *The tool returned an
-   error. A dollar figure the agent said traces to no backend response, pre-call
-   variable or anything the caller said.*
+1. **Code-based:** code over the trace, no model. Free and instant. *The tool returned
+   an error. A dollar figure the agent said traces to no backend response, pre-call
+   variable or anything the caller said.* ("Rule" means a spec rule only; Dmytro,
+   2026-11-17.)
 2. **Classifier:** a small model returns one label from a fixed set. *Did the caller
    accept, counter or defer? Is the other party a person, a call screener or
    voicemail?*
@@ -50,8 +51,9 @@ are designed separately and are not covered here.
 | Flags | Raises findings and issues. The call is not failed. |
 | Fails the call | A finding marks the call failed and belongs to an incident. |
 
-A rule check is tested code, so its default comes from its type. A classifier or a judge
-defaults to "flags". Each check shows its measured precision, from the findings people
+**The kind of check does not change severity** (Decided, Dmytro 2026-11-17). A check's
+default comes from its issue type's "Default severity" in the Issue library, whatever
+decides it. This replaces "a classifier or a judge defaults to flags". Each check shows its measured precision, from the findings people
 confirmed and dismissed, as advice next to the setting. Measuring a judge against calls
 a person labelled is designed when the first judge is built.
 
@@ -175,8 +177,8 @@ who, when, what it applied to, the old and new value, and a reason.
 - The assistant may propose a decision that changes the number; a person confirms it.
 - A reason is required when the change makes the number better.
 
-**Metrics.** Latency, cost, duration, time per tool. A threshold on a metric is a rule
-check ("the reply took over 2,000 ms"); the metric itself raises nothing.
+**Metrics.** Latency, cost, duration, time per tool. A threshold on a metric is a
+code-based check ("the reply took over 2,000 ms"); the metric itself raises nothing.
 
 **Not this product (Decided 2026-10-10).** Connexity verifies whether the agent did its
 job correctly. It does not measure how much business that produced: conversion, revenue
@@ -184,7 +186,46 @@ and return on investment belong to a company's own analytics. The provider's cal
 analysis stays visible on the call, and data can be pulled out, but there is no outcome
 rate and no outcome dashboard.
 
-**Who makes checks.** Rule checks ship with Connexity as a library with settings per
+**How a check runs, by kind (built in roadmap 10.14).**
+
+- **One shape for every kind** (`app/services/checks/base.py`). A check has a type, a
+  version, its issue type's default and category, and a pure `run` that turns the
+  trace into findings. A model check (`ModelCheck`) adds `ask`, its provider and its
+  pinned model: `ask` puts its questions to the model, and `run` turns the stored
+  answer and the trace into findings. A classifier asks typed questions (Jev,
+  `services/jev.py`); a judge asks a language model (`checks/judge.py`).
+- **Each check decides one way.** No shadow versions run in the product. Comparing two
+  ways of deciding (an A/B test) happens outside the product, in a session, when
+  Dmytro asks for it (Decided, Dmytro 2026-11-17).
+- **Code-based checks run when a call is stored. Model checks run after,** in the
+  scheduled call pull (`checks/model_checks.py`): until its model has answered, a
+  model check is recorded as `pending` on the call and keeps the findings it had.
+- **A model's answer is stored once per call and check version** (`model_answer`).
+  Checking the call again reads it, so a re-check is free and cannot flip a finding by
+  chance; a new version asks again. The answer holds labels keyed by event ids, never
+  what was said.
+- **A failed model call** is tried again on later passes and, after
+  `MODEL_CHECK_MAX_ATTEMPTS` (3), the check is recorded as broke on that call. Broke
+  never counts as clean. **No key** for the provider: the check is skipped, naming the
+  missing setting.
+- **A daily model budget for the whole product** (`MODEL_CHECKS_DAILY_BUDGET_USD`, $1;
+  Decided, Dmytro 2026-11-17, an internal safety measure). When today's spend (UTC)
+  reaches it, nothing more is asked until tomorrow and the calls stay pending.
+- **Every finding says its kind,** shown as `found_by`: `code_based`, `classifier` or
+  `judge`. A model finding's detail names the model.
+
+**Adding a check.** Dmytro names it in the Issue library. Then:
+
+1. Pick the kind: code-based if code over the trace can decide it; a classifier if it
+   splits into labelled facts plus code; a judge only when it cannot.
+2. Write it as a draft and try it on real calls, read only, with
+   `backend/scripts/try_check.py` (counts and ids only, a dollar cap). For an A/B test,
+   run two drafts on the same calls and line them up with
+   `backend/scripts/compare_runs.py`.
+3. Register it in `checks/registry.py`, add its row to [`issue-types.md`](./issue-types.md)
+   (a test fails without it), and test it on invented calls.
+
+**Who makes checks.** Code-based checks ship with Connexity as a library with settings per
 agent. Classifiers and judges are defined as data (a question, what counts as pass and
 fail, which calls it applies to) by the assistant or a person. Checks written as code
 from outside are postponed: configurable patterns first, sandboxed code last. A check the

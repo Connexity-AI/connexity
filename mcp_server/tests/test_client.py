@@ -554,7 +554,7 @@ async def test_list_issues_sends_the_search_and_filters_and_keeps_how_it_was_fou
                             "key": "book",
                             "category": "booking",
                             "severity": "critical",
-                            "found_by": "rule",
+                            "found_by": "code_based",
                             "state": "reopened",
                             "calls_affected": 4,
                             "calls_total": 78,
@@ -582,7 +582,7 @@ async def test_list_issues_sends_the_search_and_filters_and_keeps_how_it_was_fou
 
     assert result.data.tiles.open == 2
     issue = result.data.issues[0]
-    assert (issue.found_by, issue.calls_affected, issue.state) == ("rule", 4, "reopened")
+    assert (issue.found_by, issue.calls_affected, issue.state) == ("code_based", 4, "reopened")
 
 
 @pytest.mark.asyncio
@@ -619,7 +619,7 @@ async def test_list_calls_sends_the_search_and_filters() -> None:
                                 "key": "schedule_appointment",
                                 "category": "Booking",
                                 "severity": "critical",
-                                "found_by": "rule",
+                                "found_by": "code_based",
                             },
                         }
                     ],
@@ -637,7 +637,7 @@ async def test_list_calls_sends_the_search_and_filters() -> None:
     )
 
     assert result.data.calls[0].caller_last_four == "4821"
-    assert result.data.calls[0].worst_finding.found_by == "rule"
+    assert result.data.calls[0].worst_finding.found_by == "code_based"
 
 
 @pytest.mark.asyncio
@@ -671,7 +671,7 @@ async def test_get_call_reads_one_call() -> None:
                             "text": "Booking with missing or placeholder details",
                             "category": "Booking",
                             "severity": "critical",
-                            "found_by": "rule",
+                            "found_by": "code_based",
                             "entry_index": 0,
                         }
                     ],
@@ -686,7 +686,7 @@ async def test_get_call_reads_one_call() -> None:
     )
 
     assert result.data.entries[0].tool == "schedule_appointment"
-    assert result.data.findings[0].found_by == "rule"
+    assert result.data.findings[0].found_by == "code_based"
 
 
 @pytest.mark.asyncio
@@ -711,7 +711,7 @@ async def test_archive_issue_sends_the_reason_and_duration() -> None:
                     "agent_name": "Front desk",
                     "category": {"value": "booking", "label": "Booking"},
                     "severity": "critical",
-                    "found_by": "rule",
+                    "found_by": "code_based",
                     "state": "archived",
                     "archive": {
                         "by": "Dmytro",

@@ -9,8 +9,8 @@ import re
 from pydantic import JsonValue
 
 from app.models.enums import CheckMode, TraceCapability
-from app.services.checks.base import CheckInput, Raised, RuleCheck
-from app.services.checks.rules.booking_tools import booking_calls
+from app.services.checks.base import Check, CheckInput, Raised
+from app.services.checks.code.booking_tools import booking_calls
 
 # Arguments that hold who and where the booking is for.
 _DETAIL = re.compile(r"name|address|street|zip|postal", re.IGNORECASE)
@@ -47,7 +47,7 @@ def _run(check_input: CheckInput) -> list[Raised]:
     return found
 
 
-BOOKING_DETAILS_MISSING = RuleCheck(
+BOOKING_DETAILS_MISSING = Check(
     type="booking_details_missing",
     version=1,
     title="Booking with missing or placeholder details",

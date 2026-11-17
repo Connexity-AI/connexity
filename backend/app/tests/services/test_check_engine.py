@@ -10,12 +10,13 @@ from app.models.enums import CheckMode, DecisionKind, ToolCallStatus
 from app.models.execution import Execution
 from app.models.trace import ToolCallEvent, Trace, UtteranceEvent
 from app.services.checks.base import (
+    Check,
     CheckInput,
     Fact,
     FactSource,
     Raised,
-    RuleCheck,
 )
+from app.services.checks.code.tool_call_failed import TOOL_CALL_FAILED
 from app.services.checks.engine import (
     CheckError,
     current_mode,
@@ -24,7 +25,6 @@ from app.services.checks.engine import (
     run_checks,
 )
 from app.services.checks.registry import CHECKS
-from app.services.checks.rules.tool_call_failed import TOOL_CALL_FAILED
 
 NOON = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
 
@@ -48,8 +48,8 @@ def _check(
     run: Callable[[CheckInput], list[Raised]],
     facts: tuple[str, ...] = (),
     check_type: str = "invented",
-) -> RuleCheck:
-    return RuleCheck(
+) -> Check:
+    return Check(
         type=check_type,
         version=3,
         title="Invented",

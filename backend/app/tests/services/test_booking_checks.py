@@ -7,9 +7,9 @@ import pytest
 
 from app.models.enums import CheckKind, CheckMode
 from app.services.checks.base import CheckInput, Raised
-from app.services.checks.rules.booking_details_missing import BOOKING_DETAILS_MISSING
-from app.services.checks.rules.booking_duplicated import BOOKING_DUPLICATED
-from app.services.checks.rules.booking_tools import is_booking_tool
+from app.services.checks.code.booking_details_missing import BOOKING_DETAILS_MISSING
+from app.services.checks.code.booking_duplicated import BOOKING_DUPLICATED
+from app.services.checks.code.booking_tools import is_booking_tool
 from app.services.mappings.retell import retell_call_to_trace
 from app.tests.utils.retell_payloads import invocation, result, retell_call, speech
 
@@ -58,7 +58,7 @@ def test_a_booking_tool_is_known_by_its_name(name: str, books: bool) -> None:
 
 def test_both_checks_are_rules_that_fail_the_call() -> None:
     for check in (BOOKING_DETAILS_MISSING, BOOKING_DUPLICATED):
-        assert check.kind is CheckKind.RULE
+        assert check.kind is CheckKind.CODE_BASED
         assert check.default_mode is CheckMode.FAILS
         assert check.category == "booking"
 

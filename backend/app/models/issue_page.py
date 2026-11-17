@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.models.call_list import CallFilterOption, IssueMomentPublic
-from app.models.enums import CallCheckStatus, IssueState
+from app.models.enums import CallCheckStatus, CheckKind, IssueState
 
 ArchiveDuration = Literal["until_spike", "forever"]
 
@@ -103,7 +103,7 @@ class IssuePagePublic(BaseModel):
     agent_name: str
     category: CallFilterOption
     severity: Literal["critical", "warning"]
-    found_by: Literal["rule", "model"]
+    found_by: CheckKind
     state: IssueState
     resolved_version: str | None = None
     archive: IssueArchivePublic | None = Field(

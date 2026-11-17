@@ -312,7 +312,8 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     ) -> ListIssuesResult:
         """The workspace's issues, worst first, with counts (tiles) for the period:
         what Connexity's checks found on real calls. Each has its severity (critical or
-        warning), how it was found (found_by: rule, deterministic code; or model), its
+        warning), how it was found (found_by: code_based, deterministic code; classifier
+        or judge, a model), its
         category, and its size as calls affected of the agent's calls in the period.
         query matches words in the title or a whole issue id. Filters: agent_id,
         category (a category key), severity (critical, warning), status (open, the

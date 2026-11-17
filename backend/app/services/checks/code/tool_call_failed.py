@@ -2,7 +2,7 @@
 
 from app.models.enums import CheckMode, ToolCallStatus, TraceCapability
 from app.models.trace import ToolCallEvent
-from app.services.checks.base import CheckInput, Raised, RuleCheck
+from app.services.checks.base import Check, CheckInput, Raised
 
 # "No result" is a different type: the tool was called and nothing came back.
 _FAILED = (ToolCallStatus.ERROR, ToolCallStatus.TIMEOUT)
@@ -20,7 +20,7 @@ def _run(check_input: CheckInput) -> list[Raised]:
     ]
 
 
-TOOL_CALL_FAILED = RuleCheck(
+TOOL_CALL_FAILED = Check(
     type="tool_call_failed",
     version=1,
     title="Tool call failed",

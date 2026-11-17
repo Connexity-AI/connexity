@@ -34,9 +34,7 @@ def _item(row: CallRow, moment: Moment | None = None) -> CallListItemPublic:
             key=row.worst.key,
             category=row.worst.category,
             severity="critical" if row.worst.critical else "warning",
-            found_by="rule"
-            if check is None or check.kind is CheckKind.RULE
-            else "model",
+            found_by=check.kind if check else CheckKind.CODE_BASED,
         )
     return CallListItemPublic(
         id=call.id,

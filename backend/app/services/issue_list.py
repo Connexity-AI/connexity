@@ -137,7 +137,7 @@ def workspace_issues(
                 key=issue.key or None,
                 category=by_id[issue.category_id].key,
                 severity="critical" if summary.critical else "warning",
-                found_by="rule" if kind in (None, CheckKind.RULE) else "model",
+                found_by=kind or _kind_of(issue.check_type),
                 state=issue.state,
                 resolved_version=issue.resolved_version,
                 fix_live=issue.fix_live_at is not None
@@ -220,3 +220,9 @@ def workspace_issues(
         ],
     )
     return page, matching
+
+
+def _kind_of(check_type: str) -> CheckKind:
+    """How a check decides, for an issue with no findings left to say so."""
+    check = get_check(check_type)
+    return check.kind if check else CheckKind.CODE_BASED

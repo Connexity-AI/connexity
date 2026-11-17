@@ -2957,9 +2957,7 @@ export const CallScreenFindingSchema = {
       title: 'Severity',
     },
     found_by: {
-      type: 'string',
-      enum: ['rule', 'model'],
-      title: 'Found By',
+      $ref: '#/components/schemas/CheckKind',
     },
     entry_index: {
       anyOf: [
@@ -3253,7 +3251,7 @@ export const CauseAnalysisItemSchema = {
 
 export const CheckKindSchema = {
   type: 'string',
-  enum: ['rule', 'classifier', 'judge'],
+  enum: ['code_based', 'classifier', 'judge'],
   title: 'CheckKind',
 } as const;
 
@@ -3290,7 +3288,7 @@ export const CheckModeUpdateSchema = {
 
 export const CheckOutcomeSchema = {
   type: 'string',
-  enum: ['ran', 'skipped', 'broke', 'off'],
+  enum: ['ran', 'skipped', 'broke', 'off', 'pending'],
   title: 'CheckOutcome',
   description: 'What one check did on one call.',
 } as const;
@@ -6493,10 +6491,8 @@ export const IssueListItemPublicSchema = {
       title: 'Severity',
     },
     found_by: {
-      type: 'string',
-      enum: ['rule', 'model'],
-      title: 'Found By',
-      description: 'rule: deterministic code over the call; model: a classifier or judge',
+      $ref: '#/components/schemas/CheckKind',
+      description: 'code_based: deterministic code over the call; classifier or judge: a model',
     },
     state: {
       $ref: '#/components/schemas/IssueState',
@@ -6706,9 +6702,7 @@ export const IssuePagePublicSchema = {
       title: 'Severity',
     },
     found_by: {
-      type: 'string',
-      enum: ['rule', 'model'],
-      title: 'Found By',
+      $ref: '#/components/schemas/CheckKind',
     },
     state: {
       $ref: '#/components/schemas/IssueState',
@@ -17013,9 +17007,8 @@ export const WorstFindingPublicSchema = {
       description: 'critical or warning',
     },
     found_by: {
-      type: 'string',
-      title: 'Found By',
-      description: 'rule (deterministic) or model',
+      $ref: '#/components/schemas/CheckKind',
+      description: 'code_based (deterministic code), classifier or judge (a model)',
     },
   },
   type: 'object',

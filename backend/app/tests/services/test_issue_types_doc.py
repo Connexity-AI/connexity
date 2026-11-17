@@ -24,7 +24,14 @@ def test_every_check_is_in_the_issue_type_library() -> None:
         ), f"{check.type} is not in docs-internal/issue-types.md"
         _, title, found_by, _, default, _ = rows[check.type]
         assert title == check.title
-        assert found_by == ("Rule" if check.kind is CheckKind.RULE else "Model")
+        assert (
+            found_by
+            == {
+                CheckKind.CODE_BASED: "Code-based",
+                CheckKind.CLASSIFIER: "Classifier",
+                CheckKind.JUDGE: "LLM judge",
+            }[check.kind]
+        )
         assert default == (
             "Critical" if check.default_mode is CheckMode.FAILS else "Warning"
         )

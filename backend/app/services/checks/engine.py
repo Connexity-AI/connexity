@@ -2,6 +2,10 @@
 
 ``run_checks`` is the pure part. ``check_call`` reads the call, decides what each check
 was set to when the call started, and stores the result.
+
+A model check (classifier or judge) runs here only once its model's answer is stored
+(`ModelAnswer`); until then it is recorded as pending and keeps the findings it had.
+``model_checks.answer_model_checks`` asks the models and checks those calls again.
 """
 
 import logging
@@ -11,16 +15,31 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from pydantic import JsonValue
 from sqlmodel import Session
 
 from app import crud
+from app.core.config import settings
 from app.core.db import engine
 from app.models.call import Call
 from app.models.check import CallCheck, DecisionRecord, Finding
-from app.models.enums import CheckMode, CheckOutcome, FindingEffect
+from app.models.enums import (
+    CheckMode,
+    CheckOutcome,
+    FindingEffect,
+    ModelAnswerStatus,
+)
 from app.models.execution import Execution
 from app.models.trace import Trace
-from app.services.checks.base import CheckInput, Fact, FactSource, Raised, RuleCheck
+from app.services.checks.base import (
+    Check,
+    CheckInput,
+    Fact,
+    FactSource,
+    ModelCheck,
+    Raised,
+)
+from app.services.checks.providers import missing_key
 from app.services.checks.registry import CHECKS, FACT_SOURCES
 from app.services.trace_capabilities import derive_capabilities
 
@@ -36,7 +55,7 @@ def _aware(value: datetime) -> datetime:
 
 
 def mode_at(
-    check: RuleCheck, records: Sequence[DecisionRecord], moment: datetime
+    check: Check, records: Sequence[DecisionRecord], moment: datetime
 ) -> CheckMode:
     """What ``check`` was set to at ``moment``.
 
@@ -54,7 +73,7 @@ def mode_at(
     return mode
 
 
-def current_mode(check: RuleCheck, records: Sequence[DecisionRecord]) -> CheckMode:
+def current_mode(check: Check, records: Sequence[DecisionRecord]) -> CheckMode:
     """What ``check`` is set to now: its latest decision, whatever any clock says."""
     if not records:
         return check.default_mode
@@ -63,12 +82,12 @@ def current_mode(check: RuleCheck, records: Sequence[DecisionRecord]) -> CheckMo
 
 @dataclass(frozen=True)
 class CheckRun:
-    found: list[tuple[RuleCheck, Raised]]
+    found: list[tuple[Check, Raised]]
     # Checks that could not run, by type, with what went wrong.
     broken: dict[str, Exception]
 
 
-def _validated(check: RuleCheck, raised: list[Raised], event_ids: set[str]) -> None:
+def _validated(check: Check, raised: list[Raised], event_ids: set[str]) -> None:
     seen: set[tuple[str, ...]] = set()
     for item in raised:
         if not item.event_ids:
@@ -87,20 +106,27 @@ def run_checks(
     *,
     trace: Trace,
     executions: list[Execution],
-    checks: Sequence[RuleCheck],
+    checks: Sequence[Check],
     fact_sources: Sequence[FactSource] = (),
+    answers: Mapping[str, JsonValue] | None = None,
 ) -> CheckRun:
     """Run ``checks`` over one call. Pure: the same call gives the same findings.
+
+    A model check runs only with its model's answer in ``answers`` (by check type);
+    without one it is left out, neither run nor broken.
 
     A check that raises is reported as broken and the others still run. So is one that
     asks for a fact nobody derives, points at an event the trace does not have, points
     at nothing, or raises the same finding twice (a ``CheckError``).
     """
+    answers = answers or {}
     sources = {source.name: source for source in fact_sources}
     event_ids = {event.id for event in trace.events}
     derived: dict[str, list[Fact]] = {}
     run = CheckRun(found=[], broken={})
     for check in checks:
+        if isinstance(check, ModelCheck) and check.type not in answers:
+            continue
         try:
             for name in check.facts:
                 if name in derived:
@@ -118,6 +144,7 @@ def run_checks(
                     trace=trace,
                     executions=executions,
                     facts={name: derived[name] for name in check.facts},
+                    answer=answers.get(check.type),
                 )
             )
             _validated(check, raised, event_ids)
@@ -139,15 +166,16 @@ def check_call(
     *,
     session: Session,
     call: Call,
-    checks: Sequence[RuleCheck] | None = None,
+    checks: Sequence[Check] | None = None,
     fact_sources: Sequence[FactSource] | None = None,
 ) -> int | None:
     """Check ``call`` and replace its findings with what the checks raise now.
 
     Each check runs as it was set when the call started, so checking an old call again
-    never changes what it counted for. What each check did (ran, skipped, broke, off)
-    is recorded for the call. A check that breaks is logged and keeps the findings it
-    had; the others are stored.
+    never changes what it counted for. What each check did (ran, skipped, broke, off,
+    pending) is recorded for the call. A check that breaks is logged and keeps the
+    findings it had, and so does a model check still waiting for its answer; the
+    others are stored.
 
     Returns:
         How many findings the checks that ran raised, or ``None`` when the call has
@@ -170,8 +198,20 @@ def check_call(
     started = _aware(call.started_at)
     history = crud.check_setting_history(session=session, agent_id=call.agent_id)
     capabilities = set(derive_capabilities(trace))
+    stored_answers = crud.get_model_answers(
+        session=session,
+        call_id=call.id,
+        versions={
+            check.type: check.version
+            for check in checks
+            if isinstance(check, ModelCheck)
+        },
+    )
     effects: dict[str, FindingEffect] = {}
     outcomes: dict[str, tuple[CheckOutcome, str | None]] = {}
+    answers: dict[str, JsonValue] = {}
+    # Model checks that keep the findings they had: waiting, or failed for good.
+    kept: set[str] = set()
     for check in checks:
         mode = mode_at(check, history.get(check.type, []), started)
         missing = [need.value for need in check.needs if need not in capabilities]
@@ -179,6 +219,23 @@ def check_call(
             outcomes[check.type] = (CheckOutcome.OFF, None)
         elif missing:
             outcomes[check.type] = (CheckOutcome.SKIPPED, ", ".join(missing))
+        elif isinstance(check, ModelCheck):
+            stored = stored_answers.get(check.type)
+            no_key = missing_key(check.provider)
+            if stored is not None and stored.status is ModelAnswerStatus.OK:
+                answers[check.type] = stored.answer
+                effects[check.type] = FindingEffect(mode.value)
+            elif no_key is not None:
+                outcomes[check.type] = (CheckOutcome.SKIPPED, no_key)
+            elif (
+                stored is not None
+                and stored.attempts >= settings.MODEL_CHECK_MAX_ATTEMPTS
+            ):
+                outcomes[check.type] = (CheckOutcome.BROKE, None)
+                kept.add(check.type)
+            else:
+                outcomes[check.type] = (CheckOutcome.PENDING, None)
+                kept.add(check.type)
         else:
             effects[check.type] = FindingEffect(mode.value)
 
@@ -187,6 +244,7 @@ def check_call(
         executions=crud.get_executions(session=session, call=call),
         checks=[check for check in checks if check.type in effects],
         fact_sources=fact_sources,
+        answers=answers,
     )
     for check_type, error in run.broken.items():
         logger.error("Check '%s' broke on call %s", check_type, call.id, exc_info=error)
@@ -198,7 +256,7 @@ def check_call(
         call=call,
         categories={check.type: check.category for check in checks},
         # A broken check keeps the findings it had: the fault is ours, not the call's.
-        check_types={check.type for check in checks} - set(run.broken),
+        check_types={check.type for check in checks} - set(run.broken) - kept,
         findings=[
             Finding(
                 company_id=call.company_id,
