@@ -46,9 +46,10 @@ async def _get(api_key: str, path: str, version: str | int | None) -> dict[str, 
 
 
 async def get_retell_agent_at_version(
-    api_key: str, agent_id: str, version: str | int
+    api_key: str, agent_id: str, version: str | int | None
 ) -> dict[str, Any]:
-    """The agent's settings at ``version``, including which prompt version it uses."""
+    """The agent's settings at ``version`` (none for the latest), including which
+    prompt version it uses."""
     return await _get(api_key, f"/get-agent/{agent_id}", version)
 
 

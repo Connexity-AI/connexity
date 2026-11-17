@@ -546,18 +546,21 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         workspace_id: str,
         agent_id: str,
         run_id: str | None = None,
+        version: str | None = None,
         cursor: str | None = None,
         limit: int | None = None,
     ) -> TestRunsResult:
-        """Without `run_id`: the agent's runs of scenarios, newest first. With it: the
-        run's status, every judged rule's totals across repeats (failed first,
-        critical first, flaky marked), code-check findings, and a page of its
-        simulated calls with each rule's verdict and reason."""
+        """Without `run_id`: a tested version's results (`version`, default the
+        newest tested): Failed or Verified, the totals per rule across all its runs,
+        the code checks and warnings; then the agent's runs, newest first. With
+        `run_id`: the run's status, rule totals, findings, and a page of its
+        simulated calls with each rule's verdict, reason and link (`url`)."""
         return await _get_test_runs(
             client=backend_client,
             workspace_id=workspace_id,
             agent_id=agent_id,
             run_id=run_id,
+            version=version,
             cursor=cursor,
             limit=limit,
         )

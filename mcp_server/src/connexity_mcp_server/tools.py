@@ -429,6 +429,7 @@ async def get_test_runs(
     workspace_id: str,
     agent_id: str,
     run_id: str | None = None,
+    version: str | None = None,
     cursor: str | None = None,
     limit: int | None = None,
 ) -> TestRunsResult:
@@ -437,6 +438,7 @@ async def get_test_runs(
             workspace_id=workspace_id,
             agent_id=agent_id,
             run_id=run_id,
+            version=version,
             cursor=cursor,
             limit=limit,
         )

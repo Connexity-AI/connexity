@@ -815,6 +815,9 @@ class CheckTotal(BaseModel):
     check_type: str
     title: str
     found: int = Field(description="Simulated calls where it found something")
+    critical: bool = Field(
+        default=False, description="It fails calls, rather than only flagging them"
+    )
 
 
 class RuleVerdict(BaseModel):
@@ -849,6 +852,9 @@ class SimulatedCall(BaseModel):
         description="Tools no scenario fake answered; they got the default fake",
     )
     cost_usd: float | None = None
+    url: str | None = Field(
+        default=None, description="The simulated call in the app; give it to the person"
+    )
 
 
 class TestRunCounts(BaseModel):
@@ -888,8 +894,33 @@ class TestRunDetail(TestRun):
     calls: list[SimulatedCall] = Field(default_factory=list)
 
 
+class VersionResults(BaseModel):
+    version: str | None = None
+    edited: bool = Field(
+        default=False,
+        description="An earlier run tested different content under the same number",
+    )
+    first_run_at: str
+    last_run_at: str
+    verdict: str = Field(description="failed, verified or not_tested")
+    critical_failed: list[str] = Field(default_factory=list)
+    critical_checks: list[str] = Field(default_factory=list)
+    warnings: int = 0
+    non_critical_judged: int = 0
+    non_critical_failed: int = 0
+    threshold_pct: int
+    over_threshold: bool = False
+    rules: list[RuleTotal] = Field(default_factory=list)
+    checks: list[CheckTotal] = Field(default_factory=list)
+    runs: list[TestRun] = Field(default_factory=list)
+
+
 class TestRuns(BaseModel):
     run: TestRunDetail | None = None
+    results: VersionResults | None = Field(
+        default=None,
+        description="Without a run id: the tested version's results across its runs",
+    )
     runs: list[TestRun] = Field(default_factory=list)
 
 

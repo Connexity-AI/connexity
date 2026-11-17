@@ -65,7 +65,7 @@ What was settled about scenarios, test runs and the gate, and what is still open
 
 ## Open
 
-1. The default threshold for non-critical rules and code checks.
+1. The default threshold for non-critical rules and code checks. For the demo: a version fails when more than 20% of the non-critical rules judged failed (`plans/2026-11-17-test-results.md`, accepted 2026-11-17); code checks that only flag are warnings and do not count towards it. Per-agent thresholds are open.
 2. Faking tools on platforms other than Retell. Retell text runs fake every tool: the scenario's fake results, then a default fake for any other tool (`plans/2026-11-17-text-runner.md`, accepted 2026-11-17).
 3. The Tests tab design adjustment for scenarios, sets, rule totals and failed code checks. The demo shows test results, so it is needed before the demo.
 4. When audio simulation comes. It needs a test environment for tools.

@@ -419,3 +419,51 @@ or unmarks a rule.
 
 **The order of rules** stays as it is: critical rules are not moved to the top.
 
+
+## 30. Single call: a simulated call's rules and verdicts
+
+A simulated call is a conversation the assistant ran against the agent before release: a
+simulated caller talked to the agent in text, in a scenario. A judge then gave each
+spec rule the scenario lists one verdict: Passed, Failed or Didn't come up. A scenario
+lists several rules, not one, so "Proves: Never quote above the asking price · Failed"
+becomes a line of rules. The person opens such a call from a link the assistant gives
+them; it opens on the same single-call screen as a real call.
+
+**The page bar:**
+
+- **A "Simulated" label** beside the result label, as the design already has.
+- **The version it tested,** "Version 15", and "Edited" when the draft was edited since
+  it was published.
+- **The result label** is the call's own:
+  - Failed when a critical rule failed or a critical finding was raised;
+  - Degraded when only other rules failed or only warnings were raised;
+  - Clean otherwise.
+- **No caller number and no duration:** a simulated call has neither.
+
+**Under the page bar, one line: the scenario and the rules it was judged on.**
+
+- **The scenario's name** first, muted: "Scenario: Price pushback".
+- **Then each rule** as a compact chip: the rule in plain words, cut to one line, and
+  its verdict:
+  - Failed in red, with the Critical badge when the rule is critical;
+  - Passed in green;
+  - Didn't come up muted.
+- **Failed rules come first.**
+- **Clicking a chip opens its reason** under the line: one or two sentences from the
+  judge, and the turns it rests on. Clicking a turn number scrolls the transcript to
+  that turn.
+- **When the line is longer than the width,** it wraps; there are rarely more than five
+  rules.
+
+**The rest of the screen:**
+
+- **No player:** a text run has no recording. The findings list moves up under the
+  rules line.
+- **Findings and the transcript** are as on any call, with tool calls inline.
+- **No times:** a text run has no timing, so no "0:42" stamps and no reply delays.
+- **When the conversation stopped** because the platform failed or the call ran out of
+  time, a muted line ends the transcript: "The conversation stopped: Retell did not
+  answer". Such a call has no verdicts, and the rules line says "Not judged".
+
+Placeholder rules: "Never quote a price above the price list", "Ask for the date of
+birth before booking", "Offer the earliest slot first".

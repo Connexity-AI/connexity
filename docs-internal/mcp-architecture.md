@@ -216,7 +216,7 @@ They own validation, CRUD calls, state changes and the answer's rules and next s
 | `list_scenarios(workspace_id, agent_id, rule_key?, set?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/scenarios` |
 | `write_scenario_set(workspace_id, agent_id, name, scenario_ids, description?)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/scenario-sets` |
 | `run_scenarios(workspace_id, agent_id, set? \| scenario_ids? \| all?, repeats?, version?)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/test-runs` |
-| `get_test_runs(workspace_id, agent_id, run_id?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/test-runs` |
+| `get_test_runs(workspace_id, agent_id, run_id?, version?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/test-runs` |
 | `raise_clarifications(workspace_id, agent_id, questions)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/clarifications` |
 | `list_clarifications(workspace_id, agent_id?, state?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/clarifications` |
 | `answer_clarifications(workspace_id, answers)` | `POST /api/v1/mcp/workspaces/{workspace_id}/clarifications/answers` |

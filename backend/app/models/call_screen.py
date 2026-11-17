@@ -10,7 +10,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.models.enums import CallCheckStatus
+from app.models.enums import CallCheckStatus, RuleOutcome
 
 
 class KeyValue(BaseModel):
@@ -50,6 +50,37 @@ class CallScreenFinding(BaseModel):
     )
 
 
+class SimulatedVerdictPublic(BaseModel):
+    key: str
+    text: str | None = Field(
+        default=None, description="The rule in the spec version the run judged"
+    )
+    critical: bool = False
+    outcome: RuleOutcome
+    reason: str | None = None
+    entry_indexes: list[int] = Field(
+        default_factory=list, description="The timeline entries the verdict rests on"
+    )
+
+
+class SimulatedLinePublic(BaseModel):
+    """What makes a simulated call one: its scenario and the rules it was judged on."""
+
+    run_id: uuid.UUID
+    scenario_name: str
+    edited: bool = Field(
+        default=False,
+        description="The tested draft was edited under the same version number",
+    )
+    verdicts: list[SimulatedVerdictPublic] = Field(
+        default_factory=list, description="Failed first"
+    )
+    stopped: str | None = Field(
+        default=None,
+        description="Why the conversation stopped before it could be judged",
+    )
+
+
 class CallScreenPublic(BaseModel):
     id: uuid.UUID
     agent_id: uuid.UUID
@@ -65,4 +96,8 @@ class CallScreenPublic(BaseModel):
     entries: list[CallScreenEntry]
     findings: list[CallScreenFinding] = Field(
         description="Worst first: critical, then by time"
+    )
+    simulated: SimulatedLinePublic | None = Field(
+        default=None,
+        description="Set on a simulated call: no recording, no timing, no caller",
     )

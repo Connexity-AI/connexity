@@ -1811,6 +1811,10 @@ export type CallScreenPublic = {
    * Worst first: critical, then by time
    */
   findings: Array<CallScreenFinding>;
+  /**
+   * Set on a simulated call: no recording, no timing, no caller
+   */
+  simulated?: SimulatedLinePublic | null;
 };
 
 /**
@@ -2023,6 +2027,12 @@ export type CheckTotalPublic = {
    * Simulated calls where it found something
    */
   found: number;
+  /**
+   * Critical
+   *
+   * It fails calls, rather than only flagging them
+   */
+  critical?: boolean;
 };
 
 /**
@@ -6360,10 +6370,15 @@ export type McpTaskRef = {
 /**
  * McpTestRuns
  *
- * One run in detail when ``run_id`` was given, otherwise the agent's runs.
+ * One run in detail when ``run_id`` was given; otherwise a tested version's
+ * results and the agent's runs.
  */
 export type McpTestRuns = {
   run?: TestRunDetailPublic | null;
+  /**
+   * Without a run id: the tested version's results across its runs
+   */
+  results?: VersionResultsPublic | null;
   /**
    * Runs
    */
@@ -8128,6 +8143,12 @@ export type SimulatedCallPublic = {
    * Cost Usd
    */
   cost_usd?: number | null;
+  /**
+   * Url
+   *
+   * The simulated call in the app
+   */
+  url: string;
 };
 
 /**
@@ -8161,6 +8182,71 @@ export type SimulatedFinding = {
   detail?: {
     [key: string]: unknown;
   } | null;
+};
+
+/**
+ * SimulatedLinePublic
+ *
+ * What makes a simulated call one: its scenario and the rules it was judged on.
+ */
+export type SimulatedLinePublic = {
+  /**
+   * Run Id
+   */
+  run_id: string;
+  /**
+   * Scenario Name
+   */
+  scenario_name: string;
+  /**
+   * Edited
+   *
+   * The tested draft was edited under the same version number
+   */
+  edited?: boolean;
+  /**
+   * Verdicts
+   *
+   * Failed first
+   */
+  verdicts?: Array<SimulatedVerdictPublic>;
+  /**
+   * Stopped
+   *
+   * Why the conversation stopped before it could be judged
+   */
+  stopped?: string | null;
+};
+
+/**
+ * SimulatedVerdictPublic
+ */
+export type SimulatedVerdictPublic = {
+  /**
+   * Key
+   */
+  key: string;
+  /**
+   * Text
+   *
+   * The rule in the spec version the run judged
+   */
+  text?: string | null;
+  /**
+   * Critical
+   */
+  critical?: boolean;
+  outcome: RuleOutcome;
+  /**
+   * Reason
+   */
+  reason?: string | null;
+  /**
+   * Entry Indexes
+   *
+   * The timeline entries the verdict rests on
+   */
+  entry_indexes?: Array<number>;
 };
 
 /**
@@ -10275,6 +10361,108 @@ export type VersionResolveResult = {
    */
   problems?: Array<string>;
 };
+
+/**
+ * VersionResultsPublic
+ *
+ * What every completed run of one tested version says, together.
+ *
+ * A version is its number and the content it had: an unpublished version edited
+ * under the same number is a new one (``edited``).
+ */
+export type VersionResultsPublic = {
+  /**
+   * Version
+   *
+   * The version number on the platform
+   */
+  version?: string | null;
+  /**
+   * Edited
+   *
+   * An earlier run tested different content under the same number
+   */
+  edited?: boolean;
+  /**
+   * First Run At
+   */
+  first_run_at: string;
+  /**
+   * Last Run At
+   */
+  last_run_at: string;
+  verdict: VersionVerdict;
+  /**
+   * Critical Failed
+   *
+   * Critical rules that failed, flaky included
+   */
+  critical_failed?: Array<string>;
+  /**
+   * Critical Checks
+   *
+   * Critical code checks that found something
+   */
+  critical_checks?: Array<string>;
+  /**
+   * Warnings
+   *
+   * Non-critical rules that failed, and code checks that only flagged
+   */
+  warnings?: number;
+  /**
+   * Non Critical Judged
+   */
+  non_critical_judged?: number;
+  /**
+   * Non Critical Failed
+   */
+  non_critical_failed?: number;
+  /**
+   * Threshold Pct
+   *
+   * The version fails when more of the non-critical rules judged than this share failed
+   */
+  threshold_pct: number;
+  /**
+   * Over Threshold
+   */
+  over_threshold?: boolean;
+  /**
+   * Rules
+   *
+   * Failed rules first, critical first
+   */
+  rules?: Array<RuleTotalPublic>;
+  /**
+   * Checks
+   */
+  checks?: Array<CheckTotalPublic>;
+  /**
+   * Runs
+   *
+   * The runs that count, newest first
+   */
+  runs?: Array<TestRunPublic>;
+};
+
+/**
+ * VersionVerdict
+ *
+ * What a version's runs of scenarios say about it.
+ */
+export const VersionVerdict = {
+  FAILED: 'failed',
+  VERIFIED: 'verified',
+  NOT_TESTED: 'not_tested',
+} as const;
+
+/**
+ * VersionVerdict
+ *
+ * What a version's runs of scenarios say about it.
+ */
+export type VersionVerdict = (typeof VersionVerdict)[keyof typeof VersionVerdict];
 
 /**
  * WebhookResult
@@ -13598,6 +13786,10 @@ export type McpGetAgentTestRunsData = {
      * Run Id
      */
     run_id?: string | null;
+    /**
+     * Version
+     */
+    version?: string | null;
     /**
      * Cursor
      */

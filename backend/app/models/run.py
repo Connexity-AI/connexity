@@ -103,6 +103,12 @@ class RunBase(SQLModel):
         max_length=64,
         description="The agent's version on its platform that the run tests",
     )
+    version_fingerprint: str | None = Field(
+        default=None,
+        max_length=64,
+        description="Fingerprint of the tested version's content, read when the run "
+        "starts; an unpublished version is edited under the same number",
+    )
     status_detail: str | None = Field(
         default=None,
         max_length=1024,

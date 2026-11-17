@@ -307,6 +307,7 @@ class ConnexityBackendClient:
         workspace_id: str,
         agent_id: str,
         run_id: str | None = None,
+        version: str | None = None,
         cursor: str | None = None,
         limit: int | None = None,
     ) -> dict[str, Any]:
@@ -314,6 +315,7 @@ class ConnexityBackendClient:
             key: value
             for key, value in {
                 "run_id": run_id,
+                "version": version,
                 "cursor": cursor,
                 "limit": limit,
             }.items()

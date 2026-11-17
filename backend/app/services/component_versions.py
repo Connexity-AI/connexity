@@ -171,6 +171,45 @@ async def _read_retell_version(
     return row
 
 
+async def retell_content_fingerprint(
+    *, api_key: str, provider_agent_id: str, version: int | None
+) -> str:
+    """One fingerprint of everything a Retell agent version does: its settings, and its
+    prompt or flow with the model.
+
+    Read fresh from Retell every time, never from the catalogue: an unpublished version
+    is edited in place under the same number, and the catalogue keeps the first content
+    it saw.
+
+    Raises:
+        RetellReadError: Retell cannot be read.
+    """
+    settings = await get_retell_agent_at_version(api_key, provider_agent_id, version)
+    engine = settings.get("response_engine")
+    engine = engine if isinstance(engine, dict) else {}
+    engine_version = engine.get("version")
+    prompt: dict[str, Any] | None = None
+    if engine.get("type") == "retell-llm" and engine.get("llm_id"):
+        prompt = await get_retell_llm_at_version(
+            api_key, str(engine["llm_id"]), engine_version
+        )
+    elif engine.get("type") == "conversation-flow" and engine.get(
+        "conversation_flow_id"
+    ):
+        prompt = await get_retell_conversation_flow_at_version(
+            api_key, str(engine["conversation_flow_id"]), engine_version
+        )
+    return fingerprint(
+        {
+            "agent": mask_secrets(without(settings, _AGENT_NOT_SETTINGS)),
+            "engine": {k: v for k, v in engine.items() if k != "version"},
+            "prompt": mask_secrets(without(prompt, _VOLATILE))
+            if prompt is not None
+            else None,
+        }
+    )
+
+
 def _components_from_catalogue(
     *, session: Session, agent: Agent, agent_row: ComponentVersion
 ) -> list[TraceComponent]:
