@@ -282,6 +282,9 @@ import type {
   McpGetSpecData,
   McpGetSpecErrors,
   McpGetSpecResponses,
+  McpListAgentScenariosData,
+  McpListAgentScenariosErrors,
+  McpListAgentScenariosResponses,
   McpListAgentsData,
   McpListAgentsErrors,
   McpListAgentsResponses,
@@ -318,6 +321,12 @@ import type {
   McpUnarchiveIssueData,
   McpUnarchiveIssueErrors,
   McpUnarchiveIssueResponses,
+  McpWriteAgentScenariosData,
+  McpWriteAgentScenariosErrors,
+  McpWriteAgentScenarioSetData,
+  McpWriteAgentScenarioSetErrors,
+  McpWriteAgentScenarioSetResponses,
+  McpWriteAgentScenariosResponses,
   McpWriteSpecData,
   McpWriteSpecErrors,
   McpWriteSpecResponses,
@@ -1586,6 +1595,65 @@ export class McpService {
         ...options,
       }
     );
+  }
+
+  /**
+   * List Agent Scenarios
+   */
+  public static listAgentScenarios<ThrowOnError extends boolean = false>(
+    options: Options<McpListAgentScenariosData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      McpListAgentScenariosResponses,
+      McpListAgentScenariosErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/scenarios',
+      ...options,
+    });
+  }
+
+  /**
+   * Write Agent Scenarios
+   */
+  public static writeAgentScenarios<ThrowOnError extends boolean = false>(
+    options: Options<McpWriteAgentScenariosData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      McpWriteAgentScenariosResponses,
+      McpWriteAgentScenariosErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/scenarios',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Write Agent Scenario Set
+   */
+  public static writeAgentScenarioSet<ThrowOnError extends boolean = false>(
+    options: Options<McpWriteAgentScenarioSetData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      McpWriteAgentScenarioSetResponses,
+      McpWriteAgentScenarioSetErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/scenario-sets',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
   }
 }
 

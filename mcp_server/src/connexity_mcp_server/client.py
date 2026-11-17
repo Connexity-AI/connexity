@@ -218,6 +218,62 @@ class ConnexityBackendClient:
             json={"critical": critical, "not_critical": not_critical},
         )
 
+    async def write_scenarios(
+        self, *, workspace_id: str, agent_id: str, scenarios: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        return await self._request_json(
+            "POST",
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/agents/"
+            f"{quote(agent_id, safe='')}/scenarios",
+            json={"scenarios": scenarios},
+        )
+
+    async def list_scenarios(
+        self,
+        *,
+        workspace_id: str,
+        agent_id: str,
+        rule_key: str | None = None,
+        set_name: str | None = None,
+        cursor: str | None = None,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
+        params = {
+            key: value
+            for key, value in {
+                "rule_key": rule_key,
+                "set": set_name,
+                "cursor": cursor,
+                "limit": limit,
+            }.items()
+            if value not in (None, "")
+        }
+        return await self._request_json(
+            "GET",
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/agents/"
+            f"{quote(agent_id, safe='')}/scenarios",
+            params=params,
+        )
+
+    async def write_scenario_set(
+        self,
+        *,
+        workspace_id: str,
+        agent_id: str,
+        name: str,
+        scenario_ids: list[str],
+        description: str | None = None,
+    ) -> dict[str, Any]:
+        body: dict[str, Any] = {"name": name, "scenario_ids": scenario_ids}
+        if description:
+            body["description"] = description
+        return await self._request_json(
+            "POST",
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/agents/"
+            f"{quote(agent_id, safe='')}/scenario-sets",
+            json=body,
+        )
+
     async def raise_clarifications(
         self, *, workspace_id: str, agent_id: str, questions: list[dict[str, Any]]
     ) -> dict[str, Any]:

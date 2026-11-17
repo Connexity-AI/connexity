@@ -237,6 +237,7 @@ from app.models.run import (  # noqa: F401
     RunsPublic,
     RunUpdate,
 )
+from app.models.scenario import ScenarioRule  # noqa: F401
 
 # ── JSONB nested schemas (pure Pydantic) ───────────────────────────
 from app.models.schemas import (  # noqa: F401

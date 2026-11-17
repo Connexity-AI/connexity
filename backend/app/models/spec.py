@@ -134,6 +134,11 @@ class SpecRulePublic(BaseModel):
     critical: bool = Field(
         default=False, description="A failure of this rule must stop a release"
     )
+    scenarios: int = Field(
+        default=0,
+        description="How many active scenarios list it (not coverage: that counts "
+        "rules a run checked)",
+    )
     answered_by: str | None = Field(
         default=None, description="For a rule from a clarification: who answered it"
     )

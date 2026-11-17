@@ -21,6 +21,8 @@ from app.core.config import settings
 from app.crud import work as crud_work
 from app.crud.issue_list import calls_by_agent
 from app.crud.readiness import connected_assistants, first_connection
+from app.crud.scenario import agents_with_scenarios
+from app.crud.spec import rules_of_specs
 from app.models import Agent, Company, ReadinessStepKey, ReadinessStepState, User
 from app.models.assistant_task import AssistantTask
 from app.models.check import Issue
@@ -222,6 +224,44 @@ def _spec_tasks(session: Session, company_id: uuid.UUID) -> list[Task]:
     ]
 
 
+def _scenario_tasks(session: Session, names: Mapping[uuid.UUID, str]) -> list[Task]:
+    """Agents whose latest spec has rules no scenario lists (plan
+    `plans/2026-11-17-scenarios.md`): the most critical rules without one first."""
+    ids = list(names)
+    specs = crud.latest_specs(session=session, agent_ids=ids)
+    listed = agents_with_scenarios(session=session, agent_ids=list(specs))
+    by_spec = rules_of_specs(session=session, spec_ids=[s.id for s in specs.values()])
+    found: list[tuple[int, Task]] = []
+    for agent_id, spec in specs.items():
+        rules = by_spec[spec.id]
+        keys = listed.get(agent_id, set())
+        unlisted = [r for r in rules if r.key not in keys]
+        if not unlisted:
+            continue
+        name = names.get(agent_id, "")
+        critical = sum(1 for r in unlisted if r.critical)
+        task = Task(
+            key=f"scenarios:{agent_id}",
+            kind=TaskKind.TESTS,
+            group=Group.SETUP,
+            title=f"Write scenarios for {_plural(len(unlisted), 'rule')} on {name}",
+            facts=[
+                f"Tests · {name}",
+                f"{critical} of them critical"
+                if critical
+                else f"{len(rules) - len(unlisted)} of {len(rules)} rules have "
+                "scenarios",
+            ],
+            agent_id=agent_id,
+            agent_name=name,
+            since=_aware(spec.created_at),
+            line=f"Tests · {name}",
+        )
+        found.append((critical, task))
+    found.sort(key=lambda pair: (-pair[0], pair[1].since, pair[1].key))
+    return [task for _, task in found]
+
+
 def _clarification_tasks(
     session: Session, company_id: uuid.UUID, names: Mapping[uuid.UUID, str]
 ) -> list[Task]:
@@ -322,7 +362,8 @@ def links(tasks: Sequence[Task]) -> dict[str, list[str]]:
     tasks themselves:
 
     - an agent's open questions block every issue fix on that agent;
-    - an agent's spec to write or update blocks its issue fixes and calls to review;
+    - an agent's spec to write or update blocks its issue fixes, calls to review and
+      scenarios to write;
     - each open onboarding step blocks the next one;
     - the first scan blocks every spec task.
     """
@@ -346,6 +387,7 @@ def links(tasks: Sequence[Task]) -> dict[str, list[str]]:
                 if blocker.kind is TaskKind.SPEC and blocked.kind in (
                     TaskKind.ISSUE_FIX,
                     TaskKind.CALLS_TO_REVIEW,
+                    TaskKind.TESTS,
                 ):
                     add(blocker, blocked)
     steps = [task for task in tasks if task.kind is TaskKind.ONBOARDING]
@@ -389,9 +431,9 @@ def lift_blockers(
 def work_list(
     *, session: Session, company_id: uuid.UUID, assistant_asking: bool = False
 ) -> list[Task]:
-    """Every task in the workspace, in Connexity's order. Incidents (Milestone 5) and
-    tests (10.17) have no source yet. ``assistant_asking``: an assistant is asking, so
-    connecting one is done."""
+    """Every task in the workspace, in Connexity's order. Incidents have no source yet
+    (Milestone 5); tests are the scenarios to write. ``assistant_asking``: an assistant
+    is asking, so connecting one is done."""
     names = {
         agent.id: agent.name
         for agent in session.exec(
@@ -401,12 +443,10 @@ def work_list(
     issues = _issue_tasks(session, company_id)
     critical = [task for task in issues if task.group == Group.CRITICAL]
     onboarding = _onboarding_tasks(session, company_id, assistant_asking)
-    specs = (
-        []
-        if any(task.key == SPECS_STEP for task in onboarding)
-        else _spec_tasks(session, company_id)
-    )
-    setup = onboarding + specs
+    before_scan = any(task.key == SPECS_STEP for task in onboarding)
+    specs = [] if before_scan else _spec_tasks(session, company_id)
+    scenarios = [] if before_scan else _scenario_tasks(session, names)
+    setup = onboarding + specs + scenarios
     other = sorted(
         [task for task in issues if task.group == Group.OTHER]
         + _clarification_tasks(session, company_id, names)

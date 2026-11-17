@@ -3309,6 +3309,32 @@ export type ExpectedToolCall = {
 };
 
 /**
+ * FakeToolResultPublic
+ */
+export type FakeToolResultPublic = {
+  /**
+   * Tool
+   */
+  tool: string;
+  /**
+   * Arguments
+   *
+   * The arguments it answers (keys must be present); none for any
+   */
+  arguments?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Result
+   *
+   * What the tool returns, as JSON
+   */
+  result?: {
+    [key: string]: unknown;
+  } | null;
+};
+
+/**
  * FieldChange
  */
 export type FieldChange = {
@@ -5256,6 +5282,40 @@ export type McpAnswerMcpWorkspace = {
 };
 
 /**
+ * McpAnswer[McpWrittenScenarios]
+ */
+export type McpAnswerMcpWrittenScenarios = {
+  /**
+   * The facts: the result of the call
+   */
+  data: McpWrittenScenarios;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
  * McpAnswer[ReadinessPublic]
  */
 export type McpAnswerReadinessPublic = {
@@ -5263,6 +5323,40 @@ export type McpAnswerReadinessPublic = {
    * The facts: the result of the call
    */
   data: ReadinessPublic;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
+ * McpAnswer[ScenarioListPublic]
+ */
+export type McpAnswerScenarioListPublic = {
+  /**
+   * The facts: the result of the call
+   */
+  data: ScenarioListPublic;
   /**
    * Rules
    *
@@ -5331,6 +5425,40 @@ export type McpAnswerSpecWrittenPublic = {
    * The facts: the result of the call
    */
   data: SpecWrittenPublic;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
+ * McpAnswer[Union[ScenarioSetPublic, NoneType]]
+ */
+export type McpAnswerUnionScenarioSetPublicNoneType = {
+  /**
+   * The facts: the result of the call
+   */
+  data: ScenarioSetPublic | null;
   /**
    * Rules
    *
@@ -5661,6 +5789,34 @@ export type McpEndedTask = {
 };
 
 /**
+ * McpFakeToolResult
+ */
+export type McpFakeToolResult = {
+  /**
+   * Tool
+   *
+   * The tool's name, as the agent calls it
+   */
+  tool: string;
+  /**
+   * Arguments
+   *
+   * The arguments it answers (their keys must be present); leave out to answer any call of the tool
+   */
+  arguments?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Result
+   *
+   * What the tool returns, as JSON; invented values only
+   */
+  result?: {
+    [key: string]: unknown;
+  } | null;
+};
+
+/**
  * McpHeldTask
  */
 export type McpHeldTask = {
@@ -5798,6 +5954,84 @@ export type McpScanProgress = {
    * Stored calls whose agent version could not be resolved
    */
   calls_without_versions: number;
+};
+
+/**
+ * McpScenario
+ */
+export type McpScenario = {
+  /**
+   * Id
+   *
+   * Only to replace or archive an existing scenario
+   */
+  id?: string | null;
+  /**
+   * Archive
+   *
+   * True, with id, to archive it (it leaves its sets)
+   */
+  archive?: boolean;
+  /**
+   * Name
+   */
+  name?: string;
+  /**
+   * For people
+   */
+  description?: ShortText | null;
+  /**
+   * Who the caller is
+   */
+  caller?: ShortText | null;
+  /**
+   * What the caller wants from the call, in one line
+   */
+  caller_goal?: ShortText | null;
+  /**
+   * How they behave: in a hurry, unsure, pushing back
+   */
+  caller_behaviour?: ShortText | null;
+  /**
+   * Caller Knows
+   *
+   * What the caller knows, such as their policy number
+   */
+  caller_knows?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Agent Variables
+   *
+   * The values the agent's platform passes in (dynamic variables)
+   */
+  agent_variables?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Who speaks first: agent or user
+   */
+  first_turn?: FirstTurn;
+  /**
+   * The first speaker's opening line
+   */
+  first_message?: ShortText | null;
+  /**
+   * Fake Tool Results
+   */
+  fake_tool_results?: Array<McpFakeToolResult>;
+  /**
+   * Rules
+   *
+   * Keys from `get_spec` of the rules it expects to come up
+   */
+  rules?: Array<string>;
+  /**
+   * From Call Id
+   *
+   * A call of this agent the scenario was written from
+   */
+  from_call_id?: string | null;
 };
 
 /**
@@ -6020,6 +6254,33 @@ export type McpWorkspace = {
 };
 
 /**
+ * McpWriteScenarioSet
+ */
+export type McpWriteScenarioSet = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Scenario Ids
+   *
+   * In order; empty archives the set
+   */
+  scenario_ids: Array<string>;
+  description?: ShortText | null;
+};
+
+/**
+ * McpWriteScenarios
+ */
+export type McpWriteScenarios = {
+  /**
+   * Scenarios
+   */
+  scenarios: Array<McpScenario>;
+};
+
+/**
  * McpWriteSpec
  */
 export type McpWriteSpec = {
@@ -6027,6 +6288,20 @@ export type McpWriteSpec = {
    * Rules
    */
   rules: Array<McpSpecRule>;
+};
+
+/**
+ * McpWrittenScenarios
+ */
+export type McpWrittenScenarios = {
+  /**
+   * Scenarios
+   */
+  scenarios: Array<ScenarioPublic>;
+  /**
+   * Archived
+   */
+  archived: number;
 };
 
 /**
@@ -7337,6 +7612,194 @@ export type RuntimeTestResult = {
 };
 
 /**
+ * ScenarioCountsPublic
+ */
+export type ScenarioCountsPublic = {
+  /**
+   * Scenarios
+   *
+   * Active scenarios of the agent
+   */
+  scenarios: number;
+  /**
+   * Rules
+   *
+   * Rules in the latest spec
+   */
+  rules: number;
+  /**
+   * Rules Listed
+   *
+   * Rules at least one scenario lists
+   */
+  rules_listed: number;
+  /**
+   * Critical Unlisted
+   *
+   * Critical rules no scenario lists
+   */
+  critical_unlisted: number;
+  /**
+   * Listing Gone Rules
+   *
+   * Scenarios listing a rule the latest spec no longer has
+   */
+  listing_gone_rules: number;
+};
+
+/**
+ * ScenarioListPublic
+ */
+export type ScenarioListPublic = {
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Name
+   */
+  agent_name: string;
+  /**
+   * Data
+   */
+  data: Array<ScenarioPublic>;
+  /**
+   * Next Cursor
+   */
+  next_cursor?: string | null;
+  /**
+   * Sets
+   */
+  sets?: Array<ScenarioSetPublic>;
+  counts: ScenarioCountsPublic;
+  /**
+   * Unlisted Rules
+   *
+   * Rules no scenario lists, critical first (at most 50)
+   */
+  unlisted_rules?: Array<ScenarioRulePublic>;
+};
+
+/**
+ * ScenarioPublic
+ */
+export type ScenarioPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Description
+   */
+  description?: string | null;
+  /**
+   * Caller
+   *
+   * Who the caller is
+   */
+  caller?: string | null;
+  /**
+   * Caller Goal
+   */
+  caller_goal?: string | null;
+  /**
+   * Caller Behaviour
+   */
+  caller_behaviour?: string | null;
+  /**
+   * Caller Knows
+   */
+  caller_knows?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Agent Variables
+   */
+  agent_variables?: {
+    [key: string]: unknown;
+  } | null;
+  first_turn: FirstTurn;
+  /**
+   * First Message
+   */
+  first_message?: string | null;
+  /**
+   * Fake Tool Results
+   */
+  fake_tool_results?: Array<FakeToolResultPublic>;
+  /**
+   * Rules
+   */
+  rules: Array<ScenarioRulePublic>;
+  /**
+   * Sets
+   *
+   * Names of its sets
+   */
+  sets?: Array<string>;
+  /**
+   * From Call Id
+   */
+  from_call_id?: string | null;
+  /**
+   * Updated At
+   */
+  updated_at: string;
+};
+
+/**
+ * ScenarioRulePublic
+ */
+export type ScenarioRulePublic = {
+  /**
+   * Key
+   */
+  key: string;
+  /**
+   * Text
+   *
+   * The rule in the latest spec; none when it is gone
+   */
+  text?: string | null;
+  /**
+   * Critical
+   */
+  critical?: boolean;
+  /**
+   * Gone
+   *
+   * The latest spec no longer has this rule
+   */
+  gone?: boolean;
+};
+
+/**
+ * ScenarioSetPublic
+ */
+export type ScenarioSetPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Description
+   */
+  description?: string | null;
+  /**
+   * Scenario Ids
+   */
+  scenario_ids: Array<string>;
+};
+
+/**
  * ScoreType
  */
 export const ScoreType = { SCORED: 'scored', BINARY: 'binary' } as const;
@@ -7377,6 +7840,8 @@ export type ServedBy = {
    */
   component_version_id?: string | null;
 };
+
+export type ShortText = string;
 
 /**
  * SimulatorMode
@@ -7631,6 +8096,12 @@ export type SpecRulePublic = {
    * A failure of this rule must stop a release
    */
   critical?: boolean;
+  /**
+   * Scenarios
+   *
+   * How many active scenarios list it (not coverage: that counts rules a run checked)
+   */
+  scenarios?: number;
   /**
    * Answered By
    *
@@ -12419,6 +12890,203 @@ export type McpScanCallsResponses = {
 };
 
 export type McpScanCallsResponse = McpScanCallsResponses[keyof McpScanCallsResponses];
+
+export type McpListAgentScenariosData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: {
+    /**
+     * Rule Key
+     */
+    rule_key?: string | null;
+    /**
+     * Set
+     */
+    set?: string | null;
+    /**
+     * Cursor
+     */
+    cursor?: string | null;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/scenarios';
+};
+
+export type McpListAgentScenariosErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpListAgentScenariosError =
+  McpListAgentScenariosErrors[keyof McpListAgentScenariosErrors];
+
+export type McpListAgentScenariosResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerScenarioListPublic;
+};
+
+export type McpListAgentScenariosResponse =
+  McpListAgentScenariosResponses[keyof McpListAgentScenariosResponses];
+
+export type McpWriteAgentScenariosData = {
+  body: McpWriteScenarios;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/scenarios';
+};
+
+export type McpWriteAgentScenariosErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpWriteAgentScenariosError =
+  McpWriteAgentScenariosErrors[keyof McpWriteAgentScenariosErrors];
+
+export type McpWriteAgentScenariosResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerMcpWrittenScenarios;
+};
+
+export type McpWriteAgentScenariosResponse =
+  McpWriteAgentScenariosResponses[keyof McpWriteAgentScenariosResponses];
+
+export type McpWriteAgentScenarioSetData = {
+  body: McpWriteScenarioSet;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/scenario-sets';
+};
+
+export type McpWriteAgentScenarioSetErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpWriteAgentScenarioSetError =
+  McpWriteAgentScenarioSetErrors[keyof McpWriteAgentScenarioSetErrors];
+
+export type McpWriteAgentScenarioSetResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerUnionScenarioSetPublicNoneType;
+};
+
+export type McpWriteAgentScenarioSetResponse =
+  McpWriteAgentScenarioSetResponses[keyof McpWriteAgentScenarioSetResponses];
 
 export type AgentsListWorkspaceAgentsData = {
   body?: never;

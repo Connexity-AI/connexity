@@ -134,6 +134,22 @@ def spec_rules(*, session: Session, spec_id: uuid.UUID) -> list[SpecRule]:
     )
 
 
+def rules_of_specs(
+    *, session: Session, spec_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, list[SpecRule]]:
+    """The rules of several spec versions at once, by spec id."""
+    if not spec_ids:
+        return {}
+    out: dict[uuid.UUID, list[SpecRule]] = {spec_id: [] for spec_id in spec_ids}
+    for rule in session.exec(
+        select(SpecRule)
+        .where(col(SpecRule.spec_id).in_(spec_ids))
+        .order_by(col(SpecRule.position), col(SpecRule.key))
+    ).all():
+        out[rule.spec_id].append(rule)
+    return out
+
+
 class AgentPrompt(NamedTuple):
     kind: str  # prompt or flow
     version: str

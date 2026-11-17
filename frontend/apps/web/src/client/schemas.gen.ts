@@ -5223,6 +5223,42 @@ export const ExpectedToolCallSchema = {
   title: 'ExpectedToolCall',
 } as const;
 
+export const FakeToolResultPublicSchema = {
+  properties: {
+    tool: {
+      type: 'string',
+      title: 'Tool',
+    },
+    arguments: {
+      anyOf: [
+        {
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Arguments',
+      description: 'The arguments it answers (keys must be present); none for any',
+    },
+    result: {
+      anyOf: [
+        {
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Result',
+      description: 'What the tool returns, as JSON',
+    },
+  },
+  type: 'object',
+  required: ['tool'],
+  title: 'FakeToolResultPublic',
+} as const;
+
 export const FieldChangeSchema = {
   properties: {
     field: {
@@ -8041,6 +8077,51 @@ export const McpAnswer_McpWorkspace_Schema = {
   title: 'McpAnswer[McpWorkspace]',
 } as const;
 
+export const McpAnswer_McpWrittenScenarios_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/McpWrittenScenarios',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[McpWrittenScenarios]',
+} as const;
+
 export const McpAnswer_ReadinessPublic_Schema = {
   properties: {
     data: {
@@ -8084,6 +8165,51 @@ export const McpAnswer_ReadinessPublic_Schema = {
   type: 'object',
   required: ['data', 'guide'],
   title: 'McpAnswer[ReadinessPublic]',
+} as const;
+
+export const McpAnswer_ScenarioListPublic_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/ScenarioListPublic',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[ScenarioListPublic]',
 } as const;
 
 export const McpAnswer_SpecPublic_Schema = {
@@ -8174,6 +8300,58 @@ export const McpAnswer_SpecWrittenPublic_Schema = {
   type: 'object',
   required: ['data', 'guide'],
   title: 'McpAnswer[SpecWrittenPublic]',
+} as const;
+
+export const McpAnswer_Union_ScenarioSetPublic__NoneType__Schema = {
+  properties: {
+    data: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/ScenarioSetPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[Union[ScenarioSetPublic, NoneType]]',
 } as const;
 
 export const McpAnswer_list_CategoryPublic__Schema = {
@@ -8595,6 +8773,45 @@ export const McpEndedTaskSchema = {
   title: 'McpEndedTask',
 } as const;
 
+export const McpFakeToolResultSchema = {
+  properties: {
+    tool: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Tool',
+      description: "The tool's name, as the agent calls it",
+    },
+    arguments: {
+      anyOf: [
+        {
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Arguments',
+      description:
+        'The arguments it answers (their keys must be present); leave out to answer any call of the tool',
+    },
+    result: {
+      anyOf: [
+        {
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Result',
+      description: 'What the tool returns, as JSON; invented values only',
+    },
+  },
+  type: 'object',
+  required: ['tool'],
+  title: 'McpFakeToolResult',
+} as const;
+
 export const McpHeldTaskSchema = {
   properties: {
     task: {
@@ -8785,6 +9002,153 @@ export const McpScanProgressSchema = {
   type: 'object',
   required: ['agents', 'stored_this_step', 'finished', 'calls_without_versions'],
   title: 'McpScanProgress',
+} as const;
+
+export const McpScenarioSchema = {
+  properties: {
+    id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Id',
+      description: 'Only to replace or archive an existing scenario',
+    },
+    archive: {
+      type: 'boolean',
+      title: 'Archive',
+      description: 'True, with id, to archive it (it leaves its sets)',
+      default: false,
+    },
+    name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Name',
+      default: '',
+    },
+    description: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/ShortText',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'For people',
+    },
+    caller: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/ShortText',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Who the caller is',
+    },
+    caller_goal: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/ShortText',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'What the caller wants from the call, in one line',
+    },
+    caller_behaviour: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/ShortText',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'How they behave: in a hurry, unsure, pushing back',
+    },
+    caller_knows: {
+      anyOf: [
+        {
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Caller Knows',
+      description: 'What the caller knows, such as their policy number',
+    },
+    agent_variables: {
+      anyOf: [
+        {
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Variables',
+      description: "The values the agent's platform passes in (dynamic variables)",
+    },
+    first_turn: {
+      $ref: '#/components/schemas/FirstTurn',
+      description: 'Who speaks first: agent or user',
+      default: 'user',
+    },
+    first_message: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/ShortText',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: "The first speaker's opening line",
+    },
+    fake_tool_results: {
+      items: {
+        $ref: '#/components/schemas/McpFakeToolResult',
+      },
+      type: 'array',
+      maxItems: 50,
+      title: 'Fake Tool Results',
+    },
+    rules: {
+      items: {
+        type: 'string',
+        maxLength: 64,
+      },
+      type: 'array',
+      maxItems: 50,
+      title: 'Rules',
+      description: 'Keys from `get_spec` of the rules it expects to come up',
+    },
+    from_call_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'From Call Id',
+      description: 'A call of this agent the scenario was written from',
+    },
+  },
+  type: 'object',
+  title: 'McpScenario',
 } as const;
 
 export const McpSpecRuleSchema = {
@@ -9080,6 +9444,55 @@ export const McpWorkspaceSchema = {
   title: 'McpWorkspace',
 } as const;
 
+export const McpWriteScenarioSetSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Name',
+    },
+    scenario_ids: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      maxItems: 500,
+      title: 'Scenario Ids',
+      description: 'In order; empty archives the set',
+    },
+    description: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/ShortText',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+  },
+  type: 'object',
+  required: ['name', 'scenario_ids'],
+  title: 'McpWriteScenarioSet',
+} as const;
+
+export const McpWriteScenariosSchema = {
+  properties: {
+    scenarios: {
+      items: {
+        $ref: '#/components/schemas/McpScenario',
+      },
+      type: 'array',
+      maxItems: 100,
+      title: 'Scenarios',
+    },
+  },
+  type: 'object',
+  required: ['scenarios'],
+  title: 'McpWriteScenarios',
+} as const;
+
 export const McpWriteSpecSchema = {
   properties: {
     rules: {
@@ -9094,6 +9507,25 @@ export const McpWriteSpecSchema = {
   type: 'object',
   required: ['rules'],
   title: 'McpWriteSpec',
+} as const;
+
+export const McpWrittenScenariosSchema = {
+  properties: {
+    scenarios: {
+      items: {
+        $ref: '#/components/schemas/ScenarioPublic',
+      },
+      type: 'array',
+      title: 'Scenarios',
+    },
+    archived: {
+      type: 'integer',
+      title: 'Archived',
+    },
+  },
+  type: 'object',
+  required: ['scenarios', 'archived'],
+  title: 'McpWrittenScenarios',
 } as const;
 
 export const MessageSchema = {
@@ -11134,6 +11566,300 @@ export const RuntimeTestResultSchema = {
   description: 'Outcome of POST /eval-configs/test-runtime.',
 } as const;
 
+export const ScenarioCountsPublicSchema = {
+  properties: {
+    scenarios: {
+      type: 'integer',
+      title: 'Scenarios',
+      description: 'Active scenarios of the agent',
+    },
+    rules: {
+      type: 'integer',
+      title: 'Rules',
+      description: 'Rules in the latest spec',
+    },
+    rules_listed: {
+      type: 'integer',
+      title: 'Rules Listed',
+      description: 'Rules at least one scenario lists',
+    },
+    critical_unlisted: {
+      type: 'integer',
+      title: 'Critical Unlisted',
+      description: 'Critical rules no scenario lists',
+    },
+    listing_gone_rules: {
+      type: 'integer',
+      title: 'Listing Gone Rules',
+      description: 'Scenarios listing a rule the latest spec no longer has',
+    },
+  },
+  type: 'object',
+  required: ['scenarios', 'rules', 'rules_listed', 'critical_unlisted', 'listing_gone_rules'],
+  title: 'ScenarioCountsPublic',
+} as const;
+
+export const ScenarioListPublicSchema = {
+  properties: {
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    agent_name: {
+      type: 'string',
+      title: 'Agent Name',
+    },
+    data: {
+      items: {
+        $ref: '#/components/schemas/ScenarioPublic',
+      },
+      type: 'array',
+      title: 'Data',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+    },
+    sets: {
+      items: {
+        $ref: '#/components/schemas/ScenarioSetPublic',
+      },
+      type: 'array',
+      title: 'Sets',
+    },
+    counts: {
+      $ref: '#/components/schemas/ScenarioCountsPublic',
+    },
+    unlisted_rules: {
+      items: {
+        $ref: '#/components/schemas/ScenarioRulePublic',
+      },
+      type: 'array',
+      title: 'Unlisted Rules',
+      description: 'Rules no scenario lists, critical first (at most 50)',
+    },
+  },
+  type: 'object',
+  required: ['agent_id', 'agent_name', 'data', 'counts'],
+  title: 'ScenarioListPublic',
+} as const;
+
+export const ScenarioPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Description',
+    },
+    caller: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Caller',
+      description: 'Who the caller is',
+    },
+    caller_goal: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Caller Goal',
+    },
+    caller_behaviour: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Caller Behaviour',
+    },
+    caller_knows: {
+      anyOf: [
+        {
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Caller Knows',
+    },
+    agent_variables: {
+      anyOf: [
+        {
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Variables',
+    },
+    first_turn: {
+      $ref: '#/components/schemas/FirstTurn',
+    },
+    first_message: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'First Message',
+    },
+    fake_tool_results: {
+      items: {
+        $ref: '#/components/schemas/FakeToolResultPublic',
+      },
+      type: 'array',
+      title: 'Fake Tool Results',
+    },
+    rules: {
+      items: {
+        $ref: '#/components/schemas/ScenarioRulePublic',
+      },
+      type: 'array',
+      title: 'Rules',
+    },
+    sets: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Sets',
+      description: 'Names of its sets',
+    },
+    from_call_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'From Call Id',
+    },
+    updated_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Updated At',
+    },
+  },
+  type: 'object',
+  required: ['id', 'name', 'first_turn', 'rules', 'updated_at'],
+  title: 'ScenarioPublic',
+} as const;
+
+export const ScenarioRulePublicSchema = {
+  properties: {
+    key: {
+      type: 'string',
+      title: 'Key',
+    },
+    text: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Text',
+      description: 'The rule in the latest spec; none when it is gone',
+    },
+    critical: {
+      type: 'boolean',
+      title: 'Critical',
+      default: false,
+    },
+    gone: {
+      type: 'boolean',
+      title: 'Gone',
+      description: 'The latest spec no longer has this rule',
+      default: false,
+    },
+  },
+  type: 'object',
+  required: ['key'],
+  title: 'ScenarioRulePublic',
+} as const;
+
+export const ScenarioSetPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Description',
+    },
+    scenario_ids: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      title: 'Scenario Ids',
+    },
+  },
+  type: 'object',
+  required: ['id', 'name', 'scenario_ids'],
+  title: 'ScenarioSetPublic',
+} as const;
+
 export const ScoreTypeSchema = {
   type: 'string',
   enum: ['scored', 'binary'],
@@ -11200,6 +11926,11 @@ export const ServedBySchema = {
   required: ['kind', 'name'],
   title: 'ServedBy',
   description: 'One thing that served a call, with the version that was live.',
+} as const;
+
+export const ShortTextSchema = {
+  type: 'string',
+  maxLength: 4000,
 } as const;
 
 export const SimulatorModeSchema = {
@@ -11503,6 +12234,13 @@ export const SpecRulePublicSchema = {
       title: 'Critical',
       description: 'A failure of this rule must stop a release',
       default: false,
+    },
+    scenarios: {
+      type: 'integer',
+      title: 'Scenarios',
+      description:
+        'How many active scenarios list it (not coverage: that counts rules a run checked)',
+      default: 0,
     },
     answered_by: {
       anyOf: [

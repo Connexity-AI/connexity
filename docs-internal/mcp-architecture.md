@@ -212,6 +212,9 @@ They own validation, CRUD calls, state changes and the answer's rules and next s
 | `get_spec(workspace_id, agent_id, version?, include_prompt?, compare?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/spec` |
 | `write_spec(workspace_id, agent_id, rules)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/spec` |
 | `mark_critical_rules(workspace_id, agent_id, critical?, not_critical?)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/spec/critical` |
+| `write_scenarios(workspace_id, agent_id, scenarios)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/scenarios` |
+| `list_scenarios(workspace_id, agent_id, rule_key?, set?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/scenarios` |
+| `write_scenario_set(workspace_id, agent_id, name, scenario_ids, description?)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/scenario-sets` |
 | `raise_clarifications(workspace_id, agent_id, questions)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/clarifications` |
 | `list_clarifications(workspace_id, agent_id?, state?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/clarifications` |
 | `answer_clarifications(workspace_id, answers)` | `POST /api/v1/mcp/workspaces/{workspace_id}/clarifications/answers` |

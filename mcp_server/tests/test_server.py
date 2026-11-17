@@ -33,6 +33,7 @@ async def test_server_lists_only_the_workspace_tools() -> None:
         "list_categories",
         "list_clarifications",
         "list_issues",
+        "list_scenarios",
         "list_tasks",
         "list_workspaces",
         "mark_critical_rules",
@@ -40,6 +41,8 @@ async def test_server_lists_only_the_workspace_tools() -> None:
         "raise_clarifications",
         "scan_calls",
         "unarchive_issue",
+        "write_scenario_set",
+        "write_scenarios",
         "write_spec",
     ]
     list_agents = next(tool for tool in tools if tool.name == "list_agents")

@@ -25,6 +25,10 @@ from connexity_mcp_server.models import (
     ListIssuesResult,
     ListWorkspacesResult,
     ScanCallsResult,
+    ListScenariosResult,
+    ScenarioSetResult,
+    ScenarioToWrite,
+    WriteScenariosResult,
 )
 
 
@@ -336,5 +340,60 @@ async def answer_clarifications(
         await client.answer_clarifications(
             workspace_id=workspace_id,
             answers=[a.model_dump(exclude_none=True) for a in answers],
+        )
+    )
+
+
+async def write_scenarios(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    agent_id: str,
+    scenarios: list[ScenarioToWrite],
+) -> WriteScenariosResult:
+    return WriteScenariosResult.model_validate(
+        await client.write_scenarios(
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            scenarios=[s.model_dump(exclude_none=True) for s in scenarios],
+        )
+    )
+
+
+async def list_scenarios(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    agent_id: str,
+    rule_key: str | None = None,
+    set_name: str | None = None,
+    cursor: str | None = None,
+    limit: int | None = None,
+) -> ListScenariosResult:
+    return ListScenariosResult.model_validate(
+        await client.list_scenarios(
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            rule_key=rule_key,
+            set_name=set_name,
+            cursor=cursor,
+            limit=limit,
+        )
+    )
+
+
+async def write_scenario_set(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    agent_id: str,
+    name: str,
+    scenario_ids: list[str],
+    description: str | None = None,
+) -> ScenarioSetResult:
+    return ScenarioSetResult.model_validate(
+        await client.write_scenario_set(
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            name=name,
+            scenario_ids=scenario_ids,
+            description=description,
         )
     )

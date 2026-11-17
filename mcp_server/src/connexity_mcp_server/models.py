@@ -437,6 +437,7 @@ class SpecRule(BaseModel):
     quote: str | None = None
     touches: str | None = None
     critical: bool = False
+    scenarios: int = 0
     answered_by: str | None = None
     answered_at: str | None = None
     in_conflict: bool = False
@@ -675,3 +676,119 @@ class AgentPage(BaseModel):
 
 
 AgentResult = Answer[AgentPage]
+
+
+class FakeToolResult(BaseModel):
+    """A tool result the simulated call returns instead of calling the tool."""
+
+    tool: str = Field(description="The tool's name, as the agent calls it")
+    arguments: dict[str, Any] | None = Field(
+        default=None,
+        description="The arguments it answers (their keys must be present); leave out "
+        "to answer any call of the tool",
+    )
+    result: dict[str, Any] | None = Field(
+        default=None, description="What the tool returns, as JSON; invented values only"
+    )
+
+
+class ScenarioToWrite(BaseModel):
+    """One scenario for `write_scenarios`: a stage for a simulated call."""
+
+    id: str | None = Field(
+        default=None, description="Only to replace or archive an existing scenario"
+    )
+    archive: bool = Field(
+        default=False, description="True, with id, to archive it (it leaves its sets)"
+    )
+    name: str = ""
+    description: str | None = Field(default=None, description="For people")
+    caller: str | None = Field(default=None, description="Who the caller is")
+    caller_goal: str | None = Field(
+        default=None, description="What the caller wants from the call, in one line"
+    )
+    caller_behaviour: str | None = Field(
+        default=None, description="How they behave: in a hurry, unsure, pushing back"
+    )
+    caller_knows: dict[str, Any] | None = Field(
+        default=None, description="What the caller knows, such as their policy number"
+    )
+    agent_variables: dict[str, Any] | None = Field(
+        default=None,
+        description="The values the agent's platform passes in (dynamic variables)",
+    )
+    first_turn: str | None = Field(
+        default=None, description="Who speaks first: agent or user (the default)"
+    )
+    first_message: str | None = Field(
+        default=None, description="The first speaker's opening line"
+    )
+    fake_tool_results: list[FakeToolResult] = Field(default_factory=list)
+    rules: list[str] = Field(
+        default_factory=list,
+        description="Keys from `get_spec` of the rules it expects to come up",
+    )
+    from_call_id: str | None = Field(
+        default=None, description="A call of this agent the scenario was written from"
+    )
+
+
+class ScenarioRule(BaseModel):
+    key: str
+    text: str | None = None
+    critical: bool = False
+    gone: bool = False
+
+
+class Scenario(BaseModel):
+    id: str
+    name: str
+    description: str | None = None
+    caller: str | None = None
+    caller_goal: str | None = None
+    caller_behaviour: str | None = None
+    caller_knows: dict[str, Any] | None = None
+    agent_variables: dict[str, Any] | None = None
+    first_turn: str
+    first_message: str | None = None
+    fake_tool_results: list[FakeToolResult] = Field(default_factory=list)
+    rules: list[ScenarioRule] = Field(default_factory=list)
+    sets: list[str] = Field(default_factory=list)
+    from_call_id: str | None = None
+    updated_at: str
+
+
+class ScenarioSet(BaseModel):
+    id: str
+    name: str
+    description: str | None = None
+    scenario_ids: list[str] = Field(default_factory=list)
+
+
+class ScenarioCounts(BaseModel):
+    scenarios: int = 0
+    rules: int = 0
+    rules_listed: int = 0
+    critical_unlisted: int = 0
+    listing_gone_rules: int = 0
+
+
+class Scenarios(BaseModel):
+    agent_id: str
+    agent_name: str
+    data: list[Scenario] = Field(default_factory=list)
+    next_cursor: str | None = None
+    sets: list[ScenarioSet] = Field(default_factory=list)
+    counts: ScenarioCounts = Field(default_factory=ScenarioCounts)
+    unlisted_rules: list[ScenarioRule] = Field(default_factory=list)
+
+
+class WrittenScenarios(BaseModel):
+    scenarios: list[Scenario] = Field(default_factory=list)
+    archived: int = 0
+
+
+WriteScenariosResult = Answer[WrittenScenarios]
+ListScenariosResult = Answer[Scenarios]
+ScenarioSetResult = Answer[ScenarioSet | None]
+

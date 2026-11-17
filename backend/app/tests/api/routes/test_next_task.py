@@ -21,6 +21,7 @@ from app.services.work import (
     NextTask,
     Task,
     lift_blockers,
+    move_task,
     next_task,
     work_list,
 )
@@ -207,13 +208,19 @@ def test_a_review_is_done_once_handed_out(db: Session) -> None:
     write_agent_spec(
         session=db, agent=night, drafts=RULES, author=user, assistant_name="Claude"
     )
+    # Scenarios to write now sit above it; the person moves the review to the top.
+    top = work_list(session=db, company_id=user.company_id)[0].key
+    move_task(
+        session=db,
+        company_id=user.company_id,
+        key=key,
+        before=top,
+        person=user,
+        assistant_name=None,
+    )
 
     current = _take(db, user)
-    for _ in range(20):
-        if current.task is None or current.task.key == key:
-            break
-        current = _take(db, user)
-    assert current.task is not None
+    assert current.task is not None and current.task.key == key
 
     after = _take(db, user)
 
