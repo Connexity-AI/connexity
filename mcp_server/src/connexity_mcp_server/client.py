@@ -274,6 +274,58 @@ class ConnexityBackendClient:
             json=body,
         )
 
+    async def run_scenarios(
+        self,
+        *,
+        workspace_id: str,
+        agent_id: str,
+        set_name: str | None = None,
+        scenario_ids: list[str] | None = None,
+        all_scenarios: bool = False,
+        repeats: int | None = None,
+        version: int | None = None,
+    ) -> dict[str, Any]:
+        body: dict[str, Any] = {"all": all_scenarios}
+        if set_name is not None:
+            body["set"] = set_name
+        if scenario_ids is not None:
+            body["scenario_ids"] = scenario_ids
+        if repeats is not None:
+            body["repeats"] = repeats
+        if version is not None:
+            body["version"] = version
+        return await self._request_json(
+            "POST",
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/agents/"
+            f"{quote(agent_id, safe='')}/test-runs",
+            json=body,
+        )
+
+    async def get_test_runs(
+        self,
+        *,
+        workspace_id: str,
+        agent_id: str,
+        run_id: str | None = None,
+        cursor: str | None = None,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
+        params = {
+            key: value
+            for key, value in {
+                "run_id": run_id,
+                "cursor": cursor,
+                "limit": limit,
+            }.items()
+            if value not in (None, "")
+        }
+        return await self._request_json(
+            "GET",
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/agents/"
+            f"{quote(agent_id, safe='')}/test-runs",
+            params=params,
+        )
+
     async def raise_clarifications(
         self, *, workspace_id: str, agent_id: str, questions: list[dict[str, Any]]
     ) -> dict[str, Any]:

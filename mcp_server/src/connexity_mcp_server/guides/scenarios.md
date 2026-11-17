@@ -1,4 +1,4 @@
-# Writing scenarios
+# Writing and running scenarios
 
 A scenario is the stage for a simulated call: who calls, what they want, how they
 behave, what they and the agent know, and what the agent's tools return. It has no pass
@@ -59,3 +59,41 @@ do not approve them: a person who disagrees asks you to change one.
 - **Archive one** with its `id` and `archive: true`; it leaves its sets.
 - **When the spec drops a rule,** scenarios that list it show it as `gone`: rewrite them
   with the spec's keys, or archive them.
+
+## Running scenarios
+
+- **`run_scenarios`** runs one of three on the agent (on Retell for now):
+  - a named `set`;
+  - a pick of `scenario_ids`;
+  - `all` of them.
+- **Each scenario repeats** (`repeats`, 3 by default, at most 5). A run makes at most
+  200 simulated calls.
+- **`version`** picks the agent's version on its platform. The default is the latest
+  one, the one being edited.
+- **Run a set or a pick while you work on a change.** Run `all` before a release.
+- **The run happens in the background.** Call `get_test_runs` with its `run_id` until
+  it is completed.
+- **No real tool runs:**
+  - each tool call is answered by the scenario's fake result;
+  - a tool the scenario does not fake answers that it is not available in this test,
+    and the run names it under `default_fakes`;
+  - add a fake for it with `write_scenarios` when the conversation needs a real-looking
+    answer.
+
+## Reading a run
+
+- **`rules`** has every judged rule's totals across repeats: failed first, critical
+  first.
+  - "Didn't come up" is not counted.
+  - A rule that both passed and failed is `flaky`. A flaky critical rule counts as
+    failed.
+- **Each simulated call** has its verdicts with the judge's reason and the turns it
+  rests on. It also has what code checks found; that never counts as a production
+  issue.
+- **When a rule fails:**
+  1. Read the reason and the turns.
+  2. If the scenario is wrong (it led the caller somewhere the rule does not apply),
+     fix the scenario.
+  3. Otherwise the agent is wrong: tell the person what failed and what you suggest.
+     Connexity never changes the agent.
+

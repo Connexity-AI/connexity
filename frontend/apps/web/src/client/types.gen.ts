@@ -2006,6 +2006,26 @@ export const CheckOutcome = {
 export type CheckOutcome = (typeof CheckOutcome)[keyof typeof CheckOutcome];
 
 /**
+ * CheckTotalPublic
+ */
+export type CheckTotalPublic = {
+  /**
+   * Check Type
+   */
+  check_type: string;
+  /**
+   * Title
+   */
+  title: string;
+  /**
+   * Found
+   *
+   * Simulated calls where it found something
+   */
+  found: number;
+};
+
+/**
  * ChecksRunResult
  */
 export type ChecksRunResult = {
@@ -5214,6 +5234,40 @@ export type McpAnswerMcpScanProgress = {
 };
 
 /**
+ * McpAnswer[McpStartedRun]
+ */
+export type McpAnswerMcpStartedRun = {
+  /**
+   * The facts: the result of the call
+   */
+  data: McpStartedRun;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
  * McpAnswer[McpTaskList]
  */
 export type McpAnswerMcpTaskList = {
@@ -5221,6 +5275,40 @@ export type McpAnswerMcpTaskList = {
    * The facts: the result of the call
    */
   data: McpTaskList;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
+ * McpAnswer[McpTestRuns]
+ */
+export type McpAnswerMcpTestRuns = {
+  /**
+   * The facts: the result of the call
+   */
+  data: McpTestRuns;
   /**
    * Rules
    *
@@ -5931,6 +6019,44 @@ export type McpRefusedAgent = {
 };
 
 /**
+ * McpRunScenarios
+ *
+ * Exactly one of ``set``, ``scenario_ids`` or ``all``.
+ */
+export type McpRunScenarios = {
+  /**
+   * Set
+   *
+   * Run this named set
+   */
+  set?: string | null;
+  /**
+   * Scenario Ids
+   *
+   * Run this pick of scenarios
+   */
+  scenario_ids?: Array<string> | null;
+  /**
+   * All
+   *
+   * Run every active scenario
+   */
+  all?: boolean;
+  /**
+   * Repeats
+   *
+   * How many times each scenario runs
+   */
+  repeats?: number;
+  /**
+   * Version
+   *
+   * The agent's version on its platform; none for the latest
+   */
+  version?: number | null;
+};
+
+/**
  * McpScanProgress
  */
 export type McpScanProgress = {
@@ -6070,6 +6196,22 @@ export type McpSpecRule = {
    * True when a failure of the rule must stop a release; left out, a kept rule keeps its mark and a new one is not critical
    */
   critical?: boolean | null;
+};
+
+/**
+ * McpStartedRun
+ */
+export type McpStartedRun = {
+  /**
+   * Run Id
+   */
+  run_id: string;
+  /**
+   * Calls
+   *
+   * Simulated calls the run makes
+   */
+  calls: number;
 };
 
 /**
@@ -6213,6 +6355,19 @@ export type McpTaskRef = {
    * Title
    */
   title: string;
+};
+
+/**
+ * McpTestRuns
+ *
+ * One run in detail when ``run_id`` was given, otherwise the agent's runs.
+ */
+export type McpTestRuns = {
+  run?: TestRunDetailPublic | null;
+  /**
+   * Runs
+   */
+  runs?: Array<TestRunPublic>;
 };
 
 /**
@@ -7023,9 +7178,71 @@ export type RetellRuntimeConfig = {
    * Kind
    */
   kind?: 'retell';
+  /**
+   * Version
+   *
+   * The Retell agent version to talk to; none for the latest
+   */
+  version?: number | null;
 };
 
 export type RuleKey = string;
+
+/**
+ * RuleOutcome
+ *
+ * A spec rule's verdict in one simulated call.
+ */
+export const RuleOutcome = {
+  PASSED: 'passed',
+  FAILED: 'failed',
+  DID_NOT_COME_UP: 'did_not_come_up',
+} as const;
+
+/**
+ * RuleOutcome
+ *
+ * A spec rule's verdict in one simulated call.
+ */
+export type RuleOutcome = (typeof RuleOutcome)[keyof typeof RuleOutcome];
+
+/**
+ * RuleTotalPublic
+ */
+export type RuleTotalPublic = {
+  /**
+   * Key
+   */
+  key: string;
+  /**
+   * Text
+   *
+   * The rule in the spec version the run judged
+   */
+  text?: string | null;
+  /**
+   * Critical
+   */
+  critical?: boolean;
+  /**
+   * Passed
+   */
+  passed?: number;
+  /**
+   * Failed
+   */
+  failed?: number;
+  /**
+   * Did Not Come Up
+   */
+  did_not_come_up?: number;
+  /**
+   * Flaky
+   *
+   * It both passed and failed across repeats
+   */
+  flaky?: boolean;
+};
 
 /**
  * RunComparison
@@ -7390,9 +7607,9 @@ export type RunPublic = {
   /**
    * Eval Config Id
    *
-   * FK to the eval config executed in this run
+   * FK to the eval config executed in this run; none for scenarios run without a set
    */
-  eval_config_id: string;
+  eval_config_id: string | null;
   /**
    * Eval Config Version
    *
@@ -7448,6 +7665,24 @@ export type RunPublic = {
    */
   updated_at: string;
 };
+
+/**
+ * RunScope
+ *
+ * What a run of scenarios covers. Empty on 1.x runs.
+ */
+export const RunScope = {
+  SET: 'set',
+  PICK: 'pick',
+  ALL: 'all',
+} as const;
+
+/**
+ * RunScope
+ *
+ * What a run of scenarios covers. Empty on 1.x runs.
+ */
+export type RunScope = (typeof RunScope)[keyof typeof RunScope];
 
 /**
  * RunStatus
@@ -7842,6 +8077,91 @@ export type ServedBy = {
 };
 
 export type ShortText = string;
+
+/**
+ * SimulatedCallPublic
+ */
+export type SimulatedCallPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Scenario Id
+   */
+  scenario_id: string;
+  /**
+   * Scenario Name
+   */
+  scenario_name: string;
+  /**
+   * Repeat
+   *
+   * Which repeat, from 1
+   */
+  repeat: number;
+  /**
+   * Finished
+   */
+  finished: boolean;
+  /**
+   * Error
+   */
+  error?: string | null;
+  /**
+   * Turns
+   */
+  turns?: number | null;
+  /**
+   * Verdicts
+   */
+  verdicts?: Array<VerdictPublic>;
+  /**
+   * Findings
+   */
+  findings?: Array<SimulatedFinding>;
+  /**
+   * Default Fakes
+   */
+  default_fakes?: Array<string>;
+  /**
+   * Cost Usd
+   */
+  cost_usd?: number | null;
+};
+
+/**
+ * SimulatedFinding
+ *
+ * What one code check found in a simulated call. Stored on the call's
+ * ``test_case_result.check_findings``; never a production finding.
+ */
+export type SimulatedFinding = {
+  /**
+   * Check Type
+   */
+  check_type: string;
+  /**
+   * Check Version
+   */
+  check_version: number;
+  kind: CheckKind;
+  mode: CheckMode;
+  /**
+   * Key
+   */
+  key?: string | null;
+  /**
+   * Event Ids
+   */
+  event_ids: Array<string>;
+  /**
+   * Detail
+   */
+  detail?: {
+    [key: string]: unknown;
+  } | null;
+};
 
 /**
  * SimulatorMode
@@ -9085,6 +9405,160 @@ export type TestCasesPublic = {
 };
 
 /**
+ * TestRunCountsPublic
+ */
+export type TestRunCountsPublic = {
+  /**
+   * Calls
+   *
+   * Simulated calls the run makes
+   */
+  calls: number;
+  /**
+   * Finished
+   */
+  finished?: number;
+  /**
+   * Errors
+   */
+  errors?: number;
+  /**
+   * Rules Failed
+   */
+  rules_failed?: number;
+  /**
+   * Critical Failed
+   */
+  critical_failed?: number;
+  /**
+   * Flaky
+   */
+  flaky?: number;
+  /**
+   * Findings
+   */
+  findings?: number;
+};
+
+/**
+ * TestRunDetailPublic
+ */
+export type TestRunDetailPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  status: RunStatus;
+  /**
+   * Status Detail
+   */
+  status_detail?: string | null;
+  scope: RunScope;
+  /**
+   * Set Name
+   */
+  set_name?: string | null;
+  /**
+   * Repeats
+   */
+  repeats: number;
+  /**
+   * Spec Version
+   */
+  spec_version?: number | null;
+  /**
+   * Platform Version
+   */
+  platform_version?: string | null;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Started At
+   */
+  started_at?: string | null;
+  /**
+   * Completed At
+   */
+  completed_at?: string | null;
+  counts: TestRunCountsPublic;
+  /**
+   * Cost Usd
+   */
+  cost_usd?: number | null;
+  /**
+   * Rules
+   *
+   * Failed rules first, critical first
+   */
+  rules?: Array<RuleTotalPublic>;
+  /**
+   * Dropped Rules
+   *
+   * Rule keys scenarios list that the run's spec no longer has
+   */
+  dropped_rules?: Array<string>;
+  /**
+   * Checks
+   */
+  checks?: Array<CheckTotalPublic>;
+  /**
+   * Calls
+   */
+  calls?: Array<SimulatedCallPublic>;
+};
+
+/**
+ * TestRunPublic
+ */
+export type TestRunPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  status: RunStatus;
+  /**
+   * Status Detail
+   */
+  status_detail?: string | null;
+  scope: RunScope;
+  /**
+   * Set Name
+   */
+  set_name?: string | null;
+  /**
+   * Repeats
+   */
+  repeats: number;
+  /**
+   * Spec Version
+   */
+  spec_version?: number | null;
+  /**
+   * Platform Version
+   */
+  platform_version?: string | null;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Started At
+   */
+  started_at?: string | null;
+  /**
+   * Completed At
+   */
+  completed_at?: string | null;
+  counts: TestRunCountsPublic;
+  /**
+   * Cost Usd
+   */
+  cost_usd?: number | null;
+};
+
+/**
  * TextRuntimeKind
  */
 export const TextRuntimeKind = { RETELL: 'retell', CUSTOM_ENDPOINT: 'custom_endpoint' } as const;
@@ -9745,6 +10219,25 @@ export type ValidationError = {
    * Error Type
    */
   type: string;
+};
+
+/**
+ * VerdictPublic
+ */
+export type VerdictPublic = {
+  /**
+   * Key
+   */
+  key: string;
+  outcome: RuleOutcome;
+  /**
+   * Reason
+   */
+  reason?: string | null;
+  /**
+   * Turns
+   */
+  turns?: Array<number>;
 };
 
 /**
@@ -13087,6 +13580,138 @@ export type McpWriteAgentScenarioSetResponses = {
 
 export type McpWriteAgentScenarioSetResponse =
   McpWriteAgentScenarioSetResponses[keyof McpWriteAgentScenarioSetResponses];
+
+export type McpGetAgentTestRunsData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: {
+    /**
+     * Run Id
+     */
+    run_id?: string | null;
+    /**
+     * Cursor
+     */
+    cursor?: string | null;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/test-runs';
+};
+
+export type McpGetAgentTestRunsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpGetAgentTestRunsError = McpGetAgentTestRunsErrors[keyof McpGetAgentTestRunsErrors];
+
+export type McpGetAgentTestRunsResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerMcpTestRuns;
+};
+
+export type McpGetAgentTestRunsResponse =
+  McpGetAgentTestRunsResponses[keyof McpGetAgentTestRunsResponses];
+
+export type McpRunAgentScenariosData = {
+  body: McpRunScenarios;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/test-runs';
+};
+
+export type McpRunAgentScenariosErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpRunAgentScenariosError =
+  McpRunAgentScenariosErrors[keyof McpRunAgentScenariosErrors];
+
+export type McpRunAgentScenariosResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerMcpStartedRun;
+};
+
+export type McpRunAgentScenariosResponse =
+  McpRunAgentScenariosResponses[keyof McpRunAgentScenariosResponses];
 
 export type AgentsListWorkspaceAgentsData = {
   body?: never;

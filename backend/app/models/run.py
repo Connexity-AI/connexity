@@ -8,7 +8,7 @@ from sqlmodel import Field, Relationship, SQLModel
 
 from app.models.agent_version import AgentVersion
 from app.models.columns import enum_type
-from app.models.enums import RunStatus
+from app.models.enums import RunScope, RunStatus
 from app.models.schemas import AggregateMetrics, RunConfig
 
 if TYPE_CHECKING:
@@ -57,10 +57,11 @@ class RunBase(SQLModel):
         description="Effective LLM provider for platform agent simulator for this run",
     )
     # Eval config
-    eval_config_id: uuid.UUID = Field(
+    eval_config_id: uuid.UUID | None = Field(
+        default=None,
         foreign_key="eval_config.id",
         index=True,
-        description="FK to the eval config executed in this run",
+        description="The set of scenarios run; empty for a pick or every scenario",
     )
     eval_config_version: int = Field(
         default=1,
@@ -77,6 +78,35 @@ class RunBase(SQLModel):
         index=True,
         ondelete="SET NULL",
         description="FK to immutable agent_version row at run creation",
+    )
+    # What a run of scenarios covers (`plans/2026-11-17-text-runner.md`); empty on 1.x
+    # runs.
+    scope: RunScope | None = Field(
+        default=None,
+        sa_type=enum_type(RunScope),
+        description="A named set, a pick of scenarios, or every scenario",
+    )
+    set_name: str | None = Field(
+        default=None, max_length=255, description="The set's name when it was run"
+    )
+    repeats: int | None = Field(
+        default=None, description="How many times each scenario runs"
+    )
+    spec_id: uuid.UUID | None = Field(
+        default=None,
+        foreign_key="spec.id",
+        ondelete="SET NULL",
+        description="The spec version whose rules the run judges",
+    )
+    platform_version: str | None = Field(
+        default=None,
+        max_length=64,
+        description="The agent's version on its platform that the run tests",
+    )
+    status_detail: str | None = Field(
+        default=None,
+        max_length=1024,
+        description="Why the run failed or stopped",
     )
     # Config
     config: dict[str, Any] | None = Field(
@@ -251,8 +281,9 @@ class RunPublic(SQLModel):
         default=None,
         description="Effective LLM provider for platform agent simulator for this run",
     )
-    eval_config_id: uuid.UUID = Field(
-        description="FK to the eval config executed in this run"
+    eval_config_id: uuid.UUID | None = Field(
+        description="FK to the eval config executed in this run; none for scenarios "
+        "run without a set"
     )
     eval_config_version: int = Field(
         description="Version of the eval config at run time"

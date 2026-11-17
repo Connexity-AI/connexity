@@ -266,6 +266,8 @@ class TextRuntimeBase(EvalRuntime):
             user_context=test_case.user_context,
             expected_outcomes=test_case.expected_outcomes,
             config=sim_cfg,
+            caller_goal=test_case.caller_goal,
+            caller_behaviour=test_case.caller_behaviour,
         )
 
         accumulator = TestCaseTokenAccumulator()

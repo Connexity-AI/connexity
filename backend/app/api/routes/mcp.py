@@ -24,6 +24,7 @@ from app.core.config import settings
 from app.core.encryption import decrypt
 from app.crud import clarification as crud_clarification
 from app.crud import scenario as crud_scenario
+from app.crud import test_run as crud_test_run
 from app.crud.call_list import CallFilters
 from app.crud.issue_list import calls_by_agent, period_start
 from app.crud.latency import agent_latencies
@@ -50,6 +51,7 @@ from app.models.enums import (
     CallCheckStatus,
     ClarificationState,
     IssueState,
+    RunStatus,
     TaskKind,
 )
 from app.models.issue_list import IssuePeriod, IssueStatusFilter
@@ -81,11 +83,14 @@ from app.models.mcp import (
     McpNextTask,
     McpRaiseClarifications,
     McpRefusedAgent,
+    McpRunScenarios,
     McpScanProgress,
+    McpStartedRun,
     McpTask,
     McpTaskCounts,
     McpTaskList,
     McpTaskRef,
+    McpTestRuns,
     McpUnarchiveIssue,
     McpWorkspace,
     McpWriteScenarios,
@@ -95,6 +100,7 @@ from app.models.mcp import (
 )
 from app.models.scenario import ScenarioListPublic, ScenarioSetPublic
 from app.models.spec import SpecPublic, SpecWrittenPublic
+from app.models.test_run import TestRunDetailPublic
 from app.models.work import WorkMoveIn
 from app.services.agent_list import agent_types
 from app.services.agent_page import agent_page
@@ -142,6 +148,15 @@ from app.services.spec import (
     spec_answer,
     spec_state,
     write_agent_spec,
+)
+from app.services.test_run import (
+    DEFAULT_REPEATS,
+    RunRefused,
+    RunRequest,
+    launch,
+    list_runs,
+    run_detail,
+    start_run,
 )
 from app.services.work import MoveRefused, Task, move_task, next_task, work_page
 
@@ -2110,9 +2125,204 @@ def write_agent_scenario_set(
         rules=_SCENARIO_RULES,
         next_steps=[
             f"The set '{config.name}' has {len(ids)} "
-            f"{'scenario' if len(ids) == 1 else 'scenarios'}. Running sets comes with "
-            "the text runner; the gate always runs every scenario.",
+            f"{'scenario' if len(ids) == 1 else 'scenarios'}. Run it with "
+            f"`run_scenarios` (set '{config.name}', agent_id {agent.id}) while you work "
+            "on a change; the gate always runs every scenario.",
             NEXT_TASK,
         ],
         guide=GUIDE_SCENARIOS,
+    )
+
+
+_TEST_RUN_RULES = [
+    "A run judges only the rules each scenario lists: Passed, Failed or Didn't come up. "
+    "Didn't come up is not counted. A scenario has no pass or fail of its own.",
+    "Every tool is faked: the scenario's fake results first, and every other tool "
+    "answers that it is not available in this test. No real tool runs.",
+    "A rule that both passed and failed across repeats is flaky. A flaky critical rule "
+    "counts as failed.",
+    "Code checks run on every simulated call. Their findings never count as production "
+    "issues; checks that need timing or a recording are skipped in text.",
+    "Run a set or a pick while working on a change; before a release, run every "
+    "scenario.",
+]
+
+
+def _run_refused(refused: RunRefused) -> HTTPException:
+    return HTTPException(
+        status_code=422,
+        detail=McpErrorDetail(
+            error=refused.error,
+            next_steps=[*refused.problems, "Nothing was started."],
+            guide=GUIDE_SCENARIOS,
+        ).model_dump(),
+    )
+
+
+@router.post(
+    "/workspaces/{workspace_id}/agents/{agent_id}/test-runs",
+    response_model=McpAnswer[McpStartedRun],
+)
+async def run_agent_scenarios(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    current_user: McpCurrentUser,
+    agent_id: uuid.UUID,
+    body: McpRunScenarios,
+) -> McpAnswer[McpStartedRun]:
+    agent = _mcp_agent_in(session, workspace, agent_id)
+    try:
+        run = start_run(
+            session=session,
+            agent=agent,
+            user_id=current_user.id,
+            request=RunRequest(
+                set_name=body.set,
+                scenario_ids=body.scenario_ids,
+                all=body.all,
+                repeats=body.repeats,
+                version=body.version,
+            ),
+        )
+    except RunRefused as refused:
+        raise _run_refused(refused) from None
+    calls = len(crud_test_run.calls_of_runs(session=session, run_ids=[run.id])[run.id])
+    launch(run.id)
+    return McpAnswer[McpStartedRun](
+        data=McpStartedRun(run_id=run.id, calls=calls),
+        rules=_TEST_RUN_RULES,
+        next_steps=[
+            f"The run makes {calls} simulated "
+            f"{'call' if calls == 1 else 'calls'} in the background. Call "
+            f"`get_test_runs` with run_id {run.id} until its status is completed.",
+            "Meanwhile, carry on with other work.",
+        ],
+        guide=GUIDE_SCENARIOS,
+    )
+
+
+def _run_steps(
+    run: TestRunDetailPublic, more: bool, offset: int, limit: int
+) -> list[str]:
+    counts = run.counts
+    if run.status in (RunStatus.PENDING, RunStatus.RUNNING):
+        return [
+            f"Still running: {counts.finished} of {counts.calls} simulated calls "
+            f"finished. Call `get_test_runs` with run_id {run.id} again."
+        ]
+    if run.status is RunStatus.FAILED:
+        return [
+            f"The run stopped: {run.status_detail or 'unknown reason'}. Fix that and "
+            "start it again with `run_scenarios`."
+        ]
+    steps: list[str] = []
+    if counts.critical_failed:
+        steps.append(
+            f"{counts.critical_failed} critical "
+            f"{'rule' if counts.critical_failed == 1 else 'rules'} failed (first in "
+            "`rules`). Read the failing calls' reasons, then fix the agent or, if the "
+            "scenario is wrong, the scenario (`write_scenarios`)."
+        )
+    if counts.rules_failed > counts.critical_failed:
+        other = counts.rules_failed - counts.critical_failed
+        steps.append(
+            f"{other} other {'rule' if other == 1 else 'rules'} failed. Tell the person "
+            "what failed and what you suggest; they decide what changes."
+        )
+    if counts.flaky:
+        steps.append(
+            f"{counts.flaky} {'rule is' if counts.flaky == 1 else 'rules are'} flaky "
+            "(`flaky`): it passed in some repeats and failed in others. Look at both."
+        )
+    defaults = sorted({tool for call in run.calls for tool in call.default_fakes})
+    if defaults:
+        steps.append(
+            "These tools answered with the default fake because a scenario did not "
+            f"fake them: {', '.join(defaults)}. Add fake results with `write_scenarios`."
+        )
+    if counts.findings:
+        steps.append(
+            f"Code checks found {counts.findings} "
+            f"{'problem' if counts.findings == 1 else 'problems'} (`checks`); they do "
+            "not count as production issues."
+        )
+    if counts.errors:
+        steps.append(
+            f"{counts.errors} simulated {'call' if counts.errors == 1 else 'calls'} "
+            "ended in an error (`error`) and gave no verdicts; run those scenarios again."
+        )
+    if run.dropped_rules:
+        steps.append(
+            "Some scenarios list rules the run's spec no longer has, which were not "
+            f"judged: {', '.join(run.dropped_rules[:10])}. Rewrite them with "
+            "`write_scenarios`."
+        )
+    if not steps:
+        steps.append("Every judged rule passed, with no code-check findings.")
+    if more:
+        steps.append(
+            "Call `get_test_runs` again with `cursor` set to `next_cursor` for the next "
+            f"simulated calls (from {offset + limit + 1})."
+        )
+    return steps
+
+
+@router.get(
+    "/workspaces/{workspace_id}/agents/{agent_id}/test-runs",
+    response_model=McpAnswer[McpTestRuns],
+)
+def get_agent_test_runs(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    agent_id: uuid.UUID,
+    run_id: uuid.UUID | None = Query(default=None),
+    cursor: str | None = Query(default=None, max_length=255),
+    limit: int = Query(default=25, ge=1, le=100),
+) -> McpAnswer[McpTestRuns]:
+    agent = _mcp_agent_in(session, workspace, agent_id)
+    offset = _decode_cursor(cursor)
+    if run_id is None:
+        runs, more = list_runs(session=session, agent=agent, offset=offset, limit=limit)
+        steps = (
+            [
+                "Call `get_test_runs` with a `run_id` for its rules, findings and "
+                "simulated calls."
+            ]
+            if runs
+            else [
+                "The agent has no runs yet. Start one with `run_scenarios` (a set, a "
+                f"pick or all; {DEFAULT_REPEATS} repeats by default)."
+            ]
+        )
+        if more:
+            steps.append(
+                "Call `get_test_runs` again with `cursor` set to `next_cursor` for "
+                "older runs."
+            )
+        return McpAnswer[McpTestRuns](
+            data=McpTestRuns(runs=runs),
+            rules=_TEST_RUN_RULES,
+            next_steps=steps,
+            guide=GUIDE_SCENARIOS,
+            next_cursor=_encode_cursor(offset + limit) if more else None,
+        )
+    run = crud_test_run.run_of_agent(session=session, agent_id=agent.id, run_id=run_id)
+    if run is None:
+        raise HTTPException(
+            status_code=404,
+            detail=McpErrorDetail(
+                error="The agent has no run with this id",
+                next_steps=[
+                    "Call `get_test_runs` without `run_id`; it lists the runs."
+                ],
+                guide=GUIDE_SCENARIOS,
+            ).model_dump(),
+        )
+    detail, more = run_detail(session=session, run=run, offset=offset, limit=limit)
+    return McpAnswer[McpTestRuns](
+        data=McpTestRuns(run=detail),
+        rules=_TEST_RUN_RULES,
+        next_steps=_run_steps(detail, more, offset, limit),
+        guide=GUIDE_SCENARIOS,
+        next_cursor=_encode_cursor(offset + limit) if more else None,
     )

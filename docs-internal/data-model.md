@@ -36,6 +36,7 @@ erDiagram
     eval_config ||--o{ run : "executed as"
     agent_version ||--o{ run : "tested in"
     run ||--o{ test_case_result : produces
+    test_case_result ||--o{ rule_verdict : judges
     test_case ||--o{ test_case_result : "result of"
     user ||--o{ oauth_authorization_code : grants
     user ||--o{ oauth_refresh_token : holds
@@ -71,8 +72,9 @@ erDiagram
 | `test_case` | `test_case.py` | A scenario: the stage for a simulated call. The caller (`persona_context`, `caller_goal`, `caller_behaviour`), what the caller knows (`user_context`) apart from the agent's variables (`agent_variables`), who speaks first and the first message, fake tool results (`expected_tool_calls` with `mock_response`), and optionally the call it came from. Written by the assistant through MCP; it has no pass or fail of its own. | Reshaped in 10.1291 (`caller_goal`, `caller_behaviour`, `agent_variables`); the rest of the eval stack stays frozen until the runner |
 | `scenario_rule` | `scenario.py` | A spec rule a scenario expects to come up, by the rule's key, so the link holds across spec versions. A scenario with at least one is listed by MCP. | New in 10.1291 |
 | `eval_config`, `eval_config_member` | `eval_config.py` | A named set of scenarios with a run configuration (runtime, judge, thresholds); `write_scenario_set` writes its members. | Frozen until Phase 4 |
-| `run` | `run.py` | One execution of an eval config against an agent version, with aggregate metrics. | Frozen until Phase 4 |
-| `test_case_result` | `test_case_result.py` | One test case's transcript and judge verdict within a run. | Frozen until Phase 4 |
+| `run` | `run.py` | One execution of an eval config against an agent version, with aggregate metrics. A run of scenarios (10.1292) also has its `scope` (a set, a pick or all), `set_name`, `repeats`, the `spec_id` whose rules it judges, the `platform_version` it tests and a `status_detail`; its `eval_config_id` is empty for a pick or all. | Reshaped in 10.1292; the 1.x parts frozen until Phase 4 |
+| `test_case_result` | `test_case_result.py` | One test case's transcript and judge verdict within a run. In a run of scenarios it is one simulated call (a scenario and a repeat), made when the run starts, with the code-check findings in it (`check_findings`) and the tools that got the default fake (`default_fakes`); `passed` stays empty, since a scenario has no pass or fail. | Reshaped in 10.1292 |
+| `rule_verdict` | `test_run.py` | A rule the scenario lists, judged in one simulated call: Passed, Failed or Didn't come up, with the reason, the turns, and whether the rule was critical in the run's spec version. | New in 10.1292 |
 | `custom_metric` | `custom_metric.py` | Judge metrics per company; built-in ones are copied in at signup. | Frozen until Phase 4 |
 | `ingest_token` | `ingest_token.py` | A company's credential for sending traces. Only a hash of the token is stored. | New in slice 1.2 |
 | `oauth_client`, `oauth_authorization_code`, `oauth_refresh_token` | `oauth.py` | The OAuth server that MCP clients authenticate against. | Keep |

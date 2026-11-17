@@ -20,6 +20,23 @@ class RunStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
+class RunScope(StrEnum):
+    """What a run of scenarios covers. Empty on 1.x runs."""
+
+    SET = "set"
+    PICK = "pick"
+    ALL = "all"
+
+
+class RuleOutcome(StrEnum):
+    """A spec rule's verdict in one simulated call."""
+
+    PASSED = "passed"
+    FAILED = "failed"
+    # The conversation never reached what the rule is about. Not counted.
+    DID_NOT_COME_UP = "did_not_come_up"
+
+
 class AgentMode(StrEnum):
     ENDPOINT = "endpoint"
     PLATFORM = "platform"
