@@ -3056,6 +3056,17 @@ export const CallScreenPublicSchema = {
       title: 'Findings',
       description: 'Worst first: critical, then by time',
     },
+    simulated: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SimulatedLinePublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Set on a simulated call: no recording, no timing, no caller',
+    },
   },
   type: 'object',
   required: [
@@ -3298,6 +3309,12 @@ export const CheckTotalPublicSchema = {
       type: 'integer',
       title: 'Found',
       description: 'Simulated calls where it found something',
+    },
+    critical: {
+      type: 'boolean',
+      title: 'Critical',
+      description: 'It fails calls, rather than only flagging them',
+      default: false,
     },
   },
   type: 'object',
@@ -9608,6 +9625,17 @@ export const McpTestRunsSchema = {
         },
       ],
     },
+    results: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/VersionResultsPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: "Without a run id: the tested version's results across its runs",
+    },
     runs: {
       items: {
         $ref: '#/components/schemas/TestRunPublic',
@@ -9618,7 +9646,8 @@ export const McpTestRunsSchema = {
   },
   type: 'object',
   title: 'McpTestRuns',
-  description: "One run in detail when ``run_id`` was given, otherwise the agent's runs.",
+  description:
+    "One run in detail when ``run_id`` was given; otherwise a tested version's\nresults and the agent's runs.",
 } as const;
 
 export const McpUnarchiveIssueSchema = {
@@ -12315,9 +12344,14 @@ export const SimulatedCallPublicSchema = {
       ],
       title: 'Cost Usd',
     },
+    url: {
+      type: 'string',
+      title: 'Url',
+      description: 'The simulated call in the app',
+    },
   },
   type: 'object',
-  required: ['id', 'scenario_id', 'scenario_name', 'repeat', 'finished'],
+  required: ['id', 'scenario_id', 'scenario_name', 'repeat', 'finished', 'url'],
   title: 'SimulatedCallPublic',
 } as const;
 
@@ -12372,6 +12406,101 @@ export const SimulatedFindingSchema = {
   title: 'SimulatedFinding',
   description:
     "What one code check found in a simulated call. Stored on the call's\n``test_case_result.check_findings``; never a production finding.",
+} as const;
+
+export const SimulatedLinePublicSchema = {
+  properties: {
+    run_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Run Id',
+    },
+    scenario_name: {
+      type: 'string',
+      title: 'Scenario Name',
+    },
+    edited: {
+      type: 'boolean',
+      title: 'Edited',
+      description: 'The tested draft was edited under the same version number',
+      default: false,
+    },
+    verdicts: {
+      items: {
+        $ref: '#/components/schemas/SimulatedVerdictPublic',
+      },
+      type: 'array',
+      title: 'Verdicts',
+      description: 'Failed first',
+    },
+    stopped: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Stopped',
+      description: 'Why the conversation stopped before it could be judged',
+    },
+  },
+  type: 'object',
+  required: ['run_id', 'scenario_name'],
+  title: 'SimulatedLinePublic',
+  description: 'What makes a simulated call one: its scenario and the rules it was judged on.',
+} as const;
+
+export const SimulatedVerdictPublicSchema = {
+  properties: {
+    key: {
+      type: 'string',
+      title: 'Key',
+    },
+    text: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Text',
+      description: 'The rule in the spec version the run judged',
+    },
+    critical: {
+      type: 'boolean',
+      title: 'Critical',
+      default: false,
+    },
+    outcome: {
+      $ref: '#/components/schemas/RuleOutcome',
+    },
+    reason: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Reason',
+    },
+    entry_indexes: {
+      items: {
+        type: 'integer',
+      },
+      type: 'array',
+      title: 'Entry Indexes',
+      description: 'The timeline entries the verdict rests on',
+    },
+  },
+  type: 'object',
+  required: ['key', 'outcome'],
+  title: 'SimulatedVerdictPublic',
 } as const;
 
 export const SimulatorModeSchema = {
@@ -15881,6 +16010,120 @@ export const VersionResolveResultSchema = {
   required: ['calls_resolved', 'calls_unresolved', 'versions_read', 'skills_recorded'],
   title: 'VersionResolveResult',
   description: "What resolving an agent's stored calls did.",
+} as const;
+
+export const VersionResultsPublicSchema = {
+  properties: {
+    version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version',
+      description: 'The version number on the platform',
+    },
+    edited: {
+      type: 'boolean',
+      title: 'Edited',
+      description: 'An earlier run tested different content under the same number',
+      default: false,
+    },
+    first_run_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'First Run At',
+    },
+    last_run_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Last Run At',
+    },
+    verdict: {
+      $ref: '#/components/schemas/VersionVerdict',
+    },
+    critical_failed: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Critical Failed',
+      description: 'Critical rules that failed, flaky included',
+    },
+    critical_checks: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Critical Checks',
+      description: 'Critical code checks that found something',
+    },
+    warnings: {
+      type: 'integer',
+      title: 'Warnings',
+      description: 'Non-critical rules that failed, and code checks that only flagged',
+      default: 0,
+    },
+    non_critical_judged: {
+      type: 'integer',
+      title: 'Non Critical Judged',
+      default: 0,
+    },
+    non_critical_failed: {
+      type: 'integer',
+      title: 'Non Critical Failed',
+      default: 0,
+    },
+    threshold_pct: {
+      type: 'integer',
+      title: 'Threshold Pct',
+      description:
+        'The version fails when more of the non-critical rules judged than this share failed',
+    },
+    over_threshold: {
+      type: 'boolean',
+      title: 'Over Threshold',
+      default: false,
+    },
+    rules: {
+      items: {
+        $ref: '#/components/schemas/RuleTotalPublic',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'Failed rules first, critical first',
+    },
+    checks: {
+      items: {
+        $ref: '#/components/schemas/CheckTotalPublic',
+      },
+      type: 'array',
+      title: 'Checks',
+    },
+    runs: {
+      items: {
+        $ref: '#/components/schemas/TestRunPublic',
+      },
+      type: 'array',
+      title: 'Runs',
+      description: 'The runs that count, newest first',
+    },
+  },
+  type: 'object',
+  required: ['first_run_at', 'last_run_at', 'verdict', 'threshold_pct'],
+  title: 'VersionResultsPublic',
+  description:
+    'What every completed run of one tested version says, together.\n\nA version is its number and the content it had: an unpublished version edited\nunder the same number is a new one (``edited``).',
+} as const;
+
+export const VersionVerdictSchema = {
+  type: 'string',
+  enum: ['failed', 'verified', 'not_tested'],
+  title: 'VersionVerdict',
+  description: "What a version's runs of scenarios say about it.",
 } as const;
 
 export const WebhookResultSchema = {

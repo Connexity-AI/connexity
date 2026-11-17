@@ -37,6 +37,14 @@ class RuleOutcome(StrEnum):
     DID_NOT_COME_UP = "did_not_come_up"
 
 
+class VersionVerdict(StrEnum):
+    """What a version's runs of scenarios say about it."""
+
+    FAILED = "failed"
+    VERIFIED = "verified"
+    NOT_TESTED = "not_tested"
+
+
 class AgentMode(StrEnum):
     ENDPOINT = "endpoint"
     PLATFORM = "platform"

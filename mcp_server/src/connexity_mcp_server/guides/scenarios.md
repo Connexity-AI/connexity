@@ -97,3 +97,21 @@ do not approve them: a person who disagrees asks you to change one.
   3. Otherwise the agent is wrong: tell the person what failed and what you suggest.
      Connexity never changes the agent.
 
+## A version's results
+
+- **`get_test_runs` without `run_id`** answers a tested version's results: the newest
+  tested by default, or `version`.
+- **A version is its number and its content.** On Retell a draft is edited under the
+  same number, so runs of the edited content start a new set of results (`edited`).
+- **Every completed run of the version counts:** sets, picks and every scenario. The
+  totals per rule add up across all of them.
+- **The verdict:**
+  - **Failed** when a critical rule failed (flaky included), when a critical code check
+    found something, or when more than the threshold (`threshold_pct`) of the
+    non-critical rules judged failed;
+  - **Verified** otherwise, with its warnings (non-critical rules that failed, and code
+    checks that only flag);
+  - **Not tested** until a run of it completes.
+- **Show the person a simulated call** with its `url`: it opens on the call screen,
+  with the rules it was judged on.
+

@@ -24,6 +24,8 @@ import type {
   CallScreenFinding,
   CallScreenPublic,
   KeyValue,
+  SimulatedLinePublic,
+  SimulatedVerdictPublic,
 } from '@/client/types.gen';
 import type { CSSProperties, FC } from 'react';
 
@@ -121,6 +123,86 @@ const toolLine = (entry: CallScreenEntry) =>
     .filter(Boolean)
     .join(' · ');
 
+const VerdictLabel: FC<{ outcome: SimulatedVerdictPublic['outcome'] }> = ({ outcome }) => {
+  if (outcome === 'failed')
+    return <span className="flex-none font-medium text-critical">Failed</span>;
+  if (outcome === 'passed')
+    return <span className="flex-none font-medium text-passed">Passed</span>;
+  return <span className="flex-none text-ink-muted">Didn’t come up</span>;
+};
+
+/** A simulated call's scenario and the rules it was judged on, each opening the judge's
+ * reason (designs/12-adjustments.md item 30). */
+const SimulatedRules: FC<{
+  sim: SimulatedLinePublic;
+  turnOf: (entryIndex: number) => number;
+  onTurn: (entryIndex: number) => void;
+}> = ({ sim, turnOf, onTurn }) => {
+  const [open, setOpen] = useState<number | null>(null);
+  const verdicts = sim.verdicts ?? [];
+  const reason = open != null ? verdicts[open] : undefined;
+  const turns = reason?.entry_indexes ?? [];
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-2 pl-[30px]">
+        <span className="mr-1 flex-none whitespace-nowrap text-ink-muted">
+          Scenario: {sim.scenario_name}
+          {verdicts.length === 0 && ' · Not judged'}
+        </span>
+        {verdicts.map((verdict, i) => {
+          const on = open === i;
+          const critical = verdict.critical && verdict.outcome === 'failed';
+          return (
+            <button
+              key={verdict.key}
+              type="button"
+              aria-expanded={on}
+              title={verdict.text ?? verdict.key}
+              onClick={() => setOpen((o) => (o === i ? null : i))}
+              className={cn(
+                'inline-flex h-8 max-w-[420px] items-center gap-2 rounded-lg border bg-transparent text-label text-ink hover:bg-wash',
+                critical ? 'pr-2.5 pl-[5px]' : 'px-2.5',
+                on ? 'border-ink-muted bg-wash' : 'border-hairline'
+              )}
+            >
+              {critical && (
+                <span className="inline-flex h-[22px] flex-none items-center gap-1 rounded-md bg-critical-bg px-2 font-medium text-critical">
+                  <OctagonAlert className="size-3.5" aria-hidden />
+                  Critical
+                </span>
+              )}
+              <span className="min-w-0 truncate">{verdict.text ?? verdict.key}</span>
+              <VerdictLabel outcome={verdict.outcome} />
+            </button>
+          );
+        })}
+      </div>
+      {reason && (
+        <div className="ml-[30px] flex max-w-[720px] flex-col gap-1.5 rounded-lg border border-hairline bg-surface-1 px-4 py-3">
+          <span className="font-medium text-pretty text-ink">{reason.text ?? reason.key}</span>
+          {reason.reason && <span className="text-pretty text-ink">{reason.reason}</span>}
+          {turns.length > 0 && (
+            <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-label text-ink-muted">
+              <span>{turns.length === 1 ? 'Turn' : 'Turns'}</span>
+              {turns.map((entryIndex) => (
+                <button
+                  key={entryIndex}
+                  type="button"
+                  title="Show this turn in the transcript"
+                  onClick={() => onTurn(entryIndex)}
+                  className="h-[22px] min-w-[22px] rounded-md border border-ink-muted/40 bg-transparent px-1.5 text-label text-ink hover:bg-wash"
+                >
+                  {turnOf(entryIndex)}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 interface Props {
   call: CallScreenPublic;
   recordingUrl: string | null;
@@ -137,6 +219,19 @@ export const CallView: FC<Props> = ({ call, recordingUrl, startAt }) => {
   const [audioFailed, setAudioFailed] = useState(false);
   const [open, setOpen] = useState<Record<number, boolean>>({});
   const follow = useRef(false);
+  // A simulated call has no recording and no timing: rows are picked, not played.
+  const sim = call.simulated ?? null;
+  const [picked, setPicked] = useState<number | null>(null);
+  const turnNumbers = useMemo(() => {
+    const numbers: number[] = [];
+    let n = 0;
+    call.entries.forEach((entry, i) => {
+      if (entry.kind === 'turn') n += 1;
+      numbers[i] = n;
+    });
+    return numbers;
+  }, [call.entries]);
+  const turnOf = (entryIndex: number) => Math.max(1, turnNumbers[entryIndex] ?? 1);
 
   const hasAudio = Boolean(recordingUrl) && !audioFailed;
   const lastEnd = call.entries.reduce((max, e) => Math.max(max, e.end_seconds ?? e.at_seconds), 0);
@@ -164,6 +259,11 @@ export const CallView: FC<Props> = ({ call, recordingUrl, startAt }) => {
       pane.scrollTop = Math.max(0, top - 48);
   };
 
+  const pick = (index: number) => {
+    setPicked(index);
+    scrollTo(index, true);
+  };
+
   const seek = (seconds: number) => {
     const at = Math.min(Math.max(seconds, 0), duration);
     setT(at);
@@ -188,6 +288,7 @@ export const CallView: FC<Props> = ({ call, recordingUrl, startAt }) => {
       setT(critical.at_seconds);
       if (critical.entry_index != null) {
         const index = critical.entry_index;
+        if (sim) setPicked(index);
         setTimeout(() => scrollTo(index, true), 60);
       }
     }
@@ -227,12 +328,20 @@ export const CallView: FC<Props> = ({ call, recordingUrl, startAt }) => {
       });
 
   const dm = call.duration_seconds ?? Math.round(lastEnd);
-  const meta = [
-    timeLabel(call.started_at),
-    `${Math.floor(dm / 60)} min ${dm % 60} s`,
-    call.caller_last_four ? `•••• ${call.caller_last_four}` : null,
-    call.version ? `Version ${call.version}` : null,
-  ]
+  const meta = (
+    sim
+      ? [
+          timeLabel(call.started_at),
+          call.version ? `Version ${call.version}` : null,
+          sim.edited ? 'Edited' : null,
+        ]
+      : [
+          timeLabel(call.started_at),
+          `${Math.floor(dm / 60)} min ${dm % 60} s`,
+          call.caller_last_four ? `•••• ${call.caller_last_four}` : null,
+          call.version ? `Version ${call.version}` : null,
+        ]
+  )
     .filter(Boolean)
     .join(' · ');
 
@@ -249,116 +358,125 @@ export const CallView: FC<Props> = ({ call, recordingUrl, startAt }) => {
         <h1 className="m-0 text-title font-medium text-ink">{call.agent_name}</h1>
         <span className="whitespace-nowrap text-label text-ink-muted">{meta}</span>
         <ResultLabel result={call.result} />
-      </div>
-
-      <section className="flex items-start gap-4 rounded-xl border border-hairline bg-surface-1 px-6 pt-5 pb-4">
-        {hasAudio ? (
-          <div className="mt-[19px] flex h-10 flex-none items-center gap-4">
-            <button
-              type="button"
-              onClick={togglePlay}
-              title={playing ? 'Pause' : 'Play'}
-              className="flex size-10 flex-none items-center justify-center rounded-full border-0 bg-ink text-on-accent hover:opacity-90"
-            >
-              {playing ? (
-                <Pause className="size-4" aria-hidden />
-              ) : (
-                <Play className="size-4" aria-hidden />
-              )}
-            </button>
-            <span className="w-10 flex-none text-label text-ink">{clock(t)}</span>
-            <audio
-              ref={audio}
-              src={recordingUrl ?? undefined}
-              preload="metadata"
-              onTimeUpdate={(event) => setT(event.currentTarget.currentTime)}
-              onPlay={() => setPlaying(true)}
-              onPause={() => setPlaying(false)}
-              onEnded={() => setPlaying(false)}
-              onError={() => setAudioFailed(true)}
-            />
-          </div>
-        ) : (
-          <span className="mt-[19px] flex h-10 flex-none items-center whitespace-nowrap text-label text-ink-muted">
-            Recording unavailable
+        {sim && (
+          <span className="inline-flex h-[22px] items-center rounded-md border border-hairline px-2 text-label text-ink-secondary">
+            Simulated
           </span>
         )}
-        <div className="mt-2.5 grid min-w-0 flex-1 grid-cols-[44px_minmax(0,1fr)] grid-rows-[52px_18px] gap-x-3 gap-y-1.5">
-          <div className="relative text-label leading-4 text-ink-muted">
-            <span className="absolute top-2.5 left-0">Agent</span>
-            <span className="absolute top-8 left-0">Caller</span>
-          </div>
-          <div
-            className="relative cursor-pointer"
-            title="Seek"
-            onClick={(event) => {
-              const rect = event.currentTarget.getBoundingClientRect();
-              seek(((event.clientX - rect.left) / rect.width) * duration);
-            }}
-          >
-            <div className="absolute inset-x-0 top-3.5 h-2 overflow-hidden rounded bg-unchecked-bg">
-              <div className="absolute inset-0 opacity-[.32]">{bars('agent')}</div>
-            </div>
-            <div className="absolute inset-x-0 top-9 h-2 overflow-hidden rounded bg-unchecked-bg">
-              <div className="absolute inset-0 opacity-20">{bars('caller')}</div>
-            </div>
-            {call.entries.map((entry, i) =>
-              entry.kind === 'tool' ? (
-                <button
-                  key={`tick-${i}`}
-                  type="button"
-                  title={`${clock(entry.at_seconds)} · ${toolLine(entry)}`}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    seek(entry.at_seconds);
-                  }}
-                  className="absolute top-[23px] z-[1] h-3 w-3 border-0 bg-transparent p-0"
-                  style={{ left: `calc(${pct(entry.at_seconds)} - 6px)` }}
-                >
-                  <span className="absolute top-0.5 left-[5px] h-2 w-0.5 rounded-[1px] bg-ink-muted" />
-                </button>
-              ) : null
-            )}
-            {call.findings.map((finding) => (
+      </div>
+
+      {sim && <SimulatedRules sim={sim} turnOf={turnOf} onTurn={pick} />}
+
+      {!sim && (
+        <section className="flex items-start gap-4 rounded-xl border border-hairline bg-surface-1 px-6 pt-5 pb-4">
+          {hasAudio ? (
+            <div className="mt-[19px] flex h-10 flex-none items-center gap-4">
               <button
-                key={`mark-${finding.id}`}
                 type="button"
-                title={`${clock(finding.at_seconds)} · ${finding.text}`}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  seek(finding.at_seconds);
-                }}
-                className={cn(
-                  'absolute top-0 h-3 w-4 border-0 bg-transparent p-0',
-                  finding.severity === 'critical' ? 'z-[3]' : 'z-[2]'
-                )}
-                style={{ left: `calc(${pct(finding.at_seconds)} - 8px)` }}
+                onClick={togglePlay}
+                title={playing ? 'Pause' : 'Play'}
+                className="flex size-10 flex-none items-center justify-center rounded-full border-0 bg-ink text-on-accent hover:opacity-90"
               >
-                {finding.severity === 'critical' ? (
-                  <>
-                    <span className="absolute top-2 left-[7px] h-10 w-0.5 rounded-[1px] bg-critical" />
-                    <OctagonAlert
-                      className="absolute -top-2.5 left-0 size-4 text-critical"
-                      aria-hidden
-                    />
-                  </>
+                {playing ? (
+                  <Pause className="size-4" aria-hidden />
                 ) : (
-                  <span className="absolute top-0.5 left-[7px] h-2 w-0.5 rounded-[1px] bg-warning" />
+                  <Play className="size-4" aria-hidden />
                 )}
               </button>
-            ))}
+              <span className="w-10 flex-none text-label text-ink">{clock(t)}</span>
+              <audio
+                ref={audio}
+                src={recordingUrl ?? undefined}
+                preload="metadata"
+                onTimeUpdate={(event) => setT(event.currentTarget.currentTime)}
+                onPlay={() => setPlaying(true)}
+                onPause={() => setPlaying(false)}
+                onEnded={() => setPlaying(false)}
+                onError={() => setAudioFailed(true)}
+              />
+            </div>
+          ) : (
+            <span className="mt-[19px] flex h-10 flex-none items-center whitespace-nowrap text-label text-ink-muted">
+              Recording unavailable
+            </span>
+          )}
+          <div className="mt-2.5 grid min-w-0 flex-1 grid-cols-[44px_minmax(0,1fr)] grid-rows-[52px_18px] gap-x-3 gap-y-1.5">
+            <div className="relative text-label leading-4 text-ink-muted">
+              <span className="absolute top-2.5 left-0">Agent</span>
+              <span className="absolute top-8 left-0">Caller</span>
+            </div>
             <div
-              className="pointer-events-none absolute top-2.5 -ml-px h-[38px] w-0.5 rounded-[1px] bg-ink"
-              style={{ left: pct(t) }}
-            />
+              className="relative cursor-pointer"
+              title="Seek"
+              onClick={(event) => {
+                const rect = event.currentTarget.getBoundingClientRect();
+                seek(((event.clientX - rect.left) / rect.width) * duration);
+              }}
+            >
+              <div className="absolute inset-x-0 top-3.5 h-2 overflow-hidden rounded bg-unchecked-bg">
+                <div className="absolute inset-0 opacity-[.32]">{bars('agent')}</div>
+              </div>
+              <div className="absolute inset-x-0 top-9 h-2 overflow-hidden rounded bg-unchecked-bg">
+                <div className="absolute inset-0 opacity-20">{bars('caller')}</div>
+              </div>
+              {call.entries.map((entry, i) =>
+                entry.kind === 'tool' ? (
+                  <button
+                    key={`tick-${i}`}
+                    type="button"
+                    title={`${clock(entry.at_seconds)} · ${toolLine(entry)}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      seek(entry.at_seconds);
+                    }}
+                    className="absolute top-[23px] z-[1] h-3 w-3 border-0 bg-transparent p-0"
+                    style={{ left: `calc(${pct(entry.at_seconds)} - 6px)` }}
+                  >
+                    <span className="absolute top-0.5 left-[5px] h-2 w-0.5 rounded-[1px] bg-ink-muted" />
+                  </button>
+                ) : null
+              )}
+              {call.findings.map((finding) => (
+                <button
+                  key={`mark-${finding.id}`}
+                  type="button"
+                  title={`${clock(finding.at_seconds)} · ${finding.text}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    seek(finding.at_seconds);
+                  }}
+                  className={cn(
+                    'absolute top-0 h-3 w-4 border-0 bg-transparent p-0',
+                    finding.severity === 'critical' ? 'z-[3]' : 'z-[2]'
+                  )}
+                  style={{ left: `calc(${pct(finding.at_seconds)} - 8px)` }}
+                >
+                  {finding.severity === 'critical' ? (
+                    <>
+                      <span className="absolute top-2 left-[7px] h-10 w-0.5 rounded-[1px] bg-critical" />
+                      <OctagonAlert
+                        className="absolute -top-2.5 left-0 size-4 text-critical"
+                        aria-hidden
+                      />
+                    </>
+                  ) : (
+                    <span className="absolute top-0.5 left-[7px] h-2 w-0.5 rounded-[1px] bg-warning" />
+                  )}
+                </button>
+              ))}
+              <div
+                className="pointer-events-none absolute top-2.5 -ml-px h-[38px] w-0.5 rounded-[1px] bg-ink"
+                style={{ left: pct(t) }}
+              />
+            </div>
+            <span />
+            <div className="flex justify-between text-label text-ink-muted">
+              <span>0:00</span>
+              <span>{clock(duration)}</span>
+            </div>
           </div>
-          <span />
-          <div className="flex justify-between text-label text-ink-muted">
-            <span>0:00</span>
-            <span>{clock(duration)}</span>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <section className="overflow-hidden rounded-xl border border-hairline bg-surface-1">
         <div className="flex items-baseline gap-3 px-6 pt-5 pb-3">
@@ -372,10 +490,20 @@ export const CallView: FC<Props> = ({ call, recordingUrl, startAt }) => {
             key={finding.id}
             type="button"
             title="Jump to this moment"
-            onClick={() => seek(finding.at_seconds)}
+            onClick={() =>
+              sim && finding.entry_index != null
+                ? pick(finding.entry_index)
+                : seek(finding.at_seconds)
+            }
             className="grid min-h-14 w-full grid-cols-[48px_16px_minmax(0,1fr)] items-center gap-3 border-0 border-t border-hairline bg-transparent px-6 py-2 text-left hover:bg-wash"
           >
-            <span className="text-label text-ink-secondary">{clock(finding.at_seconds)}</span>
+            <span className="text-label text-ink-secondary">
+              {sim
+                ? finding.entry_index != null
+                  ? `Turn ${turnOf(finding.entry_index)}`
+                  : ''
+                : clock(finding.at_seconds)}
+            </span>
             <span className="flex">
               {finding.severity === 'critical' ? (
                 <OctagonAlert className="size-4 text-critical" aria-hidden />
@@ -405,7 +533,7 @@ export const CallView: FC<Props> = ({ call, recordingUrl, startAt }) => {
         </div>
         <div ref={transcript} className="relative max-h-[560px] overflow-auto py-2">
           {call.entries.map((entry, i) => {
-            const on = i === activeIndex;
+            const on = sim ? i === picked : i === activeIndex;
             const findings = (entry.finding_ids ?? [])
               .map((id) => findingsById[id])
               .filter((f): f is CallScreenFinding => Boolean(f));
@@ -414,7 +542,7 @@ export const CallView: FC<Props> = ({ call, recordingUrl, startAt }) => {
               <div
                 key={i}
                 data-entry={i}
-                onClick={() => seek(entry.at_seconds)}
+                onClick={() => (sim ? setPicked(i) : seek(entry.at_seconds))}
                 className={cn(
                   'grid cursor-pointer grid-cols-[40px_56px_minmax(0,1fr)] items-start gap-4 px-6 hover:bg-wash',
                   entry.kind === 'tool' ? 'py-1' : 'py-2',
@@ -422,7 +550,7 @@ export const CallView: FC<Props> = ({ call, recordingUrl, startAt }) => {
                 )}
               >
                 <span className="text-label leading-[22px] text-ink-muted">
-                  {clock(entry.at_seconds)}
+                  {sim ? (entry.kind === 'turn' ? turnNumbers[i] : '') : clock(entry.at_seconds)}
                 </span>
                 {entry.kind === 'turn' ? (
                   <>
@@ -490,6 +618,11 @@ export const CallView: FC<Props> = ({ call, recordingUrl, startAt }) => {
               </div>
             );
           })}
+          {sim?.stopped && (
+            <div className="px-6 pt-3 pb-2 pl-[152px] text-pretty text-ink-muted">
+              {sim.stopped}
+            </div>
+          )}
         </div>
       </section>
     </div>

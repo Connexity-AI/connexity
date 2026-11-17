@@ -334,7 +334,12 @@ def test_a_failed_tool_fake_is_found_by_code_checks_but_never_in_production(
     body = _runs(client, user, agent, run_id=run_id).json()
     detail = body["data"]["run"]
     assert detail["checks"] == [
-        {"check_type": "tool_call_failed", "title": "Tool call failed", "found": 1}
+        {
+            "check_type": "tool_call_failed",
+            "title": "Tool call failed",
+            "found": 1,
+            "critical": True,
+        }
     ]
     assert detail["rules"][0]["did_not_come_up"] == 1
     assert detail["counts"]["rules_failed"] == 0

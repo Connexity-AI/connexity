@@ -16,7 +16,14 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
 from app.models.columns import enum_type
-from app.models.enums import CheckKind, CheckMode, RuleOutcome, RunScope, RunStatus
+from app.models.enums import (
+    CheckKind,
+    CheckMode,
+    RuleOutcome,
+    RunScope,
+    RunStatus,
+    VersionVerdict,
+)
 
 
 class RuleVerdict(SQLModel, table=True):
@@ -95,6 +102,9 @@ class CheckTotalPublic(BaseModel):
     check_type: str
     title: str
     found: int = PydanticField(description="Simulated calls where it found something")
+    critical: bool = PydanticField(
+        default=False, description="It fails calls, rather than only flagging them"
+    )
 
 
 class VerdictPublic(BaseModel):
@@ -116,6 +126,7 @@ class SimulatedCallPublic(BaseModel):
     findings: list[SimulatedFinding] = PydanticField(default_factory=list)
     default_fakes: list[str] = PydanticField(default_factory=list)
     cost_usd: float | None = None
+    url: str = PydanticField(description="The simulated call in the app")
 
 
 class TestRunCountsPublic(BaseModel):
@@ -154,3 +165,46 @@ class TestRunDetailPublic(TestRunPublic):
     )
     checks: list[CheckTotalPublic] = PydanticField(default_factory=list)
     calls: list[SimulatedCallPublic] = PydanticField(default_factory=list)
+
+
+class VersionResultsPublic(BaseModel):
+    """What every completed run of one tested version says, together.
+
+    A version is its number and the content it had: an unpublished version edited
+    under the same number is a new one (``edited``).
+    """
+
+    version: str | None = PydanticField(
+        default=None, description="The version number on the platform"
+    )
+    edited: bool = PydanticField(
+        default=False,
+        description="An earlier run tested different content under the same number",
+    )
+    first_run_at: datetime
+    last_run_at: datetime
+    verdict: VersionVerdict
+    critical_failed: list[str] = PydanticField(
+        default_factory=list, description="Critical rules that failed, flaky included"
+    )
+    critical_checks: list[str] = PydanticField(
+        default_factory=list, description="Critical code checks that found something"
+    )
+    warnings: int = PydanticField(
+        default=0,
+        description="Non-critical rules that failed, and code checks that only flagged",
+    )
+    non_critical_judged: int = 0
+    non_critical_failed: int = 0
+    threshold_pct: int = PydanticField(
+        description="The version fails when more of the non-critical rules judged "
+        "than this share failed"
+    )
+    over_threshold: bool = False
+    rules: list[RuleTotalPublic] = PydanticField(
+        default_factory=list, description="Failed rules first, critical first"
+    )
+    checks: list[CheckTotalPublic] = PydanticField(default_factory=list)
+    runs: list[TestRunPublic] = PydanticField(
+        default_factory=list, description="The runs that count, newest first"
+    )

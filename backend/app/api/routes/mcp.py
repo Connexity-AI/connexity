@@ -53,6 +53,7 @@ from app.models.enums import (
     IssueState,
     RunStatus,
     TaskKind,
+    VersionVerdict,
 )
 from app.models.issue_list import IssuePeriod, IssueStatusFilter
 from app.models.issue_page import IssuePagePublic
@@ -100,7 +101,7 @@ from app.models.mcp import (
 )
 from app.models.scenario import ScenarioListPublic, ScenarioSetPublic
 from app.models.spec import SpecPublic, SpecWrittenPublic
-from app.models.test_run import TestRunDetailPublic
+from app.models.test_run import TestRunDetailPublic, VersionResultsPublic
 from app.models.work import WorkMoveIn
 from app.services.agent_list import agent_types
 from app.services.agent_page import agent_page
@@ -157,6 +158,7 @@ from app.services.test_run import (
     list_runs,
     run_detail,
     start_run,
+    version_results,
 )
 from app.services.work import MoveRefused, Task, move_task, next_task, work_page
 
@@ -2259,10 +2261,78 @@ def _run_steps(
         )
     if not steps:
         steps.append("Every judged rule passed, with no code-check findings.")
+    steps.append(
+        "For the version's verdict across all its runs, call `get_test_runs` without "
+        f"`run_id`{f' and version {run.platform_version}' if run.platform_version else ''}."
+    )
     if more:
         steps.append(
             "Call `get_test_runs` again with `cursor` set to `next_cursor` for the next "
             f"simulated calls (from {offset + limit + 1})."
+        )
+    return steps
+
+
+def _version_name(results: VersionResultsPublic) -> str:
+    name = f"Version {results.version}" if results.version else "The latest version"
+    return f"{name} (edited)" if results.edited else name
+
+
+def _results_steps(results: VersionResultsPublic) -> list[str]:
+    name = _version_name(results)
+    if results.verdict is VersionVerdict.NOT_TESTED:
+        return [
+            f"{name} has no completed run yet. Wait for its runs, or start one with "
+            "`run_scenarios`."
+        ]
+    if results.verdict is VersionVerdict.FAILED:
+        why = []
+        if results.critical_failed:
+            why.append(
+                f"critical {'rule' if len(results.critical_failed) == 1 else 'rules'} "
+                f"{', '.join(results.critical_failed)} failed"
+            )
+        if results.critical_checks:
+            why.append(
+                f"critical code {'check' if len(results.critical_checks) == 1 else 'checks'} "
+                f"{', '.join(results.critical_checks)} found problems"
+            )
+        if results.over_threshold:
+            why.append(
+                f"{results.non_critical_failed} of {results.non_critical_judged} "
+                f"non-critical rules failed, over {results.threshold_pct}%"
+            )
+        edited = (
+            [
+                "The draft was edited under the same version number since earlier "
+                "runs; only runs of the current content count."
+            ]
+            if results.edited
+            else []
+        )
+        return [
+            f"{name} failed: {'; '.join(why)}.",
+            *edited,
+            "For each, open a failing simulated call (`get_test_runs` with its "
+            "`run_id`) and read the reason. If the scenario is wrong, fix it with "
+            "`write_scenarios`; otherwise tell the person what failed and what you "
+            "suggest, with the call's link. Connexity never changes the agent.",
+            "After the agent is changed, run the scenarios again with `run_scenarios`.",
+        ]
+    steps = [
+        f"{name} is verified"
+        + (
+            f", with {results.warnings} "
+            f"{'warning' if results.warnings == 1 else 'warnings'}: tell the person "
+            "which rules or checks they are."
+            if results.warnings
+            else ", with no warnings."
+        )
+    ]
+    if results.edited:
+        steps.append(
+            "The draft was edited under the same version number since earlier runs; "
+            "only runs of the current content count."
         )
     return steps
 
@@ -2276,19 +2346,34 @@ def get_agent_test_runs(
     workspace: McpWorkspaceDep,
     agent_id: uuid.UUID,
     run_id: uuid.UUID | None = Query(default=None),
+    version: str | None = Query(default=None, max_length=64),
     cursor: str | None = Query(default=None, max_length=255),
     limit: int = Query(default=25, ge=1, le=100),
 ) -> McpAnswer[McpTestRuns]:
     agent = _mcp_agent_in(session, workspace, agent_id)
     offset = _decode_cursor(cursor)
     if run_id is None:
+        results = version_results(session=session, agent=agent, version=version)
+        if version is not None and results is None:
+            raise HTTPException(
+                status_code=404,
+                detail=McpErrorDetail(
+                    error=f"No run tested version {version} of this agent",
+                    next_steps=[
+                        "Call `get_test_runs` without `version` for the newest tested "
+                        "version, or run the scenarios on it with `run_scenarios`."
+                    ],
+                    guide=GUIDE_SCENARIOS,
+                ).model_dump(),
+            )
         runs, more = list_runs(session=session, agent=agent, offset=offset, limit=limit)
         steps = (
             [
-                "Call `get_test_runs` with a `run_id` for its rules, findings and "
-                "simulated calls."
+                *_results_steps(results),
+                "Call `get_test_runs` with a `run_id` for its simulated calls, each "
+                "with a link (`url`) you can give the person.",
             ]
-            if runs
+            if results is not None
             else [
                 "The agent has no runs yet. Start one with `run_scenarios` (a set, a "
                 f"pick or all; {DEFAULT_REPEATS} repeats by default)."
@@ -2300,7 +2385,7 @@ def get_agent_test_runs(
                 "older runs."
             )
         return McpAnswer[McpTestRuns](
-            data=McpTestRuns(runs=runs),
+            data=McpTestRuns(results=results, runs=runs),
             rules=_TEST_RUN_RULES,
             next_steps=steps,
             guide=GUIDE_SCENARIOS,

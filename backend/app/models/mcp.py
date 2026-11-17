@@ -25,7 +25,11 @@ from app.models.enums import (
 from app.models.issue_list import IssueListItemPublic, IssueTilesPublic
 from app.models.scenario import ScenarioPublic
 from app.models.spec import SpecState
-from app.models.test_run import TestRunDetailPublic, TestRunPublic
+from app.models.test_run import (
+    TestRunDetailPublic,
+    TestRunPublic,
+    VersionResultsPublic,
+)
 from app.models.work import WorkDonePublic, WorkSessionPublic, WorkTaskPublic
 
 T = TypeVar("T")
@@ -308,9 +312,14 @@ class McpStartedRun(BaseModel):
 
 
 class McpTestRuns(BaseModel):
-    """One run in detail when ``run_id`` was given, otherwise the agent's runs."""
+    """One run in detail when ``run_id`` was given; otherwise a tested version's
+    results and the agent's runs."""
 
     run: TestRunDetailPublic | None = None
+    results: VersionResultsPublic | None = Field(
+        default=None,
+        description="Without a run id: the tested version's results across its runs",
+    )
     runs: list[TestRunPublic] = Field(default_factory=list)
 
 

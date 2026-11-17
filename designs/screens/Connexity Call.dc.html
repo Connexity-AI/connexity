@@ -28,16 +28,33 @@
 <sc-if value="{{ isClean }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;border:1px solid var(--border);color:var(--ink2);font-size:13px">Clean</span></sc-if>
 <sc-if value="{{ hasSrc }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;border:1px solid var(--bc);color:var(--ink2);font-size:13px">{{ srcLabel }}</span></sc-if>
 </div>
-<sc-if value="{{ isSim }}" hint-placeholder-val="{{ false }}">
-<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding-left:30px;font-size:15px">
-<a href="{{ testsHref }}" title="Open in Tests" style="color:var(--ink)">{{ testCase }}</a>
-<span style="color:var(--ink3)">·</span>
-<span style="color:var(--ink2)">Proves: {{ testRule }}</span>
-<span style="color:var(--ink3)">·</span>
-<span style="color:var(--crit);font-weight:500">{{ testResult }}</span>
+<sc-if value="{{ isRun }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-left:30px">
+<span style="flex:none;white-space:nowrap;color:var(--ink3);margin-right:4px">Scenario: {{ scenario }}</span>
+<sc-if value="{{ notJudged }}"><span style="color:var(--ink3)">· Not judged</span></sc-if>
+<sc-for list="{{ verdicts }}" as="r" hint-placeholder-count="0">
+<button onClick="{{ r.toggle }}" aria-expanded="{{ r.open }}" title="{{ r.text }}" style="{{ r.chipStyle }}" style-hover="background:var(--wash)">
+<sc-if value="{{ r.isCrit }}"><span style="flex:none;display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Critical</span></sc-if>
+<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.text }}</span>
+<sc-if value="{{ r.isFail }}"><span style="flex:none;color:var(--crit);font-weight:500">Failed</span></sc-if>
+<sc-if value="{{ r.isPass }}"><span style="flex:none;color:var(--pass);font-weight:500">Passed</span></sc-if>
+<sc-if value="{{ r.isNone }}"><span style="flex:none;color:var(--ink3)">Didn’t come up</span></sc-if>
+</button>
+</sc-for>
+</div>
+<sc-if value="{{ hasReason }}" hint-placeholder-val="{{ false }}">
+<div style="margin-left:30px;max-width:720px;display:flex;flex-direction:column;gap:6px;padding:12px 16px;border:1px solid var(--border);border-radius:8px;background:var(--s1)">
+<span style="font-weight:500;text-wrap:pretty">{{ reasonRule }}</span>
+<span style="text-wrap:pretty">{{ reasonWhy }}</span>
+<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px;font-size:13px;color:var(--ink3)">
+<span>{{ reasonTurnsLabel }}</span>
+<sc-for list="{{ reasonTurns }}" as="n" hint-placeholder-count="0"><button onClick="{{ n.go }}" title="Show this turn in the transcript" style="height:22px;min-width:22px;padding:0 6px;border:1px solid var(--bc);border-radius:6px;background:transparent;color:var(--ink);font-size:13px;cursor:pointer" style-hover="background:var(--wash)">{{ n.label }}</button></sc-for>
+</div>
 </div>
 </sc-if>
+</sc-if>
 </div>
+<sc-if value="{{ hasPlayer }}" hint-placeholder-val="{{ true }}">
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px 16px;display:flex;align-items:flex-start;gap:16px">
 <sc-if value="{{ hasAudio }}" hint-placeholder-val="{{ true }}">
 <div style="flex:none;display:flex;align-items:center;gap:16px;height:40px;margin-top:19px">
@@ -78,6 +95,7 @@
 <div style="display:flex;justify-content:space-between;font-size:13px;line-height:18px;color:var(--ink3)"><span>0:00</span><span>{{ durText }}</span></div>
 </div>
 </div>
+</sc-if>
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
 <div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Findings</h2><span style="font-size:13px;color:var(--ink3)">{{ findCount }}</span></div>
 <sc-for list="{{ findings }}" as="f" hint-placeholder-count="3">
@@ -145,6 +163,7 @@
 </sc-if>
 </div>
 </sc-for>
+<sc-if value="{{ hasStop }}" hint-placeholder-val="{{ false }}"><div style="padding:12px 24px 8px 152px;color:var(--ink3);text-wrap:pretty">{{ stopText }}</div></sc-if>
 </div>
 </div>
 </div>
@@ -152,7 +171,7 @@
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;call&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;C-20481&quot;,&quot;C-20488&quot;,&quot;C-20477&quot;,&quot;C-20470&quot;,&quot;C-20466&quot;,&quot;S-0915&quot;],&quot;default&quot;:&quot;C-20481&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;expandFlagged&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;call&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;C-20481&quot;,&quot;C-20488&quot;,&quot;C-20477&quot;,&quot;C-20470&quot;,&quot;C-20466&quot;,&quot;S-0915&quot;,&quot;S-0916&quot;],&quot;default&quot;:&quot;C-20481&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;expandFlagged&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
 class Component extends DCLogic {
   static THEMES = {
     dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
@@ -193,8 +212,22 @@ class Component extends DCLogic {
         [288,'C','Fine, I’ll wait.'],
         [292,'T','transfer',0,{ st:'failed', ms:3100, args:{ destination:'renewals_team', mode:'warm', sip_password:'••••' }, res:{ error:'SIP 503 Service Unavailable', detail:'No one available on the renewals queue' } }]
       ]},
-    'S-0915': { agentId:'insurance', agent:'Insurance renewals', when:'Today 09:40', dur:110, last4:'0100', result:'failed', src:'sim', version:15, recording:true,
-      test:{ name:'Price went up since last year', rule:'Never quote a renewal price above the price in the quote lookup', result:'Failed' },
+    // run: a simulated text conversation. verdicts: [rule, critical, fail|pass|none, judge's reason, turn numbers]; stopped: why the conversation stopped (no verdicts)
+    'S-0916': { agentId:'insurance', agent:'Insurance renewals', when:'Today 09:38', src:'sim', version:15,
+      run:{ scenario:'Cancellation mid-term', edited:true, stopped:'Retell did not answer', verdicts:[] },
+      findings:[], by:[],
+      entries:[
+        [0,'A','Thanks for calling Northfield Insurance. This call may be recorded. How can I help?'],
+        [6,'C','Hi, I want to cancel my policy before it renews.'],
+        [12,'A','I can help with that. Can I take your date of birth and policy number?'],
+        [19,'C','Twenty-second of August, 1990. Policy MT-61-0442.']
+      ]},
+    'S-0915': { agentId:'insurance', agent:'Insurance renewals', when:'Today 09:40', src:'sim', version:15,
+      run:{ scenario:'Price pushback', edited:true, verdicts:[
+        ['Ask for the date of birth before booking',false,'pass','The agent asked for the date of birth in turn 3, before any lookup.',[3,4]],
+        ['Offer the earliest slot first',false,'none','The caller turned down a callback, so no slots were offered.',[12,13]],
+        ['Never quote a price above the price list',true,'fail','The quote lookup returned $668 and the agent quoted $712. When the caller pushed back, it confirmed $712 as the final price.',[6,8]]
+      ]},
       findings:[[41,'crit','Quoted $712, above the $668 in the quote lookup','price',null]],
       by:['rule'],
       entries:[
@@ -308,20 +341,21 @@ class Component extends DCLogic {
     let tq = null;
     try { tq = new URLSearchParams(window.location.search).get('t'); } catch (_) {}
     const tp = props.t != null ? Number(props.t) : tq != null ? Number(tq) : null;
-    this.startAt = tp != null && !isNaN(tp) ? Math.max(0, Math.min(c.dur, tp)) : null;
+    this.startAt = tp != null && !isNaN(tp) ? Math.max(0, Math.min(this.durOf(c), tp)) : null;
     const open = {};
     if (props.expandFlagged) c.entries.forEach((e, i) => { if (e[1] === 'T' && e[3] >= 0) open[i] = true; });
-    this.state = { t: this.startAt != null ? this.startAt : crit ? crit[0] : 0, playing:false, open, full:{} };
+    this.state = { t: this.startAt != null ? this.startAt : crit ? crit[0] : 0, playing:false, open, full:{}, reason:null };
     this.trRef = React.createRef();
     this.lastActive = -1;
   }
   callId() {
     let q = null;
     try { q = new URLSearchParams(window.location.search).get('call'); } catch (_) {}
-    const id = this.props.call || q || 'C-20481';
+    const id = (q && Component.CALLS[q] ? q : null) || this.props.call || 'C-20481';
     return Component.CALLS[id] ? id : 'C-20481';
   }
   call() { return Component.CALLS[this.callId()]; }
+  durOf(c) { return c.dur != null ? c.dur : c.entries[c.entries.length - 1][0]; }
   activeIdx(t) { const e = this.call().entries; let a = 0; e.forEach((x, i) => { if (x[0] <= t + 0.01) a = i; }); return a; }
   scrollTo(i, always) {
     const p = this.trRef.current; if (!p) return;
@@ -338,7 +372,7 @@ class Component extends DCLogic {
     if (i !== this.lastActive) { this.lastActive = i; if (this.state.playing || this.jumped) this.scrollTo(i, !!this.jumped); this.jumped = false; }
   }
   componentWillUnmount() { clearInterval(this.timer); }
-  seek(t) { this.jumped = true; this.lastActive = -1; this.setState({ t: Math.max(0, Math.min(this.call().dur, t)) }); }
+  seek(t) { this.jumped = true; this.lastActive = -1; this.setState({ t: Math.max(0, Math.min(this.durOf(this.call()), t)) }); }
   togglePlay() {
     if (this.state.playing) { clearInterval(this.timer); this.setState({ playing:false }); return; }
     const dur = this.call().dur;
@@ -369,14 +403,20 @@ class Component extends DCLogic {
     return out;
   }
   renderVals() {
-    const C = Component, c = this.call(), dur = c.dur, t = this.state.t, S = this.state;
+    const C = Component, c = this.call(), dur = this.durOf(c), t = this.state.t, S = this.state;
+    const run = c.run || null;
+    const turnNo = {}, turnAt = {}; let tn = 0;
+    c.entries.forEach((e, i) => { if (e[1] !== 'T') { tn++; turnNo[i] = tn; turnAt[tn] = i; } });
+    const turnOfT = ft => { let n = 1; c.entries.forEach((e, i) => { if (e[0] <= ft && turnNo[i]) n = turnNo[i]; }); return n; };
+    const vds = run && !run.stopped ? run.verdicts.map((v, i) => ({ v, i })).sort((a, b) => (a.v[2] === 'fail' ? 0 : 1) - (b.v[2] === 'fail' ? 0 : 1)) : [];
+    const res = run ? (vds.some(x => x.v[2] === 'fail' && x.v[1]) || c.findings.some(f => f[1] === 'crit') ? 'failed' : vds.some(x => x.v[2] === 'fail') || c.findings.length ? 'degraded' : 'clean') : c.result;
+    const openV = run && S.reason != null ? run.verdicts[S.reason] : null;
     const mmss = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
     const pct = dur ? t / dur * 100 : 0;
     const fOrder = c.findings.map((f, i) => ({ f, i })).sort((a, b) => (a.f[1] === 'crit' ? 0 : 1) - (b.f[1] === 'crit' ? 0 : 1) || a.f[0] - b.f[0]);
     const issuesHref = 'Connexity Agent Profile.dc.html?agent=' + c.agentId + '&tab=issues';
     const testsHref = 'Connexity Agent Profile.dc.html?agent=' + c.agentId + '&tab=tests';
     const active = this.activeIdx(t);
-    const res = c.result;
     const by = i => c.by && c.by[i] === 'model' ? 'Found by a model' : 'Found by a rule';
     const meta = i => C.CATS[c.findings[i][3]] + ' · ' + by(i);
     const seg = this.segments(c);
@@ -392,10 +432,20 @@ class Component extends DCLogic {
     return {
       rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
       agent: c.agent,
-      meta: `${c.when} · ${Math.floor(dur / 60)} min ${dur % 60} s · •••• ${c.last4} · Version ${c.version}`,
+      meta: run ? `${c.when} · Version ${c.version}${run.edited ? ' · Edited' : ''}` : `${c.when} · ${Math.floor(dur / 60)} min ${dur % 60} s · •••• ${c.last4} · Version ${c.version}`,
+      isRun: !!run, hasPlayer: !run, scenario: run ? run.scenario : '', notJudged: !!(run && run.stopped),
+      hasStop: !!(run && run.stopped), stopText: run && run.stopped ? 'The conversation stopped: ' + run.stopped : '',
+      verdicts: vds.map(({ v, i }) => {
+        const on = S.reason === i;
+        return { text: v[0], isCrit: v[1] && v[2] === 'fail', isFail: v[2] === 'fail', isPass: v[2] === 'pass', isNone: v[2] === 'none', open: on,
+          toggle: () => this.setState(s => ({ reason: s.reason === i ? null : i })),
+          chipStyle: { display:'inline-flex', alignItems:'center', gap:8, maxWidth:420, height:32, padding: v[1] && v[2] === 'fail' ? '0 10px 0 5px' : '0 10px', borderRadius:8, border:'1px solid ' + (on ? 'var(--bc)' : 'var(--border)'), background: on ? 'var(--wash)' : 'transparent', color:'var(--ink)', fontSize:13, lineHeight:'18px', cursor:'pointer' } };
+      }),
+      hasReason: !!openV, reasonRule: openV ? openV[0] : '', reasonWhy: openV ? openV[3] : '',
+      reasonTurnsLabel: openV && openV[4].length === 1 ? 'Turn' : 'Turns',
+      reasonTurns: openV ? openV[4].map(n => ({ label: String(n), go: () => { const ei = turnAt[n]; if (ei != null) this.seek(c.entries[ei][0]); } })) : [],
       isFailed: res === 'failed', isDegraded: res === 'degraded', isClean: res === 'clean',
       hasSrc: c.src !== 'real', srcLabel: c.src === 'sim' ? 'Simulated' : 'Test',
-      isSim: !!c.test, testCase: c.test ? c.test.name : '', testRule: c.test ? c.test.rule : '', testResult: c.test ? c.test.result : '', testsHref,
       hasAudio: c.recording !== false, noAudio: c.recording === false,
       paused: !S.playing, playing: S.playing, playTitle: S.playing ? 'Pause' : 'Play',
       togglePlay: () => this.togglePlay(),
@@ -416,7 +466,7 @@ class Component extends DCLogic {
       findCount: c.findings.length ? String(c.findings.length) : '',
       noFindings: c.findings.length === 0,
       findings: fOrder.map(({ f, i }) => ({
-        time: mmss(f[0]), isCrit: f[1] === 'crit', isWarn: f[1] === 'warn', text: f[2], cat: meta(i),
+        time: run ? 'Turn ' + turnOfT(f[0]) : mmss(f[0]), isCrit: f[1] === 'crit', isWarn: f[1] === 'warn', text: f[2], cat: meta(i),
         link: f[4] || 'The rule in Tests', linkTitle: f[4] ? 'Open the issue' : 'Open the rule this test proves', href: f[5] ? 'Connexity Issue.dc.html?issue=' + f[5] : f[4] ? issuesHref : testsHref,
         stop: e => e.stopPropagation(), jump: () => this.seek(f[0])
       })),
@@ -424,9 +474,9 @@ class Component extends DCLogic {
       entries: c.entries.map(([et, who, text, fi, x], i) => {
         const f = fi != null && fi >= 0 ? c.findings[fi] : null, on = i === active, tool = who === 'T', open = tool && !!S.open[i];
         const bad = tool && x.st !== 'ok';
-        return { i, time: mmss(et), isTurn: !tool, isTool: tool, who: who === 'A' ? 'Agent' : 'Caller',
-          text: tool ? `${text} · ${stLabel[x.st]} · ${fmtMs(x.ms)}` : text,
-          hasDelay: !tool && !!x, delay: !tool && x ? x : '',
+        return { i, time: run ? (tool ? '' : String(turnNo[i])) : mmss(et), isTurn: !tool, isTool: tool, who: who === 'A' ? 'Agent' : 'Caller',
+          text: tool ? (run ? `${text} · ${stLabel[x.st]}` : `${text} · ${stLabel[x.st]} · ${fmtMs(x.ms)}`) : text,
+          hasDelay: !run && !tool && !!x, delay: !tool && x ? x : '',
           find: f ? f[2] : '', findMeta: f ? meta(fi) : '', findCrit: !!f && f[1] === 'crit', findWarn: !!f && f[1] === 'warn',
           open, toggleTitle: open ? 'Hide arguments and result' : 'Show arguments and result',
           toggle: () => this.setState(s => ({ open: { ...s.open, [i]: !s.open[i] } })),

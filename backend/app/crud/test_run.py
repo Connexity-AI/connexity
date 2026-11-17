@@ -53,6 +53,17 @@ def runs_page(
     return rows[:limit], len(rows) > limit
 
 
+def runs_of_agent(*, session: Session, agent_id: uuid.UUID) -> list[Run]:
+    """Every run of scenarios of the agent, oldest first."""
+    return list(
+        session.exec(
+            select(Run)
+            .where(Run.agent_id == agent_id, col(Run.scope).is_not(None))
+            .order_by(col(Run.created_at), col(Run.id))
+        ).all()
+    )
+
+
 def run_of_agent(
     *, session: Session, agent_id: uuid.UUID, run_id: uuid.UUID
 ) -> Run | None:
@@ -121,3 +132,16 @@ def fail_stale_runs(*, session: Session) -> int:
     if stale:
         session.commit()
     return len(stale)
+
+
+def simulated_call(
+    *, session: Session, call_id: uuid.UUID, company_id: uuid.UUID
+) -> tuple[TestCaseResult, Run] | None:
+    """A simulated call of a run of scenarios in the company, with its run."""
+    result = session.get(TestCaseResult, call_id)
+    if result is None or result.company_id != company_id:
+        return None
+    run = session.get(Run, result.run_id)
+    if run is None or run.scope is None:
+        return None
+    return result, run

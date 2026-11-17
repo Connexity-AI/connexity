@@ -1264,3 +1264,47 @@ async def test_get_test_runs_reads_one_run_in_detail() -> None:
     assert result.data.run.calls[0].verdicts[0].outcome == "failed"
     assert result.data.run.calls[0].default_fakes == ["book"]
 
+
+
+@pytest.mark.asyncio
+async def test_get_test_runs_reads_a_versions_results() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert dict(request.url.params) == {"version": "15"}
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "results": {
+                        "version": "15",
+                        "edited": True,
+                        "first_run_at": "2026-11-17T10:00:00Z",
+                        "last_run_at": "2026-11-17T11:00:00Z",
+                        "verdict": "failed",
+                        "critical_failed": ["k1"],
+                        "threshold_pct": 20,
+                        "checks": [
+                            {
+                                "check_type": "tool_call_failed",
+                                "title": "Tool call failed",
+                                "found": 2,
+                                "critical": True,
+                            }
+                        ],
+                    },
+                    "runs": [],
+                },
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: get_test_runs(
+            client, workspace_id=WORKSPACE_ID, agent_id="a1", version="15"
+        ),
+    )
+
+    assert result.data.results is not None
+    assert result.data.results.verdict == "failed"
+    assert result.data.results.edited is True
+    assert result.data.results.checks[0].critical is True

@@ -9,9 +9,10 @@ from pydantic import BaseModel
 from app import crud
 from app.api.deps import CurrentCompany, SessionDep, get_current_user
 from app.core.encryption import decrypt
+from app.crud.test_run import simulated_call
 from app.models.call_screen import CallScreenPublic
 from app.models.enums import IntegrationProvider
-from app.services.call_screen import call_screen
+from app.services.call_screen import call_screen, simulated_call_screen
 from app.services.retell import get_retell_call
 
 logger = logging.getLogger(__name__)
@@ -33,7 +34,14 @@ def get_call_screen(
     """
     call = crud.get_call(session=session, call_id=call_id, company_id=company_id)
     if call is None:
-        raise HTTPException(status_code=404, detail="Call not found")
+        # A simulated call opens on the same screen, by its own id.
+        simulated = simulated_call(
+            session=session, call_id=call_id, company_id=company_id
+        )
+        if simulated is None:
+            raise HTTPException(status_code=404, detail="Call not found")
+        result, run = simulated
+        return simulated_call_screen(session=session, result=result, run=run)
     screen = call_screen(session=session, call=call)
     if screen is None:
         raise HTTPException(
