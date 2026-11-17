@@ -134,6 +134,15 @@ class TestCase(TestCaseBase, table=True):
         },
     )
     deleted_at: datetime | None = Field(default=None, index=True)
+    # A scenario's caller, beside who they are (`persona_context`): their goal and how
+    # they behave (`plans/2026-11-17-scenarios.md`).
+    caller_goal: str | None = Field(default=None, sa_column=Column(Text))
+    caller_behaviour: str | None = Field(default=None, sa_column=Column(Text))
+    # The values the agent's platform passes in (dynamic variables), kept apart from
+    # what the caller knows (`user_context`).
+    agent_variables: dict[str, Any] | None = Field(
+        default=None, sa_column=Column("agent_variables", JSONB, nullable=True)
+    )
 
     # Relationships
     agent: Agent | None = Relationship(back_populates="test_cases")

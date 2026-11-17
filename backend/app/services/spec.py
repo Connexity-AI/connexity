@@ -11,6 +11,7 @@ from sqlmodel import Session, col, select
 from app import crud
 from app.crud.check import lock_agent
 from app.crud.clarification import state_counts, unanswered
+from app.crud.scenario import scenarios_by_rule
 from app.crud.spec import RuleInput, mark_critical, normalise, prompt_text, write_spec
 from app.models.agent import Agent
 from app.models.clarification import Clarification
@@ -151,6 +152,7 @@ def spec_answer(
             else set()
         )
         answers = _answers(session, rules + dropped)
+        listed = scenarios_by_rule(session=session, agent_id=agent.id)
 
         def public(r: SpecRule, change: RuleChange | None) -> SpecRulePublic:
             who, when = (
@@ -165,6 +167,7 @@ def spec_answer(
                 quote=r.quote,
                 touches=r.touches,
                 critical=r.critical,
+                scenarios=listed.get(r.key, 0) if change != "dropped" else 0,
                 answered_by=who,
                 answered_at=when,
                 in_conflict=change != "dropped" and r.key in conflicts,

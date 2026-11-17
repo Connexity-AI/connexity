@@ -8,6 +8,8 @@ from connexity_mcp_server.models import (
     AnswerToRaise,
     QuestionToRaise,
     SpecRuleToWrite,
+    FakeToolResult,
+    ScenarioToWrite,
 )
 from connexity_mcp_server.tools import (
     add_agents,
@@ -20,6 +22,9 @@ from connexity_mcp_server.tools import (
     raise_clarifications,
     write_spec,
     mark_critical_rules,
+    list_scenarios,
+    write_scenario_set,
+    write_scenarios,
     list_issues,
     scan_calls,
     connect_voice_platform,
@@ -1044,3 +1049,144 @@ async def test_answer_clarifications_sends_each_answer() -> None:
     )
 
     assert result.data.specs[0].spec_version == 2
+
+
+_SCENARIO = {
+    "id": "s1",
+    "name": "Price pushback",
+    "caller": "A policyholder renewing",
+    "first_turn": "user",
+    "fake_tool_results": [
+        {"tool": "quote_lookup", "arguments": {"policy": None}, "result": {"price": 420}}
+    ],
+    "rules": [{"key": "k1", "text": "Never quote above the lookup", "critical": True}],
+    "sets": ["smoke"],
+    "updated_at": "2026-11-17T10:00:00Z",
+}
+
+
+@pytest.mark.asyncio
+async def test_write_scenarios_sends_them_without_empty_fields() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert (
+            request.url.path
+            == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/agents/a1/scenarios"
+        )
+        assert json.loads(request.content) == {
+            "scenarios": [
+                {
+                    "archive": False,
+                    "name": "Price pushback",
+                    "caller": "A policyholder renewing",
+                    "caller_goal": "Renew only if the price did not go up",
+                    "agent_variables": {"customer_name": "Sam"},
+                    "fake_tool_results": [
+                        {"tool": "quote_lookup", "result": {"price": 420}}
+                    ],
+                    "rules": ["k1"],
+                },
+                {
+                    "id": "s0",
+                    "archive": True,
+                    "name": "",
+                    "fake_tool_results": [],
+                    "rules": [],
+                },
+            ]
+        }
+        return httpx.Response(
+            200, json={"data": {"scenarios": [_SCENARIO], "archived": 1}, **ANSWER}
+        )
+
+    result = await _call(
+        handler,
+        lambda client: write_scenarios(
+            client,
+            workspace_id=WORKSPACE_ID,
+            agent_id="a1",
+            scenarios=[
+                ScenarioToWrite(
+                    name="Price pushback",
+                    caller="A policyholder renewing",
+                    caller_goal="Renew only if the price did not go up",
+                    agent_variables={"customer_name": "Sam"},
+                    fake_tool_results=[
+                        FakeToolResult(tool="quote_lookup", result={"price": 420})
+                    ],
+                    rules=["k1"],
+                ),
+                ScenarioToWrite(id="s0", archive=True),
+            ],
+        ),
+    )
+
+    assert result.data.archived == 1
+    assert result.data.scenarios[0].rules[0].critical is True
+
+
+@pytest.mark.asyncio
+async def test_list_scenarios_sends_the_set_as_set() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET"
+        assert dict(request.url.params) == {"rule_key": "k1", "set": "smoke"}
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "agent_id": "a1",
+                    "agent_name": "Front desk",
+                    "data": [_SCENARIO],
+                    "sets": [{"id": "e1", "name": "smoke", "scenario_ids": ["s1"]}],
+                    "counts": {
+                        "scenarios": 1,
+                        "rules": 3,
+                        "rules_listed": 1,
+                        "critical_unlisted": 1,
+                        "listing_gone_rules": 0,
+                    },
+                    "unlisted_rules": [{"key": "k2", "text": "x", "critical": True}],
+                },
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: list_scenarios(
+            client, workspace_id=WORKSPACE_ID, agent_id="a1", rule_key="k1", set_name="smoke"
+        ),
+    )
+
+    assert result.data.counts.critical_unlisted == 1
+    assert result.data.sets[0].scenario_ids == ["s1"]
+
+
+@pytest.mark.asyncio
+async def test_write_scenario_set_and_archiving_answers_none() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path.endswith("/agents/a1/scenario-sets")
+        body = json.loads(request.content)
+        if body["scenario_ids"]:
+            assert body == {"name": "smoke", "scenario_ids": ["s1"]}
+            data = {"id": "e1", "name": "smoke", "scenario_ids": ["s1"]}
+        else:
+            data = None
+        return httpx.Response(200, json={"data": data, **ANSWER})
+
+    made = await _call(
+        handler,
+        lambda client: write_scenario_set(
+            client, workspace_id=WORKSPACE_ID, agent_id="a1", name="smoke", scenario_ids=["s1"]
+        ),
+    )
+    archived = await _call(
+        handler,
+        lambda client: write_scenario_set(
+            client, workspace_id=WORKSPACE_ID, agent_id="a1", name="smoke", scenario_ids=[]
+        ),
+    )
+
+    assert made.data is not None and made.data.name == "smoke"
+    assert archived.data is None
+

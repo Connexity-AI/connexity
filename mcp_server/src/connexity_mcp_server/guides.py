@@ -18,6 +18,7 @@ GUIDES = {
     "issues": "Issues",
     "calls": "Calls",
     "spec": "Writing an agent's spec",
+    "scenarios": "Writing scenarios",
 }
 # Written and reviewed, but not served until the tools they name exist.
 NOT_YET_SERVED: set[str] = set()

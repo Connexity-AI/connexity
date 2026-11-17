@@ -32,6 +32,7 @@ erDiagram
     call ||--o{ test_case : "source of"
     eval_config ||--o{ eval_config_member : contains
     test_case ||--o{ eval_config_member : "member of"
+    test_case ||--o{ scenario_rule : lists
     eval_config ||--o{ run : "executed as"
     agent_version ||--o{ run : "tested in"
     run ||--o{ test_case_result : produces
@@ -67,8 +68,9 @@ erDiagram
 | `assistant_task` | `assistant_task.py` | A task an assistant took from `get_next_task`: its key, kind and title, who took it (the person, the assistant and the session's name), and what became of it: in progress, waiting for the person (its part done, the rest theirs), returned to the list, or done. Tasks themselves are worked out from the workspace each time (`app/services/work.py`); rows are kept, never deleted. One row in progress or waiting per task. | New in 10.124; session name in 10.125 |
 | `task_order` | `task_order.py` | The person's order of the assistant's tasks: one row per workspace, the To do keys as they last left them, and the last move (the task, who moved it and the assistant that acted, when). Connexity's order fills in every task not in it; blockers still sit above what they block. | New in 10.1271 |
 | `check_release` | `check.py` | When each version of a built-in check was first present. Not owned by a company. A finding on a call that started earlier is retroactive. | New in slice 2.1 |
-| `test_case` | `test_case.py` | A simulated-caller scenario, optionally sourced from a call. | Frozen until Phase 4 |
-| `eval_config`, `eval_config_member` | `eval_config.py` | A named set of test cases with a run configuration (runtime, judge, thresholds). | Frozen until Phase 4 |
+| `test_case` | `test_case.py` | A scenario: the stage for a simulated call. The caller (`persona_context`, `caller_goal`, `caller_behaviour`), what the caller knows (`user_context`) apart from the agent's variables (`agent_variables`), who speaks first and the first message, fake tool results (`expected_tool_calls` with `mock_response`), and optionally the call it came from. Written by the assistant through MCP; it has no pass or fail of its own. | Reshaped in 10.1291 (`caller_goal`, `caller_behaviour`, `agent_variables`); the rest of the eval stack stays frozen until the runner |
+| `scenario_rule` | `scenario.py` | A spec rule a scenario expects to come up, by the rule's key, so the link holds across spec versions. A scenario with at least one is listed by MCP. | New in 10.1291 |
+| `eval_config`, `eval_config_member` | `eval_config.py` | A named set of scenarios with a run configuration (runtime, judge, thresholds); `write_scenario_set` writes its members. | Frozen until Phase 4 |
 | `run` | `run.py` | One execution of an eval config against an agent version, with aggregate metrics. | Frozen until Phase 4 |
 | `test_case_result` | `test_case_result.py` | One test case's transcript and judge verdict within a run. | Frozen until Phase 4 |
 | `custom_metric` | `custom_metric.py` | Judge metrics per company; built-in ones are copied in at signup. | Frozen until Phase 4 |

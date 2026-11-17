@@ -9,14 +9,21 @@ Lists add `next_cursor`. Errors carry a message, next steps and a guide in the s
 import uuid
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Generic, Literal, TypeVar
+from typing import Annotated, Any, Generic, Literal, TypeVar
 
 from pydantic import BaseModel, Field, StringConstraints
 
 from app.models.agent_list import AgentType
 from app.models.call_list import CallListItemPublic, CallTilesPublic
-from app.models.enums import AssistantTaskState, Platform, SpecRuleTouches, TaskKind
+from app.models.enums import (
+    AssistantTaskState,
+    FirstTurn,
+    Platform,
+    SpecRuleTouches,
+    TaskKind,
+)
 from app.models.issue_list import IssueListItemPublic, IssueTilesPublic
+from app.models.scenario import ScenarioPublic
 from app.models.spec import SpecState
 from app.models.work import WorkDonePublic, WorkSessionPublic, WorkTaskPublic
 
@@ -30,6 +37,7 @@ GUIDE_CATEGORIES = "connexity://guides/categories"
 GUIDE_ISSUES = "connexity://guides/issues"
 GUIDE_SPEC = "connexity://guides/spec"
 GUIDE_CALLS = "connexity://guides/calls"
+GUIDE_SCENARIOS = "connexity://guides/scenarios"
 
 
 class McpAnswer(BaseModel, Generic[T]):
@@ -195,6 +203,82 @@ class McpMarkCritical(BaseModel):
         max_length=500,
         description="Keys of rules whose failure is a Warning",
     )
+
+
+type ShortText = Annotated[str, StringConstraints(max_length=4000)]
+
+
+class McpFakeToolResult(BaseModel):
+    tool: Annotated[str, StringConstraints(strip_whitespace=True, max_length=255)] = (
+        Field(description="The tool's name, as the agent calls it")
+    )
+    arguments: dict[str, Any] | None = Field(
+        default=None,
+        description="The arguments it answers (their keys must be present); leave out "
+        "to answer any call of the tool",
+    )
+    result: dict[str, Any] | None = Field(
+        default=None, description="What the tool returns, as JSON; invented values only"
+    )
+
+
+class McpScenario(BaseModel):
+    id: uuid.UUID | None = Field(
+        default=None, description="Only to replace or archive an existing scenario"
+    )
+    archive: bool = Field(
+        default=False, description="True, with id, to archive it (it leaves its sets)"
+    )
+    name: Annotated[str, StringConstraints(max_length=255)] = ""
+    description: ShortText | None = Field(default=None, description="For people")
+    caller: ShortText | None = Field(default=None, description="Who the caller is")
+    caller_goal: ShortText | None = Field(
+        default=None, description="What the caller wants from the call, in one line"
+    )
+    caller_behaviour: ShortText | None = Field(
+        default=None, description="How they behave: in a hurry, unsure, pushing back"
+    )
+    caller_knows: dict[str, Any] | None = Field(
+        default=None, description="What the caller knows, such as their policy number"
+    )
+    agent_variables: dict[str, Any] | None = Field(
+        default=None,
+        description="The values the agent's platform passes in (dynamic variables)",
+    )
+    first_turn: FirstTurn = Field(
+        default=FirstTurn.USER, description="Who speaks first: agent or user"
+    )
+    first_message: ShortText | None = Field(
+        default=None, description="The first speaker's opening line"
+    )
+    fake_tool_results: list[McpFakeToolResult] = Field(
+        default_factory=list, max_length=50
+    )
+    rules: list[Annotated[str, StringConstraints(max_length=64)]] = Field(
+        default_factory=list,
+        max_length=50,
+        description="Keys from `get_spec` of the rules it expects to come up",
+    )
+    from_call_id: uuid.UUID | None = Field(
+        default=None, description="A call of this agent the scenario was written from"
+    )
+
+
+class McpWriteScenarios(BaseModel):
+    scenarios: list[McpScenario] = Field(max_length=100)
+
+
+class McpWriteScenarioSet(BaseModel):
+    name: Annotated[str, StringConstraints(max_length=255)]
+    scenario_ids: list[uuid.UUID] = Field(
+        max_length=500, description="In order; empty archives the set"
+    )
+    description: ShortText | None = None
+
+
+class McpWrittenScenarios(BaseModel):
+    scenarios: list[ScenarioPublic]
+    archived: int
 
 
 class McpClarificationAnswer(BaseModel):

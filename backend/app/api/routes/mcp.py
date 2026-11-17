@@ -23,6 +23,7 @@ from app.api.deps import (
 from app.core.config import settings
 from app.core.encryption import decrypt
 from app.crud import clarification as crud_clarification
+from app.crud import scenario as crud_scenario
 from app.crud.call_list import CallFilters
 from app.crud.issue_list import calls_by_agent, period_start
 from app.crud.latency import agent_latencies
@@ -60,6 +61,7 @@ from app.models.mcp import (
     GUIDE_GETTING_STARTED,
     GUIDE_ISSUES,
     GUIDE_READINESS,
+    GUIDE_SCENARIOS,
     GUIDE_SPEC,
     GUIDE_WORKSPACES,
     McpAddAgents,
@@ -86,8 +88,12 @@ from app.models.mcp import (
     McpTaskRef,
     McpUnarchiveIssue,
     McpWorkspace,
+    McpWriteScenarios,
+    McpWriteScenarioSet,
     McpWriteSpec,
+    McpWrittenScenarios,
 )
+from app.models.scenario import ScenarioListPublic, ScenarioSetPublic
 from app.models.spec import SpecPublic, SpecWrittenPublic
 from app.models.work import WorkMoveIn
 from app.services.agent_list import agent_types
@@ -118,6 +124,15 @@ from app.services.retell import (
     dedupe_retell_agents,
     list_retell_agents,
     retell_key_status,
+)
+from app.services.scenario import (
+    FakeToolDraft,
+    ScenarioDraft,
+    ScenarioRefused,
+    list_scenarios,
+    scenario_public,
+    write_scenario_set,
+    write_scenarios,
 )
 from app.services.spec import (
     RuleDraft,
@@ -741,6 +756,25 @@ def _spec_refused(refused: SpecRefused, retry: str) -> HTTPException:
     )
 
 
+def _scenario_step(answer: SpecPublic, agent_id: uuid.UUID) -> str | None:
+    """Names the rules no scenario lists, critical first; None when there are none."""
+    rules = [r for g in answer.groups for r in g.rules if r.change != "dropped"]
+    unlisted = sorted(
+        (r for r in rules if r.scenarios == 0), key=lambda r: not r.critical
+    )
+    if not unlisted:
+        return None
+    critical = sum(1 for r in unlisted if r.critical)
+    first = ", ".join(f"'{r.key}'" for r in unlisted[:5])
+    which = f", {critical} of them critical" if critical else ""
+    return (
+        f"Write scenarios for the {len(unlisted)} "
+        f"{'rule' if len(unlisted) == 1 else 'rules'} no scenario lists{which} "
+        f"(`write_scenarios` with agent_id {agent_id}), starting with {first}; follow "
+        f"{GUIDE_SCENARIOS}."
+    )
+
+
 def _critical_step(answer: SpecPublic, agent_id: uuid.UUID) -> str:
     counts = answer.counts
     critical = counts.critical if counts else 0
@@ -918,6 +952,8 @@ def write_spec(
         "`raise_clarifications`, following connexity://guides/spec."
     )
     steps.append(_critical_step(written, agent.id))
+    if (scenarios := _scenario_step(written, agent.id)) is not None:
+        steps.append(scenarios)
     steps.append("Tell the person the spec is written, and what you raised.")
     steps.append(NEXT_TASK)
     return McpAnswer[SpecWrittenPublic](
@@ -961,6 +997,7 @@ def mark_critical(
             else "Every rule already had that mark; no version was made."
         ),
         _critical_step(answer, agent.id),
+        *([step] if (step := _scenario_step(answer, agent.id)) else []),
         "Tell the person which rules are critical, in a line: they can ask you to "
         "change it.",
         NEXT_TASK,
@@ -1261,6 +1298,15 @@ def _task_steps(task: Task) -> list[str]:
             "Write the rules the prompt settles with `write_spec`.",
             "Raise what the prompt does not settle with `raise_clarifications`; the "
             "person answers it.",
+        ]
+    if task.kind is TaskKind.TESTS:
+        return [
+            f"Read {GUIDE_SCENARIOS}, then call `list_scenarios` for agent {agent}: "
+            "`unlisted_rules` names the rules without a scenario, critical first.",
+            "Write scenarios for them with `write_scenarios`, using the rule keys from "
+            "`get_spec`.",
+            'Put a few that cover the critical rules in a "smoke" set with '
+            "`write_scenario_set`.",
         ]
     if task.kind is TaskKind.CALLS_TO_REVIEW:
         return [
@@ -1839,4 +1885,234 @@ async def scan_calls(
         ],
         next_steps=next_steps,
         guide=GUIDE_READINESS,
+    )
+
+
+# ── Scenarios ─────────────────────────────────────────────────────
+
+_SCENARIO_RULES = [
+    "A scenario is a stage, not a test: it has no pass or fail of its own. A run "
+    "judges only the rules it lists: Passed, Failed or Didn't come up.",
+    "Every scenario lists one or more rules of the agent's latest spec, by key. "
+    "Something no rule covers is a gap in the spec: add the rule (`write_spec`) or "
+    "raise a clarification before writing the scenario.",
+    "Scenarios need no approval: write them yourself. A person who disagrees asks you "
+    "to change one.",
+    "Keep what the caller knows apart from the agent's variables. Fake tool results "
+    "and every value use invented data, never a real caller's.",
+    "Connexity never writes scenarios; you do. The gate runs every scenario; sets are "
+    "for your own runs.",
+]
+
+
+def _scenario_refused(refused: ScenarioRefused, retry: str) -> HTTPException:
+    more = len(refused.problems) - 20
+    return HTTPException(
+        status_code=422,
+        detail=McpErrorDetail(
+            error=refused.error,
+            next_steps=[
+                *refused.problems[:20],
+                *([f"… and {more} more problems like these."] if more > 0 else []),
+                retry,
+            ],
+            guide=GUIDE_SCENARIOS,
+        ).model_dump(),
+    )
+
+
+@router.post(
+    "/workspaces/{workspace_id}/agents/{agent_id}/scenarios",
+    response_model=McpAnswer[McpWrittenScenarios],
+)
+def write_agent_scenarios(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    agent_id: uuid.UUID,
+    body: McpWriteScenarios,
+) -> McpAnswer[McpWrittenScenarios]:
+    agent = _mcp_agent_in(session, workspace, agent_id)
+    try:
+        written = write_scenarios(
+            session=session,
+            agent=agent,
+            drafts=[
+                ScenarioDraft(
+                    id=s.id,
+                    archive=s.archive,
+                    name=s.name,
+                    description=s.description,
+                    caller=s.caller,
+                    caller_goal=s.caller_goal,
+                    caller_behaviour=s.caller_behaviour,
+                    caller_knows=s.caller_knows,
+                    agent_variables=s.agent_variables,
+                    first_turn=s.first_turn,
+                    first_message=s.first_message,
+                    fake_tool_results=[
+                        FakeToolDraft(
+                            tool=f.tool, arguments=f.arguments, result=f.result
+                        )
+                        for f in s.fake_tool_results
+                    ],
+                    rules=list(s.rules),
+                    from_call_id=s.from_call_id,
+                )
+                for s in body.scenarios
+            ],
+        )
+    except ScenarioRefused as refused:
+        raise _scenario_refused(
+            refused, "Fix these and call `write_scenarios` again; nothing was stored."
+        ) from None
+    spec = spec_answer(session=session, agent=agent)
+    keys = crud_scenario.rules_of(
+        session=session, test_case_ids=[s.id for s in written.stored]
+    )
+    steps = []
+    if written.stored:
+        steps.append(
+            "Put them in a set with `write_scenario_set` when you will run them "
+            'together, such as a small "smoke" set over the critical rules.'
+        )
+    if written.unlisted_critical:
+        first = ", ".join(f"'{r.key}'" for r in written.unlisted_critical[:5])
+        steps.append(
+            f"{len(written.unlisted_critical)} critical "
+            f"{'rule still has' if len(written.unlisted_critical) == 1 else 'rules still have'} "
+            f"no scenario: {first}. Write scenarios for them."
+        )
+    elif spec is not None and (more := _scenario_step(spec, agent.id)):
+        steps.append(more)
+    steps.append(
+        "Tell the person in a line what you wrote; they can ask you to change any of "
+        "it."
+    )
+    steps.append(NEXT_TASK)
+    return McpAnswer[McpWrittenScenarios](
+        data=McpWrittenScenarios(
+            scenarios=[
+                scenario_public(s, keys.get(s.id, []), written.rules)
+                for s in written.stored
+            ],
+            archived=written.archived,
+        ),
+        rules=_SCENARIO_RULES,
+        next_steps=steps,
+        guide=GUIDE_SCENARIOS,
+    )
+
+
+@router.get(
+    "/workspaces/{workspace_id}/agents/{agent_id}/scenarios",
+    response_model=McpAnswer[ScenarioListPublic],
+)
+def list_agent_scenarios(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    agent_id: uuid.UUID,
+    rule_key: str | None = Query(default=None, max_length=64),
+    set_name: str | None = Query(default=None, alias="set", max_length=255),
+    cursor: str | None = Query(default=None, max_length=255),
+    limit: int = Query(default=25, ge=1, le=100),
+) -> McpAnswer[ScenarioListPublic]:
+    agent = _mcp_agent_in(session, workspace, agent_id)
+    offset = _decode_cursor(cursor)
+    found = list_scenarios(
+        session=session,
+        agent=agent,
+        rule_key=rule_key,
+        set_name=set_name,
+        offset=offset,
+        limit=limit,
+    )
+    if found is None:
+        raise HTTPException(
+            status_code=404,
+            detail=McpErrorDetail(
+                error=f"The agent has no set named '{set_name}'",
+                next_steps=["Call `list_scenarios` without `set`; it lists the sets."],
+                guide=GUIDE_SCENARIOS,
+            ).model_dump(),
+        )
+    answer, more = found
+    answer.next_cursor = _encode_cursor(offset + limit) if more else None
+    counts = answer.counts
+    steps = []
+    if more:
+        steps.append(
+            "Call `list_scenarios` again with `cursor` set to `next_cursor` for the next "
+            "page."
+        )
+    if counts.listing_gone_rules:
+        steps.append(
+            f"{counts.listing_gone_rules} "
+            f"{'scenario lists' if counts.listing_gone_rules == 1 else 'scenarios list'} "
+            "a rule the latest spec no longer has (`gone`): rewrite each with the "
+            "spec's keys, or archive it, with `write_scenarios`."
+        )
+    if counts.critical_unlisted:
+        steps.append(
+            f"{counts.critical_unlisted} critical "
+            f"{'rule has' if counts.critical_unlisted == 1 else 'rules have'} no "
+            "scenario (first in `unlisted_rules`): write scenarios for them with "
+            "`write_scenarios`."
+        )
+    elif counts.rules_listed < counts.rules:
+        steps.append(
+            f"{counts.rules - counts.rules_listed} of {counts.rules} rules have no "
+            "scenario (`unlisted_rules`); write scenarios for them with "
+            "`write_scenarios`."
+        )
+    return McpAnswer[ScenarioListPublic](
+        data=answer, rules=_SCENARIO_RULES, next_steps=steps, guide=GUIDE_SCENARIOS
+    )
+
+
+@router.post(
+    "/workspaces/{workspace_id}/agents/{agent_id}/scenario-sets",
+    response_model=McpAnswer[ScenarioSetPublic | None],
+)
+def write_agent_scenario_set(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    agent_id: uuid.UUID,
+    body: McpWriteScenarioSet,
+) -> McpAnswer[ScenarioSetPublic | None]:
+    agent = _mcp_agent_in(session, workspace, agent_id)
+    try:
+        config = write_scenario_set(
+            session=session,
+            agent=agent,
+            name=body.name,
+            scenario_ids=body.scenario_ids,
+            description=body.description,
+        )
+    except ScenarioRefused as refused:
+        raise _scenario_refused(
+            refused, "Fix these and call `write_scenario_set` again; nothing changed."
+        ) from None
+    if config is None:
+        return McpAnswer[ScenarioSetPublic | None](
+            data=None,
+            rules=_SCENARIO_RULES,
+            next_steps=[f"The set '{body.name.strip()}' is archived.", NEXT_TASK],
+            guide=GUIDE_SCENARIOS,
+        )
+    ids = crud_scenario.members(session=session, set_ids=[config.id])[config.id]
+    return McpAnswer[ScenarioSetPublic | None](
+        data=ScenarioSetPublic(
+            id=config.id,
+            name=config.name,
+            description=config.description,
+            scenario_ids=ids,
+        ),
+        rules=_SCENARIO_RULES,
+        next_steps=[
+            f"The set '{config.name}' has {len(ids)} "
+            f"{'scenario' if len(ids) == 1 else 'scenarios'}. Running sets comes with "
+            "the text runner; the gate always runs every scenario.",
+            NEXT_TASK,
+        ],
+        guide=GUIDE_SCENARIOS,
     )

@@ -41,6 +41,10 @@ from connexity_mcp_server.models import (
     QuestionToRaise,
     RaiseClarificationsResult,
     SpecResult,
+    ListScenariosResult,
+    ScenarioSetResult,
+    ScenarioToWrite,
+    WriteScenariosResult,
     SpecRuleToWrite,
     ListAgentsResult,
     ListCallsResult,
@@ -108,6 +112,15 @@ from connexity_mcp_server.tools import (
 )
 from connexity_mcp_server.tools import (
     mark_critical_rules as _mark_critical_rules,
+)
+from connexity_mcp_server.tools import (
+    list_scenarios as _list_scenarios,
+)
+from connexity_mcp_server.tools import (
+    write_scenario_set as _write_scenario_set,
+)
+from connexity_mcp_server.tools import (
+    write_scenarios as _write_scenarios,
 )
 from connexity_mcp_server.tools import (
     archive_issue as _archive_issue,
@@ -423,6 +436,70 @@ def build_application(settings: Settings | None = None) -> FastAPI:
             agent_id=agent_id,
             critical=critical or [],
             not_critical=not_critical or [],
+        )
+
+    @mcp_server.tool(annotations=CREATES)
+    async def write_scenarios(
+        workspace_id: str, agent_id: str, scenarios: list[ScenarioToWrite]
+    ) -> WriteScenariosResult:
+        """Write scenarios for the agent: each a stage for a simulated call, with no
+        pass or fail of its own. Each: a name; the caller (who, goal, behaviour); what
+        the caller knows, kept apart from the agent's variables; who speaks first and
+        the first message; fake tool results with invented values; and the keys of the
+        spec rules it expects to come up (one or more, from `get_spec`). Pass `id` to
+        replace one, `id` with `archive` to archive one. Up to 20 per call, all or
+        nothing. Yours to write: no approval needed. Follow
+        connexity://guides/scenarios."""
+        return await _write_scenarios(
+            client=backend_client,
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            scenarios=scenarios,
+        )
+
+    @mcp_server.tool(annotations=READ_ONLY)
+    async def list_scenarios(
+        workspace_id: str,
+        agent_id: str,
+        rule_key: str | None = None,
+        set: str | None = None,
+        cursor: str | None = None,
+        limit: int | None = None,
+    ) -> ListScenariosResult:
+        """The agent's active scenarios, oldest first, each with its rules (critical,
+        or gone from the latest spec) and its sets; the agent's named sets; counts of
+        rules listed and critical rules no scenario lists; and the rules without a
+        scenario, critical first. Filter by `rule_key` or by a set's name (`set`);
+        pass `next_cursor` back as `cursor` for the next page."""
+        return await _list_scenarios(
+            client=backend_client,
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            rule_key=rule_key,
+            set_name=set,
+            cursor=cursor,
+            limit=limit,
+        )
+
+    @mcp_server.tool(annotations=DECIDES)
+    async def write_scenario_set(
+        workspace_id: str,
+        agent_id: str,
+        name: str,
+        scenario_ids: list[str],
+        description: str | None = None,
+    ) -> ScenarioSetResult:
+        """Create a named set of the agent's scenarios, or replace the set of that
+        name, in the order given; an empty `scenario_ids` archives it. Sets are for
+        your own runs (such as a small smoke set over the critical rules); the gate
+        always runs every scenario."""
+        return await _write_scenario_set(
+            client=backend_client,
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            name=name,
+            scenario_ids=scenario_ids,
+            description=description,
         )
 
     @mcp_server.tool(annotations=CREATES)
