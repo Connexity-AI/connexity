@@ -124,8 +124,9 @@ These are Dmytro's words, from `testing.md`:
     both lists, and makes none when nothing changes;
   - `get_spec` answers each rule's mark and the critical count.
 - **`make check` passes** once, before the pull request.
-- **The design adjustment is written** for the Spec tab (question 5). The label on
-  screen is built after Dmytro updates the design.
+- **For Dmytro on screen:**
+  - the Critical label on critical rules;
+  - "N critical" on their groups, in dark and light.
 
 ## Out of scope
 
@@ -143,11 +144,13 @@ These are Dmytro's words, from `testing.md`:
 
 ### Deviations from the plan
 
-- **No Spec tab change in this pull request** (question 5): the label waits for the
-  design. `designs/12-adjustments.md` item 29 is the prompt: the Critical badge on a
-  rule, "N critical" on its group, and the "marked" line in the versions list.
-- **The web app shows no versions list yet,** so "Critical rules marked by …" comes
-  with the label, not here. The regenerated client knows the `marked` origin.
+- **The Spec tab's label came in a second step** (question 5). `designs/12-adjustments.md`
+  item 29 was the prompt; Dmytro updated the Agent Profile design, which is copied into
+  `designs/screens/`. The tab then gained:
+  - the Critical badge before a critical rule's text;
+  - "N critical" beside the group's count.
+- **The web app shows no spec versions list yet,** so the design's "Critical rules
+  marked by …" line is not built. The regenerated client knows the `marked` origin.
 - **`mark_critical_rules` returns the spec as `get_spec` does,** with the number of
   rules changed in its first next step.
 - **The migration's downgrade** turns "marked" versions into "adopted": without the
@@ -197,11 +200,18 @@ the route tests send the same requests through the API on the local database.
 
 `test_spec_tab.py`'s exact `counts` check gains `critical: 0`; nothing was weakened.
 
-**For Dmytro:** nothing to check on screen yet. Update the Agent Profile design from
-`designs/12-adjustments.md` item 29; the Spec tab's label is built after that.
+After the label, `eslint`, `tsc` and `pnpm --filter connexity build` pass on the
+frontend.
+
+**For Dmytro to check on screen** (an agent's Spec tab, after the assistant marks rules):
+1. **A critical rule** shows the red "Critical" badge before its text.
+2. **A group with critical rules** shows "N critical" beside its count, before "In
+   conflict", "added" and "dropped".
+3. **Rules that are not critical** have no badge.
+4. **Comparing versions** keeps the badges, in dark and light.
 
 ### Not done
 
-- The Spec tab's Critical label and the versions list line (question 5), after the
-  design.
+- The versions list line "Critical rules marked by …": the web app has no spec
+  versions list yet.
 - Using the marks in test results (10.1293).
