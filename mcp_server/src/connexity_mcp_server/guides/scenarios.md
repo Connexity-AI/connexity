@@ -114,4 +114,7 @@ do not approve them: a person who disagrees asks you to change one.
   - **Not tested** until a run of it completes.
 - **Show the person a simulated call** with its `url`: it opens on the call screen,
   with the rules it was judged on.
+- **Coverage** (`coverage`) is the share of the latest spec's rules the version's runs
+  judged Passed or Failed at least once. Each rule not checked says why: no scenario
+  lists it, or its scenarios never reached it. Critical rules come first.
 

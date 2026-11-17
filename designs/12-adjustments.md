@@ -467,3 +467,84 @@ them; it opens on the same single-call screen as a real call.
 
 Placeholder rules: "Never quote a price above the price list", "Ask for the date of
 birth before booking", "Offer the earliest slot first".
+
+## 31. Agent Profile: the Tests tab, cut down for the demo
+
+The Tests tab still shows the 1.x picture: test cases that each pass or fail, Text,
+Audio and Phone levels, a version history with overrides, and a "Run tests" button.
+Testing works differently now, and the demo shows only what is built.
+
+**How it works now:**
+
+- **The assistant writes scenarios.** A scenario is the stage for a simulated call: who
+  calls, their goal, how they behave. Each scenario lists the spec rules it should
+  bring up.
+- **The assistant runs them** through MCP: a named set, a pick, or all of them. Each
+  scenario repeats a few times, in text only for now.
+- **After each simulated call, a judge gives every listed rule a verdict:** Passed,
+  Failed or Didn't come up. Code checks also run on the call.
+- **The version's verdict:**
+  - **Failed** when a critical rule failed, when a critical code check found something,
+    or when too many other rules failed;
+  - **Verified** otherwise, with warnings;
+  - **Not tested** until a run completes.
+
+Rework the Tests tab for this. Read only: no Run button, no editing. The assistant does
+both.
+
+**The tab label:** "Tests 86%", the share of the spec's rules the runs checked.
+
+**Number tiles across the top,** each with its base:
+
+- **The verdict:** "Version 15 · Failed" in red, "Version 15 · Verified" or "Not tested",
+  with "Edited" after the number when the draft was changed under the same number, and
+  "tested today, 9:40" under it.
+- **Coverage:** "86%" with "114 of 132 rules".
+- **Scenarios:** "38" with "in 3 sets".
+- **Flaky:** "2 rules": rules that both passed and failed.
+- **Warnings:** "3": rules that are not critical that failed, and code checks that only
+  flag.
+
+**Why it failed:** the first section, shown only when there is something in it.
+
+- **Critical first:** failed critical rules (with the Critical badge) and code checks
+  that fail calls. **Then warnings,** in a quieter style.
+- **A rule row:** the rule in one plain sentence, its category, and "Failed in 2 of 5
+  simulated calls" (the calls that judged it; Didn't come up is not counted). It is
+  marked "Flaky" when it also passed.
+- **A code check row:** its title ("Tool call failed"), "Found by a rule", and "Found
+  in 2 of 40 simulated calls".
+- **Opening a row** lists its simulated calls: the scenario's name, the repeat, and the
+  verdict (Failed, Passed). Each links to the call, which opens on the single-call
+  screen with its rules line (item 30).
+
+**All rules:** a collapsed section, grouped by the fixed categories, each group with
+its count. Each rule shows passed, failed and didn't come up as three small numbers,
+with the Critical badge on critical rules.
+
+**Not checked:** a collapsed section, grouped by category: the spec's rules no run
+judged. Each says why: "No scenario" when no scenario lists it, or "Didn't come up" when
+scenarios list it but never reached it. Critical rules come first in each group.
+
+**Scenarios:** the last section.
+
+- **The named sets first,** as small chips with their counts ("smoke · 6").
+- **Then every scenario,** one row each: its name, the caller's goal in one muted line,
+  "3 rules", and the sets it is in.
+- No editing and no running.
+
+**Empty states:** the tab always shows; each state says what the assistant does next.
+
+- **No spec yet:** "No spec yet. The assistant writes the spec first; then it writes
+  scenarios for the rules."
+- **A spec but no scenarios:** "No scenarios yet. The assistant writes them, one or more
+  for each critical rule." It shows the coverage tile at 0%.
+- **Scenarios but no completed run:** "Not tested yet. The assistant runs the scenarios
+  through MCP." The scenarios section still shows.
+
+**Not on the tab any more:** the version list and overrides (they come with the gate),
+the Text, Audio and Phone rows (text is the only level), "Run tests", and test cases.
+
+Placeholder agents and numbers as before. Placeholder rules: "Never quote a price above
+the price list", "Ask for the date of birth before booking", "Offer the earliest slot
+first".

@@ -24,7 +24,13 @@ from app import crud
 from app.core.config import settings
 from app.core.db import engine
 from app.core.encryption import decrypt
-from app.crud.scenario import live_scenarios, members, rules_of, set_by_name
+from app.crud.scenario import (
+    live_scenarios,
+    members,
+    rules_of,
+    scenarios_by_rule,
+    set_by_name,
+)
 from app.crud.spec import latest_spec, rules_of_specs
 from app.crud.test_run import (
     calls_of_runs,
@@ -59,6 +65,7 @@ from app.models.test_case import TestCase
 from app.models.test_case_result import TestCaseResult
 from app.models.test_run import (
     CheckTotalPublic,
+    CoveragePublic,
     RuleTotalPublic,
     RuleVerdict,
     SimulatedCallPublic,
@@ -66,6 +73,7 @@ from app.models.test_run import (
     TestRunCountsPublic,
     TestRunDetailPublic,
     TestRunPublic,
+    UncheckedRulePublic,
     VerdictPublic,
     VersionResultsPublic,
 )
@@ -937,15 +945,17 @@ def _verdict_of(
     }
 
 
-def version_results(
-    *, session: Session, agent: Agent, version: str | None
-) -> VersionResultsPublic | None:
-    """The results of one tested version: ``version`` by its number, or the version of
-    the newest run. ``None`` when the agent has no such run.
+@dataclass(frozen=True)
+class VersionUnderTest:
+    results: VersionResultsPublic
+    counted: list[Run]
+    calls: list[TestCaseResult]
+    verdicts: list[RuleVerdict]
 
-    Runs are grouped by the version number and the content they tested. Every completed
-    run of the group counts: sets, picks and every scenario alike.
-    """
+
+def version_tested(
+    session: Session, agent: Agent, version: str | None
+) -> "VersionUnderTest | None":
     runs = runs_of_agent(session=session, agent_id=agent.id)
     if version is not None:
         runs_of_number = [r for r in runs if r.platform_version == version]
@@ -973,11 +983,12 @@ def version_results(
         if newest_spec
         else {}
     )
-    totals = _rule_totals([v for i in ids for v in verdicts[i]], rules)
+    all_verdicts = [v for i in ids for v in verdicts[i]]
+    totals = _rule_totals(all_verdicts, rules)
     all_calls = [c for i in ids for c in calls[i]]
     checks = _check_totals(all_calls)
     spec_versions = _spec_versions(session, counted)
-    return VersionResultsPublic(
+    results = VersionResultsPublic(
         version=key[0],
         edited=edited,
         first_run_at=group[0].created_at,
@@ -993,5 +1004,60 @@ def version_results(
             )
             for run in reversed(counted)
         ],
+        coverage=coverage_of(session=session, agent=agent, totals=totals),
         **_verdict_of(totals, checks, tested=bool(counted)),
     )
+    return VersionUnderTest(
+        results=results, counted=counted, calls=all_calls, verdicts=all_verdicts
+    )
+
+
+def coverage_of(
+    *, session: Session, agent: Agent, totals: list[RuleTotalPublic]
+) -> CoveragePublic | None:
+    """How much of the agent's latest spec ``totals`` checked; ``None`` without a spec.
+
+    A rule is checked when it was judged Passed or Failed at least once. One that was
+    not says why: no scenario lists it, or its scenarios never reached it.
+    """
+    spec = latest_spec(session=session, agent_id=agent.id)
+    if spec is None:
+        return None
+    rules = rules_of_specs(session=session, spec_ids=[spec.id]).get(spec.id, [])
+    judged = {t.key for t in totals if t.passed or t.failed}
+    listed = scenarios_by_rule(session=session, agent_id=agent.id)
+    categories = crud.categories_by_id(session=session)
+    unchecked = [
+        UncheckedRulePublic(
+            key=rule.key,
+            text=rule.text,
+            category=categories[rule.category_id].name
+            if rule.category_id in categories
+            else "Other",
+            critical=rule.critical,
+            why="did_not_come_up" if listed.get(rule.key) else "no_scenario",
+        )
+        for rule in rules
+        if rule.key not in judged
+    ]
+    unchecked.sort(key=lambda u: not u.critical)
+    checked = len(rules) - len(unchecked)
+    return CoveragePublic(
+        rules=len(rules),
+        checked=checked,
+        pct=(checked * 100 // len(rules)) if rules else 0,
+        unchecked=unchecked,
+    )
+
+
+def version_results(
+    *, session: Session, agent: Agent, version: str | None
+) -> VersionResultsPublic | None:
+    """The results of one tested version: ``version`` by its number, or the version of
+    the newest run. ``None`` when the agent has no such run.
+
+    Runs are grouped by the version number and the content they tested. Every completed
+    run of the group counts: sets, picks and every scenario alike.
+    """
+    found = version_tested(session, agent, version)
+    return found.results if found else None

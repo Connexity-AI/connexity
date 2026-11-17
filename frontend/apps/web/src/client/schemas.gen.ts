@@ -4091,6 +4091,37 @@ export const ConversationTurn_OutputSchema = {
   title: 'ConversationTurn',
 } as const;
 
+export const CoveragePublicSchema = {
+  properties: {
+    rules: {
+      type: 'integer',
+      title: 'Rules',
+      description: "Rules in the agent's latest spec",
+    },
+    checked: {
+      type: 'integer',
+      title: 'Checked',
+    },
+    pct: {
+      type: 'integer',
+      title: 'Pct',
+      description: 'Checked rules as a whole percentage',
+    },
+    unchecked: {
+      items: {
+        $ref: '#/components/schemas/UncheckedRulePublic',
+      },
+      type: 'array',
+      title: 'Unchecked',
+      description: 'Critical first',
+    },
+  },
+  type: 'object',
+  required: ['rules', 'checked', 'pct'],
+  title: 'CoveragePublic',
+  description: 'A rule is checked when a run judged it Passed or Failed at least once.',
+} as const;
+
 export const CustomEndpointRuntimeConfigSchema = {
   properties: {
     kind: {
@@ -5259,6 +5290,98 @@ export const ExpectedToolCallSchema = {
   type: 'object',
   required: ['tool'],
   title: 'ExpectedToolCall',
+} as const;
+
+export const FailingCheckPublicSchema = {
+  properties: {
+    check_type: {
+      type: 'string',
+      title: 'Check Type',
+    },
+    title: {
+      type: 'string',
+      title: 'Title',
+    },
+    critical: {
+      type: 'boolean',
+      title: 'Critical',
+      default: false,
+    },
+    found: {
+      type: 'integer',
+      title: 'Found',
+    },
+    of: {
+      type: 'integer',
+      title: 'Of',
+      description: "Simulated calls the version's runs made",
+    },
+    calls: {
+      items: {
+        $ref: '#/components/schemas/JudgedCallPublic',
+      },
+      type: 'array',
+      title: 'Calls',
+      description: 'At most 20',
+    },
+  },
+  type: 'object',
+  required: ['check_type', 'title', 'found', 'of'],
+  title: 'FailingCheckPublic',
+} as const;
+
+export const FailingRulePublicSchema = {
+  properties: {
+    key: {
+      type: 'string',
+      title: 'Key',
+    },
+    text: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Text',
+    },
+    category: {
+      type: 'string',
+      title: 'Category',
+    },
+    critical: {
+      type: 'boolean',
+      title: 'Critical',
+      default: false,
+    },
+    failed: {
+      type: 'integer',
+      title: 'Failed',
+    },
+    judged: {
+      type: 'integer',
+      title: 'Judged',
+      description: 'Simulated calls that judged it',
+    },
+    flaky: {
+      type: 'boolean',
+      title: 'Flaky',
+      default: false,
+    },
+    calls: {
+      items: {
+        $ref: '#/components/schemas/JudgedCallPublic',
+      },
+      type: 'array',
+      title: 'Calls',
+      description: 'Failed first, at most 20',
+    },
+  },
+  type: 'object',
+  required: ['key', 'category', 'failed', 'judged'],
+  title: 'FailingRulePublic',
 } as const;
 
 export const FakeToolResultPublicSchema = {
@@ -7093,6 +7216,38 @@ export const JudgeVerdictSchema = {
   type: 'object',
   required: ['passed', 'overall_score', 'metric_scores', 'judge_model', 'judge_provider'],
   title: 'JudgeVerdict',
+} as const;
+
+export const JudgedCallPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    scenario_name: {
+      type: 'string',
+      title: 'Scenario Name',
+    },
+    repeat: {
+      type: 'integer',
+      title: 'Repeat',
+    },
+    outcome: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/RuleOutcome',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: "The rule's verdict here; none for a code check",
+    },
+  },
+  type: 'object',
+  required: ['id', 'scenario_name', 'repeat'],
+  title: 'JudgedCallPublic',
 } as const;
 
 export const KeyValueSchema = {
@@ -10871,6 +11026,25 @@ export const RetellRuntimeConfigSchema = {
     'Retell text runtime.\n\nConnexity owns the user simulator and judge. The Retell runtime will call\nRetell as the agent side via chat APIs once implemented.',
 } as const;
 
+export const RuleGroupPublicSchema = {
+  properties: {
+    category: {
+      type: 'string',
+      title: 'Category',
+    },
+    rules: {
+      items: {
+        $ref: '#/components/schemas/RuleRowPublic',
+      },
+      type: 'array',
+      title: 'Rules',
+    },
+  },
+  type: 'object',
+  required: ['category', 'rules'],
+  title: 'RuleGroupPublic',
+} as const;
+
 export const RuleKeySchema = {
   type: 'string',
   maxLength: 64,
@@ -10881,6 +11055,42 @@ export const RuleOutcomeSchema = {
   enum: ['passed', 'failed', 'did_not_come_up'],
   title: 'RuleOutcome',
   description: "A spec rule's verdict in one simulated call.",
+} as const;
+
+export const RuleRowPublicSchema = {
+  properties: {
+    key: {
+      type: 'string',
+      title: 'Key',
+    },
+    text: {
+      type: 'string',
+      title: 'Text',
+    },
+    critical: {
+      type: 'boolean',
+      title: 'Critical',
+      default: false,
+    },
+    passed: {
+      type: 'integer',
+      title: 'Passed',
+      default: 0,
+    },
+    failed: {
+      type: 'integer',
+      title: 'Failed',
+      default: 0,
+    },
+    did_not_come_up: {
+      type: 'integer',
+      title: 'Did Not Come Up',
+      default: 0,
+    },
+  },
+  type: 'object',
+  required: ['key', 'text'],
+  title: 'RuleRowPublic',
 } as const;
 
 export const RuleTotalPublicSchema = {
@@ -12183,6 +12393,45 @@ export const ScenarioPublicSchema = {
   title: 'ScenarioPublic',
 } as const;
 
+export const ScenarioRowPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    caller_goal: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Caller Goal',
+    },
+    rules: {
+      type: 'integer',
+      title: 'Rules',
+    },
+    sets: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Sets',
+    },
+  },
+  type: 'object',
+  required: ['id', 'name', 'rules'],
+  title: 'ScenarioRowPublic',
+} as const;
+
 export const ScenarioRulePublicSchema = {
   properties: {
     key: {
@@ -12320,6 +12569,22 @@ export const ServedBySchema = {
   required: ['kind', 'name'],
   title: 'ServedBy',
   description: 'One thing that served a call, with the version that was live.',
+} as const;
+
+export const SetChipPublicSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    scenarios: {
+      type: 'integer',
+      title: 'Scenarios',
+    },
+  },
+  type: 'object',
+  required: ['name', 'scenarios'],
+  title: 'SetChipPublic',
 } as const;
 
 export const ShortTextSchema = {
@@ -14882,6 +15147,77 @@ export const TestRunPublicSchema = {
   title: 'TestRunPublic',
 } as const;
 
+export const TestsTabPublicSchema = {
+  properties: {
+    has_spec: {
+      type: 'boolean',
+      title: 'Has Spec',
+    },
+    results: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/VersionResultsPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    coverage: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/CoveragePublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    failing: {
+      items: {
+        $ref: '#/components/schemas/FailingRulePublic',
+      },
+      type: 'array',
+      title: 'Failing',
+      description: 'Critical first, then warnings',
+    },
+    failing_checks: {
+      items: {
+        $ref: '#/components/schemas/FailingCheckPublic',
+      },
+      type: 'array',
+      title: 'Failing Checks',
+      description: 'Critical first',
+    },
+    all_rules: {
+      items: {
+        $ref: '#/components/schemas/RuleGroupPublic',
+      },
+      type: 'array',
+      title: 'All Rules',
+      description: "The latest spec's rules by category",
+    },
+    sets: {
+      items: {
+        $ref: '#/components/schemas/SetChipPublic',
+      },
+      type: 'array',
+      title: 'Sets',
+    },
+    scenarios: {
+      items: {
+        $ref: '#/components/schemas/ScenarioRowPublic',
+      },
+      type: 'array',
+      title: 'Scenarios',
+    },
+  },
+  type: 'object',
+  required: ['has_spec'],
+  title: 'TestsTabPublic',
+  description: "The agent's Tests tab: the newest tested version and what checked it.",
+} as const;
+
 export const TextRuntimeKindSchema = {
   type: 'string',
   enum: ['retell', 'custom_endpoint'],
@@ -15703,6 +16039,37 @@ export const TurnRoleSchema = {
   title: 'TurnRole',
 } as const;
 
+export const UncheckedRulePublicSchema = {
+  properties: {
+    key: {
+      type: 'string',
+      title: 'Key',
+    },
+    text: {
+      type: 'string',
+      title: 'Text',
+    },
+    category: {
+      type: 'string',
+      title: 'Category',
+    },
+    critical: {
+      type: 'boolean',
+      title: 'Critical',
+      default: false,
+    },
+    why: {
+      type: 'string',
+      enum: ['no_scenario', 'did_not_come_up'],
+      title: 'Why',
+      description: 'No scenario lists it, or its scenarios never reached it',
+    },
+  },
+  type: 'object',
+  required: ['key', 'text', 'category', 'why'],
+  title: 'UncheckedRulePublic',
+} as const;
+
 export const UpdatePasswordSchema = {
   properties: {
     current_password: {
@@ -16172,6 +16539,17 @@ export const VersionResultsPublicSchema = {
       type: 'array',
       title: 'Runs',
       description: 'The runs that count, newest first',
+    },
+    coverage: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/CoveragePublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: "The latest spec's rules these runs checked",
     },
   },
   type: 'object',

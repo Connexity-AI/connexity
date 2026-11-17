@@ -1283,6 +1283,20 @@ async def test_get_test_runs_reads_a_versions_results() -> None:
                         "verdict": "failed",
                         "critical_failed": ["k1"],
                         "threshold_pct": 20,
+                        "coverage": {
+                            "rules": 2,
+                            "checked": 1,
+                            "pct": 50,
+                            "unchecked": [
+                                {
+                                    "key": "k2",
+                                    "text": "x",
+                                    "category": "Booking",
+                                    "critical": True,
+                                    "why": "no_scenario",
+                                }
+                            ],
+                        },
                         "checks": [
                             {
                                 "check_type": "tool_call_failed",
@@ -1309,6 +1323,8 @@ async def test_get_test_runs_reads_a_versions_results() -> None:
     assert result.data.results.verdict == "failed"
     assert result.data.results.edited is True
     assert result.data.results.checks[0].critical is True
+    assert result.data.results.coverage is not None
+    assert result.data.results.coverage.unchecked[0].why == "no_scenario"
 
 
 @pytest.mark.asyncio
@@ -1330,4 +1346,3 @@ async def test_mark_issue_fixed_sends_the_version_and_note() -> None:
                 note="Asked first",
             ),
         )
-

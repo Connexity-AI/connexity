@@ -30,6 +30,7 @@ from app.api.routes import (
     spec,
     test_case_results,
     test_cases,
+    tests_tab,
     tool_backends,
     users,
     webhooks,
@@ -76,6 +77,7 @@ api_router.include_router(component_versions.router)
 api_router.include_router(checks.router)
 api_router.include_router(issues.router)
 api_router.include_router(spec.router)
+api_router.include_router(tests_tab.router)
 api_router.include_router(company.router)
 
 root_router = APIRouter()

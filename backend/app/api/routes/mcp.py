@@ -2364,7 +2364,30 @@ def _version_name(results: VersionResultsPublic) -> str:
     return f"{name} (edited)" if results.edited else name
 
 
+def _coverage_steps(results: VersionResultsPublic) -> list[str]:
+    coverage = results.coverage
+    if coverage is None or not coverage.unchecked:
+        return []
+    critical = [u for u in coverage.unchecked if u.critical]
+    if not critical:
+        return [
+            f"The runs checked {coverage.checked} of the spec's {coverage.rules} rules "
+            f"({coverage.pct}%); `coverage.unchecked` says why each other one was not."
+        ]
+    keys = ", ".join(u.key for u in critical[:5])
+    return [
+        f"{len(critical)} critical "
+        f"{'rule was' if len(critical) == 1 else 'rules were'} not checked ({keys}): "
+        "write scenarios that reach them (`write_scenarios`), or rewrite the ones that "
+        "list them but never got there, then run them."
+    ]
+
+
 def _results_steps(results: VersionResultsPublic) -> list[str]:
+    return [*_verdict_steps(results), *_coverage_steps(results)]
+
+
+def _verdict_steps(results: VersionResultsPublic) -> list[str]:
     name = _version_name(results)
     if results.verdict is VersionVerdict.NOT_TESTED:
         return [
