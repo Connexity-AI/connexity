@@ -76,8 +76,14 @@ def _history_line(record: DecisionRecord, by: str) -> IssueHistoryPublic:
         kind, what = "spiked", "Came back: it spiked"
     elif old == IssueState.ARCHIVED.value:
         kind, what = "unarchived", "Unarchived"
+    elif (record.detail or {}).get("event") == "fix_live":
+        kind, what = "live", record.reason or "The fix went live"
     elif new == IssueState.RESOLVED.value:
-        kind, what = "resolved", "Resolved"
+        version = (record.detail or {}).get("version")
+        kind, what = (
+            "resolved",
+            f"Marked fixed in version {version}" if version else "Marked fixed",
+        )
     elif new == IssueState.REOPENED.value:
         kind, what = "reopened", "Reopened"
     else:
@@ -90,7 +96,8 @@ def _history_line(record: DecisionRecord, by: str) -> IssueHistoryPublic:
         at=record.created_at.replace(tzinfo=UTC)
         if record.created_at.tzinfo is None
         else record.created_at,
-        reason=record.reason,
+        # A live line says it all in its words.
+        reason=None if kind == "live" else record.reason,
         duration=_duration(record),
     )
 
@@ -210,7 +217,13 @@ def issue_page(
         ),
         chain=IssueChainPublic(
             found=found,
-            fixed=IssueFixedPublic(version=issue.resolved_version, at=issue.resolved_at)
+            fixed=IssueFixedPublic(
+                version=issue.resolved_version,
+                at=issue.resolved_at,
+                live_at=issue.fix_live_at
+                if issue.resolved_version
+                else issue.resolved_at,
+            )
             if issue.state is IssueState.RESOLVED and issue.resolved_at is not None
             else None,
         ),

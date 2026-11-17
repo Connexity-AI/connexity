@@ -137,6 +137,9 @@ from connexity_mcp_server.tools import (
     unarchive_issue as _unarchive_issue,
 )
 from connexity_mcp_server.tools import (
+    mark_issue_fixed as _mark_issue_fixed,
+)
+from connexity_mcp_server.tools import (
     list_workspaces as _list_workspaces,
 )
 from connexity_mcp_server.tools import (
@@ -355,6 +358,23 @@ def build_application(settings: Settings | None = None) -> FastAPI:
             issue_id=issue_id,
             reason=reason,
             duration=duration,
+        )
+
+    @mcp_server.tool(annotations=CREATES)
+    async def mark_issue_fixed(
+        workspace_id: str, issue_id: str, version: str, note: str | None = None
+    ) -> IssueResult:
+        """Mark an issue fixed in the agent's version that carries the fix (its number
+        on the platform), after you changed the agent. It becomes Resolved and leaves
+        the open lists; Connexity waits for that version to go live on real calls, and
+        reopens the issue if it happens again on a call after that. Refused if the
+        issue was already found on calls of that version. note: what you changed."""
+        return await _mark_issue_fixed(
+            client=backend_client,
+            workspace_id=workspace_id,
+            issue_id=issue_id,
+            version=version,
+            note=note,
         )
 
     @mcp_server.tool(annotations=DECIDES)

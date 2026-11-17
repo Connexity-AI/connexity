@@ -11,6 +11,7 @@ from sqlmodel import Session, col, select
 from app import crud
 from app.core.config import settings
 from app.models import Agent, CallCheck, DecisionRecord
+from app.models.check import Issue
 from app.models.trace import Trace
 from app.services.checks import engine
 from app.services.checks.rules.tool_call_failed import TOOL_CALL_FAILED
@@ -207,49 +208,102 @@ def test_a_check_is_skipped_on_a_call_that_lacks_what_it_needs(
 # ── Resolving, regressing, accepting ───────────────────────────────
 
 
-def test_a_resolved_issue_regresses_only_on_a_call_that_started_afterwards(
+def _on(version: str, **kwargs: Any) -> dict[str, Any]:
+    """An invented call on ``version`` of the agent."""
+    return _trace(**kwargs) | {
+        "components": [{"kind": "agent", "name": "Front desk", "version": version}]
+    }
+
+
+def test_a_resolved_issue_reopens_only_after_its_fix_goes_live(
     client: TestClient, auth_cookies: dict[str, str], token: str, db: Session
 ) -> None:
     agent_id = _agent(client, auth_cookies)
     earlier = datetime.now(UTC) - timedelta(minutes=5)
-    _send(client, token, agent_id, _trace())
+    _send(client, token, agent_id, _on("11"))
     (issue,) = _issues(client, auth_cookies, agent_id)
 
-    r = _state(client, auth_cookies, issue["id"], "resolved", version="agent v12")
+    r = _state(client, auth_cookies, issue["id"], "resolved", version="12")
     assert r.status_code == 200, r.text
     resolved = r.json()
-    assert (resolved["state"], resolved["resolved_version"]) == (
-        "resolved",
-        "agent v12",
-    )
+    assert (resolved["state"], resolved["resolved_version"]) == ("resolved", "12")
     assert resolved["resolved_at"] is not None
 
     # A failing call that started before the fix and arrived late changes nothing.
-    _send(client, token, agent_id, _trace(started_at=earlier))
+    _send(client, token, agent_id, _on("11", started_at=earlier))
+    # Nor does one after it on the old version: version 12 is not live yet.
+    _send(client, token, agent_id, _on("11", started_at=_later()))
     (still,) = _issues(client, auth_cookies, agent_id)
-    assert (still["state"], still["call_count"]) == ("resolved", 2)
+    assert (still["state"], still["call_count"]) == ("resolved", 3)
 
-    _send(client, token, agent_id, _trace(started_at=_later()))
+    # A clean call on version 12 makes the fix live.
+    _send(client, token, agent_id, _on("12", tool_status="ok", started_at=_later()))
+    db.expire_all()
+    stored = db.get(Issue, uuid.UUID(issue["id"]))
+    assert stored is not None and stored.fix_live_at is not None
+    assert stored.state.value == "resolved"
+
+    # Found again on a later version: reopened.
+    _send(client, token, agent_id, _on("13", started_at=_later()))
     (after,) = _issues(client, auth_cookies, agent_id)
-    assert (after["state"], after["call_count"]) == ("reopened", 3)
+    assert (after["state"], after["call_count"]) == ("reopened", 4)
     # What it was resolved in is kept as history.
-    assert after["resolved_version"] == "agent v12"
+    assert after["resolved_version"] == "12"
 
-    record, again = db.exec(
+    marked, live, again = db.exec(
         select(DecisionRecord)
         .where(DecisionRecord.subject == issue["id"])
         .order_by(col(DecisionRecord.created_at))
     ).all()
-    assert (record.kind, record.old_value, record.new_value) == (
+    assert (marked.kind, marked.old_value, marked.new_value) == (
         "issue_state",
         "open",
         "resolved",
     )
-    assert record.decided_by_email
-    assert str(record.agent_id) == agent_id
+    assert marked.decided_by_email
+    assert marked.detail == {"version": "12"}
+    assert str(marked.agent_id) == agent_id
+    assert (live.reason, live.decided_by_email) == ("Version 12 went live", "Connexity")
     # Coming back is recorded too, as Connexity's own decision.
     assert (again.old_value, again.new_value) == ("resolved", "reopened")
     assert (again.decided_by, again.decided_by_email) == (None, "Connexity")
+    assert (
+        again.reason == "Came back on version 13, after the fix in version 12 went live"
+    )
+
+
+def test_a_fix_without_a_version_counts_from_when_it_was_marked(
+    client: TestClient, auth_cookies: dict[str, str], token: str
+) -> None:
+    agent_id = _agent(client, auth_cookies)
+    _send(client, token, agent_id, _trace())
+    (issue,) = _issues(client, auth_cookies, agent_id)
+    assert _state(client, auth_cookies, issue["id"], "resolved").status_code == 200
+
+    _send(client, token, agent_id, _trace(started_at=_later()))
+
+    (after,) = _issues(client, auth_cookies, agent_id)
+    assert after["state"] == "reopened"
+
+
+def test_a_fix_in_a_version_already_live_counts_from_its_first_call(
+    client: TestClient, auth_cookies: dict[str, str], token: str, db: Session
+) -> None:
+    agent_id = _agent(client, auth_cookies)
+    _send(client, token, agent_id, _on("11"))
+    first_on_12 = datetime.now(UTC) - timedelta(minutes=1)
+    _send(client, token, agent_id, _on("12", tool_status="ok", started_at=first_on_12))
+    (issue,) = _issues(client, auth_cookies, agent_id)
+
+    assert (
+        _state(client, auth_cookies, issue["id"], "resolved", version="12").status_code
+        == 200
+    )
+
+    db.expire_all()
+    stored = db.get(Issue, uuid.UUID(issue["id"]))
+    assert stored is not None and stored.fix_live_at is not None
+    assert abs((stored.fix_live_at - first_on_12).total_seconds()) < 1
 
 
 def test_archiving_needs_a_reason_and_an_archived_issue_stays_archived(

@@ -3929,6 +3929,12 @@ export type IssueFixedPublic = {
    * At
    */
   at: string;
+  /**
+   * Live At
+   *
+   * When the fix's version went live; none while it has not
+   */
+  live_at?: string | null;
 };
 
 /**
@@ -3990,7 +3996,15 @@ export type IssueHistoryPublic = {
   /**
    * Kind
    */
-  kind: 'opened' | 'archived' | 'unarchived' | 'spiked' | 'resolved' | 'reopened' | 'changed';
+  kind:
+    | 'opened'
+    | 'archived'
+    | 'unarchived'
+    | 'spiked'
+    | 'resolved'
+    | 'live'
+    | 'reopened'
+    | 'changed';
   /**
    * What
    *
@@ -4074,6 +4088,12 @@ export type IssueListItemPublic = {
    * Resolved Version
    */
   resolved_version?: string | null;
+  /**
+   * Fix Live
+   *
+   * Resolved in a version: whether that version went live yet
+   */
+  fix_live?: boolean | null;
   /**
    * Calls Affected
    *
@@ -5969,6 +5989,24 @@ export type McpMarkCritical = {
    * Keys of rules whose failure is a Warning
    */
   not_critical?: Array<RuleKey>;
+};
+
+/**
+ * McpMarkFixed
+ */
+export type McpMarkFixed = {
+  /**
+   * Version
+   *
+   * The agent's version on its platform that carries the fix
+   */
+  version: string;
+  /**
+   * Note
+   *
+   * What was changed, in a sentence
+   */
+  note?: string | null;
 };
 
 /**
@@ -12549,6 +12587,65 @@ export type McpGetIssueResponses = {
 };
 
 export type McpGetIssueResponse = McpGetIssueResponses[keyof McpGetIssueResponses];
+
+export type McpMarkIssueFixedData = {
+  body: McpMarkFixed;
+  path: {
+    /**
+     * Issue Id
+     */
+    issue_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}/fixed';
+};
+
+export type McpMarkIssueFixedErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpMarkIssueFixedError = McpMarkIssueFixedErrors[keyof McpMarkIssueFixedErrors];
+
+export type McpMarkIssueFixedResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerIssuePagePublic;
+};
+
+export type McpMarkIssueFixedResponse =
+  McpMarkIssueFixedResponses[keyof McpMarkIssueFixedResponses];
 
 export type McpArchiveIssueData = {
   body: McpArchiveIssue;

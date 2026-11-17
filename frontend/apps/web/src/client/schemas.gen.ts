@@ -6161,6 +6161,19 @@ export const IssueFixedPublicSchema = {
       format: 'date-time',
       title: 'At',
     },
+    live_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Live At',
+      description: "When the fix's version went live; none while it has not",
+    },
   },
   type: 'object',
   required: ['at'],
@@ -6235,7 +6248,16 @@ export const IssueHistoryPublicSchema = {
   properties: {
     kind: {
       type: 'string',
-      enum: ['opened', 'archived', 'unarchived', 'spiked', 'resolved', 'reopened', 'changed'],
+      enum: [
+        'opened',
+        'archived',
+        'unarchived',
+        'spiked',
+        'resolved',
+        'live',
+        'reopened',
+        'changed',
+      ],
       title: 'Kind',
     },
     what: {
@@ -6366,6 +6388,18 @@ export const IssueListItemPublicSchema = {
         },
       ],
       title: 'Resolved Version',
+    },
+    fix_live: {
+      anyOf: [
+        {
+          type: 'boolean',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Fix Live',
+      description: 'Resolved in a version: whether that version went live yet',
     },
     calls_affected: {
       type: 'integer',
@@ -9008,6 +9042,34 @@ export const McpMarkCriticalSchema = {
   },
   type: 'object',
   title: 'McpMarkCritical',
+} as const;
+
+export const McpMarkFixedSchema = {
+  properties: {
+    version: {
+      type: 'string',
+      maxLength: 255,
+      minLength: 1,
+      title: 'Version',
+      description: "The agent's version on its platform that carries the fix",
+    },
+    note: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 2000,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Note',
+      description: 'What was changed, in a sentence',
+    },
+  },
+  type: 'object',
+  required: ['version'],
+  title: 'McpMarkFixed',
 } as const;
 
 export const McpNextTaskSchema = {

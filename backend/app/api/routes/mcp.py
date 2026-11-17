@@ -81,6 +81,7 @@ from app.models.mcp import (
     McpHeldTask,
     McpIssues,
     McpMarkCritical,
+    McpMarkFixed,
     McpNextTask,
     McpRaiseClarifications,
     McpRefusedAgent,
@@ -555,7 +556,7 @@ def get_issue(
     session: SessionDep, workspace: McpWorkspaceDep, issue_id: uuid.UUID
 ) -> McpAnswer[IssuePagePublic]:
     issue = _mcp_issue(session, workspace, issue_id)
-    next_steps = []
+    next_steps = _fix_steps(issue)
     if issue.state is not IssueState.ARCHIVED:
         next_steps.append(
             "If the person decides nobody will fix it, ask them, then call "
@@ -567,6 +568,91 @@ def get_issue(
             "a question with `raise_clarifications` and these calls as evidence."
         )
     return _issue_answer(session, issue, next_steps)
+
+
+def _fix_steps(issue: Issue) -> list[str]:
+    """Where the issue's fix stands."""
+    version = issue.resolved_version
+    if issue.state is IssueState.RESOLVED and version and issue.fix_live_at is None:
+        return [
+            f"Marked fixed in version {version}; waiting for version {version} to go "
+            "live on real calls. Until then, nothing reopens it."
+        ]
+    if issue.state is IssueState.RESOLVED:
+        return [
+            f"Fixed{f' in version {version}' if version else ''} and live; it reopens "
+            "if it happens again on a later call."
+        ]
+    if issue.state is IssueState.REOPENED and version:
+        return [
+            f"It came back after the fix in version {version} went live: read the new "
+            "calls, fix it again, then call `mark_issue_fixed` with the new version."
+        ]
+    return []
+
+
+@router.post(
+    "/workspaces/{workspace_id}/issues/{issue_id}/fixed",
+    response_model=McpAnswer[IssuePagePublic],
+)
+def mark_issue_fixed(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    current_user: McpCurrentUser,
+    assistant: McpAssistantName,
+    issue_id: uuid.UUID,
+    body: McpMarkFixed,
+) -> McpAnswer[IssuePagePublic]:
+    issue = _mcp_issue(session, workspace, issue_id)
+
+    def refuse(error: str, step: str) -> HTTPException:
+        return HTTPException(
+            status_code=422,
+            detail=McpErrorDetail(
+                error=error, next_steps=[step, "Nothing changed."], guide=GUIDE_ISSUES
+            ).model_dump(),
+        )
+
+    if issue.state is IssueState.ARCHIVED:
+        raise refuse(
+            "The issue is archived",
+            "Ask the person to unarchive it (`unarchive_issue`) before marking it fixed.",
+        )
+    if issue.state is IssueState.RESOLVED and issue.resolved_version == body.version:
+        raise refuse(
+            f"The issue is already marked fixed in version {body.version}",
+            "Call `get_issue` to see whether that version went live.",
+        )
+    found = crud.calls_found_on_version(
+        session=session, issue=issue, fix_version=body.version
+    )
+    if found:
+        raise refuse(
+            f"This issue was found on {found} "
+            f"{'call' if found == 1 else 'calls'} on version {body.version} or later; "
+            "the fix is not in it",
+            "Read those calls (`list_calls` with this issue_id), fix the agent, and "
+            "mark it fixed in the version that carries the change.",
+        )
+    issue = crud.set_issue_state(
+        session=session,
+        issue_id=issue.id,
+        state=IssueState.RESOLVED,
+        version=body.version,
+        reason=body.note or None,
+        decided_by=current_user,
+        assistant_name=assistant or "your assistant",
+    )
+    return _issue_answer(
+        session,
+        issue,
+        [
+            *_fix_steps(issue),
+            "Tell the person it is marked fixed in version "
+            f"{body.version}; it reopens by itself if it comes back.",
+            NEXT_TASK,
+        ],
+    )
 
 
 @router.post(

@@ -312,6 +312,9 @@ import type {
   McpMarkCriticalData,
   McpMarkCriticalErrors,
   McpMarkCriticalResponses,
+  McpMarkIssueFixedData,
+  McpMarkIssueFixedErrors,
+  McpMarkIssueFixedResponses,
   McpMoveWorkspaceTaskData,
   McpMoveWorkspaceTaskErrors,
   McpMoveWorkspaceTaskResponses,
@@ -1293,6 +1296,27 @@ export class McpService {
       security: [{ scheme: 'bearer', type: 'http' }],
       url: '/api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}',
       ...options,
+    });
+  }
+
+  /**
+   * Mark Issue Fixed
+   */
+  public static markIssueFixed<ThrowOnError extends boolean = false>(
+    options: Options<McpMarkIssueFixedData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      McpMarkIssueFixedResponses,
+      McpMarkIssueFixedErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}/fixed',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
     });
   }
 

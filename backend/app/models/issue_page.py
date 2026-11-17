@@ -38,6 +38,10 @@ class IssueFoundPublic(BaseModel):
 class IssueFixedPublic(BaseModel):
     version: str | None = None
     at: datetime
+    live_at: datetime | None = Field(
+        default=None,
+        description="When the fix's version went live; none while it has not",
+    )
 
 
 class IssueChainPublic(BaseModel):
@@ -71,7 +75,14 @@ class IssueAffectedCallPublic(BaseModel):
 
 class IssueHistoryPublic(BaseModel):
     kind: Literal[
-        "opened", "archived", "unarchived", "spiked", "resolved", "reopened", "changed"
+        "opened",
+        "archived",
+        "unarchived",
+        "spiked",
+        "resolved",
+        "live",
+        "reopened",
+        "changed",
     ]
     what: str = Field(description="'Archived', 'Came back: it spiked'")
     by: str | None = Field(

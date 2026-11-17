@@ -223,6 +223,7 @@ They own validation, CRUD calls, state changes and the answer's rules and next s
 | `get_issue(workspace_id, issue_id)` | `GET /api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}` |
 | `archive_issue(workspace_id, issue_id, reason, duration?)` | `POST /api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}/archive` |
 | `unarchive_issue(workspace_id, issue_id, reason?)` | `POST /api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}/unarchive` |
+| `mark_issue_fixed(workspace_id, issue_id, version, note?)` | `POST /api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}/fixed` |
 
 ## What not to do
 

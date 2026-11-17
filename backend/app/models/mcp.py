@@ -383,6 +383,15 @@ class McpArchiveIssue(BaseModel):
     duration: Literal["until_spike", "forever"] = "until_spike"
 
 
+class McpMarkFixed(BaseModel):
+    version: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)
+    ] = Field(description="The agent's version on its platform that carries the fix")
+    note: Annotated[
+        str | None, StringConstraints(strip_whitespace=True, max_length=2000)
+    ] = Field(default=None, description="What was changed, in a sentence")
+
+
 class McpUnarchiveIssue(BaseModel):
     reason: Annotated[
         str | None, StringConstraints(strip_whitespace=True, max_length=2000)

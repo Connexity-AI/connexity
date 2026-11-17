@@ -222,6 +222,20 @@ async def archive_issue(
     )
 
 
+async def mark_issue_fixed(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    issue_id: str,
+    version: str,
+    note: str | None = None,
+) -> IssueResult:
+    return IssueResult.model_validate(
+        await client.mark_issue_fixed(
+            workspace_id=workspace_id, issue_id=issue_id, version=version, note=note
+        )
+    )
+
+
 async def unarchive_issue(
     client: ConnexityBackendClient,
     workspace_id: str,

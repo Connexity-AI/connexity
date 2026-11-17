@@ -102,13 +102,18 @@ DAY_MS = 86_400_000
 
 
 def _call(
-    db: Session, agent: Agent, *bookings: list[dict[str, Any]], days_ago: float = 1
+    db: Session,
+    agent: Agent,
+    *bookings: list[dict[str, Any]],
+    days_ago: float = 1,
+    version: int | None = None,
 ) -> uuid.UUID:
     payload = retell_call(
         f"call_{uuid.uuid4().hex[:8]}",
         agent_id=agent.platform_agent_id or "",
         timeline=[speech("agent", "Hello", 0.5)] + [e for b in bookings for e in b],
         start_ms=int(time.time() * 1000 - days_ago * DAY_MS),
+        **({"agent_version": version} if version is not None else {}),
     )
     stored = crud.store_trace(
         session=db,

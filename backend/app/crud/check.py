@@ -21,6 +21,7 @@ from app.models.enums import (
     DecisionKind,
     FindingEffect,
     IssueState,
+    TraceSource,
 )
 from app.models.user import User
 
@@ -295,6 +296,7 @@ def replace_findings(
         categories or {},
     )
     started = call.started_at.replace(tzinfo=UTC)
+    mark_fixes_live(session=session, call=call)
     for identity, row in stored.items():
         finding = wanted.get(identity)
         if finding is None:
@@ -313,10 +315,11 @@ def replace_findings(
         finding.issue_id = issue.id
         session.add(finding)
         added[issue.id] = issue
+        since = fix_counts_from(issue)
         if (
             issue.state is IssueState.RESOLVED
-            and issue.resolved_at is not None
-            and started > issue.resolved_at
+            and since is not None
+            and started >= since
         ):
             issue.state = IssueState.REOPENED
             session.add(issue)
@@ -324,7 +327,12 @@ def replace_findings(
                 _connexity_decision(
                     issue,
                     old=IssueState.RESOLVED,
-                    reason="Found again on a call after it was resolved",
+                    reason=(
+                        f"Came back on version {call.agent_version or 'unknown'}, "
+                        f"after the fix in version {issue.resolved_version} went live"
+                        if issue.resolved_version
+                        else "Found again on a call after it was marked fixed"
+                    ),
                 )
             )
     for run in runs:
@@ -610,6 +618,94 @@ def summarise_issue(*, session: Session, issue: Issue) -> IssueSummary:
     return _summaries(session, [issue])[0]
 
 
+def version_reaches(call_version: str | None, fix_version: str) -> bool:
+    """Whether a call on ``call_version`` runs ``fix_version`` or later: the same
+    version, or a higher number when both are numbers, as Retell numbers versions."""
+    if call_version is None:
+        return False
+    if call_version.strip() == fix_version.strip():
+        return True
+    a, b = call_version.strip(), fix_version.strip()
+    return a.isdigit() and b.isdigit() and int(a) >= int(b)
+
+
+def _first_live_call(
+    session: Session, agent_id: uuid.UUID, fix_version: str
+) -> datetime | None:
+    """The start of the agent's first real call on ``fix_version`` or later."""
+    rows = session.exec(
+        select(Call.agent_version, func.min(Call.started_at))
+        .where(
+            Call.agent_id == agent_id,
+            Call.source == TraceSource.PRODUCTION,
+            col(Call.agent_version).is_not(None),
+        )
+        .group_by(col(Call.agent_version))
+    ).all()
+    starts = [
+        started.replace(tzinfo=UTC) if started.tzinfo is None else started
+        for version, started in rows
+        if version_reaches(version, fix_version)
+    ]
+    return min(starts) if starts else None
+
+
+def calls_found_on_version(*, session: Session, issue: Issue, fix_version: str) -> int:
+    """How many of the issue's calls ran ``fix_version`` or later."""
+    versions = session.exec(
+        select(Call.agent_version, func.count(func.distinct(Call.id)))
+        .join(Finding, col(Finding.call_id) == col(Call.id))
+        .where(Finding.issue_id == issue.id, col(Call.agent_version).is_not(None))
+        .group_by(col(Call.agent_version))
+    ).all()
+    return sum(n for version, n in versions if version_reaches(version, fix_version))
+
+
+def _live_decision(issue: Issue, version: str) -> DecisionRecord:
+    return DecisionRecord(
+        company_id=issue.company_id,
+        agent_id=issue.agent_id,
+        kind=DecisionKind.ISSUE_STATE,
+        subject=str(issue.id),
+        old_value=issue.state.value,
+        new_value=issue.state.value,
+        reason=f"Version {version} went live",
+        decided_by=None,
+        decided_by_email=CONNEXITY,
+        detail={"event": "fix_live", "version": version},
+    )
+
+
+def mark_fixes_live(*, session: Session, call: Call) -> None:
+    """A real call on a fixed version makes the fix live for the agent's resolved
+    issues waiting for it. Does not commit."""
+    if call.source is not TraceSource.PRODUCTION or call.agent_version is None:
+        return
+    started = call.started_at.replace(tzinfo=UTC)
+    for issue in session.exec(
+        select(Issue).where(
+            Issue.agent_id == call.agent_id,
+            Issue.state == IssueState.RESOLVED,
+            col(Issue.resolved_version).is_not(None),
+            col(Issue.fix_live_at).is_(None),
+        )
+    ).all():
+        assert issue.resolved_version is not None
+        if not version_reaches(call.agent_version, issue.resolved_version):
+            continue
+        issue.fix_live_at = started
+        session.add(issue)
+        session.add(_live_decision(issue, call.agent_version))
+
+
+def fix_counts_from(issue: Issue) -> datetime | None:
+    """From when a finding reopens a resolved issue: its fix's version going live, or,
+    for a fix with no version, the moment it was marked fixed."""
+    if issue.resolved_version is not None:
+        return issue.fix_live_at
+    return issue.resolved_at
+
+
 def _connexity_decision(
     issue: Issue,
     *,
@@ -728,9 +824,14 @@ def set_issue_state(
     issue.state = state
     now = datetime.now(UTC)
     detail: dict[str, Any] | None = None
+    live: datetime | None = None
     if state is IssueState.RESOLVED:
         issue.resolved_at = now
         issue.resolved_version = version
+        # A version that already had real calls is live from the first of them.
+        live = _first_live_call(session, issue.agent_id, version) if version else None
+        issue.fix_live_at = live
+        detail = {"version": version} if version else None
     if state is IssueState.ARCHIVED:
         issue.archived_at = now
         issue.archive_until_spike = until_spike
@@ -758,6 +859,8 @@ def set_issue_state(
             detail=detail,
         )
     )
+    if live is not None and version is not None:
+        session.add(_live_decision(issue, version))
     session.commit()
     session.refresh(issue)
     return issue

@@ -82,7 +82,12 @@ cause is recorded on each incident.
 - **Severity:** an issue is Critical when its check fails the call, otherwise a Warning.
 - **Resolved:** the assistant or a person marks an issue fixed, linked to the version
   that carries the fix. There is no confirmation on real calls yet; if the issue happens
-  again on a call that started after that, it reopens (Decided 2026-11-12).
+  again on a call that started after that, it reopens (Decided 2026-11-12). "After
+  that" is when the version goes live: the first real call on it or on a higher number
+  (Decided 2026-11-17, `plans/2026-11-17-mark-fixed.md`). Calls on the old version
+  never reopen it. A fix marked without a version counts from the moment it was
+  marked. The assistant marks fixes with `mark_issue_fixed`, which refuses a version
+  the issue was already found on.
 - **Archived** replaces "accepted as known": the issue is real and nobody will fix it.
   - **Who:** a person, on the issue page or by saying yes when their assistant asks
     (`archive_issue`, recorded as "your assistant, approved by …"). It needs a reason
@@ -191,9 +196,9 @@ Proposed, not yet confirmed:
 - Titles follow Type, then Title, then Description. The type is fixed; the title
   describes the specific event and is filled from a template ("Booking tool returned an
   error"); no model writes it.
-- "Resolved in a version" records the time and, as a note, the version that carried the
-  fix. A later finding reopens the issue when its call started after that time. Ordering
-  versions is not used (changed 2026-10-10 with manual closing).
+- "Resolved in a version" records the time and the version that carried the fix. A
+  later finding reopens the issue when its call started after that version went live.
+  Versions are ordered only when both are numbers, as Retell's are (2026-11-17).
 - A person may later merge two issues, or split one by an attribute such as the kind of
   error.
 
