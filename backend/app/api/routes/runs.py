@@ -318,6 +318,11 @@ async def execute_run_endpoint(
         raise HTTPException(
             status_code=400, detail=f"Cannot execute run in status {run.status}"
         )
+    if run.scope is not None:
+        raise HTTPException(
+            status_code=400,
+            detail="A run of scenarios is started again through MCP `run_scenarios`",
+        )
 
     asyncio.create_task(execute_run(run.id))
     return run

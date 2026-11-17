@@ -83,7 +83,7 @@ def _build_tool_name_index(
     return index
 
 
-def _format_transcript(transcript: list[ConversationTurn]) -> str:
+def format_transcript(transcript: list[ConversationTurn]) -> str:
     tool_name_index = _build_tool_name_index(transcript)
     lines: list[str] = []
     for t in transcript:
@@ -212,7 +212,7 @@ as a JSON array of objects, each with:
 {override_section}{outcomes_eval_section}
 ## Transcript
 
-{_format_transcript(inp.transcript)}
+{format_transcript(inp.transcript)}
 
 ## Score These Metrics
 

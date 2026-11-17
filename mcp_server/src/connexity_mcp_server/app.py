@@ -42,6 +42,8 @@ from connexity_mcp_server.models import (
     RaiseClarificationsResult,
     SpecResult,
     ListScenariosResult,
+    RunScenariosResult,
+    TestRunsResult,
     ScenarioSetResult,
     ScenarioToWrite,
     WriteScenariosResult,
@@ -120,6 +122,12 @@ from connexity_mcp_server.tools import (
     write_scenario_set as _write_scenario_set,
 )
 from connexity_mcp_server.tools import (
+    run_scenarios as _run_scenarios,
+)
+from connexity_mcp_server.tools import (
+    get_test_runs as _get_test_runs,
+)
+from connexity_mcp_server.tools import (
     write_scenarios as _write_scenarios,
 )
 from connexity_mcp_server.tools import (
@@ -144,6 +152,10 @@ CREATES = ToolAnnotations(
 # Reads calls from the voice platform into Connexity; repeating it carries on.
 SCANS = ToolAnnotations(
     readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
+)
+# Talks to the agent on its voice platform in simulated calls; every tool is faked.
+RUNS = ToolAnnotations(
+    readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True
 )
 # Archives or unarchives an issue: a person's decision the assistant makes only with
 # their yes. Not destructive (nothing is deleted); repeating it changes nothing.
@@ -500,6 +512,54 @@ def build_application(settings: Settings | None = None) -> FastAPI:
             name=name,
             scenario_ids=scenario_ids,
             description=description,
+        )
+
+    @mcp_server.tool(annotations=RUNS)
+    async def run_scenarios(
+        workspace_id: str,
+        agent_id: str,
+        set: str | None = None,
+        scenario_ids: list[str] | None = None,
+        all: bool = False,
+        repeats: int | None = None,
+        version: int | None = None,
+    ) -> RunScenariosResult:
+        """Run the agent's scenarios in text: a named `set`, a pick of
+        `scenario_ids`, or `all` (give exactly one). A simulated caller talks to the
+        agent's own engine with every tool faked; each scenario repeats `repeats`
+        times (1 to 5, default 3), at most 200 simulated calls. `version` is the
+        agent's version on its platform (default: the latest). Starts in the
+        background; read the results with `get_test_runs`."""
+        return await _run_scenarios(
+            client=backend_client,
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            set_name=set,
+            scenario_ids=scenario_ids,
+            all_scenarios=all,
+            repeats=repeats,
+            version=version,
+        )
+
+    @mcp_server.tool(annotations=READ_ONLY)
+    async def get_test_runs(
+        workspace_id: str,
+        agent_id: str,
+        run_id: str | None = None,
+        cursor: str | None = None,
+        limit: int | None = None,
+    ) -> TestRunsResult:
+        """Without `run_id`: the agent's runs of scenarios, newest first. With it: the
+        run's status, every judged rule's totals across repeats (failed first,
+        critical first, flaky marked), code-check findings, and a page of its
+        simulated calls with each rule's verdict and reason."""
+        return await _get_test_runs(
+            client=backend_client,
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            run_id=run_id,
+            cursor=cursor,
+            limit=limit,
         )
 
     @mcp_server.tool(annotations=CREATES)

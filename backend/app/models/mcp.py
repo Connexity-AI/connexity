@@ -25,6 +25,7 @@ from app.models.enums import (
 from app.models.issue_list import IssueListItemPublic, IssueTilesPublic
 from app.models.scenario import ScenarioPublic
 from app.models.spec import SpecState
+from app.models.test_run import TestRunDetailPublic, TestRunPublic
 from app.models.work import WorkDonePublic, WorkSessionPublic, WorkTaskPublic
 
 T = TypeVar("T")
@@ -279,6 +280,38 @@ class McpWriteScenarioSet(BaseModel):
 class McpWrittenScenarios(BaseModel):
     scenarios: list[ScenarioPublic]
     archived: int
+
+
+class McpRunScenarios(BaseModel):
+    """Exactly one of ``set``, ``scenario_ids`` or ``all``."""
+
+    set: Annotated[str, StringConstraints(max_length=255)] | None = Field(
+        default=None, description="Run this named set"
+    )
+    scenario_ids: list[uuid.UUID] | None = Field(
+        default=None, max_length=200, description="Run this pick of scenarios"
+    )
+    all: bool = Field(default=False, description="Run every active scenario")
+    repeats: int = Field(
+        default=3, ge=1, le=5, description="How many times each scenario runs"
+    )
+    version: int | None = Field(
+        default=None,
+        ge=0,
+        description="The agent's version on its platform; none for the latest",
+    )
+
+
+class McpStartedRun(BaseModel):
+    run_id: uuid.UUID
+    calls: int = Field(description="Simulated calls the run makes")
+
+
+class McpTestRuns(BaseModel):
+    """One run in detail when ``run_id`` was given, otherwise the agent's runs."""
+
+    run: TestRunDetailPublic | None = None
+    runs: list[TestRunPublic] = Field(default_factory=list)
 
 
 class McpClarificationAnswer(BaseModel):

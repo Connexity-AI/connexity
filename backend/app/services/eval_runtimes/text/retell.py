@@ -52,6 +52,39 @@ from app.services.user_simulator import UserSimulator
 
 logger = logging.getLogger(__name__)
 
+# What a tool the scenario does not fake answers, so no real tool ever runs.
+DEFAULT_FAKE_RESULT = json.dumps({"error": "This tool is not available in this test."})
+
+
+def tool_mocks_for(test_case: TestCase) -> list[dict[str, Any]]:
+    """The scenario's fake tool results as Retell tool mocks, then a catch-all.
+
+    Each fake answers its tool: calls whose arguments contain the fake's arguments, or
+    any call when it names none. The catch-all names no tool, which Retell matches to
+    every tool, so a call nothing else answers gets ``DEFAULT_FAKE_RESULT`` instead of
+    reaching the real tool.
+    """
+    mocks: list[dict[str, Any]] = []
+    for row in test_case.expected_tool_calls or []:
+        tool = row.get("tool")
+        if not isinstance(tool, str) or not tool:
+            continue
+        arguments = row.get("expected_params")
+        result = row.get("mock_response")
+        mocks.append(
+            {
+                "tool_name": tool,
+                "input_match_rule": (
+                    {"type": "partial_match", "args": arguments}
+                    if isinstance(arguments, dict) and arguments
+                    else {"type": "any"}
+                ),
+                "output": json.dumps(result, ensure_ascii=False),
+            }
+        )
+    mocks.append({"input_match_rule": {"type": "any"}, "output": DEFAULT_FAKE_RESULT})
+    return mocks
+
 
 @dataclass
 class RetellPlaygroundState:
@@ -69,6 +102,8 @@ class RetellTextAgentConfig(TextAgentTurnConfig):
     playground_state: RetellPlaygroundState = field(
         default_factory=RetellPlaygroundState
     )
+    tool_mocks: list[dict[str, Any]] = field(default_factory=list)
+    version: int | None = None
 
 
 class RetellRuntime(TextRuntimeBase):
@@ -173,6 +208,7 @@ class RetellRuntime(TextRuntimeBase):
             tools=args.agent_snapshot.tools,
             api_key=api_key,
             retell_agent_id=retell_agent_id,
+            version=runtime_config.version,
         )
 
     async def run_test_case(
@@ -189,6 +225,7 @@ class RetellRuntime(TextRuntimeBase):
             playground_state=RetellPlaygroundState(
                 dynamic_variables=self._dynamic_variables_for_test_case(args.test_case)
             ),
+            tool_mocks=tool_mocks_for(args.test_case),
         )
 
         transcript: list[ConversationTurn] = []
@@ -198,6 +235,8 @@ class RetellRuntime(TextRuntimeBase):
             retell_agent_id=agent_config.retell_agent_id,
             messages=[],
             dynamic_variables=agent_config.playground_state.dynamic_variables or None,
+            tool_mocks=agent_config.tool_mocks,
+            version=agent_config.version,
         )
         if not initial_result.success:
             transcript.append(
@@ -244,6 +283,8 @@ class RetellRuntime(TextRuntimeBase):
             user_context=test_case.user_context,
             expected_outcomes=test_case.expected_outcomes,
             config=sim_cfg,
+            caller_goal=test_case.caller_goal,
+            caller_behaviour=test_case.caller_behaviour,
         )
 
         accumulator = TestCaseTokenAccumulator()
@@ -458,6 +499,8 @@ class RetellRuntime(TextRuntimeBase):
             current_state=agent_config.playground_state.current_state,
             current_node_id=agent_config.playground_state.current_node_id,
             component_id=agent_config.playground_state.component_id,
+            tool_mocks=agent_config.tool_mocks,
+            version=agent_config.version,
         )
         if not result.success:
             logger.warning(
@@ -496,7 +539,13 @@ class RetellRuntime(TextRuntimeBase):
 
     @staticmethod
     def _dynamic_variables_for_test_case(test_case: TestCase) -> dict[str, Any]:
-        raw = test_case.user_context or {}
+        # A scenario keeps the agent's variables apart from what the caller knows; a
+        # 1.x test case had only ``user_context`` for both.
+        raw = (
+            test_case.agent_variables
+            if test_case.agent_variables is not None
+            else test_case.user_context or {}
+        )
         out: dict[str, Any] = {}
         for key, value in raw.items():
             if value is None:
@@ -593,7 +642,11 @@ class RetellRuntime(TextRuntimeBase):
         state: RetellPlaygroundState,
         result: RetellAgentPlaygroundCompletionResult,
     ) -> None:
-        state.dynamic_variables = dict(result.dynamic_variables)
+        # Retell answers the variables it holds; keep the ones sent if it answers none.
+        state.dynamic_variables = {
+            **state.dynamic_variables,
+            **result.dynamic_variables,
+        }
         if result.current_state is not None:
             state.current_state = result.current_state
         if result.current_node_id is not None:

@@ -43,6 +43,18 @@ class TestCaseResultBase(SQLModel):
         sa_column=Column("verdict", JSONB, nullable=True),
         description="Judge verdict with scores, pass/fail, and reasoning",
     )
+    # What code checks found in the simulated call (`SimulatedFinding`), and the tools
+    # that got the default fake. Never production findings.
+    check_findings: list[dict[str, Any]] | None = Field(
+        default=None,
+        sa_column=Column("check_findings", JSONB, nullable=True),
+        description="Code-check findings in this simulated call",
+    )
+    default_fakes: list[str] | None = Field(
+        default=None,
+        sa_column=Column("default_fakes", JSONB, nullable=True),
+        description="Tools the scenario did not fake, answered by the default fake",
+    )
     # Metrics
     total_latency_ms: int | None = Field(
         default=None,

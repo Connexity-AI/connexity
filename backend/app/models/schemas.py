@@ -193,6 +193,10 @@ class RetellRuntimeConfig(BaseModel):
     """
 
     kind: Literal[TextRuntimeKind.RETELL] = TextRuntimeKind.RETELL
+    version: int | None = Field(
+        default=None,
+        description="The Retell agent version to talk to; none for the latest",
+    )
 
 
 class CustomEndpointRuntimeConfig(BaseModel):

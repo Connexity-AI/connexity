@@ -1335,10 +1335,19 @@ async def create_retell_agent_playground_completion(
     current_state: str | None = None,
     current_node_id: str | None = None,
     component_id: str | None = None,
+    tool_mocks: list[dict[str, Any]] | None = None,
+    version: int | None = None,
 ) -> RetellAgentPlaygroundCompletionResult:
+    """One turn of Retell's agent playground.
+
+    ``tool_mocks`` answer tool calls in place of the real tools; a call no mock matches
+    reaches the real tool. ``version`` picks the agent version; none is the latest.
+    """
     body: dict[str, Any] = {"messages": messages}
     if dynamic_variables is not None:
         body["dynamic_variables"] = dynamic_variables
+    if tool_mocks is not None:
+        body["tool_mocks"] = tool_mocks
     if current_state is not None:
         body["current_state"] = current_state
     if current_node_id is not None:
@@ -1358,6 +1367,7 @@ async def create_retell_agent_playground_completion(
                         "Authorization": f"Bearer {api_key}",
                         "Content-Type": "application/json",
                     },
+                    params={"version": version} if version is not None else None,
                     json=body,
                     timeout=15.0,
                 )

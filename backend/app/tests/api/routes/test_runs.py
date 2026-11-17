@@ -7,7 +7,7 @@ from sqlmodel import Session
 from app import crud
 from app.core.config import settings
 from app.models import RunStatus, RunUpdate
-from app.models.enums import AgentMode
+from app.models.enums import AgentMode, RunScope
 from app.tests.utils.eval import (
     create_test_agent,
     create_test_case_fixture,
@@ -255,6 +255,23 @@ def test_execute_failed_run(
         cookies=auth_cookies,
     )
     assert r.status_code == 202
+
+
+def test_execute_refuses_a_run_of_scenarios(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent, eval_config = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
+    run.scope = RunScope.SET
+    db.add(run)
+    db.commit()
+    crud.update_run(session=db, db_run=run, run_in=RunUpdate(status=RunStatus.FAILED))
+    r = client.post(
+        f"{settings.API_V1_STR}/runs/{run.id}/execute",
+        cookies=auth_cookies,
+    )
+    assert r.status_code == 400
+    assert "run_scenarios" in r.json()["detail"]
 
 
 def test_execute_running_run_fails(

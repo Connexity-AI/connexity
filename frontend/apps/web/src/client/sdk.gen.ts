@@ -267,6 +267,9 @@ import type {
   McpGetAgentData,
   McpGetAgentErrors,
   McpGetAgentResponses,
+  McpGetAgentTestRunsData,
+  McpGetAgentTestRunsErrors,
+  McpGetAgentTestRunsResponses,
   McpGetCallData,
   McpGetCallErrors,
   McpGetCallResponses,
@@ -315,6 +318,9 @@ import type {
   McpRaiseAgentClarificationsData,
   McpRaiseAgentClarificationsErrors,
   McpRaiseAgentClarificationsResponses,
+  McpRunAgentScenariosData,
+  McpRunAgentScenariosErrors,
+  McpRunAgentScenariosResponses,
   McpScanCallsData,
   McpScanCallsErrors,
   McpScanCallsResponses,
@@ -1648,6 +1654,44 @@ export class McpService {
     >({
       security: [{ scheme: 'bearer', type: 'http' }],
       url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/scenario-sets',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Get Agent Test Runs
+   */
+  public static getAgentTestRuns<ThrowOnError extends boolean = false>(
+    options: Options<McpGetAgentTestRunsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      McpGetAgentTestRunsResponses,
+      McpGetAgentTestRunsErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/test-runs',
+      ...options,
+    });
+  }
+
+  /**
+   * Run Agent Scenarios
+   */
+  public static runAgentScenarios<ThrowOnError extends boolean = false>(
+    options: Options<McpRunAgentScenariosData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      McpRunAgentScenariosResponses,
+      McpRunAgentScenariosErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/test-runs',
       ...options,
       headers: {
         'Content-Type': 'application/json',

@@ -792,3 +792,106 @@ WriteScenariosResult = Answer[WrittenScenarios]
 ListScenariosResult = Answer[Scenarios]
 ScenarioSetResult = Answer[ScenarioSet | None]
 
+
+
+class StartedRun(BaseModel):
+    run_id: str
+    calls: int = Field(description="Simulated calls the run makes")
+
+
+class RuleTotal(BaseModel):
+    key: str
+    text: str | None = None
+    critical: bool = False
+    passed: int = 0
+    failed: int = 0
+    did_not_come_up: int = 0
+    flaky: bool = Field(
+        default=False, description="It both passed and failed across repeats"
+    )
+
+
+class CheckTotal(BaseModel):
+    check_type: str
+    title: str
+    found: int = Field(description="Simulated calls where it found something")
+
+
+class RuleVerdict(BaseModel):
+    key: str
+    outcome: str = Field(description="passed, failed or did_not_come_up")
+    reason: str | None = None
+    turns: list[int] = Field(default_factory=list)
+
+
+class SimulatedFinding(BaseModel):
+    check_type: str
+    check_version: int
+    kind: str
+    mode: str
+    key: str | None = None
+    event_ids: list[str] = Field(default_factory=list)
+    detail: dict[str, Any] | None = None
+
+
+class SimulatedCall(BaseModel):
+    id: str
+    scenario_id: str
+    scenario_name: str
+    repeat: int = Field(description="Which repeat, from 1")
+    finished: bool
+    error: str | None = None
+    turns: int | None = None
+    verdicts: list[RuleVerdict] = Field(default_factory=list)
+    findings: list[SimulatedFinding] = Field(default_factory=list)
+    default_fakes: list[str] = Field(
+        default_factory=list,
+        description="Tools no scenario fake answered; they got the default fake",
+    )
+    cost_usd: float | None = None
+
+
+class TestRunCounts(BaseModel):
+    calls: int = 0
+    finished: int = 0
+    errors: int = 0
+    rules_failed: int = 0
+    critical_failed: int = 0
+    flaky: int = 0
+    findings: int = 0
+
+
+class TestRun(BaseModel):
+    id: str
+    status: str = Field(description="pending, running, completed or failed")
+    status_detail: str | None = None
+    scope: str = Field(description="set, pick or all")
+    set_name: str | None = None
+    repeats: int
+    spec_version: int | None = None
+    platform_version: str | None = Field(
+        default=None, description="The agent's version tested; none for the latest"
+    )
+    created_at: str
+    started_at: str | None = None
+    completed_at: str | None = None
+    counts: TestRunCounts = Field(default_factory=TestRunCounts)
+    cost_usd: float | None = None
+
+
+class TestRunDetail(TestRun):
+    rules: list[RuleTotal] = Field(
+        default_factory=list, description="Failed rules first, critical first"
+    )
+    dropped_rules: list[str] = Field(default_factory=list)
+    checks: list[CheckTotal] = Field(default_factory=list)
+    calls: list[SimulatedCall] = Field(default_factory=list)
+
+
+class TestRuns(BaseModel):
+    run: TestRunDetail | None = None
+    runs: list[TestRun] = Field(default_factory=list)
+
+
+RunScenariosResult = Answer[StartedRun]
+TestRunsResult = Answer[TestRuns]

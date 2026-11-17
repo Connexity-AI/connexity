@@ -11,11 +11,14 @@ from app.models.enums import AgentMode, FirstTurn, Platform
 from app.models.schemas import RetellRuntimeConfig, RunConfig
 from app.services.eval_runtimes import AgentSnapshot, RunSnapshot
 from app.services.eval_runtimes.base import RuntimeRunArgs
-from app.services.eval_runtimes.text.retell import RetellRuntime
+from app.services.eval_runtimes.text.retell import DEFAULT_FAKE_RESULT, RetellRuntime
 from app.services.retell import (
     RetellAgentPlaygroundCompletionResult,
     RetellChatMessage,
 )
+
+# A 1.x test case fakes no tool, so every tool call gets the default fake.
+CATCH_ALL = [{"input_match_rule": {"type": "any"}, "output": DEFAULT_FAKE_RESULT}]
 
 
 def _make_agent(platform: Platform | None = Platform.RETELL) -> Agent:
@@ -42,6 +45,10 @@ def _make_test_case(
         expected_outcomes=None,
         first_message=first_message,
         first_turn=first_turn,
+        agent_variables=None,
+        caller_goal=None,
+        caller_behaviour=None,
+        expected_tool_calls=None,
     )
 
 
@@ -196,6 +203,8 @@ async def test_run_test_case_uses_retell_playground() -> None:
         "retell_agent_id": "retell_chat_agent_123",
         "messages": [],
         "dynamic_variables": None,
+        "tool_mocks": CATCH_ALL,
+        "version": None,
     }
     assert mock_playground.await_args_list[1].kwargs == {
         "api_key": "retell-key",
@@ -205,6 +214,8 @@ async def test_run_test_case_uses_retell_playground() -> None:
         "current_state": None,
         "current_node_id": None,
         "component_id": None,
+        "tool_mocks": CATCH_ALL,
+        "version": None,
     }
 
 
@@ -291,4 +302,6 @@ async def test_run_test_case_carries_playground_state_between_turns() -> None:
         "current_state": "collect_issue",
         "current_node_id": "node_start",
         "component_id": None,
+        "tool_mocks": CATCH_ALL,
+        "version": None,
     }

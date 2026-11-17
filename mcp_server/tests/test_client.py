@@ -22,7 +22,9 @@ from connexity_mcp_server.tools import (
     raise_clarifications,
     write_spec,
     mark_critical_rules,
+    get_test_runs,
     list_scenarios,
+    run_scenarios,
     write_scenario_set,
     write_scenarios,
     list_issues,
@@ -1189,4 +1191,76 @@ async def test_write_scenario_set_and_archiving_answers_none() -> None:
 
     assert made.data is not None and made.data.name == "smoke"
     assert archived.data is None
+
+
+@pytest.mark.asyncio
+async def test_run_scenarios_sends_one_scope_and_the_repeats() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url.path.endswith("/agents/a1/test-runs")
+        assert json.loads(request.content) == {"all": False, "set": "smoke", "repeats": 2}
+        return httpx.Response(200, json={"data": {"run_id": "r1", "calls": 6}, **ANSWER})
+
+    result = await _call(
+        handler,
+        lambda client: run_scenarios(
+            client, workspace_id=WORKSPACE_ID, agent_id="a1", set_name="smoke", repeats=2
+        ),
+    )
+
+    assert result.data.run_id == "r1"
+    assert result.data.calls == 6
+
+
+@pytest.mark.asyncio
+async def test_get_test_runs_reads_one_run_in_detail() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET"
+        assert dict(request.url.params) == {"run_id": "r1", "limit": "10"}
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "run": {
+                        "id": "r1",
+                        "status": "completed",
+                        "scope": "set",
+                        "set_name": "smoke",
+                        "repeats": 2,
+                        "created_at": "2026-11-17T10:00:00Z",
+                        "counts": {"calls": 2, "finished": 2, "rules_failed": 1, "flaky": 1},
+                        "rules": [
+                            {"key": "k1", "critical": True, "passed": 1, "failed": 1, "flaky": True}
+                        ],
+                        "calls": [
+                            {
+                                "id": "c1",
+                                "scenario_id": "s1",
+                                "scenario_name": "Wants a refund",
+                                "repeat": 1,
+                                "finished": True,
+                                "verdicts": [
+                                    {"key": "k1", "outcome": "failed", "reason": "x", "turns": [3]}
+                                ],
+                                "default_fakes": ["book"],
+                            }
+                        ],
+                    },
+                    "runs": [],
+                },
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: get_test_runs(
+            client, workspace_id=WORKSPACE_ID, agent_id="a1", run_id="r1", limit=10
+        ),
+    )
+
+    assert result.data.run is not None
+    assert result.data.run.rules[0].flaky is True
+    assert result.data.run.calls[0].verdicts[0].outcome == "failed"
+    assert result.data.run.calls[0].default_fakes == ["book"]
 

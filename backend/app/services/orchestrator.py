@@ -466,10 +466,16 @@ async def execute_run(run_id: uuid.UUID) -> None:
     try:
         with Session(engine) as session:
             run = crud.get_run(session=session, run_id=run_id)
-            if not run or run.status not in (
-                RunStatus.PENDING,
-                RunStatus.FAILED,
-                RunStatus.CANCELLED,
+            # A run of scenarios has its own runner (`services/test_run.py`).
+            if (
+                not run
+                or run.scope is not None
+                or run.status
+                not in (
+                    RunStatus.PENDING,
+                    RunStatus.FAILED,
+                    RunStatus.CANCELLED,
+                )
             ):
                 logger.error("Run %s not found or not in executable state", run_id)
                 return

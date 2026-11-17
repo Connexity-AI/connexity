@@ -3284,6 +3284,27 @@ export const CheckOutcomeSchema = {
   description: 'What one check did on one call.',
 } as const;
 
+export const CheckTotalPublicSchema = {
+  properties: {
+    check_type: {
+      type: 'string',
+      title: 'Check Type',
+    },
+    title: {
+      type: 'string',
+      title: 'Title',
+    },
+    found: {
+      type: 'integer',
+      title: 'Found',
+      description: 'Simulated calls where it found something',
+    },
+  },
+  type: 'object',
+  required: ['check_type', 'title', 'found'],
+  title: 'CheckTotalPublic',
+} as const;
+
 export const ChecksRunResultSchema = {
   properties: {
     checked: {
@@ -7987,6 +8008,51 @@ export const McpAnswer_McpScanProgress_Schema = {
   title: 'McpAnswer[McpScanProgress]',
 } as const;
 
+export const McpAnswer_McpStartedRun_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/McpStartedRun',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[McpStartedRun]',
+} as const;
+
 export const McpAnswer_McpTaskList_Schema = {
   properties: {
     data: {
@@ -8030,6 +8096,51 @@ export const McpAnswer_McpTaskList_Schema = {
   type: 'object',
   required: ['data', 'guide'],
   title: 'McpAnswer[McpTaskList]',
+} as const;
+
+export const McpAnswer_McpTestRuns_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/McpTestRuns',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[McpTestRuns]',
 } as const;
 
 export const McpAnswer_McpWorkspace_Schema = {
@@ -8975,6 +9086,71 @@ export const McpRefusedAgentSchema = {
   title: 'McpRefusedAgent',
 } as const;
 
+export const McpRunScenariosSchema = {
+  properties: {
+    set: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Set',
+      description: 'Run this named set',
+    },
+    scenario_ids: {
+      anyOf: [
+        {
+          items: {
+            type: 'string',
+            format: 'uuid',
+          },
+          type: 'array',
+          maxItems: 200,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Scenario Ids',
+      description: 'Run this pick of scenarios',
+    },
+    all: {
+      type: 'boolean',
+      title: 'All',
+      description: 'Run every active scenario',
+      default: false,
+    },
+    repeats: {
+      type: 'integer',
+      maximum: 5,
+      minimum: 1,
+      title: 'Repeats',
+      description: 'How many times each scenario runs',
+      default: 3,
+    },
+    version: {
+      anyOf: [
+        {
+          type: 'integer',
+          minimum: 0,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version',
+      description: "The agent's version on its platform; none for the latest",
+    },
+  },
+  type: 'object',
+  title: 'McpRunScenarios',
+  description: 'Exactly one of ``set``, ``scenario_ids`` or ``all``.',
+} as const;
+
 export const McpScanProgressSchema = {
   properties: {
     agents: {
@@ -9220,6 +9396,24 @@ export const McpSpecRuleSchema = {
   title: 'McpSpecRule',
 } as const;
 
+export const McpStartedRunSchema = {
+  properties: {
+    run_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Run Id',
+    },
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+      description: 'Simulated calls the run makes',
+    },
+  },
+  type: 'object',
+  required: ['run_id', 'calls'],
+  title: 'McpStartedRun',
+} as const;
+
 export const McpTaskSchema = {
   properties: {
     key: {
@@ -9400,6 +9594,31 @@ export const McpTaskRefSchema = {
   type: 'object',
   required: ['key', 'title'],
   title: 'McpTaskRef',
+} as const;
+
+export const McpTestRunsSchema = {
+  properties: {
+    run: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/TestRunDetailPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    runs: {
+      items: {
+        $ref: '#/components/schemas/TestRunPublic',
+      },
+      type: 'array',
+      title: 'Runs',
+    },
+  },
+  type: 'object',
+  title: 'McpTestRuns',
+  description: "One run in detail when ``run_id`` was given, otherwise the agent's runs.",
 } as const;
 
 export const McpUnarchiveIssueSchema = {
@@ -10542,6 +10761,18 @@ export const RetellRuntimeConfigSchema = {
       title: 'Kind',
       default: 'retell',
     },
+    version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version',
+      description: 'The Retell agent version to talk to; none for the latest',
+    },
   },
   type: 'object',
   title: 'RetellRuntimeConfig',
@@ -10552,6 +10783,63 @@ export const RetellRuntimeConfigSchema = {
 export const RuleKeySchema = {
   type: 'string',
   maxLength: 64,
+} as const;
+
+export const RuleOutcomeSchema = {
+  type: 'string',
+  enum: ['passed', 'failed', 'did_not_come_up'],
+  title: 'RuleOutcome',
+  description: "A spec rule's verdict in one simulated call.",
+} as const;
+
+export const RuleTotalPublicSchema = {
+  properties: {
+    key: {
+      type: 'string',
+      title: 'Key',
+    },
+    text: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Text',
+      description: 'The rule in the spec version the run judged',
+    },
+    critical: {
+      type: 'boolean',
+      title: 'Critical',
+      default: false,
+    },
+    passed: {
+      type: 'integer',
+      title: 'Passed',
+      default: 0,
+    },
+    failed: {
+      type: 'integer',
+      title: 'Failed',
+      default: 0,
+    },
+    did_not_come_up: {
+      type: 'integer',
+      title: 'Did Not Come Up',
+      default: 0,
+    },
+    flaky: {
+      type: 'boolean',
+      title: 'Flaky',
+      description: 'It both passed and failed across repeats',
+      default: false,
+    },
+  },
+  type: 'object',
+  required: ['key'],
+  title: 'RuleTotalPublic',
 } as const;
 
 export const RunComparisonSchema = {
@@ -11249,10 +11537,18 @@ export const RunPublicSchema = {
       description: 'Effective LLM provider for platform agent simulator for this run',
     },
     eval_config_id: {
-      type: 'string',
-      format: 'uuid',
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Eval Config Id',
-      description: 'FK to the eval config executed in this run',
+      description:
+        'FK to the eval config executed in this run; none for scenarios run without a set',
     },
     eval_config_version: {
       type: 'integer',
@@ -11356,6 +11652,13 @@ export const RunPublicSchema = {
     'updated_at',
   ],
   title: 'RunPublic',
+} as const;
+
+export const RunScopeSchema = {
+  type: 'string',
+  enum: ['set', 'pick', 'all'],
+  title: 'RunScope',
+  description: 'What a run of scenarios covers. Empty on 1.x runs.',
 } as const;
 
 export const RunStatusSchema = {
@@ -11931,6 +12234,144 @@ export const ServedBySchema = {
 export const ShortTextSchema = {
   type: 'string',
   maxLength: 4000,
+} as const;
+
+export const SimulatedCallPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    scenario_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Scenario Id',
+    },
+    scenario_name: {
+      type: 'string',
+      title: 'Scenario Name',
+    },
+    repeat: {
+      type: 'integer',
+      title: 'Repeat',
+      description: 'Which repeat, from 1',
+    },
+    finished: {
+      type: 'boolean',
+      title: 'Finished',
+    },
+    error: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Error',
+    },
+    turns: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Turns',
+    },
+    verdicts: {
+      items: {
+        $ref: '#/components/schemas/VerdictPublic',
+      },
+      type: 'array',
+      title: 'Verdicts',
+    },
+    findings: {
+      items: {
+        $ref: '#/components/schemas/SimulatedFinding',
+      },
+      type: 'array',
+      title: 'Findings',
+    },
+    default_fakes: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Default Fakes',
+    },
+    cost_usd: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Cost Usd',
+    },
+  },
+  type: 'object',
+  required: ['id', 'scenario_id', 'scenario_name', 'repeat', 'finished'],
+  title: 'SimulatedCallPublic',
+} as const;
+
+export const SimulatedFindingSchema = {
+  properties: {
+    check_type: {
+      type: 'string',
+      title: 'Check Type',
+    },
+    check_version: {
+      type: 'integer',
+      title: 'Check Version',
+    },
+    kind: {
+      $ref: '#/components/schemas/CheckKind',
+    },
+    mode: {
+      $ref: '#/components/schemas/CheckMode',
+    },
+    key: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Key',
+    },
+    event_ids: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Event Ids',
+    },
+    detail: {
+      anyOf: [
+        {
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Detail',
+    },
+  },
+  type: 'object',
+  required: ['check_type', 'check_version', 'kind', 'mode', 'event_ids'],
+  title: 'SimulatedFinding',
+  description:
+    "What one code check found in a simulated call. Stored on the call's\n``test_case_result.check_findings``; never a production finding.",
 } as const;
 
 export const SimulatorModeSchema = {
@@ -13957,6 +14398,299 @@ export const TestCasesPublicSchema = {
   title: 'TestCasesPublic',
 } as const;
 
+export const TestRunCountsPublicSchema = {
+  properties: {
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+      description: 'Simulated calls the run makes',
+    },
+    finished: {
+      type: 'integer',
+      title: 'Finished',
+      default: 0,
+    },
+    errors: {
+      type: 'integer',
+      title: 'Errors',
+      default: 0,
+    },
+    rules_failed: {
+      type: 'integer',
+      title: 'Rules Failed',
+      default: 0,
+    },
+    critical_failed: {
+      type: 'integer',
+      title: 'Critical Failed',
+      default: 0,
+    },
+    flaky: {
+      type: 'integer',
+      title: 'Flaky',
+      default: 0,
+    },
+    findings: {
+      type: 'integer',
+      title: 'Findings',
+      default: 0,
+    },
+  },
+  type: 'object',
+  required: ['calls'],
+  title: 'TestRunCountsPublic',
+} as const;
+
+export const TestRunDetailPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    status: {
+      $ref: '#/components/schemas/RunStatus',
+    },
+    status_detail: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Status Detail',
+    },
+    scope: {
+      $ref: '#/components/schemas/RunScope',
+    },
+    set_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Set Name',
+    },
+    repeats: {
+      type: 'integer',
+      title: 'Repeats',
+    },
+    spec_version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Spec Version',
+    },
+    platform_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Version',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+    },
+    started_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Started At',
+    },
+    completed_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Completed At',
+    },
+    counts: {
+      $ref: '#/components/schemas/TestRunCountsPublic',
+    },
+    cost_usd: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Cost Usd',
+    },
+    rules: {
+      items: {
+        $ref: '#/components/schemas/RuleTotalPublic',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'Failed rules first, critical first',
+    },
+    dropped_rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Dropped Rules',
+      description: "Rule keys scenarios list that the run's spec no longer has",
+    },
+    checks: {
+      items: {
+        $ref: '#/components/schemas/CheckTotalPublic',
+      },
+      type: 'array',
+      title: 'Checks',
+    },
+    calls: {
+      items: {
+        $ref: '#/components/schemas/SimulatedCallPublic',
+      },
+      type: 'array',
+      title: 'Calls',
+    },
+  },
+  type: 'object',
+  required: ['id', 'status', 'scope', 'repeats', 'created_at', 'counts'],
+  title: 'TestRunDetailPublic',
+} as const;
+
+export const TestRunPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    status: {
+      $ref: '#/components/schemas/RunStatus',
+    },
+    status_detail: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Status Detail',
+    },
+    scope: {
+      $ref: '#/components/schemas/RunScope',
+    },
+    set_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Set Name',
+    },
+    repeats: {
+      type: 'integer',
+      title: 'Repeats',
+    },
+    spec_version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Spec Version',
+    },
+    platform_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Version',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+    },
+    started_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Started At',
+    },
+    completed_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Completed At',
+    },
+    counts: {
+      $ref: '#/components/schemas/TestRunCountsPublic',
+    },
+    cost_usd: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Cost Usd',
+    },
+  },
+  type: 'object',
+  required: ['id', 'status', 'scope', 'repeats', 'created_at', 'counts'],
+  title: 'TestRunPublic',
+} as const;
+
 export const TextRuntimeKindSchema = {
   type: 'string',
   enum: ['retell', 'custom_endpoint'],
@@ -15077,6 +15811,39 @@ export const ValidationErrorSchema = {
   type: 'object',
   required: ['loc', 'msg', 'type'],
   title: 'ValidationError',
+} as const;
+
+export const VerdictPublicSchema = {
+  properties: {
+    key: {
+      type: 'string',
+      title: 'Key',
+    },
+    outcome: {
+      $ref: '#/components/schemas/RuleOutcome',
+    },
+    reason: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Reason',
+    },
+    turns: {
+      items: {
+        type: 'integer',
+      },
+      type: 'array',
+      title: 'Turns',
+    },
+  },
+  type: 'object',
+  required: ['key', 'outcome'],
+  title: 'VerdictPublic',
 } as const;
 
 export const VersionResolveResultSchema = {

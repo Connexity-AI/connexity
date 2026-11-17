@@ -31,18 +31,32 @@ def _build_system_prompt(
     persona_context: str | None,
     user_context: dict[str, object] | None,
     expected_outcomes: list[str] | None,
+    caller_goal: str | None = None,
+    caller_behaviour: str | None = None,
 ) -> str:
-    """Build the simulator system prompt from persona context and test case context."""
+    """Build the simulator system prompt from persona context and test case context.
+
+    A scenario gives the caller's goal and behaviour; the spec rules it is judged on are
+    never shown, so the caller cannot steer the agent towards them. A 1.x test case
+    gives its expected outcomes as the goal.
+    """
     persona_block = persona_context or "(no persona specified)"
     ctx_block = (
         json.dumps(user_context, indent=2, ensure_ascii=False)
         if user_context
         else "(none)"
     )
-    if expected_outcomes:
+    if caller_goal and caller_goal.strip():
+        outcomes_block = caller_goal.strip()
+    elif expected_outcomes:
         outcomes_block = "\n".join(f"- {o}" for o in expected_outcomes)
     else:
         outcomes_block = "(none)"
+    behaviour_block = (
+        f"\nHOW YOU BEHAVE:\n{caller_behaviour.strip()}\n"
+        if caller_behaviour and caller_behaviour.strip()
+        else ""
+    )
 
     return f"""You are simulating the USER in a conversation with an AI assistant (the agent under test).
 
@@ -54,7 +68,7 @@ BACKGROUND CONTEXT (only you know this; do not reveal you are a simulator):
 
 YOUR GOAL / SUCCESS CRITERIA (what you are trying to achieve in the conversation):
 {outcomes_block}
-
+{behaviour_block}
 RULES:
 - Stay in character at all times. Write only the next message the user would send.
 - Do NOT use emojis, emoticons, or emoji-like unicode (e.g. 🙂, ^_^); this is a voice-call simulation—write plain spoken text only.
@@ -78,12 +92,18 @@ class UserSimulator:
         user_context: dict[str, object] | None,
         expected_outcomes: list[str] | None,
         config: UserSimulatorConfig,
+        caller_goal: str | None = None,
+        caller_behaviour: str | None = None,
     ) -> None:
         self._initial_message = initial_message
         self._config = config
         self._scripted_index = 0
         self._system_prompt = _build_system_prompt(
-            persona_context, user_context, expected_outcomes
+            persona_context,
+            user_context,
+            expected_outcomes,
+            caller_goal=caller_goal,
+            caller_behaviour=caller_behaviour,
         )
 
     def get_initial_message(self) -> str:

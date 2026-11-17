@@ -227,3 +227,14 @@ def archive_set(*, session: Session, config: EvalConfig) -> None:
             col(EvalConfigMember.eval_config_id) == config.id
         )
     )
+
+
+def live_scenarios(*, session: Session, agent_id: uuid.UUID) -> list[TestCase]:
+    """Every active scenario of the agent, oldest first."""
+    return list(
+        session.exec(
+            select(TestCase)
+            .where(*_live_where(agent_id))
+            .order_by(col(TestCase.created_at), col(TestCase.id))
+        ).all()
+    )

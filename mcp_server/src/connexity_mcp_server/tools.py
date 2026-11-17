@@ -26,6 +26,8 @@ from connexity_mcp_server.models import (
     ListWorkspacesResult,
     ScanCallsResult,
     ListScenariosResult,
+    RunScenariosResult,
+    TestRunsResult,
     ScenarioSetResult,
     ScenarioToWrite,
     WriteScenariosResult,
@@ -395,5 +397,47 @@ async def write_scenario_set(
             name=name,
             scenario_ids=scenario_ids,
             description=description,
+        )
+    )
+
+
+async def run_scenarios(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    agent_id: str,
+    set_name: str | None = None,
+    scenario_ids: list[str] | None = None,
+    all_scenarios: bool = False,
+    repeats: int | None = None,
+    version: int | None = None,
+) -> RunScenariosResult:
+    return RunScenariosResult.model_validate(
+        await client.run_scenarios(
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            set_name=set_name,
+            scenario_ids=scenario_ids,
+            all_scenarios=all_scenarios,
+            repeats=repeats,
+            version=version,
+        )
+    )
+
+
+async def get_test_runs(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    agent_id: str,
+    run_id: str | None = None,
+    cursor: str | None = None,
+    limit: int | None = None,
+) -> TestRunsResult:
+    return TestRunsResult.model_validate(
+        await client.get_test_runs(
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            run_id=run_id,
+            cursor=cursor,
+            limit=limit,
         )
     )

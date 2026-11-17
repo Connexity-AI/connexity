@@ -41,26 +41,16 @@ if settings.SENTRY_DSN and settings.ENVIRONMENT != "local":
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     _sync_llm_api_keys()
 
-    # Mark any runs left in RUNNING status as FAILED (server crash recovery)
-    from datetime import UTC, datetime
-
-    from sqlmodel import Session, select
+    from sqlmodel import Session
 
     from app.core.db import engine
-    from app.models import Run, RunStatus
+    from app.crud.test_run import fail_stale_runs
     from app.services.checks.engine import record_check_releases
 
     with Session(engine) as session:
-        stale_runs = session.exec(
-            select(Run).where(Run.status == RunStatus.RUNNING)
-        ).all()
-        for run in stale_runs:
-            run.status = RunStatus.FAILED
-            run.completed_at = datetime.now(UTC)
-            session.add(run)
-        if stale_runs:
-            session.commit()
-            logger.warning("Marked %d stale RUNNING runs as FAILED", len(stale_runs))
+        stale = fail_stale_runs(session=session)
+        if stale:
+            logger.warning("Marked %d runs stopped by a restart as FAILED", stale)
 
     with Session(engine) as session:
         record_check_releases(session)
