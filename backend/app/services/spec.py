@@ -9,8 +9,9 @@ from typing import Literal, NamedTuple
 from sqlmodel import Session, col, select
 
 from app import crud
+from app.crud.check import lock_agent
 from app.crud.clarification import state_counts, unanswered
-from app.crud.spec import RuleInput, normalise, prompt_text, write_spec
+from app.crud.spec import RuleInput, mark_critical, normalise, prompt_text, write_spec
 from app.models.agent import Agent
 from app.models.clarification import Clarification
 from app.models.enums import ClarificationState, SpecRuleSource, SpecRuleTouches
@@ -163,6 +164,7 @@ def spec_answer(
                 source=r.source,
                 quote=r.quote,
                 touches=r.touches,
+                critical=r.critical,
                 answered_by=who,
                 answered_at=when,
                 in_conflict=change != "dropped" and r.key in conflicts,
@@ -195,6 +197,7 @@ def spec_answer(
             from_prompt=len(rules) - from_clarifications,
             from_clarifications=from_clarifications,
             in_conflict=sum(1 for r in rules if r.key in conflicts),
+            critical=sum(1 for r in rules if r.critical),
         )
         if earlier is not None:
             kept = sum(1 for r in rules if old_text.get(r.key) == r.text)
@@ -239,6 +242,7 @@ class RuleDraft(NamedTuple):
     quote: str | None
     touches: SpecRuleTouches | None
     key: str | None
+    critical: bool | None = None
 
 
 class SpecRefused(Exception):
@@ -345,6 +349,7 @@ def write_agent_spec(
                 quote=(d.quote or "").strip(),
                 touches=d.touches,
                 key=d.key,
+                critical=d.critical,
             )
             for d in drafts
         ],
@@ -365,6 +370,67 @@ def write_agent_spec(
             quotes_checked=text is not None,
         ),
     )
+
+
+def mark_critical_rules(
+    *,
+    session: Session,
+    agent: Agent,
+    critical: Sequence[str],
+    not_critical: Sequence[str],
+    author: User,
+    assistant_name: str | None,
+) -> tuple[SpecPublic, int]:
+    """Mark rules of the agent's latest spec critical or not, as a new spec version.
+
+    Returns:
+        The spec as it now is, and how many rules changed. When none changed, no
+        version is made.
+
+    Raises:
+        SpecRefused: The agent has no spec, or a key is unknown or in both lists;
+            every problem is listed.
+    """
+    if not critical and not not_critical:
+        raise SpecRefused("Name at least one rule key", [])
+    lock_agent(session=session, agent_id=agent.id)
+    latest = crud.latest_spec(session=session, agent_id=agent.id)
+    if latest is None:
+        session.rollback()
+        raise SpecRefused(
+            "The agent has no spec yet",
+            ["Write it with `write_spec`, marking critical rules as you write them."],
+        )
+    rules = {r.key: r for r in crud.spec_rules(session=session, spec_id=latest.id)}
+    problems: list[str] = []
+    for key in sorted(set(critical) & set(not_critical)):
+        problems.append(f"Key '{key}' is in both lists.")
+    for key in dict.fromkeys([*critical, *not_critical]):
+        if key not in rules:
+            problems.append(
+                f"Key '{key}' is not a rule of spec version {latest.version}; use the "
+                "keys `get_spec` answers."
+            )
+    if problems:
+        session.rollback()
+        raise SpecRefused("No rule was marked", problems)
+    marks = {key: True for key in critical} | {key: False for key in not_critical}
+    changed = sum(1 for key, mark in marks.items() if rules[key].critical != mark)
+    if changed:
+        mark_critical(
+            session=session,
+            agent=agent,
+            previous=latest,
+            rules=list(rules.values()),
+            marks=marks,
+            author=author,
+            assistant_name=assistant_name,
+        )
+    else:
+        session.rollback()
+    answer = spec_answer(session=session, agent=agent)
+    assert answer is not None
+    return answer, changed
 
 
 def agents_needing_specs(

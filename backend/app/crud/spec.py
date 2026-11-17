@@ -209,6 +209,8 @@ class RuleInput(NamedTuple):
     quote: str | None
     touches: SpecRuleTouches | None
     key: str | None
+    # None keeps the previous version's mark for a kept key; a new rule is not critical.
+    critical: bool | None = None
 
 
 def write_spec(
@@ -223,7 +225,8 @@ def write_spec(
 ) -> tuple[Spec, Spec | None]:
     """A new spec version with ``rules`` for ``agent_version``. Commits.
 
-    Rules keep their key when given one; new rules get a fresh key. Positions follow
+    Rules keep their key when given one; new rules get a fresh key. A kept rule given
+    no mark keeps its previous one. Positions follow
     the order the rules were given, within each category. Every rule of the previous
     version that came from a clarification is carried over unchanged: a person's
     answer changes only through another clarification.
@@ -251,6 +254,11 @@ def write_spec(
     )
     session.add(spec)
     session.flush()
+    marks = (
+        {r.key: r.critical for r in spec_rules(session=session, spec_id=previous.id)}
+        if previous is not None
+        else {}
+    )
     positions: dict[uuid.UUID, int] = {}
     for rule in rules:
         positions[rule.category_id] = positions.get(rule.category_id, 0) + 1
@@ -265,6 +273,11 @@ def write_spec(
                 source=SpecRuleSource.PROMPT,
                 quote=rule.quote,
                 touches=rule.touches,
+                critical=(
+                    rule.critical
+                    if rule.critical is not None
+                    else bool(rule.key and marks.get(rule.key, False))
+                ),
             )
         )
     if previous is not None:
@@ -297,7 +310,48 @@ def copy_rule(rule: SpecRule, *, spec_id: uuid.UUID) -> SpecRule:
         quote=rule.quote,
         clarification_id=rule.clarification_id,
         touches=rule.touches,
+        critical=rule.critical,
     )
+
+
+def mark_critical(
+    *,
+    session: Session,
+    agent: Agent,
+    previous: Spec,
+    rules: list[SpecRule],
+    marks: dict[str, bool],
+    author: User,
+    assistant_name: str | None,
+) -> Spec:
+    """A new spec version: ``previous``'s ``rules`` unchanged, with ``marks`` applied
+    by key.
+
+    The caller holds the agent lock and has checked that ``previous`` is the latest
+    version and every key is one of its rules. Commits.
+    """
+    spec = Spec(
+        company_id=agent.company_id,
+        agent_id=agent.id,
+        version=previous.version + 1,
+        agent_version=previous.agent_version,
+        prompt_fingerprint=previous.prompt_fingerprint,
+        origin=SpecOrigin.MARKED,
+        written_for=previous.written_for,
+        previous_id=previous.id,
+        created_by=author.id,
+        created_by_email=author.email,
+        assistant_name=assistant_name,
+    )
+    session.add(spec)
+    session.flush()
+    for rule in rules:
+        copied = copy_rule(rule, spec_id=spec.id)
+        copied.critical = marks.get(rule.key, rule.critical)
+        session.add(copied)
+    session.commit()
+    session.refresh(spec)
+    return spec
 
 
 def _adopt(session: Session, agent_id: uuid.UUID) -> Spec | None:

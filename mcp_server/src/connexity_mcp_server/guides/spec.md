@@ -97,6 +97,37 @@ and the new prompt's words in the question. Its answer replaces the rule.
 - **The person can also answer in the app,** on the Action items page. Check
   `list_clarifications` before asking them, so you never ask what they already answered.
 
+## Critical rules
+
+Every rule is critical or not. In testing, a failed critical rule fails the agent
+version: it must not be released. A failed rule that is not critical is a Warning, and
+only enough Warnings fail a version. Marking is yours to decide; you do not need to ask
+the person, and they can ask you to change it.
+
+- **Critical:**
+  - making up facts the business owns, such as prices, availability and policies;
+  - money: quoting, charging and refunding;
+  - safety, and sending emergencies to the right place;
+  - legal and compliance, such as disclosures, consent and personal data;
+  - actions with real effects, such as booking, cancelling and transferring.
+- **Not critical:** style, phrasing, the length of a turn, and the order of small talk.
+  "No more than one question per turn" is a Warning.
+- **When unsure, not critical.** A spec where most rules are critical fails every
+  version and stops meaning anything.
+
+How to mark:
+- **When you write the spec,** give `critical: true` on each rule that is. A kept rule
+  you pass without `critical` keeps its mark; a new one is not critical.
+- **Afterwards, or for the person's answers,** call `mark_critical_rules` with the keys
+  to mark (`critical`) and to clear (`not_critical`). It makes a new spec version with
+  the rules unchanged.
+- **Marks carry over** into every later version by key, including a version Connexity
+  adopts. An answer that replaces a rule takes that rule's mark.
+
+`touches` and critical are separate: `touches` says what a rule protects, critical says
+whether its failure stops a release. Most rules that touch money, safety or compliance
+are critical; not every critical rule touches one.
+
 ## A new agent version
 
 When the agent's prompt changes, Connexity copies the previous spec to the new version,
@@ -107,7 +138,8 @@ so the agent is never left without one. Then:
 3. Rewrite or drop the rules the change affects, and add rules for what it adds.
 4. Raise a question for anything the change leaves unsettled, or that contradicts an
    answer the person gave before (`replaces_key`).
-5. Write the result with `write_spec`.
+5. Write the result with `write_spec`, with `critical` on rules that are new and
+   critical.
 
 ## Keys
 
