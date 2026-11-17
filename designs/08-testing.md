@@ -1,5 +1,7 @@
 # Prompt for Claude Design: testing and the gate
 
+Later decisions on scenarios, rule verdicts, Critical rules, sets and the gate are in [`docs-internal/testing.md`](../docs-internal/testing.md). Where it disagrees with this prompt, it wins.
+
 Paste everything below the line into the existing Connexity project in Claude Design. It adds a Tests tab to the agent profile from prompt 04.
 
 ---

@@ -19,6 +19,7 @@ instead.
 - [`data-model.md`](./data-model.md) - ER diagram and table-level schema reference
 - [`mcp-architecture.md`](./mcp-architecture.md) - MCP adapter architecture and how to add new tools
 - [`work.md`](./work.md) - the Work page: the assistant's tasks, what waits for the person, Blocks and Blocked by; decisions and open questions
+- [`testing.md`](./testing.md) - test scenarios, rule verdicts, Critical rules, sets and the gate; decisions and open questions
 - [`issue-types.md`](./issue-types.md) - every check: what it finds, found by a rule or a model, category, default severity
 - [`call-ingestion.md`](./call-ingestion.md) - how calls reach Connexity: the Retell webhook now, the first scan for history, a safety-net pull later
 - [`deployment.md`](./deployment.md) - how `main` reaches Google Cloud Run: services, triggers, secrets, the database
