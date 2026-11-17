@@ -8640,6 +8640,31 @@ export const McpIssuesSchema = {
   title: 'McpIssues',
 } as const;
 
+export const McpMarkCriticalSchema = {
+  properties: {
+    critical: {
+      items: {
+        $ref: '#/components/schemas/RuleKey',
+      },
+      type: 'array',
+      maxItems: 500,
+      title: 'Critical',
+      description: 'Keys of rules whose failure must stop a release',
+    },
+    not_critical: {
+      items: {
+        $ref: '#/components/schemas/RuleKey',
+      },
+      type: 'array',
+      maxItems: 500,
+      title: 'Not Critical',
+      description: 'Keys of rules whose failure is a Warning',
+    },
+  },
+  type: 'object',
+  title: 'McpMarkCritical',
+} as const;
+
 export const McpNextTaskSchema = {
   properties: {
     task: {
@@ -8811,6 +8836,19 @@ export const McpSpecRuleSchema = {
       ],
       title: 'Key',
       description: 'Only for a rule kept from the previous version',
+    },
+    critical: {
+      anyOf: [
+        {
+          type: 'boolean',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Critical',
+      description:
+        'True when a failure of the rule must stop a release; left out, a kept rule keeps its mark and a new one is not critical',
     },
   },
   type: 'object',
@@ -10079,6 +10117,11 @@ export const RetellRuntimeConfigSchema = {
     'Retell text runtime.\n\nConnexity owns the user simulator and judge. The Retell runtime will call\nRetell as the agent side via chat APIs once implemented.',
 } as const;
 
+export const RuleKeySchema = {
+  type: 'string',
+  maxLength: 64,
+} as const;
+
 export const RunComparisonSchema = {
   properties: {
     baseline_run_id: {
@@ -11244,6 +11287,12 @@ export const SpecCountsPublicSchema = {
       type: 'integer',
       title: 'In Conflict',
     },
+    critical: {
+      type: 'integer',
+      title: 'Critical',
+      description: 'Rules marked critical',
+      default: 0,
+    },
   },
   type: 'object',
   required: ['from_prompt', 'from_clarifications', 'in_conflict'],
@@ -11276,7 +11325,7 @@ export const SpecGroupPublicSchema = {
 
 export const SpecOriginSchema = {
   type: 'string',
-  enum: ['written', 'adopted', 'answered'],
+  enum: ['written', 'adopted', 'answered', 'marked'],
   title: 'SpecOrigin',
 } as const;
 
@@ -11448,6 +11497,12 @@ export const SpecRulePublicSchema = {
           type: 'null',
         },
       ],
+    },
+    critical: {
+      type: 'boolean',
+      title: 'Critical',
+      description: 'A failure of this rule must stop a release',
+      default: false,
     },
     answered_by: {
       anyOf: [

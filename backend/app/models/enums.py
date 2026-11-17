@@ -236,6 +236,8 @@ class SpecOrigin(StrEnum):
     ADOPTED = "adopted"
     # The previous spec plus the rules from answered clarifications.
     ANSWERED = "answered"
+    # The previous spec's rules unchanged, with rules marked or cleared as critical.
+    MARKED = "marked"
 
 
 class SpecRuleSource(StrEnum):

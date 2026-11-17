@@ -263,6 +263,23 @@ async def write_spec(
     )
 
 
+async def mark_critical_rules(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    agent_id: str,
+    critical: list[str],
+    not_critical: list[str],
+) -> SpecResult:
+    return SpecResult.model_validate(
+        await client.mark_critical_rules(
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            critical=critical,
+            not_critical=not_critical,
+        )
+    )
+
+
 async def get_agent(
     client: ConnexityBackendClient,
     workspace_id: str,

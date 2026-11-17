@@ -75,6 +75,7 @@ from app.models.mcp import (
     McpErrorDetail,
     McpHeldTask,
     McpIssues,
+    McpMarkCritical,
     McpNextTask,
     McpRaiseClarifications,
     McpRefusedAgent,
@@ -122,6 +123,7 @@ from app.services.spec import (
     RuleDraft,
     SpecRefused,
     agents_needing_specs,
+    mark_critical_rules,
     spec_answer,
     spec_state,
     write_agent_spec,
@@ -715,7 +717,45 @@ _SPEC_RULES = [
     "Rules with source clarification are the person's answers: Connexity carries them "
     "into every version; never pass them to `write_spec`. To change one, raise a "
     "clarification that replaces it.",
+    "A critical rule is one whose failure must stop a release; a failure of any other "
+    "rule is a Warning. Marking is yours to decide, without asking the person: mark "
+    "with `critical` in `write_spec` or with `mark_critical_rules`. Marks carry into "
+    "every later version by key. When unsure, not critical.",
 ]
+
+
+def _spec_refused(refused: SpecRefused, retry: str) -> HTTPException:
+    """Every problem, at most 20 listed, then how to try again."""
+    more = len(refused.problems) - 20
+    return HTTPException(
+        status_code=422,
+        detail=McpErrorDetail(
+            error=refused.error,
+            next_steps=[
+                *refused.problems[:20],
+                *([f"… and {more} more problems like these."] if more > 0 else []),
+                retry,
+            ],
+            guide=GUIDE_SPEC,
+        ).model_dump(),
+    )
+
+
+def _critical_step(answer: SpecPublic, agent_id: uuid.UUID) -> str:
+    counts = answer.counts
+    critical = counts.critical if counts else 0
+    total = counts.from_prompt + counts.from_clarifications if counts else 0
+    if critical == 0:
+        return (
+            "No rule is marked critical. Mark the rules whose failure must stop a "
+            f"release with `mark_critical_rules` (agent_id {agent_id}), following "
+            'connexity://guides/spec, "Critical rules".'
+        )
+    return (
+        f"{critical} of the spec's {total} rules "
+        f"{'is' if critical == 1 else 'are'} critical; change marks with "
+        "`mark_critical_rules` if the spec changed what matters."
+    )
 
 
 def _waiting_step(
@@ -843,6 +883,7 @@ def write_spec(
                     quote=r.quote,
                     touches=r.touches,
                     key=r.key or None,
+                    critical=r.critical,
                 )
                 for r in body.rules
             ],
@@ -850,24 +891,9 @@ def write_spec(
             assistant_name=assistant or "your assistant",
         )
     except SpecRefused as refused:
-        raise HTTPException(
-            status_code=422,
-            detail=McpErrorDetail(
-                error=refused.error,
-                next_steps=[
-                    *refused.problems[:20],
-                    *(
-                        [
-                            f"… and {len(refused.problems) - 20} more problems like these."
-                        ]
-                        if len(refused.problems) > 20
-                        else []
-                    ),
-                    "Fix these and call `write_spec` again with every rule; nothing "
-                    "was stored.",
-                ],
-                guide=GUIDE_SPEC,
-            ).model_dump(),
+        raise _spec_refused(
+            refused,
+            "Fix these and call `write_spec` again with every rule; nothing was stored.",
         ) from None
     steps = []
     changes = written.changes
@@ -891,10 +917,56 @@ def write_spec(
         "behaviour these rules do not settle, and raise each as a question with "
         "`raise_clarifications`, following connexity://guides/spec."
     )
+    steps.append(_critical_step(written, agent.id))
     steps.append("Tell the person the spec is written, and what you raised.")
     steps.append(NEXT_TASK)
     return McpAnswer[SpecWrittenPublic](
         data=written, rules=_SPEC_RULES, next_steps=steps, guide=GUIDE_SPEC
+    )
+
+
+@router.post(
+    "/workspaces/{workspace_id}/agents/{agent_id}/spec/critical",
+    response_model=McpAnswer[SpecPublic],
+)
+def mark_critical(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    current_user: McpCurrentUser,
+    assistant: McpAssistantName,
+    agent_id: uuid.UUID,
+    body: McpMarkCritical,
+) -> McpAnswer[SpecPublic]:
+    agent = _mcp_agent_in(session, workspace, agent_id)
+    try:
+        answer, changed = mark_critical_rules(
+            session=session,
+            agent=agent,
+            critical=body.critical,
+            not_critical=body.not_critical,
+            author=current_user,
+            assistant_name=assistant or "your assistant",
+        )
+    except SpecRefused as refused:
+        raise _spec_refused(
+            refused,
+            "Fix these and call `mark_critical_rules` again; no rule was marked.",
+        ) from None
+    version = answer.spec.version if answer.spec else None
+    steps = [
+        (
+            f"{changed} {'rule' if changed == 1 else 'rules'} changed; spec version "
+            f"{version} has them."
+            if changed
+            else "Every rule already had that mark; no version was made."
+        ),
+        _critical_step(answer, agent.id),
+        "Tell the person which rules are critical, in a line: they can ask you to "
+        "change it.",
+        NEXT_TASK,
+    ]
+    return McpAnswer[SpecPublic](
+        data=answer, rules=_SPEC_RULES, next_steps=steps, guide=GUIDE_SPEC
     )
 
 

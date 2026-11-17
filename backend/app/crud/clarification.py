@@ -147,8 +147,8 @@ def write_answered_spec(
     """A new spec version: the latest one's rules plus one rule per answer.
 
     The caller holds the agent lock and has checked the answers. A rule an answer
-    replaces is dropped, and the answer's rule takes its key and, within the same
-    category, its place. Does not commit.
+    replaces is dropped, and the answer's rule takes its key, its critical mark and,
+    within the same category, its place. Does not commit.
     """
     previous = latest_spec(session=session, agent_id=agent.id)
     assert previous is not None  # clarifications need a spec
@@ -200,6 +200,8 @@ def write_answered_spec(
                 source=SpecRuleSource.CLARIFICATION,
                 clarification_id=c.id,
                 touches=c.touches,
+                # It settles the same behaviour as the rule it replaces.
+                critical=old.critical if old is not None else False,
             )
         )
     session.flush()

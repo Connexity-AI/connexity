@@ -388,3 +388,34 @@ This replaces "Until it gets worse" from item 1. Everything else in item 1 stays
 **Unarchiving** has no button on screen. When it happens through the assistant, history reads "Unarchived by your assistant, approved by Dmytro, 12 Nov · 'reason'".
 
 Keep the word "spike" for this only. Never use "escalation" for an issue getting worse, because it means handing a call to a person ("Transfers and escalation").
+
+## 29. Spec tab: critical rules
+
+Every spec rule is now Critical or not. A failed critical rule fails the agent version in
+testing; a failed rule that is not critical is a Warning. The assistant marks rules; the
+person reads the mark here and asks the assistant to change it. Nothing on this tab marks
+or unmarks a rule.
+
+**On each rule:**
+
+- **A "Critical" label** on a critical rule, the same red badge as the Critical severity
+  on the Issues tab's rows (octagon icon and "Critical"). It sits before the rule's text,
+  where the issue rows put theirs.
+- **Rules that are not critical** have no label. Do not show "Warning" on them: it is
+  only what a failure of them is called in test results.
+- **The other marks stay as they are:** the money, safety or compliance tag, "From the
+  prompt" or "Answered by …", and "In conflict".
+
+**On each group's header:**
+
+- **"2 critical"** beside the rule count, in the same small red badge as the Issues
+  tab's group headers. No badge when the group has none.
+
+**In the versions list:**
+
+- **A version that only changed marks** reads "Critical rules marked by Alex's Claude
+  Code · 17 Nov", beside "Written by …", "Copied to version 15" and "Answers added".
+  Comparing it with the version before shows every rule kept.
+
+**The order of rules** stays as it is: critical rules are not moved to the top.
+
