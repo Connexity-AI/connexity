@@ -51,6 +51,33 @@ Call `get_issue` with an issue's `id`. It answers, for the last 30 days:
   it first happened and how many times). `list_calls` with `issue_id` lists them all.
 - **`history`:** every decision, newest first, ending with when it was opened.
 - **`archive`:** while archived, who archived it, when, how long and why.
+- **`check`:** the check behind it: what it looks for (`description`), how it decides
+  (`kind`), its `version`, what a call's trace must have for it to run (`needs`), and
+  for a model check its `provider` and pinned `model`. `detail_fields` says what each
+  key of a finding's `detail` means.
+- **`setting`:** what the check does for this agent now (`off`, `flags`, `fails`), the
+  issue type's default, and when a person last changed it.
+- **`versions`:** calls it was found on per agent version, last 30 days, most first;
+  `live_version` is the version on the agent's newest call.
+- **`findings_all_time`**, **`calls_all_time`:** its size since it was first found.
+
+## Its calls
+
+Call `list_calls` with the `issue_id` (and a `limit`, up to 100, or `cursor` for the
+next page) for the calls it was found on, newest first. Each also answers:
+
+- **`agent_version`:** the version the call ran;
+- **`issue_findings`:** that issue's findings on the call: the `event_ids` each points
+  at (open them with `get_call`), its `detail` (read with `check.detail_fields`), its
+  `effect` and the `check_version` that raised it.
+
+## Fixing
+
+1. `get_issue` for everything about it; `list_calls` with the issue for its calls and
+   findings; `get_call` for any call in full. Find the cause yourself: Connexity gives
+   the facts, not a diagnosis.
+2. Propose the change to the person. They approve; you make it, outside Connexity.
+3. Once the version with the fix is live, `mark_issue_fixed` with that version.
 
 ## Marking fixed
 

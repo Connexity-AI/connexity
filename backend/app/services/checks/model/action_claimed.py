@@ -200,6 +200,15 @@ ACTION_CLAIMED_WITHOUT_TOOL = ModelCheck(
     category="tools_and_integrations",
     run=_run,
     needs=(TraceCapability.TOOL_CALLS,),
+    detail_fields={
+        "action": "What the agent said it had done: booked, cancelled, moved, "
+        "notified or looked_up",
+        "probability": "The model's probability for that label, 0 to 1; a claim counts "
+        "from 0.5",
+        "why": "no_tool_call: no tool that could do it ran before or during the turn; "
+        "tool_failed: the only such tools failed (the finding points at them too)",
+        "model": "The model that labelled the turn",
+    },
     kind=CheckKind.CLASSIFIER,
     provider=ModelProvider.TYPESAFE,
     model=settings.JEV_MODEL,

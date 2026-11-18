@@ -765,6 +765,15 @@ async def test_list_calls_sends_the_issue() -> None:
                             "agent_name": "Front desk",
                             "result": "failed",
                             "moment": {"at_seconds": 121.0, "times": 2},
+                            "agent_version": "15",
+                            "issue_findings": [
+                                {
+                                    "event_ids": ["e4"],
+                                    "detail": {"empty": ["postalCode"]},
+                                    "effect": "fails",
+                                    "check_version": 1,
+                                }
+                            ],
                         }
                     ],
                 },
@@ -774,11 +783,16 @@ async def test_list_calls_sends_the_issue() -> None:
 
     result = await _call(
         handler,
-        lambda client: list_calls(client, workspace_id=WORKSPACE_ID, issue_id="i1"),
+        lambda client: list_calls(
+            client, workspace_id=WORKSPACE_ID, issue_id="i1", limit=5
+        ),
     )
 
     assert result.data.calls[0].moment is not None
     assert result.data.calls[0].moment.times == 2
+    assert result.data.calls[0].agent_version == "15"
+    (finding,) = result.data.calls[0].issue_findings or []
+    assert (finding.event_ids, finding.detail) == (["e4"], {"empty": ["postalCode"]})
 
 
 @pytest.mark.asyncio

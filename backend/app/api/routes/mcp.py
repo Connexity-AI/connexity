@@ -8,6 +8,7 @@ to a workspace in its path, resolved by `require_mcp_workspace`.
 import base64
 import binascii
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -27,6 +28,12 @@ from app.crud import scenario as crud_scenario
 from app.crud import test_run as crud_test_run
 from app.crud.call_list import CallFilters
 from app.crud.issue_list import calls_by_agent, period_start
+from app.crud.issue_page import (
+    call_agent_versions,
+    issue_calls_per_version,
+    issue_findings_on_calls,
+    latest_agent_version,
+)
 from app.crud.latency import agent_latencies
 from app.models import (
     Agent,
@@ -56,7 +63,6 @@ from app.models.enums import (
     VersionVerdict,
 )
 from app.models.issue_list import IssuePeriod, IssueStatusFilter
-from app.models.issue_page import IssuePagePublic
 from app.models.mcp import (
     GUIDE_CALLS,
     GUIDE_CATEGORIES,
@@ -73,13 +79,19 @@ from app.models.mcp import (
     McpAnswer,
     McpAnswerClarifications,
     McpArchiveIssue,
+    McpCallItem,
     McpCalls,
     McpConnection,
     McpConnectVoicePlatform,
     McpEndedTask,
     McpErrorDetail,
     McpHeldTask,
+    McpIssue,
+    McpIssueCheck,
+    McpIssueFinding,
     McpIssues,
+    McpIssueSetting,
+    McpIssueVersion,
     McpMarkCritical,
     McpMarkFixed,
     McpNextTask,
@@ -108,6 +120,9 @@ from app.services.agent_list import agent_types
 from app.services.agent_page import agent_page
 from app.services.call_list import workspace_calls
 from app.services.call_screen import call_screen
+from app.services.checks.base import Check, ModelCheck
+from app.services.checks.engine import current_mode
+from app.services.checks.registry import get_check
 from app.services.clarification import (
     AnswerDraft,
     ClarificationRefused,
@@ -346,8 +361,26 @@ def list_calls(
         next_steps.append(
             "Call `list_issues` to see what the failed calls have in common."
         )
+    calls = [McpCallItem(**item.model_dump()) for item in page.data]
+    if issue_id is not None:
+        ids = [call.id for call in calls]
+        found = issue_findings_on_calls(
+            session=session, issue_id=issue_id, call_ids=ids
+        )
+        versions = call_agent_versions(session=session, call_ids=ids)
+        for call in calls:
+            call.agent_version = versions.get(call.id)
+            call.issue_findings = [
+                McpIssueFinding(
+                    event_ids=list(finding.event_keys),
+                    detail=finding.detail,
+                    effect=finding.effect,
+                    check_version=finding.check_version,
+                )
+                for finding in found.get(call.id, [])
+            ]
     return McpAnswer[McpCalls](
-        data=McpCalls(tiles=page.tiles, calls=page.data),
+        data=McpCalls(tiles=page.tiles, calls=calls),
         rules=[
             "Calls come newest first; the tiles count every call matching the "
             "filters in the period, whatever the result filter.",
@@ -355,11 +388,15 @@ def list_calls(
             "repeat a full number.",
             "A result is failed when a finding fails the call, degraded when one only "
             "flags it, clean when checks ran and found nothing, unchecked otherwise. "
-            "Say whether the worst finding was found by a rule or a model.",
+            "Say whether the worst finding was found by code or a model (found_by).",
             "Findings of archived issues are left out of every call's result, worst "
-            "finding and findings, until the issue is unarchived.",
+            "finding and findings, until the issue is unarchived; with issue_id of an "
+            "archived issue, its own findings are listed so its calls can be read.",
             "With issue_id, only the calls that issue was found on are listed, each with "
-            "its moment: when it first happened in the call and how many times.",
+            "its moment (when it first happened in the call and how many times), the "
+            "agent version it ran and that issue's findings on it: the events each "
+            "points at and its detail. `get_issue` says what each detail key means; "
+            "`get_call` shows the events.",
         ],
         next_steps=next_steps,
         guide=GUIDE_CALLS,
@@ -531,30 +568,70 @@ _ISSUE_RULES = [
 ]
 
 
+def _issue_check(check: Check) -> McpIssueCheck:
+    model = check if isinstance(check, ModelCheck) else None
+    return McpIssueCheck(
+        type=check.type,
+        title=check.title,
+        description=check.description,
+        kind=check.kind,
+        version=check.version,
+        provider=model.provider.value if model else None,
+        model=model.model if model else None,
+        needs=[need.value for need in check.needs],
+        detail_fields=dict(check.detail_fields),
+    )
+
+
 def _issue_answer(
     session: SessionDep, issue: Issue, next_steps: list[str]
-) -> McpAnswer[IssuePagePublic]:
-    page = issue_page(
-        session=session,
-        issue=issue,
-        summary=crud.summarise_issue(session=session, issue=issue),
+) -> McpAnswer[McpIssue]:
+    summary = crud.summarise_issue(session=session, issue=issue)
+    page = issue_page(session=session, issue=issue, summary=summary)
+    check = get_check(issue.check_type)
+    setting = None
+    if check is not None:
+        records = crud.check_setting_history(
+            session=session, agent_id=issue.agent_id
+        ).get(check.type, [])
+        setting = McpIssueSetting(
+            mode=current_mode(check, records),
+            default=check.default_mode,
+            since=records[-1].created_at if records else None,
+        )
+    detail = McpIssue(
+        **page.model_dump(),
+        check=_issue_check(check) if check else None,
+        setting=setting,
+        versions=[
+            McpIssueVersion(version=version, calls=calls)
+            for version, calls in issue_calls_per_version(
+                session=session,
+                issue_id=issue.id,
+                since=datetime.now(UTC) - timedelta(days=30),
+            )
+        ],
+        live_version=latest_agent_version(session=session, agent_id=issue.agent_id),
+        findings_all_time=summary.finding_count,
+        calls_all_time=summary.call_count,
     )
     if page.tiles.calls_affected:
         next_steps.append(
-            f"Call `list_calls` with issue_id {issue.id} for every call it was found on."
+            f"Call `list_calls` with issue_id {issue.id} (and a `limit`) for the calls "
+            "it was found on, with its findings in each."
         )
-    return McpAnswer[IssuePagePublic](
-        data=page, rules=_ISSUE_RULES, next_steps=next_steps, guide=GUIDE_ISSUES
+    return McpAnswer[McpIssue](
+        data=detail, rules=_ISSUE_RULES, next_steps=next_steps, guide=GUIDE_ISSUES
     )
 
 
 @router.get(
     "/workspaces/{workspace_id}/issues/{issue_id}",
-    response_model=McpAnswer[IssuePagePublic],
+    response_model=McpAnswer[McpIssue],
 )
 def get_issue(
     session: SessionDep, workspace: McpWorkspaceDep, issue_id: uuid.UUID
-) -> McpAnswer[IssuePagePublic]:
+) -> McpAnswer[McpIssue]:
     issue = _mcp_issue(session, workspace, issue_id)
     next_steps = _fix_steps(issue)
     if issue.state is not IssueState.ARCHIVED:
@@ -593,7 +670,7 @@ def _fix_steps(issue: Issue) -> list[str]:
 
 @router.post(
     "/workspaces/{workspace_id}/issues/{issue_id}/fixed",
-    response_model=McpAnswer[IssuePagePublic],
+    response_model=McpAnswer[McpIssue],
 )
 def mark_issue_fixed(
     session: SessionDep,
@@ -602,7 +679,7 @@ def mark_issue_fixed(
     assistant: McpAssistantName,
     issue_id: uuid.UUID,
     body: McpMarkFixed,
-) -> McpAnswer[IssuePagePublic]:
+) -> McpAnswer[McpIssue]:
     issue = _mcp_issue(session, workspace, issue_id)
 
     def refuse(error: str, step: str) -> HTTPException:
@@ -657,7 +734,7 @@ def mark_issue_fixed(
 
 @router.post(
     "/workspaces/{workspace_id}/issues/{issue_id}/archive",
-    response_model=McpAnswer[IssuePagePublic],
+    response_model=McpAnswer[McpIssue],
 )
 def archive_issue(
     session: SessionDep,
@@ -666,7 +743,7 @@ def archive_issue(
     assistant: McpAssistantName,
     issue_id: uuid.UUID,
     body: McpArchiveIssue,
-) -> McpAnswer[IssuePagePublic]:
+) -> McpAnswer[McpIssue]:
     issue = _mcp_issue(session, workspace, issue_id)
     if issue.state is IssueState.ARCHIVED:
         how = "until it spikes" if issue.archive_until_spike else "forever"
@@ -701,7 +778,7 @@ def archive_issue(
 
 @router.post(
     "/workspaces/{workspace_id}/issues/{issue_id}/unarchive",
-    response_model=McpAnswer[IssuePagePublic],
+    response_model=McpAnswer[McpIssue],
 )
 def unarchive_issue(
     session: SessionDep,
@@ -710,7 +787,7 @@ def unarchive_issue(
     assistant: McpAssistantName,
     issue_id: uuid.UUID,
     body: McpUnarchiveIssue,
-) -> McpAnswer[IssuePagePublic]:
+) -> McpAnswer[McpIssue]:
     issue = _mcp_issue(session, workspace, issue_id)
     if issue.state is IssueState.ARCHIVED:
         issue = crud.set_issue_state(
@@ -1421,12 +1498,17 @@ def _task_steps(task: Task) -> list[str]:
         ]
     if task.kind is TaskKind.ISSUE_FIX:
         return [
-            f"Call `get_issue` with issue_id `{task.ref}`, and open its calls with "
-            "`get_call` to find the cause.",
+            f"Call `get_issue` with issue_id `{task.ref}` for everything about it: the "
+            "check behind it, what its findings record, its setting and the versions "
+            "it was found on.",
+            f"Call `list_calls` with issue_id `{task.ref}` (and a `limit`) for the "
+            "calls it was found on with its findings in each; open any call in full "
+            "with `get_call`. Find the cause.",
             "Propose the fix to the person. A change to the agent is made with their "
             "approval, outside Connexity; Connexity never changes an agent.",
-            "Once the fix is live, the person resolves the issue in Connexity; if they "
-            "decide not to fix it, `archive_issue` with their reason.",
+            "Once the version with the fix is live, call `mark_issue_fixed` with that "
+            "version. If the person decides not to fix it, `archive_issue` with their "
+            "reason.",
         ]
     return []
 

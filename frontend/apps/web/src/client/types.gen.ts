@@ -5147,40 +5147,6 @@ export type McpAnswerClarificationsAnsweredPublic = {
 };
 
 /**
- * McpAnswer[IssuePagePublic]
- */
-export type McpAnswerIssuePagePublic = {
-  /**
-   * The facts: the result of the call
-   */
-  data: IssuePagePublic;
-  /**
-   * Rules
-   *
-   * The rules that apply to what was returned, one sentence each
-   */
-  rules?: Array<string>;
-  /**
-   * Next Steps
-   *
-   * Steps the assistant can take next, in order, naming the tool
-   */
-  next_steps?: Array<string>;
-  /**
-   * Guide
-   *
-   * The guide for this part of Connexity
-   */
-  guide: string;
-  /**
-   * Next Cursor
-   *
-   * On lists: pass as `cursor` for the next page; empty on the last
-   */
-  next_cursor?: string | null;
-};
-
-/**
  * McpAnswer[McpAddedAgents]
  */
 export type McpAnswerMcpAddedAgents = {
@@ -5256,6 +5222,40 @@ export type McpAnswerMcpConnection = {
    * The facts: the result of the call
    */
   data: McpConnection;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
+ * McpAnswer[McpIssue]
+ */
+export type McpAnswerMcpIssue = {
+  /**
+   * The facts: the result of the call
+   */
+  data: McpIssue;
   /**
    * Rules
    *
@@ -5885,6 +5885,56 @@ export type McpArchiveIssue = {
 };
 
 /**
+ * McpCallItem
+ */
+export type McpCallItem = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Started At
+   */
+  started_at: string;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Name
+   */
+  agent_name: string;
+  /**
+   * Caller Last Four
+   *
+   * The caller's last four digits; never the number
+   */
+  caller_last_four?: string | null;
+  /**
+   * Duration Seconds
+   */
+  duration_seconds?: number | null;
+  result: CallCheckStatus;
+  worst_finding?: WorstFindingPublic | null;
+  /**
+   * With an issue filter: where the issue first happened in the call
+   */
+  moment?: IssueMomentPublic | null;
+  /**
+   * Agent Version
+   *
+   * With issue_id: the agent version the call ran
+   */
+  agent_version?: string | null;
+  /**
+   * Issue Findings
+   *
+   * With issue_id: that issue's findings on the call
+   */
+  issue_findings?: Array<McpIssueFinding> | null;
+};
+
+/**
  * McpCalls
  */
 export type McpCalls = {
@@ -5895,7 +5945,7 @@ export type McpCalls = {
   /**
    * Calls
    */
-  calls: Array<CallListItemPublic>;
+  calls: Array<McpCallItem>;
 };
 
 /**
@@ -6076,6 +6126,241 @@ export type McpHeldTask = {
    * The session's name; empty when it gave none
    */
   session: string;
+};
+
+/**
+ * McpIssue
+ *
+ * Everything Connexity has about one issue. The calls themselves come from
+ * `list_calls` with the issue's id.
+ */
+export type McpIssue = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Title
+   *
+   * The check's name and, if it has one, the key
+   */
+  title: string;
+  /**
+   * Check Type
+   */
+  check_type: string;
+  /**
+   * Key
+   */
+  key?: string | null;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Name
+   */
+  agent_name: string;
+  category: CallFilterOption;
+  /**
+   * Severity
+   */
+  severity: 'critical' | 'warning';
+  found_by: CheckKind;
+  state: IssueState;
+  /**
+   * Resolved Version
+   */
+  resolved_version?: string | null;
+  /**
+   * While archived: who, when, how long and why
+   */
+  archive?: IssueArchivePublic | null;
+  tiles: IssuePageTilesPublic;
+  chain: IssueChainPublic;
+  /**
+   * Days
+   *
+   * The last 30 days, oldest first
+   */
+  days: Array<IssueDayPublic>;
+  /**
+   * Marks
+   *
+   * Marks on the chart, oldest first
+   */
+  marks: Array<IssueMarkPublic>;
+  /**
+   * Peak
+   *
+   * The most calls on one day in the period
+   */
+  peak: number;
+  /**
+   * Affected Calls
+   *
+   * The latest 10 calls in the period, newest first, one row per call
+   */
+  affected_calls: Array<IssueAffectedCallPublic>;
+  /**
+   * History
+   *
+   * Decisions about it, newest first, ending with when it was opened
+   */
+  history: Array<IssueHistoryPublic>;
+  /**
+   * None when the check has since been removed
+   */
+  check?: McpIssueCheck | null;
+  setting?: McpIssueSetting | null;
+  /**
+   * Versions
+   *
+   * Affected calls per agent version, last 30 days, most first
+   */
+  versions: Array<McpIssueVersion>;
+  /**
+   * Live Version
+   *
+   * The agent version on the agent's newest call
+   */
+  live_version?: string | null;
+  /**
+   * Findings All Time
+   *
+   * Findings of this issue, ever
+   */
+  findings_all_time: number;
+  /**
+   * Calls All Time
+   *
+   * Calls it was found on, ever
+   */
+  calls_all_time: number;
+};
+
+/**
+ * McpIssueCheck
+ *
+ * The check that finds the issue, as the registry has it now.
+ */
+export type McpIssueCheck = {
+  /**
+   * Type
+   */
+  type: string;
+  /**
+   * Title
+   */
+  title: string;
+  /**
+   * Description
+   */
+  description: string;
+  /**
+   * code_based, classifier or judge
+   */
+  kind: CheckKind;
+  /**
+   * Version
+   *
+   * The check's current version
+   */
+  version: number;
+  /**
+   * Provider
+   *
+   * For a model check: who runs the model
+   */
+  provider?: string | null;
+  /**
+   * Model
+   *
+   * For a model check: the pinned model
+   */
+  model?: string | null;
+  /**
+   * Needs
+   *
+   * What a call's trace must have for the check to run on it
+   */
+  needs: Array<string>;
+  /**
+   * Detail Fields
+   *
+   * What each key of a finding's detail means
+   */
+  detail_fields: {
+    [key: string]: string;
+  };
+};
+
+/**
+ * McpIssueFinding
+ *
+ * One finding of the filtered issue on a call.
+ */
+export type McpIssueFinding = {
+  /**
+   * Event Ids
+   *
+   * The call's timeline events it points at; `get_call` shows them
+   */
+  event_ids: Array<string>;
+  /**
+   * Detail
+   *
+   * What the check recorded; `get_issue` says what each key means
+   */
+  detail?: {
+    [key: string]: JsonValue;
+  } | null;
+  /**
+   * flags, or fails the call
+   */
+  effect: FindingEffect;
+  /**
+   * Check Version
+   */
+  check_version: number;
+};
+
+/**
+ * McpIssueSetting
+ */
+export type McpIssueSetting = {
+  /**
+   * What the check does for this agent now
+   */
+  mode: CheckMode;
+  /**
+   * The issue type's default
+   */
+  default: CheckMode;
+  /**
+   * Since
+   *
+   * When a person last changed it; none if never
+   */
+  since?: string | null;
+};
+
+/**
+ * McpIssueVersion
+ */
+export type McpIssueVersion = {
+  /**
+   * Version
+   *
+   * The agent version; none if unreported
+   */
+  version: string | null;
+  /**
+   * Calls
+   *
+   * Calls on it the issue was found on, last 30 days
+   */
+  calls: number;
 };
 
 /**
@@ -12858,7 +13143,7 @@ export type McpGetIssueResponses = {
   /**
    * Successful Response
    */
-  200: McpAnswerIssuePagePublic;
+  200: McpAnswerMcpIssue;
 };
 
 export type McpGetIssueResponse = McpGetIssueResponses[keyof McpGetIssueResponses];
@@ -12916,7 +13201,7 @@ export type McpMarkIssueFixedResponses = {
   /**
    * Successful Response
    */
-  200: McpAnswerIssuePagePublic;
+  200: McpAnswerMcpIssue;
 };
 
 export type McpMarkIssueFixedResponse =
@@ -12975,7 +13260,7 @@ export type McpArchiveIssueResponses = {
   /**
    * Successful Response
    */
-  200: McpAnswerIssuePagePublic;
+  200: McpAnswerMcpIssue;
 };
 
 export type McpArchiveIssueResponse = McpArchiveIssueResponses[keyof McpArchiveIssueResponses];
@@ -13033,7 +13318,7 @@ export type McpUnarchiveIssueResponses = {
   /**
    * Successful Response
    */
-  200: McpAnswerIssuePagePublic;
+  200: McpAnswerMcpIssue;
 };
 
 export type McpUnarchiveIssueResponse =

@@ -7893,51 +7893,6 @@ export const McpAnswer_ClarificationsAnsweredPublic_Schema = {
   title: 'McpAnswer[ClarificationsAnsweredPublic]',
 } as const;
 
-export const McpAnswer_IssuePagePublic_Schema = {
-  properties: {
-    data: {
-      $ref: '#/components/schemas/IssuePagePublic',
-      description: 'The facts: the result of the call',
-    },
-    rules: {
-      items: {
-        type: 'string',
-      },
-      type: 'array',
-      title: 'Rules',
-      description: 'The rules that apply to what was returned, one sentence each',
-    },
-    next_steps: {
-      items: {
-        type: 'string',
-      },
-      type: 'array',
-      title: 'Next Steps',
-      description: 'Steps the assistant can take next, in order, naming the tool',
-    },
-    guide: {
-      type: 'string',
-      title: 'Guide',
-      description: 'The guide for this part of Connexity',
-    },
-    next_cursor: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Next Cursor',
-      description: 'On lists: pass as `cursor` for the next page; empty on the last',
-    },
-  },
-  type: 'object',
-  required: ['data', 'guide'],
-  title: 'McpAnswer[IssuePagePublic]',
-} as const;
-
 export const McpAnswer_McpAddedAgents_Schema = {
   properties: {
     data: {
@@ -8071,6 +8026,51 @@ export const McpAnswer_McpConnection_Schema = {
   type: 'object',
   required: ['data', 'guide'],
   title: 'McpAnswer[McpConnection]',
+} as const;
+
+export const McpAnswer_McpIssue_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/McpIssue',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[McpIssue]',
 } as const;
 
 export const McpAnswer_McpIssues_Schema = {
@@ -8882,6 +8882,107 @@ export const McpArchiveIssueSchema = {
   title: 'McpArchiveIssue',
 } as const;
 
+export const McpCallItemSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    started_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Started At',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    agent_name: {
+      type: 'string',
+      title: 'Agent Name',
+    },
+    caller_last_four: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Caller Last Four',
+      description: "The caller's last four digits; never the number",
+    },
+    duration_seconds: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Duration Seconds',
+    },
+    result: {
+      $ref: '#/components/schemas/CallCheckStatus',
+    },
+    worst_finding: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/WorstFindingPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    moment: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/IssueMomentPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'With an issue filter: where the issue first happened in the call',
+    },
+    agent_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Version',
+      description: 'With issue_id: the agent version the call ran',
+    },
+    issue_findings: {
+      anyOf: [
+        {
+          items: {
+            $ref: '#/components/schemas/McpIssueFinding',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Issue Findings',
+      description: "With issue_id: that issue's findings on the call",
+    },
+  },
+  type: 'object',
+  required: ['id', 'started_at', 'agent_id', 'agent_name', 'result'],
+  title: 'McpCallItem',
+} as const;
+
 export const McpCallsSchema = {
   properties: {
     tiles: {
@@ -8890,7 +8991,7 @@ export const McpCallsSchema = {
     },
     calls: {
       items: {
-        $ref: '#/components/schemas/CallListItemPublic',
+        $ref: '#/components/schemas/McpCallItem',
       },
       type: 'array',
       title: 'Calls',
@@ -9146,6 +9247,364 @@ export const McpHeldTaskSchema = {
   type: 'object',
   required: ['task', 'person', 'assistant', 'session'],
   title: 'McpHeldTask',
+} as const;
+
+export const McpIssueSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    title: {
+      type: 'string',
+      title: 'Title',
+      description: "The check's name and, if it has one, the key",
+    },
+    check_type: {
+      type: 'string',
+      title: 'Check Type',
+    },
+    key: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Key',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    agent_name: {
+      type: 'string',
+      title: 'Agent Name',
+    },
+    category: {
+      $ref: '#/components/schemas/CallFilterOption',
+    },
+    severity: {
+      type: 'string',
+      enum: ['critical', 'warning'],
+      title: 'Severity',
+    },
+    found_by: {
+      $ref: '#/components/schemas/CheckKind',
+    },
+    state: {
+      $ref: '#/components/schemas/IssueState',
+    },
+    resolved_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Resolved Version',
+    },
+    archive: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/IssueArchivePublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'While archived: who, when, how long and why',
+    },
+    tiles: {
+      $ref: '#/components/schemas/IssuePageTilesPublic',
+    },
+    chain: {
+      $ref: '#/components/schemas/IssueChainPublic',
+    },
+    days: {
+      items: {
+        $ref: '#/components/schemas/IssueDayPublic',
+      },
+      type: 'array',
+      title: 'Days',
+      description: 'The last 30 days, oldest first',
+    },
+    marks: {
+      items: {
+        $ref: '#/components/schemas/IssueMarkPublic',
+      },
+      type: 'array',
+      title: 'Marks',
+      description: 'Marks on the chart, oldest first',
+    },
+    peak: {
+      type: 'integer',
+      title: 'Peak',
+      description: 'The most calls on one day in the period',
+    },
+    affected_calls: {
+      items: {
+        $ref: '#/components/schemas/IssueAffectedCallPublic',
+      },
+      type: 'array',
+      title: 'Affected Calls',
+      description: 'The latest 10 calls in the period, newest first, one row per call',
+    },
+    history: {
+      items: {
+        $ref: '#/components/schemas/IssueHistoryPublic',
+      },
+      type: 'array',
+      title: 'History',
+      description: 'Decisions about it, newest first, ending with when it was opened',
+    },
+    check: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/McpIssueCheck',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'None when the check has since been removed',
+    },
+    setting: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/McpIssueSetting',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    versions: {
+      items: {
+        $ref: '#/components/schemas/McpIssueVersion',
+      },
+      type: 'array',
+      title: 'Versions',
+      description: 'Affected calls per agent version, last 30 days, most first',
+    },
+    live_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Live Version',
+      description: "The agent version on the agent's newest call",
+    },
+    findings_all_time: {
+      type: 'integer',
+      title: 'Findings All Time',
+      description: 'Findings of this issue, ever',
+    },
+    calls_all_time: {
+      type: 'integer',
+      title: 'Calls All Time',
+      description: 'Calls it was found on, ever',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'title',
+    'check_type',
+    'agent_id',
+    'agent_name',
+    'category',
+    'severity',
+    'found_by',
+    'state',
+    'tiles',
+    'chain',
+    'days',
+    'marks',
+    'peak',
+    'affected_calls',
+    'history',
+    'versions',
+    'findings_all_time',
+    'calls_all_time',
+  ],
+  title: 'McpIssue',
+  description:
+    "Everything Connexity has about one issue. The calls themselves come from\n`list_calls` with the issue's id.",
+} as const;
+
+export const McpIssueCheckSchema = {
+  properties: {
+    type: {
+      type: 'string',
+      title: 'Type',
+    },
+    title: {
+      type: 'string',
+      title: 'Title',
+    },
+    description: {
+      type: 'string',
+      title: 'Description',
+    },
+    kind: {
+      $ref: '#/components/schemas/CheckKind',
+      description: 'code_based, classifier or judge',
+    },
+    version: {
+      type: 'integer',
+      title: 'Version',
+      description: "The check's current version",
+    },
+    provider: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Provider',
+      description: 'For a model check: who runs the model',
+    },
+    model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Model',
+      description: 'For a model check: the pinned model',
+    },
+    needs: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Needs',
+      description: "What a call's trace must have for the check to run on it",
+    },
+    detail_fields: {
+      additionalProperties: {
+        type: 'string',
+      },
+      type: 'object',
+      title: 'Detail Fields',
+      description: "What each key of a finding's detail means",
+    },
+  },
+  type: 'object',
+  required: ['type', 'title', 'description', 'kind', 'version', 'needs', 'detail_fields'],
+  title: 'McpIssueCheck',
+  description: 'The check that finds the issue, as the registry has it now.',
+} as const;
+
+export const McpIssueFindingSchema = {
+  properties: {
+    event_ids: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Event Ids',
+      description: "The call's timeline events it points at; `get_call` shows them",
+    },
+    detail: {
+      anyOf: [
+        {
+          additionalProperties: {
+            $ref: '#/components/schemas/JsonValue',
+          },
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Detail',
+      description: 'What the check recorded; `get_issue` says what each key means',
+    },
+    effect: {
+      $ref: '#/components/schemas/FindingEffect',
+      description: 'flags, or fails the call',
+    },
+    check_version: {
+      type: 'integer',
+      title: 'Check Version',
+    },
+  },
+  type: 'object',
+  required: ['event_ids', 'effect', 'check_version'],
+  title: 'McpIssueFinding',
+  description: 'One finding of the filtered issue on a call.',
+} as const;
+
+export const McpIssueSettingSchema = {
+  properties: {
+    mode: {
+      $ref: '#/components/schemas/CheckMode',
+      description: 'What the check does for this agent now',
+    },
+    default: {
+      $ref: '#/components/schemas/CheckMode',
+      description: "The issue type's default",
+    },
+    since: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Since',
+      description: 'When a person last changed it; none if never',
+    },
+  },
+  type: 'object',
+  required: ['mode', 'default'],
+  title: 'McpIssueSetting',
+} as const;
+
+export const McpIssueVersionSchema = {
+  properties: {
+    version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version',
+      description: 'The agent version; none if unreported',
+    },
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+      description: 'Calls on it the issue was found on, last 30 days',
+    },
+  },
+  type: 'object',
+  required: ['version', 'calls'],
+  title: 'McpIssueVersion',
 } as const;
 
 export const McpIssuesSchema = {
