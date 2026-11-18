@@ -1029,7 +1029,7 @@ async def test_answer_clarifications_sends_each_answer() -> None:
         )
         assert json.loads(request.content) == {
             "answers": [
-                {"clarification_id": "c1", "answer": "b"},
+                {"clarification_id": "c1", "answer": "b", "proposed": True},
                 {"clarification_id": "c2", "answer": "park"},
             ]
         }
@@ -1059,7 +1059,7 @@ async def test_answer_clarifications_sends_each_answer() -> None:
             client,
             workspace_id=WORKSPACE_ID,
             answers=[
-                AnswerToGive(clarification_id="c1", answer="b"),
+                AnswerToGive(clarification_id="c1", answer="b", proposed=True),
                 AnswerToGive(clarification_id="c2", answer="park"),
             ],
         ),

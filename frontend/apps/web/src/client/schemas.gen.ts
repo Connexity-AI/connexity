@@ -3613,6 +3613,12 @@ export const ClarificationPublicSchema = {
       title: 'Answer Text',
       description: "For 'other': the person's words, now the rule",
     },
+    answer_proposed: {
+      type: 'boolean',
+      title: 'Answer Proposed',
+      description: 'The assistant proposed the answer and the person confirmed it',
+      default: false,
+    },
     answer_spec_version: {
       anyOf: [
         {
@@ -9612,6 +9618,13 @@ export const McpClarificationDecisionSchema = {
       ],
       title: 'Text',
       description: "For 'other': the person's own answer, as the rule the agent should follow",
+    },
+    proposed: {
+      type: 'boolean',
+      title: 'Proposed',
+      description:
+        'True when you proposed this answer and the person confirmed it; never for an answer they have not seen',
+      default: false,
     },
   },
   type: 'object',

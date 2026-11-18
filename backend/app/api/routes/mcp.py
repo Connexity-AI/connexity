@@ -145,7 +145,8 @@ from app.services.dashboard import dashboard
 from app.services.first_scan import SCAN_DAYS, scan_agents, scan_step
 from app.services.issue_list import IssueFilters, workspace_issues
 from app.services.issue_page import issue_page
-from app.services.onboarding import SPECS, STEPS_BY_KEY, for_assistant
+from app.services.onboarding import ANSWERS, SPECS, STEPS_BY_KEY, for_assistant
+from app.services.onboarding_finish import finish_onboarding, onboarding_complete
 from app.services.retell import (
     dedupe_retell_agents,
     list_retell_agents,
@@ -160,7 +161,7 @@ from app.services.scenario import (
     write_scenario_set,
     write_scenarios,
 )
-from app.services.score import onboarding_complete, score, scores_by_agent
+from app.services.score import score, scores_by_agent
 from app.services.spec import (
     RuleDraft,
     SpecRefused,
@@ -1221,6 +1222,9 @@ _CLARIFICATION_RULES = [
     "`text`: it becomes the rule as written.",
     "An answer is final. To change one, raise a clarification that replaces its rule "
     "(`replaces_key`), quoting the earlier answer.",
+    "You may propose answers where the spec, the prompt or the calls support them, "
+    "saying why; the person confirms them, as a batch if they like. Mark an answer "
+    "they confirmed from your proposal `proposed`; never send one they have not seen.",
     "calls_seen counts the calls given as evidence; a question raised from a prompt "
     "change may have none.",
     "Open questions are listed most important first: seen on more calls, then touching "
@@ -1363,7 +1367,8 @@ def answer_workspace_clarifications(
             session=session,
             company_id=workspace.id,
             decisions=[
-                Decision(a.clarification_id, a.answer, a.text) for a in body.answers
+                Decision(a.clarification_id, a.answer, a.text, a.proposed)
+                for a in body.answers
             ],
             decided_by=current_user,
             assistant_name=assistant or "your assistant",
@@ -1374,10 +1379,12 @@ def answer_workspace_clarifications(
             "Fix these and call `answer_clarifications` again with every answer; "
             "nothing was recorded.",
         ) from None
+    finished = finish_onboarding(session=session, company_id=workspace.id)
     data = answered_public(session=session, company_id=workspace.id, result=result)
     steps = [
+        *([_dashboard_ready(session, workspace.id)] if finished else []),
         "Tell the person what was recorded: their answers are now spec rules, carried "
-        "into every later version, and recorded as theirs."
+        "into every later version, and recorded as theirs.",
     ]
     if data.open:
         steps.append(
@@ -1460,8 +1467,8 @@ _SCORE_RULE = (
 _TASK_RULES = [
     "Connexity sorts the workspace's tasks; take them in its order and do not pick "
     "your own. The order: incidents, then Critical tasks, then setup (onboarding steps, "
-    "then specs), then everything else, most calls first. A task that blocks a higher "
-    "one sits above it.",
+    "then specs, then the open questions while onboarding runs), then everything else, "
+    "most calls first. A task that blocks a higher one sits above it.",
     "Asking for your next task ends this one: done when its work is gone; waiting for "
     "the person when the rest is theirs (resolving an issue); otherwise it goes back to "
     "its place in the list. A review of calls is done once handed out.",
@@ -1513,6 +1520,8 @@ def _task_steps(task: Task) -> list[str]:
     if task.kind is TaskKind.ONBOARDING:
         step = STEPS_BY_KEY.get(task.key.removeprefix("onboarding:"))
         own = [for_assistant(item.text) for item in step.instructions] if step else []
+        if step is not None and step.key == ANSWERS:
+            return own
         return [
             *own,
             "Call `get_readiness` to see where setup stands and do its next step with "
@@ -1581,6 +1590,22 @@ def _waiting_steps(waiting: list[Task]) -> list[str]:
     return steps
 
 
+def _dashboard_ready(session: SessionDep, company_id: uuid.UUID) -> str:
+    """The step for the moment onboarding completes: the dashboard is ready."""
+    page = dashboard(session=session, company_id=company_id)
+    link = f"{settings.public_site_url or ''}/dashboard"
+    base = f"{page.calls} {'call' if page.calls == 1 else 'calls'} in the last 30 days"
+    found = (
+        f"score {page.score.score}, {page.failed} failed calls"
+        if page.score.score is not None
+        else f"{page.failed} failed calls"
+    )
+    return (
+        f'Onboarding is complete. Tell the person "Your dashboard is ready": {link}, '
+        f"with what it shows first ({found}, over {base}), then what comes next."
+    )
+
+
 @router.get(
     "/workspaces/{workspace_id}/next-task",
     response_model=McpAnswer[McpNextTask],
@@ -1597,6 +1622,7 @@ def get_next_task(
         description="This session's name, the same on every call in it",
     ),
 ) -> McpAnswer[McpNextTask]:
+    finished = finish_onboarding(session=session, company_id=workspace.id)
     result = next_task(
         session=session,
         company_id=workspace.id,
@@ -1604,7 +1630,7 @@ def get_next_task(
         assistant_name=assistant,
         session_name=session_name,
     )
-    steps: list[str] = []
+    steps: list[str] = [_dashboard_ready(session, workspace.id)] if finished else []
     if result.ended is not None and result.ended.state is AssistantTaskState.WAITING:
         steps.append(
             f'Tell the person "{result.ended.title}" now waits for them to resolve '

@@ -33,10 +33,11 @@ def test_the_public_route_serves_the_steps_in_order_without_a_login(
         "sync",
         "first_scan",
         "specs",
+        "answers",
     ]
     assert steps[0]["who"] == "person"
     assert {s["who"] for s in steps[1:]} == {"assistant"}
-    specs = steps[-1]["instructions"][0]
+    specs = next(s for s in steps if s["key"] == "specs")["instructions"][0]
     # Neutral words on the public page; the guide stays a link for the page.
     assert "each agent" in specs and "[[spec]]" in specs and "{" not in specs
     assert "30 days" in steps[3]["done_when"]
@@ -77,6 +78,7 @@ def test_swapping_two_steps_swaps_them_everywhere(
         by_key["sync"],
         by_key["first_scan"],
         by_key["specs"],
+        by_key["answers"],
     )
     monkeypatch.setattr(onboarding, "ONBOARDING_STEPS", swapped)
     monkeypatch.setattr(work, "ONBOARDING_STEPS", swapped)

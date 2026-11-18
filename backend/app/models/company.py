@@ -50,6 +50,12 @@ class Company(SQLModel, table=True):
         default=None,
         sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
     )
+    # When onboarding was first complete (`services/onboarding_finish.py`). Stays set:
+    # a question raised later does not reopen onboarding.
+    onboarding_completed_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+    )
 
     # ── Per-tenant LLM credentials ─────────────────────────────────────
     # Encrypted (Fernet) provider keys + masked previews for the UI. At least

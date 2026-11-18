@@ -690,6 +690,7 @@ class Clarification(BaseModel):
     raised_at: str
     answer: str | None = None
     answer_text: str | None = None
+    answer_proposed: bool = False
     answer_spec_version: int | None = None
     decided_by: str | None = None
     decided_assistant: str | None = None
@@ -762,6 +763,11 @@ class AnswerToGive(BaseModel):
         default=None,
         description="For 'other': the person's own answer, as the rule the agent "
         "should follow",
+    )
+    proposed: bool = Field(
+        default=False,
+        description="True when you proposed this answer and the person confirmed it; "
+        "never for an answer they have not seen",
     )
 
 

@@ -689,8 +689,8 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         `text` when none of the choices fits), park questions (`park`), or bring a
         parked one back (`reopen`); each answer's rule is added to its agent's spec in
         a new version. The person's decision: ask them in your chat and confirm every
-        answer first. One left to you is still recorded as theirs. An answer is
-        final."""
+        answer first; answers you proposed and they confirmed are marked `proposed`.
+        One left to you is still recorded as theirs. An answer is final."""
         return await _answer_clarifications(
             client=backend_client, workspace_id=workspace_id, answers=answers
         )

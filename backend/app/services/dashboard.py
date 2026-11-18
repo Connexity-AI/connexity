@@ -8,7 +8,7 @@ over 7, 30 or 90 days (roadmap 10.191; design `designs/screens/Connexity Home.dc
   they only degraded them, Healthy when one of its checks ran on the period's calls and
   found nothing, Not checked yet otherwise, with what it waits for. Never green before
   checked.
-- **Onboarding strip** while scan, specs and answers are not all done.
+- **Onboarding strip** until onboarding is complete (`services/onboarding_finish.py`).
 """
 
 import uuid
@@ -19,7 +19,6 @@ from sqlmodel import Session, col, select
 
 from app import crud
 from app.crud.call_list import PERIODS
-from app.crud.clarification import state_counts
 from app.crud.dashboard import area_counts, calls_per_day, checks_that_ran
 from app.crud.issue_page import agent_version_starts
 from app.crud.latency import reply_gap_percentiles
@@ -35,12 +34,10 @@ from app.models.dashboard import (
     DashboardPublic,
     DashboardStep,
 )
-from app.models.enums import ClarificationState
-from app.models.readiness import ReadinessStepKey, ReadinessStepState
 from app.services.checks.registry import CHECKS
 from app.services.issue_list import issue_title
+from app.services.onboarding_finish import onboarding_complete, progress
 from app.services.score import score
-from app.services.spec import agents_needing_specs
 
 _ORDER = {"critical": 0, "warning": 1, "healthy": 2, "not_checked": 3}
 
@@ -52,28 +49,19 @@ def _share(part: int, whole: int) -> float | None:
 def _onboarding(
     session: Session, company_id: uuid.UUID, areas_checked: int, areas_total: int
 ) -> DashboardOnboarding | None:
-    readiness = crud.get_readiness(session=session, company_id=company_id, mcp_url=None)
-    scanned = any(
-        step.key is ReadinessStepKey.FIRST_SCAN
-        and step.state is ReadinessStepState.DONE
-        for step in readiness.steps
-    )
-    specs = scanned and not agents_needing_specs(session=session, company_id=company_id)
-    counts = state_counts(session=session, company_id=company_id)
-    answered = counts[ClarificationState.ANSWERED]
-    total = answered + counts[ClarificationState.OPEN]
-    answers = specs and counts[ClarificationState.OPEN] == 0
-    complete = scanned and specs and answers
-    if complete:
+    """The strip, until onboarding is complete (stored once, `onboarding_finish`)."""
+    if onboarding_complete(session=session, company_id=company_id):
         return None
+    now = progress(session=session, company_id=company_id)
+    total = now.answered + now.open
     return DashboardOnboarding(
         steps=[
-            DashboardStep(key="scan", label="Scan", done=scanned),
-            DashboardStep(key="spec", label="Spec", done=specs),
+            DashboardStep(key="scan", label="Scan", done=now.scanned),
+            DashboardStep(key="spec", label="Spec", done=now.specs),
             DashboardStep(
                 key="answers",
-                label=f"Answers {answered} of {total}" if total else "Answers",
-                done=answers,
+                label=f"Answers {now.answered} of {total}" if total else "Answers",
+                done=now.answers,
             ),
             DashboardStep(key="complete", label="Complete", done=False),
         ],

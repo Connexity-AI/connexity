@@ -127,6 +127,8 @@ class Answer(NamedTuple):
     letter: str
     # For OTHER: the person's own words.
     text: str | None = None
+    # The assistant proposed it and the person confirmed it.
+    proposed: bool = False
 
 
 def rule_text(clarification: Clarification, letter: str, text: str | None) -> str:
@@ -218,14 +220,17 @@ def decide(
     decided_by: User,
     assistant_name: str | None,
     text: str | None = None,
+    proposed: bool = False,
 ) -> None:
     """Record an answer, park or reopen on the clarification and as a decision record.
-    Does not commit."""
+    ``proposed``: the assistant proposed the answer and the person confirmed it. Does
+    not commit."""
     old = clarification.state
     clarification.state = state
     clarification.answer = letter
     clarification.answer_text = text if letter == OTHER else None
     clarification.answer_spec_id = answer_spec.id if answer_spec else None
+    clarification.answer_proposed = proposed and state is ClarificationState.ANSWERED
     clarification.decided_by = decided_by.id
     clarification.decided_by_email = decided_by.email
     clarification.decided_assistant = assistant_name
@@ -242,6 +247,8 @@ def decide(
         detail = {
             "rule": rule_text(clarification, letter, text),
             "spec_version": answer_spec.version,
+            # Only for an answer the assistant proposed and the person confirmed.
+            **({"proposed": True} if proposed else {}),
         }
     session.add(
         DecisionRecord(
