@@ -154,6 +154,9 @@ import type {
   CustomMetricsUpdateCustomMetricData,
   CustomMetricsUpdateCustomMetricErrors,
   CustomMetricsUpdateCustomMetricResponses,
+  DashboardReadDashboardData,
+  DashboardReadDashboardErrors,
+  DashboardReadDashboardResponses,
   EnvironmentsCreateEnvironmentData,
   EnvironmentsCreateEnvironmentErrors,
   EnvironmentsCreateEnvironmentResponses,
@@ -273,6 +276,9 @@ import type {
   McpGetCallData,
   McpGetCallErrors,
   McpGetCallResponses,
+  McpGetDashboardData,
+  McpGetDashboardErrors,
+  McpGetDashboardResponses,
   McpGetIssueData,
   McpGetIssueErrors,
   McpGetIssueResponses,
@@ -1111,6 +1117,34 @@ export class ReadinessService {
   }
 }
 
+export class DashboardService {
+  /**
+   * Read Dashboard
+   *
+   * Where the workspace stands, for all its agents or one, over the period.
+   */
+  public static readDashboard<ThrowOnError extends boolean = false>(
+    options?: Options<DashboardReadDashboardData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      DashboardReadDashboardResponses,
+      DashboardReadDashboardErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/dashboard',
+      ...options,
+    });
+  }
+}
+
 export class OnboardingService {
   /**
    * Read Onboarding Steps
@@ -1594,6 +1628,23 @@ export class McpService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+    });
+  }
+
+  /**
+   * Get Dashboard
+   */
+  public static getDashboard<ThrowOnError extends boolean = false>(
+    options: Options<McpGetDashboardData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      McpGetDashboardResponses,
+      McpGetDashboardErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/dashboard',
+      ...options,
     });
   }
 

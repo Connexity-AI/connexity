@@ -35,6 +35,24 @@ export class UrlGenerator {
     return '/issues/' as Route;
   }
 
+  /** Issues of one area (a category key) over the same period and agent, as the
+   * Dashboard's area rows link. */
+  static issuesInArea(category: string, options?: { period?: string; agent?: string | null }) {
+    const query = new URLSearchParams({ category });
+    if (options?.period) query.set('period', options.period);
+    if (options?.agent) query.set('agent', options.agent);
+    return `/issues/?${query.toString()}` as Route;
+  }
+
+  /** The Dashboard, for all agents or one, over a period. */
+  static dashboard(options?: { period?: string; agent?: string }) {
+    const query = new URLSearchParams();
+    if (options?.period && options.period !== '30d') query.set('period', options.period);
+    if (options?.agent) query.set('agent', options.agent);
+    const tail = query.toString();
+    return (tail ? `/dashboard/?${tail}` : '/dashboard/') as Route;
+  }
+
   static issue(id: string) {
     return `/issues/${id}/` as Route;
   }

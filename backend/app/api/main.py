@@ -13,6 +13,7 @@ from app.api.routes import (
     component_versions,
     config,
     custom_metrics,
+    dashboard,
     environments,
     eval_configs,
     google_auth,
@@ -51,6 +52,7 @@ api_router.include_router(google_auth.router)
 api_router.include_router(users.router)
 api_router.include_router(workspaces.router)
 api_router.include_router(readiness.router)
+api_router.include_router(dashboard.router)
 api_router.include_router(onboarding.router)
 api_router.include_router(personal_access_tokens.router)
 api_router.include_router(mcp.router)

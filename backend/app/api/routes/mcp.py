@@ -52,6 +52,7 @@ from app.models.clarification import (
     ClarificationPublic,
     ClarificationsAnsweredPublic,
 )
+from app.models.dashboard import DashboardPublic
 from app.models.enums import (
     AssistantTaskState,
     CallCheckStatus,
@@ -140,6 +141,7 @@ from app.services.connections import (
     voice_platform_key_status,
     webhook_address,
 )
+from app.services.dashboard import dashboard
 from app.services.first_scan import SCAN_DAYS, scan_agents, scan_step
 from app.services.issue_list import IssueFilters, workspace_issues
 from app.services.issue_page import issue_page
@@ -1768,6 +1770,62 @@ def move_workspace_task(
 def _step_text(key: str, instruction: str, *, agents: str = "each agent") -> str:
     """One of an onboarding step's instructions, as the assistant reads it."""
     return for_assistant(STEPS_BY_KEY[key].instruction(instruction).text, agents=agents)
+
+
+@router.get(
+    "/workspaces/{workspace_id}/dashboard",
+    response_model=McpAnswer[DashboardPublic],
+)
+def get_dashboard(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    agent_id: uuid.UUID | None = Query(default=None),
+    period: Literal["7d", "30d", "90d"] = "30d",
+) -> McpAnswer[DashboardPublic]:
+    if agent_id is not None:
+        _mcp_agent_in(session, workspace, agent_id)
+    page = dashboard(
+        session=session, company_id=workspace.id, period=period, agent_id=agent_id
+    )
+    next_steps: list[str] = []
+    worst = next(
+        (
+            a
+            for a in page.areas
+            if a.status in ("critical", "warning") and a.top_issue_id
+        ),
+        None,
+    )
+    if worst is not None:
+        next_steps.append(
+            f"The worst area is {worst.name} ({worst.status}): its top issue is "
+            f"{worst.top_issue_title}; call `get_issue` with issue_id "
+            f"{worst.top_issue_id}."
+        )
+    if page.onboarding is not None:
+        next_steps.append(
+            "Onboarding is not complete; call `get_next_task` for the next step."
+        )
+    next_steps.append(NEXT_TASK)
+    return McpAnswer[DashboardPublic](
+        data=page,
+        rules=[
+            "Where the workspace stands, the same picture as the Dashboard page: give "
+            "every number with its base (calls, agents, period).",
+            "A call is failed when a finding fails it, degraded when findings only flag "
+            "it; failed_share and degraded_share are of the period's calls.",
+            "Latency p50 and p95 are taken over every reply gap in the period (every "
+            "time the agent answered the caller); answers says how many.",
+            _SCORE_RULE,
+            "An area is critical when its findings failed calls, warning when they only "
+            "degraded them, healthy only when one of its checks ran on the period's "
+            "calls and found nothing, and not_checked otherwise (waits_for says why). "
+            "Never call an area healthy before it is checked.",
+            "onboarding is present while scan, specs and answers are not all done.",
+        ],
+        next_steps=next_steps,
+        guide=GUIDE_ISSUES,
+    )
 
 
 @router.get(

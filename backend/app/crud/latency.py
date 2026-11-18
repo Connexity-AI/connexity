@@ -58,13 +58,23 @@ class CallLatency(NamedTuple):
     seconds: float
 
 
-def call_latencies(
-    *, session: Session, agent_ids: list[uuid.UUID], since: datetime
-) -> list[CallLatency]:
-    """The latency of every call of these agents that started since ``since`` and has
-    one."""
+def _turns(
+    *,
+    session: Session,
+    agent_ids: list[uuid.UUID],
+    since: datetime,
+    until: datetime | None = None,
+) -> tuple[
+    dict[uuid.UUID, list[tuple[Speaker | None, int | None, int | None]]],
+    dict[uuid.UUID, tuple[uuid.UUID, date]],
+]:
+    """Each call's turns in order, and its agent and day, for calls of these agents
+    that started in ``[since, until)``."""
     if not agent_ids:
-        return []
+        return {}, {}
+    window = [col(Call.started_at) >= since.astimezone(UTC).replace(tzinfo=None)]
+    if until is not None:
+        window.append(col(Call.started_at) < until.astimezone(UTC).replace(tzinfo=None))
     rows = session.exec(
         select(
             Call.id,
@@ -78,7 +88,7 @@ def call_latencies(
         .where(
             col(Call.agent_id).in_(agent_ids),
             col(Call.deleted_at).is_(None),
-            col(Call.started_at) >= since.astimezone(UTC).replace(tzinfo=None),
+            *window,
             CallEvent.type == CallEventType.UTTERANCE,
         )
         .order_by(col(Call.id), col(CallEvent.start_ms), col(CallEvent.seq))
@@ -90,6 +100,15 @@ def call_latencies(
     for call_id, agent_id, started, speaker, start, end in rows:
         turns[call_id].append((speaker, start, end))
         meta[call_id] = (agent_id, started.date())
+    return turns, meta
+
+
+def call_latencies(
+    *, session: Session, agent_ids: list[uuid.UUID], since: datetime
+) -> list[CallLatency]:
+    """The latency of every call of these agents that started since ``since`` and has
+    one."""
+    turns, meta = _turns(session=session, agent_ids=agent_ids, since=since)
     out = []
     for call_id, call_turns in turns.items():
         seconds = call_latency(call_turns)
@@ -115,3 +134,33 @@ def agent_latencies(
         for agent_id, values in per_agent.items()
         if (value := average(values)) is not None
     }
+
+
+class GapPercentiles(NamedTuple):
+    p50: float | None
+    p95: float | None
+    # How many reply gaps they rest on.
+    answers: int
+
+
+def percentile(values: list[int], share: float) -> float:
+    """The nearest-rank percentile of ``values`` (in ms), in seconds."""
+    ordered = sorted(values)
+    rank = max(1, -(-len(ordered) * share // 1))  # ceil, at least the first
+    return round(ordered[int(rank) - 1] / 1000, 2)
+
+
+def reply_gap_percentiles(
+    *,
+    session: Session,
+    agent_ids: list[uuid.UUID],
+    since: datetime,
+    until: datetime | None = None,
+) -> GapPercentiles:
+    """p50 and p95, in seconds, over every reply gap of these agents' calls in the
+    window: every time an agent answered the caller (Dmytro, 2026-11-18)."""
+    turns, _ = _turns(session=session, agent_ids=agent_ids, since=since, until=until)
+    gaps = [gap for call_turns in turns.values() for gap in reply_gaps(call_turns)]
+    if not gaps:
+        return GapPercentiles(None, None, 0)
+    return GapPercentiles(percentile(gaps, 0.5), percentile(gaps, 0.95), len(gaps))

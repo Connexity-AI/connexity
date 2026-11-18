@@ -1,5 +1,5 @@
 import { UrlGenerator } from '@/common/url-generator/url-generator';
-import { Bot, Inbox, ListChecks, Phone } from 'lucide-react';
+import { Bot, Inbox, LayoutDashboard, ListChecks, Phone } from 'lucide-react';
 
 import type { LucideIcon } from 'lucide-react';
 import type { Route } from 'next';
@@ -23,6 +23,7 @@ export interface NavItem {
  */
 export const NAV_ITEMS: readonly NavItem[] = [
   { title: 'Work', url: UrlGenerator.work(), icon: ListChecks, counted: 'work' },
+  { title: 'Dashboard', url: UrlGenerator.dashboard(), icon: LayoutDashboard },
   { title: 'Agents', url: UrlGenerator.agents(), icon: Bot },
   { title: 'Calls', url: UrlGenerator.calls(), icon: Phone },
   { title: 'Issues', url: UrlGenerator.issues(), icon: Inbox },

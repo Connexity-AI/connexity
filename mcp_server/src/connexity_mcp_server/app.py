@@ -34,6 +34,7 @@ from connexity_mcp_server.models import (
     GetCallResult,
     GetNextTaskResult,
     ListTasksResult,
+    GetDashboardResult,
     GetReadinessResult,
     AgentResult,
     AnswerClarificationsResult,
@@ -86,6 +87,9 @@ from connexity_mcp_server.tools import (
 )
 from connexity_mcp_server.tools import (
     get_readiness as _get_readiness,
+)
+from connexity_mcp_server.tools import (
+    get_dashboard as _get_dashboard,
 )
 from connexity_mcp_server.tools import (
     list_agents as _list_agents,
@@ -743,6 +747,27 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         other sessions are working on, and how many tasks are left."""
         return await _get_next_task(
             client=backend_client, workspace_id=workspace_id, session=session
+        )
+
+    @mcp_server.tool(annotations=READ_ONLY)
+    async def get_dashboard(
+        workspace_id: WorkspaceId,
+        agent_id: Annotated[
+            str | None, Field(description="One agent. Leave empty for all agents.")
+        ] = None,
+        period: Period = None,
+    ) -> GetDashboardResult:
+        """Where the workspace stands, the same picture as its Dashboard page, for all
+        agents or one: calls, failed and degraded calls with their share, latency p50
+        and p95 over every reply gap, the score with its change, calls per day with
+        version marks, every area (category) as critical, warning, healthy or not
+        checked yet with its top issue, and the onboarding strip while onboarding
+        runs."""
+        return await _get_dashboard(
+            client=backend_client,
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            period=period,
         )
 
     @mcp_server.tool(annotations=READ_ONLY)

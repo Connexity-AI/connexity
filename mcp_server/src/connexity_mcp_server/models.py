@@ -315,6 +315,72 @@ ListWorkspacesResult = Answer[list[Workspace]]
 AddAgentsResult = Answer[AddedAgents]
 ConnectVoicePlatformResult = Answer[Connection]
 GetReadinessResult = Answer[Readiness]
+
+
+class DashboardStep(BaseModel):
+    key: str
+    label: str
+    done: bool
+
+
+class DashboardOnboarding(BaseModel):
+    steps: list[DashboardStep] = Field(default_factory=list)
+    areas_checked: int = 0
+    areas_total: int = 0
+
+
+class DashboardLatency(BaseModel):
+    p50: float | None = None
+    p95: float | None = None
+    answers: int = 0
+
+
+class DashboardDay(BaseModel):
+    day: str
+    calls: int
+    failed: int
+    degraded: int
+
+
+class DashboardMark(BaseModel):
+    day: str
+    version: str
+    agent_name: str
+
+
+class DashboardArea(BaseModel):
+    key: str
+    name: str
+    status: str
+    waits_for: str | None = None
+    failed: int = 0
+    degraded: int = 0
+    share: float | None = None
+    top_issue_id: str | None = None
+    top_issue_title: str | None = None
+
+
+class Dashboard(BaseModel):
+    """Where the workspace stands, for all agents or one, over the period."""
+
+    period: str
+    agent_id: str | None = None
+    agents: list[dict[str, str]] = Field(default_factory=list)
+    agents_counted: int = 0
+    calls: int = 0
+    onboarding: DashboardOnboarding | None = None
+    score: Score | None = None
+    failed: int = 0
+    failed_share: float | None = None
+    degraded: int = 0
+    degraded_share: float | None = None
+    latency: DashboardLatency | None = None
+    days: list[DashboardDay] = Field(default_factory=list)
+    marks: list[DashboardMark] = Field(default_factory=list)
+    areas: list[DashboardArea] = Field(default_factory=list)
+
+
+GetDashboardResult = Answer[Dashboard]
 GetNextTaskResult = Answer[NextTask]
 
 
