@@ -187,7 +187,7 @@ def test_calls_newest_first_with_the_caller_as_four_digits(
         "key": "schedule_appointment",
         "category": "Booking",
         "severity": "critical",
-        "found_by": "rule",
+        "found_by": "code_based",
     }
     assert rows[1]["result"] == "clean"
     assert rows[1]["worst_finding"] is None

@@ -122,6 +122,28 @@ async def test_call_llm_sets_reasoning_effort_none_when_supports_reasoning() -> 
     assert mock_completion.await_args.kwargs["reasoning_effort"] == "none"
 
 
+@pytest.mark.asyncio
+async def test_call_llm_leaves_claude_reasoning_alone() -> None:
+    # Current Claude models cannot turn thinking off, and LiteLLM fails before sending
+    # when it maps reasoning_effort='none' for them.
+    fake = _FakeLLMSettings()
+    with (
+        patch(
+            "app.services.llm.litellm.acompletion",
+            new_callable=AsyncMock,
+            return_value=_fake_response(),
+        ) as mock_completion,
+        patch("app.services.llm.supports_reasoning", return_value=True),
+    ):
+        await call_llm(
+            [LLMMessage(role="user", content="hi")],
+            LLMCallConfig(model="claude-haiku-5-5", provider="anthropic"),
+            app_settings=fake,
+        )
+    assert mock_completion.await_args is not None
+    assert "reasoning_effort" not in mock_completion.await_args.kwargs
+
+
 @pytest.mark.parametrize(
     ("model", "provider", "expected"),
     [

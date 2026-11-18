@@ -206,6 +206,7 @@ from app.models.integration import (  # noqa: F401
     ToolBackendSet,
     WorkflowSummary,
 )
+from app.models.model_answer import ModelAnswer  # noqa: F401
 from app.models.oauth import (  # noqa: F401
     OAuthAuthorizationCode,
     OAuthClient,

@@ -68,6 +68,10 @@ def _finalize_litellm_reasoning_kwargs(model: str, kwargs: dict[str, object]) ->
     """
     for key in _LITELLM_REASONING_KNOB_KEYS:
         kwargs.pop(key, None)
+    # Current Claude models cannot turn thinking off (a 400), and LiteLLM fails before
+    # sending when it maps reasoning_effort='none' for them. Leave their default.
+    if "claude" in model.lower():
+        return
     try:
         if not supports_reasoning(model=model):
             return

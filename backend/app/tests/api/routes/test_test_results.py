@@ -212,7 +212,7 @@ def test_a_critical_code_check_fails_the_version_and_its_call(
     finding = {
         "check_type": "tool_call_failed",
         "check_version": 1,
-        "kind": "rule",
+        "kind": "code_based",
         "mode": "fails",
         "key": "book_slot",
         "event_ids": ["t2-0"],

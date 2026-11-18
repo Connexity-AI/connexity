@@ -21,8 +21,8 @@ from app.services import call_pull
 from app.services.call_pull import run_pull
 from app.services.checks import engine
 from app.services.checks.base import CheckInput, Raised
+from app.services.checks.code.tool_call_failed import TOOL_CALL_FAILED
 from app.services.checks.engine import check_calls_needing_it
-from app.services.checks.rules.tool_call_failed import TOOL_CALL_FAILED
 from app.services.mappings.retell import retell_call_to_trace
 from app.tests.utils.retell_payloads import retell_call
 from app.tests.utils.utils import random_email, random_lower_string

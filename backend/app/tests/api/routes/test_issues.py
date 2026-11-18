@@ -14,7 +14,7 @@ from app.models import Agent, CallCheck, DecisionRecord
 from app.models.check import Issue
 from app.models.trace import Trace
 from app.services.checks import engine
-from app.services.checks.rules.tool_call_failed import TOOL_CALL_FAILED
+from app.services.checks.code.tool_call_failed import TOOL_CALL_FAILED
 from app.tests.api.routes.test_checks import (
     CHECK,
     _agent,

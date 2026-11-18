@@ -26,9 +26,10 @@ or the other filters.
 
 - **`severity`:** `critical` when its check fails the call, otherwise `warning`. Each
   check has a default; a person can change it per agent.
-- **`found_by`:** `rule` when deterministic code over the call found it, the same
-  answer every time; `model` when a classifier or judge did. Always tell the person
-  which.
+- **`found_by`:** `code_based` when deterministic code over the call found it, the
+  same answer every time; `classifier` when a small model labelled part of the call
+  and code turned the labels into the finding; `judge` when a language model read the
+  call. A model finding's `detail` names the model. Always tell the person which.
 - **`category`:** one of the fixed categories (see `connexity://guides/categories`).
 - **Its size:** `calls_affected` of `calls_total`, both in the period. Say "in 11 of
   78 calls".

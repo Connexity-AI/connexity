@@ -8,8 +8,8 @@ from pydantic import JsonValue
 
 from app.models.enums import CheckMode, ToolCallStatus, TraceCapability
 from app.models.trace import ToolCallEvent
-from app.services.checks.base import CheckInput, Raised, RuleCheck
-from app.services.checks.rules.booking_tools import booking_calls
+from app.services.checks.base import Check, CheckInput, Raised
+from app.services.checks.code.booking_tools import booking_calls
 
 _FAILED = (ToolCallStatus.ERROR, ToolCallStatus.TIMEOUT)
 # The argument that holds when, most specific first. "timeZone" is not a time.
@@ -49,7 +49,7 @@ def _run(check_input: CheckInput) -> list[Raised]:
     return found
 
 
-BOOKING_DUPLICATED = RuleCheck(
+BOOKING_DUPLICATED = Check(
     type="booking_duplicated",
     version=1,
     title="Two bookings for one slot",

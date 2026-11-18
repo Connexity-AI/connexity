@@ -160,6 +160,27 @@ class Settings(BaseSettings):
     LLM_RETRY_MIN_WAIT_SECONDS: float = 1.0
     LLM_RETRY_MAX_WAIT_SECONDS: float = 60.0
 
+    # TypeSafe AI's Jev, a decision model (`app/services/jev.py`). Connexity's own key.
+    TYPESAFE_API_KEY: str | None = None
+    # Pinned: a moving alias such as jev-latest would change answers without notice.
+    JEV_MODEL: str = "jev-1.14.0"
+    JEV_BASE_URL: str = "https://api.typesafe.ai"
+    JEV_TIMEOUT_SECONDS: float = 30.0
+    JEV_USD_PER_MILLION_INPUT: float = 0.042
+    JEV_RETRY_MAX_ATTEMPTS: int = 4
+    JEV_RETRY_MIN_WAIT_SECONDS: float = 1.0
+    JEV_RETRY_MAX_WAIT_SECONDS: float = 20.0
+
+    # Model checks (classifiers and judges), for the whole product. An internal safety
+    # measure (Dmytro, 2026-11-17): when today's spend (UTC) reaches the cap, model
+    # checks wait until tomorrow.
+    MODEL_CHECKS_DAILY_BUDGET_USD: float = 1.0
+    # A model check whose model call failed this many times on a call is recorded as
+    # broke on it.
+    MODEL_CHECK_MAX_ATTEMPTS: int = 3
+    # Model calls asked about at once in one model-check pass.
+    MODEL_CHECK_CONCURRENCY: int = 4
+
     # Judge-specific
     JUDGE_TEMPERATURE: float = 0.2
     JUDGE_MAX_TOKENS: int = 4096

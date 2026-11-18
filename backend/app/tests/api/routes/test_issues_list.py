@@ -89,7 +89,7 @@ def test_issues_are_grouped_by_category_worst_first_with_tiles(
     first = booking["issues"][0]
     assert (first["calls_affected"], first["calls_total"]) == (3, 4)
     assert first["severity"] == "critical"
-    assert first["found_by"] == "rule"
+    assert first["found_by"] == "code_based"
     assert first["title"] == (
         "Booking with missing or placeholder details: schedule_appointment"
     )

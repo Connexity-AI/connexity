@@ -5,7 +5,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from app.models.enums import CallCheckStatus
+from app.models.enums import CallCheckStatus, CheckKind
 
 
 class WorstFindingPublic(BaseModel):
@@ -15,7 +15,9 @@ class WorstFindingPublic(BaseModel):
     )
     category: str
     severity: str = Field(description="critical or warning")
-    found_by: str = Field(description="rule (deterministic) or model")
+    found_by: CheckKind = Field(
+        description="code_based (deterministic code), classifier or judge (a model)"
+    )
 
 
 class IssueMomentPublic(BaseModel):

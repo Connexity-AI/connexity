@@ -215,7 +215,7 @@ def test_the_screen_shows_the_call_and_nothing_more(
     assert (finding["category"], finding["severity"], finding["found_by"]) == (
         "Booking",
         "critical",
-        "rule",
+        "code_based",
     )
     assert finding["entry_index"] == 2
     assert finding["at_seconds"] == 10.0
@@ -317,7 +317,7 @@ def test_get_call_through_mcp(client: TestClient, db: Session) -> None:
     assert r.status_code == 200, r.text
     body: dict[str, Any] = r.json()
     assert body["data"]["caller_last_four"] == "4821"
-    assert body["data"]["findings"][0]["found_by"] == "rule"
+    assert body["data"]["findings"][0]["found_by"] == "code_based"
     assert body["guide"] == "connexity://guides/calls"
     assert "7325554821" not in json.dumps(body)
     assert missing.status_code == 404

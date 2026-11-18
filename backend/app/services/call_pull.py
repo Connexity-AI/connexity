@@ -16,6 +16,8 @@ A run, one at a time (a lease row in the database):
 3. Reads again, once, calls stored without Retell's post-call analysis.
 4. Checks stored calls that some current check version never ran on: calls stored
    before a check existed, or checked by an older version (`check_calls_needing_it`).
+   Then asks the models for model checks waiting for an answer, within the daily
+   model budget (`answer_model_checks`).
 5. Stops at `MAX_READS` full reads, `CHECK_LIMIT` checks or `RUN_SECONDS`. A 429 or
    another failure pauses that account with a growing wait; the other accounts carry
    on.
@@ -47,6 +49,7 @@ from app.models.integration import Integration
 from app.services.call_sync import emit, store_retell_calls
 from app.services.checks import engine as checks_engine
 from app.services.checks.engine import check_calls_needing_it
+from app.services.checks.model_checks import answer_model_checks
 from app.services.retell import (
     RetellCallSummary,
     RetellRateLimited,
@@ -83,6 +86,7 @@ class PullRun(BaseModel):
     calls_stored: int = 0
     calls_reread: int = 0
     calls_checked: int = 0
+    model_checks_answered: int = 0
     reads: int = 0
     skipped: dict[str, int] = {}
 
@@ -500,6 +504,13 @@ async def run_pull(*, session: Session) -> PullRun:
                 deadline=budget.deadline,
             )
             _backlog_done(empty=run.calls_checked == 0)
+        # Classifiers and judges: the newest calls waiting for a model's answer.
+        model_pass = await answer_model_checks(
+            session=session,
+            agent_ids=[agent.id for account in accounts for agent in account.agents],
+            deadline=budget.deadline,
+        )
+        run.model_checks_answered = model_pass.answered
         return run
     finally:
         give_back_lease(session=session, holder=holder)
@@ -510,6 +521,7 @@ async def run_pull(*, session: Session) -> PullRun:
             calls_stored=run.calls_stored,
             calls_reread=run.calls_reread,
             calls_checked=run.calls_checked,
+            model_checks_answered=run.model_checks_answered,
             reads=budget.reads,
             skipped=run.skipped,
             duration_ms=int((time.monotonic() - started) * 1000),

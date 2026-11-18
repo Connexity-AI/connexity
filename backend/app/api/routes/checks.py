@@ -14,7 +14,7 @@ from app.models import (
     DecisionRecordPublic,
 )
 from app.models.enums import DecisionKind
-from app.services.checks.base import RuleCheck
+from app.services.checks.base import Check
 from app.services.checks.engine import (
     check_calls_needing_it,
     count_calls_needing_it,
@@ -40,7 +40,7 @@ def _require_agent(
         raise HTTPException(status_code=404, detail="Agent not found")
 
 
-def _public(check: RuleCheck, records: list[DecisionRecord]) -> AgentCheckPublic:
+def _public(check: Check, records: list[DecisionRecord]) -> AgentCheckPublic:
     return AgentCheckPublic(
         type=check.type,
         title=check.title,

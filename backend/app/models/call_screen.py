@@ -10,7 +10,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.models.enums import CallCheckStatus, RuleOutcome
+from app.models.enums import CallCheckStatus, CheckKind, RuleOutcome
 
 
 class KeyValue(BaseModel):
@@ -44,7 +44,7 @@ class CallScreenFinding(BaseModel):
     text: str = Field(description="The check's title and what broke")
     category: str
     severity: Literal["critical", "warning"]
-    found_by: Literal["rule", "model"]
+    found_by: CheckKind
     entry_index: int | None = Field(
         default=None, description="The timeline entry it sits on"
     )
