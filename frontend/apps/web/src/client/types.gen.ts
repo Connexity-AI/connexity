@@ -1094,7 +1094,6 @@ export type AnsweredSpecPublic = {
  */
 export const AssistantTaskState = {
   IN_PROGRESS: 'in_progress',
-  WAITING: 'waiting',
   RETURNED: 'returned',
   DONE: 'done',
 } as const;
@@ -11486,9 +11485,25 @@ export type WorkCountsPublic = {
   /**
    * Waiting
    *
-   * Tasks waiting for the person
+   * Questions waiting for the person
    */
   waiting: number;
+};
+
+/**
+ * WorkDoneLinkPublic
+ *
+ * Where a finished task's work is: an agent's tab, or an issue.
+ */
+export type WorkDoneLinkPublic = {
+  /**
+   * Kind
+   */
+  kind: 'agent_spec' | 'agent_tests' | 'agent_calls' | 'issue';
+  /**
+   * Id
+   */
+  id: string;
 };
 
 /**
@@ -11511,6 +11526,7 @@ export type WorkDonePublic = {
    * At
    */
   at: string;
+  link?: WorkDoneLinkPublic | null;
 };
 
 /**
@@ -11537,6 +11553,12 @@ export type WorkHolderPublic = {
    * Taken At
    */
   taken_at: string;
+  /**
+   * Quiet Since
+   *
+   * When its session last asked for its next task, once that is more than 30 minutes ago; the task stays with the session
+   */
+  quiet_since?: string | null;
 };
 
 /**
@@ -11546,7 +11568,7 @@ export type WorkMoveIn = {
   /**
    * Key
    *
-   * The To do task to move
+   * The task to move: one in To do, or one you hold, which goes back to To do
    */
   key: string;
   /**
@@ -11564,7 +11586,7 @@ export type WorkPublic = {
   /**
    * In Progress
    *
-   * Tasks an assistant holds, and tasks waiting for the person
+   * Tasks an assistant holds, and questions waiting for the person
    */
   in_progress: Array<WorkTaskPublic>;
   /**
@@ -11588,7 +11610,7 @@ export type WorkPublic = {
   /**
    * Waiting
    *
-   * Tasks waiting for the person
+   * Questions waiting for the person
    */
   waiting: number;
   /**

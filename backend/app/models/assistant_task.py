@@ -22,14 +22,13 @@ def _now() -> datetime:
 class AssistantTask(SQLModel, table=True):
     __tablename__ = "assistant_task"
     __table_args__ = (
-        # One assistant at a time on a task, and a task waiting for the person is not
-        # taken again.
+        # One assistant at a time on a task.
         Index(
             "ix_assistant_task_one_open",
             "company_id",
             "task_key",
             unique=True,
-            postgresql_where=text("state IN ('in_progress', 'waiting')"),
+            postgresql_where=text("state = 'in_progress'"),
         ),
     )
 
@@ -67,12 +66,19 @@ class AssistantTask(SQLModel, table=True):
         sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
         sa_column_kwargs={"server_default": text("now()")},
     )
-    # When the assistant's part ended: done, handed to the person, or returned.
+    # When its session last asked for its next task: a task whose session has been
+    # silent for `QUIET_MINUTES` shows as quiet (plan
+    # `plans/2026-11-18-work-task-states.md`). None until the session asks again.
+    last_seen_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+    )
+    # When the assistant's part ended: done or returned.
     ended_at: datetime | None = Field(
         default=None,
         sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
     )
-    # When it was done; for a waiting task, when its work disappeared.
+    # When it was done.
     done_at: datetime | None = Field(
         default=None,
         sa_type=DateTime(timezone=True),  # type: ignore[call-overload]

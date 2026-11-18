@@ -716,14 +716,16 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     @mcp_server.tool(annotations=DECIDES)
     async def move_task(
         workspace_id: WorkspaceId,
-        key: Annotated[str, Field(description="The To do task to move, from `list_tasks`.")],
+        key: Annotated[str, Field(description="The task to move, from `list_tasks`: one in To do, or one you hold, which goes back to To do.")],
         before: Annotated[str | None, Field(description="The task it moves in front of. Leave empty for the end.")] = None,
     ) -> ListTasksResult:
         """Move a To do task (its `key` from `list_tasks`) to sit just before another
-        (`before`; none for the end of the list). Only when the person asks, such as
+        (`before`; none for the end of the list): only when the person asks, such as
         "do Night line first"; never reorder on your own. Recorded as theirs with you as
-        the assistant that acted. Tasks in progress or waiting, and incidents, do not
-        move. Answers the list in its new order."""
+        the assistant that acted. A task you hold goes back to To do, at its place or
+        before `before`: do that when you stop working on it. Another assistant's
+        tasks, questions waiting for the person, and incidents do not move. Answers the
+        list in its new order."""
         return await _move_task(
             client=backend_client, workspace_id=workspace_id, key=key, before=before
         )

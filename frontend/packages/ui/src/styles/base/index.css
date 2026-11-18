@@ -8,4 +8,18 @@
     @apply bg-surface-0 text-ink font-sans text-body antialiased;
     font-variant-numeric: tabular-nums;
   }
+  /* Everything clickable shows the pointer, set once here (roadmap 10.194). */
+  a[href],
+  button:not(:disabled),
+  [role='button'],
+  [role='tab'],
+  [role='menuitem'],
+  [role='option'],
+  summary,
+  select,
+  label[for],
+  input[type='checkbox'],
+  input[type='radio'] {
+    cursor: pointer;
+  }
 }

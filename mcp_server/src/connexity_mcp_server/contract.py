@@ -94,8 +94,9 @@ TOOLS: dict[str, ToolEntry] = {
     ),
     "move_task": ToolEntry(
         "start",
-        "Moves a task to sit before another in the list.",
+        "Reorders To do when the person asks, or puts a task you hold back in To do.",
         "getting-started",
+        # Reordering only when the person asks; putting back your own task is yours.
         only_when_asked=True,
     ),
     # Connect

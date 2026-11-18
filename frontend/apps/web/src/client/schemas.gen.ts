@@ -1937,7 +1937,7 @@ export const AnsweredSpecPublicSchema = {
 
 export const AssistantTaskStateSchema = {
   type: 'string',
-  enum: ['in_progress', 'waiting', 'returned', 'done'],
+  enum: ['in_progress', 'returned', 'done'],
   title: 'AssistantTaskState',
 } as const;
 
@@ -17675,12 +17675,31 @@ export const WorkCountsPublicSchema = {
     waiting: {
       type: 'integer',
       title: 'Waiting',
-      description: 'Tasks waiting for the person',
+      description: 'Questions waiting for the person',
     },
   },
   type: 'object',
   required: ['waiting'],
   title: 'WorkCountsPublic',
+} as const;
+
+export const WorkDoneLinkPublicSchema = {
+  properties: {
+    kind: {
+      type: 'string',
+      enum: ['agent_spec', 'agent_tests', 'agent_calls', 'issue'],
+      title: 'Kind',
+    },
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+  },
+  type: 'object',
+  required: ['kind', 'id'],
+  title: 'WorkDoneLinkPublic',
+  description: "Where a finished task's work is: an agent's tab, or an issue.",
 } as const;
 
 export const WorkDonePublicSchema = {
@@ -17699,6 +17718,16 @@ export const WorkDonePublicSchema = {
       type: 'string',
       format: 'date-time',
       title: 'At',
+    },
+    link: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/WorkDoneLinkPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
     },
   },
   type: 'object',
@@ -17727,6 +17756,20 @@ export const WorkHolderPublicSchema = {
       format: 'date-time',
       title: 'Taken At',
     },
+    quiet_since: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Quiet Since',
+      description:
+        'When its session last asked for its next task, once that is more than 30 minutes ago; the task stays with the session',
+    },
   },
   type: 'object',
   required: ['person', 'assistant', 'taken_at'],
@@ -17740,7 +17783,7 @@ export const WorkMoveInSchema = {
       type: 'string',
       maxLength: 128,
       title: 'Key',
-      description: 'The To do task to move',
+      description: 'The task to move: one in To do, or one you hold, which goes back to To do',
     },
     before: {
       anyOf: [
@@ -17769,7 +17812,7 @@ export const WorkPublicSchema = {
       },
       type: 'array',
       title: 'In Progress',
-      description: 'Tasks an assistant holds, and tasks waiting for the person',
+      description: 'Tasks an assistant holds, and questions waiting for the person',
     },
     to_do: {
       items: {
@@ -17798,7 +17841,7 @@ export const WorkPublicSchema = {
     waiting: {
       type: 'integer',
       title: 'Waiting',
-      description: 'Tasks waiting for the person',
+      description: 'Questions waiting for the person',
     },
     assistant_connected: {
       type: 'boolean',

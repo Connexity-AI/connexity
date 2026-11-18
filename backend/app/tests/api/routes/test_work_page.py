@@ -207,7 +207,8 @@ def test_tasks_in_progress_or_waiting_do_not_move(
     unknown = _move(client, cookies, "spec:nope", None)
     itself = _move(client, cookies, first, first)
 
-    assert held.status_code == 422 and "in progress" in held.json()["detail"]
+    # The person cannot put back an assistant's task (no button: Dmytro, 2026-11-18).
+    assert held.status_code == 422 and "Another assistant" in held.json()["detail"]
     assert waits.status_code == 422
     assert unknown.status_code == 422
     assert itself.status_code == 422
@@ -246,10 +247,14 @@ def test_a_new_workspace_lands_on_onboarding_rows(
     page = client.get(f"{API}/work", cookies=cookies).json()
 
     assert page["assistant_connected"] is False
-    [connect] = page["in_progress"]
-    assert (connect["key"], connect["state"]) == ("onboarding:assistant", "waiting")
+    # The person's own step sits first in To do, marked theirs: only questions wait.
+    assert page["in_progress"] == []
+    connect, *rest = page["to_do"]
+    assert (connect["key"], connect["state"]) == ("onboarding:assistant", "to_do")
+    assert connect["waiting_for_person"] is True
     assert connect["title"] == "Connect your AI assistant"
-    titles = [t["title"] for t in page["to_do"]]
+    assert page["waiting"] == 0
+    titles = [t["title"] for t in rest]
     assert titles == [
         "Connect your voice platform",
         "Add the agents to watch",
@@ -258,7 +263,7 @@ def test_a_new_workspace_lands_on_onboarding_rows(
         "Answer the open questions",
     ]
     # Each step is blocked by the one before.
-    chain = [connect, *page["to_do"]]
+    chain = page["to_do"]
     for before, after in zip(chain, chain[1:], strict=False):
         assert [r["key"] for r in after["blocked_by"]] == [before["key"]]
 
@@ -276,3 +281,121 @@ def test_a_new_workspace_lands_on_onboarding_rows(
     done = {d["title"]: d["by"] for d in after["done"]}
     assert done["Assistant connected"].endswith("'s Claude Code")
     assert row.id
+
+
+def test_the_assistant_puts_a_task_it_holds_back_in_to_do(
+    client: TestClient, db: Session
+) -> None:
+    user, _ = _signed_in(client, db)
+    _workspace(db, owner=user)
+    base = f"{API}/mcp/workspaces/{user.company_id}"
+    taken = client.get(
+        f"{base}/next-task", headers=_headers(user), params={"session": "Fixes"}
+    ).json()["data"]["task"]
+    assert taken["kind"] == "issue_fix"
+
+    r = client.post(
+        f"{base}/tasks/move", headers=_headers(user), json={"key": taken["key"]}
+    )
+
+    assert r.status_code == 200, r.text
+    tasks = {t["key"]: t for t in r.json()["data"]["tasks"]}
+    assert tasks[taken["key"]]["state"] == "to_do"
+    assert tasks[taken["key"]]["holder"] is None
+    # It is free again: the next session can take it.
+    again = client.get(
+        f"{base}/next-task", headers=_headers(user), params={"session": "Other"}
+    ).json()["data"]["task"]
+    assert again["key"] == taken["key"]
+
+
+def test_a_task_whose_session_went_silent_is_quiet_and_still_held(
+    client: TestClient, db: Session
+) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    from sqlmodel import select
+
+    from app.models.assistant_task import AssistantTask
+
+    user, cookies = _signed_in(client, db)
+    _workspace(db, owner=user)
+    taken = next_task(
+        session=db,
+        company_id=user.company_id,
+        person=user,
+        assistant_name="Claude Code",
+        session_name="Fixes",
+    )
+    assert taken.task is not None
+    row = db.exec(
+        select(AssistantTask).where(AssistantTask.task_key == taken.task.key)
+    ).one()
+    silent = datetime.now(UTC) - timedelta(minutes=31)
+    row.taken_at = silent
+    db.add(row)
+    db.commit()
+
+    page = client.get(f"{API}/work", cookies=cookies).json()
+    [held] = [t for t in page["in_progress"] if t["key"] == taken.task.key]
+
+    assert held["state"] == "in_progress"
+    assert held["holder"]["session"] == "Fixes"
+    assert held["holder"]["quiet_since"] is not None
+
+    # The session asks again: the fix stays with it and is no longer quiet.
+    next_task(
+        session=db,
+        company_id=user.company_id,
+        person=user,
+        assistant_name="Claude Code",
+        session_name="Fixes",
+    )
+    page = client.get(f"{API}/work", cookies=cookies).json()
+    [held] = [t for t in page["in_progress"] if t["key"] == taken.task.key]
+    assert held["holder"]["quiet_since"] is None
+
+
+def test_every_finished_task_is_in_done_with_who_and_a_link(
+    client: TestClient, db: Session
+) -> None:
+    from datetime import UTC, datetime
+
+    from app.models.assistant_task import AssistantTask
+    from app.models.enums import AssistantTaskState, TaskKind
+
+    user, cookies = _signed_in(client, db)
+    _, _, night = _workspace(db, owner=user)
+    now = datetime.now(UTC)
+    for kind, key in (
+        (TaskKind.TESTS, "scenarios"),
+        (TaskKind.CALLS_TO_REVIEW, "calls"),
+    ):
+        db.add(
+            AssistantTask(
+                company_id=user.company_id,
+                task_key=f"{key}:{night.id}",
+                kind=kind,
+                title="Write scenarios for 4 rules on Night line",
+                agent_id=night.id,
+                taken_by=user.id,
+                taken_by_email=user.email,
+                assistant_name="Claude Code",
+                session_name="Onboarding",
+                state=AssistantTaskState.DONE,
+                ended_at=now,
+                done_at=now,
+            )
+        )
+    db.commit()
+
+    done = client.get(f"{API}/work", cookies=cookies).json()["done"]
+    by_title = {d["title"]: d for d in done}
+
+    scenarios = by_title["Scenarios written for Night line"]
+    assert scenarios["by"].endswith("'s Claude Code · Onboarding")
+    assert scenarios["link"] == {"kind": "agent_tests", "id": str(night.id)}
+    assert by_title["Calls reviewed for Night line"]["link"]["kind"] == "agent_calls"
+    # Specs written link to the agent's spec.
+    spec = next(d for d in done if d["title"].startswith("Spec written for"))
+    assert spec["link"]["kind"] == "agent_spec"

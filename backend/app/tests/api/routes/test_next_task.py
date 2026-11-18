@@ -163,9 +163,9 @@ def test_tasks_are_handed_out_in_order_and_never_twice(db: Session) -> None:
     # The other assistant skips the first one's task.
     assert second.task.key == takeable[1].key
     assert second.in_progress_elsewhere == 1
-    # Questions and the person's own setup step wait for them, and are never taken.
+    # Only questions wait for the person, and they are never taken.
     waiting = {t.kind for t in second.waiting}
-    assert TaskKind.CLARIFICATIONS in waiting
+    assert waiting == {TaskKind.CLARIFICATIONS}
 
 
 def test_asking_again_ends_the_task_by_what_is_left(db: Session) -> None:
@@ -174,11 +174,17 @@ def test_asking_again_ends_the_task_by_what_is_left(db: Session) -> None:
     fix = _take(db, user)
     assert fix.task.kind is TaskKind.ISSUE_FIX
 
-    # The issue is still open: the rest (resolving it) is the person's.
+    # The issue is still open: the fix stays In progress with the session, which takes
+    # its next task too (Dmytro, 2026-11-18: waiting is only for questions).
     after_fix = _take(db, user)
-    assert after_fix.ended.state is AssistantTaskState.WAITING
-    assert fix.task.key in {t.key for t in after_fix.waiting}
+    assert after_fix.ended is None
+    assert fix.task.key not in {t.key for t in after_fix.waiting}
     assert after_fix.task.key != fix.task.key
+    held = db.exec(
+        select(AssistantTask).where(AssistantTask.task_key == fix.task.key)
+    ).one()
+    assert held.state is AssistantTaskState.IN_PROGRESS
+    assert held.last_seen_at is not None
 
     # Walk to the spec task, then do its work: it is done.
     current = after_fix

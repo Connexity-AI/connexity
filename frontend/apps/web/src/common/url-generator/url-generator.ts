@@ -22,6 +22,11 @@ export class UrlGenerator {
     return `/agents/${id}/` as Route;
   }
 
+  /** One tab of an agent's page, as Work's Done rows link. */
+  static agentTab(id: string, tab: 'spec' | 'tests' | 'calls') {
+    return `/agents/${id}/?tab=${tab}` as Route;
+  }
+
   static calls() {
     return '/calls/' as Route;
   }

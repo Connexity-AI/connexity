@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useState, useTransition } from 'react';
+import { Fragment, useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -18,6 +18,7 @@ import {
   Lock,
   Pause,
   Phone,
+  RotateCw,
   Siren,
   Wrench,
   X,
@@ -34,6 +35,7 @@ import { isErrorApiResult } from '@/utils/api';
 
 import type {
   TaskKind,
+  WorkDoneLinkPublic,
   WorkHolderPublic,
   WorkPublic,
   WorkTaskPublic,
@@ -82,10 +84,25 @@ const action = (task: WorkTaskPublic): { label: string; href: Route } | undefine
   if (task.kind === 'clarifications' && task.agent_id) {
     return { label: 'Answer questions →', href: UrlGenerator.work(task.agent_id) };
   }
-  if (task.kind === 'issue_fix' && task.issue_id) {
-    return { label: 'Resolve the issue →', href: UrlGenerator.issue(task.issue_id) };
-  }
   return undefined;
+};
+
+/** A held task whose session has gone quiet: "No activity since 14:20". */
+const quietSince = (task: WorkTaskPublic) => task.holder?.quiet_since ?? null;
+
+/** Where a finished task's work is. */
+const doneHref = (link: WorkDoneLinkPublic): Route => {
+  if (link.kind === 'issue') return UrlGenerator.issue(link.id);
+  const tab = { agent_spec: 'spec', agent_tests: 'tests', agent_calls: 'calls' } as const;
+  return UrlGenerator.agentTab(link.id, tab[link.kind]);
+};
+
+/** "Updated just now", "Updated 2 min ago". */
+const updatedLabel = (at: number, now: number) => {
+  const minutes = Math.floor((now - at) / 60_000);
+  if (minutes < 1) return 'Updated just now';
+  if (minutes < 60) return `Updated ${minutes} min ago`;
+  return `Updated ${Math.floor(minutes / 60)} h ago`;
 };
 
 /** The person's own setup step: connecting their assistant. Its help is in the panel. */
@@ -103,6 +120,13 @@ const Handle: FC<{ children: ReactNode }> = ({ children }) => (
 );
 
 const Marker: FC<{ task: WorkTaskPublic; movable?: boolean }> = ({ task, movable }) => {
+  if (task.state === 'in_progress' && quietSince(task)) {
+    return (
+      <span className="flex size-4 items-center justify-center" aria-label="No activity">
+        <span className="size-3 rounded-full border-2 border-ink-muted opacity-60" />
+      </span>
+    );
+  }
   if (task.state === 'in_progress') {
     return (
       <LoaderCircle
@@ -282,6 +306,11 @@ const Row: FC<RowProps> = ({ task, lit, dimmed, selected, onOpen, onHover, drag 
           {task.title}
         </span>
         <Line task={task} />
+        {quietSince(task) && (
+          <span className="truncate text-label text-ink-muted">
+            No activity since {timeLabel(quietSince(task)!)}
+          </span>
+        )}
         {blocked && (
           <span className="truncate text-label text-ink-muted">
             Blocked by: {named(task.blocked_by ?? [])}
@@ -300,12 +329,12 @@ const Row: FC<RowProps> = ({ task, lit, dimmed, selected, onOpen, onHover, drag 
             href={act.href}
             scroll={false}
             onClick={(e) => e.stopPropagation()}
-            className="text-label text-ink-secondary no-underline hover:text-ink"
+            className="text-label text-ink-secondary no-underline hover:text-ink hover:underline"
           >
             {act.label}
           </Link>
         )}
-        {waiting && task.key === CONNECT && (
+        {task.key === CONNECT && (
           <button
             type="button"
             onClick={(e) => {
@@ -405,7 +434,11 @@ const Panel: FC<{
         <span
           className={cn('text-label', task.state === 'waiting' ? 'text-warning' : 'text-ink-muted')}
         >
-          {isBlocked(task) ? 'Blocked' : STATE_NAME[task.state]}
+          {isBlocked(task)
+            ? 'Blocked'
+            : task.key === CONNECT
+              ? 'To do · yours'
+              : STATE_NAME[task.state]}
         </span>
         <button
           type="button"
@@ -431,10 +464,21 @@ const Panel: FC<{
             </Fact>
             {task.holder.session && <Fact label="Session">{task.holder.session}</Fact>}
             <Fact label="Working since">{timeLabel(task.holder.taken_at)}</Fact>
+            {quietSince(task) && (
+              <Fact label="No activity since">
+                <span className="flex flex-col gap-1">
+                  <span>{timeLabel(quietSince(task)!)}</span>
+                  <span className="text-label text-ink-muted">
+                    Your assistant hasn&apos;t asked Connexity for its next task since then.
+                    The task stays with this session until the assistant moves on.
+                  </span>
+                </span>
+              </Fact>
+            )}
           </>
         )}
       </div>
-      {task.key === CONNECT && task.state === 'waiting' && <ConnectHelp mcpUrl={mcpUrl} />}
+      {task.key === CONNECT && <ConnectHelp mcpUrl={mcpUrl} />}
       <RefList title="Blocks" refs={task.blocks ?? []} onOpen={onOpen} />
       <RefList title="Blocked by" refs={task.blocked_by ?? []} onOpen={onOpen} />
       <div className="flex flex-col gap-2 border-t border-hairline pt-4">
@@ -490,6 +534,19 @@ export const WorkView: FC<{ work: WorkPublic }> = ({ work }) => {
   const [dragKey, setDragKey] = useState<string | null>(null);
   const [drop, setDrop] = useState<{ key: string; after: boolean } | null>(null);
   const [moveError, setMoveError] = useState<string | null>(null);
+  // When this list came from the server, and the clock that ages it.
+  const [loadedAt, setLoadedAt] = useState(() => Date.now());
+  const [now, setNow] = useState(() => Date.now());
+  const [refreshing, startRefresh] = useTransition();
+  useEffect(() => {
+    setLoadedAt(Date.now());
+    setNow(Date.now());
+  }, [work]);
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(tick);
+  }, []);
+  const refresh = () => startRefresh(() => router.refresh());
 
   const all = [...work.in_progress, ...work.to_do];
   const byKey = new Map(all.map((task) => [task.key, task]));
@@ -540,7 +597,7 @@ export const WorkView: FC<{ work: WorkPublic }> = ({ work }) => {
         onOpen={() => setSelected(task.key)}
         onHover={setHovered}
         drag={
-          task.state === 'to_do' && task.kind !== 'incident'
+          task.state === 'to_do' && task.kind !== 'incident' && task.key !== CONNECT
             ? {
                 onStart: () => setDragKey(task.key),
                 onOver: (after) => setDrop({ key: task.key, after }),
@@ -567,6 +624,15 @@ export const WorkView: FC<{ work: WorkPublic }> = ({ work }) => {
   );
 
   const sessions = work.sessions;
+  // A session is quiet when every task it holds is.
+  const bySession = new Map<string, boolean>();
+  for (const task of work.in_progress) {
+    if (!task.holder) continue;
+    const id = holderName(task.holder);
+    bySession.set(id, (bySession.get(id) ?? true) && Boolean(quietSince(task)));
+  }
+  const quiet = [...bySession.values()].filter(Boolean).length;
+  const working = sessions.length - quiet;
   const caption = (
     <span
       className="relative inline-block"
@@ -577,7 +643,9 @@ export const WorkView: FC<{ work: WorkPublic }> = ({ work }) => {
         {!work.assistant_connected
           ? 'No assistant connected'
           : sessions.length
-            ? `${plural(sessions.length, 'session')} working`
+            ? [working > 0 && `${plural(working, 'session')} working`, quiet > 0 && `${quiet} quiet`]
+                .filter(Boolean)
+                .join(', ')
             : 'No assistant working'}
       </span>
       {teamOpen && sessions.length > 0 && (
@@ -595,7 +663,27 @@ export const WorkView: FC<{ work: WorkPublic }> = ({ work }) => {
 
   return (
     <div className="flex max-w-[960px] flex-col gap-5">
-      <PageBar title="Work" caption={caption} />
+      <PageBar
+        title="Work"
+        caption={caption}
+        actions={
+          <span className="flex items-center gap-2 text-label text-ink-muted">
+            {updatedLabel(loadedAt, now)}
+            <button
+              type="button"
+              onClick={refresh}
+              disabled={refreshing}
+              aria-label="Refresh"
+              className="flex size-8 items-center justify-center rounded-md border-0 bg-transparent text-ink-secondary hover:bg-wash hover:text-ink"
+            >
+              <RotateCw
+                className={cn('size-4', refreshing && 'motion-safe:animate-spin')}
+                aria-hidden
+              />
+            </button>
+          </span>
+        }
+      />
 
       <div className="flex flex-col gap-1">
         <h2 className="m-0 text-body font-medium text-ink">Assistant tasks</h2>
@@ -640,19 +728,33 @@ export const WorkView: FC<{ work: WorkPublic }> = ({ work }) => {
             )}
           </button>
           {doneOpen &&
-            work.done.map((d) => (
-              <div
-                key={`${d.title}-${d.at}`}
-                className="grid min-h-11 grid-cols-[16px_minmax(0,1fr)_minmax(0,200px)_96px] items-center gap-3 border-t border-hairline px-5 py-2"
-              >
-                <span aria-hidden />
-                <span className="truncate text-body text-ink">{d.title}</span>
-                <span className="truncate text-label text-ink-secondary">{d.by}</span>
-                <span className="text-right text-label whitespace-nowrap text-ink-muted">
-                  {timeLabel(d.at)}
-                </span>
-              </div>
-            ))}
+            work.done.map((d) => {
+              const cells = (
+                <>
+                  <span aria-hidden />
+                  <span className="truncate text-body text-ink">{d.title}</span>
+                  <span className="truncate text-label text-ink-secondary">{d.by}</span>
+                  <span className="text-right text-label whitespace-nowrap text-ink-muted">
+                    {timeLabel(d.at)}
+                  </span>
+                </>
+              );
+              const className =
+                'grid min-h-11 grid-cols-[16px_minmax(0,1fr)_minmax(0,200px)_96px] items-center gap-3 border-t border-hairline px-5 py-2';
+              return d.link ? (
+                <Link
+                  key={`${d.title}-${d.at}`}
+                  href={doneHref(d.link)}
+                  className={cn(className, 'no-underline hover:bg-wash')}
+                >
+                  {cells}
+                </Link>
+              ) : (
+                <div key={`${d.title}-${d.at}`} className={className}>
+                  {cells}
+                </div>
+              );
+            })}
         </section>
       )}
 

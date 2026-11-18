@@ -35,6 +35,10 @@
 </div>
 </sc-if>
 </div>
+<div style="margin-left:auto;align-self:center;display:flex;align-items:center;gap:6px">
+<span style="font-size:13px;line-height:18px;color:var(--ink3);white-space:nowrap">{{ updatedLine }}</span>
+<button onClick="{{ refresh }}" title="Refresh" aria-label="Refresh" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:0;border-radius:6px;background:transparent;color:var(--ink2);cursor:pointer" style-hover="background:var(--wash);color:var(--ink)">{{ refreshIcon }}</button>
+</div>
 </div>
 
 <sc-if value="{{ noTeam }}" hint-placeholder-val="{{ false }}">
@@ -65,9 +69,9 @@
 </div>
 <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px">
 <sc-if value="{{ r.hasWho }}">
-<span style="display:flex;align-items:center;gap:12px"><span style="display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 3px;border:1px solid var(--border);border-radius:13px;font-size:13px;line-height:18px;color:var(--ink);white-space:nowrap"><span style="width:20px;height:20px;border-radius:10px;background:var(--unch-bg);color:var(--ink2);font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center">{{ r.initial }}</span>{{ r.who }}</span></span>
+<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span style="display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 3px;border:1px solid var(--border);border-radius:13px;font-size:13px;line-height:18px;color:var(--ink);white-space:nowrap;cursor:pointer" style-hover="border-color:var(--bc)"><span style="width:20px;height:20px;border-radius:10px;background:var(--unch-bg);color:var(--ink2);font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center">{{ r.initial }}</span>{{ r.who }}</span><sc-if value="{{ r.isQuiet }}"><span style="font-size:13px;line-height:18px;color:var(--ink3);white-space:nowrap">{{ r.quietLine }}</span></sc-if></div>
 </sc-if>
-<sc-if value="{{ r.isWaiting }}"><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span style="display:inline-flex;align-items:center;height:26px;padding:0 10px;border:1px solid var(--warn-bg);border-radius:13px;background:var(--warn-bg);color:var(--warn);font-size:13px;line-height:18px;font-weight:500;white-space:nowrap">Waiting for you</span><span onClick="{{ r.toggleQ }}" style="font-size:13px;line-height:18px;color:var(--ink2);cursor:pointer;white-space:nowrap" style-hover="color:var(--ink)">{{ r.qLink }}</span></div></sc-if>
+<sc-if value="{{ r.isWaiting }}"><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span style="display:inline-flex;align-items:center;height:26px;padding:0 10px;border:1px solid var(--warn-bg);border-radius:13px;background:var(--warn-bg);color:var(--warn);font-size:13px;line-height:18px;font-weight:500;white-space:nowrap;cursor:pointer" style-hover="border-color:color-mix(in oklch, var(--warn) 45%, var(--warn-bg))">{{ r.wChip }}</span><sc-if value="{{ r.wAct }}"><span onClick="{{ r.toggleQ }}" style="{{ r.linkStyle }}" style-hover="color:var(--ink);text-decoration:underline">{{ r.qLink }}</span></sc-if><sc-if value="{{ r.wIsHref }}"><a href="{{ r.wHref }}" onClick="{{ r.stop }}" style="{{ r.linkStyle }}" style-hover="color:var(--ink);text-decoration:underline;opacity:1">{{ r.wLink }}</a></sc-if></div></sc-if>
 <sc-if value="{{ r.isUrgent }}"><span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;background:var(--unch-bg);color:var(--unch);font-size:13px;font-weight:500">Urgent</span></sc-if>
 </div>
 </div>
@@ -113,12 +117,12 @@
 </div>
 <sc-if value="{{ doneOpen }}">
 <sc-for list="{{ doneRows }}" as="d" hint-placeholder-count="0">
-<div style="display:grid;grid-template-columns:16px minmax(0,1fr) 148px 72px;gap:12px;align-items:center;min-height:44px;padding:6px 20px;border-top:1px solid var(--border)">
+<a href="{{ d.href }}" style="display:grid;grid-template-columns:16px minmax(0,1fr) 148px 72px;gap:12px;align-items:center;min-height:44px;padding:6px 20px;border-top:1px solid var(--border);color:var(--ink);text-decoration:none;cursor:pointer;opacity:1" style-hover="background:var(--wash);opacity:1">
 <span></span>
 <span style="min-width:0;text-wrap:pretty">{{ d.text }}</span>
 <span style="font-size:13px;color:var(--ink2)">{{ d.by }}</span>
 <span style="font-size:13px;color:var(--ink3);text-align:right;white-space:nowrap">{{ d.when }}</span>
-</div>
+</a>
 </sc-for>
 <sc-if value="{{ doneCanAll }}"><div onClick="{{ showAllDone }}" style="display:flex;align-items:center;min-height:44px;padding:0 20px 0 48px;border-top:1px solid var(--border);font-size:13px;color:var(--ink2);cursor:pointer;user-select:none" style-hover="background:var(--wash);color:var(--ink)">Show all</div></sc-if>
 </sc-if>
@@ -137,6 +141,7 @@
 <button onClick="{{ closePanel }}" title="Close" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:0;border-radius:6px;background:transparent;color:var(--ink2);cursor:pointer" style-hover="background:var(--wash);color:var(--ink)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
 </div>
 <span style="font-size:17px;line-height:24px;font-weight:500;text-wrap:pretty">{{ pn.text }}</span>
+<sc-if value="{{ pn.hasLead }}"><span style="text-wrap:pretty">{{ pn.lead }}</span></sc-if>
 </div>
 <div style="display:flex;flex-direction:column">
 <sc-for list="{{ pn.facts }}" as="f" hint-placeholder-count="6">
@@ -146,6 +151,7 @@
 <sc-if value="{{ f.isChip }}"><span style="{{ f.chip }}">{{ f.value }}</span></sc-if>
 <sc-if value="{{ f.isText }}"><span style="text-wrap:pretty">{{ f.value }}</span></sc-if>
 <sc-if value="{{ f.hasNote }}"><span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ f.note }}</span></sc-if>
+<sc-if value="{{ f.hasNote2 }}"><span style="margin-top:4px;font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">{{ f.note2 }}</span></sc-if>
 </div>
 </div>
 </sc-for>
@@ -219,7 +225,7 @@
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;view&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;onb0&quot;,&quot;onb1&quot;,&quot;default&quot;,&quot;answering&quot;,&quot;answered&quot;,&quot;panel&quot;],&quot;default&quot;:&quot;default&quot;,&quot;tsType&quot;:&quot;'onb0' | 'onb1' | 'default' | 'answering' | 'answered' | 'panel'&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;view&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;onb0&quot;,&quot;onb1&quot;,&quot;default&quot;,&quot;quiet&quot;,&quot;done&quot;,&quot;refreshing&quot;,&quot;hover&quot;,&quot;answering&quot;,&quot;answered&quot;,&quot;panel&quot;],&quot;default&quot;:&quot;default&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
 class Component extends DCLogic {
   static THEMES = {
     dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
@@ -228,7 +234,16 @@ class Component extends DCLogic {
   static AGENT = 'Car service booking';
   static TYPES = { clar:'Clarifications', fix:'Issue fix', setup:'Setup', incident:'Incident', spec:'Spec', calls:'Calls to review', tests:'Tests', onb:'Onboarding' };
   static ICONKEY = { clar:'tClar', fix:'tFix', setup:'tSetup', incident:'tInc', spec:'tSpec', calls:'tCalls', tests:'tTests', onb:'tOnb' };
-  static W = { id:'w1', st:'waiting', text:'Answer 3 questions about bookings', sub:'Car service booking', type:'clar', owner:'Alex', session:'Onboarding', step:'Found 3 questions the spec does not answer', ago:'4 minutes ago', on:'11 minutes' };
+  static W = { id:'w1', st:'waiting', text:'Answer 3 questions about bookings', sub:'Car service booking', type:'clar', owner:'Alex', session:'Onboarding', step:'Found 3 questions the spec does not answer', ago:'4 minutes ago', on:'11 minutes', wChip:'Waiting for you', wAct:true };
+  static FIXW = { id:'f0', st:'progress', text:'Booking with missing or placeholder details', crit:true, sub:'13 calls', type:'fix', calls:13, issue:'I-1047', owner:'Alex', session:'Fixes', step:'Read 6 of the 13 calls', ago:'1 minute ago', on:'4 minutes' };
+  static QUIET = { id:'t1', st:'progress', text:'Write scenarios for 14 rules on Car service booking', sub:'', type:'tests', owner:'Alex', session:'Onboarding', step:'Wrote scenarios for 9 of the 14 rules', ago:'14:20', quiet:'14:20' };
+  static CHATW = { id:'w2', st:'waiting', text:'Answer 2 questions about bookings', sub:'Car service booking', type:'clar', owner:'Alex', session:'Onboarding', step:'Found 2 questions the spec does not answer', ago:'14:48', on:'6 minutes', wChip:'Waiting for you', wAct:true };
+  static DONE5 = [
+    ['Scenarios written for Car service booking \u00b7 14 rules covered','Alex\u2019s Claude Code','13:55','Connexity Agent Profile.dc.html?agent=car&tab=tests'],
+    ['Spec written for Car service booking \u00b7 version 2','Alex\u2019s Claude Code','13:10','Connexity Agent Profile.dc.html?agent=car&tab=spec'],
+    ['The booking tool fails \u00b7 resolved','Alex\u2019s Claude Code','12:42','Connexity Issue.dc.html?issue=I-1042'],
+    ['3 answers added to the Car service booking spec','Alex','11:30','Connexity Agent Profile.dc.html?agent=car&tab=spec'],
+    ['Calls reviewed for Car service booking','Alex\u2019s Claude Code','10:05','Connexity Calls.dc.html?agent=car'] ];
   static QS = [
     { text:'A caller asks for a time that is already booked. What should the agent do?', why:'Seen on 9 calls', options:['Offer the next free time','Offer the three nearest times','Take a callback request'] },
     { text:'Can the agent book a service without the car\u2019s registration number?', why:'Seen on 14 calls', options:['Yes, with make and model','Yes, and flag it for the service desk','No, ask for it before booking'] },
@@ -258,9 +273,9 @@ class Component extends DCLogic {
   constructor(props) {
     super(props);
     const v = props.view;
-    this.state = { sel: v === 'panel' ? 'w1' : null, qOpen: v === 'answering', qi: v === 'answering' ? 1 : 0,
+    this.state = { sel: { panel:'w1', quiet:'t1' }[v] || null, linkHover: v === 'hover', refreshing:false, updated:null, qOpen: v === 'answering', qi: v === 'answering' ? 1 : 0,
       answers: v === 'answering' ? ['Offer the next free time', null, null] : [null, null, null], answered: v === 'answered', other:false, otherText:'', flash:null, plan:false, nextOrder:null, goalOrder: Component.GOALS.map(g => g.id),
-      hover:null, drag:null, gDrag:null, done:false, team:false };
+      hover: v === 'hover' ? 't1' : null, drag:null, gDrag:null, done: v === 'done', team:false };
     this.lastSwap = 0;
   }
   dot(kind) {
@@ -269,21 +284,25 @@ class Component extends DCLogic {
       return React.createElement('svg', { width:16, height:16, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:2.5, strokeLinecap:'round', style:{ flex:'none', color:'var(--pass)', animation: rm ? 'none' : 'cxSpin 1s linear infinite' } },
         React.createElement('circle', { cx:12, cy:12, r:9, opacity:0.25 }), React.createElement('path', { d:'M21 12a9 9 0 0 0-9-9' }));
     }
+    if (kind === 'quiet') return React.createElement('svg', { width:16, height:16, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:2.5, style:{ flex:'none', color:'var(--ink3)' } },
+      React.createElement('circle', { cx:12, cy:12, r:9, opacity:0.6 }));
     return React.createElement('span', { style:{ display:'inline-block', flex:'none', width:8, height:8, borderRadius:4, background:'var(--warn)' } });
   }
   renderVals() {
     const C = Component, S = this.state;
-    const live = this.dot('live'), warn = this.dot('warn');
+    const live = this.dot('live'), warn = this.dot('warn'), still = this.dot('quiet');
     const lbl = t => ({ alignSelf:'flex-start', display:'inline-flex', alignItems:'center', height:22, padding:'0 8px', borderRadius:6, fontSize:13, fontWeight:500, whiteSpace:'nowrap',
       background: t === 'incident' ? 'var(--crit-bg)' : 'var(--unch-bg)', color: t === 'incident' ? 'var(--crit)' : 'var(--unch)' });
     const view = this.props.view, onb0 = view === 'onb0', onb1 = view === 'onb1', onb = onb0 || onb1;
-    const waiting = onb0 ? [{ ...C.ONB[0], st:'waiting' }] : onb1 || S.answered ? [] : [C.W];
+    const fresh = !['onb0','onb1','answering','answered','panel'].includes(view);
+    const waiting = onb0 ? [{ ...C.ONB[0], st:'waiting', wChip:'Waiting for you', wAct:true }] : onb1 || S.answered ? [] : [C.W];
     const progress = onb0 ? [] : onb1 ? [{ ...C.ONB[1], st:'progress', owner:'Alex', session:'Onboarding' }] : [{ ...C.FIX1, st:'progress', owner:'Alex', session:'Onboarding', step:'Read 8 of the 23 failed calls', ago:'1 minute ago', on:'3 minutes', link:'calls' }];
     if (!onb) progress.push({ ...C.SETUP[0], st:'progress', owner:'Alex', session:'Setup', step:'Started connecting the Slack workspace', ago:'1 minute ago', on:'2 minutes' });
     let next = (onb ? C.ONB.slice(onb0 ? 1 : 2) : [C.FIX2].concat(C.SETUP.slice(1))).map(t => ({ ...t, st:'next' }));
+    if (fresh) next = [{ ...C.SETUP[0], st:'next' }].concat(next.filter(t => t.id !== 's1'));
     if (S.nextOrder) { const ix = id => { const i = S.nextOrder.indexOf(id); return i < 0 ? 1000 : i; }; next = next.slice().sort((a, b) => ix(a.id) - ix(b.id)); }
     const nextIds = next.map(t => t.id);
-    const all = waiting.concat(progress, next);
+    const all = fresh ? (S.answered ? [] : [C.CHATW]).concat([C.FIXW, C.QUIET], next) : waiting.concat(progress, next);
     const moveNext = (id, to) => { const o = nextIds.filter(x => x !== id); o.splice(Math.max(0, Math.min(o.length, to)), 0, id); this.setState({ nextOrder:o }); };
     const taken = t => t.st === 'waiting' || t.st === 'progress';
     const depOf = { f2:'w1', s4:'w1', s2:'s1', s5:'s4', o2:'o1', o3:'o2', o4:'o3', o5:'o4' };
@@ -295,7 +314,7 @@ class Component extends DCLogic {
     const isBlocked = t => t.st === 'next' && !!byId[depOf[t.id]];
     const lit = !hovT ? null : hovT.st === 'waiting' && heldBy(hovT.id).length ? heldBy(hovT.id).map(t => t.id) : isBlocked(hovT) ? [depOf[hovT.id]] : null;
     const stLabel = { waiting:'Waiting for you', progress:'In progress', next:'To do' };
-    const QS = C.QS, qi = S.qi, cq = QS[qi];
+    const QS = fresh ? C.QS.slice(0, 2) : C.QS, qi = Math.min(S.qi, QS.length - 1), cq = QS[qi];
     const answerQ = val => { const st = this.state, i = st.qi, a = st.answers.slice(); a[i] = val;
       const nx = QS.map((_, k) => (i + 1 + k) % QS.length).find(k => !a[k]);
       if (nx === undefined) this.setState({ answers:a, answered:true, qOpen:false, other:false, otherText:'', sel:null, hover:null });
@@ -314,14 +333,16 @@ class Component extends DCLogic {
         if (nx < 0) this.setState({ qOpen:false, other:false }); else this.setState({ qi:nx, other:false, otherText:'' }); } };
     const rows = all.map((t, i) => {
       const gStart = i === 0 || taken(all[i - 1]) !== taken(t), gEnd = i === all.length - 1 || taken(all[i + 1]) !== taken(t);
-      const isW = t.st === 'waiting', isN = t.st === 'next', sel = S.sel === t.id, hov = S.hover === t.id && !S.drag;
+      const isW = t.st === 'waiting', isN = t.st === 'next', sel = S.sel === t.id, hov = S.hover === t.id && !S.drag, qHere = isW && !!t.wAct && S.qOpen, lh = S.linkHover && t.id === 'w2';
       return {
         hasAfter: isN && !!byId[depOf[t.id]], after: isN && byId[depOf[t.id]] ? byId[depOf[t.id]].text : '',
         openAfter: e => { e.stopPropagation(); this.setState({ sel: depOf[t.id], plan:false }); },
         showBar: isW || (!!lit && lit.includes(t.id)),
         lockWarm: isBlocked(t) && byId[depOf[t.id]].st === 'waiting', lockMuted: isBlocked(t) && byId[depOf[t.id]].st !== 'waiting',
         textStyle: { textWrap:'pretty', color: isBlocked(t) ? 'var(--ink2)' : 'var(--ink)' }, preparedBy: t.owner ? `Prepared by ${t.owner}\u2019s Claude Code` : '',
-        showQ: isW && S.qOpen, q: isW ? qv : {}, qLink: onb ? 'Show how \u2192' : S.qOpen ? 'Hide questions' : 'Answer questions \u2192',
+        showQ: qHere, q: isW ? qv : {}, wChip: t.wChip || 'Waiting for you', wAct: isW && !!t.wAct, wIsHref: isW && !!t.wLink, wLink: t.wLink || '',
+        wHref: t.issue ? 'Connexity Issue.dc.html?issue=' + t.issue : '#', isQuiet: !!t.quiet, quietLine: t.quiet ? `No activity since ${t.quiet}` : '',
+        linkStyle: { fontSize:13, lineHeight:'18px', color: lh ? 'var(--ink)' : 'var(--ink2)', cursor:'pointer', whiteSpace:'nowrap', textDecoration: lh ? 'underline' : 'none', textUnderlineOffset:2, opacity:1 }, qLink: onb ? 'Show how \u2192' : S.qOpen ? 'Hide questions' : 'Answer questions \u2192',
         toggleQ: e => { e.stopPropagation(); if (onb) this.setState({ sel: t.id, plan:false }); else this.setState(s => ({ qOpen: !s.qOpen, sel:null })); },
         qStyle: { display:'flex', flexDirection:'column', gap:16, padding:'4px 20px 20px 80px', border:'1px solid var(--border)', borderTopWidth:0, borderBottomWidth: gEnd ? 1 : 0,
           borderRadius: gEnd ? '0 0 12px 12px' : 0, background:'color-mix(in oklch, var(--warn-bg) 45%, var(--s1))', cursor:'default' },
@@ -334,12 +355,12 @@ class Component extends DCLogic {
         iconBoxDim: {  width:28, height:28, borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', flex:'none',
           background: t.type === 'incident' ? 'var(--crit-bg)' : isW ? 'var(--s1)' : 'var(--unch-bg)', color: t.type === 'incident' ? 'var(--crit)' : 'var(--ink2)' , opacity: isBlocked(t) ? 0.55 : 1 },
         isWaiting: isW, isNext: isN, isProgress: t.st === 'progress', isUrgent: false, hasWho: t.st === 'progress',
-        marker: live, initial: t.owner ? t.owner[0] : '', who: t.owner ? `${t.owner}\u2019s Claude Code \u00b7 ${t.session}` : '',
+        marker: t.quiet ? still : live, initial: t.owner ? t.owner[0] : '', who: t.owner ? `${t.owner}\u2019s Claude Code \u00b7 ${t.session}` : '',
         action: t.action, href: 'Connexity Action items.dc.html?agent=car', stop: e => e.stopPropagation(),
         drag: isN ? 'true' : 'false',
         style: { display:'grid', gridTemplateColumns:'16px 28px minmax(0,1fr) auto', gap:12, alignItems:'center', minHeight:64, padding:'10px 20px 10px 12px',
           border:'1px solid var(--border)',
-          borderRadius: `${gStart ? '12px 12px' : '0 0'} ${gEnd && !(isW && S.qOpen) ? '12px 12px' : '0 0'}`, borderBottomWidth: gEnd && !(isW && S.qOpen) ? 1 : 0, cursor: isN ? 'grab' : 'pointer', userSelect:'none', opacity: S.drag === t.id ? 0.5 : lit && t.id !== hovT.id && !lit.includes(t.id) ? 0.6 : 1, transition:'opacity .15s',
+          borderRadius: `${gStart ? '12px 12px' : '0 0'} ${gEnd && !qHere ? '12px 12px' : '0 0'}`, borderBottomWidth: gEnd && !qHere ? 1 : 0, cursor:'pointer', userSelect:'none', opacity: S.drag === t.id ? 0.5 : lit && t.id !== hovT.id && !lit.includes(t.id) ? 0.6 : 1, transition:'opacity .15s',
           background: isW ? (sel || hov ? 'color-mix(in oklch, var(--warn-bg) 70%, var(--s1))' : 'color-mix(in oklch, var(--warn-bg) 45%, var(--s1))') : sel || hov ? 'var(--wash)' : 'var(--s1)',
           boxShadow: 'none', position:'relative' },
         open: () => this.setState({ sel: t.id, plan:false }),
@@ -351,25 +372,27 @@ class Component extends DCLogic {
       };
     });
     const selT = all.find(t => t.id === S.sel);
-    let pn = { state:'', text:'', facts:[], links:[], holds:[], hasHolds:false, howTo:false, copyLabel:'', copy: () => {}, canAnswer:false, answer: () => {}, blocked:[], hasBlocked:false, marker:null, stateStyle:{} };
+    let pn = { lead:'', hasLead:false, state:'', text:'', facts:[], links:[], holds:[], hasHolds:false, howTo:false, copyLabel:'', copy: () => {}, canAnswer:false, answer: () => {}, blocked:[], hasBlocked:false, marker:null, stateStyle:{} };
     if (selT) {
-      const f = (label, value, note) => ({ label, value, note: note || '', hasNote: !!note, isChip:false, isText:true, chip:{} });
+      const f = (label, value, note, note2) => ({ label, value, note: note || '', hasNote: !!note, note2: note2 || '', hasNote2: !!note2, isChip:false, isText:true, chip:{} });
       const stName = { waiting:'Waiting for you', progress:'In progress', next:'Up next' }[selT.st];
-      const facts = [{ label:'Type', value: C.TYPES[selT.type], isChip:true, isText:false, chip: lbl(selT.type), hasNote:false, note:'' }];
+      const facts = [{ label:'Type', value: C.TYPES[selT.type], isChip:true, isText:false, chip: lbl(selT.type), hasNote:false, note:'', hasNote2:false, note2:'' }];
       if (!onb) facts.push(f('Agent', C.AGENT));
       if (selT.calls) facts.push(f('Calls affected', `${selT.calls} calls`));
       if (selT.st === 'next') facts.push(f('Assistant', 'Not taken yet', onb ? 'Starts when the step before it is done.' : 'Taken in your order. Drag the row to change it.'));
       else if (onb && selT.st === 'waiting') facts.push(f('Assistant', 'Not connected yet'));
-      else facts.push(f('Assistant', 'Alex\u2019s Claude Code'), f('Session', selT.session), f('Latest step', selT.step, selT.ago), f('Worked on for', selT.on));
+      else { facts.push(f('Assistant', 'Alex\u2019s Claude Code'), f('Session', selT.session),
+        f('Latest step', selT.step, selT.ago, selT.quiet ? 'Your assistant hasn\u2019t called Connexity since then. The task stays with this session until the assistant moves on.' : ''));
+        if (selT.on) facts.push(f('Worked on for', selT.on)); }
       const links = onb ? [] : [{ label:'Open ' + C.AGENT, href:'Connexity Agent Profile.dc.html?agent=car' }];
       if (selT.issue) links.unshift({ label:'Open the issue', href:'Connexity Issue.dc.html?issue=' + selT.issue });
       if (selT.calls) links.push({ label:`See the ${selT.calls} calls`, href:'Connexity Calls.dc.html?agent=car' });
       const bt = isBlocked(selT) ? byId[depOf[selT.id]] : null;
       const blocked = bt ? [{ text: bt.text, state: stLabel[bt.st], stateStyle:{ fontSize:13, lineHeight:'18px', fontWeight: bt.st === 'waiting' ? 500 : 400, color: bt.st === 'waiting' ? 'var(--warn)' : 'var(--ink2)' }, ...iconFlags(bt), iconBox: iconBoxSt(bt), open: () => this.setState({ sel: bt.id, plan:false }) }] : [];
       const holds = heldBy(selT.id).map(h => ({ text: h.text, ...iconFlags(h), iconBox: iconBoxSt(h), open: () => this.setState({ sel: h.id, plan:false }) }));
-      pn = { state: stName, text: selT.text, facts, links, holds, hasHolds: holds.length > 0, howTo: onb0 && selT.id === 'o1', copyLabel: S.copied ? 'Copied' : 'Copy',
+      pn = { lead: selT.lead || '', hasLead: !!selT.lead, state: stName, text: selT.text, facts, links, holds, hasHolds: holds.length > 0, howTo: onb0 && selT.id === 'o1', copyLabel: S.copied ? 'Copied' : 'Copy',
         copy: () => { try { navigator.clipboard.writeText('https://mcp.connexity.ai/mcp'); } catch (_) {} this.setState({ copied:true }); clearTimeout(this.cT); this.cT = setTimeout(() => this.setState({ copied:false }), 2000); },
-        canAnswer: selT.st === 'waiting' && !onb, answer: () => this.setState({ qOpen:true, sel:null }), blocked, hasBlocked: blocked.length > 0, marker: selT.st === 'progress' ? live : selT.st === 'waiting' ? warn : null,
+        canAnswer: selT.st === 'waiting' && !onb && !!selT.wAct, answer: () => this.setState({ qOpen:true, sel:null }), blocked, hasBlocked: blocked.length > 0, marker: selT.st === 'progress' ? (selT.quiet ? still : live) : selT.st === 'waiting' ? warn : null,
         stateStyle: { display:'inline-flex', alignItems:'center', gap:8, fontSize:13, lineHeight:'18px', fontWeight:500, color: selT.st === 'waiting' ? 'var(--warn)' : selT.st === 'progress' ? 'var(--ink)' : 'var(--ink2)' } };
     }
     const gById = Object.fromEntries(C.GOALS.map(g => [g.id, g]));
@@ -382,18 +405,24 @@ class Component extends DCLogic {
       dragOver: e => { const from = this.state.gDrag; if (!from) return; e.preventDefault(); if (from === id || Date.now() - this.lastSwap < 160) return; this.lastSwap = Date.now();
         const o = this.state.goalOrder.filter(x => x !== from); o.splice(this.state.goalOrder.indexOf(id), 0, from); this.setState({ goalOrder:o }); },
       dragEnd: () => this.setState({ gDrag:null }) }; });
-    const done = onb0 ? [] : onb1 ? [['Assistant connected','Alex\u2019s Claude Code','']] : (S.answered ? [['3 answers added to the Car service booking spec','Alex','']] : []).concat(C.DONE);
+    let rm = false; try { rm = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) {}
+    const refreshIcon = React.createElement('svg', { width:16, height:16, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:2, strokeLinecap:'round', strokeLinejoin:'round',
+      style:{ display:'block', transform: view === 'refreshing' ? 'rotate(150deg)' : 'none', animation: S.refreshing && !rm ? 'cxSpin .7s ease-in-out 1' : 'none' } },
+      React.createElement('path', { d:'M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8' }), React.createElement('path', { d:'M21 3v5h-5' }));
+    const done = onb0 ? [] : onb1 ? [['Assistant connected','Alex\u2019s Claude Code','']] : fresh ? C.DONE5 : (S.answered ? [['3 answers added to the Car service booking spec','Alex','']] : []).concat(C.DONE);
     return {
       rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
-      teamLine: onb0 ? 'No assistant connected' : onb1 ? '1 session working' : '2 sessions working',
-      team: onb0 ? [] : [{ name:'Alex\u2019s Claude Code', status: onb1 ? '1 session working' : '2 sessions working', marker: live }], teamOpen: S.team && !onb0, hasDone: !onb0,
+      teamLine: onb0 ? 'No assistant connected' : onb1 ? '1 session working' : fresh ? '1 session working, 1 quiet' : '2 sessions working',
+      team: onb0 ? [] : [{ name:'Alex\u2019s Claude Code', status: onb1 ? '1 session working' : fresh ? '1 session working, 1 quiet' : '2 sessions working', marker: live }],
+      refreshIcon, updatedLine: S.updated || 'Updated 2 min ago',
+      refresh: () => { if (this.state.refreshing) return; this.setState({ refreshing:true }); clearTimeout(this.rT); this.rT = setTimeout(() => this.setState({ refreshing:false, updated:'Updated just now' }), 700); }, teamOpen: S.team && !onb0, hasDone: !onb0,
       teamEnter: () => this.setState({ team:true }), teamLeave: () => this.setState({ team:false }),
       noTeam: false,
       goalLine: cur.line, goalProgress: cur.progress,
       openPlan: () => this.setState(s => ({ plan: !s.plan, sel:null })),
       rows, hasMore: false, moreText: '', toggleMore: () => {},
       doneLine: `${done.length} done`, doneOpen: S.done, doneShut: !S.done, toggleDone: () => this.setState(s => ({ done: !s.done })),
-      doneRows: done.map(([text, by, when]) => ({ text, by, when })), doneCanAll: false, showAllDone: () => {},
+      doneRows: done.map(([text, by, when, href]) => ({ text, by, when, href: href || 'Connexity Agent Profile.dc.html?agent=car' })), doneCanAll: false, showAllDone: () => {},
       panelOpen: !!selT && !S.plan, pn, planOpen: S.plan, goals,
       closePanel: () => this.setState({ sel:null, plan:false })
     };
