@@ -143,6 +143,7 @@ from app.services.connections import (
 from app.services.first_scan import SCAN_DAYS, scan_agents, scan_step
 from app.services.issue_list import IssueFilters, workspace_issues
 from app.services.issue_page import issue_page
+from app.services.onboarding import SPECS, STEPS_BY_KEY, for_assistant
 from app.services.retell import (
     dedupe_retell_agents,
     list_retell_agents,
@@ -1467,9 +1468,12 @@ def _task_public(
 def _task_steps(task: Task) -> list[str]:
     agent = f"`{task.agent_id}`"
     if task.kind is TaskKind.ONBOARDING:
+        step = STEPS_BY_KEY.get(task.key.removeprefix("onboarding:"))
+        own = [for_assistant(item.text) for item in step.instructions] if step else []
         return [
-            "Call `get_readiness` and do its first next step with the person; follow "
-            "connexity://guides/readiness.",
+            *own,
+            "Call `get_readiness` to see where setup stands and do its next step with "
+            "the person; follow connexity://guides/readiness.",
         ]
     if task.kind is TaskKind.SPEC:
         return [
@@ -1720,6 +1724,11 @@ def move_workspace_task(
     )
 
 
+def _step_text(key: str, instruction: str, *, agents: str = "each agent") -> str:
+    """One of an onboarding step's instructions, as the assistant reads it."""
+    return for_assistant(STEPS_BY_KEY[key].instruction(instruction).text, agents=agents)
+
+
 @router.get(
     "/workspaces/{workspace_id}/readiness",
     response_model=McpAnswer[ReadinessPublic],
@@ -1735,27 +1744,14 @@ def get_readiness(
     state = {step.key: step.state for step in readiness.steps}
     next_steps: list[str] = []
     if state[ReadinessStepKey.VOICE_PLATFORM] != ReadinessStepState.DONE:
-        next_steps.append(
-            "Connect the voice platform: ask the person for their Retell API key "
-            "(Retell's dashboard, under API Keys), then call `connect_voice_platform` "
-            "with it. Do not repeat the key in your reply."
-        )
+        next_steps.append(_step_text(ReadinessStepKey.VOICE_PLATFORM, "connect"))
     added = crud.linked_agents(session=session, company_id=workspace.id)
     to_scan = [agent for agent in added if agent.platform == Platform.RETELL]
     if to_scan and state[ReadinessStepKey.SYNC] != ReadinessStepState.DONE:
-        next_steps.append(
-            f"Bring in the added agents' calls from the last {SCAN_DAYS} days: call "
-            "`scan_calls` and keep calling it until it says finished. Tell the person "
-            "how far it has got from time to time."
-        )
+        next_steps.append(_step_text(ReadinessStepKey.SYNC, "scan"))
     if state[ReadinessStepKey.SYNC] != ReadinessStepState.DONE and not added:
         if state[ReadinessStepKey.VOICE_PLATFORM] == ReadinessStepState.DONE:
-            next_steps.append(
-                "The voice platform is connected; do not ask for the key again. Use "
-                "your own access to Retell to see its agents and their recent calls, "
-                "ask the person which belong to this client, then call `add_agents` "
-                "with their Retell agent ids."
-            )
+            next_steps.append(_step_text(ReadinessStepKey.SYNC, "add"))
         else:
             next_steps.append(
                 "Syncing agents and calls and the first scan come after the voice "
@@ -1766,11 +1762,7 @@ def get_readiness(
         if waiting:
             names = ", ".join(agent.name for agent, _ in waiting[:5])
             more = f" and {len(waiting) - 5} more" if len(waiting) > 5 else ""
-            next_steps.append(
-                f"Write each agent's spec from its prompt: {names}{more}. Read "
-                "connexity://guides/spec, then call `get_spec` with include_prompt and "
-                "`write_spec`."
-            )
+            next_steps.append(_step_text(SPECS, "write", agents=f"{names}{more}"))
     waiting = _waiting_step(session, workspace.id)
     if waiting:
         next_steps.append(waiting)

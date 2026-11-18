@@ -7270,6 +7270,38 @@ export const OnConflict = { SKIP: 'skip', OVERWRITE: 'overwrite' } as const;
 export type OnConflict = (typeof OnConflict)[keyof typeof OnConflict];
 
 /**
+ * OnboardingStepPublic
+ */
+export type OnboardingStepPublic = {
+  /**
+   * Key
+   */
+  key: string;
+  /**
+   * Title
+   */
+  title: string;
+  /**
+   * Who
+   *
+   * Who acts on the step
+   */
+  who: 'person' | 'assistant';
+  /**
+   * Done When
+   *
+   * When it counts as done, in one sentence
+   */
+  done_when: string;
+  /**
+   * Instructions
+   *
+   * What the assistant does, in order. A tool is written `like_this`; a guide as [[name]], for connexity://guides/name.
+   */
+  instructions: Array<string>;
+};
+
+/**
  * PersonalAccessTokenCreated
  */
 export type PersonalAccessTokenCreated = {
@@ -12544,6 +12576,59 @@ export type ReadinessReadReadinessResponses = {
 
 export type ReadinessReadReadinessResponse =
   ReadinessReadReadinessResponses[keyof ReadinessReadReadinessResponses];
+
+export type OnboardingReadOnboardingStepsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/onboarding/steps';
+};
+
+export type OnboardingReadOnboardingStepsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type OnboardingReadOnboardingStepsError =
+  OnboardingReadOnboardingStepsErrors[keyof OnboardingReadOnboardingStepsErrors];
+
+export type OnboardingReadOnboardingStepsResponses = {
+  /**
+   * Response Onboarding-Read Onboarding Steps
+   *
+   * Successful Response
+   */
+  200: Array<OnboardingStepPublic>;
+};
+
+export type OnboardingReadOnboardingStepsResponse =
+  OnboardingReadOnboardingStepsResponses[keyof OnboardingReadOnboardingStepsResponses];
 
 export type TokensListPersonalAccessTokensData = {
   body?: never;

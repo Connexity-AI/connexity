@@ -1,7 +1,8 @@
 import { McpDocsView } from '@/components/mcp-docs/mcp-docs-view';
-import { mcpManifestSchema } from '@/schemas/mcp-manifest';
+import { mcpManifestSchema, onboardingStepsSchema } from '@/schemas/mcp-manifest';
 import { getPublicEnv } from '@/config/process-env';
 
+import type { OnboardingStepPublic } from '@/client/types.gen';
 import type { McpManifest } from '@/schemas/mcp-manifest';
 import type { Metadata } from 'next';
 
@@ -43,11 +44,39 @@ const readManifest = async (): Promise<McpManifest | null> => {
   return parsed.data;
 };
 
+// The onboarding steps, in order, from the backend's public list. Left out when they
+// cannot be read; the server log says why.
+const readOnboarding = async (): Promise<OnboardingStepPublic[]> => {
+  const { API_URL } = getPublicEnv();
+  if (!API_URL) {
+    console.warn('/mcp-docs could not read the onboarding steps: API_URL is not set');
+    return [];
+  }
+  try {
+    const response = await fetch(`${API_URL}/api/v1/onboarding/steps`, { next: { revalidate } });
+    if (!response.ok) {
+      console.warn(`/mcp-docs could not read the onboarding steps: ${response.status}`);
+      return [];
+    }
+    const parsed = onboardingStepsSchema.safeParse(await response.json());
+    if (!parsed.success) {
+      console.warn('/mcp-docs could not read the onboarding steps: unexpected shape');
+      return [];
+    }
+    return parsed.data;
+  } catch (error) {
+    console.warn(
+      `/mcp-docs could not read the onboarding steps: ${error instanceof Error ? error.name : 'unknown'}`
+    );
+    return [];
+  }
+};
+
 /** The public MCP contract (designs/screens/Connexity MCP Docs.dc.html): no login, not
  * in the sidebar, no workspace data. Built from the MCP server's `GET /manifest`. */
 const McpDocsPage = async () => {
-  const manifest = await readManifest();
-  return <McpDocsView manifest={manifest} />;
+  const [manifest, onboarding] = await Promise.all([readManifest(), readOnboarding()]);
+  return <McpDocsView manifest={manifest} onboarding={onboarding} />;
 };
 
 export default McpDocsPage;

@@ -372,6 +372,9 @@ import type {
   OauthTokenData,
   OauthTokenErrors,
   OauthTokenResponses,
+  OnboardingReadOnboardingStepsData,
+  OnboardingReadOnboardingStepsErrors,
+  OnboardingReadOnboardingStepsResponses,
   ReadinessReadReadinessData,
   ReadinessReadReadinessErrors,
   ReadinessReadReadinessResponses,
@@ -1105,6 +1108,23 @@ export class ReadinessService {
       url: '/api/v1/readiness',
       ...options,
     });
+  }
+}
+
+export class OnboardingService {
+  /**
+   * Read Onboarding Steps
+   *
+   * The steps a new workspace goes through, in order.
+   */
+  public static readOnboardingSteps<ThrowOnError extends boolean = false>(
+    options?: Options<OnboardingReadOnboardingStepsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      OnboardingReadOnboardingStepsResponses,
+      OnboardingReadOnboardingStepsErrors,
+      ThrowOnError
+    >({ url: '/api/v1/onboarding/steps', ...options });
   }
 }
 

@@ -10988,6 +10988,42 @@ export const OnConflictSchema = {
   title: 'OnConflict',
 } as const;
 
+export const OnboardingStepPublicSchema = {
+  properties: {
+    key: {
+      type: 'string',
+      title: 'Key',
+    },
+    title: {
+      type: 'string',
+      title: 'Title',
+    },
+    who: {
+      type: 'string',
+      enum: ['person', 'assistant'],
+      title: 'Who',
+      description: 'Who acts on the step',
+    },
+    done_when: {
+      type: 'string',
+      title: 'Done When',
+      description: 'When it counts as done, in one sentence',
+    },
+    instructions: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Instructions',
+      description:
+        'What the assistant does, in order. A tool is written `like_this`; a guide as [[name]], for connexity://guides/name.',
+    },
+  },
+  type: 'object',
+  required: ['key', 'title', 'who', 'done_when', 'instructions'],
+  title: 'OnboardingStepPublic',
+} as const;
+
 export const PersonalAccessTokenCreatedSchema = {
   properties: {
     id: {
