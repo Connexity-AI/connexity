@@ -235,8 +235,9 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     @mcp_server.tool(annotations=READ_ONLY)
     async def list_workspaces() -> ListWorkspacesResult:
-        """The workspaces you can reach: one per client. Call this first; every
-        other tool takes a `workspace_id` from here."""
+        """The workspaces you can reach: one per client, each with its score over
+        the last 30 days and its change. Call this first; every other tool takes a
+        `workspace_id` from here."""
         return await _list_workspaces(client=backend_client)
 
     @mcp_server.tool(annotations=CREATES)
@@ -438,7 +439,8 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         """One agent at a glance for the period (7d, 30d by default, 90d): platform,
         type, live version and since when, model, the n8n workflows it used, calls,
         latency (a basic measure from its calls' turns) per day with version marks,
-        and its spec state."""
+        its spec state, and its score: 0 to 100 over its checked calls, its change
+        against the previous period, and the issues that cost it the most points."""
         return await _get_agent(
             client=backend_client,
             workspace_id=workspace_id,
@@ -759,8 +761,9 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     ) -> ListAgentsResult:
         """The agents in a workspace, newest first, each with its type
         (single_prompt or conversational_flow), its calls in the period (7d, 30d by
-        default, 90d) and its spec state. `query` matches part of the name. Pass
-        `next_cursor` back as `cursor` for the next page (limit 1 to 100)."""
+        default, 90d), its spec state and its score with its change. `query`
+        matches part of the name. Pass `next_cursor` back as `cursor` for the next page (limit 1 to
+        100)."""
         return await _list_agents(
             client=backend_client,
             workspace_id=workspace_id,

@@ -72,7 +72,9 @@ class ToolEntry:
 TOOLS: dict[str, ToolEntry] = {
     # Start and the task list
     "list_workspaces": ToolEntry(
-        "start", "Lists the workspaces you can reach, one per client.", "workspaces"
+        "start",
+        "Lists the workspaces you can reach, one per client, with their score.",
+        "workspaces",
     ),
     "create_workspace": ToolEntry(
         "start", "Creates a workspace for a new client.", "workspaces"
@@ -156,12 +158,12 @@ TOOLS: dict[str, ToolEntry] = {
     # Agents and the spec
     "list_agents": ToolEntry(
         "agents_and_spec",
-        "Lists the workspace's agents with their calls and spec state.",
+        "Lists the workspace's agents with their calls, spec state and score.",
         "spec",
     ),
     "get_agent": ToolEntry(
         "agents_and_spec",
-        "One agent at a glance: live version, model, calls and latency.",
+        "One agent at a glance: live version, calls, latency and its score.",
         "spec",
     ),
     "get_spec": ToolEntry(

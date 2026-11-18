@@ -14,6 +14,7 @@ from typing import Annotated, Any, Generic, Literal, TypeVar
 from pydantic import BaseModel, Field, JsonValue, StringConstraints
 
 from app.models.agent_list import AgentType
+from app.models.agent_page import AgentPagePublic
 from app.models.call_list import CallListItemPublic, CallTilesPublic
 from app.models.enums import (
     AssistantTaskState,
@@ -28,6 +29,7 @@ from app.models.enums import (
 from app.models.issue_list import IssueListItemPublic, IssueTilesPublic
 from app.models.issue_page import IssuePagePublic
 from app.models.scenario import ScenarioPublic
+from app.models.score import ScorePublic
 from app.models.spec import SpecState
 from app.models.test_run import (
     TestRunDetailPublic,
@@ -77,6 +79,14 @@ class McpErrorDetail(BaseModel):
 class McpWorkspace(BaseModel):
     id: uuid.UUID
     name: str
+    score: int | None = Field(
+        default=None,
+        description="0 to 100 over the last 30 days; none before onboarding is "
+        "complete or with no checked call",
+    )
+    score_change: int | None = Field(
+        default=None, description="Against the 30 days before"
+    )
 
 
 class McpAgent(BaseModel):
@@ -97,6 +107,14 @@ class McpAgent(BaseModel):
     )
     type: AgentType | None = Field(
         default=None, description="single_prompt or conversational_flow, when known"
+    )
+    score: int | None = Field(
+        default=None,
+        description="0 to 100 for the period; none before onboarding is complete or "
+        "with no checked call",
+    )
+    score_change: int | None = Field(
+        default=None, description="Against the previous period of the same length"
     )
     calls: int | None = Field(default=None, description="Calls in the period")
     latency_seconds: float | None = Field(
@@ -373,6 +391,13 @@ class McpClarificationDecision(BaseModel):
         default=None,
         description="For 'other': the person's own answer, as the rule the agent "
         "should follow",
+    )
+
+
+class McpAgentPage(AgentPagePublic):
+    score: ScorePublic | None = Field(
+        default=None,
+        description="The agent's score for the period, its change and what moves it",
     )
 
 
