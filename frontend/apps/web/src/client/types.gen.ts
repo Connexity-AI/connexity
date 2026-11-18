@@ -4941,6 +4941,18 @@ export type McpAgent = {
    */
   type?: 'single_prompt' | 'conversational_flow' | null;
   /**
+   * Score
+   *
+   * 0 to 100 for the period; none before onboarding is complete or with no checked call
+   */
+  score?: number | null;
+  /**
+   * Score Change
+   *
+   * Against the previous period of the same length
+   */
+  score_change?: number | null;
+  /**
    * Calls
    *
    * Calls in the period
@@ -4952,6 +4964,97 @@ export type McpAgent = {
    * Average of its calls' latencies in the period
    */
   latency_seconds?: number | null;
+};
+
+/**
+ * McpAgentPage
+ */
+export type McpAgentPage = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  platform?: Platform | null;
+  /**
+   * Type
+   */
+  type?: 'single_prompt' | 'conversational_flow' | null;
+  /**
+   * Live Version
+   *
+   * The agent version of its most recent call
+   */
+  live_version?: string | null;
+  /**
+   * Live Since
+   *
+   * When the first call on the live version started
+   */
+  live_since?: string | null;
+  /**
+   * Model
+   *
+   * The live version's model
+   */
+  model?: string | null;
+  /**
+   * Systems
+   *
+   * Workflows its tool calls ran in the period
+   */
+  systems?: Array<AgentSystemPublic>;
+  /**
+   * Spec
+   */
+  spec: 'none' | 'current' | 'needs_review';
+  /**
+   * Period
+   */
+  period: '7d' | '30d' | '90d';
+  /**
+   * Calls
+   *
+   * Calls in the period
+   */
+  calls: number;
+  /**
+   * Latency Seconds
+   *
+   * Average of its calls' latencies in the period
+   */
+  latency_seconds?: number | null;
+  /**
+   * Latency Calls
+   *
+   * Calls in the period with a latency
+   */
+  latency_calls: number;
+  /**
+   * Latency Days
+   *
+   * Each day of the period, oldest first
+   */
+  latency_days: Array<AgentLatencyDayPublic>;
+  /**
+   * Latency Peak
+   *
+   * The highest daily average in the period
+   */
+  latency_peak?: number | null;
+  /**
+   * Version Marks
+   *
+   * Each new agent version that started in the period
+   */
+  version_marks: Array<AgentVersionMarkPublic>;
+  /**
+   * The agent's score for the period, its change and what moves it
+   */
+  score?: ScorePublic | null;
 };
 
 /**
@@ -5008,40 +5111,6 @@ export type McpAnswerClarifications = {
    * Answers
    */
   answers: Array<McpClarificationDecision>;
-};
-
-/**
- * McpAnswer[AgentPagePublic]
- */
-export type McpAnswerAgentPagePublic = {
-  /**
-   * The facts: the result of the call
-   */
-  data: AgentPagePublic;
-  /**
-   * Rules
-   *
-   * The rules that apply to what was returned, one sentence each
-   */
-  rules?: Array<string>;
-  /**
-   * Next Steps
-   *
-   * Steps the assistant can take next, in order, naming the tool
-   */
-  next_steps?: Array<string>;
-  /**
-   * Guide
-   *
-   * The guide for this part of Connexity
-   */
-  guide: string;
-  /**
-   * Next Cursor
-   *
-   * On lists: pass as `cursor` for the next page; empty on the last
-   */
-  next_cursor?: string | null;
 };
 
 /**
@@ -5154,6 +5223,40 @@ export type McpAnswerMcpAddedAgents = {
    * The facts: the result of the call
    */
   data: McpAddedAgents;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
+ * McpAnswer[McpAgentPage]
+ */
+export type McpAnswerMcpAgentPage = {
+  /**
+   * The facts: the result of the call
+   */
+  data: McpAgentPage;
   /**
    * Rules
    *
@@ -6865,6 +6968,18 @@ export type McpWorkspace = {
    * Name
    */
   name: string;
+  /**
+   * Score
+   *
+   * 0 to 100 over the last 30 days; none before onboarding is complete or with no checked call
+   */
+  score?: number | null;
+  /**
+   * Score Change
+   *
+   * Against the 30 days before
+   */
+  score_change?: number | null;
 };
 
 /**
@@ -8593,6 +8708,88 @@ export type ScenarioSetPublic = {
    * Scenario Ids
    */
   scenario_ids: Array<string>;
+};
+
+/**
+ * ScoreMovePublic
+ *
+ * An issue that costs the score points in the period.
+ */
+export type ScoreMovePublic = {
+  /**
+   * Issue Id
+   */
+  issue_id: string;
+  /**
+   * Title
+   */
+  title: string;
+  /**
+   * Points
+   *
+   * How much the score would rise if this issue's findings were gone
+   */
+  points: number;
+  /**
+   * Calls
+   *
+   * Checked calls in the period it was found on
+   */
+  calls: number;
+};
+
+/**
+ * ScorePublic
+ */
+export type ScorePublic = {
+  /**
+   * Score
+   *
+   * 0 to 100; none before onboarding is complete or with no checked call in the period
+   */
+  score?: number | null;
+  /**
+   * Change
+   *
+   * Against the previous period of the same length; none if either has no score
+   */
+  change?: number | null;
+  /**
+   * Previous
+   *
+   * The score of the previous period of the same length
+   */
+  previous?: number | null;
+  /**
+   * Period
+   */
+  period: string;
+  /**
+   * Checked Calls
+   *
+   * Calls with a result other than unchecked
+   */
+  checked_calls: number;
+  /**
+   * Failed Calls
+   */
+  failed_calls: number;
+  /**
+   * Degraded Calls
+   */
+  degraded_calls: number;
+  /**
+   * Moves
+   *
+   * The issues that cost the most points, worst first, up to five
+   */
+  moves?: Array<ScoreMovePublic>;
+  /**
+   * Why None
+   *
+   * Why there is no score, when there is none
+   */
+  why_none?: string | null;
 };
 
 /**
@@ -13965,7 +14162,7 @@ export type McpGetAgentResponses = {
   /**
    * Successful Response
    */
-  200: McpAnswerAgentPagePublic;
+  200: McpAnswerMcpAgentPage;
 };
 
 export type McpGetAgentResponse = McpGetAgentResponses[keyof McpGetAgentResponses];

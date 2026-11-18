@@ -46,7 +46,6 @@ from app.models import (
     ReadinessStepState,
     WorkspaceCreate,
 )
-from app.models.agent_page import AgentPagePublic
 from app.models.check import Issue
 from app.models.clarification import (
     ClarificationListPublic,
@@ -76,6 +75,7 @@ from app.models.mcp import (
     McpAddAgents,
     McpAddedAgents,
     McpAgent,
+    McpAgentPage,
     McpAnswer,
     McpAnswerClarifications,
     McpArchiveIssue,
@@ -158,6 +158,7 @@ from app.services.scenario import (
     write_scenario_set,
     write_scenarios,
 )
+from app.services.score import onboarding_complete, score, scores_by_agent
 from app.services.spec import (
     RuleDraft,
     SpecRefused,
@@ -235,9 +236,21 @@ def list_workspaces(
     session: SessionDep, current_user: McpCurrentUser
 ) -> McpAnswer[list[McpWorkspace]]:
     workspaces = crud.list_accessible_workspaces(session=session, user=current_user)
+    data = []
+    for w in workspaces:
+        found = score(session=session, company_id=w.id, with_moves=False)
+        data.append(
+            McpWorkspace(
+                id=w.id, name=w.name, score=found.score, score_change=found.change
+            )
+        )
     return McpAnswer[list[McpWorkspace]](
-        data=[McpWorkspace(id=w.id, name=w.name) for w in workspaces],
+        data=data,
         rules=[
+            "score is the workspace's score over its checked calls in the last 30 "
+            "days, with its change against the 30 days before; none before onboarding "
+            "is complete or without a checked call. `get_agent` says what moves an "
+            "agent's score.",
             "A workspace is one client's agents, calls and settings; nothing is "
             "shared between workspaces.",
             "You reach the workspaces the person who connected you can reach, and act "
@@ -847,9 +860,14 @@ def list_agents(
     calls = calls_by_agent(
         session=session, company_id=workspace.id, since=period_start(period)
     )
+    onboarded = onboarding_complete(session=session, company_id=workspace.id)
+    scores = scores_by_agent(
+        session=session, company_id=workspace.id, period=period, onboarded=onboarded
+    )
     data = []
     for agent in agents:
         row = _mcp_agent(agent)
+        row.score, row.score_change = scores.get(agent.id, (None, None))
         row.type = types.get(agent.id)
         row.calls = calls.get(agent.id, 0)
         row.latency_seconds = latency.get(agent.id)
@@ -869,6 +887,7 @@ def list_agents(
     return McpAnswer[list[McpAgent]](
         data=data,
         rules=[
+            _SCORE_RULE,
             "Connexity never edits, deploys or calls an agent; it records and checks "
             "what the agent does.",
             "Agents are listed newest first; `query` matches part of the name, "
@@ -1378,16 +1397,21 @@ _LATENCY_RULE = (
 
 @router.get(
     "/workspaces/{workspace_id}/agents/{agent_id}",
-    response_model=McpAnswer[AgentPagePublic],
+    response_model=McpAnswer[McpAgentPage],
 )
 def get_agent(
     session: SessionDep,
     workspace: McpWorkspaceDep,
     agent_id: uuid.UUID,
     period: Literal["7d", "30d", "90d"] = "30d",
-) -> McpAnswer[AgentPagePublic]:
+) -> McpAnswer[McpAgentPage]:
     agent = _mcp_agent_in(session, workspace, agent_id)
-    page = agent_page(session=session, agent=agent, period=period)
+    page = McpAgentPage(
+        **agent_page(session=session, agent=agent, period=period).model_dump(),
+        score=score(
+            session=session, company_id=workspace.id, period=period, agent_id=agent.id
+        ),
+    )
     next_steps = [
         f"Call `list_calls` with agent_id {agent.id} for its calls, and `list_issues` "
         "with the same for what was found on them."
@@ -1401,9 +1425,16 @@ def get_agent(
     waiting = _waiting_step(session, workspace.id, agent.id)
     if waiting:
         next_steps.append(waiting)
-    return McpAnswer[AgentPagePublic](
+    if page.score and page.score.moves:
+        worst = page.score.moves[0]
+        next_steps.append(
+            f"What costs the score most: {worst.title} ({worst.points} points over "
+            f"{worst.calls} calls); call `get_issue` with issue_id {worst.issue_id}."
+        )
+    return McpAnswer[McpAgentPage](
         data=page,
         rules=[
+            _SCORE_RULE,
             _LATENCY_RULE,
             "live_version is the agent version of its most recent call, and live_since "
             "when the first call on it started.",
@@ -1412,6 +1443,16 @@ def get_agent(
         next_steps=next_steps,
         guide=GUIDE_GETTING_STARTED,
     )
+
+
+_SCORE_RULE = (
+    "The score is 100 x (1 - (failed + 0.5 x degraded) / checked calls) in the period, "
+    'a basic formula that will be replaced. Give it with its base ("78 over 412 '
+    'checked calls in 30 days") and its change against the previous period. Only '
+    "fixes and improvements should raise it; there is none before onboarding is "
+    "complete or without a checked call (why_none says which). moves lists the issues "
+    "that cost the most points."
+)
 
 
 _TASK_RULES = [

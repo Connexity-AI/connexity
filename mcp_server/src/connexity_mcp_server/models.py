@@ -30,6 +30,8 @@ class Answer(BaseModel, Generic[T]):
 class Workspace(BaseModel):
     id: str
     name: str
+    score: int | None = None
+    score_change: int | None = None
 
 
 class Agent(BaseModel):
@@ -43,7 +45,31 @@ class Agent(BaseModel):
     type: str | None = None
     calls: int | None = None
     latency_seconds: float | None = None
+    score: int | None = None
+    score_change: int | None = None
     created_at: datetime
+
+
+class ScoreMove(BaseModel):
+    issue_id: str
+    title: str
+    points: float
+    calls: int
+
+
+class Score(BaseModel):
+    """An agent's or a workspace's score for a period (none before onboarding is
+    complete or without a checked call; `why_none` says which)."""
+
+    score: int | None = None
+    change: int | None = None
+    previous: int | None = None
+    period: str
+    checked_calls: int = 0
+    failed_calls: int = 0
+    degraded_calls: int = 0
+    moves: list[ScoreMove] = Field(default_factory=list)
+    why_none: str | None = None
 
 
 class ReadinessStep(BaseModel):
@@ -712,6 +738,7 @@ class AgentPage(BaseModel):
     latency_days: list[AgentLatencyDay] = Field(default_factory=list)
     latency_peak: float | None = None
     version_marks: list[AgentVersionMark] = Field(default_factory=list)
+    score: Score | None = None
 
 
 AgentResult = Answer[AgentPage]

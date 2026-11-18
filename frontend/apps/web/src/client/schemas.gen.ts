@@ -7602,6 +7602,31 @@ export const McpAgentSchema = {
       title: 'Type',
       description: 'single_prompt or conversational_flow, when known',
     },
+    score: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Score',
+      description:
+        '0 to 100 for the period; none before onboarding is complete or with no checked call',
+    },
+    score_change: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Score Change',
+      description: 'Against the previous period of the same length',
+    },
     calls: {
       anyOf: [
         {
@@ -7630,6 +7655,170 @@ export const McpAgentSchema = {
   type: 'object',
   required: ['id', 'name', 'created_at'],
   title: 'McpAgent',
+} as const;
+
+export const McpAgentPageSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    platform: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Platform',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    type: {
+      anyOf: [
+        {
+          type: 'string',
+          enum: ['single_prompt', 'conversational_flow'],
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Type',
+    },
+    live_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Live Version',
+      description: 'The agent version of its most recent call',
+    },
+    live_since: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Live Since',
+      description: 'When the first call on the live version started',
+    },
+    model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Model',
+      description: "The live version's model",
+    },
+    systems: {
+      items: {
+        $ref: '#/components/schemas/AgentSystemPublic',
+      },
+      type: 'array',
+      title: 'Systems',
+      description: 'Workflows its tool calls ran in the period',
+    },
+    spec: {
+      type: 'string',
+      enum: ['none', 'current', 'needs_review'],
+      title: 'Spec',
+    },
+    period: {
+      type: 'string',
+      enum: ['7d', '30d', '90d'],
+      title: 'Period',
+    },
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+      description: 'Calls in the period',
+    },
+    latency_seconds: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Latency Seconds',
+      description: "Average of its calls' latencies in the period",
+    },
+    latency_calls: {
+      type: 'integer',
+      title: 'Latency Calls',
+      description: 'Calls in the period with a latency',
+    },
+    latency_days: {
+      items: {
+        $ref: '#/components/schemas/AgentLatencyDayPublic',
+      },
+      type: 'array',
+      title: 'Latency Days',
+      description: 'Each day of the period, oldest first',
+    },
+    latency_peak: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Latency Peak',
+      description: 'The highest daily average in the period',
+    },
+    version_marks: {
+      items: {
+        $ref: '#/components/schemas/AgentVersionMarkPublic',
+      },
+      type: 'array',
+      title: 'Version Marks',
+      description: 'Each new agent version that started in the period',
+    },
+    score: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/ScorePublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: "The agent's score for the period, its change and what moves it",
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'name',
+    'spec',
+    'period',
+    'calls',
+    'latency_calls',
+    'latency_days',
+    'version_marks',
+  ],
+  title: 'McpAgentPage',
 } as const;
 
 export const McpAgentScanSchema = {
@@ -7711,51 +7900,6 @@ export const McpAnswerClarificationsSchema = {
   type: 'object',
   required: ['answers'],
   title: 'McpAnswerClarifications',
-} as const;
-
-export const McpAnswer_AgentPagePublic_Schema = {
-  properties: {
-    data: {
-      $ref: '#/components/schemas/AgentPagePublic',
-      description: 'The facts: the result of the call',
-    },
-    rules: {
-      items: {
-        type: 'string',
-      },
-      type: 'array',
-      title: 'Rules',
-      description: 'The rules that apply to what was returned, one sentence each',
-    },
-    next_steps: {
-      items: {
-        type: 'string',
-      },
-      type: 'array',
-      title: 'Next Steps',
-      description: 'Steps the assistant can take next, in order, naming the tool',
-    },
-    guide: {
-      type: 'string',
-      title: 'Guide',
-      description: 'The guide for this part of Connexity',
-    },
-    next_cursor: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Next Cursor',
-      description: 'On lists: pass as `cursor` for the next page; empty on the last',
-    },
-  },
-  type: 'object',
-  required: ['data', 'guide'],
-  title: 'McpAnswer[AgentPagePublic]',
 } as const;
 
 export const McpAnswer_CallScreenPublic_Schema = {
@@ -7936,6 +8080,51 @@ export const McpAnswer_McpAddedAgents_Schema = {
   type: 'object',
   required: ['data', 'guide'],
   title: 'McpAnswer[McpAddedAgents]',
+} as const;
+
+export const McpAnswer_McpAgentPage_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/McpAgentPage',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[McpAgentPage]',
 } as const;
 
 export const McpAnswer_McpCalls_Schema = {
@@ -10355,6 +10544,31 @@ export const McpWorkspaceSchema = {
     name: {
       type: 'string',
       title: 'Name',
+    },
+    score: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Score',
+      description:
+        '0 to 100 over the last 30 days; none before onboarding is complete or with no checked call',
+    },
+    score_change: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Score Change',
+      description: 'Against the 30 days before',
     },
   },
   type: 'object',
@@ -12990,6 +13204,116 @@ export const ScenarioSetPublicSchema = {
   type: 'object',
   required: ['id', 'name', 'scenario_ids'],
   title: 'ScenarioSetPublic',
+} as const;
+
+export const ScoreMovePublicSchema = {
+  properties: {
+    issue_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Issue Id',
+    },
+    title: {
+      type: 'string',
+      title: 'Title',
+    },
+    points: {
+      type: 'number',
+      title: 'Points',
+      description: "How much the score would rise if this issue's findings were gone",
+    },
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+      description: 'Checked calls in the period it was found on',
+    },
+  },
+  type: 'object',
+  required: ['issue_id', 'title', 'points', 'calls'],
+  title: 'ScoreMovePublic',
+  description: 'An issue that costs the score points in the period.',
+} as const;
+
+export const ScorePublicSchema = {
+  properties: {
+    score: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Score',
+      description:
+        '0 to 100; none before onboarding is complete or with no checked call in the period',
+    },
+    change: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Change',
+      description: 'Against the previous period of the same length; none if either has no score',
+    },
+    previous: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Previous',
+      description: 'The score of the previous period of the same length',
+    },
+    period: {
+      type: 'string',
+      title: 'Period',
+    },
+    checked_calls: {
+      type: 'integer',
+      title: 'Checked Calls',
+      description: 'Calls with a result other than unchecked',
+    },
+    failed_calls: {
+      type: 'integer',
+      title: 'Failed Calls',
+    },
+    degraded_calls: {
+      type: 'integer',
+      title: 'Degraded Calls',
+    },
+    moves: {
+      items: {
+        $ref: '#/components/schemas/ScoreMovePublic',
+      },
+      type: 'array',
+      title: 'Moves',
+      description: 'The issues that cost the most points, worst first, up to five',
+    },
+    why_none: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Why None',
+      description: 'Why there is no score, when there is none',
+    },
+  },
+  type: 'object',
+  required: ['period', 'checked_calls', 'failed_calls', 'degraded_calls'],
+  title: 'ScorePublic',
 } as const;
 
 export const ScoreTypeSchema = {

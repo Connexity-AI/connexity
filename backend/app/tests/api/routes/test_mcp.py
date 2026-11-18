@@ -108,7 +108,13 @@ def test_list_workspaces_returns_the_persons_workspace(
     body = response.json()
     _assert_answer_shape(body)
     assert body["data"] == [
-        {"id": str(user.company_id), "name": workspace_name_from_email(user.email)}
+        {
+            "id": str(user.company_id),
+            "name": workspace_name_from_email(user.email),
+            # A new workspace has no score: onboarding is not complete.
+            "score": None,
+            "score_change": None,
+        }
     ]
     assert body["next_cursor"] is None
     assert any("list_agents" in step for step in body["next_steps"])
