@@ -50,6 +50,11 @@ can read them.
 | `connexity-session-secret-key` | backend `SESSION_SECRET_KEY` |
 | `connexity-encryption-key` | backend `ENCRYPTION_KEY` (encrypts stored provider keys; changing it makes them unreadable) |
 | `connexity-openai-api-key` | backend `OPENAI_API_KEY` |
+| `connexity-typesafe-api-key` | backend `TYPESAFE_API_KEY`: Jev, for classifier checks (added 2026-11-18). Without it those checks are skipped on every call, and picked up once it is set |
+
+There is no Anthropic key in production: no judge check is registered yet. Add one
+(`connexity-anthropic-api-key`, backend `ANTHROPIC_API_KEY`) before registering a judge
+on Claude.
 
 To change a secret, add a new version (`gcloud secrets versions add <name> --data-file=-`)
 and redeploy the service. Never put secret values in this repository or in plain
@@ -58,6 +63,12 @@ environment variables.
 MCP settings (`CONNEXITY_API_URL`, `MCP_PUBLIC_BASE_URL`, `MCP_OAUTH_ISSUER_URL`,
 `MCP_OAUTH_AUDIENCE`) and the backend's `OAUTH_ISSUER_URL` and `MCP_OAUTH_AUDIENCE` point the
 services at each other.
+
+The web app (`connexity-ui`) has three plain settings: `API_URL` (the backend), `SITE_URL`
+(its own address) and `MCP_URL`, the MCP server's base address
+(`https://mcp.connexity.ai`, added 2026-11-18). The public `/mcp-docs` page reads the
+MCP server's `GET /manifest` from `MCP_URL`; without it the page says the contract could
+not be read, and the server log says why.
 
 ## Addresses
 
