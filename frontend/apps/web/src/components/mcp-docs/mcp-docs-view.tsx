@@ -2,12 +2,24 @@
 
 import { useEffect, useState } from 'react';
 
-import { ChevronRight, Eye, Hand, Pencil, Phone, Plug, Terminal, X } from 'lucide-react';
+import {
+  ChevronRight,
+  Eye,
+  Hand,
+  Pencil,
+  Phone,
+  Plug,
+  SquareTerminal,
+  Terminal,
+  User,
+  X,
+} from 'lucide-react';
 
 import { cn } from '@workspace/ui/lib/utils';
 
 import { Brand } from '@/components/common/brand';
 
+import type { OnboardingStepPublic } from '@/client/types.gen';
 import type { McpManifest, McpManifestGuide, McpManifestTool } from '@/schemas/mcp-manifest';
 import type { FC, ReactNode } from 'react';
 
@@ -249,6 +261,97 @@ const CopyButton: FC<{ value: string; idle: string; className: string; children?
   );
 };
 
+/** An instruction's text: `tool` as code, [[guide]] as a link that opens the guide. */
+const instructionParts = (text: string, onGuide: (uri: string) => void): ReactNode[] =>
+  text.split(/(`[^`]+`|\[\[[a-z-]+\]\])/g).map((part, index) => {
+    if (part.startsWith('`') && part.endsWith('`'))
+      return (
+        <code key={index} className="font-mono text-label font-medium text-ink">
+          {part.slice(1, -1)}
+        </code>
+      );
+    if (part.startsWith('[[') && part.endsWith(']]')) {
+      const uri = `connexity://guides/${part.slice(2, -2)}`;
+      return (
+        <button
+          key={index}
+          type="button"
+          onClick={() => onGuide(uri)}
+          className="font-mono text-label text-ink underline decoration-border-control underline-offset-[3px] hover:decoration-ink"
+        >
+          {uri}
+        </button>
+      );
+    }
+    return part;
+  });
+
+const ActorChip: FC<{ who: OnboardingStepPublic['who'] }> = ({ who }) => {
+  const Icon = who === 'person' ? User : SquareTerminal;
+  return (
+    <span className="inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-md bg-unchecked-bg px-2 text-label font-medium text-ink-secondary shadow-[inset_0_0_0_1px_var(--color-hairline)]">
+      <Icon className="size-3.5" aria-hidden />
+      {who === 'person' ? 'You' : 'Your assistant'}
+    </span>
+  );
+};
+
+const StepRow: FC<{
+  step: OnboardingStepPublic;
+  number: number;
+  onGuide: (uri: string) => void;
+}> = ({ step, number, onGuide }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={cn(number > 1 && 'border-t border-hairline', open && 'bg-surface-2')}>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        className="flex w-full flex-wrap items-start gap-x-3 gap-y-1.5 px-4 py-3 text-left hover:bg-wash"
+      >
+        <ChevronRight
+          className={cn(
+            'mt-[3px] size-4 flex-none text-ink-muted transition-transform',
+            open && 'rotate-90'
+          )}
+          aria-hidden
+        />
+        <span className="w-5 flex-none text-body font-medium tabular-nums text-ink-muted">
+          {number}
+        </span>
+        <span className="min-w-[120px] flex-1 text-body font-medium text-pretty text-ink sm:w-[220px] sm:flex-none">
+          {step.title}
+        </span>
+        <span className="order-3 flex pl-[60px] sm:order-none sm:w-[136px] sm:flex-none sm:pl-0">
+          <ActorChip who={step.who} />
+        </span>
+        <span className="order-2 w-full pl-[60px] text-body text-pretty text-ink-secondary sm:order-none sm:w-auto sm:min-w-[220px] sm:flex-1 sm:pl-0">
+          {step.done_when}
+        </span>
+      </button>
+      {open && (
+        <div className="flex flex-col gap-2 pr-4 pb-4 pl-[76px]">
+          <span className="text-label text-ink-muted">Instructions for your assistant</span>
+          <ol className="m-0 flex list-none flex-col gap-1.5 p-0">
+            {step.instructions.map((text, index) => (
+              <li
+                key={index}
+                className="grid grid-cols-[20px_minmax(0,1fr)] gap-1 text-body text-ink-secondary"
+              >
+                <span className="tabular-nums text-ink-muted">{index + 1}.</span>
+                <span className="text-pretty [overflow-wrap:anywhere]">
+                  {instructionParts(text, onGuide)}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Unavailable: FC = () => (
   <Card className="p-6">
     <p className="m-0 text-body text-ink-secondary">
@@ -258,7 +361,10 @@ const Unavailable: FC = () => (
 );
 
 /** The MCP contract page. Everything on it comes from the server's manifest. */
-export const McpDocsView: FC<{ manifest: McpManifest | null }> = ({ manifest }) => {
+export const McpDocsView: FC<{
+  manifest: McpManifest | null;
+  onboarding: OnboardingStepPublic[];
+}> = ({ manifest, onboarding }) => {
   const [guideUri, setGuideUri] = useState<string | null>(null);
   const guide = manifest?.guides.find((item) => item.uri === guideUri) ?? null;
   const labels = Object.fromEntries(
@@ -283,8 +389,7 @@ export const McpDocsView: FC<{ manifest: McpManifest | null }> = ({ manifest }) 
                   What your assistant can do in Connexity
                 </h1>
                 <p className="m-0 text-body text-pretty text-ink-secondary">
-                  Connexity never edits, deploys or calls your agent. Your assistant does the work;
-                  you approve where it matters.
+                  Connexity gives a workspace for your assistant to manage your voice agents
                 </p>
               </div>
               {url && (
@@ -310,18 +415,6 @@ export const McpDocsView: FC<{ manifest: McpManifest | null }> = ({ manifest }) 
             </Card>
 
             <section className="flex flex-col gap-3">
-              <h2 className="m-0 text-body font-medium">Every tool answers the same way.</h2>
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3">
-                {manifest.answer_shape.map((part) => (
-                  <Card key={part.key} className="flex flex-col gap-1.5 p-4">
-                    <span className="font-mono text-label font-medium">{part.key}</span>
-                    <span className="text-label text-pretty text-ink-secondary">{part.text}</span>
-                  </Card>
-                ))}
-              </div>
-            </section>
-
-            <section className="flex flex-col gap-3">
               <h2 className="m-0 text-body font-medium">What a tool may do</h2>
               <Card className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-x-6 gap-y-3.5 px-5 py-4">
                 {manifest.effects.map((effect) => (
@@ -339,6 +432,23 @@ export const McpDocsView: FC<{ manifest: McpManifest | null }> = ({ manifest }) 
                 ))}
               </Card>
             </section>
+
+            {onboarding.length > 0 && (
+              <section className="flex flex-col gap-3">
+                <div className="flex flex-col gap-0.5">
+                  <h2 className="m-0 text-body font-medium">Onboarding</h2>
+                  <span className="text-label text-pretty text-ink-secondary">
+                    The steps a new workspace goes through, in order. Your assistant does them with
+                    you.
+                  </span>
+                </div>
+                <Card className="overflow-hidden">
+                  {onboarding.map((step, index) => (
+                    <StepRow key={step.key} step={step} number={index + 1} onGuide={setGuideUri} />
+                  ))}
+                </Card>
+              </section>
+            )}
 
             {manifest.groups.map((group) => (
               <section key={group.key} className="flex flex-col gap-3">

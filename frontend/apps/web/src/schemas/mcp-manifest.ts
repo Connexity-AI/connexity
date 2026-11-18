@@ -30,7 +30,6 @@ export const mcpManifestSchema = z.object({
   server_url: z.string().nullable(),
   tool_count: z.number(),
   guide_count: z.number(),
-  answer_shape: z.array(textSchema),
   effects: z.array(textSchema),
   groups: z.array(
     z.object({
@@ -48,3 +47,14 @@ export const mcpManifestSchema = z.object({
 export type McpManifest = z.infer<typeof mcpManifestSchema>;
 export type McpManifestTool = z.infer<typeof toolSchema>;
 export type McpManifestGuide = McpManifest['guides'][number];
+
+/** `GET /api/v1/onboarding/steps`, checked as the manifest is. */
+export const onboardingStepsSchema = z.array(
+  z.object({
+    key: z.string(),
+    title: z.string(),
+    who: z.enum(['person', 'assistant']),
+    done_when: z.string(),
+    instructions: z.array(z.string()),
+  })
+);

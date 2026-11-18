@@ -16,13 +16,6 @@ from pydantic import BaseModel
 from connexity_mcp_server.contract import GROUPS, TOOLS, effect_of, guide_uri
 from connexity_mcp_server.guides import GUIDE_URI_PREFIX, GUIDES, read_guide
 
-ANSWER_SHAPE = [
-    ("data", "The facts: records, ids and what the checks found."),
-    ("rules", "What the assistant must follow while it works on this."),
-    ("next_steps", "Numbered, each naming the tool to call next."),
-    ("guide", "A link to the guide that explains this part."),
-]
-
 EFFECTS = [
     ("reads", "Reads", "Reads Connexity only."),
     ("writes", "Writes", "Writes inside Connexity."),
@@ -75,7 +68,6 @@ class Manifest(BaseModel):
     server_url: str | None
     tool_count: int
     guide_count: int
-    answer_shape: list[ManifestText]
     effects: list[ManifestText]
     groups: list[ManifestGroup]
     guides: list[ManifestGuide]
@@ -165,7 +157,6 @@ async def build_manifest(mcp_server: FastMCP, *, server_url: str | None) -> Mani
         server_url=server_url,
         tool_count=len(tools),
         guide_count=len(GUIDES),
-        answer_shape=[ManifestText(key=k, text=t) for k, t in ANSWER_SHAPE],
         effects=[ManifestText(key=k, label=label, text=t) for k, label, t in EFFECTS],
         groups=groups,
         guides=[

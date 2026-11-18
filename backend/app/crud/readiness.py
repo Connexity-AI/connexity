@@ -29,6 +29,7 @@ from app.models.readiness import (
 )
 from app.models.workspace_member import WorkspaceMember
 from app.services.connections import VOICE_PLATFORMS
+from app.services.onboarding import READINESS_STEPS
 
 
 def connected_assistants(
@@ -264,31 +265,28 @@ def get_readiness(
     def state(done: bool) -> ReadinessStepState:
         return ReadinessStepState.DONE if done else ReadinessStepState.NOT_STARTED
 
+    # Each step's state and detail, by key; their order and names come from
+    # `ONBOARDING_STEPS`.
+    found: dict[ReadinessStepKey, tuple[ReadinessStepState, str | None]] = {
+        ReadinessStepKey.ASSISTANT: (
+            state(bool(assistants)),
+            ", ".join(assistants) if assistants else "Not connected yet",
+        ),
+        ReadinessStepKey.VOICE_PLATFORM: (
+            state(bool(platforms)),
+            ", ".join(platforms) or None,
+        ),
+        ReadinessStepKey.SYNC: (sync_state, sync_detail),
+        ReadinessStepKey.FIRST_SCAN: (state(first_scan_done), scan_detail),
+    }
     steps = [
         ReadinessStep(
-            key=ReadinessStepKey.ASSISTANT,
-            name="Assistant connected",
-            state=state(bool(assistants)),
-            detail=", ".join(assistants) if assistants else "Not connected yet",
-        ),
-        ReadinessStep(
-            key=ReadinessStepKey.VOICE_PLATFORM,
-            name="Voice platform connected",
-            state=state(bool(platforms)),
-            detail=", ".join(platforms) or None,
-        ),
-        ReadinessStep(
-            key=ReadinessStepKey.SYNC,
-            name="Agents and calls synced",
-            state=sync_state,
-            detail=sync_detail,
-        ),
-        ReadinessStep(
-            key=ReadinessStepKey.FIRST_SCAN,
-            name="First scan done",
-            state=state(first_scan_done),
-            detail=scan_detail,
-        ),
+            key=ReadinessStepKey(step.key),
+            name=step.readiness_name or step.title,
+            state=found[ReadinessStepKey(step.key)][0],
+            detail=found[ReadinessStepKey(step.key)][1],
+        )
+        for step in READINESS_STEPS
     ]
     done = sum(step.state == ReadinessStepState.DONE for step in steps)
     return ReadinessPublic(

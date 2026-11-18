@@ -198,7 +198,7 @@ They own validation, CRUD calls, state changes and the answer's rules and next s
 ## The contract page
 
 `GET /manifest` on the MCP server is public and read only: the server version and URL,
-the answer shape, what a tool may do, the tools by group (each with its effect, whether
+what a tool may do, the tools by group (each with its effect, whether
 it needs the person's yes, its line, guide and inputs) and the guides with their text.
 It joins `contract.py` with what the running server has: the effect comes from each
 tool's annotations (read only; reaches out to read the platform, or to run the agent;
@@ -207,6 +207,10 @@ otherwise writes), the inputs from its input schema. No workspace data, no auth.
 The web app's `/mcp-docs` page (outside the signed-in area) is built from it on the
 server and read again every five minutes (`MCP_URL`). When the manifest cannot be read,
 the page says so.
+
+The page's Onboarding section reads the backend's public `GET /api/v1/onboarding/steps`:
+the onboarding steps in the order of `ONBOARDING_STEPS` (`app/services/onboarding.py`),
+the same list Readiness, Work and the assistant's onboarding instructions follow.
 
 ## Current tools
 

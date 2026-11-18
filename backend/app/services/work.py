@@ -38,6 +38,7 @@ from app.models.work import (
     WorkTaskRefPublic,
 )
 from app.services.issue_list import IssueFilters, issue_title, workspace_issues
+from app.services.onboarding import ONBOARDING_STEPS, SPECS, STEPS_BY_KEY, Actor
 from app.services.spec import agents_needing_specs
 
 # Unchecked calls older than this are not worth a review.
@@ -46,7 +47,7 @@ REVIEW_DAYS = 7
 SPEC_CALL_DAYS = 7
 NO_ASSISTANT = "your assistant"
 # The onboarding row for the specs, until the first scan is done.
-SPECS_STEP = "onboarding:specs"
+SPECS_STEP = f"onboarding:{SPECS}"
 MAX_SESSION = 40
 
 
@@ -57,14 +58,6 @@ class Group:
     CRITICAL = 2
     SETUP = 3
     OTHER = 4
-
-
-_ONBOARDING = {
-    ReadinessStepKey.ASSISTANT: "Connect your AI assistant",
-    ReadinessStepKey.VOICE_PLATFORM: "Connect your voice platform",
-    ReadinessStepKey.SYNC: "Add the agents to watch",
-    ReadinessStepKey.FIRST_SCAN: "Scan recent calls",
-}
 
 
 @dataclass
@@ -156,11 +149,11 @@ def _onboarding_tasks(
                 key=f"onboarding:{step.key.value}",
                 kind=TaskKind.ONBOARDING,
                 group=Group.SETUP,
-                title=_ONBOARDING[step.key],
+                title=STEPS_BY_KEY[step.key.value].title,
                 facts=[f"Onboarding · step {position + 1} of {len(readiness.steps)}"]
                 + ([step.detail] if step.detail else []),
-                # The assistant connecting is the person's own step.
-                for_person=step.key is ReadinessStepKey.ASSISTANT,
+                # A step the person acts on themselves, such as connecting the assistant.
+                for_person=STEPS_BY_KEY[step.key.value].who is Actor.PERSON,
                 # Readiness's one fact, such as "2 agents · 40 calls", on the second line.
                 line=" · ".join(
                     ["Onboarding"]
@@ -181,11 +174,14 @@ def _onboarding_tasks(
                 key=SPECS_STEP,
                 kind=TaskKind.ONBOARDING,
                 group=Group.SETUP,
-                title="Write the spec for each agent",
+                title=STEPS_BY_KEY[SPECS].title,
                 facts=["Onboarding · after the first scan"],
                 line="Onboarding",
             )
         )
+    # The specs row too sits where `ONBOARDING_STEPS` puts it.
+    order = {f"onboarding:{step.key}": n for n, step in enumerate(ONBOARDING_STEPS)}
+    tasks.sort(key=lambda task: order[task.key])
     return tasks
 
 

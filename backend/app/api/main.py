@@ -24,6 +24,7 @@ from app.api.routes import (
     login,
     mcp,
     oauth,
+    onboarding,
     personal_access_tokens,
     readiness,
     runs,
@@ -50,6 +51,7 @@ api_router.include_router(google_auth.router)
 api_router.include_router(users.router)
 api_router.include_router(workspaces.router)
 api_router.include_router(readiness.router)
+api_router.include_router(onboarding.router)
 api_router.include_router(personal_access_tokens.router)
 api_router.include_router(mcp.router)
 # Before agents.router: its /agents/{agent_id} would catch /agents/list.

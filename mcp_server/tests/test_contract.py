@@ -95,12 +95,7 @@ def test_the_manifest_is_public_and_has_no_workspace_data() -> None:
         f"connexity://guides/{name}" for name in GUIDES
     ]
     assert all(g["text"].startswith("#") for g in body["guides"])
-    assert [a["key"] for a in body["answer_shape"]] == [
-        "data",
-        "rules",
-        "next_steps",
-        "guide",
-    ]
+    assert "answer_shape" not in body
     assert [g["key"] for g in body["groups"]] == [
         "start",
         "connect",
