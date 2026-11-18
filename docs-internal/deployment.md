@@ -97,6 +97,13 @@ does not appear. The Google OAuth client must list the redirect URI
 
 ## Things to know
 
+- **The services deploy separately, in no fixed order.** A merge rebuilds the backend,
+  the MCP server and the web app one by one, so for a few minutes any of them may talk to
+  an older or newer version of another. A change across them must work with either
+  side old: add a field before anything reads it, and stop reading a field before it is
+  removed. On 2026-11-18 the MCP server dropped a manifest field the running web app
+  still required, and `/mcp-docs` was down for about two minutes; the page's schemas now
+  require only what it cannot draw without.
 - **Migrations run on start.** A migration that fails stops the new backend revision from
   starting; the old one keeps serving. Fix forward with a new migration.
 - **Cloud Run reserves `/healthz`.** Requests to it never reach the MCP container, so do not
