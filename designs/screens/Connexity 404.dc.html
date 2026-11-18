@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>@keyframes cxFlow{to{stroke-dashoffset:-8}}@media (prefers-reduced-motion:reduce){[data-flow]{animation:none!important}}body{margin:0}*{box-sizing:border-box}button{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<div ref="{{ frameRef }}" style="{{ frameStyle }}">
+<div style="{{ topStyle }}">
+<a href="Connexity Work.dc.html" aria-label="Connexity, go to Work" style="display:inline-flex;align-items:center;gap:8px;height:32px;color:var(--ink);text-decoration:none">
+<span role="img" aria-hidden="true" style="display:block;flex:none;width:24px;height:24px;background:var(--brand);-webkit-mask:url(assets/connexity-logo.png) center/contain no-repeat;mask:url(assets/connexity-logo.png) center/contain no-repeat"></span>
+<span style="font-size:15px;font-weight:500">Connexity</span>
+</a>
+</div>
+<main style="{{ mainStyle }}">
+<div style="width:100%;max-width:440px;display:flex;flex-direction:column;align-items:center;text-align:center">
+<span style="{{ codeStyle }}">404</span>
+<h1 style="margin:16px 0 0;font-size:20px;line-height:28px;font-weight:500">Page not found</h1>
+<p style="margin:8px 0 0;color:var(--ink2);text-wrap:pretty">We tried to transfer you, but the line dropped. This page doesn't exist.</p>
+<div aria-hidden="true" style="width:100%;margin-top:40px;display:flex;align-items:center;gap:0">
+<span style="flex:none;height:32px;padding:0 12px;display:flex;align-items:center;border:1px solid var(--bc);border-radius:8px;font-size:13px;line-height:18px;color:var(--ink2);white-space:nowrap">You</span>
+<span style="flex:1 1 0;min-width:16px;display:flex;align-items:center">{{ flowLine }}</span>
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="flex:none;margin:0 6px;color:var(--crit)"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+<span style="flex:1 1 0;min-width:16px;display:flex;align-items:center;opacity:.4"><svg width="100%" height="2" style="display:block;overflow:visible"><line x1="0" y1="1" x2="100%" y2="1" stroke="var(--bc)" stroke-width="1" stroke-dasharray="4 4"></line></svg></span>
+<span style="flex:none;height:32px;padding:0 12px;display:flex;align-items:center;border:1px dashed var(--bc);border-radius:8px;font-size:13px;line-height:18px;color:var(--ink3);white-space:nowrap">This page</span>
+</div>
+<a href="Connexity Work.dc.html" style="margin-top:40px;height:36px;padding:0 16px;border-radius:8px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;display:inline-flex;align-items:center;text-decoration:none" style-hover="opacity:.88;color:var(--on-accent)">Back to Work</a>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;frame&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Desktop&quot;,&quot;Phone&quot;],&quot;default&quot;:&quot;Desktop&quot;,&quot;tsType&quot;:&quot;'Desktop' | 'Phone'&quot;}}">
+class Component extends DCLogic {
+  static THEMES = {
+    dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--wash':'#26282b' },
+    light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--wash':'#efeeea' }
+  };
+  state = { narrow:false };
+  frameRef = React.createRef();
+  // Built here so the running dash animation is never restarted by a re-render.
+  flowLine = React.createElement('svg', { width:'100%', height:2, style:{ display:'block', overflow:'visible' } },
+    React.createElement('line', { 'data-flow':'', x1:0, y1:1, x2:'100%', y2:1, stroke:'var(--bc)', strokeWidth:1, strokeDasharray:'4 4',
+      style:{ animation:'cxFlow 0.45s linear infinite' } }));
+  componentDidMount() {
+    this.ro = new ResizeObserver(([e]) => { const n = e.contentRect.width < 560; if (n !== this.state.narrow) this.setState({ narrow:n }); });
+    if (this.frameRef.current) this.ro.observe(this.frameRef.current);
+  }
+  componentWillUnmount() { this.ro && this.ro.disconnect(); }
+  renderVals() {
+    const light = this.props.theme === 'light', phone = this.props.frame === 'Phone', n = this.state.narrow;
+    const base = { ...Component.THEMES[light ? 'light' : 'dark'], color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', WebkitFontSmoothing:'antialiased' };
+    return {
+      rootStyle: phone ? { ...base, minHeight:'100vh', background:'var(--wash)', display:'flex', justifyContent:'center', alignItems:'flex-start', padding:32 } : { ...base, minHeight:'100vh', background:'var(--s0)', display:'flex' },
+      frameRef:this.frameRef,
+      frameStyle: phone ? { width:390, height:844, flex:'none', borderRadius:24, border:'1px solid var(--border)', overflow:'hidden', background:'var(--s0)', display:'flex', flexDirection:'column' } : { flex:1, minHeight:'100vh', display:'flex', flexDirection:'column' },
+      topStyle:{ flex:'none', padding: n ? '16px 20px' : '24px 32px' },
+      mainStyle:{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding: n ? '0 24px 96px' : '0 32px 128px' },
+      codeStyle:{ fontSize: n ? 88 : 128, lineHeight:1, fontWeight:500, letterSpacing:'-0.03em', fontVariantNumeric:'tabular-nums', color:'var(--ink)' },
+      flowLine:this.flowLine
+    };
+  }
+}
+</script>
+</body>
+</html>
