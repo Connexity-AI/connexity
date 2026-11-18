@@ -54,7 +54,6 @@ from app.models.clarification import (
 )
 from app.models.dashboard import DashboardPublic
 from app.models.enums import (
-    AssistantTaskState,
     CallCheckStatus,
     ClarificationState,
     IssueState,
@@ -1466,9 +1465,12 @@ _TASK_RULES = [
     "your own. The order: incidents, then Critical tasks, then setup (onboarding steps, "
     "then specs, then the open questions while onboarding runs), then everything else, "
     "most calls first. A task that blocks a higher one sits above it.",
-    "Asking for your next task ends this one: done when its work is gone; waiting for "
-    "the person when the rest is theirs (resolving an issue); otherwise it goes back to "
-    "its place in the list. A review of calls is done once handed out.",
+    "Asking for your next task ends this one: done when its work is gone; otherwise it "
+    "goes back to its place in the list. A review of calls is done once handed out. An "
+    "issue fix stays with your session until the issue is resolved or archived; put it "
+    "back with `move_task` if you stop working on it.",
+    "Only questions wait for the person. A task your session has not touched for 30 "
+    "minutes shows as quiet on Work; ask for your next task to show you are working.",
     "Tasks are held per session: the person, the assistant and the session's name. "
     "Another session's task in progress is never handed to you. Tasks come from this "
     "workspace only.",
@@ -1569,6 +1571,7 @@ def _task_steps(task: Task) -> list[str]:
 
 def _waiting_steps(waiting: list[Task]) -> list[str]:
     steps = []
+    # Only questions wait for the person (Dmytro, 2026-11-18).
     questions = [t for t in waiting if t.kind is TaskKind.CLARIFICATIONS]
     if questions:
         names = ", ".join(t.agent_name or "" for t in questions[:3])
@@ -1577,13 +1580,6 @@ def _waiting_steps(waiting: list[Task]) -> list[str]:
             "(`list_clarifications` with the agent_id), then `answer_clarifications` "
             "with what they pick. If they want to leave them, move on: they can answer "
             "in Connexity."
-        )
-    others = [t for t in waiting if t.kind is not TaskKind.CLARIFICATIONS]
-    if others:
-        steps.append(
-            "Also waiting for the person: "
-            + "; ".join(f'"{t.title}"' for t in others[:3])
-            + ". Remind them when it fits."
         )
     return steps
 
@@ -1629,11 +1625,6 @@ def get_next_task(
         session_name=session_name,
     )
     steps: list[str] = [_dashboard_ready(session, workspace.id)] if finished else []
-    if result.ended is not None and result.ended.state is AssistantTaskState.WAITING:
-        steps.append(
-            f'Tell the person "{result.ended.title}" now waits for them to resolve '
-            "it in Connexity once the fix is live."
-        )
     steps.extend(_waiting_steps(result.waiting))
     readiness_percent = None
     if result.task is not None:
@@ -1777,11 +1768,14 @@ def move_workspace_task(
             total=len(tasks),
         ),
         rules=[
-            "Move a task only when the person asks; never reorder on your own. The move "
-            "is recorded as theirs, with you as the assistant that acted.",
+            "Reorder only when the person asks; never on your own. The move is recorded "
+            "as theirs, with you as the assistant that acted.",
+            "A task you hold goes back to To do when you move it: do that when you stop "
+            "working on it, such as an issue fix you hand back.",
             "The person's order wins over Connexity's for the tasks they moved; new tasks "
             "fall in by Connexity's order. A task that blocks a moved one comes up with "
-            "it. Tasks in progress or waiting, and incidents, do not move.",
+            "it. Another assistant's tasks, questions waiting for the person, and "
+            "incidents do not move.",
         ],
         next_steps=[
             "Tell the person the new order: what is next now.",

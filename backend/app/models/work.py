@@ -20,6 +20,11 @@ class WorkHolderPublic(BaseModel):
     assistant: str
     session: str = Field(default="", description="Empty when the session has no name")
     taken_at: datetime
+    quiet_since: datetime | None = Field(
+        default=None,
+        description="When its session last asked for its next task, once that is "
+        "more than 30 minutes ago; the task stays with the session",
+    )
 
 
 class WorkTaskRefPublic(BaseModel):
@@ -50,10 +55,18 @@ class WorkTaskPublic(BaseModel):
     blocked_by: list[WorkTaskRefPublic] = Field(default_factory=list)
 
 
+class WorkDoneLinkPublic(BaseModel):
+    """Where a finished task's work is: an agent's tab, or an issue."""
+
+    kind: Literal["agent_spec", "agent_tests", "agent_calls", "issue"]
+    id: uuid.UUID
+
+
 class WorkDonePublic(BaseModel):
     title: str = Field(description="What was done, with its result")
     by: str = Field(description="A person, their assistant, or Connexity")
     at: datetime
+    link: WorkDoneLinkPublic | None = None
 
 
 class WorkSessionPublic(BaseModel):
@@ -65,12 +78,12 @@ class WorkSessionPublic(BaseModel):
 
 class WorkPublic(BaseModel):
     in_progress: list[WorkTaskPublic] = Field(
-        description="Tasks an assistant holds, and tasks waiting for the person"
+        description="Tasks an assistant holds, and questions waiting for the person"
     )
     to_do: list[WorkTaskPublic] = Field(description="Everything else, in order")
     done: list[WorkDonePublic] = Field(description="The last 7 days, newest first")
     sessions: list[WorkSessionPublic] = Field(description="Sessions working now")
-    waiting: int = Field(description="Tasks waiting for the person")
+    waiting: int = Field(description="Questions waiting for the person")
     assistant_connected: bool = Field(
         default=False, description="An assistant of the workspace is connected"
     )
@@ -80,7 +93,11 @@ class WorkPublic(BaseModel):
 
 
 class WorkMoveIn(BaseModel):
-    key: str = Field(max_length=128, description="The To do task to move")
+    key: str = Field(
+        max_length=128,
+        description="The task to move: one in To do, or one you hold, which goes back "
+        "to To do",
+    )
     before: str | None = Field(
         default=None,
         max_length=128,
@@ -89,4 +106,4 @@ class WorkMoveIn(BaseModel):
 
 
 class WorkCountsPublic(BaseModel):
-    waiting: int = Field(description="Tasks waiting for the person")
+    waiting: int = Field(description="Questions waiting for the person")

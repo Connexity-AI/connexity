@@ -32,12 +32,16 @@ rules and numbered steps. Take tasks in that order; do not pick your own.
   fixes and calls to review, each onboarding step blocks the next, and the first scan
   blocks the specs. A blocked task is never handed to you; each task lists what it
   blocks and what blocks it.
-- **Asking again ends your current task.** It is done when its work is gone. It waits
-  for the person when the rest is theirs, such as resolving an issue once the fix is
-  live. Otherwise it goes back to its place in the list.
-- **Some tasks are the person's:** answering questions, connecting their assistant.
-  The answer lists them under `waiting_for_person`; ask the person in your chat, and
-  never decide for them.
+- **Asking again ends your current task.** It is done when its work is gone; otherwise
+  it goes back to its place in the list. An issue fix stays with your session until
+  the issue is resolved or archived, so you can take the next task while the fix waits
+  to go live. If you stop working on a task you hold, put it back in To do with
+  `move_task`.
+- **Only questions wait for the person.** The answer lists them under
+  `waiting_for_person`; ask the person in your chat, and never decide for them.
+  Connecting their own assistant is the person's step too; it sits in To do.
+- **Keep asking while you work.** A task whose session has not asked for its next task
+  in 30 minutes shows as quiet on Work ("No activity since 14:20"), still yours.
 - **Name your session.** Pass `session`, a few words for the work it is on such as
   `Onboarding`, and keep the same name for the whole session. Each session holds its
   own task, so several sessions of one assistant can work side by side; the answer's

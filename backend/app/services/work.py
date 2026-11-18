@@ -30,6 +30,7 @@ from app.models.enums import AssistantTaskState, IssueState, SpecOrigin, TaskKin
 from app.models.task_order import TaskOrder
 from app.models.work import (
     TaskState,
+    WorkDoneLinkPublic,
     WorkDonePublic,
     WorkHolderPublic,
     WorkPublic,
@@ -59,6 +60,9 @@ SPECS_STEP = f"onboarding:{SPECS}"
 # question is open; each agent's own questions take its place once raised.
 ANSWERS_STEP = f"onboarding:{ANSWERS}"
 MAX_SESSION = 40
+# A held task whose session has not asked for its next task in this long shows as quiet,
+# still assigned (Dmytro, 2026-11-18: "30 minutes").
+QUIET_MINUTES = 30
 
 
 class Group:
@@ -559,15 +563,19 @@ def _person_name(session: Session, row: AssistantTask) -> str:
     return row.taken_by_email.split("@")[0]
 
 
-def _ending(row: AssistantTask, live: Mapping[str, Task]) -> AssistantTaskState:
+def _ending(row: AssistantTask, live: Mapping[str, Task]) -> AssistantTaskState | None:
     """What becomes of a task when the assistant that held it asks for the next one
-    (Dmytro, 2026-11-16: asking for the next task means its part is done)."""
+    (Dmytro, 2026-11-16: asking for the next task means its part is done). None: it
+    stays with the session."""
     if row.task_key not in live:
         return AssistantTaskState.DONE
     if row.kind is TaskKind.CALLS_TO_REVIEW:
         return AssistantTaskState.DONE  # a review is done once handed out
     if row.kind is TaskKind.ISSUE_FIX:
-        return AssistantTaskState.WAITING  # the person resolves it
+        # The fix stays In progress with its session until the issue is resolved or
+        # archived, or the session puts it back (Dmytro, 2026-11-18: "Waiting for you
+        # IS ONLY FOR CLARIFICATIONS").
+        return None
     return AssistantTaskState.RETURNED
 
 
@@ -599,8 +607,13 @@ def next_task(
     # A task the caller just handed back goes to someone else, or to the caller later:
     # never straight back, or asking again would loop on it.
     returned: set[str] = set()
+    now = datetime.now(UTC)
     for row in mine:
         state = _ending(row, live)
+        if state is None:
+            row.last_seen_at = now  # the session is alive; the task stays with it
+            session.add(row)
+            continue
         crud_work.end_tasks(session=session, rows=[row], state=state)
         ended = Ended(row.title, state)
         if state is AssistantTaskState.RETURNED:
@@ -616,12 +629,8 @@ def next_task(
     for attempt in range(3):
         held = crud_work.open_tasks(session=session, company_id=company_id)
         open_keys = {row.task_key for row in held}
-        waiting_keys = {
-            row.task_key for row in held if row.state is AssistantTaskState.WAITING
-        }
-        waiting = [
-            task for task in tasks if task.for_person or task.key in waiting_keys
-        ]
+        # Only questions wait for the person (Dmytro, 2026-11-18).
+        waiting = [task for task in tasks if task.kind is TaskKind.CLARIFICATIONS]
         takeable = [
             task for task in tasks if not task.for_person and task.key not in open_keys
         ]
@@ -736,7 +745,14 @@ def _done(session: Session, company_id: uuid.UUID) -> list[WorkDonePublic]:
             count = answers.get(spec.id, 0)
             title = f"{_plural(count, 'answer')} added to the {agent} spec"
             by = person
-        out.append(WorkDonePublic(title=title, by=by, at=_aware(spec.created_at)))
+        out.append(
+            WorkDonePublic(
+                title=title,
+                by=by,
+                at=_aware(spec.created_at),
+                link=WorkDoneLinkPublic(kind="agent_spec", id=spec.agent_id),
+            )
+        )
     for record in crud_work.issue_decisions_since(
         session=session, company_id=company_id, since=since
     ):
@@ -753,6 +769,7 @@ def _done(session: Session, company_id: uuid.UUID) -> list[WorkDonePublic]:
                     record.assistant_name,
                 ),
                 at=_aware(record.created_at),
+                link=WorkDoneLinkPublic(kind="issue", id=issue.id) if issue else None,
             )
         )
     first = first_connection(
@@ -774,20 +791,30 @@ def _done(session: Session, company_id: uuid.UUID) -> list[WorkDonePublic]:
         at = _aware(company.first_scan_done_at)
         if at >= since:
             out.append(WorkDonePublic(title="First scan done", by="Connexity", at=at))
-    # Work that leaves no record of its own: reviews and onboarding steps.
+    # Work that leaves no record of its own: reviews, scenarios written and onboarding
+    # steps. Specs and issues come from their own records above.
     for row in crud_work.done_tasks(
         session=session,
         company_id=company_id,
         since=since,
-        kinds=(TaskKind.CALLS_TO_REVIEW, TaskKind.ONBOARDING),
+        kinds=(TaskKind.CALLS_TO_REVIEW, TaskKind.TESTS, TaskKind.ONBOARDING),
     ):
+        agent = names.get(row.agent_id, "") if row.agent_id else ""
+        title, link = row.title, None
+        if row.kind is TaskKind.TESTS and row.agent_id is not None:
+            title = f"Scenarios written for {agent}"
+            link = WorkDoneLinkPublic(kind="agent_tests", id=row.agent_id)
+        elif row.kind is TaskKind.CALLS_TO_REVIEW and row.agent_id is not None:
+            title = f"Calls reviewed for {agent}"
+            link = WorkDoneLinkPublic(kind="agent_calls", id=row.agent_id)
         out.append(
             WorkDonePublic(
-                title=row.title,
+                title=title,
                 by=_by(
                     _person_name(session, row), row.assistant_name, row.session_name
                 ),
                 at=_aware(row.done_at),
+                link=link,
             )
         )
     out.sort(key=lambda d: d.at, reverse=True)
@@ -805,18 +832,20 @@ def work_page(*, session: Session, company_id: uuid.UUID) -> WorkPublic:
         for row in rows
         if row.state is AssistantTaskState.IN_PROGRESS and row.task_key in live
     }
-    waiting_keys = {
-        row.task_key
-        for row in rows
-        if row.state is AssistantTaskState.WAITING and row.task_key in live
-    }
+    quiet_before = datetime.now(UTC) - timedelta(minutes=QUIET_MINUTES)
 
     def state(task: Task) -> TaskState:
-        if task.for_person or task.key in waiting_keys:
+        # "Waiting for you" is only for questions (Dmytro, 2026-11-18); the person's
+        # own onboarding step sits in To do, marked theirs.
+        if task.kind is TaskKind.CLARIFICATIONS:
             return "waiting"
         if task.key in held:
             return "in_progress"
         return "to_do"
+
+    def quiet_since(row: AssistantTask) -> datetime | None:
+        seen = _aware(row.last_seen_at or row.taken_at)
+        return seen if seen < quiet_before else None
 
     def ref(key: str) -> WorkTaskRefPublic:
         task = live[key]
@@ -824,7 +853,7 @@ def work_page(*, session: Session, company_id: uuid.UUID) -> WorkPublic:
             key=key,
             title=task.title,
             state=state(task),
-            waiting_for_person=state(task) == "waiting",
+            waiting_for_person=task.for_person,
         )
 
     public: list[WorkTaskPublic] = []
@@ -839,7 +868,7 @@ def work_page(*, session: Session, company_id: uuid.UUID) -> WorkPublic:
                 severity=task.severity,
                 position=position,
                 state=state(task),
-                waiting_for_person=state(task) == "waiting",
+                waiting_for_person=task.for_person,
                 agent_id=task.agent_id,
                 agent_name=task.agent_name,
                 issue_id=task.ref if task.kind is TaskKind.ISSUE_FIX else None,
@@ -848,6 +877,7 @@ def work_page(*, session: Session, company_id: uuid.UUID) -> WorkPublic:
                     assistant=row.assistant_name,
                     session=row.session_name,
                     taken_at=_aware(row.taken_at),
+                    quiet_since=quiet_since(row),
                 )
                 if row is not None
                 else None,
@@ -884,29 +914,11 @@ def work_page(*, session: Session, company_id: uuid.UUID) -> WorkPublic:
 
 
 def waiting_count(*, session: Session, company_id: uuid.UUID) -> int:
-    """The page's waiting number, without working out the whole list: agents with open
-    questions, the person's own assistant step, and issue fixes whose rest is theirs."""
-    count = len(
+    """The page's waiting number, without working out the whole list: the agents with
+    open questions, the only tasks that wait for the person (Dmytro, 2026-11-18)."""
+    return len(
         crud_work.open_questions_by_agent(session=session, company_id=company_id)
     )
-    if not connected_assistants(
-        session=session,
-        company_id=company_id,
-        access_token_minutes=settings.OAUTH_ACCESS_TOKEN_EXPIRE_MINUTES,
-    ):
-        count += 1
-    for row in crud_work.open_tasks(session=session, company_id=company_id):
-        if row.state is not AssistantTaskState.WAITING:
-            continue
-        issue_id = row.task_key.removeprefix("issue:")
-        issue = (
-            session.get(Issue, uuid.UUID(issue_id))
-            if issue_id != row.task_key
-            else None
-        )
-        if issue is not None and issue.state in (IssueState.OPEN, IssueState.REOPENED):
-            count += 1
-    return count
 
 
 class MoveRefused(Exception):
@@ -925,14 +937,34 @@ def move_task(
     assistant_name: str | None,
 ) -> None:
     """Move a To do task to sit just before ``before`` (None: the end), and keep the
-    person's order. Tasks in progress, waiting for the person, and incidents do not
-    move."""
+    person's order. A task the caller's assistant holds goes back to To do first
+    (plan `plans/2026-11-18-work-task-states.md`); one another assistant holds, a
+    question waiting for the person, and incidents do not move."""
+    rows = {
+        row.task_key: row
+        for row in crud_work.open_tasks(session=session, company_id=company_id)
+    }
+    mine = rows.get(key)
+    if mine is not None:
+        if mine.taken_by != person.id or mine.assistant_name != (
+            assistant_name or NO_ASSISTANT
+        ):
+            raise MoveRefused(
+                "Another assistant is working on this task; only it can put it back."
+            )
+        crud_work.end_tasks(
+            session=session, rows=[mine], state=AssistantTaskState.RETURNED
+        )
+        session.commit()
+        if before is None:
+            return  # back in To do, at its place in the order
     page = work_page(session=session, company_id=company_id)
     to_do = [task.key for task in page.to_do]
     held = {task.key for task in page.in_progress}
     if key in held:
         raise MoveRefused(
-            "This task is in progress or waits for you; it does not move."
+            "Questions wait for the person; they do not move. Ask the person in your "
+            "chat."
         )
     if key not in to_do:
         raise MoveRefused("No task with that key is in To do.")

@@ -285,7 +285,7 @@ class Task(BaseModel):
 
 class EndedTask(BaseModel):
     title: str
-    state: str = Field(description="done, waiting (for the person) or returned")
+    state: str = Field(description="done or returned")
 
 
 class TaskCounts(BaseModel):
@@ -389,6 +389,11 @@ class TaskHolder(BaseModel):
     assistant: str
     session: str = ""
     taken_at: str
+    quiet_since: str | None = Field(
+        default=None,
+        description="When its session last asked for its next task, once over 30 "
+        "minutes ago",
+    )
 
 
 class ListedTaskRef(BaseModel):
@@ -405,7 +410,9 @@ class ListedTask(BaseModel):
     line: str
     severity: str | None = None
     position: int
-    state: str = Field(description="in_progress, waiting (for the person) or to_do")
+    state: str = Field(
+        description="in_progress, waiting (a question for the person) or to_do"
+    )
     waiting_for_person: bool = False
     agent_id: str | None = None
     agent_name: str | None = None

@@ -25,7 +25,7 @@ from app.models.enums import (
 )
 from app.models.spec import Spec
 
-OPEN_STATES = (AssistantTaskState.IN_PROGRESS, AssistantTaskState.WAITING)
+OPEN_STATES = (AssistantTaskState.IN_PROGRESS,)
 
 
 class OpenQuestions(NamedTuple):

@@ -311,8 +311,6 @@ class TaskKind(StrEnum):
 class AssistantTaskState(StrEnum):
     # An assistant took it and is working on it; other assistants skip it.
     IN_PROGRESS = "in_progress"
-    # The assistant did its part; the rest is the person's (resolving an issue).
-    WAITING = "waiting"
     # The assistant asked for its next task while this one's work was still there and
     # still its to do: it goes back to its place in the list.
     RETURNED = "returned"
