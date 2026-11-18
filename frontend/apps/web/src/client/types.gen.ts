@@ -2774,6 +2774,223 @@ export type CustomMetricsPublic = {
 };
 
 /**
+ * DashboardArea
+ */
+export type DashboardArea = {
+  /**
+   * Key
+   *
+   * The category's key
+   */
+  key: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Status
+   */
+  status: 'critical' | 'warning' | 'healthy' | 'not_checked';
+  /**
+   * Waits For
+   *
+   * For an area not checked yet: what it waits for
+   */
+  waits_for?: string | null;
+  /**
+   * Failed
+   */
+  failed?: number;
+  /**
+   * Degraded
+   */
+  degraded?: number;
+  /**
+   * Share
+   *
+   * Failed and degraded calls of the area, of the period's calls (0-1)
+   */
+  share?: number | null;
+  /**
+   * Top Issue Id
+   */
+  top_issue_id?: string | null;
+  /**
+   * Top Issue Title
+   */
+  top_issue_title?: string | null;
+};
+
+/**
+ * DashboardDay
+ */
+export type DashboardDay = {
+  /**
+   * Day
+   */
+  day: string;
+  /**
+   * Calls
+   */
+  calls: number;
+  /**
+   * Failed
+   */
+  failed: number;
+  /**
+   * Degraded
+   */
+  degraded: number;
+};
+
+/**
+ * DashboardLatency
+ */
+export type DashboardLatency = {
+  /**
+   * P50
+   *
+   * Seconds
+   */
+  p50?: number | null;
+  /**
+   * P95
+   *
+   * Seconds
+   */
+  p95?: number | null;
+  /**
+   * Answers
+   *
+   * Reply gaps they rest on
+   */
+  answers: number;
+};
+
+/**
+ * DashboardMark
+ */
+export type DashboardMark = {
+  /**
+   * Day
+   */
+  day: string;
+  /**
+   * Version
+   */
+  version: string;
+  /**
+   * Agent Name
+   */
+  agent_name: string;
+};
+
+/**
+ * DashboardOnboarding
+ *
+ * Shown while onboarding runs; gone once every step is done.
+ */
+export type DashboardOnboarding = {
+  /**
+   * Steps
+   */
+  steps: Array<DashboardStep>;
+  /**
+   * Areas Checked
+   */
+  areas_checked: number;
+  /**
+   * Areas Total
+   */
+  areas_total: number;
+};
+
+/**
+ * DashboardPublic
+ */
+export type DashboardPublic = {
+  /**
+   * Period
+   */
+  period: string;
+  /**
+   * Agent Id
+   *
+   * The agent shown; none for all agents
+   */
+  agent_id?: string | null;
+  /**
+   * Agents
+   *
+   * The agents to pick from
+   */
+  agents: Array<CallFilterOption>;
+  /**
+   * Agents Counted
+   */
+  agents_counted: number;
+  /**
+   * Calls
+   */
+  calls: number;
+  onboarding?: DashboardOnboarding | null;
+  score: ScorePublic;
+  /**
+   * Failed
+   */
+  failed: number;
+  /**
+   * Failed Share
+   */
+  failed_share?: number | null;
+  /**
+   * Degraded
+   */
+  degraded: number;
+  /**
+   * Degraded Share
+   */
+  degraded_share?: number | null;
+  latency: DashboardLatency;
+  /**
+   * Days
+   *
+   * Every day of the period, oldest first
+   */
+  days: Array<DashboardDay>;
+  /**
+   * Marks
+   */
+  marks: Array<DashboardMark>;
+  /**
+   * Areas
+   *
+   * Every fixed area: critical, warning, healthy, then not checked yet
+   */
+  areas: Array<DashboardArea>;
+};
+
+/**
+ * DashboardStep
+ */
+export type DashboardStep = {
+  /**
+   * Key
+   */
+  key: 'scan' | 'spec' | 'answers' | 'complete';
+  /**
+   * Label
+   *
+   * 'Scan', 'Spec', 'Answers 17 of 20', 'Complete'
+   */
+  label: string;
+  /**
+   * Done
+   */
+  done: boolean;
+};
+
+/**
  * DecisionKind
  */
 export const DecisionKind = {
@@ -5189,6 +5406,40 @@ export type McpAnswerClarificationsAnsweredPublic = {
    * The facts: the result of the call
    */
   data: ClarificationsAnsweredPublic;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
+ * McpAnswer[DashboardPublic]
+ */
+export type McpAnswerDashboardPublic = {
+  /**
+   * The facts: the result of the call
+   */
+  data: DashboardPublic;
   /**
    * Rules
    *
@@ -12774,6 +13025,66 @@ export type ReadinessReadReadinessResponses = {
 export type ReadinessReadReadinessResponse =
   ReadinessReadReadinessResponses[keyof ReadinessReadReadinessResponses];
 
+export type DashboardReadDashboardData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Period
+     */
+    period?: '7d' | '30d' | '90d';
+    /**
+     * Agent Id
+     */
+    agent_id?: string | null;
+  };
+  url: '/api/v1/dashboard';
+};
+
+export type DashboardReadDashboardErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type DashboardReadDashboardError =
+  DashboardReadDashboardErrors[keyof DashboardReadDashboardErrors];
+
+export type DashboardReadDashboardResponses = {
+  /**
+   * Successful Response
+   */
+  200: DashboardPublic;
+};
+
+export type DashboardReadDashboardResponse =
+  DashboardReadDashboardResponses[keyof DashboardReadDashboardResponses];
+
 export type OnboardingReadOnboardingStepsData = {
   body?: never;
   path?: never;
@@ -14346,6 +14657,69 @@ export type McpMoveWorkspaceTaskResponses = {
 
 export type McpMoveWorkspaceTaskResponse =
   McpMoveWorkspaceTaskResponses[keyof McpMoveWorkspaceTaskResponses];
+
+export type McpGetDashboardData = {
+  body?: never;
+  path: {
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: {
+    /**
+     * Agent Id
+     */
+    agent_id?: string | null;
+    /**
+     * Period
+     */
+    period?: '7d' | '30d' | '90d';
+  };
+  url: '/api/v1/mcp/workspaces/{workspace_id}/dashboard';
+};
+
+export type McpGetDashboardErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpGetDashboardError = McpGetDashboardErrors[keyof McpGetDashboardErrors];
+
+export type McpGetDashboardResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerDashboardPublic;
+};
+
+export type McpGetDashboardResponse = McpGetDashboardResponses[keyof McpGetDashboardResponses];
 
 export type McpGetReadinessData = {
   body?: never;

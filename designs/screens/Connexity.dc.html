@@ -96,10 +96,31 @@
   </div>
 </section>
 <section id="home" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
-  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Home</span><span style="font-size:13px;color:#a3a5a9">Period picker and "Send to assistant" are live</span></div>
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Dashboard · complete</span><span style="font-size:13px;color:#a3a5a9">All areas checked; the onboarding strip is gone. Agent and period pickers are live; every number follows both. Rows with issues open Issues.</span></div>
   <div style="display:flex;gap:48px;align-items:flex-start">
-    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Home" theme="dark" hint-size="1440px,1320px"></dc-import></div></div>
-    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Home" theme="light" hint-size="1440px,1320px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Home" theme="dark" hint-size="1440px,1240px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Home" theme="light" hint-size="1440px,1240px"></dc-import></div></div>
+  </div>
+</section>
+<section id="home-onboarding" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Dashboard · onboarding</span><span style="font-size:13px;color:#a3a5a9">Answers 17 of 20: Bookings and Rescheduling are waiting, and the score waits for onboarding to finish.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Home" theme="dark" state="onboarding" hint-size="1440px,1240px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Home" theme="light" state="onboarding" hint-size="1440px,1240px"></dc-import></div></div>
+  </div>
+</section>
+<section id="home-agent" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Dashboard · one agent</span><span style="font-size:13px;color:#a3a5a9">Car service booking picked. The v14 mark shows where failed calls started to climb.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Home" theme="dark" agent="car" hint-size="1440px,1240px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light</span><div style="width:1440px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Home" theme="light" agent="car" hint-size="1440px,1240px"></dc-import></div></div>
+  </div>
+</section>
+<section id="home-phone" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="display:flex;align-items:baseline;gap:12px;color:#ececea"><span style="font-size:20px;font-weight:500">Dashboard · phone</span><span style="font-size:13px;color:#a3a5a9">Tiles two per row, cards stacked; the area’s issue sits under its name.</span></div>
+  <div style="display:flex;gap:48px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Dark</span><div style="width:390px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Home" theme="dark" frame="Phone" hint-size="390px,2400px"></dc-import></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:#a3a5a9">Light, onboarding</span><div style="width:390px;border-radius:8px;overflow:hidden"><dc-import name="Connexity Home" theme="light" frame="Phone" state="onboarding" hint-size="390px,2400px"></dc-import></div></div>
   </div>
 </section>
 <section id="incidents" style="padding:48px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)">

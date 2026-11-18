@@ -4425,6 +4425,336 @@ export const CustomMetricsPublicSchema = {
   title: 'CustomMetricsPublic',
 } as const;
 
+export const DashboardAreaSchema = {
+  properties: {
+    key: {
+      type: 'string',
+      title: 'Key',
+      description: "The category's key",
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    status: {
+      type: 'string',
+      enum: ['critical', 'warning', 'healthy', 'not_checked'],
+      title: 'Status',
+    },
+    waits_for: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Waits For',
+      description: 'For an area not checked yet: what it waits for',
+    },
+    failed: {
+      type: 'integer',
+      title: 'Failed',
+      default: 0,
+    },
+    degraded: {
+      type: 'integer',
+      title: 'Degraded',
+      default: 0,
+    },
+    share: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Share',
+      description: "Failed and degraded calls of the area, of the period's calls (0-1)",
+    },
+    top_issue_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Top Issue Id',
+    },
+    top_issue_title: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Top Issue Title',
+    },
+  },
+  type: 'object',
+  required: ['key', 'name', 'status'],
+  title: 'DashboardArea',
+} as const;
+
+export const DashboardDaySchema = {
+  properties: {
+    day: {
+      type: 'string',
+      format: 'date',
+      title: 'Day',
+    },
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+    },
+    failed: {
+      type: 'integer',
+      title: 'Failed',
+    },
+    degraded: {
+      type: 'integer',
+      title: 'Degraded',
+    },
+  },
+  type: 'object',
+  required: ['day', 'calls', 'failed', 'degraded'],
+  title: 'DashboardDay',
+} as const;
+
+export const DashboardLatencySchema = {
+  properties: {
+    p50: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'P50',
+      description: 'Seconds',
+    },
+    p95: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'P95',
+      description: 'Seconds',
+    },
+    answers: {
+      type: 'integer',
+      title: 'Answers',
+      description: 'Reply gaps they rest on',
+    },
+  },
+  type: 'object',
+  required: ['answers'],
+  title: 'DashboardLatency',
+} as const;
+
+export const DashboardMarkSchema = {
+  properties: {
+    day: {
+      type: 'string',
+      format: 'date',
+      title: 'Day',
+    },
+    version: {
+      type: 'string',
+      title: 'Version',
+    },
+    agent_name: {
+      type: 'string',
+      title: 'Agent Name',
+    },
+  },
+  type: 'object',
+  required: ['day', 'version', 'agent_name'],
+  title: 'DashboardMark',
+} as const;
+
+export const DashboardOnboardingSchema = {
+  properties: {
+    steps: {
+      items: {
+        $ref: '#/components/schemas/DashboardStep',
+      },
+      type: 'array',
+      title: 'Steps',
+    },
+    areas_checked: {
+      type: 'integer',
+      title: 'Areas Checked',
+    },
+    areas_total: {
+      type: 'integer',
+      title: 'Areas Total',
+    },
+  },
+  type: 'object',
+  required: ['steps', 'areas_checked', 'areas_total'],
+  title: 'DashboardOnboarding',
+  description: 'Shown while onboarding runs; gone once every step is done.',
+} as const;
+
+export const DashboardPublicSchema = {
+  properties: {
+    period: {
+      type: 'string',
+      title: 'Period',
+    },
+    agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Id',
+      description: 'The agent shown; none for all agents',
+    },
+    agents: {
+      items: {
+        $ref: '#/components/schemas/CallFilterOption',
+      },
+      type: 'array',
+      title: 'Agents',
+      description: 'The agents to pick from',
+    },
+    agents_counted: {
+      type: 'integer',
+      title: 'Agents Counted',
+    },
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+    },
+    onboarding: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/DashboardOnboarding',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    score: {
+      $ref: '#/components/schemas/ScorePublic',
+    },
+    failed: {
+      type: 'integer',
+      title: 'Failed',
+    },
+    failed_share: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Failed Share',
+    },
+    degraded: {
+      type: 'integer',
+      title: 'Degraded',
+    },
+    degraded_share: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Degraded Share',
+    },
+    latency: {
+      $ref: '#/components/schemas/DashboardLatency',
+    },
+    days: {
+      items: {
+        $ref: '#/components/schemas/DashboardDay',
+      },
+      type: 'array',
+      title: 'Days',
+      description: 'Every day of the period, oldest first',
+    },
+    marks: {
+      items: {
+        $ref: '#/components/schemas/DashboardMark',
+      },
+      type: 'array',
+      title: 'Marks',
+    },
+    areas: {
+      items: {
+        $ref: '#/components/schemas/DashboardArea',
+      },
+      type: 'array',
+      title: 'Areas',
+      description: 'Every fixed area: critical, warning, healthy, then not checked yet',
+    },
+  },
+  type: 'object',
+  required: [
+    'period',
+    'agents',
+    'agents_counted',
+    'calls',
+    'score',
+    'failed',
+    'degraded',
+    'latency',
+    'days',
+    'marks',
+    'areas',
+  ],
+  title: 'DashboardPublic',
+} as const;
+
+export const DashboardStepSchema = {
+  properties: {
+    key: {
+      type: 'string',
+      enum: ['scan', 'spec', 'answers', 'complete'],
+      title: 'Key',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+      description: "'Scan', 'Spec', 'Answers 17 of 20', 'Complete'",
+    },
+    done: {
+      type: 'boolean',
+      title: 'Done',
+    },
+  },
+  type: 'object',
+  required: ['key', 'label', 'done'],
+  title: 'DashboardStep',
+} as const;
+
 export const DecisionKindSchema = {
   type: 'string',
   enum: [
@@ -8035,6 +8365,51 @@ export const McpAnswer_ClarificationsAnsweredPublic_Schema = {
   type: 'object',
   required: ['data', 'guide'],
   title: 'McpAnswer[ClarificationsAnsweredPublic]',
+} as const;
+
+export const McpAnswer_DashboardPublic_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/DashboardPublic',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[DashboardPublic]',
 } as const;
 
 export const McpAnswer_McpAddedAgents_Schema = {

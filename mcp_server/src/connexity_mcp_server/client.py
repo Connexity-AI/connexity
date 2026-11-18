@@ -437,6 +437,24 @@ class ConnexityBackendClient:
             "GET", f"/mcp/workspaces/{quote(workspace_id, safe='')}/readiness"
         )
 
+    async def get_dashboard(
+        self,
+        *,
+        workspace_id: str,
+        agent_id: str | None = None,
+        period: str | None = None,
+    ) -> dict[str, Any]:
+        params: dict[str, str] = {}
+        if agent_id:
+            params["agent_id"] = agent_id
+        if period:
+            params["period"] = period
+        return await self._request_json(
+            "GET",
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/dashboard",
+            params=params,
+        )
+
     async def list_agents(
         self,
         *,

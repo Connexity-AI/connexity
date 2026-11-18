@@ -48,3 +48,28 @@ ok"). It lives in one function, `score_of` in `backend/app/services/score.py`.
 - **Where:** `get_agent` (the agent's score, change and what moves it), `list_agents`
   (each agent's score and change) and `list_workspaces` (each workspace's score and
   change over 30 days). The Dashboard (10.191) shows it on screen.
+
+## Latency percentiles (2026-11-18)
+
+The Dashboard's latency tile shows p95 with p50 beside it, taken over **every reply gap**
+in the period: every time an agent answered the caller (Dmytro, 2026-11-18), not over
+each call's latency. Nearest-rank percentiles, in seconds
+(`reply_gap_percentiles` in `backend/app/crud/latency.py`), with the number of answers
+they rest on. The agent page's average per call is unchanged.
+
+## The Dashboard (10.191)
+
+`backend/app/services/dashboard.py`, for all agents or one, over 7, 30 or 90 days:
+
+- **Failed and degraded** calls and their share of the period's calls, counted as on the
+  Calls page; **the score** (above); **latency p95 and p50** (above).
+- **Calls per day** (UTC days) with failed and degraded, and each agent's version marks.
+- **Areas:** one row per fixed category. Critical when its findings failed calls, Warning
+  when they only degraded them, Healthy only when one of its checks ran on the period's
+  calls and found nothing, Not checked yet otherwise ("No check covers this area yet", or
+  "No calls checked yet"). The top issue is the one found on the most calls.
+- **Onboarding strip:** Scan (Readiness's first scan), Spec (no agent waiting for a spec),
+  Answers (answered of answered and open clarifications), Complete; shown until all
+  three are done.
+
+The web page (`/dashboard`) and `get_dashboard` answer the same picture.

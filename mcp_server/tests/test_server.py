@@ -24,6 +24,7 @@ async def test_server_lists_only_the_workspace_tools() -> None:
         "create_workspace",
         "get_agent",
         "get_call",
+        "get_dashboard",
         "get_issue",
         "get_next_task",
         "get_readiness",

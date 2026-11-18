@@ -123,6 +123,11 @@ TOOLS: dict[str, ToolEntry] = {
         "One call in full: every turn and tool call in order, and what was found.",
         "calls",
     ),
+    "get_dashboard": ToolEntry(
+        "calls_and_issues",
+        "Where the workspace stands: score, failed calls, latency and every area.",
+        "issues",
+    ),
     "list_issues": ToolEntry(
         "calls_and_issues",
         "Lists issues, worst first, with how many calls each one touched.",
