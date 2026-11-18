@@ -10,7 +10,9 @@
 - **Design:** <!-- for a change to the UI: the Claude Design artifact and the version Dmytro
   approved. "No UI change" otherwise. -->
 - **MCP:** <!-- the MCP tools this change adds or changes, so the assistant can do what the
-  platform now does. "None needed" only when nothing a user can do or see changes, with why. -->
+  platform now does, and the contract page update that goes with them (each tool's entry in
+  `contract.py` and its input descriptions). "None needed" only when nothing a user can do or
+  see changes, with why. -->
 
 ## Goal
 

@@ -14,6 +14,8 @@ export const getProcessEnvSchemaProps = (zod: ZodType) => ({
   // This is done for better dev experience during initial setup.
   SITE_URL: zod.url().regex(/[^/]$/, 'SITE_URL should not end with a slash "/"').optional(),
   API_URL: zod.url().regex(/[^/]$/, 'API_URL should not end with a slash "/"').optional(),
+  // The MCP server's base URL; /mcp-docs reads its public manifest from here.
+  MCP_URL: zod.url().regex(/[^/]$/, 'MCP_URL should not end with a slash "/"').optional(),
 });
 
 /** For schema type. */

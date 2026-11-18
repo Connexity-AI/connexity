@@ -216,6 +216,13 @@ timeout, empty response and malformed response.
   route, a screen or a setting adds the tools for it in the same pull request, and the
   plan's "MCP" line names them. The reverse does not hold: the web app is not a second
   way to do everything (see "What the web app is for" below).
+- **Every MCP change updates the contract page (Decided 2026-11-18).** The public
+  `/mcp-docs` page is generated from the MCP server's `GET /manifest`. A tool added,
+  removed or renamed, or with new inputs or behaviour, updates its entry in
+  `mcp_server/src/connexity_mcp_server/contract.py` (group, one plain line, guide, and
+  whether it needs the person's yes) and gives every input a one-line description, in
+  the same pull request. Dmytro: "every time we do changes to MCP part of the task
+  should be to update this page". `mcp_server/tests/test_contract.py` fails otherwise.
 - **Read-only toward providers.** The product ingests and compares. It does not deploy,
   roll back or write to Retell, n8n or the CRM.
 
