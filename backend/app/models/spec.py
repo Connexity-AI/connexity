@@ -10,7 +10,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Literal
 
-from pydantic import BaseModel, JsonValue
+from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, ForeignKey, Text, UniqueConstraint, false, text
 from sqlmodel import Field, SQLModel
 
@@ -185,12 +185,6 @@ class SpecComparisonPublic(BaseModel):
     dropped: int
 
 
-class SpecPromptPublic(BaseModel):
-    kind: str = Field(description="prompt or flow")
-    version: str
-    content: JsonValue = Field(description="As Connexity recorded it, secrets masked")
-
-
 class SpecPublic(BaseModel):
     agent_id: uuid.UUID
     agent_name: str
@@ -206,9 +200,6 @@ class SpecPublic(BaseModel):
     )
     groups: list[SpecGroupPublic] = Field(
         default_factory=list, description="In the fixed categories' order"
-    )
-    prompt: SpecPromptPublic | None = Field(
-        default=None, description="With include_prompt: the current version's prompt"
     )
     open_clarifications: int = Field(
         default=0, description="Questions about this agent waiting for the person"

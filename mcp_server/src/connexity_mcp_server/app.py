@@ -457,7 +457,6 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         workspace_id: WorkspaceId,
         agent_id: AgentId,
         version: Annotated[int | None, Field(description="A spec version. Leave empty for the latest.")] = None,
-        include_prompt: Annotated[bool, Field(description="Also answer the prompt Connexity recorded for the agent's current version.")] = False,
         compare: Annotated[int | None, Field(description="An earlier spec version to mark each rule kept, added or dropped against.")] = None,
     ) -> SpecResult:
         """An agent's spec: what it is supposed to do, as plain rules grouped by the
@@ -465,15 +464,13 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         answered the clarification) and whether an open question replaces it
         (in_conflict). state says none, current, or needs_review (the agent moved to a
         new version). versions lists every version; compare marks each rule kept,
-        added or dropped against an earlier one. include_prompt adds the prompt
-        Connexity recorded for the agent's current version, to write against. Read
-        connexity://guides/spec first."""
+        added or dropped against an earlier one. Read the agent's prompt from the
+        voice platform, not from Connexity. Read connexity://guides/spec first."""
         return await _get_spec(
             client=backend_client,
             workspace_id=workspace_id,
             agent_id=agent_id,
             version=version,
-            include_prompt=include_prompt,
             compare=compare,
         )
 

@@ -197,7 +197,6 @@ class ConnexityBackendClient:
         workspace_id: str,
         agent_id: str,
         version: int | None = None,
-        include_prompt: bool = False,
         compare: int | None = None,
     ) -> dict[str, Any]:
         params: dict[str, Any] = {}
@@ -205,8 +204,6 @@ class ConnexityBackendClient:
             params["version"] = version
         if compare is not None:
             params["compare"] = compare
-        if include_prompt:
-            params["include_prompt"] = "true"
         return await self._request_json(
             "GET", self._spec_path(workspace_id, agent_id), params=params
         )

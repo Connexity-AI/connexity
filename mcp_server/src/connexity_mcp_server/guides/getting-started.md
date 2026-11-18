@@ -60,8 +60,8 @@ worked out.
 ## After setup: the spec
 
 Once the first scan is done, write each agent's spec: what it is supposed to do, as
-plain rules from its prompt. Read `connexity://guides/spec`, call `get_spec` with
-`include_prompt` for the prompt Connexity recorded, then `write_spec`. When an agent
+plain rules from its prompt. Read `connexity://guides/spec`, read the agent's prompt
+from the voice platform with your own access, then `write_spec`. When an agent
 moves to a new version, Connexity copies its spec and `get_spec` says it needs review.
 
 Behaviour the prompt does not settle is a question for the person, never a rule you

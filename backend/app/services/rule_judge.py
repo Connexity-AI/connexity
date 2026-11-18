@@ -189,6 +189,8 @@ async def judge_rules(
         ),
     ]
     config = LLMCallConfig(
+        model=settings.SIMULATION_MODEL,
+        provider=settings.SIMULATION_PROVIDER,
         temperature=settings.JUDGE_TEMPERATURE,
         max_tokens=settings.JUDGE_MAX_TOKENS,
         response_format=_response_format([rule.key for rule in rules]),

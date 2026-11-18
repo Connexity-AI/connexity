@@ -181,6 +181,11 @@ class Settings(BaseSettings):
     # Model calls asked about at once in one model-check pass.
     MODEL_CHECK_CONCURRENCY: int = 4
 
+    # The simulated caller and the judge of a run of scenarios, on Connexity's own
+    # Anthropic key (Dmytro, 2026-11-18: Claude, the model the judge checks use).
+    SIMULATION_MODEL: str = "claude-haiku-5-5"
+    SIMULATION_PROVIDER: str = "anthropic"
+
     # Judge-specific
     JUDGE_TEMPERATURE: float = 0.2
     JUDGE_MAX_TOKENS: int = 4096

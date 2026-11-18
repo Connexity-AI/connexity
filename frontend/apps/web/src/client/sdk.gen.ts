@@ -109,12 +109,6 @@ import type {
   ClarificationsListWorkspaceClarificationsData,
   ClarificationsListWorkspaceClarificationsErrors,
   ClarificationsListWorkspaceClarificationsResponses,
-  CompanyGetLlmCredentialsData,
-  CompanyGetLlmCredentialsErrors,
-  CompanyGetLlmCredentialsResponses,
-  CompanyUpdateLlmCredentialsData,
-  CompanyUpdateLlmCredentialsErrors,
-  CompanyUpdateLlmCredentialsResponses,
   ComponentVersionsGetAgentComponentVersionData,
   ComponentVersionsGetAgentComponentVersionErrors,
   ComponentVersionsGetAgentComponentVersionResponses,
@@ -4647,65 +4641,6 @@ export class TestsService {
       ],
       url: '/api/v1/agents/{agent_id}/tests',
       ...options,
-    });
-  }
-}
-
-export class CompanyService {
-  /**
-   * Get Llm Credentials
-   */
-  public static getLlmCredentials<ThrowOnError extends boolean = false>(
-    options?: Options<CompanyGetLlmCredentialsData, ThrowOnError>
-  ) {
-    return (options?.client ?? client).get<
-      CompanyGetLlmCredentialsResponses,
-      CompanyGetLlmCredentialsErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/company/llm-credentials',
-      ...options,
-    });
-  }
-
-  /**
-   * Update Llm Credentials
-   *
-   * Set or rotate the company's LLM credentials.
-   *
-   * Validates the key against the provider's API before persisting so we don't
-   * save a typoed key the user will hit at evaluation time.
-   */
-  public static updateLlmCredentials<ThrowOnError extends boolean = false>(
-    options: Options<CompanyUpdateLlmCredentialsData, ThrowOnError>
-  ) {
-    return (options.client ?? client).put<
-      CompanyUpdateLlmCredentialsResponses,
-      CompanyUpdateLlmCredentialsErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/company/llm-credentials',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
     });
   }
 }

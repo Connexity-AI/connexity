@@ -16,9 +16,8 @@ import respx
 from fastapi.testclient import TestClient
 from sqlmodel import Session, func, select
 
-from app.core.encryption import encrypt
 from app.crud.test_run import fail_stale_runs
-from app.models import Agent, Company, User
+from app.models import Agent, User
 from app.models.call import Call
 from app.models.check import Finding
 from app.models.enums import Platform, RunStatus, ToolCallStatus
@@ -43,14 +42,6 @@ from app.tests.api.routes.test_scenarios import (
 )
 
 PLAYGROUND = "https://api.retellai.com/agent-playground-completion/"
-
-
-def _with_key(db: Session, user: User) -> None:
-    company = db.get(Company, user.company_id)
-    assert company is not None
-    company.openai_api_key_encrypted = encrypt("sk-invented")
-    db.add(company)
-    db.commit()
 
 
 def _start(client: TestClient, user: User, agent: Agent, **body: Any) -> Any:
@@ -144,7 +135,6 @@ def test_a_set_runs_every_repeat_with_every_tool_faked_and_judges_listed_rules(
     client: TestClient, db: Session, caller: AsyncMock
 ) -> None:
     user, agent, keys = _ready(db, client)
-    _with_key(db, user)
     scenario = _scenarios(client, user, agent, _price(keys)).json()["data"][
         "scenarios"
     ][0]
@@ -199,6 +189,10 @@ def test_a_set_runs_every_repeat_with_every_tool_faked_and_judges_listed_rules(
     judged = judge.call_args.args[0][1].content
     assert PRICE in judged and BOOKING not in judged
     assert "book_slot" in judged
+    # Both run on Claude, on Connexity's own key: the workspace has none.
+    for model_call in (caller, judge):
+        config = model_call.call_args.kwargs["config"]
+        assert (config.model, config.provider) == ("claude-haiku-5-5", "anthropic")
 
     db.expire_all()
     assert db.get(Run, uuid.UUID(run_id)).status == RunStatus.COMPLETED  # type: ignore[union-attr]
@@ -256,7 +250,6 @@ def test_a_failed_tool_fake_is_found_by_code_checks_but_never_in_production(
     client: TestClient, db: Session, caller: AsyncMock
 ) -> None:
     user, agent, keys = _ready(db, client)
-    _with_key(db, user)
     _scenarios(client, user, agent, _price(keys))
     before = _counts(db, agent)
     run_id = _start(client, user, agent, all=True, repeats=1).json()["data"]["run_id"]
@@ -361,7 +354,6 @@ def test_a_platform_failure_is_an_error_with_no_verdicts(
     client: TestClient, db: Session, caller: AsyncMock, answer: Any
 ) -> None:
     user, agent, keys = _ready(db, client)
-    _with_key(db, user)
     _scenarios(client, user, agent, _price(keys))
     run_id = _start(client, user, agent, all=True, repeats=1).json()["data"]["run_id"]
 
@@ -414,7 +406,6 @@ def test_a_judge_answer_it_cannot_read_gives_no_verdicts(
     client: TestClient, db: Session, caller: AsyncMock, answer: Any, error: str
 ) -> None:
     user, agent, keys = _ready(db, client)
-    _with_key(db, user)
     _scenarios(client, user, agent, _price(keys))
     run_id = _start(client, user, agent, all=True, repeats=1).json()["data"]["run_id"]
 
@@ -448,11 +439,7 @@ def test_refusals_store_nothing(client: TestClient, db: Session) -> None:
             select(func.count()).select_from(Run).where(Run.agent_id == agent.id)
         ).one()
 
-    no_key = _start(client, user, agent, all=True)
-    assert no_key.status_code == 422
-    assert "no model key" in no_key.json()["detail"]["error"]
-
-    _with_key(db, user)
+    # No refusal for a model key: simulations run on Connexity's own key.
     both = _start(client, user, agent, all=True, scenario_ids=[scenario["id"]])
     assert both.status_code == 422
     assert "exactly one" in both.json()["detail"]["error"]
@@ -481,7 +468,6 @@ def test_an_agent_without_scenarios_or_spec_is_refused(
     client: TestClient, db: Session
 ) -> None:
     user, agent, _ = _ready(db, client)
-    _with_key(db, user)
 
     r = _start(client, user, agent, all=True)
 
@@ -493,7 +479,6 @@ def test_runs_are_listed_newest_first_by_page_and_scoped_to_the_agent(
     client: TestClient, db: Session
 ) -> None:
     user, agent, keys = _ready(db, client)
-    _with_key(db, user)
     scenario = _scenarios(client, user, agent, _price(keys)).json()["data"][
         "scenarios"
     ][0]
@@ -530,7 +515,6 @@ def test_runs_are_listed_newest_first_by_page_and_scoped_to_the_agent(
 
 def test_a_restart_fails_runs_it_stopped(client: TestClient, db: Session) -> None:
     user, agent, keys = _ready(db, client)
-    _with_key(db, user)
     _scenarios(client, user, agent, _price(keys))
     run_id = _start(client, user, agent, all=True, repeats=1).json()["data"]["run_id"]
 

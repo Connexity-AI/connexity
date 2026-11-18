@@ -43,7 +43,6 @@ from app.tests.api.routes.test_test_runs import (
     _runs,
     _start,
     _verdict,
-    _with_key,
     caller,  # noqa: F401 - the simulated caller's model, mocked
 )
 
@@ -58,7 +57,6 @@ def _ready(db: Session, client: TestClient, user: User) -> tuple[Agent, dict[str
     _catalogue(db, agent, "7")
     _call(db, agent, _booking(1, FULL), days_ago=1, version=7)
     data = _write(client, user, agent, [RULES[0], RULES[1] | {"critical": True}]).json()
-    _with_key(db, user)
     return agent, _keys(data["data"])
 
 

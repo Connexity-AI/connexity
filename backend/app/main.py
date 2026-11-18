@@ -19,9 +19,8 @@ logger = logging.getLogger(__name__)
 def _sync_llm_api_keys() -> None:
     """Expose Pydantic-loaded API keys to ``os.environ`` so LiteLLM can read them.
 
-    Per-company keys take precedence at request time via
-    :mod:`app.services.tenant_llm`. The env-var keys remain a fallback for
-    background jobs and tests that don't bind a tenant context.
+    Every model call runs on these, Connexity's own keys; workspaces never bring
+    one (Dmytro, 2026-11-18).
     """
     if settings.OPENAI_API_KEY:
         os.environ.setdefault("OPENAI_API_KEY", settings.OPENAI_API_KEY)

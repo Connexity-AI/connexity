@@ -268,7 +268,6 @@ async def get_spec(
     workspace_id: str,
     agent_id: str,
     version: int | None = None,
-    include_prompt: bool = False,
     compare: int | None = None,
 ) -> SpecResult:
     return SpecResult.model_validate(
@@ -276,7 +275,6 @@ async def get_spec(
             workspace_id=workspace_id,
             agent_id=agent_id,
             version=version,
-            include_prompt=include_prompt,
             compare=compare,
         )
     )

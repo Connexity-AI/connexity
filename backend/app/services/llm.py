@@ -356,7 +356,6 @@ async def _acompletion_once(
     response_format: dict[str, object] | None,
     parallel_tool_calls: bool | None,
     extra: dict[str, LLMExtraValue],
-    api_key: str | None = None,
 ) -> object:
     kwargs: dict[str, object] = {
         "model": model,
@@ -374,8 +373,6 @@ async def _acompletion_once(
         kwargs["tools"] = tools
     if parallel_tool_calls is not None:
         kwargs["parallel_tool_calls"] = parallel_tool_calls
-    if api_key is not None:
-        kwargs["api_key"] = api_key
     for k, v in extra.items():
         if v is not None:
             kwargs[k] = v
@@ -388,33 +385,15 @@ async def call_llm(
     config: LLMCallConfig | None = None,
     *,
     app_settings: LLMSettingsView | None = None,
-    tenant: Any | None = None,
 ) -> LLMResponse:
     """Run a chat completion with exponential backoff on transient failures.
 
-    ``tenant`` (an :class:`~app.services.tenant_llm.LLMTenantContext`) injects
-    per-company credentials and rewrites the model to one supported by the
-    tenant's available provider. When omitted, falls back to env-var keys via
-    LiteLLM defaults — kept for unit tests.
+    Every call runs on Connexity's own keys (``OPENAI_API_KEY``,
+    ``ANTHROPIC_API_KEY``); workspaces never bring one (Dmytro, 2026-11-18).
     """
     app_settings = app_settings or settings
     resolved_model, _ = _merge_effective_model_provider(config, app_settings)
     c = config or LLMCallConfig()
-    tenant_api_key: str | None = None
-    if tenant is None:
-        from app.services.tenant_llm import get_current_tenant
-
-        tenant = get_current_tenant()
-    if tenant is not None:
-        from app.services.tenant_llm import resolve_for_tenant
-
-        target = resolve_for_tenant(
-            requested_model=resolved_model,
-            requested_provider=c.provider,
-            tenant=tenant,
-        )
-        resolved_model = target.litellm_model
-        tenant_api_key = target.api_key
 
     temperature = c.temperature
     max_tokens = c.max_tokens
@@ -449,7 +428,6 @@ async def call_llm(
                 response_format=response_format,
                 parallel_tool_calls=parallel_tool_calls,
                 extra=extra,
-                api_key=tenant_api_key,
             )
             latency_ms = int((time.perf_counter() - started) * 1000)
             usage_obj = getattr(response, "usage", None)
