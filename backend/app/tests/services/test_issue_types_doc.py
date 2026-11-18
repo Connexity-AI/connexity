@@ -35,3 +35,11 @@ def test_every_check_is_in_the_issue_type_library() -> None:
         assert default == (
             "Critical" if check.default_mode is CheckMode.FAILS else "Warning"
         )
+
+
+def test_every_check_says_what_its_finding_detail_means() -> None:
+    # get_issue hands these to the assistant; a check that writes detail must say
+    # what each key means.
+    for check in CHECKS:
+        assert check.detail_fields, f"{check.type} has no detail_fields"
+        assert all(text.strip() for text in check.detail_fields.values())

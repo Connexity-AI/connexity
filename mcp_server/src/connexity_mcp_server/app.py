@@ -284,7 +284,9 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         phone number (matches the end of the caller's number) or a call id. Filters:
         agent_id, result (failed, degraded, clean, unchecked), category (a category
         key), period (7d, 30d, 90d), issue_id (only the calls that issue was found on,
-        each with its moment). Callers come as their last four digits."""
+        each with its moment, the agent version it ran and that issue's findings on
+        it: events and detail). limit (1 to 100) caps a page. Callers come as their
+        last four digits."""
         return await _list_calls(
             client=backend_client,
             workspace_id=workspace_id,
@@ -334,10 +336,14 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     @mcp_server.tool(annotations=READ_ONLY)
     async def get_issue(workspace_id: str, issue_id: str) -> IssueResult:
-        """One issue: its size over the last 30 days (calls affected of the agent's
-        calls), first and last seen, whether it is fixed in a version, calls per day
-        with version marks, the latest calls it hit with the moment in each, and its
-        history of decisions."""
+        """Everything Connexity has about one issue: the check behind it (what it
+        looks for, how it decides, its version, and for a model check the model),
+        what each key of its findings' detail means, its setting for the agent, its
+        size over the last 30 days (calls affected of the agent's calls), first and
+        last seen, all-time counts, affected calls per agent version and the version
+        live now, whether it is fixed in a version, calls per day with version marks,
+        the latest calls it hit, and its history of decisions. For the calls it was
+        found on, with its findings in each, use `list_calls` with the issue_id."""
         return await _get_issue(
             client=backend_client, workspace_id=workspace_id, issue_id=issue_id
         )

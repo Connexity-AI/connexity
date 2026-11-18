@@ -115,6 +115,13 @@ class IssueMoment(BaseModel):
     times: int
 
 
+class IssueFindingOnCall(BaseModel):
+    event_ids: list[str] = Field(default_factory=list)
+    detail: dict[str, Any] | None = None
+    effect: str
+    check_version: int
+
+
 class CallItem(BaseModel):
     id: str
     started_at: str
@@ -125,6 +132,9 @@ class CallItem(BaseModel):
     result: str
     worst_finding: WorstFinding | None = None
     moment: IssueMoment | None = None
+    # With an issue filter: the version the call ran and that issue's findings on it.
+    agent_version: str | None = None
+    issue_findings: list[IssueFindingOnCall] | None = None
 
 
 class CallTiles(BaseModel):
@@ -402,6 +412,29 @@ class IssueHistoryLine(BaseModel):
     duration: str | None = None
 
 
+class IssueCheck(BaseModel):
+    type: str
+    title: str
+    description: str
+    kind: str
+    version: int
+    provider: str | None = None
+    model: str | None = None
+    needs: list[str] = Field(default_factory=list)
+    detail_fields: dict[str, str] = Field(default_factory=dict)
+
+
+class IssueSetting(BaseModel):
+    mode: str
+    default: str
+    since: str | None = None
+
+
+class IssueVersion(BaseModel):
+    version: str | None = None
+    calls: int
+
+
 class IssuePage(BaseModel):
     id: str
     title: str
@@ -422,6 +455,12 @@ class IssuePage(BaseModel):
     peak: int = 0
     affected_calls: list[IssueAffectedCall] = Field(default_factory=list)
     history: list[IssueHistoryLine] = Field(default_factory=list)
+    check: IssueCheck | None = None
+    setting: IssueSetting | None = None
+    versions: list[IssueVersion] = Field(default_factory=list)
+    live_version: str | None = None
+    findings_all_time: int = 0
+    calls_all_time: int = 0
 
 
 ListIssuesResult = Answer[Issues]

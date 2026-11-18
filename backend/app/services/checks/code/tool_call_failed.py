@@ -29,4 +29,5 @@ TOOL_CALL_FAILED = Check(
     category="tools_and_integrations",
     run=_run,
     needs=(TraceCapability.TOOL_RESULTS,),
+    detail_fields={"status": "How the tool call ended: error or timeout"},
 )

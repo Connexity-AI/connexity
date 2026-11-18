@@ -11,18 +11,22 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any, Generic, Literal, TypeVar
 
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import BaseModel, Field, JsonValue, StringConstraints
 
 from app.models.agent_list import AgentType
 from app.models.call_list import CallListItemPublic, CallTilesPublic
 from app.models.enums import (
     AssistantTaskState,
+    CheckKind,
+    CheckMode,
+    FindingEffect,
     FirstTurn,
     Platform,
     SpecRuleTouches,
     TaskKind,
 )
 from app.models.issue_list import IssueListItemPublic, IssueTilesPublic
+from app.models.issue_page import IssuePagePublic
 from app.models.scenario import ScenarioPublic
 from app.models.spec import SpecState
 from app.models.test_run import (
@@ -383,6 +387,59 @@ class McpArchiveIssue(BaseModel):
     duration: Literal["until_spike", "forever"] = "until_spike"
 
 
+class McpIssueCheck(BaseModel):
+    """The check that finds the issue, as the registry has it now."""
+
+    type: str
+    title: str
+    description: str
+    kind: CheckKind = Field(description="code_based, classifier or judge")
+    version: int = Field(description="The check's current version")
+    provider: str | None = Field(
+        default=None, description="For a model check: who runs the model"
+    )
+    model: str | None = Field(
+        default=None, description="For a model check: the pinned model"
+    )
+    needs: list[str] = Field(
+        description="What a call's trace must have for the check to run on it"
+    )
+    detail_fields: dict[str, str] = Field(
+        description="What each key of a finding's detail means"
+    )
+
+
+class McpIssueSetting(BaseModel):
+    mode: CheckMode = Field(description="What the check does for this agent now")
+    default: CheckMode = Field(description="The issue type's default")
+    since: datetime | None = Field(
+        default=None, description="When a person last changed it; none if never"
+    )
+
+
+class McpIssueVersion(BaseModel):
+    version: str | None = Field(description="The agent version; none if unreported")
+    calls: int = Field(description="Calls on it the issue was found on, last 30 days")
+
+
+class McpIssue(IssuePagePublic):
+    """Everything Connexity has about one issue. The calls themselves come from
+    `list_calls` with the issue's id."""
+
+    check: McpIssueCheck | None = Field(
+        default=None, description="None when the check has since been removed"
+    )
+    setting: McpIssueSetting | None = None
+    versions: list[McpIssueVersion] = Field(
+        description="Affected calls per agent version, last 30 days, most first"
+    )
+    live_version: str | None = Field(
+        default=None, description="The agent version on the agent's newest call"
+    )
+    findings_all_time: int = Field(description="Findings of this issue, ever")
+    calls_all_time: int = Field(description="Calls it was found on, ever")
+
+
 class McpMarkFixed(BaseModel):
     version: Annotated[
         str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)
@@ -403,9 +460,32 @@ class McpIssues(BaseModel):
     issues: list[IssueListItemPublic] = Field(description="Worst first")
 
 
+class McpIssueFinding(BaseModel):
+    """One finding of the filtered issue on a call."""
+
+    event_ids: list[str] = Field(
+        description="The call's timeline events it points at; `get_call` shows them"
+    )
+    detail: dict[str, JsonValue] | None = Field(
+        default=None,
+        description="What the check recorded; `get_issue` says what each key means",
+    )
+    effect: FindingEffect = Field(description="flags, or fails the call")
+    check_version: int
+
+
+class McpCallItem(CallListItemPublic):
+    agent_version: str | None = Field(
+        default=None, description="With issue_id: the agent version the call ran"
+    )
+    issue_findings: list[McpIssueFinding] | None = Field(
+        default=None, description="With issue_id: that issue's findings on the call"
+    )
+
+
 class McpCalls(BaseModel):
     tiles: CallTilesPublic = Field(description="Counts for the filters and period")
-    calls: list[CallListItemPublic]
+    calls: list[McpCallItem]
 
 
 class McpTaskRef(BaseModel):

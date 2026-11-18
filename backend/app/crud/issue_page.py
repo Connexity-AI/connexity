@@ -194,3 +194,64 @@ def issue_decisions(*, session: Session, issue: Issue) -> list[DecisionRecord]:
 def period_days(since: datetime, days: int) -> list[date]:
     start = since.astimezone(UTC).date()
     return [start + timedelta(days=i) for i in range(1, days + 1)]
+
+
+def issue_calls_per_version(
+    *, session: Session, issue_id: uuid.UUID, since: datetime
+) -> list[tuple[str | None, int]]:
+    """Distinct calls the issue was found on since ``since``, per agent version (the
+    version the call reported; None when it reported none), most calls first."""
+    rows = session.exec(
+        select(Call.agent_version, func.count(func.distinct(col(Call.id))))
+        .join(Finding, col(Finding.call_id) == col(Call.id))
+        .where(
+            Finding.issue_id == issue_id,
+            col(Call.deleted_at).is_(None),
+            col(Call.started_at) >= _naive(since),
+        )
+        .group_by(col(Call.agent_version))
+        .order_by(func.count(func.distinct(col(Call.id))).desc())
+    ).all()
+    return list(rows)
+
+
+def latest_agent_version(*, session: Session, agent_id: uuid.UUID) -> str | None:
+    """The agent version on the agent's newest call: what is live on real calls."""
+    return session.exec(
+        select(Call.agent_version)
+        .where(
+            Call.agent_id == agent_id,
+            col(Call.deleted_at).is_(None),
+            col(Call.agent_version).is_not(None),
+        )
+        .order_by(col(Call.started_at).desc())
+        .limit(1)
+    ).first()
+
+
+def issue_findings_on_calls(
+    *, session: Session, issue_id: uuid.UUID, call_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, list[Finding]]:
+    """The issue's findings on each of these calls, in the order they were stored."""
+    found: dict[uuid.UUID, list[Finding]] = defaultdict(list)
+    if not call_ids:
+        return found
+    for finding in session.exec(
+        select(Finding)
+        .where(Finding.issue_id == issue_id, col(Finding.call_id).in_(call_ids))
+        .order_by(col(Finding.created_at))
+    ).all():
+        found[finding.call_id].append(finding)
+    return found
+
+
+def call_agent_versions(
+    *, session: Session, call_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, str | None]:
+    if not call_ids:
+        return {}
+    return dict(
+        session.exec(
+            select(Call.id, Call.agent_version).where(col(Call.id).in_(call_ids))
+        ).all()
+    )

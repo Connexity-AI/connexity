@@ -83,6 +83,8 @@ class Check:
     # check is skipped, which is recorded and is not a pass.
     needs: tuple[TraceCapability, ...] = ()
     kind: CheckKind = CheckKind.CODE_BASED
+    # What each key of a finding's ``detail`` means, for the assistant (``get_issue``).
+    detail_fields: Mapping[str, str] = field(default_factory=dict)
 
 
 class ModelProvider(StrEnum):

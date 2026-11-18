@@ -58,4 +58,7 @@ BOOKING_DUPLICATED = Check(
     category="booking",
     run=_run,
     needs=(TraceCapability.TOOL_CALLS,),
+    detail_fields={
+        "bookings": "How many bookings for the same time; the finding points at each"
+    },
 )

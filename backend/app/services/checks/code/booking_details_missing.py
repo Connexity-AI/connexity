@@ -59,4 +59,8 @@ BOOKING_DETAILS_MISSING = Check(
     category="booking",
     run=_run,
     needs=(TraceCapability.TOOL_CALLS,),
+    detail_fields={
+        "empty": "The booking tool's arguments that were empty or a placeholder, by "
+        "name; never their values"
+    },
 )
