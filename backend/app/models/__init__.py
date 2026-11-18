@@ -88,9 +88,6 @@ from app.models.common import ConfigPublic, ErrorResponse  # noqa: F401
 # ── Company (multi-tenancy) ────────────────────────────────────────
 from app.models.company import (  # noqa: F401
     Company,
-    CompanyLLMCredentialsPublic,
-    CompanyLLMCredentialsUpdate,
-    LLMProvider,
 )
 
 # ── Comparison / diff schemas (pure Pydantic) ────────────────────

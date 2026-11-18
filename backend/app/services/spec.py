@@ -22,7 +22,6 @@ from app.models.spec import (
     SpecComparisonPublic,
     SpecCountsPublic,
     SpecGroupPublic,
-    SpecPromptPublic,
     SpecPublic,
     SpecRule,
     SpecRulePublic,
@@ -104,7 +103,6 @@ def spec_answer(
     session: Session,
     agent: Agent,
     version: int | None = None,
-    include_prompt: bool = False,
     compare: int | None = None,
 ) -> SpecPublic | None:
     """The agent's spec, latest or ``version``, optionally compared with an earlier
@@ -210,13 +208,6 @@ def spec_answer(
                 added=len(rules) - kept,
                 dropped=len(dropped),
             )
-    prompt = None
-    if include_prompt and current is not None:
-        found = crud.agent_prompt(session=session, agent=agent, agent_version=current)
-        if found is not None:
-            prompt = SpecPromptPublic(
-                kind=found.kind, version=found.version, content=found.content
-            )
     versions = [
         _version_public(session, v, n)
         for v, n in crud.spec_versions(session=session, agent_id=agent.id)
@@ -229,7 +220,6 @@ def spec_answer(
         spec=summary,
         latest_version=latest.version if latest else None,
         groups=groups,
-        prompt=prompt,
         open_clarifications=state_counts(
             session=session, company_id=agent.company_id, agent_id=agent.id
         )[ClarificationState.OPEN],

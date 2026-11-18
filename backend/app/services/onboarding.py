@@ -136,7 +136,8 @@ ONBOARDING_STEPS: tuple[OnboardingStep, ...] = (
             Instruction(
                 "write",
                 "Write each agent's spec from its prompt: {agents}. Read [[spec]], then "
-                "call `get_spec` with include_prompt and `write_spec`.",
+                "read each agent's prompt and config from the voice platform with your "
+                "own access, for the version its calls run on, then `write_spec`.",
             ),
         ),
     ),

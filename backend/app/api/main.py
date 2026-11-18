@@ -9,7 +9,6 @@ from app.api.routes import (
     calls,
     checks,
     clarifications,
-    company,
     component_versions,
     config,
     custom_metrics,
@@ -82,7 +81,6 @@ api_router.include_router(checks.router)
 api_router.include_router(issues.router)
 api_router.include_router(spec.router)
 api_router.include_router(tests_tab.router)
-api_router.include_router(company.router)
 
 root_router = APIRouter()
 root_router.include_router(health.router)

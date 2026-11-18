@@ -591,12 +591,6 @@ class SpecVersion(BaseModel):
     rule_count: int
 
 
-class SpecPrompt(BaseModel):
-    kind: str
-    version: str
-    content: Any = None
-
-
 class SpecCounts(BaseModel):
     from_prompt: int = 0
     from_clarifications: int = 0
@@ -628,7 +622,6 @@ class Spec(BaseModel):
     spec: SpecVersion | None = None
     latest_version: int | None = None
     groups: list[SpecGroup] = Field(default_factory=list)
-    prompt: SpecPrompt | None = None
     open_clarifications: int = 0
     counts: SpecCounts | None = None
     versions: list[SpecVersion] = Field(default_factory=list)

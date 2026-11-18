@@ -59,7 +59,12 @@ from app.models.enums import (
 )
 from app.models.integration import Integration
 from app.models.run import Run
-from app.models.schemas import ConversationTurn, RetellRuntimeConfig, RunConfig
+from app.models.schemas import (
+    ConversationTurn,
+    RetellRuntimeConfig,
+    RunConfig,
+    UserSimulatorConfig,
+)
 from app.models.spec import Spec, SpecRule
 from app.models.test_case import TestCase
 from app.models.test_case_result import TestCaseResult
@@ -89,11 +94,6 @@ from app.services.eval_runtimes import (
 )
 from app.services.retell import list_retell_agent_versions
 from app.services.rule_judge import JudgeFailed, RuleToJudge, judge_rules
-from app.services.tenant_llm import (
-    CompanyMissingLLMKeyError,
-    load_tenant_context,
-    tenant_scope,
-)
 from app.services.trace_capabilities import derive_capabilities
 
 logger = logging.getLogger(__name__)
@@ -203,18 +203,13 @@ def start_run(
         raise RunRefused(
             msg, ["Run a set or a pick, or fewer repeats, and run the rest after."]
         )
-    try:
-        load_tenant_context(session=session, company_id=agent.company_id)
-    except CompanyMissingLLMKeyError:
-        msg = "The workspace has no model key for the simulated caller and the judge."
-        raise RunRefused(
-            msg,
-            [
-                "Ask the person to add an OpenAI or Anthropic key to the workspace, "
-                "then run again."
-            ],
-        ) from None
-    config = RunConfig(runtime=RetellRuntimeConfig(version=request.version))
+    # The simulated caller runs on Connexity's own key; the run records the model.
+    config = RunConfig(
+        runtime=RetellRuntimeConfig(version=request.version),
+        user_simulator=UserSimulatorConfig(
+            model=settings.SIMULATION_MODEL, provider=settings.SIMULATION_PROVIDER
+        ),
+    )
     run = Run(
         name=None,
         agent_id=agent.id,
@@ -539,7 +534,6 @@ async def execute_run(run_id: uuid.UUID) -> None:
             agent = session.get(Agent, run.agent_id)
             if agent is None:
                 return
-            tenant = load_tenant_context(session=session, company_id=run.company_id)
             run.status = RunStatus.RUNNING
             run.started_at = datetime.now(UTC)
             session.add(run)
@@ -624,20 +618,19 @@ async def execute_run(run_id: uuid.UUID) -> None:
             if content is not None:
                 _store_fingerprint(run_id, content)
         semaphore = asyncio.Semaphore(CONCURRENCY)
-        with tenant_scope(tenant):
-            await asyncio.gather(
-                *(
-                    _simulate(
-                        ctx,
-                        row,
-                        scenarios[row.test_case_id],
-                        keys.get(row.test_case_id, []),
-                        semaphore,
-                    )
-                    for row in rows
-                    if row.test_case_id in scenarios
+        await asyncio.gather(
+            *(
+                _simulate(
+                    ctx,
+                    row,
+                    scenarios[row.test_case_id],
+                    keys.get(row.test_case_id, []),
+                    semaphore,
                 )
+                for row in rows
+                if row.test_case_id in scenarios
             )
+        )
         _finish(run_id, RunStatus.COMPLETED, None)
     except Exception as exc:  # noqa: BLE001 - the run is marked failed, with why
         logger.exception("Run %s failed", run_id)

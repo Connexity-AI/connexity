@@ -90,69 +90,11 @@ def _is_member(*, session: Session, user: User, cid: str | None) -> bool:
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-def get_current_company_id(session: SessionDep, current_user: CurrentUser) -> uuid.UUID:
-    # Side effect: bind the ambient LLM tenant context so downstream
-    # ``call_llm`` calls pick up the right per-company API key automatically.
-    _bind_tenant_llm_context_inline(session=session, current_user=current_user)
+def get_current_company_id(current_user: CurrentUser) -> uuid.UUID:
     return current_user.company_id
 
 
 CurrentCompany = Annotated[uuid.UUID, Depends(get_current_company_id)]
-
-
-def _bind_tenant_llm_context_inline(*, session: Session, current_user: User) -> None:
-    from app.crud.company import company_has_any_llm_key, get_company
-    from app.services.tenant_llm import (
-        set_current_tenant,
-        tenant_context_from_company,
-    )
-
-    company = get_company(session=session, company_id=current_user.company_id)
-    if company is None or not company_has_any_llm_key(company=company):
-        set_current_tenant(None)
-        return
-    set_current_tenant(tenant_context_from_company(company))
-
-
-def bind_tenant_llm_context(session: SessionDep, current_user: CurrentUser) -> None:
-    """Load the current user's LLM tenant context and set it as ambient.
-
-    Mounted as a route-level dependency on every authenticated router so any
-    downstream ``call_llm`` automatically uses the right per-company API key.
-    No-op if the company has no LLM keys configured — the LLM service will
-    fall back to env vars and the dedicated gate dependency below raises 409.
-    """
-    from app.crud.company import company_has_any_llm_key, get_company
-    from app.services.tenant_llm import (
-        set_current_tenant,
-        tenant_context_from_company,
-    )
-
-    company = get_company(session=session, company_id=current_user.company_id)
-    if company is None or not company_has_any_llm_key(company=company):
-        set_current_tenant(None)
-        return
-    set_current_tenant(tenant_context_from_company(company))
-
-
-def require_llm_key(session: SessionDep, current_user: CurrentUser) -> None:
-    """Reject the request when the company has no LLM key configured.
-
-    Mount on routes that depend on LLM features (evals, generation, prompt
-    editor). 409 ``LLM_KEY_REQUIRED`` so the frontend can route the user to
-    onboarding / settings.
-    """
-    from app.crud.company import company_has_any_llm_key, get_company
-
-    company = get_company(session=session, company_id=current_user.company_id)
-    if company is None or not company_has_any_llm_key(company=company):
-        raise HTTPException(
-            status_code=409,
-            detail=(
-                "This workspace has no LLM API key configured. Add an OpenAI "
-                "or Anthropic key in Settings."
-            ),
-        )
 
 
 def require_mcp_user(request: Request, session: SessionDep, bearer: BearerDep) -> User:

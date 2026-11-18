@@ -11,9 +11,11 @@ You write it from the agent's prompt; Connexity stores it, one version at a time
   previous spec to the new version; review it (see "A new agent version" below).
 
 Read the agent's spec with `get_spec` before you write, and write it with `write_spec`.
-Pass `include_prompt` to `get_spec` for the prompt Connexity recorded for the agent's
-current version; write against that prompt, because Connexity checks every quote
-against it.
+Read the agent's prompt and config from the voice platform, with your own access, never
+from Connexity: Connexity is not a go-between for you and the platform. Read the version
+the agent's calls run on (`current_agent_version` in `get_spec`), the published one and
+not a draft, because Connexity checks every quote against the prompt it recorded for
+that version.
 
 ## How to write a rule
 

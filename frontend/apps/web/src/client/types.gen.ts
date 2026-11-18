@@ -2316,57 +2316,6 @@ export type ClarificationsAnsweredPublic = {
 };
 
 /**
- * CompanyLLMCredentialsPublic
- *
- * Masked view of a company's LLM credentials for the settings page.
- */
-export type CompanyLlmCredentialsPublic = {
-  /**
-   * Openai Api Key Masked
-   */
-  openai_api_key_masked?: string | null;
-  /**
-   * Anthropic Api Key Masked
-   */
-  anthropic_api_key_masked?: string | null;
-  preferred_llm_provider?: LlmProvider | null;
-  /**
-   * Has Any Llm Key
-   *
-   * True when at least one provider key is configured
-   */
-  has_any_llm_key: boolean;
-};
-
-/**
- * CompanyLLMCredentialsUpdate
- *
- * Payload to set or rotate a company's LLM credentials.
- *
- * Either ``openai_api_key`` or ``anthropic_api_key`` (or both) must be
- * provided on initial onboarding. When updating, an empty value clears
- * that provider's key.
- */
-export type CompanyLlmCredentialsUpdate = {
-  /**
-   * Openai Api Key
-   *
-   * OpenAI API key. Set to empty string to clear; omit to leave unchanged.
-   */
-  openai_api_key?: string | null;
-  /**
-   * Anthropic Api Key
-   *
-   * Anthropic API key. Set to empty string to clear; omit to leave unchanged.
-   */
-  anthropic_api_key?: string | null;
-  /**
-   * Default provider when a feature doesn't pin one. Required at onboarding.
-   */
-  preferred_llm_provider?: LlmProvider | null;
-};
-
-/**
  * ComponentVersionPublic
  */
 export type ComponentVersionPublic = {
@@ -5029,26 +4978,6 @@ export type LlmModelsPublic = {
    */
   default_model: string;
 };
-
-/**
- * LLMProvider
- *
- * LLM providers a company can use for evaluations + test case generation.
- *
- * Backend features are provider-agnostic — they use whichever provider the
- * company has a key for, with model auto-rerouting at the LLM service layer.
- */
-export const LlmProvider = { OPENAI: 'openai', ANTHROPIC: 'anthropic' } as const;
-
-/**
- * LLMProvider
- *
- * LLM providers a company can use for evaluations + test case generation.
- *
- * Backend features are provider-agnostic — they use whichever provider the
- * company has a key for, with model auto-rerouting at the LLM service layer.
- */
-export type LlmProvider = (typeof LlmProvider)[keyof typeof LlmProvider];
 
 /**
  * MarkerEvent
@@ -9411,26 +9340,6 @@ export const SpecOrigin = {
 export type SpecOrigin = (typeof SpecOrigin)[keyof typeof SpecOrigin];
 
 /**
- * SpecPromptPublic
- */
-export type SpecPromptPublic = {
-  /**
-   * Kind
-   *
-   * prompt or flow
-   */
-  kind: string;
-  /**
-   * Version
-   */
-  version: string;
-  /**
-   * As Connexity recorded it, secrets masked
-   */
-  content: JsonValue;
-};
-
-/**
  * SpecPublic
  */
 export type SpecPublic = {
@@ -9468,10 +9377,6 @@ export type SpecPublic = {
    * In the fixed categories' order
    */
   groups?: Array<SpecGroupPublic>;
-  /**
-   * With include_prompt: the current version's prompt
-   */
-  prompt?: SpecPromptPublic | null;
   /**
    * Open Clarifications
    *
@@ -9653,10 +9558,6 @@ export type SpecWrittenPublic = {
    * In the fixed categories' order
    */
   groups?: Array<SpecGroupPublic>;
-  /**
-   * With include_prompt: the current version's prompt
-   */
-  prompt?: SpecPromptPublic | null;
   /**
    * Open Clarifications
    *
@@ -14071,10 +13972,6 @@ export type McpGetSpecData = {
      * Version
      */
     version?: number | null;
-    /**
-     * Include Prompt
-     */
-    include_prompt?: boolean;
     /**
      * Compare
      */
@@ -21402,105 +21299,3 @@ export type TestsGetAgentTestsResponses = {
 
 export type TestsGetAgentTestsResponse =
   TestsGetAgentTestsResponses[keyof TestsGetAgentTestsResponses];
-
-export type CompanyGetLlmCredentialsData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/api/v1/company/llm-credentials';
-};
-
-export type CompanyGetLlmCredentialsErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type CompanyGetLlmCredentialsError =
-  CompanyGetLlmCredentialsErrors[keyof CompanyGetLlmCredentialsErrors];
-
-export type CompanyGetLlmCredentialsResponses = {
-  /**
-   * Successful Response
-   */
-  200: CompanyLlmCredentialsPublic;
-};
-
-export type CompanyGetLlmCredentialsResponse =
-  CompanyGetLlmCredentialsResponses[keyof CompanyGetLlmCredentialsResponses];
-
-export type CompanyUpdateLlmCredentialsData = {
-  body: CompanyLlmCredentialsUpdate;
-  path?: never;
-  query?: never;
-  url: '/api/v1/company/llm-credentials';
-};
-
-export type CompanyUpdateLlmCredentialsErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type CompanyUpdateLlmCredentialsError =
-  CompanyUpdateLlmCredentialsErrors[keyof CompanyUpdateLlmCredentialsErrors];
-
-export type CompanyUpdateLlmCredentialsResponses = {
-  /**
-   * Successful Response
-   */
-  200: CompanyLlmCredentialsPublic;
-};
-
-export type CompanyUpdateLlmCredentialsResponse =
-  CompanyUpdateLlmCredentialsResponses[keyof CompanyUpdateLlmCredentialsResponses];

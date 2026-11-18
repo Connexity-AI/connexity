@@ -925,6 +925,9 @@ _SPEC_RULES = [
     "Write rules only for what the prompt settles, each with the prompt's words it rests "
     "on; behaviour the prompt does not settle is a question for the person, never a "
     "rule.",
+    "Read the prompt from the voice platform, never from Connexity, for the version the "
+    "agent's calls run on (current_agent_version), not a draft: Connexity checks every "
+    "quote against the prompt it recorded for that version.",
     "Keep a rule across versions by passing its key; a kept rule without its key reads "
     "as dropped and added again.",
     "Rules are never edited: every `write_spec` is a new version, and earlier versions "
@@ -1036,8 +1039,9 @@ def _spec_steps(answer: SpecPublic) -> list[str]:
         )
     elif answer.state == "none":
         steps.append(
-            "Write the spec: call `get_spec` with include_prompt for the prompt "
-            "Connexity recorded, then `write_spec`."
+            "Write the spec: read the agent's prompt and config from the voice "
+            "platform with your own access, for the version its calls run on (the "
+            "published one, not a draft), then `write_spec`."
         )
     elif answer.state == "needs_review":
         steps.append(
@@ -1059,7 +1063,6 @@ def get_spec(
     workspace: McpWorkspaceDep,
     agent_id: uuid.UUID,
     version: int | None = Query(default=None, ge=1),
-    include_prompt: bool = False,
     compare: int | None = Query(default=None, ge=1),
 ) -> McpAnswer[SpecPublic]:
     agent = _mcp_agent_in(session, workspace, agent_id)
@@ -1067,7 +1070,6 @@ def get_spec(
         session=session,
         agent=agent,
         version=version,
-        include_prompt=include_prompt,
         compare=compare,
     )
     if answer is None:
@@ -1084,11 +1086,6 @@ def get_spec(
             ).model_dump(),
         )
     steps = _spec_steps(answer)
-    if include_prompt and answer.current_agent_version and answer.prompt is None:
-        steps.append(
-            "Connexity has no recorded prompt for this version; read it from the voice "
-            "platform. Quotes will be stored without being checked."
-        )
     if answer.open_clarifications:
         steps.append(_waiting_text(answer.open_clarifications, agent.id))
     return McpAnswer[SpecPublic](
@@ -1529,8 +1526,9 @@ def _task_steps(task: Task) -> list[str]:
         ]
     if task.kind is TaskKind.SPEC:
         return [
-            f"Read connexity://guides/spec, then call `get_spec` for agent {agent} "
-            "with include_prompt.",
+            f"Read connexity://guides/spec and call `get_spec` for agent {agent}. Read "
+            "its prompt and config from the voice platform with your own access, for "
+            "the version its calls run on (the published one, not a draft).",
             "Write the rules the prompt settles with `write_spec`.",
             "Raise what the prompt does not settle with `raise_clarifications`; the "
             "person answers it.",

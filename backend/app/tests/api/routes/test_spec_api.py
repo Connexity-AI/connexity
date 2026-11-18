@@ -92,11 +92,12 @@ def _read(client: TestClient, user: User, agent: Agent, **params: Any) -> Any:
     return client.get(_url(user, agent), headers=_headers(user), params=params)
 
 
-def test_an_agent_without_a_spec_is_told_to_write_one_with_its_prompt(
+def test_an_agent_without_a_spec_is_told_to_read_its_prompt_from_the_platform(
     client: TestClient, db: Session
 ) -> None:
     user, agent = _setup(db)
 
+    # An older MCP server may still ask for the prompt: it is ignored.
     r = _read(client, user, agent, include_prompt="true")
 
     assert r.status_code == 200, r.text
@@ -107,11 +108,16 @@ def test_an_agent_without_a_spec_is_told_to_write_one_with_its_prompt(
         None,
         "7",
     )
-    assert data["prompt"]["kind"] == "prompt"
-    assert data["prompt"]["content"]["general_prompt"] == PROMPT
+    # Connexity is never a go-between for the assistant and the platform (Dmytro,
+    # 2026-11-18): no recorded prompt in the answer, and every step names the platform.
+    assert "prompt" not in data
     assert body["guide"] == "connexity://guides/spec"
-    assert any("write_spec" in s for s in body["next_steps"])
-    assert _read(client, user, agent).json()["data"]["prompt"] is None
+    steps = " ".join(body["next_steps"])
+    assert "write_spec" in steps and "voice platform" in steps
+    assert "include_prompt" not in steps
+    assert any(
+        "from the voice platform, never from Connexity" in r for r in body["rules"]
+    )
 
 
 def test_writing_a_spec_stores_rules_by_category_with_who_wrote_it(
@@ -349,7 +355,7 @@ def test_the_web_route_reads_the_open_workspaces_spec(
     r = client.get(f"{API}/agents/{agent.id}/spec", cookies=cookies)
     assert r.status_code == 200, r.text
     assert r.json()["spec"]["rule_count"] == 2
-    assert r.json()["prompt"] is None
+    assert "prompt" not in r.json()
     assert (
         client.get(
             f"{API}/agents/{agent.id}/spec", cookies=cookies, params={"version": 9}
@@ -379,3 +385,30 @@ def test_another_workspace_and_unknown_agents_are_not_found(
     )
     assert missing.status_code == 404
     assert _read(client, user, agent, version=4).status_code == 404
+
+
+def test_no_step_or_guide_sends_the_assistant_to_connexitys_prompt() -> None:
+    from pathlib import Path
+
+    from app.api.routes.mcp import _task_steps
+    from app.models.enums import TaskKind
+    from app.services.onboarding import ONBOARDING_STEPS
+    from app.services.work import Group, Task
+
+    spec_task = Task(
+        key="spec:x",
+        kind=TaskKind.SPEC,
+        group=Group.SETUP,
+        title="Write the spec for Front desk",
+        facts=[],
+        agent_id=uuid.uuid4(),
+    )
+    texts = [
+        *_task_steps(spec_task),
+        *(item.text for step in ONBOARDING_STEPS for item in step.instructions),
+    ]
+    guides = Path(__file__).parents[5] / "mcp_server/src/connexity_mcp_server/guides"
+    texts += [path.read_text() for path in guides.glob("*.md")]
+
+    assert not any("include_prompt" in text for text in texts)
+    assert any("voice platform" in text for text in _task_steps(spec_task))

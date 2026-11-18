@@ -75,11 +75,7 @@ from app.crud.check import (  # noqa: F401
     summarise_issue,
 )
 from app.crud.company import (  # noqa: F401
-    company_has_any_llm_key,
-    company_llm_credentials_public,
     get_company,
-    resolve_llm_api_key,
-    update_llm_credentials,
 )
 from app.crud.component_version import (  # noqa: F401
     get_component_version,
