@@ -56,6 +56,7 @@ class OnboardingStep:
 
 
 SPECS = "specs"
+ANSWERS = "answers"
 
 ONBOARDING_STEPS: tuple[OnboardingStep, ...] = (
     OnboardingStep(
@@ -136,6 +137,25 @@ ONBOARDING_STEPS: tuple[OnboardingStep, ...] = (
                 "write",
                 "Write each agent's spec from its prompt: {agents}. Read [[spec]], then "
                 "call `get_spec` with include_prompt and `write_spec`.",
+            ),
+        ),
+    ),
+    OnboardingStep(
+        key=ANSWERS,
+        title="Answer the open questions",
+        readiness_name=None,
+        who=Actor.ASSISTANT,
+        done_when="Done when no question is open: each is answered or parked. Then "
+        "onboarding is complete and the dashboard is ready.",
+        instructions=(
+            Instruction(
+                "ask",
+                "Raise what the specs leave open with `raise_clarifications`. Propose an "
+                "answer where the spec, the prompt or the calls support one, and say "
+                "why. Then ask the person once, in one message: the proposed answers to "
+                "confirm as a batch, and the rest to answer. Call "
+                "`answer_clarifications` once with everything they decided, marking "
+                "the answers they confirmed from your proposals `proposed`.",
             ),
         ),
     ),

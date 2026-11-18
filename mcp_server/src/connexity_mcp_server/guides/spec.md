@@ -83,8 +83,12 @@ and the new prompt's words in the question. Its answer replaces the rule.
 ### Answering
 
 - **The person answers, never you alone.** Ask them in your chat, one question at a time
-  or in one batch, as suits them. You may say which answer you would pick and why;
-  Connexity records only the answer they give, never a suggestion.
+  or in one batch, as suits them. Connexity records only the answer they give, never a
+  suggestion.
+- **Propose answers where you can.** Where the spec, the prompt or the calls support an
+  answer, propose it and say why. The person can confirm your proposals as one batch
+  and answer the rest. Mark each answer they confirmed from a proposal `proposed`; never
+  send one they have not seen.
 - **When none of the choices fits,** submit `other` with the person's words as `text`,
   written as the rule the agent should follow. It goes into the spec as written.
 - **Submit with `answer_clarifications`:** a letter, or `park` for what is not important

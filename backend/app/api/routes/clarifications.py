@@ -27,6 +27,7 @@ from app.services.clarification import (
     clarifications_public,
     counts_public,
 )
+from app.services.onboarding_finish import finish_onboarding
 
 router = APIRouter(tags=["clarifications"], dependencies=[Depends(get_current_user)])
 
@@ -118,4 +119,5 @@ def answer_workspace_clarifications(
             status_code=422,
             detail={"error": refused.error, "problems": refused.problems},
         ) from None
+    finish_onboarding(session=session, company_id=company_id)
     return answered_public(session=session, company_id=company_id, result=result)

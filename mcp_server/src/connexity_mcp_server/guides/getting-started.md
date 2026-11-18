@@ -68,6 +68,11 @@ Behaviour the prompt does not settle is a question for the person, never a rule 
 write: raise it with `raise_clarifications`, ask the person in your chat, and submit
 what they pick with `answer_clarifications`. Each answer becomes a spec rule.
 
+During onboarding this is the last step: once the specs are written, raise what they
+leave open, propose answers where you can, and ask the person once. They confirm your
+proposals as a batch and answer the rest. When no question is left open, onboarding is
+complete: tell the person their dashboard is ready, with the link Connexity gives.
+
 ## What Connexity never does
 
 Connexity never edits, deploys or calls an agent, and never writes to a voice platform,

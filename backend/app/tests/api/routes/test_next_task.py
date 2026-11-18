@@ -121,13 +121,18 @@ def test_the_list_is_in_connexitys_order(db: Session) -> None:
     assert tasks[0].agent_id == front.id
     setup = [t for t in tasks if t.group == Group.SETUP]
     # Onboarding steps in Readiness's order. Before the first scan, the specs are one
-    # onboarding row, and no agent has its own spec task yet.
-    assert set(_kinds(setup)) == {"onboarding"}
-    assert setup[-1].key == "onboarding:specs"
-    assert setup[-1].title == "Write the spec for each agent"
+    # onboarding row, and no agent has its own spec task yet. While onboarding runs,
+    # the open questions are setup too, after the specs; with questions open, they
+    # take the place of the questions row.
+    assert _kinds(setup)[-1] == "clarifications"
+    assert set(_kinds(setup)) == {"onboarding", "clarifications"}
+    onboarding_rows = [t for t in setup if t.kind is TaskKind.ONBOARDING]
+    assert onboarding_rows[-1].key == "onboarding:specs"
+    assert onboarding_rows[-1].title == "Write the spec for each agent"
     assert f"spec:{night.id}" not in {t.key for t in tasks}
     other = {t.kind: t for t in tasks if t.group == Group.OTHER}
-    questions = other[TaskKind.CLARIFICATIONS]
+    assert TaskKind.CLARIFICATIONS not in other
+    questions = setup[-1]
     assert questions.for_person is True
     assert questions.title == "Answer 2 questions about Back office"
     review = other[TaskKind.CALLS_TO_REVIEW]

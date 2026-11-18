@@ -2244,6 +2244,12 @@ export type ClarificationPublic = {
    */
   answer_text?: string | null;
   /**
+   * Answer Proposed
+   *
+   * The assistant proposed the answer and the person confirmed it
+   */
+  answer_proposed?: boolean;
+  /**
    * Answer Spec Version
    *
    * The spec version the answer made
@@ -6340,6 +6346,12 @@ export type McpClarificationDecision = {
    * For 'other': the person's own answer, as the rule the agent should follow
    */
   text?: string | null;
+  /**
+   * Proposed
+   *
+   * True when you proposed this answer and the person confirmed it; never for an answer they have not seen
+   */
+  proposed?: boolean;
 };
 
 /**

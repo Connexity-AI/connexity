@@ -255,6 +255,7 @@ def test_a_new_workspace_lands_on_onboarding_rows(
         "Add the agents to watch",
         "Scan recent calls",
         "Write the spec for each agent",
+        "Answer the open questions",
     ]
     # Each step is blocked by the one before.
     chain = [connect, *page["to_do"]]

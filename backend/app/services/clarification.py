@@ -229,6 +229,8 @@ class Decision(NamedTuple):
     answer: str
     # For "other": the person's own words, which become the rule.
     text: str | None = None
+    # The assistant proposed this answer and the person confirmed it.
+    proposed: bool = False
 
 
 class AnswerResult(NamedTuple):
@@ -291,6 +293,12 @@ def answer_clarifications(
                 "it, raise a clarification that replaces its rule."
             )
             continue
+        if decision.proposed and decision.answer in (PARK, REOPEN):
+            problems.append(
+                f"{d}: 'proposed' marks an answer the person confirmed; leave it out "
+                f"for '{decision.answer}'."
+            )
+            continue
         if decision.answer == PARK:
             if c.state is ClarificationState.PARKED:
                 problems.append(f"{d}: already parked.")
@@ -342,7 +350,9 @@ def answer_clarifications(
             reopens.append(c)
         else:
             text = (decision.text or "").strip() if decision.answer == OTHER else None
-            by_agent[c.agent_id].append(Answer(c, decision.answer, text))
+            by_agent[c.agent_id].append(
+                Answer(c, decision.answer, text, decision.proposed)
+            )
 
     specs: dict[uuid.UUID, Spec] = {}
     for agent_id, answers in by_agent.items():
@@ -366,6 +376,7 @@ def answer_clarifications(
                 decided_by=decided_by,
                 assistant_name=assistant_name,
                 text=answer.text,
+                proposed=answer.proposed,
             )
     for state, rows in (
         (ClarificationState.PARKED, parks),
@@ -464,6 +475,7 @@ def clarifications_public(
                 raised_at=r.raised_at,
                 answer=r.answer,
                 answer_text=r.answer_text,
+                answer_proposed=r.answer_proposed,
                 answer_spec_version=versions.get(r.answer_spec_id)
                 if r.answer_spec_id
                 else None,

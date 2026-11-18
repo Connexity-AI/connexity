@@ -369,7 +369,8 @@ async def answer_clarifications(
     return AnswerClarificationsResult.model_validate(
         await client.answer_clarifications(
             workspace_id=workspace_id,
-            answers=[a.model_dump(exclude_none=True) for a in answers],
+            # `proposed` only when set, so a backend from before it reads every answer.
+            answers=[a.model_dump(exclude_defaults=True) for a in answers],
         )
     )
 

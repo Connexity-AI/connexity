@@ -19,7 +19,6 @@ from datetime import UTC, datetime, timedelta
 
 from sqlmodel import Session, col, select
 
-from app import crud
 from app.crud.call_list import PERIODS
 from app.crud.score import (
     ResultCounts,
@@ -28,9 +27,9 @@ from app.crud.score import (
     shown_findings,
 )
 from app.models.check import Issue
-from app.models.readiness import ReadinessStepState
 from app.models.score import ScoreMovePublic, ScorePublic
 from app.services.issue_list import issue_title
+from app.services.onboarding_finish import onboarding_complete
 
 DEGRADED_WEIGHT = 0.5
 MAX_MOVES = 5
@@ -43,12 +42,6 @@ def score_of(failed: int, degraded: int, checked: int) -> int | None:
     value = 100 * (1 - (failed + DEGRADED_WEIGHT * degraded) / checked)
     # Halves round up, always (Python's round() would round them to even).
     return math.floor(value + 0.5)
-
-
-def onboarding_complete(*, session: Session, company_id: uuid.UUID) -> bool:
-    """Every Readiness step done (the onboarding list's steps Readiness shows)."""
-    readiness = crud.get_readiness(session=session, company_id=company_id, mcp_url=None)
-    return all(step.state is ReadinessStepState.DONE for step in readiness.steps)
 
 
 def _weight(fails: list[bool]) -> float:
@@ -128,7 +121,9 @@ def score(
     if onboarded is None:
         onboarded = onboarding_complete(session=session, company_id=company_id)
     if not onboarded:
-        base.why_none = "The score comes after onboarding; call `get_readiness`."
+        base.why_none = (
+            "The score comes once onboarding is complete; call `get_next_task`."
+        )
         return base
     base.score = score_of(current.failed, current.degraded, current.checked)
     if base.score is None:

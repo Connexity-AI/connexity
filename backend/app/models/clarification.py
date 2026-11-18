@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel
-from sqlalchemy import Column, DateTime, ForeignKey, Index, Text, text
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Text, false, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
@@ -92,6 +92,10 @@ class Clarification(SQLModel, table=True):
     answer_text: str | None = Field(
         default=None, sa_column=Column("answer_text", Text, nullable=True)
     )
+    # The assistant proposed the answer and the person confirmed it.
+    answer_proposed: bool = Field(
+        default=False, sa_column_kwargs={"server_default": false()}
+    )
     # The spec version the answer made.
     answer_spec_id: uuid.UUID | None = Field(
         default=None,
@@ -169,6 +173,10 @@ class ClarificationPublic(BaseModel):
     )
     answer_text: str | None = Field(
         default=None, description="For 'other': the person's words, now the rule"
+    )
+    answer_proposed: bool = Field(
+        default=False,
+        description="The assistant proposed the answer and the person confirmed it",
     )
     answer_spec_version: int | None = Field(
         default=None, description="The spec version the answer made"

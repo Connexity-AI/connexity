@@ -38,7 +38,14 @@ from app.models.work import (
     WorkTaskRefPublic,
 )
 from app.services.issue_list import IssueFilters, issue_title, workspace_issues
-from app.services.onboarding import ONBOARDING_STEPS, SPECS, STEPS_BY_KEY, Actor
+from app.services.onboarding import (
+    ANSWERS,
+    ONBOARDING_STEPS,
+    SPECS,
+    STEPS_BY_KEY,
+    Actor,
+)
+from app.services.onboarding_finish import onboarding_complete
 from app.services.spec import agents_needing_specs
 
 # Unchecked calls older than this are not worth a review.
@@ -48,6 +55,9 @@ SPEC_CALL_DAYS = 7
 NO_ASSISTANT = "your assistant"
 # The onboarding row for the specs, until the first scan is done.
 SPECS_STEP = f"onboarding:{SPECS}"
+# The onboarding row for the open questions, until onboarding is complete and while no
+# question is open; each agent's own questions take its place once raised.
+ANSWERS_STEP = f"onboarding:{ANSWERS}"
 MAX_SESSION = 40
 
 
@@ -135,7 +145,11 @@ def _issue_tasks(session: Session, company_id: uuid.UUID) -> list[Task]:
 
 
 def _onboarding_tasks(
-    session: Session, company_id: uuid.UUID, assistant_asking: bool
+    session: Session,
+    company_id: uuid.UUID,
+    assistant_asking: bool,
+    *,
+    ask_questions: bool,
 ) -> list[Task]:
     readiness = crud.get_readiness(session=session, company_id=company_id, mcp_url=None)
     tasks = []
@@ -179,7 +193,18 @@ def _onboarding_tasks(
                 line="Onboarding",
             )
         )
-    # The specs row too sits where `ONBOARDING_STEPS` puts it.
+    if ask_questions:
+        tasks.append(
+            Task(
+                key=ANSWERS_STEP,
+                kind=TaskKind.ONBOARDING,
+                group=Group.SETUP,
+                title=STEPS_BY_KEY[ANSWERS].title,
+                facts=["Onboarding · the last step, then the dashboard is ready"],
+                line="Onboarding",
+            )
+        )
+    # The specs and questions rows too sits where `ONBOARDING_STEPS` puts it.
     order = {f"onboarding:{step.key}": n for n, step in enumerate(ONBOARDING_STEPS)}
     tasks.sort(key=lambda task: order[task.key])
     return tasks
@@ -259,7 +284,10 @@ def _scenario_tasks(session: Session, names: Mapping[uuid.UUID, str]) -> list[Ta
 
 
 def _clarification_tasks(
-    session: Session, company_id: uuid.UUID, names: Mapping[uuid.UUID, str]
+    session: Session,
+    company_id: uuid.UUID,
+    names: Mapping[uuid.UUID, str],
+    group: int = Group.OTHER,
 ) -> list[Task]:
     tasks = []
     for agent_id, open_ in crud_work.open_questions_by_agent(
@@ -270,7 +298,7 @@ def _clarification_tasks(
             Task(
                 key=f"clarifications:{agent_id}",
                 kind=TaskKind.CLARIFICATIONS,
-                group=Group.OTHER,
+                group=group,
                 title=f"Answer {_plural(open_.questions, 'question')} about {name}",
                 facts=[
                     f"Clarifications · {name}",
@@ -361,7 +389,8 @@ def links(tasks: Sequence[Task]) -> dict[str, list[str]]:
     - an agent's spec to write or update blocks its issue fixes, calls to review and
       scenarios to write;
     - each open onboarding step blocks the next one;
-    - the first scan blocks every spec task.
+    - the first scan blocks every spec task;
+    - every spec task blocks the open-questions step.
     """
     out: dict[str, list[str]] = {}
 
@@ -395,6 +424,12 @@ def links(tasks: Sequence[Task]) -> dict[str, list[str]]:
             for task in tasks:
                 if task.kind is TaskKind.SPEC:
                     add(step, task)
+    # The questions are asked once every spec is written.
+    for step in steps:
+        if step.key == ANSWERS_STEP:
+            for task in tasks:
+                if task.kind is TaskKind.SPEC:
+                    add(task, step)
     return out
 
 
@@ -438,14 +473,25 @@ def work_list(
     }
     issues = _issue_tasks(session, company_id)
     critical = [task for task in issues if task.group == Group.CRITICAL]
-    onboarding = _onboarding_tasks(session, company_id, assistant_asking)
+    onboarded = onboarding_complete(session=session, company_id=company_id)
+    # While onboarding runs, the open questions are its last step: setup, right after
+    # the specs (plan `plans/2026-11-18-onboarding-ends-with-dashboard.md`).
+    questions = _clarification_tasks(
+        session, company_id, names, Group.OTHER if onboarded else Group.SETUP
+    )
+    onboarding = _onboarding_tasks(
+        session,
+        company_id,
+        assistant_asking,
+        ask_questions=not onboarded and not questions,
+    )
     before_scan = any(task.key == SPECS_STEP for task in onboarding)
     specs = [] if before_scan else _spec_tasks(session, company_id)
     scenarios = [] if before_scan else _scenario_tasks(session, names)
-    setup = onboarding + specs + scenarios
+    setup = onboarding + specs + ([] if onboarded else questions) + scenarios
     other = sorted(
         [task for task in issues if task.group == Group.OTHER]
-        + _clarification_tasks(session, company_id, names)
+        + (questions if onboarded else [])
         + _review_tasks(session, company_id, names),
         key=lambda task: (-task.calls, task.since, task.key),
     )

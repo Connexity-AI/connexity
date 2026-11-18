@@ -126,7 +126,7 @@ def test_no_score_before_onboarding_is_complete(
     score = _get_agent(client, user, agent.id)["data"]["score"]
 
     assert score["score"] is None
-    assert "after onboarding" in score["why_none"]
+    assert "once onboarding is complete" in score["why_none"]
     assert score["checked_calls"] == 1
 
 

@@ -392,6 +392,11 @@ class McpClarificationDecision(BaseModel):
         description="For 'other': the person's own answer, as the rule the agent "
         "should follow",
     )
+    proposed: bool = Field(
+        default=False,
+        description="True when you proposed this answer and the person confirmed it; "
+        "never for an answer they have not seen",
+    )
 
 
 class McpAgentPage(AgentPagePublic):
