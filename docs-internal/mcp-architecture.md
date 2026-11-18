@@ -182,13 +182,31 @@ They own validation, CRUD calls, state changes and the answer's rules and next s
 4. **Result model** in `models.py`: `Answer[YourModel]`.
 5. **Handler** in `tools.py`: call the client, `model_validate` the payload.
 6. **Register** it in `app.py` with a docstring the assistant reads: what it returns and
-   which arguments matter.
-7. **Guide:** add or extend the guide its answers point to, and list it in `GUIDES`.
-8. **Tests on both sides:** backend route tests in
+   which arguments matter. Give every input a one-line description
+   (`Annotated[..., Field(description=...)]`, or a shared one such as `WorkspaceId`).
+7. **Contract page:** add its entry to `contract.py` (group, one plain line for a person,
+   its guide, and `needs_yes` only when the person must say yes first). The public
+   `/mcp-docs` page shows it from `GET /manifest`; a tool without an entry or an input
+   without a description fails `tests/test_contract.py`.
+8. **Guide:** add or extend the guide its answers point to, and list it in `GUIDES`.
+9. **Tests on both sides:** backend route tests in
    `backend/app/tests/api/routes/test_mcp.py` (answer shape, an unreachable workspace,
    paging, audit fields on writes); adapter tests in `mcp_server/tests/` (token
    forwarded, arguments sent, answer kept).
-9. **Run** `make check`.
+10. **Run** `make check`.
+
+## The contract page
+
+`GET /manifest` on the MCP server is public and read only: the server version and URL,
+the answer shape, what a tool may do, the tools by group (each with its effect, whether
+it needs the person's yes, its line, guide and inputs) and the guides with their text.
+It joins `contract.py` with what the running server has: the effect comes from each
+tool's annotations (read only; reaches out to read the platform, or to run the agent;
+otherwise writes), the inputs from its input schema. No workspace data, no auth.
+
+The web app's `/mcp-docs` page (outside the signed-in area) is built from it on the
+server and read again every five minutes (`MCP_URL`). When the manifest cannot be read,
+the page says so.
 
 ## Current tools
 

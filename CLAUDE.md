@@ -53,7 +53,11 @@ Each is explained in the lifecycle guide; the section is in brackets.
 10. Every feature ships with its MCP tools: whatever the platform does, the user's
     assistant can do through MCP. Keep the tools few and shaped around the work, scoped
     to a workspace the user can access, paginated, and answering with facts, the rules
-    that apply and numbered next steps. Extend a tool before adding a near-duplicate. (6)
+    that apply and numbered next steps. Extend a tool before adding a near-duplicate.
+    Every change to a tool (added, removed, renamed, new inputs or behaviour) also
+    updates the public MCP contract page (`/mcp-docs`): its entry in
+    `mcp_server/.../contract.py` and a description for every input. Tests fail
+    without them. (6)
 11. The repo is public: no real call data, client names or secrets. (6)
 12. No AI attribution in commits or pull requests. (7)
 13. End every reply with "Next step from you:". (10)

@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0}*{box-sizing:border-box}button{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<div ref="{{ frameRef }}" style="{{ frameStyle }}">
+<div style="{{ scrollStyle }}">
+<div style="{{ pageStyle }}">
+
+<div style="display:flex;align-items:center;gap:8px;height:32px">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--brand)"><circle cx="9" cy="12" r="6"></circle><circle cx="15" cy="12" r="6"></circle></svg>
+<span style="font-size:15px;font-weight:500">Connexity</span>
+</div>
+
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-wrap:wrap;gap:24px;align-items:flex-end;justify-content:space-between">
+<div style="flex:1 1 340px;min-width:0;display:flex;flex-direction:column;gap:8px">
+<span style="font-family:'JetBrains Mono',monospace;font-size:13px;line-height:18px;color:var(--ink3)">MCP · {{ toolCount }} tools · {{ guideCount }} guides</span>
+<h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500;text-wrap:balance">What your assistant can do in Connexity</h1>
+<p style="margin:0;color:var(--ink2);text-wrap:pretty">Connexity never edits, deploys or calls your agent. Your assistant does the work; you approve where it matters.</p>
+</div>
+<div style="flex:0 1 340px;min-width:0;display:flex;flex-direction:column;gap:8px">
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">Server URL</span>
+<div style="display:flex;align-items:center;gap:8px;padding:6px 6px 6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--s0)">
+<code style="flex:1;min-width:0;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ url }}</code>
+<button onClick="{{ copyUrl }}" style="flex:none;height:28px;padding:0 10px;border-radius:6px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:13px;cursor:pointer" style-hover="background:var(--wash)">{{ urlLabel }}</button>
+</div>
+<button onClick="{{ copyCmd }}" style="height:36px;padding:0 16px;border:0;border-radius:8px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px" style-hover="opacity:.88"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19h8"></path><path d="m4 17 6-6-6-6"></path></svg>{{ cmdLabel }}</button>
+</div>
+</div>
+
+<section style="display:flex;flex-direction:column;gap:12px">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Every tool answers the same way.</h2>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:6px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;line-height:18px;font-weight:500">data</span><span style="font-size:13px;line-height:18px;color:var(--ink2);text-wrap:pretty">The facts: records, IDs and what the checks found.</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:6px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;line-height:18px;font-weight:500">rules</span><span style="font-size:13px;line-height:18px;color:var(--ink2);text-wrap:pretty">What the assistant must follow while it works on this.</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:6px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;line-height:18px;font-weight:500">next_steps</span><span style="font-size:13px;line-height:18px;color:var(--ink2);text-wrap:pretty">Numbered, each naming the tool to call next.</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:6px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;line-height:18px;font-weight:500">guide</span><span style="font-size:13px;line-height:18px;color:var(--ink2);text-wrap:pretty">A link to the guide that explains this part.</span></div>
+</div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:12px">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">What a tool may do</h2>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px 24px">
+<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start"><span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:6px;background:var(--unch-bg);color:var(--ink2);font-size:13px;font-weight:500;white-space:nowrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle></svg>Reads</span><span style="font-size:13px;line-height:18px;color:var(--ink2)">Reads Connexity only.</span></div>
+<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start"><span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:6px;background:var(--unch-bg);color:var(--ink2);font-size:13px;font-weight:500;white-space:nowrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg>Writes</span><span style="font-size:13px;line-height:18px;color:var(--ink2)">Writes inside Connexity.</span></div>
+<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start"><span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:6px;background:var(--unch-bg);color:var(--ink2);font-size:13px;font-weight:500;white-space:nowrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"></path><path d="M9 8V2"></path><path d="M15 8V2"></path><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"></path></svg>Reads your platform</span><span style="font-size:13px;line-height:18px;color:var(--ink2)">Reaches Retell to read agents and calls.</span></div>
+<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start"><span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:6px;background:var(--unch-bg);color:var(--ink2);font-size:13px;font-weight:500;white-space:nowrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"></path></svg>Talks to your agent</span><span style="font-size:13px;line-height:18px;color:var(--ink2)">Simulated calls only, every tool faked.</span></div>
+<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start"><span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:13px;font-weight:500;white-space:nowrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"></path><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"></path><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"></path><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path></svg>Your decision</span><span style="font-size:13px;line-height:18px;color:var(--ink2)">The assistant calls it only after you say yes.</span></div>
+</div>
+</section>
+
+<sc-for list="{{ groups }}" as="g" hint-placeholder-count="5">
+<section style="display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;flex-direction:column;gap:2px">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">{{ g.name }}</h2>
+<span style="font-size:13px;line-height:18px;color:var(--ink2);text-wrap:pretty">{{ g.purpose }}</span>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<sc-for list="{{ g.tools }}" as="t" hint-placeholder-count="5">
+<div style="{{ t.wrapStyle }}">
+<button onClick="{{ t.toggle }}" aria-expanded="{{ t.ariaOpen }}" style="{{ t.rowStyle }}" style-hover="background:var(--wash)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{{ t.chev }}"><path d="m9 18 6-6-6-6"></path></svg>
+<span style="{{ nameCol }}">{{ t.name }}</span>
+<span style="{{ chipCol }}">
+<sc-if value="{{ t.neutral }}">
+<span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:6px;box-shadow:inset 0 0 0 1px var(--border);background:var(--unch-bg);color:var(--ink2);font-size:13px;font-weight:500;white-space:nowrap">
+<sc-if value="{{ t.isR }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle></svg></sc-if>
+<sc-if value="{{ t.isW }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg></sc-if>
+<sc-if value="{{ t.isP }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"></path><path d="M9 8V2"></path><path d="M15 8V2"></path><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"></path></svg></sc-if>
+<sc-if value="{{ t.isT }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"></path></svg></sc-if>
+{{ t.effect }}</span>
+</sc-if>
+<sc-if value="{{ t.isD }}">
+<span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:13px;font-weight:500;white-space:nowrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"></path><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"></path><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"></path><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path></svg>Your decision</span>
+</sc-if>
+</span>
+<span style="{{ descCol }}">{{ t.line }}</span>
+</button>
+<sc-if value="{{ t.isOpen }}">
+<div style="{{ detailStyle }}">
+<span style="font-size:13px;line-height:18px;color:var(--ink3)">Inputs</span>
+<sc-if value="{{ t.hasInputs }}">
+<div style="border:1px solid var(--border);border-radius:8px;background:var(--s0);overflow:hidden">
+<sc-for list="{{ t.inputs }}" as="i" hint-placeholder-count="3">
+<div style="{{ i.rowStyle }}">
+<span style="flex:0 0 184px;display:flex;align-items:baseline;gap:8px;min-width:0"><code style="font-family:'JetBrains Mono',monospace;font-size:13px;line-height:20px;color:var(--ink)">{{ i.name }}</code><sc-if value="{{ i.req }}"><span style="font-size:13px;line-height:20px;color:var(--warn)">required</span></sc-if></span>
+<code style="flex:0 0 88px;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:20px;color:var(--ink3)">{{ i.type }}</code>
+<span style="flex:1 1 220px;min-width:0;font-size:13px;line-height:20px;color:var(--ink2);text-wrap:pretty">{{ i.desc }}</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{ t.noInputs }}"><span style="font-size:13px;line-height:18px;color:var(--ink2)">None.</span></sc-if>
+<div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px">
+<span style="font-size:13px;line-height:18px;color:var(--ink3)">Guide</span>
+<button onClick="{{ t.openGuide }}" style="padding:0;border:0;background:transparent;color:var(--ink);font-family:'JetBrains Mono',monospace;font-size:13px;line-height:18px;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--bc);cursor:pointer;text-align:left;word-break:break-all" style-hover="text-decoration-color:var(--ink)">{{ t.guideUri }}</button>
+</div>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</section>
+</sc-for>
+
+<section style="display:flex;flex-direction:column;gap:12px">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Guides</h2>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<sc-for list="{{ guides }}" as="r" hint-placeholder-count="9">
+<button onClick="{{ r.open }}" style="{{ r.rowStyle }}" style-hover="background:var(--wash)">
+<code style="{{ uriCol }}">{{ r.uri }}</code>
+<span style="flex:1 1 200px;min-width:0;font-size:15px;line-height:22px;color:var(--ink2)">{{ r.title }}</span>
+</button>
+</sc-for>
+</div>
+</section>
+
+<div style="display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px;line-height:18px;color:var(--ink3)">
+<span>Generated from the live MCP server.</span>
+<code style="font-family:'JetBrains Mono',monospace">connexity-mcp {{ version }}</code>
+</div>
+
+</div>
+</div>
+
+<sc-if value="{{ guideOpen }}">
+<aside style="{{ panelStyle }}" aria-label="Guide">
+<div style="flex:none;display:flex;align-items:flex-start;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border)">
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+<span style="font-size:15px;line-height:22px;font-weight:500">{{ g0.title }}</span>
+<code style="font-family:'JetBrains Mono',monospace;font-size:13px;line-height:18px;color:var(--ink3);word-break:break-all">{{ g0.uri }}</code>
+</div>
+<button onClick="{{ closeGuide }}" aria-label="Close" style="flex:none;width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:var(--ink2);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:var(--wash);color:var(--ink)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+</div>
+<div style="flex:1;overflow:auto;padding:20px 24px 40px;display:flex;flex-direction:column;gap:12px">
+<sc-for list="{{ g0.blocks }}" as="b" hint-placeholder-count="8">
+<sc-if value="{{ b.isH1 }}"><h3 style="margin:0;font-size:20px;line-height:28px;font-weight:500">{{ b.text }}</h3></sc-if>
+<sc-if value="{{ b.isH2 }}"><h4 style="margin:12px 0 0;font-size:15px;line-height:22px;font-weight:500">{{ b.text }}</h4></sc-if>
+<sc-if value="{{ b.isP }}"><p style="margin:0;color:var(--ink2);text-wrap:pretty"><sc-for list="{{ b.segs }}" as="s"><sc-if value="{{ s.code }}"><code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink);background:var(--wash);border-radius:4px;padding:1px 5px">{{ s.text }}</code></sc-if><sc-if value="{{ s.plain }}"><span>{{ s.text }}</span></sc-if></sc-for></p></sc-if>
+<sc-if value="{{ b.isLi }}"><div style="display:grid;grid-template-columns:20px minmax(0,1fr);gap:4px;margin-top:-4px;color:var(--ink2)"><span style="color:var(--ink3)">{{ b.marker }}</span><span style="text-wrap:pretty"><sc-for list="{{ b.segs }}" as="s"><sc-if value="{{ s.code }}"><code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink);background:var(--wash);border-radius:4px;padding:1px 5px">{{ s.text }}</code></sc-if><sc-if value="{{ s.plain }}"><span>{{ s.text }}</span></sc-if></sc-for></span></div></sc-if>
+<sc-if value="{{ b.isPre }}"><pre style="margin:0;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--s0);font-family:'JetBrains Mono',monospace;font-size:13px;line-height:20px;color:var(--ink);white-space:pre-wrap;overflow-wrap:anywhere">{{ b.text }}</pre></sc-if>
+</sc-for>
+</div>
+</aside>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;state&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Collapsed&quot;,&quot;Row expanded&quot;,&quot;Guide open&quot;,&quot;Phone&quot;],&quot;default&quot;:&quot;Collapsed&quot;,&quot;tsType&quot;:&quot;'Collapsed' | 'Row expanded' | 'Guide open' | 'Phone'&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;}}">
+class Component extends DCLogic {
+  static THEMES = {
+    dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
+    light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
+  };
+  static EFFECT = { R:'Reads', W:'Writes', P:'Reads your platform', T:'Talks to your agent', D:'Your decision' };
+  static URL = 'https://mcp.connexity.example/mcp';
+  // Stand-in for the server's manifest response; the live page renders whatever the server returns.
+  // [name, effect, line, guide, inputs ("name type[!] description"), needsWorkspace]
+  static SERVER = {
+    version: '1.8.2',
+    groups: [
+      { name:'Start and the task list', purpose:'Pick a workspace, see what is missing, and work the task list in order.', tools:[
+        ['list_workspaces','R','Lists the workspaces you can reach, with their agents and readiness.','workspaces',[],0],
+        ['create_workspace','W','Creates an empty workspace for one client, ready to connect a platform.','workspaces',['name string! Shown in Connexity and in every answer.'],0],
+        ['get_readiness','R','Shows what is set up and what is still missing, step by step.','readiness',[]],
+        ['get_next_task','W','Takes the single most important task, with its facts, rules and steps.','getting-started',[]],
+        ['list_tasks','R','Lists every task in order, with who each one waits on.','getting-started',['status enum todo, in_progress, waiting or done. Leave empty for all.']],
+        ['move_task','W','Moves a task to in progress, waiting or done, with a short note.','getting-started',['task_id string! The task to move.','status enum! in_progress, waiting or done.','note string What changed, in one line.']]
+      ]},
+      { name:'Connect', purpose:'Link the voice platform, then bring in agents and their calls.', tools:[
+        ['connect_voice_platform','D','Links Retell to the workspace with your key, only after you say yes.','connect',['platform enum! retell','api_key string! Stored encrypted. Never returned in any answer.']],
+        ['add_agents','P','Reads agents from Retell and adds the ones you pick.','connect',['agent_ids string[]! Platform agent IDs to add.']],
+        ['scan_calls','P','Reads recent calls from Retell and runs the checks on each one.','calls',['agent_id string Scan one agent. Leave empty for all.','since date Oldest call to read. Default: the last 7 days.']]
+      ]},
+      { name:'Calls and issues', purpose:'Read calls, see what went wrong, and close issues once they are fixed.', tools:[
+        ['list_calls','R','Lists calls with their outcome and what the checks found, newest first.','calls',['agent_id string Only this agent.','issue_id string Only calls that show this issue.','limit integer Calls per page. Default 50.']],
+        ['get_call','R','One call in full: every turn and tool call in order, and what the checks found.','calls',['call_id string! The call to read.']],
+        ['list_issues','R','Lists open issues, worst first, with how many calls each one touched.','issues',['agent_id string Only this agent.','severity enum critical or warning.','category string Only this category.']],
+        ['get_issue','R','One issue with the calls that show it and the rule it breaks.','issues',['issue_id string! The issue to read.']],
+        ['mark_issue_fixed','W','Marks an issue fixed; it reopens if a new call shows it again.','issues',['issue_id string! The issue that was fixed.','note string! What changed in the agent.']],
+        ['archive_issue','D','Hides an issue nobody will fix, only after you say yes.','issues',['issue_id string! The issue to hide.','reason string! Why it will not be fixed, in your words.']],
+        ['unarchive_issue','W','Brings an archived issue back to the open list.','issues',['issue_id string! The issue to bring back.']],
+        ['list_categories','R','Lists the issue categories and what each one covers.','categories',[]]
+      ]},
+      { name:'Agents and the spec', purpose:'Write down what each agent must do, and ask you when it is unclear.', tools:[
+        ['list_agents','R','Lists agents in the workspace, with their spec version and last test.','spec',[]],
+        ['get_agent','R','One agent: its prompt, tools and settings, as read from Retell.','spec',['agent_id string! The agent to read.']],
+        ['get_spec','R','The agent\'s spec: every rule, which ones are critical, and open questions.','spec',['agent_id string! The agent.','version integer Leave empty for the latest.']],
+        ['write_spec','W','Writes a new spec version; earlier versions are kept.','spec',['agent_id string! The agent.','rules object[]! Each rule: text, category, source.']],
+        ['mark_critical_rules','D','Marks the rules that must never fail, only after you say yes.','spec',['agent_id string! The agent.','rule_ids string[]! Rules you agreed are critical.']],
+        ['raise_clarifications','W','Asks you about rules the assistant could not settle from the agent alone.','spec',['agent_id string! The agent.','questions object[]! Each question: rule_id, text, options.']],
+        ['list_clarifications','R','Lists open questions and the answers you gave.','spec',['agent_id string! The agent.','status enum open or answered.']],
+        ['answer_clarifications','D','Records your answers to open questions, in your words.','spec',['agent_id string! The agent.','answers object[]! Each answer: clarification_id, text.']]
+      ]},
+      { name:'Testing', purpose:'Write scenarios and run them as simulated calls before a change goes live.', tools:[
+        ['write_scenarios','W','Writes scenarios for an agent, each with a caller goal and the rules it tests.','scenarios',['agent_id string! The agent.','scenarios object[]! Each scenario: goal, caller, rule_ids.']],
+        ['list_scenarios','R','Lists scenarios with their goal, rules and sets.','scenarios',['agent_id string! The agent.','set_id string Only scenarios in this set.']],
+        ['write_scenario_set','W','Groups scenarios into a named set to run together.','scenarios',['agent_id string! The agent.','name string! Shown on the Tests tab.','scenario_ids string[]! Scenarios in the set.']],
+        ['run_scenarios','T','Runs scenarios in text against your agent, every tool faked.','scenarios',['agent_id string! The agent to call.','spec_version integer Spec version to judge against. Default: the latest.','set_id string Run one set. Leave empty to pick by ID.','scenario_ids string[] Scenarios to run. Leave empty to run all.','repeats integer Runs per scenario, to catch flaky rules. Default 3.']],
+        ['get_test_runs','R','Shows test runs: the verdict, each rule\'s result and a link to every call.','scenarios',['agent_id string! The agent.','run_id string One run. Leave empty for the latest.']]
+      ]}
+    ],
+    guides: [
+      ['getting-started','Getting started',`# Getting started
+Connexity holds the facts about a client's voice agents: their calls, issues, specs and tests. Your assistant reads and writes those facts through MCP. It never edits, deploys or calls the agent itself.
+## The loop
+1. Call \`list_workspaces\` and pick one.
+2. Call \`get_next_task\`. It returns one task with its data, rules and next_steps.
+3. Follow next_steps in order. Each step names the tool to call.
+4. Call \`move_task\` when the task is done or waiting on someone.
+## Every answer
+Every tool returns the same four parts: \`data\`, \`rules\`, \`next_steps\` and \`guide\`. Treat \`rules\` as binding for that answer.`],
+      ['workspaces','Workspaces',`# Workspaces
+A workspace holds one client's agents, calls and settings. Nothing crosses between workspaces.
+## Rules
+- Create one workspace per client with \`create_workspace\`.
+- Pass \`workspace_id\` on every call after that.
+- Never copy specs or scenarios from one workspace to another.`],
+      ['readiness','Readiness',`# Readiness
+Readiness is the list of steps before Connexity can judge an agent: platform connected, agents added, calls scanned, spec written, critical rules agreed, scenarios run.
+## Reading it
+Call \`get_readiness\`. Each step is done, in progress or missing. Missing steps become tasks in \`list_tasks\`.`],
+      ['connect','Connect an assistant',`# Connect an assistant
+Add the server URL to any assistant that supports MCP.
+## Claude Code
+\`\`\`
+claude mcp add --transport http connexity https://mcp.connexity.example/mcp
+\`\`\`
+## Other assistants
+Add the same URL as a custom connector, then sign in to Connexity when asked.
+## Linking the voice platform
+\`connect_voice_platform\` needs the platform key. Ask the user for it and call the tool only after they say yes.`],
+      ['categories','Categories',`# Categories
+Every issue and every spec rule has one category, such as booking, handoff or tone.
+## Rules
+- Call \`list_categories\` before writing a spec or reading issues.
+- Use the category names exactly as returned.`],
+      ['issues','Issues',`# Issues
+An issue is one thing the checks found wrong across one or more calls.
+## Working an issue
+1. Call \`get_issue\` to read the calls that show it.
+2. Fix the agent on the platform yourself, outside Connexity.
+3. Call \`mark_issue_fixed\` with a note on what changed.
+## Archiving
+\`archive_issue\` hides an issue nobody will fix. It is the user's decision: ask first, and pass their reason.`],
+      ['calls','Calls',`# Calls
+Calls come from the voice platform through \`scan_calls\`. Each one is checked against the agent's spec.
+## Reading a call
+\`get_call\` returns every turn and tool call in order, with what the checks found at each point. Quote turns by their index, never by paraphrase.`],
+      ['spec','Writing an agent\'s spec',`# Writing an agent's spec
+A spec is the written list of what a voice agent must do on a call. Tests and call checks judge the agent against it, so every rule needs to be something a judge can answer yes or no to.
+## Before you write
+1. Call \`get_agent\` to read the prompt, tools and settings from the platform.
+2. Call \`list_issues\` to see what real calls already got wrong.
+3. Call \`get_spec\`. If a version exists, start from it.
+## Writing rules
+- One behaviour per rule, in plain words.
+- Say when the rule applies: "When the caller asks to cancel…"
+- Give each rule a category from \`list_categories\`.
+- Keep the source: the prompt line, issue or answer it came from.
+## Example rule
+\`\`\`
+text: Repeats the date and time back before booking.
+category: booking
+source: prompt, "always confirm the slot"
+\`\`\`
+## What the assistant must not decide
+- Which rules are critical. Propose them, then call \`mark_critical_rules\` only after the user says yes.
+- Anything the prompt leaves open. Call \`raise_clarifications\` and wait for answers.
+## After writing
+\`write_spec\` saves a new version and keeps the earlier ones. Next, write scenarios that make each rule come up: see \`connexity://guides/scenarios\`.`],
+      ['scenarios','Writing and running scenarios',`# Writing and running scenarios
+A scenario is a simulated caller with one goal. Running it calls the agent in text, with every tool faked, and a judge gives each rule a verdict.
+## Writing
+- One caller goal per scenario.
+- List the rules it should make come up in \`rule_ids\`.
+- Cover every critical rule at least once.
+## Running
+Call \`run_scenarios\`. Each scenario runs several times so flaky rules show. Read results with \`get_test_runs\`.`]
+    ]
+  };
+  state = { open:null, guide:null, copied:null, narrow:false };
+  frameRef = React.createRef();
+  preset(s) { return { open: s === 'Row expanded' ? 'run_scenarios' : null, guide: s === 'Guide open' ? 'spec' : null }; }
+  componentDidMount() {
+    this.setState(this.preset(this.props.state));
+    this.ro = new ResizeObserver(([e]) => { const n = e.contentRect.width < 640; if (n !== this.state.narrow) this.setState({ narrow:n }); });
+    if (this.frameRef.current) this.ro.observe(this.frameRef.current);
+    this.onKey = e => { if (e.key === 'Escape' && this.state.guide) this.setState({ guide:null }); };
+    window.addEventListener('keydown', this.onKey);
+  }
+  componentDidUpdate(p) { if (p.state !== this.props.state) this.setState(this.preset(this.props.state)); }
+  componentWillUnmount() { this.ro && this.ro.disconnect(); window.removeEventListener('keydown', this.onKey); clearTimeout(this.ct); }
+  copy(kind, text) {
+    try { navigator.clipboard.writeText(text).catch(() => {}); } catch (_) {}
+    this.setState({ copied:kind }); clearTimeout(this.ct); this.ct = setTimeout(() => this.setState({ copied:null }), 2000);
+  }
+  segs(t) { return t.split('`').map((s, i) => ({ text:s, code:i % 2 === 1, plain:i % 2 === 0 })).filter(s => s.text); }
+  md(src) {
+    const out = []; let pre = null;
+    src.split('\n').forEach(line => {
+      if (line.startsWith('```')) { if (pre) { out.push({ isPre:true, text:pre.join('\n') }); pre = null; } else pre = []; return; }
+      if (pre) { pre.push(line); return; }
+      if (!line.trim()) return;
+      const m = line.match(/^(\d+)\. (.*)/);
+      if (line.startsWith('# ')) out.push({ isH1:true, text:line.slice(2) });
+      else if (line.startsWith('## ')) out.push({ isH2:true, text:line.slice(3) });
+      else if (m) out.push({ isLi:true, marker:m[1] + '.', segs:this.segs(m[2]) });
+      else if (line.startsWith('- ')) out.push({ isLi:true, marker:'–', segs:this.segs(line.slice(2)) });
+      else out.push({ isP:true, segs:this.segs(line) });
+    });
+    return out;
+  }
+  renderVals() {
+    const S = this.state, P = this.props, narrow = S.narrow, phone = P.state === 'Phone';
+    const light = P.theme === 'light';
+    const uri = id => 'connexity://guides/' + id;
+    const openGuide = id => () => this.setState({ guide:id });
+    const pad = narrow ? 16 : 20;
+    const ws = 'workspace_id string! The workspace to work in.';
+    const parseIn = (s, last) => { const [name, type, ...rest] = s.split(' '); const req = type.endsWith('!');
+      return { name, type:type.replace('!', ''), req, desc:rest.join(' '),
+        rowStyle:{ display:'flex', flexWrap:'wrap', gap:'2px 16px', padding:'8px 12px', borderBottom: last ? 0 : '1px solid var(--border)' } }; };
+    const groups = Component.SERVER.groups.map((g, gi) => ({ name:g.name, purpose:g.purpose, tools:g.tools.map(([name, eff, line, guide, inputs, needWs], ti) => {
+      const isOpen = S.open === name, all = (needWs === 0 ? [] : [ws]).concat(inputs);
+      return { name, line, effect:Component.EFFECT[eff], isR:eff === 'R', isW:eff === 'W', isP:eff === 'P', isT:eff === 'T', isD:eff === 'D', neutral:eff !== 'D',
+        isOpen, ariaOpen: isOpen ? 'true' : 'false', guideUri:uri(guide), openGuide:openGuide(guide),
+        inputs: all.map((s, i) => parseIn(s, i === all.length - 1)), hasInputs: all.length > 0, noInputs: all.length === 0,
+        toggle: () => this.setState({ open: isOpen ? null : name }),
+        wrapStyle:{ borderTop: ti ? '1px solid var(--border)' : 0, background: isOpen ? 'var(--s2)' : 'transparent' },
+        rowStyle:{ width:'100%', display:'flex', flexWrap:'wrap', alignItems:'center', gap: narrow ? '6px 12px' : '4px 12px', padding:`12px ${pad}px`, border:0, background:'transparent', color:'inherit', textAlign:'left', cursor:'pointer' },
+        chev:{ flex:'none', color:'var(--ink3)', transition:'transform .15s', transform: isOpen ? 'rotate(90deg)' : 'none' } };
+    }) }));
+    const toolCount = groups.reduce((n, g) => n + g.tools.length, 0);
+    const gl = Component.SERVER.guides;
+    const g0r = gl.find(g => g[0] === S.guide);
+    return {
+      rootStyle:{ ...Component.THEMES[light ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', WebkitFontSmoothing:'antialiased', minHeight:'100vh', ...(phone ? { display:'flex', justifyContent:'center', alignItems:'flex-start', padding:32, background:'var(--wash)' } : {}) },
+      frameRef:this.frameRef,
+      frameStyle: phone ? { position:'relative', width:390, height:844, flex:'none', borderRadius:24, border:'1px solid var(--border)', overflow:'hidden', background:'var(--s0)', transform:'translateZ(0)' } : { position:'relative' },
+      scrollStyle: phone ? { height:'100%', overflowY:'auto' } : {},
+      pageStyle:{ maxWidth:920, margin:'0 auto', padding: narrow ? '16px 16px 40px' : '24px 32px 48px', display:'flex', flexDirection:'column', gap: narrow ? 32 : 40 },
+      toolCount, guideCount:gl.length, version:Component.SERVER.version, url:Component.URL,
+      urlLabel: S.copied === 'url' ? 'Copied' : 'Copy',
+      cmdLabel: S.copied === 'cmd' ? 'Copied' : 'Copy connect command',
+      copyUrl: () => this.copy('url', Component.URL),
+      copyCmd: () => this.copy('cmd', 'claude mcp add --transport http connexity ' + Component.URL),
+      groups,
+      nameCol:{ flex: narrow ? '1 1 auto' : '0 0 204px', minWidth:0, fontFamily:"'JetBrains Mono', monospace", fontSize:13, lineHeight:'22px', fontWeight:500, color:'var(--ink)', overflowWrap:'anywhere' },
+      chipCol:{ flex: narrow ? '0 0 auto' : '0 0 176px', display:'flex' },
+      descCol:{ flex: narrow ? '1 1 100%' : '1 1 260px', minWidth:0, paddingLeft: narrow ? 28 : 0, color:'var(--ink2)', textWrap:'pretty' },
+      detailStyle:{ padding: narrow ? `0 ${pad}px 16px ${pad}px` : `0 ${pad}px 16px ${pad + 28}px`, display:'flex', flexDirection:'column', gap:10 },
+      uriCol:{ flex: narrow ? '1 1 100%' : '0 0 340px', minWidth:0, fontFamily:"'JetBrains Mono', monospace", fontSize:13, lineHeight:'22px', color:'var(--ink)', overflowWrap:'anywhere' },
+      guides: gl.map(([id, title], i) => ({ uri:uri(id), title, open:openGuide(id),
+        rowStyle:{ width:'100%', display:'flex', flexWrap:'wrap', alignItems:'baseline', gap:'0 16px', padding:`10px ${pad}px`, border:0, borderTop: i ? '1px solid var(--border)' : 0, background: S.guide === id ? 'var(--wash)' : 'transparent', color:'inherit', textAlign:'left', cursor:'pointer' } })),
+      guideOpen: !!g0r,
+      g0: g0r ? { title:g0r[1], uri:uri(g0r[0]), blocks:this.md(g0r[2]) } : { title:'', uri:'', blocks:[] },
+      closeGuide: () => this.setState({ guide:null }),
+      panelStyle:{ position:'fixed', top:0, right:0, bottom:0, width: narrow ? '100%' : 560, maxWidth:'100%', zIndex:10, background:'var(--s2)', borderLeft:'1px solid var(--border)', boxShadow: light ? '-16px 0 48px rgba(0,0,0,.08)' : '-16px 0 48px rgba(0,0,0,.45)', display:'flex', flexDirection:'column' }
+    };
+  }
+}
+</script>
+</body>
+</html>

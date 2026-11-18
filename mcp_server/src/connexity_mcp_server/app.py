@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import contextlib
-from typing import Literal
+from typing import Annotated, Literal
 from urllib.parse import urlparse
 
 import httpx
@@ -13,11 +13,13 @@ from mcp.server.fastmcp import FastMCP
 from mcp.server.streamable_http import MCP_PROTOCOL_VERSION_HEADER
 from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import ToolAnnotations
+from pydantic import Field
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from connexity_mcp_server.auth import OidcTokenVerifier
 from connexity_mcp_server.client import ConnexityBackendClient
 from connexity_mcp_server.config import Settings
+from connexity_mcp_server.manifest import Manifest, build_manifest
 from connexity_mcp_server.guides import (
     GUIDE_URI_PREFIX,
     GUIDES,
@@ -146,6 +148,25 @@ from connexity_mcp_server.tools import (
     scan_calls as _scan_calls,
 )
 
+# Inputs every tool shares. Every input has a description: the assistant reads it in
+# the tool's schema, and the public contract page shows it (`contract.py`).
+WorkspaceId = Annotated[
+    str, Field(description="The workspace, from `list_workspaces`.")
+]
+AgentId = Annotated[str, Field(description="The agent, from `list_agents`.")]
+IssueId = Annotated[str, Field(description="The issue, from `list_issues`.")]
+Cursor = Annotated[
+    str | None,
+    Field(description="`next_cursor` from the previous page; leave empty for the first."),
+]
+Limit = Annotated[int | None, Field(description="Items per page, 1 to 100.")]
+# For tools whose page size always has a value (25 by default).
+PageSize = Annotated[int, Field(description="Items per page, 1 to 100.")]
+Period = Annotated[
+    str | None, Field(description="7d, 30d or 90d. Leave empty for 30d.")
+]
+
+
 # Hints assistants read to decide whether to ask the person before a call. Every tool
 # acts only inside Connexity (`openWorldHint=False`).
 READ_ONLY = ToolAnnotations(readOnlyHint=True, openWorldHint=False)
@@ -219,16 +240,18 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         return await _list_workspaces(client=backend_client)
 
     @mcp_server.tool(annotations=CREATES)
-    async def create_workspace(name: str) -> CreateWorkspaceResult:
+    async def create_workspace(
+        name: Annotated[str, Field(description="The client's name, as the person gives it.")],
+    ) -> CreateWorkspaceResult:
         """Create a workspace for a new client, with the person you act for as its only
         member. Ask the person for the client's name first."""
         return await _create_workspace(client=backend_client, name=name)
 
     @mcp_server.tool(annotations=CONNECTS)
     async def connect_voice_platform(
-        workspace_id: str,
-        api_key: str,
-        platform: Literal["retell", "vapi", "elevenlabs"] = "retell",
+        workspace_id: WorkspaceId,
+        api_key: Annotated[str, Field(description="The platform's API key from the person; stored encrypted, never shown again.")],
+        platform: Annotated[Literal["retell", "vapi", "elevenlabs"], Field(description="The voice platform. Retell for now.")] = "retell",
     ) -> ConnectVoicePlatformResult:
         """Connect the workspace's voice platform (Retell first) so Connexity can read
         its agents and calls. Ask the person for the API key, name the workspace, and
@@ -241,7 +264,10 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         )
 
     @mcp_server.tool(annotations=CREATES)
-    async def add_agents(workspace_id: str, agents: list[AgentToAdd]) -> AddAgentsResult:
+    async def add_agents(
+        workspace_id: WorkspaceId,
+        agents: Annotated[list[AgentToAdd], Field(description="The Retell agents to add, up to 100.")],
+    ) -> AddAgentsResult:
         """Add this client's agents to the workspace, linked to their Retell agents, so
         Connexity syncs their calls. Use your own Retell access to see the agents and
         their recent calls, ask the person which belong to this client, then pass their
@@ -251,7 +277,7 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         )
 
     @mcp_server.tool(annotations=SCANS)
-    async def scan_calls(workspace_id: str) -> ScanCallsResult:
+    async def scan_calls(workspace_id: WorkspaceId) -> ScanCallsResult:
         """The first scan: bring the added agents' calls from the last 30 days into
         Connexity. Each call does one step of up to about a minute and says how far it
         has got; keep calling it until it says finished. Safe to repeat: it carries on
@@ -259,7 +285,10 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         return await _scan_calls(client=backend_client, workspace_id=workspace_id)
 
     @mcp_server.tool(annotations=READ_ONLY)
-    async def get_call(workspace_id: str, call_id: str) -> GetCallResult:
+    async def get_call(
+        workspace_id: WorkspaceId,
+        call_id: Annotated[str, Field(description="The call, from `list_calls`.")],
+    ) -> GetCallResult:
         """One call in full: its timeline in order (agent and caller turns, and tool
         calls with arguments and result, secrets masked) and what the checks found,
         worst first, each pointing at its entry and saying whether a rule or a model
@@ -270,15 +299,15 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     @mcp_server.tool(annotations=READ_ONLY)
     async def list_calls(
-        workspace_id: str,
-        query: str | None = None,
-        agent_id: str | None = None,
-        result: str | None = None,
-        category: str | None = None,
-        period: str | None = None,
-        issue_id: str | None = None,
-        cursor: str | None = None,
-        limit: int | None = None,
+        workspace_id: WorkspaceId,
+        query: Annotated[str | None, Field(description="The end of a caller's number, or a whole call id.")] = None,
+        agent_id: Annotated[str | None, Field(description="Only this agent's calls.")] = None,
+        result: Annotated[str | None, Field(description="failed, degraded, clean or unchecked.")] = None,
+        category: Annotated[str | None, Field(description="A category key, from `list_categories`.")] = None,
+        period: Period = None,
+        issue_id: Annotated[str | None, Field(description="Only the calls this issue was found on, with its findings.")] = None,
+        cursor: Cursor = None,
+        limit: Limit = None,
     ) -> ListCallsResult:
         """The workspace's calls, newest first, with counts for the period. query is a
         phone number (matches the end of the caller's number) or a call id. Filters:
@@ -302,15 +331,15 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     @mcp_server.tool(annotations=READ_ONLY)
     async def list_issues(
-        workspace_id: str,
-        query: str | None = None,
-        agent_id: str | None = None,
-        category: str | None = None,
-        severity: str | None = None,
-        status: str | None = None,
-        period: str | None = None,
-        cursor: str | None = None,
-        limit: int | None = None,
+        workspace_id: WorkspaceId,
+        query: Annotated[str | None, Field(description="Words in the title, or a whole issue id.")] = None,
+        agent_id: Annotated[str | None, Field(description="Only this agent's issues.")] = None,
+        category: Annotated[str | None, Field(description="A category key, from `list_categories`.")] = None,
+        severity: Annotated[str | None, Field(description="critical or warning.")] = None,
+        status: Annotated[str | None, Field(description="open (the default, with reopened), reopened, resolved or archived.")] = None,
+        period: Period = None,
+        cursor: Cursor = None,
+        limit: Limit = None,
     ) -> ListIssuesResult:
         """The workspace's issues, worst first, with counts (tiles) for the period:
         what Connexity's checks found on real calls. Each has its severity (critical or
@@ -335,7 +364,7 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         )
 
     @mcp_server.tool(annotations=READ_ONLY)
-    async def get_issue(workspace_id: str, issue_id: str) -> IssueResult:
+    async def get_issue(workspace_id: WorkspaceId, issue_id: IssueId) -> IssueResult:
         """Everything Connexity has about one issue: the check behind it (what it
         looks for, how it decides, its version, and for a model check the model),
         what each key of its findings' detail means, its setting for the agent, its
@@ -350,10 +379,10 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     @mcp_server.tool(annotations=DECIDES)
     async def archive_issue(
-        workspace_id: str,
-        issue_id: str,
-        reason: str,
-        duration: Literal["until_spike", "forever"] = "until_spike",
+        workspace_id: WorkspaceId,
+        issue_id: IssueId,
+        reason: Annotated[str, Field(description="Why nobody will fix it, in the person's words.")],
+        duration: Annotated[Literal["until_spike", "forever"], Field(description="until_spike brings it back if it happens twice as often; forever never does.")] = "until_spike",
     ) -> IssueResult:
         """Archive an issue nobody will fix: it is then hidden on every call and counts
         for nothing. A person's decision: first tell them the issue, its size and the
@@ -369,7 +398,10 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     @mcp_server.tool(annotations=CREATES)
     async def mark_issue_fixed(
-        workspace_id: str, issue_id: str, version: str, note: str | None = None
+        workspace_id: WorkspaceId,
+        issue_id: IssueId,
+        version: Annotated[str, Field(description="The agent's version on its platform that carries the fix.")],
+        note: Annotated[str | None, Field(description="What you changed, in a sentence.")] = None,
     ) -> IssueResult:
         """Mark an issue fixed in the agent's version that carries the fix (its number
         on the platform), after you changed the agent. It becomes Resolved and leaves
@@ -386,7 +418,9 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     @mcp_server.tool(annotations=DECIDES)
     async def unarchive_issue(
-        workspace_id: str, issue_id: str, reason: str | None = None
+        workspace_id: WorkspaceId,
+        issue_id: IssueId,
+        reason: Annotated[str | None, Field(description="Why it comes back, in the person's words.")] = None,
     ) -> IssueResult:
         """Bring an archived issue back: all its calls count again. Ask the person
         first, as for archiving."""
@@ -399,7 +433,7 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     @mcp_server.tool(annotations=READ_ONLY)
     async def get_agent(
-        workspace_id: str, agent_id: str, period: str | None = None
+        workspace_id: WorkspaceId, agent_id: AgentId, period: Period = None
     ) -> AgentResult:
         """One agent at a glance for the period (7d, 30d by default, 90d): platform,
         type, live version and since when, model, the n8n workflows it used, calls,
@@ -414,11 +448,11 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     @mcp_server.tool(annotations=READ_ONLY)
     async def get_spec(
-        workspace_id: str,
-        agent_id: str,
-        version: int | None = None,
-        include_prompt: bool = False,
-        compare: int | None = None,
+        workspace_id: WorkspaceId,
+        agent_id: AgentId,
+        version: Annotated[int | None, Field(description="A spec version. Leave empty for the latest.")] = None,
+        include_prompt: Annotated[bool, Field(description="Also answer the prompt Connexity recorded for the agent's current version.")] = False,
+        compare: Annotated[int | None, Field(description="An earlier spec version to mark each rule kept, added or dropped against.")] = None,
     ) -> SpecResult:
         """An agent's spec: what it is supposed to do, as plain rules grouped by the
         fixed categories, each with its source (the prompt's words it rests on, or who
@@ -439,7 +473,9 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     @mcp_server.tool(annotations=CREATES)
     async def write_spec(
-        workspace_id: str, agent_id: str, rules: list[SpecRuleToWrite]
+        workspace_id: WorkspaceId,
+        agent_id: AgentId,
+        rules: Annotated[list[SpecRuleToWrite], Field(description="The agent's whole spec, every rule the prompt settles.")],
     ) -> SpecResult:
         """Write the agent's whole spec for its current version, as a new version.
         Each rule: one plain sentence, a category key, the prompt's exact words it
@@ -458,10 +494,10 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     @mcp_server.tool(annotations=CREATES)
     async def mark_critical_rules(
-        workspace_id: str,
-        agent_id: str,
-        critical: list[str] | None = None,
-        not_critical: list[str] | None = None,
+        workspace_id: WorkspaceId,
+        agent_id: AgentId,
+        critical: Annotated[list[str] | None, Field(description="Rule keys, from `get_spec`, to mark critical.")] = None,
+        not_critical: Annotated[list[str] | None, Field(description="Rule keys, from `get_spec`, to clear the mark from.")] = None,
     ) -> SpecResult:
         """Mark rules of the agent's latest spec critical (a failure stops a release)
         or clear the mark (a failure is a Warning), by the keys `get_spec` answers,
@@ -479,7 +515,9 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     @mcp_server.tool(annotations=CREATES)
     async def write_scenarios(
-        workspace_id: str, agent_id: str, scenarios: list[ScenarioToWrite]
+        workspace_id: WorkspaceId,
+        agent_id: AgentId,
+        scenarios: Annotated[list[ScenarioToWrite], Field(description="Up to 20 scenarios, all or nothing.")],
     ) -> WriteScenariosResult:
         """Write scenarios for the agent: each a stage for a simulated call, with no
         pass or fail of its own. Each: a name; the caller (who, goal, behaviour); what
@@ -498,12 +536,12 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     @mcp_server.tool(annotations=READ_ONLY)
     async def list_scenarios(
-        workspace_id: str,
-        agent_id: str,
-        rule_key: str | None = None,
-        set: str | None = None,
-        cursor: str | None = None,
-        limit: int | None = None,
+        workspace_id: WorkspaceId,
+        agent_id: AgentId,
+        rule_key: Annotated[str | None, Field(description="Only scenarios that list this spec rule.")] = None,
+        set: Annotated[str | None, Field(description="Only scenarios in the set of this name.")] = None,
+        cursor: Cursor = None,
+        limit: Limit = None,
     ) -> ListScenariosResult:
         """The agent's active scenarios, oldest first, each with its rules (critical,
         or gone from the latest spec) and its sets; the agent's named sets; counts of
@@ -520,13 +558,14 @@ def build_application(settings: Settings | None = None) -> FastAPI:
             limit=limit,
         )
 
-    @mcp_server.tool(annotations=DECIDES)
+    # The assistant's own sets; the gate always runs every scenario (Dmytro, 2026-11-18).
+    @mcp_server.tool(annotations=CREATES)
     async def write_scenario_set(
-        workspace_id: str,
-        agent_id: str,
-        name: str,
-        scenario_ids: list[str],
-        description: str | None = None,
+        workspace_id: WorkspaceId,
+        agent_id: AgentId,
+        name: Annotated[str, Field(description="The set's name; a set of that name is replaced.")],
+        scenario_ids: Annotated[list[str], Field(description="The scenarios in the set, in order; empty archives the set.")],
+        description: Annotated[str | None, Field(description="What the set is for, in a sentence.")] = None,
     ) -> ScenarioSetResult:
         """Create a named set of the agent's scenarios, or replace the set of that
         name, in the order given; an empty `scenario_ids` archives it. Sets are for
@@ -543,13 +582,13 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     @mcp_server.tool(annotations=RUNS)
     async def run_scenarios(
-        workspace_id: str,
-        agent_id: str,
-        set: str | None = None,
-        scenario_ids: list[str] | None = None,
-        all: bool = False,
-        repeats: int | None = None,
-        version: int | None = None,
+        workspace_id: WorkspaceId,
+        agent_id: AgentId,
+        set: Annotated[str | None, Field(description="Run the set of this name.")] = None,
+        scenario_ids: Annotated[list[str] | None, Field(description="Or run these scenarios.")] = None,
+        all: Annotated[bool, Field(description="Or run every active scenario.")] = False,
+        repeats: Annotated[int | None, Field(description="Times each scenario runs, 1 to 5. Leave empty for 3.")] = None,
+        version: Annotated[int | None, Field(description="The agent's version on its platform. Leave empty for the latest.")] = None,
     ) -> RunScenariosResult:
         """Run the agent's scenarios in text: a named `set`, a pick of
         `scenario_ids`, or `all` (give exactly one). A simulated caller talks to the
@@ -570,12 +609,12 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     @mcp_server.tool(annotations=READ_ONLY)
     async def get_test_runs(
-        workspace_id: str,
-        agent_id: str,
-        run_id: str | None = None,
-        version: str | None = None,
-        cursor: str | None = None,
-        limit: int | None = None,
+        workspace_id: WorkspaceId,
+        agent_id: AgentId,
+        run_id: Annotated[str | None, Field(description="One run, from `run_scenarios` or this tool's runs.")] = None,
+        version: Annotated[str | None, Field(description="A tested version. Leave empty for the newest.")] = None,
+        cursor: Cursor = None,
+        limit: Limit = None,
     ) -> TestRunsResult:
         """Without `run_id`: a tested version's results (`version`, default the
         newest tested): Failed or Verified, the totals per rule across all its runs,
@@ -594,7 +633,9 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     @mcp_server.tool(annotations=CREATES)
     async def raise_clarifications(
-        workspace_id: str, agent_id: str, questions: list[QuestionToRaise]
+        workspace_id: WorkspaceId,
+        agent_id: AgentId,
+        questions: Annotated[list[QuestionToRaise], Field(description="Up to 20 questions for the person.")],
     ) -> RaiseClarificationsResult:
         """Raise questions for the person about behaviour the agent's spec does not
         settle, never deciding it yourself. Each question: one plain sentence with how
@@ -612,11 +653,11 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     @mcp_server.tool(annotations=READ_ONLY)
     async def list_clarifications(
-        workspace_id: str,
-        agent_id: str | None = None,
-        state: Literal["open", "answered", "parked"] | None = None,
-        cursor: str | None = None,
-        limit: int | None = None,
+        workspace_id: WorkspaceId,
+        agent_id: Annotated[str | None, Field(description="Only this agent's questions.")] = None,
+        state: Annotated[Literal["open", "answered", "parked"] | None, Field(description="open (the default), answered or parked.")] = None,
+        cursor: Cursor = None,
+        limit: Limit = None,
     ) -> ListClarificationsResult:
         """Questions for the person about the workspace's agents: open by default,
         most important first (seen on more calls, then money, safety or compliance,
@@ -635,7 +676,8 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     @mcp_server.tool(annotations=DECIDES)
     async def answer_clarifications(
-        workspace_id: str, answers: list[AnswerToGive]
+        workspace_id: WorkspaceId,
+        answers: Annotated[list[AnswerToGive], Field(description="The person's answers, parks and reopens.")],
     ) -> AnswerClarificationsResult:
         """Record the person's answers (a to d, or `other` with their own words as
         `text` when none of the choices fits), park questions (`park`), or bring a
@@ -648,7 +690,7 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         )
 
     @mcp_server.tool(annotations=READ_ONLY)
-    async def list_categories(workspace_id: str) -> ListCategoriesResult:
+    async def list_categories(workspace_id: WorkspaceId) -> ListCategoriesResult:
         """The fixed categories every issue and spec rule belongs to, in their order:
         key, name and kind (behaviour or technical). The same set for every workspace;
         group issues and spec rules by it and use its names with the person."""
@@ -656,7 +698,7 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     @mcp_server.tool(annotations=READ_ONLY)
     async def list_tasks(
-        workspace_id: str, cursor: str | None = None, limit: int = 25
+        workspace_id: WorkspaceId, cursor: Cursor = None, limit: PageSize = 25
     ) -> ListTasksResult:
         """The workspace's whole task list, as the Work page shows it: in Connexity's
         order, each task in progress (with whose session), waiting for the person, or
@@ -670,7 +712,9 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     @mcp_server.tool(annotations=DECIDES)
     async def move_task(
-        workspace_id: str, key: str, before: str | None = None
+        workspace_id: WorkspaceId,
+        key: Annotated[str, Field(description="The To do task to move, from `list_tasks`.")],
+        before: Annotated[str | None, Field(description="The task it moves in front of. Leave empty for the end.")] = None,
     ) -> ListTasksResult:
         """Move a To do task (its `key` from `list_tasks`) to sit just before another
         (`before`; none for the end of the list). Only when the person asks, such as
@@ -684,7 +728,8 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     # Takes the task for the caller and ends its previous one; asking again moves on.
     @mcp_server.tool(annotations=CREATES)
     async def get_next_task(
-        workspace_id: str, session: str | None = None
+        workspace_id: WorkspaceId,
+        session: Annotated[str | None, Field(description="A few words naming this session's work, the same on every call in it.")] = None,
     ) -> GetNextTaskResult:
         """Your next task in this workspace: the single most important thing to do,
         sorted by Connexity, with its facts, the rules and numbered steps naming the
@@ -699,18 +744,18 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         )
 
     @mcp_server.tool(annotations=READ_ONLY)
-    async def get_readiness(workspace_id: str) -> GetReadinessResult:
+    async def get_readiness(workspace_id: WorkspaceId) -> GetReadinessResult:
         """How complete the workspace's setup is: each Getting started step, whether it
         is done, and what to do next. Call it after each setup step."""
         return await _get_readiness(client=backend_client, workspace_id=workspace_id)
 
     @mcp_server.tool(annotations=READ_ONLY)
     async def list_agents(
-        workspace_id: str,
-        query: str | None = None,
-        period: str | None = None,
-        cursor: str | None = None,
-        limit: int = 25,
+        workspace_id: WorkspaceId,
+        query: Annotated[str | None, Field(description="Part of the agent's name.")] = None,
+        period: Period = None,
+        cursor: Cursor = None,
+        limit: PageSize = 25,
     ) -> ListAgentsResult:
         """The agents in a workspace, newest first, each with its type
         (single_prompt or conversational_flow), its calls in the period (7d, 30d by
@@ -744,6 +789,16 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     @app.get("/healthz")
     async def healthcheck() -> dict[str, str]:
         return {"status": "ok"}
+
+    # Public and read only: the MCP contract the /mcp-docs page is built from. No
+    # workspace data and no auth; it lists what any signed-in client would see.
+    @app.get("/manifest", response_model=Manifest)
+    async def manifest() -> Manifest:
+        public = settings.resolved_mcp_public_base_url
+        return await build_manifest(
+            mcp_server,
+            server_url=f"{public}{settings.normalized_mcp_path}" if public else None,
+        )
 
     async def proxy_oauth_request(
         request: Request,
