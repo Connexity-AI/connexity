@@ -437,6 +437,7 @@ async def run_scenarios(
     all_scenarios: bool = False,
     repeats: int | None = None,
     version: int | None = None,
+    session: str | None = None,
 ) -> RunScenariosResult:
     return RunScenariosResult.model_validate(
         await client.run_scenarios(
@@ -447,6 +448,7 @@ async def run_scenarios(
             all_scenarios=all_scenarios,
             repeats=repeats,
             version=version,
+            session=session,
         )
     )
 

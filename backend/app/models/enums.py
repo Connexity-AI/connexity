@@ -38,11 +38,13 @@ class RuleOutcome(StrEnum):
 
 
 class VersionVerdict(StrEnum):
-    """What a version's runs of scenarios say about it."""
+    """What a version's latest full run of scenarios says about it (Dmytro,
+    2026-11-19)."""
 
     FAILED = "failed"
     VERIFIED = "verified"
-    NOT_TESTED = "not_tested"
+    PARTIAL = "partial"
+    NOT_VERIFIED = "not_verified"
 
 
 class AgentMode(StrEnum):

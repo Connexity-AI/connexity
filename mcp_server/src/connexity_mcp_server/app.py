@@ -592,14 +592,16 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         all: Annotated[bool, Field(description="Or run every active scenario.")] = False,
         repeats: Annotated[int | None, Field(description="Times each scenario runs, 1 to 5. Leave empty for 3.")] = None,
         version: Annotated[int | None, Field(description="The agent's version on its platform. Leave empty for the latest.")] = None,
+        session: Annotated[str | None, Field(description="A few words naming this session's work, the same as on `get_next_task`; shown with the run.")] = None,
     ) -> RunScenariosResult:
         """Run the agent's scenarios in text: a named `set`, a pick of
         `scenario_ids`, or `all` (give exactly one). A simulated caller talks to the
         agent's own engine with every tool faked, until the agent hangs up or transfers
         or has answered 40 times; each scenario repeats `repeats`
         times (1 to 5, default 3), at most 200 simulated calls. `version` is the
-        agent's version on its platform (default: the latest). Starts in the
-        background; read the results with `get_test_runs`."""
+        agent's version on its platform (default: the latest). Only `all` is a full
+        run that decides the version's verdict; a set or a pick is on demand. Starts in
+        the background; read the results with `get_test_runs`."""
         return await _run_scenarios(
             client=backend_client,
             workspace_id=workspace_id,
@@ -609,6 +611,7 @@ def build_application(settings: Settings | None = None) -> FastAPI:
             all_scenarios=all,
             repeats=repeats,
             version=version,
+            session=session,
         )
 
     @mcp_server.tool(annotations=READ_ONLY)
@@ -621,9 +624,10 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         limit: Limit = None,
     ) -> TestRunsResult:
         """Without `run_id`: a tested version's results (`version`, default the
-        newest tested): Failed, Verified or Not tested, the totals per rule across all its
-        runs, the code checks, warnings, coverage of the spec and the calls that stopped
-        with an error; then the agent's runs, newest first. With
+        live version): Verified, Failed, Partially tested or Not verified, read from its
+        latest full run, with that run's rules, code checks and stopped calls, every run
+        of the version with its totals and who ran it, and coverage as tests written;
+        then the agent's runs, newest first. With
         `run_id`: the run's status, rule totals, findings, and a page of its
         simulated calls with each rule's verdict, reason and link (`url`)."""
         return await _get_test_runs(

@@ -295,8 +295,11 @@ class ConnexityBackendClient:
         all_scenarios: bool = False,
         repeats: int | None = None,
         version: int | None = None,
+        session: str | None = None,
     ) -> dict[str, Any]:
         body: dict[str, Any] = {"all": all_scenarios}
+        if session is not None:
+            body["session"] = session
         if set_name is not None:
             body["set"] = set_name
         if scenario_ids is not None:

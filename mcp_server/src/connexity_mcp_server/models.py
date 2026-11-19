@@ -1005,6 +1005,20 @@ class TestRunCounts(BaseModel):
     findings: int = 0
 
 
+class RunTotals(BaseModel):
+    rules: int = Field(description="Rules in the run's spec")
+    passed: int = 0
+    failed: int = 0
+    did_not_come_up: int = 0
+    no_scenario: int = Field(default=0, description="Rules no scenario of the run lists")
+    critical: int = Field(
+        default=0,
+        description="Critical rules that failed and critical code checks that found "
+        "something",
+    )
+    stopped: int = Field(default=0, description="Simulated calls that ended in an error")
+
+
 class TestRun(BaseModel):
     id: str
     status: str = Field(description="pending, running, completed or failed")
@@ -1021,6 +1035,23 @@ class TestRun(BaseModel):
     completed_at: str | None = None
     counts: TestRunCounts = Field(default_factory=TestRunCounts)
     cost_usd: float | None = None
+    full: bool = Field(
+        default=False, description="A run of every scenario: only it decides the verdict"
+    )
+    verdict: str | None = Field(
+        default=None,
+        description="A completed full run's verdict: verified, failed, partial or "
+        "not_verified",
+    )
+    result: str | None = Field(
+        default=None, description="A completed on-demand run's result: passed or failed"
+    )
+    totals: RunTotals | None = Field(
+        default=None, description="Rules by outcome, each counted once per run"
+    )
+    ran_by: str | None = Field(default=None, description="The person")
+    assistant_name: str | None = None
+    session_name: str | None = None
 
 
 class TestRunDetail(TestRun):
@@ -1042,9 +1073,11 @@ class UncheckedRule(BaseModel):
 
 class Coverage(BaseModel):
     rules: int = Field(description="Rules in the agent's latest spec")
-    checked: int = Field(description="Rules judged Passed or Failed at least once")
+    covered: int = Field(description="Rules at least one active scenario lists")
     pct: int
-    unchecked: list[UncheckedRule] = Field(default_factory=list)
+    uncovered: list[UncheckedRule] = Field(
+        default_factory=list, description="Rules no scenario lists"
+    )
 
 
 class StoppedCalls(BaseModel):
@@ -1053,29 +1086,36 @@ class StoppedCalls(BaseModel):
     run_id: str = Field(description="A run with one of those calls")
 
 
+class VerifiedVersion(BaseModel):
+    version: str
+    at: str = Field(description="When its full run completed")
+
+
 class VersionResults(BaseModel):
     version: str | None = None
-    edited: bool = Field(
-        default=False,
-        description="An earlier run tested different content under the same number",
+    verdict: str = Field(
+        description="From the latest full run: verified, failed, partial or not_verified"
     )
-    first_run_at: str
-    last_run_at: str
-    verdict: str = Field(description="failed, verified or not_tested")
+    full_run: TestRun | None = Field(
+        default=None, description="The full run that decided the verdict"
+    )
+    last_verified: VerifiedVersion | None = Field(
+        default=None, description="The newest other version a full run verified"
+    )
     critical_failed: list[str] = Field(default_factory=list)
     critical_checks: list[str] = Field(default_factory=list)
-    warnings: int = 0
-    non_critical_judged: int = 0
-    non_critical_failed: int = 0
-    threshold_pct: int
-    over_threshold: bool = False
     rules: list[RuleTotal] = Field(default_factory=list)
     checks: list[CheckTotal] = Field(default_factory=list)
+    unchecked: list[UncheckedRule] = Field(
+        default_factory=list, description="Rules the full run did not check"
+    )
     runs: list[TestRun] = Field(default_factory=list)
-    coverage: Coverage | None = None
+    coverage: Coverage | None = Field(
+        default=None, description="Tests written: the latest spec's rules with a scenario"
+    )
     stopped: StoppedCalls | None = Field(
         default=None,
-        description="Simulated calls that ended in an error and gave no verdicts",
+        description="The full run's simulated calls that ended in an error",
     )
 
 

@@ -136,8 +136,8 @@ class SpecRulePublic(BaseModel):
     )
     scenarios: int = Field(
         default=0,
-        description="How many active scenarios list it (not coverage: that counts "
-        "rules a run checked)",
+        description="How many active scenarios list it; coverage counts the rules with "
+        "at least one",
     )
     answered_by: str | None = Field(
         default=None, description="For a rule from a clarification: who answered it"
@@ -146,6 +146,12 @@ class SpecRulePublic(BaseModel):
     in_conflict: bool = Field(
         default=False,
         description="An open or parked clarification replaces this rule",
+    )
+    result: (
+        Literal["passed", "failed", "flaky", "did_not_come_up", "no_scenario"] | None
+    ) = Field(
+        default=None,
+        description="Its result in the live version's latest full run; none without one",
     )
     change: Literal["kept", "added", "dropped"] | None = Field(
         default=None,
@@ -210,6 +216,12 @@ class SpecPublic(BaseModel):
     versions: list[SpecVersionPublic] = Field(
         default_factory=list,
         description="Every version of the agent's spec, newest first",
+    )
+    results_version: str | None = Field(
+        default=None, description="The live version, whose full run gave `result`"
+    )
+    results_at: datetime | None = Field(
+        default=None, description="When that full run completed; none without one"
     )
     comparison: SpecComparisonPublic | None = Field(
         default=None, description="With compare: how the shown version differs"

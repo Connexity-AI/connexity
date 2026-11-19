@@ -172,7 +172,6 @@ from app.services.spec import (
 )
 from app.services.test_run import (
     CONVERSATION_CAP_MS,
-    DEFAULT_REPEATS,
     MAX_AGENT_REPLIES,
     RunRefused,
     RunRequest,
@@ -2428,8 +2427,15 @@ _TEST_RUN_RULES = [
     "counts as failed.",
     "Code checks run on every simulated call. Their findings never count as production "
     "issues; checks that need timing or a recording are skipped in text.",
-    "Run a set or a pick while working on a change; before a release, run every "
-    "scenario.",
+    "Only a full run (`all`, every scenario) decides a version's verdict: Verified "
+    "when every spec rule was checked and nothing critical was found, Failed on a "
+    "critical rule or a critical code check, Partially tested when some rule was not "
+    "checked, Not verified without one. A run of a set or a pick is on demand and "
+    "never changes it.",
+    "A run counts rules, each once: Failed when any repeat failed it, Didn't come up "
+    "when no repeat reached it.",
+    "Run a set or a pick while working on a change; run every scenario to verify a "
+    "version.",
 ]
 
 
@@ -2452,6 +2458,7 @@ async def run_agent_scenarios(
     session: SessionDep,
     workspace: McpWorkspaceDep,
     current_user: McpCurrentUser,
+    assistant: McpAssistantName,
     agent_id: uuid.UUID,
     body: McpRunScenarios,
 ) -> McpAnswer[McpStartedRun]:
@@ -2467,6 +2474,8 @@ async def run_agent_scenarios(
                 all=body.all,
                 repeats=body.repeats,
                 version=body.version,
+                assistant_name=assistant,
+                session_name=(body.session or "").strip() or None,
             ),
         )
     except RunRefused as refused:
@@ -2480,6 +2489,10 @@ async def run_agent_scenarios(
             f"The run makes {calls} simulated "
             f"{'call' if calls == 1 else 'calls'} in the background. Call "
             f"`get_test_runs` with run_id {run.id} until its status is completed.",
+            "It is a full run: when it completes, it decides the version's verdict."
+            if body.all
+            else "It is an on-demand run: it never changes the version's verdict. Run "
+            "every scenario (`all`) to verify the version.",
             "Meanwhile, carry on with other work.",
         ],
         guide=GUIDE_SCENARIOS,
@@ -2545,7 +2558,7 @@ def _run_steps(
     if not steps:
         steps.append("Every judged rule passed, with no code-check findings.")
     steps.append(
-        "For the version's verdict across all its runs, call `get_test_runs` without "
+        "For the version's verdict, from its latest full run, call `get_test_runs` without "
         f"`run_id`{f' and version {run.platform_version}' if run.platform_version else ''}."
     )
     if more:
@@ -2557,34 +2570,25 @@ def _run_steps(
 
 
 def _version_name(results: VersionResultsPublic) -> str:
-    name = f"Version {results.version}" if results.version else "The latest version"
-    return f"{name} (edited)" if results.edited else name
+    return f"Version {results.version}" if results.version else "The latest version"
 
 
 def _coverage_steps(results: VersionResultsPublic) -> list[str]:
     coverage = results.coverage
-    if coverage is None or not coverage.unchecked:
+    if coverage is None or not coverage.uncovered:
         return []
-    critical = [u for u in coverage.unchecked if u.critical]
+    critical = [u for u in coverage.uncovered if u.critical]
+    lead = (
+        f"Coverage is {coverage.pct}%: {coverage.covered} of the spec's "
+        f"{coverage.rules} rules have a scenario."
+    )
     if not critical:
-        return [
-            f"The runs checked {coverage.checked} of the spec's {coverage.rules} rules "
-            f"({coverage.pct}%); `coverage.unchecked` says why each other one was not."
-        ]
+        return [f"{lead} Write scenarios for the rest (`coverage.uncovered`)."]
     keys = ", ".join(u.key for u in critical[:5])
     return [
-        f"{len(critical)} critical "
-        f"{'rule was' if len(critical) == 1 else 'rules were'} not checked ({keys}): "
-        "write scenarios that reach them (`write_scenarios`), or rewrite the ones that "
-        "list them but never got there, then run them."
-    ]
-
-
-def _results_steps(results: VersionResultsPublic) -> list[str]:
-    return [
-        *_verdict_steps(results),
-        *_stopped_steps(results),
-        *_coverage_steps(results),
+        f"{lead} {len(critical)} critical "
+        f"{'rule has' if len(critical) == 1 else 'rules have'} none ({keys}): write "
+        "scenarios that list them (`write_scenarios`), then run every scenario."
     ]
 
 
@@ -2594,25 +2598,38 @@ def _stopped_steps(results: VersionResultsPublic) -> list[str]:
         return []
     many = stopped.calls != 1
     return [
-        f"{stopped.calls} simulated {'calls' if many else 'call'} stopped with an error "
-        f'and gave no verdicts, most often "{stopped.reason}". Their code-check '
-        "findings are listed, but rules they never reached are not checked. Open run "
+        f"{stopped.calls} simulated {'calls' if many else 'call'} of the full run "
+        f'stopped with an error and gave no verdicts, most often "{stopped.reason}". '
+        "Rules they never reached are not checked. Open run "
         f"{stopped.run_id} with `get_test_runs` to see each call's error."
     ]
 
 
 def _verdict_steps(results: VersionResultsPublic) -> list[str]:
     name = _version_name(results)
-    if results.verdict is VersionVerdict.NOT_TESTED and results.runs:
+    full = results.full_run
+    when = (
+        f" (run {full.id}, {full.completed_at:%d %b %H:%M})"
+        if full is not None and full.completed_at
+        else ""
+    )
+    if results.verdict is VersionVerdict.NOT_VERIFIED:
+        earlier = (
+            f" Version {results.last_verified.version} was verified "
+            f"{results.last_verified.at:%d %b}."
+            if results.last_verified
+            else ""
+        )
+        if full is not None:
+            return [
+                f"{name} is not verified: its full run{when} judged no rule.{earlier} "
+                "Fix why its calls stopped, then run every scenario again "
+                "(`run_scenarios` with `all`)."
+            ]
         return [
-            f"{name} is not tested: its runs completed but checked no rule, so there "
-            "is no verdict, whatever the code checks found. Fix why the calls stopped, "
-            "then run again."
-        ]
-    if results.verdict is VersionVerdict.NOT_TESTED:
-        return [
-            f"{name} has no completed run yet. Wait for its runs, or start one with "
-            "`run_scenarios`."
+            f"{name} is not verified: it has no completed full run.{earlier} Run every "
+            "scenario on it (`run_scenarios` with `all`): only a full run verifies a "
+            "version."
         ]
     if results.verdict is VersionVerdict.FAILED:
         why = []
@@ -2626,44 +2643,43 @@ def _verdict_steps(results: VersionResultsPublic) -> list[str]:
                 f"critical code {'check' if len(results.critical_checks) == 1 else 'checks'} "
                 f"{', '.join(results.critical_checks)} found problems"
             )
-        if results.over_threshold:
-            why.append(
-                f"{results.non_critical_failed} of {results.non_critical_judged} "
-                f"non-critical rules failed, over {results.threshold_pct}%"
-            )
-        edited = (
-            [
-                "The draft was edited under the same version number since earlier "
-                "runs; only runs of the current content count."
-            ]
-            if results.edited
-            else []
-        )
         return [
-            f"{name} failed: {'; '.join(why)}.",
-            *edited,
-            "For each, open a failing simulated call (`get_test_runs` with its "
+            f"{name} failed in its full run{when}: {'; '.join(why)}.",
+            "For each, open a failing simulated call (`get_test_runs` with the run's "
             "`run_id`) and read the reason. If the scenario is wrong, fix it with "
             "`write_scenarios`; otherwise tell the person what failed and what you "
             "suggest, with the call's link. Connexity never changes the agent.",
-            "After the agent is changed, run the scenarios again with `run_scenarios`.",
+            "After the agent is changed, run every scenario again with `run_scenarios`.",
         ]
-    steps = [
-        f"{name} is verified"
+    if results.verdict is VersionVerdict.PARTIAL:
+        keys = ", ".join(u.key for u in results.unchecked[:5])
+        return [
+            f"{name} is partially tested: its full run{when} found nothing critical, "
+            f"but {len(results.unchecked)} "
+            f"{'rule was' if len(results.unchecked) == 1 else 'rules were'} not checked "
+            f"({keys}; `unchecked` says why). Write scenarios that reach them, or "
+            "rewrite the ones that list them but never got there, then run every "
+            "scenario again."
+        ]
+    failed = sum(1 for r in results.rules if r.failed)
+    return [
+        f"{name} is verified by its full run{when}: every rule checked, nothing "
+        "critical found"
         + (
-            f", with {results.warnings} "
-            f"{'warning' if results.warnings == 1 else 'warnings'}: tell the person "
-            "which rules or checks they are."
-            if results.warnings
-            else ", with no warnings."
+            f"; {failed} non-critical {'rule' if failed == 1 else 'rules'} failed, so "
+            "tell the person which."
+            if failed
+            else "."
         )
     ]
-    if results.edited:
-        steps.append(
-            "The draft was edited under the same version number since earlier runs; "
-            "only runs of the current content count."
-        )
-    return steps
+
+
+def _results_steps(results: VersionResultsPublic) -> list[str]:
+    return [
+        *_verdict_steps(results),
+        *_stopped_steps(results),
+        *_coverage_steps(results),
+    ]
 
 
 @router.get(
@@ -2696,18 +2712,12 @@ def get_agent_test_runs(
                 ).model_dump(),
             )
         runs, more = list_runs(session=session, agent=agent, offset=offset, limit=limit)
-        steps = (
-            [
-                *_results_steps(results),
-                "Call `get_test_runs` with a `run_id` for its simulated calls, each "
-                "with a link (`url`) you can give the person.",
-            ]
-            if results is not None
-            else [
-                "The agent has no runs yet. Start one with `run_scenarios` (a set, a "
-                f"pick or all; {DEFAULT_REPEATS} repeats by default)."
-            ]
-        )
+        assert results is not None  # without `version`, there are always results
+        steps = [
+            *_results_steps(results),
+            "Call `get_test_runs` with a `run_id` for its simulated calls, each with a "
+            "link (`url`) you can give the person.",
+        ]
         if more:
             steps.append(
                 "Call `get_test_runs` again with `cursor` set to `next_cursor` for "

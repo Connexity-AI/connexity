@@ -16,7 +16,7 @@ import uuid
 from collections import Counter
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import JsonValue
 from sqlmodel import Session, col, select
@@ -74,6 +74,7 @@ from app.models.test_run import (
     CoveragePublic,
     RuleTotalPublic,
     RuleVerdict,
+    RunTotalsPublic,
     SimulatedCallPublic,
     SimulatedFinding,
     StoppedCallsPublic,
@@ -82,9 +83,11 @@ from app.models.test_run import (
     TestRunPublic,
     UncheckedRulePublic,
     VerdictPublic,
+    VerifiedVersionPublic,
     VersionResultsPublic,
 )
 from app.models.trace import ToolCallEvent, Trace, TraceEvent, UtteranceEvent
+from app.models.user import User
 from app.services.agent_tool_definitions import snapshot_marks_tool_terminating
 from app.services.checks.engine import current_mode, run_checks
 from app.services.checks.registry import CHECKS, FACT_SOURCES, get_check
@@ -131,6 +134,8 @@ class RunRequest:
     all: bool
     repeats: int
     version: int | None
+    assistant_name: str | None = None
+    session_name: str | None = None
 
 
 # ── Starting a run ────────────────────────────────────────────────
@@ -253,6 +258,8 @@ def start_run(
         set_name=request.set_name if scope is RunScope.SET else None,
         repeats=request.repeats,
         spec_id=spec.id,
+        assistant_name=request.assistant_name,
+        session_name=request.session_name,
         platform_version=str(request.version) if request.version is not None else None,
         config=config.model_dump(mode="json"),
         status=RunStatus.PENDING,
@@ -786,28 +793,157 @@ def _counts(
     )
 
 
-def _summary(
-    run: Run,
-    calls: list[TestCaseResult],
-    totals: list[RuleTotalPublic],
-    spec_versions: dict[uuid.UUID, int],
-) -> TestRunPublic:
-    assert run.scope is not None
-    return TestRunPublic(
-        id=run.id,
-        status=run.status,
-        status_detail=run.status_detail,
-        scope=run.scope,
-        set_name=run.set_name,
-        repeats=run.repeats or 1,
-        spec_version=spec_versions.get(run.spec_id) if run.spec_id else None,
-        platform_version=run.platform_version,
-        created_at=run.created_at,
-        started_at=run.started_at,
-        completed_at=run.completed_at,
-        counts=_counts(calls, totals),
-        cost_usd=_cost(calls),
+@dataclass(frozen=True)
+class _RunFacts:
+    """What a run's views are read from, loaded for many runs at once."""
+
+    run: Run
+    calls: list[TestCaseResult]
+    verdicts: list[RuleVerdict]
+    spec_rules: list[SpecRule]
+    listed: frozenset[str]
+
+
+def _facts(session: Session, runs: list[Run]) -> dict[uuid.UUID, _RunFacts]:
+    ids = [run.id for run in runs]
+    calls = calls_of_runs(session=session, run_ids=ids)
+    verdicts = verdicts_of_runs(session=session, run_ids=ids)
+    spec_rules = rules_of_specs(
+        session=session, spec_ids=list({r.spec_id for r in runs if r.spec_id})
     )
+    listing = rules_of(
+        session=session,
+        test_case_ids=list({c.test_case_id for i in ids for c in calls[i]}),
+    )
+    return {
+        run.id: _RunFacts(
+            run=run,
+            calls=calls[run.id],
+            verdicts=verdicts[run.id],
+            spec_rules=spec_rules.get(run.spec_id, []) if run.spec_id else [],
+            # What the run's scenarios listed: every rule the judge answered (it
+            # answers each listed rule, Didn't come up included), so a scenario edited
+            # later does not rewrite the run; the current lists only add rules of
+            # calls that stopped before a judge.
+            listed=frozenset(v.rule_key for v in verdicts[run.id])
+            | frozenset(
+                key for c in calls[run.id] for key in listing.get(c.test_case_id, [])
+            ),
+        )
+        for run in runs
+    }
+
+
+type RuleMark = Literal["passed", "failed", "flaky", "did_not_come_up", "no_scenario"]
+
+
+def rule_marks(facts: _RunFacts) -> dict[str, RuleMark]:
+    """Each rule of the run's spec, once: Failed when any repeat failed it (Flaky when
+    another passed it), Passed, Didn't come up when no repeat reached it, or no
+    scenario of the run lists it (Dmytro, 2026-11-19: count rules)."""
+    outcomes: dict[str, set[RuleOutcome]] = {}
+    for verdict in facts.verdicts:
+        outcomes.setdefault(verdict.rule_key, set()).add(verdict.outcome)
+    marks: dict[str, RuleMark] = {}
+    for rule in facts.spec_rules:
+        seen = outcomes.get(rule.key, set())
+        if rule.key not in facts.listed:
+            marks[rule.key] = "no_scenario"
+        elif RuleOutcome.FAILED in seen:
+            marks[rule.key] = "flaky" if RuleOutcome.PASSED in seen else "failed"
+        elif RuleOutcome.PASSED in seen:
+            marks[rule.key] = "passed"
+        else:
+            marks[rule.key] = "did_not_come_up"
+    return marks
+
+
+def _run_judgement(
+    facts: _RunFacts,
+) -> tuple[RunTotalsPublic, list[str], list[str]]:
+    """The run's totals, its failed critical rules and its critical code checks."""
+    marks = rule_marks(facts)
+    critical = {rule.key for rule in facts.spec_rules if rule.critical}
+    failed = [k for k, m in marks.items() if m in ("failed", "flaky")]
+    critical_failed = [k for k in failed if k in critical]
+    critical_checks = [c.check_type for c in _check_totals(facts.calls) if c.critical]
+    totals = RunTotalsPublic(
+        rules=len(facts.spec_rules),
+        passed=sum(1 for m in marks.values() if m == "passed"),
+        failed=len(failed),
+        did_not_come_up=sum(1 for m in marks.values() if m == "did_not_come_up"),
+        no_scenario=sum(1 for m in marks.values() if m == "no_scenario"),
+        critical=len(critical_failed) + len(critical_checks),
+        stopped=sum(1 for c in facts.calls if c.error_message),
+    )
+    return totals, critical_failed, critical_checks
+
+
+def _verdict(totals: RunTotalsPublic) -> VersionVerdict:
+    """A full run's verdict (Dmytro, 2026-11-19): Verified only when every spec rule
+    was checked and nothing critical was found; non-critical failures never fail it."""
+    checked = totals.passed + totals.failed
+    if not checked:
+        return VersionVerdict.NOT_VERIFIED
+    if totals.critical:
+        return VersionVerdict.FAILED
+    if checked < totals.rules:
+        return VersionVerdict.PARTIAL
+    return VersionVerdict.VERIFIED
+
+
+def _people(session: Session, runs: list[Run]) -> dict[uuid.UUID, str]:
+    ids = {run.created_by for run in runs if run.created_by}
+    if not ids:
+        return {}
+    return {
+        user.id: user.full_name or user.email
+        for user in session.exec(select(User).where(col(User.id).in_(ids))).all()
+    }
+
+
+def run_views(session: Session, runs: list[Run]) -> list[TestRunPublic]:
+    """Each run as one row: what it is, its totals, and who ran it."""
+    facts = _facts(session, runs)
+    versions = _spec_versions(session, runs)
+    people = _people(session, runs)
+    out: list[TestRunPublic] = []
+    for run in runs:
+        assert run.scope is not None
+        fact = facts[run.id]
+        full = run.scope is RunScope.ALL
+        done = run.status == RunStatus.COMPLETED
+        totals = _run_judgement(fact)[0] if done else None
+        result: Literal["passed", "failed"] | None = None
+        if totals is not None and not full and (totals.passed or totals.failed):
+            result = "failed" if totals.failed or totals.critical else "passed"
+        elif totals is not None and not full and totals.critical:
+            result = "failed"
+        out.append(
+            TestRunPublic(
+                id=run.id,
+                status=run.status,
+                status_detail=run.status_detail,
+                scope=run.scope,
+                set_name=run.set_name,
+                repeats=run.repeats or 1,
+                spec_version=versions.get(run.spec_id) if run.spec_id else None,
+                platform_version=run.platform_version,
+                created_at=run.created_at,
+                started_at=run.started_at,
+                completed_at=run.completed_at,
+                counts=_counts(fact.calls, _rule_totals(fact.verdicts, {})),
+                cost_usd=_cost(fact.calls),
+                full=full,
+                verdict=_verdict(totals) if totals is not None and full else None,
+                result=result,
+                totals=totals,
+                ran_by=people.get(run.created_by) if run.created_by else None,
+                assistant_name=run.assistant_name,
+                session_name=run.session_name,
+            )
+        )
+    return out
 
 
 def _spec_versions(session: Session, runs: list[Run]) -> dict[uuid.UUID, int]:
@@ -825,14 +961,7 @@ def list_runs(
     runs, more = runs_page(
         session=session, agent_id=agent.id, offset=offset, limit=limit
     )
-    ids = [run.id for run in runs]
-    calls = calls_of_runs(session=session, run_ids=ids)
-    verdicts = verdicts_of_runs(session=session, run_ids=ids)
-    versions = _spec_versions(session, runs)
-    return [
-        _summary(run, calls[run.id], _rule_totals(verdicts[run.id], {}), versions)
-        for run in runs
-    ], more
+    return run_views(session, runs), more
 
 
 def simulated_call_url(call_id: uuid.UUID) -> str:
@@ -883,7 +1012,7 @@ def run_detail(
         else {}
     )
     totals = _rule_totals(verdicts, rules)
-    summary = _summary(run, calls, totals, _spec_versions(session, [run]))
+    summary = run_views(session, [run])[0]
     scenario_ids = list(dict.fromkeys(c.test_case_id for c in calls))
     listed = rules_of(session=session, test_case_ids=scenario_ids)
     dropped = sorted(
@@ -942,112 +1071,104 @@ def run_detail(
 
 # ── A version's results ───────────────────────────────────────────
 
-# The version fails when more than this share of the non-critical rules judged failed
-# (`plans/2026-11-17-test-results.md`, question 3; `testing.md` open question 1).
-WARNING_THRESHOLD_PCT = 20
-
-
-def _group_key(run: Run) -> tuple[str | None, str | None]:
-    return run.platform_version, run.version_fingerprint
-
-
-def _verdict_of(
-    totals: list[RuleTotalPublic], checks: list[CheckTotalPublic], tested: bool
-) -> dict[str, Any]:
-    critical_failed = [t.key for t in totals if t.critical and t.failed]
-    critical_checks = [c.check_type for c in checks if c.critical]
-    judged = [t for t in totals if not t.critical and (t.passed or t.failed)]
-    failed = [t for t in judged if t.failed]
-    over = bool(judged) and len(failed) * 100 > WARNING_THRESHOLD_PCT * len(judged)
-    # A verdict needs a rule judged: runs whose simulated calls all failed before a
-    # judge saw them checked nothing, whatever the code checks found on them (Dmytro,
-    # 2026-11-19: "Verdict only happens when all rules checked so not tested"; the
-    # all-rules part comes with the full-run verdict).
-    checked = any(t.passed or t.failed for t in totals)
-    if not tested or not checked:
-        verdict = VersionVerdict.NOT_TESTED
-    elif critical_failed or critical_checks or over:
-        verdict = VersionVerdict.FAILED
-    else:
-        verdict = VersionVerdict.VERIFIED
-    return {
-        "verdict": verdict,
-        "critical_failed": critical_failed,
-        "critical_checks": critical_checks,
-        "warnings": len(failed) + sum(1 for c in checks if not c.critical),
-        "non_critical_judged": len(judged),
-        "non_critical_failed": len(failed),
-        "threshold_pct": WARNING_THRESHOLD_PCT,
-        "over_threshold": over,
-    }
-
 
 @dataclass(frozen=True)
 class VersionUnderTest:
     results: VersionResultsPublic
-    counted: list[Run]
-    calls: list[TestCaseResult]
-    verdicts: list[RuleVerdict]
+    full_run: Run | None
+    marks: dict[str, RuleMark]
+    others: list[Run]
+
+
+def version_number(text: str | None) -> tuple[int, str]:
+    return (int(text), "") if text and text.isdigit() else (-1, text or "")
 
 
 def version_tested(
     session: Session, agent: Agent, version: str | None
-) -> "VersionUnderTest | None":
+) -> VersionUnderTest:
+    """One version's verdict from its latest completed full run, and its runs.
+
+    The version is ``version``, else the agent's live version (its most recent call's),
+    else the newest run's. Runs of a set or a pick are listed but never decide.
+    """
     runs = runs_of_agent(session=session, agent_id=agent.id)
-    if version is not None:
-        runs_of_number = [r for r in runs if r.platform_version == version]
-        if not runs_of_number:
-            return None
-        key = _group_key(runs_of_number[-1])
-    elif runs:
-        key = _group_key(runs[-1])
-    else:
-        return None
-    group = [r for r in runs if _group_key(r) == key]
-    edited = group[0].id in edited_runs(runs)
-    counted = [r for r in group if r.status == RunStatus.COMPLETED]
-    ids = [r.id for r in counted]
-    calls = calls_of_runs(session=session, run_ids=ids)
-    verdicts = verdicts_of_runs(session=session, run_ids=ids)
-    newest_spec = next((r.spec_id for r in reversed(counted) if r.spec_id), None)
-    rules = (
-        {
-            rule.key: rule
-            for rule in rules_of_specs(session=session, spec_ids=[newest_spec]).get(
-                newest_spec, []
-            )
-        }
-        if newest_spec
-        else {}
+    target = (
+        version
+        if version is not None
+        else crud.current_agent_version(session=session, agent_id=agent.id)
+        or (runs[-1].platform_version if runs else None)
     )
-    all_verdicts = [v for i in ids for v in verdicts[i]]
-    totals = _rule_totals(all_verdicts, rules)
-    all_calls = [c for i in ids for c in calls[i]]
-    checks = _check_totals(all_calls)
-    spec_versions = _spec_versions(session, counted)
+
+    # A run started without a version tests the latest, which is the live version
+    # until it pins a number; it belongs here when no version was asked for.
+    def is_mine(run: Run) -> bool:
+        return run.platform_version == target or (
+            version is None and run.platform_version is None
+        )
+
+    mine = [r for r in runs if is_mine(r)]
+    others = [r for r in runs if not is_mine(r)]
+    fulls = [
+        r for r in runs if r.scope is RunScope.ALL and r.status == RunStatus.COMPLETED
+    ]
+    full = next((r for r in reversed(fulls) if is_mine(r)), None)
+    facts = _facts(session, [full]) if full is not None else {}
+    # The newest other version a full run verified: each version's latest full run,
+    # newest first, read one at a time until one verified.
+    last_verified: VerifiedVersionPublic | None = None
+    seen: set[str] = set()
+    for r in reversed(fulls):
+        if r.platform_version is None or is_mine(r) or r.platform_version in seen:
+            continue
+        seen.add(r.platform_version)
+        judged = _run_judgement(_facts(session, [r])[r.id])[0]
+        if _verdict(judged) is VersionVerdict.VERIFIED:
+            last_verified = VerifiedVersionPublic(
+                version=r.platform_version, at=r.completed_at or r.created_at
+            )
+            break
+    views = run_views(session, list(reversed(mine)))
     results = VersionResultsPublic(
-        version=key[0],
-        edited=edited,
-        first_run_at=group[0].created_at,
-        last_run_at=group[-1].created_at,
-        rules=totals,
-        checks=checks,
-        runs=[
-            _summary(
-                run,
-                calls[run.id],
-                _rule_totals(verdicts[run.id], {}),
-                spec_versions,
-            )
-            for run in reversed(counted)
-        ],
-        coverage=coverage_of(session=session, agent=agent, totals=totals),
-        stopped=stopped_calls(all_calls),
-        **_verdict_of(totals, checks, tested=bool(counted)),
+        version=target,
+        verdict=VersionVerdict.NOT_VERIFIED,
+        last_verified=last_verified,
+        runs=views,
+        coverage=coverage_of(session=session, agent=agent),
     )
-    return VersionUnderTest(
-        results=results, counted=counted, calls=all_calls, verdicts=all_verdicts
-    )
+    marks: dict[str, RuleMark] = {}
+    if full is not None:
+        fact = facts[full.id]
+        totals, critical_failed, critical_checks = _run_judgement(fact)
+        marks = rule_marks(fact)
+        categories = crud.categories_by_id(session=session)
+        rules = {rule.key: rule for rule in fact.spec_rules}
+        results.verdict = _verdict(totals)
+        results.full_run = next(v for v in views if v.id == full.id)
+        results.critical_failed = critical_failed
+        results.critical_checks = critical_checks
+        results.rules = _rule_totals(fact.verdicts, rules)
+        results.checks = _check_totals(fact.calls)
+        results.unchecked = sorted(
+            (
+                UncheckedRulePublic(
+                    key=rule.key,
+                    text=rule.text,
+                    category=categories[rule.category_id].name
+                    if rule.category_id in categories
+                    else "Other",
+                    critical=rule.critical,
+                    why="no_scenario"
+                    if marks[rule.key] == "no_scenario"
+                    else "did_not_come_up",
+                )
+                for rule in fact.spec_rules
+                if marks[rule.key] in ("no_scenario", "did_not_come_up")
+            ),
+            key=lambda u: not u.critical,
+        )
+        results.stopped = stopped_calls(fact.calls)
+    return VersionUnderTest(results=results, full_run=full, marks=marks, others=others)
 
 
 def stopped_calls(calls: list[TestCaseResult]) -> StoppedCallsPublic | None:
@@ -1075,52 +1196,46 @@ def _error_kind(message: str) -> str:
     return _ERROR_IDS.sub("", message)
 
 
-def coverage_of(
-    *, session: Session, agent: Agent, totals: list[RuleTotalPublic]
-) -> CoveragePublic | None:
-    """How much of the agent's latest spec ``totals`` checked; ``None`` without a spec.
-
-    A rule is checked when it was judged Passed or Failed at least once. One that was
-    not says why: no scenario lists it, or its scenarios never reached it.
-    """
+def coverage_of(*, session: Session, agent: Agent) -> CoveragePublic | None:
+    """Tests written (Dmytro, 2026-11-19): the share of the agent's latest spec's rules
+    that at least one active scenario lists; ``None`` without a spec."""
     spec = latest_spec(session=session, agent_id=agent.id)
     if spec is None:
         return None
     rules = rules_of_specs(session=session, spec_ids=[spec.id]).get(spec.id, [])
-    judged = {t.key for t in totals if t.passed or t.failed}
     listed = scenarios_by_rule(session=session, agent_id=agent.id)
     categories = crud.categories_by_id(session=session)
-    unchecked = [
-        UncheckedRulePublic(
-            key=rule.key,
-            text=rule.text,
-            category=categories[rule.category_id].name
-            if rule.category_id in categories
-            else "Other",
-            critical=rule.critical,
-            why="did_not_come_up" if listed.get(rule.key) else "no_scenario",
-        )
-        for rule in rules
-        if rule.key not in judged
-    ]
-    unchecked.sort(key=lambda u: not u.critical)
-    checked = len(rules) - len(unchecked)
+    uncovered = sorted(
+        (
+            UncheckedRulePublic(
+                key=rule.key,
+                text=rule.text,
+                category=categories[rule.category_id].name
+                if rule.category_id in categories
+                else "Other",
+                critical=rule.critical,
+                why="no_scenario",
+            )
+            for rule in rules
+            if not listed.get(rule.key)
+        ),
+        key=lambda u: not u.critical,
+    )
+    covered = len(rules) - len(uncovered)
     return CoveragePublic(
         rules=len(rules),
-        checked=checked,
-        pct=(checked * 100 // len(rules)) if rules else 0,
-        unchecked=unchecked,
+        covered=covered,
+        pct=(covered * 100 // len(rules)) if rules else 0,
+        uncovered=uncovered,
     )
 
 
 def version_results(
     *, session: Session, agent: Agent, version: str | None
 ) -> VersionResultsPublic | None:
-    """The results of one tested version: ``version`` by its number, or the version of
-    the newest run. ``None`` when the agent has no such run.
-
-    Runs are grouped by the version number and the content they tested. Every completed
-    run of the group counts: sets, picks and every scenario alike.
-    """
+    """One version's results (see ``version_tested``); ``None`` when ``version`` was
+    given and no run tested it."""
     found = version_tested(session, agent, version)
-    return found.results if found else None
+    if version is not None and not found.results.runs:
+        return None
+    return found.results

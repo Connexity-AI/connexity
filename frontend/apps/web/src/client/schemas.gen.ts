@@ -4012,28 +4012,28 @@ export const CoveragePublicSchema = {
       title: 'Rules',
       description: "Rules in the agent's latest spec",
     },
-    checked: {
+    covered: {
       type: 'integer',
-      title: 'Checked',
+      title: 'Covered',
     },
     pct: {
       type: 'integer',
       title: 'Pct',
-      description: 'Checked rules as a whole percentage',
+      description: 'Covered rules as a whole percentage',
     },
-    unchecked: {
+    uncovered: {
       items: {
         $ref: '#/components/schemas/UncheckedRulePublic',
       },
       type: 'array',
-      title: 'Unchecked',
-      description: 'Critical first',
+      title: 'Uncovered',
+      description: 'Rules no scenario lists, critical first',
     },
   },
   type: 'object',
-  required: ['rules', 'checked', 'pct'],
+  required: ['rules', 'covered', 'pct'],
   title: 'CoveragePublic',
-  description: 'A rule is checked when a run judged it Passed or Failed at least once.',
+  description: 'Tests written: a rule is covered when at least one active scenario lists it.',
 } as const;
 
 export const CustomEndpointRuntimeConfigSchema = {
@@ -5534,98 +5534,6 @@ export const ExpectedToolCallSchema = {
   type: 'object',
   required: ['tool'],
   title: 'ExpectedToolCall',
-} as const;
-
-export const FailingCheckPublicSchema = {
-  properties: {
-    check_type: {
-      type: 'string',
-      title: 'Check Type',
-    },
-    title: {
-      type: 'string',
-      title: 'Title',
-    },
-    critical: {
-      type: 'boolean',
-      title: 'Critical',
-      default: false,
-    },
-    found: {
-      type: 'integer',
-      title: 'Found',
-    },
-    of: {
-      type: 'integer',
-      title: 'Of',
-      description: "Simulated calls the version's runs made",
-    },
-    calls: {
-      items: {
-        $ref: '#/components/schemas/JudgedCallPublic',
-      },
-      type: 'array',
-      title: 'Calls',
-      description: 'At most 20',
-    },
-  },
-  type: 'object',
-  required: ['check_type', 'title', 'found', 'of'],
-  title: 'FailingCheckPublic',
-} as const;
-
-export const FailingRulePublicSchema = {
-  properties: {
-    key: {
-      type: 'string',
-      title: 'Key',
-    },
-    text: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Text',
-    },
-    category: {
-      type: 'string',
-      title: 'Category',
-    },
-    critical: {
-      type: 'boolean',
-      title: 'Critical',
-      default: false,
-    },
-    failed: {
-      type: 'integer',
-      title: 'Failed',
-    },
-    judged: {
-      type: 'integer',
-      title: 'Judged',
-      description: 'Simulated calls that judged it',
-    },
-    flaky: {
-      type: 'boolean',
-      title: 'Flaky',
-      default: false,
-    },
-    calls: {
-      items: {
-        $ref: '#/components/schemas/JudgedCallPublic',
-      },
-      type: 'array',
-      title: 'Calls',
-      description: 'Failed first, at most 20',
-    },
-  },
-  type: 'object',
-  required: ['key', 'category', 'failed', 'judged'],
-  title: 'FailingRulePublic',
 } as const;
 
 export const FakeToolResultPublicSchema = {
@@ -7456,38 +7364,6 @@ export const JudgeVerdictSchema = {
   type: 'object',
   required: ['passed', 'overall_score', 'metric_scores', 'judge_model', 'judge_provider'],
   title: 'JudgeVerdict',
-} as const;
-
-export const JudgedCallPublicSchema = {
-  properties: {
-    id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Id',
-    },
-    scenario_name: {
-      type: 'string',
-      title: 'Scenario Name',
-    },
-    repeat: {
-      type: 'integer',
-      title: 'Repeat',
-    },
-    outcome: {
-      anyOf: [
-        {
-          $ref: '#/components/schemas/RuleOutcome',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      description: "The rule's verdict here; none for a code check",
-    },
-  },
-  type: 'object',
-  required: ['id', 'scenario_name', 'repeat'],
-  title: 'JudgedCallPublic',
 } as const;
 
 export const KeyValueSchema = {
@@ -10311,6 +10187,19 @@ export const McpRunScenariosSchema = {
       title: 'Version',
       description: "The agent's version on its platform; none for the latest",
     },
+    session: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 40,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Session',
+      description: "This session's name, the same on every call in it; shown with the run",
+    },
   },
   type: 'object',
   title: 'McpRunScenarios',
@@ -10783,7 +10672,7 @@ export const McpTestRunsSchema = {
           type: 'null',
         },
       ],
-      description: "Without a run id: the tested version's results across its runs",
+      description: "Without a run id: the version's verdict from its latest full run, and its runs",
     },
     runs: {
       items: {
@@ -12019,25 +11908,6 @@ export const RetellRuntimeConfigSchema = {
     'Retell text runtime.\n\nConnexity owns the user simulator and judge. The Retell runtime will call\nRetell as the agent side via chat APIs once implemented.',
 } as const;
 
-export const RuleGroupPublicSchema = {
-  properties: {
-    category: {
-      type: 'string',
-      title: 'Category',
-    },
-    rules: {
-      items: {
-        $ref: '#/components/schemas/RuleRowPublic',
-      },
-      type: 'array',
-      title: 'Rules',
-    },
-  },
-  type: 'object',
-  required: ['category', 'rules'],
-  title: 'RuleGroupPublic',
-} as const;
-
 export const RuleKeySchema = {
   type: 'string',
   maxLength: 64,
@@ -12048,42 +11918,6 @@ export const RuleOutcomeSchema = {
   enum: ['passed', 'failed', 'did_not_come_up'],
   title: 'RuleOutcome',
   description: "A spec rule's verdict in one simulated call.",
-} as const;
-
-export const RuleRowPublicSchema = {
-  properties: {
-    key: {
-      type: 'string',
-      title: 'Key',
-    },
-    text: {
-      type: 'string',
-      title: 'Text',
-    },
-    critical: {
-      type: 'boolean',
-      title: 'Critical',
-      default: false,
-    },
-    passed: {
-      type: 'integer',
-      title: 'Passed',
-      default: 0,
-    },
-    failed: {
-      type: 'integer',
-      title: 'Failed',
-      default: 0,
-    },
-    did_not_come_up: {
-      type: 'integer',
-      title: 'Did Not Come Up',
-      default: 0,
-    },
-  },
-  type: 'object',
-  required: ['key', 'text'],
-  title: 'RuleRowPublic',
 } as const;
 
 export const RuleTotalPublicSchema = {
@@ -12959,6 +12793,54 @@ export const RunStatusSchema = {
   type: 'string',
   enum: ['pending', 'running', 'completed', 'failed', 'cancelled'],
   title: 'RunStatus',
+} as const;
+
+export const RunTotalsPublicSchema = {
+  properties: {
+    rules: {
+      type: 'integer',
+      title: 'Rules',
+      description: "Rules in the run's spec",
+    },
+    passed: {
+      type: 'integer',
+      title: 'Passed',
+      default: 0,
+    },
+    failed: {
+      type: 'integer',
+      title: 'Failed',
+      default: 0,
+    },
+    did_not_come_up: {
+      type: 'integer',
+      title: 'Did Not Come Up',
+      default: 0,
+    },
+    no_scenario: {
+      type: 'integer',
+      title: 'No Scenario',
+      description: "Rules of the spec that none of the run's scenarios list",
+      default: 0,
+    },
+    critical: {
+      type: 'integer',
+      title: 'Critical',
+      description: 'Critical rules that failed, and critical code checks that found something',
+      default: 0,
+    },
+    stopped: {
+      type: 'integer',
+      title: 'Stopped',
+      description: 'Simulated calls that ended in an error',
+      default: 0,
+    },
+  },
+  type: 'object',
+  required: ['rules'],
+  title: 'RunTotalsPublic',
+  description:
+    "A run's rules, each counted once: Failed when any repeat failed it, Didn't come up\nwhen no repeat reached it (Dmytro, 2026-11-19).",
 } as const;
 
 export const RunUpdateSchema = {
@@ -14144,6 +14026,31 @@ export const SpecPublicSchema = {
       title: 'Versions',
       description: "Every version of the agent's spec, newest first",
     },
+    results_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Results Version',
+      description: 'The live version, whose full run gave `result`',
+    },
+    results_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Results At',
+      description: 'When that full run completed; none without one',
+    },
     comparison: {
       anyOf: [
         {
@@ -14206,8 +14113,7 @@ export const SpecRulePublicSchema = {
     scenarios: {
       type: 'integer',
       title: 'Scenarios',
-      description:
-        'How many active scenarios list it (not coverage: that counts rules a run checked)',
+      description: 'How many active scenarios list it; coverage counts the rules with at least one',
       default: 0,
     },
     answered_by: {
@@ -14239,6 +14145,19 @@ export const SpecRulePublicSchema = {
       title: 'In Conflict',
       description: 'An open or parked clarification replaces this rule',
       default: false,
+    },
+    result: {
+      anyOf: [
+        {
+          type: 'string',
+          enum: ['passed', 'failed', 'flaky', 'did_not_come_up', 'no_scenario'],
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Result',
+      description: "Its result in the live version's latest full run; none without one",
     },
     change: {
       anyOf: [
@@ -14407,6 +14326,31 @@ export const SpecWrittenPublicSchema = {
       type: 'array',
       title: 'Versions',
       description: "Every version of the agent's spec, newest first",
+    },
+    results_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Results Version',
+      description: 'The live version, whose full run gave `result`',
+    },
+    results_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Results At',
+      description: 'When that full run completed; none without one',
     },
     comparison: {
       anyOf: [
@@ -16085,6 +16029,81 @@ export const TestRunDetailPublicSchema = {
       ],
       title: 'Cost Usd',
     },
+    full: {
+      type: 'boolean',
+      title: 'Full',
+      description: 'A run of every scenario: the only kind that decides the verdict',
+      default: false,
+    },
+    verdict: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/VersionVerdict',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: "A completed full run's verdict",
+    },
+    result: {
+      anyOf: [
+        {
+          type: 'string',
+          enum: ['passed', 'failed'],
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Result',
+      description: "A completed on-demand run's result; it never changes the verdict",
+    },
+    totals: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/RunTotalsPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Rules by outcome, once a run has completed',
+    },
+    ran_by: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Ran By',
+      description: 'The person',
+    },
+    assistant_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Assistant Name',
+    },
+    session_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Session Name',
+    },
     rules: {
       items: {
         $ref: '#/components/schemas/RuleTotalPublic',
@@ -16225,6 +16244,81 @@ export const TestRunPublicSchema = {
       ],
       title: 'Cost Usd',
     },
+    full: {
+      type: 'boolean',
+      title: 'Full',
+      description: 'A run of every scenario: the only kind that decides the verdict',
+      default: false,
+    },
+    verdict: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/VersionVerdict',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: "A completed full run's verdict",
+    },
+    result: {
+      anyOf: [
+        {
+          type: 'string',
+          enum: ['passed', 'failed'],
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Result',
+      description: "A completed on-demand run's result; it never changes the verdict",
+    },
+    totals: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/RunTotalsPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Rules by outcome, once a run has completed',
+    },
+    ran_by: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Ran By',
+      description: 'The person',
+    },
+    assistant_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Assistant Name',
+    },
+    session_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Session Name',
+    },
   },
   type: 'object',
   required: ['id', 'status', 'scope', 'repeats', 'created_at', 'counts'],
@@ -16246,6 +16340,7 @@ export const TestsTabPublicSchema = {
           type: 'null',
         },
       ],
+      description: 'The live version, or the newest tested one',
     },
     coverage: {
       anyOf: [
@@ -16257,29 +16352,19 @@ export const TestsTabPublicSchema = {
         },
       ],
     },
-    failing: {
+    earlier: {
       items: {
-        $ref: '#/components/schemas/FailingRulePublic',
+        $ref: '#/components/schemas/VersionRunsPublic',
       },
       type: 'array',
-      title: 'Failing',
-      description: 'Critical first, then warnings',
+      title: 'Earlier',
+      description: 'Runs of other versions, newest version first',
     },
-    failing_checks: {
-      items: {
-        $ref: '#/components/schemas/FailingCheckPublic',
-      },
-      type: 'array',
-      title: 'Failing Checks',
-      description: 'Critical first',
-    },
-    all_rules: {
-      items: {
-        $ref: '#/components/schemas/RuleGroupPublic',
-      },
-      type: 'array',
-      title: 'All Rules',
-      description: "The latest spec's rules by category",
+    running: {
+      type: 'boolean',
+      title: 'Running',
+      description: 'A run of this agent is in progress',
+      default: false,
     },
     sets: {
       items: {
@@ -16299,7 +16384,7 @@ export const TestsTabPublicSchema = {
   type: 'object',
   required: ['has_spec'],
   title: 'TestsTabPublic',
-  description: "The agent's Tests tab: the newest tested version and what checked it.",
+  description: "The agent's Tests tab: the live version's verdict and runs, and the scenarios.",
 } as const;
 
 export const TextRuntimeKindSchema = {
@@ -17488,6 +17573,24 @@ export const VerdictPublicSchema = {
   title: 'VerdictPublic',
 } as const;
 
+export const VerifiedVersionPublicSchema = {
+  properties: {
+    version: {
+      type: 'string',
+      title: 'Version',
+    },
+    at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'At',
+      description: 'When its full run completed',
+    },
+  },
+  type: 'object',
+  required: ['version', 'at'],
+  title: 'VerifiedVersionPublic',
+} as const;
+
 export const VersionResolveResultSchema = {
   properties: {
     calls_resolved: {
@@ -17539,24 +17642,30 @@ export const VersionResultsPublicSchema = {
       title: 'Version',
       description: 'The version number on the platform',
     },
-    edited: {
-      type: 'boolean',
-      title: 'Edited',
-      description: 'An earlier run tested different content under the same number',
-      default: false,
-    },
-    first_run_at: {
-      type: 'string',
-      format: 'date-time',
-      title: 'First Run At',
-    },
-    last_run_at: {
-      type: 'string',
-      format: 'date-time',
-      title: 'Last Run At',
-    },
     verdict: {
       $ref: '#/components/schemas/VersionVerdict',
+    },
+    full_run: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/TestRunPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'The full run that decided the verdict',
+    },
+    last_verified: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/VerifiedVersionPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'The newest other version a full run verified',
     },
     critical_failed: {
       items: {
@@ -17574,40 +17683,13 @@ export const VersionResultsPublicSchema = {
       title: 'Critical Checks',
       description: 'Critical code checks that found something',
     },
-    warnings: {
-      type: 'integer',
-      title: 'Warnings',
-      description: 'Non-critical rules that failed, and code checks that only flagged',
-      default: 0,
-    },
-    non_critical_judged: {
-      type: 'integer',
-      title: 'Non Critical Judged',
-      default: 0,
-    },
-    non_critical_failed: {
-      type: 'integer',
-      title: 'Non Critical Failed',
-      default: 0,
-    },
-    threshold_pct: {
-      type: 'integer',
-      title: 'Threshold Pct',
-      description:
-        'The version fails when more of the non-critical rules judged than this share failed',
-    },
-    over_threshold: {
-      type: 'boolean',
-      title: 'Over Threshold',
-      default: false,
-    },
     rules: {
       items: {
         $ref: '#/components/schemas/RuleTotalPublic',
       },
       type: 'array',
       title: 'Rules',
-      description: 'Failed rules first, critical first',
+      description: "The full run's rules, failed first, critical first",
     },
     checks: {
       items: {
@@ -17616,13 +17698,21 @@ export const VersionResultsPublicSchema = {
       type: 'array',
       title: 'Checks',
     },
+    unchecked: {
+      items: {
+        $ref: '#/components/schemas/UncheckedRulePublic',
+      },
+      type: 'array',
+      title: 'Unchecked',
+      description: "Rules of the full run's spec it did not check, critical first",
+    },
     runs: {
       items: {
         $ref: '#/components/schemas/TestRunPublic',
       },
       type: 'array',
       title: 'Runs',
-      description: 'The runs that count, newest first',
+      description: 'Every run of this version, newest first',
     },
     coverage: {
       anyOf: [
@@ -17633,7 +17723,7 @@ export const VersionResultsPublicSchema = {
           type: 'null',
         },
       ],
-      description: "The latest spec's rules these runs checked",
+      description: "Tests written: the latest spec's rules a scenario lists",
     },
     stopped: {
       anyOf: [
@@ -17644,21 +17734,47 @@ export const VersionResultsPublicSchema = {
           type: 'null',
         },
       ],
-      description: 'Simulated calls that ended in an error and gave no verdicts',
+      description: "The full run's simulated calls that ended in an error",
     },
   },
   type: 'object',
-  required: ['first_run_at', 'last_run_at', 'verdict', 'threshold_pct'],
+  required: ['verdict'],
   title: 'VersionResultsPublic',
   description:
-    'What every completed run of one tested version says, together.\n\nA version is its number and the content it had: an unpublished version edited\nunder the same number is a new one (``edited``).',
+    "One version's verdict, read from its latest completed full run (Dmytro,\n2026-11-19): runs of a set or a pick never change it.",
+} as const;
+
+export const VersionRunsPublicSchema = {
+  properties: {
+    version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version',
+    },
+    runs: {
+      items: {
+        $ref: '#/components/schemas/TestRunPublic',
+      },
+      type: 'array',
+      title: 'Runs',
+    },
+  },
+  type: 'object',
+  required: ['runs'],
+  title: 'VersionRunsPublic',
 } as const;
 
 export const VersionVerdictSchema = {
   type: 'string',
-  enum: ['failed', 'verified', 'not_tested'],
+  enum: ['failed', 'verified', 'partial', 'not_verified'],
   title: 'VersionVerdict',
-  description: "What a version's runs of scenarios say about it.",
+  description: "What a version's latest full run of scenarios says about it (Dmytro,\n2026-11-19).",
 } as const;
 
 export const WebhookResultSchema = {

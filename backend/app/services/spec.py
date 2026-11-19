@@ -30,6 +30,7 @@ from app.models.spec import (
     SpecWrittenPublic,
 )
 from app.models.user import User
+from app.services.test_run import RuleMark, version_tested
 
 MAX_RULES = 500
 type RuleChange = Literal["kept", "added", "dropped"]
@@ -132,6 +133,8 @@ def spec_answer(
     summary = None
     counts = None
     comparison = None
+    results_version: str | None = None
+    results_at: datetime | None = None
     if spec is not None:
         rules = crud.spec_rules(session=session, spec_id=spec.id)
         old_rules = (
@@ -152,6 +155,15 @@ def spec_answer(
         answers = _answers(session, rules + dropped)
         listed = scenarios_by_rule(session=session, agent_id=agent.id)
 
+        # Each rule's result in the live version's latest full run, on the latest
+        # spec only: an older version's keys may mean other words.
+        marks: dict[str, RuleMark] = {}
+        if latest is not None and spec.id == latest.id:
+            tested = version_tested(session, agent, None)
+            results_version = tested.results.version
+            results_at = tested.full_run.completed_at if tested.full_run else None
+            marks = tested.marks
+
         def public(r: SpecRule, change: RuleChange | None) -> SpecRulePublic:
             who, when = (
                 answers.get(r.clarification_id, (None, None))
@@ -170,6 +182,7 @@ def spec_answer(
                 answered_at=when,
                 in_conflict=change != "dropped" and r.key in conflicts,
                 change=change,
+                result=marks.get(r.key) if change != "dropped" else None,
             )
 
         def change_of(r: SpecRule) -> RuleChange | None:
@@ -226,6 +239,8 @@ def spec_answer(
         counts=counts,
         versions=versions,
         comparison=comparison,
+        results_version=results_version,
+        results_at=results_at,
     )
 
 

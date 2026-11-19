@@ -70,7 +70,8 @@ do not approve them: a person who disagrees asks you to change one.
   200 simulated calls.
 - **`version`** picks the agent's version on its platform. The default is the latest
   one, the one being edited.
-- **Run a set or a pick while you work on a change.** Run `all` before a release.
+- **Run a set or a pick while you work on a change.** Run `all` to verify a version:
+  only a full run decides its verdict.
 - **The run happens in the background.** Call `get_test_runs` with its `run_id` until
   it is completed.
 - **No real tool runs:**
@@ -104,25 +105,26 @@ do not approve them: a person who disagrees asks you to change one.
 
 ## A version's results
 
-- **`get_test_runs` without `run_id`** answers a tested version's results: the newest
-  tested by default, or `version`.
-- **A version is its number and its content.** On Retell a draft is edited under the
-  same number, so runs of the edited content start a new set of results (`edited`).
-- **Every completed run of the version counts:** sets, picks and every scenario. The
-  totals per rule add up across all of them.
-- **The verdict:**
-  - **Failed** when, with at least one rule judged, a critical rule failed (flaky included), when a critical code check
-    found something, or when more than the threshold (`threshold_pct`) of the
-    non-critical rules judged failed;
-  - **Verified** otherwise, with its warnings (non-critical rules that failed, and code
-    checks that only flag);
-  - **Not tested** until a run of it completes and judges at least one rule. Runs
-    that judged no rule give no verdict, whatever the code checks found.
-- **`stopped`** counts the simulated calls that ended in an error, with the most common
-  error and a run to open. They gave no verdicts.
+- **`get_test_runs` without `run_id`** answers one version's results: the agent's live
+  version by default, or `version`.
+- **Only a full run decides the verdict.** A run of `all` is full; a set or a pick is on
+  demand and never changes it. The verdict comes from the version's latest completed
+  full run:
+  - **Verified:** every rule of the spec checked (Passed or Failed) and nothing
+    critical found. Non-critical failures do not fail it; tell the person which;
+  - **Failed:** a critical rule failed (flaky included) or a critical code check found
+    something;
+  - **Partially tested:** nothing critical, but some rule was not checked (`unchecked`
+    says whether it didn't come up or has no scenario);
+  - **Not verified:** no completed full run of this version, or one that judged no
+    rule. `last_verified` names the newest other version a full run verified.
+- **Each run** has its `totals`: rules passed, failed, didn't come up and without a
+  scenario, each counted once per run; critical findings; calls stopped. And who ran it:
+  the person, the assistant, the session (`session` on `run_scenarios`).
+- **`stopped`** counts the full run's simulated calls that ended in an error, with the
+  most common error and a run to open. They gave no verdicts.
 - **Show the person a simulated call** with its `url`: it opens on the call screen,
   with the rules it was judged on.
-- **Coverage** (`coverage`) is the share of the latest spec's rules the version's runs
-  judged Passed or Failed at least once. Each rule not checked says why: no scenario
-  lists it, or its scenarios never reached it. Critical rules come first.
-
+- **Coverage** (`coverage`) is tests written: the share of the latest spec's rules that
+  at least one active scenario lists. `coverage.uncovered` lists the rest, critical
+  first.
