@@ -119,6 +119,10 @@ class McpAgent(BaseModel):
         default=None, description="Against the previous period of the same length"
     )
     calls: int | None = Field(default=None, description="Calls in the period")
+    critical_issues: int = Field(
+        default=0,
+        description="Open or reopened critical issues that showed in the period",
+    )
     latency_p50: float | None = Field(
         default=None, description="p50 over every reply in the period, in seconds"
     )

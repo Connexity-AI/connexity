@@ -18,6 +18,8 @@ from app.models.agent_list import (
 )
 from app.models.call import Call
 from app.models.component_version import ComponentVersion
+from app.services.issue_list import critical_issues_by_agent
+from app.services.score import scores_by_agent
 from app.services.spec import spec_state
 
 _TYPES: dict[str, AgentType] = {
@@ -103,6 +105,10 @@ def workspace_agents(
     latency = agent_gap_percentiles(
         session=session, agent_ids=ids, since=period_start(period)
     )
+    scores = scores_by_agent(session=session, company_id=company_id, period=period)
+    critical = critical_issues_by_agent(
+        session=session, company_id=company_id, period=period
+    )
     rows = [
         AgentListItemPublic(
             id=agent.id,
@@ -110,6 +116,9 @@ def workspace_agents(
             platform=agent.platform,
             type=types.get(agent.id),
             calls=calls.get(agent.id, 0),
+            score=scores.get(agent.id, (None, None))[0],
+            score_change=scores.get(agent.id, (None, None))[1],
+            critical_issues=critical.get(agent.id, 0),
             latency_p50=latency[agent.id].p50 if agent.id in latency else None,
             latency_p95=latency[agent.id].p95 if agent.id in latency else None,
             live_version=currents.get(agent.id),
@@ -120,7 +129,16 @@ def workspace_agents(
         )
         for agent in agents
     ]
-    rows.sort(key=lambda r: (-r.calls, r.name.lower()))
+    # Lowest score first, so the agents that need attention come first (Dmytro,
+    # 2026-11-19); agents without a score after, most calls first.
+    rows.sort(
+        key=lambda r: (
+            r.score is None,
+            r.score if r.score is not None else 0,
+            -r.calls,
+            r.name.lower(),
+        )
+    )
     return AgentListPublic(
         data=rows,
         period=period,

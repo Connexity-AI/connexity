@@ -21,6 +21,8 @@ from app.models.agent_page import (
 from app.models.call import Call, CallComponent
 from app.models.component_version import ComponentVersion
 from app.services.agent_list import agent_types, live_since
+from app.services.issue_list import critical_issues_by_agent
+from app.services.score import score
 from app.services.spec import spec_state
 
 
@@ -154,6 +156,21 @@ def agent_page(
         latency_days=days,
         latency_peak=max(peaks) if peaks else None,
         version_marks=marks,
+        score=score(
+            session=session,
+            company_id=agent.company_id,
+            period=period,
+            agent_id=agent.id,
+            version=version,
+            with_moves=False,
+        ),
+        critical_issues=critical_issues_by_agent(
+            session=session,
+            company_id=agent.company_id,
+            period=period,
+            agent_id=agent.id,
+            version=version,
+        ).get(agent.id, 0),
         versions=agent_versions(session=session, agent=agent, live=live),
         version=version,
         version_days=version_days,

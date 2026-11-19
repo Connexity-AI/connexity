@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from app.models.agent_list import AgentType, Period
 from app.models.enums import Platform
+from app.models.score import ScorePublic
 from app.models.spec import SpecState
 
 
@@ -70,6 +71,16 @@ class AgentPagePublic(BaseModel):
     )
     version_marks: list[AgentVersionMarkPublic] = Field(
         description="Each new agent version that started in the period"
+    )
+    score: ScorePublic | None = Field(
+        default=None,
+        description="The agent's score for the period and its change (why_none when it "
+        "has none); on the picked version's calls with a version",
+    )
+    critical_issues: int = Field(
+        default=0,
+        description="Open or reopened critical issues that showed in the period; on "
+        "the picked version's calls with a version",
     )
     versions: list[AgentVersionOptionPublic] = Field(
         default_factory=list,

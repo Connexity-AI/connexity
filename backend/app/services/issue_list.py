@@ -233,3 +233,28 @@ def _kind_of(check_type: str) -> CheckKind:
     """How a check decides, for an issue with no findings left to say so."""
     check = get_check(check_type)
     return check.kind if check else CheckKind.CODE_BASED
+
+
+def critical_issues_by_agent(
+    *,
+    session: Session,
+    company_id: uuid.UUID,
+    period: IssuePeriod,
+    agent_id: uuid.UUID | None = None,
+    version: str | None = None,
+) -> dict[uuid.UUID, int]:
+    """Each agent's open or reopened critical issues that showed in the period, as the
+    Issues page's Critical tile counts them; on agent version ``version`` when given
+    (plan `plans/2026-11-19-agents-score-critical.md`). One pass for all agents."""
+    _page, matching = workspace_issues(
+        session=session,
+        company_id=company_id,
+        filters=IssueFilters(
+            period=period, agent_id=agent_id, status="open", version=version
+        ),
+    )
+    counts: dict[uuid.UUID, int] = {}
+    for item in matching:
+        if item.severity == "critical" and item.state in LIVE_STATES:
+            counts[item.agent_id] = counts.get(item.agent_id, 0) + 1
+    return counts

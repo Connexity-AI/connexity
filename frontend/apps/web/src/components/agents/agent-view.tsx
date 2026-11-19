@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
-import { ArrowLeft, Calendar, Layers } from 'lucide-react';
+import { ArrowLeft, Calendar, Layers, OctagonAlert } from 'lucide-react';
 
 import { NumberTile } from '@workspace/ui/components/number-tile';
 import { cn } from '@workspace/ui/lib/utils';
@@ -100,10 +100,7 @@ const LatencyChart: FC<{ agent: AgentPagePublic }> = ({ agent }) => {
             aria-hidden
           >
             {days.map((d) => (
-              <span
-                key={d.day}
-                className={cn(picked.has(d.day) && 'rounded bg-wash')}
-              />
+              <span key={d.day} className={cn(picked.has(d.day) && 'rounded bg-wash')} />
             ))}
           </div>
         )}
@@ -178,6 +175,77 @@ const LatencyChart: FC<{ agent: AgentPagePublic }> = ({ agent }) => {
   );
 };
 
+/** The agent's score for the period with its change, or why there is none, as the
+ * Dashboard's Score tile reads it. Its base (checked calls) is on hover. */
+const ScoreTile: FC<{ agent: AgentPagePublic }> = ({ agent }) => {
+  const score = agent.score;
+  const change = score?.change;
+  return (
+    <div
+      title={
+        score?.score != null
+          ? `${score.checked_calls.toLocaleString()} checked calls in the period`
+          : undefined
+      }
+      className="flex min-w-0 flex-col gap-2 rounded-xl border border-hairline bg-surface-1 p-4"
+    >
+      <span className="text-label text-ink-secondary">Score</span>
+      {score?.score != null ? (
+        <span className="flex items-baseline gap-2">
+          <span className="text-[30px] leading-9 font-medium">{score.score}</span>
+          {change != null && (
+            <span className="whitespace-nowrap text-label font-medium text-ink-secondary">
+              {change > 0 ? '+' : change < 0 ? '−' : '±'}
+              {Math.abs(change)}
+            </span>
+          )}
+        </span>
+      ) : (
+        <span className="flex min-h-9 items-center text-label text-pretty text-ink-secondary">
+          {!score || score.why_none?.includes('onboarding')
+            ? 'Ready when onboarding is complete'
+            : 'No checked calls yet'}
+        </span>
+      )}
+    </div>
+  );
+};
+
+/** The agent's critical issues. It opens them on the Issues page; with a version picked
+ * it is not a link, since the Issues page counts every version's calls. */
+const CriticalTile: FC<{ agent: AgentPagePublic }> = ({ agent }) => {
+  const count = agent.critical_issues ?? 0;
+  const body = (
+    <>
+      <span
+        className={cn(
+          'flex items-center gap-1.5 text-label',
+          count ? 'text-critical' : 'text-ink-secondary'
+        )}
+      >
+        {count ? <OctagonAlert className="size-3.5" aria-hidden /> : null}
+        {agent.version ? `Critical issues on version ${agent.version}` : 'Critical issues'}
+      </span>
+      <span
+        className={cn('text-[30px] leading-9 font-medium', count ? 'text-critical' : undefined)}
+      >
+        {count.toLocaleString()}
+      </span>
+    </>
+  );
+  const box = 'flex min-w-0 flex-col gap-2 rounded-xl border border-hairline bg-surface-1 p-4';
+  return agent.version ? (
+    <div className={box}>{body}</div>
+  ) : (
+    <Link
+      href={UrlGenerator.criticalIssues(agent.id, agent.period)}
+      className={cn(box, 'text-ink no-underline hover:bg-wash')}
+    >
+      {body}
+    </Link>
+  );
+};
+
 const Overview: FC<{ agent: AgentPagePublic }> = ({ agent }) => (
   <div className="flex flex-col gap-6">
     {agent.version && agent.calls === 0 && (
@@ -185,7 +253,8 @@ const Overview: FC<{ agent: AgentPagePublic }> = ({ agent }) => (
         No calls on version {agent.version} in the {PERIOD_LABELS[agent.period]?.toLowerCase()}.
       </p>
     )}
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid auto-rows-fr grid-cols-2 gap-3 lg:grid-cols-4">
+      <ScoreTile agent={agent} />
       <NumberTile
         label={agent.version ? `Calls on version ${agent.version}` : 'Calls'}
         value={agent.calls.toLocaleString()}
@@ -210,6 +279,7 @@ const Overview: FC<{ agent: AgentPagePublic }> = ({ agent }) => (
           </span>
         )}
       </div>
+      <CriticalTile agent={agent} />
     </div>
     <section className="flex flex-col gap-4 rounded-xl border border-hairline bg-surface-1 px-6 pt-5 pb-6">
       <h2 className="m-0 text-body font-medium">Details</h2>
@@ -277,7 +347,7 @@ interface Props {
 
 /**
  * One agent (designs/screens/Connexity Agent Profile.dc.html): Overview, Calls, Spec and
- * Tests. The Issues tab, score and critical issues wait for their features (rule 14).
+ * Tests. The Issues tab waits for its feature (rule 14).
  */
 export const AgentView: FC<Props> = ({ agent, tab, spec, tests, children }) => {
   const router = useRouter();
@@ -338,7 +408,8 @@ export const AgentView: FC<Props> = ({ agent, tab, spec, tests, children }) => {
                   label: `Version ${v.version}${v.live ? ' · live' : ''}`,
                 })),
                 // A version from a link that has no calls still shows as picked.
-                ...(agent.version && !(agent.versions ?? []).some((v) => v.version === agent.version)
+                ...(agent.version &&
+                !(agent.versions ?? []).some((v) => v.version === agent.version)
                   ? [{ value: agent.version, label: `Version ${agent.version}` }]
                   : []),
               ]}
