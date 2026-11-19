@@ -2580,6 +2580,12 @@ def _results_steps(results: VersionResultsPublic) -> list[str]:
 
 def _verdict_steps(results: VersionResultsPublic) -> list[str]:
     name = _version_name(results)
+    if results.verdict is VersionVerdict.NOT_TESTED and results.runs:
+        return [
+            f"{name}'s runs completed but checked no rule: their simulated calls ended "
+            "before a judge could read them. Open a run with `get_test_runs` and its "
+            "run_id to see each call's error, fix the cause, then run again."
+        ]
     if results.verdict is VersionVerdict.NOT_TESTED:
         return [
             f"{name} has no completed run yet. Wait for its runs, or start one with "
