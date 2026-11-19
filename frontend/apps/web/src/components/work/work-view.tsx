@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useState, useTransition } from 'react';
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -31,6 +32,7 @@ import { moveWorkTaskAction } from '@/actions/work';
 import { timeLabel } from '@/components/calls/format';
 import { ConnectAssistant } from '@/components/readiness/connect-assistant';
 import { QuestionCards } from '@/components/work/question-cards';
+import { WORK_POLL_MS, WORK_WAITING_KEY, workQuery } from '@/components/work/work-query';
 import { isErrorApiResult } from '@/utils/api';
 
 import type {
@@ -516,7 +518,24 @@ const Panel: FC<{
 const plural = (n: number, word: string) => `${n} ${n === 1 ? word : `${word}s`}`;
 
 /** Work (designs/screens/Connexity Work.dc.html), read only. */
-export const WorkView: FC<{ work: WorkPublic }> = ({ work }) => {
+export const WorkView: FC = () => {
+  const [dragKey, setDragKey] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  // Reloads every 10 seconds while the tab is visible, at once on focus, never mid-drag.
+  const {
+    data: work,
+    refetch,
+    dataUpdatedAt,
+  } = useSuspenseQuery({
+    ...workQuery(),
+    refetchInterval: dragKey ? false : WORK_POLL_MS,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+  });
+  // The sidebar's count follows each reload.
+  useEffect(() => {
+    queryClient.setQueryData(WORK_WAITING_KEY, work.waiting);
+  }, [queryClient, work.waiting]);
   const [selected, setSelected] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [doneOpen, setDoneOpen] = useState(false);
@@ -531,22 +550,21 @@ export const WorkView: FC<{ work: WorkPublic }> = ({ work }) => {
   const [optimistic, setOptimistic] = useState<{ basedOn: WorkPublic; keys: string[] } | null>(
     null
   );
-  const [dragKey, setDragKey] = useState<string | null>(null);
   const [drop, setDrop] = useState<{ key: string; after: boolean } | null>(null);
   const [moveError, setMoveError] = useState<string | null>(null);
-  // When this list came from the server, and the clock that ages it.
-  const [loadedAt, setLoadedAt] = useState(() => Date.now());
+  // The clock that ages "Updated N min ago"; each reload stamps dataUpdatedAt.
   const [now, setNow] = useState(() => Date.now());
-  const [refreshing, startRefresh] = useTransition();
   useEffect(() => {
-    setLoadedAt(Date.now());
     setNow(Date.now());
-  }, [work]);
-  useEffect(() => {
     const tick = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(tick);
-  }, []);
-  const refresh = () => startRefresh(() => router.refresh());
+  }, [dataUpdatedAt]);
+  const [refreshing, setRefreshing] = useState(false);
+  const refresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
 
   const all = [...work.in_progress, ...work.to_do];
   const byKey = new Map(all.map((task) => [task.key, task]));
@@ -578,7 +596,7 @@ export const WorkView: FC<{ work: WorkPublic }> = ({ work }) => {
         const detail = (result.error as { detail?: unknown } | undefined)?.detail;
         setMoveError(typeof detail === 'string' ? detail : 'That move did not go through.');
       }
-      router.refresh();
+      await refetch();
     });
   };
   const hover = hovered ? byKey.get(hovered) : undefined;
@@ -668,10 +686,10 @@ export const WorkView: FC<{ work: WorkPublic }> = ({ work }) => {
         caption={caption}
         actions={
           <span className="flex items-center gap-2 text-label text-ink-muted">
-            {updatedLabel(loadedAt, now)}
+            {updatedLabel(dataUpdatedAt, now)}
             <button
               type="button"
-              onClick={refresh}
+              onClick={() => void refresh()}
               disabled={refreshing}
               aria-label="Refresh"
               className="flex size-8 items-center justify-center rounded-md border-0 bg-transparent text-ink-secondary hover:bg-wash hover:text-ink"

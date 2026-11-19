@@ -2,10 +2,12 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { cn } from '@workspace/ui/lib/utils';
 
 import { answerQuestionsAction, openQuestionsAction } from '@/actions/clarifications';
+import { WORK_KEY } from '@/components/work/work-query';
 import { isErrorApiResult } from '@/utils/api';
 
 import type { CardAnswer } from '@/actions/clarifications';
@@ -32,6 +34,7 @@ interface Props {
  */
 export const QuestionCards: FC<Props> = ({ agentId, onClose }) => {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [questions, setQuestions] = useState<ClarificationPublic[] | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [at, setAt] = useState(0);
@@ -67,6 +70,8 @@ export const QuestionCards: FC<Props> = ({ agentId, onClose }) => {
         return;
       }
       onClose();
+      // The answered questions leave Work's list now, not at its next reload.
+      void queryClient.invalidateQueries({ queryKey: WORK_KEY });
       router.refresh();
     });
   };
