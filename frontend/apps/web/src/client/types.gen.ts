@@ -8807,6 +8807,28 @@ export type RuntimeTestResult = {
 };
 
 /**
+ * SameContentPublic
+ */
+export type SameContentPublic = {
+  /**
+   * Version
+   *
+   * The version number its full run tested
+   */
+  version: string;
+  /**
+   * Run Id
+   */
+  run_id: string;
+  /**
+   * At
+   *
+   * When that full run completed
+   */
+  at: string;
+};
+
+/**
  * ScenarioCountsPublic
  */
 export type ScenarioCountsPublic = {
@@ -11636,6 +11658,16 @@ export type VersionResultsPublic = {
    * The version number on the platform
    */
   version?: string | null;
+  /**
+   * Edited Since
+   *
+   * When its last full run ran, when the version was edited after it: that run no longer counts
+   */
+  edited_since?: string | null;
+  /**
+   * When the verdict comes from another version with the same content
+   */
+  same_content?: SameContentPublic | null;
   /**
    * Live Version
    *

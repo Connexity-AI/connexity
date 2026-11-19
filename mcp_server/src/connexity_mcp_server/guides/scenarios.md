@@ -109,6 +109,11 @@ do not approve them: a person who disagrees asks you to change one.
 - **`get_test_runs` without `run_id`** answers one version's results: the newest
   tested version by default, live or not (a draft ahead of the live one is tested
   before it goes live), or `version`. `live` gives the live version's state beside it.
+- **Verified belongs to the content that passed.** On Retell a draft is edited under
+  the same number: a version is judged by the latest full run of what it does now (its
+  newest run's content). Edited after its full run, it is not verified until a new full
+  run (`edited_since`). The same content under another number is judged by that
+  number's full run (`same_content`).
 - **Only a full run decides the verdict.** A run of `all` is full; a set or a pick is on
   demand and never changes it. The verdict comes from the version's latest completed
   full run:
