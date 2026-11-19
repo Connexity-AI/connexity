@@ -2468,6 +2468,10 @@ _TEST_RUN_RULES = [
     "A run counts rules, each once: Failed when any repeat failed it, Didn't come up "
     "when no judged repeat reached it. Calls that stopped with an error count in no "
     "column; a run no judge read has no result.",
+    "Verified belongs to the content that passed: a version is judged by the latest "
+    "full run of what it does now (its newest run's content), under any version "
+    "number (`same_content`). A version edited after its full run is not verified "
+    "until a new full run (`edited_since`).",
     "Without `version`, results follow the newest tested version, live or not; `live` "
     "gives the live version's state beside it. Every run stores the version it "
     "tested.",
@@ -2501,9 +2505,7 @@ async def run_agent_scenarios(
 ) -> McpAnswer[McpStartedRun]:
     agent = _mcp_agent_in(session, workspace, agent_id)
     try:
-        version = await version_to_test(
-            session=session, agent=agent, asked=body.version
-        )
+        tested = await version_to_test(session=session, agent=agent, asked=body.version)
         run = start_run(
             session=session,
             agent=agent,
@@ -2513,7 +2515,8 @@ async def run_agent_scenarios(
                 scenario_ids=body.scenario_ids,
                 all=body.all,
                 repeats=body.repeats,
-                version=version,
+                version=tested.number,
+                fingerprint=tested.fingerprint,
                 assistant_name=assistant,
                 session_name=(body.session or "").strip() or None,
             ),
@@ -2672,11 +2675,23 @@ def _verdict_steps(results: VersionResultsPublic) -> list[str]:
                 "Fix why its calls stopped, then run every scenario again "
                 "(`run_scenarios` with `all`)."
             ]
+        if results.edited_since is not None:
+            return [
+                f"{name} is not verified: it was edited after its full run of "
+                f"{results.edited_since:%d %b %H:%M}, so that run no longer counts. Run "
+                "every scenario again (`run_scenarios` with `all`) to verify what it "
+                "does now."
+            ]
         return [
             f"{name} is not verified: it has no completed full run.{earlier} Run every "
             "scenario on it (`run_scenarios` with `all`): only a full run verifies a "
             "version."
         ]
+    by = "its full run"
+    if results.same_content is not None:
+        same = results.same_content
+        by = f"version {same.version}'s full run of the same content"
+        when = f" (run {same.run_id}, {same.at:%d %b %H:%M})"
     if results.verdict is VersionVerdict.FAILED:
         why = []
         if results.critical_failed:
@@ -2690,7 +2705,7 @@ def _verdict_steps(results: VersionResultsPublic) -> list[str]:
                 f"{', '.join(results.critical_checks)} found problems"
             )
         return [
-            f"{name} failed in its full run{when}: {'; '.join(why)}.",
+            f"{name} failed in {by}{when}: {'; '.join(why)}.",
             "For each, open a failing simulated call (`get_test_runs` with the run's "
             "`run_id`) and read the reason. If the scenario is wrong, fix it with "
             "`write_scenarios`; otherwise tell the person what failed and what you "
@@ -2700,7 +2715,7 @@ def _verdict_steps(results: VersionResultsPublic) -> list[str]:
     if results.verdict is VersionVerdict.PARTIAL:
         keys = ", ".join(u.key for u in results.unchecked[:5])
         return [
-            f"{name} is partially tested: its full run{when} found nothing critical, "
+            f"{name} is partially tested: {by}{when} found nothing critical, "
             f"but {len(results.unchecked)} "
             f"{'rule was' if len(results.unchecked) == 1 else 'rules were'} not checked "
             f"({keys}; `unchecked` says why). Write scenarios that reach them, or "
@@ -2709,7 +2724,7 @@ def _verdict_steps(results: VersionResultsPublic) -> list[str]:
         ]
     failed = sum(1 for r in results.rules if r.failed)
     return [
-        f"{name} is verified by its full run{when}: every rule checked, nothing "
+        f"{name} is verified by {by}{when}: every rule checked, nothing "
         "critical found"
         + (
             f"; {failed} non-critical {'rule' if failed == 1 else 'rules'} failed, so "

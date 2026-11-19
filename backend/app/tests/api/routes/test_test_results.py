@@ -16,6 +16,7 @@ from sqlmodel import Session, select
 
 from app.models import Agent, User
 from app.models.enums import VersionVerdict
+from app.models.run import Run
 from app.models.test_case_result import TestCaseResult
 from app.models.test_run import RunTotalsPublic
 from app.services.test_run import _verdict as full_run_verdict
@@ -447,3 +448,118 @@ def test_a_full_runs_verdict() -> None:
     assert (
         full_run_verdict(totals(critical=1, stopped=3)) is VersionVerdict.NOT_VERIFIED
     )
+
+
+def test_an_edit_after_the_full_run_unverifies_until_a_new_full_run(
+    client: TestClient, db: Session
+) -> None:
+    user, _ = _signed_in(client, db)
+    agent, keys = _ready(db, client, user)
+    both = [keys[PRICE], keys[BOOKING]]
+    scenario = _scenarios(client, user, agent, _price(keys, rules=both)).json()["data"][
+        "scenarios"
+    ][0]
+    passing = _both({keys[PRICE]: "passed", keys[BOOKING]: "passed"})
+
+    _run(client, user, agent, "", "", prompt="Never quote.", judge=passing)
+    assert _runs(client, user, agent).json()["data"]["results"]["verdict"] == (
+        "verified"
+    )
+
+    # The draft is edited under the same number; a pick runs on the new content.
+    _run(
+        client,
+        user,
+        agent,
+        "",
+        "",
+        prompt="Never quote, and greet first.",
+        scope={"scenario_ids": [scenario["id"]]},
+        judge=_both({keys[PRICE]: "passed", keys[BOOKING]: "passed"}),
+    )
+    body = _runs(client, user, agent).json()
+    results = body["data"]["results"]
+    assert results["verdict"] == "not_verified"
+    assert results["edited_since"] is not None
+    assert results["full_run"] is None
+    assert "edited after its full run" in body["next_steps"][0]
+
+    # A full run of the new content verifies it again.
+    again = _run(
+        client,
+        user,
+        agent,
+        "",
+        "",
+        prompt="Never quote, and greet first.",
+        judge=_both({keys[PRICE]: "passed", keys[BOOKING]: "passed"}),
+    )
+    results = _runs(client, user, agent).json()["data"]["results"]
+    assert (results["verdict"], results["full_run"]["id"]) == ("verified", again)
+    assert results["edited_since"] is None
+
+
+def test_the_same_content_under_another_number_is_verified(
+    client: TestClient, db: Session
+) -> None:
+    user, _ = _signed_in(client, db)
+    agent, keys = _ready(db, client, user)
+    both = [keys[PRICE], keys[BOOKING]]
+    scenario = _scenarios(client, user, agent, _price(keys, rules=both)).json()["data"][
+        "scenarios"
+    ][0]
+
+    verified = _run(
+        client,
+        user,
+        agent,
+        "",
+        "",
+        judge=_both({keys[PRICE]: "passed", keys[BOOKING]: "passed"}),
+    )
+    # Version 16 has the same content; only a pick runs on it.
+    _run(
+        client,
+        user,
+        agent,
+        "",
+        "",
+        scope={"scenario_ids": [scenario["id"]], "version": 16},
+        judge=_both({keys[PRICE]: "passed", keys[BOOKING]: "passed"}),
+    )
+
+    body = _runs(client, user, agent).json()
+    results = body["data"]["results"]
+    assert results["version"] == "16"
+    assert results["verdict"] == "verified"
+    assert results["same_content"]["version"] == "15"
+    assert results["same_content"]["run_id"] == verified
+    assert results["full_run"]["id"] == verified
+    assert "version 15's full run of the same content" in body["next_steps"][0]
+
+
+def test_a_run_whose_content_is_unknown_is_not_an_edit(
+    client: TestClient, db: Session
+) -> None:
+    user, _ = _signed_in(client, db)
+    agent, keys = _ready(db, client, user)
+    both = [keys[PRICE], keys[BOOKING]]
+    _scenarios(client, user, agent, _price(keys, rules=both))
+    full = _run(
+        client,
+        user,
+        agent,
+        "",
+        "",
+        judge=_both({keys[PRICE]: "passed", keys[BOOKING]: "passed"}),
+    )
+    # Its content could not be read: the full run still counts.
+    db.expire_all()
+    run = db.get(Run, uuid.UUID(full))
+    assert run is not None
+    run.version_fingerprint = None
+    db.add(run)
+    db.commit()
+
+    results = _runs(client, user, agent).json()["data"]["results"]
+    assert (results["verdict"], results["edited_since"]) == ("verified", None)

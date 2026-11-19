@@ -1115,6 +1115,12 @@ class VerifiedVersion(BaseModel):
     at: str = Field(description="When its full run completed")
 
 
+class SameContent(BaseModel):
+    version: str = Field(description="The version number its full run tested")
+    run_id: str
+    at: str = Field(description="When that full run completed")
+
+
 class LiveVersion(BaseModel):
     version: str
     verdict: str = Field(description="From the live version's latest full run")
@@ -1124,6 +1130,14 @@ class LiveVersion(BaseModel):
 class VersionResults(BaseModel):
     version: str | None = Field(
         default=None, description="The newest tested version, live or not, or the one asked"
+    )
+    edited_since: str | None = Field(
+        default=None,
+        description="When its last full run ran, if the version was edited after it",
+    )
+    same_content: SameContent | None = Field(
+        default=None,
+        description="The other version whose full run of the same content decided",
     )
     live_version: str | None = None
     live: LiveVersion | None = Field(

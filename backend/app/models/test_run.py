@@ -227,12 +227,27 @@ class LiveVersionPublic(BaseModel):
     )
 
 
+class SameContentPublic(BaseModel):
+    version: str = PydanticField(description="The version number its full run tested")
+    run_id: uuid.UUID
+    at: datetime = PydanticField(description="When that full run completed")
+
+
 class VersionResultsPublic(BaseModel):
     """One version's verdict, read from its latest completed full run (Dmytro,
     2026-11-19): runs of a set or a pick never change it."""
 
     version: str | None = PydanticField(
         default=None, description="The version number on the platform"
+    )
+    edited_since: datetime | None = PydanticField(
+        default=None,
+        description="When its last full run ran, when the version was edited after it: "
+        "that run no longer counts",
+    )
+    same_content: SameContentPublic | None = PydanticField(
+        default=None,
+        description="When the verdict comes from another version with the same content",
     )
     live_version: str | None = PydanticField(
         default=None, description="The agent version of its most recent call"
