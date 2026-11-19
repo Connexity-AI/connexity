@@ -149,12 +149,6 @@ def _tested_version(retell: respx.MockRouter, number: int) -> None:
     )
 
 
-@pytest.fixture(autouse=True)
-def _model_key(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Simulations run on Connexity's own key; tests set an invented one."""
-    monkeypatch.setattr(runner.settings, "ANTHROPIC_API_KEY", "invented-key")
-
-
 @pytest.fixture
 def caller() -> Iterator[AsyncMock]:
     with patch(
