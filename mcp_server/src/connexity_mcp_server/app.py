@@ -311,6 +311,7 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         category: Annotated[str | None, Field(description="A category key, from `list_categories`.")] = None,
         period: Period = None,
         issue_id: Annotated[str | None, Field(description="Only the calls this issue was found on, with its findings.")] = None,
+        version: Annotated[str | None, Field(description="Only calls on this agent version, from `get_agent`'s versions.")] = None,
         cursor: Cursor = None,
         limit: Limit = None,
     ) -> ListCallsResult:
@@ -318,9 +319,9 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         phone number (matches the end of the caller's number) or a call id. Filters:
         agent_id, result (failed, degraded, clean, unchecked), category (a category
         key), period (7d, 30d, 90d), issue_id (only the calls that issue was found on,
-        each with its moment, the agent version it ran and that issue's findings on
-        it: events and detail). limit (1 to 100) caps a page. Callers come as their
-        last four digits."""
+        each with its moment and that issue's findings on it: events and detail),
+        version (only calls on that agent version). Each call carries its agent version.
+        limit (1 to 100) caps a page. Callers come as their last four digits."""
         return await _list_calls(
             client=backend_client,
             workspace_id=workspace_id,
@@ -330,6 +331,7 @@ def build_application(settings: Settings | None = None) -> FastAPI:
             category=category,
             period=period,
             issue_id=issue_id,
+            version=version,
             cursor=cursor,
             limit=limit,
         )
@@ -343,6 +345,7 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         severity: Annotated[str | None, Field(description="critical or warning.")] = None,
         status: Annotated[str | None, Field(description="open (the default, with reopened), reopened, resolved or archived.")] = None,
         period: Period = None,
+        version: Annotated[str | None, Field(description="Only issues found on this agent version's calls, counting those calls.")] = None,
         cursor: Cursor = None,
         limit: Limit = None,
     ) -> ListIssuesResult:
@@ -354,7 +357,7 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         query matches words in the title or a whole issue id. Filters: agent_id,
         category (a category key), severity (critical, warning), status (open, the
         default and including reopened; reopened, resolved, archived), period (7d,
-        30d, 90d)."""
+        30d, 90d), version (only issues found on that agent version's calls)."""
         return await _list_issues(
             client=backend_client,
             workspace_id=workspace_id,
@@ -364,6 +367,7 @@ def build_application(settings: Settings | None = None) -> FastAPI:
             severity=severity,
             status=status,
             period=period,
+            version=version,
             cursor=cursor,
             limit=limit,
         )
@@ -438,18 +442,24 @@ def build_application(settings: Settings | None = None) -> FastAPI:
 
     @mcp_server.tool(annotations=READ_ONLY)
     async def get_agent(
-        workspace_id: WorkspaceId, agent_id: AgentId, period: Period = None
+        workspace_id: WorkspaceId,
+        agent_id: AgentId,
+        period: Period = None,
+        version: Annotated[str | None, Field(description="Count only this agent version's calls; `versions` lists them.")] = None,
     ) -> AgentResult:
         """One agent at a glance for the period (7d, 30d by default, 90d): platform,
         type, live version and since when, model, the n8n workflows it used, calls,
         latency (a basic measure from its calls' turns) per day with version marks,
         its spec state, and its score: 0 to 100 over its checked calls, its change
-        against the previous period, and the issues that cost it the most points."""
+        against the previous period, and the issues that cost it the most points. It
+        lists every agent version that has a call; `version` counts only that
+        version's calls, so two versions compare by calling twice."""
         return await _get_agent(
             client=backend_client,
             workspace_id=workspace_id,
             agent_id=agent_id,
             period=period,
+            version=version,
         )
 
     @mcp_server.tool(annotations=READ_ONLY)

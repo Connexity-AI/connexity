@@ -30,7 +30,7 @@ from app.models.spec import (
     SpecWrittenPublic,
 )
 from app.models.user import User
-from app.services.test_run import RuleMark, version_tested
+from app.services.test_run import RuleMark, version_number, version_tested
 
 MAX_RULES = 500
 type RuleChange = Literal["kept", "added", "dropped"]
@@ -99,19 +99,59 @@ def _answers(
     return out
 
 
+def spec_in_force(*, session: Session, agent: Agent, agent_version: str) -> int | None:
+    """The spec version in force for an agent version: the newest one written for it
+    or an earlier one (a spec stays in force until the next is written)."""
+    wanted = version_number(agent_version)[0]
+    best: tuple[int, int] | None = None
+    for spec, _count in crud.spec_versions(session=session, agent_id=agent.id):
+        written = version_number(spec.agent_version)[0]
+        if spec.agent_version == agent_version:
+            written = max(written, wanted)
+        elif not (wanted >= 0 and 0 <= written <= wanted):
+            continue
+        # The spec written for the highest such agent version, newest spec first.
+        key = (written, spec.version)
+        if best is None or key > best:
+            best = key
+    return best[1] if best else None
+
+
 def spec_answer(
     *,
     session: Session,
     agent: Agent,
     version: int | None = None,
     compare: int | None = None,
+    for_version: str | None = None,
 ) -> SpecPublic | None:
     """The agent's spec, latest or ``version``, optionally compared with an earlier
     version ``compare``. None when ``version`` or ``compare`` does not exist.
 
+    With ``for_version`` (an agent version) and no ``version``, the spec in force for
+    it; none in force answers without a spec (``for_version`` says which was asked).
+    Rule results then come from that agent version's latest full run.
+
     Compared, a rule is kept when the earlier version has its key with the same text;
     one whose text changed reads as the old text dropped and the new text added.
     """
+    if for_version is not None and version is None:
+        version = spec_in_force(session=session, agent=agent, agent_version=for_version)
+        if version is None:
+            answer = spec_answer(session=session, agent=agent)
+            if answer is None:
+                return None
+            return answer.model_copy(
+                update={
+                    "spec": None,
+                    "groups": [],
+                    "counts": None,
+                    "comparison": None,
+                    "for_version": for_version,
+                    "results_version": None,
+                    "results_at": None,
+                }
+            )
     latest = crud.latest_spec(session=session, agent_id=agent.id)
     spec = (
         crud.get_spec_version(session=session, agent_id=agent.id, version=version)
@@ -158,8 +198,8 @@ def spec_answer(
         # Each rule's result in the live version's latest full run, on the latest
         # spec only: an older version's keys may mean other words.
         marks: dict[str, RuleMark] = {}
-        if latest is not None and spec.id == latest.id:
-            tested = version_tested(session, agent, None)
+        if for_version is not None or (latest is not None and spec.id == latest.id):
+            tested = version_tested(session, agent, for_version)
             results_version = tested.results.version
             results_at = tested.full_run.completed_at if tested.full_run else None
             marks = tested.marks
@@ -241,6 +281,7 @@ def spec_answer(
         comparison=comparison,
         results_version=results_version,
         results_at=results_at,
+        for_version=for_version,
     )
 
 

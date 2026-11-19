@@ -41,6 +41,7 @@ def _item(row: CallRow, moment: Moment | None = None) -> CallListItemPublic:
         started_at=call.started_at,
         agent_id=call.agent_id,
         agent_name=row.agent_name,
+        agent_version=call.agent_version,
         caller_last_four=crud.caller_last_four(call.caller_number),
         duration_seconds=duration,
         result=row.result,

@@ -40,6 +40,8 @@ export const CallsList: FC<Props> = async ({ params, agentId }) => {
       category: one(params.category),
       q: one(params.q),
       issue_id: UUID.test(one(params.issue) ?? '') ? one(params.issue) : undefined,
+      // The agent page's version filter.
+      version: agentId ? one(params.version) : undefined,
       skip: 0,
       limit: shown,
     },

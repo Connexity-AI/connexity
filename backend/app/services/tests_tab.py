@@ -24,7 +24,10 @@ from app.services.test_run import run_views, version_number, version_tested
 EARLIER_RUNS = 50
 
 
-def tests_tab(*, session: Session, agent: Agent) -> TestsTabPublic:
+def tests_tab(
+    *, session: Session, agent: Agent, version: str | None = None
+) -> TestsTabPublic:
+    """The Tests tab for the live version, or for agent version ``version``."""
     spec = latest_spec(session=session, agent_id=agent.id)
     scenarios = live_scenarios(session=session, agent_id=agent.id)
     live = {s.id for s in scenarios}
@@ -36,7 +39,7 @@ def tests_tab(*, session: Session, agent: Agent) -> TestsTabPublic:
             sets_of.setdefault(scenario_id, []).append(config.name)
     listed = rules_of(session=session, test_case_ids=[s.id for s in scenarios])
 
-    found = version_tested(session, agent, None)
+    found = version_tested(session, agent, version)
     # Earlier versions' runs, newest first, at most this many.
     shown = list(reversed(found.others))[:EARLIER_RUNS]
     by_version: dict[str | None, list[uuid.UUID]] = {}

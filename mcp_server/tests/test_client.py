@@ -746,6 +746,7 @@ async def test_archive_issue_sends_the_reason_and_duration() -> None:
 async def test_list_calls_sends_the_issue() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.params["issue_id"] == "i1"
+        assert request.url.params["version"] == "15"
         return httpx.Response(
             200,
             json={
@@ -784,7 +785,7 @@ async def test_list_calls_sends_the_issue() -> None:
     result = await _call(
         handler,
         lambda client: list_calls(
-            client, workspace_id=WORKSPACE_ID, issue_id="i1", limit=5
+            client, workspace_id=WORKSPACE_ID, issue_id="i1", version="15", limit=5
         ),
     )
 
@@ -1384,3 +1385,62 @@ async def test_mark_issue_fixed_sends_the_version_and_note() -> None:
                 note="Asked first",
             ),
         )
+
+
+@pytest.mark.asyncio
+async def test_get_agent_and_list_issues_send_the_version() -> None:
+    from connexity_mcp_server.tools import get_agent
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.params["version"] == "87"
+        if request.url.path.endswith("/issues"):
+            return httpx.Response(
+                200,
+                json={
+                    "data": {
+                        "tiles": {
+                            "open": 0,
+                            "critical": 0,
+                            "reopened": 0,
+                            "resolved": 0,
+                            "calls_affected": 0,
+                            "calls": 3,
+                        },
+                        "issues": [],
+                    },
+                    **ANSWER,
+                },
+            )
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "id": "a1",
+                    "name": "Front desk",
+                    "spec": "current",
+                    "period": "30d",
+                    "calls": 3,
+                    "versions": [
+                        {"version": "88", "calls": 9, "live": True},
+                        {"version": "87", "calls": 3, "live": False},
+                    ],
+                    "version": "87",
+                },
+                **ANSWER,
+            },
+        )
+
+    agent = await _call(
+        handler,
+        lambda client: get_agent(
+            client, workspace_id=WORKSPACE_ID, agent_id="a1", version="87"
+        ),
+    )
+    assert agent.data.version == "87"
+    assert [v.version for v in agent.data.versions] == ["88", "87"]
+    assert agent.data.versions[0].live is True
+    issues = await _call(
+        handler,
+        lambda client: list_issues(client, workspace_id=WORKSPACE_ID, version="87"),
+    )
+    assert issues.data.issues == []

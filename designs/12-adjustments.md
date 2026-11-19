@@ -596,3 +596,22 @@ Replaces item 31's tiles, "Why it failed" and "All rules" (Dmytro, 2026-11-19). 
 
 **Wording:** a code check's finding reads "Found by a code check"; "rule" means spec
 rules only.
+
+## 33. Agent Profile: a version filter beside the period
+
+Dmytro, 2026-11-19: "Period + version filter", and "Spec 5 · written for version 88".
+Screens: "Connexity Agent Profile" (`version=87`), "Connexity Calls" (embedded in the
+agent page), "Connexity Agent Tests states" (Version filter section) and "Connexity
+Agents and Overview" (Overview with a version picked).
+
+- **The filter** sits beside the period picker: "All versions", or "Version 88 · live".
+  It lists every version of the agent that has a call, newest first, the live one
+  marked. With a version picked, the period still applies.
+- **Every tab follows it:**
+  - **Overview:** the tiles count only that version's calls in the period. The charts
+    dim the other days and shade the picked version's days.
+  - **Calls:** a Version column (on the agent page only) and only that version's calls.
+  - **Spec:** the spec in force for that version, the newest written for it or an
+    earlier one; "No spec was written for version 87 or earlier" when none.
+  - **Tests:** that version's verdict, tiles and runs.
+- **The Spec title** reads "Spec 5 · written for version 88".

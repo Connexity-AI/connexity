@@ -223,6 +223,10 @@ class SpecPublic(BaseModel):
     results_at: datetime | None = Field(
         default=None, description="When that full run completed; none without one"
     )
+    for_version: str | None = Field(
+        default=None,
+        description="The agent version asked for; with no spec, none was in force for it",
+    )
     comparison: SpecComparisonPublic | None = Field(
         default=None, description="With compare: how the shown version differs"
     )

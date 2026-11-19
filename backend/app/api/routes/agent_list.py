@@ -7,7 +7,7 @@ catch `/agents/list`.
 import uuid
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app import crud
 from app.api.deps import CurrentCompany, SessionDep, get_current_user
@@ -36,10 +36,12 @@ def get_agent_page(
     company_id: CurrentCompany,
     agent_id: uuid.UUID,
     period: Literal["7d", "30d", "90d"] = "30d",
+    version: str | None = Query(default=None, max_length=64),
 ) -> AgentPagePublic:
     """The agent page's Overview: the caption, tiles, details and latency over time
-    with version marks, for the period."""
+    with version marks, for the period, on one agent version when ``version`` is given.
+    Every version that has a call is listed for the filter."""
     agent = crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
-    return agent_page(session=session, agent=agent, period=period)
+    return agent_page(session=session, agent=agent, period=period, version=version)

@@ -408,6 +408,24 @@ export type AgentPagePublic = {
    * Each new agent version that started in the period
    */
   version_marks: Array<AgentVersionMarkPublic>;
+  /**
+   * Versions
+   *
+   * Every agent version that has a call, latest call first
+   */
+  versions?: Array<AgentVersionOptionPublic>;
+  /**
+   * Version
+   *
+   * The version the numbers are filtered to; none for all versions
+   */
+  version?: string | null;
+  /**
+   * Version Days
+   *
+   * With a version: the period's days that had calls on it
+   */
+  version_days?: Array<string>;
 };
 
 /**
@@ -765,6 +783,28 @@ export type AgentVersionMarkPublic = {
    * 'Version 9'
    */
   label: string;
+};
+
+/**
+ * AgentVersionOptionPublic
+ */
+export type AgentVersionOptionPublic = {
+  /**
+   * Version
+   */
+  version: string;
+  /**
+   * Calls
+   *
+   * Its calls, all time
+   */
+  calls: number;
+  /**
+   * Live
+   *
+   * The version of the latest call
+   */
+  live?: boolean;
 };
 
 /**
@@ -1503,6 +1543,12 @@ export type CallListItemPublic = {
    * Agent Name
    */
   agent_name: string;
+  /**
+   * Agent Version
+   *
+   * The agent version the call ran on
+   */
+  agent_version?: string | null;
   /**
    * Caller Last Four
    *
@@ -5105,6 +5151,24 @@ export type McpAgentPage = {
    */
   version_marks: Array<AgentVersionMarkPublic>;
   /**
+   * Versions
+   *
+   * Every agent version that has a call, latest call first
+   */
+  versions?: Array<AgentVersionOptionPublic>;
+  /**
+   * Version
+   *
+   * The version the numbers are filtered to; none for all versions
+   */
+  version?: string | null;
+  /**
+   * Version Days
+   *
+   * With a version: the period's days that had calls on it
+   */
+  version_days?: Array<string>;
+  /**
    * The agent's score for the period, its change and what moves it
    */
   score?: ScorePublic | null;
@@ -6095,6 +6159,12 @@ export type McpCallItem = {
    */
   agent_name: string;
   /**
+   * Agent Version
+   *
+   * The agent version the call ran on
+   */
+  agent_version?: string | null;
+  /**
    * Caller Last Four
    *
    * The caller's last four digits; never the number
@@ -6110,12 +6180,6 @@ export type McpCallItem = {
    * With an issue filter: where the issue first happened in the call
    */
   moment?: IssueMomentPublic | null;
-  /**
-   * Agent Version
-   *
-   * With issue_id: the agent version the call ran
-   */
-  agent_version?: string | null;
   /**
    * Issue Findings
    *
@@ -9314,6 +9378,12 @@ export type SpecPublic = {
    */
   results_at?: string | null;
   /**
+   * For Version
+   *
+   * The agent version asked for; with no spec, none was in force for it
+   */
+  for_version?: string | null;
+  /**
    * With compare: how the shown version differs
    */
   comparison?: SpecComparisonPublic | null;
@@ -9512,6 +9582,12 @@ export type SpecWrittenPublic = {
    * When that full run completed; none without one
    */
   results_at?: string | null;
+  /**
+   * For Version
+   *
+   * The agent version asked for; with no spec, none was in force for it
+   */
+  for_version?: string | null;
   /**
    * With compare: how the shown version differs
    */
@@ -13459,6 +13535,10 @@ export type McpListCallsData = {
      */
     issue_id?: string | null;
     /**
+     * Version
+     */
+    version?: string | null;
+    /**
      * Cursor
      */
     cursor?: string | null;
@@ -13603,6 +13683,10 @@ export type McpListIssuesData = {
      * Period
      */
     period?: '7d' | '30d' | '90d';
+    /**
+     * Version
+     */
+    version?: string | null;
     /**
      * Cursor
      */
@@ -14402,6 +14486,10 @@ export type McpGetAgentData = {
      * Period
      */
     period?: '7d' | '30d' | '90d';
+    /**
+     * Version
+     */
+    version?: string | null;
   };
   url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}';
 };
@@ -15257,6 +15345,10 @@ export type AgentsGetAgentPageData = {
      * Period
      */
     period?: '7d' | '30d' | '90d';
+    /**
+     * Version
+     */
+    version?: string | null;
   };
   url: '/api/v1/agents/{agent_id}/page';
 };
@@ -19577,6 +19669,10 @@ export type CallsListCallsData = {
      */
     issue_id?: string | null;
     /**
+     * Version
+     */
+    version?: string | null;
+    /**
      * Skip
      */
     skip?: number;
@@ -21260,6 +21356,10 @@ export type SpecGetAgentSpecData = {
      * Compare
      */
     compare?: number | null;
+    /**
+     * For Version
+     */
+    for_version?: string | null;
   };
   url: '/api/v1/agents/{agent_id}/spec';
 };
@@ -21314,7 +21414,12 @@ export type TestsGetAgentTestsData = {
      */
     agent_id: string;
   };
-  query?: never;
+  query?: {
+    /**
+     * Version
+     */
+    version?: string | null;
+  };
   url: '/api/v1/agents/{agent_id}/tests';
 };
 

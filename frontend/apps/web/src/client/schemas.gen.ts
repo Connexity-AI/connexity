@@ -699,6 +699,35 @@ export const AgentPagePublicSchema = {
       title: 'Version Marks',
       description: 'Each new agent version that started in the period',
     },
+    versions: {
+      items: {
+        $ref: '#/components/schemas/AgentVersionOptionPublic',
+      },
+      type: 'array',
+      title: 'Versions',
+      description: 'Every agent version that has a call, latest call first',
+    },
+    version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version',
+      description: 'The version the numbers are filtered to; none for all versions',
+    },
+    version_days: {
+      items: {
+        type: 'string',
+        format: 'date',
+      },
+      type: 'array',
+      title: 'Version Days',
+      description: "With a version: the period's days that had calls on it",
+    },
   },
   type: 'object',
   required: [
@@ -1349,6 +1378,29 @@ export const AgentVersionMarkPublicSchema = {
   type: 'object',
   required: ['day', 'label'],
   title: 'AgentVersionMarkPublic',
+} as const;
+
+export const AgentVersionOptionPublicSchema = {
+  properties: {
+    version: {
+      type: 'string',
+      title: 'Version',
+    },
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+      description: 'Its calls, all time',
+    },
+    live: {
+      type: 'boolean',
+      title: 'Live',
+      description: 'The version of the latest call',
+      default: false,
+    },
+  },
+  type: 'object',
+  required: ['version', 'calls'],
+  title: 'AgentVersionOptionPublic',
 } as const;
 
 export const AgentVersionPublicSchema = {
@@ -2515,6 +2567,18 @@ export const CallListItemPublicSchema = {
     agent_name: {
       type: 'string',
       title: 'Agent Name',
+    },
+    agent_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Version',
+      description: 'The agent version the call ran on',
     },
     caller_last_four: {
       anyOf: [
@@ -7909,6 +7973,35 @@ export const McpAgentPageSchema = {
       title: 'Version Marks',
       description: 'Each new agent version that started in the period',
     },
+    versions: {
+      items: {
+        $ref: '#/components/schemas/AgentVersionOptionPublic',
+      },
+      type: 'array',
+      title: 'Versions',
+      description: 'Every agent version that has a call, latest call first',
+    },
+    version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version',
+      description: 'The version the numbers are filtered to; none for all versions',
+    },
+    version_days: {
+      items: {
+        type: 'string',
+        format: 'date',
+      },
+      type: 'array',
+      title: 'Version Days',
+      description: "With a version: the period's days that had calls on it",
+    },
     score: {
       anyOf: [
         {
@@ -9251,6 +9344,18 @@ export const McpCallItemSchema = {
       type: 'string',
       title: 'Agent Name',
     },
+    agent_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Version',
+      description: 'The agent version the call ran on',
+    },
     caller_last_four: {
       anyOf: [
         {
@@ -9297,18 +9402,6 @@ export const McpCallItemSchema = {
         },
       ],
       description: 'With an issue filter: where the issue first happened in the call',
-    },
-    agent_version: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Agent Version',
-      description: 'With issue_id: the agent version the call ran',
     },
     issue_findings: {
       anyOf: [
@@ -14051,6 +14144,18 @@ export const SpecPublicSchema = {
       title: 'Results At',
       description: 'When that full run completed; none without one',
     },
+    for_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'For Version',
+      description: 'The agent version asked for; with no spec, none was in force for it',
+    },
     comparison: {
       anyOf: [
         {
@@ -14351,6 +14456,18 @@ export const SpecWrittenPublicSchema = {
       ],
       title: 'Results At',
       description: 'When that full run completed; none without one',
+    },
+    for_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'For Version',
+      description: 'The agent version asked for; with no spec, none was in force for it',
     },
     comparison: {
       anyOf: [

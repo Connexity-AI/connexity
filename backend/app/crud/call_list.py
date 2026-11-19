@@ -37,6 +37,8 @@ class CallFilters(NamedTuple):
     query: str | None = None
     # Only calls this issue was found on, archived or not (the issue page's link).
     issue_id: uuid.UUID | None = None
+    # Only calls on this agent version (the agent page's version filter).
+    version: str | None = None
 
 
 class WorstFinding(NamedTuple):
@@ -114,6 +116,8 @@ def _where(
     ]
     if filters.agent_id is not None:
         conditions.append(Call.agent_id == filters.agent_id)
+    if filters.version is not None:
+        conditions.append(Call.agent_version == filters.version)
     if filters.query and filters.query.strip():
         conditions.append(_search(filters.query))
     if filters.category:

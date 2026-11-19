@@ -511,9 +511,6 @@ class McpIssueFinding(BaseModel):
 
 
 class McpCallItem(CallListItemPublic):
-    agent_version: str | None = Field(
-        default=None, description="With issue_id: the agent version the call ran"
-    )
     issue_findings: list[McpIssueFinding] | None = Field(
         default=None, description="With issue_id: that issue's findings on the call"
     )

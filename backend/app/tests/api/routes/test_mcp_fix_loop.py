@@ -109,7 +109,7 @@ def test_list_calls_with_the_issue_answers_its_findings_on_each_call(
     assert any("get_issue" in rule for rule in body["rules"])
 
 
-def test_list_calls_without_an_issue_is_unchanged(
+def test_list_calls_without_an_issue_has_no_issue_findings(
     client: TestClient, db: Session
 ) -> None:
     user = _person(db)
@@ -119,7 +119,8 @@ def test_list_calls_without_an_issue_is_unchanged(
     (call,) = _calls(client, user).json()["data"]["calls"]
 
     assert call["issue_findings"] is None
-    assert call["agent_version"] is None
+    # Every call carries the version it ran on (plan `plans/2026-11-19-agent-versions.md`).
+    assert call["agent_version"] == "7"
 
 
 def test_the_issue_fix_task_names_list_calls_and_mark_issue_fixed(

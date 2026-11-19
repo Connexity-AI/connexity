@@ -53,6 +53,8 @@ class IssueFilters(NamedTuple):
     severity: str | None = None  # critical or warning
     status: IssueStatusFilter = "open"
     query: str | None = None
+    # Only issues found on this agent version's calls, counting those calls only.
+    version: str | None = None
 
 
 def issue_title(check_type: str, key: str | None) -> str:
@@ -108,9 +110,13 @@ def workspace_issues(
     ]
     issue_ids = [summary.issue.id for summary in summaries]
     affected = calls_affected_by_issue(
-        session=session, issue_ids=issue_ids, since=since
+        session=session, issue_ids=issue_ids, since=since, version=filters.version
     )
-    per_agent = calls_by_agent(session=session, company_id=company_id, since=since)
+    if filters.version is not None:
+        summaries = [s for s in summaries if affected.get(s.issue.id)]
+    per_agent = calls_by_agent(
+        session=session, company_id=company_id, since=since, version=filters.version
+    )
     agents = list(
         session.exec(
             select(Agent)
@@ -160,6 +166,7 @@ def workspace_issues(
             company_id=company_id,
             since=since,
             agent_id=filters.agent_id,
+            version=filters.version,
         ),
         calls=per_agent.get(filters.agent_id, 0)
         if filters.agent_id is not None

@@ -24,6 +24,7 @@ def list_calls(
     category: str | None = Query(default=None, max_length=64),
     q: str | None = Query(default=None, max_length=255),
     issue_id: uuid.UUID | None = None,
+    version: str | None = Query(default=None, max_length=64),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=25, ge=1, le=100),
 ) -> CallListPublic:
@@ -32,6 +33,7 @@ def list_calls(
     ``q`` is a phone number (its last digits match the end of the caller's number) or a
     call id (Connexity's or the platform's). Callers are shown as their last four digits.
     ``issue_id`` keeps only the calls that issue was found on, each with its moment.
+    ``version`` keeps only the calls on that agent version.
     """
     return workspace_calls(
         session=session,
@@ -43,6 +45,7 @@ def list_calls(
             category=category,
             query=q,
             issue_id=issue_id,
+            version=version,
         ),
         offset=skip,
         limit=limit,

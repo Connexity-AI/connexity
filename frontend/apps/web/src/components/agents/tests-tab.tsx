@@ -214,7 +214,7 @@ const RunsHead: FC = () => (
   </div>
 );
 
-const Runs: FC<{ tests: TestsTabPublic }> = ({ tests }) => {
+const Runs: FC<{ tests: TestsTabPublic; picked: boolean }> = ({ tests, picked }) => {
   const [all, setAll] = useState(false);
   const [earlierOpen, setEarlierOpen] = useState(false);
   const results = tests.results;
@@ -261,7 +261,7 @@ const Runs: FC<{ tests: TestsTabPublic }> = ({ tests }) => {
             ) : (
               <ChevronRight className="size-4" aria-hidden />
             )}
-            {plural(earlierCount, 'run')} on earlier versions
+            {plural(earlierCount, 'run')} on {picked ? 'other' : 'earlier'} versions
           </button>
           {earlierOpen &&
             earlier.map((group) => (
@@ -283,16 +283,21 @@ const Runs: FC<{ tests: TestsTabPublic }> = ({ tests }) => {
 
 interface Props {
   agentId: string;
+  /** The agent page's version filter; none for the live version. */
+  version?: string | null;
   tests: TestsTabPublic;
 }
 
-export const TestsTab: FC<Props> = ({ agentId, tests: loaded }) => {
+export const TestsTab: FC<Props> = ({ agentId, version, tests: loaded }) => {
   // Seeded from the server's copy; reloads while a run is in progress and the tab is
   // visible, so its row fills in and the verdict follows.
   const { data } = useQuery({
-    queryKey: ['agent-tests', agentId],
+    queryKey: ['agent-tests', agentId, version ?? null],
     queryFn: async (): Promise<TestsTabPublic> => {
-      const result = await TestsService.getAgentTests({ path: { agent_id: agentId } });
+      const result = await TestsService.getAgentTests({
+        path: { agent_id: agentId },
+        query: version ? { version } : {},
+      });
       if (!result.data) throw new Error('The tests could not be loaded.');
       return result.data;
     },
@@ -349,7 +354,7 @@ export const TestsTab: FC<Props> = ({ agentId, tests: loaded }) => {
           No scenarios yet. The assistant writes them, one or more for each critical rule.
         </Empty>
       ) : (
-        <Runs tests={tests} />
+        <Runs tests={tests} picked={Boolean(version)} />
       )}
       {scenarios.length > 0 && (
         <Card>

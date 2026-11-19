@@ -1825,7 +1825,8 @@ export class AgentsService {
    * Get Agent Page
    *
    * The agent page's Overview: the caption, tiles, details and latency over time
-   * with version marks, for the period.
+   * with version marks, for the period, on one agent version when ``version`` is given.
+   * Every version that has a call is listed for the filter.
    */
   public static getAgentPage<ThrowOnError extends boolean = false>(
     options: Options<AgentsGetAgentPageData, ThrowOnError>
@@ -3796,6 +3797,7 @@ export class CallsService {
    * ``q`` is a phone number (its last digits match the end of the caller's number) or a
    * call id (Connexity's or the platform's). Callers are shown as their last four digits.
    * ``issue_id`` keeps only the calls that issue was found on, each with its moment.
+   * ``version`` keeps only the calls on that agent version.
    */
   public static listCalls<ThrowOnError extends boolean = false>(
     options?: Options<CallsListCallsData, ThrowOnError>
@@ -4593,6 +4595,8 @@ export class SpecService {
    *
    * The agent's spec, latest or ``version``, rules grouped by the fixed categories;
    * with ``compare``, each rule marked kept, added or dropped against that version.
+   * With ``for_version`` (an agent version), the spec in force for it, with its rules'
+   * results from that version's latest full run.
    */
   public static getAgentSpec<ThrowOnError extends boolean = false>(
     options: Options<SpecGetAgentSpecData, ThrowOnError>
@@ -4620,8 +4624,9 @@ export class TestsService {
   /**
    * Get Agent Tests
    *
-   * The newest tested version's verdict, what failed with its simulated calls,
-   * coverage of the latest spec, every rule's totals, and the scenarios and sets.
+   * The live version's verdict from its latest full run (or agent version
+   * ``version``'s), its runs, earlier versions' runs, coverage as tests written, and the
+   * scenarios and sets.
    */
   public static getAgentTests<ThrowOnError extends boolean = false>(
     options: Options<TestsGetAgentTestsData, ThrowOnError>
