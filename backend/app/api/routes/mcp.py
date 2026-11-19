@@ -33,7 +33,7 @@ from app.crud.issue_page import (
     issue_findings_on_calls,
     latest_agent_version,
 )
-from app.crud.latency import agent_latencies
+from app.crud.latency import agent_gap_percentiles
 from app.models import (
     Agent,
     CallScreenPublic,
@@ -118,7 +118,7 @@ from app.models.scenario import ScenarioListPublic, ScenarioSetPublic
 from app.models.spec import SpecPublic, SpecWrittenPublic
 from app.models.test_run import TestRunDetailPublic, VersionResultsPublic
 from app.models.work import WorkMoveIn
-from app.services.agent_list import agent_types
+from app.services.agent_list import agent_types, live_since
 from app.services.agent_page import agent_page
 from app.services.call_list import workspace_calls
 from app.services.call_screen import call_screen
@@ -873,7 +873,7 @@ def list_agents(
     specs = crud.latest_specs(session=session, agent_ids=ids)
     currents = crud.current_agent_versions(session=session, agent_ids=ids)
     types = agent_types(session=session, agents=list(agents), currents=currents)
-    latency = agent_latencies(
+    latency = agent_gap_percentiles(
         session=session, agent_ids=ids, since=period_start(period)
     )
     calls = calls_by_agent(
@@ -889,7 +889,13 @@ def list_agents(
         row.score, row.score_change = scores.get(agent.id, (None, None))
         row.type = types.get(agent.id)
         row.calls = calls.get(agent.id, 0)
-        row.latency_seconds = latency.get(agent.id)
+        if agent.id in latency:
+            row.latency_p50 = latency[agent.id].p50
+            row.latency_p95 = latency[agent.id].p95
+        row.live_version = currents.get(agent.id)
+        row.live_since = live_since(
+            session=session, agent=agent, version=row.live_version
+        )
         spec = specs.get(agent.id)
         row.spec = spec_state(spec, currents.get(agent.id))
         row.spec_version = spec.version if spec else None
@@ -1411,9 +1417,10 @@ def answer_workspace_clarifications(
 
 
 _LATENCY_RULE = (
-    "latency_seconds is a basic measure from each call's turns: the median time from "
-    "the caller finishing to the agent starting to answer, averaged across calls. "
-    "Turns where the agent starts before the caller finishes are not counted."
+    "Latency is p50 and p95 over every reply in the period: the time from the caller "
+    "finishing to the agent starting to answer, as the Dashboard measures it. Turns "
+    "where the agent starts before the caller finishes are not counted. Give it as "
+    '"1.6s/3.1s (p50/p95) over 840 replies"; latency_days gives each day\'s p50.'
 )
 
 

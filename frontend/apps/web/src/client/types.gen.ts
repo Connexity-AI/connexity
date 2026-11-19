@@ -219,17 +219,17 @@ export type AgentLatencyDayPublic = {
    */
   day: string;
   /**
-   * Seconds
+   * P50
    *
-   * The day's average latency; None with no calls
+   * The day's p50 over its replies; None without one
    */
-  seconds?: number | null;
+  p50?: number | null;
   /**
-   * Calls
+   * Replies
    *
-   * Calls that day with a latency
+   * Replies that day: times the agent answered
    */
-  calls: number;
+  replies: number;
 };
 
 /**
@@ -278,11 +278,29 @@ export type AgentListItemPublic = {
    */
   calls: number;
   /**
-   * Latency Seconds
+   * Latency P50
    *
-   * Average of its calls' latencies in the period
+   * p50 over every reply in the period, in seconds
    */
-  latency_seconds?: number | null;
+  latency_p50?: number | null;
+  /**
+   * Latency P95
+   *
+   * p95 over every reply in the period, in seconds
+   */
+  latency_p95?: number | null;
+  /**
+   * Live Version
+   *
+   * The agent version of its most recent call
+   */
+  live_version?: string | null;
+  /**
+   * Live Since
+   *
+   * When the first call on that version started
+   */
+  live_since?: string | null;
   /**
    * Spec
    *
@@ -305,12 +323,6 @@ export type AgentListPublic = {
    * Period
    */
   period: '7d' | '30d' | '90d';
-  /**
-   * Synced At
-   *
-   * When calls were last pulled for the workspace's Retell accounts
-   */
-  synced_at?: string | null;
 };
 
 /**
@@ -379,27 +391,33 @@ export type AgentPagePublic = {
    */
   calls: number;
   /**
-   * Latency Seconds
+   * Latency P50
    *
-   * Average of its calls' latencies in the period
+   * p50 over every reply in the period, in seconds
    */
-  latency_seconds?: number | null;
+  latency_p50?: number | null;
   /**
-   * Latency Calls
+   * Latency P95
    *
-   * Calls in the period with a latency
+   * p95 over every reply in the period, in seconds
    */
-  latency_calls: number;
+  latency_p95?: number | null;
+  /**
+   * Latency Replies
+   *
+   * Replies in the period the latency rests on
+   */
+  latency_replies: number;
   /**
    * Latency Days
    *
-   * Each day of the period, oldest first
+   * Each day of the period, oldest first, with its p50
    */
   latency_days: Array<AgentLatencyDayPublic>;
   /**
    * Latency Peak
    *
-   * The highest daily average in the period
+   * The highest daily p50 in the period
    */
   latency_peak?: number | null;
   /**
@@ -5092,11 +5110,29 @@ export type McpAgent = {
    */
   calls?: number | null;
   /**
-   * Latency Seconds
+   * Latency P50
    *
-   * Average of its calls' latencies in the period
+   * p50 over every reply in the period, in seconds
    */
-  latency_seconds?: number | null;
+  latency_p50?: number | null;
+  /**
+   * Latency P95
+   *
+   * p95 over every reply in the period, in seconds
+   */
+  latency_p95?: number | null;
+  /**
+   * Live Version
+   *
+   * The agent version of its most recent call
+   */
+  live_version?: string | null;
+  /**
+   * Live Since
+   *
+   * When the first call on that version started
+   */
+  live_since?: string | null;
 };
 
 /**
@@ -5155,27 +5191,33 @@ export type McpAgentPage = {
    */
   calls: number;
   /**
-   * Latency Seconds
+   * Latency P50
    *
-   * Average of its calls' latencies in the period
+   * p50 over every reply in the period, in seconds
    */
-  latency_seconds?: number | null;
+  latency_p50?: number | null;
   /**
-   * Latency Calls
+   * Latency P95
    *
-   * Calls in the period with a latency
+   * p95 over every reply in the period, in seconds
    */
-  latency_calls: number;
+  latency_p95?: number | null;
+  /**
+   * Latency Replies
+   *
+   * Replies in the period the latency rests on
+   */
+  latency_replies: number;
   /**
    * Latency Days
    *
-   * Each day of the period, oldest first
+   * Each day of the period, oldest first, with its p50
    */
   latency_days: Array<AgentLatencyDayPublic>;
   /**
    * Latency Peak
    *
-   * The highest daily average in the period
+   * The highest daily p50 in the period
    */
   latency_peak?: number | null;
   /**

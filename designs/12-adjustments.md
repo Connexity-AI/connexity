@@ -615,3 +615,18 @@ Agents and Overview" (Overview with a version picked).
     earlier one; "No spec was written for version 87 or earlier" when none.
   - **Tests:** that version's verdict, tiles and runs.
 - **The Spec title** reads "Spec 5 · written for version 88".
+
+## 34. Agents list and agent Overview: latency as p50/p95, the list's versions
+
+Dmytro, 2026-11-19 (roadmap 10.199), from design review (18). Screens: "Connexity
+Agents", "Connexity Agent Profile" (Overview), "Connexity Home" and "Connexity Agents and
+Overview".
+
+- **One measure of latency everywhere:** p50 and p95 over every reply in the period,
+  shown "1.6s/3.1s", p50 large and p95 muted after it, labelled "Latency p50/p95". The
+  Dashboard tile changes to the same order.
+- **The Agents list:** a Version column, "v14", with "Since 6 Nov" on hover; the latency
+  column "Latency p50/p95". The header loses "Retell · synced 5 minutes ago".
+- **The agent's Overview:** the latency tile as above; the chart is one line of daily
+  p50, "Latency p50", with the version marks ("New version") and, with a version picked,
+  that version's days shaded. No goal line, no warning colour on latency.

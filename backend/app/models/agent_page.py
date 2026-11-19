@@ -18,10 +18,10 @@ class AgentSystemPublic(BaseModel):
 
 class AgentLatencyDayPublic(BaseModel):
     day: date
-    seconds: float | None = Field(
-        default=None, description="The day's average latency; None with no calls"
+    p50: float | None = Field(
+        default=None, description="The day's p50 over its replies; None without one"
     )
-    calls: int = Field(description="Calls that day with a latency")
+    replies: int = Field(description="Replies that day: times the agent answered")
 
 
 class AgentVersionMarkPublic(BaseModel):
@@ -53,15 +53,20 @@ class AgentPagePublic(BaseModel):
     spec: SpecState
     period: Period
     calls: int = Field(description="Calls in the period")
-    latency_seconds: float | None = Field(
-        default=None, description="Average of its calls' latencies in the period"
+    latency_p50: float | None = Field(
+        default=None, description="p50 over every reply in the period, in seconds"
     )
-    latency_calls: int = Field(description="Calls in the period with a latency")
+    latency_p95: float | None = Field(
+        default=None, description="p95 over every reply in the period, in seconds"
+    )
+    latency_replies: int = Field(
+        description="Replies in the period the latency rests on"
+    )
     latency_days: list[AgentLatencyDayPublic] = Field(
-        description="Each day of the period, oldest first"
+        description="Each day of the period, oldest first, with its p50"
     )
     latency_peak: float | None = Field(
-        default=None, description="The highest daily average in the period"
+        default=None, description="The highest daily p50 in the period"
     )
     version_marks: list[AgentVersionMarkPublic] = Field(
         description="Each new agent version that started in the period"

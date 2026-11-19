@@ -13,10 +13,9 @@ latency and we will work on it in future to make it more useful").
 - **Not a gap:** an agent turn that starts before the caller has finished (talking over,
   or the caller's "yeah" while the agent speaks), and a caller turn the agent never
   answers.
-- **A call's latency** is the median of its reply gaps. A call with no gap has none.
-- **An agent's latency** for a period is the average of its calls' latencies. The page
-  says how many calls that covers.
-- **Per day:** the average of that day's calls' latencies.
+- **Latency** is p50 and p95 over every reply gap in the period (see "Latency
+  percentiles" below), on the Dashboard, the Agents list and the agent page alike.
+- **Per day** (the agent page's chart): that day's p50.
 
 Code: `backend/app/crud/latency.py`. It is worked out when asked for, from the stored
 turns; nothing is stored per call yet.
@@ -55,7 +54,9 @@ The Dashboard's latency tile shows p95 with p50 beside it, taken over **every re
 in the period: every time an agent answered the caller (Dmytro, 2026-11-18), not over
 each call's latency. Nearest-rank percentiles, in seconds
 (`reply_gap_percentiles` in `backend/app/crud/latency.py`), with the number of answers
-they rest on. The agent page's average per call is unchanged.
+they rest on. Since 2026-11-19 (roadmap 10.199) the Agents list and the agent page use
+the same measure, shown "p50/p95" ("1.6s/3.1s"), and the agent page's chart draws each
+day's p50; the old average of each call's median is gone.
 
 ## The Dashboard (10.191)
 

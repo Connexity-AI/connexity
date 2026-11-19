@@ -10,7 +10,7 @@ import { ArrowLeft, Calendar, Layers } from 'lucide-react';
 import { NumberTile } from '@workspace/ui/components/number-tile';
 import { cn } from '@workspace/ui/lib/utils';
 
-import { PLATFORMS, seconds, TYPES } from '@/components/agents/agents-view';
+import { PLATFORMS, TYPES } from '@/components/agents/agents-view';
 import { SpecTab } from '@/components/agents/spec-tab';
 import { TestsTab } from '@/components/agents/tests-tab';
 import { parseTime } from '@/components/calls/format';
@@ -64,8 +64,21 @@ const Axis: FC<{ value: string; className: string }> = ({ value, className }) =>
   </div>
 );
 
-/** Average latency per day, with a mark at each new version (design: "Quality and
- * latency", latency half only; no goal line until a goal can be set). */
+/** The line through the p50 of each day that had replies, in a 0..100 box; days without
+ * replies are stepped over, so calls a few days apart still draw a line. */
+const linePath = (days: AgentPagePublic['latency_days'], top: number) =>
+  days
+    .map((d, i) =>
+      d.p50 == null
+        ? null
+        : `${(((i + 0.5) / (days.length || 1)) * 100).toFixed(2)} ${(100 - (Math.min(d.p50, top) / top) * 100).toFixed(2)}`
+    )
+    .filter((point): point is string => point != null)
+    .map((point, i) => `${i ? 'L' : 'M'}${point}`)
+    .join(' ');
+
+/** Each day's p50 latency as one line, with a mark at each new version (design item 34:
+ * "Latency p50"; no goal line until a goal can be set). */
 const LatencyChart: FC<{ agent: AgentPagePublic }> = ({ agent }) => {
   const days = agent.latency_days;
   const count = days.length || 1;
@@ -94,24 +107,43 @@ const LatencyChart: FC<{ agent: AgentPagePublic }> = ({ agent }) => {
             ))}
           </div>
         )}
+        <svg
+          className="pointer-events-none absolute top-0 right-0 bottom-0 left-10 h-full w-[calc(100%-2.5rem)] overflow-visible text-ink"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          aria-hidden
+        >
+          <path
+            d={linePath(days, top)}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
         <div
-          className="absolute top-0 right-0 bottom-0 left-10 grid items-end gap-[2px]"
+          className="absolute top-0 right-0 bottom-0 left-10 grid"
           style={{ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }}
         >
           {days.map((d) => (
             <div
               key={d.day}
+              className="relative"
               title={
-                d.seconds == null
-                  ? `${calendarDay(d.day)}: no calls`
-                  : `${calendarDay(d.day)}: ${seconds(d.seconds)} over ${d.calls} ${d.calls === 1 ? 'call' : 'calls'}`
+                d.p50 == null
+                  ? `${calendarDay(d.day)}: no replies`
+                  : `${calendarDay(d.day)}: p50 ${d.p50.toFixed(1)}s over ${d.replies} ${d.replies === 1 ? 'reply' : 'replies'}`
               }
-              className="rounded-t-[2px] bg-ink-secondary"
-              style={{
-                height: d.seconds == null ? 0 : `${(d.seconds / top) * 100}%`,
-                minHeight: d.seconds ? 2 : 0,
-              }}
-            />
+            >
+              {d.p50 != null && (
+                // A dot on each day with replies, so a single day still shows.
+                <span
+                  className="absolute left-1/2 size-1.5 -translate-x-1/2 translate-y-1/2 rounded-full bg-ink"
+                  style={{ bottom: `${(Math.min(d.p50, top) / top) * 100}%` }}
+                />
+              )}
+            </div>
           ))}
         </div>
         <div className="pointer-events-none absolute top-0 right-0 bottom-0 left-10">
@@ -158,11 +190,26 @@ const Overview: FC<{ agent: AgentPagePublic }> = ({ agent }) => (
         label={agent.version ? `Calls on version ${agent.version}` : 'Calls'}
         value={agent.calls.toLocaleString()}
       />
-      <NumberTile
-        label="Latency"
-        value={agent.latency_seconds == null ? '—' : agent.latency_seconds.toFixed(1)}
-        unit={agent.latency_seconds == null ? undefined : 's'}
-      />
+      <div className="flex min-w-0 flex-col gap-2 rounded-xl border border-hairline bg-surface-1 p-4">
+        <span className="flex items-baseline gap-1.5 text-label text-ink-secondary">
+          Latency <span className="text-ink-muted">p50/p95</span>
+        </span>
+        {agent.latency_p50 != null && agent.latency_p95 != null ? (
+          <span className="flex items-baseline gap-0.5 whitespace-nowrap">
+            <span className="text-[30px] leading-9 font-medium">
+              {agent.latency_p50.toFixed(1)}
+              <span className="text-title">s</span>
+            </span>
+            <span className="text-title leading-9 text-ink-secondary">
+              /{agent.latency_p95.toFixed(1)}s
+            </span>
+          </span>
+        ) : (
+          <span className="flex min-h-9 items-center text-label text-ink-secondary">
+            No replies timed yet
+          </span>
+        )}
+      </div>
     </div>
     <section className="flex flex-col gap-4 rounded-xl border border-hairline bg-surface-1 px-6 pt-5 pb-6">
       <h2 className="m-0 text-body font-medium">Details</h2>
@@ -197,11 +244,12 @@ const Overview: FC<{ agent: AgentPagePublic }> = ({ agent }) => (
     <section className="flex flex-col gap-4 rounded-xl border border-hairline bg-surface-1 px-6 pt-5 pb-6">
       <div className="flex items-baseline justify-between gap-3">
         <div className="flex items-baseline gap-3">
-          <h2 className="m-0 text-body font-medium">Latency</h2>
+          <h2 className="m-0 text-body font-medium">Latency p50</h2>
           <span className="text-label text-ink-muted">
             {PERIOD_LABELS[agent.period]}
             {agent.version ? ` · version ${agent.version}` : ''} ·{' '}
-            {agent.latency_calls.toLocaleString()} {agent.latency_calls === 1 ? 'call' : 'calls'}
+            {agent.latency_replies.toLocaleString()}{' '}
+            {agent.latency_replies === 1 ? 'reply' : 'replies'}
           </span>
         </div>
         {agent.version_marks.length > 0 && (

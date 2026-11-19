@@ -119,8 +119,17 @@ class McpAgent(BaseModel):
         default=None, description="Against the previous period of the same length"
     )
     calls: int | None = Field(default=None, description="Calls in the period")
-    latency_seconds: float | None = Field(
-        default=None, description="Average of its calls' latencies in the period"
+    latency_p50: float | None = Field(
+        default=None, description="p50 over every reply in the period, in seconds"
+    )
+    latency_p95: float | None = Field(
+        default=None, description="p95 over every reply in the period, in seconds"
+    )
+    live_version: str | None = Field(
+        default=None, description="The agent version of its most recent call"
+    )
+    live_since: datetime | None = Field(
+        default=None, description="When the first call on that version started"
     )
 
 
