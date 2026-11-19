@@ -13423,6 +13423,30 @@ export const RuntimeTestResultSchema = {
   description: 'Outcome of POST /eval-configs/test-runtime.',
 } as const;
 
+export const SameContentPublicSchema = {
+  properties: {
+    version: {
+      type: 'string',
+      title: 'Version',
+      description: 'The version number its full run tested',
+    },
+    run_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Run Id',
+    },
+    at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'At',
+      description: 'When that full run completed',
+    },
+  },
+  type: 'object',
+  required: ['version', 'run_id', 'at'],
+  title: 'SameContentPublic',
+} as const;
+
 export const ScenarioCountsPublicSchema = {
   properties: {
     scenarios: {
@@ -18057,6 +18081,31 @@ export const VersionResultsPublicSchema = {
       ],
       title: 'Version',
       description: 'The version number on the platform',
+    },
+    edited_since: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Edited Since',
+      description:
+        'When its last full run ran, when the version was edited after it: that run no longer counts',
+    },
+    same_content: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SameContentPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'When the verdict comes from another version with the same content',
     },
     live_version: {
       anyOf: [

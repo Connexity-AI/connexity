@@ -76,6 +76,7 @@ from app.models.test_run import (
     RuleTotalPublic,
     RuleVerdict,
     RunTotalsPublic,
+    SameContentPublic,
     SimulatedCallPublic,
     SimulatedFinding,
     StoppedCallsPublic,
@@ -135,6 +136,7 @@ class RunRequest:
     all: bool
     repeats: int
     version: int | None
+    fingerprint: str | None = None
     assistant_name: str | None = None
     session_name: str | None = None
 
@@ -191,22 +193,31 @@ def _scenarios_for(
     return RunScope.PICK, [live[i] for i in picked], None
 
 
+@dataclass(frozen=True)
+class VersionToTest:
+    number: int | None
+    # The content it has now; none for a version the assistant named (the run's own
+    # read at its start fills it in).
+    fingerprint: str | None
+
+
 async def version_to_test(
     *, session: Session, agent: Agent, asked: int | None
-) -> int | None:
-    """The version a run will test: the one asked for, else the agent's newest version
-    on Retell, read before anything is stored, so a run always has one (Dmytro,
-    2026-11-19). None for an agent a run refuses anyway (not on Retell).
+) -> VersionToTest:
+    """The version a run will test and its content, read before anything is stored:
+    the one asked for, else the agent's newest version on Retell, so a run always has
+    one (Dmytro, 2026-11-19). No number for an agent a run refuses anyway (not on
+    Retell).
 
     Raises:
-        RunRefused: Retell could not be read.
+        RunRefused: no version was asked for and Retell could not be read.
     """
-    if asked is not None:
-        return asked
-    if agent.platform != Platform.RETELL or not (
-        agent.integration_id and agent.platform_agent_id
+    # A version the assistant named is read when the run starts, content included.
+    if asked is not None or (
+        agent.platform != Platform.RETELL
+        or not (agent.integration_id and agent.platform_agent_id)
     ):
-        return None
+        return VersionToTest(number=asked, fingerprint=None)
     integration = session.get(Integration, agent.integration_id)
     api_key = decrypt(integration.encrypted_api_key) if integration else None
     read = (
@@ -221,7 +232,7 @@ async def version_to_test(
                 "Try again in a minute, or pass `version`."
             ],
         )
-    return read.version
+    return VersionToTest(number=read.version, fingerprint=read.fingerprint)
 
 
 def start_run(
@@ -295,6 +306,7 @@ def start_run(
         assistant_name=request.assistant_name,
         session_name=request.session_name,
         platform_version=str(request.version) if request.version is not None else None,
+        version_fingerprint=request.fingerprint,
         config=config.model_dump(mode="json"),
         status=RunStatus.PENDING,
     )
@@ -1139,7 +1151,33 @@ def version_tested(
     fulls = [
         r for r in runs if r.scope is RunScope.ALL and r.status == RunStatus.COMPLETED
     ]
-    full = next((r for r in reversed(fulls) if is_mine(r)), None)
+    # Verified belongs to the content that passed (Dmytro, 2026-11-19): the version's
+    # content now is what its newest run tested, and the verdict comes from the latest
+    # full run of that content, this version's first, else another number's.
+    own_full = next((r for r in reversed(fulls) if is_mine(r)), None)
+    # What the newest run saw; none when its read failed, and then nothing is known
+    # to have changed.
+    content = mine[-1].version_fingerprint if mine else None
+    edited_since: datetime | None = None
+    if content is None:
+        full = own_full
+    else:
+        full = next(
+            (
+                r
+                for r in reversed(fulls)
+                if is_mine(r) and r.version_fingerprint == content
+            ),
+            None,
+        ) or next(
+            (r for r in reversed(fulls) if r.version_fingerprint == content), None
+        )
+        if full is None and own_full is not None:
+            if own_full.version_fingerprint is None:
+                # Its full run could not read its content: it still counts.
+                full = own_full
+            else:
+                edited_since = own_full.completed_at or own_full.created_at
     facts = _facts(session, [full]) if full is not None else {}
 
     def latest_full_verdict(of: str) -> tuple[VersionVerdict, Run | None]:
@@ -1174,6 +1212,7 @@ def version_tested(
     views = run_views(session, list(reversed(mine)))
     results = VersionResultsPublic(
         version=target,
+        edited_since=edited_since,
         live_version=live,
         live=live_state,
         verdict=VersionVerdict.NOT_VERIFIED,
@@ -1189,7 +1228,15 @@ def version_tested(
         categories = crud.categories_by_id(session=session)
         rules = {rule.key: rule for rule in fact.spec_rules}
         results.verdict = _verdict(totals)
-        results.full_run = next(v for v in views if v.id == full.id)
+        if is_mine(full):
+            results.full_run = next(v for v in views if v.id == full.id)
+        else:
+            results.full_run = run_views(session, [full])[0]
+            results.same_content = SameContentPublic(
+                version=full.platform_version or "",
+                run_id=full.id,
+                at=full.completed_at or full.created_at,
+            )
         results.critical_failed = critical_failed
         results.critical_checks = critical_checks
         results.rules = _rule_totals(fact.verdicts, rules)
