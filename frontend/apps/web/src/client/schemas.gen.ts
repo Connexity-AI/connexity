@@ -7584,6 +7584,35 @@ export const LLMModelsPublicSchema = {
   title: 'LLMModelsPublic',
 } as const;
 
+export const LiveVersionPublicSchema = {
+  properties: {
+    version: {
+      type: 'string',
+      title: 'Version',
+    },
+    verdict: {
+      $ref: '#/components/schemas/VersionVerdict',
+      description: "From the live version's latest full run",
+    },
+    at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'At',
+      description: 'When that full run completed',
+    },
+  },
+  type: 'object',
+  required: ['version', 'verdict'],
+  title: 'LiveVersionPublic',
+} as const;
+
 export const MarkerEventSchema = {
   properties: {
     id: {
@@ -13075,10 +13104,22 @@ export const RunTotalsPublicSchema = {
       description: "Rules of the spec that none of the run's scenarios list",
       default: 0,
     },
+    not_judged: {
+      type: 'integer',
+      title: 'Not Judged',
+      description: 'Rules only calls that stopped listed; they count in no column',
+      default: 0,
+    },
     critical: {
       type: 'integer',
       title: 'Critical',
       description: 'Critical rules that failed, and critical code checks that found something',
+      default: 0,
+    },
+    judged_calls: {
+      type: 'integer',
+      title: 'Judged Calls',
+      description: 'Simulated calls a judge read; none means no result',
       default: 0,
     },
     stopped: {
@@ -16628,13 +16669,25 @@ export const TestsTabPublicSchema = {
         },
       ],
     },
-    earlier: {
+    runs: {
       items: {
-        $ref: '#/components/schemas/VersionRunsPublic',
+        $ref: '#/components/schemas/TestRunPublic',
       },
       type: 'array',
-      title: 'Earlier',
-      description: 'Runs of other versions, newest version first',
+      title: 'Runs',
+      description: "Every run of the agent newest first, or the picked version's",
+    },
+    live_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Live Version',
+      description: "For the Version column: 'live' or 'not live yet'",
     },
     running: {
       type: 'boolean',
@@ -16660,7 +16713,8 @@ export const TestsTabPublicSchema = {
   type: 'object',
   required: ['has_spec'],
   title: 'TestsTabPublic',
-  description: "The agent's Tests tab: the live version's verdict and runs, and the scenarios.",
+  description:
+    "The agent's Tests tab: the newest tested version's verdict, every run in one\nlist, and the scenarios.",
 } as const;
 
 export const TextRuntimeKindSchema = {
@@ -17505,9 +17559,10 @@ export const UncheckedRulePublicSchema = {
     },
     why: {
       type: 'string',
-      enum: ['no_scenario', 'did_not_come_up'],
+      enum: ['no_scenario', 'did_not_come_up', 'not_judged'],
       title: 'Why',
-      description: 'No scenario lists it, or its scenarios never reached it',
+      description:
+        'No scenario lists it, its scenarios never reached it, or only calls that stopped listed it',
     },
   },
   type: 'object',
@@ -17918,6 +17973,29 @@ export const VersionResultsPublicSchema = {
       title: 'Version',
       description: 'The version number on the platform',
     },
+    live_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Live Version',
+      description: 'The agent version of its most recent call',
+    },
+    live: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/LiveVersionPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: "The live version's state, when the version shown is not live",
+    },
     verdict: {
       $ref: '#/components/schemas/VersionVerdict',
     },
@@ -18018,32 +18096,6 @@ export const VersionResultsPublicSchema = {
   title: 'VersionResultsPublic',
   description:
     "One version's verdict, read from its latest completed full run (Dmytro,\n2026-11-19): runs of a set or a pick never change it.",
-} as const;
-
-export const VersionRunsPublicSchema = {
-  properties: {
-    version: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Version',
-    },
-    runs: {
-      items: {
-        $ref: '#/components/schemas/TestRunPublic',
-      },
-      type: 'array',
-      title: 'Runs',
-    },
-  },
-  type: 'object',
-  required: ['runs'],
-  title: 'VersionRunsPublic',
 } as const;
 
 export const VersionVerdictSchema = {

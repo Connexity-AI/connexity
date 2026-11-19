@@ -188,7 +188,9 @@ def test_a_full_run_decides_the_verdict_and_a_set_never_does(
         "failed": 0,
         "did_not_come_up": 0,
         "no_scenario": 0,
+        "not_judged": 0,
         "critical": 0,
+        "judged_calls": 1,
         "stopped": 0,
     }
     assert [r["id"] for r in results["runs"]] == [verified, on_demand]
@@ -331,7 +333,7 @@ def test_a_critical_code_check_fails_the_version_and_its_call(
     assert data["entries"][2]["finding_ids"] == [data["findings"][0]["id"]]
 
 
-def test_a_new_version_without_a_full_run_is_not_verified(
+def test_a_version_not_live_yet_is_verified_with_the_live_one_beside_it(
     client: TestClient, db: Session
 ) -> None:
     user, _ = _signed_in(client, db)
@@ -346,16 +348,17 @@ def test_a_new_version_without_a_full_run_is_not_verified(
         "",
         judge=_both({keys[PRICE]: "passed", keys[BOOKING]: "passed"}),
     )
-    # The agent goes live on version 16; nothing has run on it.
-    _call(db, agent, _booking(2, FULL), days_ago=0, version=16)
+    # The agent's latest call is on 14: 15, the version tested, is not live yet.
+    _call(db, agent, _booking(2, FULL), days_ago=0, version=14)
 
     body = _runs(client, user, agent).json()
     results = body["data"]["results"]
-    assert results["version"] == "16"
-    assert results["verdict"] == "not_verified"
-    assert results["runs"] == []
-    assert results["last_verified"]["version"] == "15"
-    assert "Version 15 was verified" in body["next_steps"][0]
+    # The gate tests before going live: a full run verifies a version not live yet.
+    assert (results["version"], results["verdict"]) == ("15", "verified")
+    assert results["live_version"] == "14"
+    assert results["live"]["version"] == "14"
+    assert results["live"]["verdict"] == "not_verified"
+    assert any("The live version is 14" in s for s in body["next_steps"])
 
 
 def test_a_version_whose_full_run_is_still_going_is_not_verified(

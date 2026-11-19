@@ -69,7 +69,8 @@ do not approve them: a person who disagrees asks you to change one.
 - **Each scenario repeats** (`repeats`, 3 by default, at most 5). A run makes at most
   200 simulated calls.
 - **`version`** picks the agent's version on its platform. The default is the latest
-  one, the one being edited.
+  one, the one being edited, read before the run is stored; when Retell cannot be read
+  the run is refused and you try again.
 - **Run a set or a pick while you work on a change.** Run `all` to verify a version:
   only a full run decides its verdict.
 - **The run happens in the background.** Call `get_test_runs` with its `run_id` until
@@ -105,8 +106,9 @@ do not approve them: a person who disagrees asks you to change one.
 
 ## A version's results
 
-- **`get_test_runs` without `run_id`** answers one version's results: the agent's live
-  version by default, or `version`.
+- **`get_test_runs` without `run_id`** answers one version's results: the newest
+  tested version by default, live or not (a draft ahead of the live one is tested
+  before it goes live), or `version`. `live` gives the live version's state beside it.
 - **Only a full run decides the verdict.** A run of `all` is full; a set or a pick is on
   demand and never changes it. The verdict comes from the version's latest completed
   full run:
@@ -118,8 +120,10 @@ do not approve them: a person who disagrees asks you to change one.
     says whether it didn't come up or has no scenario);
   - **Not verified:** no completed full run of this version, or one that judged no
     rule. `last_verified` names the newest other version a full run verified.
-- **Each run** has its `totals`: rules passed, failed, didn't come up and without a
-  scenario, each counted once per run; critical findings; calls stopped. And who ran it:
+- **Each run** has its version and its `totals`: rules passed, failed, didn't come up
+  and without a scenario, each counted once per run. Calls that stopped with an error
+  count in no column (`not_judged` for rules only they listed); a run no judge read
+  (`judged_calls` 0) has no result; critical findings; calls stopped. And who ran it:
   the person, the assistant, the session (`session` on `run_scenarios`).
 - **`stopped`** counts the full run's simulated calls that ended in an error, with the
   most common error and a run to open. They gave no verdicts.

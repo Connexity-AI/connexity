@@ -186,11 +186,14 @@ def test_the_runs_with_their_totals_and_the_spec_tabs_results(
         "failed": 1,
         "did_not_come_up": 1,
         "no_scenario": 0,
+        "not_judged": 0,
         "critical": 1,
+        "judged_calls": 2,
         "stopped": 0,
     }
     assert run["ran_by"]
-    assert tab["earlier"] == []
+    assert [r["id"] for r in tab["runs"]] == [run["id"]]
+    assert tab["live_version"] == "15"
     assert (tab["coverage"]["covered"], tab["coverage"]["pct"]) == (2, 100)
     assert len(tab["scenarios"]) == 2
 
@@ -206,23 +209,29 @@ def test_the_runs_with_their_totals_and_the_spec_tabs_results(
     assert body["data"]["results"]["verdict"] == "failed"
 
 
-def test_a_new_version_puts_earlier_runs_aside(client: TestClient, db: Session) -> None:
+def test_a_version_not_live_yet_is_followed_with_every_run_in_one_list(
+    client: TestClient, db: Session
+) -> None:
     user, cookies = _signed_in(client, db)
     agent, keys = _agent_with_spec(db, client, user)
     _scenarios(client, user, agent, _price(keys))
     _run(client, user, agent, {keys[PRICE]: "passed"})
-    # The agent goes live on version 16.
-    _call(db, agent, _booking(2, FULL), days_ago=0, version=16)
+    # The agent's latest call is on 14: version 15, the one tested, is not live yet.
+    _call(db, agent, _booking(2, FULL), days_ago=0, version=14)
 
     tab = _tab(client, cookies, agent).json()
-    assert tab["results"]["version"] == "16"
-    assert tab["results"]["verdict"] == "not_verified"
-    assert tab["results"]["runs"] == []
-    assert [(g["version"], len(g["runs"])) for g in tab["earlier"]] == [("15", 1)]
+    assert tab["results"]["version"] == "15"
+    assert tab["live_version"] == "14"
+    assert tab["results"]["live"] == {
+        "version": "14",
+        "verdict": "not_verified",
+        "at": None,
+    }
+    assert [r["platform_version"] for r in tab["runs"]] == ["15"]
+    # The Spec tab marks rules from 15's full run too.
     spec = client.get(f"{API}/agents/{agent.id}/spec", cookies=cookies).json()
-    assert spec["results_version"] == "16"
-    assert spec["results_at"] is None
-    assert all(r["result"] is None for g in spec["groups"] for r in g["rules"])
+    assert spec["results_version"] == "15"
+    assert spec["results_at"] is not None
 
 
 def test_a_run_in_progress_shows_as_running(client: TestClient, db: Session) -> None:

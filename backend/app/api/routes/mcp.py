@@ -189,6 +189,7 @@ from app.services.test_run import (
     run_detail,
     start_run,
     version_results,
+    version_to_test,
 )
 from app.services.work import MoveRefused, Task, move_task, next_task, work_page
 
@@ -2465,7 +2466,11 @@ _TEST_RUN_RULES = [
     "checked, Not verified without one. A run of a set or a pick is on demand and "
     "never changes it.",
     "A run counts rules, each once: Failed when any repeat failed it, Didn't come up "
-    "when no repeat reached it.",
+    "when no judged repeat reached it. Calls that stopped with an error count in no "
+    "column; a run no judge read has no result.",
+    "Without `version`, results follow the newest tested version, live or not; `live` "
+    "gives the live version's state beside it. Every run stores the version it "
+    "tested.",
     "Run a set or a pick while working on a change; run every scenario to verify a "
     "version.",
 ]
@@ -2496,6 +2501,9 @@ async def run_agent_scenarios(
 ) -> McpAnswer[McpStartedRun]:
     agent = _mcp_agent_in(session, workspace, agent_id)
     try:
+        version = await version_to_test(
+            session=session, agent=agent, asked=body.version
+        )
         run = start_run(
             session=session,
             agent=agent,
@@ -2505,7 +2513,7 @@ async def run_agent_scenarios(
                 scenario_ids=body.scenario_ids,
                 all=body.all,
                 repeats=body.repeats,
-                version=body.version,
+                version=version,
                 assistant_name=assistant,
                 session_name=(body.session or "").strip() or None,
             ),
@@ -2539,6 +2547,12 @@ def _run_steps(
         return [
             f"Still running: {counts.finished} of {counts.calls} simulated calls "
             f"finished. Call `get_test_runs` with run_id {run.id} again."
+        ]
+    if run.totals is not None and not run.totals.judged_calls:
+        return [
+            f"No result: every one of its {counts.calls} simulated calls stopped with "
+            "an error before a judge read it, so it counts nothing. Read the calls' "
+            "`error`, fix the cause, then run again with `run_scenarios`."
         ]
     if run.status is RunStatus.FAILED:
         return [
@@ -2706,9 +2720,26 @@ def _verdict_steps(results: VersionResultsPublic) -> list[str]:
     ]
 
 
+def _live_steps(results: VersionResultsPublic) -> list[str]:
+    live = results.live
+    if live is None:
+        return []
+    state = (
+        f"verified {live.at:%d %b}"
+        if live.verdict is VersionVerdict.VERIFIED and live.at
+        else live.verdict.value.replace("_", " ")
+    )
+    return [
+        f"{_version_name(results)} is not the live version. The live version is "
+        f"{live.version}, {state}; call `get_test_runs` with version {live.version} "
+        "for its runs."
+    ]
+
+
 def _results_steps(results: VersionResultsPublic) -> list[str]:
     return [
         *_verdict_steps(results),
+        *_live_steps(results),
         *_stopped_steps(results),
         *_coverage_steps(results),
     ]

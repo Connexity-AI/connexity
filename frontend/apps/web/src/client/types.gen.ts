@@ -4941,6 +4941,26 @@ export type LlmModelsPublic = {
 };
 
 /**
+ * LiveVersionPublic
+ */
+export type LiveVersionPublic = {
+  /**
+   * Version
+   */
+  version: string;
+  /**
+   * From the live version's latest full run
+   */
+  verdict: VersionVerdict;
+  /**
+   * At
+   *
+   * When that full run completed
+   */
+  at?: string | null;
+};
+
+/**
  * MarkerEvent
  *
  * Something that happened that is neither speech nor a tool call.
@@ -8615,11 +8635,23 @@ export type RunTotalsPublic = {
    */
   no_scenario?: number;
   /**
+   * Not Judged
+   *
+   * Rules only calls that stopped listed; they count in no column
+   */
+  not_judged?: number;
+  /**
    * Critical
    *
    * Critical rules that failed, and critical code checks that found something
    */
   critical?: number;
+  /**
+   * Judged Calls
+   *
+   * Simulated calls a judge read; none means no result
+   */
+  judged_calls?: number;
   /**
    * Stopped
    *
@@ -10788,7 +10820,8 @@ export type TestRunPublic = {
 /**
  * TestsTabPublic
  *
- * The agent's Tests tab: the live version's verdict and runs, and the scenarios.
+ * The agent's Tests tab: the newest tested version's verdict, every run in one
+ * list, and the scenarios.
  */
 export type TestsTabPublic = {
   /**
@@ -10801,11 +10834,17 @@ export type TestsTabPublic = {
   results?: VersionResultsPublic | null;
   coverage?: CoveragePublic | null;
   /**
-   * Earlier
+   * Runs
    *
-   * Runs of other versions, newest version first
+   * Every run of the agent newest first, or the picked version's
    */
-  earlier?: Array<VersionRunsPublic>;
+  runs?: Array<TestRunPublic>;
+  /**
+   * Live Version
+   *
+   * For the Version column: 'live' or 'not live yet'
+   */
+  live_version?: string | null;
   /**
    * Running
    *
@@ -11332,9 +11371,9 @@ export type UncheckedRulePublic = {
   /**
    * Why
    *
-   * No scenario lists it, or its scenarios never reached it
+   * No scenario lists it, its scenarios never reached it, or only calls that stopped listed it
    */
-  why: 'no_scenario' | 'did_not_come_up';
+  why: 'no_scenario' | 'did_not_come_up' | 'not_judged';
 };
 
 /**
@@ -11597,6 +11636,16 @@ export type VersionResultsPublic = {
    * The version number on the platform
    */
   version?: string | null;
+  /**
+   * Live Version
+   *
+   * The agent version of its most recent call
+   */
+  live_version?: string | null;
+  /**
+   * The live version's state, when the version shown is not live
+   */
+  live?: LiveVersionPublic | null;
   verdict: VersionVerdict;
   /**
    * The full run that decided the verdict
@@ -11648,20 +11697,6 @@ export type VersionResultsPublic = {
    * The full run's simulated calls that ended in an error
    */
   stopped?: StoppedCallsPublic | null;
-};
-
-/**
- * VersionRunsPublic
- */
-export type VersionRunsPublic = {
-  /**
-   * Version
-   */
-  version?: string | null;
-  /**
-   * Runs
-   */
-  runs: Array<TestRunPublic>;
 };
 
 /**

@@ -183,10 +183,17 @@ class RunTotalsPublic(BaseModel):
     no_scenario: int = PydanticField(
         default=0, description="Rules of the spec that none of the run's scenarios list"
     )
+    not_judged: int = PydanticField(
+        default=0,
+        description="Rules only calls that stopped listed; they count in no column",
+    )
     critical: int = PydanticField(
         default=0,
         description="Critical rules that failed, and critical code checks that found "
         "something",
+    )
+    judged_calls: int = PydanticField(
+        default=0, description="Simulated calls a judge read; none means no result"
     )
     stopped: int = PydanticField(
         default=0, description="Simulated calls that ended in an error"
@@ -210,12 +217,29 @@ class VerifiedVersionPublic(BaseModel):
     at: datetime = PydanticField(description="When its full run completed")
 
 
+class LiveVersionPublic(BaseModel):
+    version: str
+    verdict: VersionVerdict = PydanticField(
+        description="From the live version's latest full run"
+    )
+    at: datetime | None = PydanticField(
+        default=None, description="When that full run completed"
+    )
+
+
 class VersionResultsPublic(BaseModel):
     """One version's verdict, read from its latest completed full run (Dmytro,
     2026-11-19): runs of a set or a pick never change it."""
 
     version: str | None = PydanticField(
         default=None, description="The version number on the platform"
+    )
+    live_version: str | None = PydanticField(
+        default=None, description="The agent version of its most recent call"
+    )
+    live: LiveVersionPublic | None = PydanticField(
+        default=None,
+        description="The live version's state, when the version shown is not live",
     )
     verdict: VersionVerdict
     full_run: TestRunPublic | None = PydanticField(
@@ -263,8 +287,9 @@ class UncheckedRulePublic(BaseModel):
     text: str
     category: str
     critical: bool = False
-    why: Literal["no_scenario", "did_not_come_up"] = PydanticField(
-        description="No scenario lists it, or its scenarios never reached it"
+    why: Literal["no_scenario", "did_not_come_up", "not_judged"] = PydanticField(
+        description="No scenario lists it, its scenarios never reached it, or only "
+        "calls that stopped listed it"
     )
 
 
@@ -292,21 +317,21 @@ class SetChipPublic(BaseModel):
     scenarios: int
 
 
-class VersionRunsPublic(BaseModel):
-    version: str | None = None
-    runs: list[TestRunPublic]
-
-
 class TestsTabPublic(BaseModel):
-    """The agent's Tests tab: the live version's verdict and runs, and the scenarios."""
+    """The agent's Tests tab: the newest tested version's verdict, every run in one
+    list, and the scenarios."""
 
     has_spec: bool
     results: VersionResultsPublic | None = PydanticField(
         default=None, description="The live version, or the newest tested one"
     )
     coverage: CoveragePublic | None = None
-    earlier: list[VersionRunsPublic] = PydanticField(
-        default_factory=list, description="Runs of other versions, newest version first"
+    runs: list[TestRunPublic] = PydanticField(
+        default_factory=list,
+        description="Every run of the agent newest first, or the picked version's",
+    )
+    live_version: str | None = PydanticField(
+        default=None, description="For the Version column: 'live' or 'not live yet'"
     )
     running: bool = PydanticField(
         default=False, description="A run of this agent is in progress"

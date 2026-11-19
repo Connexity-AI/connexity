@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import Column, text
+from sqlalchemy import CheckConstraint, Column, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -159,6 +159,14 @@ class RunBase(SQLModel):
 
 class Run(RunBase, table=True):
     __tablename__ = "run"
+    __table_args__ = (
+        # A run of scenarios always says which version it tested (Dmytro,
+        # 2026-11-19); 1.x runs have no scope.
+        CheckConstraint(
+            "scope IS NULL OR platform_version IS NOT NULL",
+            name="ck_run_scenarios_have_a_version",
+        ),
+    )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     company_id: uuid.UUID = Field(foreign_key="company.id", index=True)

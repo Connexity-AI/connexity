@@ -670,7 +670,7 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         limit: Limit = None,
     ) -> TestRunsResult:
         """Without `run_id`: a tested version's results (`version`, default the
-        live version): Verified, Failed, Partially tested or Not verified, read from its
+        newest tested version, live or not, with the live version's state beside it): Verified, Failed, Partially tested or Not verified, read from its
         latest full run, with that run's rules, code checks and stopped calls, every run
         of the version with its totals and who ran it, and coverage as tests written;
         then the agent's runs, newest first. With

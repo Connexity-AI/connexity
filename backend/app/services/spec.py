@@ -222,7 +222,9 @@ def spec_answer(
                 answered_at=when,
                 in_conflict=change != "dropped" and r.key in conflicts,
                 change=change,
-                result=marks.get(r.key) if change != "dropped" else None,
+                result=None
+                if change == "dropped" or marks.get(r.key) == "not_judged"
+                else marks.get(r.key),  # type: ignore[arg-type]
             )
 
         def change_of(r: SpecRule) -> RuleChange | None:

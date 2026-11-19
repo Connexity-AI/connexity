@@ -10,18 +10,18 @@ from sqlmodel import Session
 
 from app.crud.scenario import live_scenarios, members, rules_of, sets_of_agent
 from app.crud.spec import latest_spec
+from app.crud.test_run import runs_of_agent
 from app.models.agent import Agent
 from app.models.enums import RunStatus
 from app.models.test_run import (
     ScenarioRowPublic,
     SetChipPublic,
     TestsTabPublic,
-    VersionRunsPublic,
 )
-from app.services.test_run import run_views, version_number, version_tested
+from app.services.test_run import run_views, version_tested
 
-# Runs of earlier versions listed under "N runs on earlier versions".
-EARLIER_RUNS = 50
+# Runs listed on the tab, newest first.
+RUNS_LISTED = 100
 
 
 def tests_tab(
@@ -40,29 +40,25 @@ def tests_tab(
     listed = rules_of(session=session, test_case_ids=[s.id for s in scenarios])
 
     found = version_tested(session, agent, version)
-    # Earlier versions' runs, newest first, at most this many.
-    shown = list(reversed(found.others))[:EARLIER_RUNS]
-    by_version: dict[str | None, list[uuid.UUID]] = {}
-    for run in shown:
-        by_version.setdefault(run.platform_version, []).append(run.id)
-    otherrun_views = {v.id: v for v in run_views(session, list(reversed(found.others)))}
-    earlier = [
-        VersionRunsPublic(version=version, runs=[otherrun_views[i] for i in ids])
-        for version, ids in sorted(
-            by_version.items(), key=lambda item: version_number(item[0]), reverse=True
+    # One list, newest first (Dmytro, 2026-11-19); with a version picked, its runs.
+    runs = (
+        found.results.runs
+        if version is not None
+        else run_views(
+            session,
+            list(reversed(runs_of_agent(session=session, agent_id=agent.id)))[
+                :RUNS_LISTED
+            ],
         )
-    ]
-    running = any(
-        r.status in (RunStatus.PENDING, RunStatus.RUNNING) for r in found.others
-    ) or any(
-        v.status in (RunStatus.PENDING, RunStatus.RUNNING) for v in found.results.runs
     )
+    running = any(r.status in (RunStatus.PENDING, RunStatus.RUNNING) for r in runs)
 
     return TestsTabPublic(
         has_spec=spec is not None,
         results=found.results if spec is not None else None,
         coverage=found.results.coverage,
-        earlier=earlier,
+        runs=runs,
+        live_version=found.results.live_version,
         running=running,
         sets=[
             SetChipPublic(

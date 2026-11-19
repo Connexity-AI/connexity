@@ -1029,12 +1029,18 @@ class RunTotals(BaseModel):
     failed: int = 0
     did_not_come_up: int = 0
     no_scenario: int = Field(default=0, description="Rules no scenario of the run lists")
+    not_judged: int = Field(
+        default=0, description="Rules only calls that stopped listed; in no column"
+    )
     critical: int = Field(
         default=0,
         description="Critical rules that failed and critical code checks that found "
         "something",
     )
     stopped: int = Field(default=0, description="Simulated calls that ended in an error")
+    judged_calls: int = Field(
+        default=0, description="Simulated calls a judge read; none means no result"
+    )
 
 
 class TestRun(BaseModel):
@@ -1086,7 +1092,7 @@ class UncheckedRule(BaseModel):
     text: str
     category: str
     critical: bool = False
-    why: str = Field(description="no_scenario or did_not_come_up")
+    why: str = Field(description="no_scenario, did_not_come_up or not_judged")
 
 
 class Coverage(BaseModel):
@@ -1109,8 +1115,20 @@ class VerifiedVersion(BaseModel):
     at: str = Field(description="When its full run completed")
 
 
+class LiveVersion(BaseModel):
+    version: str
+    verdict: str = Field(description="From the live version's latest full run")
+    at: str | None = Field(default=None, description="When that full run completed")
+
+
 class VersionResults(BaseModel):
-    version: str | None = None
+    version: str | None = Field(
+        default=None, description="The newest tested version, live or not, or the one asked"
+    )
+    live_version: str | None = None
+    live: LiveVersion | None = Field(
+        default=None, description="The live version's state, when it is not the one shown"
+    )
     verdict: str = Field(
         description="From the latest full run: verified, failed, partial or not_verified"
     )
