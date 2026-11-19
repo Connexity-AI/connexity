@@ -1,14 +1,14 @@
 """The agent page's Overview and `get_agent` (plan `plans/2026-11-14-agent-page.md`)."""
 
 from collections import defaultdict
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 
 from sqlmodel import Session, col, func, select
 
 from app import crud
 from app.crud.issue_list import PERIODS, period_start
 from app.crud.issue_page import agent_version_starts, period_days
-from app.crud.latency import average, call_latencies
+from app.crud.latency import call_gaps, gap_percentiles
 from app.models.agent import Agent
 from app.models.agent_list import Period
 from app.models.agent_page import (
@@ -20,7 +20,7 @@ from app.models.agent_page import (
 )
 from app.models.call import Call, CallComponent
 from app.models.component_version import ComponentVersion
-from app.services.agent_list import agent_types
+from app.services.agent_list import agent_types, live_since
 from app.services.spec import spec_state
 
 
@@ -68,30 +68,6 @@ def _systems(
     ]
 
 
-def _live_since(session: Session, agent: Agent, version: str | None) -> datetime | None:
-    """The first call on the live version since the agent last ran any other one, so
-    a version it went back to counts from its return."""
-    if version is None:
-        return None
-    other = session.exec(
-        select(func.max(col(Call.started_at))).where(
-            Call.agent_id == agent.id,
-            col(Call.deleted_at).is_(None),
-            col(Call.agent_version).is_not(None),
-            Call.agent_version != version,
-        )
-    ).one()
-    query = select(func.min(col(Call.started_at))).where(
-        Call.agent_id == agent.id,
-        col(Call.deleted_at).is_(None),
-        Call.agent_version == version,
-    )
-    if other is not None:
-        query = query.where(col(Call.started_at) > other)
-    first = session.exec(query).one()
-    return first.replace(tzinfo=UTC) if first else None
-
-
 def agent_versions(
     *, session: Session, agent: Agent, live: str | None
 ) -> list[AgentVersionOptionPublic]:
@@ -127,22 +103,23 @@ def agent_page(
         *([Call.agent_version == version] if version is not None else []),
     ]
     calls = session.exec(select(func.count()).where(*in_period)).one()
-    latencies = call_latencies(session=session, agent_ids=[agent.id], since=since)
+    gaps = call_gaps(session=session, agent_ids=[agent.id], since=since)
     version_days: list[date] = []
     if version is not None:
         on_version = dict(
             session.exec(select(Call.id, Call.started_at).where(*in_period)).all()
         )
-        latencies = [row for row in latencies if row.call_id in on_version]
+        gaps = [row for row in gaps if row.call_id in on_version]
         version_days = sorted({started.date() for started in on_version.values()})
-    by_day: dict[date, list[float]] = defaultdict(list)
-    for row in latencies:
-        by_day[row.day].append(row.seconds)
+    by_day: dict[date, list[int]] = defaultdict(list)
+    for row in gaps:
+        by_day[row.day].extend(row.gaps)
+    overall = gap_percentiles([gap for row in gaps for gap in row.gaps])
     days = [
         AgentLatencyDayPublic(
             day=day,
-            seconds=average(by_day.get(day, [])),
-            calls=len(by_day.get(day, [])),
+            p50=gap_percentiles(by_day.get(day, [])).p50,
+            replies=len(by_day.get(day, [])),
         )
         for day in period_days(since, PERIODS[period])
     ]
@@ -154,7 +131,7 @@ def agent_page(
         )[1:]  # the first version is where the agent started, not a change
         if started.date() >= first_day
     ]
-    peaks = [d.seconds for d in days if d.seconds is not None]
+    peaks = [d.p50 for d in days if d.p50 is not None]
     return AgentPagePublic(
         id=agent.id,
         name=agent.name,
@@ -165,14 +142,15 @@ def agent_page(
             currents={agent.id: live} if live else {},
         ).get(agent.id),
         live_version=live,
-        live_since=_live_since(session, agent, live),
+        live_since=live_since(session=session, agent=agent, version=live),
         model=_model(session, agent, live),
         systems=_systems(session, agent, since, version),
         spec=spec_state(crud.latest_spec(session=session, agent_id=agent.id), live),
         period=period,
         calls=calls,
-        latency_seconds=average([row.seconds for row in latencies]),
-        latency_calls=len(latencies),
+        latency_p50=overall.p50,
+        latency_p95=overall.p95,
+        latency_replies=overall.answers,
         latency_days=days,
         latency_peak=max(peaks) if peaks else None,
         version_marks=marks,

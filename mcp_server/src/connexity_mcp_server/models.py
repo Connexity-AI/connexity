@@ -44,7 +44,14 @@ class Agent(BaseModel):
     spec_version: int | None = None
     type: str | None = None
     calls: int | None = None
-    latency_seconds: float | None = None
+    latency_p50: float | None = Field(
+        default=None, description="p50 over every reply in the period, in seconds"
+    )
+    latency_p95: float | None = Field(
+        default=None, description="p95 over every reply in the period, in seconds"
+    )
+    live_version: str | None = None
+    live_since: datetime | None = None
     score: int | None = None
     score_change: int | None = None
     created_at: datetime
@@ -786,8 +793,8 @@ class AgentSystem(BaseModel):
 
 class AgentLatencyDay(BaseModel):
     day: str
-    seconds: float | None = None
-    calls: int = 0
+    p50: float | None = Field(default=None, description="The day's p50, in seconds")
+    replies: int = 0
 
 
 class AgentVersionMark(BaseModel):
@@ -813,8 +820,9 @@ class AgentPage(BaseModel):
     spec: str
     period: str
     calls: int
-    latency_seconds: float | None = None
-    latency_calls: int = 0
+    latency_p50: float | None = None
+    latency_p95: float | None = None
+    latency_replies: int = Field(default=0, description="Replies the latency rests on")
     latency_days: list[AgentLatencyDay] = Field(default_factory=list)
     latency_peak: float | None = None
     version_marks: list[AgentVersionMark] = Field(default_factory=list)

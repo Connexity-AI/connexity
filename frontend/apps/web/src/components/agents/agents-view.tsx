@@ -30,7 +30,8 @@ export const TYPES: Record<string, string> = {
   conversational_flow: 'Conversational flow',
 };
 // The design's columns without Score and Critical issues (rule 14).
-const COLUMNS = 'grid-cols-[minmax(0,1fr)_104px_88px]';
+// Agent, Version, Latency p50/p95, Calls (design item 34).
+const COLUMNS = 'grid-cols-[minmax(0,1fr)_72px_160px_88px]';
 
 /** "Retell · Conversational flow" */
 export const subline = (agent: AgentListItemPublic) =>
@@ -38,21 +39,28 @@ export const subline = (agent: AgentListItemPublic) =>
     .filter(Boolean)
     .join(' · ');
 
-/** "1.2 s", or a dash with no latency. */
-export const seconds = (value: number | null | undefined) =>
-  value == null ? '—' : `${value.toFixed(1)} s`;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-/** "synced 5 minutes ago" */
-const synced = (iso: string | null | undefined) => {
-  if (!iso) return null;
-  const minutes = Math.max(0, Math.round((Date.now() - parseTime(iso).getTime()) / 60000));
-  if (minutes < 1) return 'synced just now';
-  if (minutes < 60) return `synced ${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `synced ${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
-  const days = Math.round(hours / 24);
-  return `synced ${days} ${days === 1 ? 'day' : 'days'} ago`;
+/** "Since 6 Nov", in the viewer's time zone. */
+const sinceLabel = (iso: string | null | undefined) => {
+  if (!iso) return undefined;
+  const date = parseTime(iso);
+  return `Since ${date.getDate()} ${MONTHS[date.getMonth()]}`;
 };
+
+/** "0.8s/1.7s": p50, then p95 muted; a dash without a reply in the period. */
+export const LatencyPair: FC<{ p50: number | null | undefined; p95: number | null | undefined }> = ({
+  p50,
+  p95,
+}) =>
+  p50 == null || p95 == null ? (
+    <span className="text-ink-muted">—</span>
+  ) : (
+    <span className="inline-flex items-baseline whitespace-nowrap">
+      <span>{p50.toFixed(1)}s</span>
+      <span className="text-ink-secondary">/{p95.toFixed(1)}s</span>
+    </span>
+  );
 
 interface Props {
   agents: AgentListPublic;
@@ -67,7 +75,6 @@ export const AgentsView: FC<Props> = ({ agents }) => {
   const pathname = usePathname();
   const params = useSearchParams();
   const [pending, startTransition] = useTransition();
-  const caption = synced(agents.synced_at);
 
   const pickPeriod = (value: string | undefined) => {
     const next = new URLSearchParams(params.toString());
@@ -82,9 +89,6 @@ export const AgentsView: FC<Props> = ({ agents }) => {
       <div className="flex min-h-10 items-center justify-between gap-4">
         <div className="flex flex-wrap items-baseline gap-3">
           <h1 className="m-0 text-title font-medium">Agents</h1>
-          {caption && (
-            <span className="whitespace-nowrap text-label text-ink-muted">Retell · {caption}</span>
-          )}
         </div>
         <Picker
           label="Last 30 days"
@@ -102,7 +106,8 @@ export const AgentsView: FC<Props> = ({ agents }) => {
           className={cn('grid h-10 items-center gap-4 px-6 text-label text-ink-secondary', COLUMNS)}
         >
           <span>Agent</span>
-          <span className="text-right">Latency</span>
+          <span>Version</span>
+          <span className="text-right">Latency p50/p95</span>
           <span className="text-right">Calls</span>
         </div>
         {agents.data.map((agent) => (
@@ -127,7 +132,12 @@ export const AgentsView: FC<Props> = ({ agents }) => {
                 <span className="text-label text-ink-muted">{subline(agent)}</span>
               )}
             </div>
-            <span className="text-right">{seconds(agent.latency_seconds)}</span>
+            <span title={sinceLabel(agent.live_since)} className="text-ink-muted">
+              {agent.live_version ? `v${agent.live_version}` : '—'}
+            </span>
+            <span className="text-right">
+              <LatencyPair p50={agent.latency_p50} p95={agent.latency_p95} />
+            </span>
             <span className="text-right">{agent.calls.toLocaleString()}</span>
           </Link>
         ))}

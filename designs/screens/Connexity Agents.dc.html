@@ -21,7 +21,6 @@
 <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:40px">
 <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
 <h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Agents</h1>
-<span style="font-size:13px;color:var(--ink3);white-space:nowrap">Retell · synced 5 minutes ago</span>
 </div>
 <div ref="{{ pickerRef }}" style="position:relative">
 <button onClick="{{ togglePeriod }}" style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">
@@ -42,23 +41,23 @@
 </div>
 </div>
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-<div style="display:grid;grid-template-columns:minmax(0,1fr) 80px 128px 104px 88px;gap:16px;align-items:center;height:40px;padding:0 24px;font-size:13px;color:var(--ink2)">
-<span>Agent</span><span style="text-align:right">Score</span><span style="text-align:right">Critical issues</span><span style="text-align:right">Latency</span><span style="text-align:right">Calls</span>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 72px 80px 128px 160px 88px;gap:16px;align-items:center;height:40px;padding:0 24px;font-size:13px;color:var(--ink2)">
+<span>Agent</span><span>Version</span><span style="text-align:right">Score</span><span style="text-align:right">Critical issues</span><span style="text-align:right">Latency p50/p95</span><span style="text-align:right">Calls</span>
 </div>
 <sc-for list="{{ agents }}" as="a" hint-placeholder-count="5">
-<a href="{{ a.href }}" style="display:grid;grid-template-columns:minmax(0,1fr) 80px 128px 104px 88px;gap:16px;align-items:center;min-height:64px;padding:10px 24px;border-top:1px solid var(--border);font-size:15px;color:var(--ink);text-decoration:none;cursor:pointer" style-hover="background:var(--wash);opacity:1">
+<a href="{{ a.href }}" style="display:grid;grid-template-columns:minmax(0,1fr) 72px 80px 128px 160px 88px;gap:16px;align-items:center;min-height:64px;padding:10px 24px;border-top:1px solid var(--border);font-size:15px;color:var(--ink);text-decoration:none;cursor:pointer" style-hover="background:var(--wash);opacity:1">
 <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
 <span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ a.name }}</span><sc-if value="{{ a.noSpec }}"><span style="flex:none;display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:6px;border:1px solid var(--border);color:var(--ink3);font-size:13px;line-height:18px">No spec</span></sc-if></span>
 <span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ a.sub }}</span>
 </div>
+<span title="{{ a.verTitle }}" style="color:var(--ink3);justify-self:start">{{ a.ver }}</span>
 <span style="text-align:right;font-weight:500">{{ a.score }}</span>
 <span style="display:flex;justify-content:flex-end">
 <sc-if value="{{ a.hasCrit }}"><span style="display:inline-flex;align-items:center;gap:4px;color:var(--crit)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>{{ a.crit }}</span></sc-if>
 <sc-if value="{{ a.noCrit }}"><span style="color:var(--ink2)">0</span></sc-if>
 </span>
 <span style="display:flex;justify-content:flex-end">
-<sc-if value="{{ a.over }}"><span title="{{ a.goalTitle }}" style="display:inline-flex;align-items:center;gap:4px;color:var(--warn)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>{{ a.lat }}</span></sc-if>
-<sc-if value="{{ a.under }}"><span title="{{ a.goalTitle }}">{{ a.lat }}</span></sc-if>
+<span style="display:inline-flex;align-items:baseline;white-space:nowrap"><span>{{ a.p50 }}</span><span style="color:var(--ink2)">/{{ a.p95 }}</span></span>
 </span>
 <span style="text-align:right">{{ a.calls }}</span>
 </a>
@@ -76,11 +75,11 @@ class Component extends DCLogic {
     light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
   };
   static AGENTS = [
-    { id:'restaurant', name:'Restaurant reservations', type:'conversational flow', score:63, crit:2, lat:0.8, goal:1.5, calls:488 },
-    { id:'insurance', name:'Insurance renewals', type:'conversational flow', score:41, crit:3, lat:1.0, goal:1.5, calls:96 },
-    { id:'dental', name:'Dental reception', type:'conversational flow', noSpec:true, score:78, crit:1, lat:1.2, goal:1.0, calls:230 },
-    { id:'car', name:'Car service booking', type:'single prompt', score:48, crit:1, lat:1.8, goal:1.5, calls:310 },
-    { id:'clinic', name:'Clinic after-hours', type:'single prompt', score:66, crit:2, lat:1.1, goal:1.5, calls:160 }
+    { id:'restaurant', name:'Restaurant reservations', type:'conversational flow', ver:6, since:'28 Oct', score:63, crit:0, p95:1.7, p50:0.8, calls:488 },
+    { id:'insurance', name:'Insurance renewals', type:'conversational flow', ver:14, since:'6 Nov', score:41, crit:2, p95:2.0, p50:1.0, calls:96 },
+    { id:'dental', name:'Dental reception', type:'conversational flow', noSpec:true, ver:11, since:'18 Oct', score:78, crit:0, p95:2.6, p50:1.2, calls:230 },
+    { id:'car', name:'Car service booking', type:'single prompt', ver:88, since:'18 Nov', score:48, crit:1, p95:3.1, p50:1.6, calls:310 },
+    { id:'clinic', name:'Clinic after-hours', type:'single prompt', ver:5, since:'17 Nov', score:66, crit:0, p95:1.9, p50:1.0, calls:160 }
   ];
   constructor(props) {
     super(props);
@@ -96,8 +95,7 @@ class Component extends DCLogic {
     const agents = [...Component.AGENTS].sort((a, b) => a.score - b.score).map(a => ({
       ...a, sub: 'Retell · ' + a.type, href: 'Connexity Agent Profile.dc.html?agent=' + a.id,
       hasCrit: a.crit > 0, noCrit: a.crit === 0, noSpec: !!a.noSpec,
-      lat: a.lat.toFixed(1) + ' s', over: a.lat > a.goal, under: a.lat <= a.goal,
-      goalTitle: (a.lat > a.goal ? 'Over' : 'Within') + ' its ' + a.goal.toFixed(1) + ' s goal'
+      ver: 'v' + a.ver, verTitle: 'Since ' + a.since, p95: a.p95.toFixed(1) + 's', p50: a.p50.toFixed(1) + 's'
     }));
     return {
       rootStyle: { ...Component.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },

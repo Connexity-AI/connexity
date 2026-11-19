@@ -400,7 +400,7 @@ export const AgentLatencyDayPublicSchema = {
       format: 'date',
       title: 'Day',
     },
-    seconds: {
+    p50: {
       anyOf: [
         {
           type: 'number',
@@ -409,17 +409,17 @@ export const AgentLatencyDayPublicSchema = {
           type: 'null',
         },
       ],
-      title: 'Seconds',
-      description: "The day's average latency; None with no calls",
+      title: 'P50',
+      description: "The day's p50 over its replies; None without one",
     },
-    calls: {
+    replies: {
       type: 'integer',
-      title: 'Calls',
-      description: 'Calls that day with a latency',
+      title: 'Replies',
+      description: 'Replies that day: times the agent answered',
     },
   },
   type: 'object',
-  required: ['day', 'calls'],
+  required: ['day', 'replies'],
   title: 'AgentLatencyDayPublic',
 } as const;
 
@@ -497,7 +497,7 @@ export const AgentListItemPublicSchema = {
       title: 'Calls',
       description: 'Calls in the period',
     },
-    latency_seconds: {
+    latency_p50: {
       anyOf: [
         {
           type: 'number',
@@ -506,8 +506,45 @@ export const AgentListItemPublicSchema = {
           type: 'null',
         },
       ],
-      title: 'Latency Seconds',
-      description: "Average of its calls' latencies in the period",
+      title: 'Latency P50',
+      description: 'p50 over every reply in the period, in seconds',
+    },
+    latency_p95: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Latency P95',
+      description: 'p95 over every reply in the period, in seconds',
+    },
+    live_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Live Version',
+      description: 'The agent version of its most recent call',
+    },
+    live_since: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Live Since',
+      description: 'When the first call on that version started',
     },
     spec: {
       type: 'string',
@@ -535,19 +572,6 @@ export const AgentListPublicSchema = {
       type: 'string',
       enum: ['7d', '30d', '90d'],
       title: 'Period',
-    },
-    synced_at: {
-      anyOf: [
-        {
-          type: 'string',
-          format: 'date-time',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Synced At',
-      description: "When calls were last pulled for the workspace's Retell accounts",
     },
   },
   type: 'object',
@@ -654,7 +678,7 @@ export const AgentPagePublicSchema = {
       title: 'Calls',
       description: 'Calls in the period',
     },
-    latency_seconds: {
+    latency_p50: {
       anyOf: [
         {
           type: 'number',
@@ -663,13 +687,25 @@ export const AgentPagePublicSchema = {
           type: 'null',
         },
       ],
-      title: 'Latency Seconds',
-      description: "Average of its calls' latencies in the period",
+      title: 'Latency P50',
+      description: 'p50 over every reply in the period, in seconds',
     },
-    latency_calls: {
+    latency_p95: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Latency P95',
+      description: 'p95 over every reply in the period, in seconds',
+    },
+    latency_replies: {
       type: 'integer',
-      title: 'Latency Calls',
-      description: 'Calls in the period with a latency',
+      title: 'Latency Replies',
+      description: 'Replies in the period the latency rests on',
     },
     latency_days: {
       items: {
@@ -677,7 +713,7 @@ export const AgentPagePublicSchema = {
       },
       type: 'array',
       title: 'Latency Days',
-      description: 'Each day of the period, oldest first',
+      description: 'Each day of the period, oldest first, with its p50',
     },
     latency_peak: {
       anyOf: [
@@ -689,7 +725,7 @@ export const AgentPagePublicSchema = {
         },
       ],
       title: 'Latency Peak',
-      description: 'The highest daily average in the period',
+      description: 'The highest daily p50 in the period',
     },
     version_marks: {
       items: {
@@ -736,7 +772,7 @@ export const AgentPagePublicSchema = {
     'spec',
     'period',
     'calls',
-    'latency_calls',
+    'latency_replies',
     'latency_days',
     'version_marks',
   ],
@@ -7853,7 +7889,7 @@ export const McpAgentSchema = {
       title: 'Calls',
       description: 'Calls in the period',
     },
-    latency_seconds: {
+    latency_p50: {
       anyOf: [
         {
           type: 'number',
@@ -7862,8 +7898,45 @@ export const McpAgentSchema = {
           type: 'null',
         },
       ],
-      title: 'Latency Seconds',
-      description: "Average of its calls' latencies in the period",
+      title: 'Latency P50',
+      description: 'p50 over every reply in the period, in seconds',
+    },
+    latency_p95: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Latency P95',
+      description: 'p95 over every reply in the period, in seconds',
+    },
+    live_version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Live Version',
+      description: 'The agent version of its most recent call',
+    },
+    live_since: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Live Since',
+      description: 'When the first call on that version started',
     },
   },
   type: 'object',
@@ -7964,7 +8037,7 @@ export const McpAgentPageSchema = {
       title: 'Calls',
       description: 'Calls in the period',
     },
-    latency_seconds: {
+    latency_p50: {
       anyOf: [
         {
           type: 'number',
@@ -7973,13 +8046,25 @@ export const McpAgentPageSchema = {
           type: 'null',
         },
       ],
-      title: 'Latency Seconds',
-      description: "Average of its calls' latencies in the period",
+      title: 'Latency P50',
+      description: 'p50 over every reply in the period, in seconds',
     },
-    latency_calls: {
+    latency_p95: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Latency P95',
+      description: 'p95 over every reply in the period, in seconds',
+    },
+    latency_replies: {
       type: 'integer',
-      title: 'Latency Calls',
-      description: 'Calls in the period with a latency',
+      title: 'Latency Replies',
+      description: 'Replies in the period the latency rests on',
     },
     latency_days: {
       items: {
@@ -7987,7 +8072,7 @@ export const McpAgentPageSchema = {
       },
       type: 'array',
       title: 'Latency Days',
-      description: 'Each day of the period, oldest first',
+      description: 'Each day of the period, oldest first, with its p50',
     },
     latency_peak: {
       anyOf: [
@@ -7999,7 +8084,7 @@ export const McpAgentPageSchema = {
         },
       ],
       title: 'Latency Peak',
-      description: 'The highest daily average in the period',
+      description: 'The highest daily p50 in the period',
     },
     version_marks: {
       items: {
@@ -8057,7 +8142,7 @@ export const McpAgentPageSchema = {
     'spec',
     'period',
     'calls',
-    'latency_calls',
+    'latency_replies',
     'latency_days',
     'version_marks',
   ],

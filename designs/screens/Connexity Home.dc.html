@@ -101,8 +101,8 @@
 <span style="display:flex;align-items:baseline;gap:8px"><span style="font-size:30px;line-height:36px;font-weight:500;color:var(--warn)">{{ tile.degraded }}</span><span style="font-size:13px;color:var(--ink2)">{{ tile.degradedPct }}</span></span>
 </div>
 <div style="{{ latencyTileStyle }}">
-<span style="display:flex;align-items:baseline;gap:6px;font-size:13px;line-height:18px;color:var(--ink2)">Latency<span style="color:var(--ink3)">p95/p50</span></span>
-<span style="display:flex;align-items:baseline;gap:2px"><span style="flex:none;font-size:30px;line-height:36px;font-weight:500;white-space:nowrap">{{ tile.p95 }}<span style="font-size:20px;color:var(--ink)">s</span></span><span style="flex:none;font-size:20px;line-height:36px;color:var(--ink2);white-space:nowrap">/{{ tile.p50 }}s</span></span>
+<span style="display:flex;align-items:baseline;gap:6px;font-size:13px;line-height:18px;color:var(--ink2)">Latency<span style="color:var(--ink3)">p50/p95</span></span>
+<span style="display:flex;align-items:baseline;gap:2px"><span style="flex:none;font-size:30px;line-height:36px;font-weight:500;white-space:nowrap">{{ tile.p50 }}<span style="font-size:20px;color:var(--ink)">s</span></span><span style="flex:none;font-size:20px;line-height:36px;color:var(--ink2);white-space:nowrap">/{{ tile.p95 }}s</span></span>
 </div>
 </div>
 

@@ -2,7 +2,6 @@
 calls (plan `plans/2026-11-14-agents-page.md`)."""
 
 import uuid
-from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
 from sqlmodel import Session
@@ -10,8 +9,6 @@ from sqlmodel import Session
 from app import crud
 from app.core.config import settings
 from app.models import Agent
-from app.models.call_pull import CallPullAccount
-from app.models.integration import Integration
 from app.tests.api.routes.test_issue_page import _call
 from app.tests.api.routes.test_issues_list import _signed_in
 from app.tests.api.routes.test_mcp_issues import (  # noqa: F401
@@ -88,41 +85,10 @@ def test_the_page_lists_linked_agents_with_type_and_calls(
     ]
     assert body["data"][0]["platform"] == "retell"
     assert body["period"] == "30d"
-    assert body["synced_at"] is None
     longer = client.get(
         f"{API}/agents/list", cookies=cookies, params={"period": "90d"}
     ).json()
     assert longer["data"][0]["calls"] == 3
-
-
-def test_synced_is_the_latest_pull_of_the_workspaces_retell_accounts(
-    client: TestClient, db: Session
-) -> None:
-    user, cookies = _signed_in(client, db)
-    agent = _agent(db, user, "Front desk")
-    integration = db.get(Integration, agent.integration_id)
-    assert integration is not None and integration.key_fingerprint
-    pulled = datetime.now(UTC) - timedelta(minutes=5)
-    db.add(
-        CallPullAccount(
-            key_fingerprint=integration.key_fingerprint,
-            cursor=pulled,
-            last_pulled_at=pulled,
-        )
-    )
-    # Another workspace's account does not count.
-    db.add(
-        CallPullAccount(
-            key_fingerprint=uuid.uuid4().hex,
-            cursor=datetime.now(UTC),
-            last_pulled_at=datetime.now(UTC),
-        )
-    )
-    db.commit()
-
-    body = client.get(f"{API}/agents/list", cookies=cookies).json()
-
-    assert datetime.fromisoformat(body["synced_at"]) == pulled
 
 
 def test_a_spec_shows_on_the_list(client: TestClient, db: Session) -> None:

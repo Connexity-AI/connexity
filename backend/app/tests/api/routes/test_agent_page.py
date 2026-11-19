@@ -11,7 +11,7 @@ from sqlmodel import Session
 
 from app import crud
 from app.core.config import settings
-from app.crud.latency import call_latency, reply_gaps
+from app.crud.latency import gap_percentiles, reply_gaps
 from app.models import Agent, Call
 from app.models.call import CallComponent
 from app.models.enums import Speaker
@@ -50,8 +50,10 @@ def test_reply_gaps_skip_overlaps_and_unanswered_turns() -> None:
         (agent, 21000, 22000),
     ]
     assert reply_gaps(transferred) == []
-    assert call_latency(turns) == 1.2
-    assert call_latency([(agent, 0, 1000)]) is None
+    # Latency is p50 and p95 over every reply gap (nearest rank).
+    assert gap_percentiles([1200]) == (1.2, 1.2, 1)
+    assert gap_percentiles([1000, 1000, 1000, 2000, 2000, 2000]) == (1.0, 2.0, 6)
+    assert gap_percentiles([]) == (None, None, 0)
 
 
 def _call(
@@ -113,9 +115,11 @@ def test_the_agent_page_answers_the_overview(client: TestClient, db: Session) ->
     )
     assert page["live_version"] == "8"
     assert page["live_since"] is not None
-    assert (page["calls"], page["latency_calls"]) == (2, 2)
-    assert page["latency_seconds"] == 1.5
+    # Three replies a call, at 1 s on one call and 2 s on the other.
+    assert (page["calls"], page["latency_replies"]) == (2, 6)
+    assert (page["latency_p50"], page["latency_p95"]) == (1.0, 2.0)
     assert len(page["latency_days"]) == 30
+    assert {d["p50"] for d in page["latency_days"] if d["replies"]} == {1.0, 2.0}
     assert page["latency_peak"] == 2.0
     assert [m["label"] for m in page["version_marks"]] == ["Version 8"]
     assert page["spec"] == "none"
@@ -135,10 +139,15 @@ def test_the_agents_list_has_latency(client: TestClient, db: Session) -> None:
 
     rows = client.get(f"{API}/agents/list", cookies=cookies).json()["data"]
 
-    assert {r["name"]: r["latency_seconds"] for r in rows} == {
-        "Front desk": 2.0,
-        "Quiet line": None,
+    assert {r["name"]: (r["latency_p50"], r["latency_p95"]) for r in rows} == {
+        "Front desk": (1.0, 3.0),
+        "Quiet line": (None, None),
     }
+    # Each agent's live version and since when.
+    front = next(r for r in rows if r["name"] == "Front desk")
+    assert front["live_version"] == "7" and front["live_since"] is not None
+    quiet = next(r for r in rows if r["name"] == "Quiet line")
+    assert (quiet["live_version"], quiet["live_since"]) == (None, None)
 
 
 def test_another_workspace_and_unknown_agents_are_not_found(
@@ -170,10 +179,12 @@ def test_get_agent_and_list_agents_through_mcp(client: TestClient, db: Session) 
 
     assert one.status_code == 200, one.text
     body = one.json()
-    assert (body["data"]["latency_seconds"], body["data"]["calls"]) == (1.0, 1)
-    assert any("basic measure" in rule for rule in body["rules"])
+    data = body["data"]
+    assert (data["latency_p50"], data["latency_p95"], data["calls"]) == (1.0, 1.0, 1)
+    assert any("every reply" in rule for rule in body["rules"])
     assert any("write_spec" in s for s in body["next_steps"])
-    assert listed["data"][0]["latency_seconds"] == 1.0
+    assert listed["data"][0]["latency_p50"] == 1.0
+    assert listed["data"][0]["live_version"] == "7"
     stranger = client.get(f"{base}/{agent.id}", headers=_headers(_person(db)))
     assert stranger.status_code == 404
 

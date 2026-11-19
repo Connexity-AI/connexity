@@ -453,7 +453,7 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     ) -> AgentResult:
         """One agent at a glance for the period (7d, 30d by default, 90d): platform,
         type, live version and since when, model, the n8n workflows it used, calls,
-        latency (a basic measure from its calls' turns) per day with version marks,
+        latency p50 and p95 over every reply, each day's p50 with version marks,
         its spec state, and its score: 0 to 100 over its checked calls, its change
         against the previous period, and the issues that cost it the most points. It
         lists every agent version that has a call; `version` counts only that
@@ -837,7 +837,8 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     ) -> ListAgentsResult:
         """The agents in a workspace, newest first, each with its type
         (single_prompt or conversational_flow), its calls in the period (7d, 30d by
-        default, 90d), its spec state and its score with its change. `query`
+        default, 90d), its latency (p50 and p95 over every reply), its live version
+        and since when, its spec state and its score with its change. `query`
         matches part of the name. Pass `next_cursor` back as `cursor` for the next page (limit 1 to
         100)."""
         return await _list_agents(

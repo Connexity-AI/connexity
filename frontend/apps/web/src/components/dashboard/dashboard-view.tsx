@@ -431,16 +431,16 @@ export const DashboardView: FC<{ dashboard: DashboardPublic }> = ({ dashboard })
           </Tile>
           <Tile>
             <span className="flex items-baseline gap-1.5 text-label text-ink-secondary">
-              Latency <span className="text-ink-muted">p95/p50</span>
+              Latency <span className="text-ink-muted">p50/p95</span>
             </span>
             {latency.p95 != null && latency.p50 != null ? (
               <span className="flex items-baseline gap-0.5">
                 <span className="flex-none whitespace-nowrap text-[30px] leading-9 font-medium">
-                  {latency.p95.toFixed(1)}
+                  {latency.p50.toFixed(1)}
                   <span className="text-title">s</span>
                 </span>
                 <span className="flex-none whitespace-nowrap text-title leading-9 text-ink-secondary">
-                  /{latency.p50.toFixed(1)}s
+                  /{latency.p95.toFixed(1)}s
                 </span>
               </span>
             ) : (

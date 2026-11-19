@@ -1,18 +1,16 @@
-"""Latency, measured from each call's own turns (plan `plans/2026-11-14-agent-page.md`).
-
-A basic first measure, to be made more useful later (Dmytro, 2026-11-14). It works the
-same for every provider:
+"""Latency, measured from each call's own turns, the same way for every provider
+(plans `plans/2026-11-14-agent-page.md`, `plans/2026-11-19-agents-latency-versions.md`):
 
 - a **reply gap** is the time from the end of a caller's turn to the start of the
   agent's next turn. An agent turn that starts before the caller has finished (talking
   over, or "yeah" while the agent speaks) is not a gap;
-- a **call's latency** is the median of its reply gaps; a call without one has none;
-- an **agent's latency** for a period is the average of its calls' latencies.
+- **latency** is p50 and p95 over every reply gap in the period: every time the agent
+  answered the caller (Dmytro, 2026-11-18 for the Dashboard, 2026-11-19 for the Agents
+  list and the agent page).
 
 See `docs-internal/metrics.md`.
 """
 
-import statistics
 import uuid
 from collections import defaultdict
 from datetime import UTC, date, datetime
@@ -43,19 +41,11 @@ def reply_gaps(turns: list[tuple[Speaker | None, int | None, int | None]]) -> li
     return gaps
 
 
-def call_latency(
-    turns: list[tuple[Speaker | None, int | None, int | None]],
-) -> float | None:
-    """A call's latency in seconds: the median of its reply gaps."""
-    gaps = reply_gaps(turns)
-    return round(statistics.median(gaps) / 1000, 3) if gaps else None
-
-
-class CallLatency(NamedTuple):
+class CallGaps(NamedTuple):
     call_id: uuid.UUID
     agent_id: uuid.UUID
     day: date
-    seconds: float
+    gaps: list[int]
 
 
 def _turns(
@@ -103,37 +93,19 @@ def _turns(
     return turns, meta
 
 
-def call_latencies(
+def call_gaps(
     *, session: Session, agent_ids: list[uuid.UUID], since: datetime
-) -> list[CallLatency]:
-    """The latency of every call of these agents that started since ``since`` and has
-    one."""
+) -> list[CallGaps]:
+    """The reply gaps of every call of these agents that started since ``since`` and
+    has one."""
     turns, meta = _turns(session=session, agent_ids=agent_ids, since=since)
     out = []
     for call_id, call_turns in turns.items():
-        seconds = call_latency(call_turns)
-        if seconds is not None:
+        gaps = reply_gaps(call_turns)
+        if gaps:
             agent_id, day = meta[call_id]
-            out.append(CallLatency(call_id, agent_id, day, seconds))
+            out.append(CallGaps(call_id, agent_id, day, gaps))
     return out
-
-
-def average(values: list[float]) -> float | None:
-    return round(sum(values) / len(values), 2) if values else None
-
-
-def agent_latencies(
-    *, session: Session, agent_ids: list[uuid.UUID], since: datetime
-) -> dict[uuid.UUID, float]:
-    """Each agent's latency in seconds for the period, for agents with any."""
-    per_agent: dict[uuid.UUID, list[float]] = defaultdict(list)
-    for row in call_latencies(session=session, agent_ids=agent_ids, since=since):
-        per_agent[row.agent_id].append(row.seconds)
-    return {
-        agent_id: value
-        for agent_id, values in per_agent.items()
-        if (value := average(values)) is not None
-    }
 
 
 class GapPercentiles(NamedTuple):
@@ -150,6 +122,24 @@ def percentile(values: list[int], share: float) -> float:
     return round(ordered[int(rank) - 1] / 1000, 2)
 
 
+def gap_percentiles(gaps: list[int]) -> "GapPercentiles":
+    """p50 and p95, in seconds, over these reply gaps (in ms)."""
+    if not gaps:
+        return GapPercentiles(None, None, 0)
+    return GapPercentiles(percentile(gaps, 0.5), percentile(gaps, 0.95), len(gaps))
+
+
+def agent_gap_percentiles(
+    *, session: Session, agent_ids: list[uuid.UUID], since: datetime
+) -> dict[uuid.UUID, "GapPercentiles"]:
+    """Each agent's p50 and p95 over its reply gaps since ``since``, in one pass, for
+    agents with any."""
+    per_agent: dict[uuid.UUID, list[int]] = defaultdict(list)
+    for row in call_gaps(session=session, agent_ids=agent_ids, since=since):
+        per_agent[row.agent_id].extend(row.gaps)
+    return {agent_id: gap_percentiles(gaps) for agent_id, gaps in per_agent.items()}
+
+
 def reply_gap_percentiles(
     *,
     session: Session,
@@ -160,7 +150,6 @@ def reply_gap_percentiles(
     """p50 and p95, in seconds, over every reply gap of these agents' calls in the
     window: every time an agent answered the caller (Dmytro, 2026-11-18)."""
     turns, _ = _turns(session=session, agent_ids=agent_ids, since=since, until=until)
-    gaps = [gap for call_turns in turns.values() for gap in reply_gaps(call_turns)]
-    if not gaps:
-        return GapPercentiles(None, None, 0)
-    return GapPercentiles(percentile(gaps, 0.5), percentile(gaps, 0.95), len(gaps))
+    return gap_percentiles(
+        [gap for call_turns in turns.values() for gap in reply_gaps(call_turns)]
+    )
