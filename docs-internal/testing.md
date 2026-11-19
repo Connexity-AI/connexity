@@ -47,6 +47,8 @@ What was settled about scenarios, test runs and the gate, and what is still open
 
 **The version and the gate**
 - A version fails when any critical rule or critical code check fails, or when non-critical failures go over the agent's threshold.
+- A version with no rule judged has no verdict: it is Not tested, whatever the code checks found (Dmytro, 2026-11-19: "Verdict only happens when all rules checked so not tested"; the full-run rule is roadmap 10.196).
+- A text conversation ends when the agent hangs up or after 40 agent replies, and is judged on what was said; a hang-up or a transfer ends it there. A conversation still going after 10 minutes is stopped as an error. A run makes up to 10 conversations at once (Dmytro, 2026-11-19; `plans/2026-11-19-simulations-finish.md`).
 - For the demo the threshold is one fixed default. Gate settings come in Milestone 7.
 - Coverage: a rule is covered when the version's runs checked it at least once, with how many times next to it. This replaces prompt 08's "rules without tests", which counted rules that had no test case.
 

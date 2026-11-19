@@ -144,6 +144,62 @@ async def test_call_llm_leaves_claude_reasoning_alone() -> None:
     assert "reasoning_effort" not in mock_completion.await_args.kwargs
 
 
+@pytest.mark.asyncio
+async def test_call_llm_sends_claude_no_temperature_and_can_turn_thinking_off() -> None:
+    # Claude Haiku 5.5 answers a temperature with a 400 ("`temperature` is deprecated
+    # for this model"), which failed every judge call of a run (2026-11-19).
+    fake = _FakeLLMSettings()
+    with patch(
+        "app.services.llm.litellm.acompletion",
+        new_callable=AsyncMock,
+        return_value=_fake_response(),
+    ) as mock_completion:
+        await call_llm(
+            [LLMMessage(role="user", content="hi")],
+            LLMCallConfig(
+                model="claude-haiku-5-5", provider="anthropic", temperature=0.2
+            ),
+            app_settings=fake,
+        )
+        sent = mock_completion.await_args
+        assert sent is not None
+        assert "temperature" not in sent.kwargs
+        assert "thinking" not in sent.kwargs
+
+        await call_llm(
+            [LLMMessage(role="user", content="hi")],
+            LLMCallConfig(
+                model="claude-haiku-5-5", provider="anthropic", thinking_off=True
+            ),
+            app_settings=fake,
+        )
+        sent = mock_completion.await_args
+        assert sent is not None
+        assert sent.kwargs["thinking"] == {"type": "disabled"}
+
+        # Opus 5.5 and Sonnet 5.5 refuse thinking turned off: it is not sent.
+        await call_llm(
+            [LLMMessage(role="user", content="hi")],
+            LLMCallConfig(
+                model="claude-sonnet-5-5", provider="anthropic", thinking_off=True
+            ),
+            app_settings=fake,
+        )
+        sent = mock_completion.await_args
+        assert sent is not None
+        assert "thinking" not in sent.kwargs
+
+        # Other models keep their temperature.
+        await call_llm(
+            [LLMMessage(role="user", content="hi")],
+            LLMCallConfig(model="gpt-4.1", provider="openai", temperature=0.2),
+            app_settings=fake,
+        )
+        sent = mock_completion.await_args
+        assert sent is not None
+        assert sent.kwargs["temperature"] == 0.2
+
+
 @pytest.mark.parametrize(
     ("model", "provider", "expected"),
     [

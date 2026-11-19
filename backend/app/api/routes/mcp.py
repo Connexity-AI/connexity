@@ -171,7 +171,9 @@ from app.services.spec import (
     write_agent_spec,
 )
 from app.services.test_run import (
+    CONVERSATION_CAP_MS,
     DEFAULT_REPEATS,
+    MAX_AGENT_REPLIES,
     RunRefused,
     RunRequest,
     launch,
@@ -2417,7 +2419,11 @@ _TEST_RUN_RULES = [
     "A run judges only the rules each scenario lists: Passed, Failed or Didn't come up. "
     "Didn't come up is not counted. A scenario has no pass or fail of its own.",
     "Every tool is faked: the scenario's fake results first, and every other tool "
-    "answers that it is not available in this test. No real tool runs.",
+    "answers that it is not available in this test. No real tool runs. A hang-up or "
+    "a transfer ends the conversation there, as on a real call.",
+    f"A conversation ends when the agent hangs up or after {MAX_AGENT_REPLIES} agent "
+    "replies, and is judged on what was said. One still going after "
+    f"{CONVERSATION_CAP_MS // 60000} minutes is stopped as an error.",
     "A rule that both passed and failed across repeats is flaky. A flaky critical rule "
     "counts as failed.",
     "Code checks run on every simulated call. Their findings never count as production "
@@ -2575,16 +2581,33 @@ def _coverage_steps(results: VersionResultsPublic) -> list[str]:
 
 
 def _results_steps(results: VersionResultsPublic) -> list[str]:
-    return [*_verdict_steps(results), *_coverage_steps(results)]
+    return [
+        *_verdict_steps(results),
+        *_stopped_steps(results),
+        *_coverage_steps(results),
+    ]
+
+
+def _stopped_steps(results: VersionResultsPublic) -> list[str]:
+    stopped = results.stopped
+    if stopped is None:
+        return []
+    many = stopped.calls != 1
+    return [
+        f"{stopped.calls} simulated {'calls' if many else 'call'} stopped with an error "
+        f'and gave no verdicts, most often "{stopped.reason}". Their code-check '
+        "findings are listed, but rules they never reached are not checked. Open run "
+        f"{stopped.run_id} with `get_test_runs` to see each call's error."
+    ]
 
 
 def _verdict_steps(results: VersionResultsPublic) -> list[str]:
     name = _version_name(results)
     if results.verdict is VersionVerdict.NOT_TESTED and results.runs:
         return [
-            f"{name}'s runs completed but checked no rule: their simulated calls ended "
-            "before a judge could read them. Open a run with `get_test_runs` and its "
-            "run_id to see each call's error, fix the cause, then run again."
+            f"{name} is not tested: its runs completed but checked no rule, so there "
+            "is no verdict, whatever the code checks found. Fix why the calls stopped, "
+            "then run again."
         ]
     if results.verdict is VersionVerdict.NOT_TESTED:
         return [

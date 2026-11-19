@@ -9581,6 +9581,30 @@ export type SpecWrittenPublic = {
 };
 
 /**
+ * StoppedCallsPublic
+ */
+export type StoppedCallsPublic = {
+  /**
+   * Calls
+   *
+   * Simulated calls that ended in an error
+   */
+  calls: number;
+  /**
+   * Reason
+   *
+   * The most common error, in plain words
+   */
+  reason: string;
+  /**
+   * Run Id
+   *
+   * A run with one of those calls
+   */
+  run_id: string;
+};
+
+/**
  * SuggestionsRequest
  */
 export type SuggestionsRequest = {
@@ -11436,6 +11460,10 @@ export type VersionResultsPublic = {
    * The latest spec's rules these runs checked
    */
   coverage?: CoveragePublic | null;
+  /**
+   * Simulated calls that ended in an error and gave no verdicts
+   */
+  stopped?: StoppedCallsPublic | null;
 };
 
 /**

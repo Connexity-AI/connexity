@@ -11,6 +11,7 @@ A provider that cannot be read never stops a call from being stored.
 import logging
 import time
 import uuid
+from dataclasses import dataclass
 from typing import Any
 
 from sqlmodel import Session, col, delete, select
@@ -171,11 +172,59 @@ async def _read_retell_version(
     return row
 
 
-async def retell_content_fingerprint(
+# Retell tools that end the conversation: a test lets them run as on a real call.
+ENDING_TOOL_TYPES = frozenset({"end_call", "transfer_call"})
+
+
+@dataclass(frozen=True)
+class RetellTool:
+    name: str
+    ends_call: bool
+
+
+@dataclass(frozen=True)
+class RetellVersionRead:
+    """What a run reads of the Retell version it tests, in one go."""
+
+    version: int | None
+    fingerprint: str
+    tools: list[RetellTool]
+
+
+def _tools_in(body: object) -> list[RetellTool]:
+    """Every tool a prompt or flow declares (``general_tools``, a state's or a
+    flow's ``tools``), by name, once each."""
+    found: dict[str, RetellTool] = {}
+
+    def walk(node: object) -> None:
+        if isinstance(node, list):
+            for item in node:
+                walk(item)
+            return
+        if not isinstance(node, dict):
+            return
+        for key, value in node.items():
+            if key in ("general_tools", "tools") and isinstance(value, list):
+                for tool in value:
+                    if not isinstance(tool, dict):
+                        continue
+                    name = tool.get("name")
+                    if isinstance(name, str) and name and name not in found:
+                        found[name] = RetellTool(
+                            name=name, ends_call=tool.get("type") in ENDING_TOOL_TYPES
+                        )
+            walk(value)
+
+    walk(body)
+    return list(found.values())
+
+
+async def read_retell_version(
     *, api_key: str, provider_agent_id: str, version: int | None
-) -> str:
-    """One fingerprint of everything a Retell agent version does: its settings, and its
-    prompt or flow with the model.
+) -> RetellVersionRead:
+    """The version's number (the latest when ``version`` is none), one fingerprint of
+    everything it does (its settings, and its prompt or flow with the model) and the
+    tools it declares.
 
     Read fresh from Retell every time, never from the catalogue: an unpublished version
     is edited in place under the same number, and the catalogue keeps the first content
@@ -199,14 +248,19 @@ async def retell_content_fingerprint(
         prompt = await get_retell_conversation_flow_at_version(
             api_key, str(engine["conversation_flow_id"]), engine_version
         )
-    return fingerprint(
-        {
-            "agent": mask_secrets(without(settings, _AGENT_NOT_SETTINGS)),
-            "engine": {k: v for k, v in engine.items() if k != "version"},
-            "prompt": mask_secrets(without(prompt, _VOLATILE))
-            if prompt is not None
-            else None,
-        }
+    number = settings.get("version")
+    return RetellVersionRead(
+        version=number if isinstance(number, int) else version,
+        fingerprint=fingerprint(
+            {
+                "agent": mask_secrets(without(settings, _AGENT_NOT_SETTINGS)),
+                "engine": {k: v for k, v in engine.items() if k != "version"},
+                "prompt": mask_secrets(without(prompt, _VOLATILE))
+                if prompt is not None
+                else None,
+            }
+        ),
+        tools=_tools_in(prompt),
     )
 
 

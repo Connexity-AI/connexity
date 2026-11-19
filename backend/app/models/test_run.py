@@ -211,6 +211,16 @@ class VersionResultsPublic(BaseModel):
     coverage: "CoveragePublic | None" = PydanticField(
         default=None, description="The latest spec's rules these runs checked"
     )
+    stopped: "StoppedCallsPublic | None" = PydanticField(
+        default=None,
+        description="Simulated calls that ended in an error and gave no verdicts",
+    )
+
+
+class StoppedCallsPublic(BaseModel):
+    calls: int = PydanticField(description="Simulated calls that ended in an error")
+    reason: str = PydanticField(description="The most common error, in plain words")
+    run_id: uuid.UUID = PydanticField(description="A run with one of those calls")
 
 
 class UncheckedRulePublic(BaseModel):

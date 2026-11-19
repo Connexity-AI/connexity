@@ -91,13 +91,13 @@ def _run(
     run_id = _start(client, user, agent, all=True, repeats=1).json()["data"]["run_id"]
     with respx.mock() as retell:
         retell.post(url__startswith=PLAYGROUND).mock(side_effect=_agent_turn)
-        retell.get(url__startswith=f"{RETELL}get-agent-versions/").mock(
-            return_value=httpx.Response(200, json=[{"version": 15}])
-        )
         retell.get(url__startswith=f"{RETELL}get-agent/").mock(
             return_value=httpx.Response(
                 200,
-                json={"response_engine": {"type": "retell-llm", "llm_id": "llm_1"}},
+                json={
+                    "version": 15,
+                    "response_engine": {"type": "retell-llm", "llm_id": "llm_1"},
+                },
             )
         )
         retell.get(url__startswith=f"{RETELL}get-retell-llm/").mock(

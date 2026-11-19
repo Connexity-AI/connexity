@@ -1047,6 +1047,12 @@ class Coverage(BaseModel):
     unchecked: list[UncheckedRule] = Field(default_factory=list)
 
 
+class StoppedCalls(BaseModel):
+    calls: int = Field(description="Simulated calls that ended in an error")
+    reason: str = Field(description="The most common error, in plain words")
+    run_id: str = Field(description="A run with one of those calls")
+
+
 class VersionResults(BaseModel):
     version: str | None = None
     edited: bool = Field(
@@ -1067,6 +1073,10 @@ class VersionResults(BaseModel):
     checks: list[CheckTotal] = Field(default_factory=list)
     runs: list[TestRun] = Field(default_factory=list)
     coverage: Coverage | None = None
+    stopped: StoppedCalls | None = Field(
+        default=None,
+        description="Simulated calls that ended in an error and gave no verdicts",
+    )
 
 
 class TestRuns(BaseModel):

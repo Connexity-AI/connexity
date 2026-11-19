@@ -74,9 +74,6 @@ def _run(
     run_id = _start(client, user, agent, all=True, repeats=1).json()["data"]["run_id"]
     with respx.mock() as retell:
         retell.post(url__startswith=PLAYGROUND).mock(side_effect=_agent_turn)
-        retell.get(url__startswith=f"{RETELL}get-agent-versions/").mock(
-            return_value=httpx.Response(200, json=[{"version": 14}, {"version": 15}])
-        )
         retell.get(url__startswith=f"{RETELL}get-agent/").mock(
             return_value=httpx.Response(
                 200,
@@ -358,6 +355,12 @@ def test_the_verdict_counts_warnings_against_the_threshold() -> None:
     # nothing: never Verified (Dmytro, 2026-11-19).
     nothing = _verdict_of([_total("r0"), _total("r1")], [], tested=True)
     assert nothing["verdict"] is VersionVerdict.NOT_TESTED
-    # A critical code check still fails it, judged rules or not.
+    # With no rule judged there is no verdict, whatever the code checks found (Dmytro,
+    # 2026-11-19: "Verdict only happens when all rules checked so not tested").
     critical = CheckTotalPublic(check_type="y", title="Y", found=1, critical=True)
-    assert _verdict_of([], [critical], tested=True)["verdict"] is VersionVerdict.FAILED
+    assert _verdict_of([], [critical], tested=True)["verdict"] is (
+        VersionVerdict.NOT_TESTED
+    )
+    # With a rule judged, a critical code check fails it.
+    judged = _verdict_of([_total("r0", passed=1)], [critical], tested=True)
+    assert judged["verdict"] is VersionVerdict.FAILED

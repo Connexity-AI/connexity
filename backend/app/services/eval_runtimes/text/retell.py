@@ -62,7 +62,9 @@ def tool_mocks_for(test_case: TestCase) -> list[dict[str, Any]]:
     Each fake answers its tool: calls whose arguments contain the fake's arguments, or
     any call when it names none. The catch-all names no tool, which Retell matches to
     every tool, so a call nothing else answers gets ``DEFAULT_FAKE_RESULT`` instead of
-    reaching the real tool.
+    reaching the real tool. A hang-up or transfer may get it too; the conversation
+    still ends there, because the runner stops at any tool the tested version marks as
+    ending the call.
     """
     mocks: list[dict[str, Any]] = []
     for row in test_case.expected_tool_calls or []:

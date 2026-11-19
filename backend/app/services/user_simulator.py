@@ -145,6 +145,8 @@ class UserSimulator:
             model=self._config.model,
             provider=self._config.provider,
             temperature=self._config.temperature,
+            # A caller's next line needs no reasoning (Dmytro, 2026-11-19).
+            thinking_off=True,
         )
         response = await call_llm(messages, config=llm_config)
         return SimulatorResult(

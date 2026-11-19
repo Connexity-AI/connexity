@@ -11,9 +11,10 @@ or `finding` tables: a simulated call never counts as production.
 import asyncio
 import json
 import logging
+import re
 import uuid
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from typing import Any
 
@@ -75,6 +76,7 @@ from app.models.test_run import (
     RuleVerdict,
     SimulatedCallPublic,
     SimulatedFinding,
+    StoppedCallsPublic,
     TestRunCountsPublic,
     TestRunDetailPublic,
     TestRunPublic,
@@ -83,16 +85,16 @@ from app.models.test_run import (
     VersionResultsPublic,
 )
 from app.models.trace import ToolCallEvent, Trace, TraceEvent, UtteranceEvent
+from app.services.agent_tool_definitions import snapshot_marks_tool_terminating
 from app.services.checks.engine import current_mode, run_checks
 from app.services.checks.registry import CHECKS, FACT_SOURCES, get_check
-from app.services.component_versions import retell_content_fingerprint
+from app.services.component_versions import RetellVersionRead, read_retell_version
 from app.services.eval_runtimes import (
     AgentSnapshot,
     RunSnapshot,
     RuntimeRunArgs,
     get_runtime,
 )
-from app.services.retell import list_retell_agent_versions
 from app.services.rule_judge import JudgeFailed, RuleToJudge, judge_rules
 from app.services.trace_capabilities import derive_capabilities
 
@@ -101,8 +103,13 @@ logger = logging.getLogger(__name__)
 MAX_REPEATS = 5
 DEFAULT_REPEATS = 3
 MAX_CALLS = 200
-# Simulated calls in flight at once, as in 1.x.
-CONCURRENCY = 5
+# Simulated calls in flight at once (Dmytro, 2026-11-19).
+CONCURRENCY = 10
+# A conversation ends when the agent hangs up or has answered this many times; it is
+# then judged on what was said (Dmytro, 2026-11-19).
+MAX_AGENT_REPLIES = 40
+# A safety net against a stuck platform, not a length: hitting it is an error.
+CONVERSATION_CAP_MS = 10 * 60 * 1000
 
 # Runs started in this process, kept so they are not collected while they run.
 _RUNNING: set[asyncio.Task[None]] = set()
@@ -127,6 +134,17 @@ class RunRequest:
 
 
 # ── Starting a run ────────────────────────────────────────────────
+
+
+def simulation_key_set() -> bool:
+    """Whether Connexity's key for the simulation model's provider is set. The
+    simulated caller and the judge run on it; workspaces never bring one."""
+    provider = settings.SIMULATION_PROVIDER.lower()
+    if provider == "anthropic":
+        return bool(settings.ANTHROPIC_API_KEY)
+    if provider == "openai":
+        return bool(settings.OPENAI_API_KEY)
+    return True
 
 
 def _scenarios_for(
@@ -186,6 +204,17 @@ def start_run(
                 "takes fake tool results, so their real tools are never called."
             ],
         )
+    if not simulation_key_set():
+        msg = (
+            "Simulations are not available right now: Connexity's model key is missing."
+        )
+        raise RunRefused(
+            msg,
+            [
+                "Tell the person simulations cannot run until Connexity's model key is "
+                "set; there is nothing for you to fix."
+            ],
+        )
     spec = latest_spec(session=session, agent_id=agent.id)
     if spec is None:
         msg = "The agent has no spec, so there are no rules to judge."
@@ -205,6 +234,9 @@ def start_run(
         )
     # The simulated caller runs on Connexity's own key; the run records the model.
     config = RunConfig(
+        concurrency=CONCURRENCY,
+        max_turns=MAX_AGENT_REPLIES,
+        timeout_per_test_case_ms=CONVERSATION_CAP_MS,
         runtime=RetellRuntimeConfig(version=request.version),
         user_simulator=UserSimulatorConfig(
             model=settings.SIMULATION_MODEL, provider=settings.SIMULATION_PROVIDER
@@ -268,18 +300,23 @@ def _faked_by_scenario(scenario: TestCase, name: str, arguments: JsonValue) -> b
 
 
 def default_fake_calls(
-    transcript: list[ConversationTurn], scenario: TestCase
+    transcript: list[ConversationTurn],
+    scenario: TestCase,
+    agent_tools: list[dict[str, Any]] | None = None,
 ) -> dict[str, str]:
     """The tool calls no scenario fake answers, by call id with the tool's name.
 
-    The catch-all answers every other call, so these got the default fake. Worked out
-    from the fakes sent, not from what Retell echoes back.
+    The catch-all answers every other call, so these got the default fake. A tool that
+    ends the call (hang-up, transfer) is left out: the conversation ends there, so its
+    answer says nothing. Worked out from the fakes sent, not from what Retell echoes
+    back.
     """
     return {
         call.id: call.function.name
         for turn in transcript
         for call in turn.tool_calls or []
-        if not _faked_by_scenario(
+        if not snapshot_marks_tool_terminating(call.function.name, agent_tools)
+        and not _faked_by_scenario(
             scenario, call.function.name, _parsed(call.function.arguments)
         )
     }
@@ -442,7 +479,9 @@ async def _simulate(
                     session,
                 )
             transcript = out.transcript
-            defaults = default_fake_calls(transcript, scenario)
+            defaults = default_fake_calls(
+                transcript, scenario, ctx.agent_snapshot.tools
+            )
             fakes = list(dict.fromkeys(defaults.values()))
             judge_cost = 0.0
             error: str | None = None
@@ -596,28 +635,36 @@ async def execute_run(run_id: uuid.UUID) -> None:
         runtime = config.runtime
         if (
             isinstance(runtime, RetellRuntimeConfig)
-            and runtime.version is None
             and api_key
             and agent.platform_agent_id
         ):
-            # Pin "the latest" to a number, so every call of the run talks to the same
-            # version and the run says which one it tested.
-            latest = await _latest_version(api_key, agent.platform_agent_id)
-            if latest is not None:
-                runtime.version = latest
-                _pin_version(run_id, latest, config)
-        if (
-            isinstance(runtime, RetellRuntimeConfig)
-            and api_key
-            and agent.platform_agent_id
-        ):
-            # What the version does now: a draft is edited under the same number.
-            content = await _content_fingerprint(
+            # One read of the tested version: its number, so every call talks to the
+            # same version and the run says which one it tested; what it does now (a
+            # draft is edited under the same number); and its tools, so a hang-up or a
+            # transfer ends the conversation.
+            read = await _read_version(
                 api_key, agent.platform_agent_id, runtime.version
             )
-            if content is not None:
-                _store_fingerprint(run_id, content)
-        semaphore = asyncio.Semaphore(CONCURRENCY)
+            if read is not None:
+                if runtime.version is None and read.version is not None:
+                    runtime.version = read.version
+                    _pin_version(run_id, read.version, config)
+                _store_fingerprint(run_id, read.fingerprint)
+                ctx = replace(
+                    ctx,
+                    agent_snapshot=replace(
+                        ctx.agent_snapshot,
+                        tools=[
+                            {
+                                "type": "function",
+                                "function": {"name": tool.name},
+                                "platform_config": {"terminating": tool.ends_call},
+                            }
+                            for tool in read.tools
+                        ],
+                    ),
+                )
+        semaphore = asyncio.Semaphore(config.concurrency)
         await asyncio.gather(
             *(
                 _simulate(
@@ -637,27 +684,19 @@ async def execute_run(run_id: uuid.UUID) -> None:
         _finish(run_id, RunStatus.FAILED, str(exc)[:1000] or type(exc).__name__)
 
 
-async def _latest_version(api_key: str, retell_agent_id: str) -> int | None:
-    """The agent's newest version on Retell, or none when Retell does not say."""
-    try:
-        versions = await list_retell_agent_versions(
-            api_key=api_key, retell_agent_id=retell_agent_id
-        )
-    except Exception:  # noqa: BLE001 - the run goes on against "the latest"
-        logger.warning("Could not read the Retell agent's versions", exc_info=True)
-        return None
-    return max((v.version for v in versions), default=None)
-
-
-async def _content_fingerprint(
+async def _read_version(
     api_key: str, retell_agent_id: str, version: int | None
-) -> str | None:
+) -> RetellVersionRead | None:
+    """The tested Retell version, or none when Retell cannot be read: the run goes on
+    against "the latest", grouped by number only, with every tool faked."""
     try:
-        return await retell_content_fingerprint(
+        return await read_retell_version(
             api_key=api_key, provider_agent_id=retell_agent_id, version=version
         )
-    except Exception:  # noqa: BLE001 - the run goes on, grouped by number only
-        logger.warning("Could not read the tested Retell version", exc_info=True)
+    except Exception as exc:  # noqa: BLE001 - the run goes on without it
+        logger.warning(
+            "Could not read the tested Retell version: %s", exc, exc_info=True
+        )
         return None
 
 
@@ -920,16 +959,15 @@ def _verdict_of(
     judged = [t for t in totals if not t.critical and (t.passed or t.failed)]
     failed = [t for t in judged if t.failed]
     over = bool(judged) and len(failed) * 100 > WARNING_THRESHOLD_PCT * len(judged)
-    # Verified needs at least one rule judged: completed runs whose simulated calls all
-    # failed before a judge saw them checked nothing (Dmytro, 2026-11-19: "make claim
-    # its verified but its a false").
+    # A verdict needs a rule judged: runs whose simulated calls all failed before a
+    # judge saw them checked nothing, whatever the code checks found on them (Dmytro,
+    # 2026-11-19: "Verdict only happens when all rules checked so not tested"; the
+    # all-rules part comes with the full-run verdict).
     checked = any(t.passed or t.failed for t in totals)
-    if not tested:
+    if not tested or not checked:
         verdict = VersionVerdict.NOT_TESTED
     elif critical_failed or critical_checks or over:
         verdict = VersionVerdict.FAILED
-    elif not checked:
-        verdict = VersionVerdict.NOT_TESTED
     else:
         verdict = VersionVerdict.VERIFIED
     return {
@@ -1004,11 +1042,37 @@ def version_tested(
             for run in reversed(counted)
         ],
         coverage=coverage_of(session=session, agent=agent, totals=totals),
+        stopped=stopped_calls(all_calls),
         **_verdict_of(totals, checks, tested=bool(counted)),
     )
     return VersionUnderTest(
         results=results, counted=counted, calls=all_calls, verdicts=all_verdicts
     )
+
+
+def stopped_calls(calls: list[TestCaseResult]) -> StoppedCallsPublic | None:
+    """The simulated calls that ended in an error, with the most common one."""
+    stopped = [c for c in calls if c.error_message]
+    if not stopped:
+        return None
+    kinds = Counter(_error_kind(c.error_message or "") for c in stopped)
+    kind, _ = kinds.most_common(1)[0]
+    example = next(c for c in stopped if _error_kind(c.error_message or "") == kind)
+    return StoppedCallsPublic(
+        calls=len(stopped), reason=example.error_message or "", run_id=example.run_id
+    )
+
+
+# Ids that make the same error read differently on every call.
+_ERROR_IDS = re.compile(
+    r"req_[A-Za-z0-9]+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+)
+
+
+def _error_kind(message: str) -> str:
+    """An error with its request and call ids taken out, so the same error on many
+    calls counts as one."""
+    return _ERROR_IDS.sub("", message)
 
 
 def coverage_of(
