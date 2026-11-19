@@ -51,10 +51,11 @@ can read them.
 | `connexity-encryption-key` | backend `ENCRYPTION_KEY` (encrypts stored provider keys; changing it makes them unreadable) |
 | `connexity-openai-api-key` | backend `OPENAI_API_KEY` |
 | `connexity-typesafe-api-key` | backend `TYPESAFE_API_KEY`: Jev, for classifier checks (added 2026-11-18). Without it those checks are skipped on every call, and picked up once it is set |
+| `connexity-anthropic-api-key` | backend `ANTHROPIC_API_KEY`: the simulated caller and the judge of every run of scenarios (Claude Haiku 5.5, `SIMULATION_MODEL`), and judge checks on Claude (added 2026-11-19). Without it every simulated call fails before the conversation starts |
 
-There is no Anthropic key in production: no judge check is registered yet. Add one
-(`connexity-anthropic-api-key`, backend `ANTHROPIC_API_KEY`) before registering a judge
-on Claude.
+Each secret grants `roles/secretmanager.secretAccessor` to the services' runtime account
+(`731878021100-compute@developer.gserviceaccount.com`) on the secret itself; a new secret
+needs that grant before a service can mount it.
 
 To change a secret, add a new version (`gcloud secrets versions add <name> --data-file=-`)
 and redeploy the service. Never put secret values in this repository or in plain
