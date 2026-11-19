@@ -920,10 +920,16 @@ def _verdict_of(
     judged = [t for t in totals if not t.critical and (t.passed or t.failed)]
     failed = [t for t in judged if t.failed]
     over = bool(judged) and len(failed) * 100 > WARNING_THRESHOLD_PCT * len(judged)
+    # Verified needs at least one rule judged: completed runs whose simulated calls all
+    # failed before a judge saw them checked nothing (Dmytro, 2026-11-19: "make claim
+    # its verified but its a false").
+    checked = any(t.passed or t.failed for t in totals)
     if not tested:
         verdict = VersionVerdict.NOT_TESTED
     elif critical_failed or critical_checks or over:
         verdict = VersionVerdict.FAILED
+    elif not checked:
+        verdict = VersionVerdict.NOT_TESTED
     else:
         verdict = VersionVerdict.VERIFIED
     return {

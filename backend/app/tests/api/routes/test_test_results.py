@@ -354,3 +354,10 @@ def test_the_verdict_counts_warnings_against_the_threshold() -> None:
     assert warned["warnings"] == 1
 
     assert _verdict_of([], [], tested=False)["verdict"] is VersionVerdict.NOT_TESTED
+    # A completed run that judged no rule (every simulated call failed first) checked
+    # nothing: never Verified (Dmytro, 2026-11-19).
+    nothing = _verdict_of([_total("r0"), _total("r1")], [], tested=True)
+    assert nothing["verdict"] is VersionVerdict.NOT_TESTED
+    # A critical code check still fails it, judged rules or not.
+    critical = CheckTotalPublic(check_type="y", title="Y", found=1, critical=True)
+    assert _verdict_of([], [critical], tested=True)["verdict"] is VersionVerdict.FAILED

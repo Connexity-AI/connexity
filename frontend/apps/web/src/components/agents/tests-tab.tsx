@@ -313,7 +313,14 @@ export const TestsTab: FC<{ tests: TestsTabPublic }> = ({ tests }) => {
             label={<span className="text-ink-secondary">Verdict</span>}
             value={<span className="text-ink-secondary">Not tested</span>}
             sub={
-              results ? <span className="flex items-center gap-2">{version}</span> : 'No run yet'
+              results ? (
+                <span className="flex items-center gap-2">
+                  {version}
+                  {(results.runs?.length ?? 0) > 0 && <span>· its runs checked no rule</span>}
+                </span>
+              ) : (
+                'No run yet'
+              )
             }
           />
         ) : (
@@ -337,7 +344,7 @@ export const TestsTab: FC<{ tests: TestsTabPublic }> = ({ tests }) => {
                 )}
               >
                 {version}
-                <span>· {failed ? 'Failed' : 'Verified'}</span>
+                <span>· {failed ? 'Failed' : results.verdict === 'verified' ? 'Verified' : ''}</span>
               </span>
             }
             sub={`tested ${timeLabel(results.last_run_at).toLowerCase()}`}

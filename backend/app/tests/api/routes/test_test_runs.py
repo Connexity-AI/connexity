@@ -390,6 +390,10 @@ def test_a_platform_failure_is_an_error_with_no_verdicts(
     body = _runs(client, user, agent, run_id=run_id).json()
     assert body["data"]["run"]["counts"]["errors"] == 1
     assert any("ended in an error" in s for s in body["next_steps"])
+    # The run completed but judged no rule: the version is not tested, never verified.
+    results = _runs(client, user, agent).json()
+    assert results["data"]["results"]["verdict"] == "not_tested"
+    assert "checked no rule" in results["next_steps"][0]
 
 
 @pytest.mark.parametrize(
