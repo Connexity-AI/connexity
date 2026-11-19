@@ -263,6 +263,8 @@ def test_execute_refuses_a_run_of_scenarios(
     agent, eval_config = _setup(db)
     run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
     run.scope = RunScope.SET
+    # A run of scenarios always has its version (check `ck_run_scenarios_have_a_version`).
+    run.platform_version = "15"
     db.add(run)
     db.commit()
     crud.update_run(session=db, db_run=run, run_in=RunUpdate(status=RunStatus.FAILED))

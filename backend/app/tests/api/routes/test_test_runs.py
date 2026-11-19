@@ -45,6 +45,12 @@ PLAYGROUND = "https://api.retellai.com/agent-playground-completion/"
 
 
 def _start(client: TestClient, user: User, agent: Agent, **body: Any) -> Any:
+    """Start a run. Without `version`, on version 15; with `version=None`, the version
+    is read from Retell, which the test mocks."""
+    if "version" not in body:
+        body["version"] = 15
+    elif body["version"] is None:
+        del body["version"]
     with patch("app.api.routes.mcp.launch") as launch:
         r = client.post(
             f"{_base(user, agent)}/test-runs", headers=_headers(user), json=body
@@ -294,7 +300,12 @@ def test_a_failed_tool_fake_is_found_by_code_checks_but_never_in_production(
     user, agent, keys = _ready(db, client)
     _scenarios(client, user, agent, _price(keys))
     before = _counts(db, agent)
-    run_id = _start(client, user, agent, all=True, repeats=1).json()["data"]["run_id"]
+    # The version is read from Retell before the run is stored.
+    with respx.mock(assert_all_called=False) as reading:
+        _tested_version(reading, 5)
+        run_id = _start(client, user, agent, all=True, repeats=1, version=None).json()[
+            "data"
+        ]["run_id"]
 
     def failing(request: httpx.Request) -> httpx.Response:
         if not json.loads(request.content)["messages"]:
@@ -437,7 +448,7 @@ def test_a_platform_failure_is_an_error_with_no_verdicts(
     assert any("stopped with an error" in s for s in results["next_steps"])
     body = _runs(client, user, agent, run_id=run_id).json()
     assert body["data"]["run"]["counts"]["errors"] == 1
-    assert any("ended in an error" in s for s in body["next_steps"])
+    assert any("No result" in s for s in body["next_steps"])
     # The run completed but judged no rule: the version is not verified.
     results = _runs(client, user, agent).json()
     assert results["data"]["results"]["verdict"] == "not_verified"
@@ -609,7 +620,12 @@ def test_a_hang_up_ends_the_conversation_and_it_is_judged(
 ) -> None:
     user, agent, keys = _ready(db, client)
     _scenarios(client, user, agent, _price(keys))
-    run_id = _start(client, user, agent, all=True, repeats=1).json()["data"]["run_id"]
+    # The version is read from Retell before the run is stored.
+    with respx.mock(assert_all_called=False) as reading:
+        _tested_version(reading, 88)
+        run_id = _start(client, user, agent, all=True, repeats=1, version=None).json()[
+            "data"
+        ]["run_id"]
 
     def hangs_up(request: httpx.Request) -> httpx.Response:
         if not json.loads(request.content)["messages"]:
@@ -685,10 +701,8 @@ def test_a_conversation_ends_at_the_turn_limit_and_is_judged(
         select(TestCaseResult).where(TestCaseResult.run_id == uuid.UUID(run_id))
     ).one()
     assert call.error_message is None
-    # Retell could not be read (tests never reach it), so the run went on against
-    # the latest, and says it could not name the version.
     run = db.get(Run, uuid.UUID(run_id))
-    assert run is not None and run.platform_version is None
+    assert run is not None and run.platform_version == "15"
     assert run.config["max_turns"] == 3
     sent = json.loads(playground.calls[0].request.content)["tool_mocks"]
     assert sent[-1] == {
@@ -741,3 +755,69 @@ def test_a_run_says_who_ran_it_and_whether_it_decides_the_verdict(
     row = rows[str(run.id)]
     assert (row["full"], row["session_name"]) == (True, "Testing")
     assert row["ran_by"] == (user.full_name or user.email)
+
+
+def test_a_run_whose_version_cannot_be_read_is_refused(
+    client: TestClient, db: Session
+) -> None:
+    user, agent, keys = _ready(db, client)
+    _scenarios(client, user, agent, _price(keys))
+
+    # Retell cannot be read (tests never reach it): nothing is stored.
+    r = _start(client, user, agent, all=True, version=None)
+
+    assert r.status_code == 422
+    assert "Could not read the agent's version" in r.json()["detail"]["error"]
+    assert not db.exec(select(Run).where(Run.agent_id == agent.id)).all()
+
+
+def test_a_run_of_scenarios_cannot_be_stored_without_a_version(
+    client: TestClient, db: Session
+) -> None:
+    from sqlalchemy.exc import IntegrityError
+
+    from app.models.enums import RunScope
+
+    _user, agent, _keys = _ready(db, client)
+    db.add(
+        Run(
+            agent_id=agent.id,
+            company_id=agent.company_id,
+            scope=RunScope.ALL,
+            repeats=1,
+            status=RunStatus.PENDING,
+        )
+    )
+    with pytest.raises(IntegrityError):
+        db.commit()
+    db.rollback()
+
+
+def test_a_run_whose_calls_all_stopped_has_no_result(
+    client: TestClient, db: Session, caller: AsyncMock
+) -> None:
+    user, agent, keys = _ready(db, client)
+    _scenarios(client, user, agent, _price(keys))
+    run_id = _start(client, user, agent, all=True, repeats=2).json()["data"]["run_id"]
+
+    def broken(request: httpx.Request) -> httpx.Response:
+        if not json.loads(request.content)["messages"]:
+            return httpx.Response(
+                200, json={"messages": [{"role": "agent", "content": "Hi."}]}
+            )
+        return httpx.Response(200, json={"messages": []})
+
+    with respx.mock() as retell:
+        retell.post(url__startswith=PLAYGROUND).mock(side_effect=broken)
+        _execute(run_id)
+
+    body = _runs(client, user, agent).json()
+    [row] = [r for r in body["data"]["runs"] if r["id"] == run_id]
+    totals = row["totals"]
+    # The price rule only stopped calls listed: it counts in no column.
+    assert (totals["passed"], totals["failed"], totals["did_not_come_up"]) == (0, 0, 0)
+    assert totals["not_judged"] == 1 and totals["judged_calls"] == 0
+    assert totals["stopped"] == 2
+    assert row["verdict"] == "not_verified" and row["result"] is None
+    detail = _runs(client, user, agent, run_id=run_id).json()
+    assert detail["next_steps"][0].startswith("No result")

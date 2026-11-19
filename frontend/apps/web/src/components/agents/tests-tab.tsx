@@ -4,8 +4,6 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import {
-  ChevronDown,
-  ChevronRight,
   CircleCheck,
   CircleX,
   FileText,
@@ -67,15 +65,38 @@ const VERDICT = {
 const versionName = (version: string | null | undefined) =>
   version ? `Version ${version}` : 'The latest version';
 
+/** Whether ``version`` is newer than the live one: a draft not live yet. */
+const notLiveYet = (version: string | null | undefined, live: string | null | undefined) =>
+  Boolean(version && live && version !== live && Number(version) > Number(live));
+
+/** "89 · not live yet", "88 · live", or the bare number. */
+const versionLabel = (version: string | null | undefined, live: string | null | undefined) => {
+  if (!version) return '—';
+  if (version === live) return `${version} · live`;
+  return notLiveYet(version, live) ? `${version} · not live yet` : version;
+};
+
 const VerdictTile: FC<{ results: VersionResultsPublic }> = ({ results }) => {
   const shown = VERDICT[results.verdict];
   const Icon = shown.icon;
   const full = results.full_run;
-  const sub = full?.completed_at
-    ? `Full run · ${timeLabel(full.completed_at)}`
-    : results.last_verified
-      ? `Version ${results.last_verified.version} was verified ${dayLabel(results.last_verified.at)}`
-      : 'No full run yet';
+  const liveState = results.live
+    ? `Live: version ${results.live.version}, ${
+        results.live.verdict === 'verified' && results.live.at
+          ? `verified ${dayLabel(results.live.at)}`
+          : VERDICT[results.live.verdict].word.toLowerCase()
+      }`
+    : null;
+  const sub = [
+    full?.completed_at
+      ? `Full run · ${timeLabel(full.completed_at)}`
+      : results.last_verified && !results.live
+        ? `Version ${results.last_verified.version} was verified ${dayLabel(results.last_verified.at)}`
+        : 'No full run yet',
+    liveState,
+  ]
+    .filter(Boolean)
+    .join(' · ');
   return (
     <div className="flex min-w-0 flex-col gap-2 rounded-xl border border-hairline bg-surface-1 p-4">
       <span
@@ -88,7 +109,9 @@ const VerdictTile: FC<{ results: VersionResultsPublic }> = ({ results }) => {
         Verdict
       </span>
       <span className={cn('text-[24px] leading-9 font-medium text-balance', shown.tone)}>
-        {versionName(results.version)} · {shown.word}
+        {versionName(results.version)}
+        {notLiveYet(results.version, results.live_version) ? ' · not live yet' : ''} ·{' '}
+        {shown.word}
       </span>
       <span className="-mt-1.5 text-label text-ink-muted">{sub}</span>
     </div>
@@ -114,14 +137,18 @@ const whoLabel = (run: TestRunPublic) => {
   return run.session_name ? `${who} · ${run.session_name}` : who;
 };
 
-const Count: FC<{ n: number | null | undefined; critical?: boolean }> = ({ n, critical }) => (
+const Count: FC<{ n: number | null | undefined; critical?: boolean; none?: boolean }> = ({
+  n,
+  critical,
+  none,
+}) => (
   <span
     className={cn(
       'text-right',
-      !n ? 'text-ink-muted' : critical ? 'font-medium text-critical' : 'text-ink'
+      !n || none ? 'text-ink-muted' : critical ? 'font-medium text-critical' : 'text-ink'
     )}
   >
-    {n == null ? '' : n}
+    {none ? '—' : n == null ? '' : n}
   </span>
 );
 
@@ -143,10 +170,13 @@ const Result: FC<{ run: TestRunPublic }> = ({ run }) => {
   if (run.status === 'failed')
     return <span className="text-ink-muted">Stopped: {run.status_detail ?? 'the run failed'}</span>;
   const stopped = run.totals?.stopped ?? 0;
+  const judged = (run.totals?.judged_calls ?? 0) > 0;
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
       <div className="flex flex-wrap items-baseline gap-x-1.5">
-        {run.verdict ? (
+        {!judged ? (
+          <span className="whitespace-nowrap text-ink-secondary">No result</span>
+        ) : run.verdict ? (
           <span className={cn('font-medium whitespace-nowrap', VERDICT[run.verdict].tone)}>
             {VERDICT[run.verdict].word}
           </span>
@@ -155,7 +185,7 @@ const Result: FC<{ run: TestRunPublic }> = ({ run }) => {
             {run.result === 'failed' ? 'Failed' : run.result === 'passed' ? 'Passed' : '—'}
           </span>
         )}
-        {!run.full && <span className="text-label text-ink-muted">on demand</span>}
+        {!run.full && judged && <span className="text-label text-ink-muted">on demand</span>}
       </div>
       {stopped > 0 && (
         <span className="text-label text-ink-muted">{plural(stopped, 'call')} stopped</span>
@@ -167,26 +197,30 @@ const Result: FC<{ run: TestRunPublic }> = ({ run }) => {
 const WIDE =
   'grid grid-cols-[112px_128px_minmax(0,1fr)_56px_56px_104px_60px_56px_184px] items-center gap-3 px-6';
 
-const RunRow: FC<{ run: TestRunPublic }> = ({ run }) => {
+const RunRow: FC<{ run: TestRunPublic; live: string | null | undefined }> = ({ run, live }) => {
   const totals = run.totals;
+  // A run no judge read shows no counts (Dmytro, 2026-11-19).
+  const none = totals != null && (totals.judged_calls ?? 0) === 0;
   return (
     <>
       <div className={cn(WIDE, 'hidden min-h-[52px] border-t border-hairline py-2 md:grid')}>
         <span className="whitespace-nowrap">{timeLabel(run.created_at)}</span>
         <span className="whitespace-nowrap">{runLabel(run)}</span>
         <Result run={run} />
-        <Count n={totals?.passed} />
-        <Count n={totals?.failed} />
-        <Count n={totals?.did_not_come_up} />
-        <Count n={totals?.critical} critical />
-        <span className="text-ink-secondary">{run.platform_version ?? 'latest'}</span>
+        <Count n={totals?.passed} none={none} />
+        <Count n={totals?.failed} none={none} />
+        <Count n={totals?.did_not_come_up} none={none} />
+        <Count n={totals?.critical} critical none={none} />
+        <span className="whitespace-nowrap text-ink-secondary">
+          {versionLabel(run.platform_version, live)}
+        </span>
         <span className="truncate">{whoLabel(run)}</span>
       </div>
       <div className="grid grid-cols-[80px_108px_minmax(0,1fr)] items-start gap-x-2.5 gap-y-1 border-t border-hairline px-6 py-2.5 text-label md:hidden">
         <span>{timeLabel(run.created_at)}</span>
         <span>{runLabel(run)}</span>
         <Result run={run} />
-        {totals && (
+        {totals && !none && (
           <div className="col-span-3 flex flex-wrap gap-x-1.5 text-ink-muted">
             <span>{totals.passed ?? 0} passed</span>·<span>{totals.failed ?? 0} failed</span>·
             <span>{totals.did_not_come_up ?? 0} didn’t come up</span>·
@@ -214,13 +248,13 @@ const RunsHead: FC = () => (
   </div>
 );
 
-const Runs: FC<{ tests: TestsTabPublic; picked: boolean }> = ({ tests, picked }) => {
+const Runs: FC<{ tests: TestsTabPublic; picked: string | null | undefined }> = ({
+  tests,
+  picked,
+}) => {
   const [all, setAll] = useState(false);
-  const [earlierOpen, setEarlierOpen] = useState(false);
-  const results = tests.results;
-  const runs = results?.runs ?? [];
-  const earlier = tests.earlier ?? [];
-  const earlierCount = earlier.reduce((n, group) => n + group.runs.length, 0);
+  // One list, newest first (Dmytro, 2026-11-19).
+  const runs = tests.runs ?? [];
   const shown = all ? runs : runs.slice(0, RUNS_SHOWN);
   return (
     <Card>
@@ -230,14 +264,12 @@ const Runs: FC<{ tests: TestsTabPublic; picked: boolean }> = ({ tests, picked })
       </div>
       {runs.length === 0 && (
         <p className="m-0 px-6 pb-5 text-ink-muted">
-          {earlierCount > 0 && results?.version
-            ? `No runs on version ${results.version} yet.`
-            : 'No runs yet.'}
+          {picked ? `No runs on version ${picked} yet.` : 'No runs yet.'}
         </p>
       )}
       {runs.length > 0 && <RunsHead />}
       {shown.map((run) => (
-        <RunRow key={run.id} run={run} />
+        <RunRow key={run.id} run={run} live={tests.live_version} />
       ))}
       {runs.length > RUNS_SHOWN && (
         <button
@@ -247,35 +279,6 @@ const Runs: FC<{ tests: TestsTabPublic; picked: boolean }> = ({ tests, picked })
         >
           {all ? 'Show fewer' : `Show all ${runs.length} runs`}
         </button>
-      )}
-      {earlierCount > 0 && (
-        <>
-          <button
-            type="button"
-            aria-expanded={earlierOpen}
-            onClick={() => setEarlierOpen((v) => !v)}
-            className="flex w-full items-center gap-2 border-t border-hairline px-6 py-3 text-left text-label text-ink-secondary hover:bg-wash"
-          >
-            {earlierOpen ? (
-              <ChevronDown className="size-4" aria-hidden />
-            ) : (
-              <ChevronRight className="size-4" aria-hidden />
-            )}
-            {plural(earlierCount, 'run')} on {picked ? 'other' : 'earlier'} versions
-          </button>
-          {earlierOpen &&
-            earlier.map((group) => (
-              <div key={group.version ?? 'latest'}>
-                <div className="flex h-10 items-center gap-2 border-t border-hairline px-6 text-label">
-                  <span className="font-medium">{versionName(group.version)}</span>
-                  <span className="text-ink-muted">{plural(group.runs.length, 'run')}</span>
-                </div>
-                {group.runs.map((run) => (
-                  <RunRow key={run.id} run={run} />
-                ))}
-              </div>
-            ))}
-        </>
       )}
     </Card>
   );
@@ -354,7 +357,7 @@ export const TestsTab: FC<Props> = ({ agentId, version, tests: loaded }) => {
           No scenarios yet. The assistant writes them, one or more for each critical rule.
         </Empty>
       ) : (
-        <Runs tests={tests} picked={Boolean(version)} />
+        <Runs tests={tests} picked={version} />
       )}
       {scenarios.length > 0 && (
         <Card>

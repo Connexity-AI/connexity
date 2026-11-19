@@ -72,6 +72,7 @@ from app.models.test_case_result import TestCaseResult
 from app.models.test_run import (
     CheckTotalPublic,
     CoveragePublic,
+    LiveVersionPublic,
     RuleTotalPublic,
     RuleVerdict,
     RunTotalsPublic,
@@ -188,6 +189,39 @@ def _scenarios_for(
             + ["Call `list_scenarios` for the agent's scenario ids."],
         )
     return RunScope.PICK, [live[i] for i in picked], None
+
+
+async def version_to_test(
+    *, session: Session, agent: Agent, asked: int | None
+) -> int | None:
+    """The version a run will test: the one asked for, else the agent's newest version
+    on Retell, read before anything is stored, so a run always has one (Dmytro,
+    2026-11-19). None for an agent a run refuses anyway (not on Retell).
+
+    Raises:
+        RunRefused: Retell could not be read.
+    """
+    if asked is not None:
+        return asked
+    if agent.platform != Platform.RETELL or not (
+        agent.integration_id and agent.platform_agent_id
+    ):
+        return None
+    integration = session.get(Integration, agent.integration_id)
+    api_key = decrypt(integration.encrypted_api_key) if integration else None
+    read = (
+        await _read_version(api_key, agent.platform_agent_id, None) if api_key else None
+    )
+    if read is None or read.version is None:
+        msg = "Could not read the agent's version on Retell; try again."
+        raise RunRefused(
+            msg,
+            [
+                "Retell did not answer with the agent's version, so no run was stored. "
+                "Try again in a minute, or pass `version`."
+            ],
+        )
+    return read.version
 
 
 def start_run(
@@ -645,17 +679,13 @@ async def execute_run(run_id: uuid.UUID) -> None:
             and api_key
             and agent.platform_agent_id
         ):
-            # One read of the tested version: its number, so every call talks to the
-            # same version and the run says which one it tested; what it does now (a
-            # draft is edited under the same number); and its tools, so a hang-up or a
-            # transfer ends the conversation.
+            # One read of the tested version (its number is stored with the run): what
+            # it does now (a draft is edited under the same number), and its tools, so
+            # a hang-up or a transfer ends the conversation.
             read = await _read_version(
                 api_key, agent.platform_agent_id, runtime.version
             )
             if read is not None:
-                if runtime.version is None and read.version is not None:
-                    runtime.version = read.version
-                    _pin_version(run_id, read.version, config)
                 _store_fingerprint(run_id, read.fingerprint)
                 ctx = replace(
                     ctx,
@@ -713,17 +743,6 @@ def _store_fingerprint(run_id: uuid.UUID, content: str) -> None:
         if run is None:
             return
         run.version_fingerprint = content
-        session.add(run)
-        session.commit()
-
-
-def _pin_version(run_id: uuid.UUID, version: int, config: RunConfig) -> None:
-    with Session(engine) as session:
-        run = session.get(Run, run_id)
-        if run is None:
-            return
-        run.platform_version = str(version)
-        run.config = config.model_dump(mode="json")
         session.add(run)
         session.commit()
 
@@ -834,13 +853,16 @@ def _facts(session: Session, runs: list[Run]) -> dict[uuid.UUID, _RunFacts]:
     }
 
 
-type RuleMark = Literal["passed", "failed", "flaky", "did_not_come_up", "no_scenario"]
+type RuleMark = Literal[
+    "passed", "failed", "flaky", "did_not_come_up", "no_scenario", "not_judged"
+]
 
 
 def rule_marks(facts: _RunFacts) -> dict[str, RuleMark]:
     """Each rule of the run's spec, once: Failed when any repeat failed it (Flaky when
-    another passed it), Passed, Didn't come up when no repeat reached it, or no
-    scenario of the run lists it (Dmytro, 2026-11-19: count rules)."""
+    another passed it), Passed, Didn't come up when no judged repeat reached it, not
+    judged when only calls that stopped listed it, or no scenario of the run lists it
+    (Dmytro, 2026-11-19: count rules, and stopped calls in no column)."""
     outcomes: dict[str, set[RuleOutcome]] = {}
     for verdict in facts.verdicts:
         outcomes.setdefault(verdict.rule_key, set()).add(verdict.outcome)
@@ -849,6 +871,10 @@ def rule_marks(facts: _RunFacts) -> dict[str, RuleMark]:
         seen = outcomes.get(rule.key, set())
         if rule.key not in facts.listed:
             marks[rule.key] = "no_scenario"
+        elif not seen:
+            # Only calls that stopped before a judge listed it: it counts in no column
+            # (Dmytro, 2026-11-19).
+            marks[rule.key] = "not_judged"
         elif RuleOutcome.FAILED in seen:
             marks[rule.key] = "flaky" if RuleOutcome.PASSED in seen else "failed"
         elif RuleOutcome.PASSED in seen:
@@ -866,13 +892,21 @@ def _run_judgement(
     critical = {rule.key for rule in facts.spec_rules if rule.critical}
     failed = [k for k, m in marks.items() if m in ("failed", "flaky")]
     critical_failed = [k for k in failed if k in critical]
-    critical_checks = [c.check_type for c in _check_totals(facts.calls) if c.critical]
+    # Calls that stopped count in no column, their code checks included.
+    judged = {v.test_case_result_id for v in facts.verdicts}
+    critical_checks = [
+        c.check_type
+        for c in _check_totals([call for call in facts.calls if call.id in judged])
+        if c.critical
+    ]
     totals = RunTotalsPublic(
         rules=len(facts.spec_rules),
         passed=sum(1 for m in marks.values() if m == "passed"),
         failed=len(failed),
         did_not_come_up=sum(1 for m in marks.values() if m == "did_not_come_up"),
         no_scenario=sum(1 for m in marks.values() if m == "no_scenario"),
+        not_judged=sum(1 for m in marks.values() if m == "not_judged"),
+        judged_calls=len(judged),
         critical=len(critical_failed) + len(critical_checks),
         stopped=sum(1 for c in facts.calls if c.error_message),
     )
@@ -915,10 +949,9 @@ def run_views(session: Session, runs: list[Run]) -> list[TestRunPublic]:
         done = run.status == RunStatus.COMPLETED
         totals = _run_judgement(fact)[0] if done else None
         result: Literal["passed", "failed"] | None = None
-        if totals is not None and not full and (totals.passed or totals.failed):
+        # A run no judge read has no result (Dmytro, 2026-11-19: "No result").
+        if totals is not None and not full and totals.judged_calls:
             result = "failed" if totals.failed or totals.critical else "passed"
-        elif totals is not None and not full and totals.critical:
-            result = "failed"
         out.append(
             TestRunPublic(
                 id=run.id,
@@ -1077,7 +1110,6 @@ class VersionUnderTest:
     results: VersionResultsPublic
     full_run: Run | None
     marks: dict[str, RuleMark]
-    others: list[Run]
 
 
 def version_number(text: str | None) -> tuple[int, str]:
@@ -1093,27 +1125,29 @@ def version_tested(
     else the newest run's. Runs of a set or a pick are listed but never decide.
     """
     runs = runs_of_agent(session=session, agent_id=agent.id)
-    target = (
-        version
-        if version is not None
-        else crud.current_agent_version(session=session, agent_id=agent.id)
-        or (runs[-1].platform_version if runs else None)
-    )
+    live = crud.current_agent_version(session=session, agent_id=agent.id)
+    # The newest tested version, live or not (Dmytro, 2026-11-19): the runner tests
+    # Retell's newest version, which can be a draft ahead of the live one.
+    tested = [r.platform_version for r in runs if r.platform_version is not None]
+    newest = max(tested, key=version_number) if tested else None
+    target = version if version is not None else newest or live
 
-    # A run started without a version tests the latest, which is the live version
-    # until it pins a number; it belongs here when no version was asked for.
     def is_mine(run: Run) -> bool:
-        return run.platform_version == target or (
-            version is None and run.platform_version is None
-        )
+        return run.platform_version == target
 
     mine = [r for r in runs if is_mine(r)]
-    others = [r for r in runs if not is_mine(r)]
     fulls = [
         r for r in runs if r.scope is RunScope.ALL and r.status == RunStatus.COMPLETED
     ]
     full = next((r for r in reversed(fulls) if is_mine(r)), None)
     facts = _facts(session, [full]) if full is not None else {}
+
+    def latest_full_verdict(of: str) -> tuple[VersionVerdict, Run | None]:
+        run = next((r for r in reversed(fulls) if r.platform_version == of), None)
+        if run is None:
+            return VersionVerdict.NOT_VERIFIED, None
+        return _verdict(_run_judgement(_facts(session, [run])[run.id])[0]), run
+
     # The newest other version a full run verified: each version's latest full run,
     # newest first, read one at a time until one verified.
     last_verified: VerifiedVersionPublic | None = None
@@ -1122,15 +1156,26 @@ def version_tested(
         if r.platform_version is None or is_mine(r) or r.platform_version in seen:
             continue
         seen.add(r.platform_version)
-        judged = _run_judgement(_facts(session, [r])[r.id])[0]
-        if _verdict(judged) is VersionVerdict.VERIFIED:
+        verdict, _run = latest_full_verdict(r.platform_version)
+        if verdict is VersionVerdict.VERIFIED:
             last_verified = VerifiedVersionPublic(
                 version=r.platform_version, at=r.completed_at or r.created_at
             )
             break
+    # The live version's state, beside a tested version that is not live.
+    live_state: LiveVersionPublic | None = None
+    if live is not None and live != target:
+        verdict, run = latest_full_verdict(live)
+        live_state = LiveVersionPublic(
+            version=live,
+            verdict=verdict,
+            at=(run.completed_at or run.created_at) if run else None,
+        )
     views = run_views(session, list(reversed(mine)))
     results = VersionResultsPublic(
         version=target,
+        live_version=live,
+        live=live_state,
         verdict=VersionVerdict.NOT_VERIFIED,
         last_verified=last_verified,
         runs=views,
@@ -1148,7 +1193,9 @@ def version_tested(
         results.critical_failed = critical_failed
         results.critical_checks = critical_checks
         results.rules = _rule_totals(fact.verdicts, rules)
-        results.checks = _check_totals(fact.calls)
+        # Like the counts, the code checks of calls a judge read only.
+        judged = {v.test_case_result_id for v in fact.verdicts}
+        results.checks = _check_totals([c for c in fact.calls if c.id in judged])
         results.unchecked = sorted(
             (
                 UncheckedRulePublic(
@@ -1158,17 +1205,15 @@ def version_tested(
                     if rule.category_id in categories
                     else "Other",
                     critical=rule.critical,
-                    why="no_scenario"
-                    if marks[rule.key] == "no_scenario"
-                    else "did_not_come_up",
+                    why=marks[rule.key],  # type: ignore[arg-type]
                 )
                 for rule in fact.spec_rules
-                if marks[rule.key] in ("no_scenario", "did_not_come_up")
+                if marks[rule.key] in ("no_scenario", "did_not_come_up", "not_judged")
             ),
             key=lambda u: not u.critical,
         )
         results.stopped = stopped_calls(fact.calls)
-    return VersionUnderTest(results=results, full_run=full, marks=marks, others=others)
+    return VersionUnderTest(results=results, full_run=full, marks=marks)
 
 
 def stopped_calls(calls: list[TestCaseResult]) -> StoppedCallsPublic | None:
