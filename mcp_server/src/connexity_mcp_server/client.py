@@ -88,6 +88,7 @@ class ConnexityBackendClient:
         category: str | None = None,
         period: str | None = None,
         issue_id: str | None = None,
+        version: str | None = None,
         cursor: str | None = None,
         limit: int | None = None,
     ) -> dict[str, Any]:
@@ -100,6 +101,7 @@ class ConnexityBackendClient:
                 "category": category,
                 "period": period,
                 "issue_id": issue_id,
+                "version": version,
                 "cursor": cursor,
                 "limit": limit,
             }.items()
@@ -121,6 +123,7 @@ class ConnexityBackendClient:
         severity: str | None = None,
         status: str | None = None,
         period: str | None = None,
+        version: str | None = None,
         cursor: str | None = None,
         limit: int | None = None,
     ) -> dict[str, Any]:
@@ -133,6 +136,7 @@ class ConnexityBackendClient:
                 "severity": severity,
                 "status": status,
                 "period": period,
+                "version": version,
                 "cursor": cursor,
                 "limit": limit,
             }.items()
@@ -387,13 +391,23 @@ class ConnexityBackendClient:
         )
 
     async def get_agent(
-        self, *, workspace_id: str, agent_id: str, period: str | None = None
+        self,
+        *,
+        workspace_id: str,
+        agent_id: str,
+        period: str | None = None,
+        version: str | None = None,
     ) -> dict[str, Any]:
+        params = {
+            key: value
+            for key, value in {"period": period, "version": version}.items()
+            if value not in (None, "")
+        }
         return await self._request_json(
             "GET",
             f"/mcp/workspaces/{quote(workspace_id, safe='')}/agents/"
             f"{quote(agent_id, safe='')}",
-            params={"period": period} if period else {},
+            params=params,
         )
 
     async def list_categories(self, *, workspace_id: str) -> dict[str, Any]:

@@ -45,10 +45,15 @@ def _window(company_id: uuid.UUID, start: datetime, end: datetime) -> list:  # n
 
 
 def result_counts_by_agent(
-    *, session: Session, company_id: uuid.UUID, start: datetime, end: datetime
+    *,
+    session: Session,
+    company_id: uuid.UUID,
+    start: datetime,
+    end: datetime,
+    version: str | None = None,
 ) -> dict[uuid.UUID, ResultCounts]:
-    """Each agent's failed, degraded and clean calls that started in ``[start, end)``.
-    Unchecked calls are left out."""
+    """Each agent's failed, degraded and clean calls that started in ``[start, end)``,
+    on agent version ``version`` when given. Unchecked calls are left out."""
     fails = _counting(FindingEffect.FAILS)
     counts = _counting()
     rows = session.exec(
@@ -58,7 +63,10 @@ def result_counts_by_agent(
             func.count().filter(and_(counts, ~fails)),
             func.count().filter(and_(~counts, _ran())),
         )
-        .where(*_window(company_id, start, end))
+        .where(
+            *_window(company_id, start, end),
+            *([Call.agent_version == version] if version is not None else []),
+        )
         .group_by(col(Call.agent_id))
     ).all()
     return {
@@ -81,6 +89,7 @@ def shown_findings(
     start: datetime,
     end: datetime,
     agent_id: uuid.UUID | None = None,
+    version: str | None = None,
 ) -> list[ShownFinding]:
     """Every shown finding on calls that started in ``[start, end)``, one row each."""
     query = (
@@ -90,6 +99,8 @@ def shown_findings(
     )
     if agent_id is not None:
         query = query.where(Call.agent_id == agent_id)
+    if version is not None:
+        query = query.where(Call.agent_version == version)
     return [
         ShownFinding(call_id, call_agent, issue_id, effect == FindingEffect.FAILS)
         for call_id, call_agent, issue_id, effect in session.exec(query).all()

@@ -29,7 +29,6 @@ from app.crud import test_run as crud_test_run
 from app.crud.call_list import CallFilters
 from app.crud.issue_list import calls_by_agent, period_start
 from app.crud.issue_page import (
-    call_agent_versions,
     issue_calls_per_version,
     issue_findings_on_calls,
     latest_agent_version,
@@ -344,6 +343,7 @@ def list_calls(
     category: str | None = Query(default=None, max_length=64),
     period: Literal["7d", "30d", "90d"] = "30d",
     issue_id: uuid.UUID | None = Query(default=None),
+    version: str | None = Query(default=None, max_length=64),
     cursor: str | None = Query(default=None, max_length=255),
     limit: int = Query(default=25, ge=1, le=100),
 ) -> McpAnswer[McpCalls]:
@@ -358,6 +358,7 @@ def list_calls(
             category=category,
             query=query,
             issue_id=issue_id,
+            version=version,
         ),
         offset=offset,
         limit=limit,
@@ -384,9 +385,7 @@ def list_calls(
         found = issue_findings_on_calls(
             session=session, issue_id=issue_id, call_ids=ids
         )
-        versions = call_agent_versions(session=session, call_ids=ids)
         for call in calls:
-            call.agent_version = versions.get(call.id)
             call.issue_findings = [
                 McpIssueFinding(
                     event_ids=list(finding.event_keys),
@@ -410,10 +409,12 @@ def list_calls(
             "finding and findings, until the issue is unarchived; with issue_id of an "
             "archived issue, its own findings are listed so its calls can be read.",
             "With issue_id, only the calls that issue was found on are listed, each with "
-            "its moment (when it first happened in the call and how many times), the "
-            "agent version it ran and that issue's findings on it: the events each "
+            "its moment (when it first happened in the call and how many times) and "
+            "that issue's findings on it: the events each "
             "points at and its detail. `get_issue` says what each detail key means; "
             "`get_call` shows the events.",
+            "Each call carries the agent version it ran on (agent_version); `version` "
+            "keeps only that version's calls, so two versions compare by calling twice.",
         ],
         next_steps=next_steps,
         guide=GUIDE_CALLS,
@@ -477,6 +478,7 @@ def list_issues(
     severity: Literal["critical", "warning"] | None = Query(default=None),
     status: IssueStatusFilter = "open",
     period: IssuePeriod = "30d",
+    version: str | None = Query(default=None, max_length=64),
     cursor: str | None = Query(default=None, max_length=255),
     limit: int = Query(default=25, ge=1, le=100),
 ) -> McpAnswer[McpIssues]:
@@ -503,6 +505,7 @@ def list_issues(
             severity=severity,
             status=status,
             query=query,
+            version=version,
         ),
     )
     issues = matching[offset : offset + limit]
@@ -534,6 +537,8 @@ def list_issues(
     return McpAnswer[McpIssues](
         data=McpIssues(tiles=page.tiles, issues=issues),
         rules=[
+            "With `version`, only the issues found on that agent version's calls in the "
+            "period are listed, each counting only those calls; the tiles too.",
             "Worst first: open or reopened Critical issues and reopened ones, then the "
             "other open ones, then by calls affected in the period.",
             "status defaults to open, which includes reopened. Open and reopened issues "
@@ -1410,18 +1415,32 @@ def get_agent(
     workspace: McpWorkspaceDep,
     agent_id: uuid.UUID,
     period: Literal["7d", "30d", "90d"] = "30d",
+    version: str | None = Query(default=None, max_length=64),
 ) -> McpAnswer[McpAgentPage]:
     agent = _mcp_agent_in(session, workspace, agent_id)
     page = McpAgentPage(
-        **agent_page(session=session, agent=agent, period=period).model_dump(),
+        **agent_page(
+            session=session, agent=agent, period=period, version=version
+        ).model_dump(),
         score=score(
-            session=session, company_id=workspace.id, period=period, agent_id=agent.id
+            session=session,
+            company_id=workspace.id,
+            period=period,
+            agent_id=agent.id,
+            version=version,
         ),
     )
+    scope = f" and version {version}" if version else ""
     next_steps = [
-        f"Call `list_calls` with agent_id {agent.id} for its calls, and `list_issues` "
-        "with the same for what was found on them."
+        f"Call `list_calls` with agent_id {agent.id}{scope} for its calls, and "
+        "`list_issues` with the same for what was found on them."
     ]
+    if version is None and len(page.versions) > 1:
+        newest, before = page.versions[0].version, page.versions[1].version
+        next_steps.append(
+            f"To compare versions, call `get_agent` with version {newest} and again "
+            f"with version {before}."
+        )
     if page.spec != "current" and page.live_version:
         next_steps.append(
             "The agent's spec is missing or needs review: call `get_spec` and "
@@ -1445,6 +1464,9 @@ def get_agent(
             "live_version is the agent version of its most recent call, and live_since "
             "when the first call on it started.",
             "systems are the n8n workflows its tool calls ran in the period.",
+            "versions lists every agent version that has a call, the latest call's "
+            "first; with `version`, calls, latency, systems and the score count only "
+            "that version's calls in the period.",
         ],
         next_steps=next_steps,
         guide=GUIDE_GETTING_STARTED,

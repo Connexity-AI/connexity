@@ -28,7 +28,19 @@ export const Picker: FC<{
   clearable?: boolean;
   /** Shown as set even when it cannot be cleared, e.g. a status other than its default. */
   highlighted?: boolean;
-}> = ({ label, value, options, onPick, icon, align = 'start', clearable = true, highlighted }) => {
+  /** The item that clears the pick; "All" unless given. */
+  clearLabel?: string;
+}> = ({
+  label,
+  value,
+  options,
+  onPick,
+  icon,
+  align = 'start',
+  clearable = true,
+  highlighted,
+  clearLabel = 'All',
+}) => {
   const current = options.find((option) => option.value === value);
   return (
     <DropdownMenu>
@@ -46,7 +58,7 @@ export const Picker: FC<{
       </DropdownMenuTrigger>
       <DropdownMenuContent align={align} className="max-h-[360px] min-w-[220px] overflow-auto">
         {clearable && current && (
-          <DropdownMenuItem onSelect={() => onPick(undefined)}>All</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => onPick(undefined)}>{clearLabel}</DropdownMenuItem>
         )}
         {options.map((option) => (
           <DropdownMenuItem

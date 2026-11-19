@@ -16,6 +16,7 @@ from app.models.agent_page import (
     AgentPagePublic,
     AgentSystemPublic,
     AgentVersionMarkPublic,
+    AgentVersionOptionPublic,
 )
 from app.models.call import Call, CallComponent
 from app.models.component_version import ComponentVersion
@@ -42,7 +43,7 @@ def _model(session: Session, agent: Agent, version: str | None) -> str | None:
 
 
 def _systems(
-    session: Session, agent: Agent, since: datetime
+    session: Session, agent: Agent, since: datetime, version: str | None
 ) -> list[AgentSystemPublic]:
     """The n8n workflows the agent's tool calls ran in the period, with the version of
     the most recent call that used each."""
@@ -54,6 +55,7 @@ def _systems(
             col(Call.deleted_at).is_(None),
             col(Call.started_at) >= since.replace(tzinfo=None),
             CallComponent.kind == "skill",
+            *([Call.agent_version == version] if version is not None else []),
         )
         .order_by(col(Call.started_at).desc())
     ).all()
@@ -90,17 +92,49 @@ def _live_since(session: Session, agent: Agent, version: str | None) -> datetime
     return first.replace(tzinfo=UTC) if first else None
 
 
-def agent_page(*, session: Session, agent: Agent, period: Period) -> AgentPagePublic:
-    since = period_start(period)
-    live = crud.current_agent_version(session=session, agent_id=agent.id)
-    calls = session.exec(
-        select(func.count()).where(
+def agent_versions(
+    *, session: Session, agent: Agent, live: str | None
+) -> list[AgentVersionOptionPublic]:
+    """Every version of the agent that has a call, the latest call's first."""
+    rows = session.exec(
+        select(Call.agent_version, func.count(), func.max(col(Call.started_at)))
+        .where(
             Call.agent_id == agent.id,
             col(Call.deleted_at).is_(None),
-            col(Call.started_at) >= since.replace(tzinfo=None),
+            col(Call.agent_version).is_not(None),
         )
-    ).one()
+        .group_by(col(Call.agent_version))
+        .order_by(func.max(col(Call.started_at)).desc())
+    ).all()
+    return [
+        AgentVersionOptionPublic(version=v, calls=int(n), live=v == live)
+        for v, n, _last in rows
+        if v is not None
+    ]
+
+
+def agent_page(
+    *, session: Session, agent: Agent, period: Period, version: str | None = None
+) -> AgentPagePublic:
+    """One agent's page for the period, its numbers on one agent version when
+    ``version`` is given (the period still applies)."""
+    since = period_start(period)
+    live = crud.current_agent_version(session=session, agent_id=agent.id)
+    in_period = [
+        Call.agent_id == agent.id,
+        col(Call.deleted_at).is_(None),
+        col(Call.started_at) >= since.replace(tzinfo=None),
+        *([Call.agent_version == version] if version is not None else []),
+    ]
+    calls = session.exec(select(func.count()).where(*in_period)).one()
     latencies = call_latencies(session=session, agent_ids=[agent.id], since=since)
+    version_days: list[date] = []
+    if version is not None:
+        on_version = dict(
+            session.exec(select(Call.id, Call.started_at).where(*in_period)).all()
+        )
+        latencies = [row for row in latencies if row.call_id in on_version]
+        version_days = sorted({started.date() for started in on_version.values()})
     by_day: dict[date, list[float]] = defaultdict(list)
     for row in latencies:
         by_day[row.day].append(row.seconds)
@@ -133,7 +167,7 @@ def agent_page(*, session: Session, agent: Agent, period: Period) -> AgentPagePu
         live_version=live,
         live_since=_live_since(session, agent, live),
         model=_model(session, agent, live),
-        systems=_systems(session, agent, since),
+        systems=_systems(session, agent, since, version),
         spec=spec_state(crud.latest_spec(session=session, agent_id=agent.id), live),
         period=period,
         calls=calls,
@@ -142,4 +176,7 @@ def agent_page(*, session: Session, agent: Agent, period: Period) -> AgentPagePu
         latency_days=days,
         latency_peak=max(peaks) if peaks else None,
         version_marks=marks,
+        versions=agent_versions(session=session, agent=agent, live=live),
+        version=version,
+        version_days=version_days,
     )

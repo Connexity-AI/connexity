@@ -30,7 +30,8 @@ const RESULT_OPTIONS = [
 ];
 const COLUMNS = 'grid-cols-[128px_200px_88px_72px_104px_minmax(0,1fr)]';
 // On an agent's page the agent is fixed, so its column goes.
-const COLUMNS_ONE_AGENT = 'grid-cols-[128px_88px_72px_104px_minmax(0,1fr)]';
+// On an agent's page: a Version column in place of Agent (design item 33).
+const COLUMNS_ONE_AGENT = 'grid-cols-[128px_56px_88px_72px_104px_minmax(0,1fr)]';
 
 const duration = (seconds: number | null | undefined) => (seconds == null ? '' : clock(seconds));
 
@@ -205,7 +206,7 @@ export const CallsView: FC<Props> = ({ calls, shown, pageSize, embedded = false 
           )}
         >
           <span>Time</span>
-          {!embedded && <span>Agent</span>}
+          {embedded ? <span>Version</span> : <span>Agent</span>}
           <span>Caller</span>
           <span className="text-right">Duration</span>
           <span>Result</span>
@@ -221,7 +222,11 @@ export const CallsView: FC<Props> = ({ calls, shown, pageSize, embedded = false 
             )}
           >
             <span className="whitespace-nowrap">{timeLabel(call.started_at)}</span>
-            {!embedded && <span className="truncate">{call.agent_name}</span>}
+            {embedded ? (
+              <span className="text-ink-muted">{call.agent_version ?? '—'}</span>
+            ) : (
+              <span className="truncate">{call.agent_name}</span>
+            )}
             <span className="whitespace-nowrap text-ink-secondary">
               {call.caller_last_four ? `•••• ${call.caller_last_four}` : '—'}
             </span>

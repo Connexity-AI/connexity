@@ -32,6 +32,9 @@ class CallListItemPublic(BaseModel):
     started_at: datetime
     agent_id: uuid.UUID
     agent_name: str
+    agent_version: str | None = Field(
+        default=None, description="The agent version the call ran on"
+    )
     caller_last_four: str | None = Field(
         default=None, description="The caller's last four digits; never the number"
     )

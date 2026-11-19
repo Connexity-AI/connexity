@@ -232,7 +232,9 @@ export const SpecTab: FC<Props> = ({ spec, liveSince, onCompare }) => {
       <div className="flex flex-col items-center gap-2 rounded-xl border border-hairline bg-surface-1 px-6 py-10 text-center">
         <FileText className="size-5 text-ink-muted" aria-hidden />
         <p className="m-0 max-w-[520px] text-pretty text-ink-secondary">
-          No spec yet. Your assistant writes it from the agent&apos;s prompt.
+          {spec.for_version && (spec.versions ?? []).length > 0
+            ? `No spec was written for version ${spec.for_version} or earlier.`
+            : 'No spec yet. Your assistant writes it from the agent’s prompt.'}
         </p>
       </div>
     );
@@ -243,7 +245,7 @@ export const SpecTab: FC<Props> = ({ spec, liveSince, onCompare }) => {
   const conflicts = counts?.in_conflict ?? 0;
   const earlier = (spec.versions ?? []).filter((v) => v.version !== version.version);
   const options = [
-    { value: 'none', label: `Version ${version.version} only` },
+    { value: 'none', label: `Spec ${version.version} only` },
     ...earlier.map((v) => ({
       value: String(v.version),
       label: `Compare with version ${v.version}`,
@@ -292,14 +294,14 @@ export const SpecTab: FC<Props> = ({ spec, liveSince, onCompare }) => {
         <div className="flex items-center justify-between gap-4 px-6 py-4">
           <div className="flex min-w-0 flex-col gap-0.5">
             <h2 className="m-0 text-body font-medium">
-              Version {version.version}
+              Spec {version.version}
               <span className="font-normal text-ink-muted">
                 {' '}
-                · agent version {version.agent_version}
+                · written for version {version.agent_version}
                 {since}
               </span>
             </h2>
-            {version.version === spec.latest_version && (
+            {(version.version === spec.latest_version || spec.for_version) && (
               <span className="text-label text-ink-muted">
                 {spec.results_at
                   ? `Results from the full run of ${dayLabel(spec.results_at)}`

@@ -158,8 +158,10 @@ class CallItem(BaseModel):
     result: str
     worst_finding: WorstFinding | None = None
     moment: IssueMoment | None = None
-    # With an issue filter: the version the call ran and that issue's findings on it.
-    agent_version: str | None = None
+    agent_version: str | None = Field(
+        default=None, description="The agent version the call ran on"
+    )
+    # With an issue filter: that issue's findings on the call.
     issue_findings: list[IssueFindingOnCall] | None = None
 
 
@@ -793,6 +795,12 @@ class AgentVersionMark(BaseModel):
     label: str
 
 
+class AgentVersionOption(BaseModel):
+    version: str
+    calls: int = Field(description="Its calls, all time")
+    live: bool = Field(default=False, description="The version of the latest call")
+
+
 class AgentPage(BaseModel):
     id: str
     name: str
@@ -810,6 +818,16 @@ class AgentPage(BaseModel):
     latency_days: list[AgentLatencyDay] = Field(default_factory=list)
     latency_peak: float | None = None
     version_marks: list[AgentVersionMark] = Field(default_factory=list)
+    versions: list[AgentVersionOption] = Field(
+        default_factory=list,
+        description="Every agent version that has a call, the latest call's first",
+    )
+    version: str | None = Field(
+        default=None, description="The version the numbers count; none for all"
+    )
+    version_days: list[str] = Field(
+        default_factory=list, description="With a version: the period's days it ran"
+    )
     score: Score | None = None
 
 

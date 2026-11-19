@@ -158,6 +158,7 @@ async def list_issues(
     severity: str | None = None,
     status: str | None = None,
     period: str | None = None,
+    version: str | None = None,
     cursor: str | None = None,
     limit: int | None = None,
 ) -> ListIssuesResult:
@@ -170,6 +171,7 @@ async def list_issues(
             severity=severity,
             status=status,
             period=period,
+            version=version,
             cursor=cursor,
             limit=limit,
         )
@@ -185,6 +187,7 @@ async def list_calls(
     category: str | None = None,
     period: str | None = None,
     issue_id: str | None = None,
+    version: str | None = None,
     cursor: str | None = None,
     limit: int | None = None,
 ) -> ListCallsResult:
@@ -197,6 +200,7 @@ async def list_calls(
             category=category,
             period=period,
             issue_id=issue_id,
+            version=version,
             cursor=cursor,
             limit=limit,
         )
@@ -317,10 +321,14 @@ async def get_agent(
     workspace_id: str,
     agent_id: str,
     period: str | None = None,
+    version: str | None = None,
 ) -> AgentResult:
     return AgentResult.model_validate(
         await client.get_agent(
-            workspace_id=workspace_id, agent_id=agent_id, period=period
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            period=period,
+            version=version,
         )
     )
 

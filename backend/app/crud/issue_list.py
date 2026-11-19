@@ -24,23 +24,34 @@ def period_start(period: str) -> datetime:
     return datetime.now(UTC) - timedelta(days=PERIODS.get(period, 30))
 
 
-def _in_period(since: datetime) -> list[ColumnElement[bool]]:
-    return [
+def _in_period(
+    since: datetime, version: str | None = None
+) -> list[ColumnElement[bool]]:
+    """Calls in the period, on agent version ``version`` when given."""
+    conditions: list[ColumnElement[bool]] = [
         col(Call.deleted_at).is_(None),
         col(Call.started_at) >= since.replace(tzinfo=None),
     ]
+    if version is not None:
+        conditions.append(col(Call.agent_version) == version)
+    return conditions
 
 
 def calls_affected_by_issue(
-    *, session: Session, issue_ids: list[uuid.UUID], since: datetime
+    *,
+    session: Session,
+    issue_ids: list[uuid.UUID],
+    since: datetime,
+    version: str | None = None,
 ) -> dict[uuid.UUID, int]:
-    """Distinct calls in the period each issue was found on."""
+    """Distinct calls in the period (on ``version`` when given) each issue was found
+    on."""
     if not issue_ids:
         return {}
     rows = session.exec(
         select(Finding.issue_id, func.count(func.distinct(col(Finding.call_id))))
         .join(Call, col(Call.id) == col(Finding.call_id))
-        .where(col(Finding.issue_id).in_(issue_ids), *_in_period(since))
+        .where(col(Finding.issue_id).in_(issue_ids), *_in_period(since, version))
         .group_by(col(Finding.issue_id))
     ).all()
     return dict(rows)
@@ -64,12 +75,16 @@ def calls_affected_by_category(
 
 
 def calls_by_agent(
-    *, session: Session, company_id: uuid.UUID, since: datetime
+    *,
+    session: Session,
+    company_id: uuid.UUID,
+    since: datetime,
+    version: str | None = None,
 ) -> dict[uuid.UUID, int]:
-    """Each agent's calls in the period."""
+    """Each agent's calls in the period, on ``version`` when given."""
     rows = session.exec(
         select(Call.agent_id, func.count())
-        .where(Call.company_id == company_id, *_in_period(since))
+        .where(Call.company_id == company_id, *_in_period(since, version))
         .group_by(col(Call.agent_id))
     ).all()
     return dict(rows)
@@ -81,8 +96,10 @@ def calls_with_live_issues(
     company_id: uuid.UUID,
     since: datetime,
     agent_id: uuid.UUID | None,
+    version: str | None = None,
 ) -> int:
-    """Distinct calls in the period with a finding from an open or reopened issue."""
+    """Distinct calls in the period (on ``version`` when given) with a finding from an
+    open or reopened issue."""
     query = (
         select(func.count(func.distinct(col(Finding.call_id))))
         .join(Issue, col(Issue.id) == col(Finding.issue_id))
@@ -90,7 +107,7 @@ def calls_with_live_issues(
         .where(
             Issue.company_id == company_id,
             col(Issue.state).in_(LIVE_STATES),
-            *_in_period(since),
+            *_in_period(since, version),
         )
     )
     if agent_id is not None:

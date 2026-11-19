@@ -93,19 +93,25 @@ def score(
     company_id: uuid.UUID,
     period: str = "30d",
     agent_id: uuid.UUID | None = None,
+    version: str | None = None,
     now: datetime | None = None,
     onboarded: bool | None = None,
     with_moves: bool = True,
 ) -> ScorePublic:
-    """The workspace's score, or one agent's, for the period, with its change against
-    the previous period of the same length and the issues that cost it most."""
+    """The workspace's score, or one agent's (on one agent version when ``version`` is
+    given), for the period, with its change against the previous period of the same
+    length and the issues that cost it most."""
     days = PERIODS.get(period, 30)
     end = now or datetime.now(UTC)
     start = end - timedelta(days=days)
 
     def counts(window_start: datetime, window_end: datetime) -> ResultCounts:
         by_agent = result_counts_by_agent(
-            session=session, company_id=company_id, start=window_start, end=window_end
+            session=session,
+            company_id=company_id,
+            start=window_start,
+            end=window_end,
+            version=version,
         )
         if agent_id is not None:
             return by_agent.get(agent_id, ResultCounts())
@@ -142,6 +148,7 @@ def score(
             start=start,
             end=end,
             agent_id=agent_id,
+            version=version,
         ),
         current.checked,
     )

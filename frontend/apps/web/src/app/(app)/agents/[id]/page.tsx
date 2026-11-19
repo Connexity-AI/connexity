@@ -12,9 +12,11 @@ const PERIODS = ['7d', '30d', '90d'] as const;
 
 const Agent: FC<{ id: string; params: SearchParams }> = async ({ id, params }) => {
   const period = PERIODS.find((p) => p === one(params.period)) ?? '30d';
+  // The version filter beside the period; every tab follows it.
+  const version = one(params.version);
   const response = await AgentsService.getAgentPage({
     path: { agent_id: id },
-    query: { period },
+    query: { period, version },
   });
   if (response.response?.status === 404 || response.response?.status === 422) notFound();
   if (!response.data) throw new Error('The agent could not be loaded.');
@@ -23,16 +25,26 @@ const Agent: FC<{ id: string; params: SearchParams }> = async ({ id, params }) =
   const compare = Number(one(params.compare)) || undefined;
   const specResponse = await SpecService.getAgentSpec({
     path: { agent_id: id },
-    query: tab === 'spec' && compare ? { compare } : {},
+    query: {
+      ...(tab === 'spec' && compare ? { compare } : {}),
+      ...(version ? { for_version: version } : {}),
+    },
   });
   // An unknown version to compare with falls back to the spec alone.
   const spec =
     specResponse.data ??
     (compare
-      ? (await SpecService.getAgentSpec({ path: { agent_id: id }, query: {} })).data
+      ? (
+          await SpecService.getAgentSpec({
+            path: { agent_id: id },
+            query: version ? { for_version: version } : {},
+          })
+        ).data
       : undefined);
   if (!spec) throw new Error('The spec could not be loaded.');
-  const tests = (await TestsService.getAgentTests({ path: { agent_id: id } })).data;
+  const tests = (
+    await TestsService.getAgentTests({ path: { agent_id: id }, query: version ? { version } : {} })
+  ).data;
   if (!tests) throw new Error('The tests could not be loaded.');
 
   return (

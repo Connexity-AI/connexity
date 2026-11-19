@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
-import { ArrowLeft, Calendar } from 'lucide-react';
+import { ArrowLeft, Calendar, Layers } from 'lucide-react';
 
 import { NumberTile } from '@workspace/ui/components/number-tile';
 import { cn } from '@workspace/ui/lib/utils';
@@ -72,12 +72,28 @@ const LatencyChart: FC<{ agent: AgentPagePublic }> = ({ agent }) => {
   const top = Math.max(1, Math.ceil(agent.latency_peak ?? 0));
   const index = Object.fromEntries(days.map((d, i) => [d.day, i]));
   const every = count > 31 ? 14 : 7;
+  // With a version picked, the days it ran are shaded.
+  const picked = new Set(agent.version_days ?? []);
   return (
     <div className="flex flex-col gap-2 pt-5">
       <div className="relative h-40">
         <Axis value={`${top} s`} className="top-0" />
         <Axis value={`${(top / 2).toFixed(top % 2 ? 1 : 0)} s`} className="top-1/2" />
         <Axis value="0" className="bottom-0" />
+        {agent.version && (agent.version_days ?? []).length > 0 && (
+          <div
+            className="pointer-events-none absolute top-0 right-0 bottom-0 left-10 grid gap-[2px]"
+            style={{ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }}
+            aria-hidden
+          >
+            {days.map((d) => (
+              <span
+                key={d.day}
+                className={cn(picked.has(d.day) && 'rounded bg-wash')}
+              />
+            ))}
+          </div>
+        )}
         <div
           className="absolute top-0 right-0 bottom-0 left-10 grid items-end gap-[2px]"
           style={{ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }}
@@ -132,8 +148,16 @@ const LatencyChart: FC<{ agent: AgentPagePublic }> = ({ agent }) => {
 
 const Overview: FC<{ agent: AgentPagePublic }> = ({ agent }) => (
   <div className="flex flex-col gap-6">
+    {agent.version && agent.calls === 0 && (
+      <p className="m-0 rounded-xl border border-hairline bg-surface-1 px-6 py-4 text-ink-secondary">
+        No calls on version {agent.version} in the {PERIOD_LABELS[agent.period]?.toLowerCase()}.
+      </p>
+    )}
     <div className="grid grid-cols-2 gap-3">
-      <NumberTile label="Calls" value={agent.calls.toLocaleString()} />
+      <NumberTile
+        label={agent.version ? `Calls on version ${agent.version}` : 'Calls'}
+        value={agent.calls.toLocaleString()}
+      />
       <NumberTile
         label="Latency"
         value={agent.latency_seconds == null ? '—' : agent.latency_seconds.toFixed(1)}
@@ -175,8 +199,9 @@ const Overview: FC<{ agent: AgentPagePublic }> = ({ agent }) => (
         <div className="flex items-baseline gap-3">
           <h2 className="m-0 text-body font-medium">Latency</h2>
           <span className="text-label text-ink-muted">
-            {PERIOD_LABELS[agent.period]} · {agent.latency_calls.toLocaleString()}{' '}
-            {agent.latency_calls === 1 ? 'call' : 'calls'}
+            {PERIOD_LABELS[agent.period]}
+            {agent.version ? ` · version ${agent.version}` : ''} ·{' '}
+            {agent.latency_calls.toLocaleString()} {agent.latency_calls === 1 ? 'call' : 'calls'}
           </span>
         </div>
         {agent.version_marks.length > 0 && (
@@ -253,15 +278,37 @@ export const AgentView: FC<Props> = ({ agent, tab, spec, tests, children }) => {
           )}
           {caption(agent) && <span className="text-label text-ink-muted">{caption(agent)}</span>}
         </div>
-        <Picker
-          label="Last 30 days"
-          value={agent.period}
-          options={Object.entries(PERIOD_LABELS).map(([value, label]) => ({ value, label }))}
-          onPick={(value) => go({ period: value === '30d' ? undefined : value })}
-          icon={<Calendar className="size-4 text-ink-secondary" aria-hidden />}
-          align="end"
-          clearable={false}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          {((agent.versions ?? []).length > 0 || agent.version) && (
+            <Picker
+              label="All versions"
+              clearLabel="All versions"
+              value={agent.version ?? undefined}
+              options={[
+                ...(agent.versions ?? []).map((v) => ({
+                  value: v.version,
+                  label: `Version ${v.version}${v.live ? ' · live' : ''}`,
+                })),
+                // A version from a link that has no calls still shows as picked.
+                ...(agent.version && !(agent.versions ?? []).some((v) => v.version === agent.version)
+                  ? [{ value: agent.version, label: `Version ${agent.version}` }]
+                  : []),
+              ]}
+              onPick={(value) => go({ version: value })}
+              icon={<Layers className="size-4 text-ink-secondary" aria-hidden />}
+              align="end"
+            />
+          )}
+          <Picker
+            label="Last 30 days"
+            value={agent.period}
+            options={Object.entries(PERIOD_LABELS).map(([value, label]) => ({ value, label }))}
+            onPick={(value) => go({ period: value === '30d' ? undefined : value })}
+            icon={<Calendar className="size-4 text-ink-secondary" aria-hidden />}
+            align="end"
+            clearable={false}
+          />
+        </div>
       </div>
 
       <div className="flex gap-6 border-b border-hairline" role="tablist">
@@ -297,7 +344,9 @@ export const AgentView: FC<Props> = ({ agent, tab, spec, tests, children }) => {
 
       {tab === 'overview' && <Overview agent={agent} />}
       {tab === 'calls' && children}
-      {tab === 'tests' && tests && <TestsTab agentId={agent.id} tests={tests} />}
+      {tab === 'tests' && tests && (
+        <TestsTab agentId={agent.id} version={agent.version} tests={tests} />
+      )}
       {tab === 'spec' && spec && (
         <SpecTab
           spec={spec}

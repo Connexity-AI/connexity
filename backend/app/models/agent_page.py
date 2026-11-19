@@ -29,6 +29,12 @@ class AgentVersionMarkPublic(BaseModel):
     label: str = Field(description="'Version 9'")
 
 
+class AgentVersionOptionPublic(BaseModel):
+    version: str
+    calls: int = Field(description="Its calls, all time")
+    live: bool = Field(default=False, description="The version of the latest call")
+
+
 class AgentPagePublic(BaseModel):
     id: uuid.UUID
     name: str
@@ -59,4 +65,16 @@ class AgentPagePublic(BaseModel):
     )
     version_marks: list[AgentVersionMarkPublic] = Field(
         description="Each new agent version that started in the period"
+    )
+    versions: list[AgentVersionOptionPublic] = Field(
+        default_factory=list,
+        description="Every agent version that has a call, latest call first",
+    )
+    version: str | None = Field(
+        default=None,
+        description="The version the numbers are filtered to; none for all versions",
+    )
+    version_days: list[date] = Field(
+        default_factory=list,
+        description="With a version: the period's days that had calls on it",
     )
