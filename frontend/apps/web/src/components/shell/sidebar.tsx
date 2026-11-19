@@ -7,6 +7,7 @@ import { NAV_ITEMS } from '@/components/shell/nav-items';
 import NavLink from '@/components/shell/nav-link';
 import ProfileMenu from '@/components/shell/profile-menu';
 import ReadinessRing from '@/components/shell/readiness-ring';
+import { WorkNavLink } from '@/components/shell/work-nav-link';
 
 import type { UserPublic, WorkspacePublic } from '@/client/types.gen';
 import type { FC } from 'react';
@@ -30,14 +31,22 @@ export const Sidebar: FC<Props> = ({ user, workspaces, waitingWork, readiness })
     {NAV_ITEMS.length > 0 && (
       <nav aria-label="Pages" className="flex flex-col gap-0.5">
         {NAV_ITEMS.map(({ title, url, icon: Icon, counted }) => (
-          <NavLink
-            key={url}
-            title={title}
-            url={url}
-            icon={<Icon className="size-4 shrink-0" aria-hidden />}
-            count={counted === 'work' ? waitingWork || undefined : undefined}
-            warm={counted === 'work'}
-          />
+          counted === 'work' ? (
+            <WorkNavLink
+              key={url}
+              title={title}
+              url={url}
+              icon={<Icon className="size-4 shrink-0" aria-hidden />}
+              waiting={waitingWork}
+            />
+          ) : (
+            <NavLink
+              key={url}
+              title={title}
+              url={url}
+              icon={<Icon className="size-4 shrink-0" aria-hidden />}
+            />
+          )
         ))}
       </nav>
     )}
