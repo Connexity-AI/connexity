@@ -7,6 +7,8 @@ import { UrlGenerator } from '@/common/url-generator/url-generator';
 import {
   ChevronDown,
   ChevronRight,
+  CircleCheck,
+  CircleX,
   FileText,
   GitCompare,
   OctagonAlert,
@@ -65,6 +67,34 @@ const Badge: FC<{
   </span>
 );
 
+/** The rule's result in the live version's latest full run. */
+const Mark: FC<{ result: SpecRulePublic['result'] }> = ({ result }) => {
+  if (!result) return null;
+  return (
+    <span className="flex w-[148px] items-center gap-1.5 text-label whitespace-nowrap">
+      {result === 'passed' && (
+        <span className="inline-flex items-center gap-1.5 text-passed">
+          <CircleCheck className="size-3.5" aria-hidden />
+          Passed
+        </span>
+      )}
+      {result === 'failed' && (
+        <span className="inline-flex items-center gap-1.5 font-medium text-critical">
+          <CircleX className="size-3.5" aria-hidden />
+          Failed
+        </span>
+      )}
+      {result === 'flaky' && (
+        <span className="inline-flex h-5 items-center rounded-md bg-warning-bg px-1.5 font-medium text-warning">
+          Flaky
+        </span>
+      )}
+      {result === 'did_not_come_up' && <span className="text-ink-muted">Didn’t come up</span>}
+      {result === 'no_scenario' && <span className="text-ink-muted">No scenario</span>}
+    </span>
+  );
+};
+
 const RuleRow: FC<{ rule: SpecRulePublic; questionsHref: Route }> = ({ rule, questionsHref }) => {
   const dropped = rule.change === 'dropped';
   const touches = rule.touches ? TOUCHES[rule.touches] : undefined;
@@ -112,6 +142,7 @@ const RuleRow: FC<{ rule: SpecRulePublic; questionsHref: Route }> = ({ rule, que
             In conflict
           </Badge>
         )}
+        <Mark result={rule.result} />
       </div>
     </div>
   );
@@ -132,6 +163,7 @@ const Group: FC<{ group: SpecGroupPublic; changesOnly: boolean; questionsHref: R
   const conflicts = rules.filter((r) => r.in_conflict).length;
   const added = rules.filter((r) => r.change === 'added').length;
   const dropped = rules.filter((r) => r.change === 'dropped').length;
+  const failed = rules.filter((r) => r.result === 'failed' || r.result === 'flaky').length;
   const Chevron = open ? ChevronDown : ChevronRight;
   return (
     <div className="border-t border-hairline">
@@ -158,6 +190,12 @@ const Group: FC<{ group: SpecGroupPublic; changesOnly: boolean; questionsHref: R
         )}
         {added > 0 && <Badge tone="passed">{added} added</Badge>}
         {dropped > 0 && <Badge tone="plain">{dropped} dropped</Badge>}
+        {failed > 0 && (
+          <span className="inline-flex h-[22px] flex-none items-center gap-1 text-label font-medium text-critical">
+            <CircleX className="size-3.5" aria-hidden />
+            {failed} failed
+          </span>
+        )}
       </button>
       {open && (
         <div className="pb-2">
@@ -252,14 +290,23 @@ export const SpecTab: FC<Props> = ({ spec, liveSince, onCompare }) => {
 
       <section className="rounded-xl border border-hairline bg-surface-1">
         <div className="flex items-center justify-between gap-4 px-6 py-4">
-          <h2 className="m-0 text-body font-medium">
-            Version {version.version}
-            <span className="font-normal text-ink-muted">
-              {' '}
-              · agent version {version.agent_version}
-              {since}
-            </span>
-          </h2>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <h2 className="m-0 text-body font-medium">
+              Version {version.version}
+              <span className="font-normal text-ink-muted">
+                {' '}
+                · agent version {version.agent_version}
+                {since}
+              </span>
+            </h2>
+            {version.version === spec.latest_version && (
+              <span className="text-label text-ink-muted">
+                {spec.results_at
+                  ? `Results from the full run of ${dayLabel(spec.results_at)}`
+                  : `No full run on ${spec.results_version ? `version ${spec.results_version}` : 'the live version'} yet`}
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-4">
             {comparison && (
               <button

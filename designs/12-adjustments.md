@@ -548,3 +548,51 @@ the Text, Audio and Phone rows (text is the only level), "Run tests", and test c
 Placeholder agents and numbers as before. Placeholder rules: "Never quote a price above
 the price list", "Ask for the date of birth before booking", "Offer the earliest slot
 first".
+
+## 32. Agent Profile: the Tests tab reads one full run, and the Spec tab shows its results
+
+Replaces item 31's tiles, "Why it failed" and "All rules" (Dmytro, 2026-11-19). Screens:
+"Connexity Agent Profile" (`tab=tests`, `tab=spec`) and "Connexity Agent Tests states".
+
+**How a version is judged now:**
+
+- **Coverage is tests written:** the share of the spec's rules that at least one
+  scenario lists.
+- **A full run** runs every scenario. Runs of a set or a pick are on demand and never
+  change the verdict.
+- **The verdict comes from the live version's latest full run:**
+  - **Verified:** every rule checked (Passed or Failed) and nothing critical found;
+  - **Failed:** a critical rule failed or a critical code check found something;
+  - **Partially tested:** nothing critical, but some rule didn't come up or has no
+    scenario;
+  - **Not verified:** no full run of this version yet, with "Version 88 was verified 19
+    Nov" when an earlier one was.
+- Non-critical failures never fail a version; they show in the run's Failed count.
+
+**Tests tab:**
+
+- **Four tiles:** the verdict ("Version 88 · Verified" in its colour, "Full run · 19 Nov,
+  9:40" under it), Coverage ("86%", "114 of 132 rules have a scenario"), Checked ("41 of
+  43", "rules judged in the full run", "—" without one), Scenarios ("38", "3 sets").
+- **Runs:** one row per run of the live version, newest first, five shown and "Show all N
+  runs". Columns: When, Run ("Full · 7 × 3", "Set smoke · 7 × 3", "Pick · 2 × 3"),
+  Result, Passed, Failed, Didn't come up, Critical (rules, each counted once per run),
+  Version, Who ("Alex's Claude Code").
+  - A full run's Result is the verdict word in its colour; an on-demand run's is a muted
+    Passed or Failed with "on demand".
+  - "3 calls stopped" in muted text under the result when calls ended in an error.
+  - A run in progress: "Running · 12 of 21 calls" with a thin bar.
+  - "N runs on earlier versions" opens the earlier versions' runs, grouped by version.
+  - No drill-in from a run.
+- **No** "Why it failed", "All rules", Flaky or Warnings tiles: the Runs table shows it.
+- Phone width: compact rows, the counts on a second line.
+
+**Spec tab:**
+
+- Each rule shows its result from that full run: Passed, Failed, Flaky, Didn't come up or
+  No scenario. A category with failed rules shows "2 failed" in its header.
+- Under the title: "Results from the full run of 19 Nov", or "No full run on version 88
+  yet" and no marks.
+
+**Wording:** a code check's finding reads "Found by a code check"; "rule" means spec
+rules only.

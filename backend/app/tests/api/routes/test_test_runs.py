@@ -430,7 +430,7 @@ def test_a_platform_failure_is_an_error_with_no_verdicts(
     ).all()
     # The version's results say the calls stopped, why, and which run to open.
     results = _runs(client, user, agent).json()
-    assert results["data"]["results"]["verdict"] == "not_tested"
+    assert results["data"]["results"]["verdict"] == "not_verified"
     stopped = results["data"]["results"]["stopped"]
     assert stopped["calls"] == 1 and stopped["run_id"] == run_id
     assert stopped["reason"].startswith("The conversation stopped")
@@ -438,10 +438,10 @@ def test_a_platform_failure_is_an_error_with_no_verdicts(
     body = _runs(client, user, agent, run_id=run_id).json()
     assert body["data"]["run"]["counts"]["errors"] == 1
     assert any("ended in an error" in s for s in body["next_steps"])
-    # The run completed but judged no rule: the version is not tested, never verified.
+    # The run completed but judged no rule: the version is not verified.
     results = _runs(client, user, agent).json()
-    assert results["data"]["results"]["verdict"] == "not_tested"
-    assert "checked no rule" in results["next_steps"][0]
+    assert results["data"]["results"]["verdict"] == "not_verified"
+    assert "judged no rule" in results["next_steps"][0]
 
 
 @pytest.mark.parametrize(
@@ -718,3 +718,26 @@ def test_the_same_error_on_many_calls_counts_as_one() -> None:
     assert stopped is not None
     assert stopped.calls == 3
     assert stopped.reason.startswith("The judge's model call failed")
+
+
+def test_a_run_says_who_ran_it_and_whether_it_decides_the_verdict(
+    client: TestClient, db: Session
+) -> None:
+    user, agent, keys = _ready(db, client)
+    scenario = _scenarios(client, user, agent, _price(keys)).json()["data"][
+        "scenarios"
+    ][0]
+
+    full = _start(client, user, agent, all=True, repeats=1, session="Testing")
+    on_demand = _start(client, user, agent, scenario_ids=[scenario["id"]], repeats=1)
+
+    assert full.status_code == 200, full.text
+    assert any("full run" in s for s in full.json()["next_steps"])
+    assert any("on-demand run" in s for s in on_demand.json()["next_steps"])
+    run = db.get(Run, uuid.UUID(full.json()["data"]["run_id"]))
+    assert run is not None
+    assert (run.session_name, run.created_by) == ("Testing", user.id)
+    rows = {r["id"]: r for r in _runs(client, user, agent).json()["data"]["runs"]}
+    row = rows[str(run.id)]
+    assert (row["full"], row["session_name"]) == (True, "Testing")
+    assert row["ran_by"] == (user.full_name or user.email)

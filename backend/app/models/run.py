@@ -98,6 +98,16 @@ class RunBase(SQLModel):
         ondelete="SET NULL",
         description="The spec version whose rules the run judges",
     )
+    assistant_name: str | None = Field(
+        default=None,
+        max_length=255,
+        description="The assistant that started the run for the person",
+    )
+    session_name: str | None = Field(
+        default=None,
+        max_length=40,
+        description="The name the assistant gave its session, when it gave one",
+    )
     platform_version: str | None = Field(
         default=None,
         max_length=64,

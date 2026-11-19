@@ -1,6 +1,7 @@
-"""A tested version's results across its runs, its verdict, and a simulated call on the
-call screen, on invented agents with Retell and the model mocked (plan
-`plans/2026-11-17-test-results.md`)."""
+"""A version's verdict from its latest full run, the runs with their totals, and a
+simulated call on the call screen, on invented agents with Retell and the model mocked
+(plans `plans/2026-11-17-test-results.md`,
+`plans/2026-11-19-tests-tab-runs-and-verified.md`)."""
 
 import json
 import uuid
@@ -15,10 +16,9 @@ from sqlmodel import Session, select
 
 from app.models import Agent, User
 from app.models.enums import VersionVerdict
-from app.models.run import Run
 from app.models.test_case_result import TestCaseResult
-from app.models.test_run import CheckTotalPublic, RuleTotalPublic
-from app.services.test_run import WARNING_THRESHOLD_PCT, _verdict_of
+from app.models.test_run import RunTotalsPublic
+from app.services.test_run import _verdict as full_run_verdict
 from app.tests.api.routes.test_call_screen import _signed_in
 from app.tests.api.routes.test_issue_page import _call
 from app.tests.api.routes.test_mcp_issues import (  # noqa: F401
@@ -29,10 +29,12 @@ from app.tests.api.routes.test_mcp_issues import (  # noqa: F401
     _settings,  # the autouse fixture that sets an encryption key
 )
 from app.tests.api.routes.test_scenarios import (
+    BOOKING,
     PRICE,
     _keys,
     _price,
     _scenarios,
+    _set,
 )
 from app.tests.api.routes.test_spec_api import API, RULES, _catalogue, _write
 from app.tests.api.routes.test_test_runs import (
@@ -55,7 +57,8 @@ pytestmark = [pytest.mark.provider_versions, pytest.mark.usefixtures("caller")]
 def _ready(db: Session, client: TestClient, user: User) -> tuple[Agent, dict[str, str]]:
     agent = _agent(db, user, "Front desk")
     _catalogue(db, agent, "7")
-    _call(db, agent, _booking(1, FULL), days_ago=1, version=7)
+    # The agent is live on version 15, the version Retell answers below.
+    _call(db, agent, _booking(1, FULL), days_ago=1, version=15)
     data = _write(client, user, agent, [RULES[0], RULES[1] | {"critical": True}]).json()
     return agent, _keys(data["data"])
 
@@ -69,9 +72,14 @@ def _run(
     *,
     prompt: str = "Greet the caller.",
     findings: Any = None,
+    scope: dict[str, Any] | None = None,
+    judge: Any = None,
 ) -> str:
-    """Start and make a run of every scenario against version 15 with ``prompt``."""
-    run_id = _start(client, user, agent, all=True, repeats=1).json()["data"]["run_id"]
+    """Start and make a run (every scenario unless ``scope`` says otherwise) against
+    version 15 with ``prompt``."""
+    run_id = _start(client, user, agent, repeats=1, **(scope or {"all": True})).json()[
+        "data"
+    ]["run_id"]
     with respx.mock() as retell:
         retell.post(url__startswith=PLAYGROUND).mock(side_effect=_agent_turn)
         retell.get(url__startswith=f"{RETELL}get-agent/").mock(
@@ -96,7 +104,7 @@ def _run(
         )
         with patch(
             "app.services.rule_judge.call_llm",
-            new=AsyncMock(return_value=_verdict(key, outcome)),
+            new=judge or AsyncMock(return_value=_verdict(key, outcome)),
         ):
             if findings is None:
                 _execute(run_id)
@@ -108,45 +116,113 @@ def _run(
     return run_id
 
 
-def test_a_versions_results_add_up_its_runs_and_a_critical_failure_fails_it(
+def _both(outcomes: dict[str, str]) -> AsyncMock:
+    """A judge answering the price and booking rules with ``outcomes``."""
+    return AsyncMock(
+        return_value=_llm(
+            json.dumps(
+                {
+                    "rules": [
+                        {"key": k, "outcome": o, "reason": "x", "turns": [4]}
+                        for k, o in outcomes.items()
+                    ]
+                }
+            )
+        )
+    )
+
+
+def test_a_full_run_decides_the_verdict_and_a_set_never_does(
     client: TestClient, db: Session
 ) -> None:
     user, cookies = _signed_in(client, db)
     agent, keys = _ready(db, client, user)
-    _scenarios(client, user, agent, _price(keys))
+    both = [keys[PRICE], keys[BOOKING]]
+    scenario = _scenarios(client, user, agent, _price(keys, rules=both)).json()["data"][
+        "scenarios"
+    ][0]
+    _set(client, user, agent, "smoke", [scenario["id"]])
 
-    first = _run(client, user, agent, "passed", keys[PRICE])
-    second = _run(client, user, agent, "failed", keys[PRICE])
-
-    db.expire_all()
-    runs = [db.get(Run, uuid.UUID(i)) for i in (first, second)]
-    assert all(r is not None and r.platform_version == "15" for r in runs)
-    assert runs[0].version_fingerprint == runs[1].version_fingerprint  # type: ignore[union-attr]
-    assert runs[0].version_fingerprint  # type: ignore[union-attr]
-
+    # A set that fails a critical rule is on demand: no verdict yet.
+    on_demand = _run(
+        client,
+        user,
+        agent,
+        "",
+        "",
+        scope={"set": "smoke"},
+        judge=_both({keys[PRICE]: "failed", keys[BOOKING]: "passed"}),
+    )
     body = _runs(client, user, agent).json()
     results = body["data"]["results"]
     assert results["version"] == "15"
-    assert results["edited"] is False
+    assert results["verdict"] == "not_verified"
+    assert results["full_run"] is None
+    row = results["runs"][0]
+    assert (row["id"], row["full"], row["result"], row["verdict"]) == (
+        on_demand,
+        False,
+        "failed",
+        None,
+    )
+    assert row["totals"]["failed"] == 1 and row["totals"]["critical"] == 1
+    assert row["ran_by"]
+    assert "no completed full run" in body["next_steps"][0]
+
+    # A full run checking both rules with nothing critical verifies the version.
+    verified = _run(
+        client,
+        user,
+        agent,
+        "",
+        "",
+        judge=_both({keys[PRICE]: "passed", keys[BOOKING]: "passed"}),
+    )
+    body = _runs(client, user, agent).json()
+    results = body["data"]["results"]
+    assert results["verdict"] == "verified"
+    assert results["full_run"]["id"] == verified
+    assert results["full_run"]["totals"] == {
+        "rules": 2,
+        "passed": 2,
+        "failed": 0,
+        "did_not_come_up": 0,
+        "no_scenario": 0,
+        "critical": 0,
+        "stopped": 0,
+    }
+    assert [r["id"] for r in results["runs"]] == [verified, on_demand]
+    assert results["coverage"]["pct"] == 100
+    assert body["next_steps"][0].startswith("Version 15 is verified")
+
+    # A non-critical failure still verifies it; a critical one fails it.
+    _run(
+        client,
+        user,
+        agent,
+        "",
+        "",
+        judge=_both({keys[PRICE]: "passed", keys[BOOKING]: "failed"}),
+    )
+    assert _runs(client, user, agent).json()["data"]["results"]["verdict"] == "verified"
+    failed = _run(
+        client,
+        user,
+        agent,
+        "",
+        "",
+        judge=_both({keys[PRICE]: "failed", keys[BOOKING]: "passed"}),
+    )
+    body = _runs(client, user, agent).json()
+    results = body["data"]["results"]
     assert results["verdict"] == "failed"
     assert results["critical_failed"] == [keys[PRICE]]
-    assert results["rules"] == [
-        {
-            "key": keys[PRICE],
-            "text": PRICE,
-            "critical": True,
-            "passed": 1,
-            "failed": 1,
-            "did_not_come_up": 0,
-            "flaky": True,
-        }
-    ]
-    assert [r["id"] for r in results["runs"]] == [second, first]
-    assert body["next_steps"][0].startswith("Version 15 failed: critical rule")
+    assert results["full_run"]["id"] == failed
+    assert body["next_steps"][0].startswith("Version 15 failed in its full run")
     assert _runs(client, user, agent, version="15").json()["data"]["results"] == results
     assert _runs(client, user, agent, version="9").status_code == 404
 
-    detail = _runs(client, user, agent, run_id=second).json()
+    detail = _runs(client, user, agent, run_id=failed).json()
     call = detail["data"]["run"]["calls"][0]
     assert call["url"].endswith(f"/calls/{call['id']}")
     assert any("version 15" in s for s in detail["next_steps"])
@@ -174,7 +250,30 @@ def test_a_versions_results_add_up_its_runs_and_a_critical_failure_fails_it(
     assert line["verdicts"][0]["entry_indexes"] == [3]
 
 
-def test_an_edited_draft_starts_new_results(client: TestClient, db: Session) -> None:
+def test_a_rule_not_checked_in_the_full_run_leaves_it_partially_tested(
+    client: TestClient, db: Session
+) -> None:
+    user, _ = _signed_in(client, db)
+    agent, keys = _ready(db, client, user)
+    # The scenario lists the price rule only: the booking rule has no scenario.
+    _scenarios(client, user, agent, _price(keys))
+
+    _run(client, user, agent, "passed", keys[PRICE])
+
+    body = _runs(client, user, agent).json()
+    results = body["data"]["results"]
+    assert results["verdict"] == "partial"
+    assert [(u["key"], u["why"]) for u in results["unchecked"]] == [
+        (keys[BOOKING], "no_scenario")
+    ]
+    assert results["full_run"]["totals"]["no_scenario"] == 1
+    assert results["coverage"]["covered"] == 1 and results["coverage"]["pct"] == 50
+    assert body["next_steps"][0].startswith("Version 15 is partially tested")
+
+
+def test_an_edited_draft_shows_on_its_simulated_call(
+    client: TestClient, db: Session
+) -> None:
     user, cookies = _signed_in(client, db)
     agent, keys = _ready(db, client, user)
     _scenarios(client, user, agent, _price(keys))
@@ -182,17 +281,10 @@ def test_an_edited_draft_starts_new_results(client: TestClient, db: Session) -> 
     _run(client, user, agent, "failed", keys[PRICE], prompt="Quote any price.")
     fixed = _run(client, user, agent, "passed", keys[PRICE], prompt="Never quote.")
 
-    body = _runs(client, user, agent).json()
-    results = body["data"]["results"]
-    assert results["version"] == "15"
-    assert results["edited"] is True
-    assert results["verdict"] == "verified"
-    assert [r["id"] for r in results["runs"]] == [fixed]
-    assert results["rules"][0]["failed"] == 0
-    assert any("edited under the same version number" in s for s in body["next_steps"])
-    # Both runs are still listed.
-    assert len(body["data"]["runs"]) == 2
-    # The fixed run's simulated call says it tested an edited draft.
+    # The latest full run decides, whatever an earlier draft did.
+    results = _runs(client, user, agent).json()["data"]["results"]
+    assert results["full_run"]["id"] == fixed
+    assert results["critical_failed"] == []
     call = _runs(client, user, agent, run_id=fixed).json()["data"]["run"]["calls"][0]
     data = client.get(f"{API}/calls/{call['id']}/screen", cookies=cookies).json()
     assert data["simulated"]["edited"] is True
@@ -227,6 +319,7 @@ def test_a_critical_code_check_fails_the_version_and_its_call(
     assert results["verdict"] == "failed"
     assert results["critical_checks"] == ["tool_call_failed"]
     assert results["checks"][0]["critical"] is True
+    assert results["full_run"]["totals"]["critical"] == 1
 
     call = db.exec(
         select(TestCaseResult).where(TestCaseResult.run_id == uuid.UUID(run_id))
@@ -238,7 +331,34 @@ def test_a_critical_code_check_fails_the_version_and_its_call(
     assert data["entries"][2]["finding_ids"] == [data["findings"][0]["id"]]
 
 
-def test_a_version_without_a_completed_run_is_not_tested(
+def test_a_new_version_without_a_full_run_is_not_verified(
+    client: TestClient, db: Session
+) -> None:
+    user, _ = _signed_in(client, db)
+    agent, keys = _ready(db, client, user)
+    both = [keys[PRICE], keys[BOOKING]]
+    _scenarios(client, user, agent, _price(keys, rules=both))
+    _run(
+        client,
+        user,
+        agent,
+        "",
+        "",
+        judge=_both({keys[PRICE]: "passed", keys[BOOKING]: "passed"}),
+    )
+    # The agent goes live on version 16; nothing has run on it.
+    _call(db, agent, _booking(2, FULL), days_ago=0, version=16)
+
+    body = _runs(client, user, agent).json()
+    results = body["data"]["results"]
+    assert results["version"] == "16"
+    assert results["verdict"] == "not_verified"
+    assert results["runs"] == []
+    assert results["last_verified"]["version"] == "15"
+    assert "Version 15 was verified" in body["next_steps"][0]
+
+
+def test_a_version_whose_full_run_is_still_going_is_not_verified(
     client: TestClient, db: Session
 ) -> None:
     user, _ = _signed_in(client, db)
@@ -247,8 +367,9 @@ def test_a_version_without_a_completed_run_is_not_tested(
     _start(client, user, agent, all=True, repeats=1)
 
     body = _runs(client, user, agent).json()
-    assert body["data"]["results"]["verdict"] == "not_tested"
-    assert "no completed run" in body["next_steps"][0]
+    assert body["data"]["results"]["verdict"] == "not_verified"
+    assert body["data"]["results"]["runs"][0]["status"] == "pending"
+    assert "no completed full run" in body["next_steps"][0]
 
 
 def test_another_workspaces_simulated_call_is_not_found(
@@ -304,63 +425,22 @@ def test_a_stopped_conversation_is_not_judged_on_screen(
     assert data["simulated"]["edited"] is False
 
 
-def _total(
-    key: str, *, critical: bool = False, passed: int = 0, failed: int = 0
-) -> Any:
-    return RuleTotalPublic(
-        key=key,
-        critical=critical,
-        passed=passed,
-        failed=failed,
-        flaky=bool(passed and failed),
+def test_a_full_runs_verdict() -> None:
+    def totals(**counts: int) -> RunTotalsPublic:
+        return RunTotalsPublic(rules=3, **counts)
+
+    assert full_run_verdict(totals(passed=3)) is VersionVerdict.VERIFIED
+    # Non-critical failures never fail it (Dmytro, 2026-11-19).
+    assert full_run_verdict(totals(passed=1, failed=2)) is VersionVerdict.VERIFIED
+    assert (
+        full_run_verdict(totals(passed=2, failed=1, critical=1))
+        is VersionVerdict.FAILED
     )
-
-
-def test_the_verdict_counts_warnings_against_the_threshold() -> None:
-    assert WARNING_THRESHOLD_PCT == 20
-    five = [_total(f"r{n}", passed=1) for n in range(5)]
-
-    one_failed = _verdict_of([*five[:4], _total("r4", failed=1)], [], tested=True)
-    assert one_failed["verdict"] is VersionVerdict.VERIFIED
-    assert one_failed["warnings"] == 1
-    assert one_failed["over_threshold"] is False
-
-    two_failed = _verdict_of(
-        [*five[:3], _total("r3", failed=1), _total("r4", failed=2)], [], tested=True
+    assert (
+        full_run_verdict(totals(passed=2, did_not_come_up=1)) is VersionVerdict.PARTIAL
     )
-    assert two_failed["verdict"] is VersionVerdict.FAILED
-    assert two_failed["over_threshold"] is True
-    assert (two_failed["non_critical_failed"], two_failed["non_critical_judged"]) == (
-        2,
-        5,
+    assert full_run_verdict(totals(passed=2, no_scenario=1)) is VersionVerdict.PARTIAL
+    # Nothing judged: no verdict, whatever the code checks found.
+    assert (
+        full_run_verdict(totals(critical=1, stopped=3)) is VersionVerdict.NOT_VERIFIED
     )
-
-    # Didn't come up is not counted: a rule never judged is not in the share.
-    unjudged = _verdict_of([*five, _total("r9")], [], tested=True)
-    assert unjudged["non_critical_judged"] == 5
-
-    flaky_critical = _verdict_of(
-        [*five, _total("c", critical=True, passed=2, failed=1)], [], tested=True
-    )
-    assert flaky_critical["verdict"] is VersionVerdict.FAILED
-    assert flaky_critical["critical_failed"] == ["c"]
-
-    flagged = CheckTotalPublic(check_type="x", title="X", found=1, critical=False)
-    warned = _verdict_of(five, [flagged], tested=True)
-    assert warned["verdict"] is VersionVerdict.VERIFIED
-    assert warned["warnings"] == 1
-
-    assert _verdict_of([], [], tested=False)["verdict"] is VersionVerdict.NOT_TESTED
-    # A completed run that judged no rule (every simulated call failed first) checked
-    # nothing: never Verified (Dmytro, 2026-11-19).
-    nothing = _verdict_of([_total("r0"), _total("r1")], [], tested=True)
-    assert nothing["verdict"] is VersionVerdict.NOT_TESTED
-    # With no rule judged there is no verdict, whatever the code checks found (Dmytro,
-    # 2026-11-19: "Verdict only happens when all rules checked so not tested").
-    critical = CheckTotalPublic(check_type="y", title="Y", found=1, critical=True)
-    assert _verdict_of([], [critical], tested=True)["verdict"] is (
-        VersionVerdict.NOT_TESTED
-    )
-    # With a rule judged, a critical code check fails it.
-    judged = _verdict_of([_total("r0", passed=1)], [critical], tested=True)
-    assert judged["verdict"] is VersionVerdict.FAILED

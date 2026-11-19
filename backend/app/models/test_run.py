@@ -153,6 +153,44 @@ class TestRunPublic(BaseModel):
     completed_at: datetime | None = None
     counts: TestRunCountsPublic
     cost_usd: float | None = None
+    full: bool = PydanticField(
+        default=False,
+        description="A run of every scenario: the only kind that decides the verdict",
+    )
+    verdict: VersionVerdict | None = PydanticField(
+        default=None, description="A completed full run's verdict"
+    )
+    result: Literal["passed", "failed"] | None = PydanticField(
+        default=None,
+        description="A completed on-demand run's result; it never changes the verdict",
+    )
+    totals: "RunTotalsPublic | None" = PydanticField(
+        default=None, description="Rules by outcome, once a run has completed"
+    )
+    ran_by: str | None = PydanticField(default=None, description="The person")
+    assistant_name: str | None = None
+    session_name: str | None = None
+
+
+class RunTotalsPublic(BaseModel):
+    """A run's rules, each counted once: Failed when any repeat failed it, Didn't come up
+    when no repeat reached it (Dmytro, 2026-11-19)."""
+
+    rules: int = PydanticField(description="Rules in the run's spec")
+    passed: int = 0
+    failed: int = 0
+    did_not_come_up: int = 0
+    no_scenario: int = PydanticField(
+        default=0, description="Rules of the spec that none of the run's scenarios list"
+    )
+    critical: int = PydanticField(
+        default=0,
+        description="Critical rules that failed, and critical code checks that found "
+        "something",
+    )
+    stopped: int = PydanticField(
+        default=0, description="Simulated calls that ended in an error"
+    )
 
 
 class TestRunDetailPublic(TestRunPublic):
@@ -167,53 +205,50 @@ class TestRunDetailPublic(TestRunPublic):
     calls: list[SimulatedCallPublic] = PydanticField(default_factory=list)
 
 
-class VersionResultsPublic(BaseModel):
-    """What every completed run of one tested version says, together.
+class VerifiedVersionPublic(BaseModel):
+    version: str
+    at: datetime = PydanticField(description="When its full run completed")
 
-    A version is its number and the content it had: an unpublished version edited
-    under the same number is a new one (``edited``).
-    """
+
+class VersionResultsPublic(BaseModel):
+    """One version's verdict, read from its latest completed full run (Dmytro,
+    2026-11-19): runs of a set or a pick never change it."""
 
     version: str | None = PydanticField(
         default=None, description="The version number on the platform"
     )
-    edited: bool = PydanticField(
-        default=False,
-        description="An earlier run tested different content under the same number",
-    )
-    first_run_at: datetime
-    last_run_at: datetime
     verdict: VersionVerdict
+    full_run: TestRunPublic | None = PydanticField(
+        default=None, description="The full run that decided the verdict"
+    )
+    last_verified: VerifiedVersionPublic | None = PydanticField(
+        default=None, description="The newest other version a full run verified"
+    )
     critical_failed: list[str] = PydanticField(
         default_factory=list, description="Critical rules that failed, flaky included"
     )
     critical_checks: list[str] = PydanticField(
         default_factory=list, description="Critical code checks that found something"
     )
-    warnings: int = PydanticField(
-        default=0,
-        description="Non-critical rules that failed, and code checks that only flagged",
-    )
-    non_critical_judged: int = 0
-    non_critical_failed: int = 0
-    threshold_pct: int = PydanticField(
-        description="The version fails when more of the non-critical rules judged "
-        "than this share failed"
-    )
-    over_threshold: bool = False
     rules: list[RuleTotalPublic] = PydanticField(
-        default_factory=list, description="Failed rules first, critical first"
+        default_factory=list,
+        description="The full run's rules, failed first, critical first",
     )
     checks: list[CheckTotalPublic] = PydanticField(default_factory=list)
+    unchecked: list["UncheckedRulePublic"] = PydanticField(
+        default_factory=list,
+        description="Rules of the full run's spec it did not check, critical first",
+    )
     runs: list[TestRunPublic] = PydanticField(
-        default_factory=list, description="The runs that count, newest first"
+        default_factory=list, description="Every run of this version, newest first"
     )
     coverage: "CoveragePublic | None" = PydanticField(
-        default=None, description="The latest spec's rules these runs checked"
+        default=None,
+        description="Tests written: the latest spec's rules a scenario lists",
     )
     stopped: "StoppedCallsPublic | None" = PydanticField(
         default=None,
-        description="Simulated calls that ended in an error and gave no verdicts",
+        description="The full run's simulated calls that ended in an error",
     )
 
 
@@ -234,61 +269,14 @@ class UncheckedRulePublic(BaseModel):
 
 
 class CoveragePublic(BaseModel):
-    """A rule is checked when a run judged it Passed or Failed at least once."""
+    """Tests written: a rule is covered when at least one active scenario lists it."""
 
     rules: int = PydanticField(description="Rules in the agent's latest spec")
-    checked: int
-    pct: int = PydanticField(description="Checked rules as a whole percentage")
-    unchecked: list[UncheckedRulePublic] = PydanticField(
-        default_factory=list, description="Critical first"
+    covered: int
+    pct: int = PydanticField(description="Covered rules as a whole percentage")
+    uncovered: list[UncheckedRulePublic] = PydanticField(
+        default_factory=list, description="Rules no scenario lists, critical first"
     )
-
-
-class JudgedCallPublic(BaseModel):
-    id: uuid.UUID
-    scenario_name: str
-    repeat: int
-    outcome: RuleOutcome | None = PydanticField(
-        default=None, description="The rule's verdict here; none for a code check"
-    )
-
-
-class FailingRulePublic(BaseModel):
-    key: str
-    text: str | None = None
-    category: str
-    critical: bool = False
-    failed: int
-    judged: int = PydanticField(description="Simulated calls that judged it")
-    flaky: bool = False
-    calls: list[JudgedCallPublic] = PydanticField(
-        default_factory=list, description="Failed first, at most 20"
-    )
-
-
-class FailingCheckPublic(BaseModel):
-    check_type: str
-    title: str
-    critical: bool = False
-    found: int
-    of: int = PydanticField(description="Simulated calls the version's runs made")
-    calls: list[JudgedCallPublic] = PydanticField(
-        default_factory=list, description="At most 20"
-    )
-
-
-class RuleRowPublic(BaseModel):
-    key: str
-    text: str
-    critical: bool = False
-    passed: int = 0
-    failed: int = 0
-    did_not_come_up: int = 0
-
-
-class RuleGroupPublic(BaseModel):
-    category: str
-    rules: list[RuleRowPublic]
 
 
 class ScenarioRowPublic(BaseModel):
@@ -304,23 +292,28 @@ class SetChipPublic(BaseModel):
     scenarios: int
 
 
+class VersionRunsPublic(BaseModel):
+    version: str | None = None
+    runs: list[TestRunPublic]
+
+
 class TestsTabPublic(BaseModel):
-    """The agent's Tests tab: the newest tested version and what checked it."""
+    """The agent's Tests tab: the live version's verdict and runs, and the scenarios."""
 
     has_spec: bool
-    results: VersionResultsPublic | None = None
+    results: VersionResultsPublic | None = PydanticField(
+        default=None, description="The live version, or the newest tested one"
+    )
     coverage: CoveragePublic | None = None
-    failing: list[FailingRulePublic] = PydanticField(
-        default_factory=list, description="Critical first, then warnings"
+    earlier: list[VersionRunsPublic] = PydanticField(
+        default_factory=list, description="Runs of other versions, newest version first"
     )
-    failing_checks: list[FailingCheckPublic] = PydanticField(
-        default_factory=list, description="Critical first"
-    )
-    all_rules: list[RuleGroupPublic] = PydanticField(
-        default_factory=list, description="The latest spec's rules by category"
+    running: bool = PydanticField(
+        default=False, description="A run of this agent is in progress"
     )
     sets: list[SetChipPublic] = PydanticField(default_factory=list)
     scenarios: list[ScenarioRowPublic] = PydanticField(default_factory=list)
 
 
+TestRunPublic.model_rebuild()
 VersionResultsPublic.model_rebuild()

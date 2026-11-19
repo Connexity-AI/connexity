@@ -32,7 +32,7 @@ import type { CSSProperties, FC } from 'react';
 const CLAMP = 180;
 
 const FOUND_BY: Record<CallScreenFinding['found_by'], string> = {
-  code_based: 'Found by code',
+  code_based: 'Found by a code check',
   classifier: 'Found by a classifier',
   judge: 'Found by an LLM judge',
 };

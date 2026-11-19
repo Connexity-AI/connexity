@@ -297,7 +297,7 @@ export const AgentView: FC<Props> = ({ agent, tab, spec, tests, children }) => {
 
       {tab === 'overview' && <Overview agent={agent} />}
       {tab === 'calls' && children}
-      {tab === 'tests' && tests && <TestsTab tests={tests} />}
+      {tab === 'tests' && tests && <TestsTab agentId={agent.id} tests={tests} />}
       {tab === 'spec' && spec && (
         <SpecTab
           spec={spec}

@@ -326,6 +326,11 @@ class McpRunScenarios(BaseModel):
         ge=0,
         description="The agent's version on its platform; none for the latest",
     )
+    session: Annotated[str, StringConstraints(max_length=40)] | None = Field(
+        default=None,
+        description="This session's name, the same on every call in it; shown with the "
+        "run",
+    )
 
 
 class McpStartedRun(BaseModel):
@@ -340,7 +345,8 @@ class McpTestRuns(BaseModel):
     run: TestRunDetailPublic | None = None
     results: VersionResultsPublic | None = Field(
         default=None,
-        description="Without a run id: the tested version's results across its runs",
+        description="Without a run id: the version's verdict from its latest full run, "
+        "and its runs",
     )
     runs: list[TestRunPublic] = Field(default_factory=list)
 

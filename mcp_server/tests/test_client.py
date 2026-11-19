@@ -1213,13 +1213,23 @@ async def test_run_scenarios_sends_one_scope_and_the_repeats() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.method == "POST"
         assert request.url.path.endswith("/agents/a1/test-runs")
-        assert json.loads(request.content) == {"all": False, "set": "smoke", "repeats": 2}
+        assert json.loads(request.content) == {
+            "all": False,
+            "session": "Testing",
+            "set": "smoke",
+            "repeats": 2,
+        }
         return httpx.Response(200, json={"data": {"run_id": "r1", "calls": 6}, **ANSWER})
 
     result = await _call(
         handler,
         lambda client: run_scenarios(
-            client, workspace_id=WORKSPACE_ID, agent_id="a1", set_name="smoke", repeats=2
+            client,
+            workspace_id=WORKSPACE_ID,
+            agent_id="a1",
+            set_name="smoke",
+            repeats=2,
+            session="Testing",
         ),
     )
 
@@ -1291,17 +1301,28 @@ async def test_get_test_runs_reads_a_versions_results() -> None:
                 "data": {
                     "results": {
                         "version": "15",
-                        "edited": True,
-                        "first_run_at": "2026-11-17T10:00:00Z",
-                        "last_run_at": "2026-11-17T11:00:00Z",
-                        "verdict": "failed",
-                        "critical_failed": ["k1"],
-                        "threshold_pct": 20,
+                        "verdict": "partial",
+                        "full_run": {
+                            "id": "r1",
+                            "status": "completed",
+                            "scope": "all",
+                            "repeats": 3,
+                            "created_at": "2026-11-19T10:00:00Z",
+                            "full": True,
+                            "verdict": "partial",
+                            "totals": {
+                                "rules": 2,
+                                "passed": 1,
+                                "did_not_come_up": 1,
+                            },
+                            "assistant_name": "Claude Code",
+                            "session_name": "Testing",
+                        },
                         "coverage": {
                             "rules": 2,
-                            "checked": 1,
+                            "covered": 1,
                             "pct": 50,
-                            "unchecked": [
+                            "uncovered": [
                                 {
                                     "key": "k2",
                                     "text": "x",
@@ -1334,11 +1355,14 @@ async def test_get_test_runs_reads_a_versions_results() -> None:
     )
 
     assert result.data.results is not None
-    assert result.data.results.verdict == "failed"
-    assert result.data.results.edited is True
+    assert result.data.results.verdict == "partial"
+    full = result.data.results.full_run
+    assert full is not None and full.full and full.totals is not None
+    assert (full.totals.passed, full.totals.did_not_come_up) == (1, 1)
+    assert full.session_name == "Testing"
     assert result.data.results.checks[0].critical is True
     assert result.data.results.coverage is not None
-    assert result.data.results.coverage.unchecked[0].why == "no_scenario"
+    assert result.data.results.coverage.uncovered[0].why == "no_scenario"
 
 
 @pytest.mark.asyncio

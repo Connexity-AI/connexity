@@ -2516,7 +2516,7 @@ export type ConversationTurnOutput = {
 /**
  * CoveragePublic
  *
- * A rule is checked when a run judged it Passed or Failed at least once.
+ * Tests written: a rule is covered when at least one active scenario lists it.
  */
 export type CoveragePublic = {
   /**
@@ -2526,21 +2526,21 @@ export type CoveragePublic = {
    */
   rules: number;
   /**
-   * Checked
+   * Covered
    */
-  checked: number;
+  covered: number;
   /**
    * Pct
    *
-   * Checked rules as a whole percentage
+   * Covered rules as a whole percentage
    */
   pct: number;
   /**
-   * Unchecked
+   * Uncovered
    *
-   * Critical first
+   * Rules no scenario lists, critical first
    */
-  unchecked?: Array<UncheckedRulePublic>;
+  uncovered?: Array<UncheckedRulePublic>;
 };
 
 /**
@@ -3535,82 +3535,6 @@ export type ExpectedToolCall = {
   mock_response?: {
     [key: string]: unknown;
   } | null;
-};
-
-/**
- * FailingCheckPublic
- */
-export type FailingCheckPublic = {
-  /**
-   * Check Type
-   */
-  check_type: string;
-  /**
-   * Title
-   */
-  title: string;
-  /**
-   * Critical
-   */
-  critical?: boolean;
-  /**
-   * Found
-   */
-  found: number;
-  /**
-   * Of
-   *
-   * Simulated calls the version's runs made
-   */
-  of: number;
-  /**
-   * Calls
-   *
-   * At most 20
-   */
-  calls?: Array<JudgedCallPublic>;
-};
-
-/**
- * FailingRulePublic
- */
-export type FailingRulePublic = {
-  /**
-   * Key
-   */
-  key: string;
-  /**
-   * Text
-   */
-  text?: string | null;
-  /**
-   * Category
-   */
-  category: string;
-  /**
-   * Critical
-   */
-  critical?: boolean;
-  /**
-   * Failed
-   */
-  failed: number;
-  /**
-   * Judged
-   *
-   * Simulated calls that judged it
-   */
-  judged: number;
-  /**
-   * Flaky
-   */
-  flaky?: boolean;
-  /**
-   * Calls
-   *
-   * Failed first, at most 20
-   */
-  calls?: Array<JudgedCallPublic>;
 };
 
 /**
@@ -4826,28 +4750,6 @@ export type JudgeVerdict = {
    * LiteLLM-estimated USD cost for the judge completion
    */
   judge_cost_usd?: number | null;
-};
-
-/**
- * JudgedCallPublic
- */
-export type JudgedCallPublic = {
-  /**
-   * Id
-   */
-  id: string;
-  /**
-   * Scenario Name
-   */
-  scenario_name: string;
-  /**
-   * Repeat
-   */
-  repeat: number;
-  /**
-   * The rule's verdict here; none for a code check
-   */
-  outcome?: RuleOutcome | null;
 };
 
 /**
@@ -6802,6 +6704,12 @@ export type McpRunScenarios = {
    * The agent's version on its platform; none for the latest
    */
   version?: number | null;
+  /**
+   * Session
+   *
+   * This session's name, the same on every call in it; shown with the run
+   */
+  session?: string | null;
 };
 
 /**
@@ -7114,7 +7022,7 @@ export type McpTaskRef = {
 export type McpTestRuns = {
   run?: TestRunDetailPublic | null;
   /**
-   * Without a run id: the tested version's results across its runs
+   * Without a run id: the version's verdict from its latest full run, and its runs
    */
   results?: VersionResultsPublic | null;
   /**
@@ -7983,20 +7891,6 @@ export type RetellRuntimeConfig = {
   version?: number | null;
 };
 
-/**
- * RuleGroupPublic
- */
-export type RuleGroupPublic = {
-  /**
-   * Category
-   */
-  category: string;
-  /**
-   * Rules
-   */
-  rules: Array<RuleRowPublic>;
-};
-
 export type RuleKey = string;
 
 /**
@@ -8016,36 +7910,6 @@ export const RuleOutcome = {
  * A spec rule's verdict in one simulated call.
  */
 export type RuleOutcome = (typeof RuleOutcome)[keyof typeof RuleOutcome];
-
-/**
- * RuleRowPublic
- */
-export type RuleRowPublic = {
-  /**
-   * Key
-   */
-  key: string;
-  /**
-   * Text
-   */
-  text: string;
-  /**
-   * Critical
-   */
-  critical?: boolean;
-  /**
-   * Passed
-   */
-  passed?: number;
-  /**
-   * Failed
-   */
-  failed?: number;
-  /**
-   * Did Not Come Up
-   */
-  did_not_come_up?: number;
-};
 
 /**
  * RuleTotalPublic
@@ -8540,6 +8404,51 @@ export const RunStatus = {
  * RunStatus
  */
 export type RunStatus = (typeof RunStatus)[keyof typeof RunStatus];
+
+/**
+ * RunTotalsPublic
+ *
+ * A run's rules, each counted once: Failed when any repeat failed it, Didn't come up
+ * when no repeat reached it (Dmytro, 2026-11-19).
+ */
+export type RunTotalsPublic = {
+  /**
+   * Rules
+   *
+   * Rules in the run's spec
+   */
+  rules: number;
+  /**
+   * Passed
+   */
+  passed?: number;
+  /**
+   * Failed
+   */
+  failed?: number;
+  /**
+   * Did Not Come Up
+   */
+  did_not_come_up?: number;
+  /**
+   * No Scenario
+   *
+   * Rules of the spec that none of the run's scenarios list
+   */
+  no_scenario?: number;
+  /**
+   * Critical
+   *
+   * Critical rules that failed, and critical code checks that found something
+   */
+  critical?: number;
+  /**
+   * Stopped
+   *
+   * Simulated calls that ended in an error
+   */
+  stopped?: number;
+};
 
 /**
  * RunUpdate
@@ -9393,6 +9302,18 @@ export type SpecPublic = {
    */
   versions?: Array<SpecVersionPublic>;
   /**
+   * Results Version
+   *
+   * The live version, whose full run gave `result`
+   */
+  results_version?: string | null;
+  /**
+   * Results At
+   *
+   * When that full run completed; none without one
+   */
+  results_at?: string | null;
+  /**
    * With compare: how the shown version differs
    */
   comparison?: SpecComparisonPublic | null;
@@ -9429,7 +9350,7 @@ export type SpecRulePublic = {
   /**
    * Scenarios
    *
-   * How many active scenarios list it (not coverage: that counts rules a run checked)
+   * How many active scenarios list it; coverage counts the rules with at least one
    */
   scenarios?: number;
   /**
@@ -9448,6 +9369,12 @@ export type SpecRulePublic = {
    * An open or parked clarification replaces this rule
    */
   in_conflict?: boolean;
+  /**
+   * Result
+   *
+   * Its result in the live version's latest full run; none without one
+   */
+  result?: 'passed' | 'failed' | 'flaky' | 'did_not_come_up' | 'no_scenario' | null;
   /**
    * Change
    *
@@ -9573,6 +9500,18 @@ export type SpecWrittenPublic = {
    * Every version of the agent's spec, newest first
    */
   versions?: Array<SpecVersionPublic>;
+  /**
+   * Results Version
+   *
+   * The live version, whose full run gave `result`
+   */
+  results_version?: string | null;
+  /**
+   * Results At
+   *
+   * When that full run completed; none without one
+   */
+  results_at?: string | null;
   /**
    * With compare: how the shown version differs
    */
@@ -10518,6 +10457,40 @@ export type TestRunDetailPublic = {
    */
   cost_usd?: number | null;
   /**
+   * Full
+   *
+   * A run of every scenario: the only kind that decides the verdict
+   */
+  full?: boolean;
+  /**
+   * A completed full run's verdict
+   */
+  verdict?: VersionVerdict | null;
+  /**
+   * Result
+   *
+   * A completed on-demand run's result; it never changes the verdict
+   */
+  result?: 'passed' | 'failed' | null;
+  /**
+   * Rules by outcome, once a run has completed
+   */
+  totals?: RunTotalsPublic | null;
+  /**
+   * Ran By
+   *
+   * The person
+   */
+  ran_by?: string | null;
+  /**
+   * Assistant Name
+   */
+  assistant_name?: string | null;
+  /**
+   * Session Name
+   */
+  session_name?: string | null;
+  /**
    * Rules
    *
    * Failed rules first, critical first
@@ -10586,38 +10559,69 @@ export type TestRunPublic = {
    * Cost Usd
    */
   cost_usd?: number | null;
+  /**
+   * Full
+   *
+   * A run of every scenario: the only kind that decides the verdict
+   */
+  full?: boolean;
+  /**
+   * A completed full run's verdict
+   */
+  verdict?: VersionVerdict | null;
+  /**
+   * Result
+   *
+   * A completed on-demand run's result; it never changes the verdict
+   */
+  result?: 'passed' | 'failed' | null;
+  /**
+   * Rules by outcome, once a run has completed
+   */
+  totals?: RunTotalsPublic | null;
+  /**
+   * Ran By
+   *
+   * The person
+   */
+  ran_by?: string | null;
+  /**
+   * Assistant Name
+   */
+  assistant_name?: string | null;
+  /**
+   * Session Name
+   */
+  session_name?: string | null;
 };
 
 /**
  * TestsTabPublic
  *
- * The agent's Tests tab: the newest tested version and what checked it.
+ * The agent's Tests tab: the live version's verdict and runs, and the scenarios.
  */
 export type TestsTabPublic = {
   /**
    * Has Spec
    */
   has_spec: boolean;
+  /**
+   * The live version, or the newest tested one
+   */
   results?: VersionResultsPublic | null;
   coverage?: CoveragePublic | null;
   /**
-   * Failing
+   * Earlier
    *
-   * Critical first, then warnings
+   * Runs of other versions, newest version first
    */
-  failing?: Array<FailingRulePublic>;
+  earlier?: Array<VersionRunsPublic>;
   /**
-   * Failing Checks
+   * Running
    *
-   * Critical first
+   * A run of this agent is in progress
    */
-  failing_checks?: Array<FailingCheckPublic>;
-  /**
-   * All Rules
-   *
-   * The latest spec's rules by category
-   */
-  all_rules?: Array<RuleGroupPublic>;
+  running?: boolean;
   /**
    * Sets
    */
@@ -11339,6 +11343,22 @@ export type VerdictPublic = {
 };
 
 /**
+ * VerifiedVersionPublic
+ */
+export type VerifiedVersionPublic = {
+  /**
+   * Version
+   */
+  version: string;
+  /**
+   * At
+   *
+   * When its full run completed
+   */
+  at: string;
+};
+
+/**
  * VersionResolveResult
  *
  * What resolving an agent's stored calls did.
@@ -11377,10 +11397,8 @@ export type VersionResolveResult = {
 /**
  * VersionResultsPublic
  *
- * What every completed run of one tested version says, together.
- *
- * A version is its number and the content it had: an unpublished version edited
- * under the same number is a new one (``edited``).
+ * One version's verdict, read from its latest completed full run (Dmytro,
+ * 2026-11-19): runs of a set or a pick never change it.
  */
 export type VersionResultsPublic = {
   /**
@@ -11389,21 +11407,15 @@ export type VersionResultsPublic = {
    * The version number on the platform
    */
   version?: string | null;
-  /**
-   * Edited
-   *
-   * An earlier run tested different content under the same number
-   */
-  edited?: boolean;
-  /**
-   * First Run At
-   */
-  first_run_at: string;
-  /**
-   * Last Run At
-   */
-  last_run_at: string;
   verdict: VersionVerdict;
+  /**
+   * The full run that decided the verdict
+   */
+  full_run?: TestRunPublic | null;
+  /**
+   * The newest other version a full run verified
+   */
+  last_verified?: VerifiedVersionPublic | null;
   /**
    * Critical Failed
    *
@@ -11417,33 +11429,9 @@ export type VersionResultsPublic = {
    */
   critical_checks?: Array<string>;
   /**
-   * Warnings
-   *
-   * Non-critical rules that failed, and code checks that only flagged
-   */
-  warnings?: number;
-  /**
-   * Non Critical Judged
-   */
-  non_critical_judged?: number;
-  /**
-   * Non Critical Failed
-   */
-  non_critical_failed?: number;
-  /**
-   * Threshold Pct
-   *
-   * The version fails when more of the non-critical rules judged than this share failed
-   */
-  threshold_pct: number;
-  /**
-   * Over Threshold
-   */
-  over_threshold?: boolean;
-  /**
    * Rules
    *
-   * Failed rules first, critical first
+   * The full run's rules, failed first, critical first
    */
   rules?: Array<RuleTotalPublic>;
   /**
@@ -11451,36 +11439,59 @@ export type VersionResultsPublic = {
    */
   checks?: Array<CheckTotalPublic>;
   /**
+   * Unchecked
+   *
+   * Rules of the full run's spec it did not check, critical first
+   */
+  unchecked?: Array<UncheckedRulePublic>;
+  /**
    * Runs
    *
-   * The runs that count, newest first
+   * Every run of this version, newest first
    */
   runs?: Array<TestRunPublic>;
   /**
-   * The latest spec's rules these runs checked
+   * Tests written: the latest spec's rules a scenario lists
    */
   coverage?: CoveragePublic | null;
   /**
-   * Simulated calls that ended in an error and gave no verdicts
+   * The full run's simulated calls that ended in an error
    */
   stopped?: StoppedCallsPublic | null;
 };
 
 /**
+ * VersionRunsPublic
+ */
+export type VersionRunsPublic = {
+  /**
+   * Version
+   */
+  version?: string | null;
+  /**
+   * Runs
+   */
+  runs: Array<TestRunPublic>;
+};
+
+/**
  * VersionVerdict
  *
- * What a version's runs of scenarios say about it.
+ * What a version's latest full run of scenarios says about it (Dmytro,
+ * 2026-11-19).
  */
 export const VersionVerdict = {
   FAILED: 'failed',
   VERIFIED: 'verified',
-  NOT_TESTED: 'not_tested',
+  PARTIAL: 'partial',
+  NOT_VERIFIED: 'not_verified',
 } as const;
 
 /**
  * VersionVerdict
  *
- * What a version's runs of scenarios say about it.
+ * What a version's latest full run of scenarios says about it (Dmytro,
+ * 2026-11-19).
  */
 export type VersionVerdict = (typeof VersionVerdict)[keyof typeof VersionVerdict];
 
