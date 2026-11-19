@@ -11,7 +11,11 @@ from sqlalchemy import text
 from sqlmodel import Session
 
 from app.core.db import engine
-from app.tests.api.routes.test_mcp_issues import _agent, _person
+from app.tests.api.routes.test_mcp_issues import (  # noqa: F401
+    _agent,
+    _person,
+    _settings,  # the autouse fixture that sets an encryption key
+)
 
 migration = importlib.import_module("app.alembic.versions.0039_runs_have_a_version")
 
