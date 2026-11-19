@@ -151,7 +151,11 @@ from app.services.feedback import (
     store_report,
 )
 from app.services.first_scan import SCAN_DAYS, scan_agents, scan_step
-from app.services.issue_list import IssueFilters, workspace_issues
+from app.services.issue_list import (
+    IssueFilters,
+    critical_issues_by_agent,
+    workspace_issues,
+)
 from app.services.issue_page import issue_page
 from app.services.onboarding import ANSWERS, SPECS, STEPS_BY_KEY, for_assistant
 from app.services.onboarding_finish import finish_onboarding, onboarding_complete
@@ -879,6 +883,9 @@ def list_agents(
     calls = calls_by_agent(
         session=session, company_id=workspace.id, since=period_start(period)
     )
+    critical = critical_issues_by_agent(
+        session=session, company_id=workspace.id, period=period
+    )
     onboarded = onboarding_complete(session=session, company_id=workspace.id)
     scores = scores_by_agent(
         session=session, company_id=workspace.id, period=period, onboarded=onboarded
@@ -889,6 +896,7 @@ def list_agents(
         row.score, row.score_change = scores.get(agent.id, (None, None))
         row.type = types.get(agent.id)
         row.calls = calls.get(agent.id, 0)
+        row.critical_issues = critical.get(agent.id, 0)
         if agent.id in latency:
             row.latency_p50 = latency[agent.id].p50
             row.latency_p95 = latency[agent.id].p95
@@ -1437,16 +1445,19 @@ def get_agent(
 ) -> McpAnswer[McpAgentPage]:
     agent = _mcp_agent_in(session, workspace, agent_id)
     page = McpAgentPage(
-        **agent_page(
-            session=session, agent=agent, period=period, version=version
-        ).model_dump(),
-        score=score(
-            session=session,
-            company_id=workspace.id,
-            period=period,
-            agent_id=agent.id,
-            version=version,
-        ),
+        **{
+            **agent_page(
+                session=session, agent=agent, period=period, version=version
+            ).model_dump(),
+            # The assistant also gets what moves the score.
+            "score": score(
+                session=session,
+                company_id=workspace.id,
+                period=period,
+                agent_id=agent.id,
+                version=version,
+            ),
+        }
     )
     scope = f" and version {version}" if version else ""
     next_steps = [
@@ -1482,6 +1493,9 @@ def get_agent(
             "live_version is the agent version of its most recent call, and live_since "
             "when the first call on it started.",
             "systems are the n8n workflows its tool calls ran in the period.",
+            "critical_issues counts its open or reopened critical issues that showed in "
+            "the period, as the Issues page's Critical tile does; `list_issues` with "
+            "agent_id and severity critical lists them.",
             "versions lists every agent version that has a call, the latest call's "
             "first; with `version`, calls, latency, systems and the score count only "
             "that version's calls in the period.",

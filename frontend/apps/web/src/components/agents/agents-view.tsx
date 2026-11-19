@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
-import { Calendar } from 'lucide-react';
+import { Calendar, OctagonAlert } from 'lucide-react';
 
 import { cn } from '@workspace/ui/lib/utils';
 
@@ -29,9 +29,8 @@ export const TYPES: Record<string, string> = {
   single_prompt: 'Single prompt',
   conversational_flow: 'Conversational flow',
 };
-// The design's columns without Score and Critical issues (rule 14).
-// Agent, Version, Latency p50/p95, Calls (design item 34).
-const COLUMNS = 'grid-cols-[minmax(0,1fr)_72px_160px_88px]';
+// Agent, Version, Score, Critical issues, Latency p50/p95, Calls (as in the design).
+const COLUMNS = 'grid-cols-[minmax(0,1fr)_72px_80px_128px_160px_88px]';
 
 /** "Retell · Conversational flow" */
 export const subline = (agent: AgentListItemPublic) =>
@@ -49,10 +48,10 @@ const sinceLabel = (iso: string | null | undefined) => {
 };
 
 /** "0.8s/1.7s": p50, then p95 muted; a dash without a reply in the period. */
-export const LatencyPair: FC<{ p50: number | null | undefined; p95: number | null | undefined }> = ({
-  p50,
-  p95,
-}) =>
+export const LatencyPair: FC<{
+  p50: number | null | undefined;
+  p95: number | null | undefined;
+}> = ({ p50, p95 }) =>
   p50 == null || p95 == null ? (
     <span className="text-ink-muted">—</span>
   ) : (
@@ -67,8 +66,9 @@ interface Props {
 }
 
 /**
- * Agents (designs/screens/Connexity Agents.dc.html). A row opens the agent's page;
- * Score and Critical issues wait for their features (rule 14).
+ * Agents (designs/screens/Connexity Agents.dc.html), lowest score first. A row opens the
+ * agent's page; its critical count is its own link to that agent's critical issues,
+ * laid over the row's link rather than inside it.
  */
 export const AgentsView: FC<Props> = ({ agents }) => {
   const router = useRouter();
@@ -107,21 +107,27 @@ export const AgentsView: FC<Props> = ({ agents }) => {
         >
           <span>Agent</span>
           <span>Version</span>
+          <span className="text-right">Score</span>
+          <span className="text-right">Critical issues</span>
           <span className="text-right">Latency p50/p95</span>
           <span className="text-right">Calls</span>
         </div>
         {agents.data.map((agent) => (
-          <Link
+          <div
             key={agent.id}
-            href={UrlGenerator.agent(agent.id)}
             className={cn(
-              'grid min-h-16 items-center gap-4 border-t border-hairline px-6 py-2.5 text-body text-ink no-underline hover:bg-wash',
+              'relative grid min-h-16 items-center gap-4 border-t border-hairline px-6 py-2.5 text-body text-ink hover:bg-wash',
               COLUMNS
             )}
           >
             <div className="flex min-w-0 flex-col gap-0.5">
               <span className="flex min-w-0 items-center gap-2">
-                <span className="truncate">{agent.name}</span>
+                <Link
+                  href={UrlGenerator.agent(agent.id)}
+                  className="truncate text-ink no-underline after:absolute after:inset-0"
+                >
+                  {agent.name}
+                </Link>
                 {agent.spec === 'none' && (
                   <span className="inline-flex h-5 flex-none items-center rounded-md border border-hairline px-1.5 text-label text-ink-muted">
                     No spec
@@ -132,14 +138,34 @@ export const AgentsView: FC<Props> = ({ agents }) => {
                 <span className="text-label text-ink-muted">{subline(agent)}</span>
               )}
             </div>
-            <span title={sinceLabel(agent.live_since)} className="text-ink-muted">
+            <span title={sinceLabel(agent.live_since)} className="relative text-ink-muted">
               {agent.live_version ? `v${agent.live_version}` : '—'}
+            </span>
+            <span className="text-right">
+              {agent.score != null ? (
+                <span className="font-medium">{agent.score}</span>
+              ) : (
+                <span className="text-ink-muted">—</span>
+              )}
+            </span>
+            <span className="text-right">
+              <Link
+                href={UrlGenerator.criticalIssues(agent.id, agents.period)}
+                title="Open critical issues of this agent"
+                className={cn(
+                  'relative inline-flex items-center gap-1.5 no-underline hover:underline',
+                  agent.critical_issues ? 'text-critical' : 'text-ink-muted'
+                )}
+              >
+                {agent.critical_issues ? <OctagonAlert className="size-3.5" aria-hidden /> : null}
+                {(agent.critical_issues ?? 0).toLocaleString()}
+              </Link>
             </span>
             <span className="text-right">
               <LatencyPair p50={agent.latency_p50} p95={agent.latency_p95} />
             </span>
             <span className="text-right">{agent.calls.toLocaleString()}</span>
-          </Link>
+          </div>
         ))}
         {agents.data.length === 0 && (
           <div className="border-t border-hairline px-6 py-5 text-ink-secondary">

@@ -28,6 +28,18 @@ class AgentListItemPublic(BaseModel):
     latency_p95: float | None = Field(
         default=None, description="p95 over every reply in the period, in seconds"
     )
+    score: int | None = Field(
+        default=None,
+        description="0 to 100 for the period; none before onboarding is complete or "
+        "with no checked call",
+    )
+    score_change: int | None = Field(
+        default=None, description="Against the previous period of the same length"
+    )
+    critical_issues: int = Field(
+        default=0,
+        description="Open or reopened critical issues that showed in the period",
+    )
     live_version: str | None = Field(
         default=None, description="The agent version of its most recent call"
     )
@@ -39,6 +51,7 @@ class AgentListItemPublic(BaseModel):
 
 class AgentListPublic(BaseModel):
     data: list[AgentListItemPublic] = Field(
-        description="Most calls first, then by name"
+        description="Lowest score first; agents without a score after, most calls "
+        "first, then by name"
     )
     period: Period

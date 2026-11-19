@@ -54,6 +54,10 @@ class Agent(BaseModel):
     live_since: datetime | None = None
     score: int | None = None
     score_change: int | None = None
+    critical_issues: int = Field(
+        default=0,
+        description="Open or reopened critical issues that showed in the period",
+    )
     created_at: datetime
 
 
@@ -826,6 +830,10 @@ class AgentPage(BaseModel):
     latency_days: list[AgentLatencyDay] = Field(default_factory=list)
     latency_peak: float | None = None
     version_marks: list[AgentVersionMark] = Field(default_factory=list)
+    critical_issues: int = Field(
+        default=0,
+        description="Open or reopened critical issues that showed in the period",
+    )
     versions: list[AgentVersionOption] = Field(
         default_factory=list,
         description="Every agent version that has a call, the latest call's first",

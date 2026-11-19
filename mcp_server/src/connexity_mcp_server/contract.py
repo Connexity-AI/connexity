@@ -169,12 +169,12 @@ TOOLS: dict[str, ToolEntry] = {
     # Agents and the spec
     "list_agents": ToolEntry(
         "agents_and_spec",
-        "Lists the workspace's agents with their calls, spec state and score.",
+        "Lists the workspace's agents with calls, spec state, score and critical issues.",
         "spec",
     ),
     "get_agent": ToolEntry(
         "agents_and_spec",
-        "One agent at a glance: live version, calls, latency and its score.",
+        "One agent at a glance: live version, calls, latency, score and critical issues.",
         "spec",
     ),
     "get_spec": ToolEntry(

@@ -521,6 +521,37 @@ export const AgentListItemPublicSchema = {
       title: 'Latency P95',
       description: 'p95 over every reply in the period, in seconds',
     },
+    score: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Score',
+      description:
+        '0 to 100 for the period; none before onboarding is complete or with no checked call',
+    },
+    score_change: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Score Change',
+      description: 'Against the previous period of the same length',
+    },
+    critical_issues: {
+      type: 'integer',
+      title: 'Critical Issues',
+      description: 'Open or reopened critical issues that showed in the period',
+      default: 0,
+    },
     live_version: {
       anyOf: [
         {
@@ -566,7 +597,8 @@ export const AgentListPublicSchema = {
       },
       type: 'array',
       title: 'Data',
-      description: 'Most calls first, then by name',
+      description:
+        'Lowest score first; agents without a score after, most calls first, then by name',
     },
     period: {
       type: 'string',
@@ -734,6 +766,25 @@ export const AgentPagePublicSchema = {
       type: 'array',
       title: 'Version Marks',
       description: 'Each new agent version that started in the period',
+    },
+    score: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/ScorePublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description:
+        "The agent's score for the period and its change (why_none when it has none); on the picked version's calls with a version",
+    },
+    critical_issues: {
+      type: 'integer',
+      title: 'Critical Issues',
+      description:
+        "Open or reopened critical issues that showed in the period; on the picked version's calls with a version",
+      default: 0,
     },
     versions: {
       items: {
@@ -7889,6 +7940,12 @@ export const McpAgentSchema = {
       title: 'Calls',
       description: 'Calls in the period',
     },
+    critical_issues: {
+      type: 'integer',
+      title: 'Critical Issues',
+      description: 'Open or reopened critical issues that showed in the period',
+      default: 0,
+    },
     latency_p50: {
       anyOf: [
         {
@@ -8094,6 +8151,24 @@ export const McpAgentPageSchema = {
       title: 'Version Marks',
       description: 'Each new agent version that started in the period',
     },
+    score: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/ScorePublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: "The agent's score for the period, its change and what moves it",
+    },
+    critical_issues: {
+      type: 'integer',
+      title: 'Critical Issues',
+      description:
+        "Open or reopened critical issues that showed in the period; on the picked version's calls with a version",
+      default: 0,
+    },
     versions: {
       items: {
         $ref: '#/components/schemas/AgentVersionOptionPublic',
@@ -8122,17 +8197,6 @@ export const McpAgentPageSchema = {
       type: 'array',
       title: 'Version Days',
       description: "With a version: the period's days that had calls on it",
-    },
-    score: {
-      anyOf: [
-        {
-          $ref: '#/components/schemas/ScorePublic',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      description: "The agent's score for the period, its change and what moves it",
     },
   },
   type: 'object',

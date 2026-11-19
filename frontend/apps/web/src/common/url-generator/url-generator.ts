@@ -49,6 +49,14 @@ export class UrlGenerator {
     return `/issues/?${query.toString()}` as Route;
   }
 
+  /** One agent's open critical issues over a period, as the Agents list and the agent
+   * Overview link their critical count. */
+  static criticalIssues(agent: string, period?: string) {
+    const query = new URLSearchParams({ agent, severity: 'critical' });
+    if (period && period !== '30d') query.set('period', period);
+    return `/issues/?${query.toString()}` as Route;
+  }
+
   /** The Dashboard, for all agents or one, over a period. */
   static dashboard(options?: { period?: string; agent?: string }) {
     const query = new URLSearchParams();

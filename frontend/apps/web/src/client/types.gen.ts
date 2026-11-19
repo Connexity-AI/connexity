@@ -290,6 +290,24 @@ export type AgentListItemPublic = {
    */
   latency_p95?: number | null;
   /**
+   * Score
+   *
+   * 0 to 100 for the period; none before onboarding is complete or with no checked call
+   */
+  score?: number | null;
+  /**
+   * Score Change
+   *
+   * Against the previous period of the same length
+   */
+  score_change?: number | null;
+  /**
+   * Critical Issues
+   *
+   * Open or reopened critical issues that showed in the period
+   */
+  critical_issues?: number;
+  /**
    * Live Version
    *
    * The agent version of its most recent call
@@ -316,7 +334,7 @@ export type AgentListPublic = {
   /**
    * Data
    *
-   * Most calls first, then by name
+   * Lowest score first; agents without a score after, most calls first, then by name
    */
   data: Array<AgentListItemPublic>;
   /**
@@ -426,6 +444,16 @@ export type AgentPagePublic = {
    * Each new agent version that started in the period
    */
   version_marks: Array<AgentVersionMarkPublic>;
+  /**
+   * The agent's score for the period and its change (why_none when it has none); on the picked version's calls with a version
+   */
+  score?: ScorePublic | null;
+  /**
+   * Critical Issues
+   *
+   * Open or reopened critical issues that showed in the period; on the picked version's calls with a version
+   */
+  critical_issues?: number;
   /**
    * Versions
    *
@@ -5110,6 +5138,12 @@ export type McpAgent = {
    */
   calls?: number | null;
   /**
+   * Critical Issues
+   *
+   * Open or reopened critical issues that showed in the period
+   */
+  critical_issues?: number;
+  /**
    * Latency P50
    *
    * p50 over every reply in the period, in seconds
@@ -5227,6 +5261,16 @@ export type McpAgentPage = {
    */
   version_marks: Array<AgentVersionMarkPublic>;
   /**
+   * The agent's score for the period, its change and what moves it
+   */
+  score?: ScorePublic | null;
+  /**
+   * Critical Issues
+   *
+   * Open or reopened critical issues that showed in the period; on the picked version's calls with a version
+   */
+  critical_issues?: number;
+  /**
    * Versions
    *
    * Every agent version that has a call, latest call first
@@ -5244,10 +5288,6 @@ export type McpAgentPage = {
    * With a version: the period's days that had calls on it
    */
   version_days?: Array<string>;
-  /**
-   * The agent's score for the period, its change and what moves it
-   */
-  score?: ScorePublic | null;
 };
 
 /**
