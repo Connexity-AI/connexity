@@ -20,6 +20,7 @@ from app.models.enums import (
     AssistantTaskState,
     CheckKind,
     CheckMode,
+    FeedbackKind,
     FindingEffect,
     FirstTurn,
     Platform,
@@ -49,6 +50,7 @@ GUIDE_ISSUES = "connexity://guides/issues"
 GUIDE_SPEC = "connexity://guides/spec"
 GUIDE_CALLS = "connexity://guides/calls"
 GUIDE_SCENARIOS = "connexity://guides/scenarios"
+GUIDE_FEEDBACK = "connexity://guides/feedback"
 
 
 class McpAnswer(BaseModel, Generic[T]):
@@ -608,3 +610,40 @@ class McpTaskList(BaseModel):
     sessions: list[WorkSessionPublic] = Field(description="Sessions working now")
     waiting: int = Field(description="Tasks waiting for the person")
     total: int = Field(description="Tasks in the whole list")
+
+
+class McpSendFeedback(BaseModel):
+    """A bug in Connexity, or something it cannot do that the work needs."""
+
+    kind: FeedbackKind = Field(description="bug or feature_request")
+    title: Annotated[str, StringConstraints(max_length=200)] = Field(
+        description="One line: what is wrong or missing"
+    )
+    what_happened: Annotated[str, StringConstraints(max_length=4000)] | None = Field(
+        default=None,
+        description="For a bug: what you did, which tool, what you expected and what "
+        "came back",
+    )
+    wanted: Annotated[str, StringConstraints(max_length=4000)] | None = Field(
+        default=None,
+        description="For a feature request: what the work needed and could not do",
+    )
+    tool: Annotated[str, StringConstraints(max_length=100)] | None = Field(
+        default=None, description="The Connexity tool involved"
+    )
+    error: str | None = Field(
+        default=None,
+        description="The answer's error text; long text is cut, not refused",
+    )
+    ids: list[Annotated[str, StringConstraints(max_length=100)]] = Field(
+        default_factory=list,
+        max_length=50,
+        description="The call, issue, run, agent or task ids involved",
+    )
+    session: Annotated[str, StringConstraints(max_length=40)] | None = Field(
+        default=None, description="This session's name, as on `get_next_task`"
+    )
+
+
+class McpFeedbackSent(BaseModel):
+    report_id: uuid.UUID = Field(description="Give it to the person if they ask")

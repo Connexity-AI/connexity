@@ -1148,3 +1148,10 @@ class TestRuns(BaseModel):
 
 RunScenariosResult = Answer[StartedRun]
 TestRunsResult = Answer[TestRuns]
+
+
+class FeedbackSent(BaseModel):
+    report_id: str = Field(description="Give it to the person if they ask")
+
+
+SendFeedbackResult = Answer[FeedbackSent]

@@ -46,6 +46,7 @@ from connexity_mcp_server.models import (
     SpecResult,
     ListScenariosResult,
     RunScenariosResult,
+    SendFeedbackResult,
     TestRunsResult,
     ScenarioSetResult,
     ScenarioToWrite,
@@ -60,6 +61,9 @@ from connexity_mcp_server.models import (
 )
 from connexity_mcp_server.tools import (
     add_agents as _add_agents,
+)
+from connexity_mcp_server.tools import (
+    send_feedback as _send_feedback,
 )
 from connexity_mcp_server.tools import (
     answer_clarifications as _answer_clarifications,
@@ -621,6 +625,38 @@ def build_application(settings: Settings | None = None) -> FastAPI:
             all_scenarios=all,
             repeats=repeats,
             version=version,
+            session=session,
+        )
+
+    @mcp_server.tool(annotations=CREATES)
+    async def send_feedback(
+        workspace_id: WorkspaceId,
+        kind: Annotated[str, Field(description="bug, or feature_request for something Connexity cannot do.")],
+        title: Annotated[str, Field(description="One line: what is wrong or missing.")],
+        what_happened: Annotated[str | None, Field(description="For a bug: what you did, which tool with which inputs, what you expected and what came back.")] = None,
+        wanted: Annotated[str | None, Field(description="For a feature request: what the work needed and could not do.")] = None,
+        tool: Annotated[str | None, Field(description="The Connexity tool involved.")] = None,
+        error: Annotated[str | None, Field(description="The answer's error text, as it came.")] = None,
+        ids: Annotated[list[str] | None, Field(description="The call, issue, run, agent or task ids involved.")] = None,
+        session: Annotated[str | None, Field(description="A few words naming this session's work, the same as on `get_next_task`.")] = None,
+    ) -> SendFeedbackResult:
+        """Report a problem in Connexity itself to the Connexity team, who read every
+        report: a Connexity tool that fails (after one retry), answers that contradict
+        each other, or something the work needs that Connexity cannot do. Report
+        without asking the person, once per problem, then tell them in a sentence. Not
+        for problems in the person's own agent (those are issues). Never put caller
+        data (transcripts, phone numbers, names) or secrets in a report: describe and
+        give ids. At most 20 reports a day per workspace."""
+        return await _send_feedback(
+            client=backend_client,
+            workspace_id=workspace_id,
+            kind=kind,
+            title=title,
+            what_happened=what_happened,
+            wanted=wanted,
+            tool=tool,
+            error=error,
+            ids=ids,
             session=session,
         )
 

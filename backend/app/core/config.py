@@ -73,6 +73,11 @@ class Settings(BaseSettings):
     # sent as this service account. Without both, the route answers 404.
     CALL_PULL_AUDIENCE: str | None = None
     CALL_PULL_INVOKER: str | None = None
+    # Assistant feedback (`send_feedback`) is posted to this Notion database with this
+    # internal integration's token, shared with that database only. Without both,
+    # reports are only stored.
+    NOTION_FEEDBACK_TOKEN: str | None = None
+    NOTION_FEEDBACK_DATABASE_ID: str | None = None
     # Sign in with Google. Without both, the Google option is not offered.
     GOOGLE_CLIENT_ID: str | None = None
     GOOGLE_CLIENT_SECRET: str | None = None

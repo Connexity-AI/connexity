@@ -52,6 +52,8 @@ can read them.
 | `connexity-openai-api-key` | backend `OPENAI_API_KEY` |
 | `connexity-typesafe-api-key` | backend `TYPESAFE_API_KEY`: Jev, for classifier checks (added 2026-11-18). Without it those checks are skipped on every call, and picked up once it is set |
 | `connexity-anthropic-api-key` | backend `ANTHROPIC_API_KEY`: the simulated caller and the judge of every run of scenarios (Claude Haiku 5.5, `SIMULATION_MODEL`), and judge checks on Claude (added 2026-11-19). Without it `run_scenarios` refuses every run with "Connexity's model key is missing" |
+| `connexity-notion-feedback-token` | backend `NOTION_FEEDBACK_TOKEN`: a Notion internal integration shared with the "Assistant feedback" database only, so `send_feedback` reports reach it (added 2026-11-19). Without it reports are only stored |
+| `connexity-notion-feedback-database` | backend `NOTION_FEEDBACK_DATABASE_ID`: that database's id. Kept out of the repo, which is public |
 
 Each secret grants `roles/secretmanager.secretAccessor` to the services' runtime account
 (`731878021100-compute@developer.gserviceaccount.com`) on the secret itself; a new secret

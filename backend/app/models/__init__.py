@@ -179,6 +179,7 @@ from app.models.execution import (  # noqa: F401
     ExecutionStep,
     ExecutionSyncResult,
 )
+from app.models.feedback import FeedbackReport  # noqa: F401
 
 # ── Ingest ─────────────────────────────────────────────────────────
 from app.models.ingest_token import (  # noqa: F401

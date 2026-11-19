@@ -28,6 +28,7 @@ from connexity_mcp_server.models import (
     ScanCallsResult,
     ListScenariosResult,
     RunScenariosResult,
+    SendFeedbackResult,
     TestRunsResult,
     ScenarioSetResult,
     ScenarioToWrite,
@@ -478,5 +479,32 @@ async def get_test_runs(
             version=version,
             cursor=cursor,
             limit=limit,
+        )
+    )
+
+
+async def send_feedback(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    kind: str,
+    title: str,
+    what_happened: str | None = None,
+    wanted: str | None = None,
+    tool: str | None = None,
+    error: str | None = None,
+    ids: list[str] | None = None,
+    session: str | None = None,
+) -> SendFeedbackResult:
+    return SendFeedbackResult.model_validate(
+        await client.send_feedback(
+            workspace_id=workspace_id,
+            kind=kind,
+            title=title,
+            what_happened=what_happened,
+            wanted=wanted,
+            tool=tool,
+            error=error,
+            ids=ids,
+            session=session,
         )
     )

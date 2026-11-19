@@ -5636,6 +5636,13 @@ export const FakeToolResultPublicSchema = {
   title: 'FakeToolResultPublic',
 } as const;
 
+export const FeedbackKindSchema = {
+  type: 'string',
+  enum: ['bug', 'feature_request'],
+  title: 'FeedbackKind',
+  description: 'What an assistant reports about Connexity itself.',
+} as const;
+
 export const FieldChangeSchema = {
   properties: {
     field: {
@@ -8469,6 +8476,51 @@ export const McpAnswer_McpConnection_Schema = {
   title: 'McpAnswer[McpConnection]',
 } as const;
 
+export const McpAnswer_McpFeedbackSent_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/McpFeedbackSent',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[McpFeedbackSent]',
+} as const;
+
 export const McpAnswer_McpIssue_Schema = {
   properties: {
     data: {
@@ -9672,6 +9724,20 @@ export const McpFakeToolResultSchema = {
   title: 'McpFakeToolResult',
 } as const;
 
+export const McpFeedbackSentSchema = {
+  properties: {
+    report_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Report Id',
+      description: 'Give it to the person if they ask',
+    },
+  },
+  type: 'object',
+  required: ['report_id'],
+  title: 'McpFeedbackSent',
+} as const;
+
 export const McpHeldTaskSchema = {
   properties: {
     task: {
@@ -10473,6 +10539,99 @@ export const McpScenarioSchema = {
   },
   type: 'object',
   title: 'McpScenario',
+} as const;
+
+export const McpSendFeedbackSchema = {
+  properties: {
+    kind: {
+      $ref: '#/components/schemas/FeedbackKind',
+      description: 'bug or feature_request',
+    },
+    title: {
+      type: 'string',
+      maxLength: 200,
+      title: 'Title',
+      description: 'One line: what is wrong or missing',
+    },
+    what_happened: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 4000,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'What Happened',
+      description: 'For a bug: what you did, which tool, what you expected and what came back',
+    },
+    wanted: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 4000,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Wanted',
+      description: 'For a feature request: what the work needed and could not do',
+    },
+    tool: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 100,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Tool',
+      description: 'The Connexity tool involved',
+    },
+    error: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Error',
+      description: "The answer's error text; long text is cut, not refused",
+    },
+    ids: {
+      items: {
+        type: 'string',
+        maxLength: 100,
+      },
+      type: 'array',
+      maxItems: 50,
+      title: 'Ids',
+      description: 'The call, issue, run, agent or task ids involved',
+    },
+    session: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 40,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Session',
+      description: "This session's name, as on `get_next_task`",
+    },
+  },
+  type: 'object',
+  required: ['kind', 'title'],
+  title: 'McpSendFeedback',
+  description: 'A bug in Connexity, or something it cannot do that the work needs.',
 } as const;
 
 export const McpSpecRuleSchema = {

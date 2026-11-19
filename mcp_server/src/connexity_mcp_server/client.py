@@ -469,6 +469,36 @@ class ConnexityBackendClient:
             params=params,
         )
 
+    async def send_feedback(
+        self,
+        *,
+        workspace_id: str,
+        kind: str,
+        title: str,
+        what_happened: str | None = None,
+        wanted: str | None = None,
+        tool: str | None = None,
+        error: str | None = None,
+        ids: list[str] | None = None,
+        session: str | None = None,
+    ) -> dict[str, Any]:
+        body: dict[str, Any] = {"kind": kind, "title": title}
+        for key, value in {
+            "what_happened": what_happened,
+            "wanted": wanted,
+            "tool": tool,
+            "error": error,
+            "ids": ids,
+            "session": session,
+        }.items():
+            if value not in (None, "", []):
+                body[key] = value
+        return await self._request_json(
+            "POST",
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/feedback",
+            json=body,
+        )
+
     async def list_agents(
         self,
         *,
@@ -519,10 +549,14 @@ class ConnexityBackendClient:
             return payload
         except httpx.HTTPStatusError as exc:
             detail = _extract_error_detail(exc.response)
+            # Not on send_feedback's own failure: it cannot report itself.
+            if exc.response.status_code >= 500 and not path.endswith("/feedback"):
+                detail = f"{detail} {REPORT_HINT}"
             raise ConnexityBackendError(detail) from exc
         except httpx.HTTPError as exc:
+            hint = "" if path.endswith("/feedback") else f" {REPORT_HINT}"
             raise ConnexityBackendError(
-                f"Connexity backend request failed: {exc}"
+                f"Connexity backend request failed: {exc}{hint}"
             ) from exc
 
     async def _build_headers(self) -> dict[str, str]:
@@ -534,6 +568,14 @@ class ConnexityBackendClient:
             )
         headers["Authorization"] = f"Bearer {access_token.token}"
         return headers
+
+
+# Added to Connexity's own failures, so an assistant that never read the feedback guide
+# still finds where to report them (plan `plans/2026-11-19-assistant-feedback.md`).
+REPORT_HINT = (
+    "This is a problem in Connexity, not in your request: retry once, and if it fails "
+    "again, report it with `send_feedback` (kind bug, with this tool and error)."
+)
 
 
 def _extract_error_detail(response: httpx.Response) -> str:

@@ -327,6 +327,9 @@ import type {
   McpScanCallsData,
   McpScanCallsErrors,
   McpScanCallsResponses,
+  McpSendFeedbackData,
+  McpSendFeedbackErrors,
+  McpSendFeedbackResponses,
   McpUnarchiveIssueData,
   McpUnarchiveIssueErrors,
   McpUnarchiveIssueResponses,
@@ -1784,6 +1787,27 @@ export class McpService {
     >({
       security: [{ scheme: 'bearer', type: 'http' }],
       url: '/api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/test-runs',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Send Feedback
+   */
+  public static sendFeedback<ThrowOnError extends boolean = false>(
+    options: Options<McpSendFeedbackData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      McpSendFeedbackResponses,
+      McpSendFeedbackErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/feedback',
       ...options,
       headers: {
         'Content-Type': 'application/json',
