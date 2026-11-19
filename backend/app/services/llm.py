@@ -128,6 +128,13 @@ class LLMCallConfig(BaseModel):
             "call per turn. Omit to use the provider default."
         ),
     )
+    thinking_off: bool = Field(
+        default=False,
+        description=(
+            "Turn the model's thinking off where it allows that (Claude Haiku). "
+            "For calls that need no reasoning, such as a simulated caller's next line."
+        ),
+    )
     extra: dict[str, LLMExtraValue] = Field(
         default_factory=dict,
         description=(
@@ -356,6 +363,7 @@ async def _acompletion_once(
     response_format: dict[str, object] | None,
     parallel_tool_calls: bool | None,
     extra: dict[str, LLMExtraValue],
+    thinking_off: bool = False,
 ) -> object:
     kwargs: dict[str, object] = {
         "model": model,
@@ -377,6 +385,14 @@ async def _acompletion_once(
         if v is not None:
             kwargs[k] = v
     _finalize_litellm_reasoning_kwargs(model, kwargs)
+    if "claude" in model.lower():
+        # Current Claude models reject sampling settings with a 400 ("`temperature`
+        # is deprecated for this model"); the default is the only value they take.
+        kwargs.pop("temperature", None)
+        # Of the current models only Haiku lets thinking be turned off (at its
+        # default effort); Opus 5.5, Sonnet 5.5 and Fable answer it with a 400.
+        if thinking_off and "haiku" in model.lower():
+            kwargs["thinking"] = {"type": "disabled"}
     return await litellm.acompletion(**cast(Any, kwargs))
 
 
@@ -428,6 +444,7 @@ async def call_llm(
                 response_format=response_format,
                 parallel_tool_calls=parallel_tool_calls,
                 extra=extra,
+                thinking_off=c.thinking_off,
             )
             latency_ms = int((time.perf_counter() - started) * 1000)
             usage_obj = getattr(response, "usage", None)

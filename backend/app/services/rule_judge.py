@@ -167,6 +167,13 @@ def parse_verdicts(raw: str, rules: list[RuleToJudge]) -> list[Judged]:
     return [by_key[rule.key] for rule in rules]
 
 
+def _reason(exc: Exception) -> str:
+    """The provider's own words for a failed call, kept with the simulated call. They
+    describe the request, never the conversation."""
+    text = " ".join(str(exc).split()) or type(exc).__name__
+    return text[:500]
+
+
 async def judge_rules(
     *,
     transcript: list[ConversationTurn],
@@ -191,7 +198,6 @@ async def judge_rules(
     config = LLMCallConfig(
         model=settings.SIMULATION_MODEL,
         provider=settings.SIMULATION_PROVIDER,
-        temperature=settings.JUDGE_TEMPERATURE,
         max_tokens=settings.JUDGE_MAX_TOKENS,
         response_format=_response_format([rule.key for rule in rules]),
     )
@@ -199,7 +205,7 @@ async def judge_rules(
         response = await call_llm(messages, config=config)
     except Exception as exc:
         logger.exception("The rule judge's model call failed")
-        msg = "The judge's model call failed"
+        msg = f"The judge's model call failed: {_reason(exc)}"
         raise JudgeFailed(msg) from exc
     return Judgement(
         verdicts=parse_verdicts((response.content or "").strip(), rules),

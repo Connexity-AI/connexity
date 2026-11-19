@@ -108,6 +108,47 @@ def _agent_turn(request: httpx.Request) -> httpx.Response:
     )
 
 
+RETELL = "https://api.retellai.com"
+
+
+def _tested_version(retell: respx.MockRouter, number: int) -> None:
+    """Retell: the agent at its latest version, a single prompt with two tools of its
+    own and a hang-up."""
+    retell.get(url__startswith=f"{RETELL}/get-agent/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "agent_id": "agent_x",
+                "version": number,
+                "response_engine": {
+                    "type": "retell-llm",
+                    "llm_id": "llm_x",
+                    "version": number,
+                },
+            },
+        )
+    )
+    retell.get(url__startswith=f"{RETELL}/get-retell-llm/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "llm_id": "llm_x",
+                "general_prompt": "Invented prompt.",
+                "general_tools": [
+                    {"type": "custom", "name": "check_slot"},
+                    {"type": "end_call", "name": "end_call"},
+                ],
+                "states": [
+                    {
+                        "name": "booking",
+                        "tools": [{"type": "custom", "name": "book_slot"}],
+                    }
+                ],
+            },
+        )
+    )
+
+
 @pytest.fixture
 def caller() -> Iterator[AsyncMock]:
     with patch(
@@ -246,6 +287,7 @@ def test_a_set_runs_every_repeat_with_every_tool_faked_and_judges_listed_rules(
     assert "book_slot" in steps
 
 
+@pytest.mark.provider_versions
 def test_a_failed_tool_fake_is_found_by_code_checks_but_never_in_production(
     client: TestClient, db: Session, caller: AsyncMock
 ) -> None:
@@ -300,9 +342,7 @@ def test_a_failed_tool_fake_is_found_by_code_checks_but_never_in_production(
 
     with respx.mock() as retell:
         playground = retell.post(url__startswith=PLAYGROUND).mock(side_effect=failing)
-        retell.get(url__startswith="https://api.retellai.com/get-agent-versions/").mock(
-            return_value=httpx.Response(200, json=[{"version": 3}, {"version": 5}])
-        )
+        _tested_version(retell, 5)
         with (
             patch(
                 "app.services.rule_judge.call_llm",
@@ -319,7 +359,8 @@ def test_a_failed_tool_fake_is_found_by_code_checks_but_never_in_production(
     assert [f["check_type"] for f in call.check_findings or []] == ["tool_call_failed"]
     # The call matched the scenario's own fake, so no default fake was used.
     assert call.default_fakes == []
-    # "The latest" was pinned to a number, and every request used it.
+    # "The latest" was pinned to a number read from the agent, and every request used
+    # it.
     assert {c.request.url.params["version"] for c in playground.calls} == {"5"}
     run = db.get(Run, uuid.UUID(run_id))
     assert run is not None and run.platform_version == "5"
@@ -387,6 +428,13 @@ def test_a_platform_failure_is_an_error_with_no_verdicts(
     assert not db.exec(
         select(RuleVerdict).where(RuleVerdict.run_id == uuid.UUID(run_id))
     ).all()
+    # The version's results say the calls stopped, why, and which run to open.
+    results = _runs(client, user, agent).json()
+    assert results["data"]["results"]["verdict"] == "not_tested"
+    stopped = results["data"]["results"]["stopped"]
+    assert stopped["calls"] == 1 and stopped["run_id"] == run_id
+    assert stopped["reason"].startswith("The conversation stopped")
+    assert any("stopped with an error" in s for s in results["next_steps"])
     body = _runs(client, user, agent, run_id=run_id).json()
     assert body["data"]["run"]["counts"]["errors"] == 1
     assert any("ended in an error" in s for s in body["next_steps"])
@@ -403,8 +451,12 @@ def test_a_platform_failure_is_an_error_with_no_verdicts(
         (_llm(""), "The judge did not answer JSON"),
         (_llm(json.dumps({"rules": []})), "The judge did not answer "),
         (httpx.TimeoutException("timed out"), "The judge's model call failed"),
+        (
+            ValueError("`temperature` is deprecated for this model."),
+            "The judge's model call failed: `temperature` is deprecated",
+        ),
     ],
-    ids=["malformed", "empty", "missing-rule", "timeout"],
+    ids=["malformed", "empty", "missing-rule", "timeout", "refused"],
 )
 def test_a_judge_answer_it_cannot_read_gives_no_verdicts(
     client: TestClient, db: Session, caller: AsyncMock, answer: Any, error: str
@@ -443,7 +495,6 @@ def test_refusals_store_nothing(client: TestClient, db: Session) -> None:
             select(func.count()).select_from(Run).where(Run.agent_id == agent.id)
         ).one()
 
-    # No refusal for a model key: simulations run on Connexity's own key.
     both = _start(client, user, agent, all=True, scenario_ids=[scenario["id"]])
     assert both.status_code == 422
     assert "exactly one" in both.json()["detail"]["error"]
@@ -534,3 +585,136 @@ def test_a_restart_fails_runs_it_stopped(client: TestClient, db: Session) -> Non
     _execute(run_id)
     db.expire_all()
     assert db.get(Run, uuid.UUID(run_id)).status == RunStatus.FAILED  # type: ignore[union-attr]
+
+
+def test_a_run_without_connexitys_model_key_is_refused(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    user, agent, keys = _ready(db, client)
+    _scenarios(client, user, agent, _price(keys))
+    monkeypatch.setattr(runner.settings, "ANTHROPIC_API_KEY", None)
+
+    r = _start(client, user, agent, all=True)
+
+    assert r.status_code == 422
+    detail = r.json()["detail"]
+    assert "model key is missing" in detail["error"]
+    assert any("nothing for you to fix" in s for s in detail["next_steps"])
+    assert not db.exec(select(Run).where(Run.agent_id == agent.id)).all()
+
+
+@pytest.mark.provider_versions
+def test_a_hang_up_ends_the_conversation_and_it_is_judged(
+    client: TestClient, db: Session, caller: AsyncMock
+) -> None:
+    user, agent, keys = _ready(db, client)
+    _scenarios(client, user, agent, _price(keys))
+    run_id = _start(client, user, agent, all=True, repeats=1).json()["data"]["run_id"]
+
+    def hangs_up(request: httpx.Request) -> httpx.Response:
+        if not json.loads(request.content)["messages"]:
+            return httpx.Response(
+                200, json={"messages": [{"role": "agent", "content": "Hello."}]}
+            )
+        # The agent says goodbye and calls its hang-up tool. Retell does not report
+        # the chat ended (the catch-all may answer the hang-up): the tool call, which
+        # the tested version marks as ending the call, ends it.
+        return httpx.Response(
+            200,
+            json={
+                "messages": [
+                    {"role": "agent", "content": "A cleaning is 80 dollars. Bye."},
+                    {
+                        "role": "tool_call_invocation",
+                        "tool_call_id": "tc9",
+                        "name": "end_call",
+                        "arguments": "{}",
+                    },
+                ]
+            },
+        )
+
+    judge = AsyncMock(return_value=_verdict(keys[PRICE], "passed"))
+    with respx.mock() as retell:
+        playground = retell.post(url__startswith=PLAYGROUND).mock(side_effect=hangs_up)
+        _tested_version(retell, 88)
+        with patch("app.services.rule_judge.call_llm", new=judge):
+            _execute(run_id)
+
+    # The greeting, then one exchange: the hang-up ended it.
+    assert playground.call_count == 2
+    judge.assert_awaited_once()
+    db.expire_all()
+    call = db.exec(
+        select(TestCaseResult).where(TestCaseResult.run_id == uuid.UUID(run_id))
+    ).one()
+    assert call.error_message is None
+    assert "end_call" not in (call.default_fakes or [])
+    run = db.get(Run, uuid.UUID(run_id))
+    assert run is not None and run.platform_version == "88"
+
+
+def test_a_conversation_ends_at_the_turn_limit_and_is_judged(
+    client: TestClient, db: Session, caller: AsyncMock
+) -> None:
+    user, agent, keys = _ready(db, client)
+    _scenarios(client, user, agent, _price(keys))
+    with patch.object(runner, "MAX_AGENT_REPLIES", 3):
+        run_id = _start(client, user, agent, all=True, repeats=1).json()["data"][
+            "run_id"
+        ]
+
+    def never_ends(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200, json={"messages": [{"role": "agent", "content": "Anything else?"}]}
+        )
+
+    judge = AsyncMock(return_value=_verdict(keys[PRICE], "did_not_come_up"))
+    with respx.mock() as retell:
+        playground = retell.post(url__startswith=PLAYGROUND).mock(
+            side_effect=never_ends
+        )
+        with patch("app.services.rule_judge.call_llm", new=judge):
+            _execute(run_id)
+
+    # The greeting and two more replies make three; a fourth never happens.
+    assert playground.call_count == 3
+    judge.assert_awaited_once()
+    db.expire_all()
+    call = db.exec(
+        select(TestCaseResult).where(TestCaseResult.run_id == uuid.UUID(run_id))
+    ).one()
+    assert call.error_message is None
+    # Retell could not be read (tests never reach it), so the run went on against
+    # the latest, and says it could not name the version.
+    run = db.get(Run, uuid.UUID(run_id))
+    assert run is not None and run.platform_version is None
+    assert run.config["max_turns"] == 3
+    sent = json.loads(playground.calls[0].request.content)["tool_mocks"]
+    assert sent[-1] == {
+        "input_match_rule": {"type": "any"},
+        "output": DEFAULT_FAKE_RESULT,
+    }
+
+
+def test_the_same_error_on_many_calls_counts_as_one() -> None:
+    def failed(message: str) -> TestCaseResult:
+        return TestCaseResult(
+            run_id=uuid.uuid4(),
+            test_case_id=uuid.uuid4(),
+            company_id=uuid.uuid4(),
+            error_message=message,
+        )
+
+    judge = 'The judge\'s model call failed: 400 {{"request_id":"req_{}"}}'
+    calls = [
+        failed(judge.format("011AAA")),
+        failed(judge.format("011BBB")),
+        failed("The conversation stopped: Retell returned no messages"),
+    ]
+
+    stopped = runner.stopped_calls(calls)
+
+    assert stopped is not None
+    assert stopped.calls == 3
+    assert stopped.reason.startswith("The judge's model call failed")

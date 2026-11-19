@@ -79,6 +79,11 @@ do not approve them: a person who disagrees asks you to change one.
     and the run names it under `default_fakes`;
   - add a fake for it with `write_scenarios` when the conversation needs a real-looking
     answer.
+  - a hang-up or a transfer ends the conversation there, as on a real call.
+- **A conversation ends** when the agent hangs up or after 40 agent replies, and is
+  judged on what was said. One still going after 10 minutes is stopped as an error.
+- **A run is refused** when Connexity's model key is missing. Tell the person; there is
+  nothing for you to fix.
 
 ## Reading a run
 
@@ -106,12 +111,15 @@ do not approve them: a person who disagrees asks you to change one.
 - **Every completed run of the version counts:** sets, picks and every scenario. The
   totals per rule add up across all of them.
 - **The verdict:**
-  - **Failed** when a critical rule failed (flaky included), when a critical code check
+  - **Failed** when, with at least one rule judged, a critical rule failed (flaky included), when a critical code check
     found something, or when more than the threshold (`threshold_pct`) of the
     non-critical rules judged failed;
   - **Verified** otherwise, with its warnings (non-critical rules that failed, and code
     checks that only flag);
-  - **Not tested** until a run of it completes.
+  - **Not tested** until a run of it completes and judges at least one rule. Runs
+    that judged no rule give no verdict, whatever the code checks found.
+- **`stopped`** counts the simulated calls that ended in an error, with the most common
+  error and a run to open. They gave no verdicts.
 - **Show the person a simulated call** with its `url`: it opens on the call screen,
   with the rules it was judged on.
 - **Coverage** (`coverage`) is the share of the latest spec's rules the version's runs

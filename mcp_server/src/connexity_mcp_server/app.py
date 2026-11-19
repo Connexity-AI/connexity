@@ -595,7 +595,8 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     ) -> RunScenariosResult:
         """Run the agent's scenarios in text: a named `set`, a pick of
         `scenario_ids`, or `all` (give exactly one). A simulated caller talks to the
-        agent's own engine with every tool faked; each scenario repeats `repeats`
+        agent's own engine with every tool faked, until the agent hangs up or transfers
+        or has answered 40 times; each scenario repeats `repeats`
         times (1 to 5, default 3), at most 200 simulated calls. `version` is the
         agent's version on its platform (default: the latest). Starts in the
         background; read the results with `get_test_runs`."""
@@ -620,8 +621,9 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         limit: Limit = None,
     ) -> TestRunsResult:
         """Without `run_id`: a tested version's results (`version`, default the
-        newest tested): Failed or Verified, the totals per rule across all its runs,
-        the code checks, warnings and coverage of the spec; then the agent's runs, newest first. With
+        newest tested): Failed, Verified or Not tested, the totals per rule across all its
+        runs, the code checks, warnings, coverage of the spec and the calls that stopped
+        with an error; then the agent's runs, newest first. With
         `run_id`: the run's status, rule totals, findings, and a page of its
         simulated calls with each rule's verdict, reason and link (`url`)."""
         return await _get_test_runs(

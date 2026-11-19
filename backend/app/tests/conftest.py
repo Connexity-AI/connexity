@@ -150,3 +150,12 @@ def _no_backend_execution_reads() -> Generator[None, None, None]:
         AsyncMock(side_effect=N8nError("not reachable in tests")),
     ):
         yield
+
+
+@pytest.fixture(autouse=True)
+def _simulation_model_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Simulations run on Connexity's own model key, and a run without it is refused.
+    Tests set an invented one, so they never depend on the developer's `.env`; a test
+    about the refusal takes it away."""
+    monkeypatch.setattr(settings, "ANTHROPIC_API_KEY", "invented-key")
+    monkeypatch.setattr(settings, "OPENAI_API_KEY", "invented-key")

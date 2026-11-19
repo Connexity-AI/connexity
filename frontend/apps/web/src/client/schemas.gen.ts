@@ -14428,6 +14428,30 @@ export const SpecWrittenPublicSchema = {
   title: 'SpecWrittenPublic',
 } as const;
 
+export const StoppedCallsPublicSchema = {
+  properties: {
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+      description: 'Simulated calls that ended in an error',
+    },
+    reason: {
+      type: 'string',
+      title: 'Reason',
+      description: 'The most common error, in plain words',
+    },
+    run_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Run Id',
+      description: 'A run with one of those calls',
+    },
+  },
+  type: 'object',
+  required: ['calls', 'reason', 'run_id'],
+  title: 'StoppedCallsPublic',
+} as const;
+
 export const SuggestionsRequestSchema = {
   properties: {
     baseline_run_id: {
@@ -17610,6 +17634,17 @@ export const VersionResultsPublicSchema = {
         },
       ],
       description: "The latest spec's rules these runs checked",
+    },
+    stopped: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/StoppedCallsPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Simulated calls that ended in an error and gave no verdicts',
     },
   },
   type: 'object',
