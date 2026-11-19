@@ -1444,3 +1444,54 @@ async def test_get_agent_and_list_issues_send_the_version() -> None:
         lambda client: list_issues(client, workspace_id=WORKSPACE_ID, version="87"),
     )
     assert issues.data.issues == []
+
+
+@pytest.mark.asyncio
+async def test_send_feedback_sends_the_report_without_empty_fields() -> None:
+    from connexity_mcp_server.tools import send_feedback
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url.path.endswith("/feedback")
+        assert json.loads(request.content) == {
+            "kind": "bug",
+            "title": "run_scenarios refuses a set it just wrote",
+            "what_happened": "Wrote set smoke, then ran it.",
+            "tool": "run_scenarios",
+            "error": "The agent has no set named 'smoke'.",
+            "ids": ["a1"],
+            "session": "Testing",
+        }
+        return httpx.Response(200, json={"data": {"report_id": "r1"}, **ANSWER})
+
+    result = await _call(
+        handler,
+        lambda client: send_feedback(
+            client,
+            workspace_id=WORKSPACE_ID,
+            kind="bug",
+            title="run_scenarios refuses a set it just wrote",
+            what_happened="Wrote set smoke, then ran it.",
+            wanted="",
+            tool="run_scenarios",
+            error="The agent has no set named 'smoke'.",
+            ids=["a1"],
+            session="Testing",
+        ),
+    )
+
+    assert result.data.report_id == "r1"
+
+
+@pytest.mark.asyncio
+async def test_a_connexity_failure_points_to_send_feedback() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(500, json={"detail": "Internal server error"})
+
+    with pytest.raises(Exception) as raised:
+        await _call(
+            handler,
+            lambda client: list_calls(client, workspace_id=WORKSPACE_ID),
+        )
+
+    assert "send_feedback" in str(raised.value)

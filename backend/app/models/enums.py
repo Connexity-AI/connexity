@@ -318,3 +318,10 @@ class AssistantTaskState(StrEnum):
     RETURNED = "returned"
     # Its work is done, or a review was handed out.
     DONE = "done"
+
+
+class FeedbackKind(StrEnum):
+    """What an assistant reports about Connexity itself."""
+
+    BUG = "bug"
+    FEATURE_REQUEST = "feature_request"

@@ -19,6 +19,7 @@ GUIDES = {
     "calls": "Calls",
     "spec": "Writing an agent's spec",
     "scenarios": "Writing and running scenarios",
+    "feedback": "Reporting a problem in Connexity",
 }
 # Written and reviewed, but not served until the tools they name exist.
 NOT_YET_SERVED: set[str] = set()
@@ -34,7 +35,10 @@ INSTRUCTIONS = (
     "with `raise_clarifications`, never decide it. "
     "Every answer has `data`, the `rules` that apply (follow them), numbered "
     "`next_steps` and a `guide`; read the guide at that URI when you need more. "
-    "Connexity never edits, deploys or calls an agent."
+    "Connexity never edits, deploys or calls an agent. "
+    "When a Connexity tool fails, contradicts another answer, or cannot do what the "
+    "work needs, report it with `send_feedback` after one retry, without asking the "
+    "person, then tell them in a sentence."
 )
 
 

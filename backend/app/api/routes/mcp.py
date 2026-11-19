@@ -65,6 +65,7 @@ from app.models.mcp import (
     GUIDE_CALLS,
     GUIDE_CATEGORIES,
     GUIDE_CONNECT,
+    GUIDE_FEEDBACK,
     GUIDE_GETTING_STARTED,
     GUIDE_ISSUES,
     GUIDE_READINESS,
@@ -84,6 +85,7 @@ from app.models.mcp import (
     McpConnectVoicePlatform,
     McpEndedTask,
     McpErrorDetail,
+    McpFeedbackSent,
     McpHeldTask,
     McpIssue,
     McpIssueCheck,
@@ -98,6 +100,7 @@ from app.models.mcp import (
     McpRefusedAgent,
     McpRunScenarios,
     McpScanProgress,
+    McpSendFeedback,
     McpStartedRun,
     McpTask,
     McpTaskCounts,
@@ -140,6 +143,13 @@ from app.services.connections import (
     webhook_address,
 )
 from app.services.dashboard import dashboard
+from app.services.feedback import DAILY_CAP as FEEDBACK_DAILY_CAP
+from app.services.feedback import (
+    FeedbackIn,
+    FeedbackRefused,
+    post_in_background,
+    store_report,
+)
 from app.services.first_scan import SCAN_DAYS, scan_agents, scan_step
 from app.services.issue_list import IssueFilters, workspace_issues
 from app.services.issue_page import issue_page
@@ -2771,4 +2781,65 @@ def get_agent_test_runs(
         next_steps=_run_steps(detail, more, offset, limit),
         guide=GUIDE_SCENARIOS,
         next_cursor=_encode_cursor(offset + limit) if more else None,
+    )
+
+
+_FEEDBACK_RULES = [
+    "Report Connexity's own problems here: a Connexity tool that fails, answers "
+    "something another answer contradicts, or cannot do what the work needs. A problem "
+    "in the person's own agent is an issue, not feedback.",
+    "Never put caller data in a report (no transcripts, phone numbers or names) and "
+    "never a secret: describe what happened and give ids instead.",
+    "Report each problem once, after one retry, without asking the person first.",
+    f"A workspace sends at most {FEEDBACK_DAILY_CAP} reports a day.",
+]
+
+
+@router.post(
+    "/workspaces/{workspace_id}/feedback",
+    response_model=McpAnswer[McpFeedbackSent],
+)
+async def send_feedback(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    current_user: McpCurrentUser,
+    assistant: McpAssistantName,
+    body: McpSendFeedback,
+) -> McpAnswer[McpFeedbackSent]:
+    try:
+        report = store_report(
+            session=session,
+            company_id=workspace.id,
+            person=current_user,
+            report=FeedbackIn(
+                kind=body.kind,
+                title=body.title,
+                what_happened=body.what_happened,
+                wanted=body.wanted,
+                tool=body.tool,
+                error=body.error,
+                ids=body.ids,
+                assistant_name=assistant,
+                session_name=(body.session or "").strip() or None,
+            ),
+        )
+    except FeedbackRefused as refused:
+        raise HTTPException(
+            status_code=422,
+            detail=McpErrorDetail(
+                error=str(refused),
+                next_steps=["Nothing was stored. Fix it and send it again."],
+                guide=GUIDE_FEEDBACK,
+            ).model_dump(),
+        ) from None
+    post_in_background(report.id)
+    return McpAnswer[McpFeedbackSent](
+        data=McpFeedbackSent(report_id=report.id),
+        rules=_FEEDBACK_RULES,
+        next_steps=[
+            f"Reported as {report.id}; the Connexity team reads every report.",
+            "Tell the person in one sentence that you reported it, then carry on with "
+            "the work, around the problem if you can.",
+        ],
+        guide=GUIDE_FEEDBACK,
     )

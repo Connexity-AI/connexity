@@ -54,6 +54,11 @@ GROUPS = (
         "Testing",
         "Write scenarios and run them as simulated calls against your agent.",
     ),
+    Group(
+        "feedback",
+        "Feedback",
+        "Tell the Connexity team about a bug in Connexity or something it cannot do.",
+    ),
 )
 
 
@@ -224,6 +229,12 @@ TOOLS: dict[str, ToolEntry] = {
         "testing",
         "A tested version's results, rule by rule, and each run's simulated calls.",
         "scenarios",
+    ),
+    # Feedback
+    "send_feedback": ToolEntry(
+        "feedback",
+        "Reports a bug in Connexity, or something it cannot do, to the Connexity team.",
+        "feedback",
     ),
 }
 

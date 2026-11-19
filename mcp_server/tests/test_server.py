@@ -44,6 +44,7 @@ async def test_server_lists_only_the_workspace_tools() -> None:
         "raise_clarifications",
         "run_scenarios",
         "scan_calls",
+        "send_feedback",
         "unarchive_issue",
         "write_scenario_set",
         "write_scenarios",

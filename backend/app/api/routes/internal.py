@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from app.api.deps import SessionDep
 from app.core.config import settings
 from app.services.call_pull import PullRun, run_pull
+from app.services.feedback import post_unsent
 
 logger = logging.getLogger(__name__)
 
@@ -69,4 +70,7 @@ def require_scheduler(
     "/calls/pull", response_model=PullRun, dependencies=[Depends(require_scheduler)]
 )
 async def pull_calls(session: SessionDep) -> PullRun:
-    return await run_pull(session=session)
+    run = await run_pull(session=session)
+    # Each tick also retries assistant feedback that has not reached Notion yet.
+    await post_unsent(session=session)
+    return run

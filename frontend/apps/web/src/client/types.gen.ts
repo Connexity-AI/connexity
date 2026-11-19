@@ -3610,6 +3610,20 @@ export type FakeToolResultPublic = {
 };
 
 /**
+ * FeedbackKind
+ *
+ * What an assistant reports about Connexity itself.
+ */
+export const FeedbackKind = { BUG: 'bug', FEATURE_REQUEST: 'feature_request' } as const;
+
+/**
+ * FeedbackKind
+ *
+ * What an assistant reports about Connexity itself.
+ */
+export type FeedbackKind = (typeof FeedbackKind)[keyof typeof FeedbackKind];
+
+/**
  * FieldChange
  */
 export type FieldChange = {
@@ -5503,6 +5517,40 @@ export type McpAnswerMcpConnection = {
 };
 
 /**
+ * McpAnswer[McpFeedbackSent]
+ */
+export type McpAnswerMcpFeedbackSent = {
+  /**
+   * The facts: the result of the call
+   */
+  data: McpFeedbackSent;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
  * McpAnswer[McpIssue]
  */
 export type McpAnswerMcpIssue = {
@@ -6366,6 +6414,18 @@ export type McpFakeToolResult = {
 };
 
 /**
+ * McpFeedbackSent
+ */
+export type McpFeedbackSent = {
+  /**
+   * Report Id
+   *
+   * Give it to the person if they ask
+   */
+  report_id: string;
+};
+
+/**
  * McpHeldTask
  */
 export type McpHeldTask = {
@@ -6878,6 +6938,60 @@ export type McpScenario = {
    * A call of this agent the scenario was written from
    */
   from_call_id?: string | null;
+};
+
+/**
+ * McpSendFeedback
+ *
+ * A bug in Connexity, or something it cannot do that the work needs.
+ */
+export type McpSendFeedback = {
+  /**
+   * bug or feature_request
+   */
+  kind: FeedbackKind;
+  /**
+   * Title
+   *
+   * One line: what is wrong or missing
+   */
+  title: string;
+  /**
+   * What Happened
+   *
+   * For a bug: what you did, which tool, what you expected and what came back
+   */
+  what_happened?: string | null;
+  /**
+   * Wanted
+   *
+   * For a feature request: what the work needed and could not do
+   */
+  wanted?: string | null;
+  /**
+   * Tool
+   *
+   * The Connexity tool involved
+   */
+  tool?: string | null;
+  /**
+   * Error
+   *
+   * The answer's error text; long text is cut, not refused
+   */
+  error?: string | null;
+  /**
+   * Ids
+   *
+   * The call, issue, run, agent or task ids involved
+   */
+  ids?: Array<string>;
+  /**
+   * Session
+   *
+   * This session's name, as on `get_next_task`
+   */
+  session?: string | null;
 };
 
 /**
@@ -15275,6 +15389,60 @@ export type McpRunAgentScenariosResponses = {
 
 export type McpRunAgentScenariosResponse =
   McpRunAgentScenariosResponses[keyof McpRunAgentScenariosResponses];
+
+export type McpSendFeedbackData = {
+  body: McpSendFeedback;
+  path: {
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/feedback';
+};
+
+export type McpSendFeedbackErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpSendFeedbackError = McpSendFeedbackErrors[keyof McpSendFeedbackErrors];
+
+export type McpSendFeedbackResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerMcpFeedbackSent;
+};
+
+export type McpSendFeedbackResponse = McpSendFeedbackResponses[keyof McpSendFeedbackResponses];
 
 export type AgentsListWorkspaceAgentsData = {
   body?: never;
