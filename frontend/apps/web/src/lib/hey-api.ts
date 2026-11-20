@@ -63,7 +63,7 @@ const clientFetch: typeof fetch = async (input, init = {}) => {
   const proxyUrl = `${CLIENT_PROXY}${relativeUrl}`;
 
   // When hey-api's SSE client passes a Request, re-issue the fetch against the
-  // proxy URL. Rebuilding via `new Request(proxyUrl, input)` leaks internal
+  // proxy URL. Building it again via `new Request(proxyUrl, input)` leaks internal
   // state from the original origin (causing ERR_ALPN_NEGOTIATION_FAILED), so
   // copy the relevant fields onto a plain init object instead.
   if (input instanceof Request) {

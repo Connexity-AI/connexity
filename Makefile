@@ -38,7 +38,7 @@ dashboard: ## Start Next.js dev server (loads repo root .env)
 
 mcp: ## Start MCP server (loads repo root .env)
 	@$(BASH) -c '[ -f .env ] || { echo "Missing .env; copy .env.example to .env first." >&2; exit 1; }'
-	@$(BASH) -c 'set -a && source <(tr -d "\r" < .env) && set +a && cd mcp_server && { [ -f .venv/Scripts/python.exe ] || uv sync; } && PYTHONPATH=src ./.venv/Scripts/python.exe -m connexity_mcp_server'
+	@$(BASH) -c 'set -a && source <(tr -d "\r" < .env) && set +a && cd mcp_server && PYTHONPATH=src uv run python -m connexity_mcp_server'
 
 db: ## Start Postgres + Adminer in Docker
 	docker compose up -d database adminer
@@ -58,7 +58,7 @@ db-downgrade: ## Downgrade Alembic by one revision (usage: make db-downgrade or 
 db-stop: ## Stop Postgres + Adminer
 	docker compose down database adminer
 
-db-reset: ## DELETE the local database and rebuild it from migrations, then seed the login
+db-reset: ## DELETE the local database and create it again from migrations, then seed the login
 	@printf 'This permanently deletes the local database in backend/data/database. Continue? [y/N] ' && read answer && [ "$$answer" = "y" ]
 	docker compose down database adminer
 	find backend/data/database -mindepth 1 ! -name .gitkeep -delete

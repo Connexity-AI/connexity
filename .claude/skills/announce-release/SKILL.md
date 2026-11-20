@@ -1,6 +1,6 @@
 ---
 name: announce-release
-description: Draft and post a Connexity release announcement to Discord after cutting a CLI or platform release. Use this skill whenever the user types `/announce-release`, or asks to "announce the release", "post the release to Discord", "draft a release announcement", "tell Discord about the new version", "share the new release", or anything that sounds like wanting to publicise a freshly cut release of `connexity-cli` or the platform. Trigger even when the user just says something casual like "ok the release is out, let's tell people" — that's the intended use case. Do not trigger for non-release announcements (blog posts, hiring, generic Discord messages).
+description: Draft and post a Connexity release announcement to Discord after cutting a platform release. Use this skill whenever the user types `/announce-release`, or asks to "announce the release", "post the release to Discord", "draft a release announcement", "tell Discord about the new version", "share the new release", or anything that sounds like wanting to publicise a freshly cut release of the platform. Trigger even when the user just says something casual like "ok the release is out, let's tell people" — that's the intended use case. Do not trigger for non-release announcements (blog posts, hiring, generic Discord messages).
 ---
 
 # announce-release
@@ -11,14 +11,13 @@ This skill exists because writing release posts is a small, repetitive task that
 
 ## Repo context
 
-The Connexity monorepo (`Connexity-AI/connexity`) ships two release artifacts under different tag namespaces. The skill must detect which type it's dealing with from the tag prefix.
+The Connexity monorepo (`Connexity-AI/connexity`) ships one release line.
 
 | Type | Tag pattern | Source of notes | Upgrade path |
 |---|---|---|---|
-| **CLI** | `cli-vX.Y.Z` | GitHub Release body + `backend/cli/CHANGELOG.md` | `uv tool upgrade connexity-cli` |
 | **Platform** | `vX.Y.Z` (from `v1.0.0` onward) | GitHub Release body (auto-generated) | Rolling deploy / link to product |
 
-The legacy `v0.1.0` tag is an old CLI release — ignore it. If you encounter it as a candidate, skip it and ask for clarification rather than treating it as a platform release.
+The `v0.1.0` and `cli-v*` tags belong to a command line tool that is no longer part of the repo. Never announce them; if one comes up as a candidate, skip it and ask.
 
 ## Workflow
 
@@ -30,10 +29,9 @@ Follow this in order. Don't skip the confirmation step at the end — there's no
 gh release list --limit 10
 ```
 
-Default to the most recent release. If the user named a specific tag, use that. If two or more recent releases look like plausible candidates (e.g. a CLI and a platform release both cut the same day), list them and ask which one.
+Default to the most recent release. If the user named a specific tag, use that. If two or more recent releases look like plausible candidates, list them and ask which one.
 
-Detect type from the tag prefix:
-- starts with `cli-v` → CLI release
+Check the tag:
 - starts with `v` (and is not `v0.1.0`) → platform release
 - anything else → ask the user
 
@@ -52,13 +50,7 @@ In those cases, say something like "this looks like a docs-only release, probabl
 gh release view <tag> --json tagName,body,publishedAt,url,name
 ```
 
-For CLI releases, also pull the matching section from the changelog (everything between the `## [X.Y.Z]` heading and the next `## [` heading):
-
-```bash
-sed -n "/## \[X\.Y\.Z\]/,/## \[/p" backend/cli/CHANGELOG.md | sed '$d'
-```
-
-If the release body is sparse and you need more context to write meaningful highlights, look at commits since the previous tag of the same type:
+If the release body is sparse and you need more context to write meaningful highlights, look at commits since the previous platform tag:
 
 ```bash
 gh api repos/Connexity-AI/connexity/compare/<prev-tag>...<this-tag> --jq '.commits[].commit.message'
@@ -169,7 +161,7 @@ Read this before drafting. The [worked examples](#examples) are the ground truth
 - Always link the GitHub release URL at the end.
 - Always tell the reader the action they can take (`uv tool upgrade ...`, "check it out at ...", or "rolling out over the next few hours").
 - Length matches substance: 3 lines for a patch, ~8 for a minor with highlights, ~12 for a major. Never pad.
-- A `fix(cli):` headline release gets 🐛, not 🚀. Match the headline emoji to what the release is actually about.
+- A `fix:` headline release gets 🐛, not 🚀. Match the headline emoji to what the release is actually about.
 
 **Emoji palette** (one per highlight max, never two in a row, never emoji-only bullets):
 
@@ -182,7 +174,7 @@ Read this before drafting. The [worked examples](#examples) are the ground truth
 | 📚 | Docs |
 | ⚡ | Performance |
 | 💔 | Breaking changes (always also call out in words, not just emoji) |
-| 🎉 | Milestone releases (1.0, 2.0) |
+| 🎉 | Milestone releases (a new major version) |
 | ❤️ | Contributor thanks at the end |
 
 **Avoid:**
@@ -193,22 +185,20 @@ Read this before drafting. The [worked examples](#examples) are the ground truth
 
 ## Structure
 
-**CLI release:**
-
 ```
-🚀 connexity-cli vX.Y.Z is out!
+🚀 Connexity vX.Y.Z is rolling out!
 
 <one-sentence what this release is about>
 
 <3-5 emoji-anchored highlight bullets — only if minor or major>
 
-Upgrade: `uv tool upgrade connexity-cli`
+<where it is live>
 Full notes: <github release URL>
 ```
 
-**Platform release:** same shape, but replace the `Upgrade:` line with either:
-- "Rolling out across staging → prod over the next few hours." (default)
+The "where it is live" line is either:
 - "Live now at `<deployed URL>`." (if the user provides one)
+- "Rolling out over the next few hours." (default)
 
 For patch releases, drop the highlights section entirely. Three lines is fine.
 
@@ -216,25 +206,25 @@ For patch releases, drop the highlights section entirely. Three lines is fine.
 
 These are the load-bearing part of this skill. Match their feel.
 
-### Example 1 — patch release (CLI)
+### Example 1 — patch release
 
-Tag: `cli-v1.4.3`
-Notes: a single bug fix for a crash when `connexity eval run` was called without a `--config` flag.
+Tag: `v1.4.3`
+Notes: a single bug fix for calls that showed no transcript when a tool call had no result.
 
 Draft:
 
 ```
-🐛 connexity-cli v1.4.3 is out!
+🐛 Connexity v1.4.3 is out!
 
-Quick fix: `connexity eval run` no longer crashes when called without `--config` — it now picks up `connexity.yml` from the current directory like it always should have.
+Quick fix: a call whose tool call returned nothing now shows its full transcript instead of an empty page.
 
-Upgrade: `uv tool upgrade connexity-cli`
-Full notes: https://github.com/Connexity-AI/connexity/releases/tag/cli-v1.4.3
+Rolling out over the next few hours.
+Full notes: https://github.com/Connexity-AI/connexity/releases/tag/v1.4.3
 ```
 
 Notes on why: 🐛 not 🚀 because it's a fix release — leading with the rocket would oversell. Three lines plus links. No bullet section because there's nothing to bullet.
 
-### Example 2 — minor release with highlights (platform)
+### Example 2 — minor release with highlights
 
 Tag: `v1.6.0`
 Notes: new dashboard for eval runs, Postgres → 16 upgrade in the deploy pipeline, faster trace ingestion.
@@ -248,36 +238,36 @@ We've shipped a new home for eval runs and made trace ingestion meaningfully fas
 
 ✨ A new **Eval Runs** dashboard with filterable history, side-by-side run comparison, and export to CSV
 ⚡ Trace ingestion is ~3× faster on large batches — same volume, lower latency before traces show up
-🛠 Internal: Postgres bumped to 16 across staging and prod (no migration needed on your end)
+🛠 Internal: Postgres bumped to 16 (no migration needed on your end)
 
-Rolling out across staging → prod over the next few hours.
+Rolling out over the next few hours.
 Full notes: https://github.com/Connexity-AI/connexity/releases/tag/v1.6.0
 ```
 
 Notes on why: 3 highlights, one emoji each, no two emojis adjacent. The Postgres bump is internal but mentioned because it's the kind of thing operators want to know — note how it's framed as "no migration needed on your end" rather than "we did a migration." User-facing framing.
 
-### Example 3 — major release with breaking changes (CLI)
+### Example 3 — major release with breaking changes
 
-Tag: `cli-v2.0.0`
-Notes: config format moved from `.toml` to `.yml`, removed deprecated `connexity legacy-export` command, new `connexity init` interactive setup.
+Tag: `v3.0.0`
+Notes: two MCP tools renamed, the ingest API now requires a token per workspace, a new Incidents page.
 
 Draft:
 
 ```
-🎉 connexity-cli v2.0.0 is out!
+🎉 Connexity v3.0.0 is out!
 
-A clean break we've been planning for a while. The config format is now YAML, the legacy export command is gone, and there's a proper interactive `connexity init` to get you set up.
+A clean break we've been planning for a while: clearer MCP tool names, safer ingest tokens, and a page for incidents.
 
-💔 **Breaking:** config files moved from `connexity.toml` to `connexity.yml`. Run `connexity migrate-config` to convert in place.
-💔 **Breaking:** `connexity legacy-export` has been removed. Use `connexity export` (which has been the preferred form since v1.3).
-✨ New `connexity init` walks you through first-time setup interactively
-📚 Docs reorganised around the new config format
+💔 **Breaking:** two MCP tools were renamed. Reconnect your assistant so it loads the new list; the MCP page shows every tool.
+💔 **Breaking:** ingest tokens are now per workspace. Create a new token in each workspace that sends calls.
+✨ A new **Incidents** page groups an outage across agents into one record
+📚 Docs reorganised around connecting an assistant
 
-Upgrade: `uv tool upgrade connexity-cli`
-Full notes: https://github.com/Connexity-AI/connexity/releases/tag/cli-v2.0.0
+Rolling out over the next few hours.
+Full notes: https://github.com/Connexity-AI/connexity/releases/tag/v3.0.0
 ```
 
-Notes on why: 🎉 for the milestone (not 🚀 — major versions earn the party). Both breaking changes are called out in words, not just 💔. Each breaking bullet tells the user exactly what to do. The migrate-config command is the most important sentence in the post — surfaced explicitly, not buried.
+Notes on why: 🎉 for the milestone (not 🚀 — major versions earn the party). Both breaking changes are called out in words, not just 💔. Each breaking bullet tells the user exactly what to do.
 
 ---
 
@@ -287,7 +277,7 @@ Notes on why: 🎉 for the milestone (not 🚀 — major versions earn the party
 
 **Tone adjustments:** the examples carry more weight than the rules. If you want the voice to shift, edit an example to reflect the new voice and the model will follow.
 
-**A new release artifact (e.g. an SDK):** add a row to the table at the top, add a structure under [Structure](#structure), and ideally add an example.
+**A second release artifact (e.g. an SDK):** add a row to the table at the top, add a structure under [Structure](#structure), and ideally add an example.
 
 ## Out of scope (intentional)
 

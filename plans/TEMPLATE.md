@@ -6,7 +6,7 @@
      the session. Delete these comments as you fill the sections in. -->
 
 - **Owner:** <!-- who opens the pull request and answers for plan and execution -->
-- **Slice:** <!-- the REBUILD.md slice this belongs to, or "none" -->
+- **Slice:** <!-- the roadmap feature this belongs to, or "none" -->
 - **Design:** <!-- for a change to the UI: the Claude Design artifact and the version Dmytro
   approved. "No UI change" otherwise. -->
 - **MCP:** <!-- the MCP tools this change adds or changes, so the assistant can do what the

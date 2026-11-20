@@ -1,5 +1,5 @@
 """Migration 0039: runs of scenarios stored without a version are deleted with their
-simulated calls and verdicts; 1.x runs stay (plan
+simulated calls and verdicts; runs with no scope stay (plan
 `plans/2026-11-19-tests-tab-versions-fix.md`)."""
 
 import importlib

@@ -470,7 +470,7 @@ birth before booking", "Offer the earliest slot first".
 
 ## 31. Agent Profile: the Tests tab, cut down for the demo
 
-The Tests tab still shows the 1.x picture: test cases that each pass or fail, Text,
+The Tests tab still shows the earlier picture: test cases that each pass or fail, Text,
 Audio and Phone levels, a version history with overrides, and a "Run tests" button.
 Testing works differently now, and the demo shows only what is built.
 

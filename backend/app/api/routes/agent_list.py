@@ -1,8 +1,4 @@
-"""The Agents page: the open workspace's agents (plan `plans/2026-11-14-agents-page.md`).
-
-Included before the 1.x agents router, whose `/agents/{agent_id}` would otherwise
-catch `/agents/list`.
-"""
+"""The Agents page: the open workspace's agents (plan `plans/2026-11-14-agents-page.md`)."""
 
 import uuid
 from typing import Literal

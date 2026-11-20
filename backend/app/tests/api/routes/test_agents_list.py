@@ -67,7 +67,7 @@ def test_the_page_lists_linked_agents_with_type_and_calls(
     unknown = _agent(db, user, "Another line")
     _call(db, unknown, _booking(1, FULL), days_ago=1, version=5)
     _agent(db, user, "A quiet line")
-    # Made by hand in 1.x, not linked to Retell: not on the page.
+    # Not linked to Retell: not on the page.
     db.add(Agent(name="Old draft", company_id=user.company_id))
     db.commit()
 

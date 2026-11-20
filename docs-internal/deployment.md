@@ -100,7 +100,7 @@ does not appear. The Google OAuth client must list the redirect URI
 
 ## Things to know
 
-- **The services deploy separately, in no fixed order.** A merge rebuilds the backend,
+- **The services deploy separately, in no fixed order.** A merge builds the backend again,
   the MCP server and the web app one by one, so for a few minutes any of them may talk to
   an older or newer version of another. A change across them must work with either
   side old: add a field before anything reads it, and stop reading a field before it is
@@ -111,8 +111,8 @@ does not appear. The Google OAuth client must list the redirect URI
   starting; the old one keeps serving. Fix forward with a new migration.
 - **Cloud Run reserves `/healthz`.** Requests to it never reach the MCP container, so do not
   use it for checks; Cloud Run checks that the port is listening.
-- **The database starts empty.** The 1.x data was wiped on 2026-11-12 when the rebuild's
-  migrations were applied (accepted on 2026-10-06).
+- **The database starts empty.** Earlier data was wiped on 2026-11-12 when the current
+  migrations were first applied (accepted on 2026-10-06).
 - **The scheduled call pull** runs inside Cloud Scheduler's minute requests (see below),
   so the backend needs no instance kept running.
 

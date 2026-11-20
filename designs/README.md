@@ -45,7 +45,7 @@ the page and the export date it was built against.
 
 ## Which source wins
 
-Where a prompt and a document in `docs-internal/`, `CLAUDE.md` or `REBUILD.md`
+Where a prompt and a document in `docs-internal/` or `CLAUDE.md`
 disagree, the document wins and the prompt is history. For example, prompt 03 says the
 spec is created on connection; the assistant now writes it as a Readiness step.
 

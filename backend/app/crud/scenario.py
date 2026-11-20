@@ -1,7 +1,7 @@
 """Reading and writing scenarios and their sets (`plans/2026-11-17-scenarios.md`).
 
 A scenario is a `test_case` of an agent with at least one `scenario_rule`; a set is an
-`eval_config`. Both keep their 1.x tables until the runner unfreezes the eval stack.
+`eval_config`. The tables keep the names they had before scenarios.
 """
 
 import uuid

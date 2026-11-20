@@ -136,7 +136,7 @@ Where "two questions in one turn" belongs, and whether "same thing said twice" a
 those three.
 
 Business issue types are the customer's own spec rules, not a fixed list of codes. They
-arrive with the spec (the spec, Phase 3 in `REBUILD.md`).
+arrive with the spec.
 
 **An incident is its own record: one outage that can span agents.** Every failed call
 belongs to at least one incident, so a reliability figure can always be explained by
@@ -257,4 +257,4 @@ Open:
   rise above the normal rate; split by what the agent was waiting on.
 - **Shifts.** A notable change in a metric between two versions, with no single call at
   fault. Postponed until the foundation is solid.
-- Team assignment, tentatively replaced by dispatch to the assistant (see the inbox in `REBUILD.md`, Phase 6).
+- Team assignment, tentatively replaced by dispatch to the assistant (the inbox, a parked idea in the roadmap).
