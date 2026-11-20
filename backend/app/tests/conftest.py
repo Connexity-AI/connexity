@@ -12,6 +12,7 @@ from app.main import app
 from app.models.category import SEED as CATEGORY_SEED
 from app.models.category import Category
 from app.services.n8n import N8nError
+from app.services.retell import PLAYGROUND_PACER
 from app.services.retell_versions import RetellReadError
 from app.tests.utils.user import (
     authentication_token_from_email,
@@ -90,6 +91,17 @@ def _no_provider_version_reads(
         "app.services.component_versions.get_retell_agent_at_version",
         AsyncMock(side_effect=RetellReadError("not reachable in tests")),
     ):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def _no_playground_pacing() -> Generator[None, None, None]:
+    """Requests to Retell's playground are paced to its limit of 8 per 2 seconds.
+
+    Tests answer those requests themselves and make many at once; waiting for the
+    limit would only slow them. The pacer has its own test, which turns it back on.
+    """
+    with patch.object(PLAYGROUND_PACER, "enabled", False):
         yield
 
 

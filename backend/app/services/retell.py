@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import time
+from collections import deque
 from contextvars import ContextVar
 from datetime import datetime
 from typing import Any, Literal
@@ -20,6 +21,43 @@ PLAYGROUND_THROTTLED: ContextVar[list[int] | None] = ContextVar(
     "retell_playground_throttled", default=None
 )
 _RETELL_PLAYGROUND_BACKOFF_SECONDS = (1.0, 2.0, 4.0)
+
+
+class RequestPacer:
+    """Lets at most ``limit`` requests start in any ``window`` seconds, per key.
+
+    Retell allows 8 playground completions per 2 seconds per organization; a run of
+    many simulated calls would start more than that at once. Requests over the limit
+    wait their turn here instead of being refused by Retell (Dmytro, 2026-11-20: "we
+    can just throttle them 8 requests per two seconds"). It paces this process only:
+    another server, or someone using Retell's own playground, shares the same limit,
+    so a refusal is still retried.
+    """
+
+    def __init__(self, limit: int, window: float) -> None:
+        self.limit = limit
+        self.window = window
+        self.enabled = True
+        self._starts: dict[str, deque[float]] = {}
+
+    async def wait(self, key: str) -> None:
+        if not self.enabled:
+            return
+        starts = self._starts.setdefault(key, deque())
+        while True:
+            now = time.monotonic()
+            while starts and now - starts[0] >= self.window:
+                starts.popleft()
+            if len(starts) < self.limit:
+                # No await between the check and here, so two requests never take
+                # the same slot.
+                starts.append(now)
+                return
+            await asyncio.sleep(self.window - (now - starts[0]))
+
+
+# Retell's documented limit for agent playground completions, per organization.
+PLAYGROUND_PACER = RequestPacer(limit=8, window=2.0)
 
 
 class RetellAgentSummary(BaseModel):
@@ -539,6 +577,8 @@ async def create_retell_agent_playground_completion(
     response: httpx.Response | None = None
     network_error: httpx.HTTPError | None = None
     for attempt in range(1, _RETELL_PLAYGROUND_MAX_ATTEMPTS + 1):
+        # One organization per key: every request, a retry included, takes a slot.
+        await PLAYGROUND_PACER.wait(api_key)
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(

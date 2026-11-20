@@ -1345,3 +1345,26 @@ def test_a_run_in_progress_keeps_saying_it_is_alive(
     run = db.get(Run, uuid.UUID(run_id))
     assert run is not None and run.heartbeat_at is not None and old is not None
     assert run.heartbeat_at > old
+
+
+@pytest.mark.provider_versions
+def test_a_runs_requests_to_retell_go_through_the_pacer(
+    client: TestClient, db: Session, caller: AsyncMock
+) -> None:
+    user, agent, keys = _ready(db, client)
+    _scenarios(client, user, agent, _price(keys))
+    waited: list[str] = []
+
+    async def wait(key: str) -> None:
+        waited.append(key)
+
+    with patch("app.services.retell.PLAYGROUND_PACER.wait", new=wait):
+        _made(
+            client,
+            user,
+            agent,
+            AsyncMock(return_value=_verdict(keys[PRICE], "passed")),
+        )
+
+    # The greeting and the reply: each took a slot, under the same Retell key.
+    assert len(waited) == 2 and len(set(waited)) == 1
