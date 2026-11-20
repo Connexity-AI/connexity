@@ -676,7 +676,11 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         of the version with its totals and who ran it, and coverage as tests written;
         then the agent's runs, newest first. With
         `run_id`: the run's status, rule totals, findings, and a page of its
-        simulated calls with each rule's verdict, reason and link (`url`)."""
+        simulated calls with each rule's verdict, reason and link (`url`). Every run
+        says what limits its result: whether its version was edited since (`content`,
+        read on the platform now), the spec it judged against and whether the agent
+        version is newer than it (`spec_behind`), verdicts that rest on a default fake
+        (`mark`, not counted), and that tool schemas were not applied."""
         return await _get_test_runs(
             client=backend_client,
             workspace_id=workspace_id,

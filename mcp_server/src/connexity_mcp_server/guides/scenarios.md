@@ -79,11 +79,16 @@ do not approve them: a person who disagrees asks you to change one.
   - each tool call is answered by the scenario's fake result;
   - a tool the scenario does not fake answers that it is not available in this test,
     and the run names it under `default_fakes`;
-  - add a fake for it with `write_scenarios` when the conversation needs a real-looking
-    answer.
+  - a verdict that rests on that made-up answer is not evidence: it is marked (`mark`
+    `default_fake`, the tools in `mark_detail`) and not counted. Do not act on it;
+  - add a fake for it with `write_scenarios`, then run again.
   - a hang-up or a transfer ends the conversation there, as on a real call.
 - **A conversation ends** when the agent hangs up or after 40 agent replies, and is
   judged on what was said. One still going after 10 minutes is stopped as an error.
+- **No tool schema is applied** (`tool_schemas_applied` is false). The platform's
+  schema for a tool (required fields, minimum lengths, patterns) is never checked in a
+  text run, because the tool is faked. A green run is not proof that a schema change
+  works.
 - **A run is refused** when Connexity's model key is missing. Tell the person; there is
   nothing for you to fix.
 
@@ -97,6 +102,14 @@ do not approve them: a person who disagrees asks you to change one.
 - **Each simulated call** has its verdicts with the judge's reason and the turns it
   rests on. It also has what code checks found; that never counts as a production
   issue.
+- **What limits a run** comes first in its next steps. Read it before the results:
+  - `content`: `same` when the version still has the content the run tested, read on
+    the platform when you ask; `edited` when the same version number now does something
+    else, so the run no longer describes it; `unknown` when it could not be read, which
+    is never "the same";
+  - `spec_version` is the spec the run judged against, and `spec_written_for` the
+    agent version its rules were written for. `spec_behind` means the run tested a
+    newer agent version: update the spec, or confirm nothing in it changed.
 - **When a rule fails:**
   1. Read the reason and the turns.
   2. If the scenario is wrong (it led the caller somewhere the rule does not apply),
@@ -122,12 +135,14 @@ do not approve them: a person who disagrees asks you to change one.
   - **Failed:** a critical rule failed (flaky included) or a critical code check found
     something;
   - **Partially tested:** nothing critical, but some rule was not checked (`unchecked`
-    says whether it didn't come up or has no scenario);
+    says whether it didn't come up, has no scenario, or was judged only on a default
+    fake);
   - **Not verified:** no completed full run of this version, or one that judged no
     rule. `last_verified` names the newest other version a full run verified.
 - **Each run** has its version and its `totals`: rules passed, failed, didn't come up
   and without a scenario, each counted once per run. Calls that stopped with an error
-  count in no column (`not_judged` for rules only they listed); a run no judge read
+  count in no column (`not_judged` for rules only they listed), and so do rules judged
+  only on a default fake (`default_fake`); a run no judge read
   (`judged_calls` 0) has no result; critical findings; calls stopped. And who ran it:
   the person, the assistant, the session (`session` on `run_scenarios`).
 - **`stopped`** counts the full run's simulated calls that ended in an error, with the

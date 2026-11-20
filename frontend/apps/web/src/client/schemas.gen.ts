@@ -8628,6 +8628,12 @@ export const RuleTotalPublicSchema = {
       title: 'Did Not Come Up',
       default: 0,
     },
+    default_fake: {
+      type: 'integer',
+      title: 'Default Fake',
+      description: 'Verdicts not counted, because they rest on a default fake',
+      default: 0,
+    },
     flaky: {
       type: 'boolean',
       title: 'Flaky',
@@ -8685,6 +8691,12 @@ export const RunTotalsPublicSchema = {
       type: 'integer',
       title: 'Not Judged',
       description: 'Rules only calls that stopped listed; they count in no column',
+      default: 0,
+    },
+    default_fake: {
+      type: 'integer',
+      title: 'Default Fake',
+      description: 'Rules whose every verdict rests on a default fake; they count in no column',
       default: 0,
     },
     critical: {
@@ -10209,6 +10221,24 @@ export const TestRunDetailPublicSchema = {
       ],
       title: 'Spec Version',
     },
+    spec_written_for: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Spec Written For',
+      description: "The agent version that spec's rules were written for",
+    },
+    spec_behind: {
+      type: 'boolean',
+      title: 'Spec Behind',
+      description: 'The run tested an agent version newer than the one its spec was written for',
+      default: false,
+    },
     platform_version: {
       anyOf: [
         {
@@ -10219,6 +10249,34 @@ export const TestRunDetailPublicSchema = {
         },
       ],
       title: 'Platform Version',
+    },
+    content: {
+      type: 'string',
+      enum: ['same', 'edited', 'unknown'],
+      title: 'Content',
+      description:
+        'Whether the version still has the content this run tested: edited when its number now holds other content, unknown when that could not be read',
+      default: 'unknown',
+    },
+    content_checked_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Content Checked At',
+      description: 'When the version was read on the platform for it',
+    },
+    tool_schemas_applied: {
+      type: 'boolean',
+      title: 'Tool Schemas Applied',
+      description:
+        "Whether the platform's tool schemas were applied to the agent's tool calls. False in every text run: tools are faked, so a run does not prove a schema fix",
+      default: false,
     },
     created_at: {
       type: 'string',
@@ -10424,6 +10482,24 @@ export const TestRunPublicSchema = {
       ],
       title: 'Spec Version',
     },
+    spec_written_for: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Spec Written For',
+      description: "The agent version that spec's rules were written for",
+    },
+    spec_behind: {
+      type: 'boolean',
+      title: 'Spec Behind',
+      description: 'The run tested an agent version newer than the one its spec was written for',
+      default: false,
+    },
     platform_version: {
       anyOf: [
         {
@@ -10434,6 +10510,34 @@ export const TestRunPublicSchema = {
         },
       ],
       title: 'Platform Version',
+    },
+    content: {
+      type: 'string',
+      enum: ['same', 'edited', 'unknown'],
+      title: 'Content',
+      description:
+        'Whether the version still has the content this run tested: edited when its number now holds other content, unknown when that could not be read',
+      default: 'unknown',
+    },
+    content_checked_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Content Checked At',
+      description: 'When the version was read on the platform for it',
+    },
+    tool_schemas_applied: {
+      type: 'boolean',
+      title: 'Tool Schemas Applied',
+      description:
+        "Whether the platform's tool schemas were applied to the agent's tool calls. False in every text run: tools are faked, so a run does not prove a schema fix",
+      default: false,
     },
     created_at: {
       type: 'string',
@@ -11380,10 +11484,10 @@ export const UncheckedRulePublicSchema = {
     },
     why: {
       type: 'string',
-      enum: ['no_scenario', 'did_not_come_up', 'not_judged'],
+      enum: ['no_scenario', 'did_not_come_up', 'not_judged', 'default_fake'],
       title: 'Why',
       description:
-        'No scenario lists it, its scenarios never reached it, or only calls that stopped listed it',
+        'No scenario lists it, its scenarios never reached it, only calls that stopped listed it, or its verdicts rest on a default fake',
     },
   },
   type: 'object',
@@ -11633,6 +11737,14 @@ export const ValidationErrorSchema = {
   title: 'ValidationError',
 } as const;
 
+export const VerdictMarkSchema = {
+  type: 'string',
+  enum: ['default_fake'],
+  const: 'default_fake',
+  title: 'VerdictMark',
+  description: 'Why a rule verdict is not evidence. A marked verdict counts in no column.',
+} as const;
+
 export const VerdictPublicSchema = {
   properties: {
     key: {
@@ -11659,6 +11771,26 @@ export const VerdictPublicSchema = {
       },
       type: 'array',
       title: 'Turns',
+    },
+    mark: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/VerdictMark',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description:
+        'Set when the verdict is not evidence and is not counted: default_fake when it rests on a tool the scenario did not fake',
+    },
+    mark_detail: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Mark Detail',
+      description: "For default_fake: the tools' names",
     },
   },
   type: 'object',
