@@ -17,6 +17,7 @@ from app.models import (
 from app.models.enums import IssueState
 from app.models.issue_list import IssueListPublic, IssuePeriod, IssueStatusFilter
 from app.models.issue_page import IssuePagePublic
+from app.services.agent_page import agent_versions
 from app.services.checks.registry import get_check
 from app.services.issue_list import IssueFilters, workspace_issues
 from app.services.issue_page import issue_page
@@ -63,11 +64,16 @@ def list_issues(
     severity: Literal["critical", "warning"] | None = None,
     status: IssueStatusFilter = "open",
     q: str | None = Query(default=None, max_length=255),
+    version: str | None = Query(
+        default=None,
+        max_length=64,
+        description="Only issues found on this agent version's calls; with agent_id",
+    ),
 ) -> IssueListPublic:
     """The Issues page: the open workspace's issues grouped by category, worst first.
 
-    The tiles follow the agent and the period only. ``q`` matches words in an issue's
-    title, or its whole id.
+    The tiles follow the agent, its version and the period only. ``q`` matches words in
+    an issue's title, or its whole id.
     """
     page, _ = workspace_issues(
         session=session,
@@ -79,8 +85,21 @@ def list_issues(
             severity=severity,
             status=status,
             query=q,
+            version=version,
         ),
     )
+    page.version = version
+    agent = (
+        crud.get_agent(session=session, agent_id=agent_id, company_id=company_id)
+        if agent_id
+        else None
+    )
+    if agent is not None:
+        page.versions = agent_versions(
+            session=session,
+            agent=agent,
+            live=crud.current_agent_version(session=session, agent_id=agent.id),
+        )
     return page
 
 

@@ -151,6 +151,7 @@ def workspace_issues(
                 else None,
                 calls_affected=affected.get(issue.id, 0),
                 calls_total=per_agent.get(issue.agent_id, 0),
+                first_seen_at=summary.first_seen_at,
                 last_seen_at=summary.last_seen_at,
             )
         )
@@ -235,17 +236,22 @@ def _kind_of(check_type: str) -> CheckKind:
     return check.kind if check else CheckKind.CODE_BASED
 
 
-def critical_issues_by_agent(
+class IssueCounts(NamedTuple):
+    open: int = 0
+    critical: int = 0
+
+
+def issue_counts_by_agent(
     *,
     session: Session,
     company_id: uuid.UUID,
     period: IssuePeriod,
     agent_id: uuid.UUID | None = None,
     version: str | None = None,
-) -> dict[uuid.UUID, int]:
-    """Each agent's open or reopened critical issues that showed in the period, as the
-    Issues page's Critical tile counts them; on agent version ``version`` when given
-    (plan `plans/2026-11-19-agents-score-critical.md`). One pass for all agents."""
+) -> dict[uuid.UUID, IssueCounts]:
+    """Each agent's open or reopened issues that showed in the period, and how many of
+    them are critical, as the Issues page's Open and Critical tiles count them; on
+    agent version ``version`` when given. One pass for all agents."""
     _page, matching = workspace_issues(
         session=session,
         company_id=company_id,
@@ -253,8 +259,12 @@ def critical_issues_by_agent(
             period=period, agent_id=agent_id, status="open", version=version
         ),
     )
-    counts: dict[uuid.UUID, int] = {}
+    counts: dict[uuid.UUID, IssueCounts] = {}
     for item in matching:
-        if item.severity == "critical" and item.state in LIVE_STATES:
-            counts[item.agent_id] = counts.get(item.agent_id, 0) + 1
+        if item.state not in LIVE_STATES:
+            continue
+        have = counts.get(item.agent_id, IssueCounts())
+        counts[item.agent_id] = IssueCounts(
+            have.open + 1, have.critical + (item.severity == "critical")
+        )
     return counts

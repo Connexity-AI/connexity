@@ -230,6 +230,18 @@ export type AgentLatencyDayPublic = {
    * Replies that day: times the agent answered
    */
   replies: number;
+  /**
+   * Score
+   *
+   * The day's score over its checked calls, by the Score's formula; None without a checked call or before onboarding is complete
+   */
+  score?: number | null;
+  /**
+   * Checked Calls
+   *
+   * Checked calls that day: the day's score rests on them
+   */
+  checked_calls?: number;
 };
 
 /**
@@ -454,6 +466,12 @@ export type AgentPagePublic = {
    * Open or reopened critical issues that showed in the period; on the picked version's calls with a version
    */
   critical_issues?: number;
+  /**
+   * Open Issues
+   *
+   * Open or reopened issues that showed in the period, as the Issues page's Open tile counts them; on the picked version's calls with a version
+   */
+  open_issues?: number;
   /**
    * Versions
    *
@@ -4410,6 +4428,12 @@ export type IssueListItemPublic = {
    */
   calls_total: number;
   /**
+   * First Seen At
+   *
+   * When a call first showed it
+   */
+  first_seen_at?: string | null;
+  /**
    * Last Seen At
    *
    * When the latest call it was found on started
@@ -4460,6 +4484,18 @@ export type IssueListPublic = {
    * The fixed categories, in order
    */
   categories: Array<CallFilterOption>;
+  /**
+   * Version
+   *
+   * The agent version the issues are filtered to
+   */
+  version?: string | null;
+  /**
+   * Versions
+   *
+   * With an agent: its versions that have a call, latest call first, to filter by
+   */
+  versions?: Array<AgentVersionOptionPublic>;
 };
 
 /**
@@ -5270,6 +5306,12 @@ export type McpAgentPage = {
    * Open or reopened critical issues that showed in the period; on the picked version's calls with a version
    */
   critical_issues?: number;
+  /**
+   * Open Issues
+   *
+   * Open or reopened issues that showed in the period, as the Issues page's Open tile counts them; on the picked version's calls with a version
+   */
+  open_issues?: number;
   /**
    * Versions
    *
@@ -21443,6 +21485,12 @@ export type IssuesListIssuesData = {
      * Q
      */
     q?: string | null;
+    /**
+     * Version
+     *
+     * Only issues found on this agent version's calls; with agent_id
+     */
+    version?: string | null;
   };
   url: '/api/v1/issues';
 };

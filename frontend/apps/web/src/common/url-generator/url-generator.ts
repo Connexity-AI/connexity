@@ -23,7 +23,7 @@ export class UrlGenerator {
   }
 
   /** One tab of an agent's page, as Work's Done rows link. */
-  static agentTab(id: string, tab: 'spec' | 'tests' | 'calls') {
+  static agentTab(id: string, tab: 'spec' | 'tests' | 'calls' | 'issues') {
     return `/agents/${id}/?tab=${tab}` as Route;
   }
 
@@ -49,11 +49,12 @@ export class UrlGenerator {
     return `/issues/?${query.toString()}` as Route;
   }
 
-  /** One agent's open critical issues over a period, as the Agents list and the agent
-   * Overview link their critical count. */
-  static criticalIssues(agent: string, period?: string) {
+  /** One agent's open critical issues over a period (on one version when given), as the
+   * Agents list and the agent Overview link their critical count. */
+  static criticalIssues(agent: string, period?: string, version?: string | null) {
     const query = new URLSearchParams({ agent, severity: 'critical' });
     if (period && period !== '30d') query.set('period', period);
+    if (version) query.set('version', version);
     return `/issues/?${query.toString()}` as Route;
   }
 

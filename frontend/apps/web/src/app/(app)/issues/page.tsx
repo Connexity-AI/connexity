@@ -25,6 +25,8 @@ const Issues: FC<{ params: SearchParams }> = async ({ params }) => {
       severity: pick(SEVERITIES, one(params.severity)),
       status: pick(STATUSES, one(params.status)) ?? 'open',
       q: one(params.q),
+      // A version only with its agent, as the picker offers it.
+      version: one(params.agent) ? one(params.version) : undefined,
     },
   });
   if (!response.data) throw new Error('Issues could not be loaded.');

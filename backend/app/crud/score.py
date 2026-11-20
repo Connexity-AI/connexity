@@ -5,7 +5,7 @@ call (`shown_finding`). Call times are stored naive, in UTC.
 """
 
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import NamedTuple
 
 from sqlalchemy import and_
@@ -72,6 +72,41 @@ def result_counts_by_agent(
     return {
         agent_id: ResultCounts(int(failed), int(degraded), int(clean))
         for agent_id, failed, degraded, clean in rows
+    }
+
+
+def result_counts_by_day(
+    *,
+    session: Session,
+    company_id: uuid.UUID,
+    agent_id: uuid.UUID,
+    start: datetime,
+    end: datetime,
+    version: str | None = None,
+) -> dict[date, ResultCounts]:
+    """One agent's failed, degraded and clean calls by the UTC day they started, in
+    ``[start, end)``, on agent version ``version`` when given. Unchecked calls are left
+    out, as in `result_counts_by_agent`."""
+    fails = _counting(FindingEffect.FAILS)
+    counts = _counting()
+    day = func.date(col(Call.started_at))
+    rows = session.exec(
+        select(
+            day,
+            func.count().filter(fails),
+            func.count().filter(and_(counts, ~fails)),
+            func.count().filter(and_(~counts, _ran())),
+        )
+        .where(
+            *_window(company_id, start, end),
+            Call.agent_id == agent_id,
+            *([Call.agent_version == version] if version is not None else []),
+        )
+        .group_by(day)
+    ).all()
+    return {
+        when: ResultCounts(int(failed), int(degraded), int(clean))
+        for when, failed, degraded, clean in rows
     }
 
 

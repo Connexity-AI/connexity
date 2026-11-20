@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { AgentView } from '@/components/agents/agent-view';
 import { CallsList, one } from '@/components/calls/calls-list';
 import ErrorBoundarySuspense from '@/components/common/error-boundary-suspense';
-import { AgentsService, SpecService, TestsService } from '@/client/sdk.gen';
+import { AgentsService, IssuesService, SpecService, TestsService } from '@/client/sdk.gen';
 
 import type { SearchParams } from '@/components/calls/calls-list';
 import type { FC } from 'react';
@@ -21,7 +21,10 @@ const Agent: FC<{ id: string; params: SearchParams }> = async ({ id, params }) =
   if (response.response?.status === 404 || response.response?.status === 422) notFound();
   if (!response.data) throw new Error('The agent could not be loaded.');
   const asked = one(params.tab);
-  const tab = asked === 'calls' || asked === 'spec' || asked === 'tests' ? asked : 'overview';
+  const tab =
+    asked === 'calls' || asked === 'issues' || asked === 'spec' || asked === 'tests'
+      ? asked
+      : 'overview';
   const compare = Number(one(params.compare)) || undefined;
   const specResponse = await SpecService.getAgentSpec({
     path: { agent_id: id },
@@ -46,9 +49,15 @@ const Agent: FC<{ id: string; params: SearchParams }> = async ({ id, params }) =
     await TestsService.getAgentTests({ path: { agent_id: id }, query: version ? { version } : {} })
   ).data;
   if (!tests) throw new Error('The tests could not be loaded.');
+  // The Issues tab is the Issues page's list for this agent, period and version.
+  const issues =
+    tab === 'issues'
+      ? (await IssuesService.listIssues({ query: { period, agent_id: id, version } })).data
+      : null;
+  if (tab === 'issues' && !issues) throw new Error('The issues could not be loaded.');
 
   return (
-    <AgentView agent={response.data} tab={tab} spec={spec} tests={tests}>
+    <AgentView agent={response.data} tab={tab} issues={issues} spec={spec} tests={tests}>
       {tab === 'calls' ? <CallsList params={params} agentId={id} /> : null}
     </AgentView>
   );

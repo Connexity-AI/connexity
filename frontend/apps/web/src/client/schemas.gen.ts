@@ -417,6 +417,25 @@ export const AgentLatencyDayPublicSchema = {
       title: 'Replies',
       description: 'Replies that day: times the agent answered',
     },
+    score: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Score',
+      description:
+        "The day's score over its checked calls, by the Score's formula; None without a checked call or before onboarding is complete",
+    },
+    checked_calls: {
+      type: 'integer',
+      title: 'Checked Calls',
+      description: "Checked calls that day: the day's score rests on them",
+      default: 0,
+    },
   },
   type: 'object',
   required: ['day', 'replies'],
@@ -784,6 +803,13 @@ export const AgentPagePublicSchema = {
       title: 'Critical Issues',
       description:
         "Open or reopened critical issues that showed in the period; on the picked version's calls with a version",
+      default: 0,
+    },
+    open_issues: {
+      type: 'integer',
+      title: 'Open Issues',
+      description:
+        "Open or reopened issues that showed in the period, as the Issues page's Open tile counts them; on the picked version's calls with a version",
       default: 0,
     },
     versions: {
@@ -6842,6 +6868,19 @@ export const IssueListItemPublicSchema = {
       title: 'Calls Total',
       description: "The agent's calls in the period",
     },
+    first_seen_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'First Seen At',
+      description: 'When a call first showed it',
+    },
     last_seen_at: {
       anyOf: [
         {
@@ -6921,6 +6960,26 @@ export const IssueListPublicSchema = {
       type: 'array',
       title: 'Categories',
       description: 'The fixed categories, in order',
+    },
+    version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version',
+      description: 'The agent version the issues are filtered to',
+    },
+    versions: {
+      items: {
+        $ref: '#/components/schemas/AgentVersionOptionPublic',
+      },
+      type: 'array',
+      title: 'Versions',
+      description: 'With an agent: its versions that have a call, latest call first, to filter by',
     },
   },
   type: 'object',
@@ -8167,6 +8226,13 @@ export const McpAgentPageSchema = {
       title: 'Critical Issues',
       description:
         "Open or reopened critical issues that showed in the period; on the picked version's calls with a version",
+      default: 0,
+    },
+    open_issues: {
+      type: 'integer',
+      title: 'Open Issues',
+      description:
+        "Open or reopened issues that showed in the period, as the Issues page's Open tile counts them; on the picked version's calls with a version",
       default: 0,
     },
     versions: {

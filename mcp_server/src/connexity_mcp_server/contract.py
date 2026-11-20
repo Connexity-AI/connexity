@@ -174,7 +174,7 @@ TOOLS: dict[str, ToolEntry] = {
     ),
     "get_agent": ToolEntry(
         "agents_and_spec",
-        "One agent at a glance: live version, calls, latency, score and critical issues.",
+        "One agent at a glance: version, calls, latency, score by day and open issues.",
         "spec",
     ),
     "get_spec": ToolEntry(

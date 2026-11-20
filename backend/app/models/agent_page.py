@@ -23,6 +23,14 @@ class AgentLatencyDayPublic(BaseModel):
         default=None, description="The day's p50 over its replies; None without one"
     )
     replies: int = Field(description="Replies that day: times the agent answered")
+    score: int | None = Field(
+        default=None,
+        description="The day's score over its checked calls, by the Score's formula; "
+        "None without a checked call or before onboarding is complete",
+    )
+    checked_calls: int = Field(
+        default=0, description="Checked calls that day: the day's score rests on them"
+    )
 
 
 class AgentVersionMarkPublic(BaseModel):
@@ -81,6 +89,11 @@ class AgentPagePublic(BaseModel):
         default=0,
         description="Open or reopened critical issues that showed in the period; on "
         "the picked version's calls with a version",
+    )
+    open_issues: int = Field(
+        default=0,
+        description="Open or reopened issues that showed in the period, as the Issues "
+        "page's Open tile counts them; on the picked version's calls with a version",
     )
     versions: list[AgentVersionOptionPublic] = Field(
         default_factory=list,
