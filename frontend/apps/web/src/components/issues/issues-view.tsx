@@ -66,7 +66,7 @@ export const lastSeen = (iso: string | null | undefined) => {
   return `${Math.floor(minutes / 1440)} days ago`;
 };
 
-const SeverityLabel: FC<{ severity: IssueListItemPublic['severity'] }> = ({ severity }) =>
+export const SeverityLabel: FC<{ severity: IssueListItemPublic['severity'] }> = ({ severity }) =>
   severity === 'critical' ? (
     <span className="inline-flex h-[22px] items-center gap-1 rounded-md bg-critical-bg px-2 text-label font-medium text-critical">
       <OctagonAlert className="size-3.5" aria-hidden />
@@ -194,11 +194,14 @@ export const IssuesView: FC<Props> = ({ issues }) => {
   const agent = params.get('agent') ?? undefined;
   const category = params.get('category') ?? undefined;
   const severity = params.get('severity') ?? undefined;
+  const version = issues.version ?? undefined;
+  const versions = issues.versions ?? [];
   const anyFilter = Boolean(searching || agent || category || severity || issues.status !== 'open');
   const clearAll = () =>
     go({
       q: undefined,
       agent: undefined,
+      version: undefined,
       category: undefined,
       severity: undefined,
       status: undefined,
@@ -259,8 +262,25 @@ export const IssuesView: FC<Props> = ({ issues }) => {
           label="All agents"
           value={agent}
           options={issues.agents}
-          onPick={(value) => go({ agent: value })}
+          onPick={(value) => go({ agent: value, version: undefined })}
         />
+        {agent && (versions.length > 0 || version) && (
+          <Picker
+            label="All versions"
+            clearLabel="All versions"
+            value={version}
+            options={[
+              ...versions.map((v) => ({
+                value: v.version,
+                label: `Version ${v.version}${v.live ? ' · live' : ''}`,
+              })),
+              ...(version && !versions.some((v) => v.version === version)
+                ? [{ value: version, label: `Version ${version}` }]
+                : []),
+            ]}
+            onPick={(value) => go({ version: value })}
+          />
+        )}
         <Picker
           label="Any category"
           value={category}

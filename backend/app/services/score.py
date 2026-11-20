@@ -15,7 +15,7 @@ changes it. It is shown only once onboarding is complete.
 import math
 import uuid
 from collections import defaultdict
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from sqlmodel import Session, col, select
 
@@ -24,6 +24,7 @@ from app.crud.score import (
     ResultCounts,
     ShownFinding,
     result_counts_by_agent,
+    result_counts_by_day,
     shown_findings,
 )
 from app.models.check import Issue
@@ -193,3 +194,34 @@ def scores_by_agent(
         )
         out[agent_id] = (now_score, change)
     return out
+
+
+def daily_scores(
+    *,
+    session: Session,
+    agent_id: uuid.UUID,
+    company_id: uuid.UUID,
+    start: datetime,
+    end: datetime | None = None,
+    version: str | None = None,
+    onboarded: bool | None = None,
+) -> dict[date, tuple[int | None, int]]:
+    """Each UTC day's score and checked calls for one agent, by the same formula as
+    `score` over that day's calls; on agent version ``version`` when given. A day
+    without a checked call has none. Empty before onboarding is complete."""
+    if onboarded is None:
+        onboarded = onboarding_complete(session=session, company_id=company_id)
+    if not onboarded:
+        return {}
+    by_day = result_counts_by_day(
+        session=session,
+        company_id=company_id,
+        agent_id=agent_id,
+        start=start,
+        end=end or datetime.now(UTC),
+        version=version,
+    )
+    return {
+        day: (score_of(c.failed, c.degraded, c.checked), c.checked)
+        for day, c in by_day.items()
+    }

@@ -630,3 +630,15 @@ Overview".
 - **The agent's Overview:** the latency tile as above; the chart is one line of daily
   p50, "Latency p50", with the version marks ("New version") and, with a version picked,
   that version's days shaded. No goal line, no warning colour on latency.
+
+## 35. Issues page: a version filter with an agent
+
+Dmytro, 2026-11-20 (roadmap 10.1993). Screen: "Connexity Issues". The agent page's
+Critical tile opens the Issues page on the picked version, so the Issues page needs the
+same filter.
+
+- **The Version picker** appears beside the agent picker once an agent is picked: "All
+  versions", or "Version 88 · live", listing that agent's versions that have a call,
+  newest first. Picking another agent, or all agents, clears it; Clear clears it too.
+- **With a version picked,** the list and the tiles count only issues found on that
+  version's calls in the period.

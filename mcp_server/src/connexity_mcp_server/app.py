@@ -455,8 +455,8 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         type, live version and since when, model, the n8n workflows it used, calls,
         latency p50 and p95 over every reply, each day's p50 with version marks,
         its spec state, and its score: 0 to 100 over its checked calls, its change
-        against the previous period, the issues that cost it the most points and its
-        critical issues count. It
+        against the previous period, the issues that cost it the most points, each
+        day's score with its checked calls, and its open and critical issues counts. It
         lists every agent version that has a call; `version` counts only that
         version's calls, so two versions compare by calling twice."""
         return await _get_agent(

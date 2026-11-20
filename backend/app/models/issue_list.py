@@ -6,6 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.models.agent_page import AgentVersionOptionPublic
 from app.models.call_list import CallFilterOption
 from app.models.enums import CheckKind, IssueState
 
@@ -44,6 +45,9 @@ class IssueListItemPublic(BaseModel):
     )
     calls_affected: int = Field(description="Calls in the period it was found on")
     calls_total: int = Field(description="The agent's calls in the period")
+    first_seen_at: datetime | None = Field(
+        default=None, description="When a call first showed it"
+    )
     last_seen_at: datetime | None = Field(
         default=None, description="When the latest call it was found on started"
     )
@@ -71,4 +75,12 @@ class IssueListPublic(BaseModel):
     agents: list[CallFilterOption] = Field(description="The agents to filter by")
     categories: list[CallFilterOption] = Field(
         description="The fixed categories, in order"
+    )
+    version: str | None = Field(
+        default=None, description="The agent version the issues are filtered to"
+    )
+    versions: list[AgentVersionOptionPublic] = Field(
+        default_factory=list,
+        description="With an agent: its versions that have a call, latest call first, "
+        "to filter by",
     )

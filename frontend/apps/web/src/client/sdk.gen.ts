@@ -4500,8 +4500,8 @@ export class IssuesService {
    *
    * The Issues page: the open workspace's issues grouped by category, worst first.
    *
-   * The tiles follow the agent and the period only. ``q`` matches words in an issue's
-   * title, or its whole id.
+   * The tiles follow the agent, its version and the period only. ``q`` matches words in
+   * an issue's title, or its whole id.
    */
   public static listIssues<ThrowOnError extends boolean = false>(
     options?: Options<IssuesListIssuesData, ThrowOnError>

@@ -24,8 +24,10 @@ MISSING_ZIP = {**FULL, "postalCode": ""}
 @pytest.fixture
 def onboarded(monkeypatch: pytest.MonkeyPatch) -> None:
     from app.api.routes import mcp
+    from app.services import agent_page
 
     monkeypatch.setattr(score_service, "onboarding_complete", lambda **_: True)
+    monkeypatch.setattr(agent_page, "onboarding_complete", lambda **_: True)
     monkeypatch.setattr(mcp, "onboarding_complete", lambda **_: True)
 
 

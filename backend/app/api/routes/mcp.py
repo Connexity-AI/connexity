@@ -152,8 +152,9 @@ from app.services.feedback import (
 )
 from app.services.first_scan import SCAN_DAYS, scan_agents, scan_step
 from app.services.issue_list import (
+    IssueCounts,
     IssueFilters,
-    critical_issues_by_agent,
+    issue_counts_by_agent,
     workspace_issues,
 )
 from app.services.issue_page import issue_page
@@ -883,7 +884,7 @@ def list_agents(
     calls = calls_by_agent(
         session=session, company_id=workspace.id, since=period_start(period)
     )
-    critical = critical_issues_by_agent(
+    critical = issue_counts_by_agent(
         session=session, company_id=workspace.id, period=period
     )
     onboarded = onboarding_complete(session=session, company_id=workspace.id)
@@ -896,7 +897,7 @@ def list_agents(
         row.score, row.score_change = scores.get(agent.id, (None, None))
         row.type = types.get(agent.id)
         row.calls = calls.get(agent.id, 0)
-        row.critical_issues = critical.get(agent.id, 0)
+        row.critical_issues = critical.get(agent.id, IssueCounts()).critical
         if agent.id in latency:
             row.latency_p50 = latency[agent.id].p50
             row.latency_p95 = latency[agent.id].p95
@@ -1493,12 +1494,16 @@ def get_agent(
             "live_version is the agent version of its most recent call, and live_since "
             "when the first call on it started.",
             "systems are the n8n workflows its tool calls ran in the period.",
-            "critical_issues counts its open or reopened critical issues that showed in "
-            "the period, as the Issues page's Critical tile does; `list_issues` with "
-            "agent_id and severity critical lists them.",
+            "open_issues counts its open or reopened issues that showed in the period, "
+            "and critical_issues the critical ones among them, as the Issues page's "
+            "Open and Critical tiles do; `list_issues` with agent_id (and version) "
+            "lists them.",
+            "Each of latency_days has the day's score over its checked_calls, by the "
+            "same formula; a day without a checked call has none. Give a day's score "
+            "with its base: one day rests on few calls.",
             "versions lists every agent version that has a call, the latest call's "
-            "first; with `version`, calls, latency, systems and the score count only "
-            "that version's calls in the period.",
+            "first; with `version`, calls, latency, systems, issues and the scores "
+            "count only that version's calls in the period.",
         ],
         next_steps=next_steps,
         guide=GUIDE_GETTING_STARTED,

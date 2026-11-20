@@ -21,8 +21,9 @@ from app.models.agent_page import (
 from app.models.call import Call, CallComponent
 from app.models.component_version import ComponentVersion
 from app.services.agent_list import agent_types, live_since
-from app.services.issue_list import critical_issues_by_agent
-from app.services.score import score
+from app.services.issue_list import IssueCounts, issue_counts_by_agent
+from app.services.onboarding_finish import onboarding_complete
+from app.services.score import daily_scores, score
 from app.services.spec import spec_state
 
 
@@ -117,14 +118,32 @@ def agent_page(
     for row in gaps:
         by_day[row.day].extend(row.gaps)
     overall = gap_percentiles([gap for row in gaps for gap in row.gaps])
+    onboarded = onboarding_complete(session=session, company_id=agent.company_id)
+    scores = daily_scores(
+        session=session,
+        agent_id=agent.id,
+        company_id=agent.company_id,
+        start=since,
+        version=version,
+        onboarded=onboarded,
+    )
     days = [
         AgentLatencyDayPublic(
             day=day,
             p50=gap_percentiles(by_day.get(day, [])).p50,
             replies=len(by_day.get(day, [])),
+            score=scores.get(day, (None, 0))[0],
+            checked_calls=scores.get(day, (None, 0))[1],
         )
         for day in period_days(since, PERIODS[period])
     ]
+    issues = issue_counts_by_agent(
+        session=session,
+        company_id=agent.company_id,
+        period=period,
+        agent_id=agent.id,
+        version=version,
+    ).get(agent.id, IssueCounts())
     first_day = days[0].day if days else since.date()
     marks = [
         AgentVersionMarkPublic(day=started.date(), label=f"Version {version}")
@@ -162,15 +181,11 @@ def agent_page(
             period=period,
             agent_id=agent.id,
             version=version,
+            onboarded=onboarded,
             with_moves=False,
         ),
-        critical_issues=critical_issues_by_agent(
-            session=session,
-            company_id=agent.company_id,
-            period=period,
-            agent_id=agent.id,
-            version=version,
-        ).get(agent.id, 0),
+        critical_issues=issues.critical,
+        open_issues=issues.open,
         versions=agent_versions(session=session, agent=agent, live=live),
         version=version,
         version_days=version_days,

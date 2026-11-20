@@ -799,6 +799,10 @@ class AgentLatencyDay(BaseModel):
     day: str
     p50: float | None = Field(default=None, description="The day's p50, in seconds")
     replies: int = 0
+    score: int | None = Field(
+        default=None, description="The day's score over its checked calls"
+    )
+    checked_calls: int = Field(default=0, description="Checked calls that day")
 
 
 class AgentVersionMark(BaseModel):
@@ -833,6 +837,9 @@ class AgentPage(BaseModel):
     critical_issues: int = Field(
         default=0,
         description="Open or reopened critical issues that showed in the period",
+    )
+    open_issues: int = Field(
+        default=0, description="Open or reopened issues that showed in the period"
     )
     versions: list[AgentVersionOption] = Field(
         default_factory=list,

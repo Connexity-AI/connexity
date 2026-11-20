@@ -11,12 +11,18 @@ import { NumberTile } from '@workspace/ui/components/number-tile';
 import { cn } from '@workspace/ui/lib/utils';
 
 import { PLATFORMS, TYPES } from '@/components/agents/agents-view';
+import { IssuesTab } from '@/components/agents/issues-tab';
 import { SpecTab } from '@/components/agents/spec-tab';
 import { TestsTab } from '@/components/agents/tests-tab';
 import { parseTime } from '@/components/calls/format';
 import { Picker } from '@/components/common/picker';
 
-import type { AgentPagePublic, SpecPublic, TestsTabPublic } from '@/client/types.gen';
+import type {
+  AgentPagePublic,
+  IssueListPublic,
+  SpecPublic,
+  TestsTabPublic,
+} from '@/client/types.gen';
 import type { FC, ReactNode } from 'react';
 
 const PERIOD_LABELS: Record<string, string> = {
@@ -64,35 +70,44 @@ const Axis: FC<{ value: string; className: string }> = ({ value, className }) =>
   </div>
 );
 
-/** The line through the p50 of each day that had replies, in a 0..100 box; days without
- * replies are stepped over, so calls a few days apart still draw a line. */
-const linePath = (days: AgentPagePublic['latency_days'], top: number) =>
-  days
-    .map((d, i) =>
-      d.p50 == null
+type Day = AgentPagePublic['latency_days'][number];
+
+/** The line through each day's value in a 0..100 box; days without one are stepped
+ * over, so calls a few days apart still draw a line. */
+const linePath = (values: (number | null)[], top: number) =>
+  values
+    .map((v, i) =>
+      v == null
         ? null
-        : `${(((i + 0.5) / (days.length || 1)) * 100).toFixed(2)} ${(100 - (Math.min(d.p50, top) / top) * 100).toFixed(2)}`
+        : `${(((i + 0.5) / (values.length || 1)) * 100).toFixed(2)} ${(100 - (Math.min(v, top) / top) * 100).toFixed(2)}`
     )
     .filter((point): point is string => point != null)
     .map((point, i) => `${i ? 'L' : 'M'}${point}`)
     .join(' ');
 
-/** Each day's p50 latency as one line, with a mark at each new version (design item 34:
- * "Latency p50"; no goal line until a goal can be set). */
-const LatencyChart: FC<{ agent: AgentPagePublic }> = ({ agent }) => {
+/** One panel of the chart: a line through each day's value with a dot on each, its
+ * axis, the picked version's days shaded and the version marks. */
+const Panel: FC<{
+  agent: AgentPagePublic;
+  label: string;
+  values: (number | null)[];
+  top: number;
+  axis: [string, string, string];
+  hover: (day: Day, i: number) => string;
+  /** The panel the version labels sit above. */
+  first: boolean;
+}> = ({ agent, label, values, top, axis, hover, first }) => {
   const days = agent.latency_days;
   const count = days.length || 1;
-  const top = Math.max(1, Math.ceil(agent.latency_peak ?? 0));
   const index = Object.fromEntries(days.map((d, i) => [d.day, i]));
-  const every = count > 31 ? 14 : 7;
-  // With a version picked, the days it ran are shaded.
   const picked = new Set(agent.version_days ?? []);
   return (
-    <div className="flex flex-col gap-2 pt-5">
-      <div className="relative h-40">
-        <Axis value={`${top} s`} className="top-0" />
-        <Axis value={`${(top / 2).toFixed(top % 2 ? 1 : 0)} s`} className="top-1/2" />
-        <Axis value="0" className="bottom-0" />
+    <div className="flex flex-col gap-2">
+      <span className="text-label text-ink-secondary">{label}</span>
+      <div className="relative h-32">
+        <Axis value={axis[0]} className="top-0" />
+        <Axis value={axis[1]} className="top-1/2" />
+        <Axis value={axis[2]} className="bottom-0" />
         {agent.version && (agent.version_days ?? []).length > 0 && (
           <div
             className="pointer-events-none absolute top-0 right-0 bottom-0 left-10 grid gap-[2px]"
@@ -111,7 +126,7 @@ const LatencyChart: FC<{ agent: AgentPagePublic }> = ({ agent }) => {
           aria-hidden
         >
           <path
-            d={linePath(days, top)}
+            d={linePath(values, top)}
             fill="none"
             stroke="currentColor"
             strokeWidth={2}
@@ -123,25 +138,20 @@ const LatencyChart: FC<{ agent: AgentPagePublic }> = ({ agent }) => {
           className="absolute top-0 right-0 bottom-0 left-10 grid"
           style={{ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }}
         >
-          {days.map((d) => (
-            <div
-              key={d.day}
-              className="relative"
-              title={
-                d.p50 == null
-                  ? `${calendarDay(d.day)}: no replies`
-                  : `${calendarDay(d.day)}: p50 ${d.p50.toFixed(1)}s over ${d.replies} ${d.replies === 1 ? 'reply' : 'replies'}`
-              }
-            >
-              {d.p50 != null && (
-                // A dot on each day with replies, so a single day still shows.
-                <span
-                  className="absolute left-1/2 size-1.5 -translate-x-1/2 translate-y-1/2 rounded-full bg-ink"
-                  style={{ bottom: `${(Math.min(d.p50, top) / top) * 100}%` }}
-                />
-              )}
-            </div>
-          ))}
+          {days.map((d, i) => {
+            const v = values[i];
+            return (
+              <div key={d.day} className="relative" title={hover(d, i)}>
+                {v != null && (
+                  // A dot on each day with a value, so a single day still shows.
+                  <span
+                    className="absolute left-1/2 size-1.5 -translate-x-1/2 translate-y-1/2 rounded-full bg-ink"
+                    style={{ bottom: `${(Math.min(v, top) / top) * 100}%` }}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
         <div className="pointer-events-none absolute top-0 right-0 bottom-0 left-10">
           {agent.version_marks.map((mark) => {
@@ -153,14 +163,64 @@ const LatencyChart: FC<{ agent: AgentPagePublic }> = ({ agent }) => {
                 className="absolute top-0 bottom-0 border-l border-dashed border-ink-muted"
                 style={{ left: `${((i + 0.5) / count) * 100}%` }}
               >
-                <span className="absolute -top-[22px] left-1.5 whitespace-nowrap text-label text-ink-secondary">
-                  {mark.label}
-                </span>
+                {first && (
+                  <span className="absolute -top-[22px] left-1.5 whitespace-nowrap text-label text-ink-secondary">
+                    {mark.label}
+                  </span>
+                )}
               </div>
             );
           })}
         </div>
       </div>
+    </div>
+  );
+};
+
+/** "Quality and latency": each day's score above each day's p50 latency, one day axis
+ * and the version marks across both (designs/screens/Connexity Agent Profile.dc.html).
+ * No goal lines until goals can be set. */
+const QualityChart: FC<{ agent: AgentPagePublic }> = ({ agent }) => {
+  const days = agent.latency_days;
+  const count = days.length || 1;
+  const top = Math.max(1, Math.ceil(agent.latency_peak ?? 0));
+  const every = count > 31 ? 14 : 7;
+  const scored = agent.score?.why_none?.includes('onboarding') !== true;
+  return (
+    <div className="flex flex-col gap-5 pt-5">
+      {scored ? (
+        <Panel
+          agent={agent}
+          label="Score"
+          values={days.map((d) => d.score ?? null)}
+          top={100}
+          axis={['100', '50', '0']}
+          hover={(d) =>
+            d.score == null
+              ? `${calendarDay(d.day)}: no checked calls`
+              : `${calendarDay(d.day)}: score ${d.score} over ${d.checked_calls} checked ${d.checked_calls === 1 ? 'call' : 'calls'}`
+          }
+          first
+        />
+      ) : (
+        <div className="flex flex-col gap-2">
+          <span className="text-label text-ink-secondary">Score</span>
+          <span className="text-label text-ink-muted">Ready when onboarding is complete</span>
+        </div>
+      )}
+      <Panel
+        agent={agent}
+        label="Latency p50"
+        values={days.map((d) => d.p50 ?? null)}
+        top={top}
+        axis={[`${top} s`, `${(top / 2).toFixed(top % 2 ? 1 : 0)} s`, '0']}
+        hover={(d) =>
+          d.p50 == null
+            ? `${calendarDay(d.day)}: no replies`
+            : `${calendarDay(d.day)}: p50 ${d.p50.toFixed(1)}s over ${d.replies} ${d.replies === 1 ? 'reply' : 'replies'}`
+        }
+        first={!scored}
+      />
       <div
         className="ml-10 grid gap-[2px] text-label text-ink-muted"
         style={{ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }}
@@ -211,12 +271,17 @@ const ScoreTile: FC<{ agent: AgentPagePublic }> = ({ agent }) => {
   );
 };
 
-/** The agent's critical issues. It opens them on the Issues page; with a version picked
- * it is not a link, since the Issues page counts every version's calls. */
+const TILE = 'flex min-w-0 flex-col gap-2 rounded-xl border border-hairline bg-surface-1 p-4';
+
+/** The agent's critical issues; it opens them on the Issues page, on the picked version
+ * when there is one. */
 const CriticalTile: FC<{ agent: AgentPagePublic }> = ({ agent }) => {
   const count = agent.critical_issues ?? 0;
-  const body = (
-    <>
+  return (
+    <Link
+      href={UrlGenerator.criticalIssues(agent.id, agent.period, agent.version)}
+      className={cn(TILE, 'text-ink no-underline hover:bg-wash')}
+    >
       <span
         className={cn(
           'flex items-center gap-1.5 text-label',
@@ -224,36 +289,25 @@ const CriticalTile: FC<{ agent: AgentPagePublic }> = ({ agent }) => {
         )}
       >
         {count ? <OctagonAlert className="size-3.5" aria-hidden /> : null}
-        {agent.version ? `Critical issues on version ${agent.version}` : 'Critical issues'}
+        Critical
       </span>
       <span
         className={cn('text-[30px] leading-9 font-medium', count ? 'text-critical' : undefined)}
       >
         {count.toLocaleString()}
       </span>
-    </>
-  );
-  const box = 'flex min-w-0 flex-col gap-2 rounded-xl border border-hairline bg-surface-1 p-4';
-  return agent.version ? (
-    <div className={box}>{body}</div>
-  ) : (
-    <Link
-      href={UrlGenerator.criticalIssues(agent.id, agent.period)}
-      className={cn(box, 'text-ink no-underline hover:bg-wash')}
-    >
-      {body}
     </Link>
   );
 };
 
-const Overview: FC<{ agent: AgentPagePublic }> = ({ agent }) => (
+const Overview: FC<{ agent: AgentPagePublic; onIssues: () => void }> = ({ agent, onIssues }) => (
   <div className="flex flex-col gap-6">
     {agent.version && agent.calls === 0 && (
       <p className="m-0 rounded-xl border border-hairline bg-surface-1 px-6 py-4 text-ink-secondary">
         No calls on version {agent.version} in the {PERIOD_LABELS[agent.period]?.toLowerCase()}.
       </p>
     )}
-    <div className="grid auto-rows-fr grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="grid auto-rows-fr grid-cols-2 gap-3 lg:grid-cols-5">
       <ScoreTile agent={agent} />
       <NumberTile
         label={agent.version ? `Calls on version ${agent.version}` : 'Calls'}
@@ -280,6 +334,17 @@ const Overview: FC<{ agent: AgentPagePublic }> = ({ agent }) => (
         )}
       </div>
       <CriticalTile agent={agent} />
+      <button
+        type="button"
+        onClick={onIssues}
+        title="Open the Issues tab"
+        className={cn(TILE, 'cursor-pointer text-left text-ink hover:bg-wash')}
+      >
+        <span className="text-label text-ink-secondary">Issues</span>
+        <span className="text-[30px] leading-9 font-medium">
+          {(agent.open_issues ?? 0).toLocaleString()}
+        </span>
+      </button>
     </div>
     <section className="flex flex-col gap-4 rounded-xl border border-hairline bg-surface-1 px-6 pt-5 pb-6">
       <h2 className="m-0 text-body font-medium">Details</h2>
@@ -314,10 +379,12 @@ const Overview: FC<{ agent: AgentPagePublic }> = ({ agent }) => (
     <section className="flex flex-col gap-4 rounded-xl border border-hairline bg-surface-1 px-6 pt-5 pb-6">
       <div className="flex items-baseline justify-between gap-3">
         <div className="flex items-baseline gap-3">
-          <h2 className="m-0 text-body font-medium">Latency p50</h2>
+          <h2 className="m-0 text-body font-medium">Quality and latency</h2>
           <span className="text-label text-ink-muted">
             {PERIOD_LABELS[agent.period]}
             {agent.version ? ` · version ${agent.version}` : ''} ·{' '}
+            {(agent.score?.checked_calls ?? 0).toLocaleString()} checked{' '}
+            {agent.score?.checked_calls === 1 ? 'call' : 'calls'} ·{' '}
             {agent.latency_replies.toLocaleString()}{' '}
             {agent.latency_replies === 1 ? 'reply' : 'replies'}
           </span>
@@ -329,14 +396,16 @@ const Overview: FC<{ agent: AgentPagePublic }> = ({ agent }) => (
           </span>
         )}
       </div>
-      <LatencyChart agent={agent} />
+      <QualityChart agent={agent} />
     </section>
   </div>
 );
 
 interface Props {
   agent: AgentPagePublic;
-  tab: 'overview' | 'calls' | 'spec' | 'tests';
+  tab: 'overview' | 'calls' | 'issues' | 'spec' | 'tests';
+  /** The Issues tab's list, loaded on the server when it is open. */
+  issues?: IssueListPublic | null;
   /** The agent's spec, loaded on the server; shown on the Spec tab and in its label. */
   spec?: SpecPublic | null;
   /** The Tests tab, loaded on the server; its coverage is in the tab's label. */
@@ -346,10 +415,10 @@ interface Props {
 }
 
 /**
- * One agent (designs/screens/Connexity Agent Profile.dc.html): Overview, Calls, Spec and
- * Tests. The Issues tab waits for its feature (rule 14).
+ * One agent (designs/screens/Connexity Agent Profile.dc.html): Overview, Calls, Issues,
+ * Spec and Tests.
  */
-export const AgentView: FC<Props> = ({ agent, tab, spec, tests, children }) => {
+export const AgentView: FC<Props> = ({ agent, tab, issues, spec, tests, children }) => {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -368,6 +437,7 @@ export const AgentView: FC<Props> = ({ agent, tab, spec, tests, children }) => {
   const tabs = [
     { key: 'overview' as const, label: 'Overview', count: null },
     { key: 'calls' as const, label: 'Calls', count: agent.calls },
+    { key: 'issues' as const, label: 'Issues', count: agent.open_issues ?? 0 },
     { key: 'spec' as const, label: 'Spec', count: spec?.spec?.rule_count ?? null },
     {
       key: 'tests' as const,
@@ -461,8 +531,9 @@ export const AgentView: FC<Props> = ({ agent, tab, spec, tests, children }) => {
         })}
       </div>
 
-      {tab === 'overview' && <Overview agent={agent} />}
+      {tab === 'overview' && <Overview agent={agent} onIssues={() => go({ tab: 'issues' })} />}
       {tab === 'calls' && children}
+      {tab === 'issues' && issues && <IssuesTab issues={issues} />}
       {tab === 'tests' && tests && (
         <TestsTab agentId={agent.id} version={agent.version} tests={tests} />
       )}
