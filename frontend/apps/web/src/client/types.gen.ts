@@ -5902,6 +5902,12 @@ export type RuleTotalPublic = {
    */
   did_not_come_up?: number;
   /**
+   * Default Fake
+   *
+   * Verdicts not counted, because they rest on a default fake
+   */
+  default_fake?: number;
+  /**
    * Flaky
    *
    * It both passed and failed across repeats
@@ -5980,6 +5986,12 @@ export type RunTotalsPublic = {
    * Rules only calls that stopped listed; they count in no column
    */
   not_judged?: number;
+  /**
+   * Default Fake
+   *
+   * Rules whose every verdict rests on a default fake; they count in no column
+   */
+  default_fake?: number;
   /**
    * Critical
    *
@@ -7048,9 +7060,39 @@ export type TestRunDetailPublic = {
    */
   spec_version?: number | null;
   /**
+   * Spec Written For
+   *
+   * The agent version that spec's rules were written for
+   */
+  spec_written_for?: string | null;
+  /**
+   * Spec Behind
+   *
+   * The run tested an agent version newer than the one its spec was written for
+   */
+  spec_behind?: boolean;
+  /**
    * Platform Version
    */
   platform_version?: string | null;
+  /**
+   * Content
+   *
+   * Whether the version still has the content this run tested: edited when its number now holds other content, unknown when that could not be read
+   */
+  content?: 'same' | 'edited' | 'unknown';
+  /**
+   * Content Checked At
+   *
+   * When the version was read on the platform for it
+   */
+  content_checked_at?: string | null;
+  /**
+   * Tool Schemas Applied
+   *
+   * Whether the platform's tool schemas were applied to the agent's tool calls. False in every text run: tools are faked, so a run does not prove a schema fix
+   */
+  tool_schemas_applied?: boolean;
   /**
    * Created At
    */
@@ -7151,9 +7193,39 @@ export type TestRunPublic = {
    */
   spec_version?: number | null;
   /**
+   * Spec Written For
+   *
+   * The agent version that spec's rules were written for
+   */
+  spec_written_for?: string | null;
+  /**
+   * Spec Behind
+   *
+   * The run tested an agent version newer than the one its spec was written for
+   */
+  spec_behind?: boolean;
+  /**
    * Platform Version
    */
   platform_version?: string | null;
+  /**
+   * Content
+   *
+   * Whether the version still has the content this run tested: edited when its number now holds other content, unknown when that could not be read
+   */
+  content?: 'same' | 'edited' | 'unknown';
+  /**
+   * Content Checked At
+   *
+   * When the version was read on the platform for it
+   */
+  content_checked_at?: string | null;
+  /**
+   * Tool Schemas Applied
+   *
+   * Whether the platform's tool schemas were applied to the agent's tool calls. False in every text run: tools are faked, so a run does not prove a schema fix
+   */
+  tool_schemas_applied?: boolean;
   /**
    * Created At
    */
@@ -7666,9 +7738,9 @@ export type UncheckedRulePublic = {
   /**
    * Why
    *
-   * No scenario lists it, its scenarios never reached it, or only calls that stopped listed it
+   * No scenario lists it, its scenarios never reached it, only calls that stopped listed it, or its verdicts rest on a default fake
    */
-  why: 'no_scenario' | 'did_not_come_up' | 'not_judged';
+  why: 'no_scenario' | 'did_not_come_up' | 'not_judged' | 'default_fake';
 };
 
 /**
@@ -7812,6 +7884,20 @@ export type ValidationError = {
 };
 
 /**
+ * VerdictMark
+ *
+ * Why a rule verdict is not evidence. A marked verdict counts in no column.
+ */
+export const VerdictMark = { DEFAULT_FAKE: 'default_fake' } as const;
+
+/**
+ * VerdictMark
+ *
+ * Why a rule verdict is not evidence. A marked verdict counts in no column.
+ */
+export type VerdictMark = (typeof VerdictMark)[keyof typeof VerdictMark];
+
+/**
  * VerdictPublic
  */
 export type VerdictPublic = {
@@ -7828,6 +7914,16 @@ export type VerdictPublic = {
    * Turns
    */
   turns?: Array<number>;
+  /**
+   * Set when the verdict is not evidence and is not counted: default_fake when it rests on a tool the scenario did not fake
+   */
+  mark?: VerdictMark | null;
+  /**
+   * Mark Detail
+   *
+   * For default_fake: the tools' names
+   */
+  mark_detail?: Array<string>;
 };
 
 /**

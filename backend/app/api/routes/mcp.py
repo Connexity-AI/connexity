@@ -116,7 +116,11 @@ from app.models.mcp import (
 )
 from app.models.scenario import ScenarioListPublic, ScenarioSetPublic
 from app.models.spec import SpecPublic, SpecWrittenPublic
-from app.models.test_run import TestRunDetailPublic, VersionResultsPublic
+from app.models.test_run import (
+    TestRunDetailPublic,
+    TestRunPublic,
+    VersionResultsPublic,
+)
 from app.models.work import WorkMoveIn
 from app.services.agent_list import agent_types, live_since
 from app.services.agent_page import agent_page
@@ -191,6 +195,8 @@ from app.services.test_run import (
     RunRequest,
     launch,
     list_runs,
+    read_content_now,
+    results_version,
     run_detail,
     start_run,
     version_results,
@@ -2498,6 +2504,21 @@ _TEST_RUN_RULES = [
     "full run of what it does now (its newest run's content), under any version "
     "number (`same_content`). A version edited after its full run is not verified "
     "until a new full run (`edited_since`).",
+    "Every run says whether its version still has the content it tested (`content`): "
+    "`edited` means the same version number now does something else, so the run no "
+    "longer describes it; `unknown` means the platform could not be read, never that "
+    "it is the same.",
+    "A verdict that rests on a default fake is marked (`mark` default_fake, with the "
+    "tools in `mark_detail`) and is not counted: do not act on it. A rule with only "
+    "such verdicts is not checked. Give the tool a fake result in the scenario and "
+    "run it again.",
+    "A text run applies no tool schema (`tool_schemas_applied` false): every tool is "
+    "faked, so the platform never checks the arguments the agent sends. A green run "
+    "is not proof that a change to a tool's schema works.",
+    "A run judges against the spec it names (`spec_version`). When the tested agent "
+    "version is newer than the one that spec was written for (`spec_behind`), the "
+    "rules may describe the old behaviour: update the spec with `write_spec`, or "
+    "confirm nothing in it changed, before relying on the result.",
     "Without `version`, results follow the newest tested version, live or not; `live` "
     "gives the live version's state beside it. Every run stores the version it "
     "tested.",
@@ -2572,6 +2593,7 @@ def _run_steps(
     run: TestRunDetailPublic, more: bool, offset: int, limit: int
 ) -> list[str]:
     counts = run.counts
+    limits = _run_limits(run)
     if run.status in (RunStatus.PENDING, RunStatus.RUNNING):
         return [
             f"Still running: {counts.finished} of {counts.calls} simulated calls "
@@ -2588,7 +2610,7 @@ def _run_steps(
             f"The run stopped: {run.status_detail or 'unknown reason'}. Fix that and "
             "start it again with `run_scenarios`."
         ]
-    steps: list[str] = []
+    steps: list[str] = [*limits]
     if counts.critical_failed:
         steps.append(
             f"{counts.critical_failed} critical "
@@ -2611,7 +2633,16 @@ def _run_steps(
     if defaults:
         steps.append(
             "These tools answered with the default fake because a scenario did not "
-            f"fake them: {', '.join(defaults)}. Add fake results with `write_scenarios`."
+            f"fake them: {', '.join(defaults)}. Verdicts that rest on them are marked "
+            "and not counted"
+            + (
+                f", and {run.totals.default_fake} "
+                f"{'rule was' if run.totals.default_fake == 1 else 'rules were'} not "
+                "checked because of it"
+                if run.totals is not None and run.totals.default_fake
+                else ""
+            )
+            + ". Add fake results with `write_scenarios`, then run again."
         )
     if counts.findings:
         steps.append(
@@ -2630,7 +2661,7 @@ def _run_steps(
             f"judged: {', '.join(run.dropped_rules[:10])}. Rewrite them with "
             "`write_scenarios`."
         )
-    if not steps:
+    if len(steps) == len(limits):
         steps.append("Every judged rule passed, with no code-check findings.")
     steps.append(
         "For the version's verdict, from its latest full run, call `get_test_runs` without "
@@ -2642,6 +2673,38 @@ def _run_steps(
             f"simulated calls (from {offset + limit + 1})."
         )
     return steps
+
+
+def _run_limits(run: TestRunPublic) -> list[str]:
+    """What limits what a run proves, said before its results."""
+    version = run.platform_version or "tested"
+    steps: list[str] = []
+    if run.content == "edited":
+        steps.append(
+            f"Version {version} was edited after this run: the run tested content the "
+            "version no longer has, so it says nothing about what the version does "
+            "now. Run the scenarios again with `run_scenarios`."
+        )
+    elif run.content == "unknown" and run.status is RunStatus.COMPLETED:
+        steps.append(
+            f"Could not confirm that version {version} still has the content this run "
+            "tested: the platform could not be read, or the run stored no content. "
+            "Call `get_test_runs` once more; if it is still unknown, run the "
+            "scenarios again before relying on it."
+        )
+    return [*steps, *_spec_behind_steps(run)]
+
+
+def _spec_behind_steps(run: TestRunPublic) -> list[str]:
+    if not run.spec_behind:
+        return []
+    return [
+        f"The spec (version {run.spec_version}) was written for agent version "
+        f"{run.spec_written_for}; this run tested "
+        f"{run.platform_version or 'a newer version'} against it. Update the spec "
+        "with `write_spec` if the change added or changed behaviour, or confirm "
+        "nothing in it changed, before relying on the result."
+    ]
 
 
 def _version_name(results: VersionResultsPublic) -> str:
@@ -2740,13 +2803,23 @@ def _verdict_steps(results: VersionResultsPublic) -> list[str]:
         ]
     if results.verdict is VersionVerdict.PARTIAL:
         keys = ", ".join(u.key for u in results.unchecked[:5])
+        faked = sum(1 for u in results.unchecked if u.why == "default_fake")
         return [
             f"{name} is partially tested: {by}{when} found nothing critical, "
             f"but {len(results.unchecked)} "
             f"{'rule was' if len(results.unchecked) == 1 else 'rules were'} not checked "
             f"({keys}; `unchecked` says why). Write scenarios that reach them, or "
             "rewrite the ones that list them but never got there, then run every "
-            "scenario again."
+            "scenario again.",
+            *(
+                [
+                    f"{faked} of them {'was' if faked == 1 else 'were'} judged only on "
+                    "a default fake (`why` default_fake): give those scenarios fake "
+                    "results for the tools named in the run's calls (`write_scenarios`)."
+                ]
+                if faked
+                else []
+            ),
         ]
     failed = sum(1 for r in results.rules if r.failed)
     return [
@@ -2778,8 +2851,10 @@ def _live_steps(results: VersionResultsPublic) -> list[str]:
 
 
 def _results_steps(results: VersionResultsPublic) -> list[str]:
+    full = results.full_run
     return [
         *_verdict_steps(results),
+        *(_spec_behind_steps(full) if full is not None else []),
         *_live_steps(results),
         *_stopped_steps(results),
         *_coverage_steps(results),
@@ -2802,7 +2877,16 @@ def get_agent_test_runs(
     agent = _mcp_agent_in(session, workspace, agent_id)
     offset = _decode_cursor(cursor)
     if run_id is None:
-        results = version_results(session=session, agent=agent, version=version)
+        # What the version holds on the platform now, so an edit made after its last
+        # run shows (Dmytro, 2026-11-20: read Retell when asked).
+        content_now = read_content_now(
+            session=session,
+            agent=agent,
+            version=results_version(session=session, agent=agent, version=version),
+        )
+        results = version_results(
+            session=session, agent=agent, version=version, content_now=content_now
+        )
         if version is not None and results is None:
             raise HTTPException(
                 status_code=404,
@@ -2846,7 +2930,19 @@ def get_agent_test_runs(
                 guide=GUIDE_SCENARIOS,
             ).model_dump(),
         )
-    detail, more = run_detail(session=session, run=run, offset=offset, limit=limit)
+    detail, more = run_detail(
+        session=session,
+        run=run,
+        offset=offset,
+        limit=limit,
+        # Read once the run has finished: while it runs, its content cannot have
+        # been outlived yet, and a poll should not wait on the platform.
+        content_now=None
+        if run.status in (RunStatus.PENDING, RunStatus.RUNNING)
+        else read_content_now(
+            session=session, agent=agent, version=run.platform_version
+        ),
+    )
     return McpAnswer[McpTestRuns](
         data=McpTestRuns(run=detail),
         rules=_TEST_RUN_RULES,

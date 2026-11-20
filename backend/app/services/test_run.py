@@ -18,6 +18,7 @@ from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from typing import Any, Literal
 
+import anyio.from_thread
 from pydantic import JsonValue
 from sqlmodel import Session, col, select
 
@@ -56,6 +57,7 @@ from app.models.enums import (
     TraceCapability,
     TraceSource,
     TurnRole,
+    VerdictMark,
     VersionVerdict,
 )
 from app.models.integration import Integration
@@ -375,6 +377,39 @@ def default_fake_calls(
     }
 
 
+def default_fake_turns(
+    transcript: list[ConversationTurn], defaults: dict[str, str]
+) -> dict[str, int]:
+    """Each default-faked tool with the first turn its made-up answer was in the
+    conversation: the tool turn that answers the call, else the turn that called it."""
+    answered = {
+        turn.tool_call_id: turn.index
+        for turn in transcript
+        if turn.role == TurnRole.TOOL and turn.tool_call_id in defaults
+    }
+    first: dict[str, int] = {}
+    for turn in transcript:
+        for call in turn.tool_calls or []:
+            if call.id not in defaults:
+                continue
+            at = answered.get(call.id, turn.index)
+            name = defaults[call.id]
+            first[name] = min(first.get(name, at), at)
+    return first
+
+
+def rests_on_default_fakes(
+    outcome: RuleOutcome, turns: list[int], fake_turns: dict[str, int]
+) -> list[str]:
+    """The default-faked tools a Passed or Failed verdict rests on: those that had
+    answered by the last turn the verdict cites. Such a verdict judges what the agent
+    did with a made-up error, so it is marked and not counted (Dmytro, 2026-11-20)."""
+    if outcome is RuleOutcome.DID_NOT_COME_UP or not turns:
+        return []
+    last = max(turns)
+    return sorted(name for name, at in fake_turns.items() if at <= last)
+
+
 def _why_stopped(marker: str) -> str:
     """A platform marker in plain words: "[agent_error] Retell returned no messages"
     becomes "Retell returned no messages"."""
@@ -536,6 +571,7 @@ async def _simulate(
                 transcript, scenario, ctx.agent_snapshot.tools
             )
             fakes = list(dict.fromkeys(defaults.values()))
+            fake_turns = default_fake_turns(transcript, defaults)
             judge_cost = 0.0
             error: str | None = None
             failure = next(
@@ -561,6 +597,10 @@ async def _simulate(
                         default_fakes=fakes,
                     )
                     judge_cost = judged.cost_usd or 0.0
+                    rested = {
+                        v.key: rests_on_default_fakes(v.outcome, v.turns, fake_turns)
+                        for v in judged.verdicts
+                    }
                     verdicts = [
                         RuleVerdict(
                             company_id=ctx.company_id,
@@ -573,6 +613,8 @@ async def _simulate(
                             reason=v.reason or None,
                             turns=v.turns,
                             critical=ctx.rules[v.key].critical,
+                            mark=VerdictMark.DEFAULT_FAKE if rested[v.key] else None,
+                            mark_detail=rested[v.key] or None,
                         )
                         for v in judged.verdicts
                     ]
@@ -796,7 +838,10 @@ def _rule_totals(
         )
         # Critical in any run's spec version counts.
         total.critical = total.critical or verdict.critical
-        if verdict.outcome is RuleOutcome.PASSED:
+        if verdict.mark is VerdictMark.DEFAULT_FAKE:
+            # Not evidence: it counts as neither a pass nor a failure.
+            total.default_fake += 1
+        elif verdict.outcome is RuleOutcome.PASSED:
             total.passed += 1
         elif verdict.outcome is RuleOutcome.FAILED:
             total.failed += 1
@@ -866,7 +911,13 @@ def _facts(session: Session, runs: list[Run]) -> dict[uuid.UUID, _RunFacts]:
 
 
 type RuleMark = Literal[
-    "passed", "failed", "flaky", "did_not_come_up", "no_scenario", "not_judged"
+    "passed",
+    "failed",
+    "flaky",
+    "did_not_come_up",
+    "no_scenario",
+    "not_judged",
+    "default_fake",
 ]
 
 
@@ -874,9 +925,15 @@ def rule_marks(facts: _RunFacts) -> dict[str, RuleMark]:
     """Each rule of the run's spec, once: Failed when any repeat failed it (Flaky when
     another passed it), Passed, Didn't come up when no judged repeat reached it, not
     judged when only calls that stopped listed it, or no scenario of the run lists it
-    (Dmytro, 2026-11-19: count rules, and stopped calls in no column)."""
+    (Dmytro, 2026-11-19: count rules, and stopped calls in no column). A verdict that
+    rests on a default fake is not counted; a rule with only such verdicts is not
+    checked (Dmytro, 2026-11-20)."""
     outcomes: dict[str, set[RuleOutcome]] = {}
+    marked: set[str] = set()
     for verdict in facts.verdicts:
+        if verdict.mark is not None:
+            marked.add(verdict.rule_key)
+            continue
         outcomes.setdefault(verdict.rule_key, set()).add(verdict.outcome)
     marks: dict[str, RuleMark] = {}
     for rule in facts.spec_rules:
@@ -884,9 +941,9 @@ def rule_marks(facts: _RunFacts) -> dict[str, RuleMark]:
         if rule.key not in facts.listed:
             marks[rule.key] = "no_scenario"
         elif not seen:
-            # Only calls that stopped before a judge listed it: it counts in no column
-            # (Dmytro, 2026-11-19).
-            marks[rule.key] = "not_judged"
+            # Only marked verdicts, or only calls that stopped before a judge, listed
+            # it: it counts in no column (Dmytro, 2026-11-19 and 2026-11-20).
+            marks[rule.key] = "default_fake" if rule.key in marked else "not_judged"
         elif RuleOutcome.FAILED in seen:
             marks[rule.key] = "flaky" if RuleOutcome.PASSED in seen else "failed"
         elif RuleOutcome.PASSED in seen:
@@ -918,6 +975,7 @@ def _run_judgement(
         did_not_come_up=sum(1 for m in marks.values() if m == "did_not_come_up"),
         no_scenario=sum(1 for m in marks.values() if m == "no_scenario"),
         not_judged=sum(1 for m in marks.values() if m == "not_judged"),
+        default_fake=sum(1 for m in marks.values() if m == "default_fake"),
         judged_calls=len(judged),
         critical=len(critical_failed) + len(critical_checks),
         stopped=sum(1 for c in facts.calls if c.error_message),
@@ -948,21 +1006,78 @@ def _people(session: Session, runs: list[Run]) -> dict[uuid.UUID, str]:
     }
 
 
-def run_views(session: Session, runs: list[Run]) -> list[TestRunPublic]:
-    """Each run as one row: what it is, its totals, and who ran it."""
+def _content(
+    run: Run, now: dict[str, str], newest: dict[str, str]
+) -> Literal["same", "edited", "unknown"]:
+    """Whether ``run``'s version still has the content the run tested. ``now`` is what
+    the platform holds, by version number, where it was just read; without a read, a
+    later run of the same number that saw other content still proves an edit, and
+    nothing proves the content is the same."""
+    tested, number = run.version_fingerprint, run.platform_version
+    if tested is None or number is None:
+        return "unknown"
+    if number in now:
+        return "same" if now[number] == tested else "edited"
+    return "edited" if newest.get(number, tested) != tested else "unknown"
+
+
+def _spec_behind(run: Run, spec: Spec | None) -> bool:
+    """The run tested an agent version newer than the one its spec's rules were
+    written for, so it judged new behaviour against older rules."""
+    if spec is None or run.platform_version is None:
+        return False
+    written = version_number(spec.written_for or spec.agent_version)[0]
+    tested = version_number(run.platform_version)[0]
+    return written >= 0 and tested > written
+
+
+def run_views(
+    session: Session,
+    runs: list[Run],
+    now: dict[str, str] | None = None,
+    history: list[Run] | None = None,
+) -> list[TestRunPublic]:
+    """Each run as one row: what it is, its totals, and who ran it. ``now`` is the
+    content the platform holds now, by version number, for the versions just read;
+    ``history`` is every run of the agent, oldest first, when the caller has it."""
     facts = _facts(session, runs)
-    versions = _spec_versions(session, runs)
+    specs = _specs(session, runs)
     people = _people(session, runs)
+    now = now or {}
+    checked_at = datetime.now(UTC) if now else None
+    # What the newest run of each version number saw.
+    newest: dict[str, str] = {}
+    if history is None:
+        history = [
+            other
+            for agent_id in {run.agent_id for run in runs}
+            for other in runs_of_agent(session=session, agent_id=agent_id)
+        ]
+    for other in history:
+        if other.platform_version and other.version_fingerprint:
+            newest[other.platform_version] = other.version_fingerprint
     out: list[TestRunPublic] = []
     for run in runs:
         assert run.scope is not None
         fact = facts[run.id]
+        spec = specs.get(run.spec_id) if run.spec_id else None
         full = run.scope is RunScope.ALL
         done = run.status == RunStatus.COMPLETED
         totals = _run_judgement(fact)[0] if done else None
         result: Literal["passed", "failed"] | None = None
         # A run no judge read has no result (Dmytro, 2026-11-19: "No result").
-        if totals is not None and not full and totals.judged_calls:
+        # Nor has one whose every verdict rests on a default fake: nothing was checked.
+        if (
+            totals is not None
+            and not full
+            and totals.judged_calls
+            and (
+                totals.passed
+                or totals.failed
+                or totals.critical
+                or not totals.default_fake
+            )
+        ):
             result = "failed" if totals.failed or totals.critical else "passed"
         out.append(
             TestRunPublic(
@@ -972,8 +1087,16 @@ def run_views(session: Session, runs: list[Run]) -> list[TestRunPublic]:
                 scope=run.scope,
                 set_name=run.set_name,
                 repeats=run.repeats or 1,
-                spec_version=versions.get(run.spec_id) if run.spec_id else None,
+                spec_version=spec.version if spec else None,
+                spec_written_for=(spec.written_for or spec.agent_version)
+                if spec
+                else None,
+                spec_behind=_spec_behind(run, spec),
                 platform_version=run.platform_version,
+                content=_content(run, now, newest),
+                content_checked_at=checked_at
+                if run.platform_version in now and run.version_fingerprint
+                else None,
                 created_at=run.created_at,
                 started_at=run.started_at,
                 completed_at=run.completed_at,
@@ -991,12 +1114,12 @@ def run_views(session: Session, runs: list[Run]) -> list[TestRunPublic]:
     return out
 
 
-def _spec_versions(session: Session, runs: list[Run]) -> dict[uuid.UUID, int]:
-    out: dict[uuid.UUID, int] = {}
+def _specs(session: Session, runs: list[Run]) -> dict[uuid.UUID, Spec]:
+    out: dict[uuid.UUID, Spec] = {}
     for spec_id in {run.spec_id for run in runs if run.spec_id}:
         spec = session.get(Spec, spec_id)
         if spec is not None:
-            out[spec_id] = spec.version
+            out[spec_id] = spec
     return out
 
 
@@ -1041,9 +1164,15 @@ def _check_totals(calls: list[TestCaseResult]) -> list[CheckTotalPublic]:
 
 
 def run_detail(
-    *, session: Session, run: Run, offset: int, limit: int
+    *,
+    session: Session,
+    run: Run,
+    offset: int,
+    limit: int,
+    content_now: str | None = None,
 ) -> tuple[TestRunDetailPublic, bool]:
-    """The run with its rule totals, then a page of its simulated calls."""
+    """The run with its rule totals, then a page of its simulated calls.
+    ``content_now`` is its version's content on the platform, when just read."""
     calls = calls_of_runs(session=session, run_ids=[run.id])[run.id]
     verdicts = verdicts_of_runs(session=session, run_ids=[run.id])[run.id]
     rules = (
@@ -1057,7 +1186,7 @@ def run_detail(
         else {}
     )
     totals = _rule_totals(verdicts, rules)
-    summary = run_views(session, [run])[0]
+    summary = run_views(session, [run], _now(run.platform_version, content_now))[0]
     scenario_ids = list(dict.fromkeys(c.test_case_id for c in calls))
     listed = rules_of(session=session, test_case_ids=scenario_ids)
     dropped = sorted(
@@ -1094,6 +1223,8 @@ def run_detail(
                         outcome=v.outcome,
                         reason=v.reason,
                         turns=v.turns or [],
+                        mark=v.mark,
+                        mark_detail=v.mark_detail or [],
                     )
                     for v in sorted(
                         by_call.get(call.id, []),
@@ -1128,21 +1259,77 @@ def version_number(text: str | None) -> tuple[int, str]:
     return (int(text), "") if text and text.isdigit() else (-1, text or "")
 
 
+def _now(version: str | None, content: str | None) -> dict[str, str]:
+    return {version: content} if version is not None and content is not None else {}
+
+
+def _target(runs: list[Run], live: str | None, version: str | None) -> str | None:
+    """The version results are about: the one asked for, else the newest tested
+    version, live or not (Dmytro, 2026-11-19: the runner tests Retell's newest
+    version, which can be a draft ahead of the live one), else the live one."""
+    if version is not None:
+        return version
+    tested = [r.platform_version for r in runs if r.platform_version is not None]
+    return max(tested, key=version_number) if tested else live
+
+
+def results_version(
+    *, session: Session, agent: Agent, version: str | None
+) -> str | None:
+    """The version ``version_results`` answers about, so its content can be read on
+    the platform first."""
+    return _target(
+        runs_of_agent(session=session, agent_id=agent.id),
+        crud.current_agent_version(session=session, agent_id=agent.id),
+        version,
+    )
+
+
+def read_content_now(
+    *, session: Session, agent: Agent, version: str | None
+) -> str | None:
+    """The content version ``version`` of the agent holds on Retell right now, as a
+    fingerprint; none when it cannot be read (not on Retell, not a number, or Retell
+    did not answer), and then nothing is claimed about it.
+
+    Called from a route's worker thread: the read itself runs on the event loop,
+    and the database work around it stays off it, where runs are executing.
+    """
+    if (
+        version is None
+        or not version.isdigit()
+        or agent.platform != Platform.RETELL
+        or not (agent.integration_id and agent.platform_agent_id)
+    ):
+        return None
+    integration = session.get(Integration, agent.integration_id)
+    if integration is None:
+        return None
+    read = anyio.from_thread.run(
+        _read_version,
+        decrypt(integration.encrypted_api_key),
+        agent.platform_agent_id,
+        int(version),
+    )
+    return read.fingerprint if read is not None else None
+
+
 def version_tested(
-    session: Session, agent: Agent, version: str | None
+    session: Session,
+    agent: Agent,
+    version: str | None,
+    content_now: str | None = None,
 ) -> VersionUnderTest:
     """One version's verdict from its latest completed full run, and its runs.
 
-    The version is ``version``, else the agent's live version (its most recent call's),
-    else the newest run's. Runs of a set or a pick are listed but never decide.
+    The version is ``version``, else the newest tested one, else the agent's live
+    version (its most recent call's). Runs of a set or a pick are listed but never
+    decide. ``content_now`` is the version's content on the platform when it was just
+    read: an edit made after the newest run then shows, and that run no longer counts.
     """
     runs = runs_of_agent(session=session, agent_id=agent.id)
     live = crud.current_agent_version(session=session, agent_id=agent.id)
-    # The newest tested version, live or not (Dmytro, 2026-11-19): the runner tests
-    # Retell's newest version, which can be a draft ahead of the live one.
-    tested = [r.platform_version for r in runs if r.platform_version is not None]
-    newest = max(tested, key=version_number) if tested else None
-    target = version if version is not None else newest or live
+    target = _target(runs, live, version)
 
     def is_mine(run: Run) -> bool:
         return run.platform_version == target
@@ -1155,9 +1342,9 @@ def version_tested(
     # content now is what its newest run tested, and the verdict comes from the latest
     # full run of that content, this version's first, else another number's.
     own_full = next((r for r in reversed(fulls) if is_mine(r)), None)
-    # What the newest run saw; none when its read failed, and then nothing is known
-    # to have changed.
-    content = mine[-1].version_fingerprint if mine else None
+    # What the version holds now: just read on the platform, else what the newest run
+    # saw; none when that read failed, and then nothing is known to have changed.
+    content = content_now or (mine[-1].version_fingerprint if mine else None)
     edited_since: datetime | None = None
     if content is None:
         full = own_full
@@ -1209,7 +1396,9 @@ def version_tested(
             verdict=verdict,
             at=(run.completed_at or run.created_at) if run else None,
         )
-    views = run_views(session, list(reversed(mine)))
+    views = run_views(
+        session, list(reversed(mine)), _now(target, content_now), history=runs
+    )
     results = VersionResultsPublic(
         version=target,
         edited_since=edited_since,
@@ -1231,7 +1420,7 @@ def version_tested(
         if is_mine(full):
             results.full_run = next(v for v in views if v.id == full.id)
         else:
-            results.full_run = run_views(session, [full])[0]
+            results.full_run = run_views(session, [full], history=runs)[0]
             results.same_content = SameContentPublic(
                 version=full.platform_version or "",
                 run_id=full.id,
@@ -1255,7 +1444,8 @@ def version_tested(
                     why=marks[rule.key],  # type: ignore[arg-type]
                 )
                 for rule in fact.spec_rules
-                if marks[rule.key] in ("no_scenario", "did_not_come_up", "not_judged")
+                if marks[rule.key]
+                in ("no_scenario", "did_not_come_up", "not_judged", "default_fake")
             ),
             key=lambda u: not u.critical,
         )
@@ -1323,11 +1513,15 @@ def coverage_of(*, session: Session, agent: Agent) -> CoveragePublic | None:
 
 
 def version_results(
-    *, session: Session, agent: Agent, version: str | None
+    *,
+    session: Session,
+    agent: Agent,
+    version: str | None,
+    content_now: str | None = None,
 ) -> VersionResultsPublic | None:
     """One version's results (see ``version_tested``); ``None`` when ``version`` was
     given and no run tested it."""
-    found = version_tested(session, agent, version)
+    found = version_tested(session, agent, version, content_now)
     if version is not None and not found.results.runs:
         return None
     return found.results

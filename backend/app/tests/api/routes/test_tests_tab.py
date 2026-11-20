@@ -71,7 +71,7 @@ def _judge(outcomes: dict[str, str]) -> AsyncMock:
             content=json.dumps(
                 {
                     "rules": [
-                        {"key": k, "outcome": outcomes[k], "reason": "x", "turns": [4]}
+                        {"key": k, "reason": "x", "turns": [1], "outcome": outcomes[k]}
                         for k in keys
                     ]
                 }
@@ -187,6 +187,7 @@ def test_the_runs_with_their_totals_and_the_spec_tabs_results(
         "did_not_come_up": 1,
         "no_scenario": 0,
         "not_judged": 0,
+        "default_fake": 0,
         "critical": 1,
         "judged_calls": 2,
         "stopped": 0,

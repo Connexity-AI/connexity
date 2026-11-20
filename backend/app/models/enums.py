@@ -32,6 +32,14 @@ class RuleOutcome(StrEnum):
     DID_NOT_COME_UP = "did_not_come_up"
 
 
+class VerdictMark(StrEnum):
+    """Why a rule verdict is not evidence. A marked verdict counts in no column."""
+
+    # A tool the scenario did not fake had answered with the default fake by the turns
+    # the verdict rests on.
+    DEFAULT_FAKE = "default_fake"
+
+
 class VersionVerdict(StrEnum):
     """What a version's latest full run of scenarios says about it (Dmytro,
     2026-11-19)."""

@@ -25,6 +25,7 @@ from app.models.run import Run
 from app.models.test_case_result import TestCaseResult
 from app.models.test_run import RuleVerdict
 from app.services import test_run as runner
+from app.services.call_screen import simulated_call_screen
 from app.services.eval_runtimes.text.retell import DEFAULT_FAKE_RESULT
 from app.services.llm import LLMResponse
 from app.tests.api.routes.test_mcp_issues import (  # noqa: F401
@@ -62,22 +63,35 @@ def _start(client: TestClient, user: User, agent: Agent, **body: Any) -> Any:
     return r
 
 
-def _runs(client: TestClient, user: User, agent: Agent, **params: Any) -> Any:
-    return client.get(
-        f"{_base(user, agent)}/test-runs", headers=_headers(user), params=params
-    )
+def _runs(
+    client: TestClient, user: User, agent: Agent, *, read: bool = False, **params: Any
+) -> Any:
+    """Read runs. The version's content on Retell is not read (as when Retell does not
+    answer) unless ``read``, and then the test mocks Retell."""
+    url = f"{_base(user, agent)}/test-runs"
+    if read:
+        return client.get(url, headers=_headers(user), params=params)
+    with patch("app.api.routes.mcp.read_content_now", return_value=None):
+        return client.get(url, headers=_headers(user), params=params)
 
 
 def _llm(content: str) -> LLMResponse:
     return LLMResponse(content=content, model="invented-model", response_cost_usd=0.001)
 
 
-def _verdict(key: str, outcome: str) -> LLMResponse:
+def _verdict(key: str, outcome: str, turns: list[int] | None = None) -> LLMResponse:
+    """The judge's answer for one rule. It rests on turn 1 unless told otherwise:
+    before the tool the scenario does not fake answers (turn 3 of ``_agent_turn``)."""
     return _llm(
         json.dumps(
             {
                 "rules": [
-                    {"key": key, "outcome": outcome, "reason": "Said 80.", "turns": [4]}
+                    {
+                        "key": key,
+                        "reason": "Said 80.",
+                        "turns": turns or [1],
+                        "outcome": outcome,
+                    }
                 ]
             }
         )
@@ -117,7 +131,9 @@ def _agent_turn(request: httpx.Request) -> httpx.Response:
 RETELL = "https://api.retellai.com"
 
 
-def _tested_version(retell: respx.MockRouter, number: int) -> None:
+def _tested_version(
+    retell: respx.MockRouter, number: int, prompt: str = "Invented prompt."
+) -> None:
     """Retell: the agent at its latest version, a single prompt with two tools of its
     own and a hang-up."""
     retell.get(url__startswith=f"{RETELL}/get-agent/").mock(
@@ -139,7 +155,7 @@ def _tested_version(retell: respx.MockRouter, number: int) -> None:
             200,
             json={
                 "llm_id": "llm_x",
-                "general_prompt": "Invented prompt.",
+                "general_prompt": prompt,
                 "general_tools": [
                     {"type": "custom", "name": "check_slot"},
                     {"type": "end_call", "name": "end_call"},
@@ -271,6 +287,7 @@ def test_a_set_runs_every_repeat_with_every_tool_faked_and_judges_listed_rules(
             "passed": 1,
             "failed": 1,
             "did_not_come_up": 0,
+            "default_fake": 0,
             "flaky": True,
         }
     ]
@@ -820,3 +837,222 @@ def test_a_run_whose_calls_all_stopped_has_no_result(
     assert row["verdict"] == "not_verified" and row["result"] is None
     detail = _runs(client, user, agent, run_id=run_id).json()
     assert detail["next_steps"][0].startswith("No result")
+
+
+def _made(
+    client: TestClient,
+    user: User,
+    agent: Agent,
+    judge: AsyncMock,
+    *,
+    version: int = 15,
+    **scope: Any,
+) -> str:
+    """Start a run of ``version`` and make it, with Retell's version read mocked."""
+    run_id = _start(
+        client, user, agent, repeats=1, version=version, **(scope or {"all": True})
+    ).json()["data"]["run_id"]
+    with respx.mock() as retell:
+        retell.post(url__startswith=PLAYGROUND).mock(side_effect=_agent_turn)
+        _tested_version(retell, version)
+        with patch("app.services.rule_judge.call_llm", new=judge):
+            _execute(run_id)
+    return run_id
+
+
+@pytest.mark.provider_versions
+def test_a_verdict_that_rests_on_a_default_fake_is_marked_and_not_counted(
+    client: TestClient, db: Session, caller: AsyncMock
+) -> None:
+    user, agent, keys = _ready(db, client)
+    _scenarios(client, user, agent, _price(keys))
+    # The judge fails the critical price rule on turn 4, after `book_slot`, which the
+    # scenario does not fake, answered with the default fake on turn 3.
+    judge = AsyncMock(return_value=_verdict(keys[PRICE], "failed", turns=[4]))
+
+    run_id = _made(client, user, agent, judge)
+
+    db.expire_all()
+    stored = db.exec(
+        select(RuleVerdict).where(RuleVerdict.run_id == uuid.UUID(run_id))
+    ).one()
+    assert (stored.outcome, stored.mark, stored.mark_detail) == (
+        "failed",
+        "default_fake",
+        ["book_slot"],
+    )
+    body = _runs(client, user, agent, run_id=run_id).json()
+    detail = body["data"]["run"]
+    verdict = detail["calls"][0]["verdicts"][0]
+    assert (verdict["mark"], verdict["mark_detail"]) == ("default_fake", ["book_slot"])
+    # It counts as neither a failure nor a pass: the rule is not checked.
+    rule = detail["rules"][0]
+    assert (rule["failed"], rule["passed"], rule["default_fake"]) == (0, 0, 1)
+    assert detail["counts"]["critical_failed"] == 0
+    assert (detail["totals"]["failed"], detail["totals"]["default_fake"]) == (0, 1)
+    assert detail["verdict"] == "not_verified"
+    steps = " ".join(body["next_steps"])
+    assert "marked and not counted" in steps and "book_slot" in steps
+    assert "1 rule was not checked because of it" in steps
+    assert "critical rule failed" not in steps
+    # An on-demand run of the same kind has no result, not "passed".
+    pick = _made(
+        client,
+        user,
+        agent,
+        AsyncMock(return_value=_verdict(keys[PRICE], "passed", turns=[4])),
+        scenario_ids=[detail["calls"][0]["scenario_id"]],
+    )
+    picked = _runs(client, user, agent, run_id=pick).json()["data"]["run"]
+    assert picked["result"] is None
+    # The simulated call's own result does not fail on it either.
+    stored_call = db.get(TestCaseResult, uuid.UUID(detail["calls"][0]["id"]))
+    stored_run = db.get(Run, uuid.UUID(run_id))
+    assert stored_call is not None and stored_run is not None
+    screen = simulated_call_screen(session=db, result=stored_call, run=stored_run)
+    assert screen.result == "clean"
+    # The version's results say why the rule is not checked.
+    results = _runs(client, user, agent).json()["data"]["results"]
+    assert results["verdict"] == "not_verified"
+    assert results["full_run"]["totals"]["default_fake"] == 1
+
+
+def test_which_verdicts_rest_on_a_default_fake() -> None:
+    fake_turns = {"book_slot": 3, "send_sms": 7}
+    passed, failed, skipped = "passed", "failed", "did_not_come_up"
+    rests = runner.rests_on_default_fakes
+    # Before the fake answered: the verdict stands.
+    assert rests(runner.RuleOutcome(passed), [1, 2], fake_turns) == []
+    # At or after it: marked, with every fake that had answered by then.
+    assert rests(runner.RuleOutcome(failed), [3], fake_turns) == ["book_slot"]
+    assert rests(runner.RuleOutcome(passed), [2, 9], fake_turns) == [
+        "book_slot",
+        "send_sms",
+    ]
+    # Nothing to rest on: a rule that did not come up, or a verdict citing no turn.
+    assert rests(runner.RuleOutcome(skipped), [9], fake_turns) == []
+    assert rests(runner.RuleOutcome(failed), [], fake_turns) == []
+    assert rests(runner.RuleOutcome(failed), [9], {}) == []
+
+
+@pytest.mark.provider_versions
+@pytest.mark.parametrize(
+    ("now", "content"),
+    [
+        ("Invented prompt.", "same"),
+        ("Invented prompt, edited.", "edited"),
+        # Retell fails, times out or answers something unreadable: never "same".
+        (httpx.Response(500), "unknown"),
+        (httpx.ConnectTimeout("timed out"), "unknown"),
+        (httpx.Response(200, text="not json"), "unknown"),
+        (httpx.Response(200, json=[]), "unknown"),
+    ],
+)
+def test_a_run_says_whether_its_version_was_edited_since(
+    client: TestClient,
+    db: Session,
+    caller: AsyncMock,
+    now: Any,
+    content: str,
+) -> None:
+    user, agent, keys = _ready(db, client)
+    scenario = _scenarios(client, user, agent, _price(keys)).json()["data"][
+        "scenarios"
+    ][0]
+    # A smoke run, not a full one: it says so too.
+    run_id = _made(
+        client,
+        user,
+        agent,
+        AsyncMock(return_value=_verdict(keys[PRICE], "passed")),
+        scenario_ids=[scenario["id"]],
+    )
+
+    with respx.mock() as retell:
+        if isinstance(now, str):
+            _tested_version(retell, 15, prompt=now)
+        elif isinstance(now, Exception):
+            retell.get(url__startswith=f"{RETELL}/get-agent/").mock(side_effect=now)
+        else:
+            retell.get(url__startswith=f"{RETELL}/get-agent/").mock(return_value=now)
+        body = _runs(client, user, agent, read=True, run_id=run_id).json()
+        results = _runs(client, user, agent, read=True).json()["data"]["results"]
+
+    detail = body["data"]["run"]
+    assert detail["content"] == content
+    assert (detail["content_checked_at"] is not None) == isinstance(now, str)
+    assert results["runs"][0]["content"] == content
+    first = body["next_steps"][0]
+    if content == "edited":
+        assert "Version 15 was edited after this run" in first
+    elif content == "unknown":
+        assert "Could not confirm that version 15 still has the content" in first
+    else:
+        assert "edited" not in first and "Could not confirm" not in first
+
+
+@pytest.mark.provider_versions
+def test_an_edit_after_the_last_run_unverifies_the_version_when_read(
+    client: TestClient, db: Session, caller: AsyncMock
+) -> None:
+    user, agent, keys = _ready(db, client)
+    _scenarios(client, user, agent, _price(keys, rules=list(keys.values())))
+    judge = AsyncMock(
+        return_value=_llm(
+            json.dumps(
+                {
+                    "rules": [
+                        {"key": k, "reason": "x", "turns": [1], "outcome": "passed"}
+                        for k in keys.values()
+                    ]
+                }
+            )
+        )
+    )
+    _made(client, user, agent, judge)
+
+    with respx.mock() as retell:
+        _tested_version(retell, 15)
+        same = _runs(client, user, agent, read=True).json()["data"]["results"]
+    with respx.mock() as retell:
+        _tested_version(retell, 15, prompt="Invented prompt, edited.")
+        body = _runs(client, user, agent, read=True).json()
+
+    assert (same["verdict"], same["edited_since"]) == ("verified", None)
+    edited = body["data"]["results"]
+    # No run saw the new content, yet the full run no longer counts.
+    assert edited["verdict"] == "not_verified"
+    assert edited["edited_since"] is not None
+    assert edited["runs"][0]["content"] == "edited"
+    assert "edited after its full run" in body["next_steps"][0]
+
+
+@pytest.mark.provider_versions
+def test_a_run_names_its_spec_and_warns_when_the_agent_version_is_newer(
+    client: TestClient, db: Session, caller: AsyncMock
+) -> None:
+    user, agent, keys = _ready(db, client)
+    _scenarios(client, user, agent, _price(keys))
+    judge = AsyncMock(return_value=_verdict(keys[PRICE], "passed"))
+    # The spec was written for agent version 7.
+    newer = _made(client, user, agent, judge, version=15)
+    written_for = _made(client, user, agent, judge, version=7)
+
+    ahead = _runs(client, user, agent, run_id=newer).json()
+    level = _runs(client, user, agent, run_id=written_for).json()
+
+    run = ahead["data"]["run"]
+    assert (run["spec_version"], run["spec_written_for"], run["spec_behind"]) == (
+        1,
+        "7",
+        True,
+    )
+    assert any(
+        "written for agent version 7; this run tested 15" in step
+        for step in ahead["next_steps"]
+    )
+    assert level["data"]["run"]["spec_behind"] is False
+    assert not any("written for agent version" in s for s in level["next_steps"])
+    # Tool schemas are never applied in a text run, and every run says so.
+    assert run["tool_schemas_applied"] is False
+    assert any("tool_schemas_applied" in rule for rule in ahead["rules"])

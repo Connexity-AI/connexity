@@ -56,8 +56,9 @@ For every rule you are given, answer exactly one verdict:
 - "did_not_come_up": the conversation never reached what the rule is about, so it says
   nothing about this rule. Do not guess a pass.
 
-Give a reason of one or two plain sentences, and the indices of the turns it rests on
-(empty for did_not_come_up). Judge each rule on its own words, not on general quality.
+For each rule, first write the reason in one or two plain sentences and the indices of
+the turns it rests on (empty for did_not_come_up), and only then the verdict that
+follows from that reason. Judge each rule on its own words, not on general quality.
 Tool results marked as not available in this test were faked by the test, not by the
 agent's systems: judge what the agent did with them, not that they were missing.
 """
@@ -67,12 +68,15 @@ def _response_format(keys: list[str]) -> dict[str, object]:
     verdict = {
         "type": "object",
         "properties": {
+            # The reason comes before the verdict, so the verdict is written from the
+            # reasoning and not the other way round (a verdict given first was
+            # contradicted by its own reason in 4 of 14 failures of one run).
             "key": {"type": "string", "enum": keys},
-            "outcome": {"type": "string", "enum": [o.value for o in RuleOutcome]},
             "reason": {"type": "string"},
             "turns": {"type": "array", "items": {"type": "integer"}},
+            "outcome": {"type": "string", "enum": [o.value for o in RuleOutcome]},
         },
-        "required": ["key", "outcome", "reason", "turns"],
+        "required": ["key", "reason", "turns", "outcome"],
         "additionalProperties": False,
     }
     return {

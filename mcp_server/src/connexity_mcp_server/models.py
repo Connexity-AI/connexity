@@ -985,6 +985,9 @@ class RuleTotal(BaseModel):
     passed: int = 0
     failed: int = 0
     did_not_come_up: int = 0
+    default_fake: int = Field(
+        default=0, description="Verdicts not counted: they rest on a default fake"
+    )
     flaky: bool = Field(
         default=False, description="It both passed and failed across repeats"
     )
@@ -1004,6 +1007,15 @@ class RuleVerdict(BaseModel):
     outcome: str = Field(description="passed, failed or did_not_come_up")
     reason: str | None = None
     turns: list[int] = Field(default_factory=list)
+    mark: str | None = Field(
+        default=None,
+        description="Set when the verdict is not evidence and is not counted: "
+        "default_fake when it rests on a tool the scenario did not fake. Do not act "
+        "on a marked verdict",
+    )
+    mark_detail: list[str] = Field(
+        default_factory=list, description="For default_fake: the tools' names"
+    )
 
 
 class SimulatedFinding(BaseModel):
@@ -1060,6 +1072,10 @@ class RunTotals(BaseModel):
         description="Critical rules that failed and critical code checks that found "
         "something",
     )
+    default_fake: int = Field(
+        default=0,
+        description="Rules whose every verdict rests on a default fake; in no column",
+    )
     stopped: int = Field(default=0, description="Simulated calls that ended in an error")
     judged_calls: int = Field(
         default=0, description="Simulated calls a judge read; none means no result"
@@ -1073,9 +1089,32 @@ class TestRun(BaseModel):
     scope: str = Field(description="set, pick or all")
     set_name: str | None = None
     repeats: int
-    spec_version: int | None = None
+    spec_version: int | None = Field(
+        default=None, description="The spec version whose rules the run judged"
+    )
+    spec_written_for: str | None = Field(
+        default=None, description="The agent version that spec's rules were written for"
+    )
+    spec_behind: bool = Field(
+        default=False,
+        description="The run tested an agent version newer than the one its spec was "
+        "written for: the rules may describe the old behaviour",
+    )
     platform_version: str | None = Field(
         default=None, description="The agent's version tested; none for the latest"
+    )
+    content: str = Field(
+        default="unknown",
+        description="Whether the version still has the content this run tested: same, "
+        "edited (its number now holds other content) or unknown (could not be read)",
+    )
+    content_checked_at: str | None = Field(
+        default=None, description="When the version was read on the platform for it"
+    )
+    tool_schemas_applied: bool = Field(
+        default=False,
+        description="False in every text run: tools are faked, so the platform's tool "
+        "schemas are not applied and a run does not prove a schema fix",
     )
     created_at: str
     started_at: str | None = None
@@ -1115,7 +1154,9 @@ class UncheckedRule(BaseModel):
     text: str
     category: str
     critical: bool = False
-    why: str = Field(description="no_scenario, did_not_come_up or not_judged")
+    why: str = Field(
+        description="no_scenario, did_not_come_up, not_judged or default_fake"
+    )
 
 
 class Coverage(BaseModel):

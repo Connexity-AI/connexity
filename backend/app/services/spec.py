@@ -223,7 +223,8 @@ def spec_answer(
                 in_conflict=change != "dropped" and r.key in conflicts,
                 change=change,
                 result=None
-                if change == "dropped" or marks.get(r.key) == "not_judged"
+                if change == "dropped"
+                or marks.get(r.key) in ("not_judged", "default_fake")
                 else marks.get(r.key),  # type: ignore[arg-type]
             )
 

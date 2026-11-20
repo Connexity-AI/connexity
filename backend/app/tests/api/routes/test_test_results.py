@@ -124,7 +124,7 @@ def _both(outcomes: dict[str, str]) -> AsyncMock:
             json.dumps(
                 {
                     "rules": [
-                        {"key": k, "outcome": o, "reason": "x", "turns": [4]}
+                        {"key": k, "reason": "x", "turns": [1], "outcome": o}
                         for k, o in outcomes.items()
                     ]
                 }
@@ -190,6 +190,7 @@ def test_a_full_run_decides_the_verdict_and_a_set_never_does(
         "did_not_come_up": 0,
         "no_scenario": 0,
         "not_judged": 0,
+        "default_fake": 0,
         "critical": 0,
         "judged_calls": 1,
         "stopped": 0,
@@ -249,8 +250,8 @@ def test_a_full_run_decides_the_verdict_and_a_set_never_does(
     assert [e["kind"] for e in entries] == ["turn", "turn", "tool", "turn"]
     assert entries[2]["tool"] == "book_slot"
     assert entries[2]["status"] == "no result"
-    # The verdict's turn 4 is the agent's price, the fourth entry.
-    assert line["verdicts"][0]["entry_indexes"] == [3]
+    # The verdict's turn 1 is the caller's question, the second entry.
+    assert line["verdicts"][0]["entry_indexes"] == [1]
 
 
 def test_a_rule_not_checked_in_the_full_run_leaves_it_partially_tested(

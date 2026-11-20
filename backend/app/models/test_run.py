@@ -21,6 +21,7 @@ from app.models.enums import (
     RuleOutcome,
     RunScope,
     RunStatus,
+    VerdictMark,
     VersionVerdict,
 )
 
@@ -61,6 +62,12 @@ class RuleVerdict(SQLModel, table=True):
     )
     # Whether the rule was critical in the spec version the run judged.
     critical: bool = False
+    # Set when the verdict is not evidence; it then counts in no column.
+    mark: VerdictMark | None = Field(default=None, sa_type=enum_type(VerdictMark))
+    # For a default fake: the tools that answered with it.
+    mark_detail: list[str] | None = Field(
+        default=None, sa_column=Column("mark_detail", JSONB, nullable=True)
+    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"server_default": text("now()")},
@@ -92,6 +99,10 @@ class RuleTotalPublic(BaseModel):
     passed: int = 0
     failed: int = 0
     did_not_come_up: int = 0
+    default_fake: int = PydanticField(
+        default=0,
+        description="Verdicts not counted, because they rest on a default fake",
+    )
     flaky: bool = PydanticField(
         default=False, description="It both passed and failed across repeats"
     )
@@ -111,6 +122,14 @@ class VerdictPublic(BaseModel):
     outcome: RuleOutcome
     reason: str | None = None
     turns: list[int] = PydanticField(default_factory=list)
+    mark: VerdictMark | None = PydanticField(
+        default=None,
+        description="Set when the verdict is not evidence and is not counted: "
+        "default_fake when it rests on a tool the scenario did not fake",
+    )
+    mark_detail: list[str] = PydanticField(
+        default_factory=list, description="For default_fake: the tools' names"
+    )
 
 
 class SimulatedCallPublic(BaseModel):
@@ -146,7 +165,31 @@ class TestRunPublic(BaseModel):
     set_name: str | None = None
     repeats: int
     spec_version: int | None = None
+    spec_written_for: str | None = PydanticField(
+        default=None,
+        description="The agent version that spec's rules were written for",
+    )
+    spec_behind: bool = PydanticField(
+        default=False,
+        description="The run tested an agent version newer than the one its spec was "
+        "written for",
+    )
     platform_version: str | None = None
+    content: Literal["same", "edited", "unknown"] = PydanticField(
+        default="unknown",
+        description="Whether the version still has the content this run tested: "
+        "edited when its number now holds other content, unknown when that could not "
+        "be read",
+    )
+    content_checked_at: datetime | None = PydanticField(
+        default=None, description="When the version was read on the platform for it"
+    )
+    tool_schemas_applied: bool = PydanticField(
+        default=False,
+        description="Whether the platform's tool schemas were applied to the agent's "
+        "tool calls. False in every text run: tools are faked, so a run does not "
+        "prove a schema fix",
+    )
     created_at: datetime
     started_at: datetime | None = None
     completed_at: datetime | None = None
@@ -185,6 +228,11 @@ class RunTotalsPublic(BaseModel):
     not_judged: int = PydanticField(
         default=0,
         description="Rules only calls that stopped listed; they count in no column",
+    )
+    default_fake: int = PydanticField(
+        default=0,
+        description="Rules whose every verdict rests on a default fake; they count in "
+        "no column",
     )
     critical: int = PydanticField(
         default=0,
@@ -301,9 +349,11 @@ class UncheckedRulePublic(BaseModel):
     text: str
     category: str
     critical: bool = False
-    why: Literal["no_scenario", "did_not_come_up", "not_judged"] = PydanticField(
-        description="No scenario lists it, its scenarios never reached it, or only "
-        "calls that stopped listed it"
+    why: Literal["no_scenario", "did_not_come_up", "not_judged", "default_fake"] = (
+        PydanticField(
+            description="No scenario lists it, its scenarios never reached it, only "
+            "calls that stopped listed it, or its verdicts rest on a default fake"
+        )
     )
 
 

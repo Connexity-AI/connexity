@@ -281,7 +281,8 @@ def simulated_call_screen(
             v.rule_key,
         ),
     )
-    failed = [v for v in verdicts if v.outcome is RuleOutcome.FAILED]
+    # A verdict that rests on a default fake is not evidence and fails nothing.
+    failed = [v for v in verdicts if v.outcome is RuleOutcome.FAILED and v.mark is None]
     if not verdicts and not findings:
         status = CallCheckStatus.UNCHECKED
     elif any(v.critical for v in failed) or any(
