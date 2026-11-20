@@ -1,6 +1,6 @@
 # Platform Releases
 
-This document covers how to cut a versioned release of the Connexity platform (backend + frontend), independent of the [`connexity-cli` PyPI release flow](./pypi.md).
+This document covers how to cut a versioned release of the Connexity platform (backend + frontend).
 
 ## Why platform releases exist
 
@@ -17,8 +17,7 @@ Cut one whenever you have a coherent batch of changes you want to label.
 | Tag pattern | Meaning |
 |---|---|
 | `vX.Y.Z` | Platform release (this doc) |
-| `cli-vX.Y.Z` | CLI package release on PyPI (see [`pypi.md`](./pypi.md)) |
-| `v0.1.0` (no prefix) | Historical CLI release pre-dating the namespace split. Do not reuse. |
+| `cli-vX.Y.Z`, `v0.1.0` | Tags of a command line tool that is no longer part of the repo. Do not reuse. |
 
 Platform releases start at **`v1.0.0`** to avoid colliding with the `v0.1.0` historical tag.
 
@@ -57,7 +56,6 @@ Auto-generated notes group PRs by the labels in [`.github/release.yml`](../../.g
 - Does not deploy. Deployment continues to happen on every merge to `main` via the existing deploy workflows.
 - Does not modify `pyproject.toml` or any version file. The platform has no installable artifact, so no in-source version field needs bumping.
 - Does not write a `CHANGELOG.md` file. GitHub Releases is the source of truth — keeping a duplicate file in the repo would just rot.
-- Does not affect CLI releases. CLI publishing uses release-please + a separate `cli-v*` tag namespace.
 
 ## Manual override
 

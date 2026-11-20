@@ -94,14 +94,6 @@ def delete_integration(
     )
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
-    env_count = crud.count_environments_for_integration(
-        session=session, integration_id=integration_id
-    )
-    if env_count > 0:
-        raise HTTPException(
-            status_code=409,
-            detail=f"Cannot delete integration: {env_count} environment(s) depend on it",
-        )
     crud.delete_integration(session=session, db_integration=integration)
     return Message(message="Integration deleted successfully")
 

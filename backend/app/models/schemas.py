@@ -1,151 +1,22 @@
 """Pure Pydantic v2 models for JSONB nested entities.
 
 These are NOT database tables — they serialize into JSONB columns
-on the ORM table models (Run, TestCaseResult, TestCase). Run execution
-helpers (:class:`RunConfig`, :class:`UserSimulatorConfig`, :class:`JudgeConfig`)
-live here so API and services share one definition.
+on the ORM table models (Run, TestCaseResult). Run execution helpers
+(:class:`RunConfig`, :class:`UserSimulatorConfig`) live here so services share one
+definition.
 """
 
-import uuid
-from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
+from typing import TYPE_CHECKING, Any, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from app.models.enums import RunMode, SimulatorMode, TextRuntimeKind, TurnRole
 
 if TYPE_CHECKING:
-    from app.models.test_case import TestCase
-
-# ── Test case nested types ──────────────────────────────────────────
-
-
-class ExpectedToolCall(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    tool: str = Field(description="Tool/function name the agent should invoke")
-    expected_params: dict[str, Any] | None = Field(
-        default=None,
-        description=(
-            "Used for mock routing (required argument keys must be present in the live "
-            "call; values ignored) and generator alignment; null matches any invocation. "
-            "Use {{paramName}} tokens for simulator- or agent-varying values."
-        ),
-    )
-    mock_response: dict[str, Any] | None = Field(
-        default=None,
-        description=(
-            "Canned JSON object returned as the tool result in mock mode. "
-            "Use one expected_tool_calls row per mocked invocation when the same "
-            "tool is called multiple times."
-        ),
-    )
-
-
-# ── Tool platform config (lives inside Agent.tools JSONB) ─────────
-
-
-class PythonImplementation(BaseModel):
-    type: Literal["python"] = "python"
-    code: str = Field(
-        description="Python source defining: async def execute(args, context) -> dict"
-    )
-    config: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Static config available as context.config inside the tool code",
-    )
-    timeout_s: float = Field(
-        default=30.0,
-        ge=1.0,
-        le=120.0,
-        description="Max seconds before the tool execution is cancelled",
-    )
-
-
-class HttpWebhookImplementation(BaseModel):
-    type: Literal["http_webhook"] = "http_webhook"
-    url: str = Field(description="Webhook URL; supports ${VAR} env interpolation")
-    method: str = Field(
-        default="POST", description="HTTP method (POST, GET, PUT, etc.)"
-    )
-    headers: dict[str, str] | None = Field(
-        default=None,
-        description="HTTP headers; values support ${VAR} env interpolation",
-    )
-    timeout_ms: int = Field(
-        default=10000,
-        ge=1000,
-        le=60000,
-        description="Request timeout in milliseconds",
-    )
-
-
-ToolImplementation = PythonImplementation | HttpWebhookImplementation
-
-
-class ToolPlatformConfig(BaseModel):
-    """Platform metadata stored alongside a tool definition."""
-
-    predefined: bool = Field(
-        default=False,
-        description="True when this tool is supplied by the platform catalog (GET /config/predefined-tools).",
-    )
-    terminating: bool = Field(
-        default=False,
-        description=(
-            "When true, a tool call with this name ends the simulation turn loop "
-            "successfully without executing an implementation (voice-style hangup / transfer)."
-        ),
-    )
-    implementation: ToolImplementation | None = Field(
-        default=None,
-        description=(
-            "HTTP webhook or embedded Python runner recorded on the tool. Connexity "
-            "does not execute it; the agent's own engine runs its tools."
-        ),
-    )
-
-
-class PredefinedToolsPublic(BaseModel):
-    """Predefined tool entries; each element matches one item in ``Agent.tools`` JSONB."""
-
-    data: list[dict[str, Any]]
-    count: int
-
+    pass
 
 # ── Run nested types ───────────────────────────────────────────────
-
-
-class MetricSelection(BaseModel):
-    metric: str = Field(description="Metric id from the platform registry (snake_case)")
-    weight: float | None = Field(
-        default=None,
-        description="Override weight before renormalization; None = metric default",
-    )
-
-
-class JudgeConfig(BaseModel):
-    """Judge behavior and LLM overrides."""
-
-    metrics: list[MetricSelection] | None = Field(
-        default=None,
-        description="Selected metrics; null = platform default scored metric set",
-    )
-    pass_threshold: float = Field(
-        default=75.0,
-        ge=0.0,
-        le=100.0,
-        description="Minimum overall score (0-100) to pass",
-    )
-    model: str | None = Field(
-        default=None,
-        description="Judge LLM model override",
-    )
-    provider: str | None = Field(
-        default=None,
-        description="Judge LLM provider override",
-    )
 
 
 class UserSimulatorConfig(BaseModel):
@@ -182,7 +53,7 @@ class UserSimulatorConfig(BaseModel):
         return self
 
 
-# ── Runtime configs (discriminated union) ─────────────────────────
+# ── Runtime config ────────────────────────────────────────────────
 
 
 class RetellRuntimeConfig(BaseModel):
@@ -199,59 +70,7 @@ class RetellRuntimeConfig(BaseModel):
     )
 
 
-class CustomEndpointRuntimeConfig(BaseModel):
-    """Run evals against a user-provided HTTP endpoint.
-
-    The configured ``url`` must follow Connexity's OpenAI-compatible chat
-    completions contract (see ``app.models.agent_contract``): POST
-    ``AgentRequest`` → ``AgentResponse``.
-    """
-
-    kind: Literal[TextRuntimeKind.CUSTOM_ENDPOINT] = TextRuntimeKind.CUSTOM_ENDPOINT
-    url: str = Field(
-        min_length=1,
-        max_length=2048,
-        description="Chat-completions URL that receives AgentRequest payloads",
-    )
-
-
-RuntimeConfig = Annotated[
-    RetellRuntimeConfig | CustomEndpointRuntimeConfig,
-    Field(discriminator="kind"),
-]
-
-
-# ── Public runtime descriptors (API responses) ────────────────────
-
-
-class RuntimeOption(BaseModel):
-    """One runtime choice exposed to the UI dropdown."""
-
-    kind: TextRuntimeKind = Field(description="Runtime identifier")
-    label: str = Field(description="Human-readable name")
-    description: str = Field(description="Short marketing tagline")
-    is_default: bool = Field(
-        default=False, description="True when this is the recommended default"
-    )
-
-
-class RuntimeOptionsPublic(BaseModel):
-    data: list[RuntimeOption] = Field(
-        description="Runtimes available for the agent, in stable display order"
-    )
-
-
-class RuntimeTestResult(BaseModel):
-    """Outcome of POST /eval-configs/test-runtime."""
-
-    ok: bool = Field(description="True when the runtime config passed the smoke test")
-    message: str = Field(description="Human-readable detail")
-
-
-class RuntimeTestRequest(BaseModel):
-    agent_id: uuid.UUID = Field(description="Agent the runtime will run against")
-    mode: RunMode = Field(default=RunMode.TEXT, description="Run mode for this runtime")
-    runtime: RuntimeConfig = Field(description="Runtime config under test")
+RuntimeConfig = RetellRuntimeConfig
 
 
 class RunConfig(BaseModel):
@@ -263,30 +82,6 @@ class RunConfig(BaseModel):
     max_turns: int | None = Field(
         default=None,
         description="Max agent response rounds per test case; null = no cap",
-    )
-    metrics_pass_threshold: float = Field(
-        default=80.0,
-        ge=0.0,
-        le=100.0,
-        description=(
-            "Run-level threshold (%) for the weighted-average metric score across all "
-            "test case executions. The run's metrics dimension passes when the average "
-            "score is at or above this threshold."
-        ),
-    )
-    cases_pass_threshold: float = Field(
-        default=100.0,
-        ge=0.0,
-        le=100.0,
-        description=(
-            "Run-level threshold (%) for the fraction of test cases that pass. A test "
-            "case passes when all of its expected_outcomes pass (or, for legacy test "
-            "cases without expected_outcomes, when the judge verdict passes)."
-        ),
-    )
-    judge: JudgeConfig | None = Field(
-        default=None,
-        description="Judge metric selection, weights, pass threshold, and model overrides",
     )
     user_simulator: UserSimulatorConfig | None = Field(
         default=None,
@@ -354,198 +149,3 @@ class ConversationTurn(BaseModel):
         default=None, description="Token count for this turn"
     )
     timestamp: datetime = Field(description="When this turn occurred")
-
-
-# ── Judge nested types ─────────────────────────────────────────────
-
-
-class MetricScore(BaseModel):
-    metric: str = Field(description="Metric id from the registry (snake_case)")
-    score: int = Field(
-        description="0-5 for scored metrics; 0 or 5 for binary (fail/pass)"
-    )
-    label: str = Field(
-        description=(
-            "Scored: critical_fail, fail, poor, acceptable, good, excellent. "
-            "Binary: pass or fail"
-        )
-    )
-    weight: float = Field(default=1.0, description="Relative weight of this metric")
-    justification: str = Field(description="Judge's reasoning for the assigned score")
-    is_binary: bool = Field(
-        default=False,
-        description="True if this metric uses pass/fail instead of 0-5",
-    )
-    tier: str | None = Field(
-        default=None,
-        description="Metric tier: execution, knowledge, process, delivery",
-    )
-    failure_code: str | None = Field(
-        default=None,
-        description="Free-form failure code generated by the judge when this metric scored poorly",
-    )
-    turns: list[int] = Field(
-        default_factory=list,
-        description="Turn indices where the issue was observed",
-    )
-
-
-class ExpectedOutcomeResult(BaseModel):
-    statement: str = Field(
-        description="The expected outcome statement from the test case"
-    )
-    passed: bool = Field(description="Whether the expected outcome was met")
-    justification: str = Field(
-        description="Judge reasoning for the pass/fail determination"
-    )
-
-
-class JudgeVerdict(BaseModel):
-    passed: bool = Field(description="Whether the test case passed overall")
-    overall_score: float = Field(
-        description="Weighted overall score across all criteria (0-100)"
-    )
-    metric_scores: list[MetricScore] = Field(description="Per-metric score breakdown")
-    expected_outcome_results: list[ExpectedOutcomeResult] | None = Field(
-        default=None,
-        description="Per-outcome pass/fail results for each expected outcome statement",
-    )
-    summary: str | None = Field(
-        default=None,
-        description="Optional summary; not produced by the judge LLM in the current pipeline",
-    )
-    raw_judge_output: str | None = Field(
-        default=None, description="Raw unprocessed judge LLM output"
-    )
-    judge_model: str = Field(description="Model ID used for judging")
-    judge_provider: str = Field(description="Provider of the judge model")
-    judge_latency_ms: int | None = Field(
-        default=None, description="Judge evaluation latency in milliseconds"
-    )
-    judge_token_usage: dict[str, int] | None = Field(
-        default=None, description="Token usage for the judge call"
-    )
-    judge_cost_usd: float | None = Field(
-        default=None,
-        description="LiteLLM-estimated USD cost for the judge completion",
-    )
-
-
-# ── Aggregate metrics nested types ─────────────────────────────────
-
-
-@dataclass(frozen=True)
-class TestCaseExecution:
-    """One row in an eval set execution plan (test case + member metadata)."""
-
-    test_case: "TestCase"  # noqa: UP037 — avoid circular import with app.models.test_case
-    repetitions: int
-    position: int
-
-
-class AggregateMetrics(BaseModel):
-    unique_test_case_count: int = Field(
-        description="Number of unique test cases represented in run results"
-    )
-    total_executions: int = Field(
-        description="Total number of test case executions (result rows) in the run"
-    )
-    passed_count: int = Field(description="Number of test cases that passed")
-
-    failed_count: int = Field(description="Number of test cases that failed")
-    error_count: int = Field(
-        description="Number of test cases that errored during execution"
-    )
-    pass_rate: float = Field(
-        description="Fraction of executions that passed (0.0–1.0); denominator is total_executions"
-    )
-    latency_p50_ms: float | None = Field(
-        default=None, description="Median agent latency across test cases"
-    )
-    latency_p95_ms: float | None = Field(
-        default=None, description="95th percentile agent latency"
-    )
-    latency_max_ms: float | None = Field(
-        default=None, description="Maximum agent latency across test cases"
-    )
-    latency_avg_ms: float | None = Field(
-        default=None, description="Mean agent latency across test cases"
-    )
-    total_agent_token_usage: dict[str, int | bool] | None = Field(
-        default=None,
-        description="Summed token usage from the agent across all test cases",
-    )
-    total_platform_token_usage: dict[str, int] | None = Field(
-        default=None,
-        description="Summed token usage from the platform (simulator + judge)",
-    )
-    total_agent_cost_usd: float | None = Field(
-        default=None, description="Total estimated agent cost in USD for the entire run"
-    )
-    total_platform_cost_usd: float | None = Field(
-        default=None,
-        description="Total estimated platform cost in USD (simulator + judge) for the entire run",
-    )
-    total_estimated_cost_usd: float | None = Field(
-        default=None, description="Total estimated cost in USD for the entire run"
-    )
-    avg_overall_score: float | None = Field(
-        default=None,
-        description="Mean judge overall score across all test cases",
-    )
-    weighted_metrics_score_pct: float | None = Field(
-        default=None,
-        description=(
-            "Run-level metrics score (0-100): mean of per-test-case weighted "
-            "overall_score across results that have a verdict. None when no result "
-            "produced a verdict."
-        ),
-    )
-    metrics_pass_threshold: float | None = Field(
-        default=None,
-        description="Snapshot of metrics_pass_threshold used for this run (%)",
-    )
-    metrics_passed: bool | None = Field(
-        default=None,
-        description=(
-            "True when weighted_metrics_score_pct >= metrics_pass_threshold. "
-            "None when threshold or score is unavailable."
-        ),
-    )
-    cases_pass_rate_pct: float | None = Field(
-        default=None,
-        description=(
-            "Cases dimension score (0-100): pass_rate * 100. Errored test cases "
-            "count as not-passed in the denominator."
-        ),
-    )
-    cases_pass_threshold: float | None = Field(
-        default=None,
-        description="Snapshot of cases_pass_threshold used for this run (%)",
-    )
-    cases_passed: bool | None = Field(
-        default=None,
-        description=(
-            "True when cases_pass_rate_pct >= cases_pass_threshold. None when "
-            "threshold or rate is unavailable."
-        ),
-    )
-
-
-# ── SSE Event nested types ─────────────────────────────────────────
-
-
-class RunStreamEvent(BaseModel):
-    event: str
-    data: dict[str, Any]
-
-
-class TestCaseProgressData(BaseModel):
-    run_id: uuid.UUID
-    test_case_id: uuid.UUID
-    test_case_name: str
-    completed_count: int
-    total_count: int
-    passed: bool | None = None
-    overall_score: float | None = None
-    error_message: str | None = None

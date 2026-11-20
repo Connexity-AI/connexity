@@ -1,8 +1,6 @@
 # Connexity docs
 
-> **Connexity is being rebuilt.** These pages describe Connexity 1.x and are rewritten
-> at the end of the rebuild. Pages already updated for removed features:
-> [`evals/runtimes.md`](./evals/runtimes.md).
+> **Connexity is being rebuilt.** These pages are rewritten at the end of the rebuild.
 
 User- and operator-facing documentation. The content of this folder is the source for the public docs site at **[docs.connexity.ai](https://docs.connexity.ai)** — keep it curated for that audience.
 
@@ -12,17 +10,14 @@ User- and operator-facing documentation. The content of this folder is the sourc
 
 - [`self-hosting/`](./self-hosting) — running Connexity on your own infrastructure
   - [`docker-compose.md`](./self-hosting/docker-compose.md) — local & VM deployment via Docker Compose
-  - [`railway.md`](./self-hosting/railway.md) — deploying to Railway
-- [`agents/`](./agents) — integrating your agent with the platform
-  - [`contract.md`](./agents/contract.md) — the HTTP contract eval agents must implement
-- [`evals/`](./evals) — running and interpreting evaluations
-  - [`runtimes.md`](./evals/runtimes.md) — evaluation runtime kinds (`connexity`, `retell`, `custom_endpoint`)
-  - [`test-case-schema.md`](./evals/test-case-schema.md) — authoring test cases
-  - [`judge-criteria.md`](./evals/judge-criteria.md) — LLM-judge metrics and tiers
-  - [`scoring-and-thresholds.md`](./evals/scoring-and-thresholds.md) — how `overall_score` and pass/fail are computed
+- [`traces/`](./traces) — how a call is recorded
+  - [`trace-schema.md`](./traces/trace-schema.md) — the trace format
+  - [`ingest.md`](./traces/ingest.md) — sending a call to Connexity
+  - [`retell.md`](./traces/retell.md), [`n8n.md`](./traces/n8n.md) — what is read from each system
+  - [`versions.md`](./traces/versions.md) — component versions
 
 ## Writing rules for this folder
 
 - Audience is a user or operator who does not have access to the repo's git history, CI workflows, or internal tooling. Don't reference release-please, GitHub Actions, deploy hooks, or anything that only matters to maintainers — put that in `docs-internal/` instead.
-- Relative links between docs are fine. Cross-references into the rest of the repo (`../../examples/...`) work locally but won't resolve on the published site, so prefer self-contained explanation where possible.
-- Code symbols (table names, internal module paths) are okay only when the user genuinely needs them (e.g. in the agent contract, the canonical Pydantic models). Don't expose internal schema for its own sake.
+- Relative links between docs are fine. Cross-references into the rest of the repo work locally but won't resolve on the published site, so prefer self-contained explanation where possible.
+- Code symbols (table names, internal module paths) are okay only when the user genuinely needs them (e.g. the trace format). Don't expose internal schema for its own sake.

@@ -31,10 +31,9 @@ def _run(
     conn.execute(  # type: ignore[attr-defined]
         text(
             "INSERT INTO run (id, agent_id, company_id, scope, platform_version, "
-            "status, is_baseline, agent_mode, eval_config_version, created_at, "
-            "updated_at) VALUES "
-            "(:id, :agent, :company, :scope, :version, 'completed', false, "
-            "'platform', 1, now(), now())"
+            "status, agent_mode, created_at, updated_at) VALUES "
+            "(:id, :agent, :company, :scope, :version, 'completed', "
+            "'platform', now(), now())"
         ),
         {
             "id": run_id,

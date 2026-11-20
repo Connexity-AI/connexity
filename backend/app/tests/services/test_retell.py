@@ -4,7 +4,6 @@ import httpx
 import pytest
 
 from app.services.retell import (
-    _map_tools_for_retell,
     create_retell_agent_playground_completion,
 )
 
@@ -17,37 +16,6 @@ def _response(
         json=json,
         request=httpx.Request(method, url),
     )
-
-
-def test_map_tools_for_retell_includes_native_end_call() -> None:
-    mapped = _map_tools_for_retell(
-        [
-            {
-                "type": "function",
-                "function": {
-                    "name": "end_call",
-                    "description": "End the call cleanly.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {},
-                        "required": [],
-                    },
-                },
-                "platform_config": {
-                    "predefined": True,
-                    "terminating": True,
-                },
-            }
-        ]
-    )
-
-    assert mapped == [
-        {
-            "type": "end_call",
-            "name": "end_call",
-            "description": "End the call cleanly.",
-        }
-    ]
 
 
 @pytest.mark.asyncio

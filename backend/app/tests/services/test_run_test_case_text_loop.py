@@ -1,30 +1,82 @@
 """Integration-style tests for the shared text loop's ``run_text_test_case``.
 
-Driven through the custom endpoint runtime with the HTTP call patched, so the
-loop (turn ordering, max_turns, terminating tools, usage tracking) is exercised
-without a network.
+Driven through a runtime whose agent answers from a script, so the loop (turn
+ordering, max_turns, terminating tools, usage tracking) is exercised without a
+network.
 """
 
 import uuid
-from unittest.mock import AsyncMock, patch
+from typing import Any
 
 import pytest
 
 from app.models.agent_contract import AgentResponse, ChatMessage, TokenUsage
-from app.models.enums import AgentMode, SimulatorMode, TestCaseStatus, TurnRole
+from app.models.enums import (
+    AgentMode,
+    RunMode,
+    SimulatorMode,
+    TestCaseStatus,
+    TextRuntimeKind,
+    TurnRole,
+)
 from app.models.schemas import (
-    CustomEndpointRuntimeConfig,
+    RetellRuntimeConfig,
     RunConfig,
     ToolCall,
     ToolCallFunction,
     UserSimulatorConfig,
 )
 from app.models.test_case import TestCase
-from app.services.agent_tool_definitions import canonical_end_call_tool_dict
-from app.services.eval_runtimes.text.base import TextAgentTurnConfig
-from app.services.eval_runtimes.text.custom_endpoint import CustomEndpointRuntime
+from app.services.eval_runtimes.text.base import (
+    TextAgentTurnConfig,
+    TextAgentTurnContext,
+    TextRuntimeBase,
+)
 
-_ENDPOINT_URL = "http://agent.test/respond"
+_END_CALL_TOOL: dict[str, Any] = {
+    "type": "function",
+    "function": {"name": "end_call", "description": "End the call."},
+    "platform_config": {"terminating": True},
+}
+
+
+class _ScriptedAgentRuntime(TextRuntimeBase):
+    """A text runtime whose agent gives the same answer every turn."""
+
+    MODE = RunMode.TEXT
+    KIND = TextRuntimeKind.RETELL
+    LABEL = "scripted"
+    DESCRIPTION = "test double"
+
+    def __init__(self, response: AgentResponse) -> None:
+        self.response = response
+        self.turns = 0
+
+    def supported_for_platform(self, platform: object) -> bool:
+        return True
+
+    def validate_config(
+        self, runtime_config: object, agent: object, session: object
+    ) -> None:
+        return None
+
+    async def test_connection(
+        self, runtime_config: object, agent: object, session: object
+    ) -> Any:
+        raise NotImplementedError
+
+    def build_text_agent_config(
+        self, runtime_config: object, args: object, session: object
+    ) -> TextAgentTurnConfig:
+        raise NotImplementedError
+
+    async def do_agent_turn(self, context: TextAgentTurnContext) -> bool:
+        self.turns += 1
+        usage = self.response.usage
+        if usage is not None and usage.total_tokens is not None:
+            context.accumulator.add_agent_usage({"total_tokens": usage.total_tokens})
+        self.append_wire_messages_to_transcript(context.transcript, self.response, 1)
+        return True
 
 
 def _test_case() -> TestCase:
@@ -33,7 +85,6 @@ def _test_case() -> TestCase:
         name="text-loop-test-case",
         status=TestCaseStatus.ACTIVE,
         first_message="Hello",
-        tags=[],
     )
 
 
@@ -47,14 +98,14 @@ def _run_config(
             scripted_messages=scripted_messages,
         ),
         timeout_per_test_case_ms=120_000,
-        runtime=CustomEndpointRuntimeConfig(url=_ENDPOINT_URL),
+        runtime=RetellRuntimeConfig(),
     )
 
 
-def _agent_config(tools: list[dict] | None = None) -> TextAgentTurnConfig:
+def _agent_config(tools: list[dict[str, Any]] | None = None) -> TextAgentTurnConfig:
     return TextAgentTurnConfig(
-        endpoint_url=_ENDPOINT_URL,
-        agent_mode=AgentMode.ENDPOINT,
+        endpoint_url=None,
+        agent_mode=AgentMode.PLATFORM,
         tools=tools,
     )
 
@@ -78,25 +129,21 @@ def _end_call_response() -> AgentResponse:
 
 @pytest.mark.asyncio
 async def test_run_test_case_tracks_reported_agent_usage() -> None:
-    resp = AgentResponse(
-        messages=[ChatMessage(role=TurnRole.ASSISTANT, content="Agent reply here")],
-        model="gpt-4o-mini",
-        provider="openai",
-        usage=TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
-    )
-    with patch.object(
-        CustomEndpointRuntime,
-        "_post_agent_request",
-        new_callable=AsyncMock,
-        return_value=(resp, 42),
-    ) as mock_call:
-        result = await CustomEndpointRuntime().run_text_test_case(
-            _test_case(),
-            _agent_config(),
-            _run_config(scripted_messages=["Thanks, goodbye"], max_turns=1),
+    runtime = _ScriptedAgentRuntime(
+        AgentResponse(
+            messages=[ChatMessage(role=TurnRole.ASSISTANT, content="Agent reply here")],
+            model="gpt-4o-mini",
+            provider="openai",
+            usage=TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
         )
+    )
+    result = await runtime.run_text_test_case(
+        _test_case(),
+        _agent_config(),
+        _run_config(scripted_messages=["Thanks, goodbye"], max_turns=1),
+    )
 
-    mock_call.assert_awaited_once()
+    assert runtime.turns == 1
     roles = [t.role for t in result.transcript]
     assert roles == [TurnRole.USER, TurnRole.ASSISTANT]
     assert result.transcript[1].content == "Agent reply here"
@@ -109,27 +156,23 @@ async def test_run_test_case_persona_first_max_turns_ends_on_agent() -> None:
     """max_turns=N should yield N agent turns and end on the agent's last reply,
     without an unanswered trailing user message."""
     max_turns = 3
-    resp = AgentResponse(
-        messages=[ChatMessage(role=TurnRole.ASSISTANT, content="Agent reply")]
-    )
-    with patch.object(
-        CustomEndpointRuntime,
-        "_post_agent_request",
-        new_callable=AsyncMock,
-        return_value=(resp, 1),
-    ) as mock_call:
-        result = await CustomEndpointRuntime().run_text_test_case(
-            _test_case(),
-            _agent_config(),
-            # Plenty of scripted replies so the simulator is never the limiter.
-            _run_config(
-                scripted_messages=[f"reply {i}" for i in range(10)],
-                max_turns=max_turns,
-            ),
+    runtime = _ScriptedAgentRuntime(
+        AgentResponse(
+            messages=[ChatMessage(role=TurnRole.ASSISTANT, content="Agent reply")]
         )
+    )
+    result = await runtime.run_text_test_case(
+        _test_case(),
+        _agent_config(),
+        # Plenty of scripted replies so the simulator is never the limiter.
+        _run_config(
+            scripted_messages=[f"reply {i}" for i in range(10)],
+            max_turns=max_turns,
+        ),
+    )
 
     # Exactly max_turns agent calls, no extras.
-    assert mock_call.await_count == max_turns
+    assert runtime.turns == max_turns
 
     roles = [t.role for t in result.transcript]
     # 1 opener + max_turns agent + (max_turns - 1) user replies = 2 * max_turns
@@ -141,19 +184,14 @@ async def test_run_test_case_persona_first_max_turns_ends_on_agent() -> None:
 
 @pytest.mark.asyncio
 async def test_run_test_case_stops_on_end_call_without_scripted_user() -> None:
-    with patch.object(
-        CustomEndpointRuntime,
-        "_post_agent_request",
-        new_callable=AsyncMock,
-        return_value=(_end_call_response(), 12),
-    ) as mock_call:
-        result = await CustomEndpointRuntime().run_text_test_case(
-            _test_case(),
-            _agent_config(tools=[canonical_end_call_tool_dict()]),
-            _run_config(scripted_messages=["skipped"]),
-        )
+    runtime = _ScriptedAgentRuntime(_end_call_response())
+    result = await runtime.run_text_test_case(
+        _test_case(),
+        _agent_config(tools=[_END_CALL_TOOL]),
+        _run_config(scripted_messages=["skipped"]),
+    )
 
-    mock_call.assert_awaited_once()
+    assert runtime.turns == 1
     assert len(result.transcript) == 2
     assert result.transcript[-1].role == TurnRole.ASSISTANT
     assert result.transcript[-1].tool_calls is not None

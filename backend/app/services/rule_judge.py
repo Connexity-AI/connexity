@@ -12,8 +12,8 @@ from dataclasses import dataclass
 from app.core.config import settings
 from app.models.enums import RuleOutcome
 from app.models.schemas import ConversationTurn
-from app.services.judge import format_transcript
 from app.services.llm import LLMCallConfig, LLMMessage, call_llm
+from app.services.transcript_format import format_transcript
 
 logger = logging.getLogger(__name__)
 

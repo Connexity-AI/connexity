@@ -14,6 +14,7 @@ from app.models import Call, DecisionRecord, Finding
 from app.models.enums import CheckMode
 from app.services.checks import engine
 from app.services.checks.base import Check, CheckInput, Raised
+from app.tests.utils.eval import create_agent_as
 from app.tests.utils.utils import extract_cookies, random_email, random_lower_string
 
 API = settings.API_V1_STR
@@ -21,16 +22,7 @@ CHECK = "tool_call_failed"
 
 
 def _agent(client: TestClient, cookies: dict[str, str]) -> str:
-    r = client.post(
-        f"{API}/agents/",
-        json={
-            "name": f"agent-{uuid.uuid4().hex[:6]}",
-            "endpoint_url": "http://example.com/agent",
-        },
-        cookies=cookies,
-    )
-    assert r.status_code == 200, r.text
-    return r.json()["id"]
+    return str(create_agent_as(client, cookies).id)
 
 
 @pytest.fixture(scope="module")

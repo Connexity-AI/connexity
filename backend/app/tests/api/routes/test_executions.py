@@ -28,6 +28,7 @@ from app.services.n8n import (
     N8nWorkflow,
 )
 from app.services.retell import RetellCall
+from app.tests.utils.eval import create_agent_as
 from app.tests.utils.n8n_payloads import n8n_execution
 from app.tests.utils.retell_payloads import (
     START_MS,
@@ -55,16 +56,7 @@ def _encryption_key(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, No
 
 
 def _agent(client: TestClient, cookies: dict[str, str], db: Session) -> Agent:
-    r = client.post(
-        f"{API}/agents/",
-        json={
-            "name": f"agent-{uuid.uuid4().hex[:6]}",
-            "endpoint_url": "http://example.com/agent",
-        },
-        cookies=cookies,
-    )
-    assert r.status_code == 200, r.text
-    agent = db.get(Agent, uuid.UUID(r.json()["id"]))
+    agent = db.get(Agent, create_agent_as(client, cookies).id)
     assert agent is not None
     agent.platform = Platform.RETELL
     agent.platform_agent_id = f"agent_{uuid.uuid4().hex[:8]}"

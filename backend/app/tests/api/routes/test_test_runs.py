@@ -252,7 +252,6 @@ def test_a_set_runs_every_repeat_with_every_tool_faked_and_judges_listed_rules(
         assert call.default_fakes == ["book_slot"]
         # The default fake is no result, not a failed tool: no code-check finding.
         assert call.check_findings == []
-        assert call.passed is None
     verdicts = db.exec(
         select(RuleVerdict).where(RuleVerdict.run_id == uuid.UUID(run_id))
     ).all()

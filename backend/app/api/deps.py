@@ -16,7 +16,7 @@ from sqlmodel import Session
 from app.core import security
 from app.core.config import settings
 from app.core.db import engine
-from app.models import Agent, TokenPayload, User
+from app.models import TokenPayload, User
 from app.models.company import Company
 from app.models.mcp import GUIDE_WORKSPACES, McpErrorDetail
 from app.models.personal_access_token import PERSONAL_ACCESS_TOKEN_PREFIX
@@ -229,18 +229,3 @@ def require_mcp_workspace(
 
 
 McpWorkspaceDep = Annotated[Company, Depends(require_mcp_workspace)]
-
-
-def get_owned_agent(
-    *, agent_id: uuid.UUID, session: Session, current_user: User
-) -> Agent:
-    from app import crud
-
-    agent = crud.get_agent(
-        session=session,
-        agent_id=agent_id,
-        company_id=current_user.company_id,
-    )
-    if not agent or agent.company_id != current_user.company_id:
-        raise HTTPException(status_code=404, detail="Agent not found")
-    return agent

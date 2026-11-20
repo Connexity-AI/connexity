@@ -2,9 +2,6 @@ name: Release Platform
 
 # Manual platform release: cuts a `vX.Y.Z` tag and a GitHub Release with
 # auto-generated notes from PRs since the last platform tag.
-#
-# CLI releases use a separate `cli-v*` tag namespace (see release-please.yml
-# and publish-pypi.yml) so the two artifact lines never collide.
 
 on:
   workflow_dispatch:

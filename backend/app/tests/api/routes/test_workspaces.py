@@ -5,6 +5,7 @@ from sqlmodel import Session, select
 
 from app.core.config import settings
 from app.models import User, WorkspaceMember
+from app.tests.utils.eval import create_agent_as
 from app.tests.utils.utils import random_email, random_lower_string
 
 API = settings.API_V1_STR
@@ -22,7 +23,7 @@ def _sign_up(client: TestClient, email: str) -> dict[str, str]:
 
 
 def _agent_names(client: TestClient, cookies: dict[str, str]) -> list[str]:
-    r = client.get(f"{API}/agents/", cookies=cookies)
+    r = client.get(f"{API}/agents/list", cookies=cookies)
     assert r.status_code == 200, r.text
     return [agent["name"] for agent in r.json()["data"]]
 
@@ -43,12 +44,7 @@ def test_sign_up_creates_one_open_workspace_named_from_the_domain(
 
 def test_create_switch_and_scope(client: TestClient) -> None:
     cookies = _sign_up(client, random_email())
-    r = client.post(
-        f"{API}/agents/",
-        json={"name": "First workspace agent", "endpoint_url": "http://example.com/a"},
-        cookies=cookies,
-    )
-    assert r.status_code == 200, r.text
+    create_agent_as(client, cookies, name="First workspace agent", linked=True)
     first_id = next(
         w["id"] for w in client.get(f"{API}/workspaces/", cookies=cookies).json()
     )
@@ -112,7 +108,7 @@ def test_losing_membership_of_the_open_workspace_ends_the_session(
     db.delete(member)
     db.commit()
 
-    r = client.get(f"{API}/agents/", cookies=cookies)
+    r = client.get(f"{API}/agents/list", cookies=cookies)
     assert r.status_code == 401
 
 

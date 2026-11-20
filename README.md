@@ -36,9 +36,6 @@
 </div>
 
 <p align="center">
-   <a href="https://pypi.org/project/connexity-cli/" target="_blank">
-      <img src="https://img.shields.io/pypi/v/connexity-cli.svg" alt="connexity-cli on PyPI">
-   </a>
    <a href="./LICENSE">
       <img src="https://img.shields.io/badge/License-MIT-orange.svg" alt="MIT License">
    </a>
@@ -55,7 +52,7 @@
 > simulator and deploys have been removed). See [`CLAUDE.md`](./CLAUDE.md) for where the
 > product is going and [`REBUILD.md`](./REBUILD.md) for progress.
 
-Connexity is an **open-source evaluation and observability platform for voice AI agents**. It closes the loop between development and production: build or connect an agent, iterate on prompts with the coding assistant you already use (Claude Code, Cursor, Codex) via the Connexity CLI and MCP server, generate realistic test cases from the agent's own configuration and real conversations, run evaluations locally or in CI, inspect production calls, and promote better versions with confidence — all from one place.
+Connexity is an **open-source evaluation and observability platform for voice AI agents**. It closes the loop between development and production: build or connect an agent, iterate on prompts with the coding assistant you already use (Claude Code, Cursor, Codex) via the Connexity MCP server, generate realistic test cases from the agent's own configuration and real conversations, run evaluations locally or in CI, inspect production calls, and promote better versions with confidence — all from one place.
 
 ## 🌀 Core Features
 
@@ -70,8 +67,6 @@ Connexity is built around a single closed loop for developing voice AI agents �
 - **Run-to-run comparison** — pick any two completed runs and Connexity computes a regression verdict across per-metric deltas, pass/fail dimensions, and latency / cost shifts. Optional AI cause-analysis reads the failed transcripts and surfaces the most likely root cause for any regression so you don't have to guess.
 
 - **Production observability** — connect real-world call sources, review production conversations alongside evaluation results, and turn missed edge cases into regression tests before they happen again.
-
-- **CLI for CI/CD** — automate evaluation in GitHub Actions and other pipelines: every PR can run a regression suite, fail the build when the run misses its metrics or cases threshold, and gate against a registered baseline for regression checks. See [`CLI_README.md`](./CLI_README.md).
 
 - **Agent deployment workflow** — connect deployment environments, sync provider state, and deploy evaluated versions back to supported voice platforms. Optional eval gates on each environment block deploys when the gated eval-config doesn't pass its thresholds, so a regressed version never reaches users.
 
@@ -97,10 +92,6 @@ docker compose up
 
 Use the **same Compose stack on a VM**: install Docker on the machine, clone the repo, set production **`SITE_URL`** and secrets in **`.env`**, then **`docker compose up`**. Walkthrough for local versus VM—including sizing, firewall, and shutdown—is in [Docker Compose: local & VM](./docs/self-hosting/docker-compose.md).
 
-### CLI against a hosted instance
-
-When the Connexity API is **not** on your machine’s default URL, set **`CONNEXITY_CLI_API_URL`** (that deployment’s API base) and **`CONNEXITY_CLI_API_TOKEN`** (bearer token after `login` or from your automation). See [`CLI_README.md`](./CLI_README.md); commented examples in [`.env.example`](.env.example).
-
 ### Railway
 
 If you want to deploy the full stack on Railway, start with [`docs/self-hosting/railway.md`](./docs/self-hosting/railway.md). It explains the CLI bootstrap flow, which values should stay secret, and which env vars should be reference variables instead of hard-coded strings.
@@ -119,27 +110,6 @@ Connexity is designed to live alongside the voice AI platforms you already use. 
 
 > **Want one of these sooner?** Vote in [GitHub Discussions](https://github.com/Connexity-AI/connexity/discussions) or join us on [Discord](https://discord.gg/QvWCX96J6K).
 
-### Bring your own agent
-
-When you are **not** connected to Retell (or another integrated platform), define the agent **in Connexity**—system prompt, tools, model, provider, and temperature—and run evaluations with the built-in simulator. No external agent service is required.
-
-### CLI
-
-The CLI is published on PyPI as [`connexity-cli`](https://pypi.org/project/connexity-cli/). Use it to drive evaluations from a terminal or CI pipeline without opening the web UI.
-
-```bash
-pip install connexity-cli
-
-connexity-cli login --email me@example.com --save
-connexity-cli agents list
-connexity-cli run --agent my-agent --eval-config smoke-suite --stream --set-baseline
-connexity-cli compare --candidate <run-id> --against-baseline
-```
-
-The `run` command exits non-zero when the run misses its metrics or cases threshold (default-on, opt out with `--no-fail-on-thresholds`), and `compare --against-baseline` does the same on regression — so dropping either one into a CI step is enough to gate merges. The same `environments deploy <env-id> --agent-version N` command can promote evaluated versions back to a connected platform from the terminal.
-
-Command reference: [`CLI_README.md`](./CLI_README.md).
-
 ## 🚀 Quickstart
 
 The end-to-end developer loop in Connexity looks like this:
@@ -156,7 +126,7 @@ Pick one:
 
 - **Connect Retell** — connect your Retell workspace, choose the agent/environment you want to observe or deploy to, and bring production calls into Connexity.
 - **Import from Vapi or ElevenLabs** *(planned)* — connect your account and pull an existing agent, including its prompt, tools, and configuration.
-- **Build from scratch** — create a new agent and write the system prompt, tools, and persona directly, or drive the edits from Claude Code, Cursor, or Codex via the Connexity CLI and MCP server.
+- **Build from scratch** — create a new agent and write the system prompt, tools, and persona directly, or drive the edits from Claude Code, Cursor, or Codex via the MCP server.
 
 Edits are kept as a draft on the agent. When you're ready, capture the draft as a new version with an optional changelog. That version is what evaluations and deployments are pinned to.
 
@@ -167,8 +137,6 @@ From the dashboard, generate a batch of test cases for your agent. Connexity rea
 ### 4️⃣ Run an evaluation
 
 Run the test cases against your agent. Connexity simulates the user side, lets your agent execute its own tool loop, and records full transcripts, tool calls, token usage, latency, and cost. Each run finishes with a pass/fail verdict against two configurable thresholds — the weighted-metrics score and the per-test-case pass rate — so you can answer "did the agent clear the bar?" with one number.
-
-For automation in CI, use [`connexity-cli`](https://pypi.org/project/connexity-cli/) in a GitHub Action or release pipeline to run a regression suite and fail the build on missed thresholds or regressions against a registered baseline.
 
 ### 5️⃣ Inspect results and production calls
 
@@ -192,7 +160,7 @@ If Connexity is useful to you, please star the repo on GitHub — it helps a lot
 
 Finding an answer to your question:
 
-- The [`docs/`](./docs) folder is the best place to start. Topic-specific guides: [scoring & thresholds](./docs/evals/scoring-and-thresholds.md), [judge criteria](./docs/evals/judge-criteria.md), [test case schema](./docs/evals/test-case-schema.md), [agent contract](./docs/agents/contract.md), [Docker Compose: local & VM](./docs/self-hosting/docker-compose.md), [Railway](./docs/self-hosting/railway.md), and the [`connexity-cli` reference](./CLI_README.md). Maintainer-only notes (data model, migrations, release pipeline) live in [`docs-internal/`](./docs-internal).
+- The [`docs/`](./docs) folder is the best place to start, for example [Docker Compose: local & VM](./docs/self-hosting/docker-compose.md). Maintainer-only notes (data model, migrations, release pipeline) live in [`docs-internal/`](./docs-internal).
 - [GitHub Discussions](https://github.com/Connexity-AI/connexity/discussions) — ask questions, share what you're building, and request features.
 - [Discord](https://discord.gg/Gj47DqWq) — chat with the team and other users in real time.
 

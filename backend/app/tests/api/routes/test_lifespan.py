@@ -1,29 +1,30 @@
 """Test crash-recovery logic that runs during app lifespan startup."""
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
-from app import crud
 from app.main import app
-from app.models import RunStatus, RunUpdate
-from app.tests.utils.eval import (
-    create_test_agent,
-    create_test_case_fixture,
-    create_test_eval_config,
-    create_test_run,
-    eval_config_members,
-)
+from app.models import Run, RunStatus
+from app.models.enums import RunScope
+from app.tests.utils.eval import create_test_agent
 
 
-def test_stale_running_runs_marked_failed_on_startup(db: Session) -> None:
-    """Runs left in RUNNING status from a prior crash become FAILED on startup."""
+@pytest.mark.parametrize("status", [RunStatus.RUNNING, RunStatus.PENDING])
+def test_runs_a_restart_stopped_are_failed_on_startup(
+    db: Session, status: RunStatus
+) -> None:
+    """A run lives in the process that started it: one left running was stopped, and
+    one still pending never started."""
     agent = create_test_agent(db)
-    test_case = create_test_case_fixture(db)
-    eval_config = create_test_eval_config(
-        db, agent_id=agent.id, members=eval_config_members(test_case.id)
+    run = Run(
+        agent_id=agent.id,
+        company_id=agent.company_id,
+        scope=RunScope.ALL,
+        platform_version="1",
+        status=status,
     )
-    run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
-    crud.update_run(session=db, db_run=run, run_in=RunUpdate(status=RunStatus.RUNNING))
+    db.add(run)
     db.commit()
     run_id = run.id
 
@@ -31,27 +32,7 @@ def test_stale_running_runs_marked_failed_on_startup(db: Session) -> None:
         pass
 
     db.expire_all()
-    recovered = crud.get_run(session=db, run_id=run_id)
+    recovered = db.get(Run, run_id)
     assert recovered is not None
     assert recovered.status == RunStatus.FAILED
     assert recovered.completed_at is not None
-
-
-def test_pending_runs_unaffected_on_startup(db: Session) -> None:
-    """Runs in PENDING status should not be touched by crash recovery."""
-    agent = create_test_agent(db)
-    test_case = create_test_case_fixture(db)
-    eval_config = create_test_eval_config(
-        db, agent_id=agent.id, members=eval_config_members(test_case.id)
-    )
-    run = create_test_run(db, agent_id=agent.id, eval_config_id=eval_config.id)
-    db.commit()
-    run_id = run.id
-
-    with TestClient(app):
-        pass
-
-    db.expire_all()
-    recovered = crud.get_run(session=db, run_id=run_id)
-    assert recovered is not None
-    assert recovered.status == RunStatus.PENDING

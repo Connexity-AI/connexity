@@ -6,7 +6,7 @@ Contributor- and maintainer-only documentation. **Not** published to
 
 This is the right home for anything that:
 
-- describes the release / deploy pipeline, GitHub Actions workflows, or PyPI publishing setup
+- describes the release / deploy pipeline, or GitHub Actions workflows
 - documents internal data model, migration mechanics, or schema details that operators don't need
 - captures repo conventions for maintainers (for example, MCP extension workflow or the Railway template blueprint)
 
@@ -28,4 +28,3 @@ instead.
 - [`releases/`](./releases) - release pipeline
   - [`cycle.md`](./releases/cycle.md) - end-to-end release walkthrough (PR -> tag -> deploy -> announce)
   - [`platform.md`](./releases/platform.md) - platform release workflow (backend + frontend, `vX.Y.Z` tags)
-  - [`pypi.md`](./releases/pypi.md) - `connexity-cli` PyPI publishing setup and troubleshooting

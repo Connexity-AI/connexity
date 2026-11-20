@@ -1,17 +1,15 @@
 import uuid
 from datetime import UTC, datetime
-from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, field_validator
-from sqlalchemy import Column, Index, Text, text
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB
+from sqlalchemy import Column, Text, text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
 from app.models.agent import Agent
 from app.models.columns import enum_type
-from app.models.enums import Difficulty, FirstTurn, TestCaseStatus
-from app.models.schemas import ExpectedToolCall
+from app.models.enums import FirstTurn, TestCaseStatus
 
 if TYPE_CHECKING:
     from app.models.eval_config import EvalConfigMember
@@ -19,27 +17,11 @@ if TYPE_CHECKING:
 
 
 class TestCaseBase(SQLModel):
-    """Base fields shared by ORM and API schemas.
-
-    JSONB columns use raw dict/list types for SQLAlchemy compatibility.
-    API-facing schemas (TestCaseCreate, TestCasePublic, TestCaseUpdate)
-    override expected_tool_calls with typed Pydantic models.
-    """
+    """A scenario's stored fields (`plans/2026-11-17-scenarios.md`)."""
 
     name: str = Field(max_length=255, description="Human-readable short name")
     description: str | None = Field(
         default=None, description="What this test case checks (for humans)"
-    )
-    difficulty: Difficulty = Field(
-        default=Difficulty.NORMAL,
-        index=True,
-        sa_type=enum_type(Difficulty),
-        description="Two-level difficulty classification",
-    )
-    tags: list[str] = Field(
-        default_factory=list,
-        sa_column=Column(ARRAY(Text), nullable=False, server_default="{}"),
-        description="Free-form tags for grouping and filtering",
     )
     status: TestCaseStatus = Field(
         default=TestCaseStatus.ACTIVE,
@@ -86,10 +68,6 @@ class TestCaseBase(SQLModel):
         default=None,
         sa_column=Column("expected_tool_calls", JSONB, nullable=True),
         description="Tool call expectations for judge evaluation",
-    )
-    evaluation_criteria_override: str | None = Field(
-        default=None,
-        description="Custom judge prompt section that overrides default criteria",
     )
     agent_id: uuid.UUID | None = Field(
         default=None,
@@ -154,107 +132,3 @@ class TestCase(TestCaseBase, table=True):
         back_populates="test_case",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
-
-    __table_args__ = (Index("ix_test_case_tags_gin", "tags", postgresql_using="gin"),)
-
-
-class TestCaseCreate(TestCaseBase):
-    expected_tool_calls: list[ExpectedToolCall] | None = None  # type: ignore[assignment]
-
-
-class TestCaseUpdate(SQLModel):
-    name: str | None = Field(default=None, description="Human-readable short name")
-    description: str | None = Field(
-        default=None, description="What this test case checks (for humans)"
-    )
-    difficulty: Difficulty | None = Field(
-        default=None, description="Two-level difficulty classification"
-    )
-    tags: list[str] | None = Field(
-        default=None, description="Free-form tags for grouping and filtering"
-    )
-    status: TestCaseStatus | None = Field(
-        default=None,
-        description="Lifecycle status — only active test cases run by default",
-    )
-    persona_context: str | None = Field(
-        default=None, description="Free-form persona description for the LLM simulator"
-    )
-    first_turn: FirstTurn | None = Field(
-        default=None, description="Who speaks first: agent or user"
-    )
-    first_message: str | None = Field(
-        default=None, description="Opening message for whoever speaks first"
-    )
-    user_context: dict[str, Any] | None = None
-    expected_outcomes: list[str] | None = None
-    expected_tool_calls: list[ExpectedToolCall] | None = None
-    evaluation_criteria_override: str | None = Field(
-        default=None,
-        description="Custom judge prompt section that overrides default criteria",
-    )
-    agent_id: uuid.UUID | None = Field(
-        default=None,
-        description="Agent this test case belongs to (test suite pool for that agent)",
-    )
-    source_call_id: uuid.UUID | None = Field(
-        default=None,
-        description="Call this test case was created from (Observer drawer)",
-    )
-
-    @field_validator("expected_tool_calls", mode="before")
-    @classmethod
-    def _serialize_expected_tool_calls_update(
-        cls, v: Any
-    ) -> list[dict[str, Any]] | None:
-        if v is None:
-            return None
-        if not isinstance(v, list):
-            return v  # type: ignore[return-value]
-        return [
-            item.model_dump(mode="json") if isinstance(item, BaseModel) else item
-            for item in v
-        ]
-
-
-class TestCasePublic(TestCaseBase):
-    id: uuid.UUID = Field(description="Unique test case identifier")
-    created_at: datetime = Field(description="When the test case was created")
-    updated_at: datetime = Field(description="When the test case was last updated")
-    deleted_at: datetime | None = Field(
-        default=None,
-        description="When the test case was soft-deleted (null = active)",
-    )
-    expected_tool_calls: list[ExpectedToolCall] | None = None  # type: ignore[assignment]
-
-
-class TestCasesPublic(SQLModel):
-    data: list[TestCasePublic] = Field(description="List of test cases")
-    count: int = Field(description="Total number of test cases matching the query")
-
-
-class OnConflict(StrEnum):
-    SKIP = "skip"
-    OVERWRITE = "overwrite"
-
-
-class TestCaseImportItem(TestCaseCreate):
-    """Test case payload for import — optional id enables round-trip and conflict detection."""
-
-    id: uuid.UUID | None = None
-
-
-class TestCaseImportResult(SQLModel):
-    created: int
-    skipped: int
-    overwritten: int
-    total: int
-    errors: list[str] = Field(
-        default_factory=list, description="Per-item error messages"
-    )
-
-
-class TestCasesExport(SQLModel):
-    exported_at: datetime
-    count: int
-    test_cases: list[TestCasePublic]

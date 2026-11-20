@@ -4,17 +4,12 @@ from fastapi import APIRouter
 
 from app.api.routes import (
     agent_list,
-    agents,
     call_screen,
     calls,
     checks,
     clarifications,
     component_versions,
-    config,
-    custom_metrics,
     dashboard,
-    environments,
-    eval_configs,
     google_auth,
     health,
     ingest,
@@ -27,10 +22,7 @@ from app.api.routes import (
     onboarding,
     personal_access_tokens,
     readiness,
-    runs,
     spec,
-    test_case_results,
-    test_cases,
     tests_tab,
     tool_backends,
     users,
@@ -55,19 +47,10 @@ api_router.include_router(dashboard.router)
 api_router.include_router(onboarding.router)
 api_router.include_router(personal_access_tokens.router)
 api_router.include_router(mcp.router)
-# Before agents.router: its /agents/{agent_id} would catch /agents/list.
 api_router.include_router(agent_list.router)
 api_router.include_router(clarifications.router)
 api_router.include_router(work.router)
-api_router.include_router(agents.router)
-api_router.include_router(test_cases.router)
-api_router.include_router(custom_metrics.router)
-api_router.include_router(eval_configs.router)
-api_router.include_router(runs.router)
-api_router.include_router(test_case_results.router)
-api_router.include_router(config.router)
 api_router.include_router(integrations.router)
-api_router.include_router(environments.router)
 api_router.include_router(workspace_calls.router)
 api_router.include_router(call_screen.router)
 api_router.include_router(calls.router)

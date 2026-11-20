@@ -14,11 +14,8 @@ erDiagram
     company ||--o{ user : has
     company ||--o{ integration : owns
     company ||--o{ agent : owns
-    company ||--o{ custom_metric : owns
     company ||--o{ ingest_token : issues
     integration ||--o{ agent : "provider account for"
-    agent ||--o{ agent_version : "snapshots"
-    agent ||--o{ environment : "linked through"
     agent ||--o{ call : "served"
     call ||--o{ call_event : "timeline"
     call ||--o{ call_component : "served by"
@@ -34,7 +31,6 @@ erDiagram
     test_case ||--o{ eval_config_member : "member of"
     test_case ||--o{ scenario_rule : lists
     eval_config ||--o{ run : "executed as"
-    agent_version ||--o{ run : "tested in"
     run ||--o{ test_case_result : produces
     test_case_result ||--o{ rule_verdict : judges
     test_case ||--o{ test_case_result : "result of"
@@ -49,9 +45,7 @@ erDiagram
 | `company` | `company.py` | A tenant, with its LLM credentials (encrypted). | Keep |
 | `user` | `user.py` | A login. Each signup creates its own company. | Keep |
 | `integration` | `integration.py` | A provider account (Retell, Vapi, ElevenLabs) with an encrypted API key. This is the product's read access to a provider. | Keep |
-| `agent` | `agent.py` | A voice agent, linked to a provider agent or to its own HTTP endpoint. | Keep |
-| `agent_version` | `agent_version.py` | A snapshot of the agent's prompt, tools and model settings; draft or published. | Reshape in slice 1.5 into observed component versions |
-| `environment` | `environment.py` | No remaining purpose: call sync reads the agent's own provider link since slice 1.3. | Delete in a later slice |
+| `agent` | `agent.py` | A voice agent, linked to its agent on a voice platform. | Keep |
 | `call` | `call.py` | A call and the call-level fields of its trace (provider, source, end reason, parties, inputs, outputs), plus the provider's raw payload. | The pre-trace columns were dropped in slice 1.3; duration is derived from start and end |
 | `call_event` | `call.py` | One row per trace event (utterance, tool call, marker), ordered within the call. The only stored form of the timeline. | New in slice 1.1 |
 | `call_component` | `call.py` | One row per component that served a call, with its version and fingerprint. `call.agent_version` and `call.state_fingerprint` summarise them. | Filled for Retell since slice 1.5 |
@@ -72,11 +66,10 @@ erDiagram
 | `check_release` | `check.py` | When each version of a built-in check was first present. Not owned by a company. A finding on a call that started earlier is retroactive. | New in slice 2.1 |
 | `test_case` | `test_case.py` | A scenario: the stage for a simulated call. The caller (`persona_context`, `caller_goal`, `caller_behaviour`), what the caller knows (`user_context`) apart from the agent's variables (`agent_variables`), who speaks first and the first message, fake tool results (`expected_tool_calls` with `mock_response`), and optionally the call it came from. Written by the assistant through MCP; it has no pass or fail of its own. | Reshaped in 10.1291 (`caller_goal`, `caller_behaviour`, `agent_variables`); the rest of the eval stack stays frozen until the runner |
 | `scenario_rule` | `scenario.py` | A spec rule a scenario expects to come up, by the rule's key, so the link holds across spec versions. A scenario with at least one is listed by MCP. | New in 10.1291 |
-| `eval_config`, `eval_config_member` | `eval_config.py` | A named set of scenarios with a run configuration (runtime, judge, thresholds); `write_scenario_set` writes its members. | Frozen until Phase 4 |
-| `run` | `run.py` | One execution of an eval config against an agent version, with aggregate metrics. A run of scenarios (10.1292) also has its `scope` (a set, a pick or all), `set_name`, `repeats`, the `spec_id` whose rules it judges, the `platform_version` it tests, the `version_fingerprint` of the content it tested (10.1293: results are grouped by both, since an unpublished version is edited under the same number) and a `status_detail`; its `eval_config_id` is empty for a pick or all. | Reshaped in 10.1292; the 1.x parts frozen until Phase 4 |
-| `test_case_result` | `test_case_result.py` | One test case's transcript and judge verdict within a run. In a run of scenarios it is one simulated call (a scenario and a repeat), made when the run starts, with the code-check findings in it (`check_findings`) and the tools that got the default fake (`default_fakes`); `passed` stays empty, since a scenario has no pass or fail. | Reshaped in 10.1292 |
+| `eval_config`, `eval_config_member` | `eval_config.py` | A named set of scenarios; `write_scenario_set` writes its members. | In use since 10.1291 |
+| `run` | `run.py` | One run of scenarios against an agent version on its platform (10.1292). It has its `scope` (a set, a pick or all), `set_name`, `repeats`, the `spec_id` whose rules it judges, the `platform_version` it tests, the `version_fingerprint` of the content it tested (10.1293: results are grouped by both, since an unpublished version is edited under the same number) and a `status_detail`; its `eval_config_id` is empty for a pick or all. | Reshaped in 10.1292; the 1.x parts frozen until Phase 4 |
+| `test_case_result` | `test_case_result.py` | One simulated call in a run (a scenario and a repeat), made when the run starts, with the code-check findings in it (`check_findings`) and the tools that got the default fake (`default_fakes`); `passed` stays empty, since a scenario has no pass or fail. | Reshaped in 10.1292 |
 | `rule_verdict` | `test_run.py` | A rule the scenario lists, judged in one simulated call: Passed, Failed or Didn't come up, with the reason, the turns, and whether the rule was critical in the run's spec version. | New in 10.1292 |
-| `custom_metric` | `custom_metric.py` | Judge metrics per company; built-in ones are copied in at signup. | Frozen until Phase 4 |
 | `ingest_token` | `ingest_token.py` | A company's credential for sending traces. Only a hash of the token is stored. | New in slice 1.2 |
 | `oauth_client`, `oauth_authorization_code`, `oauth_refresh_token` | `oauth.py` | The OAuth server that MCP clients authenticate against. | Keep |
 
@@ -86,23 +79,21 @@ erDiagram
 - **Enums** are VARCHAR columns holding the member's value, declared with
   `enum_type(...)` from `app/models/columns.py`. No Postgres ENUM types.
 - **Structured values** that are read and written as a whole live in JSONB columns
-  with a Pydantic model in `schemas.py` (run config, transcript turns, judge verdict,
-  aggregate metrics).
+  with a Pydantic model in `schemas.py` (run config, transcript turns).
 - **A trace is stored once, as rows.** The JSON in
   [`docs/traces/trace-schema.md`](../docs/traces/trace-schema.md) is the wire format;
   `app/crud/trace.py` stores it as call columns, event rows and component rows and
   assembles it on read. There is no stored trace document.
 - **Deleting a call** cascades to its events and components in the database.
-- **Deleting an agent** cascades to its versions in the database. Runs keep a nullable
-  reference to the version they tested.
-- **Soft delete** (`deleted_at`) is used on calls, test cases, eval configs and custom
-  metrics.
+- **Soft delete** (`deleted_at`) is used on calls, test cases and eval configs.
 - **Constraints live on the model.** Indexes, partial indexes and `ondelete` rules are
   declared on the model, never in a migration only. See
   [`migrations.md`](./migrations.md).
 
-## Snapshots on runs
+## What a run tested
 
-A run copies the agent's prompt, tools, model and mode onto itself when it is created,
-and records the `agent_version` it tested. A result therefore always shows what was
-actually evaluated, even after the agent changes.
+A run records the agent's version on its platform (`platform_version`) and a
+fingerprint of that version's content (`version_fingerprint`), both read from the
+platform before the run is stored. A result therefore always shows what was actually
+tested, even after the agent changes.
+

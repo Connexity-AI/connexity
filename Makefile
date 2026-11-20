@@ -9,7 +9,7 @@ endif
 
 .PHONY: help install dev dashboard mcp db db-upgrade db-seed db-migrate db-downgrade db-stop db-reset \
         docker-up docker-down docker-logs docker-build-up docker-build-down \
-        cli check lint format test generate-client cloud-run-smoke
+        check lint format test generate-client cloud-run-smoke
 
 # ──────────────────────────────────────────────
 # Help
@@ -83,13 +83,6 @@ docker-build-up: ## Build and start stack from local Dockerfiles (frontend, back
 
 docker-build-down: ## Stop stack started with docker-build-up
 	docker compose -f docker-compose.yml -f docker-compose.build.yml down
-
-# ──────────────────────────────────────────────
-# CLI
-# ──────────────────────────────────────────────
-
-cli: ## Run the CLI (usage: make cli ARGS="hello")
-	cd backend && uv run python -m cli $(ARGS)
 
 # ──────────────────────────────────────────────
 # Code quality

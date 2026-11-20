@@ -14,6 +14,7 @@ from app.models import Call, IngestToken
 from app.models.call import CallEvent
 from app.models.enums import TraceCapability
 from app.tests.traces.examples import EXAMPLE_NAMES, load_example, load_example_json
+from app.tests.utils.eval import create_agent_as
 from app.tests.utils.utils import extract_cookies, random_email, random_lower_string
 
 TOKENS = f"{settings.API_V1_STR}/ingest-tokens"
@@ -31,16 +32,7 @@ def _create_token(client: TestClient, cookies: dict[str, str]) -> dict[str, str]
 
 
 def _create_agent(client: TestClient, cookies: dict[str, str]) -> str:
-    r = client.post(
-        f"{settings.API_V1_STR}/agents/",
-        json={
-            "name": f"agent-{uuid.uuid4().hex[:6]}",
-            "endpoint_url": "http://example.com/agent",
-        },
-        cookies=cookies,
-    )
-    assert r.status_code == 200, r.text
-    return r.json()["id"]
+    return str(create_agent_as(client, cookies).id)
 
 
 def _other_company_cookies(client: TestClient) -> dict[str, str]:
