@@ -6,8 +6,8 @@ Applies to all Python in `backend/` and `mcp_server/`.
 
 ```bash
 cd backend
-uv run ruff check app cli scripts          # lint
-uv run ruff format --check app cli scripts  # format check
+uv run ruff check app scripts          # lint
+uv run ruff format --check app scripts  # format check
 uv run pyright                              # type check
 uv run pytest app/tests -v                  # tests
 ```

@@ -31,7 +31,7 @@ patterns as the direction.
 | [`docs-internal/`](./docs-internal/) | How each part is designed, e.g. [`checks-and-incidents.md`](./docs-internal/checks-and-incidents.md). Read the docs your feature touches. |
 | [`plans/README.md`](./plans/README.md) | One plan per pull request; the plan is what gets reviewed. |
 | `backend/CLAUDE.md`, `frontend/CLAUDE.md` | Conventions, loaded when you work there. |
-| `README.md`, `CLI_README.md`, `docs/` | Describe 1.x, not where the product is going. |
+| `README.md`, `docs/` | Describe 1.x, not where the product is going. |
 
 ## The rules, in short
 

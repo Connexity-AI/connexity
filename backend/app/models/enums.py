@@ -1,11 +1,6 @@
 from enum import StrEnum
 
 
-class Difficulty(StrEnum):
-    NORMAL = "normal"
-    HARD = "hard"
-
-
 class TestCaseStatus(StrEnum):
     DRAFT = "draft"
     ACTIVE = "active"
@@ -21,7 +16,7 @@ class RunStatus(StrEnum):
 
 
 class RunScope(StrEnum):
-    """What a run of scenarios covers. Empty on 1.x runs."""
+    """What a run of scenarios covers."""
 
     SET = "set"
     PICK = "pick"
@@ -52,16 +47,6 @@ class AgentMode(StrEnum):
     PLATFORM = "platform"
 
 
-class AgentPromptType(StrEnum):
-    SINGLE_PROMPT = "single_prompt"
-    MULTI_PROMPT = "multi_prompt"
-
-
-class AgentVersionStatus(StrEnum):
-    DRAFT = "draft"
-    PUBLISHED = "published"
-
-
 class FirstTurn(StrEnum):
     AGENT = "agent"
     USER = "user"
@@ -79,18 +64,6 @@ class TurnRole(StrEnum):
     TOOL = "tool"
 
 
-class ScoreType(StrEnum):
-    SCORED = "scored"
-    BINARY = "binary"
-
-
-class MetricTier(StrEnum):
-    EXECUTION = "execution"
-    KNOWLEDGE = "knowledge"
-    PROCESS = "process"
-    DELIVERY = "delivery"
-
-
 class Platform(StrEnum):
     RETELL = "retell"
     VAPI = "vapi"
@@ -105,7 +78,6 @@ class RunMode(StrEnum):
 
 class TextRuntimeKind(StrEnum):
     RETELL = "retell"
-    CUSTOM_ENDPOINT = "custom_endpoint"
 
 
 class IntegrationProvider(StrEnum):

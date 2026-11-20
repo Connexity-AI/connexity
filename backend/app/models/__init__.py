@@ -12,30 +12,13 @@ from sqlmodel import SQLModel  # noqa: F401
 from app.models.agent import (  # noqa: F401
     Agent,
     AgentBase,
-    AgentCreate,
-    AgentCreateDraft,
-    AgentLastEvalSummary,
-    AgentLatestPublishedVersionPublic,
-    AgentPublic,
-    AgentsPublic,
-    AgentUpdate,
 )
 
 # ── Agent HTTP contract (OpenAI-compatible) ────────────────────────
 from app.models.agent_contract import (  # noqa: F401
-    AgentRequest,
-    AgentRequestMetadata,
     AgentResponse,
     ChatMessage,
     TokenUsage,
-)
-from app.models.agent_version import (  # noqa: F401
-    AgentDraftUpdate,
-    AgentRollbackRequest,
-    AgentVersion,
-    AgentVersionPublic,
-    AgentVersionsPublic,
-    PublishRequest,
 )
 from app.models.assistant_task import AssistantTask  # noqa: F401
 
@@ -83,7 +66,9 @@ from app.models.check import (  # noqa: F401
 from app.models.clarification import Clarification  # noqa: F401
 
 # ── Common ─────────────────────────────────────────────────────────
-from app.models.common import ConfigPublic, ErrorResponse  # noqa: F401
+from app.models.common import (  # noqa: F401
+    ErrorResponse,
+)
 
 # ── Company (multi-tenancy) ────────────────────────────────────────
 from app.models.company import (  # noqa: F401
@@ -91,27 +76,6 @@ from app.models.company import (  # noqa: F401
 )
 
 # ── Comparison / diff schemas (pure Pydantic) ────────────────────
-from app.models.comparison import (  # noqa: F401
-    AgentConfigDiff,
-    AgentVersionDiff,
-    AggregateComparison,
-    CauseAnalysisItem,
-    EvalConfigDiff,
-    FieldChange,
-    ImprovementSuggestion,
-    ImprovementSuggestions,
-    MetricAggregateDelta,
-    MetricDelta,
-    PromptDiff,
-    RegressionAnalysis,
-    RegressionThresholds,
-    RegressionVerdict,
-    RunComparison,
-    RunConfigDiff,
-    SuggestionsRequest,
-    TestCaseComparison,
-    ToolDiff,
-)
 from app.models.component_version import (  # noqa: F401
     ComponentVersion,
     ComponentVersionPublic,
@@ -121,56 +85,25 @@ from app.models.component_version import (  # noqa: F401
 )
 
 # ── Custom metric ──────────────────────────────────────────────────
-from app.models.custom_metric import (  # noqa: F401
-    CustomMetric,
-    CustomMetricBase,
-    CustomMetricCreate,
-    CustomMetricPublic,
-    CustomMetricsPublic,
-    CustomMetricUpdate,
-)
-
 # ── Enums ──────────────────────────────────────────────────────────
 from app.models.enums import (  # noqa: F401
     AgentMode,
-    AgentPromptType,
-    AgentVersionStatus,
-    Difficulty,
     FirstTurn,
     IntegrationProvider,
-    MetricTier,
     Platform,
     RunMode,
     RunStatus,
-    ScoreType,
     SimulatorMode,
     TestCaseStatus,
     TextRuntimeKind,
     TurnRole,
 )
 
-# ── Environment ────────────────────────────────────────────────────
-from app.models.environment import (  # noqa: F401
-    Environment,
-    EnvironmentCreate,
-    EnvironmentPublic,
-    EnvironmentsPublic,
-    EnvironmentUpdate,
-)
-
 # ── Eval config ────────────────────────────────────────────────────
 from app.models.eval_config import (  # noqa: F401
     EvalConfig,
     EvalConfigBase,
-    EvalConfigCreate,
     EvalConfigMember,
-    EvalConfigMemberEntry,
-    EvalConfigMemberPublic,
-    EvalConfigMembersPublic,
-    EvalConfigMembersUpdate,
-    EvalConfigPublic,
-    EvalConfigsPublic,
-    EvalConfigUpdate,
 )
 from app.models.execution import (  # noqa: F401
     CallExecution,
@@ -231,39 +164,17 @@ from app.models.readiness import (  # noqa: F401
 from app.models.run import (  # noqa: F401
     Run,
     RunBase,
-    RunCreate,
-    RunPublic,
-    RunsPublic,
-    RunUpdate,
 )
 from app.models.scenario import ScenarioRule  # noqa: F401
 
 # ── JSONB nested schemas (pure Pydantic) ───────────────────────────
 from app.models.schemas import (  # noqa: F401
-    AggregateMetrics,
     ConversationTurn,
-    CustomEndpointRuntimeConfig,
-    ExpectedOutcomeResult,
-    ExpectedToolCall,
-    HttpWebhookImplementation,
-    JudgeConfig,
-    JudgeVerdict,
-    MetricScore,
-    MetricSelection,
-    PredefinedToolsPublic,
-    PythonImplementation,
     RetellRuntimeConfig,
     RunConfig,
     RuntimeConfig,
-    RuntimeOption,
-    RuntimeOptionsPublic,
-    RuntimeTestRequest,
-    RuntimeTestResult,
-    TestCaseExecution,
     ToolCall,
     ToolCallFunction,
-    ToolImplementation,
-    ToolPlatformConfig,
     UserSimulatorConfig,
 )
 from app.models.spec import Spec, SpecRule  # noqa: F401
@@ -271,26 +182,14 @@ from app.models.task_order import TaskOrder  # noqa: F401
 
 # ── Test case ──────────────────────────────────────────────────────
 from app.models.test_case import (  # noqa: F401
-    OnConflict,
     TestCase,
     TestCaseBase,
-    TestCaseCreate,
-    TestCaseImportItem,
-    TestCaseImportResult,
-    TestCasePublic,
-    TestCasesExport,
-    TestCasesPublic,
-    TestCaseUpdate,
 )
 
 # ── Test case result ───────────────────────────────────────────────
 from app.models.test_case_result import (  # noqa: F401
     TestCaseResult,
     TestCaseResultBase,
-    TestCaseResultCreate,
-    TestCaseResultPublic,
-    TestCaseResultsPublic,
-    TestCaseResultUpdate,
 )
 from app.models.test_run import RuleVerdict  # noqa: F401
 

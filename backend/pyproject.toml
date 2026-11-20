@@ -21,15 +21,9 @@ dependencies = [
     "pydantic-settings<3.0.0,>=2.2.1",
     "sentry-sdk[fastapi]<2.0.0,>=1.40.6",
     "pyjwt<3.0.0,>=2.8.0",
-    "click>=8.1.7",
     "litellm>=1.82.6,<2.0.0",
-    "httpx-sse>=0.4.3",
-    "deepdiff>=9.0.0",
     "cryptography>=42.0.0",
 ]
-
-[project.scripts]
-connexity-cli = "cli.main:app"
 
 [dependency-groups]
 dev = [
@@ -44,7 +38,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["app", "cli"]
+packages = ["app"]
 
 [build-system]
 requires = ["hatchling"]
@@ -65,7 +59,7 @@ omit = [
 [tool.pyright]
 typeCheckingMode = "basic"
 exclude = ["**/venv", "**/.venv", "**/alembic"]
-include = ["app", "cli"]
+include = ["app"]
 # TODO: tighten to "standard" once existing type errors are fixed
 reportArgumentType = "warning"
 reportAssignmentType = "warning"

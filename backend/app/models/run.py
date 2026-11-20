@@ -6,10 +6,8 @@ from sqlalchemy import CheckConstraint, Column, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
-from app.models.agent_version import AgentVersion
 from app.models.columns import enum_type
 from app.models.enums import RunScope, RunStatus
-from app.models.schemas import AggregateMetrics, RunConfig
 
 if TYPE_CHECKING:
     from app.models.agent import Agent
@@ -18,69 +16,23 @@ if TYPE_CHECKING:
 
 
 class RunBase(SQLModel):
-    name: str | None = Field(
-        default=None, max_length=255, description="Optional human-readable run label"
-    )
-    # Agent snapshot (captured at run time)
     agent_id: uuid.UUID = Field(
         foreign_key="agent.id",
         index=True,
-        description="FK to the agent being evaluated",
-    )
-    agent_endpoint_url: str | None = Field(
-        default=None,
-        max_length=2048,
-        description="Agent endpoint URL snapshot (required for endpoint-mode agents)",
-    )
-    agent_system_prompt: str | None = Field(
-        default=None,
-        description="Agent system prompt snapshot captured at run start",
-    )
-    agent_tools: list[dict[str, Any]] | None = Field(
-        default=None,
-        sa_column=Column("agent_tools", JSONB, nullable=True),
-        description="Agent tool definitions snapshot captured at run start",
+        description="The agent the run tests",
     )
     agent_mode: str | None = Field(
         default=None,
         max_length=32,
         description="Agent mode snapshot: endpoint or platform",
     )
-    agent_model: str | None = Field(
-        default=None,
-        max_length=255,
-        description="Effective LLM model for platform agent simulator for this run",
-    )
-    agent_provider: str | None = Field(
-        default=None,
-        max_length=64,
-        description="Effective LLM provider for platform agent simulator for this run",
-    )
-    # Eval config
     eval_config_id: uuid.UUID | None = Field(
         default=None,
         foreign_key="eval_config.id",
         index=True,
         description="The set of scenarios run; empty for a pick or every scenario",
     )
-    eval_config_version: int = Field(
-        default=1,
-        description="Version of the eval config at run time",
-    )
-    agent_version: int | None = Field(
-        default=None,
-        index=True,
-        description="Agent behavioral config version at run creation",
-    )
-    agent_version_id: uuid.UUID | None = Field(
-        default=None,
-        foreign_key="agent_version.id",
-        index=True,
-        ondelete="SET NULL",
-        description="FK to immutable agent_version row at run creation",
-    )
-    # What a run of scenarios covers (`plans/2026-11-17-text-runner.md`); empty on 1.x
-    # runs.
+    # What the run covers (`plans/2026-11-17-text-runner.md`).
     scope: RunScope | None = Field(
         default=None,
         sa_type=enum_type(RunScope),
@@ -128,7 +80,7 @@ class RunBase(SQLModel):
     config: dict[str, Any] | None = Field(
         default=None,
         sa_column=Column("config", JSONB, nullable=True),
-        description="Run configuration (judge model, concurrency, timeouts, etc.)",
+        description="Run configuration (concurrency, timeouts, simulated caller)",
     )
     # Status
     status: RunStatus = Field(
@@ -136,17 +88,6 @@ class RunBase(SQLModel):
         index=True,
         sa_type=enum_type(RunStatus),
         description="Current execution status of the run",
-    )
-    is_baseline: bool = Field(
-        default=False,
-        index=True,
-        description="Whether this run is marked as the baseline for comparison",
-    )
-    # Aggregate metrics (populated after completion)
-    aggregate_metrics: dict[str, Any] | None = Field(
-        default=None,
-        sa_column=Column("aggregate_metrics", JSONB, nullable=True),
-        description="Aggregate pass rate, latency, cost metrics computed after completion",
     )
     # Timing
     started_at: datetime | None = Field(
@@ -160,8 +101,7 @@ class RunBase(SQLModel):
 class Run(RunBase, table=True):
     __tablename__ = "run"
     __table_args__ = (
-        # A run of scenarios always says which version it tested (Dmytro,
-        # 2026-11-19); 1.x runs have no scope.
+        # A run always says which version it tested (Dmytro, 2026-11-19).
         CheckConstraint(
             "scope IS NULL OR platform_version IS NOT NULL",
             name="ck_run_scenarios_have_a_version",
@@ -174,7 +114,7 @@ class Run(RunBase, table=True):
         default=None,
         foreign_key="user.id",
         index=True,
-        description="User who created the run; used to resolve custom judge metrics",
+        description="User who started the run",
     )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
@@ -191,151 +131,8 @@ class Run(RunBase, table=True):
 
     # Relationships
     agent: "Agent" = Relationship(back_populates="runs")
-    agent_version_row: AgentVersion | None = Relationship()
     eval_config: "EvalConfig" = Relationship(back_populates="runs")
     test_case_results: list["TestCaseResult"] = Relationship(
         back_populates="run",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
-
-
-class RunCreate(SQLModel):
-    name: str | None = Field(
-        default=None, description="Optional human-readable run label"
-    )
-    agent_id: uuid.UUID = Field(description="FK to the agent being evaluated")
-    agent_endpoint_url: str | None = Field(
-        default=None,
-        description="Agent endpoint URL snapshot captured at run start",
-    )
-    agent_system_prompt: str | None = Field(
-        default=None,
-        description="Agent system prompt snapshot captured at run start",
-    )
-    agent_tools: list[dict[str, Any]] | None = Field(
-        default=None,
-        description="Agent tool definitions snapshot captured at run start",
-    )
-    agent_mode: str | None = Field(
-        default=None,
-        description="Agent mode snapshot: endpoint or platform",
-    )
-    agent_model: str | None = Field(
-        default=None,
-        description="Effective LLM model for platform agent simulator for this run",
-    )
-    agent_provider: str | None = Field(
-        default=None,
-        description="Effective LLM provider for platform agent simulator for this run",
-    )
-    eval_config_id: uuid.UUID = Field(description="FK to the eval config to execute")
-    eval_config_version: int = Field(
-        default=1, description="Version of the eval config at run time"
-    )
-    agent_version: int | None = Field(
-        default=None,
-        description=(
-            "Target agent version to evaluate. If omitted, defaults to the "
-            "agent's current version. If provided, the run is snapshotted from "
-            "that AgentVersion row (system_prompt, tools, model, etc.)."
-        ),
-    )
-    agent_version_id: uuid.UUID | None = Field(
-        default=None,
-        description="Resolved by the server from agent_version; ignored on input.",
-    )
-    config: RunConfig | None = Field(
-        default=None,
-        description="Run configuration (judge model, concurrency, timeouts, etc.)",
-    )
-    is_baseline: bool = Field(
-        default=False,
-        description="Whether this run is marked as the baseline for comparison",
-    )
-
-
-class RunUpdate(SQLModel):
-    name: str | None = Field(
-        default=None, description="Optional human-readable run label"
-    )
-    status: RunStatus | None = Field(
-        default=None, description="Current execution status of the run"
-    )
-    is_baseline: bool | None = Field(
-        default=None,
-        description="Whether this run is marked as the baseline for comparison",
-    )
-    aggregate_metrics: AggregateMetrics | None = Field(
-        default=None,
-        description="Aggregate metrics computed after completion",
-    )
-    started_at: datetime | None = Field(
-        default=None, description="When the run began executing"
-    )
-    completed_at: datetime | None = Field(
-        default=None, description="When the run finished (success or failure)"
-    )
-
-
-class RunPublic(SQLModel):
-    id: uuid.UUID = Field(description="Unique run identifier")
-    created_by: uuid.UUID | None = Field(
-        default=None,
-        description="User who created the run; used to resolve custom judge metrics",
-    )
-    name: str | None = Field(description="Optional human-readable run label")
-    agent_id: uuid.UUID = Field(description="FK to the agent being evaluated")
-    agent_endpoint_url: str | None = Field(
-        default=None,
-        description="Agent endpoint URL snapshot captured at run start",
-    )
-    agent_system_prompt: str | None = Field(
-        default=None,
-        description="Agent system prompt snapshot captured at run start",
-    )
-    agent_mode: str | None = Field(
-        default=None,
-        description="Agent mode snapshot: endpoint or platform",
-    )
-    agent_model: str | None = Field(
-        default=None,
-        description="Effective LLM model for platform agent simulator for this run",
-    )
-    agent_provider: str | None = Field(
-        default=None,
-        description="Effective LLM provider for platform agent simulator for this run",
-    )
-    eval_config_id: uuid.UUID | None = Field(
-        description="FK to the eval config executed in this run; none for scenarios "
-        "run without a set"
-    )
-    eval_config_version: int = Field(
-        description="Version of the eval config at run time"
-    )
-    agent_version: int | None = Field(
-        default=None,
-        description="Agent behavioral config version at run creation",
-    )
-    config: RunConfig | None = Field(
-        default=None,
-        description="Run configuration (judge model, concurrency, timeouts, etc.)",
-    )
-    status: RunStatus = Field(description="Current execution status of the run")
-    is_baseline: bool = Field(
-        description="Whether this run is marked as the baseline for comparison"
-    )
-    aggregate_metrics: AggregateMetrics | None = Field(
-        default=None,
-        description="Aggregate metrics computed after completion",
-    )
-    started_at: datetime | None = Field(description="When the run began executing")
-    completed_at: datetime | None = Field(
-        description="When the run finished (success or failure)"
-    )
-    created_at: datetime = Field(description="When the run was created")
-    updated_at: datetime = Field(description="When the run was last updated")
-
-
-class RunsPublic(SQLModel):
-    data: list[RunPublic] = Field(description="List of runs")
-    count: int = Field(description="Total number of runs matching the query")

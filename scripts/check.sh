@@ -56,7 +56,7 @@ start_database() {
 }
 
 backend_lint() {
-  cd backend && uv run ruff check app cli scripts && uv run ruff format --check app cli scripts
+  cd backend && uv run ruff check app scripts && uv run ruff format --check app scripts
 }
 
 backend_types() {

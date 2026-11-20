@@ -1,7 +1,6 @@
 # Configures the auto-generated release notes used by `gh release create --generate-notes`
 # (and the GitHub web UI's "Generate release notes" button). Used by the platform release
-# workflow (release-platform.yml). The CLI release workflow uses release-please, which
-# generates its own notes from the CHANGELOG and ignores this file.
+# workflow (release-platform.yml).
 changelog:
   exclude:
     labels:

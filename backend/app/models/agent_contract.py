@@ -12,15 +12,6 @@ from app.models.enums import TurnRole
 from app.models.schemas import ToolCall
 
 
-class AgentRequestMetadata(BaseModel):
-    test_case_id: str | None = Field(
-        default=None, description="Test case identifier from the eval platform"
-    )
-    turn_index: int | None = Field(
-        default=None, description="Zero-based turn index in the test case conversation"
-    )
-
-
 class ChatMessage(BaseModel):
     role: TurnRole = Field(description="Message role: system, user, assistant, or tool")
     content: str | None = Field(
@@ -36,15 +27,6 @@ class ChatMessage(BaseModel):
     name: str | None = Field(
         default=None,
         description="Optional tool name for role=tool (OpenAI convention)",
-    )
-
-
-class AgentRequest(BaseModel):
-    messages: list[ChatMessage] = Field(
-        description="Full conversation history in OpenAI chat order"
-    )
-    metadata: AgentRequestMetadata | None = Field(
-        default=None, description="Platform context for logging and evaluation"
     )
 
 

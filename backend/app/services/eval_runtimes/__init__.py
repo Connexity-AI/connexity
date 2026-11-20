@@ -1,7 +1,5 @@
-"""Evaluation runtime package — pluggable strategies for driving an eval run.
-
-See ``docs/evals/runtimes.md`` for how to add a new runtime.
-"""
+"""Runtime package: pluggable strategies for driving one simulated call on the
+agent's own engine."""
 
 from app.services.eval_runtimes.base import (
     EvalRuntime,
@@ -9,9 +7,7 @@ from app.services.eval_runtimes.base import (
     RuntimeTestResult,
 )
 from app.services.eval_runtimes.registry import (
-    default_runtime_for_platform,
     get_runtime,
-    runtimes_for_platform,
 )
 from app.services.eval_runtimes.types import (
     AgentSnapshot,
@@ -26,7 +22,5 @@ __all__ = [
     "RuntimeRunArgs",
     "RuntimeTestResult",
     "TestCaseRunResult",
-    "default_runtime_for_platform",
     "get_runtime",
-    "runtimes_for_platform",
 ]

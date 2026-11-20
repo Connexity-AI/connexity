@@ -22,6 +22,7 @@ from app.services.mappings.retell import retell_call_to_trace
 from app.services.n8n import N8nConnectionResult, N8nExecutionSummary, N8nWorkflow
 from app.services.retell import RetellCall
 from app.services.retell_versions import RetellReadError
+from app.tests.utils.eval import create_agent_as
 from app.tests.utils.n8n_payloads import n8n_execution
 from app.tests.utils.retell_payloads import START_MS, invocation, result, retell_call
 from app.tests.utils.utils import extract_cookies, random_email, random_lower_string
@@ -124,15 +125,7 @@ class Retell:
 
 
 def _agent(client: TestClient, cookies: dict[str, str], db: Session) -> Agent:
-    r = client.post(
-        f"{API}/agents/",
-        json={
-            "name": f"agent-{uuid.uuid4().hex[:6]}",
-            "endpoint_url": "http://example.com/agent",
-        },
-        cookies=cookies,
-    )
-    assert r.status_code == 200, r.text
+    created = create_agent_as(client, cookies)
     with patch.dict(
         "app.services.connections.CONNECTION_TESTERS",
         {"retell": AsyncMock(return_value=True)},
@@ -143,7 +136,7 @@ def _agent(client: TestClient, cookies: dict[str, str], db: Session) -> Agent:
             json={"provider": "retell", "name": "retell", "api_key": "key_invented_1"},
             cookies=cookies,
         ).json()["id"]
-    agent = db.get(Agent, uuid.UUID(r.json()["id"]))
+    agent = db.get(Agent, created.id)
     assert agent is not None
     agent.platform = Platform.RETELL
     agent.platform_agent_id = "agent_invented_1"

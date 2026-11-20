@@ -1,30 +1,14 @@
 import uuid
 
+from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
-from app import crud
-from app.models import (
-    Agent,
-    AgentCreate,
-    AgentMode,
-    EvalConfig,
-    EvalConfigCreate,
-    EvalConfigMemberEntry,
-    Run,
-    RunCreate,
-    TestCase,
-    TestCaseCreate,
-    TestCaseResult,
-    TestCaseResultCreate,
-    User,
-)
+from app.core.config import settings
+from app.core.db import engine
+from app.models import Agent, User
 from app.models.company import Company
-from app.models.enums import Platform
-from app.models.schemas import (
-    CustomEndpointRuntimeConfig,
-    RetellRuntimeConfig,
-    RunConfig,
-)
+from app.models.enums import IntegrationProvider, Platform
+from app.models.integration import Integration
 from app.tests.utils.utils import AUTH_USER_EMAIL
 
 
@@ -62,132 +46,45 @@ def create_test_agent(
     name: str | None = None,
 ) -> Agent:
     cid = _resolve_company_id(session, company_id)
-    agent_in = AgentCreate(
+    agent = Agent(
+        company_id=cid,
         name=name or f"test-agent-{uuid.uuid4().hex[:8]}",
-        endpoint_url="http://localhost:8080/agent",
         description="Test agent for automated tests",
     )
-    return crud.create_agent(session=session, agent_in=agent_in, company_id=cid)
+    session.add(agent)
+    session.commit()
+    session.refresh(agent)
+    return agent
 
 
-def create_test_platform_agent(
-    session: Session,
+def create_agent_as(
+    client: TestClient,
+    cookies: dict[str, str],
     *,
-    system_prompt: str = "You are a test bot.",
-    company_id: uuid.UUID | None = None,
+    name: str | None = None,
+    linked: bool = False,
 ) -> Agent:
-    cid = _resolve_company_id(session, company_id)
-    agent_in = AgentCreate(
-        name=f"plat-agent-{uuid.uuid4().hex[:8]}",
-        mode=AgentMode.PLATFORM,
-        system_prompt=system_prompt,
-        agent_model="gpt-4o-mini",
-        agent_provider="openai",
-        description="Platform test agent",
-    )
-    return crud.create_agent(session=session, agent_in=agent_in, company_id=cid)
-
-
-def create_test_case_fixture(
-    session: Session,
-    *,
-    company_id: uuid.UUID | None = None,
-    **overrides: object,
-) -> TestCase:
-    cid = _resolve_company_id(session, company_id)
-    defaults: dict[str, object] = {
-        "name": f"test-case-{uuid.uuid4().hex[:8]}",
-        "description": "Test case for automated tests",
-        "tags": ["test"],
-    }
-    defaults.update(overrides)
-    return crud.create_test_case(
-        session=session,
-        test_case_in=TestCaseCreate(**defaults),  # type: ignore[arg-type]
-        company_id=cid,
-    )
-
-
-def eval_config_members(*test_case_ids: uuid.UUID) -> list[EvalConfigMemberEntry]:
-    """Build member entries with default repetitions=1 (test helper)."""
-    return [EvalConfigMemberEntry(test_case_id=sid) for sid in test_case_ids]
-
-
-def create_test_eval_config(
-    session: Session,
-    *,
-    agent_id: uuid.UUID | None = None,
-    members: list[EvalConfigMemberEntry] | None = None,
-    config: RunConfig | None = None,
-    company_id: uuid.UUID | None = None,
-) -> EvalConfig:
-    cid = _resolve_company_id(session, company_id)
-    if agent_id is None:
-        agent = create_test_agent(session, company_id=cid)
-        agent_id = agent.id
-    else:
-        agent = crud.get_agent(session=session, agent_id=agent_id)
-        if agent is None:
-            raise ValueError(f"Agent {agent_id} not found")
-
-    resolved_config = config
-    if resolved_config is None:
-        if agent.platform == Platform.RETELL:
-            resolved_config = RunConfig(runtime=RetellRuntimeConfig())
-        else:
-            ep = (agent.endpoint_url or "").strip() or "http://localhost:8080/agent"
-            resolved_config = RunConfig(
-                runtime=CustomEndpointRuntimeConfig(url=ep),
+    """An agent in the workspace the signed-in person has open. ``linked`` makes it
+    an agent added from a voice platform, the kind the Agents list shows."""
+    me = client.get(f"{settings.API_V1_STR}/users/me", cookies=cookies)
+    assert me.status_code == 200, me.text
+    company_id = uuid.UUID(me.json()["company_id"])
+    with Session(engine) as session:
+        agent = create_test_agent(session, company_id=company_id, name=name)
+        if linked:
+            integration = Integration(
+                provider=IntegrationProvider.RETELL,
+                name="Production",
+                company_id=company_id,
+                encrypted_api_key="encrypted",
+                masked_api_key="key_****",
             )
-
-    eval_config_in = EvalConfigCreate(
-        name=f"test-config-{uuid.uuid4().hex[:8]}",
-        description="Test eval config",
-        agent_id=agent_id,
-        members=members,
-        config=resolved_config,
-    )
-    return crud.create_eval_config(
-        session=session, eval_config_in=eval_config_in, company_id=cid
-    )
-
-
-def create_test_run(
-    session: Session,
-    agent_id: uuid.UUID,
-    eval_config_id: uuid.UUID,
-    *,
-    company_id: uuid.UUID | None = None,
-) -> Run:
-    cid = _resolve_company_id(session, company_id)
-    agent = crud.get_agent(session=session, agent_id=agent_id)
-    assert agent is not None
-    eval_config = crud.get_eval_config(session=session, eval_config_id=eval_config_id)
-    assert eval_config is not None
-    run_in = RunCreate(
-        name=f"test-run-{uuid.uuid4().hex[:8]}",
-        agent_id=agent_id,
-        agent_endpoint_url="http://localhost:8080/agent",
-        eval_config_id=eval_config_id,
-    )
-    run_in = crud.enrich_run_create_from_agent(
-        session=session, run_in=run_in, agent=agent, eval_config=eval_config
-    )
-    return crud.create_run(session=session, run_in=run_in, company_id=cid)
-
-
-def create_test_case_result_fixture(
-    session: Session,
-    run_id: uuid.UUID,
-    test_case_id: uuid.UUID,
-    *,
-    company_id: uuid.UUID | None = None,
-) -> TestCaseResult:
-    cid = _resolve_company_id(session, company_id)
-    result_in = TestCaseResultCreate(
-        run_id=run_id,
-        test_case_id=test_case_id,
-    )
-    return crud.create_test_case_result(
-        session=session, result_in=result_in, company_id=cid
-    )
+            session.add(integration)
+            session.flush()
+            agent.platform = Platform.RETELL
+            agent.integration_id = integration.id
+            agent.platform_agent_id = f"agent_{uuid.uuid4().hex[:8]}"
+            session.add(agent)
+            session.commit()
+            session.refresh(agent)
+        return agent

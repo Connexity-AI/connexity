@@ -60,10 +60,11 @@ What was settled about scenarios, test runs and the gate, and what is still open
 - A failed version is a task on Work for the assistant.
 
 **What 1.x code is reused**
-- Kept: the user simulator, the custom endpoint runtime, repeats per case, the transcript and costs per run, eval configs as named sets.
+- Kept: the user simulator, repeats per case, the transcript and costs per run, eval configs as named sets.
 - Kept and reviewed: the Retell text runtime. It passes only dynamic variables to Retell's playground and fakes no tools, so faked tool results are new work.
 - Reshaped: `expected_outcomes` become links to spec rules; the judge gives one verdict per listed rule instead of a score; code checks are added.
-- To decide when building: the judge's generic metrics (tool routing, grounding and the rest), `expected_tool_calls`, `evaluation_criteria_override`, `first_turn` and `first_message`, `difficulty`, `tags`, `status`, `source_call_id`, and 1.x's pass thresholds.
+- Deleted (2026-11-20, `plans/2026-11-20-remove-old-eval-stack.md`): the judge's generic metrics, custom metrics, pass thresholds, `evaluation_criteria_override`, `difficulty`, `tags`, the old runner and its REST routes, and the custom endpoint runtime, which is planned again when a self-hosted stack is connected.
+- Still to decide: `first_turn` and `first_message`, `status`, `source_call_id`.
 
 ## Open
 

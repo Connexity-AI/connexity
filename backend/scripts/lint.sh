@@ -4,5 +4,5 @@ set -e
 set -x
 
 pyright
-ruff check app cli scripts
-ruff format app cli scripts --check
+ruff check app scripts
+ruff format app scripts --check

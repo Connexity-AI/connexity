@@ -3,22 +3,13 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
-from app.models.enums import SimulatorMode, TextRuntimeKind, TurnRole
+from app.models.enums import SimulatorMode, TurnRole
 from app.models.schemas import (
-    AggregateMetrics,
     ConversationTurn,
-    ExpectedToolCall,
-    HttpWebhookImplementation,
-    JudgeConfig,
-    JudgeVerdict,
-    MetricScore,
-    MetricSelection,
-    PythonImplementation,
     RetellRuntimeConfig,
     RunConfig,
     ToolCall,
     ToolCallFunction,
-    ToolPlatformConfig,
     UserSimulatorConfig,
 )
 
@@ -34,142 +25,16 @@ def _round_trip(model_class, instance):
 # ── ExpectedToolCall ──────────────────────────────────────────────
 
 
-def test_expected_tool_call_minimal():
-    tc = ExpectedToolCall(tool="lookup_order")
-    restored = _round_trip(ExpectedToolCall, tc)
-    assert restored.tool == "lookup_order"
-    assert restored.expected_params is None
-
-
-def test_expected_tool_call_with_params():
-    tc = ExpectedToolCall(
-        tool="lookup_order",
-        expected_params={"order_id": "ORD-12345"},
-    )
-    restored = _round_trip(ExpectedToolCall, tc)
-    assert restored.expected_params["order_id"] == "ORD-12345"
-
-
-def test_expected_tool_call_with_mock_response():
-    tc = ExpectedToolCall(
-        tool="lookup_order",
-        expected_params={"order_id": "ORD-1"},
-        mock_response={"success": True, "order": {"id": "ORD-1", "amount": 49.99}},
-    )
-    restored = _round_trip(ExpectedToolCall, tc)
-    assert restored.mock_response is not None
-    assert restored.mock_response["success"] is True
-
-
-def test_expected_tool_call_mock_response_default_none():
-    tc = ExpectedToolCall(tool="search")
-    assert tc.mock_response is None
-
-
 # ── ToolPlatformConfig ────────────────────────────────────────────
-
-
-def test_tool_platform_config_impl_only():
-    cfg = ToolPlatformConfig(implementation=None)
-    restored = _round_trip(ToolPlatformConfig, cfg)
-    assert restored.implementation is None
-
-
-def test_tool_platform_config_live_python():
-    cfg = ToolPlatformConfig(
-        implementation=PythonImplementation(
-            code="async def execute(a, c): return {}",
-            config={"base_url": "https://example.com"},
-            timeout_s=15.0,
-        ),
-    )
-    restored = _round_trip(ToolPlatformConfig, cfg)
-    assert restored.implementation is not None
-    assert restored.implementation.type == "python"
-    assert isinstance(restored.implementation, PythonImplementation)
-    assert restored.implementation.config["base_url"] == "https://example.com"
-    assert restored.implementation.timeout_s == 15.0
-
-
-def test_tool_platform_config_live_webhook():
-    cfg = ToolPlatformConfig(
-        implementation=HttpWebhookImplementation(
-            url="https://hook.example.com/endpoint",
-            method="POST",
-            headers={"Authorization": "Bearer ${KEY}"},
-            timeout_ms=5000,
-        ),
-    )
-    restored = _round_trip(ToolPlatformConfig, cfg)
-    assert isinstance(restored.implementation, HttpWebhookImplementation)
-    assert restored.implementation.url == "https://hook.example.com/endpoint"
-    assert restored.implementation.headers["Authorization"] == "Bearer ${KEY}"
-
-
-def test_tool_platform_config_unknown_extra_keys_do_not_break_validation():
-    """``mode`` on legacy payloads is ignored (not a field on :class:`ToolPlatformConfig`)."""
-    raw = {"mode": "mock", "implementation": None}
-    cfg = ToolPlatformConfig.model_validate(raw)
-    assert cfg.implementation is None
 
 
 # ── PythonImplementation ──────────────────────────────────────────
 
 
-def test_python_implementation_defaults():
-    impl = PythonImplementation(code="async def execute(a, c): return {}")
-    assert impl.type == "python"
-    assert impl.config == {}
-    assert impl.timeout_s == 30.0
-
-
-def test_python_implementation_round_trip():
-    impl = PythonImplementation(
-        code="async def execute(a, c): return {'x': 1}",
-        config={"key": "val"},
-        timeout_s=60.0,
-    )
-    _round_trip(PythonImplementation, impl)
-
-
 # ── HttpWebhookImplementation ─────────────────────────────────────
 
 
-def test_http_webhook_implementation_defaults():
-    impl = HttpWebhookImplementation(url="https://example.com")
-    assert impl.type == "http_webhook"
-    assert impl.method == "POST"
-    assert impl.headers is None
-    assert impl.timeout_ms == 10000
-
-
-def test_http_webhook_implementation_round_trip():
-    impl = HttpWebhookImplementation(
-        url="https://api.example.com/hook",
-        method="PUT",
-        headers={"X-Custom": "value"},
-        timeout_ms=30000,
-    )
-    _round_trip(HttpWebhookImplementation, impl)
-
-
 # ── ToolPlatformConfig JSON round-trip (JSONB simulation) ─────────
-
-
-def test_tool_platform_config_json_round_trip():
-    """Simulate how platform_config survives Agent.tools JSONB storage."""
-    import json
-
-    cfg = ToolPlatformConfig(
-        implementation=PythonImplementation(
-            code="async def execute(a, c): return {}",
-            config={"url": "https://example.com"},
-        ),
-    )
-    json_str = json.dumps(cfg.model_dump(), default=str)
-    raw = json.loads(json_str)
-    restored = ToolPlatformConfig.model_validate(raw)
-    assert isinstance(restored.implementation, PythonImplementation)
 
 
 # ── ToolCall ───────────────────────────────────────────────────────
@@ -261,85 +126,7 @@ def test_conversation_turn_enum_serialization():
 # ── MetricScore ─────────────────────────────────────────────────
 
 
-def test_metric_score():
-    ms = MetricScore(
-        metric="accuracy",
-        score=4,
-        label="good",
-        weight=1.5,
-        justification="Agent provided correct information",
-        tier="execution",
-    )
-    _round_trip(MetricScore, ms)
-
-
-def test_metric_score_default_weight():
-    ms = MetricScore(
-        metric="helpfulness",
-        score=3,
-        label="acceptable",
-        justification="Adequate response",
-    )
-    restored = _round_trip(MetricScore, ms)
-    assert restored.weight == 1.0
-    assert restored.is_binary is False
-
-
 # ── JudgeVerdict ───────────────────────────────────────────────────
-
-
-def test_judge_verdict_minimal():
-    verdict = JudgeVerdict(
-        passed=True,
-        overall_score=82.5,
-        metric_scores=[
-            MetricScore(
-                metric="accuracy",
-                score=4,
-                label="good",
-                justification="Correct",
-            ),
-        ],
-        judge_model="claude-sonnet-4-5-20250514",
-        judge_provider="anthropic",
-    )
-    restored = _round_trip(JudgeVerdict, verdict)
-    assert restored.raw_judge_output is None
-    assert restored.judge_latency_ms is None
-    assert restored.summary is None
-
-
-def test_judge_verdict_full():
-    verdict = JudgeVerdict(
-        passed=False,
-        overall_score=40.0,
-        metric_scores=[
-            MetricScore(
-                metric="accuracy",
-                score=1,
-                label="fail",
-                justification="Hallucinated data",
-                failure_code="hallucinated_result",
-                turns=[2, 4],
-            ),
-            MetricScore(
-                metric="safety",
-                score=3,
-                label="acceptable",
-                weight=2.0,
-                justification="No safety issues",
-            ),
-        ],
-        summary="Legacy summary field",
-        raw_judge_output="<full judge reasoning here>",
-        judge_model="gpt-4o",
-        judge_provider="openai",
-        judge_latency_ms=1200,
-        judge_token_usage={"prompt_tokens": 500, "completion_tokens": 300},
-    )
-    restored = _round_trip(JudgeVerdict, verdict)
-    assert len(restored.metric_scores) == 2
-    assert restored.judge_token_usage["prompt_tokens"] == 500
 
 
 # ── RunConfig ──────────────────────────────────────────────────────
@@ -350,41 +137,12 @@ def test_run_config_requires_runtime():
         RunConfig()  # type: ignore[call-arg]
 
 
-def test_run_config_rejects_removed_in_house_runtime():
-    with pytest.raises(ValidationError):
-        RunConfig.model_validate({"runtime": {"kind": "connexity"}})
-
-
 def test_run_config_defaults():
     config = RunConfig(runtime=RetellRuntimeConfig())
     restored = _round_trip(RunConfig, config)
     assert restored.concurrency == 5
     assert restored.timeout_per_test_case_ms == 120_000
-    assert restored.judge is None
-
-
-def test_run_config_full():
-    config = RunConfig(
-        concurrency=10,
-        timeout_per_test_case_ms=60_000,
-        judge=JudgeConfig(
-            model="claude-sonnet-4-5-20250514",
-            provider="anthropic",
-            metrics=[MetricSelection(metric="tool_routing", weight=0.5)],
-            pass_threshold=80.0,
-        ),
-        user_simulator=UserSimulatorConfig(model="gpt-4o", provider="openai"),
-        runtime=RetellRuntimeConfig(),
-    )
-    restored = _round_trip(RunConfig, config)
-    assert restored.concurrency == 10
-    assert restored.judge is not None
-    assert restored.judge.metrics is not None
-    assert restored.judge.metrics[0].metric == "tool_routing"
-    assert restored.judge.model == "claude-sonnet-4-5-20250514"
-    assert restored.user_simulator is not None
-    assert restored.user_simulator.model == "gpt-4o"
-    assert restored.runtime.kind == TextRuntimeKind.RETELL
+    assert restored.user_simulator is None
 
 
 def test_user_simulator_config_round_trip():
@@ -418,77 +176,4 @@ def test_run_config_with_user_simulator_round_trip():
 # ── AggregateMetrics ───────────────────────────────────────────────
 
 
-def test_aggregate_metrics_minimal():
-    metrics = AggregateMetrics(
-        unique_test_case_count=0,
-        total_executions=0,
-        passed_count=0,
-        failed_count=0,
-        error_count=0,
-        pass_rate=0.0,
-    )
-    restored = _round_trip(AggregateMetrics, metrics)
-    assert restored.avg_overall_score is None
-
-
-def test_aggregate_metrics_full():
-    metrics = AggregateMetrics(
-        unique_test_case_count=100,
-        total_executions=100,
-        passed_count=85,
-        failed_count=10,
-        error_count=5,
-        pass_rate=0.85,
-        latency_p50_ms=200.0,
-        latency_p95_ms=800.0,
-        latency_max_ms=2500.0,
-        latency_avg_ms=350.0,
-        total_agent_token_usage={"input": 50000, "output": 30000},
-        total_platform_token_usage={"input": 20000, "output": 15000},
-        total_estimated_cost_usd=12.50,
-        avg_overall_score=4.1,
-    )
-    restored = _round_trip(AggregateMetrics, metrics)
-    assert restored.pass_rate == 0.85
-
-
 # ── JSON round-trip (simulates JSONB storage) ──────────────────────
-
-
-def test_judge_verdict_json_round_trip():
-    """Simulate JSONB: model → dict → JSON string → dict → model."""
-    import json
-
-    verdict = JudgeVerdict(
-        passed=True,
-        overall_score=80.0,
-        metric_scores=[
-            MetricScore(metric="test", score=4, label="good", justification="ok"),
-        ],
-        judge_model="test-model",
-        judge_provider="test-provider",
-    )
-    json_str = json.dumps(verdict.model_dump(), default=str)
-    raw = json.loads(json_str)
-    restored = JudgeVerdict.model_validate(raw)
-    assert restored.passed is True
-    assert restored.metric_scores[0].metric == "test"
-
-
-def test_aggregate_metrics_json_round_trip():
-    """Simulate JSONB: model → dict → JSON string → dict → model."""
-    import json
-
-    metrics = AggregateMetrics(
-        unique_test_case_count=50,
-        total_executions=50,
-        passed_count=45,
-        failed_count=3,
-        error_count=2,
-        pass_rate=0.90,
-    )
-    json_str = json.dumps(metrics.model_dump(), default=str)
-    raw = json.loads(json_str)
-    restored = AggregateMetrics.model_validate(raw)
-    assert restored.unique_test_case_count == 50
-    assert restored.total_executions == 50

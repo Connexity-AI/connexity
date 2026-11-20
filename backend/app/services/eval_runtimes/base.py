@@ -1,7 +1,7 @@
 """Evaluation runtime abstraction.
 
 An evaluation runtime is the strategy that drives a single test case to a
-transcript. The orchestrator owns concurrency, judging, persistence, and
+transcript. The runner owns concurrency, judging, persistence, and
 aggregate metrics; the runtime owns the conversation loop (in-process
 simulator, phone call, etc.).
 
@@ -36,7 +36,7 @@ class RuntimeTestResult:
 
 @dataclass(frozen=True)
 class RuntimeRunArgs:
-    """Inputs the orchestrator hands to ``runtime.run_test_case``."""
+    """Inputs the runner hands to ``runtime.run_test_case``."""
 
     test_case: TestCase
     agent_snapshot: AgentSnapshot
@@ -90,6 +90,6 @@ class EvalRuntime(ABC):
     ) -> TestCaseRunResult:
         """Execute a single test case and return its transcript and metadata.
 
-        The orchestrator runs the judge and persists results; runtimes should
+        The runner runs the judge and persists results; runtimes should
         not call the judge directly.
         """

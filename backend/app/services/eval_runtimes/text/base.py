@@ -40,7 +40,7 @@ class TextAgentTurnConfig:
     """Agent-turn configuration resolved by a concrete text runtime."""
 
     endpoint_url: str | None
-    agent_mode: AgentMode = AgentMode.ENDPOINT
+    agent_mode: AgentMode = AgentMode.PLATFORM
     model: str | None = None
     provider: str | None = None
     system_prompt: str | None = None
