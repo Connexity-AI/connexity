@@ -96,6 +96,11 @@ class RunBase(SQLModel):
     completed_at: datetime | None = Field(
         default=None, description="When the run finished (success or failure)"
     )
+    heartbeat_at: datetime | None = Field(
+        default=None,
+        description="Written every half minute by the process running the run; a "
+        "running run without a recent one has lost its process",
+    )
 
 
 class Run(RunBase, table=True):

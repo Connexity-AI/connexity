@@ -667,6 +667,7 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         agent_id: AgentId,
         run_id: Annotated[str | None, Field(description="One run, from `run_scenarios` or this tool's runs.")] = None,
         version: Annotated[str | None, Field(description="A tested version. Leave empty for the newest.")] = None,
+        status_only: Annotated[bool | None, Field(description="With `run_id`: answer only the run's status and counts (queued, running, finished, stalled). Use it to poll a run in progress.")] = None,
         cursor: Cursor = None,
         limit: Limit = None,
     ) -> TestRunsResult:
@@ -680,13 +681,17 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         says what limits its result: whether its version was edited since (`content`,
         read on the platform now), the spec it judged against and whether the agent
         version is newer than it (`spec_behind`), verdicts that rest on a default fake
-        (`mark`, not counted), and that tool schemas were not applied."""
+        (`mark`, not counted), and that tool schemas were not applied; and how much
+        of its sample it lost, where a call's time went (`timing`) and whether it is
+        `stalled`. With `run_id` and `status_only`: the status and counts alone, for
+        polling a run in progress."""
         return await _get_test_runs(
             client=backend_client,
             workspace_id=workspace_id,
             agent_id=agent_id,
             run_id=run_id,
             version=version,
+            status_only=status_only,
             cursor=cursor,
             limit=limit,
         )

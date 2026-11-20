@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import time
+from contextvars import ContextVar
 from datetime import datetime
 from typing import Any, Literal
 
@@ -11,6 +12,13 @@ from pydantic import BaseModel, Field
 logger = logging.getLogger(__name__)
 
 _RETELL_PLAYGROUND_MAX_ATTEMPTS = 4
+
+# A caller that wants to know how often Retell throttled it sets a one-item list here;
+# each "too many requests" answer from the playground adds one. Per task, so calls
+# running side by side count their own.
+PLAYGROUND_THROTTLED: ContextVar[list[int] | None] = ContextVar(
+    "retell_playground_throttled", default=None
+)
 _RETELL_PLAYGROUND_BACKOFF_SECONDS = (1.0, 2.0, 4.0)
 
 
@@ -567,6 +575,10 @@ async def create_retell_agent_playground_completion(
             await asyncio.sleep(wait_seconds)
             continue
 
+        if response.status_code == 429:
+            counter = PLAYGROUND_THROTTLED.get()
+            if counter is not None:
+                counter[0] += 1
         if response.status_code == 429 and attempt < _RETELL_PLAYGROUND_MAX_ATTEMPTS:
             wait_seconds = (
                 _parse_retry_after_seconds(response.headers.get("Retry-After"))

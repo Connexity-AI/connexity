@@ -144,13 +144,86 @@ class SimulatedCallPublic(BaseModel):
     findings: list[SimulatedFinding] = PydanticField(default_factory=list)
     default_fakes: list[str] = PydanticField(default_factory=list)
     cost_usd: float | None = None
+    timing: "CallTimingPublic | None" = PydanticField(
+        default=None, description="Where its time went, once finished"
+    )
+    throttled: int = PydanticField(
+        default=0,
+        description="Times the platform answered 'too many requests' during the call",
+    )
     url: str = PydanticField(description="The simulated call in the app")
 
 
-class TestRunCountsPublic(BaseModel):
+class RunProgressPublic(BaseModel):
+    """How far a run is, by simulated call."""
+
     calls: int = PydanticField(description="Simulated calls the run makes")
+    queued: int = PydanticField(default=0, description="Not started yet")
+    running: int = PydanticField(default=0, description="Started and not finished")
+    started: int = PydanticField(default=0, description="Started, finished or not")
     finished: int = 0
-    errors: int = 0
+    errors: int = PydanticField(
+        default=0, description="Finished without verdicts: stopped, or a judge error"
+    )
+    judge_errors: int = PydanticField(
+        default=0,
+        description="Of those: the conversation is there, the judge gave no usable "
+        "answer. The rest stopped",
+    )
+
+
+class CallTimingPublic(BaseModel):
+    """Where a simulated call's time went, in seconds."""
+
+    total_s: float
+    agent_s: float = PydanticField(description="Waiting for the agent's platform")
+    caller_s: float = PydanticField(description="Waiting for the simulated caller")
+    judge_s: float | None = PydanticField(
+        default=None, description="Waiting for the judge; none for older calls"
+    )
+    server_s: float = PydanticField(
+        description="The rest: Connexity's own server, mostly waiting for its turn"
+    )
+
+
+class RunTimingPublic(BaseModel):
+    """The median of the run's finished calls, in seconds."""
+
+    calls: int = PydanticField(description="Finished calls the medians are over")
+    total_s: float
+    agent_s: float
+    caller_s: float
+    judge_s: float | None = None
+    server_s: float
+    server_share_pct: int = PydanticField(
+        description="The server's share of a call's time; over a third means the run "
+        "was slowed by Connexity's server, not by the agent"
+    )
+
+
+class RunStatusPublic(BaseModel):
+    """A run's status alone, for polling."""
+
+    id: uuid.UUID
+    status: RunStatus
+    status_detail: str | None = None
+    progress: RunProgressPublic
+    created_at: datetime
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    last_progress_at: datetime | None = PydanticField(
+        default=None, description="When a simulated call last started or finished"
+    )
+    stalled: bool = PydanticField(
+        default=False,
+        description="Running, but the server running it has given no sign of life",
+    )
+    stalled_since: datetime | None = PydanticField(
+        default=None, description="Its last sign of life, when stalled"
+    )
+
+
+class TestRunCountsPublic(RunProgressPublic):
     rules_failed: int = 0
     critical_failed: int = 0
     flaky: int = 0
@@ -202,9 +275,27 @@ class TestRunPublic(BaseModel):
     verdict: VersionVerdict | None = PydanticField(
         default=None, description="A completed full run's verdict"
     )
-    result: Literal["passed", "failed"] | None = PydanticField(
+    result: Literal["passed", "failed", "incomplete"] | None = PydanticField(
         default=None,
-        description="A completed on-demand run's result; it never changes the verdict",
+        description="A completed on-demand run's result; it never changes the "
+        "verdict. Incomplete when nothing failed but some calls gave no verdicts",
+    )
+    last_progress_at: datetime | None = PydanticField(
+        default=None, description="When a simulated call last started or finished"
+    )
+    stalled: bool = PydanticField(
+        default=False,
+        description="Running, but the server running it has given no sign of life",
+    )
+    stalled_since: datetime | None = PydanticField(
+        default=None, description="Its last sign of life, when stalled"
+    )
+    timing: RunTimingPublic | None = PydanticField(
+        default=None, description="Where a call's time went, as medians"
+    )
+    throttled: int = PydanticField(
+        default=0,
+        description="Times the platform answered 'too many requests' across the run",
     )
     totals: "RunTotalsPublic | None" = PydanticField(
         default=None, description="Rules by outcome, once a run has completed"
@@ -404,5 +495,6 @@ class TestsTabPublic(BaseModel):
     scenarios: list[ScenarioRowPublic] = PydanticField(default_factory=list)
 
 
+SimulatedCallPublic.model_rebuild()
 TestRunPublic.model_rebuild()
 VersionResultsPublic.model_rebuild()

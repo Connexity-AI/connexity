@@ -48,7 +48,7 @@ What was settled about scenarios, test runs and the gate, and what is still open
 **The version and the gate**
 - A version's verdict comes from its latest completed full run (every scenario) and nothing else: Verified when every spec rule was checked and nothing critical was found; Failed on a critical rule (flaky included) or a critical code check; Partially tested when some rule was not checked; Not verified without one. Runs of a set or a pick are on demand and never change it. Non-critical failures never fail a version: the 20% threshold is gone. Coverage is tests written: the latest spec's rules that an active scenario lists. A run counts rules, each once. (Dmytro, 2026-11-19; `plans/2026-11-19-tests-tab-runs-and-verified.md`.) Replaces the 2026-11-17 rules that every run counts and that coverage counts rules judged.
 - A full run that judged no rule gives no verdict: the version is Not verified, whatever the code checks found (Dmytro, 2026-11-19: "Verdict only happens when all rules checked").
-- A text conversation ends when the agent hangs up or after 40 agent replies, and is judged on what was said; a hang-up or a transfer ends it there. A conversation still going after 10 minutes is stopped as an error. A run makes up to 10 conversations at once (Dmytro, 2026-11-19; `plans/2026-11-19-simulations-finish.md`).
+- A text conversation ends when the agent hangs up or after 40 agent replies, and is judged on what was said; a hang-up or a transfer ends it there. A conversation still going after 10 minutes is stopped as an error. A run makes up to 25 conversations at once, the `SIMULATION_CONCURRENCY` setting (Dmytro, 2026-11-20, replacing 10 of 2026-11-19; `plans/2026-11-19-simulations-finish.md`).
 - What limits a run's result is said by the run (Dmytro, 2026-11-20;
   `plans/2026-11-20-trustworthy-test-runs.md`). Every run says whether its version still
   has the content it tested, read on Retell when the run is asked for (`same`, `edited`,
@@ -58,6 +58,16 @@ What was settled about scenarios, test runs and the gate, and what is still open
   Partially tested because of it. Every run says tool schemas were not applied, names
   its spec version, and warns when the tested agent version is newer than the one the
   spec's rules were written for; the warning never refuses a run.
+- A run says how far it is and what it lost (Dmytro, 2026-11-20;
+  `plans/2026-11-20-test-run-progress-and-speed.md`). A call's start is written when it
+  starts, so counts tell queued, running and finished apart. The process running a run
+  writes a heartbeat every 30 seconds; without one for 2 minutes the run reads stalled,
+  and after 15 it is marked failed, keeping the verdicts of calls that finished. A
+  starting server no longer fails every running run, only those with no sign of life.
+  Calls without verdicts are counted as stopped or judge errors, with no judge retry,
+  and an on-demand run that lost calls and found no failure reads `incomplete`. Every
+  call says where its time went (agent, caller, judge, Connexity's server), and counts
+  the platform's "too many requests" answers.
 - For the demo the threshold is one fixed default. Gate settings come in Milestone 7.
 - Coverage: a rule is covered when the version's runs checked it at least once, with how many times next to it. This replaces prompt 08's "rules without tests", which counted rules that had no test case.
 

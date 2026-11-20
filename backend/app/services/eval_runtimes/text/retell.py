@@ -220,6 +220,9 @@ class RetellRuntime(TextRuntimeBase):
         session: Session,
     ) -> TestCaseRunResult:
         base_agent_config = self.build_text_agent_config(runtime_config, args, session)
+        # The conversation needs no database. Give the connection back now: many
+        # conversations run at once, each for minutes, and the pool is smaller.
+        session.close()
         assert isinstance(base_agent_config, RetellTextAgentConfig)
 
         agent_config = replace(

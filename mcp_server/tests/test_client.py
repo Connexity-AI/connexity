@@ -1495,3 +1495,37 @@ async def test_a_connexity_failure_points_to_send_feedback() -> None:
         )
 
     assert "send_feedback" in str(raised.value)
+
+
+@pytest.mark.asyncio
+async def test_get_test_runs_polls_a_runs_status_alone() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET"
+        assert dict(request.url.params) == {"run_id": "r1", "status_only": "true"}
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "status": {
+                        "id": "r1",
+                        "status": "running",
+                        "created_at": "2026-11-20T10:00:00Z",
+                        "progress": {"calls": 21, "queued": 11, "running": 10, "started": 10},
+                        "stalled": False,
+                    }
+                },
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: get_test_runs(
+            client, workspace_id=WORKSPACE_ID, agent_id="a1", run_id="r1", status_only=True
+        ),
+    )
+
+    assert result.data.run is None
+    assert result.data.status is not None
+    assert (result.data.status.progress.running, result.data.status.progress.queued) == (10, 11)
+    assert result.data.status.stalled is False

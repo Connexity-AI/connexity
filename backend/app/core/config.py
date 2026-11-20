@@ -190,6 +190,9 @@ class Settings(BaseSettings):
     # Anthropic key (Dmytro, 2026-11-18: Claude, the model the judge checks use).
     SIMULATION_MODEL: str = "claude-haiku-5-5"
     SIMULATION_PROVIDER: str = "anthropic"
+    # Simulated calls a run makes at once (Dmytro, 2026-11-20). How far it can go is
+    # set by the platform's and the simulation model's rate limits.
+    SIMULATION_CONCURRENCY: int = Field(default=25, ge=1, le=200)
 
     # Judge-specific
     JUDGE_MAX_TOKENS: int = 4096

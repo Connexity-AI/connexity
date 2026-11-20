@@ -33,6 +33,7 @@ from app.models.scenario import ScenarioPublic
 from app.models.score import ScorePublic
 from app.models.spec import SpecState
 from app.models.test_run import (
+    RunStatusPublic,
     TestRunDetailPublic,
     TestRunPublic,
     VersionResultsPublic,
@@ -358,6 +359,9 @@ class McpTestRuns(BaseModel):
     results and the agent's runs."""
 
     run: TestRunDetailPublic | None = None
+    status: RunStatusPublic | None = Field(
+        default=None, description="With `status_only`: the run's status alone"
+    )
     results: VersionResultsPublic | None = Field(
         default=None,
         description="Without a run id: the version's verdict from its latest full run, "

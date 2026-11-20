@@ -34,6 +34,7 @@ from app.crud.issue_page import (
     latest_agent_version,
 )
 from app.crud.latency import agent_gap_percentiles
+from app.crud.test_run import DEAD_AFTER
 from app.models import (
     Agent,
     CallScreenPublic,
@@ -117,6 +118,8 @@ from app.models.mcp import (
 from app.models.scenario import ScenarioListPublic, ScenarioSetPublic
 from app.models.spec import SpecPublic, SpecWrittenPublic
 from app.models.test_run import (
+    RunProgressPublic,
+    RunStatusPublic,
     TestRunDetailPublic,
     TestRunPublic,
     VersionResultsPublic,
@@ -198,6 +201,7 @@ from app.services.test_run import (
     read_content_now,
     results_version,
     run_detail,
+    run_status,
     start_run,
     version_results,
     version_to_test,
@@ -2524,6 +2528,19 @@ _TEST_RUN_RULES = [
     "tested.",
     "Run a set or a pick while working on a change; run every scenario to verify a "
     "version.",
+    "While a run is in progress, poll it with `status_only`: it answers the status and "
+    "counts alone and is cheap. `queued`, `running` and `finished` say how far it is. "
+    "A slow run still has calls running; a `stalled` run has lost the server running "
+    "it and is marked failed after "
+    f"{int(DEAD_AFTER.total_seconds() // 60)} minutes: run it again then.",
+    "A call that ends without verdicts shrinks the sample: `errors` counts them, and "
+    "`judge_errors` says how many had a conversation the judge could not answer for "
+    "(the rest stopped). An on-demand run that lost calls and found no failure is "
+    "`incomplete`, not passed: run the lost scenarios again.",
+    "A run says where a call's time went (`timing`, medians): the agent's platform, "
+    "the simulated caller, the judge, and Connexity's own server. A high server share "
+    "means the run was slow because of Connexity, not the agent. `throttled` counts "
+    "the platform's 'too many requests' answers.",
 ]
 
 
@@ -2593,12 +2610,9 @@ def _run_steps(
     run: TestRunDetailPublic, more: bool, offset: int, limit: int
 ) -> list[str]:
     counts = run.counts
-    limits = _run_limits(run)
+    limits = [*_sample_steps(run), *_run_limits(run), *_speed_steps(run)]
     if run.status in (RunStatus.PENDING, RunStatus.RUNNING):
-        return [
-            f"Still running: {counts.finished} of {counts.calls} simulated calls "
-            f"finished. Call `get_test_runs` with run_id {run.id} again."
-        ]
+        return _progress_steps(run.id, counts, run.stalled_since, run.last_progress_at)
     if run.totals is not None and not run.totals.judged_calls:
         return [
             f"No result: every one of its {counts.calls} simulated calls stopped with "
@@ -2652,8 +2666,8 @@ def _run_steps(
         )
     if counts.errors:
         steps.append(
-            f"{counts.errors} simulated {'call' if counts.errors == 1 else 'calls'} "
-            "ended in an error (`error`) and gave no verdicts; run those scenarios again."
+            f"Read each lost call's `error`, then run those scenarios again "
+            f"({counts.errors} {'call' if counts.errors == 1 else 'calls'})."
         )
     if run.dropped_rules:
         steps.append(
@@ -2671,6 +2685,84 @@ def _run_steps(
         steps.append(
             "Call `get_test_runs` again with `cursor` set to `next_cursor` for the next "
             f"simulated calls (from {offset + limit + 1})."
+        )
+    return steps
+
+
+def _progress_steps(
+    run_id: uuid.UUID,
+    progress: RunProgressPublic,
+    stalled_since: datetime | None,
+    last_progress_at: datetime | None,
+) -> list[str]:
+    """What a run in progress is doing, and how to ask again cheaply."""
+    where = (
+        f"{progress.finished} of {progress.calls} simulated calls finished, "
+        f"{progress.running} running, {progress.queued} queued"
+    )
+    if stalled_since is not None:
+        return [
+            f"Stalled: the server running this run has given no sign of life since "
+            f"{stalled_since:%H:%M} UTC ({where}). It may have been stopped by a "
+            "deploy. If it does not come back, the run is marked failed "
+            f"{int(DEAD_AFTER.total_seconds() // 60)} minutes after that; then start "
+            "it again with `run_scenarios`. Calls that finished keep their verdicts."
+        ]
+    moved = (
+        f" Last progress at {last_progress_at:%H:%M:%S} UTC."
+        if last_progress_at is not None
+        else ""
+    )
+    return [
+        f"Still running: {where}.{moved} Ask again with `get_test_runs`, run_id "
+        f"{run_id} and `status_only` true; read the run without `status_only` once "
+        "its status is completed."
+    ]
+
+
+def _sample_steps(run: TestRunPublic) -> list[str]:
+    """How much of its sample a finished run lost, said first."""
+    counts = run.counts
+    if not counts.errors:
+        return []
+    stopped = counts.errors - counts.judge_errors
+    lost = [
+        *([f"{stopped} stopped"] if stopped else []),
+        *(
+            [
+                f"{counts.judge_errors} judge {'error' if counts.judge_errors == 1 else 'errors'}"
+            ]
+            if counts.judge_errors
+            else []
+        ),
+    ]
+    return [
+        f"{counts.finished - counts.errors} of {counts.calls} calls judged, "
+        f"{', '.join(lost)}: the sample is smaller than the run asked for."
+        + (
+            " Nothing failed in the calls that were judged, so the result is "
+            "incomplete, not passed."
+            if run.result == "incomplete"
+            else ""
+        )
+    ]
+
+
+def _speed_steps(run: TestRunPublic) -> list[str]:
+    steps: list[str] = []
+    timing = run.timing
+    if timing is not None and timing.server_share_pct > 33:
+        steps.append(
+            f"This run was slowed by Connexity's server, not by the agent: of "
+            f"{timing.total_s:.0f} s per call (median), {timing.server_s:.0f} s "
+            f"({timing.server_share_pct}%) went to neither the agent, the caller nor "
+            "the judge. Its results stand."
+        )
+    if run.throttled:
+        steps.append(
+            f"The platform answered 'too many requests' {run.throttled} "
+            f"{'time' if run.throttled == 1 else 'times'} during this run; the calls "
+            "waited and went on. Run fewer scenarios at once if it keeps happening."
         )
     return steps
 
@@ -2704,6 +2796,25 @@ def _spec_behind_steps(run: TestRunPublic) -> list[str]:
         f"{run.platform_version or 'a newer version'} against it. Update the spec "
         "with `write_spec` if the change added or changed behaviour, or confirm "
         "nothing in it changed, before relying on the result."
+    ]
+
+
+def _status_steps(status: RunStatusPublic) -> list[str]:
+    if status.status in (RunStatus.PENDING, RunStatus.RUNNING):
+        return _progress_steps(
+            status.id, status.progress, status.stalled_since, status.last_progress_at
+        )
+    progress = status.progress
+    if status.status is RunStatus.COMPLETED:
+        return [
+            f"Completed: {progress.finished - progress.errors} of {progress.calls} "
+            "calls judged. Read its results with `get_test_runs` and run_id "
+            f"{status.id}, without `status_only`."
+        ]
+    return [
+        f"The run stopped: {status.status_detail or 'unknown reason'} "
+        f"{progress.finished} of {progress.calls} calls had finished. Start it again "
+        "with `run_scenarios`."
     ]
 
 
@@ -2871,11 +2982,27 @@ def get_agent_test_runs(
     agent_id: uuid.UUID,
     run_id: uuid.UUID | None = Query(default=None),
     version: str | None = Query(default=None, max_length=64),
+    status_only: bool = Query(default=False),
     cursor: str | None = Query(default=None, max_length=255),
     limit: int = Query(default=25, ge=1, le=100),
 ) -> McpAnswer[McpTestRuns]:
     agent = _mcp_agent_in(session, workspace, agent_id)
     offset = _decode_cursor(cursor)
+    if status_only and run_id is None:
+        raise HTTPException(
+            status_code=422,
+            detail=McpErrorDetail(
+                error="`status_only` needs a `run_id`",
+                next_steps=[
+                    "Call `get_test_runs` with the run's `run_id` and `status_only`, "
+                    "or without both for the version's results and the list of runs."
+                ],
+                guide=GUIDE_SCENARIOS,
+            ).model_dump(),
+        )
+    # A run whose server stopped is marked failed here too, so it never reads
+    # "running" for good where nothing else would notice.
+    crud_test_run.fail_stale_runs(session=session, agent_id=agent.id)
     if run_id is None:
         # What the version holds on the platform now, so an edit made after its last
         # run shows (Dmytro, 2026-11-20: read Retell when asked).
@@ -2929,6 +3056,14 @@ def get_agent_test_runs(
                 ],
                 guide=GUIDE_SCENARIOS,
             ).model_dump(),
+        )
+    if status_only:
+        status = run_status(session=session, run=run)
+        return McpAnswer[McpTestRuns](
+            data=McpTestRuns(status=status),
+            rules=_TEST_RUN_RULES,
+            next_steps=_status_steps(status),
+            guide=GUIDE_SCENARIOS,
         )
     detail, more = run_detail(
         session=session,

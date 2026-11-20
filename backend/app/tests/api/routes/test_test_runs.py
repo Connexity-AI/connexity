@@ -7,6 +7,7 @@ import asyncio
 import json
 import uuid
 from collections.abc import Iterator
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -14,7 +15,7 @@ import httpx
 import pytest
 import respx
 from fastapi.testclient import TestClient
-from sqlmodel import Session, func, select
+from sqlmodel import Session, col, func, select
 
 from app.crud.test_run import fail_stale_runs
 from app.models import Agent, User
@@ -293,8 +294,12 @@ def test_a_set_runs_every_repeat_with_every_tool_faked_and_judges_listed_rules(
     ]
     assert detail["counts"] == {
         "calls": 2,
+        "queued": 0,
+        "running": 0,
+        "started": 2,
         "finished": 2,
         "errors": 0,
+        "judge_errors": 0,
         "rules_failed": 1,
         "critical_failed": 1,
         "flaky": 1,
@@ -595,23 +600,111 @@ def test_runs_are_listed_newest_first_by_page_and_scoped_to_the_agent(
     assert foreign.status_code == 404
 
 
-def test_a_restart_fails_runs_it_stopped(client: TestClient, db: Session) -> None:
+def _age(db: Session, run_id: str, minutes: int, status: RunStatus) -> Run:
+    """Make the run look as if its server last gave a sign of life ``minutes`` ago."""
+    db.expire_all()
+    run = db.get(Run, uuid.UUID(run_id))
+    assert run is not None
+    run.status = status
+    run.started_at = run.heartbeat_at = datetime.now(UTC) - timedelta(minutes=minutes)
+    db.add(run)
+    db.commit()
+    return run
+
+
+def test_a_run_whose_server_stopped_is_failed_and_a_live_one_is_left_alone(
+    client: TestClient, db: Session
+) -> None:
+    user, agent, keys = _ready(db, client)
+    _scenarios(client, user, agent, _price(keys))
+    live = _start(client, user, agent, all=True, repeats=1).json()["data"]["run_id"]
+    dead = _start(client, user, agent, all=True, repeats=1).json()["data"]["run_id"]
+    _age(db, live, 1, RunStatus.RUNNING)
+    _age(db, dead, 16, RunStatus.RUNNING)
+
+    # A server starting beside a live run does not fail it.
+    assert fail_stale_runs(session=db, agent_id=agent.id) == 1
+
+    db.expire_all()
+    assert db.get(Run, uuid.UUID(live)).status == RunStatus.RUNNING  # type: ignore[union-attr]
+    run = db.get(Run, uuid.UUID(dead))
+    assert run is not None
+    assert run.status == RunStatus.FAILED
+    assert run.status_detail and "server running it stopped" in run.status_detail
+    assert run.completed_at is not None
+    # A failed run is not started again.
+    _execute(dead)
+    db.expire_all()
+    assert db.get(Run, uuid.UUID(dead)).status == RunStatus.FAILED  # type: ignore[union-attr]
+
+
+def test_polling_a_run_is_cheap_and_says_how_far_it_is(
+    client: TestClient, db: Session
+) -> None:
+    user, agent, keys = _ready(db, client)
+    _scenarios(client, user, agent, _price(keys))
+    run_id = _start(client, user, agent, all=True, repeats=2).json()["data"]["run_id"]
+
+    # No Retell mock: a poll never asks the platform.
+    r = _runs(client, user, agent, read=True, run_id=run_id, status_only="true")
+
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["data"]["run"] is None and body["data"]["results"] is None
+    status = body["data"]["status"]
+    assert status["status"] == "pending"
+    assert status["progress"] == {
+        "calls": 2,
+        "queued": 2,
+        "running": 0,
+        "started": 0,
+        "finished": 0,
+        "errors": 0,
+        "judge_errors": 0,
+    }
+    assert status["stalled"] is False
+    assert len(r.content) < 2048 + len(json.dumps(body["rules"]))
+    assert (
+        "0 of 2 simulated calls finished, 0 running, 2 queued" in body["next_steps"][0]
+    )
+    assert "`status_only`" in body["next_steps"][0]
+    # The full read of a run in progress points at the cheap one too.
+    full = _runs(client, user, agent, run_id=run_id).json()
+    assert "`status_only`" in full["next_steps"][0]
+
+    # Without a run there is nothing to poll.
+    refused = _runs(client, user, agent, status_only="true")
+    assert refused.status_code == 422
+    assert "run_id" in refused.json()["detail"]["error"]
+
+
+def test_a_run_with_no_sign_of_life_is_stalled_then_failed(
+    client: TestClient, db: Session
+) -> None:
     user, agent, keys = _ready(db, client)
     _scenarios(client, user, agent, _price(keys))
     run_id = _start(client, user, agent, all=True, repeats=1).json()["data"]["run_id"]
 
-    assert fail_stale_runs(session=db) >= 1
+    _age(db, run_id, 1, RunStatus.RUNNING)
+    alive = _runs(client, user, agent, run_id=run_id, status_only="true").json()
+    assert alive["data"]["status"]["stalled"] is False
 
-    db.expire_all()
-    run = db.get(Run, uuid.UUID(run_id))
-    assert run is not None
-    assert run.status == RunStatus.FAILED
-    assert run.status_detail and "restart" in run.status_detail
-    assert run.completed_at is not None
-    # A failed run is not started again.
-    _execute(run_id)
-    db.expire_all()
-    assert db.get(Run, uuid.UUID(run_id)).status == RunStatus.FAILED  # type: ignore[union-attr]
+    _age(db, run_id, 3, RunStatus.RUNNING)
+    body = _runs(client, user, agent, run_id=run_id, status_only="true").json()
+    status = body["data"]["status"]
+    assert (status["status"], status["stalled"]) == ("running", True)
+    assert status["stalled_since"] is not None
+    assert body["next_steps"][0].startswith("Stalled:")
+    assert _runs(client, user, agent, run_id=run_id).json()["data"]["run"]["stalled"]
+
+    _age(db, run_id, 16, RunStatus.RUNNING)
+    body = _runs(client, user, agent, run_id=run_id, status_only="true").json()
+    status = body["data"]["status"]
+    assert (status["status"], status["stalled"]) == ("failed", False)
+    assert "server running it stopped" in status["status_detail"]
+    # Nothing is running in a run that stopped.
+    assert (status["progress"]["queued"], status["progress"]["running"]) == (0, 0)
+    assert "Start it again" in body["next_steps"][0]
 
 
 def test_a_run_without_connexitys_model_key_is_refused(
@@ -846,14 +939,23 @@ def _made(
     judge: AsyncMock,
     *,
     version: int = 15,
+    repeats: int = 1,
+    agent_turn: Any = None,
     **scope: Any,
 ) -> str:
     """Start a run of ``version`` and make it, with Retell's version read mocked."""
     run_id = _start(
-        client, user, agent, repeats=1, version=version, **(scope or {"all": True})
+        client,
+        user,
+        agent,
+        repeats=repeats,
+        version=version,
+        **(scope or {"all": True}),
     ).json()["data"]["run_id"]
     with respx.mock() as retell:
-        retell.post(url__startswith=PLAYGROUND).mock(side_effect=_agent_turn)
+        retell.post(url__startswith=PLAYGROUND).mock(
+            side_effect=agent_turn or _agent_turn
+        )
         _tested_version(retell, version)
         with patch("app.services.rule_judge.call_llm", new=judge):
             _execute(run_id)
@@ -1056,3 +1158,190 @@ def test_a_run_names_its_spec_and_warns_when_the_agent_version_is_newer(
     # Tool schemas are never applied in a text run, and every run says so.
     assert run["tool_schemas_applied"] is False
     assert any("tool_schemas_applied" in rule for rule in ahead["rules"])
+
+
+@pytest.mark.provider_versions
+def test_a_call_is_marked_started_when_it_starts(
+    client: TestClient, db: Session, caller: AsyncMock
+) -> None:
+    user, agent, keys = _ready(db, client)
+    _scenarios(client, user, agent, _price(keys))
+    seen: list[int] = []
+
+    async def judge(*_args: Any, **_kwargs: Any) -> LLMResponse:
+        # While the judge is asked, the call is in flight: started, not finished.
+        idle.append(runner.engine.pool.checkedout())  # type: ignore[attr-defined]
+        with Session(db.get_bind()) as other:
+            in_flight = other.exec(
+                select(TestCaseResult)
+                .join(Run, col(Run.id) == col(TestCaseResult.run_id))
+                .where(
+                    Run.agent_id == agent.id,
+                    col(TestCaseResult.started_at).is_not(None),
+                    col(TestCaseResult.completed_at).is_(None),
+                )
+            ).all()
+            seen.append(len(in_flight))
+        return _verdict(keys[PRICE], "passed")
+
+    held: list[int] = []
+    idle: list[int] = []
+
+    def agent_turn(request: httpx.Request) -> httpx.Response:
+        held.append(runner.engine.pool.checkedout())  # type: ignore[attr-defined]
+        return _agent_turn(request)
+
+    run_id = _made(
+        client, user, agent, AsyncMock(side_effect=judge), agent_turn=agent_turn
+    )
+
+    assert seen == [1]
+    # A call does not keep a database connection while it talks to the agent: 25 run
+    # at once and the pool is smaller.
+    assert held and idle and max(held) <= min(idle)
+    detail = _runs(client, user, agent, run_id=run_id).json()["data"]["run"]
+    counts = detail["counts"]
+    assert (counts["queued"], counts["running"], counts["started"]) == (0, 0, 1)
+    assert detail["last_progress_at"] is not None
+    # The run said it was alive when it started.
+    db.expire_all()
+    assert db.get(Run, uuid.UUID(run_id)).heartbeat_at is not None  # type: ignore[union-attr]
+
+
+@pytest.mark.provider_versions
+def test_a_run_that_lost_calls_says_so_and_is_incomplete_not_passed(
+    client: TestClient, db: Session, caller: AsyncMock
+) -> None:
+    user, agent, keys = _ready(db, client)
+    scenario = _scenarios(client, user, agent, _price(keys)).json()["data"][
+        "scenarios"
+    ][0]
+    # Two repeats: the judge answers one and cannot be read for the other. It is not
+    # asked again.
+    judge = AsyncMock(side_effect=[_verdict(keys[PRICE], "passed"), _llm("not json")])
+
+    run_id = _made(client, user, agent, judge, repeats=2, scenario_ids=[scenario["id"]])
+
+    assert judge.await_count == 2
+    body = _runs(client, user, agent, run_id=run_id).json()
+    run = body["data"]["run"]
+    counts = run["counts"]
+    assert (counts["finished"], counts["errors"], counts["judge_errors"]) == (2, 1, 1)
+    assert run["result"] == "incomplete"
+    first = body["next_steps"][0]
+    assert first.startswith("1 of 2 calls judged, 1 judge error")
+    assert "incomplete, not passed" in first
+    assert not any("stopped" in step.split(":")[0] for step in body["next_steps"][:1])
+
+
+@pytest.mark.provider_versions
+def test_a_run_counts_the_platforms_too_many_requests_answers(
+    client: TestClient, db: Session, caller: AsyncMock
+) -> None:
+    user, agent, keys = _ready(db, client)
+    _scenarios(client, user, agent, _price(keys))
+    refused = iter([True])
+
+    def throttled_once(request: httpx.Request) -> httpx.Response:
+        if json.loads(request.content)["messages"] and next(refused, False):
+            return httpx.Response(429, headers={"Retry-After": "1"})
+        return _agent_turn(request)
+
+    with patch("app.services.retell.asyncio.sleep", new=AsyncMock()):
+        run_id = _made(
+            client,
+            user,
+            agent,
+            AsyncMock(return_value=_verdict(keys[PRICE], "passed")),
+            agent_turn=throttled_once,
+        )
+
+    body = _runs(client, user, agent, run_id=run_id).json()
+    run = body["data"]["run"]
+    assert (run["throttled"], run["calls"][0]["throttled"]) == (1, 1)
+    assert run["counts"]["errors"] == 0
+    assert any("'too many requests' 1 time" in step for step in body["next_steps"])
+
+
+def test_where_a_calls_time_went() -> None:
+    started = datetime(2026, 11, 20, 12, 0, 0)
+
+    def call(total_s: int, agent_ms: int, caller_ms: int, judge_ms: int | None) -> Any:
+        return TestCaseResult(
+            run_id=uuid.uuid4(),
+            test_case_id=uuid.uuid4(),
+            started_at=started,
+            completed_at=started + timedelta(seconds=total_s),
+            judge_ms=judge_ms,
+            transcript=[
+                {"index": 0, "role": "assistant", "latency_ms": agent_ms},
+                {"index": 1, "role": "user", "latency_ms": caller_ms},
+                {"index": 2, "role": "tool", "latency_ms": None},
+            ],
+        )
+
+    timing = runner.call_timing(call(100, 40_000, 20_000, 5_000))
+    assert timing is not None
+    assert (timing.agent_s, timing.caller_s, timing.judge_s, timing.server_s) == (
+        40.0,
+        20.0,
+        5.0,
+        35.0,
+    )
+    # A call made before the judge was timed, and one still in flight.
+    assert runner.call_timing(call(100, 40_000, 20_000, None)).judge_s is None  # type: ignore[union-attr]
+    assert (
+        runner.call_timing(
+            TestCaseResult(run_id=uuid.uuid4(), test_case_id=uuid.uuid4())
+        )
+        is None
+    )
+
+    slow = runner.run_timing([call(100, 20_000, 10_000, 5_000)] * 3)
+    fast = runner.run_timing([call(40, 25_000, 10_000, 4_000)] * 3)
+    assert slow is not None and fast is not None
+    assert (slow.calls, slow.total_s, slow.server_s, slow.server_share_pct) == (
+        3,
+        100.0,
+        65.0,
+        65,
+    )
+    assert fast.server_share_pct == 2
+    assert runner.run_timing([]) is None
+
+
+def test_a_run_makes_25_calls_at_once_unless_set_otherwise(
+    client: TestClient, db: Session
+) -> None:
+    user, agent, keys = _ready(db, client)
+    _scenarios(client, user, agent, _price(keys))
+
+    run_id = _start(client, user, agent, all=True, repeats=1).json()["data"]["run_id"]
+
+    run = db.get(Run, uuid.UUID(run_id))
+    assert run is not None and run.config is not None
+    assert run.config["concurrency"] == 25
+
+
+def test_a_run_in_progress_keeps_saying_it_is_alive(
+    client: TestClient, db: Session
+) -> None:
+    user, agent, keys = _ready(db, client)
+    _scenarios(client, user, agent, _price(keys))
+    run_id = _start(client, user, agent, all=True, repeats=1).json()["data"]["run_id"]
+    old = _age(db, run_id, 5, RunStatus.RUNNING).heartbeat_at
+
+    async def beat_twice() -> None:
+        done = asyncio.Event()
+        with patch.object(runner, "HEARTBEAT_SECONDS", 0.01):
+            beating = asyncio.create_task(runner._heartbeat(uuid.UUID(run_id), done))
+            await asyncio.sleep(0.1)
+            done.set()
+            await beating
+
+    asyncio.run(beat_twice())
+
+    db.expire_all()
+    run = db.get(Run, uuid.UUID(run_id))
+    assert run is not None and run.heartbeat_at is not None and old is not None
+    assert run.heartbeat_at > old

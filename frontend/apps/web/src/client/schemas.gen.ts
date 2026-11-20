@@ -1744,6 +1744,46 @@ export const CallTilesPublicSchema = {
   title: 'CallTilesPublic',
 } as const;
 
+export const CallTimingPublicSchema = {
+  properties: {
+    total_s: {
+      type: 'number',
+      title: 'Total S',
+    },
+    agent_s: {
+      type: 'number',
+      title: 'Agent S',
+      description: "Waiting for the agent's platform",
+    },
+    caller_s: {
+      type: 'number',
+      title: 'Caller S',
+      description: 'Waiting for the simulated caller',
+    },
+    judge_s: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Judge S',
+      description: 'Waiting for the judge; none for older calls',
+    },
+    server_s: {
+      type: 'number',
+      title: 'Server S',
+      description: "The rest: Connexity's own server, mostly waiting for its turn",
+    },
+  },
+  type: 'object',
+  required: ['total_s', 'agent_s', 'caller_s', 'server_s'],
+  title: 'CallTimingPublic',
+  description: "Where a simulated call's time went, in seconds.",
+} as const;
+
 export const CallTracePublicSchema = {
   properties: {
     trace: {
@@ -7949,6 +7989,17 @@ export const McpTestRunsSchema = {
         },
       ],
     },
+    status: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/RunStatusPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: "With `status_only`: the run's status alone",
+    },
     results: {
       anyOf: [
         {
@@ -8646,6 +8697,56 @@ export const RuleTotalPublicSchema = {
   title: 'RuleTotalPublic',
 } as const;
 
+export const RunProgressPublicSchema = {
+  properties: {
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+      description: 'Simulated calls the run makes',
+    },
+    queued: {
+      type: 'integer',
+      title: 'Queued',
+      description: 'Not started yet',
+      default: 0,
+    },
+    running: {
+      type: 'integer',
+      title: 'Running',
+      description: 'Started and not finished',
+      default: 0,
+    },
+    started: {
+      type: 'integer',
+      title: 'Started',
+      description: 'Started, finished or not',
+      default: 0,
+    },
+    finished: {
+      type: 'integer',
+      title: 'Finished',
+      default: 0,
+    },
+    errors: {
+      type: 'integer',
+      title: 'Errors',
+      description: 'Finished without verdicts: stopped, or a judge error',
+      default: 0,
+    },
+    judge_errors: {
+      type: 'integer',
+      title: 'Judge Errors',
+      description:
+        'Of those: the conversation is there, the judge gave no usable answer. The rest stopped',
+      default: 0,
+    },
+  },
+  type: 'object',
+  required: ['calls'],
+  title: 'RunProgressPublic',
+  description: 'How far a run is, by simulated call.',
+} as const;
+
 export const RunScopeSchema = {
   type: 'string',
   enum: ['set', 'pick', 'all'],
@@ -8657,6 +8758,145 @@ export const RunStatusSchema = {
   type: 'string',
   enum: ['pending', 'running', 'completed', 'failed', 'cancelled'],
   title: 'RunStatus',
+} as const;
+
+export const RunStatusPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    status: {
+      $ref: '#/components/schemas/RunStatus',
+    },
+    status_detail: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Status Detail',
+    },
+    progress: {
+      $ref: '#/components/schemas/RunProgressPublic',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+    },
+    started_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Started At',
+    },
+    completed_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Completed At',
+    },
+    last_progress_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Last Progress At',
+      description: 'When a simulated call last started or finished',
+    },
+    stalled: {
+      type: 'boolean',
+      title: 'Stalled',
+      description: 'Running, but the server running it has given no sign of life',
+      default: false,
+    },
+    stalled_since: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Stalled Since',
+      description: 'Its last sign of life, when stalled',
+    },
+  },
+  type: 'object',
+  required: ['id', 'status', 'progress', 'created_at'],
+  title: 'RunStatusPublic',
+  description: "A run's status alone, for polling.",
+} as const;
+
+export const RunTimingPublicSchema = {
+  properties: {
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+      description: 'Finished calls the medians are over',
+    },
+    total_s: {
+      type: 'number',
+      title: 'Total S',
+    },
+    agent_s: {
+      type: 'number',
+      title: 'Agent S',
+    },
+    caller_s: {
+      type: 'number',
+      title: 'Caller S',
+    },
+    judge_s: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Judge S',
+    },
+    server_s: {
+      type: 'number',
+      title: 'Server S',
+    },
+    server_share_pct: {
+      type: 'integer',
+      title: 'Server Share Pct',
+      description:
+        "The server's share of a call's time; over a third means the run was slowed by Connexity's server, not by the agent",
+    },
+  },
+  type: 'object',
+  required: ['calls', 'total_s', 'agent_s', 'caller_s', 'server_s', 'server_share_pct'],
+  title: 'RunTimingPublic',
+  description: "The median of the run's finished calls, in seconds.",
 } as const;
 
 export const RunTotalsPublicSchema = {
@@ -9353,6 +9593,23 @@ export const SimulatedCallPublicSchema = {
         },
       ],
       title: 'Cost Usd',
+    },
+    timing: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/CallTimingPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Where its time went, once finished',
+    },
+    throttled: {
+      type: 'integer',
+      title: 'Throttled',
+      description: "Times the platform answered 'too many requests' during the call",
+      default: 0,
     },
     url: {
       type: 'string',
@@ -10135,6 +10392,24 @@ export const TestRunCountsPublicSchema = {
       title: 'Calls',
       description: 'Simulated calls the run makes',
     },
+    queued: {
+      type: 'integer',
+      title: 'Queued',
+      description: 'Not started yet',
+      default: 0,
+    },
+    running: {
+      type: 'integer',
+      title: 'Running',
+      description: 'Started and not finished',
+      default: 0,
+    },
+    started: {
+      type: 'integer',
+      title: 'Started',
+      description: 'Started, finished or not',
+      default: 0,
+    },
     finished: {
       type: 'integer',
       title: 'Finished',
@@ -10143,6 +10418,14 @@ export const TestRunCountsPublicSchema = {
     errors: {
       type: 'integer',
       title: 'Errors',
+      description: 'Finished without verdicts: stopped, or a judge error',
+      default: 0,
+    },
+    judge_errors: {
+      type: 'integer',
+      title: 'Judge Errors',
+      description:
+        'Of those: the conversation is there, the judge gave no usable answer. The rest stopped',
       default: 0,
     },
     rules_failed: {
@@ -10342,14 +10625,64 @@ export const TestRunDetailPublicSchema = {
       anyOf: [
         {
           type: 'string',
-          enum: ['passed', 'failed'],
+          enum: ['passed', 'failed', 'incomplete'],
         },
         {
           type: 'null',
         },
       ],
       title: 'Result',
-      description: "A completed on-demand run's result; it never changes the verdict",
+      description:
+        "A completed on-demand run's result; it never changes the verdict. Incomplete when nothing failed but some calls gave no verdicts",
+    },
+    last_progress_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Last Progress At',
+      description: 'When a simulated call last started or finished',
+    },
+    stalled: {
+      type: 'boolean',
+      title: 'Stalled',
+      description: 'Running, but the server running it has given no sign of life',
+      default: false,
+    },
+    stalled_since: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Stalled Since',
+      description: 'Its last sign of life, when stalled',
+    },
+    timing: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/RunTimingPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: "Where a call's time went, as medians",
+    },
+    throttled: {
+      type: 'integer',
+      title: 'Throttled',
+      description: "Times the platform answered 'too many requests' across the run",
+      default: 0,
     },
     totals: {
       anyOf: [
@@ -10603,14 +10936,64 @@ export const TestRunPublicSchema = {
       anyOf: [
         {
           type: 'string',
-          enum: ['passed', 'failed'],
+          enum: ['passed', 'failed', 'incomplete'],
         },
         {
           type: 'null',
         },
       ],
       title: 'Result',
-      description: "A completed on-demand run's result; it never changes the verdict",
+      description:
+        "A completed on-demand run's result; it never changes the verdict. Incomplete when nothing failed but some calls gave no verdicts",
+    },
+    last_progress_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Last Progress At',
+      description: 'When a simulated call last started or finished',
+    },
+    stalled: {
+      type: 'boolean',
+      title: 'Stalled',
+      description: 'Running, but the server running it has given no sign of life',
+      default: false,
+    },
+    stalled_since: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Stalled Since',
+      description: 'Its last sign of life, when stalled',
+    },
+    timing: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/RunTimingPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: "Where a call's time went, as medians",
+    },
+    throttled: {
+      type: 'integer',
+      title: 'Throttled',
+      description: "Times the platform answered 'too many requests' across the run",
+      default: 0,
     },
     totals: {
       anyOf: [
