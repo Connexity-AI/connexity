@@ -73,8 +73,16 @@ do not approve them: a person who disagrees asks you to change one.
   the run is refused and you try again.
 - **Run a set or a pick while you work on a change.** Run `all` to verify a version:
   only a full run decides its verdict.
-- **The run happens in the background.** Call `get_test_runs` with its `run_id` until
-  it is completed.
+- **The run happens in the background.** Poll it with `get_test_runs`, its `run_id`
+  and `status_only`: the answer is the status and counts alone, and is cheap.
+  - `queued`, `running` and `finished` say how far it is. A slow run still has calls
+    running.
+  - `stalled` means the server running it has given no sign of life for 2 minutes,
+    most often a deploy. It is marked failed after 15; start it again then. Calls that
+    finished keep their verdicts.
+  - Read the run without `status_only` once it is completed.
+- **A run makes up to 25 simulated calls at once.** `throttled` counts the platform's
+  "too many requests" answers; the calls wait and go on.
 - **No real tool runs:**
   - each tool call is answered by the scenario's fake result;
   - a tool the scenario does not fake answers that it is not available in this test,
@@ -110,6 +118,14 @@ do not approve them: a person who disagrees asks you to change one.
   - `spec_version` is the spec the run judged against, and `spec_written_for` the
     agent version its rules were written for. `spec_behind` means the run tested a
     newer agent version: update the spec, or confirm nothing in it changed.
+- **The sample** comes first when calls were lost: "18 of 21 calls judged, 2 stopped,
+  1 judge error". `errors` counts calls that gave no verdicts; `judge_errors` are the
+  ones with a conversation the judge could not answer for. An on-demand run that lost
+  calls and found no failure is `incomplete`, not passed: run those scenarios again.
+- **`timing`** says where a call's time went, as medians: the agent's platform, the
+  simulated caller, the judge, and Connexity's own server. When the server's share is
+  over a third, the run was slow because of Connexity, not the agent; its results
+  stand.
 - **When a rule fails:**
   1. Read the reason and the turns.
   2. If the scenario is wrong (it led the caller somewhere the rule does not apply),

@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 
 from app.api.deps import SessionDep
 from app.core.config import settings
+from app.crud.test_run import fail_stale_runs
 from app.services.call_pull import PullRun, run_pull
 from app.services.feedback import post_unsent
 
@@ -73,4 +74,7 @@ async def pull_calls(session: SessionDep) -> PullRun:
     run = await run_pull(session=session)
     # Each tick also retries assistant feedback that has not reached Notion yet.
     await post_unsent(session=session)
+    # And marks failed the test runs whose server stopped, so none reads "running"
+    # for good.
+    fail_stale_runs(session=session)
     return run

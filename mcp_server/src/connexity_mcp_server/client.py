@@ -326,6 +326,7 @@ class ConnexityBackendClient:
         agent_id: str,
         run_id: str | None = None,
         version: str | None = None,
+        status_only: bool | None = None,
         cursor: str | None = None,
         limit: int | None = None,
     ) -> dict[str, Any]:
@@ -334,6 +335,7 @@ class ConnexityBackendClient:
             for key, value in {
                 "run_id": run_id,
                 "version": version,
+                "status_only": "true" if status_only else None,
                 "cursor": cursor,
                 "limit": limit,
             }.items()

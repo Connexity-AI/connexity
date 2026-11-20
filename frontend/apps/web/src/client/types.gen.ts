@@ -1126,6 +1126,42 @@ export type CallTilesPublic = {
 };
 
 /**
+ * CallTimingPublic
+ *
+ * Where a simulated call's time went, in seconds.
+ */
+export type CallTimingPublic = {
+  /**
+   * Total S
+   */
+  total_s: number;
+  /**
+   * Agent S
+   *
+   * Waiting for the agent's platform
+   */
+  agent_s: number;
+  /**
+   * Caller S
+   *
+   * Waiting for the simulated caller
+   */
+  caller_s: number;
+  /**
+   * Judge S
+   *
+   * Waiting for the judge; none for older calls
+   */
+  judge_s?: number | null;
+  /**
+   * Server S
+   *
+   * The rest: Connexity's own server, mostly waiting for its turn
+   */
+  server_s: number;
+};
+
+/**
  * CallTracePublic
  */
 export type CallTracePublic = {
@@ -5411,6 +5447,10 @@ export type McpTaskRef = {
 export type McpTestRuns = {
   run?: TestRunDetailPublic | null;
   /**
+   * With `status_only`: the run's status alone
+   */
+  status?: RunStatusPublic | null;
+  /**
    * Without a run id: the version's verdict from its latest full run, and its runs
    */
   results?: VersionResultsPublic | null;
@@ -5916,6 +5956,54 @@ export type RuleTotalPublic = {
 };
 
 /**
+ * RunProgressPublic
+ *
+ * How far a run is, by simulated call.
+ */
+export type RunProgressPublic = {
+  /**
+   * Calls
+   *
+   * Simulated calls the run makes
+   */
+  calls: number;
+  /**
+   * Queued
+   *
+   * Not started yet
+   */
+  queued?: number;
+  /**
+   * Running
+   *
+   * Started and not finished
+   */
+  running?: number;
+  /**
+   * Started
+   *
+   * Started, finished or not
+   */
+  started?: number;
+  /**
+   * Finished
+   */
+  finished?: number;
+  /**
+   * Errors
+   *
+   * Finished without verdicts: stopped, or a judge error
+   */
+  errors?: number;
+  /**
+   * Judge Errors
+   *
+   * Of those: the conversation is there, the judge gave no usable answer. The rest stopped
+   */
+  judge_errors?: number;
+};
+
+/**
  * RunScope
  *
  * What a run of scenarios covers.
@@ -5948,6 +6036,94 @@ export const RunStatus = {
  * RunStatus
  */
 export type RunStatus = (typeof RunStatus)[keyof typeof RunStatus];
+
+/**
+ * RunStatusPublic
+ *
+ * A run's status alone, for polling.
+ */
+export type RunStatusPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  status: RunStatus;
+  /**
+   * Status Detail
+   */
+  status_detail?: string | null;
+  progress: RunProgressPublic;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Started At
+   */
+  started_at?: string | null;
+  /**
+   * Completed At
+   */
+  completed_at?: string | null;
+  /**
+   * Last Progress At
+   *
+   * When a simulated call last started or finished
+   */
+  last_progress_at?: string | null;
+  /**
+   * Stalled
+   *
+   * Running, but the server running it has given no sign of life
+   */
+  stalled?: boolean;
+  /**
+   * Stalled Since
+   *
+   * Its last sign of life, when stalled
+   */
+  stalled_since?: string | null;
+};
+
+/**
+ * RunTimingPublic
+ *
+ * The median of the run's finished calls, in seconds.
+ */
+export type RunTimingPublic = {
+  /**
+   * Calls
+   *
+   * Finished calls the medians are over
+   */
+  calls: number;
+  /**
+   * Total S
+   */
+  total_s: number;
+  /**
+   * Agent S
+   */
+  agent_s: number;
+  /**
+   * Caller S
+   */
+  caller_s: number;
+  /**
+   * Judge S
+   */
+  judge_s?: number | null;
+  /**
+   * Server S
+   */
+  server_s: number;
+  /**
+   * Server Share Pct
+   *
+   * The server's share of a call's time; over a third means the run was slowed by Connexity's server, not by the agent
+   */
+  server_share_pct: number;
+};
 
 /**
  * RunTotalsPublic
@@ -6428,6 +6604,16 @@ export type SimulatedCallPublic = {
    * Cost Usd
    */
   cost_usd?: number | null;
+  /**
+   * Where its time went, once finished
+   */
+  timing?: CallTimingPublic | null;
+  /**
+   * Throttled
+   *
+   * Times the platform answered 'too many requests' during the call
+   */
+  throttled?: number;
   /**
    * Url
    *
@@ -7008,13 +7194,39 @@ export type TestRunCountsPublic = {
    */
   calls: number;
   /**
+   * Queued
+   *
+   * Not started yet
+   */
+  queued?: number;
+  /**
+   * Running
+   *
+   * Started and not finished
+   */
+  running?: number;
+  /**
+   * Started
+   *
+   * Started, finished or not
+   */
+  started?: number;
+  /**
    * Finished
    */
   finished?: number;
   /**
    * Errors
+   *
+   * Finished without verdicts: stopped, or a judge error
    */
   errors?: number;
+  /**
+   * Judge Errors
+   *
+   * Of those: the conversation is there, the judge gave no usable answer. The rest stopped
+   */
+  judge_errors?: number;
   /**
    * Rules Failed
    */
@@ -7123,9 +7335,37 @@ export type TestRunDetailPublic = {
   /**
    * Result
    *
-   * A completed on-demand run's result; it never changes the verdict
+   * A completed on-demand run's result; it never changes the verdict. Incomplete when nothing failed but some calls gave no verdicts
    */
-  result?: 'passed' | 'failed' | null;
+  result?: 'passed' | 'failed' | 'incomplete' | null;
+  /**
+   * Last Progress At
+   *
+   * When a simulated call last started or finished
+   */
+  last_progress_at?: string | null;
+  /**
+   * Stalled
+   *
+   * Running, but the server running it has given no sign of life
+   */
+  stalled?: boolean;
+  /**
+   * Stalled Since
+   *
+   * Its last sign of life, when stalled
+   */
+  stalled_since?: string | null;
+  /**
+   * Where a call's time went, as medians
+   */
+  timing?: RunTimingPublic | null;
+  /**
+   * Throttled
+   *
+   * Times the platform answered 'too many requests' across the run
+   */
+  throttled?: number;
   /**
    * Rules by outcome, once a run has completed
    */
@@ -7256,9 +7496,37 @@ export type TestRunPublic = {
   /**
    * Result
    *
-   * A completed on-demand run's result; it never changes the verdict
+   * A completed on-demand run's result; it never changes the verdict. Incomplete when nothing failed but some calls gave no verdicts
    */
-  result?: 'passed' | 'failed' | null;
+  result?: 'passed' | 'failed' | 'incomplete' | null;
+  /**
+   * Last Progress At
+   *
+   * When a simulated call last started or finished
+   */
+  last_progress_at?: string | null;
+  /**
+   * Stalled
+   *
+   * Running, but the server running it has given no sign of life
+   */
+  stalled?: boolean;
+  /**
+   * Stalled Since
+   *
+   * Its last sign of life, when stalled
+   */
+  stalled_since?: string | null;
+  /**
+   * Where a call's time went, as medians
+   */
+  timing?: RunTimingPublic | null;
+  /**
+   * Throttled
+   *
+   * Times the platform answered 'too many requests' across the run
+   */
+  throttled?: number;
   /**
    * Rules by outcome, once a run has completed
    */
@@ -11675,6 +11943,10 @@ export type McpGetAgentTestRunsData = {
      * Version
      */
     version?: string | null;
+    /**
+     * Status Only
+     */
+    status_only?: boolean;
     /**
      * Cursor
      */

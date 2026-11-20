@@ -1043,15 +1043,80 @@ class SimulatedCall(BaseModel):
         description="Tools no scenario fake answered; they got the default fake",
     )
     cost_usd: float | None = None
+    timing: CallTiming | None = Field(
+        default=None, description="Where its time went, once finished"
+    )
+    throttled: int = Field(
+        default=0,
+        description="Times the platform answered 'too many requests' during the call",
+    )
     url: str | None = Field(
         default=None, description="The simulated call in the app; give it to the person"
     )
 
 
-class TestRunCounts(BaseModel):
-    calls: int = 0
+class RunProgress(BaseModel):
+    calls: int = Field(default=0, description="Simulated calls the run makes")
+    queued: int = Field(default=0, description="Not started yet")
+    running: int = Field(default=0, description="Started and not finished")
+    started: int = Field(default=0, description="Started, finished or not")
     finished: int = 0
-    errors: int = 0
+    errors: int = Field(
+        default=0, description="Finished without verdicts: stopped, or a judge error"
+    )
+    judge_errors: int = Field(
+        default=0,
+        description="Of those: the conversation is there, the judge gave no usable "
+        "answer. The rest stopped",
+    )
+
+
+class CallTiming(BaseModel):
+    total_s: float
+    agent_s: float = Field(description="Seconds waiting for the agent's platform")
+    caller_s: float = Field(description="Seconds waiting for the simulated caller")
+    judge_s: float | None = Field(
+        default=None, description="Seconds waiting for the judge; none for older calls"
+    )
+    server_s: float = Field(
+        description="The rest: Connexity's own server, mostly waiting for its turn"
+    )
+
+
+class RunTiming(BaseModel):
+    calls: int = Field(description="Finished calls the medians are over")
+    total_s: float
+    agent_s: float
+    caller_s: float
+    judge_s: float | None = None
+    server_s: float
+    server_share_pct: int = Field(
+        description="The server's share of a call's time; over a third means the run "
+        "was slowed by Connexity's server, not by the agent"
+    )
+
+
+class RunStatus(BaseModel):
+    id: str
+    status: str = Field(description="pending, running, completed or failed")
+    status_detail: str | None = None
+    progress: RunProgress = Field(default_factory=RunProgress)
+    created_at: str
+    started_at: str | None = None
+    completed_at: str | None = None
+    last_progress_at: str | None = Field(
+        default=None, description="When a simulated call last started or finished"
+    )
+    stalled: bool = Field(
+        default=False,
+        description="Running, but the server running it has given no sign of life",
+    )
+    stalled_since: str | None = Field(
+        default=None, description="Its last sign of life, when stalled"
+    )
+
+
+class TestRunCounts(RunProgress):
     rules_failed: int = 0
     critical_failed: int = 0
     flaky: int = 0
@@ -1130,7 +1195,26 @@ class TestRun(BaseModel):
         "not_verified",
     )
     result: str | None = Field(
-        default=None, description="A completed on-demand run's result: passed or failed"
+        default=None,
+        description="A completed on-demand run's result: passed, failed, or incomplete "
+        "when nothing failed but some calls gave no verdicts",
+    )
+    last_progress_at: str | None = Field(
+        default=None, description="When a simulated call last started or finished"
+    )
+    stalled: bool = Field(
+        default=False,
+        description="Running, but the server running it has given no sign of life",
+    )
+    stalled_since: str | None = Field(
+        default=None, description="Its last sign of life, when stalled"
+    )
+    timing: RunTiming | None = Field(
+        default=None, description="Where a call's time went, as medians"
+    )
+    throttled: int = Field(
+        default=0,
+        description="Times the platform answered 'too many requests' across the run",
     )
     totals: RunTotals | None = Field(
         default=None, description="Rules by outcome, each counted once per run"
@@ -1235,6 +1319,9 @@ class VersionResults(BaseModel):
 
 class TestRuns(BaseModel):
     run: TestRunDetail | None = None
+    status: RunStatus | None = Field(
+        default=None, description="With `status_only`: the run's status alone"
+    )
     results: VersionResults | None = Field(
         default=None,
         description="Without a run id: the tested version's results across its runs",

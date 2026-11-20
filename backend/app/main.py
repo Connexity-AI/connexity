@@ -49,7 +49,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     with Session(engine) as session:
         stale = fail_stale_runs(session=session)
         if stale:
-            logger.warning("Marked %d runs stopped by a restart as FAILED", stale)
+            logger.warning("Marked %d runs whose server stopped as FAILED", stale)
 
     with Session(engine) as session:
         record_check_releases(session)

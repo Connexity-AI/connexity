@@ -12,10 +12,12 @@ import asyncio
 import json
 import logging
 import re
+import statistics
+import time
 import uuid
 from collections import Counter
 from dataclasses import dataclass, replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
 import anyio.from_thread
@@ -35,8 +37,10 @@ from app.crud.scenario import (
 )
 from app.crud.spec import latest_spec, rules_of_specs
 from app.crud.test_run import (
+    alive_at,
     calls_of_runs,
     create_run,
+    progress_rows,
     runs_of_agent,
     runs_page,
     verdicts_of_runs,
@@ -72,11 +76,15 @@ from app.models.spec import Spec, SpecRule
 from app.models.test_case import TestCase
 from app.models.test_case_result import TestCaseResult
 from app.models.test_run import (
+    CallTimingPublic,
     CheckTotalPublic,
     CoveragePublic,
     LiveVersionPublic,
     RuleTotalPublic,
     RuleVerdict,
+    RunProgressPublic,
+    RunStatusPublic,
+    RunTimingPublic,
     RunTotalsPublic,
     SameContentPublic,
     SimulatedCallPublic,
@@ -102,6 +110,7 @@ from app.services.eval_runtimes import (
     RuntimeRunArgs,
     get_runtime,
 )
+from app.services.retell import PLAYGROUND_THROTTLED
 from app.services.rule_judge import JudgeFailed, RuleToJudge, judge_rules
 from app.services.trace_capabilities import derive_capabilities
 
@@ -110,8 +119,10 @@ logger = logging.getLogger(__name__)
 MAX_REPEATS = 5
 DEFAULT_REPEATS = 3
 MAX_CALLS = 200
-# Simulated calls in flight at once (Dmytro, 2026-11-19).
-CONCURRENCY = 10
+# How often the process running a run says it is alive, and how long without it
+# before the run reads stalled (Dmytro, 2026-11-20). ``DEAD_AFTER`` marks it failed.
+HEARTBEAT_SECONDS = 30
+STALLED_AFTER = timedelta(minutes=2)
 # A conversation ends when the agent hangs up or has answered this many times; it is
 # then judged on what was said (Dmytro, 2026-11-19).
 MAX_AGENT_REPLIES = 40
@@ -286,7 +297,7 @@ def start_run(
         )
     # The simulated caller runs on Connexity's own key; the run records the model.
     config = RunConfig(
-        concurrency=CONCURRENCY,
+        concurrency=settings.SIMULATION_CONCURRENCY,
         max_turns=MAX_AGENT_REPLIES,
         timeout_per_test_case_ms=CONVERSATION_CAP_MS,
         runtime=RetellRuntimeConfig(version=request.version),
@@ -552,9 +563,14 @@ async def _simulate(
 ) -> None:
     async with semaphore:
         started = datetime.now(UTC)
+        # Written now, not when the call ends: a run in progress then tells a queued
+        # call from one in flight.
+        _store_call(row.id, {"started_at": started})
         runtime = get_runtime(RunMode.TEXT, TextRuntimeKind.RETELL)
         verdicts: list[RuleVerdict] = []
-        update: dict[str, Any] = {"started_at": started}
+        update: dict[str, Any] = {}
+        throttled = [0]
+        PLAYGROUND_THROTTLED.set(throttled)
         try:
             with Session(engine) as session:
                 out = await runtime.run_test_case(
@@ -589,13 +605,19 @@ async def _simulate(
                     for key in keys
                     if key in ctx.rules
                 ]
+                asked = time.perf_counter()
                 try:
-                    judged = await judge_rules(
-                        transcript=transcript,
-                        rules=to_judge,
-                        caller_goal=scenario.caller_goal,
-                        default_fakes=fakes,
-                    )
+                    try:
+                        judged = await judge_rules(
+                            transcript=transcript,
+                            rules=to_judge,
+                            caller_goal=scenario.caller_goal,
+                            default_fakes=fakes,
+                        )
+                    finally:
+                        # Set whenever the judge was asked: with an error, it is what
+                        # tells a judge error from a conversation that stopped.
+                        update["judge_ms"] = int((time.perf_counter() - asked) * 1000)
                     judge_cost = judged.cost_usd or 0.0
                     rested = {
                         v.key: rests_on_default_fakes(v.outcome, v.turns, fake_turns)
@@ -645,21 +667,64 @@ async def _simulate(
         except Exception as exc:  # noqa: BLE001 - one call's failure must not stop the run
             logger.exception("Simulated call %s failed", row.id)
             update["error_message"] = str(exc)[:1000] or type(exc).__name__
+            # Not the judge's failure, whatever the judge had answered.
+            update.pop("judge_ms", None)
         update["completed_at"] = datetime.now(UTC)
-        with Session(engine) as session:
-            stored = session.get(TestCaseResult, row.id)
-            if stored is None:
-                return
-            for field, value in update.items():
-                setattr(stored, field, value)
-            session.add(stored)
-            for verdict in verdicts:
-                session.add(verdict)
-            session.commit()
+        update["throttled"] = throttled[0] or None
+        _store_call(row.id, update, verdicts)
+
+
+def _store_call(
+    call_id: uuid.UUID,
+    update: dict[str, Any],
+    verdicts: list[RuleVerdict] | None = None,
+) -> None:
+    with Session(engine) as session:
+        stored = session.get(TestCaseResult, call_id)
+        if stored is None:
+            return
+        for field, value in update.items():
+            setattr(stored, field, value)
+        session.add(stored)
+        for verdict in verdicts or []:
+            session.add(verdict)
+        session.commit()
+
+
+async def _heartbeat(run_id: uuid.UUID, done: asyncio.Event) -> None:
+    """Say the run's process is alive every ``HEARTBEAT_SECONDS``, until ``done``."""
+    while not done.is_set():
+        try:
+            await asyncio.wait_for(done.wait(), timeout=HEARTBEAT_SECONDS)
+        except TimeoutError:
+            try:
+                _beat(run_id)
+            except Exception:  # noqa: BLE001 - a missed beat must not stop the run
+                logger.warning("Run %s missed a heartbeat", run_id, exc_info=True)
+
+
+def _beat(run_id: uuid.UUID) -> None:
+    with Session(engine) as session:
+        run = session.get(Run, run_id)
+        if run is None:
+            return
+        run.heartbeat_at = datetime.now(UTC)
+        session.add(run)
+        session.commit()
 
 
 async def execute_run(run_id: uuid.UUID) -> None:
     """Make every simulated call of a stored run, then mark it completed."""
+    done = asyncio.Event()
+    beating = asyncio.get_running_loop().create_task(_heartbeat(run_id, done))
+    try:
+        await _execute(run_id)
+    finally:
+        done.set()
+        await beating
+
+
+async def _execute(run_id: uuid.UUID) -> None:
     try:
         with Session(engine) as session:
             run = session.get(Run, run_id)
@@ -669,7 +734,7 @@ async def execute_run(run_id: uuid.UUID) -> None:
             if agent is None:
                 return
             run.status = RunStatus.RUNNING
-            run.started_at = datetime.now(UTC)
+            run.started_at = run.heartbeat_at = datetime.now(UTC)
             session.add(run)
             session.commit()
             config = RunConfig.model_validate(run.config)
@@ -855,13 +920,128 @@ def _rule_totals(
     )
 
 
+def _progress(
+    rows: list[tuple[datetime | None, datetime | None, bool, bool]], active: bool
+) -> RunProgressPublic:
+    """A run's progress from each call's (started, finished, has an error, the judge
+    was asked). An error after the judge was asked is a judge error; any other is a
+    conversation that stopped. In a run that is no longer ``active`` nothing is queued
+    or running: calls it never finished are only missing from ``finished``."""
+    finished = sum(1 for _, done, _, _ in rows if done is not None)
+    started = sum(
+        1 for start, done, _, _ in rows if start is not None or done is not None
+    )
+    return RunProgressPublic(
+        calls=len(rows),
+        queued=len(rows) - started if active else 0,
+        running=started - finished if active else 0,
+        started=started,
+        finished=finished,
+        errors=sum(1 for _, _, error, _ in rows if error),
+        judge_errors=sum(1 for _, _, error, judged in rows if error and judged),
+    )
+
+
+def _last_progress(
+    rows: list[tuple[datetime | None, datetime | None, bool, bool]],
+) -> datetime | None:
+    moments = [at for start, done, _, _ in rows for at in (start, done) if at]
+    return max(moments) if moments else None
+
+
+def _stalled_since(run: Run) -> datetime | None:
+    """The run's last sign of life when it is running without a recent one: the
+    server running it has stopped, or cannot get to it."""
+    if run.status not in (RunStatus.PENDING, RunStatus.RUNNING):
+        return None
+    last = alive_at(run)
+    return last if datetime.now(UTC) - last > STALLED_AFTER else None
+
+
+def run_status(*, session: Session, run: Run) -> RunStatusPublic:
+    """The run's status alone, read without transcripts or verdicts: cheap to poll."""
+    rows = progress_rows(session=session, run_id=run.id)
+    stalled_since = _stalled_since(run)
+    return RunStatusPublic(
+        id=run.id,
+        status=run.status,
+        status_detail=run.status_detail,
+        progress=_progress(rows, run.status in (RunStatus.PENDING, RunStatus.RUNNING)),
+        created_at=run.created_at,
+        started_at=run.started_at,
+        completed_at=run.completed_at,
+        last_progress_at=_last_progress(rows),
+        stalled=stalled_since is not None,
+        stalled_since=stalled_since,
+    )
+
+
+def _call_rows(
+    calls: list[TestCaseResult],
+) -> list[tuple[datetime | None, datetime | None, bool, bool]]:
+    return [
+        (
+            c.started_at,
+            c.completed_at,
+            c.error_message is not None,
+            c.judge_ms is not None,
+        )
+        for c in calls
+    ]
+
+
+def call_timing(call: TestCaseResult) -> CallTimingPublic | None:
+    """Where a finished call's time went. The agent's and the caller's waits are the
+    per-turn timings its transcript already holds; the rest, after the judge, is time
+    Connexity's own server took, mostly waiting for its turn to run."""
+    if call.started_at is None or call.completed_at is None:
+        return None
+    total = max((call.completed_at - call.started_at).total_seconds(), 0.0)
+    agent = caller = 0.0
+    for turn in call.transcript or []:
+        waited = (turn.get("latency_ms") or 0) / 1000
+        if turn.get("role") == TurnRole.USER.value:
+            caller += waited
+        else:
+            agent += waited
+    judge = call.judge_ms / 1000 if call.judge_ms is not None else None
+    return CallTimingPublic(
+        total_s=round(total, 1),
+        agent_s=round(agent, 1),
+        caller_s=round(caller, 1),
+        judge_s=round(judge, 1) if judge is not None else None,
+        server_s=round(max(total - agent - caller - (judge or 0.0), 0.0), 1),
+    )
+
+
+def run_timing(calls: list[TestCaseResult]) -> RunTimingPublic | None:
+    """The medians of the run's calls that finished with a conversation."""
+    timings = [
+        timing
+        for call in calls
+        if call.transcript and (timing := call_timing(call)) is not None
+    ]
+    if not timings:
+        return None
+    total = statistics.median(t.total_s for t in timings)
+    server = statistics.median(t.server_s for t in timings)
+    judged = [t.judge_s for t in timings if t.judge_s is not None]
+    return RunTimingPublic(
+        calls=len(timings),
+        total_s=round(total, 1),
+        agent_s=round(statistics.median(t.agent_s for t in timings), 1),
+        caller_s=round(statistics.median(t.caller_s for t in timings), 1),
+        judge_s=round(statistics.median(judged), 1) if judged else None,
+        server_s=round(server, 1),
+        server_share_pct=round(server * 100 / total) if total else 0,
+    )
+
+
 def _counts(
-    calls: list[TestCaseResult], totals: list[RuleTotalPublic]
+    calls: list[TestCaseResult], totals: list[RuleTotalPublic], active: bool
 ) -> TestRunCountsPublic:
     return TestRunCountsPublic(
-        calls=len(calls),
-        finished=sum(1 for c in calls if c.completed_at is not None),
-        errors=sum(1 for c in calls if c.error_message is not None),
+        **_progress(_call_rows(calls), active).model_dump(),
         rules_failed=sum(1 for t in totals if t.failed),
         critical_failed=sum(1 for t in totals if t.failed and t.critical),
         flaky=sum(1 for t in totals if t.flaky),
@@ -1063,8 +1243,9 @@ def run_views(
         spec = specs.get(run.spec_id) if run.spec_id else None
         full = run.scope is RunScope.ALL
         done = run.status == RunStatus.COMPLETED
+        stalled_since = _stalled_since(run)
         totals = _run_judgement(fact)[0] if done else None
-        result: Literal["passed", "failed"] | None = None
+        result: Literal["passed", "failed", "incomplete"] | None = None
         # A run no judge read has no result (Dmytro, 2026-11-19: "No result").
         # Nor has one whose every verdict rests on a default fake: nothing was checked.
         if (
@@ -1078,7 +1259,12 @@ def run_views(
                 or not totals.default_fake
             )
         ):
-            result = "failed" if totals.failed or totals.critical else "passed"
+            # Nothing failed, but calls that gave no verdicts might have: the sample is
+            # not whole, so it is not a pass (Dmytro, 2026-11-20).
+            if totals.failed or totals.critical:
+                result = "failed"
+            else:
+                result = "incomplete" if totals.stopped else "passed"
         out.append(
             TestRunPublic(
                 id=run.id,
@@ -1100,12 +1286,21 @@ def run_views(
                 created_at=run.created_at,
                 started_at=run.started_at,
                 completed_at=run.completed_at,
-                counts=_counts(fact.calls, _rule_totals(fact.verdicts, {})),
+                counts=_counts(
+                    fact.calls,
+                    _rule_totals(fact.verdicts, {}),
+                    run.status in (RunStatus.PENDING, RunStatus.RUNNING),
+                ),
                 cost_usd=_cost(fact.calls),
                 full=full,
                 verdict=_verdict(totals) if totals is not None and full else None,
                 result=result,
                 totals=totals,
+                last_progress_at=_last_progress(_call_rows(fact.calls)),
+                stalled=stalled_since is not None,
+                stalled_since=stalled_since,
+                timing=run_timing(fact.calls) if done else None,
+                throttled=sum(c.throttled or 0 for c in fact.calls),
                 ran_by=people.get(run.created_by) if run.created_by else None,
                 assistant_name=run.assistant_name,
                 session_name=run.session_name,
@@ -1237,6 +1432,8 @@ def run_detail(
                 ],
                 default_fakes=call.default_fakes or [],
                 cost_usd=call.estimated_cost_usd,
+                timing=call_timing(call),
+                throttled=call.throttled or 0,
                 url=simulated_call_url(call.id),
             )
             for call in page

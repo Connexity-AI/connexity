@@ -6,7 +6,7 @@ starts, and each listed rule's verdict a `rule_verdict`.
 
 import uuid
 from collections.abc import Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlmodel import Session, and_, col, or_, select
 
@@ -106,32 +106,66 @@ def verdicts_of_runs(
     return out
 
 
-def fail_stale_runs(*, session: Session) -> int:
-    """Mark runs a restart stopped as failed. Commits; returns how many.
+# A run whose process has given no sign of life for this long is marked failed
+# (Dmytro, 2026-11-20). Until then it reads stalled, and may still come back.
+DEAD_AFTER = timedelta(minutes=15)
 
-    Runs live in the process that started them: one left running was stopped, and a
-    run of scenarios still pending never started.
+
+def alive_at(run: Run) -> datetime:
+    """The run's last sign of life: its heartbeat, else when it started or was
+    stored."""
+    at = run.heartbeat_at or run.started_at or run.created_at
+    return at if at.tzinfo else at.replace(tzinfo=UTC)
+
+
+def fail_stale_runs(*, session: Session, agent_id: uuid.UUID | None = None) -> int:
+    """Mark runs whose process stopped as failed. Commits; returns how many.
+
+    A run lives in the process that started it and says so with a heartbeat. One
+    still pending or running with no sign of life for ``DEAD_AFTER`` has lost its
+    process: a deploy, a restart or a crash. Its finished calls keep their verdicts.
+    A run with a recent heartbeat belongs to a live process, this one or another, and
+    is left alone.
     """
-    stale = session.exec(
-        select(Run).where(
-            or_(
-                col(Run.status) == RunStatus.RUNNING,
-                and_(
-                    col(Run.status) == RunStatus.PENDING,
-                    col(Run.scope).is_not(None),
-                ),
-            )
+    query = select(Run).where(
+        or_(
+            col(Run.status) == RunStatus.RUNNING,
+            and_(col(Run.status) == RunStatus.PENDING, col(Run.scope).is_not(None)),
         )
-    ).all()
+    )
+    if agent_id is not None:
+        query = query.where(Run.agent_id == agent_id)
+    now = datetime.now(UTC)
+    stale = [
+        run for run in session.exec(query).all() if now - alive_at(run) > DEAD_AFTER
+    ]
     for run in stale:
         run.status = RunStatus.FAILED
-        run.completed_at = datetime.now(UTC)
+        run.completed_at = now
         if run.scope is not None:
-            run.status_detail = "Stopped by a restart of Connexity; run it again."
+            run.status_detail = (
+                "The server running it stopped (a deploy or a restart); run it again."
+            )
         session.add(run)
     if stale:
         session.commit()
     return len(stale)
+
+
+def progress_rows(
+    *, session: Session, run_id: uuid.UUID
+) -> list[tuple[datetime | None, datetime | None, bool, bool]]:
+    """Each simulated call of the run as (started, finished, has an error, the judge
+    was asked), without its transcript: what polling a run's status needs."""
+    rows = session.exec(
+        select(
+            TestCaseResult.started_at,
+            TestCaseResult.completed_at,
+            col(TestCaseResult.error_message).is_not(None),
+            col(TestCaseResult.judge_ms).is_not(None),
+        ).where(TestCaseResult.run_id == run_id)
+    ).all()
+    return [(r[0], r[1], bool(r[2]), bool(r[3])) for r in rows]
 
 
 def simulated_call(

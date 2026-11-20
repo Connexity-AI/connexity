@@ -77,6 +77,15 @@ class TestCaseResultBase(SQLModel):
     completed_at: datetime | None = Field(
         default=None, description="When test case execution finished"
     )
+    judge_ms: int | None = Field(
+        default=None,
+        description="How long the judge took; set whenever the judge was asked, "
+        "also when it gave no usable answer",
+    )
+    throttled: int | None = Field(
+        default=None,
+        description="Times the platform answered 'too many requests' during the call",
+    )
 
 
 class TestCaseResult(TestCaseResultBase, table=True):

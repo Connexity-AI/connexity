@@ -240,6 +240,9 @@ class TextRuntimeBase(EvalRuntime):
         session: Session,
     ) -> TestCaseRunResult:
         agent_config = self.build_text_agent_config(runtime_config, args, session)
+        # The conversation needs no database. Give the connection back now: many
+        # conversations run at once, each for minutes, and the pool is smaller.
+        session.close()
         return await self.run_text_test_case(
             args.test_case,
             agent_config,
