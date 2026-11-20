@@ -1,13 +1,12 @@
 # Connexity docs
 
-> **Connexity is being rebuilt.** These pages are rewritten at the end of the rebuild.
-
 User- and operator-facing documentation. The content of this folder is the source for the public docs site at **[docs.connexity.ai](https://docs.connexity.ai)** — keep it curated for that audience.
 
-> Contributor- and maintainer-only material (release pipeline, DB schema, internal migration workflow, Railway template blueprint) lives in [`../docs-internal/`](../docs-internal) and is **not** published.
+> Contributor- and maintainer-only material (release pipeline, DB schema, internal migration workflow) lives in [`../docs-internal/`](../docs-internal) and is **not** published.
 
 ## Layout
 
+- [`connect-your-assistant.md`](./connect-your-assistant.md) — connecting Claude Code, Claude or ChatGPT through MCP
 - [`self-hosting/`](./self-hosting) — running Connexity on your own infrastructure
   - [`docker-compose.md`](./self-hosting/docker-compose.md) — local & VM deployment via Docker Compose
 - [`traces/`](./traces) — how a call is recorded

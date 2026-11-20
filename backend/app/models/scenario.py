@@ -2,8 +2,8 @@
 rules it expects to come up (`plans/2026-11-17-scenarios.md`,
 `docs-internal/testing.md`).
 
-A scenario is stored as a 1.x `test_case`, and a set of scenarios as an `eval_config`,
-until the runner (10.1292) unfreezes the eval stack that reads them.
+A scenario is stored as a `test_case`, and a set of scenarios as an `eval_config`:
+the tables keep the names they had before scenarios.
 """
 
 import uuid

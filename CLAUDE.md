@@ -17,21 +17,18 @@ deploying, no chat. The assistant does the work; people approve. So the web app 
 dashboard for a quick glance at the fleet, plus a single call, built from the Connexity
 Design System in Claude.
 
-The code is mostly Connexity 1.x, being rebuilt in place into 2.0. Do not treat existing
-patterns as the direction.
-
 ## Read first
 
 | Document | For |
 |---|---|
 | Dmytro's feature roadmap | The order of work: milestones and features, each with what done means and the design prompts to read. Kept outside the repo; Dmytro names the feature a session works on. |
-| [`REBUILD.md`](./REBUILD.md) | Status, decisions and open questions. Every session, first. |
+| [`docs-internal/decisions.md`](./docs-internal/decisions.md) | The decision log and the open questions. Every session, first. |
 | [`designs/`](./designs/README.md) | The Claude Design prompts a feature points to, and who does what between Connexity, the assistant and the person. |
 | [`docs-internal/development-lifecycle.md`](./docs-internal/development-lifecycle.md) | How we work. The rules below are its short form. |
 | [`docs-internal/`](./docs-internal/) | How each part is designed, e.g. [`checks-and-incidents.md`](./docs-internal/checks-and-incidents.md). Read the docs your feature touches. |
 | [`plans/README.md`](./plans/README.md) | One plan per pull request; the plan is what gets reviewed. |
 | `backend/CLAUDE.md`, `frontend/CLAUDE.md` | Conventions, loaded when you work there. |
-| `README.md`, `docs/` | Describe 1.x, not where the product is going. |
+| `README.md`, `docs/` | What the product is and how to run it, for people outside. Keep them true to the build. |
 
 ## The rules, in short
 
@@ -46,7 +43,7 @@ Each is explained in the lifecycle guide; the section is in brackets.
 5. Never weaken a test, type check or lint rule without saying so at the top of the pull
    request. (5)
 6. You test the backend through its API; Dmytro tests the screens. (5)
-7. Delete, do not deprecate. Ask before deleting anything `REBUILD.md` does not list. (6)
+7. Delete, do not deprecate. Ask before deleting anything the plan does not list. (6)
 8. Build nothing lifecycle section 6 rules out. Add a check only when Dmytro asks for it by
    name. (6)
 9. UI changes start in the design, and the design never falls behind the code. (3)
@@ -75,14 +72,14 @@ make dev              # FastAPI on :8000
 make dashboard        # Next.js on :3000
 make mcp              # MCP server
 make check            # every gate a pull request must pass; run before every push
-make db-reset         # DELETE the local database and rebuild it from migrations
+make db-reset         # DELETE the local database and create it again from migrations
 make lint             # backend + frontend lint and types
 make test             # backend tests with coverage
 make generate-client  # regenerate the frontend API client
 make db-migrate MSG="description"   # new Alembic revision
 ```
 
-## Architecture that survives the rebuild
+## Architecture
 
 - **Type chain:** SQLModel, FastAPI, OpenAPI, Hey API codegen, TypeScript SDK. No
   hand-written types in its place. Never edit `frontend/apps/web/src/client/`; it is

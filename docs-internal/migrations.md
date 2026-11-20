@@ -2,8 +2,8 @@
 
 Alembic manages PostgreSQL schema migrations. Migration files live in `backend/app/alembic/versions/`.
 
-The history starts at `0001_baseline`, generated from the models during the 2.0 rebuild.
-It replaced the 64 revisions of Connexity 1.x. A database created by those old revisions
+The history starts at `0001_baseline`, generated from the models on 2026-10-06.
+It replaced 64 earlier revisions. A database created by those old revisions
 cannot be upgraded: recreate it.
 
 ## Creating a Migration
@@ -48,7 +48,7 @@ and the test `test_models_match_migrated_schema` in
 changes without a migration or the reverse.
 
 Anything a migration creates must also be declared on the model (indexes, partial
-indexes, `ondelete` rules, constraints). The 1.x history drifted because constraints
+indexes, `ondelete` rules, constraints). The earlier history drifted because constraints
 were added in migrations only.
 
 ## Enum columns

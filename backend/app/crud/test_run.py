@@ -1,6 +1,6 @@
 """Reading and writing runs of scenarios (`plans/2026-11-17-text-runner.md`).
 
-A run is a 1.x `run`, each simulated call a `test_case_result` made when the run
+A run is a `run`, each simulated call a `test_case_result` made when the run
 starts, and each listed rule's verdict a `rule_verdict`.
 """
 

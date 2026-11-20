@@ -60,7 +60,7 @@ Do not add:
   writes to a provider. Connexity never changes the agent itself.
 - AI that generates content inside the product (an internal assistant, test case
   generation). That is the external assistant's work.
-- anything removed during the rebuild, without asking first
+- anything that was removed on purpose (see `docs-internal/decisions.md`), without asking first
 
 ## Architecture
 

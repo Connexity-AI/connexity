@@ -17,7 +17,7 @@ from app.services.retell import (
     RetellChatMessage,
 )
 
-# A 1.x test case fakes no tool, so every tool call gets the default fake.
+# A test case with no fakes of its own fakes no tool, so every tool call gets the default fake.
 CATCH_ALL = [{"input_match_rule": {"type": "any"}, "output": DEFAULT_FAKE_RESULT}]
 
 

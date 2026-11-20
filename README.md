@@ -47,106 +47,64 @@
    </a>
 </p>
 
-> **Connexity is being rebuilt.** This page describes Connexity 1.x, and parts of it no
-> longer match the code on `main` (the in-product assistant, agent editor, in-house
-> simulator and deploys have been removed). See [`CLAUDE.md`](./CLAUDE.md) for where the
-> product is going and [`REBUILD.md`](./REBUILD.md) for progress.
+Connexity is where **an AI assistant runs operations for your voice AI agents, with people approving where it matters**. Your assistant (Claude Code, Claude or ChatGPT) watches, investigates and fixes. Connexity gives it what that job needs: every call recorded and checked, the issues found, the rules the agent should follow, tests it can run before a change ships, and the next task to work on. You step in when a decision is yours.
 
-Connexity is an **open-source evaluation and observability platform for voice AI agents**. It closes the loop between development and production: build or connect an agent, iterate on prompts with the coding assistant you already use (Claude Code, Cursor, Codex) via the Connexity MCP server, generate realistic test cases from the agent's own configuration and real conversations, run evaluations locally or in CI, inspect production calls, and promote better versions with confidence — all from one place.
+Connexity never edits, deploys or calls an agent. The assistant does the work through MCP; the web app is a dashboard for a quick look at how things stand.
 
-## 🌀 Core Features
+It is open source and early. Retell is the voice platform connected today.
 
-Connexity is built around a single closed loop for developing voice AI agents — **connect or build → edit → test → evaluate → observe → iterate**.
+## What it does today
 
-- **Agent versioning** — work freely on a draft of your agent's prompt, tools, and configuration. When you're happy with the changes, capture them as an immutable version with an optional changelog. Past versions are kept so you can compare runs, roll back, or branch off them.
+- **Records every call.** Calls of the agents you add are pulled from Retell on a schedule and stored as one timeline: what was said, each tool call with its arguments and result, and the agent version that served the call. Tool calls can be linked to the n8n execution behind them.
+- **Checks every call.** Checks run on each stored call and group what they find into issues per agent, each marked as found by a rule or by a model. Issues can be marked fixed in a version, reopen if they happen again, and can be archived.
+- **Keeps the spec.** The assistant writes each agent's spec: its rules in plain sentences, each with its source. Behaviour the spec does not settle becomes a question for you, and your answer becomes a rule.
+- **Tests before a change ships.** The assistant writes scenarios linked to spec rules and runs them as simulated text calls on the agent's own engine (Retell today), with every tool faked. Each rule is judged Passed, Failed or Didn't come up, and a version that passes a full run is Verified.
+- **Hands the assistant its next task.** Connexity sorts the work (setup, questions, issues, calls to review) and gives the assistant one task at a time; the Work page shows what it is doing and what waits for you.
+- **Shows where you stand.** A dashboard with a score per agent and for the workspace, the Agents, Calls and Issues pages, an agent page with its spec and tests, and a single call with its recording and transcript.
 
-- **Test case generation** — Connexity reads the agent's own system prompt, tool definitions, and production conversations to generate diverse multi-turn test cases. Each generated case ships with a persona, an opening message, expected outcomes for the judge, and the tool calls the agent is expected to make.
+## Connect your assistant
 
-- **Agent evaluation** — run multi-turn simulations against your agent, scored by an LLM-as-judge with custom metrics, full transcripts, tool-call traces, and per-turn cost / token accounting. Every run finishes with a clear pass/fail verdict gated on two configurable thresholds — a weighted-metrics pass rate and a per-test-case pass rate (see [scoring & thresholds](./docs/evals/scoring-and-thresholds.md)).
+Sign up, then connect the assistant you already use. It reaches the workspaces you can reach and acts on your behalf.
 
-- **Run-to-run comparison** — pick any two completed runs and Connexity computes a regression verdict across per-metric deltas, pass/fail dimensions, and latency / cost shifts. Optional AI cause-analysis reads the failed transcripts and surfaces the most likely root cause for any regression so you don't have to guess.
+- **Claude Code:** copy the setup prompt from Connexity and paste it into Claude Code.
+- **Claude and ChatGPT:** add a custom connector with the MCP address and sign in.
 
-- **Production observability** — connect real-world call sources, review production conversations alongside evaluation results, and turn missed edge cases into regression tests before they happen again.
+Steps for each are in [`docs/connect-your-assistant.md`](./docs/connect-your-assistant.md). Every tool the assistant gets is listed on the public MCP page: [app.connexity.ai/mcp-docs](https://app.connexity.ai/mcp-docs).
 
-- **Agent deployment workflow** — connect deployment environments, sync provider state, and deploy evaluated versions back to supported voice platforms. Optional eval gates on each environment block deploys when the gated eval-config doesn't pass its thresholds, so a regressed version never reaches users.
+Once connected, ask the assistant to set Connexity up: it connects Retell, adds the agents you choose, brings in their last 30 days of calls and writes their specs.
 
-Together these pieces form a **closed development loop**: connect or build → edit → test → evaluate → observe, then start over with real-world data.
+## Run it locally
 
-## 🛠 Run Connexity
-
-Run Connexity on your own infrastructure. Use Docker for a full self-hosted stack.
-
-### Local
+You need Docker, [`uv`](https://docs.astral.sh/uv/) and [`pnpm`](https://pnpm.io/).
 
 ```bash
 git clone https://github.com/Connexity-AI/connexity.git
 cd connexity
+cp .env.example .env   # set the secrets it names; a model key is needed for model checks and simulations
 
-cp .env.example .env
-# Edit .env: SITE_URL, JWT_SECRET_KEY, ENCRYPTION_KEY, POSTGRES_PASSWORD — and configure at least one LLM provider key (pick the integrations you need; see `.env.example`).
-
-docker compose up
+make install     # Python and frontend dependencies
+make db          # Postgres in Docker
+make db-upgrade  # migrations
+make db-seed     # the first login, if FIRST_SUPERUSER is set in .env
 ```
 
-### VM
+Then, each in its own terminal:
 
-Use the **same Compose stack on a VM**: install Docker on the machine, clone the repo, set production **`SITE_URL`** and secrets in **`.env`**, then **`docker compose up`**. Walkthrough for local versus VM—including sizing, firewall, and shutdown—is in [Docker Compose: local & VM](./docs/self-hosting/docker-compose.md).
+```bash
+make dev        # API on http://localhost:8000
+make dashboard  # web app on http://localhost:3000
+make mcp        # MCP server on http://localhost:8001
+```
 
-### Railway
+The MCP server needs two addresses in `.env` before it starts: `MCP_PUBLIC_BASE_URL=http://localhost:8001` and `MCP_OAUTH_ISSUER_URL=http://localhost:8000`.
 
-If you want to deploy the full stack on Railway, start with [`docs/self-hosting/railway.md`](./docs/self-hosting/railway.md). It explains the CLI bootstrap flow, which values should stay secret, and which env vars should be reference variables instead of hard-coded strings.
+Open the web app, sign in, and connect your assistant to `http://localhost:8001/mcp`. On a local run nothing pulls new calls on its own: the assistant brings calls in with the first scan, and the scheduled pull runs only where a Google Cloud Scheduler job is set up for it (see [`docs-internal/call-ingestion.md`](./docs-internal/call-ingestion.md)). To run the whole stack in Docker instead, see [`docs/self-hosting/docker-compose.md`](./docs/self-hosting/docker-compose.md).
 
-## 🪢 Integrations
+## Docs
 
-Connexity is designed to live alongside the voice AI platforms you already use. Retell is implemented today, and more first-class adapters are in active development.
-
-### Voice platforms
-
-| Platform | Status | Description |
-|:---|:---:|:---|
-| <img src="https://www.google.com/s2/favicons?domain=retell.ai&sz=64" width="24" height="24" alt="" /> **Retell** | *Available* | Connect your Retell workspace, browse agents, link environments, sync production calls, and deploy evaluated versions. |
-| <img src="https://www.google.com/s2/favicons?domain=vapi.ai&sz=64" width="24" height="24" alt="" /> **Vapi** | *Planned* | Import agents from your Vapi workspace into Connexity, version and evaluate them, then push updates back to Vapi. |
-| <img src="https://cdn.simpleicons.org/elevenlabs" width="24" height="24" alt="" /> **ElevenLabs** | *Planned* | Two-way sync with ElevenLabs Conversational AI agents, including prompt, tools, and configuration. |
-
-> **Want one of these sooner?** Vote in [GitHub Discussions](https://github.com/Connexity-AI/connexity/discussions) or join us on [Discord](https://discord.gg/QvWCX96J6K).
-
-## 🚀 Quickstart
-
-The end-to-end developer loop in Connexity looks like this:
-
-> **Run the platform → Connect or build an agent → Generate test cases → Run an evaluation → Inspect results and production calls.**
-
-### 1️⃣ Run the platform
-
-Follow **Local** or **VM**, then open the app at **`SITE_URL`** from **`.env`** (e.g. [`http://localhost:3000`](http://localhost:3000) locally, or your deployed URL in production). If the database is new, create an account, then sign in.
-
-### 2️⃣ Bring an agent into Connexity
-
-Pick one:
-
-- **Connect Retell** — connect your Retell workspace, choose the agent/environment you want to observe or deploy to, and bring production calls into Connexity.
-- **Import from Vapi or ElevenLabs** *(planned)* — connect your account and pull an existing agent, including its prompt, tools, and configuration.
-- **Build from scratch** — create a new agent and write the system prompt, tools, and persona directly, or drive the edits from Claude Code, Cursor, or Codex via the MCP server.
-
-Edits are kept as a draft on the agent. When you're ready, capture the draft as a new version with an optional changelog. That version is what evaluations and deployments are pinned to.
-
-### 3️⃣ Generate test cases
-
-From the dashboard, generate a batch of test cases for your agent. Connexity reads the agent's system prompt and tool definitions and produces diverse multi-turn scenarios — happy paths, edge cases, and adversarial / red-team cases — each with a persona, an opening message, expected outcomes, and the tool calls the agent is expected to make.
-
-### 4️⃣ Run an evaluation
-
-Run the test cases against your agent. Connexity simulates the user side, lets your agent execute its own tool loop, and records full transcripts, tool calls, token usage, latency, and cost. Each run finishes with a pass/fail verdict against two configurable thresholds — the weighted-metrics score and the per-test-case pass rate — so you can answer "did the agent clear the bar?" with one number.
-
-### 5️⃣ Inspect results and production calls
-
-In the dashboard you can:
-
-- Compare runs across agent versions and prompts
-- Drill into per-turn transcripts, tool calls, and judge verdicts
-- Track cost and latency trends
-- Review synced Retell calls and convert real-world misses into new tests
-- Promote and deploy evaluated versions to connected Retell environments — with optional eval gates that refuse to ship a version that didn't pass its thresholds
+- [`docs/`](./docs): connecting an assistant, the trace format calls are stored in, and self-hosting.
+- [`docs-internal/`](./docs-internal): how each part is designed and how the project is built, for contributors.
+- [`CONTRIBUTING.md`](./CONTRIBUTING.md): development setup and what a pull request needs.
 
 ## 🌟 Star Us
 
@@ -160,7 +118,7 @@ If Connexity is useful to you, please star the repo on GitHub — it helps a lot
 
 Finding an answer to your question:
 
-- The [`docs/`](./docs) folder is the best place to start, for example [Docker Compose: local & VM](./docs/self-hosting/docker-compose.md). Maintainer-only notes (data model, migrations, release pipeline) live in [`docs-internal/`](./docs-internal).
+- The [`docs/`](./docs) folder is the best place to start.
 - [GitHub Discussions](https://github.com/Connexity-AI/connexity/discussions) — ask questions, share what you're building, and request features.
 - [Discord](https://discord.gg/Gj47DqWq) — chat with the team and other users in real time.
 

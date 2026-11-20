@@ -1,8 +1,7 @@
 """Runs of scenarios: a spec rule's verdict in each simulated call, and what code checks
 found there (`plans/2026-11-17-text-runner.md`, `docs-internal/testing.md`).
 
-A run is a 1.x `run` and each simulated call a `test_case_result`, until test results
-(10.1293) settle how they are shown.
+A run is a `run` and each simulated call a `test_case_result`.
 """
 
 import uuid

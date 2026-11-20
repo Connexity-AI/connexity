@@ -37,8 +37,8 @@ def _build_system_prompt(
     """Build the simulator system prompt from persona context and test case context.
 
     A scenario gives the caller's goal and behaviour; the spec rules it is judged on are
-    never shown, so the caller cannot steer the agent towards them. A 1.x test case
-    gives its expected outcomes as the goal.
+    never shown, so the caller cannot steer the agent towards them. A test case
+    without them gives its expected outcomes as the goal.
     """
     persona_block = persona_context or "(no persona specified)"
     ctx_block = (

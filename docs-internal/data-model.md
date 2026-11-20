@@ -40,12 +40,12 @@ erDiagram
     oauth_client ||--o{ oauth_refresh_token : issues
 ```
 
-| Table | Model file | What it holds | Rebuild status |
+| Table | Model file | What it holds | Since |
 |---|---|---|---|
-| `company` | `company.py` | A tenant, with its LLM credentials (encrypted). | Keep |
-| `user` | `user.py` | A login. Each signup creates its own company. | Keep |
-| `integration` | `integration.py` | A provider account (Retell, Vapi, ElevenLabs) with an encrypted API key. This is the product's read access to a provider. | Keep |
-| `agent` | `agent.py` | A voice agent, linked to its agent on a voice platform. | Keep |
+| `company` | `company.py` | A tenant, with its LLM credentials (encrypted). | The start |
+| `user` | `user.py` | A login. Each signup creates its own company. | The start |
+| `integration` | `integration.py` | A provider account (Retell, Vapi, ElevenLabs) with an encrypted API key. This is the product's read access to a provider. | The start |
+| `agent` | `agent.py` | A voice agent, linked to its agent on a voice platform. | The start |
 | `call` | `call.py` | A call and the call-level fields of its trace (provider, source, end reason, parties, inputs, outputs), plus the provider's raw payload. | The pre-trace columns were dropped in slice 1.3; duration is derived from start and end |
 | `call_event` | `call.py` | One row per trace event (utterance, tool call, marker), ordered within the call. The only stored form of the timeline. | New in slice 1.1 |
 | `call_component` | `call.py` | One row per component that served a call, with its version and fingerprint. `call.agent_version` and `call.state_fingerprint` summarise them. | Filled for Retell since slice 1.5 |
@@ -64,14 +64,14 @@ erDiagram
 | `assistant_task` | `assistant_task.py` | A task an assistant took from `get_next_task`: its key, kind and title, who took it (the person, the assistant and the session's name), and what became of it: in progress, waiting for the person (its part done, the rest theirs), returned to the list, or done. Tasks themselves are worked out from the workspace each time (`app/services/work.py`); rows are kept, never deleted. One row in progress or waiting per task. | New in 10.124; session name in 10.125 |
 | `task_order` | `task_order.py` | The person's order of the assistant's tasks: one row per workspace, the To do keys as they last left them, and the last move (the task, who moved it and the assistant that acted, when). Connexity's order fills in every task not in it; blockers still sit above what they block. | New in 10.1271 |
 | `check_release` | `check.py` | When each version of a built-in check was first present. Not owned by a company. A finding on a call that started earlier is retroactive. | New in slice 2.1 |
-| `test_case` | `test_case.py` | A scenario: the stage for a simulated call. The caller (`persona_context`, `caller_goal`, `caller_behaviour`), what the caller knows (`user_context`) apart from the agent's variables (`agent_variables`), who speaks first and the first message, fake tool results (`expected_tool_calls` with `mock_response`), and optionally the call it came from. Written by the assistant through MCP; it has no pass or fail of its own. | Reshaped in 10.1291 (`caller_goal`, `caller_behaviour`, `agent_variables`); the rest of the eval stack stays frozen until the runner |
+| `test_case` | `test_case.py` | A scenario: the stage for a simulated call. The caller (`persona_context`, `caller_goal`, `caller_behaviour`), what the caller knows (`user_context`) apart from the agent's variables (`agent_variables`), who speaks first and the first message, fake tool results (`expected_tool_calls` with `mock_response`), and optionally the call it came from. Written by the assistant through MCP; it has no pass or fail of its own. | Reshaped in 10.1291 (`caller_goal`, `caller_behaviour`, `agent_variables`) |
 | `scenario_rule` | `scenario.py` | A spec rule a scenario expects to come up, by the rule's key, so the link holds across spec versions. A scenario with at least one is listed by MCP. | New in 10.1291 |
 | `eval_config`, `eval_config_member` | `eval_config.py` | A named set of scenarios; `write_scenario_set` writes its members. | In use since 10.1291 |
-| `run` | `run.py` | One run of scenarios against an agent version on its platform (10.1292). It has its `scope` (a set, a pick or all), `set_name`, `repeats`, the `spec_id` whose rules it judges, the `platform_version` it tests, the `version_fingerprint` of the content it tested (10.1293: results are grouped by both, since an unpublished version is edited under the same number) and a `status_detail`; its `eval_config_id` is empty for a pick or all. | Reshaped in 10.1292; the 1.x parts frozen until Phase 4 |
+| `run` | `run.py` | One run of scenarios against an agent version on its platform (10.1292). It has its `scope` (a set, a pick or all), `set_name`, `repeats`, the `spec_id` whose rules it judges, the `platform_version` it tests, the `version_fingerprint` of the content it tested (10.1293: results are grouped by both, since an unpublished version is edited under the same number) and a `status_detail`; its `eval_config_id` is empty for a pick or all. | Reshaped in 10.1292; old columns dropped in 10.198 |
 | `test_case_result` | `test_case_result.py` | One simulated call in a run (a scenario and a repeat), made when the run starts, with the code-check findings in it (`check_findings`) and the tools that got the default fake (`default_fakes`); `passed` stays empty, since a scenario has no pass or fail. | Reshaped in 10.1292 |
 | `rule_verdict` | `test_run.py` | A rule the scenario lists, judged in one simulated call: Passed, Failed or Didn't come up, with the reason, the turns, and whether the rule was critical in the run's spec version. | New in 10.1292 |
 | `ingest_token` | `ingest_token.py` | A company's credential for sending traces. Only a hash of the token is stored. | New in slice 1.2 |
-| `oauth_client`, `oauth_authorization_code`, `oauth_refresh_token` | `oauth.py` | The OAuth server that MCP clients authenticate against. | Keep |
+| `oauth_client`, `oauth_authorization_code`, `oauth_refresh_token` | `oauth.py` | The OAuth server that MCP clients authenticate against. | The start |
 
 ## Conventions
 

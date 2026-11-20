@@ -25,18 +25,21 @@ make db-upgrade  # applies migrations
 make db-seed     # creates the FIRST_SUPERUSER login, if set in .env
 ```
 
-To throw the local database away and rebuild it from migrations:
+To throw the local database away and create it again from migrations:
 
 ```bash
 make db-reset
 ```
 
-Then run the backend and frontend in two terminals:
+Then run the backend, the frontend and the MCP server, each in its own terminal:
 
 ```bash
 make dev        # FastAPI on http://localhost:8000
 make dashboard  # Next.js on http://localhost:3000
+make mcp        # MCP server on http://localhost:8001
 ```
+
+`make mcp` needs `MCP_PUBLIC_BASE_URL` and `MCP_OAUTH_ISSUER_URL` set in `.env`; `.env.example` gives the local values.
 
 Run `make help` to see all available targets (lint, format, tests, client codegen, etc.).
 
@@ -99,6 +102,7 @@ We keep the codebase small and consistent. The full conventions are in [`CLAUDE.
 ## Pull request guidelines
 
 - Keep PRs focused — one logical change per PR makes review faster and revert easier.
+- Every pull request carries one plan file from [`plans/`](./plans/README.md), written before the code. Reviewers read the plan and its Outcome; CI checks that it is there.
 - Include a short description of **what** changed and **why**. Link any related issue or discussion.
 - Add or update tests when you change behavior.
 - Make sure CI is green before requesting review.

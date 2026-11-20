@@ -75,7 +75,7 @@ JSON
 A call is identified by its `external_id` within an agent. Sending the same
 `external_id` again **replaces** the stored trace whole. That is how you re-send past
 calls after fixing your mapping. It also means a wrong resend overwrites a good trace,
-so include `raw` if you may need to rebuild it.
+so include `raw` if you may need to build it again.
 
 ## Errors
 

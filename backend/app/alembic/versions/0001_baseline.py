@@ -1,10 +1,10 @@
-"""baseline: the full Connexity schema as of the 2.0 rebuild
+"""baseline: the full Connexity schema as of 2026-10-06
 
 Revision ID: 0001_baseline
 Revises:
 Create Date: 2026-10-06
 
-Replaces the 64 revisions of Connexity 1.x. Generated from the models, so the
+Replaces 64 earlier revisions. Generated from the models, so the
 models are the single description of the schema. A database created by the
 old revisions cannot be upgraded to this one: recreate it.
 

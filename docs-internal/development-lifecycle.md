@@ -16,11 +16,13 @@ produces confident wrong answers. We do not build the product that way either.
 |---|---|---|
 | `Vision.md` (Dmytro's, kept out of the repo) and the goal at the top of `CLAUDE.md` | Why, and what the product is for | Dmytro changes his mind |
 | `docs-internal/` design docs, such as [`checks-and-incidents.md`](./checks-and-incidents.md) and [`data-model.md`](./data-model.md) | How a part of the product is designed | That part changes |
-| [`REBUILD.md`](../REBUILD.md) | What order, what is done, what was decided | A slice starts or finishes |
+| Dmytro's feature roadmap (kept outside the repo) | What order, and what is done | A feature is added or merges |
+| [`decisions.md`](./decisions.md) | What was decided, and what is still open | A decision is made |
 | [`plans/`](../plans/README.md) | What one pull request set out to do and what it did | Once per pull request |
 | `CLAUDE.md` (root, `backend/`, `frontend/`) | How to work in this repo | A convention changes |
 
-A session reads `REBUILD.md` first, then only the design docs its slice cites.
+A session reads its feature's roadmap entry and `decisions.md` first, then only the
+design docs the feature cites.
 Nothing is restated across them; they link to each other.
 
 ---
@@ -52,22 +54,22 @@ feature roadmap, kept outside the repo (Decided 2026-11-12); he names the featur
 session works on. "Slice" below means that feature.
 
 1. **Orient.** Read the feature's roadmap entry: what done means, and the design
-   prompts in `designs/` it names. Read `REBUILD.md` status and decisions, and the
-   design docs the feature touches. Check `git status` and the branch.
+   prompts in `designs/` it names. Read the decisions in `decisions.md` that bear on
+   it, and the design docs the feature touches. Check `git status` and the branch.
 2. **Plan.** Write the plan file (`plans/`, from the template) before any code: goal,
    changes, decisions, done-when, out of scope, risks. The owner approves it. A design
    slice (schema, API shape) settles its open questions with the owner here. A slice
    that changes the UI updates the design first and links the approved version (see
    "UI: the design comes first" below).
 3. **Build.** Stay inside the plan. Anything discovered outside it becomes a note in
-   `REBUILD.md` or a spawned task, not an extra change. If the plan turns out to be
+   the plan's Outcome or a spawned task, not an extra change. If the plan turns out to be
    wrong, stop and say so; do not quietly build something else.
 4. **Verify.** Run `make check`. Then exercise the backend for real through its API
    (section 5, "Who tests what"). The session does not test screens; it lists what
    Dmytro should look at.
 5. **Record the outcome.** Fill in the plan's Outcome: deviations from the plan, check
-   results, what was not done. Update the status table and decision log in
-   `REBUILD.md`.
+   results, what was not done. Add the decisions made to `decisions.md`. The roadmap
+   is updated when the pull request merges.
 6. **Open the pull request.** It carries the plan and the work together, never the plan
    alone. Opening it is the owner taking responsibility for both.
 7. **Review.** Reviewers read the plan. If the review changes the plan, the work is
@@ -109,7 +111,7 @@ had only restated a concern about. The same failure is possible here.
   **Proposed** (Claude's suggestion, not yet confirmed), or **Open**.
 - Claude never promotes Proposed to Decided. Silence, "ok", or moving on to the next
   topic is not a decision about the previous one.
-- A decision goes in the `REBUILD.md` decision log with its date. If it changes the
+- A decision goes in the [`decisions.md`](./decisions.md) log with its date. If it changes the
   product, the design doc for that part is updated too.
 - When a slice depends on an Open item, the session asks before building, with a
   recommendation.
@@ -187,10 +189,10 @@ one command, with per-step timings; run it before every push.
 - Tests for ingestion and checks are built from real traces, with a failing and a
   passing example each. Hand-written "plausible" fixtures hide the cases that matter.
 - The repo is public. Real call data, client names and secrets never enter it, not in
-  code, tests, plans or pull requests. See `REBUILD.md` Q5.
+  code, tests, plans or pull requests. See Q5 in `decisions.md`.
 - Milestones are judged on a reference agent's actual calls, not on synthetic ones.
 - A reference agent is an example, not the product. Stack-specific logic stays in
-  mapping and connector modules; see the overfitting rules in `REBUILD.md` section 1.
+  mapping and connector modules; see "One example, any stack" in section 6.
 
 ### Failure paths are part of the change
 
@@ -200,15 +202,13 @@ timeout, empty response and malformed response.
 
 ---
 
-## 6. Working in a codebase that is being rebuilt
+## 6. Working in this codebase
 
 - **Delete, do not deprecate.** No compatibility is owed. Dead code misleads every
   later session, so remove it with its tests, routes, generated client and docs in the
   same PR.
-- **Frozen code stays frozen.** Areas marked Freeze in `REBUILD.md` keep compiling and
-  passing tests, but get no new features until their phase.
 - **Checks are a library that grows only when Dmytro asks.** Do not add, propose or plan
-  a check he did not ask for by name, even one listed in a design doc or in `REBUILD.md`.
+  a check he did not ask for by name, even one listed in a design doc or in a plan.
   Build the foundation the checks run on.
 - **Everything ships with its MCP tools (Decided 2026-11-07).** Anything a person can
   do or see on the platform, a user's assistant (Claude, ChatGPT or similar) can do or
@@ -226,13 +226,50 @@ timeout, empty response and malformed response.
 - **Read-only toward providers.** The product ingests and compares. It does not deploy,
   roll back or write to Retell, n8n or the CRM.
 
+### One example, any stack
+
+A feature is proven on the agents connected today, but it is designed for any stack:
+
+- Provider, backend and CRM specifics live in mapping and connector modules. The
+  canonical schema, the check engine and the UI never name Retell, n8n or GoHighLevel.
+- Checks are written against the canonical trace. A check that only makes sense for
+  one agent's business (prices, offers) is a per-agent parameterisation of a generic
+  check, not a new built-in.
+- When a design choice is being made only because one reference agent needs it, say so
+  in the pull request and ask whether a second stack would need something different.
+
+**Provider strategy (Decided).**
+
+- **Ingestion is provider-agnostic.** Connexity defines a canonical trace; a mapping
+  turns each provider's data (Retell, Vapi, Pipecat, others) into it. The trace has a
+  small required core (call, turns, tool calls with arguments and results, input
+  variables, component versions) and optional extensions. Unmapped data is kept raw.
+- **Evaluation is not.** Simulations run on the agent's own engine: the provider's for
+  hosted platforms, the team's own deployed service for self-hosted frameworks.
+  Connexity never re-implements an agent from a copy of its prompt. Today simulations
+  run on Retell; the connector for self-hosted frameworks is planned again when such a
+  stack is connected (decision log, 2026-11-20).
+- So observability works with any provider, and testing works with supported ones.
+
+**The ladder (Proposed).** How a team adopts the product; the roadmap's stages follow
+it:
+
+| Level | What the user gets |
+|---|---|
+| 1. Observe | Every call as one joined trace, with versions |
+| 2. Check | Checks on every call, grouped into issues and incidents |
+| 3. Spec | Business rules with provenance |
+| 4. Test | Simulations and backend tests derived from the spec |
+| 5. Gate | Verified deploys and bypass detection |
+| 6. Loop | Triage and prepared fixes, with people approving |
+
 
 ### What Connexity does not build
 
 **No builder features.** If a change adds an editor for the agent's prompts or workflows,
 AI inside the product that writes the agent's content (prompts, tests, fixes), anything
 that talks back or acts like an agent, or brings back
-something the rebuild removed, it contradicts the product. Stop and ask.
+something that was removed on purpose (see `decisions.md`), it contradicts the product. Stop and ask.
 
 **What the web app is for (Decided 2026-11-09).** The assistant does all of the work.
 Next to it, the web app's value is the quick glance: "the only value of the system vs ai
@@ -349,7 +386,7 @@ Context is the only thing a new session knows. Treat it as code.
 ## 9. When to stop and ask
 
 - The slice needs an Open question answered.
-- Something outside the Delete table looks like it should be deleted.
+- Something the plan does not list looks like it should be deleted.
 - A check can only pass by weakening a test or a rule.
 - The change would send data to, or write to, an external system.
 - The vision and the plan disagree.

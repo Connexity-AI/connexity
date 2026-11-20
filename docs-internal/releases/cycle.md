@@ -59,7 +59,7 @@ The workflow refuses to run on any branch other than `main`. If you need to rele
 
 ### 4. Docker images get re-tagged
 
-[`publish-docker-ghcr.yml`](../../.github/workflows/publish-docker-ghcr.yml) runs on `release: published`. It rebuilds and pushes both `<repo>-backend` and `<repo>-frontend` images to GHCR tagged with the release tag, plus `latest`. This gives ops a stable image ref per release for rollbacks.
+[`publish-docker-ghcr.yml`](../../.github/workflows/publish-docker-ghcr.yml) runs on `release: published`. It builds and pushes both `<repo>-backend` and `<repo>-frontend` images to GHCR tagged with the release tag, plus `latest`. This gives ops a stable image ref per release for rollbacks.
 
 ### Manual override (hotfix from non-main commit)
 

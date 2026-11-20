@@ -77,7 +77,7 @@ drives it through MCP, calling `scan_calls` until it says finished:
   to 180 seconds for a step: a page that started before the 40 seconds ran out is
   finished, and counting a large window takes a step of its own.
 - **Each agent keeps its own position** (`Agent.scan_cursor`), separate from its newest
-  stored call. The 1.x pull (`sync_agent_calls`) starts after the newest stored call, so
+  stored call. The older pull (`sync_agent_calls`) starts after the newest stored call, so
   one webhook call would hide the whole history from it.
 - **The first step for an agent lists the window** from Retell (no transcripts, 1,000
   per page) to know the total, and fixes its end at that moment. Later calls are the

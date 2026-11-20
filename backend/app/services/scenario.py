@@ -174,7 +174,7 @@ def _fill(scenario: TestCase, draft: ScenarioDraft) -> None:
     scenario.agent_variables = draft.agent_variables or None
     scenario.first_turn = draft.first_turn
     scenario.first_message = _text(draft.first_message)
-    # Stored as the 1.x tool call rows, whose `mock_response` is the canned result.
+    # Stored as expected tool call rows, whose `mock_response` is the canned result.
     scenario.expected_tool_calls = [
         {
             "tool": fake.tool.strip(),

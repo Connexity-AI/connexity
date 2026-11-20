@@ -541,8 +541,8 @@ class RetellRuntime(TextRuntimeBase):
 
     @staticmethod
     def _dynamic_variables_for_test_case(test_case: TestCase) -> dict[str, Any]:
-        # A scenario keeps the agent's variables apart from what the caller knows; a
-        # 1.x test case had only ``user_context`` for both.
+        # A scenario keeps the agent's variables apart from what the caller knows; one
+        # written before that split has only ``user_context`` for both.
         raw = (
             test_case.agent_variables
             if test_case.agent_variables is not None

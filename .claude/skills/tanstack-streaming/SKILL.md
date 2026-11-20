@@ -55,18 +55,18 @@ const { agentId } = await params;
 const result = await listIntegrations();
 const integrations = isSuccessApiResult(result) ? result.data.data : [];
 
-queryClient.prefetchQuery(environmentsListQuery(agentId));
+queryClient.prefetchQuery(issuesListQuery(agentId));
 
 return (
   <HydrateProvider state={dehydrate(queryClient)}>
-    <EnvironmentsSection agentId={agentId} integrations={integrations} />
+    <IssuesSection agentId={agentId} integrations={integrations} />
   </HydrateProvider>
 );
 
-// ❌ environments-section.tsx
-export const EnvironmentsSection = ({ agentId, integrations }) => {
-  const { data } = useEnvironments(agentId);
-  return <AddEnvironmentDialog agentId={agentId} integrations={integrations} />;
+// ❌ issues-section.tsx
+export const IssuesSection = ({ agentId, integrations }) => {
+  const { data } = useIssues(agentId);
+  return <ArchiveIssueDialog agentId={agentId} integrations={integrations} />;
 };
 ```
 
@@ -76,32 +76,32 @@ export const EnvironmentsSection = ({ agentId, integrations }) => {
 // ✅ page.tsx
 const { agentId } = await params;
 const queryClient = getQueryClient();
-queryClient.prefetchQuery(environmentsListQuery(agentId));
+queryClient.prefetchQuery(issuesListQuery(agentId));
 queryClient.prefetchQuery(integrationsListQuery()); // streamed, no await
 
 return (
   <HydrateProvider state={dehydrate(queryClient)}>
     <Suspense fallback={<Skeleton />}>
-      <EnvironmentsSection />
+      <IssuesSection />
     </Suspense>
   </HydrateProvider>
 );
 
-// ✅ environments-section.tsx
+// ✅ issues-section.tsx
 'use client';
 import { useParams } from 'next/navigation';
 
-export const EnvironmentsSection = () => {
+export const IssuesSection = () => {
   const { agentId } = useParams<{ agentId: string }>();
-  const { data } = useEnvironments(agentId);
-  return <AddEnvironmentDialog />;
+  const { data } = useIssues(agentId);
+  return <ArchiveIssueDialog />;
 };
 
-// ✅ add-environment-dialog.tsx
+// ✅ archive-issue-dialog.tsx
 'use client';
 import { useParams } from 'next/navigation';
 
-export const AddEnvironmentDialog = ({ open, onOpenChange }) => {
+export const ArchiveIssueDialog = ({ open, onOpenChange }) => {
   const { agentId } = useParams<{ agentId: string }>();
   const { data: integrations } = useIntegrations();
   // ...
@@ -111,7 +111,7 @@ export const AddEnvironmentDialog = ({ open, onOpenChange }) => {
 **Exceptions** — when props ARE the right answer:
 
 - The value is local UI state owned by the parent (`open`, `onOpenChange`, `selected`, callbacks).
-- The value is a list **item** that the parent has already iterated over (e.g. `<EnvironmentCard environment={env} />` inside a `.map()` — the card can't re-derive which item it is from a hook).
+- The value is a list **item** that the parent has already iterated over (e.g. `<IssueCard issue={issue} />` inside a `.map()` — the card can't re-derive which item it is from a hook).
 - The child needs a derived/filtered slice that only the parent has context to compute.
 
 If a value can be obtained from a hook or `useParams`, prefer that over a prop.
