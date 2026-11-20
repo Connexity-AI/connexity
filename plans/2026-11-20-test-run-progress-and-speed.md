@@ -113,6 +113,7 @@ takes about as long as one call.
 | 5 | An on-demand run with calls that were not judged reads `incomplete` | Decided (Dmytro, 2026-11-20, chose "Incomplete") |
 | 6 | Stalled after 2 minutes without a heartbeat; failed after 15, keeping finished calls | Decided (Dmytro, 2026-11-20, chose "Stalled, then failed") |
 | 7 | A stopped run is not resumed; the assistant runs it again | Proposed |
+| 9 | Requests to Retell's text-testing API are paced to 8 per 2 seconds per Retell key | Decided (Dmytro, 2026-11-20: "we can just throttle them 8 requests per two seconds") |
 | 8 | `status_only` is an input of `get_test_runs`, not a new tool | Proposed (rule 10: extend a tool before adding one) |
 
 ## Done when
@@ -177,12 +178,21 @@ takes about as long as one call.
   never finished are only missing from `finished`. Found in code review.
 - **The slow-server next step does not ask for a feedback report.** It says the run was
   slowed by Connexity's server and that its results stand. Found in code review.
+- **Requests to Retell's text-testing API are paced to 8 per 2 seconds per Retell
+  key,** added after the pull request opened. Retell documents that limit per
+  organization; 25 calls starting at once would have been refused and retried. A
+  request over the limit now waits its turn, so the first replies of a 25-call run go
+  out over about 6 seconds. The pacing is per server: another server, or someone
+  using Retell's own playground, shares the limit, so a refusal is still retried and
+  counted as `throttled`. The wait counts as time waiting for the agent.
 - **`status_only` without `run_id` is refused** (422) with what to send instead.
 - **The second throttle count is per call too** (`throttled` on each simulated call).
 
 ### Check results
 
-`make check` on the final code:
+`make check` on the code before the pacing was added; after it, lint, types and the
+runner's, the services' and the MCP server's tests were run again (all pass), and CI
+runs the rest:
 
 | Step | Result |
 |---|---|
@@ -210,6 +220,8 @@ Route tests send the requests through the API on the local test database
 | A run where Retell answers "too many requests" once | `throttled` 1 on the run and the call, no error, a next step says so | as expected |
 | Call and run timing from invented calls | agent, caller, judge and server seconds; server share 65% and 2% | as expected |
 | A run started with the setting unset | stored with 25 calls at once | as expected |
+| 25 requests arriving at once for one Retell key (pacer, invented clock) | 8 at once, 8 two seconds later, 8 at four, 1 at six; never more than 8 in any 2 seconds; a second key is not held back | as expected |
+| A run's requests to Retell | each takes a slot from the pacer, under the same key | as expected |
 | MCP server: `get_test_runs` with `status_only` | forwards `status_only=true`, reads the status | as expected |
 
 Existing tests changed: `test_a_restart_fails_runs_it_stopped` is replaced by
