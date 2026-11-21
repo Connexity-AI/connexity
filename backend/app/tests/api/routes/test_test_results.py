@@ -198,6 +198,8 @@ def test_a_full_run_decides_the_verdict_and_a_set_never_does(
     assert [r["id"] for r in results["runs"]] == [verified, on_demand]
     assert results["coverage"]["pct"] == 100
     assert body["next_steps"][0].startswith("Version 15 is verified")
+    # Version 15 is the live one: nothing is said about publishing it.
+    assert not any("publish" in s.lower() for s in body["next_steps"])
 
     # A non-critical failure still verifies it; a critical one fails it.
     _run(
@@ -361,6 +363,27 @@ def test_a_version_not_live_yet_is_verified_with_the_live_one_beside_it(
     assert results["live"]["version"] == "14"
     assert results["live"]["verdict"] == "not_verified"
     assert any("The live version is 14" in s for s in body["next_steps"])
+    assert any(
+        "Version 15 is not live: it passed the gate and can be published" in s
+        for s in body["next_steps"]
+    )
+
+    # A full run that fails it: publishing it is a person's override.
+    _run(
+        client,
+        user,
+        agent,
+        "",
+        "",
+        judge=_both({keys[PRICE]: "failed", keys[BOOKING]: "passed"}),
+    )
+    failed = _runs(client, user, agent).json()
+    assert failed["data"]["results"]["verdict"] == "failed"
+    assert not any("can be published" in s for s in failed["next_steps"])
+    assert any(
+        "Version 15 is not live and did not pass the gate" in s and "override" in s
+        for s in failed["next_steps"]
+    )
 
 
 def test_a_version_whose_full_run_is_still_going_is_not_verified(

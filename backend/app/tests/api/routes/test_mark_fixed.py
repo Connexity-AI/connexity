@@ -73,7 +73,8 @@ def test_marked_fixed_waits_for_its_version_then_reopens_on_a_later_call(
     assert live["data"]["chain"]["fixed"]["live_at"] is not None
     assert live["data"]["history"][0]["kind"] == "live"
     assert live["data"]["history"][0]["what"] == "Version 16 went live"
-    assert "and live" in live["next_steps"][0]
+    assert live["next_steps"][0].endswith("): 1 call, 0 with this issue.")
+    assert "and live" in live["next_steps"][1]
     rows = _issues(client, user, status="resolved").json()["data"]["issues"]
     assert rows[0]["fix_live"] is True
 
@@ -84,13 +85,112 @@ def test_marked_fixed_waits_for_its_version_then_reopens_on_a_later_call(
     assert back["data"]["history"][0]["reason"] == (
         "Came back on version 17, after the fix in version 16 went live"
     )
-    assert "came back after the fix in version 16" in back["next_steps"][0]
-    assert "`mark_issue_fixed`" in back["next_steps"][0]
+    assert back["next_steps"][0].endswith("): 2 calls, 1 with this issue.")
+    assert "came back after the fix in version 16" in back["next_steps"][1]
+    assert "`mark_issue_fixed`" in back["next_steps"][1]
 
     # Marking it fixed again in a later version works.
     again = _fixed(client, user, issue_id, version="18")
     assert again.status_code == 200, again.text
     assert again.json()["data"]["state"] == "resolved"
+
+
+def _since(
+    client: TestClient, user: User, issue_id: str, version: str | None = None
+) -> tuple[dict[str, Any], str]:
+    r = client.get(
+        _issue_url(user, issue_id),
+        headers=_headers(user),
+        params={"since_version": version} if version else None,
+    )
+    assert r.status_code == 200, r.text
+    return r.json()["data"]["since_version"], r.json()["next_steps"][0]
+
+
+def test_get_issue_counts_the_calls_since_the_fix_went_live(
+    client: TestClient, db: Session
+) -> None:
+    user, agent, issue_id = _one_issue(db, client)
+    # Never marked fixed and no version asked for: nothing to count from.
+    assert _get(client, user, issue_id)["data"]["since_version"] is None
+
+    assert _fixed(client, user, issue_id, version="16").status_code == 200
+    waiting, step = _since(client, user, issue_id)
+    assert waiting == {
+        "version": "16",
+        "is_fix": True,
+        "live_at": None,
+        "calls": 0,
+        "calls_with_issue": 0,
+        "last_call_id": None,
+        "last_call_at": None,
+    }
+    assert "waiting for version 16 to go live" in step
+
+    # Three clean calls on version 16, and one on 15 after it went live, which the
+    # old version still served: not counted.
+    for n in (2, 3, 4):
+        _call(db, agent, _booking(n, FULL), days_ago=0, version=16)
+    _call(db, agent, _booking(5, FULL), days_ago=0, version=15)
+    clean, step = _since(client, user, issue_id)
+    assert (clean["calls"], clean["calls_with_issue"]) == (3, 0)
+    assert clean["live_at"] is not None and clean["last_call_id"] is None
+    assert step.startswith("Since version 16 went live (")
+    assert step.endswith("): 3 calls, 0 with this issue.")
+    assert _get(client, user, issue_id)["data"]["state"] == "resolved"
+
+    # A fourth call on version 16 with the issue: reopened, 4 calls, 1 with it.
+    back = _call(db, agent, _booking(6, MISSING_ZIP), days_ago=0, version=16)
+    again, step = _since(client, user, issue_id)
+    assert (again["calls"], again["calls_with_issue"]) == (4, 1)
+    assert again["is_fix"] is True and again["last_call_id"] == str(back)
+    assert step.endswith("): 4 calls, 1 with this issue.")
+    assert _get(client, user, issue_id)["data"]["state"] == "reopened"
+    # A later version counts too.
+    _call(db, agent, _booking(7, FULL), days_ago=0, version=17)
+    assert _since(client, user, issue_id)[0]["calls"] == 5
+
+
+def test_a_call_on_an_older_version_reopens_without_being_counted(
+    client: TestClient, db: Session
+) -> None:
+    user, agent, issue_id = _one_issue(db, client)
+    assert _fixed(client, user, issue_id, version="16").status_code == 200
+    _call(db, agent, _booking(2, FULL), days_ago=0, version=16)
+    _call(db, agent, _booking(3, MISSING_ZIP), days_ago=0, version=15)
+
+    since, step = _since(client, user, issue_id)
+    assert _get(client, user, issue_id)["data"]["state"] == "reopened"
+    assert (since["calls"], since["calls_with_issue"]) == (1, 0)
+    assert "reopened by a call that started after that on an older version" in step
+
+
+def test_since_version_answers_for_any_version_of_an_issue_never_marked_fixed(
+    client: TestClient, db: Session
+) -> None:
+    user, agent, issue_id = _one_issue(db, client)
+    _call(db, agent, _booking(2, FULL), days_ago=0, version=16)
+    _call(db, agent, _booking(3, MISSING_ZIP), days_ago=0, version=16)
+
+    asked, step = _since(client, user, issue_id, "16")
+    assert (asked["version"], asked["is_fix"]) == ("16", False)
+    assert (asked["calls"], asked["calls_with_issue"]) == (2, 1)
+    assert step.endswith("): 2 calls, 1 with this issue.")
+    # Every call ran version 15 or later.
+    assert _since(client, user, issue_id, "15")[0]["calls"] == 3
+    assert _since(client, user, issue_id, "40")[1] == (
+        "Version 40 has not served a real call yet."
+    )
+    assert _get(client, user, issue_id)["data"]["state"] == "open"
+
+    # Another workspace cannot read it.
+    other = _person(db)
+    r = client.get(
+        f"{API}/mcp/workspaces/{other.company_id}/issues/{issue_id}",
+        headers=_headers(other),
+        params={"since_version": "16"},
+    )
+    assert r.status_code == 404
 
 
 def test_refusals_change_nothing(client: TestClient, db: Session) -> None:

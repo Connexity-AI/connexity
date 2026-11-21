@@ -493,6 +493,26 @@ class McpIssueVersion(BaseModel):
     calls: int = Field(description="Calls on it the issue was found on, last 30 days")
 
 
+class McpIssueSinceVersion(BaseModel):
+    """The agent's real calls since a version went live, and this issue among them.
+    A call counts when it ran that version or a later one."""
+
+    version: str = Field(description="The version counted from")
+    is_fix: bool = Field(description="Whether it is the version the issue is fixed in")
+    live_at: datetime | None = Field(
+        default=None,
+        description="When its first real call started; none if it served none yet",
+    )
+    calls: int = Field(description="The agent's real calls on it or a later version")
+    calls_with_issue: int = Field(description="How many of those have this issue")
+    last_call_id: uuid.UUID | None = Field(
+        default=None, description="The newest of those with this issue"
+    )
+    last_call_at: datetime | None = Field(
+        default=None, description="When that call started"
+    )
+
+
 class McpIssue(IssuePagePublic):
     """Everything Connexity has about one issue. The calls themselves come from
     `list_calls` with the issue's id."""
@@ -506,6 +526,11 @@ class McpIssue(IssuePagePublic):
     )
     live_version: str | None = Field(
         default=None, description="The agent version on the agent's newest call"
+    )
+    since_version: McpIssueSinceVersion | None = Field(
+        default=None,
+        description="What happened since the fix's version went live, or since the "
+        "version asked for with `since_version`; none when there is neither",
     )
     findings_all_time: int = Field(description="Findings of this issue, ever")
     calls_all_time: int = Field(description="Calls it was found on, ever")

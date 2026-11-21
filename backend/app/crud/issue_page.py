@@ -11,14 +11,25 @@ from typing import NamedTuple
 
 from sqlmodel import Session, col, func, select
 
+from app.crud.check import version_reaches
 from app.models.call import Call, CallComponent, CallEvent
 from app.models.check import DecisionRecord, Finding, Issue
-from app.models.enums import DecisionKind
+from app.models.enums import DecisionKind, TraceSource
 
 
 class Moment(NamedTuple):
     at_seconds: float
     times: int
+
+
+class SinceVersion(NamedTuple):
+    """An agent's real calls on a version or a later one, and the issue's among them."""
+
+    live_at: datetime | None
+    calls: int
+    calls_with_issue: int
+    last_call_id: uuid.UUID | None
+    last_call_at: datetime | None
 
 
 def _naive(moment: datetime) -> datetime:
@@ -254,4 +265,53 @@ def call_agent_versions(
         session.exec(
             select(Call.id, Call.agent_version).where(col(Call.id).in_(call_ids))
         ).all()
+    )
+
+
+def issue_since_version(
+    *, session: Session, issue: Issue, version: str
+) -> SinceVersion:
+    """What happened on real calls since ``version`` went live: the agent's calls that
+    ran it or a later version, and how many of them have the issue.
+
+    A call counts by the version it ran (``version_reaches``, the rule that makes a
+    fix live), so a call an older version still served after ``version`` went live is
+    left out.
+    """
+    real = (
+        Call.agent_id == issue.agent_id,
+        Call.source == TraceSource.PRODUCTION,
+        col(Call.deleted_at).is_(None),
+        col(Call.agent_version).is_not(None),
+    )
+    per_version = session.exec(
+        select(Call.agent_version, func.count(), func.min(col(Call.started_at)))
+        .where(*real)
+        .group_by(col(Call.agent_version))
+    ).all()
+    reached = [
+        (name, calls, first)
+        for name, calls, first in per_version
+        if version_reaches(name, version)
+    ]
+    if not reached:
+        return SinceVersion(None, 0, 0, None, None)
+    names = [name for name, _, _ in reached]
+    on_them = (
+        *real,
+        col(Call.agent_version).in_(names),
+        col(Call.id).in_(select(Finding.call_id).where(Finding.issue_id == issue.id)),
+    )
+    last = session.exec(
+        select(Call.id, Call.started_at)
+        .where(*on_them)
+        .order_by(col(Call.started_at).desc(), col(Call.id))
+        .limit(1)
+    ).first()
+    return SinceVersion(
+        live_at=min(first for _, _, first in reached).replace(tzinfo=UTC),
+        calls=sum(calls for _, calls, _ in reached),
+        calls_with_issue=session.exec(select(func.count()).where(*on_them)).one(),
+        last_call_id=last[0] if last else None,
+        last_call_at=last[1].replace(tzinfo=UTC) if last else None,
     )

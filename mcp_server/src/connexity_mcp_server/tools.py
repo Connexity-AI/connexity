@@ -239,10 +239,15 @@ async def get_call(
 
 
 async def get_issue(
-    client: ConnexityBackendClient, workspace_id: str, issue_id: str
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    issue_id: str,
+    since_version: str | None = None,
 ) -> IssueResult:
     return IssueResult.model_validate(
-        await client.get_issue(workspace_id=workspace_id, issue_id=issue_id)
+        await client.get_issue(
+            workspace_id=workspace_id, issue_id=issue_id, since_version=since_version
+        )
     )
 
 

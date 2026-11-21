@@ -1493,6 +1493,31 @@ async def test_mark_issue_fixed_sends_the_version_and_note() -> None:
 
 
 @pytest.mark.asyncio
+async def test_get_issue_sends_since_version_only_when_asked() -> None:
+    from connexity_mcp_server.tools import get_issue
+
+    seen: list[dict[str, str]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path.endswith("/issues/i1")
+        seen.append(dict(request.url.params))
+        return httpx.Response(422, json={"detail": {"error": "x", "next_steps": []}})
+
+    for version in (None, "16"):
+        with pytest.raises(ConnexityBackendError):
+            await _call(
+                handler,
+                lambda client, version=version: get_issue(
+                    client,
+                    workspace_id=WORKSPACE_ID,
+                    issue_id="i1",
+                    since_version=version,
+                ),
+            )
+    assert seen == [{}, {"since_version": "16"}]
+
+
+@pytest.mark.asyncio
 async def test_get_agent_and_list_issues_send_the_version() -> None:
     from connexity_mcp_server.tools import get_agent
 

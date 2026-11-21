@@ -29,6 +29,15 @@ What was settled about scenarios, test runs and the gate, and what is still open
 | 14 | Failures found by the gate are issues, like production bugs. | "Maybe we treat as production bugs all produciton bugs plus found during gates?" (decision 15 builds on it) | 2026-11-17 |
 | 15 | Issue analytics count production only. People still have to know about a gate failure so it is fixed before release. | "We 100% need analytics for production only … it shows maturity of the team. But they need to know if some bug happens during the gate eval so it should be fixed to not get on prod" | 2026-11-17 |
 
+- **Verifying a candidate version** needs no tool of its own
+  (`plans/2026-11-21-verify-candidate-version.md`, accepted 2026-11-21). Before it
+  ships: `run_scenarios` with `all` on the version, a draft not yet published
+  included, then `get_test_runs` for its verdict; a Verified version that is not live
+  is said to have passed and can be published, a Failed one that publishing it is a
+  person's override. After it ships: `mark_issue_fixed`, then `get_issue` says how
+  many real calls there were since the version went live and how many still have the
+  issue ([`checks-and-incidents.md`](./checks-and-incidents.md)).
+
 ## Proposed (not decided)
 
 **Scenarios**

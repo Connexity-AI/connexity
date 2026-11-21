@@ -243,7 +243,7 @@ the same list Readiness, Work and the assistant's onboarding instructions follow
 | `raise_clarifications(workspace_id, agent_id, questions)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/clarifications` |
 | `list_clarifications(workspace_id, agent_id?, state?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/clarifications` |
 | `answer_clarifications(workspace_id, answers)` | `POST /api/v1/mcp/workspaces/{workspace_id}/clarifications/answers` |
-| `get_issue(workspace_id, issue_id)` | `GET /api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}` |
+| `get_issue(workspace_id, issue_id, since_version?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}` |
 | `archive_issue(workspace_id, issue_id, reason, duration?)` | `POST /api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}/archive` |
 | `unarchive_issue(workspace_id, issue_id, reason?)` | `POST /api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}/unarchive` |
 | `mark_issue_fixed(workspace_id, issue_id, version, note?)` | `POST /api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}/fixed` |
