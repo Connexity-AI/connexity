@@ -8747,6 +8747,42 @@ export const RunProgressPublicSchema = {
   description: 'How far a run is, by simulated call.',
 } as const;
 
+export const RunSchemaCheckPublicSchema = {
+  properties: {
+    tools_checked: {
+      type: 'integer',
+      title: 'Tools Checked',
+      description: 'Tools of the tested version that declare a schema',
+    },
+    tools_unreadable: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Tools Unreadable',
+      description: 'Tools whose schema could not be read, so were not checked',
+    },
+    calls_with_violations: {
+      type: 'integer',
+      title: 'Calls With Violations',
+      default: 0,
+    },
+    violations: {
+      items: {
+        $ref: '#/components/schemas/SchemaViolationTotalPublic',
+      },
+      type: 'array',
+      title: 'Violations',
+      description: 'Each tool and field, most calls first',
+    },
+  },
+  type: 'object',
+  required: ['tools_checked'],
+  title: 'RunSchemaCheckPublic',
+  description:
+    "A run's tool calls checked against the tools' schemas. A violation is a fact\nabout what the agent sent; nothing refused it, and it never changes the verdict.",
+} as const;
+
 export const RunScopeSchema = {
   type: 'string',
   enum: ['set', 'pick', 'all'],
@@ -9322,6 +9358,58 @@ export const ScenarioSetPublicSchema = {
   title: 'ScenarioSetPublic',
 } as const;
 
+export const SchemaViolationPublicSchema = {
+  properties: {
+    tool: {
+      type: 'string',
+      title: 'Tool',
+    },
+    field: {
+      type: 'string',
+      title: 'Field',
+    },
+    problem: {
+      type: 'string',
+      title: 'Problem',
+      description: 'What is wrong, in plain words',
+    },
+    turn: {
+      type: 'integer',
+      title: 'Turn',
+      description: 'The turn of the tool call',
+    },
+  },
+  type: 'object',
+  required: ['tool', 'field', 'problem', 'turn'],
+  title: 'SchemaViolationPublic',
+  description: "One argument of one tool call that breaks the tool's own schema.",
+} as const;
+
+export const SchemaViolationTotalPublicSchema = {
+  properties: {
+    tool: {
+      type: 'string',
+      title: 'Tool',
+    },
+    field: {
+      type: 'string',
+      title: 'Field',
+    },
+    problem: {
+      type: 'string',
+      title: 'Problem',
+    },
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+      description: 'Simulated calls where it happened',
+    },
+  },
+  type: 'object',
+  required: ['tool', 'field', 'problem', 'calls'],
+  title: 'SchemaViolationTotalPublic',
+} as const;
+
 export const ScoreMovePublicSchema = {
   properties: {
     issue_id: {
@@ -9582,6 +9670,14 @@ export const SimulatedCallPublicSchema = {
       },
       type: 'array',
       title: 'Default Fakes',
+    },
+    schema_violations: {
+      items: {
+        $ref: '#/components/schemas/SchemaViolationPublic',
+      },
+      type: 'array',
+      title: 'Schema Violations',
+      description: "Tool arguments that break the tool's own schema",
     },
     cost_usd: {
       anyOf: [
@@ -10554,12 +10650,23 @@ export const TestRunDetailPublicSchema = {
       title: 'Content Checked At',
       description: 'When the version was read on the platform for it',
     },
-    tool_schemas_applied: {
+    tool_schemas_checked: {
       type: 'boolean',
-      title: 'Tool Schemas Applied',
+      title: 'Tool Schemas Checked',
       description:
-        "Whether the platform's tool schemas were applied to the agent's tool calls. False in every text run: tools are faked, so a run does not prove a schema fix",
+        "Whether the agent's tool calls were checked against the tools' own schemas. False when the tested version could not be read, and for runs made before the check existed",
       default: false,
+    },
+    schema_check: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/RunSchemaCheckPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'What that check found, when it ran',
     },
     created_at: {
       type: 'string',
@@ -10865,12 +10972,23 @@ export const TestRunPublicSchema = {
       title: 'Content Checked At',
       description: 'When the version was read on the platform for it',
     },
-    tool_schemas_applied: {
+    tool_schemas_checked: {
       type: 'boolean',
-      title: 'Tool Schemas Applied',
+      title: 'Tool Schemas Checked',
       description:
-        "Whether the platform's tool schemas were applied to the agent's tool calls. False in every text run: tools are faked, so a run does not prove a schema fix",
+        "Whether the agent's tool calls were checked against the tools' own schemas. False when the tested version could not be read, and for runs made before the check existed",
       default: false,
+    },
+    schema_check: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/RunSchemaCheckPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'What that check found, when it ran',
     },
     created_at: {
       type: 'string',

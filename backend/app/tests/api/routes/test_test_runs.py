@@ -132,8 +132,21 @@ def _agent_turn(request: httpx.Request) -> httpx.Response:
 RETELL = "https://api.retellai.com"
 
 
+BOOK_SLOT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "date": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1},
+    },
+    "required": ["date", "name"],
+}
+
+
 def _tested_version(
-    retell: respx.MockRouter, number: int, prompt: str = "Invented prompt."
+    retell: respx.MockRouter,
+    number: int,
+    prompt: str = "Invented prompt.",
+    book_slot_schema: dict[str, Any] | None = None,
 ) -> None:
     """Retell: the agent at its latest version, a single prompt with two tools of its
     own and a hang-up."""
@@ -164,7 +177,14 @@ def _tested_version(
                 "states": [
                     {
                         "name": "booking",
-                        "tools": [{"type": "custom", "name": "book_slot"}],
+                        "tools": [
+                            {"type": "custom", "name": "book_slot"}
+                            | (
+                                {"parameters": book_slot_schema}
+                                if book_slot_schema
+                                else {}
+                            )
+                        ],
                     }
                 ],
             },
@@ -941,6 +961,8 @@ def _made(
     version: int = 15,
     repeats: int = 1,
     agent_turn: Any = None,
+    book_slot_schema: dict[str, Any] | None = None,
+    readable: bool = True,
     **scope: Any,
 ) -> str:
     """Start a run of ``version`` and make it, with Retell's version read mocked."""
@@ -956,7 +978,12 @@ def _made(
         retell.post(url__startswith=PLAYGROUND).mock(
             side_effect=agent_turn or _agent_turn
         )
-        _tested_version(retell, version)
+        if readable:
+            _tested_version(retell, version, book_slot_schema=book_slot_schema)
+        else:
+            retell.get(url__startswith=f"{RETELL}/get-agent/").mock(
+                return_value=httpx.Response(500)
+            )
         with patch("app.services.rule_judge.call_llm", new=judge):
             _execute(run_id)
     return run_id
@@ -1155,9 +1182,6 @@ def test_a_run_names_its_spec_and_warns_when_the_agent_version_is_newer(
     )
     assert level["data"]["run"]["spec_behind"] is False
     assert not any("written for agent version" in s for s in level["next_steps"])
-    # Tool schemas are never applied in a text run, and every run says so.
-    assert run["tool_schemas_applied"] is False
-    assert any("tool_schemas_applied" in rule for rule in ahead["rules"])
 
 
 @pytest.mark.provider_versions
@@ -1368,3 +1392,88 @@ def test_a_runs_requests_to_retell_go_through_the_pacer(
 
     # The greeting and the reply: each took a slot, under the same Retell key.
     assert len(waited) == 2 and len(set(waited)) == 1
+
+
+@pytest.mark.provider_versions
+def test_tool_arguments_that_break_the_tools_schema_are_reported_and_fail_nothing(
+    client: TestClient, db: Session, caller: AsyncMock
+) -> None:
+    user, agent, keys = _ready(db, client)
+    _scenarios(client, user, agent, _price(keys))
+    judge = AsyncMock(return_value=_verdict(keys[PRICE], "passed"))
+    # The agent books with a date and no name; the tool's schema requires both.
+    broken = _made(client, user, agent, judge, book_slot_schema=BOOK_SLOT_SCHEMA)
+    # The same run against a version whose tools declare no schema.
+    plain = _made(client, user, agent, judge)
+
+    body = _runs(client, user, agent, run_id=broken).json()
+    run = body["data"]["run"]
+    assert run["tool_schemas_checked"] is True
+    assert run["calls"][0]["schema_violations"] == [
+        {
+            "tool": "book_slot",
+            "field": "name",
+            "problem": "is missing; the schema requires it",
+            "turn": 2,
+        }
+    ]
+    assert run["schema_check"] == {
+        "tools_checked": 1,
+        "tools_unreadable": [],
+        "calls_with_violations": 1,
+        "violations": [
+            {
+                "tool": "book_slot",
+                "field": "name",
+                "problem": "is missing; the schema requires it",
+                "calls": 1,
+            }
+        ],
+    }
+    assert body["next_steps"][0].startswith(
+        "The agent sent tool arguments that break the tool's schema in 1 call: "
+        "`book_slot`: `name` is missing"
+    )
+    assert any("`schema_check`" in rule for rule in body["rules"])
+    # Nothing was sent back to the agent: the fake answered as always.
+    db.expire_all()
+    call = db.exec(
+        select(TestCaseResult).where(TestCaseResult.run_id == uuid.UUID(broken))
+    ).one()
+    assert call.transcript is not None
+    assert [t["content"] for t in call.transcript if t["role"] == "tool"] == [
+        DEFAULT_FAKE_RESULT
+    ]
+    assert call.check_findings == []
+
+    # It changes no verdict, total or count: the run reads as one without it.
+    clean = _runs(client, user, agent, run_id=plain).json()["data"]["run"]
+    for key in ("verdict", "result", "totals", "counts"):
+        assert run[key] == clean[key]
+    assert clean["tool_schemas_checked"] is True
+    assert clean["schema_check"]["tools_checked"] == 0
+    assert clean["schema_check"]["violations"] == []
+    assert clean["calls"][0]["schema_violations"] == []
+
+
+@pytest.mark.provider_versions
+def test_a_run_whose_version_could_not_be_read_says_its_schemas_were_not_checked(
+    client: TestClient, db: Session, caller: AsyncMock
+) -> None:
+    user, agent, keys = _ready(db, client)
+    _scenarios(client, user, agent, _price(keys))
+
+    run_id = _made(
+        client,
+        user,
+        agent,
+        AsyncMock(return_value=_verdict(keys[PRICE], "passed")),
+        readable=False,
+    )
+
+    body = _runs(client, user, agent, run_id=run_id).json()
+    run = body["data"]["run"]
+    assert (run["tool_schemas_checked"], run["schema_check"]) == (False, None)
+    assert any(
+        "were not checked against the tools' schemas" in s for s in body["next_steps"]
+    )

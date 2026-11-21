@@ -2516,9 +2516,13 @@ _TEST_RUN_RULES = [
     "tools in `mark_detail`) and is not counted: do not act on it. A rule with only "
     "such verdicts is not checked. Give the tool a fake result in the scenario and "
     "run it again.",
-    "A text run applies no tool schema (`tool_schemas_applied` false): every tool is "
-    "faked, so the platform never checks the arguments the agent sends. A green run "
-    "is not proof that a change to a tool's schema works.",
+    "Every tool call the agent makes in a run is checked against the tool's own "
+    "schema (`schema_check`, and `schema_violations` on each call): a required field "
+    "missing or empty, a pattern not matched. A violation is a fact about what the "
+    "agent sent. Nothing refused it: on a real call the schema only guides the "
+    "agent's model, and Connexity sends nothing back to the agent. It never changes "
+    "the verdict. A run without violations shows the agent sent valid arguments in "
+    "these conversations, which is how a fix to a schema or a prompt is confirmed.",
     "A run judges against the spec it names (`spec_version`). When the tested agent "
     "version is newer than the one that spec was written for (`spec_behind`), the "
     "rules may describe the old behaviour: update the spec with `write_spec`, or "
@@ -2610,7 +2614,12 @@ def _run_steps(
     run: TestRunDetailPublic, more: bool, offset: int, limit: int
 ) -> list[str]:
     counts = run.counts
-    limits = [*_sample_steps(run), *_run_limits(run), *_speed_steps(run)]
+    limits = [
+        *_sample_steps(run),
+        *_schema_steps(run),
+        *_run_limits(run),
+        *_speed_steps(run),
+    ]
     if run.status in (RunStatus.PENDING, RunStatus.RUNNING):
         return _progress_steps(run.id, counts, run.stalled_since, run.last_progress_at)
     if run.totals is not None and not run.totals.judged_calls:
@@ -2746,6 +2755,42 @@ def _sample_steps(run: TestRunPublic) -> list[str]:
             else ""
         )
     ]
+
+
+def _schema_steps(run: TestRunPublic) -> list[str]:
+    """Tool arguments that break the tools' schemas, said before the results."""
+    check = run.schema_check
+    if check is None:
+        if run.status is not RunStatus.COMPLETED:
+            return []
+        return [
+            "The agent's tool calls were not checked against the tools' schemas: "
+            "the tested version could not be read when the run started. Run the "
+            "scenarios again to have them checked."
+        ]
+    steps: list[str] = []
+    if check.violations:
+        shown = "; ".join(
+            f"`{v.tool}`: `{v.field}` {v.problem} "
+            f"({v.calls} {'call' if v.calls == 1 else 'calls'})"
+            for v in check.violations[:5]
+        )
+        more = len(check.violations) - 5
+        steps.append(
+            f"The agent sent tool arguments that break the tool's schema in "
+            f"{check.calls_with_violations} "
+            f"{'call' if check.calls_with_violations == 1 else 'calls'}: {shown}"
+            + (f"; and {more} more in `schema_check`" if more > 0 else "")
+            + ". Nothing refused them, and they do not change the result. Tell the "
+            "person, with a call's link; the fix is in the tool's schema or the "
+            "prompt, then run again to confirm they are gone."
+        )
+    if check.tools_unreadable:
+        steps.append(
+            "These tools' schemas could not be read as JSON Schema, so their calls "
+            f"were not checked: {', '.join(check.tools_unreadable)}."
+        )
+    return steps
 
 
 def _speed_steps(run: TestRunPublic) -> list[str]:
@@ -2966,6 +3011,13 @@ def _results_steps(results: VersionResultsPublic) -> list[str]:
     return [
         *_verdict_steps(results),
         *(_spec_behind_steps(full) if full is not None else []),
+        # The full run's tool arguments that break a schema: reported with the
+        # verdict, which they never change.
+        *(
+            _schema_steps(full)
+            if full is not None and full.schema_check is not None
+            else []
+        ),
         *_live_steps(results),
         *_stopped_steps(results),
         *_coverage_steps(results),

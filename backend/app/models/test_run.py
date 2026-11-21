@@ -132,6 +132,39 @@ class VerdictPublic(BaseModel):
     )
 
 
+class SchemaViolationPublic(BaseModel):
+    """One argument of one tool call that breaks the tool's own schema."""
+
+    tool: str
+    field: str
+    problem: str = PydanticField(description="What is wrong, in plain words")
+    turn: int = PydanticField(description="The turn of the tool call")
+
+
+class SchemaViolationTotalPublic(BaseModel):
+    tool: str
+    field: str
+    problem: str
+    calls: int = PydanticField(description="Simulated calls where it happened")
+
+
+class RunSchemaCheckPublic(BaseModel):
+    """A run's tool calls checked against the tools' schemas. A violation is a fact
+    about what the agent sent; nothing refused it, and it never changes the verdict."""
+
+    tools_checked: int = PydanticField(
+        description="Tools of the tested version that declare a schema"
+    )
+    tools_unreadable: list[str] = PydanticField(
+        default_factory=list,
+        description="Tools whose schema could not be read, so were not checked",
+    )
+    calls_with_violations: int = 0
+    violations: list[SchemaViolationTotalPublic] = PydanticField(
+        default_factory=list, description="Each tool and field, most calls first"
+    )
+
+
 class SimulatedCallPublic(BaseModel):
     id: uuid.UUID
     scenario_id: uuid.UUID
@@ -143,6 +176,10 @@ class SimulatedCallPublic(BaseModel):
     verdicts: list[VerdictPublic] = PydanticField(default_factory=list)
     findings: list[SimulatedFinding] = PydanticField(default_factory=list)
     default_fakes: list[str] = PydanticField(default_factory=list)
+    schema_violations: list[SchemaViolationPublic] = PydanticField(
+        default_factory=list,
+        description="Tool arguments that break the tool's own schema",
+    )
     cost_usd: float | None = None
     timing: "CallTimingPublic | None" = PydanticField(
         default=None, description="Where its time went, once finished"
@@ -257,11 +294,14 @@ class TestRunPublic(BaseModel):
     content_checked_at: datetime | None = PydanticField(
         default=None, description="When the version was read on the platform for it"
     )
-    tool_schemas_applied: bool = PydanticField(
+    tool_schemas_checked: bool = PydanticField(
         default=False,
-        description="Whether the platform's tool schemas were applied to the agent's "
-        "tool calls. False in every text run: tools are faked, so a run does not "
-        "prove a schema fix",
+        description="Whether the agent's tool calls were checked against the tools' "
+        "own schemas. False when the tested version could not be read, and for runs "
+        "made before the check existed",
+    )
+    schema_check: "RunSchemaCheckPublic | None" = PydanticField(
+        default=None, description="What that check found, when it ran"
     )
     created_at: datetime
     started_at: datetime | None = None

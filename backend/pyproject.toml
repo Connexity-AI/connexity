@@ -23,6 +23,7 @@ dependencies = [
     "pyjwt<3.0.0,>=2.8.0",
     "litellm>=1.82.6,<2.0.0",
     "cryptography>=42.0.0",
+    "jsonschema>=4.26.0",
 ]
 
 [dependency-groups]

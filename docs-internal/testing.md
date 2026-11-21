@@ -55,7 +55,7 @@ What was settled about scenarios, test runs and the gate, and what is still open
   `unknown`). The judge writes its reason before its verdict. A verdict that rests on a
   default fake (the fake had answered by the last turn the verdict cites) is marked and
   not counted, and a rule with only such verdicts is not checked, so a full run can end
-  Partially tested because of it. Every run says tool schemas were not applied, names
+  Partially tested because of it. Every run names
   its spec version, and warns when the tested agent version is newer than the one the
   spec's rules were written for; the warning never refuses a run.
 - A run says how far it is and what it lost (Dmytro, 2026-11-20;
@@ -68,6 +68,13 @@ What was settled about scenarios, test runs and the gate, and what is still open
   and an on-demand run that lost calls and found no failure reads `incomplete`. Every
   call says where its time went (agent, caller, judge, Connexity's server), and counts
   the platform's "too many requests" answers.
+- Tool arguments are checked against the tools' own schemas (Dmytro, 2026-11-20;
+  `plans/2026-11-20-tool-schemas-in-simulations.md`). Retell documents no rejection of
+  arguments that break a schema: it only guides the agent's model, which a text run
+  already gets. So Connexity validates every simulated tool call against the schema of
+  the version under test and reports each violation per call and per run. Nothing is
+  sent back to the agent, and a violation never changes a verdict; a schema fix is
+  confirmed when the violation is gone.
 - For the demo the threshold is one fixed default. Gate settings come in Milestone 7.
 - Coverage: a rule is covered when the version's runs checked it at least once, with how many times next to it. This replaces prompt 08's "rules without tests", which counted rules that had no test case.
 

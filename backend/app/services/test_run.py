@@ -16,7 +16,7 @@ import statistics
 import time
 import uuid
 from collections import Counter
-from dataclasses import dataclass, replace
+from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
@@ -83,10 +83,13 @@ from app.models.test_run import (
     RuleTotalPublic,
     RuleVerdict,
     RunProgressPublic,
+    RunSchemaCheckPublic,
     RunStatusPublic,
     RunTimingPublic,
     RunTotalsPublic,
     SameContentPublic,
+    SchemaViolationPublic,
+    SchemaViolationTotalPublic,
     SimulatedCallPublic,
     SimulatedFinding,
     StoppedCallsPublic,
@@ -112,6 +115,7 @@ from app.services.eval_runtimes import (
 )
 from app.services.retell import PLAYGROUND_THROTTLED
 from app.services.rule_judge import JudgeFailed, RuleToJudge, judge_rules
+from app.services.tool_schema_check import check_tool_calls, tool_schemas
 from app.services.trace_capabilities import derive_capabilities
 
 logger = logging.getLogger(__name__)
@@ -588,6 +592,12 @@ async def _simulate(
             )
             fakes = list(dict.fromkeys(defaults.values()))
             fake_turns = default_fake_turns(transcript, defaults)
+            # Checked only when the tested version was read: without its tools, an
+            # empty list would read as "no violations".
+            if ctx.agent_snapshot.tools is not None:
+                update["schema_check"] = asdict(
+                    check_tool_calls(transcript, tool_schemas(ctx.agent_snapshot.tools))
+                )
             judge_cost = 0.0
             error: str | None = None
             failure = next(
@@ -813,7 +823,10 @@ async def _execute(run_id: uuid.UUID) -> None:
                         tools=[
                             {
                                 "type": "function",
-                                "function": {"name": tool.name},
+                                "function": {
+                                    "name": tool.name,
+                                    "parameters": tool.parameters,
+                                },
                                 "platform_config": {"terminating": tool.ends_call},
                             }
                             for tool in read.tools
@@ -973,6 +986,39 @@ def run_status(*, session: Session, run: Run) -> RunStatusPublic:
         last_progress_at=_last_progress(rows),
         stalled=stalled_since is not None,
         stalled_since=stalled_since,
+    )
+
+
+def run_schema_check(calls: list[TestCaseResult]) -> RunSchemaCheckPublic | None:
+    """What checking the run's tool calls against the tools' schemas found; ``None``
+    when no call of the run was checked (the tested version could not be read, or the
+    run predates the check)."""
+    checked = [call.schema_check for call in calls if call.schema_check is not None]
+    if not checked:
+        return None
+    tools: set[str] = set()
+    unreadable: set[str] = set()
+    found: Counter[tuple[str, str, str]] = Counter()
+    with_violations = 0
+    for check in checked:
+        tools |= set(check.get("tools") or [])
+        unreadable |= set(check.get("unreadable") or [])
+        violations = check.get("violations") or []
+        with_violations += bool(violations)
+        # Each tool and field once per call, however often the call repeated it.
+        found.update({(v["tool"], v["field"], v["problem"]) for v in violations})
+    return RunSchemaCheckPublic(
+        tools_checked=len(tools - unreadable),
+        tools_unreadable=sorted(unreadable),
+        calls_with_violations=with_violations,
+        violations=[
+            SchemaViolationTotalPublic(
+                tool=tool, field=field, problem=problem, calls=count
+            )
+            for (tool, field, problem), count in sorted(
+                found.items(), key=lambda item: (-item[1], item[0])
+            )
+        ],
     )
 
 
@@ -1244,6 +1290,7 @@ def run_views(
         full = run.scope is RunScope.ALL
         done = run.status == RunStatus.COMPLETED
         stalled_since = _stalled_since(run)
+        schema_check = run_schema_check(fact.calls)
         totals = _run_judgement(fact)[0] if done else None
         result: Literal["passed", "failed", "incomplete"] | None = None
         # A run no judge read has no result (Dmytro, 2026-11-19: "No result").
@@ -1299,6 +1346,8 @@ def run_views(
                 last_progress_at=_last_progress(_call_rows(fact.calls)),
                 stalled=stalled_since is not None,
                 stalled_since=stalled_since,
+                tool_schemas_checked=schema_check is not None,
+                schema_check=schema_check,
                 timing=run_timing(fact.calls) if done else None,
                 throttled=sum(c.throttled or 0 for c in fact.calls),
                 ran_by=people.get(run.created_by) if run.created_by else None,
@@ -1431,6 +1480,10 @@ def run_detail(
                     for f in call.check_findings or []
                 ],
                 default_fakes=call.default_fakes or [],
+                schema_violations=[
+                    SchemaViolationPublic.model_validate(v)
+                    for v in (call.schema_check or {}).get("violations") or []
+                ],
                 cost_usd=call.estimated_cost_usd,
                 timing=call_timing(call),
                 throttled=call.throttled or 0,
