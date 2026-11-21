@@ -35,6 +35,7 @@ from app.crud.issue_page import (
 )
 from app.crud.latency import agent_gap_percentiles
 from app.crud.test_run import DEAD_AFTER
+from app.crud.usage import caller_messages
 from app.models import (
     Agent,
     CallScreenPublic,
@@ -72,6 +73,7 @@ from app.models.mcp import (
     GUIDE_READINESS,
     GUIDE_SCENARIOS,
     GUIDE_SPEC,
+    GUIDE_USAGE,
     GUIDE_WORKSPACES,
     McpAddAgents,
     McpAddedAgents,
@@ -99,6 +101,7 @@ from app.models.mcp import (
     McpNextTask,
     McpRaiseClarifications,
     McpRefusedAgent,
+    McpRunCost,
     McpRunScenarios,
     McpScanProgress,
     McpSendFeedback,
@@ -124,6 +127,7 @@ from app.models.test_run import (
     TestRunPublic,
     VersionResultsPublic,
 )
+from app.models.usage import UsagePublic
 from app.models.work import WorkMoveIn
 from app.services.agent_list import agent_types, live_since
 from app.services.agent_page import agent_page
@@ -206,6 +210,7 @@ from app.services.test_run import (
     version_results,
     version_to_test,
 )
+from app.services.usage import BadMonth, UsagePeriod, messages_price, usage
 from app.services.work import MoveRefused, Task, move_task, next_task, work_page
 
 router = APIRouter(
@@ -2593,13 +2598,41 @@ async def run_agent_scenarios(
         raise _run_refused(refused) from None
     calls = len(crud_test_run.calls_of_runs(session=session, run_ids=[run.id])[run.id])
     launch(run.id)
+    last_run: McpRunCost | None = None
+    before = crud_test_run.run_before(session=session, run=run)
+    if before is not None:
+        messages = sum(
+            caller_messages(call.transcript)
+            for call in crud_test_run.calls_of_runs(
+                session=session, run_ids=[before.id]
+            )[before.id]
+        )
+        last_run = McpRunCost(
+            run_id=before.id,
+            caller_messages=messages,
+            cost_usd=messages_price(messages),
+        )
+    price = messages_price(1)
     return McpAnswer[McpStartedRun](
-        data=McpStartedRun(run_id=run.id, calls=calls),
+        data=McpStartedRun(
+            run_id=run.id,
+            calls=calls,
+            price_per_caller_message_usd=price,
+            last_run=last_run,
+        ),
         rules=_TEST_RUN_RULES,
         next_steps=[
             f"The run makes {calls} simulated "
             f"{'call' if calls == 1 else 'calls'} in the background. Call "
             f"`get_test_runs` with run_id {run.id} until its status is completed.",
+            f"Each message the simulated caller sends counts ${price:.2f} at list "
+            "price"
+            + (
+                f"; the last run of the same scenarios sent "
+                f"{last_run.caller_messages}, ${last_run.cost_usd:.2f}."
+                if last_run is not None
+                else "; `get_test_runs` shows what the run came to."
+            ),
             "It is a full run: when it completes, it decides the version's verdict."
             if body.all
             else "It is an on-demand run: it never changes the version's verdict. Run "
@@ -3135,6 +3168,90 @@ def get_agent_test_runs(
         rules=_TEST_RUN_RULES,
         next_steps=_run_steps(detail, more, offset, limit),
         guide=GUIDE_SCENARIOS,
+        next_cursor=_encode_cursor(offset + limit) if more else None,
+    )
+
+
+_USAGE_RULES = [
+    "Usage is counted, never billed: every dollar here is units times Connexity's "
+    "list price, so say 'at list price' with it.",
+    "Observed minutes: each real call that has ended, every started minute counted "
+    "whole (a 95-second call is 2 minutes). Simulated calls are never observed "
+    "minutes.",
+    "Simulated caller messages: each message the simulated caller sent in a test run, "
+    "the judge included in the price; also in a simulated call that stopped with an "
+    "error. The agent's replies are not counted: the voice platform bills them on "
+    "the team's own account.",
+    "Connexity does not yet tell a test call made on the voice platform from a real "
+    "one: every call it brings in counts as real.",
+    "The period is a calendar month in UTC (this month unless `month` names one), or "
+    "the last 7 or 30 days.",
+]
+
+
+@router.get(
+    "/workspaces/{workspace_id}/usage",
+    response_model=McpAnswer[UsagePublic],
+)
+def get_workspace_usage(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    agent_id: uuid.UUID | None = Query(default=None),
+    period: UsagePeriod = "month",
+    month: str | None = Query(default=None, max_length=7),
+    cursor: str | None = Query(default=None, max_length=255),
+    limit: int = Query(default=25, ge=1, le=100),
+) -> McpAnswer[UsagePublic]:
+    if agent_id is not None:
+        _mcp_agent_in(session, workspace, agent_id)
+    offset = _decode_cursor(cursor)
+    try:
+        page, more = usage(
+            session=session,
+            company_id=workspace.id,
+            period=period,
+            month=month,
+            agent_id=agent_id,
+            offset=offset,
+            limit=limit,
+        )
+    except BadMonth:
+        raise HTTPException(
+            status_code=422,
+            detail=McpErrorDetail(
+                error=f"`month` must be a calendar month written YYYY-MM, not {month!r}",
+                next_steps=[
+                    "Call `get_usage` with `month` such as 2026-11, or without it "
+                    "for this month."
+                ],
+                guide=GUIDE_USAGE,
+            ).model_dump(),
+        ) from None
+    steps: list[str] = []
+    if not page.lines or page.cost_usd == 0:
+        steps.append(
+            "Nothing was counted in this period. Tell the person so; do not read it "
+            "as a fault."
+        )
+    else:
+        steps.append(
+            "Tell the person the period's usage: each meter with its units and "
+            "dollars at list price, then what added most (`movers`)."
+        )
+    if page.runs:
+        steps.append(
+            "For one run's simulated calls, call `get_test_runs` with its `agent_id` "
+            "and `run_id`."
+        )
+    if more:
+        steps.append(
+            "Call `get_usage` again with `cursor` set to `next_cursor` for more runs."
+        )
+    return McpAnswer[UsagePublic](
+        data=page,
+        rules=_USAGE_RULES,
+        next_steps=steps,
+        guide=GUIDE_USAGE,
         next_cursor=_encode_cursor(offset + limit) if more else None,
     )
 

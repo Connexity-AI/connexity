@@ -180,7 +180,14 @@ class SimulatedCallPublic(BaseModel):
         default_factory=list,
         description="Tool arguments that break the tool's own schema",
     )
-    cost_usd: float | None = None
+    caller_messages: int = PydanticField(
+        default=0, description="Messages the simulated caller sent: what is counted"
+    )
+    cost_usd: float | None = PydanticField(
+        default=None,
+        description="caller_messages at the list price, once the call has finished; "
+        "nothing is billed",
+    )
     timing: "CallTimingPublic | None" = PydanticField(
         default=None, description="Where its time went, once finished"
     )
@@ -307,7 +314,12 @@ class TestRunPublic(BaseModel):
     started_at: datetime | None = None
     completed_at: datetime | None = None
     counts: TestRunCountsPublic
-    cost_usd: float | None = None
+    caller_messages: int = PydanticField(
+        default=0, description="Messages the simulated caller sent, over its calls"
+    )
+    cost_usd: float = PydanticField(
+        default=0.0, description="caller_messages at the list price; nothing is billed"
+    )
     full: bool = PydanticField(
         default=False,
         description="A run of every scenario: the only kind that decides the verdict",

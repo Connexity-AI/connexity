@@ -471,6 +471,33 @@ class ConnexityBackendClient:
             params=params,
         )
 
+    async def get_usage(
+        self,
+        *,
+        workspace_id: str,
+        agent_id: str | None = None,
+        period: str | None = None,
+        month: str | None = None,
+        cursor: str | None = None,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
+        params: dict[str, str] = {}
+        if agent_id:
+            params["agent_id"] = agent_id
+        if period:
+            params["period"] = period
+        if month:
+            params["month"] = month
+        if cursor:
+            params["cursor"] = cursor
+        if limit is not None:
+            params["limit"] = str(limit)
+        return await self._request_json(
+            "GET",
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/usage",
+            params=params,
+        )
+
     async def send_feedback(
         self,
         *,

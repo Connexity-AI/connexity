@@ -4274,6 +4274,40 @@ export type McpAnswerUnionScenarioSetPublicNoneType = {
 };
 
 /**
+ * McpAnswer[UsagePublic]
+ */
+export type McpAnswerUsagePublic = {
+  /**
+   * The facts: the result of the call
+   */
+  data: UsagePublic;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
  * McpAnswer[list[CategoryPublic]]
  */
 export type McpAnswerListCategoryPublic = {
@@ -5040,6 +5074,26 @@ export type McpRefusedAgent = {
 };
 
 /**
+ * McpRunCost
+ *
+ * What an earlier run of the same scenarios came to, at list price.
+ */
+export type McpRunCost = {
+  /**
+   * Run Id
+   */
+  run_id: string;
+  /**
+   * Caller Messages
+   */
+  caller_messages: number;
+  /**
+   * Cost Usd
+   */
+  cost_usd: number;
+};
+
+/**
  * McpRunScenarios
  *
  * Exactly one of ``set``, ``scenario_ids`` or ``all``.
@@ -5293,6 +5347,16 @@ export type McpStartedRun = {
    * Simulated calls the run makes
    */
   calls: number;
+  /**
+   * Price Per Caller Message Usd
+   *
+   * List price of each message the simulated caller sends
+   */
+  price_per_caller_message_usd: number;
+  /**
+   * The last completed run of the same set, or of every scenario
+   */
+  last_run?: McpRunCost | null;
 };
 
 /**
@@ -6690,7 +6754,15 @@ export type SimulatedCallPublic = {
    */
   schema_violations?: Array<SchemaViolationPublic>;
   /**
+   * Caller Messages
+   *
+   * Messages the simulated caller sent: what is counted
+   */
+  caller_messages?: number;
+  /**
    * Cost Usd
+   *
+   * caller_messages at the list price, once the call has finished; nothing is billed
    */
   cost_usd?: number | null;
   /**
@@ -7412,9 +7484,17 @@ export type TestRunDetailPublic = {
   completed_at?: string | null;
   counts: TestRunCountsPublic;
   /**
-   * Cost Usd
+   * Caller Messages
+   *
+   * Messages the simulated caller sent, over its calls
    */
-  cost_usd?: number | null;
+  caller_messages?: number;
+  /**
+   * Cost Usd
+   *
+   * caller_messages at the list price; nothing is billed
+   */
+  cost_usd?: number;
   /**
    * Full
    *
@@ -7577,9 +7657,17 @@ export type TestRunPublic = {
   completed_at?: string | null;
   counts: TestRunCountsPublic;
   /**
-   * Cost Usd
+   * Caller Messages
+   *
+   * Messages the simulated caller sent, over its calls
    */
-  cost_usd?: number | null;
+  caller_messages?: number;
+  /**
+   * Cost Usd
+   *
+   * caller_messages at the list price; nothing is billed
+   */
+  cost_usd?: number;
   /**
    * Full
    *
@@ -8120,6 +8208,213 @@ export type UpdatePassword = {
    * New Password
    */
   new_password: string;
+};
+
+/**
+ * UsageAgentPublic
+ */
+export type UsageAgentPublic = {
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Lines
+   */
+  lines: Array<UsageLinePublic>;
+  /**
+   * Cost Usd
+   */
+  cost_usd: number;
+};
+
+/**
+ * UsageLinePublic
+ *
+ * One meter over the period.
+ */
+export type UsageLinePublic = {
+  meter: UsageMeter;
+  /**
+   * Unit
+   *
+   * What one unit is, in words
+   */
+  unit: string;
+  /**
+   * Quantity
+   */
+  quantity: number;
+  /**
+   * Unit Price Usd
+   *
+   * List price of one unit
+   */
+  unit_price_usd: number;
+  /**
+   * Cost Usd
+   *
+   * quantity times the list price
+   */
+  cost_usd: number;
+};
+
+/**
+ * UsageMeter
+ *
+ * What Connexity counts towards a workspace's usage.
+ */
+export const UsageMeter = {
+  OBSERVED_MINUTES: 'observed_minutes',
+  SIMULATED_CALLER_MESSAGES: 'simulated_caller_messages',
+  VOICE_SIMULATION_MINUTES: 'voice_simulation_minutes',
+} as const;
+
+/**
+ * UsageMeter
+ *
+ * What Connexity counts towards a workspace's usage.
+ */
+export type UsageMeter = (typeof UsageMeter)[keyof typeof UsageMeter];
+
+/**
+ * UsageMoverPublic
+ *
+ * One of the things that added most to the period's cost.
+ */
+export type UsageMoverPublic = {
+  /**
+   * Kind
+   *
+   * 'run' or 'calls' (an agent's real calls on a day)
+   */
+  kind: string;
+  /**
+   * Line
+   *
+   * It in one sentence, with units and dollars
+   */
+  line: string;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Run Id
+   */
+  run_id?: string | null;
+  /**
+   * Day
+   *
+   * For calls: the UTC day
+   */
+  day?: string | null;
+  /**
+   * Quantity
+   */
+  quantity: number;
+  /**
+   * Cost Usd
+   */
+  cost_usd: number;
+};
+
+/**
+ * UsagePublic
+ *
+ * A workspace's usage over a period, at list price. Nothing is billed.
+ */
+export type UsagePublic = {
+  /**
+   * Period
+   *
+   * 'month', '7d' or '30d'
+   */
+  period: string;
+  /**
+   * Starts At
+   */
+  starts_at: string;
+  /**
+   * Ends At
+   *
+   * Exclusive
+   */
+  ends_at: string;
+  /**
+   * Agent Id
+   */
+  agent_id?: string | null;
+  /**
+   * Lines
+   */
+  lines: Array<UsageLinePublic>;
+  /**
+   * Cost Usd
+   *
+   * Every meter together, at list price
+   */
+  cost_usd: number;
+  /**
+   * Agents
+   */
+  agents: Array<UsageAgentPublic>;
+  /**
+   * Runs
+   *
+   * Runs with usage in the period, most expensive first; paged
+   */
+  runs: Array<UsageRunPublic>;
+  /**
+   * Movers
+   *
+   * The three things that added most to the cost
+   */
+  movers: Array<UsageMoverPublic>;
+};
+
+/**
+ * UsageRunPublic
+ *
+ * One test run's usage in the period.
+ */
+export type UsageRunPublic = {
+  /**
+   * Run Id
+   */
+  run_id: string;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Name
+   */
+  agent_name: string;
+  /**
+   * Set Name
+   */
+  set_name?: string | null;
+  /**
+   * Started At
+   */
+  started_at: string;
+  /**
+   * Simulated Calls
+   */
+  simulated_calls: number;
+  /**
+   * Caller Messages
+   */
+  caller_messages: number;
+  /**
+   * Cost Usd
+   */
+  cost_usd: number;
 };
 
 /**
@@ -12158,6 +12453,83 @@ export type McpRunAgentScenariosResponses = {
 
 export type McpRunAgentScenariosResponse =
   McpRunAgentScenariosResponses[keyof McpRunAgentScenariosResponses];
+
+export type McpGetWorkspaceUsageData = {
+  body?: never;
+  path: {
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: {
+    /**
+     * Agent Id
+     */
+    agent_id?: string | null;
+    /**
+     * Period
+     */
+    period?: 'month' | '7d' | '30d';
+    /**
+     * Month
+     */
+    month?: string | null;
+    /**
+     * Cursor
+     */
+    cursor?: string | null;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/mcp/workspaces/{workspace_id}/usage';
+};
+
+export type McpGetWorkspaceUsageErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpGetWorkspaceUsageError =
+  McpGetWorkspaceUsageErrors[keyof McpGetWorkspaceUsageErrors];
+
+export type McpGetWorkspaceUsageResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerUsagePublic;
+};
+
+export type McpGetWorkspaceUsageResponse =
+  McpGetWorkspaceUsageResponses[keyof McpGetWorkspaceUsageResponses];
 
 export type McpSendFeedbackData = {
   body: McpSendFeedback;

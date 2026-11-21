@@ -106,6 +106,14 @@ class TraceSource(StrEnum):
     SIMULATION = "simulation"
 
 
+class UsageMeter(StrEnum):
+    """What Connexity counts towards a workspace's usage."""
+
+    OBSERVED_MINUTES = "observed_minutes"
+    SIMULATED_CALLER_MESSAGES = "simulated_caller_messages"
+    VOICE_SIMULATION_MINUTES = "voice_simulation_minutes"
+
+
 class CallChannel(StrEnum):
     PHONE = "phone"
     WEB = "web"

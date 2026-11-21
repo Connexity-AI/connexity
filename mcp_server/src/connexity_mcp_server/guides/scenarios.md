@@ -73,6 +73,10 @@ do not approve them: a person who disagrees asks you to change one.
   the run is refused and you try again.
 - **Run a set or a pick while you work on a change.** Run `all` to verify a version:
   only a full run decides its verdict.
+- **What a run counts.** Each message the simulated caller sends counts at list
+  price; nothing is billed. `run_scenarios` says the price and what the last run of
+  the same scenarios came to, `get_test_runs` shows each run's `caller_messages` and
+  `cost_usd`, and `get_usage` the period's total.
 - **The run happens in the background.** Poll it with `get_test_runs`, its `run_id`
   and `status_only`: the answer is the status and counts alone, and is cheap.
   - `queued`, `running` and `finished` say how far it is. A slow run still has calls

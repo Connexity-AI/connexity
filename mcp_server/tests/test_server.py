@@ -30,6 +30,7 @@ async def test_server_lists_only_the_workspace_tools() -> None:
         "get_readiness",
         "get_spec",
         "get_test_runs",
+        "get_usage",
         "list_agents",
         "list_calls",
         "list_categories",

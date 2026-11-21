@@ -102,6 +102,7 @@ def test_the_manifest_is_public_and_has_no_workspace_data() -> None:
         "calls_and_issues",
         "agents_and_spec",
         "testing",
+        "usage",
         "feedback",
     ]
     assert "workspace" not in {k for k in body if k != "groups"}
