@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 
 from sqlmodel import Session, and_, col, or_, select
 
-from app.models.enums import RunStatus
+from app.models.enums import RunScope, RunStatus
 from app.models.run import Run
 from app.models.test_case_result import TestCaseResult
 from app.models.test_run import RuleVerdict
@@ -62,6 +62,27 @@ def runs_of_agent(*, session: Session, agent_id: uuid.UUID) -> list[Run]:
             .order_by(col(Run.created_at), col(Run.id))
         ).all()
     )
+
+
+def run_before(*, session: Session, run: Run) -> Run | None:
+    """The newest completed run before ``run`` of the same scenarios: the same set, or
+    every scenario. None for a run of picked scenarios."""
+    if run.scope not in (RunScope.SET, RunScope.ALL):
+        return None
+    same = [Run.agent_id == run.agent_id, Run.scope == run.scope]
+    if run.scope is RunScope.SET:
+        same.append(Run.set_name == run.set_name)
+    return session.exec(
+        select(Run)
+        .where(
+            *same,
+            Run.id != run.id,
+            Run.status == RunStatus.COMPLETED,
+            col(Run.created_at) <= run.created_at,
+        )
+        .order_by(col(Run.created_at).desc(), col(Run.id))
+        .limit(1)
+    ).first()
 
 
 def run_of_agent(

@@ -6232,6 +6232,51 @@ export const McpAnswer_Union_ScenarioSetPublic__NoneType__Schema = {
   title: 'McpAnswer[Union[ScenarioSetPublic, NoneType]]',
 } as const;
 
+export const McpAnswer_UsagePublic_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/UsagePublic',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[UsagePublic]',
+} as const;
+
 export const McpAnswer_list_CategoryPublic__Schema = {
   properties: {
     data: {
@@ -7361,6 +7406,28 @@ export const McpRefusedAgentSchema = {
   title: 'McpRefusedAgent',
 } as const;
 
+export const McpRunCostSchema = {
+  properties: {
+    run_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Run Id',
+    },
+    caller_messages: {
+      type: 'integer',
+      title: 'Caller Messages',
+    },
+    cost_usd: {
+      type: 'number',
+      title: 'Cost Usd',
+    },
+  },
+  type: 'object',
+  required: ['run_id', 'caller_messages', 'cost_usd'],
+  title: 'McpRunCost',
+  description: 'What an earlier run of the same scenarios came to, at list price.',
+} as const;
+
 export const McpRunScenariosSchema = {
   properties: {
     set: {
@@ -7789,9 +7856,25 @@ export const McpStartedRunSchema = {
       title: 'Calls',
       description: 'Simulated calls the run makes',
     },
+    price_per_caller_message_usd: {
+      type: 'number',
+      title: 'Price Per Caller Message Usd',
+      description: 'List price of each message the simulated caller sends',
+    },
+    last_run: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/McpRunCost',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'The last completed run of the same set, or of every scenario',
+    },
   },
   type: 'object',
-  required: ['run_id', 'calls'],
+  required: ['run_id', 'calls', 'price_per_caller_message_usd'],
   title: 'McpStartedRun',
 } as const;
 
@@ -9679,6 +9762,12 @@ export const SimulatedCallPublicSchema = {
       title: 'Schema Violations',
       description: "Tool arguments that break the tool's own schema",
     },
+    caller_messages: {
+      type: 'integer',
+      title: 'Caller Messages',
+      description: 'Messages the simulated caller sent: what is counted',
+      default: 0,
+    },
     cost_usd: {
       anyOf: [
         {
@@ -9689,6 +9778,8 @@ export const SimulatedCallPublicSchema = {
         },
       ],
       title: 'Cost Usd',
+      description:
+        'caller_messages at the list price, once the call has finished; nothing is billed',
     },
     timing: {
       anyOf: [
@@ -10700,16 +10791,17 @@ export const TestRunDetailPublicSchema = {
     counts: {
       $ref: '#/components/schemas/TestRunCountsPublic',
     },
+    caller_messages: {
+      type: 'integer',
+      title: 'Caller Messages',
+      description: 'Messages the simulated caller sent, over its calls',
+      default: 0,
+    },
     cost_usd: {
-      anyOf: [
-        {
-          type: 'number',
-        },
-        {
-          type: 'null',
-        },
-      ],
+      type: 'number',
       title: 'Cost Usd',
+      description: 'caller_messages at the list price; nothing is billed',
+      default: 0,
     },
     full: {
       type: 'boolean',
@@ -11022,16 +11114,17 @@ export const TestRunPublicSchema = {
     counts: {
       $ref: '#/components/schemas/TestRunCountsPublic',
     },
+    caller_messages: {
+      type: 'integer',
+      title: 'Caller Messages',
+      description: 'Messages the simulated caller sent, over its calls',
+      default: 0,
+    },
     cost_usd: {
-      anyOf: [
-        {
-          type: 'number',
-        },
-        {
-          type: 'null',
-        },
-      ],
+      type: 'number',
       title: 'Cost Usd',
+      description: 'caller_messages at the list price; nothing is billed',
+      default: 0,
     },
     full: {
       type: 'boolean',
@@ -12014,6 +12107,259 @@ export const UpdatePasswordSchema = {
   type: 'object',
   required: ['current_password', 'new_password'],
   title: 'UpdatePassword',
+} as const;
+
+export const UsageAgentPublicSchema = {
+  properties: {
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    lines: {
+      items: {
+        $ref: '#/components/schemas/UsageLinePublic',
+      },
+      type: 'array',
+      title: 'Lines',
+    },
+    cost_usd: {
+      type: 'number',
+      title: 'Cost Usd',
+    },
+  },
+  type: 'object',
+  required: ['agent_id', 'name', 'lines', 'cost_usd'],
+  title: 'UsageAgentPublic',
+} as const;
+
+export const UsageLinePublicSchema = {
+  properties: {
+    meter: {
+      $ref: '#/components/schemas/UsageMeter',
+    },
+    unit: {
+      type: 'string',
+      title: 'Unit',
+      description: 'What one unit is, in words',
+    },
+    quantity: {
+      type: 'integer',
+      title: 'Quantity',
+    },
+    unit_price_usd: {
+      type: 'number',
+      title: 'Unit Price Usd',
+      description: 'List price of one unit',
+    },
+    cost_usd: {
+      type: 'number',
+      title: 'Cost Usd',
+      description: 'quantity times the list price',
+    },
+  },
+  type: 'object',
+  required: ['meter', 'unit', 'quantity', 'unit_price_usd', 'cost_usd'],
+  title: 'UsageLinePublic',
+  description: 'One meter over the period.',
+} as const;
+
+export const UsageMeterSchema = {
+  type: 'string',
+  enum: ['observed_minutes', 'simulated_caller_messages', 'voice_simulation_minutes'],
+  title: 'UsageMeter',
+  description: "What Connexity counts towards a workspace's usage.",
+} as const;
+
+export const UsageMoverPublicSchema = {
+  properties: {
+    kind: {
+      type: 'string',
+      title: 'Kind',
+      description: "'run' or 'calls' (an agent's real calls on a day)",
+    },
+    line: {
+      type: 'string',
+      title: 'Line',
+      description: 'It in one sentence, with units and dollars',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    run_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Run Id',
+    },
+    day: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Day',
+      description: 'For calls: the UTC day',
+    },
+    quantity: {
+      type: 'integer',
+      title: 'Quantity',
+    },
+    cost_usd: {
+      type: 'number',
+      title: 'Cost Usd',
+    },
+  },
+  type: 'object',
+  required: ['kind', 'line', 'agent_id', 'quantity', 'cost_usd'],
+  title: 'UsageMoverPublic',
+  description: "One of the things that added most to the period's cost.",
+} as const;
+
+export const UsagePublicSchema = {
+  properties: {
+    period: {
+      type: 'string',
+      title: 'Period',
+      description: "'month', '7d' or '30d'",
+    },
+    starts_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Starts At',
+    },
+    ends_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Ends At',
+      description: 'Exclusive',
+    },
+    agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Id',
+    },
+    lines: {
+      items: {
+        $ref: '#/components/schemas/UsageLinePublic',
+      },
+      type: 'array',
+      title: 'Lines',
+    },
+    cost_usd: {
+      type: 'number',
+      title: 'Cost Usd',
+      description: 'Every meter together, at list price',
+    },
+    agents: {
+      items: {
+        $ref: '#/components/schemas/UsageAgentPublic',
+      },
+      type: 'array',
+      title: 'Agents',
+    },
+    runs: {
+      items: {
+        $ref: '#/components/schemas/UsageRunPublic',
+      },
+      type: 'array',
+      title: 'Runs',
+      description: 'Runs with usage in the period, most expensive first; paged',
+    },
+    movers: {
+      items: {
+        $ref: '#/components/schemas/UsageMoverPublic',
+      },
+      type: 'array',
+      title: 'Movers',
+      description: 'The three things that added most to the cost',
+    },
+  },
+  type: 'object',
+  required: ['period', 'starts_at', 'ends_at', 'lines', 'cost_usd', 'agents', 'runs', 'movers'],
+  title: 'UsagePublic',
+  description: "A workspace's usage over a period, at list price. Nothing is billed.",
+} as const;
+
+export const UsageRunPublicSchema = {
+  properties: {
+    run_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Run Id',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    agent_name: {
+      type: 'string',
+      title: 'Agent Name',
+    },
+    set_name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Set Name',
+    },
+    started_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Started At',
+    },
+    simulated_calls: {
+      type: 'integer',
+      title: 'Simulated Calls',
+    },
+    caller_messages: {
+      type: 'integer',
+      title: 'Caller Messages',
+    },
+    cost_usd: {
+      type: 'number',
+      title: 'Cost Usd',
+    },
+  },
+  type: 'object',
+  required: [
+    'run_id',
+    'agent_id',
+    'agent_name',
+    'started_at',
+    'simulated_calls',
+    'caller_messages',
+    'cost_usd',
+  ],
+  title: 'UsageRunPublic',
+  description: "One test run's usage in the period.",
 } as const;
 
 export const UserPublicSchema = {

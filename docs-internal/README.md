@@ -21,6 +21,7 @@ instead.
 - [`responsibilities.md`](./responsibilities.md) - who does what between Connexity, the assistant and the person
 - [`checks-and-incidents.md`](./checks-and-incidents.md) - the model behind checks, findings, issues and incidents
 - [`metrics.md`](./metrics.md) - how the numbers on screen are measured
+- [`usage.md`](./usage.md) - what a workspace's usage counts, the list prices, and Connexity's own model cost
 - [`data-model.md`](./data-model.md) - ER diagram and table-level schema reference
 - [`mcp-architecture.md`](./mcp-architecture.md) - MCP adapter architecture and how to add new tools
 - [`work.md`](./work.md) - the Work page: the assistant's tasks, what waits for the person, Blocks and Blocked by; decisions and open questions

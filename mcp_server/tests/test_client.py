@@ -25,6 +25,7 @@ from connexity_mcp_server.tools import (
     get_test_runs,
     list_scenarios,
     mark_issue_fixed,
+    get_usage,
     run_scenarios,
     write_scenario_set,
     write_scenarios,
@@ -1236,6 +1237,110 @@ async def test_run_scenarios_sends_one_scope_and_the_repeats() -> None:
 
     assert result.data.run_id == "r1"
     assert result.data.calls == 6
+
+
+@pytest.mark.asyncio
+async def test_get_usage_sends_the_period_and_keeps_units_with_dollars() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET"
+        assert request.url.path.endswith(f"/workspaces/{WORKSPACE_ID}/usage")
+        assert dict(request.url.params) == {
+            "agent_id": "a1",
+            "period": "month",
+            "month": "2026-11",
+            "cursor": "c1",
+            "limit": "10",
+        }
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "period": "month",
+                    "starts_at": "2026-11-01T00:00:00Z",
+                    "ends_at": "2026-12-01T00:00:00Z",
+                    "agent_id": "a1",
+                    "lines": [
+                        {
+                            "meter": "simulated_caller_messages",
+                            "unit": "message the simulated caller sent",
+                            "quantity": 9,
+                            "unit_price_usd": 0.02,
+                            "cost_usd": 0.18,
+                        }
+                    ],
+                    "cost_usd": 0.18,
+                    "agents": [
+                        {"agent_id": "a1", "name": "Front desk", "cost_usd": 0.18}
+                    ],
+                    "runs": [
+                        {
+                            "run_id": "r1",
+                            "agent_id": "a1",
+                            "agent_name": "Front desk",
+                            "set_name": "smoke",
+                            "started_at": "2026-11-19T10:00:00Z",
+                            "simulated_calls": 2,
+                            "caller_messages": 9,
+                            "cost_usd": 0.18,
+                        }
+                    ],
+                    "movers": [
+                        {
+                            "kind": "run",
+                            "line": "Run of 'smoke' on 19 Nov (Front desk): 9 caller "
+                            "messages, $0.18",
+                            "agent_id": "a1",
+                            "run_id": "r1",
+                            "quantity": 9,
+                            "cost_usd": 0.18,
+                        }
+                    ],
+                },
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: get_usage(
+            client,
+            workspace_id=WORKSPACE_ID,
+            agent_id="a1",
+            period="month",
+            month="2026-11",
+            cursor="c1",
+            limit=10,
+        ),
+    )
+
+    assert result.data.cost_usd == 0.18
+    assert result.data.lines[0].quantity == 9
+    assert result.data.runs[0].caller_messages == 9
+    assert result.data.movers[0].run_id == "r1"
+
+
+@pytest.mark.asyncio
+async def test_get_usage_sends_nothing_it_was_not_given() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert dict(request.url.params) == {}
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "period": "month",
+                    "starts_at": "2026-11-01T00:00:00Z",
+                    "ends_at": "2026-12-01T00:00:00Z",
+                },
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler, lambda client: get_usage(client, workspace_id=WORKSPACE_ID)
+    )
+
+    assert result.data.cost_usd == 0
+    assert result.data.runs == []
 
 
 @pytest.mark.asyncio

@@ -239,6 +239,7 @@ the same list Readiness, Work and the assistant's onboarding instructions follow
 | `write_scenario_set(workspace_id, agent_id, name, scenario_ids, description?)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/scenario-sets` |
 | `run_scenarios(workspace_id, agent_id, set? \| scenario_ids? \| all?, repeats?, version?)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/test-runs` |
 | `get_test_runs(workspace_id, agent_id, run_id?, version?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/test-runs` |
+| `get_usage(workspace_id, agent_id?, period?, month?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/usage` |
 | `raise_clarifications(workspace_id, agent_id, questions)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/clarifications` |
 | `list_clarifications(workspace_id, agent_id?, state?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/clarifications` |
 | `answer_clarifications(workspace_id, answers)` | `POST /api/v1/mcp/workspaces/{workspace_id}/clarifications/answers` |

@@ -10,6 +10,7 @@ from connexity_mcp_server.models import (
     GetNextTaskResult,
     ListTasksResult,
     GetDashboardResult,
+    GetUsageResult,
     GetReadinessResult,
     AgentResult,
     AnswerClarificationsResult,
@@ -114,6 +115,27 @@ async def get_dashboard(
     return GetDashboardResult.model_validate(
         await client.get_dashboard(
             workspace_id=workspace_id, agent_id=agent_id, period=period
+        )
+    )
+
+
+async def get_usage(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    agent_id: str | None = None,
+    period: str | None = None,
+    month: str | None = None,
+    cursor: str | None = None,
+    limit: int | None = None,
+) -> GetUsageResult:
+    return GetUsageResult.model_validate(
+        await client.get_usage(
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            period=period,
+            month=month,
+            cursor=cursor,
+            limit=limit,
         )
     )
 

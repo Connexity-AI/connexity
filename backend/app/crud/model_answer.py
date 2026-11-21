@@ -8,6 +8,7 @@ from sqlalchemy import and_, or_, tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlmodel import Session, col, func, select
 
+from app.crud.usage import record_call_usage_safely
 from app.models.call import Call
 from app.models.check import CallCheck
 from app.models.enums import CheckOutcome, ModelAnswerStatus
@@ -143,6 +144,8 @@ def save_model_answer(
         )
     )
     session.commit()
+    # What the check cost goes on the call's usage record.
+    record_call_usage_safely(session=session, call=call)
     return session.exec(
         select(ModelAnswer).where(
             ModelAnswer.call_id == call.id,

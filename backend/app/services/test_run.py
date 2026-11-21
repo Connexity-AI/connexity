@@ -28,6 +28,7 @@ from app import crud
 from app.core.config import settings
 from app.core.db import engine
 from app.core.encryption import decrypt
+from app.crud import usage as crud_usage
 from app.crud.scenario import (
     live_scenarios,
     members,
@@ -107,16 +108,19 @@ from app.services.agent_tool_definitions import snapshot_marks_tool_terminating
 from app.services.checks.engine import current_mode, run_checks
 from app.services.checks.registry import CHECKS, FACT_SOURCES, get_check
 from app.services.component_versions import RetellVersionRead, read_retell_version
+from app.services.cost_tracker import sum_platform_usage_dicts
 from app.services.eval_runtimes import (
     AgentSnapshot,
     RunSnapshot,
     RuntimeRunArgs,
     get_runtime,
 )
+from app.services.eval_runtimes.types import TestCaseRunResult
 from app.services.retell import PLAYGROUND_THROTTLED
 from app.services.rule_judge import JudgeFailed, RuleToJudge, judge_rules
 from app.services.tool_schema_check import check_tool_calls, tool_schemas
 from app.services.trace_capabilities import derive_capabilities
+from app.services.usage import messages_price
 
 logger = logging.getLogger(__name__)
 
@@ -573,6 +577,10 @@ async def _simulate(
         runtime = get_runtime(RunMode.TEXT, TextRuntimeKind.RETELL)
         verdicts: list[RuleVerdict] = []
         update: dict[str, Any] = {}
+        usage: _SimulatedUsage | None = None
+        out: TestCaseRunResult | None = None
+        judge_cost = 0.0
+        judge_tokens: dict[str, int] = {}
         throttled = [0]
         PLAYGROUND_THROTTLED.set(throttled)
         try:
@@ -598,7 +606,6 @@ async def _simulate(
                 update["schema_check"] = asdict(
                     check_tool_calls(transcript, tool_schemas(ctx.agent_snapshot.tools))
                 )
-            judge_cost = 0.0
             error: str | None = None
             failure = next(
                 (t.content for t in transcript if _is_marker(t.content)), None
@@ -629,6 +636,7 @@ async def _simulate(
                         # tells a judge error from a conversation that stopped.
                         update["judge_ms"] = int((time.perf_counter() - asked) * 1000)
                     judge_cost = judged.cost_usd or 0.0
+                    judge_tokens = judged.token_usage
                     rested = {
                         v.key: rests_on_default_fakes(v.outcome, v.turns, fake_turns)
                         for v in judged.verdicts
@@ -662,13 +670,19 @@ async def _simulate(
                 ctx.modes,
             )
             platform_cost = out.platform_cost_usd + judge_cost
+            platform_tokens = sum_platform_usage_dicts(
+                out.platform_token_usage, judge_tokens
+            )
+            usage = _SimulatedUsage(
+                agent_id=ctx.agent_id, cost_usd=platform_cost, tokens=platform_tokens
+            )
             update |= {
                 "transcript": [turn.model_dump(mode="json") for turn in transcript],
                 "turn_count": len(transcript),
                 "default_fakes": fakes,
                 "check_findings": [f.model_dump(mode="json") for f in findings],
                 "agent_token_usage": out.agent_token_usage or None,
-                "platform_token_usage": out.platform_token_usage or None,
+                "platform_token_usage": platform_tokens or None,
                 "agent_cost_usd": out.agent_cost_usd or None,
                 "platform_cost_usd": platform_cost or None,
                 "estimated_cost_usd": (out.agent_cost_usd + platform_cost) or None,
@@ -679,15 +693,39 @@ async def _simulate(
             update["error_message"] = str(exc)[:1000] or type(exc).__name__
             # Not the judge's failure, whatever the judge had answered.
             update.pop("judge_ms", None)
+            if out is not None:
+                # The conversation ran before the failure: what the caller sent
+                # counts, and what the models cost is kept.
+                update["transcript"] = [
+                    turn.model_dump(mode="json") for turn in out.transcript
+                ]
+                update["turn_count"] = len(out.transcript)
+                usage = _SimulatedUsage(
+                    agent_id=ctx.agent_id,
+                    cost_usd=out.platform_cost_usd + judge_cost,
+                    tokens=sum_platform_usage_dicts(
+                        out.platform_token_usage, judge_tokens
+                    ),
+                )
         update["completed_at"] = datetime.now(UTC)
         update["throttled"] = throttled[0] or None
-        _store_call(row.id, update, verdicts)
+        _store_call(row.id, update, verdicts, usage)
+
+
+@dataclass(frozen=True)
+class _SimulatedUsage:
+    """What a simulated call's own models cost Connexity, for its usage record."""
+
+    agent_id: uuid.UUID
+    cost_usd: float
+    tokens: dict[str, int]
 
 
 def _store_call(
     call_id: uuid.UUID,
     update: dict[str, Any],
     verdicts: list[RuleVerdict] | None = None,
+    usage: _SimulatedUsage | None = None,
 ) -> None:
     with Session(engine) as session:
         stored = session.get(TestCaseResult, call_id)
@@ -699,6 +737,21 @@ def _store_call(
         for verdict in verdicts or []:
             session.add(verdict)
         session.commit()
+        if usage is None:
+            return
+        # After the call is stored: a failure here must not lose its result.
+        try:
+            crud_usage.record_simulated_usage(
+                session=session,
+                result=stored,
+                agent_id=usage.agent_id,
+                model=settings.SIMULATION_MODEL,
+                own_cost_usd=usage.cost_usd,
+                tokens=usage.tokens,
+            )
+        except Exception:  # noqa: BLE001 - usage must not fail the simulated call
+            session.rollback()
+            logger.exception("Recording usage failed for simulated call %s", call_id)
 
 
 async def _heartbeat(run_id: uuid.UUID, done: asyncio.Event) -> None:
@@ -894,9 +947,8 @@ def _finish(run_id: uuid.UUID, status: RunStatus, detail: str | None) -> None:
 # ── Reading runs ──────────────────────────────────────────────────
 
 
-def _cost(calls: list[TestCaseResult]) -> float | None:
-    costs = [c.estimated_cost_usd for c in calls if c.estimated_cost_usd is not None]
-    return round(sum(costs), 4) if costs else None
+def _messages(calls: list[TestCaseResult]) -> int:
+    return sum(crud_usage.caller_messages(c.transcript) for c in calls)
 
 
 def _rule_totals(
@@ -1338,7 +1390,8 @@ def run_views(
                     _rule_totals(fact.verdicts, {}),
                     run.status in (RunStatus.PENDING, RunStatus.RUNNING),
                 ),
-                cost_usd=_cost(fact.calls),
+                caller_messages=_messages(fact.calls),
+                cost_usd=messages_price(_messages(fact.calls)),
                 full=full,
                 verdict=_verdict(totals) if totals is not None and full else None,
                 result=result,
@@ -1484,7 +1537,10 @@ def run_detail(
                     SchemaViolationPublic.model_validate(v)
                     for v in (call.schema_check or {}).get("violations") or []
                 ],
-                cost_usd=call.estimated_cost_usd,
+                caller_messages=_messages([call]),
+                cost_usd=messages_price(_messages([call]))
+                if call.completed_at
+                else None,
                 timing=call_timing(call),
                 throttled=call.throttled or 0,
                 url=simulated_call_url(call.id),

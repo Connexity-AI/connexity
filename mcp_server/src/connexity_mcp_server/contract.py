@@ -55,6 +55,11 @@ GROUPS = (
         "Write scenarios and run them as simulated calls against your agent.",
     ),
     Group(
+        "usage",
+        "Usage",
+        "See what was counted and what it comes to at list price. Nothing is billed.",
+    ),
+    Group(
         "feedback",
         "Feedback",
         "Tell the Connexity team about a bug in Connexity or something it cannot do.",
@@ -231,6 +236,12 @@ TOOLS: dict[str, ToolEntry] = {
         "scenarios",
     ),
     # Feedback
+    "get_usage": ToolEntry(
+        "usage",
+        "Shows a period's observed minutes and simulated caller messages, with their "
+        "list-price cost per agent and per run.",
+        "usage",
+    ),
     "send_feedback": ToolEntry(
         "feedback",
         "Reports a bug in Connexity, or something it cannot do, to the Connexity team.",

@@ -35,6 +35,7 @@ from connexity_mcp_server.models import (
     GetNextTaskResult,
     ListTasksResult,
     GetDashboardResult,
+    GetUsageResult,
     GetReadinessResult,
     AgentResult,
     AnswerClarificationsResult,
@@ -94,6 +95,7 @@ from connexity_mcp_server.tools import (
 )
 from connexity_mcp_server.tools import (
     get_dashboard as _get_dashboard,
+    get_usage as _get_usage,
 )
 from connexity_mcp_server.tools import (
     list_agents as _list_agents,
@@ -830,6 +832,46 @@ def build_application(settings: Settings | None = None) -> FastAPI:
             workspace_id=workspace_id,
             agent_id=agent_id,
             period=period,
+        )
+
+    @mcp_server.tool(annotations=READ_ONLY)
+    async def get_usage(
+        workspace_id: WorkspaceId,
+        agent_id: Annotated[
+            str | None, Field(description="One agent. Leave empty for all agents.")
+        ] = None,
+        period: Annotated[
+            str | None,
+            Field(
+                description="month (a calendar month, UTC), 7d or 30d. Leave empty "
+                "for month."
+            ),
+        ] = None,
+        month: Annotated[
+            str | None,
+            Field(
+                description="With period month: which one, as YYYY-MM. Leave empty "
+                "for this month."
+            ),
+        ] = None,
+        cursor: Cursor = None,
+        limit: Limit = None,
+    ) -> GetUsageResult:
+        """What the workspace used in a period and what that comes to at Connexity's
+        list price; nothing is billed. Two meters: observed minutes (each real call,
+        every started minute whole) and simulated caller messages (each message the
+        simulated caller sent in a test run). Totals per meter in units and dollars,
+        the same per agent, each run with its caller messages and cost (paged), and
+        the three things that added most. Use it when the person asks what the work
+        costs, or before a large run."""
+        return await _get_usage(
+            client=backend_client,
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            period=period,
+            month=month,
+            cursor=cursor,
+            limit=limit,
         )
 
     @mcp_server.tool(annotations=READ_ONLY)

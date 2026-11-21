@@ -168,6 +168,9 @@ import type {
   McpGetSpecData,
   McpGetSpecErrors,
   McpGetSpecResponses,
+  McpGetWorkspaceUsageData,
+  McpGetWorkspaceUsageErrors,
+  McpGetWorkspaceUsageResponses,
   McpListAgentScenariosData,
   McpListAgentScenariosErrors,
   McpListAgentScenariosResponses,
@@ -1603,6 +1606,23 @@ export class McpService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+    });
+  }
+
+  /**
+   * Get Workspace Usage
+   */
+  public static getWorkspaceUsage<ThrowOnError extends boolean = false>(
+    options: Options<McpGetWorkspaceUsageData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      McpGetWorkspaceUsageResponses,
+      McpGetWorkspaceUsageErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/usage',
+      ...options,
     });
   }
 

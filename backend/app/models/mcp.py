@@ -52,6 +52,7 @@ GUIDE_SPEC = "connexity://guides/spec"
 GUIDE_CALLS = "connexity://guides/calls"
 GUIDE_SCENARIOS = "connexity://guides/scenarios"
 GUIDE_FEEDBACK = "connexity://guides/feedback"
+GUIDE_USAGE = "connexity://guides/usage"
 
 
 class McpAnswer(BaseModel, Generic[T]):
@@ -349,9 +350,24 @@ class McpRunScenarios(BaseModel):
     )
 
 
+class McpRunCost(BaseModel):
+    """What an earlier run of the same scenarios came to, at list price."""
+
+    run_id: uuid.UUID
+    caller_messages: int
+    cost_usd: float
+
+
 class McpStartedRun(BaseModel):
     run_id: uuid.UUID
     calls: int = Field(description="Simulated calls the run makes")
+    price_per_caller_message_usd: float = Field(
+        description="List price of each message the simulated caller sends"
+    )
+    last_run: McpRunCost | None = Field(
+        default=None,
+        description="The last completed run of the same set, or of every scenario",
+    )
 
 
 class McpTestRuns(BaseModel):

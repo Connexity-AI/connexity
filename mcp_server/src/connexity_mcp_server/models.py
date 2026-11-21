@@ -394,6 +394,74 @@ class Dashboard(BaseModel):
 
 
 GetDashboardResult = Answer[Dashboard]
+
+
+class UsageLine(BaseModel):
+    """One meter over the period."""
+
+    meter: str = Field(
+        description="observed_minutes, simulated_caller_messages or "
+        "voice_simulation_minutes"
+    )
+    unit: str = Field(description="What one unit is, in words")
+    quantity: int
+    unit_price_usd: float = Field(description="List price of one unit")
+    cost_usd: float = Field(description="quantity times the list price")
+
+
+class UsageAgent(BaseModel):
+    agent_id: str
+    name: str
+    lines: list[UsageLine] = Field(default_factory=list)
+    cost_usd: float = 0.0
+
+
+class UsageRun(BaseModel):
+    """One test run's usage in the period."""
+
+    run_id: str
+    agent_id: str
+    agent_name: str
+    set_name: str | None = None
+    started_at: str
+    simulated_calls: int
+    caller_messages: int
+    cost_usd: float
+
+
+class UsageMover(BaseModel):
+    """One of the things that added most to the period's cost."""
+
+    kind: str = Field(description="'run' or 'calls' (an agent's real calls on a day)")
+    line: str = Field(description="It in one sentence, with units and dollars")
+    agent_id: str
+    run_id: str | None = None
+    day: str | None = Field(default=None, description="For calls: the UTC day")
+    quantity: int
+    cost_usd: float
+
+
+class Usage(BaseModel):
+    """A workspace's usage over a period, at list price. Nothing is billed."""
+
+    period: str = Field(description="'month', '7d' or '30d'")
+    starts_at: str
+    ends_at: str = Field(description="Exclusive")
+    agent_id: str | None = None
+    lines: list[UsageLine] = Field(default_factory=list)
+    cost_usd: float = Field(default=0.0, description="Every meter, at list price")
+    agents: list[UsageAgent] = Field(default_factory=list)
+    runs: list[UsageRun] = Field(
+        default_factory=list,
+        description="Runs with usage in the period, most expensive first; paged",
+    )
+    movers: list[UsageMover] = Field(
+        default_factory=list,
+        description="The three things that added most to the cost",
+    )
+
+
+GetUsageResult = Answer[Usage]
 GetNextTaskResult = Answer[NextTask]
 
 
@@ -973,9 +1041,25 @@ ScenarioSetResult = Answer[ScenarioSet | None]
 
 
 
+class RunCost(BaseModel):
+    """What an earlier run of the same scenarios came to, at list price."""
+
+    run_id: str
+    caller_messages: int
+    cost_usd: float
+
+
 class StartedRun(BaseModel):
     run_id: str
     calls: int = Field(description="Simulated calls the run makes")
+    price_per_caller_message_usd: float | None = Field(
+        default=None,
+        description="List price of each message the simulated caller sends",
+    )
+    last_run: RunCost | None = Field(
+        default=None,
+        description="The last completed run of the same set, or of every scenario",
+    )
 
 
 class RuleTotal(BaseModel):
@@ -1077,7 +1161,12 @@ class SimulatedCall(BaseModel):
         default_factory=list,
         description="Tool arguments that break the tool's own schema",
     )
-    cost_usd: float | None = None
+    caller_messages: int = Field(
+        default=0, description="Messages the simulated caller sent: what is counted"
+    )
+    cost_usd: float | None = Field(
+        default=None, description="caller_messages at the list price; nothing is billed"
+    )
     timing: CallTiming | None = Field(
         default=None, description="Where its time went, once finished"
     )
@@ -1223,7 +1312,12 @@ class TestRun(BaseModel):
     started_at: str | None = None
     completed_at: str | None = None
     counts: TestRunCounts = Field(default_factory=TestRunCounts)
-    cost_usd: float | None = None
+    caller_messages: int = Field(
+        default=0, description="Messages the simulated caller sent, over its calls"
+    )
+    cost_usd: float | None = Field(
+        default=None, description="caller_messages at the list price; nothing is billed"
+    )
     full: bool = Field(
         default=False, description="A run of every scenario: only it decides the verdict"
     )

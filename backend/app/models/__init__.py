@@ -192,6 +192,7 @@ from app.models.test_case_result import (  # noqa: F401
     TestCaseResultBase,
 )
 from app.models.test_run import RuleVerdict  # noqa: F401
+from app.models.usage import UsageRecord  # noqa: F401
 
 # ── Existing user models ──────────────────────────────────────────
 from app.models.user import (  # noqa: F401
