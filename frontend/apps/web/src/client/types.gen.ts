@@ -6004,6 +6004,37 @@ export type RunProgressPublic = {
 };
 
 /**
+ * RunSchemaCheckPublic
+ *
+ * A run's tool calls checked against the tools' schemas. A violation is a fact
+ * about what the agent sent; nothing refused it, and it never changes the verdict.
+ */
+export type RunSchemaCheckPublic = {
+  /**
+   * Tools Checked
+   *
+   * Tools of the tested version that declare a schema
+   */
+  tools_checked: number;
+  /**
+   * Tools Unreadable
+   *
+   * Tools whose schema could not be read, so were not checked
+   */
+  tools_unreadable?: Array<string>;
+  /**
+   * Calls With Violations
+   */
+  calls_with_violations?: number;
+  /**
+   * Violations
+   *
+   * Each tool and field, most calls first
+   */
+  violations?: Array<SchemaViolationTotalPublic>;
+};
+
+/**
  * RunScope
  *
  * What a run of scenarios covers.
@@ -6425,6 +6456,58 @@ export type ScenarioSetPublic = {
 };
 
 /**
+ * SchemaViolationPublic
+ *
+ * One argument of one tool call that breaks the tool's own schema.
+ */
+export type SchemaViolationPublic = {
+  /**
+   * Tool
+   */
+  tool: string;
+  /**
+   * Field
+   */
+  field: string;
+  /**
+   * Problem
+   *
+   * What is wrong, in plain words
+   */
+  problem: string;
+  /**
+   * Turn
+   *
+   * The turn of the tool call
+   */
+  turn: number;
+};
+
+/**
+ * SchemaViolationTotalPublic
+ */
+export type SchemaViolationTotalPublic = {
+  /**
+   * Tool
+   */
+  tool: string;
+  /**
+   * Field
+   */
+  field: string;
+  /**
+   * Problem
+   */
+  problem: string;
+  /**
+   * Calls
+   *
+   * Simulated calls where it happened
+   */
+  calls: number;
+};
+
+/**
  * ScoreMovePublic
  *
  * An issue that costs the score points in the period.
@@ -6600,6 +6683,12 @@ export type SimulatedCallPublic = {
    * Default Fakes
    */
   default_fakes?: Array<string>;
+  /**
+   * Schema Violations
+   *
+   * Tool arguments that break the tool's own schema
+   */
+  schema_violations?: Array<SchemaViolationPublic>;
   /**
    * Cost Usd
    */
@@ -7300,11 +7389,15 @@ export type TestRunDetailPublic = {
    */
   content_checked_at?: string | null;
   /**
-   * Tool Schemas Applied
+   * Tool Schemas Checked
    *
-   * Whether the platform's tool schemas were applied to the agent's tool calls. False in every text run: tools are faked, so a run does not prove a schema fix
+   * Whether the agent's tool calls were checked against the tools' own schemas. False when the tested version could not be read, and for runs made before the check existed
    */
-  tool_schemas_applied?: boolean;
+  tool_schemas_checked?: boolean;
+  /**
+   * What that check found, when it ran
+   */
+  schema_check?: RunSchemaCheckPublic | null;
   /**
    * Created At
    */
@@ -7461,11 +7554,15 @@ export type TestRunPublic = {
    */
   content_checked_at?: string | null;
   /**
-   * Tool Schemas Applied
+   * Tool Schemas Checked
    *
-   * Whether the platform's tool schemas were applied to the agent's tool calls. False in every text run: tools are faked, so a run does not prove a schema fix
+   * Whether the agent's tool calls were checked against the tools' own schemas. False when the tested version could not be read, and for runs made before the check existed
    */
-  tool_schemas_applied?: boolean;
+  tool_schemas_checked?: boolean;
+  /**
+   * What that check found, when it ran
+   */
+  schema_check?: RunSchemaCheckPublic | null;
   /**
    * Created At
    */

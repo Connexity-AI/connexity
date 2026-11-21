@@ -47,6 +47,13 @@ class TestCaseResultBase(SQLModel):
         sa_column=Column("default_fakes", JSONB, nullable=True),
         description="Tools the scenario did not fake, answered by the default fake",
     )
+    schema_check: dict[str, Any] | None = Field(
+        default=None,
+        sa_column=Column("schema_check", JSONB, nullable=True),
+        description="The call's tool arguments checked against the tools' schemas: "
+        "the tools with a schema, those unreadable, and each violation. None when "
+        "the tested version's schemas could not be read, and for earlier calls",
+    )
     agent_token_usage: dict[str, int | bool] | None = Field(
         default=None,
         sa_column=Column("agent_token_usage", JSONB, nullable=True),

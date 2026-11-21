@@ -1028,6 +1028,37 @@ class SimulatedFinding(BaseModel):
     detail: dict[str, Any] | None = None
 
 
+class SchemaViolation(BaseModel):
+    tool: str
+    field: str
+    problem: str = Field(description="What is wrong, in plain words")
+    turn: int = Field(description="The turn of the tool call")
+
+
+class SchemaViolationTotal(BaseModel):
+    tool: str
+    field: str
+    problem: str
+    calls: int = Field(description="Simulated calls where it happened")
+
+
+class RunSchemaCheck(BaseModel):
+    tools_checked: int = Field(
+        default=0, description="Tools of the tested version that declare a schema"
+    )
+    tools_unreadable: list[str] = Field(
+        default_factory=list,
+        description="Tools whose schema could not be read, so were not checked",
+    )
+    calls_with_violations: int = 0
+    violations: list[SchemaViolationTotal] = Field(
+        default_factory=list,
+        description="Each tool and field, most calls first. A violation is a fact "
+        "about what the agent sent: nothing refused it and it does not change the "
+        "verdict",
+    )
+
+
 class SimulatedCall(BaseModel):
     id: str
     scenario_id: str
@@ -1041,6 +1072,10 @@ class SimulatedCall(BaseModel):
     default_fakes: list[str] = Field(
         default_factory=list,
         description="Tools no scenario fake answered; they got the default fake",
+    )
+    schema_violations: list[SchemaViolation] = Field(
+        default_factory=list,
+        description="Tool arguments that break the tool's own schema",
     )
     cost_usd: float | None = None
     timing: CallTiming | None = Field(
@@ -1176,10 +1211,13 @@ class TestRun(BaseModel):
     content_checked_at: str | None = Field(
         default=None, description="When the version was read on the platform for it"
     )
-    tool_schemas_applied: bool = Field(
+    tool_schemas_checked: bool = Field(
         default=False,
-        description="False in every text run: tools are faked, so the platform's tool "
-        "schemas are not applied and a run does not prove a schema fix",
+        description="Whether the agent's tool calls were checked against the tools' "
+        "own schemas; false when the tested version could not be read",
+    )
+    schema_check: RunSchemaCheck | None = Field(
+        default=None, description="What that check found, when it ran"
     )
     created_at: str
     started_at: str | None = None

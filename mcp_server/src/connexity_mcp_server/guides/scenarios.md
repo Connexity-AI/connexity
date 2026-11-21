@@ -93,10 +93,18 @@ do not approve them: a person who disagrees asks you to change one.
   - a hang-up or a transfer ends the conversation there, as on a real call.
 - **A conversation ends** when the agent hangs up or after 40 agent replies, and is
   judged on what was said. One still going after 10 minutes is stopped as an error.
-- **No tool schema is applied** (`tool_schemas_applied` is false). The platform's
-  schema for a tool (required fields, minimum lengths, patterns) is never checked in a
-  text run, because the tool is faked. A green run is not proof that a schema change
-  works.
+- **Tool arguments are checked against the tool's own schema.** The agent's model
+  gets its real tool schemas in a text run; Connexity then looks at what it sent.
+  - `schema_violations` on a call, and `schema_check` on the run, name each tool and
+    field that breaks its schema: a required field missing or empty, a pattern not
+    matched.
+  - A violation is a fact about the arguments. Nothing refused it, on a real call
+    either: the schema only guides the model. Connexity sends nothing back to the
+    agent, and a violation never changes the verdict.
+  - To confirm a fix to a schema or a prompt, run the scenarios again: the violation
+    is gone.
+  - `tool_schemas_checked` is false when the tested version could not be read; run
+    again.
 - **A run is refused** when Connexity's model key is missing. Tell the person; there is
   nothing for you to fix.
 

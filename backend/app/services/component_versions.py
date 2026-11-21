@@ -11,7 +11,7 @@ A provider that cannot be read never stops a call from being stored.
 import logging
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from sqlmodel import Session, col, delete, select
@@ -180,6 +180,9 @@ ENDING_TOOL_TYPES = frozenset({"end_call", "transfer_call"})
 class RetellTool:
     name: str
     ends_call: bool
+    # The tool's own JSON Schema for its arguments; none for a tool without one (a
+    # hang-up, a transfer, Retell's built-in tools).
+    parameters: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -195,6 +198,7 @@ def _tools_in(body: object) -> list[RetellTool]:
     """Every tool a prompt or flow declares (``general_tools``, a state's or a
     flow's ``tools``), by name, once each."""
     found: dict[str, RetellTool] = {}
+    variants: dict[str, list[dict[str, Any]]] = {}
 
     def walk(node: object) -> None:
         if isinstance(node, list):
@@ -209,9 +213,30 @@ def _tools_in(body: object) -> list[RetellTool]:
                     if not isinstance(tool, dict):
                         continue
                     name = tool.get("name")
-                    if isinstance(name, str) and name and name not in found:
+                    if not (isinstance(name, str) and name):
+                        continue
+                    parameters = tool.get("parameters")
+                    schema = (
+                        parameters
+                        if isinstance(parameters, dict) and parameters
+                        else None
+                    )
+                    if name not in found:
                         found[name] = RetellTool(
-                            name=name, ends_call=tool.get("type") in ENDING_TOOL_TYPES
+                            name=name,
+                            ends_call=tool.get("type") in ENDING_TOOL_TYPES,
+                            parameters=schema,
+                        )
+                        variants[name] = [schema] if schema else []
+                    elif schema and schema not in variants[name]:
+                        # The same tool declared again with another schema (another
+                        # state or node): a call obeys the tool when it obeys any.
+                        variants[name].append(schema)
+                        found[name] = replace(
+                            found[name],
+                            parameters=variants[name][0]
+                            if len(variants[name]) == 1
+                            else {"anyOf": list(variants[name])},
                         )
             walk(value)
 
