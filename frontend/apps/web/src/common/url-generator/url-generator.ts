@@ -79,6 +79,10 @@ export class UrlGenerator {
     return '/account/' as Route;
   }
 
+  static agency() {
+    return '/agency/' as Route;
+  }
+
   // ── Auth ──
 
   static login({ options, values }: AuthType = {}) {
@@ -89,6 +93,10 @@ export class UrlGenerator {
   static register({ options, values }: AuthType = {}) {
     const route = '/register/' as Route;
     return createTypedLink(route, emptyParser, options)(values);
+  }
+
+  static invite(token: string) {
+    return `/invite/${token}/` as Route;
   }
 
   static forgotPassword() {

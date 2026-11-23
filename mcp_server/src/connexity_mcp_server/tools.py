@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from connexity_mcp_server.client import ConnexityBackendClient
 from connexity_mcp_server.models import (
+    InvitePeopleResult,
+    ListPeopleResult,
+    RemovePersonResult,
+    UpdatePersonResult,
     AddAgentsResult,
     AgentToAdd,
     ConnectVoicePlatformResult,
@@ -536,4 +540,65 @@ async def send_feedback(
             ids=ids,
             session=session,
         )
+    )
+
+
+async def list_people(
+    client: ConnexityBackendClient, workspace_id: str
+) -> ListPeopleResult:
+    return ListPeopleResult.model_validate(
+        await client.list_people(workspace_id=workspace_id)
+    )
+
+
+async def invite_people(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    emails: list[str],
+    role: str = "member",
+    all_workspaces: bool = True,
+    workspace_ids: list[str] | None = None,
+    can_approve: bool = False,
+) -> InvitePeopleResult:
+    return InvitePeopleResult.model_validate(
+        await client.invite_people(
+            workspace_id=workspace_id,
+            emails=emails,
+            role=role,
+            all_workspaces=all_workspaces,
+            workspace_ids=workspace_ids or [],
+            can_approve=can_approve,
+        )
+    )
+
+
+async def update_person(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    person_id: str,
+    role: str | None = None,
+    all_workspaces: bool | None = None,
+    workspace_ids: list[str] | None = None,
+    can_approve: bool | None = None,
+) -> UpdatePersonResult:
+    given = {
+        "role": role,
+        "all_workspaces": all_workspaces,
+        "workspace_ids": workspace_ids,
+        "can_approve": can_approve,
+    }
+    return UpdatePersonResult.model_validate(
+        await client.update_person(
+            workspace_id=workspace_id,
+            person_id=person_id,
+            changes={k: v for k, v in given.items() if v is not None},
+        )
+    )
+
+
+async def remove_person(
+    client: ConnexityBackendClient, workspace_id: str, person_id: str
+) -> RemovePersonResult:
+    return RemovePersonResult.model_validate(
+        await client.remove_person(workspace_id=workspace_id, person_id=person_id)
     )

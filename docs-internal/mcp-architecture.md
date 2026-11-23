@@ -242,6 +242,10 @@ the same list Readiness, Work and the assistant's onboarding instructions follow
 | `run_scenarios(workspace_id, agent_id, set? \| scenario_ids? \| all?, repeats?, version?)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/test-runs` |
 | `get_test_runs(workspace_id, agent_id, run_id?, version?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/test-runs` |
 | `get_usage(workspace_id, agent_id?, period?, month?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/usage` |
+| `list_people(workspace_id)` | `GET /api/v1/mcp/workspaces/{workspace_id}/people` |
+| `invite_people(workspace_id, emails, role?, all_workspaces?, workspace_ids?, can_approve?)` | `POST /api/v1/mcp/workspaces/{workspace_id}/people/invites` |
+| `update_person(workspace_id, person_id, role?, all_workspaces?, workspace_ids?, can_approve?)` | `PATCH /api/v1/mcp/workspaces/{workspace_id}/people/{person_id}` |
+| `remove_person(workspace_id, person_id)` | `DELETE /api/v1/mcp/workspaces/{workspace_id}/people/{person_id}` |
 | `raise_clarifications(workspace_id, agent_id, questions)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/clarifications` |
 | `list_clarifications(workspace_id, agent_id?, state?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/clarifications` |
 | `answer_clarifications(workspace_id, answers)` | `POST /api/v1/mcp/workspaces/{workspace_id}/clarifications/answers` |

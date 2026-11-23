@@ -14,6 +14,10 @@ from connexity_mcp_server.models import (
     ScenarioToWrite,
 )
 from connexity_mcp_server.tools import (
+    invite_people,
+    list_people,
+    remove_person,
+    update_person,
     add_agents,
     get_call,
     list_calls,
@@ -1696,3 +1700,138 @@ async def test_get_test_runs_polls_a_runs_status_alone() -> None:
     assert result.data.status is not None
     assert (result.data.status.progress.running, result.data.status.progress.queued) == (10, 11)
     assert result.data.status.stalled is False
+
+
+PERSON = {
+    "id": "5a1b2c3d-0000-4000-8000-000000000001",
+    "name": "Sam Reyes",
+    "email": "sam@example.com",
+    "role": "member",
+    "all_workspaces": False,
+    "workspace_ids": [WORKSPACE_ID],
+    "can_approve": False,
+    "assistants": 2,
+    "is_you": False,
+}
+INVITE = {
+    "id": "5a1b2c3d-0000-4000-8000-000000000002",
+    "email": "kai@example.com",
+    "role": "member",
+    "all_workspaces": True,
+    "workspace_ids": [WORKSPACE_ID],
+    "can_approve": False,
+    "expires_at": "2026-11-30T12:00:00Z",
+    "invited_by": "Alex Morgan",
+}
+
+
+@pytest.mark.asyncio
+async def test_list_people_reads_the_agency_of_a_workspace() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET"
+        assert request.url.path == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/people"
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "agency": IN_AGENCY["agency"],
+                    "your_role": "admin",
+                    "workspaces": [{"id": WORKSPACE_ID, "name": "Bright Dental"}],
+                    "people": [PERSON],
+                    "invites": [INVITE],
+                },
+                "next_cursor": None,
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler, lambda client: list_people(client, workspace_id=WORKSPACE_ID)
+    )
+
+    assert result.data.people[0].assistants == 2
+    assert result.data.invites[0].email == "kai@example.com"
+
+
+@pytest.mark.asyncio
+async def test_invite_people_sends_what_the_person_agreed_to() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url.path.endswith("/people/invites")
+        assert json.loads(request.content) == {
+            "emails": ["kai@example.com"],
+            "role": "member",
+            "all_workspaces": False,
+            "workspace_ids": [WORKSPACE_ID],
+            "can_approve": False,
+        }
+        return httpx.Response(
+            200,
+            json={
+                "data": {"sent": [INVITE], "refused": []},
+                "next_cursor": None,
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: invite_people(
+            client,
+            workspace_id=WORKSPACE_ID,
+            emails=["kai@example.com"],
+            all_workspaces=False,
+            workspace_ids=[WORKSPACE_ID],
+        ),
+    )
+
+    assert [i.email for i in result.data.sent] == ["kai@example.com"]
+
+
+@pytest.mark.asyncio
+async def test_update_person_sends_only_what_changes() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "PATCH"
+        assert request.url.path.endswith(f"/people/{PERSON['id']}")
+        assert json.loads(request.content) == {"can_approve": True}
+        return httpx.Response(
+            200,
+            json={
+                "data": PERSON | {"can_approve": True},
+                "next_cursor": None,
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: update_person(
+            client, workspace_id=WORKSPACE_ID, person_id=PERSON["id"], can_approve=True
+        ),
+    )
+
+    assert result.data.can_approve is True
+
+
+@pytest.mark.asyncio
+async def test_remove_person_deletes_by_id() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "DELETE"
+        assert request.url.path.endswith(f"/people/{PERSON['id']}")
+        return httpx.Response(
+            200,
+            json={
+                "data": {"removed": "person", "who": "Sam Reyes"},
+                "next_cursor": None,
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: remove_person(
+            client, workspace_id=WORKSPACE_ID, person_id=PERSON["id"]
+        ),
+    )
+
+    assert result.data.removed == "person"

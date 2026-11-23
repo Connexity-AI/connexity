@@ -13,131 +13,261 @@
 <style>body{margin:0}*{box-sizing:border-box}button,input{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}input::placeholder{color:var(--ink3)}</style>
 </helmet>
 <div style="{{ rootStyle }}">
-<dc-import name="Connexity Readiness Bar" credits="{{ creditsState }}" hint-size="100%,36px"></dc-import>
+<dc-import name="Connexity Readiness Bar" credits="{{ creditsState }}" payment="{{ payState }}" sub="{{ subState }}" hint-size="100%,36px"></dc-import>
+<sc-if value="{{ phone }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:8px;height:52px;padding:0 4px 0 16px;background:var(--s1);border-bottom:1px solid var(--border)"><span role="img" aria-label="Connexity" style="display:block;flex:none;width:24px;height:24px;background:var(--brand);-webkit-mask:url(assets/connexity-logo.png) center/contain no-repeat;mask:url(assets/connexity-logo.png) center/contain no-repeat"></span><span style="font-size:15px;font-weight:500">Connexity</span><button aria-label="Menu" style="margin-left:auto;width:44px;height:44px;display:flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:8px;background:transparent;color:var(--ink2);cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"></path><path d="M4 6h16"></path><path d="M4 18h16"></path></svg></button></div></sc-if>
 <div style="display:flex;min-height:inherit">
-<div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="agency" credits="{{ creditsState }}" style="height:100%" hint-size="220px,320px"></dc-import></div>
-<main style="flex:1;min-width:944px;padding:24px 32px 48px">
-<div style="max-width:1120px;min-width:880px;display:flex;flex-direction:column;gap:24px">
-<div style="display:flex;align-items:baseline;gap:12px;min-height:40px"><h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Agency settings</h1><span style="font-size:13px;color:var(--ink3)">Signal Voice · 6 workspaces</span></div>
-<div style="display:grid;grid-template-columns:176px minmax(0,1fr);gap:32px;align-items:start">
-<nav style="display:flex;flex-direction:column;gap:2px">
+<sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}"><div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="agency" credits="{{ creditsState }}" agencies="{{ agencies }}" style="height:100%" hint-size="220px,320px"></dc-import></div></sc-if>
+<main style="{{ mainStyle }}">
+<div style="{{ innerStyle }}">
+<div style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:12px;min-height:40px"><h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Agency settings</h1><span style="font-size:13px;color:var(--ink3)">Signal Voice · 6 workspaces</span></div>
+<div style="{{ gridStyle }}">
+<nav style="{{ navStyle }}">
 <sc-for list="{{ sections }}" as="n" hint-placeholder-count="2"><button onClick="{{ n.pick }}" style="{{ n.style }}">{{ n.label }}</button></sc-for>
 </nav>
 <div ref="{{ bodyRef }}" style="display:flex;flex-direction:column;gap:16px;min-width:0">
 <sc-if value="{{ onMembers }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">{{ countLine }}</span>
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px">
-<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 180px 140px;gap:16px;align-items:center;height:40px;padding:0 24px;font-size:13px;color:var(--ink2)"><span>Person</span><span>Email</span><span>Workspaces</span><span>Can approve</span></div>
-<sc-for list="{{ members }}" as="u" hint-placeholder-count="5">
-<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 180px 140px;gap:16px;align-items:center;min-height:52px;padding:6px 24px;border-top:1px solid var(--border)">
-<span style="display:flex;align-items:center;gap:10px;min-width:0"><span style="flex:none;width:24px;height:24px;border-radius:12px;background:var(--unch-bg);color:var(--ink2);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center">{{ u.initial }}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ u.name }}</span><sc-if value="{{ u.invited }}"><span style="flex:none;font-size:13px;color:var(--ink3)">Invited</span></sc-if></span>
-<span style="color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ u.email }}</span>
-<div data-ws="1" style="position:relative">
-<button onClick="{{ u.toggleWs }}" style="display:flex;align-items:center;gap:6px;height:32px;padding:0 8px 0 10px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:13px;cursor:pointer;white-space:nowrap" style-hover="background:var(--wash)">{{ u.wsLabel }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg></button>
+<sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}"><div style="display:grid;grid-template-columns:minmax(0,1fr) 128px 180px 140px 32px;gap:16px;align-items:center;height:40px;padding:0 16px 0 24px;font-size:13px;color:var(--ink2)"><span>Person</span><span>Role</span><span>Workspaces</span><span>Can approve</span><span></span></div></sc-if>
+<sc-for list="{{ members }}" as="u" hint-placeholder-count="6">
+<div style="{{ u.rowStyle }}">
+<span style="display:flex;align-items:center;gap:10px;min-width:0"><span style="flex:none;width:24px;height:24px;border-radius:12px;background:var(--unch-bg);color:var(--ink2);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center">{{ u.initial }}</span>
+<span style="display:flex;flex-direction:column;min-width:0">
+<span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ u.name }}</span>
+<sc-if value="{{ u.self }}"><span style="flex:none;display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:6px;border:1px solid var(--border);font-size:13px;line-height:18px;color:var(--ink2)">You</span></sc-if>
+<sc-if value="{{ u.invited }}"><span style="flex:none;display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:6px;background:var(--unch-bg);font-size:13px;line-height:18px;color:var(--ink2)">Invited</span></sc-if></span>
+<span style="font-size:13px;line-height:18px;color:var(--ink3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ u.sub }}</span>
+</span></span>
+<div style="{{ u.groupStyle }}">
+<sc-if value="{{ u.roleFree }}"><div data-menu="1" style="position:relative"><button onClick="{{ u.toggleRole }}" aria-haspopup="listbox" style="display:flex;align-items:center;gap:4px;height:32px;padding:0 6px 0 8px;margin-left:-8px;border-radius:8px;border:0;background:transparent;color:var(--ink);font-size:13px;cursor:pointer;white-space:nowrap" style-hover="background:var(--wash)">{{ u.roleLabel }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg></button><sc-if value="{{ u.roleOpen }}">
+<div style="position:absolute;z-index:20;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18);left:0;top:36px;width:240px">
+<sc-for list="{{ u.roleOpts }}" as="o" hint-placeholder-count="0">
+<div onClick="{{ o.pick }}" style="display:flex;align-items:flex-start;gap:10px;padding:7px 10px;border-radius:6px;cursor:pointer" style-hover="background:var(--wash)">
+<span style="flex:none;width:14px;height:18px;display:flex;align-items:center"><sc-if value="{{ o.on }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if></span>
+<span style="display:flex;flex-direction:column"><span style="font-size:13px;line-height:18px">{{ o.label }}</span><span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ o.text }}</span></span>
+</div>
+</sc-for>
+</div>
+</sc-if></div></sc-if>
+<sc-if value="{{ u.roleLocked }}"><div onMouseEnter="{{ u.showTip }}" onMouseLeave="{{ u.hideTip }}" style="position:relative"><button aria-disabled="true" aria-describedby="last-admin" style="display:flex;align-items:center;gap:4px;height:32px;padding:0 6px 0 8px;margin-left:-8px;border-radius:8px;border:0;background:transparent;color:var(--ink3);font-size:13px;cursor:default;white-space:nowrap">{{ u.roleLabel }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.5"><path d="m6 9 6 6 6-6"></path></svg></button>
+<sc-if value="{{ u.tipOn }}"><span role="tooltip" style="position:absolute;left:-8px;bottom:calc(100% + 6px);z-index:30;padding:6px 10px;border-radius:6px;background:var(--accent);color:var(--on-accent);font-size:13px;line-height:18px;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.18)">An agency needs at least one Admin.</span></sc-if></div></sc-if>
+<sc-if value="{{ u.read }}"><span style="font-size:13px;color:var(--ink2)">{{ u.roleLabel }}</span></sc-if>
+<sc-if value="{{ u.edit }}"><div data-menu="1" style="position:relative">
+<button onClick="{{ u.toggleWs }}" style="{{ u.wsStyle }}" style-hover="background:var(--wash)">{{ u.wsLabel }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg></button>
 <sc-if value="{{ u.wsOpen }}">
-<div style="position:absolute;left:0;top:38px;z-index:20;width:240px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18)">
+<div style="position:absolute;z-index:20;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18);left:0;top:38px;width:240px">
 <sc-for list="{{ u.wsOpts }}" as="o" hint-placeholder-count="0">
 <div onClick="{{ o.pick }}" style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:6px;font-size:13px;cursor:pointer" style-hover="background:var(--wash)">
-<sc-if value="{{ o.on }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span></sc-if>
-<sc-if value="{{ o.off }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;border:1px solid var(--bc)"></span></sc-if>
-<span>{{ o.label }}</span>
+<sc-if value="{{ o.on }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span></sc-if><sc-if value="{{ o.off }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;border:1px solid var(--bc)"></span></sc-if><span>{{ o.label }}</span>
 </div>
 </sc-for>
 </div>
 </sc-if>
+</div></sc-if>
+<sc-if value="{{ u.read }}"><span style="{{ u.wsTextStyle }}">{{ u.wsLabel }}</span></sc-if>
+<sc-if value="{{ u.edit }}"><label onClick="{{ u.toggle }}" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+<sc-if value="{{ u.can }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span></sc-if><sc-if value="{{ u.cannot }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;border:1px solid var(--bc)"></span></sc-if><span>{{ u.canText }}</span></label></sc-if>
+<sc-if value="{{ u.read }}"><span style="font-size:13px;color:var(--ink2)">{{ u.canText }}</span></sc-if>
 </div>
-<label onClick="{{ u.toggle }}" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
-<sc-if value="{{ u.can }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span></sc-if>
-<sc-if value="{{ u.cannot }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;border:1px solid var(--bc)"></span></sc-if><span>{{ u.canText }}</span></label>
+<div data-menu="1" style="{{ u.moreStyle }}">
+<sc-if value="{{ u.hasMore }}"><button onClick="{{ u.toggleMore }}" aria-label="More for {{ u.name }}" aria-haspopup="menu" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:8px;background:transparent;color:var(--ink3);cursor:pointer" style-hover="background:var(--wash);color:var(--ink)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></button>
+<sc-if value="{{ u.moreOpen }}">
+<div role="menu" style="position:absolute;z-index:20;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18);right:0;top:36px;width:200px;display:flex;flex-direction:column">
+<sc-if value="{{ u.invited }}"><button onClick="{{ u.resend }}" role="menuitem" style="display:flex;align-items:center;height:34px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--ink);font-size:13px;text-align:left;cursor:pointer" style-hover="background:var(--wash)">Resend invite</button><button onClick="{{ u.cancelInvite }}" role="menuitem" style="display:flex;align-items:center;height:34px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--ink);font-size:13px;text-align:left;cursor:pointer" style-hover="background:var(--wash)">Cancel invite</button></sc-if>
+<sc-if value="{{ u.removeOk }}"><button onClick="{{ u.askRemove }}" role="menuitem" style="display:flex;align-items:center;height:34px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--crit);font-size:13px;text-align:left;cursor:pointer" style-hover="background:var(--wash)">Remove from agency</button></sc-if>
+<sc-if value="{{ u.removeLocked }}"><button aria-disabled="true" role="menuitem" title="An agency needs at least one Admin." style="display:flex;align-items:center;height:34px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--ink3);font-size:13px;text-align:left;cursor:default">Remove from agency</button></sc-if>
+</div>
+</sc-if></sc-if>
+</div>
 </div>
 </sc-for>
 <div style="padding:12px 24px 16px;border-top:1px solid var(--border);font-size:13px;line-height:18px;color:var(--ink3)">People who can approve may archive issues, close incidents, override the gate, and change the Playbook and checks, in the workspaces they can access.</div>
 </div>
-<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px 24px;display:flex;align-items:center;gap:12px">
+</div>
+<sc-if value="{{ canInvite }}" hint-placeholder-val="{{ true }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px 24px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
 <span style="flex:none;font-weight:500">Invite</span>
-<input value="{{ invite }}" onChange="{{ onInvite }}" placeholder="name@agency.com" style="flex:1;min-width:0;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s0);color:var(--ink);font-size:15px;outline:none">
-<div data-ws="1" style="position:relative">
-<button onClick="{{ inv.toggleWs }}" style="display:flex;align-items:center;gap:6px;height:32px;padding:0 8px 0 10px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:13px;cursor:pointer;white-space:nowrap" style-hover="background:var(--wash)">{{ inv.wsLabel }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg></button>
+<input value="{{ invite }}" onChange="{{ onInvite }}" onKeyDown="{{ onInviteKey }}" placeholder="Emails, separated by commas" aria-invalid="{{ inviteErr }}" style="{{ inviteInput }}">
+<div data-menu="1" style="position:relative"><button onClick="{{ inv.toggleRole }}" aria-haspopup="listbox" style="display:flex;align-items:center;gap:6px;height:32px;padding:0 8px 0 10px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:13px;cursor:pointer;white-space:nowrap" style-hover="background:var(--wash)">{{ inv.roleLabel }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg></button><sc-if value="{{ inv.roleOpen }}">
+<div style="position:absolute;z-index:20;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18);left:0;top:36px;width:240px">
+<sc-for list="{{ inv.roleOpts }}" as="o" hint-placeholder-count="0">
+<div onClick="{{ o.pick }}" style="display:flex;align-items:flex-start;gap:10px;padding:7px 10px;border-radius:6px;cursor:pointer" style-hover="background:var(--wash)">
+<span style="flex:none;width:14px;height:18px;display:flex;align-items:center"><sc-if value="{{ o.on }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if></span>
+<span style="display:flex;flex-direction:column"><span style="font-size:13px;line-height:18px">{{ o.label }}</span><span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ o.text }}</span></span>
+</div>
+</sc-for>
+</div>
+</sc-if></div>
+<div data-menu="1" style="position:relative">
+<button onClick="{{ inv.toggleWs }}" style="{{ inv.wsStyle }}" style-hover="background:var(--wash)">{{ inv.wsLabel }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg></button>
 <sc-if value="{{ inv.wsOpen }}">
-<div style="position:absolute;left:0;top:38px;z-index:20;width:240px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18)">
+<div style="position:absolute;z-index:20;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18);left:0;top:38px;width:240px">
 <sc-for list="{{ inv.wsOpts }}" as="o" hint-placeholder-count="0">
 <div onClick="{{ o.pick }}" style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:6px;font-size:13px;cursor:pointer" style-hover="background:var(--wash)">
-<sc-if value="{{ o.on }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span></sc-if>
-<sc-if value="{{ o.off }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;border:1px solid var(--bc)"></span></sc-if>
-<span>{{ o.label }}</span>
+<sc-if value="{{ o.on }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span></sc-if><sc-if value="{{ o.off }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;border:1px solid var(--bc)"></span></sc-if><span>{{ o.label }}</span>
 </div>
 </sc-for>
 </div>
 </sc-if>
 </div>
 <label onClick="{{ toggleInviteCan }}" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
-<sc-if value="{{ inviteCan }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span></sc-if>
-<sc-if value="{{ inviteCannot }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;border:1px solid var(--bc)"></span></sc-if>Can approve</label>
+<sc-if value="{{ inviteCan }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span></sc-if><sc-if value="{{ inviteCannot }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;border:1px solid var(--bc)"></span></sc-if>Can approve</label>
 <button onClick="{{ sendInvite }}" disabled="{{ noInvite }}" style="{{ inviteStyle }}">Invite</button>
 </div>
+<sc-if value="{{ inviteErr }}" hint-placeholder-val="{{ false }}"><span role="alert" style="display:flex;align-items:flex-start;gap:6px;font-size:13px;line-height:18px;color:var(--crit)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg><span>{{ inviteMsg }}</span></span></sc-if>
+<sc-if value="{{ inviteOk }}" hint-placeholder-val="{{ false }}"><span role="status" style="font-size:13px;line-height:18px;color:var(--ink2)">{{ inviteMsg }}</span></sc-if>
+</div>
+</sc-if>
 </sc-if>
 <sc-if value="{{ onBilling }}" hint-placeholder-val="{{ false }}">
+<sc-if value="{{ billingLocked }}" hint-placeholder-val="{{ false }}"><div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;color:var(--ink2)">Only Admins can see billing. Ask Alex Morgan.</div></sc-if>
+<sc-if value="{{ billingOpen }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:16px">
+<sc-if value="{{ payFailed }}" hint-placeholder-val="{{ false }}"><span role="alert" style="display:flex;align-items:flex-start;gap:6px;font-size:13px;line-height:18px;color:var(--crit)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg><span>Your auto top-up of $200 failed: the card was declined. <a href="#" onClick="{{ toProvider }}" style="color:var(--crit);font-weight:500;text-decoration:underline">Update card</a></span></span></sc-if>
+<sc-if value="{{ payPaid }}" hint-placeholder-val="{{ false }}"><span role="status" style="font-size:13px;line-height:18px;color:var(--ink2)">{{ paidLine }}</span></sc-if>
+<sc-if value="{{ payProcessing }}" hint-placeholder-val="{{ false }}"><span role="status" style="font-size:13px;line-height:18px;color:var(--ink2)">Your payment is processing. The balance updates when it’s done.</span></sc-if>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 16px">
+<sc-if value="{{ subNone }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 style="margin:0;font-size:17px;line-height:24px;font-weight:500">Start your subscription</h2><span style="color:var(--ink2)">$299 a month, includes $299 of usage</span></div>
+<button onClick="{{ startSub }}" title="Opens the payment provider’s page" style="flex:none;height:36px;padding:0 16px;border-radius:8px;border:0;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Start subscription</button>
+</sc-if>
+<sc-if value="{{ subOn }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-weight:500">Connexity · $299 a month</span>
+<sc-if value="{{ subActive }}" hint-placeholder-val="{{ true }}"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Includes $299 of usage · Renews 1 Dec</span></sc-if>
+<sc-if value="{{ subCancelled }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Active until 1 Dec</span></sc-if>
+<sc-if value="{{ subUnpaid }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:flex-start;gap:6px;font-size:13px;line-height:18px;color:var(--crit)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg><span>Unpaid. Connexity is paused until the payment goes through. <a href="#" onClick="{{ toProvider }}" style="color:var(--crit);font-weight:500;text-decoration:underline">Update card</a></span></span></sc-if>
+</div>
+<sc-if value="{{ subActive }}" hint-placeholder-val="{{ true }}"><button onClick="{{ askCancel }}" style="flex:none;height:32px;padding:0 8px;border:0;border-radius:6px;background:transparent;color:var(--ink2);font-size:13px;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)">Cancel subscription</button></sc-if>
+<sc-if value="{{ subCancelled }}" hint-placeholder-val="{{ false }}"><button onClick="{{ resumeSub }}" style="flex:none;height:36px;padding:0 14px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">Resume subscription</button></sc-if>
+</sc-if>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px;align-items:stretch">
+<sc-if value="{{ subOn }}" hint-placeholder-val="{{ true }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:flex;flex-direction:column;gap:6px">
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">Included this month</span>
+<span style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span style="{{ inclStyle }}">{{ inclLeft }}</span><span style="color:var(--ink2)">of $299 left</span></span>
+<div style="height:4px;margin:6px 0 2px;border-radius:2px;background:var(--unch-bg);overflow:hidden"><div style="{{ inclBar }}"></div></div>
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">Resets 1 Dec</span>
+</div>
+</sc-if>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
+<div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">Balance</span>
+<span style="{{ balanceStyle }}">{{ balance }}</span>
+<span style="font-size:13px;line-height:18px;color:var(--ink2);text-wrap:pretty">Used after your included amount. Never expires.</span>
+<sc-if value="{{ hasLasts }}" hint-placeholder-val="{{ false }}"><span style="{{ lastsStyle }}">{{ lasts }}</span></sc-if>
+</div>
+<sc-if value="{{ canAddFunds }}" hint-placeholder-val="{{ true }}"><button onClick="{{ openAdd }}" style="flex:none;height:36px;padding:0 16px;border-radius:8px;border:0;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Add funds</button></sc-if>
+</div>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+<div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:32px;line-height:40px;font-weight:500;letter-spacing:-0.01em">{{ used }}</span><span style="font-size:13px;line-height:18px;color:var(--ink2)">{{ usedLabel }}</span></div>
+<div data-menu="1" style="position:relative">
+<button onClick="{{ togglePeriod }}" aria-haspopup="listbox" style="display:flex;align-items:center;gap:6px;height:32px;padding:0 8px 0 10px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:13px;cursor:pointer;white-space:nowrap" style-hover="background:var(--wash)">{{ periodLabel }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg></button>
+<sc-if value="{{ periodOpen }}"><div style="position:absolute;right:0;top:38px;z-index:20;width:180px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18)">
+<sc-for list="{{ periods }}" as="p" hint-placeholder-count="0"><div onClick="{{ p.pick }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;height:34px;padding:0 10px;border-radius:6px;font-size:13px;cursor:pointer" style-hover="background:var(--wash)"><span>{{ p.label }}</span><sc-if value="{{ p.on }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if></div></sc-for>
+</div></sc-if>
+</div>
+</div>
+<sc-if value="{{ hasUsage }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;gap:2px;height:6px;border-radius:3px;overflow:hidden;background:var(--unch-bg)"><sc-for list="{{ useParts }}" as="u" hint-placeholder-count="2"><div title="{{ u.title }}" style="{{ u.style }}"></div></sc-for></div>
+<div style="display:flex;flex-wrap:wrap;gap:6px 24px;font-size:13px;line-height:18px"><sc-for list="{{ useParts }}" as="u" hint-placeholder-count="0"><span style="display:flex;align-items:center;gap:8px"><span style="{{ u.dot }}"></span><span>{{ u.label }}</span><span style="color:var(--ink2)">{{ u.amount }}</span></span></sc-for></div>
+</div>
+</sc-if>
+<sc-if value="{{ noUsage }}" hint-placeholder-val="{{ false }}"><span style="color:var(--ink2)">No usage yet</span></sc-if>
+</div>
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:flex;flex-direction:column;gap:12px">
-<div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
-<div style="display:flex;align-items:baseline;gap:12px"><span style="font-size:13px;color:var(--ink2)">Plan</span><h2 style="margin:0;font-size:20px;line-height:28px;font-weight:500">{{ planName }}</h2></div>
-<sc-if value="{{ isFree }}" hint-placeholder-val="{{ false }}"><button style="height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:13px;cursor:pointer" style-hover="background:var(--wash)">Upgrade</button></sc-if>
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
+<div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Auto top-up</h2><span style="color:var(--ink2);text-wrap:pretty">Keeps Connexity running by adding funds before your balance runs out.</span></div>
+<button role="switch" aria-checked="{{ autoOn }}" aria-label="Auto top-up" onClick="{{ toggleAuto }}" style="{{ switchTrack }}"><span style="{{ switchKnob }}"></span></button>
 </div>
-<span style="color:var(--ink2);text-wrap:pretty">{{ planLine }}</span>
-<sc-if value="{{ isFree }}" hint-placeholder-val="{{ false }}">
-<div style="display:flex;flex-direction:column;gap:6px;padding-top:4px">
-<div style="display:flex;justify-content:space-between;font-size:13px"><span>Call minutes observed this month</span><span><span style="font-weight:500">640</span><span style="color:var(--ink2)"> of 1,000</span></span></div>
-<div style="height:4px;border-radius:2px;background:var(--unch-bg);overflow:hidden"><div style="width:64%;height:100%;background:var(--ink);border-radius:2px"></div></div>
-</div>
+<sc-if value="{{ autoOn }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">When the balance falls below <span style="display:inline-flex;align-items:center;height:32px;padding:0 8px;border:1px solid {{ autoBelowBorder }};border-radius:8px;background:var(--s0)"><span style="color:var(--ink2)">$</span><input value="{{ autoBelow }}" onChange="{{ onAutoBelow }}" inputMode="decimal" aria-label="{{ autoBelowLabel }}" style="width:52px;padding:0 0 0 2px;border:0;background:transparent;color:var(--ink);font-size:15px;font-weight:500;font-variant-numeric:tabular-nums;outline:none"></span> add <span style="display:inline-flex;align-items:center;height:32px;padding:0 8px;border:1px solid {{ autoAddBorder }};border-radius:8px;background:var(--s0)"><span style="color:var(--ink2)">$</span><input value="{{ autoAdd }}" onChange="{{ onAutoAdd }}" inputMode="decimal" aria-label="{{ autoAddLabel }}" style="width:52px;padding:0 0 0 2px;border:0;background:transparent;color:var(--ink);font-size:15px;font-weight:500;font-variant-numeric:tabular-nums;outline:none"></span></div>
+<sc-if value="{{ autoErr }}" hint-placeholder-val="{{ false }}"><span role="alert" style="display:flex;align-items:flex-start;gap:6px;font-size:13px;line-height:18px;color:var(--crit)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg><span>{{ autoErrText }}</span></span></sc-if>
 </sc-if>
+<sc-if value="{{ autoOff }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--ink3)">Without it, Connexity pauses when your balance reaches $0.</span></sc-if>
 </div>
-<sc-if value="{{ isPaid }}" hint-placeholder-val="{{ true }}">
-<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:flex;flex-direction:column;gap:14px">
-<span style="font-size:13px;color:var(--ink2)">Credits</span>
-<span style="display:flex;align-items:baseline;gap:8px"><span style="{{ balanceStyle }}">{{ balance }}</span><span style="font-size:15px;color:var(--ink2)">credits</span></span>
-<div style="display:flex;flex-direction:column;gap:8px">
-<div style="display:flex;gap:2px;height:6px;border-radius:3px;overflow:hidden;background:var(--unch-bg)"><sc-for list="{{ useParts }}" as="u" hint-placeholder-count="3"><div title="{{ u.title }}" style="{{ u.style }}"></div></sc-for></div>
-<div style="display:flex;flex-wrap:wrap;gap:16px;font-size:13px;color:var(--ink2)"><span style="color:var(--ink3)">Used this month by workspace</span><sc-for list="{{ useParts }}" as="u" hint-placeholder-count="0"><span style="display:flex;align-items:center;gap:6px"><span style="{{ u.dot }}"></span>{{ u.label }} {{ u.amount }}</span></sc-for></div>
-</div>
-<span style="{{ lastsStyle }}">{{ lasts }}</span>
-</div>
+<sc-if value="{{ hasUsage }}" hint-placeholder-val="{{ true }}">
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-<div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">By workspace</h2><span style="font-size:13px;color:var(--ink3)">This month, for billing each client</span></div>
+<div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">By workspace</h2><a href="#" onClick="{{ noop }}" style="font-size:13px;color:var(--ink2)">Download CSV</a></div>
+<sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}"><div style="display:grid;grid-template-columns:minmax(0,1fr) 160px 180px 120px;gap:16px;align-items:center;height:32px;padding:0 24px;font-size:13px;color:var(--ink2)"><span>Workspace</span><span style="text-align:right">Calls observed</span><span style="text-align:right">Simulated messages</span><span style="text-align:right">Cost</span></div></sc-if>
+<sc-if value="{{ phone }}" hint-placeholder-val="{{ false }}"><div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;height:32px;padding:0 16px;font-size:13px;color:var(--ink2)"><span>Workspace</span><span style="text-align:right">Cost</span></div></sc-if>
 <sc-for list="{{ byWs }}" as="w" hint-placeholder-count="6">
-<div style="display:grid;grid-template-columns:minmax(0,1fr) 200px 120px;gap:16px;align-items:center;min-height:44px;padding:0 24px;border-top:1px solid var(--border)">
-<span>{{ w.name }}</span>
-<div style="height:4px;border-radius:2px;background:var(--unch-bg);overflow:hidden"><div style="{{ w.bar }}"></div></div>
-<span style="text-align:right">{{ w.credits }} credits</span>
+<div style="border-top:1px solid var(--border)">
+<button onClick="{{ w.toggle }}" aria-expanded="{{ w.open }}" style="{{ w.rowStyle }}" style-hover="background:var(--wash)">
+<span style="display:flex;align-items:center;gap:8px;min-width:0"><sc-if value="{{ w.open }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg></sc-if><sc-if value="{{ w.shut }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;color:var(--ink2)"><path d="m9 18 6-6-6-6"></path></svg></sc-if><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ w.name }}</span></span>
+<sc-if value="{{ w.wide }}"><span style="text-align:right">{{ w.min }}</span><span style="text-align:right">{{ w.msgs }}</span></sc-if>
+<span style="text-align:right">{{ w.cost }}</span>
+</button>
+<sc-if value="{{ w.open }}">
+<sc-for list="{{ w.agents }}" as="g" hint-placeholder-count="0">
+<div style="{{ g.rowStyle }}">
+<span style="padding-left:22px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ g.name }}</span>
+<sc-if value="{{ g.wide }}"><span style="text-align:right;color:var(--ink2)">{{ g.min }}</span><span style="text-align:right;color:var(--ink2)">{{ g.msgs }}</span></sc-if>
+<span style="text-align:right;color:var(--ink2)">{{ g.cost }}</span>
 </div>
 </sc-for>
+</sc-if>
 </div>
-<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:flex;flex-direction:column;gap:14px">
-<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Top up</h2>
-<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
-<sc-for list="{{ topups }}" as="t" hint-placeholder-count="3"><button onClick="{{ t.pick }}" style="{{ t.style }}" style-hover="background:var(--wash)"><span style="font-weight:500">{{ t.credits }} credits</span><span style="font-size:13px;color:var(--ink2)">{{ t.price }}</span></button></sc-for>
+</sc-for>
+<div style="{{ totalStyle }}"><span>Total</span><sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}"><span style="text-align:right">{{ totMin }}</span><span style="text-align:right">{{ totMsgs }}</span></sc-if><span style="text-align:right">{{ used }}</span></div>
 </div>
-<div onClick="{{ toggleAuto }}" style="display:flex;align-items:center;gap:12px;padding-top:12px;border-top:1px solid var(--border);cursor:pointer;user-select:none">
-<span style="{{ switchTrack }}"><span style="{{ switchKnob }}"></span></span>
-<span style="display:flex;flex-direction:column"><span>Auto top-up</span><span style="font-size:13px;line-height:18px;color:var(--ink2)">When the balance falls below 1,000, add 5,000</span></span>
-</div>
+</sc-if>
+<sc-if value="{{ hasMoved }}" hint-placeholder-val="{{ true }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">What moved it most</h2></div>
+<sc-for list="{{ moved }}" as="m" hint-placeholder-count="3">
+<div style="{{ m.rowStyle }}"><span style="min-width:0;text-wrap:pretty">{{ m.what }}<span style="color:var(--ink2)"> · {{ m.base }}</span></span><span style="text-align:right">{{ m.cost }}</span></div>
+</sc-for>
 </div>
 </sc-if>
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-<div style="padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Pricing</h2></div>
-<sc-for list="{{ prices }}" as="x" hint-placeholder-count="5">
-<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;min-height:44px;padding:0 24px;border-top:1px solid var(--border)"><span>{{ x.what }}</span><span style="color:var(--ink2)">{{ x.cost }}</span></div>
-</sc-for>
+<div style="padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">How it’s priced</h2></div>
+<div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:2px 16px;min-height:44px;padding:10px 24px;border-top:1px solid var(--border)"><span>Subscription</span><span style="color:var(--ink2)">$299 a month, includes $299 of usage</span></div>
+<div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:2px 16px;min-height:44px;padding:10px 24px;border-top:1px solid var(--border)"><span>Real call observed</span><span style="color:var(--ink2)">$0.03 per minute, rounded up per call</span></div>
+<div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:2px 16px;min-height:44px;padding:10px 24px;border-top:1px solid var(--border)"><span>Text simulation</span><span style="color:var(--ink2)">$0.02 per simulated caller message, judging included</span></div>
+<div style="padding:12px 24px 16px;border-top:1px solid var(--border);font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">Your voice platform bills the agent’s own replies in tests on your account with them.</div>
 </div>
-<sc-if value="{{ isPaid }}" hint-placeholder-val="{{ true }}">
-<div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px;align-items:start">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px;align-items:start">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Payment method</h2></div>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:8px 24px;border-top:1px solid var(--border)">
+<sc-if value="{{ hasCard }}" hint-placeholder-val="{{ true }}"><span>{{ cardText }}</span><a href="#" onClick="{{ toProvider }}" title="Opens the payment provider’s page" style="flex:none;display:flex;align-items:center;gap:4px;font-size:13px;color:var(--ink2)">Change<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg></a></sc-if>
+<sc-if value="{{ noCard }}" hint-placeholder-val="{{ false }}"><span style="color:var(--ink2)">No card on file</span><a href="#" onClick="{{ toProvider }}" title="Opens the payment provider’s page" style="flex:none;display:flex;align-items:center;gap:4px;font-size:13px;color:var(--ink2)">Add card<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg></a></sc-if>
+</div>
+<sc-if value="{{ cardExpiring }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:flex-start;gap:6px;padding:0 24px 16px;font-size:13px;line-height:18px;color:var(--warn)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg><span>This card expires at the end of November. Change it so auto top-up keeps working.</span></span></sc-if>
+</div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Billing details</h2><span style="font-size:13px;color:var(--ink3)">Shown on invoices</span></div>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:8px 24px;border-top:1px solid var(--border)">
+<sc-if value="{{ hasDetails }}" hint-placeholder-val="{{ true }}"><span style="min-width:0;text-wrap:pretty">Signal Voice Ltd<span style="color:var(--ink2)"> · 48 Mill Lane, Riverton · Tax ID 00-1234567</span></span><a href="#" onClick="{{ toProvider }}" title="Opens the payment provider’s page" style="flex:none;display:flex;align-items:center;gap:4px;font-size:13px;color:var(--ink2)">Edit<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg></a></sc-if>
+<sc-if value="{{ noDetails }}" hint-placeholder-val="{{ false }}"><span style="color:var(--ink2)">No billing details yet</span><a href="#" onClick="{{ toProvider }}" title="Opens the payment provider’s page" style="flex:none;display:flex;align-items:center;gap:4px;font-size:13px;color:var(--ink2)">Add<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg></a></sc-if>
+</div>
+</div>
+</div>
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
 <div style="padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Invoices</h2></div>
-<sc-for list="{{ invoices }}" as="v" hint-placeholder-count="3">
-<div style="display:grid;grid-template-columns:minmax(0,1fr) 96px auto;gap:16px;align-items:center;min-height:44px;padding:0 16px 0 24px;border-top:1px solid var(--border)"><span>{{ v.month }}</span><span style="text-align:right">{{ v.amount }}</span><a href="#" onClick="{{ noop }}" style="font-size:13px;color:var(--ink2)">Download</a></div>
+<sc-if value="{{ hasInv }}" hint-placeholder-val="{{ true }}">
+<sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}"><div style="display:grid;grid-template-columns:140px minmax(0,1fr) 120px 120px 32px;gap:16px;align-items:center;height:32px;padding:0 16px 0 24px;font-size:13px;color:var(--ink2)"><span>Date</span><span>Description</span><span style="text-align:right">Amount</span><span>Status</span><span></span></div></sc-if>
+<sc-if value="{{ phone }}" hint-placeholder-val="{{ false }}"><div style="display:grid;grid-template-columns:minmax(0,1fr) auto 32px;gap:16px;align-items:center;height:32px;padding:0 8px 0 16px;font-size:13px;color:var(--ink2)"><span>Date</span><span style="text-align:right">Amount</span><span></span></div></sc-if>
+<sc-for list="{{ invoices }}" as="v" hint-placeholder-count="5">
+<div style="{{ v.rowStyle }}">
+<span>{{ v.date }}</span>
+<sc-if value="{{ v.wide }}"><span style="color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ v.what }}</span></sc-if>
+<span style="text-align:right">{{ v.amount }}</span>
+<sc-if value="{{ v.wide }}"><span style="{{ v.statusStyle }}">{{ v.status }}</span></sc-if>
+<span style="display:flex;justify-content:flex-end"><sc-if value="{{ v.canDownload }}"><a href="#" onClick="{{ noop }}" aria-label="Download invoice for {{ v.date }}" title="Download" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:8px;color:var(--ink2)" style-hover="background:var(--wash);color:var(--ink);opacity:1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path></svg></a></sc-if></span>
+</div>
 </sc-for>
+<sc-if value="{{ moreInv }}" hint-placeholder-val="{{ true }}"><div style="padding:8px 16px 10px;border-top:1px solid var(--border)"><button onClick="{{ showAllInv }}" style="height:32px;padding:0 8px;border:0;border-radius:6px;background:transparent;color:var(--ink2);font-size:13px;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)">Show all</button></div></sc-if>
+</sc-if>
+<sc-if value="{{ noInv }}" hint-placeholder-val="{{ false }}"><div style="padding:14px 24px 18px;border-top:1px solid var(--border);color:var(--ink2)">No invoices yet.</div></sc-if>
 </div>
-<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:flex;flex-direction:column;gap:12px">
-<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Payment method</h2>
-<div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span>Visa ending 4242</span><a href="#" onClick="{{ noop }}" title="Opens the payment provider's page" style="display:flex;align-items:center;gap:4px;font-size:13px;color:var(--ink2)">Change<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg></a></div>
-</div>
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">Running a large fleet? <a href="#" onClick="{{ noop }}" style="color:var(--ink);font-weight:500">Talk to us</a> about volume pricing.</span>
 </div>
 </sc-if>
 </sc-if>
@@ -146,70 +276,261 @@
 </div>
 </main>
 </div>
+<sc-if value="{{ removeOpen }}" hint-placeholder-val="{{ false }}">
+<div onMouseDown="{{ onBackdrop }}" style="position:absolute;inset:0;z-index:100;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;padding:120px 24px 24px">
+<div role="dialog" aria-modal="true" aria-labelledby="rm-title" style="width:100%;max-width:400px;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:12px;box-shadow:0 16px 48px rgba(0,0,0,.24)">
+<h2 id="rm-title" style="margin:0;font-size:17px;line-height:24px;font-weight:500">{{ removeTitle }}</h2>
+<p style="margin:0;color:var(--ink2);text-wrap:pretty">{{ removeText }}</p>
+<div style="display:flex;justify-content:flex-end;gap:8px;padding-top:12px">
+<button onClick="{{ cancelRemove }}" style="height:36px;padding:0 14px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">Cancel</button>
+<button onClick="{{ confirmRemove }}" style="height:36px;padding:0 16px;border-radius:8px;border:0;background:var(--crit);color:var(--s0);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Remove</button>
+</div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ cancelOpen }}" hint-placeholder-val="{{ false }}">
+<div onMouseDown="{{ onCancelBackdrop }}" style="position:absolute;inset:0;z-index:100;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;padding:120px 24px 24px">
+<div role="dialog" aria-modal="true" aria-labelledby="cs-title" style="width:100%;max-width:400px;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:12px;box-shadow:0 16px 48px rgba(0,0,0,.24)">
+<h2 id="cs-title" style="margin:0;font-size:17px;line-height:24px;font-weight:500">Cancel your subscription?</h2>
+<p style="margin:0;color:var(--ink2);text-wrap:pretty">Connexity keeps working until 1 Dec, then pauses. Your balance of {{ balance }} stays on your account if you come back.</p>
+<div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;padding-top:12px">
+<button onClick="{{ keepSub }}" style="flex:none;height:36px;padding:0 14px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">Keep subscription</button>
+<button onClick="{{ confirmCancel }}" style="flex:none;height:36px;padding:0 16px;border-radius:8px;border:0;background:var(--crit);color:var(--s0);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Cancel subscription</button>
+</div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ addOpen }}" hint-placeholder-val="{{ false }}">
+<div onMouseDown="{{ onAddBackdrop }}" style="position:absolute;inset:0;z-index:100;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;padding:120px 24px 24px">
+<div role="dialog" aria-modal="true" aria-labelledby="af-title" style="width:100%;max-width:440px;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px;box-shadow:0 16px 48px rgba(0,0,0,.24)">
+<h2 id="af-title" style="margin:0;font-size:17px;line-height:24px;font-weight:500">Add funds</h2>
+<div role="radiogroup" aria-label="Amount" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+<sc-for list="{{ tiles }}" as="t" hint-placeholder-count="3"><button role="radio" aria-checked="{{ t.on }}" onClick="{{ t.pick }}" style="{{ t.style }}">{{ t.label }}</button></sc-for>
+</div>
+<label style="display:flex;flex-direction:column;gap:6px">
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">Other amount</span>
+<span style="{{ otherWrap }}"><span style="color:var(--ink2)">$</span><input value="{{ other }}" onChange="{{ onOther }}" onFocus="{{ pickOther }}" inputMode="decimal" placeholder="50 or more" aria-invalid="{{ otherErr }}" style="flex:1;min-width:0;height:38px;padding:0 0 0 4px;border:0;background:transparent;color:var(--ink);font-size:15px;font-variant-numeric:tabular-nums;outline:none"></span>
+<sc-if value="{{ otherErr }}" hint-placeholder-val="{{ false }}"><span role="alert" style="display:flex;align-items:flex-start;gap:6px;font-size:13px;line-height:18px;color:var(--crit)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg><span>The minimum is $50.</span></span></sc-if>
+</label>
+<sc-if value="{{ hasEstimate }}" hint-placeholder-val="{{ true }}"><span style="font-size:13px;line-height:18px;color:var(--ink2)">{{ estimate }}</span></sc-if>
+<span style="font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">Plus tax where it applies. Added funds never expire and are non-refundable.</span>
+<div style="display:flex;justify-content:flex-end;gap:8px;padding-top:8px">
+<button onClick="{{ closeAdd }}" style="height:36px;padding:0 14px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">Cancel</button>
+<button onClick="{{ continuePay }}" disabled="{{ cantPay }}" style="{{ payStyle }}">Continue to payment</button>
+</div>
+</div>
+</div>
+</sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;section&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;members&quot;,&quot;billing&quot;],&quot;default&quot;:&quot;members&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;plan&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;paid&quot;,&quot;free&quot;],&quot;default&quot;:&quot;paid&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;credits&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;ok&quot;,&quot;low&quot;,&quot;out&quot;],&quot;default&quot;:&quot;ok&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;section&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;members&quot;,&quot;billing&quot;],&quot;default&quot;:&quot;members&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;viewer&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;admin&quot;,&quot;member&quot;],&quot;default&quot;:&quot;admin&quot;,&quot;tsType&quot;:&quot;'admin' | 'member'&quot;},&quot;layout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;desktop&quot;,&quot;phone&quot;],&quot;default&quot;:&quot;desktop&quot;,&quot;tsType&quot;:&quot;'desktop' | 'phone'&quot;},&quot;invite&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;invalid&quot;,&quot;member&quot;,&quot;invited&quot;,&quot;sent&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;dialog&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;remove&quot;,&quot;addFunds&quot;,&quot;cancelSub&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;tip&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;agencies&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:2,&quot;default&quot;:1,&quot;tsType&quot;:&quot;number&quot;},&quot;credits&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;ok&quot;,&quot;low&quot;,&quot;out&quot;,&quot;new&quot;],&quot;default&quot;:&quot;ok&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;expanded&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;&quot;,&quot;bright&quot;,&quot;northfield&quot;,&quot;kestrel&quot;,&quot;maple&quot;,&quot;harbor&quot;,&quot;summit&quot;],&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;payment&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;paid&quot;,&quot;processing&quot;,&quot;failed&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;card&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;ok&quot;,&quot;expiring&quot;,&quot;none&quot;],&quot;default&quot;:&quot;ok&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;auto&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;sub&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;active&quot;,&quot;none&quot;,&quot;cancelled&quot;,&quot;unpaid&quot;],&quot;default&quot;:&quot;active&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
 class Component extends DCLogic {
   static THEMES = {
     dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
     light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
   };
   static WS = [['northfield','Northfield Group',6240],['bright','Bright Dental',3120],['kestrel','Kestrel Plumbing',2380],['maple','Maple Vets',1610],['summit','Summit Legal',900],['harbor','Harbor Hotels',250]];
-  static MEMBERS = [['Alex Morgan','alex@example.com','all',true],['Sam Reyes','sam@example.com','all',true],['Dmytro Kovalenko','dmytro@example.com',['northfield','bright','kestrel','maple'],true],['Priya Shah','priya@example.com',['northfield','bright'],false],['Jonas Weber','jonas@example.com',['bright'],false]];
+  static MEMBERS = [['Alex Morgan','alex@example.com','admin','all',true,2],['Sam Reyes','sam@example.com','member','all',true,2],['Dmytro Kovalenko','dmytro@example.com','member',['northfield','bright','kestrel','maple'],true,1],['Priya Shah','priya@example.com','member',['northfield','bright'],false,0],['Jonas Weber','jonas@example.com','member',['bright'],false,0],['Mei Tanaka','mei@example.com','member',[],false,0]];
+  static INVITED = [['riley@example.com','member',['bright','kestrel','maple'],false,5]];
+  static USAGE = [
+    ['bright','Bright Dental',[['Dental reception',400,1240],['Clinic after-hours',220,600]]],
+    ['northfield','Northfield Group',[['Car service booking',180,940],['Insurance renewals',240,520]]],
+    ['kestrel','Kestrel Plumbing',[['Job booking',380,900]]],
+    ['maple','Maple Vets',[['Appointment line',300,820]]],
+    ['harbor','Harbor Hotels',[['Restaurant reservations',260,640]]],
+    ['summit','Summit Legal',[['Intake line',160,500]]]
+  ];
+  static ROLES = [['admin','Admin','Manages people and billing'],['member','Member','Works in their workspaces']];
+  static RE = /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/;
+  static check(raw, members) {
+    const list = raw.split(/[,;\s]+/).map(s => s.trim()).filter(Boolean);
+    if (!list.length) return null;
+    for (const e of list) if (!Component.RE.test(e)) return { bad:true, text:'\u201c' + e + '\u201d isn\u2019t a full email address.' };
+    for (const e of list) { const m = members.find(x => x.email.toLowerCase() === e.toLowerCase());
+      if (m && !m.invited) return { bad:true, text: e + ' is already in Signal Voice.' };
+      if (m && m.invited) return { bad:true, text: e + ' already has an invite. Resend it from its \u22ef menu.' }; }
+    return { ok:true, emails: list.filter((e, i) => list.findIndex(x => x.toLowerCase() === e.toLowerCase()) === i) };
+  }
   constructor(props) {
     super(props);
+    const C = Component;
     let qs = null; try { qs = new URLSearchParams(window.location.search).get('section'); } catch (_) {}
-    this.state = { section: props.section || qs || 'members', autoTop:true, members: Component.MEMBERS.map(m => ({ name:m[0], email:m[1], ws:m[2], can:m[3] })), wsMenu:null, invite:'', inviteWs:'all', inviteCan:false };
+    const members = C.MEMBERS.map(m => ({ id:m[1], name:m[0], email:m[1], role:m[2], ws:m[3], can:m[4], assistants:m[5] }))
+      .concat(C.INVITED.map(m => ({ id:m[0], name:m[0], email:m[0], role:m[1], ws:m[2], can:m[3], invited:true, expires:m[4] })));
+    const iv = props.invite || 'none', preset = { invalid:'riley@example', member:'sam@example.com', invited:'riley@example.com' }[iv] || '';
+    let msg = preset ? C.check(preset, members) : null;
+    if (iv === 'sent') { members.push({ id:'kai@example.com', name:'kai@example.com', email:'kai@example.com', role:'member', ws:'all', can:false, invited:true, expires:7 }); msg = { ok:true, text:'Invite sent to kai@example.com' }; }
+    this.state = { section: props.section || qs || 'members', autoTop:true, members, menu:null, tip:null, invite:preset, inviteRole:'member', inviteWs:'all', inviteCan:false, inviteMsg:msg,
+      removing: props.dialog === 'remove' ? 'sam@example.com' : null, period:'month', openWs: props.expanded ? { [props.expanded]: true } : {},
+      auto: props.credits === 'new' ? false : props.auto !== false, autoBelow:'50', autoAdd:'200', card: props.credits === 'new' ? 'none' : (props.card || 'ok'),
+      addOpen: props.dialog === 'addFunds', sub: props.sub || (props.credits === 'new' ? 'none' : 'active'), cancelOpen: props.dialog === 'cancelSub', pick:'500', other:'', pay: props.payment && props.payment !== 'none' ? { state: props.payment, amount: 50000 } : null, allInv:false };
     this.bodyRef = React.createRef();
   }
   componentDidMount() {
-    this.onDoc = e => { if (this.state.wsMenu != null && !(e.target.closest && e.target.closest('button,[data-ws]')) ) this.setState({ wsMenu:null }); };
+    this.onDoc = e => { if (this.state.menu != null && !(e.target.closest && e.target.closest('[data-menu]'))) this.setState({ menu:null }); };
     document.addEventListener('mousedown', this.onDoc);
   }
   componentWillUnmount() { document.removeEventListener('mousedown', this.onDoc); }
   renderVals() {
     const C = Component, S = this.state;
+    const phone = this.props.layout === 'phone', admin = this.props.viewer !== 'member';
+    const selfEmail = admin ? 'alex@example.com' : 'priya@example.com';
     const nav = on => ({ display:'flex', alignItems:'center', height:36, padding:'0 12px', borderRadius:8, border:0, textAlign:'left', background: on ? 'var(--wash)' : 'transparent', color: on ? 'var(--ink)' : 'var(--ink2)', fontSize:15, cursor:'pointer' });
-    const wsLabel = ws => ws === 'all' ? 'All workspaces' : ws.length === 1 ? C.WS.find(w => w[0] === ws[0])[1] : ws.length + ' workspaces';
-    const wsOpts = (ws, set) => [{ label:'All workspaces', on: ws === 'all', off: ws !== 'all', pick: () => set('all') }].concat(C.WS.map(([id, name]) => { const on = ws === 'all' || ws.includes(id);
-      return { label:name, on, off:!on, pick: () => { const cur = ws === 'all' ? C.WS.map(w => w[0]) : ws; const next = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id]; set(next.length === C.WS.length ? 'all' : next.length ? next : cur); } }; }));
-    const okInvite = /.+@.+\..+/.test(S.invite.trim());
+    const none = ws => ws !== 'all' && ws.length === 0;
+    const wsLabel = ws => ws === 'all' ? 'All workspaces' : ws.length === 0 ? 'No workspaces' : ws.length === 1 ? C.WS.find(w => w[0] === ws[0])[1] : ws.length + ' workspaces';
+    const wsStyle = ws => ({ display:'flex', alignItems:'center', gap:6, height:32, padding:'0 8px 0 10px', borderRadius:8, border:'1px solid var(--bc)', background:'transparent', color: none(ws) ? 'var(--warn)' : 'var(--ink)', fontSize:13, cursor:'pointer', whiteSpace:'nowrap' });
+    const wsOpts = (ws, set) => [{ label:'All workspaces', on: ws === 'all', off: ws !== 'all', pick: () => set(ws === 'all' ? [] : 'all') }].concat(C.WS.map(([id, name]) => { const on = ws === 'all' || ws.includes(id);
+      return { label:name, on, off:!on, pick: () => { const cur = ws === 'all' ? C.WS.map(w => w[0]) : ws; const next = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id]; set(next.length === C.WS.length ? 'all' : next); } }; }));
+    const toggle = key => () => this.setState(s => ({ menu: s.menu === key ? null : key }));
+    const upd = (id, patch) => this.setState(s => ({ members: s.members.map(x => x.id === id ? { ...x, ...patch } : x) }));
+    const roleName = r => r === 'admin' ? 'Admin' : 'Member';
+    const roleOpts = (cur, set) => C.ROLES.map(([v, l, t]) => ({ label:l, text:t, on: cur === v, pick: () => { set(v); this.setState({ menu:null }); } }));
+    const people = S.members.filter(m => !m.invited), invited = S.members.filter(m => m.invited);
+    const admins = people.filter(m => m.role === 'admin');
+    const row = phone ? { display:'grid', gridTemplateColumns:'minmax(0,1fr) 32px', gap:'10px 8px', alignItems:'center', padding:'12px 12px 14px 16px', borderTop:'1px solid var(--border)' }
+      : { display:'grid', gridTemplateColumns:'minmax(0,1fr) 128px 180px 140px 32px', gap:16, alignItems:'center', minHeight:56, padding:'8px 16px 8px 24px', borderTop:'1px solid var(--border)' };
+    const group = phone ? { gridColumn:'1 / -1', gridRow:2, display:'flex', flexWrap:'wrap', alignItems:'center', gap:'8px 16px', paddingLeft:34 } : { display:'contents' };
+    const more = phone ? { position:'relative', display:'flex', justifyContent:'flex-end', gridColumn:2, gridRow:1 } : { position:'relative', display:'flex', justifyContent:'flex-end' };
+    const rm = S.members.find(m => m.id === S.removing);
+    const removeText = (() => { if (!rm) return ''; const fn = rm.name.split(' ')[0];
+      const reach = rm.ws === 'all' ? 'all ' + C.WS.length + ' workspaces' : rm.ws.length === 1 ? C.WS.find(w => w[0] === rm.ws[0])[1] : rm.ws.length + ' workspaces';
+      const a = rm.assistants || 0;
+      return (none(rm.ws) ? fn + ' is removed from Signal Voice right away.' : fn + ' loses access to ' + reach + ' right away.')
+        + (a && !none(rm.ws) ? ' ' + fn + '\u2019s ' + (a === 1 ? 'connected assistant stops' : a + ' connected assistants stop') + ' reaching them too.' : '')
+        + ' What ' + fn + ' did stays on record.'; })();
+    const sendInvite = () => { const r = C.check(S.invite, S.members); if (!r) return; if (r.bad) return this.setState({ inviteMsg:r });
+      const add = r.emails.map(e => ({ id:e, name:e, email:e, role:S.inviteRole, ws:S.inviteWs, can:S.inviteCan, invited:true, expires:7 }));
+      this.setState(s => ({ members:[...s.members, ...add], invite:'', inviteMsg:{ ok:true, text: (r.emails.length === 1 ? 'Invite sent to ' : 'Invites sent to ') + r.emails.join(', ') } })); };
+    const msg = S.inviteMsg, hasText = !!S.invite.trim();
     return {
-      rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
-      creditsState: this.props.credits || 'ok', bodyRef: this.bodyRef,
-      sections: [['members','Members'],['billing','Billing']].map(([id, label]) => ({ label, style: nav(S.section === id), pick: () => this.setState({ section:id, wsMenu:null }) })),
+      rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], position:'relative', background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
+      creditsState: this.props.credits || 'ok', payState: S.pay ? S.pay.state : 'none', subState: S.sub, bodyRef: this.bodyRef, agencies: this.props.agencies || 1,
+      phone, wide: !phone,
+      mainStyle: phone ? { flex:1, minWidth:0, padding:'20px 16px 40px' } : { flex:1, minWidth:944, padding:'24px 32px 48px' },
+      innerStyle: phone ? { display:'flex', flexDirection:'column', gap:20, minWidth:0 } : { maxWidth:1120, minWidth:880, display:'flex', flexDirection:'column', gap:24 },
+      gridStyle: phone ? { display:'flex', flexDirection:'column', gap:16 } : { display:'grid', gridTemplateColumns:'176px minmax(0,1fr)', gap:32, alignItems:'start' },
+      navStyle: phone ? { display:'flex', gap:4 } : { display:'flex', flexDirection:'column', gap:2 },
+      sections: [['members','Members'],['billing','Billing']].map(([id, label]) => ({ label, style: nav(S.section === id), pick: () => this.setState({ section:id, menu:null }) })),
       onMembers: S.section === 'members', onBilling: S.section === 'billing',
-      members: S.members.map((m, i) => ({ name:m.name, email:m.email, initial:m.name[0].toUpperCase(), invited: !!m.invited, can:m.can, cannot:!m.can, canText: m.can ? 'Can approve' : 'View only',
-        toggle: e => { e.preventDefault(); this.setState(s => ({ members: s.members.map((x, j) => j === i ? { ...x, can: !x.can } : x) })); },
-        wsLabel: wsLabel(m.ws), wsOpen: S.wsMenu === i, toggleWs: () => this.setState(s => ({ wsMenu: s.wsMenu === i ? null : i })),
-        wsOpts: wsOpts(m.ws, v => this.setState(s => ({ members: s.members.map((x, j) => j === i ? { ...x, ws:v } : x) }))) })),
-      inv: { wsLabel: wsLabel(S.inviteWs), wsOpen: S.wsMenu === 'inv', toggleWs: () => this.setState(s => ({ wsMenu: s.wsMenu === 'inv' ? null : 'inv' })), wsOpts: wsOpts(S.inviteWs, v => this.setState({ inviteWs:v })) },
-      invite: S.invite, onInvite: e => this.setState({ invite: e.target.value }), noInvite: !okInvite,
+      countLine: people.length + (people.length === 1 ? ' person' : ' people') + (invited.length ? ' \u00b7 ' + invited.length + ' invited' : ''),
+      members: S.members.map(m => {
+        const self = m.email === selfEmail, last = !m.invited && m.role === 'admin' && admins.length === 1;
+        return { name:m.name, sub: m.invited ? 'Expires in ' + m.expires + ' days' : m.email, initial: m.name[0].toUpperCase(), self, invited: !!m.invited,
+          edit: admin, read: !admin, roleLabel: roleName(m.role),
+          roleFree: admin && !last, roleLocked: admin && last, roleOpen: S.menu === 'role:' + m.id, toggleRole: toggle('role:' + m.id), roleOpts: roleOpts(m.role, v => upd(m.id, { role:v })),
+          tipOn: S.tip === m.id || !!this.props.tip, showTip: () => this.setState({ tip:m.id }), hideTip: () => this.setState({ tip:null }),
+          wsLabel: wsLabel(m.ws), wsStyle: wsStyle(m.ws), wsTextStyle: { fontSize:13, color: none(m.ws) ? 'var(--warn)' : 'var(--ink2)' },
+          wsOpen: S.menu === 'ws:' + m.id, toggleWs: toggle('ws:' + m.id), wsOpts: wsOpts(m.ws, v => upd(m.id, { ws:v })),
+          can:m.can, cannot:!m.can, canText: m.can ? 'Can approve' : 'View only',
+          toggle: e => { e.preventDefault(); upd(m.id, { can: !m.can }); },
+          hasMore: admin && !self, moreOpen: S.menu === 'more:' + m.id, toggleMore: toggle('more:' + m.id),
+          removeOk: !m.invited && !last, removeLocked: !m.invited && last,
+          resend: () => { upd(m.id, { expires:7 }); this.setState({ menu:null }); },
+          cancelInvite: () => this.setState(s => ({ members: s.members.filter(x => x.id !== m.id), menu:null })),
+          askRemove: () => this.setState({ removing:m.id, menu:null }),
+          rowStyle: row, groupStyle: group, moreStyle: more };
+      }),
+      canInvite: admin,
+      inv: { roleLabel: roleName(S.inviteRole), roleOpen: S.menu === 'role:inv', toggleRole: toggle('role:inv'), roleOpts: roleOpts(S.inviteRole, v => this.setState({ inviteRole:v })),
+        wsLabel: wsLabel(S.inviteWs), wsStyle: wsStyle(S.inviteWs), wsOpen: S.menu === 'ws:inv', toggleWs: toggle('ws:inv'), wsOpts: wsOpts(S.inviteWs, v => this.setState({ inviteWs:v })) },
+      invite: S.invite, onInvite: e => this.setState({ invite: e.target.value, inviteMsg:null }), onInviteKey: e => { if (e.key === 'Enter') sendInvite(); },
+      inviteErr: !!(msg && msg.bad), inviteOk: !!(msg && msg.ok), inviteMsg: msg ? msg.text : '',
+      inviteInput: { flex:'1 1 220px', minWidth:0, height:36, padding:'0 12px', borderRadius:8, border:'1px solid ' + (msg && msg.bad ? 'var(--crit)' : 'var(--bc)'), background:'var(--s0)', color:'var(--ink)', fontSize:15, outline:'none' },
+      noInvite: !hasText,
       inviteCan: S.inviteCan, inviteCannot: !S.inviteCan, toggleInviteCan: e => { e.preventDefault(); this.setState(s => ({ inviteCan: !s.inviteCan })); },
-      inviteStyle: { height:36, padding:'0 16px', borderRadius:8, border:0, background:'var(--accent)', color:'var(--on-accent)', fontSize:15, fontWeight:500, cursor:'pointer', opacity: okInvite ? 1 : 0.4 },
-      sendInvite: () => { if (!okInvite) return; const e = S.invite.trim(); this.setState(s => ({ members:[...s.members, { name: e.split('@')[0].replace(/^./, c => c.toUpperCase()), email:e, ws:s.inviteWs, can:s.inviteCan, invited:true }], invite:'', inviteWs:'all', inviteCan:false })); },
+      inviteStyle: { flex:'none', height:36, padding:'0 16px', borderRadius:8, border:0, background:'var(--accent)', color:'var(--on-accent)', fontSize:15, fontWeight:500, cursor: hasText ? 'pointer' : 'default', opacity: hasText ? 1 : 0.4 },
+      sendInvite,
+      removeOpen: !!rm, removeTitle: rm ? 'Remove ' + rm.name + '?' : '', removeText,
+      cancelRemove: () => this.setState({ removing:null }),
+      confirmRemove: () => this.setState(s => ({ members: s.members.filter(x => x.id !== s.removing), removing:null })),
+      onBackdrop: e => { if (e.target === e.currentTarget) this.setState({ removing:null }); },
       noop: e => e.preventDefault(),
       ...(() => {
-        const plan = this.props.plan === 'free' ? 'free' : 'paid', cr = ['low','out'].includes(this.props.credits) ? this.props.credits : 'ok';
-        const bal = { ok:8420, low:1240, out:0 }[cr];
-        const cols = ['var(--ink)','var(--ink2)','var(--ink3)','var(--bc)','var(--unch)'], top = C.WS.slice(0, 4).map(w => [w[1], w[2]]), rest = C.WS.slice(4).reduce((n, w) => n + w[2], 0);
-        const parts = top.concat(rest ? [['Others', rest]] : []).map((x, k) => [x[0], x[1], cols[k]]), tot = C.WS.reduce((n, w) => n + w[2], 0);
-        const on = S.autoTop;
+        const st = ['low','out','new'].includes(this.props.credits) ? this.props.credits : 'ok', fresh = st === 'new';
+        const per = S.period || 'month', fac = { month:1, last:0.86, d30:1.04 }[per];
+        const money = c => '$' + (Math.max(0, c) / 100).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+        const num = n => n.toLocaleString('en-US');
+        const ws = fresh ? [] : C.USAGE.map(([id, name, agents]) => { const ag = agents.map(([n, mi, ms]) => { const m = Math.round(mi * fac), s = Math.round(ms * fac); return { name:n, min:m, msgs:s, cents: m * 3 + s * 2 }; });
+          return { id, name, agents: ag, min: ag.reduce((x, g) => x + g.min, 0), msgs: ag.reduce((x, g) => x + g.msgs, 0), cents: ag.reduce((x, g) => x + g.cents, 0) }; }).sort((x, y) => y.cents - x.cents);
+        const totMin = ws.reduce((x, w) => x + w.min, 0), totMsgs = ws.reduce((x, w) => x + w.msgs, 0), tot = totMin * 3 + totMsgs * 2, voice = 0;
+        const bal = { ok:41250, low:2480, out:0, new:0 }[st];
+        const grid = phone ? 'minmax(0,1fr) auto' : 'minmax(0,1fr) 160px 180px 120px', pad = phone ? '0 16px' : '0 24px';
+        const rowBase = { display:'grid', gridTemplateColumns:grid, gap:16, alignItems:'center', minHeight:44, padding:pad };
+        const parts = [['Calls observed', totMin * 3, num(totMin) + ' min', 'var(--ink)'], ['Text simulations', totMsgs * 2, num(totMsgs) + ' messages', 'var(--ink3)'], ['Voice simulations', voice, '', 'var(--bc)']].filter(p => p[1] > 0);
+        const top = ws.slice().sort((x, y) => y.min - x.min)[0], topSim = ws.slice().sort((x, y) => y.msgs - x.msgs)[0];
+        const moved = fresh ? [] : per === 'last'
+          ? [[top.name + '\u2019s calls', num(top.min) + ' min', top.min * 3], [topSim.name + '\u2019s text simulations', num(topSim.msgs) + ' messages', topSim.msgs * 2]]
+          : [[top.name + '\u2019s calls', num(top.min) + ' min', top.min * 3], ['Full test run on Car service booking, 19 Nov', '486 messages', 972], ['Full test run on Dental reception, 12 Nov', '410 messages', 820]];
+        const pay = S.pay, paid = pay && pay.state === 'paid' ? pay.amount : 0;
+        const card = S.card, hasCard = card !== 'none';
+        const inv = fresh ? [] : [['19 Nov 2026','Auto top-up',20000,'Paid'],['2 Nov 2026','Added funds',50000,'Paid'],['1 Nov 2026','Subscription',29900,'Paid'],['24 Oct 2026','Auto top-up',20000,'Paid'],['9 Oct 2026','Auto top-up',20000,'Paid'],['21 Sep 2026','Added funds',50000,'Paid'],['3 Sep 2026','Added funds',10000,'Paid'],['28 Aug 2026','Added funds',10000,'Paid']];
+        if (pay && pay.state === 'failed') inv.unshift(['23 Nov 2026','Auto top-up',20000,'Failed']);
+        if (pay && pay.state === 'processing') inv.unshift(['23 Nov 2026','Added funds',pay.amount,'Processing']);
+        if (pay && pay.state === 'paid') inv.unshift(['23 Nov 2026','Added funds',pay.amount,'Paid']);
+        const invShown = S.allInv ? inv : inv.slice(0, 5);
+        const otherN = parseFloat(String(S.other).replace(/[$,\s]/g, '')), otherBad = S.pick === 'other' && S.other.trim() !== '' && !(otherN >= 50);
+        const amt = S.pick === 'other' ? (otherN >= 50 ? Math.round(otherN * 100) : 0) : Number(S.pick) * 100;
+        const est = c => { const w = c / 10000; if (w < 1) return 'About ' + Math.max(1, Math.round(w * 7)) + ' days'; if (w < 1.5) return 'About 1 week'; if (w < 10) return 'About ' + Math.round(w) + ' weeks'; return 'About ' + Math.round(w / 4.35) + ' months'; };
+        const n = v => parseFloat(String(v).replace(/[$,\s]/g, ''));
+        const belowN = n(S.autoBelow), addN = n(S.autoAdd);
+        const autoErrText = !(addN >= 50) ? 'Add at least $50 each time.' : !(belowN >= 0) ? 'Enter an amount for when to top up.' : '';
+        const on = S.auto;
+        const fieldBorder = bad => bad ? 'var(--crit)' : 'var(--bc)';
+        const toProvider = e => { if (e && e.preventDefault) e.preventDefault(); };
         return {
-          isFree: plan === 'free', isPaid: plan === 'paid', planName: plan === 'free' ? 'Free' : 'Paid',
-          planLine: plan === 'free' ? '1,000 call minutes observed a month, text simulations only, 30 days of history. Audio and phone tests are on Paid.' : 'One credit balance for every workspace. Every check and test level, full history. You pay only for what you use.',
-          balance: bal.toLocaleString('en-US'), balanceStyle: { fontSize:40, lineHeight:'44px', fontWeight:500, letterSpacing:'-0.01em', color: cr === 'out' ? 'var(--crit)' : 'var(--ink)' },
-          lasts: { ok:'Lasts about 3 weeks at your current rate', low:'Lasts about 3 days at your current rate', out:'Out of credits. Tests and paid judge checks are paused; recording, rule checks, incidents and alerts keep running.' }[cr],
-          lastsStyle: { color: cr === 'ok' ? 'var(--ink2)' : 'var(--ink)', textWrap:'pretty' },
-          useParts: parts.map(([label, n, col]) => ({ label, amount: n.toLocaleString('en-US'), title: `${label}: ${n.toLocaleString('en-US')} credits`, style:{ flex: `${n} 0 0`, background: col }, dot:{ width:8, height:8, borderRadius:2, background: col } })),
-          topups: [['5,000','$50'],['20,000','$180'],['50,000','$400']].map(([credits, price]) => ({ credits, price, pick: () => {},
-            style:{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:2, padding:'12px 16px', borderRadius:8, border:'1px solid var(--bc)', background:'transparent', color:'var(--ink)', fontSize:15, cursor:'pointer', textAlign:'left' } })),
-          switchTrack: { flex:'none', width:32, height:18, borderRadius:9, background: on ? 'var(--accent)' : 'var(--unch-bg)', border: on ? 0 : '1px solid var(--bc)', position:'relative', transition:'background 150ms' },
-          switchKnob: { position:'absolute', top: on ? 2 : 1, left: on ? 16 : 1, width:14, height:14, borderRadius:7, background: on ? 'var(--on-accent)' : 'var(--ink2)', transition:'left 150ms' },
-          toggleAuto: () => this.setState(s => ({ autoTop: !s.autoTop })),
-          prices: [['1 minute of call observed','1 credit'],['1 minute of text simulation','2 credits'],['1 minute of audio simulation','6 credits'],['1 real phone test call','20 credits'],['Judge checks','1 credit each, free with your own model key']].map(([what, cost]) => ({ what, cost })),
-          byWs: C.WS.map(w => ({ name: w[1], credits: w[2].toLocaleString('en-US'), bar:{ width: (w[2] / C.WS[0][2] * 100) + '%', height:'100%', background:'var(--ink)', borderRadius:2 } })),
-          invoices: [['October 2026','$180.00'],['September 2026','$180.00'],['August 2026','$50.00']].map(([month, amount]) => ({ month, amount }))
+          billingLocked: !admin, billingOpen: admin,
+          subNone: S.sub === 'none', subOn: S.sub !== 'none', subActive: S.sub === 'active', subCancelled: S.sub === 'cancelled', subUnpaid: S.sub === 'unpaid',
+          canAddFunds: S.sub !== 'none', startSub: () => this.setState({ sub:'active' }), resumeSub: () => this.setState({ sub:'active' }),
+          askCancel: () => this.setState({ cancelOpen:true }), keepSub: () => this.setState({ cancelOpen:false }), confirmCancel: () => this.setState({ cancelOpen:false, sub:'cancelled' }),
+          onCancelBackdrop: e => { if (e.target === e.currentTarget) this.setState({ cancelOpen:false }); }, cancelOpen: S.cancelOpen,
+          inclLeft: money(st === 'out' ? 0 : 8640), inclStyle: { fontSize:32, lineHeight:'40px', fontWeight:500, letterSpacing:'-0.01em', color: st === 'out' ? 'var(--crit)' : 'var(--ink)' },
+          inclBar: { width: (st === 'out' ? 0 : 8640 / 29900 * 100) + '%', height:'100%', background:'var(--ink)', borderRadius:2 },
+          payFailed: !!pay && pay.state === 'failed', payPaid: !!pay && pay.state === 'paid', payProcessing: !!pay && pay.state === 'processing',
+          paidLine: pay ? money(pay.amount) + ' added to your balance' : '', toProvider,
+          openAdd: () => this.setState({ addOpen:true, pick:'500', other:'' }), closeAdd: () => this.setState({ addOpen:false }),
+          onAddBackdrop: e => { if (e.target === e.currentTarget) this.setState({ addOpen:false }); },
+          addOpen: S.addOpen,
+          tiles: [['100','$100'],['500','$500'],['2000','$2,000']].map(([v, label]) => { const sel = S.pick === v;
+            return { label, on: sel, pick: () => this.setState({ pick:v, other:'' }),
+              style:{ height:56, borderRadius:8, border: '1px solid ' + (sel ? 'var(--ink)' : 'var(--bc)'), boxShadow: sel ? 'inset 0 0 0 1px var(--ink)' : 'none', background: sel ? 'var(--wash)' : 'transparent', color:'var(--ink)', fontSize:17, fontWeight:500, fontVariantNumeric:'tabular-nums', cursor:'pointer' } }; }),
+          other: S.other, onOther: e => this.setState({ other: e.target.value, pick:'other' }), pickOther: () => this.setState({ pick:'other' }), otherErr: otherBad,
+          otherWrap: { display:'flex', alignItems:'center', height:40, padding:'0 12px', borderRadius:8, border:'1px solid ' + (otherBad ? 'var(--crit)' : S.pick === 'other' ? 'var(--ink)' : 'var(--bc)'), background:'var(--s1)' },
+          hasEstimate: !fresh && amt > 0, estimate: amt > 0 ? est(amt) + ' at your current rate' : '',
+          cantPay: !(amt >= 5000),
+          payStyle: { height:36, padding:'0 16px', borderRadius:8, border:0, background:'var(--accent)', color:'var(--on-accent)', fontSize:15, fontWeight:500, cursor: amt >= 5000 ? 'pointer' : 'default', opacity: amt >= 5000 ? 1 : 0.4 },
+          continuePay: () => { if (!(amt >= 5000)) return; this.setState({ addOpen:false, pay:{ state:'paid', amount:amt } }); },
+          autoOn: on, autoOff: !on,
+          toggleAuto: () => { if (!on && !hasCard) return this.setState({ card:'ok', auto:true }); this.setState({ auto: !on }); },
+          switchTrack: { flex:'none', position:'relative', width:36, height:20, padding:0, borderRadius:10, border: on ? '1px solid var(--accent)' : '1px solid var(--bc)', background: on ? 'var(--accent)' : 'var(--unch-bg)', cursor:'pointer', transition:'background 150ms' },
+          switchKnob: { position:'absolute', top:2, left: on ? 18 : 2, width:14, height:14, borderRadius:7, background: on ? 'var(--on-accent)' : 'var(--ink2)', transition:'left 150ms' },
+          autoBelow: S.autoBelow, autoAdd: S.autoAdd, onAutoBelow: e => this.setState({ autoBelow: e.target.value }), onAutoAdd: e => this.setState({ autoAdd: e.target.value }),
+          autoBelowBorder: fieldBorder(!(belowN >= 0)), autoAddBorder: fieldBorder(!(addN >= 50)), autoBelowLabel:'Balance that starts a top-up, in dollars', autoAddLabel:'Amount to add, in dollars',
+          autoErr: !!autoErrText, autoErrText,
+          hasCard, noCard: !hasCard, cardExpiring: card === 'expiring', cardText: card === 'expiring' ? 'Visa ending 4242 · expires 11/26' : 'Visa ending 4242 · expires 08/28',
+          hasDetails: !fresh, noDetails: fresh,
+          hasInv: inv.length > 0, noInv: inv.length === 0, moreInv: !S.allInv && inv.length > 5, showAllInv: () => this.setState({ allInv:true }),
+          invoices: invShown.map(([date, what, c, status]) => ({ date, what, amount: money(c), status, wide: !phone, canDownload: status === 'Paid',
+            statusStyle: { fontSize:13, color: status === 'Failed' ? 'var(--crit)' : 'var(--ink2)', fontWeight: status === 'Failed' ? 500 : 400 },
+            rowStyle: phone ? { display:'grid', gridTemplateColumns:'minmax(0,1fr) auto 32px', gap:16, alignItems:'center', minHeight:44, padding:'0 8px 0 16px', borderTop:'1px solid var(--border)' }
+              : { display:'grid', gridTemplateColumns:'140px minmax(0,1fr) 120px 120px 32px', gap:16, alignItems:'center', minHeight:44, padding:'0 16px 0 24px', borderTop:'1px solid var(--border)' } })),
+          balance: money(bal + paid), balanceStyle: { fontSize:32, lineHeight:'40px', fontWeight:500, letterSpacing:'-0.01em', color: st === 'out' ? 'var(--crit)' : 'var(--ink)' },
+          hasLasts: st === 'low',
+          lasts: st === 'low' ? 'Lasts about 3 days at your current rate' : '',
+          lastsStyle: { color: st === 'ok' ? 'var(--ink2)' : 'var(--ink)', textWrap:'pretty' },
+          used: money(tot), usedLabel: { month:'used this month', last:'used last month', d30:'used in the last 30 days' }[per],
+          periodLabel: { month:'This month', last:'Last month', d30:'Last 30 days' }[per], periodOpen: S.menu === 'period', togglePeriod: toggle('period'),
+          periods: [['month','This month'],['last','Last month'],['d30','Last 30 days']].map(([v, label]) => ({ label, on: per === v, pick: () => this.setState({ period:v, menu:null }) })),
+          hasUsage: !fresh, noUsage: fresh,
+          useParts: parts.map(([label, c, base, col]) => ({ label, amount: base + ' \u00b7 ' + money(c), title: label + ': ' + base + ', ' + money(c), style:{ flex: c + ' 0 0', background: col }, dot:{ flex:'none', width:8, height:8, borderRadius:2, background: col } })),
+          byWs: ws.map(w => { const open = !!(S.openWs || {})[w.id];
+            return { name:w.name, min: num(w.min) + ' min', msgs: num(w.msgs), cost: money(w.cents), open, shut: !open, wide: !phone,
+              toggle: () => this.setState(s => ({ openWs: { ...(s.openWs || {}), [w.id]: !open } })),
+              rowStyle: { ...rowBase, width:'100%', border:0, background:'transparent', color:'var(--ink)', fontSize:15, fontFamily:'inherit', fontVariantNumeric:'tabular-nums', textAlign:'left', cursor:'pointer' },
+              agents: w.agents.map(g => ({ name:g.name, min: num(g.min) + ' min', msgs: num(g.msgs), cost: money(g.cents), wide: !phone, rowStyle: { ...rowBase, minHeight:40, borderTop:'1px solid var(--border)', fontSize:15 } })) }; }),
+          totMin: num(totMin) + ' min', totMsgs: num(totMsgs),
+          totalStyle: { ...rowBase, minHeight:48, borderTop:'1px solid var(--border)', fontWeight:500 },
+          hasMoved: moved.length > 0,
+          moved: moved.slice(0, 3).sort((x, y) => y[2] - x[2]).map(([what, base, c]) => ({ what, base, cost: money(c), rowStyle: { display:'grid', gridTemplateColumns:'minmax(0,1fr) auto', gap:16, alignItems:'center', minHeight:44, padding: phone ? '10px 16px' : '10px 24px', borderTop:'1px solid var(--border)' } }))
         };
       })(),
     };

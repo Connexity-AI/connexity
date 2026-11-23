@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>{{ subject }}</title>
+<style>
+  body { margin:0; padding:0; background:#ffffff; }
+  @media (prefers-color-scheme: dark) {
+    body, .cx-page { background:#121314 !important; }
+    .cx-ink { color:#ececea !important; }
+    .cx-muted { color:#a3a5a9 !important; }
+    .cx-button { background:#ececea !important; color:#121314 !important; }
+  }
+</style>
+</head>
+<body class="cx-page" style="margin:0;padding:0;background:#ffffff">
+<table role="presentation" class="cx-page" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff">
+<tr><td style="padding:40px 24px 48px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;font-family:Figtree,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:22px">
+<tr><td style="padding-bottom:24px">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+    <td style="padding-right:8px;vertical-align:middle"><img src="cid:connexity-logo.png" width="24" height="24" alt="" style="display:block;border:0"></td>
+    <td class="cx-ink" style="vertical-align:middle;font-size:15px;font-weight:500;color:#17181a">Connexity</td>
+  </tr></table>
+</td></tr>
+<tr><td class="cx-ink" style="padding-bottom:24px;color:#17181a">{{ line }}</td></tr>
+<tr><td style="padding-bottom:24px">
+  <a class="cx-button" href="{{ link }}" style="display:inline-block;height:40px;line-height:40px;padding:0 20px;border-radius:8px;background:#17181a;color:#ffffff;font-size:15px;font-weight:500;text-decoration:none">Accept invite</a>
+</td></tr>
+<tr><td class="cx-muted" style="font-size:13px;line-height:18px;color:#5e6065">This invite expires in 7 days.</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>

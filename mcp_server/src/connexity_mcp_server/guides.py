@@ -19,6 +19,7 @@ GUIDES = {
     "calls": "Calls",
     "spec": "Writing an agent's spec",
     "scenarios": "Writing and running scenarios",
+    "people": "People in the agency",
     "usage": "Usage and list prices",
     "feedback": "Reporting a problem in Connexity",
 }

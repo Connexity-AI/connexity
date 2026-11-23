@@ -9,6 +9,9 @@ from app.crud.agency import (  # noqa: F401
     admins,
     agencies_by_id,
     agency_workspaces,
+    approver_names,
+    can_approve_in,
+    connected_assistants,
     get_membership,
     has_a_workspace,
     list_agencies,
@@ -101,6 +104,20 @@ from app.crud.integrations import (  # noqa: F401
     list_integrations,
     list_tool_backends,
     set_tool_backend,
+)
+from app.crud.invite import (  # noqa: F401
+    AccountExistsError,
+    NoWorkspaceChosenError,
+    WrongEmailError,
+    accept_invite,
+    cancel_invite,
+    create_invited_user,
+    find_invite,
+    get_open_invite,
+    invite_people,
+    open_invites,
+    resend_invite,
+    workspaces_given,
 )
 from app.crud.model_answer import (  # noqa: F401
     calls_waiting_for_models,

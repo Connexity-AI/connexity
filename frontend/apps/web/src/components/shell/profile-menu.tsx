@@ -129,6 +129,12 @@ const WorkspaceList: FC<{ workspaces: WorkspacePublic[]; onNew: () => void }> = 
         <Plus className="size-3.5" aria-hidden />
         New workspace
       </DropdownMenuItem>
+      <DropdownMenuItem
+        asChild
+        className="h-[34px] cursor-pointer rounded-sm px-2.5 text-label text-ink-secondary focus:bg-wash focus:text-ink"
+      >
+        <Link href={UrlGenerator.agency()}>Agency settings</Link>
+      </DropdownMenuItem>
     </>
   );
 };
@@ -169,7 +175,10 @@ export const ProfileMenu: FC<Props> = ({ name, workspaces }) => {
         >
           <WorkspaceList workspaces={workspaces} onNew={() => setDialogOpen(true)} />
           <DropdownMenuSeparator className="mx-0 my-1 bg-hairline" />
-          <DropdownMenuItem asChild className="h-9 cursor-pointer rounded-sm px-2.5 text-label text-ink focus:bg-wash">
+          <DropdownMenuItem
+            asChild
+            className="h-9 cursor-pointer rounded-sm px-2.5 text-label text-ink focus:bg-wash"
+          >
             <Link href={UrlGenerator.account()}>Account</Link>
           </DropdownMenuItem>
           <ThemePicker />

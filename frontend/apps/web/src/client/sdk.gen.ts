@@ -3,6 +3,12 @@ import { client } from './client.gen';
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import type {
+  AgenciesCancelInviteData,
+  AgenciesCancelInviteErrors,
+  AgenciesCancelInviteResponses,
+  AgenciesInvitePeopleData,
+  AgenciesInvitePeopleErrors,
+  AgenciesInvitePeopleResponses,
   AgenciesListAgenciesData,
   AgenciesListAgenciesErrors,
   AgenciesListAgenciesResponses,
@@ -15,6 +21,9 @@ import type {
   AgenciesRenameAgencyData,
   AgenciesRenameAgencyErrors,
   AgenciesRenameAgencyResponses,
+  AgenciesResendInviteData,
+  AgenciesResendInviteErrors,
+  AgenciesResendInviteResponses,
   AgenciesUpdateMemberData,
   AgenciesUpdateMemberErrors,
   AgenciesUpdateMemberResponses,
@@ -123,6 +132,21 @@ import type {
   IntegrationsTestIntegrationData,
   IntegrationsTestIntegrationErrors,
   IntegrationsTestIntegrationResponses,
+  InvitesAcceptInviteData,
+  InvitesAcceptInviteErrors,
+  InvitesAcceptInviteResponses,
+  InvitesDeclineInviteData,
+  InvitesDeclineInviteErrors,
+  InvitesDeclineInviteResponses,
+  InvitesLookAtInviteData,
+  InvitesLookAtInviteErrors,
+  InvitesLookAtInviteResponses,
+  InvitesSignInAndJoinData,
+  InvitesSignInAndJoinErrors,
+  InvitesSignInAndJoinResponses,
+  InvitesSignUpAndJoinData,
+  InvitesSignUpAndJoinErrors,
+  InvitesSignUpAndJoinResponses,
   IssuesGetIssueData,
   IssuesGetIssueErrors,
   IssuesGetIssueResponses,
@@ -186,6 +210,9 @@ import type {
   McpGetWorkspaceUsageData,
   McpGetWorkspaceUsageErrors,
   McpGetWorkspaceUsageResponses,
+  McpInvitePeopleData,
+  McpInvitePeopleErrors,
+  McpInvitePeopleResponses,
   McpListAgentScenariosData,
   McpListAgentScenariosErrors,
   McpListAgentScenariosResponses,
@@ -204,6 +231,9 @@ import type {
   McpListIssuesData,
   McpListIssuesErrors,
   McpListIssuesResponses,
+  McpListPeopleData,
+  McpListPeopleErrors,
+  McpListPeopleResponses,
   McpListTasksData,
   McpListTasksErrors,
   McpListTasksResponses,
@@ -222,6 +252,9 @@ import type {
   McpRaiseAgentClarificationsData,
   McpRaiseAgentClarificationsErrors,
   McpRaiseAgentClarificationsResponses,
+  McpRemovePersonData,
+  McpRemovePersonErrors,
+  McpRemovePersonResponses,
   McpRunAgentScenariosData,
   McpRunAgentScenariosErrors,
   McpRunAgentScenariosResponses,
@@ -234,6 +267,9 @@ import type {
   McpUnarchiveIssueData,
   McpUnarchiveIssueErrors,
   McpUnarchiveIssueResponses,
+  McpUpdatePersonData,
+  McpUpdatePersonErrors,
+  McpUpdatePersonResponses,
   McpWriteAgentScenariosData,
   McpWriteAgentScenariosErrors,
   McpWriteAgentScenarioSetData,
@@ -807,6 +843,203 @@ export class AgenciesService {
       },
     });
   }
+
+  /**
+   * Invite People
+   *
+   * Invite people by email. Each address that can get an invite is sent one, good
+   * for 7 days; the others come back with why not.
+   */
+  public static invitePeople<ThrowOnError extends boolean = false>(
+    options: Options<AgenciesInvitePeopleData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      AgenciesInvitePeopleResponses,
+      AgenciesInvitePeopleErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}/invites',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Resend Invite
+   *
+   * Send the invite again with a new link and seven more days. The earlier link
+   * stops working.
+   */
+  public static resendInvite<ThrowOnError extends boolean = false>(
+    options: Options<AgenciesResendInviteData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      AgenciesResendInviteResponses,
+      AgenciesResendInviteErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}/invites/{invite_id}/resend',
+      ...options,
+    });
+  }
+
+  /**
+   * Cancel Invite
+   */
+  public static cancelInvite<ThrowOnError extends boolean = false>(
+    options: Options<AgenciesCancelInviteData, ThrowOnError>
+  ) {
+    return (options.client ?? client).delete<
+      AgenciesCancelInviteResponses,
+      AgenciesCancelInviteErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}/invites/{invite_id}',
+      ...options,
+    });
+  }
+}
+
+export class InvitesService {
+  /**
+   * Look At Invite
+   *
+   * Which agency invites which email, while the link works.
+   */
+  public static lookAtInvite<ThrowOnError extends boolean = false>(
+    options: Options<InvitesLookAtInviteData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      InvitesLookAtInviteResponses,
+      InvitesLookAtInviteErrors,
+      ThrowOnError
+    >({ url: '/api/v1/invites/{token}', ...options });
+  }
+
+  /**
+   * Accept Invite
+   *
+   * Join the agency as the signed-in person. Refused when they are signed in with
+   * another email than the invited one.
+   */
+  public static acceptInvite<ThrowOnError extends boolean = false>(
+    options: Options<InvitesAcceptInviteData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      InvitesAcceptInviteResponses,
+      InvitesAcceptInviteErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/invites/{token}/accept',
+      ...options,
+    });
+  }
+
+  /**
+   * Decline Invite
+   */
+  public static declineInvite<ThrowOnError extends boolean = false>(
+    options: Options<InvitesDeclineInviteData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      InvitesDeclineInviteResponses,
+      InvitesDeclineInviteErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/invites/{token}/decline',
+      ...options,
+    });
+  }
+
+  /**
+   * Sign Up And Join
+   *
+   * Make an account for the invited email and join. The person gets the inviting
+   * agency only, and is signed in.
+   */
+  public static signUpAndJoin<ThrowOnError extends boolean = false>(
+    options: Options<InvitesSignUpAndJoinData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      InvitesSignUpAndJoinResponses,
+      InvitesSignUpAndJoinErrors,
+      ThrowOnError
+    >({
+      url: '/api/v1/invites/{token}/signup',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Sign In And Join
+   *
+   * Sign in to the invited email's account and join. This also works for a person
+   * who has no workspace left, whom the ordinary sign-in refuses: someone removed from
+   * an agency and invited again.
+   */
+  public static signInAndJoin<ThrowOnError extends boolean = false>(
+    options: Options<InvitesSignInAndJoinData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      InvitesSignInAndJoinResponses,
+      InvitesSignInAndJoinErrors,
+      ThrowOnError
+    >({
+      url: '/api/v1/invites/{token}/signin',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
 }
 
 export class AuthService {
@@ -828,6 +1061,9 @@ export class AuthService {
 
   /**
    * Start
+   *
+   * Send the browser to Google. `invite` is an agency invite's link token: the
+   * person joins that agency when Google answers with the invited email.
    */
   public static start<ThrowOnError extends boolean = false>(
     options?: Options<AuthStartData, ThrowOnError>
@@ -1873,6 +2109,84 @@ export class McpService {
     >({
       security: [{ scheme: 'bearer', type: 'http' }],
       url: '/api/v1/mcp/workspaces/{workspace_id}/feedback',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * List People
+   */
+  public static listPeople<ThrowOnError extends boolean = false>(
+    options: Options<McpListPeopleData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      McpListPeopleResponses,
+      McpListPeopleErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/people',
+      ...options,
+    });
+  }
+
+  /**
+   * Invite People
+   */
+  public static invitePeople<ThrowOnError extends boolean = false>(
+    options: Options<McpInvitePeopleData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      McpInvitePeopleResponses,
+      McpInvitePeopleErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/people/invites',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Remove Person
+   *
+   * Remove a person from the agency, or cancel an invite, by its id.
+   */
+  public static removePerson<ThrowOnError extends boolean = false>(
+    options: Options<McpRemovePersonData, ThrowOnError>
+  ) {
+    return (options.client ?? client).delete<
+      McpRemovePersonResponses,
+      McpRemovePersonErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/people/{person_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Update Person
+   */
+  public static updatePerson<ThrowOnError extends boolean = false>(
+    options: Options<McpUpdatePersonData, ThrowOnError>
+  ) {
+    return (options.client ?? client).patch<
+      McpUpdatePersonResponses,
+      McpUpdatePersonErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/people/{person_id}',
       ...options,
       headers: {
         'Content-Type': 'application/json',

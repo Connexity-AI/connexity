@@ -4,7 +4,7 @@ Prompts written for Claude Design, where Dmytro designs the web app's screens, a
 table of who does what. They are reference for the sessions that build each feature;
 the screens themselves live in Claude Design.
 
-- **Numbered prompts (`01-` to `17-`)** were pasted into Claude Design in order. Each
+- **Numbered prompts (`01-` to `18-`)** were pasted into Claude Design in order. Each
   later prompt changes earlier ones, so read a screen's prompts in order: a later prompt
   wins. `15-assistant-tasks.md` arrives with the "Next task for the assistant" pull
   request; `16-work.md` replaces it. Prompt 14 (suggested answers) was deleted with 10.123,
@@ -35,7 +35,8 @@ screen looks, the exported page wins over the prompts that produced it.
 | `Connexity Incidents.dc.html`, `Connexity Incident.dc.html` | Incidents and the Playbook | Milestone 5 (Playbook later) |
 | `Connexity Sign in.dc.html` | Sign in, create an account, connecting an assistant, and password reset (`17-password-reset.md`). Its invite screens are not built yet | Milestone 9; password reset |
 | `Connexity Password Reset.dc.html` | Every password reset screen and state on one canvas, with both emails | Password reset |
-| `Connexity Email.dc.html` | The emails Connexity sends. Built: reset and the Google-only note. Invite and billing emails are not built yet | Password reset, then invites and billing |
+| `Connexity Email.dc.html` | The emails Connexity sends. Built: reset, the Google-only note and the agency invite. Billing emails are not built yet | Password reset, invites, then billing |
+| `Connexity Agency Members.dc.html` | Agency settings › Members in every state, the invite email, accepting an invite, the profile menu with two agencies and Settings › Team, on one canvas (`18-agency-members.md`) | Invites and Members screen |
 | `Connexity Settings.dc.html` | Workspace settings | Milestones 7, 8 and 10 |
 | `Connexity Account.dc.html`, `Connexity Agency.dc.html` | Personal settings, agency settings and billing | Milestone 9 |
 | `Connexity Home.dc.html` | Dashboard (was Home) | Milestone 10 |

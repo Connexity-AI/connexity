@@ -55,6 +55,12 @@ GROUPS = (
         "Write scenarios and run them as simulated calls against your agent.",
     ),
     Group(
+        "people",
+        "People",
+        "See who is in your agency and what each person reaches; invite, change and "
+        "remove people when you are an Admin.",
+    ),
+    Group(
         "usage",
         "Usage",
         "See what was counted and what it comes to at list price. Nothing is billed.",
@@ -239,6 +245,30 @@ TOOLS: dict[str, ToolEntry] = {
         "scenarios",
     ),
     # Feedback
+    "list_people": ToolEntry(
+        "people",
+        "Lists who is in your agency: their role, the workspaces they reach, whether "
+        "they can approve, and the invites waiting.",
+        "people",
+    ),
+    "invite_people": ToolEntry(
+        "people",
+        "Invites people to your agency by email, if you are an Admin.",
+        "people",
+        needs_yes=True,
+    ),
+    "update_person": ToolEntry(
+        "people",
+        "Changes a person's role, workspaces or whether they can approve.",
+        "people",
+        needs_yes=True,
+    ),
+    "remove_person": ToolEntry(
+        "people",
+        "Removes a person from your agency, or cancels an invite.",
+        "people",
+        needs_yes=True,
+    ),
     "get_usage": ToolEntry(
         "usage",
         "Shows a period's observed minutes and simulated caller messages, with their "

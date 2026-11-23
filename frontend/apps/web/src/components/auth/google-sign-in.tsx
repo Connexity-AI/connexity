@@ -6,6 +6,8 @@ import type { FC } from 'react';
 interface Props {
   /** Google refused or the person cancelled (`?error=google`). */
   failed: boolean;
+  /** An agency invite's link token: signing in with the invited email joins it. */
+  invite?: string;
 }
 
 const GoogleMark: FC = () => (
@@ -33,7 +35,7 @@ const GoogleMark: FC = () => (
  * "Continue with Google" and the divider. Absent when the deployment has no Google
  * settings. The Google mark's colours are the only third-party colours in the product.
  */
-export const GoogleSignIn: FC<Props> = async ({ failed }) => {
+export const GoogleSignIn: FC<Props> = async ({ failed, invite }) => {
   const status = await AuthService.googleStatus();
   if (!status.data?.enabled) return null;
 
@@ -48,7 +50,7 @@ export const GoogleSignIn: FC<Props> = async ({ failed }) => {
           </span>
         )}
         <a
-          href={`${API_URL}/api/v1/auth/google/start`}
+          href={`${API_URL}/api/v1/auth/google/start${invite ? `?invite=${encodeURIComponent(invite)}` : ''}`}
           className="flex h-10 w-full items-center justify-center gap-2.5 rounded-md border border-border-control text-body text-ink no-underline hover:bg-wash"
         >
           <GoogleMark />

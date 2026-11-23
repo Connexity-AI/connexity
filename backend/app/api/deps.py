@@ -235,3 +235,20 @@ def require_mcp_workspace(
 
 
 McpWorkspaceDep = Annotated[Company, Depends(require_mcp_workspace)]
+
+
+def require_approver(session: Session, user: User, company_id: uuid.UUID) -> None:
+    """Refuse a critical decision (archiving or unarchiving an issue, changing a
+    check) for a person who cannot approve in this workspace, naming who can."""
+    from app import crud
+
+    workspace = session.get(Company, company_id)
+    if workspace is None or crud.can_approve_in(
+        session=session, user=user, workspace=workspace
+    ):
+        return
+    asking = crud.approver_names(session=session, workspace=workspace)
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail=f"This needs someone who can approve. Ask {asking}.",
+    )

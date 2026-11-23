@@ -1498,3 +1498,59 @@ class FeedbackSent(BaseModel):
 
 
 SendFeedbackResult = Answer[FeedbackSent]
+
+
+class Person(BaseModel):
+    id: str = Field(description="Pass as `person_id` to change or remove them")
+    name: str | None = None
+    email: str
+    role: str = Field(description="`admin` or `member`")
+    all_workspaces: bool = Field(
+        description="Reaches every workspace of the agency, including later ones"
+    )
+    workspace_ids: list[str] = Field(description="The workspaces they reach")
+    can_approve: bool
+    assistants: int = Field(description="How many assistants they have connected")
+    is_you: bool = Field(description="The person you act for")
+
+
+class Invite(BaseModel):
+    id: str = Field(description="Pass as `person_id` to cancel the invite")
+    email: str
+    role: str
+    all_workspaces: bool
+    workspace_ids: list[str]
+    can_approve: bool
+    expires_at: str
+    invited_by: str | None = None
+
+
+class People(BaseModel):
+    agency: AgencyRef
+    your_role: str = Field(description="The role of the person you act for")
+    workspaces: list[AgencyRef] = Field(
+        description="The agency's workspaces, to read `workspace_ids` by name"
+    )
+    people: list[Person]
+    invites: list[Invite] = Field(
+        description="Invites still waiting; empty unless your person is an admin"
+    )
+
+
+class Invited(BaseModel):
+    sent: list[Invite]
+    refused: list[dict[str, str]] = Field(
+        description="Addresses that got no invite, each with `email`, `reason` "
+        "(invalid, member or invited) and `message`"
+    )
+
+
+class Removed(BaseModel):
+    removed: str = Field(description="`person` or `invite`")
+    who: str
+
+
+ListPeopleResult = Answer[People]
+InvitePeopleResult = Answer[Invited]
+UpdatePersonResult = Answer[Person]
+RemovePersonResult = Answer[Removed]

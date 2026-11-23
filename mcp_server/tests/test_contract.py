@@ -49,12 +49,15 @@ async def test_every_tool_input_has_a_description() -> None:
 
 
 @pytest.mark.asyncio
-async def test_only_three_tools_need_the_persons_yes() -> None:
+async def test_the_tools_that_need_the_persons_yes() -> None:
     tools = _tools(await _manifest())
     assert sorted(name for name, tool in tools.items() if tool.needs_yes) == [
         "answer_clarifications",
         "archive_issue",
+        "invite_people",
+        "remove_person",
         "unarchive_issue",
+        "update_person",
     ]
     assert [name for name, tool in tools.items() if tool.only_when_asked] == [
         "move_task"
@@ -102,6 +105,7 @@ def test_the_manifest_is_public_and_has_no_workspace_data() -> None:
         "calls_and_issues",
         "agents_and_spec",
         "testing",
+        "people",
         "usage",
         "feedback",
     ]
