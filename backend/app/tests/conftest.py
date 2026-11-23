@@ -126,3 +126,11 @@ def _simulation_model_key(monkeypatch: pytest.MonkeyPatch) -> None:
     about the refusal takes it away."""
     monkeypatch.setattr(settings, "ANTHROPIC_API_KEY", "invented-key")
     monkeypatch.setattr(settings, "OPENAI_API_KEY", "invented-key")
+
+
+@pytest.fixture(autouse=True)
+def _no_admin_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    """With an Anthropic admin key the scheduled call pull also reads Anthropic's cost
+    report. Tests never use the developer's `.env` key: a test about the report sets
+    an invented one."""
+    monkeypatch.setattr(settings, "ANTHROPIC_ADMIN_KEY", None)
