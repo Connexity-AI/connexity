@@ -89,6 +89,15 @@ Resolving an issue and answering the assistant's clarification questions need no
 approval (Decided by Dmytro, 2026-11-23). Closing incidents, overriding the gate and
 changing the Playbook take the same rule (`require_approver`) when they are built.
 
+## The profile menu
+
+A person in more than one agency sees their workspaces grouped under the agencies'
+names: the agency of the open workspace first, the others by name. With one agency the
+menu shows no agency name. "New workspace" and "Agency settings" act on the agency of
+the open workspace. The grouping is `groupByAgency` in
+`frontend/apps/web/src/components/shell/profile-menu.tsx`, from the `agency_id` and
+`agency_name` that `GET /api/v1/workspaces/` returns.
+
 ## Routes
 
 | Route | Who | What |
