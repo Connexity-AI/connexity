@@ -400,6 +400,13 @@ def test_a_person_with_an_account_joins_signed_in_and_keeps_their_own_agency(
     places = {a.id: m.role for a, m in crud.list_agencies(session=db, user=sam)}
     assert places[_agency_of(db, admin).id] is AgencyRole.admin
     assert len(places) == 2
+    # The workspace list names each workspace's own agency, for the grouped menu.
+    listed = client.get(f"{API}/workspaces/", cookies=_web(db, sam)).json()
+    assert {(w["id"], w["agency_id"], w["agency_name"]) for w in listed} == {
+        (str(who.company_id), str(agency.id), agency.name)
+        for who in (sam, admin)
+        for agency in [_agency_of(db, who)]
+    }
     assert (
         client.post(f"{API}/invites/{token}/accept", cookies=_web(db, sam)).status_code
         == 404

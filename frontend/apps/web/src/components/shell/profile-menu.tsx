@@ -38,6 +38,33 @@ interface Props {
   workspaces: WorkspacePublic[];
 }
 
+interface AgencyGroup {
+  id: string;
+  name: string;
+  workspaces: WorkspacePublic[];
+}
+
+/**
+ * Workspaces under their agencies: the open workspace's agency first, the others by
+ * name. Workspaces keep the order they came in.
+ */
+export const groupByAgency = (workspaces: WorkspacePublic[]): AgencyGroup[] => {
+  const groups = new Map<string, AgencyGroup>();
+  for (const workspace of workspaces) {
+    const group = groups.get(workspace.agency_id) ?? {
+      id: workspace.agency_id,
+      name: workspace.agency_name,
+      workspaces: [],
+    };
+    group.workspaces.push(workspace);
+    groups.set(group.id, group);
+  }
+  const isOpen = (group: AgencyGroup) => group.workspaces.some((w) => w.is_open);
+  return [...groups.values()].sort(
+    (a, b) => Number(isOpen(b)) - Number(isOpen(a)) || a.name.localeCompare(b.name)
+  );
+};
+
 const ThemePicker: FC = () => {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -85,7 +112,16 @@ const WorkspaceList: FC<{ workspaces: WorkspacePublic[]; onNew: () => void }> = 
   const [isPending, startTransition] = useTransition();
 
   const q = query.trim().toLowerCase();
-  const shown = q ? workspaces.filter((w) => w.name.toLowerCase().includes(q)) : workspaces;
+  // Grouping uses every workspace, so searching never reorders the agencies.
+  const groups = groupByAgency(workspaces)
+    .map((group) => ({
+      ...group,
+      workspaces: q
+        ? group.workspaces.filter((w) => w.name.toLowerCase().includes(q))
+        : group.workspaces,
+    }))
+    .filter((group) => group.workspaces.length > 0);
+  const isGrouped = new Set(workspaces.map((w) => w.agency_id)).size > 1;
 
   const open = (workspace: WorkspacePublic) => {
     if (workspace.is_open) return;
@@ -110,16 +146,30 @@ const WorkspaceList: FC<{ workspaces: WorkspacePublic[]; onNew: () => void }> = 
         />
       )}
       <div className="flex max-h-60 flex-col overflow-y-auto">
-        {shown.map((workspace) => (
-          <DropdownMenuItem
-            key={workspace.id}
-            disabled={isPending}
-            onSelect={() => open(workspace)}
-            className="flex h-[34px] cursor-pointer items-center gap-2.5 rounded-sm px-2.5 text-label text-ink focus:bg-wash"
+        {groups.map((group) => (
+          <div
+            key={group.id}
+            role={isGrouped ? 'group' : undefined}
+            aria-label={isGrouped ? group.name : undefined}
+            className="contents"
           >
-            <span className="min-w-0 flex-1 truncate">{workspace.name}</span>
-            {workspace.is_open && <Check className="size-3.5 flex-none" aria-label="Open" />}
-          </DropdownMenuItem>
+            {isGrouped && (
+              <span className="flex-none truncate px-2.5 pt-2 pb-0.5 text-label text-ink-muted">
+                {group.name}
+              </span>
+            )}
+            {group.workspaces.map((workspace) => (
+              <DropdownMenuItem
+                key={workspace.id}
+                disabled={isPending}
+                onSelect={() => open(workspace)}
+                className="flex h-[34px] flex-none cursor-pointer items-center gap-2.5 rounded-sm px-2.5 text-label text-ink focus:bg-wash"
+              >
+                <span className="min-w-0 flex-1 truncate">{workspace.name}</span>
+                {workspace.is_open && <Check className="size-3.5 flex-none" aria-label="Open" />}
+              </DropdownMenuItem>
+            ))}
+          </div>
         ))}
       </div>
       <DropdownMenuItem

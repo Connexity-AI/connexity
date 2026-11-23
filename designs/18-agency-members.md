@@ -7,9 +7,9 @@ section of `screens/Connexity Agency.dc.html`, the `invite` screens of
 `screens/Connexity Sign in.dc.html`, the `invite` variant of
 `screens/Connexity Email.dc.html` and the two-agency profile menu in
 `screens/Connexity Sidebar.dc.html`. How it works:
-[`docs-internal/agency.md`](../docs-internal/agency.md). Built so far: sections 1 to 6.
-Sections 7 and 8 are the second pull request of the roadmap row "Invites and Members
-screen".
+[`docs-internal/agency.md`](../docs-internal/agency.md). Built: sections 1 to 7.
+Section 8 (workspace Settings › Team) is built with the roadmap row "Settings: team",
+which also brings the workspace Settings page (Decided by Dmytro, 2026-11-23).
 
 ```txt
 Update Agency settings › Members (Connexity Agency) and add the screens around it, in dark and light. Keep the existing layout, table and invite row. Use the existing design system. Sentence case, plain words, no exclamation marks. One primary button per screen. Orange is only the logo. The Billing section is not part of this prompt: leave it as it is.
