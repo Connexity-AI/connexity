@@ -94,6 +94,17 @@ def delete_integration(
     )
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
+    # Agents are read from the voice platform through their connection; deleting it
+    # under them is refused, not answered with a database error.
+    agents = crud.count_agents_using_integration(
+        session=session, integration_id=integration.id
+    )
+    if agents:
+        noun = "agent uses" if agents == 1 else "agents use"
+        raise HTTPException(
+            status_code=409,
+            detail=f"{agents} {noun} this connection, so it cannot be deleted.",
+        )
     crud.delete_integration(session=session, db_integration=integration)
     return Message(message="Integration deleted successfully")
 

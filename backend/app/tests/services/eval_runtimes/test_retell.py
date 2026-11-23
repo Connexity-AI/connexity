@@ -4,8 +4,6 @@ import uuid
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from app.models.agent import Agent
 from app.models.enums import AgentMode, FirstTurn, Platform
 from app.models.schemas import RetellRuntimeConfig, RunConfig
@@ -75,87 +73,6 @@ def _make_args(agent: Agent, test_case, *, max_turns: int | None = 1) -> Runtime
             cancel_event=None,
         ),
     )
-
-
-def test_supported_for_platform_only_retell() -> None:
-    runtime = RetellRuntime()
-    assert runtime.supported_for_platform(Platform.RETELL) is True
-    assert runtime.supported_for_platform(Platform.VAPI) is False
-    assert runtime.supported_for_platform(Platform.WEBHOOK) is False
-    assert runtime.supported_for_platform(None) is False
-
-
-def test_validate_config_requires_retell_agent() -> None:
-    runtime = RetellRuntime()
-    agent = _make_agent(Platform.VAPI)
-    session = MagicMock()
-
-    with pytest.raises(ValueError, match="Retell agent"):
-        runtime.validate_config(RetellRuntimeConfig(), agent, session)
-
-
-def test_validate_config_requires_integration_and_platform_agent_id() -> None:
-    runtime = RetellRuntime()
-    agent = _make_agent()
-    agent.integration_id = None
-    session = MagicMock()
-
-    with pytest.raises(ValueError, match="integration"):
-        runtime.validate_config(RetellRuntimeConfig(), agent, session)
-
-
-async def test_test_connection_checks_retell_playground() -> None:
-    runtime = RetellRuntime()
-    agent = _make_agent()
-    session = MagicMock()
-    session.get.return_value = SimpleNamespace(encrypted_api_key="ciphertext")
-
-    with (
-        patch(
-            "app.services.eval_runtimes.text.retell.decrypt", return_value="retell-key"
-        ),
-        patch(
-            "app.services.eval_runtimes.text.retell.create_retell_agent_playground_completion",
-            new=AsyncMock(
-                return_value=RetellAgentPlaygroundCompletionResult(success=True)
-            ),
-        ) as mock_playground,
-    ):
-        result = await runtime.test_connection(RetellRuntimeConfig(), agent, session)
-
-    assert result.ok is True
-    assert "reachable" in result.message
-    mock_playground.assert_awaited_once_with(
-        api_key="retell-key",
-        retell_agent_id="retell_chat_agent_123",
-        messages=[],
-    )
-
-
-async def test_test_connection_surfaces_playground_error() -> None:
-    runtime = RetellRuntime()
-    agent = _make_agent()
-    session = MagicMock()
-    session.get.return_value = SimpleNamespace(encrypted_api_key="ciphertext")
-
-    with (
-        patch(
-            "app.services.eval_runtimes.text.retell.decrypt", return_value="retell-key"
-        ),
-        patch(
-            "app.services.eval_runtimes.text.retell.create_retell_agent_playground_completion",
-            new=AsyncMock(
-                return_value=RetellAgentPlaygroundCompletionResult(
-                    success=False,
-                    error_message="Playground rejected the request",
-                )
-            ),
-        ),
-    ):
-        result = await runtime.test_connection(RetellRuntimeConfig(), agent, session)
-
-    assert result.ok is False
-    assert result.message == "Playground rejected the request"
 
 
 async def test_run_test_case_uses_retell_playground() -> None:

@@ -64,10 +64,8 @@ Dmytro, 2026-11-23), sending from the verified domain `mail.connexity.ai`; its D
 records are in Cloudflare. Resend's free plan allows 100 emails a day and refuses the
 rest, which the backend logs as a failed send.
 
-Set on `connexity-backend` on 2026-11-23, except `EMAILS_FROM_NAME`, which is added
-once the password reset change is deployed: the code before it refuses a sender name
-that is not an email address. Without these settings the sign-in page shows no "Forgot
-password?" and nothing else changes:
+Set on `connexity-backend` on 2026-11-23. Without these settings the sign-in page
+shows no "Forgot password?" and nothing else changes:
 
 | Setting | Value |
 |---|---|

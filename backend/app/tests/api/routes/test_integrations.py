@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import Generator
 from unittest.mock import AsyncMock, patch
 
@@ -8,9 +9,10 @@ from sqlmodel import Session, select
 
 from app.core import encryption
 from app.core.config import settings
-from app.models import IntegrationProvider
+from app.models import Agent, IntegrationProvider
 from app.services.n8n import N8nConnectionProblem, N8nConnectionResult
 from app.services.retell import RetellAgentSummary
+from app.tests.utils.eval import create_agent_as
 
 
 @pytest.fixture(autouse=True)
@@ -389,3 +391,51 @@ def test_create_records_who_connected_it(
     user = db.exec(select(User).where(User.email == AUTH_USER_EMAIL)).one()
     assert integration is not None
     assert integration.created_by_user_id == user.id
+
+
+def test_a_connection_agents_use_cannot_be_deleted(
+    client: TestClient, auth_cookies: dict[str, str], db: Session
+) -> None:
+    with patch.dict(
+        "app.services.connections.CONNECTION_TESTERS",
+        {IntegrationProvider.RETELL: AsyncMock(return_value=True)},
+        clear=False,
+    ):
+        created = client.post(
+            f"{settings.API_V1_STR}/integrations/",
+            json=_create_body("retell-in-use"),
+            cookies=auth_cookies,
+        )
+    integration_id = created.json()["id"]
+    url = f"{settings.API_V1_STR}/integrations/{integration_id}"
+    agents = [create_agent_as(client, auth_cookies) for _ in range(2)]
+    for made in agents:
+        agent = db.get(Agent, made.id)
+        assert agent is not None
+        agent.integration_id = uuid.UUID(integration_id)
+        db.add(agent)
+    db.commit()
+
+    refused = client.delete(url, cookies=auth_cookies)
+
+    assert refused.status_code == 409
+    assert refused.json()["detail"] == (
+        "2 agents use this connection, so it cannot be deleted."
+    )
+
+    for made in agents[1:]:
+        agent = db.get(Agent, made.id)
+        assert agent is not None
+        agent.integration_id = None
+        db.add(agent)
+    db.commit()
+    one_left = client.delete(url, cookies=auth_cookies)
+    assert one_left.status_code == 409
+    assert one_left.json()["detail"].startswith("1 agent uses this connection")
+
+    agent = db.get(Agent, agents[0].id)
+    assert agent is not None
+    agent.integration_id = None
+    db.add(agent)
+    db.commit()
+    assert client.delete(url, cookies=auth_cookies).status_code == 200

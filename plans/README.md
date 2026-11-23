@@ -47,8 +47,6 @@ places:
 
 ## Exemptions
 
-- Pull requests opened by the release automation (branches starting with
-  `release-please--`).
 - Pull requests labelled `no-plan`, for changes with nothing to plan, such as a typo.
   The label is applied by a person, not by the assistant.
 

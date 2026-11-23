@@ -1,9 +1,8 @@
 import uuid
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import text
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
@@ -60,11 +59,6 @@ class EvalConfig(EvalConfigBase, table=True):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     company_id: uuid.UUID = Field(foreign_key="company.id", index=True)
-    config: dict[str, Any] | None = Field(
-        default=None,
-        sa_column=Column("config", JSONB, nullable=True),
-        description="Not used by scenario sets",
-    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"server_default": text("now()")},
