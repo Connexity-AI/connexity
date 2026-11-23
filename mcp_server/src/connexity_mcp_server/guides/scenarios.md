@@ -167,6 +167,13 @@ do not approve them: a person who disagrees asks you to change one.
     fake);
   - **Not verified:** no completed full run of this version, or one that judged no
     rule. `last_verified` names the newest other version a full run verified.
+- **Verify a version before it ships.** Run `all` on the draft (the newest version on
+  the platform, or `version`), then read its verdict here. Verified and not live: it
+  passed the gate and can be published. Failed and not live: publishing it would be an
+  override, which only a person decides. Connexity never publishes.
+- **After it ships,** mark the issues it fixes with `mark_issue_fixed`; `get_issue`
+  then says how many real calls there were since the version went live and how many
+  still have the issue (`connexity://guides/issues`).
 - **Each run** has its version and its `totals`: rules passed, failed, didn't come up
   and without a scenario, each counted once per run. Calls that stopped with an error
   count in no column (`not_judged` for rules only they listed), and so do rules judged

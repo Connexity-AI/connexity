@@ -27,10 +27,12 @@ from app.crud import clarification as crud_clarification
 from app.crud import scenario as crud_scenario
 from app.crud import test_run as crud_test_run
 from app.crud.call_list import CallFilters
+from app.crud.check import version_reaches
 from app.crud.issue_list import calls_by_agent, period_start
 from app.crud.issue_page import (
     issue_calls_per_version,
     issue_findings_on_calls,
+    issue_since_version,
     latest_agent_version,
 )
 from app.crud.latency import agent_gap_percentiles
@@ -95,6 +97,7 @@ from app.models.mcp import (
     McpIssueFinding,
     McpIssues,
     McpIssueSetting,
+    McpIssueSinceVersion,
     McpIssueVersion,
     McpMarkCritical,
     McpMarkFixed,
@@ -618,7 +621,51 @@ _ISSUE_RULES = [
     "While archived, the issue is hidden on every call, including earlier ones, and "
     "counts for nothing; until_spike brings it back as reopened when it starts "
     "happening twice as often.",
+    "since_version counts the agent's real calls that ran that version or a later "
+    "one. Connexity never calls a fix confirmed: give 'N calls, M with this issue' "
+    "with the base, say a few calls prove little, and let the person judge.",
 ]
+
+
+def _since_version(
+    session: SessionDep, issue: Issue, asked: str | None
+) -> McpIssueSinceVersion | None:
+    """The counts since the version asked for, or since the issue's fix."""
+    fixed = (
+        issue.resolved_version
+        if issue.state in (IssueState.RESOLVED, IssueState.REOPENED)
+        else None
+    )
+    version = (asked or "").strip() or fixed
+    if version is None:
+        return None
+    since = issue_since_version(session=session, issue=issue, version=version)
+    return McpIssueSinceVersion(
+        version=version, is_fix=version == fixed, **since._asdict()
+    )
+
+
+def _since_step(since: McpIssueSinceVersion, issue: Issue) -> str:
+    if since.live_at is None:
+        return f"Version {since.version} has not served a real call yet."
+    live = since.live_at
+    year = "" if live.year == datetime.now(UTC).year else f" {live.year}"
+    step = (
+        f"Since version {since.version} went live ({live.day} {live:%b}{year}): "
+        f"{since.calls} {'call' if since.calls == 1 else 'calls'}, "
+        f"{since.calls_with_issue} with this issue."
+    )
+    if (
+        since.is_fix
+        and issue.state is IssueState.REOPENED
+        and not since.calls_with_issue
+    ):
+        # Reopening goes by when a call started, these counts by the version it ran.
+        step += (
+            " It was reopened by a call that started after that on an older version "
+            "or with no version reported, which is not counted here."
+        )
+    return step
 
 
 def _issue_check(check: Check) -> McpIssueCheck:
@@ -637,8 +684,15 @@ def _issue_check(check: Check) -> McpIssueCheck:
 
 
 def _issue_answer(
-    session: SessionDep, issue: Issue, next_steps: list[str]
+    session: SessionDep,
+    issue: Issue,
+    next_steps: list[str],
+    since_version: str | None = None,
 ) -> McpAnswer[McpIssue]:
+    since = _since_version(session, issue, since_version)
+    # A fix still waiting to go live already says so in its own step.
+    if since is not None and not (since.is_fix and since.live_at is None):
+        next_steps.insert(0, _since_step(since, issue))
     summary = crud.summarise_issue(session=session, issue=issue)
     page = issue_page(session=session, issue=issue, summary=summary)
     check = get_check(issue.check_type)
@@ -665,6 +719,7 @@ def _issue_answer(
             )
         ],
         live_version=latest_agent_version(session=session, agent_id=issue.agent_id),
+        since_version=since,
         findings_all_time=summary.finding_count,
         calls_all_time=summary.call_count,
     )
@@ -683,7 +738,10 @@ def _issue_answer(
     response_model=McpAnswer[McpIssue],
 )
 def get_issue(
-    session: SessionDep, workspace: McpWorkspaceDep, issue_id: uuid.UUID
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    issue_id: uuid.UUID,
+    since_version: str | None = Query(default=None, max_length=255),
 ) -> McpAnswer[McpIssue]:
     issue = _mcp_issue(session, workspace, issue_id)
     next_steps = _fix_steps(issue)
@@ -697,7 +755,7 @@ def get_issue(
             "If the agent's spec does not say whether this behaviour is allowed, raise "
             "a question with `raise_clarifications` and these calls as evidence."
         )
-    return _issue_answer(session, issue, next_steps)
+    return _issue_answer(session, issue, next_steps, since_version)
 
 
 def _fix_steps(issue: Issue) -> list[str]:
@@ -2940,6 +2998,14 @@ def _verdict_steps(results: VersionResultsPublic) -> list[str]:
         if full is not None and full.completed_at
         else ""
     )
+    # Ahead of the live version: a draft or a version not published yet. Where
+    # versions are not numbers their order is unknown, so nothing is said.
+    live = results.live_version
+    candidate = (
+        results.version is not None
+        and results.version != live
+        and (live is None or version_reaches(results.version, live))
+    )
     if results.verdict is VersionVerdict.NOT_VERIFIED:
         earlier = (
             f" Version {results.last_verified.version} was verified "
@@ -2989,6 +3055,15 @@ def _verdict_steps(results: VersionResultsPublic) -> list[str]:
             "`write_scenarios`; otherwise tell the person what failed and what you "
             "suggest, with the call's link. Connexity never changes the agent.",
             "After the agent is changed, run every scenario again with `run_scenarios`.",
+            *(
+                [
+                    f"{name} is not live and did not pass the gate. Publishing it as "
+                    "it is would be an override, which only a person decides: do not "
+                    "publish it or advise publishing it on your own."
+                ]
+                if candidate
+                else []
+            ),
         ]
     if results.verdict is VersionVerdict.PARTIAL:
         keys = ", ".join(u.key for u in results.unchecked[:5])
@@ -3019,7 +3094,15 @@ def _verdict_steps(results: VersionResultsPublic) -> list[str]:
             "tell the person which."
             if failed
             else "."
-        )
+        ),
+        *(
+            [
+                f"{name} is not live: it passed the gate and can be published. "
+                "Connexity never publishes; that is done on the agent's platform."
+            ]
+            if candidate
+            else []
+        ),
     ]
 
 

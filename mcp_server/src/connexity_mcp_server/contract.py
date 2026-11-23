@@ -146,7 +146,7 @@ TOOLS: dict[str, ToolEntry] = {
     ),
     "get_issue": ToolEntry(
         "calls_and_issues",
-        "Everything about one issue: the check behind it, its size, versions and history.",
+        "Everything about one issue: the check behind it, its size, versions and history, and whether it stopped since a version went live.",
         "issues",
     ),
     "mark_issue_fixed": ToolEntry(

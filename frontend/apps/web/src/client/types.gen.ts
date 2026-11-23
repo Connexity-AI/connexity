@@ -4827,6 +4827,10 @@ export type McpIssue = {
    */
   live_version?: string | null;
   /**
+   * What happened since the fix's version went live, or since the version asked for with `since_version`; none when there is neither
+   */
+  since_version?: McpIssueSinceVersion | null;
+  /**
    * Findings All Time
    *
    * Findings of this issue, ever
@@ -4944,6 +4948,57 @@ export type McpIssueSetting = {
    * When a person last changed it; none if never
    */
   since?: string | null;
+};
+
+/**
+ * McpIssueSinceVersion
+ *
+ * The agent's real calls since a version went live, and this issue among them.
+ * A call counts when it ran that version or a later one.
+ */
+export type McpIssueSinceVersion = {
+  /**
+   * Version
+   *
+   * The version counted from
+   */
+  version: string;
+  /**
+   * Is Fix
+   *
+   * Whether it is the version the issue is fixed in
+   */
+  is_fix: boolean;
+  /**
+   * Live At
+   *
+   * When its first real call started; none if it served none yet
+   */
+  live_at?: string | null;
+  /**
+   * Calls
+   *
+   * The agent's real calls on it or a later version
+   */
+  calls: number;
+  /**
+   * Calls With Issue
+   *
+   * How many of those have this issue
+   */
+  calls_with_issue: number;
+  /**
+   * Last Call Id
+   *
+   * The newest of those with this issue
+   */
+  last_call_id?: string | null;
+  /**
+   * Last Call At
+   *
+   * When that call started
+   */
+  last_call_at?: string | null;
 };
 
 /**
@@ -10927,7 +10982,12 @@ export type McpGetIssueData = {
      */
     workspace_id: string;
   };
-  query?: never;
+  query?: {
+    /**
+     * Since Version
+     */
+    since_version?: string | null;
+  };
   url: '/api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}';
 };
 

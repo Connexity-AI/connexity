@@ -154,8 +154,14 @@ class ConnexityBackendClient:
             f"{quote(issue_id, safe='')}"
         )
 
-    async def get_issue(self, *, workspace_id: str, issue_id: str) -> dict[str, Any]:
-        return await self._request_json("GET", self._issue_path(workspace_id, issue_id))
+    async def get_issue(
+        self, *, workspace_id: str, issue_id: str, since_version: str | None = None
+    ) -> dict[str, Any]:
+        return await self._request_json(
+            "GET",
+            self._issue_path(workspace_id, issue_id),
+            params={"since_version": since_version} if since_version else None,
+        )
 
     async def archive_issue(
         self, *, workspace_id: str, issue_id: str, reason: str, duration: str

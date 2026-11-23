@@ -615,6 +615,16 @@ class IssueVersion(BaseModel):
     calls: int
 
 
+class IssueSinceVersion(BaseModel):
+    version: str
+    is_fix: bool = False
+    live_at: str | None = None
+    calls: int = 0
+    calls_with_issue: int = 0
+    last_call_id: str | None = None
+    last_call_at: str | None = None
+
+
 class IssuePage(BaseModel):
     id: str
     title: str
@@ -639,6 +649,7 @@ class IssuePage(BaseModel):
     setting: IssueSetting | None = None
     versions: list[IssueVersion] = Field(default_factory=list)
     live_version: str | None = None
+    since_version: IssueSinceVersion | None = None
     findings_all_time: int = 0
     calls_all_time: int = 0
 

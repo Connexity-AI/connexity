@@ -379,17 +379,27 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         )
 
     @mcp_server.tool(annotations=READ_ONLY)
-    async def get_issue(workspace_id: WorkspaceId, issue_id: IssueId) -> IssueResult:
+    async def get_issue(
+        workspace_id: WorkspaceId,
+        issue_id: IssueId,
+        since_version: Annotated[str | None, Field(description="An agent version: answer how many real calls ran it or a later one since it went live, and how many have this issue. Omit for the version the issue is fixed in.")] = None,
+    ) -> IssueResult:
         """Everything Connexity has about one issue: the check behind it (what it
         looks for, how it decides, its version, and for a model check the model),
         what each key of its findings' detail means, its setting for the agent, its
         size over the last 30 days (calls affected of the agent's calls), first and
         last seen, all-time counts, affected calls per agent version and the version
         live now, whether it is fixed in a version, calls per day with version marks,
-        the latest calls it hit, and its history of decisions. For the calls it was
+        the latest calls it hit, and its history of decisions. `since_version` says
+        whether it stopped after a fix: the agent's real calls since that version went
+        live (on it or a later one) and how many have this issue; for an issue marked
+        fixed it is given for the fix's version without asking. For the calls it was
         found on, with its findings in each, use `list_calls` with the issue_id."""
         return await _get_issue(
-            client=backend_client, workspace_id=workspace_id, issue_id=issue_id
+            client=backend_client,
+            workspace_id=workspace_id,
+            issue_id=issue_id,
+            since_version=since_version,
         )
 
     @mcp_server.tool(annotations=DECIDES)

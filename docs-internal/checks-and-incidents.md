@@ -86,10 +86,19 @@ cause is recorded on each incident.
   that carries the fix. There is no confirmation on real calls yet; if the issue happens
   again on a call that started after that, it reopens (Decided 2026-11-12). "After
   that" is when the version goes live: the first real call on it or on a higher number
-  (Decided 2026-11-17, `plans/2026-11-17-mark-fixed.md`). Calls on the old version
-  never reopen it. A fix marked without a version counts from the moment it was
+  (Decided 2026-11-17, `plans/2026-11-17-mark-fixed.md`). Until then, calls on the old
+  version never reopen it. A fix marked without a version counts from the moment it was
   marked. The assistant marks fixes with `mark_issue_fixed`, which refuses a version
   the issue was already found on.
+- **Since the fix went live:** `get_issue` answers `since_version`: the agent's real
+  calls that ran the fix's version or a later one, how many of them have the issue,
+  and the newest of those (`plans/2026-11-21-verify-candidate-version.md`). A call
+  counts by the version it ran (`version_reaches`), so a call an older version still
+  served after the fix went live is left out. The `since_version` input asks the same
+  for any version, also for an issue never marked fixed. Connexity gives the counts
+  and never calls a fix confirmed. Open: a call on an older version that started after
+  the fix went live still reopens the issue, because reopening goes by time, while
+  these counts go by version.
 - **Archived** replaces "accepted as known": the issue is real and nobody will fix it.
   - **Who:** a person, on the issue page or by saying yes when their assistant asks
     (`archive_issue`, recorded as "your assistant, approved by …"). It needs a reason

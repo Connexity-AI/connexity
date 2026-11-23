@@ -57,6 +57,8 @@ Call `get_issue` with an issue's `id`. It answers, for the last 30 days:
   key of a finding's `detail` means.
 - **`setting`:** what the check does for this agent now (`off`, `flags`, `fails`), the
   issue type's default, and when a person last changed it.
+- **`since_version`:** real calls since a version went live and how many have the
+  issue (see "Has it stopped since the fix").
 - **`versions`:** calls it was found on per agent version, last 30 days, most first;
   `live_version` is the version on the agent's newest call.
 - **`findings_all_time`**, **`calls_all_time`:** its size since it was first found.
@@ -94,8 +96,27 @@ platform. Add a `note` with what you changed.
   on version 17, after the fix in version 16 went live", and it is on Work again.
 - **Refused** when the issue is archived, already marked fixed in that version, or was
   already found on calls of that version or later: then the fix is not in it.
-- **There is no confirmation on real calls yet:** "resolved" means nobody has seen it
-  since the fix went live.
+
+## Has it stopped since the fix
+
+"Resolved" only means nobody has seen it since the fix went live. `get_issue` says on
+how many calls that rests, in `since_version`:
+
+- **`version`** and **`live_at`:** the version counted from and when its first real
+  call started. No `live_at` means it has not served a real call yet.
+- **`calls`:** the agent's real calls that ran that version or a later one. A call an
+  older version still served after it went live is not counted.
+  Calls that reported no version are not counted either, and a deleted call counts
+  for nothing. Such a call can still reopen the issue, since reopening goes by when
+  the call started: the first step then says so.
+- **`calls_with_issue`**, **`last_call_id`**, **`last_call_at`:** how many of those
+  have this issue, and the newest of them.
+- **For a resolved or reopened issue** it is given for the fix's version (`is_fix`).
+  Pass `since_version` to ask about any other version, also for an issue never marked
+  fixed.
+- **Connexity never calls a fix confirmed.** Tell the person "since version 16 went
+  live: 42 calls, 0 with this issue" and say when the base is small: 0 of 3 proves
+  little. If it came back, read the new calls and fix again or roll back.
 
 ## Archiving
 

@@ -7038,6 +7038,18 @@ export const McpIssueSchema = {
       title: 'Live Version',
       description: "The agent version on the agent's newest call",
     },
+    since_version: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/McpIssueSinceVersion',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description:
+        "What happened since the fix's version went live, or since the version asked for with `since_version`; none when there is neither",
+    },
     findings_all_time: {
       type: 'integer',
       title: 'Findings All Time',
@@ -7213,6 +7225,75 @@ export const McpIssueSettingSchema = {
   type: 'object',
   required: ['mode', 'default'],
   title: 'McpIssueSetting',
+} as const;
+
+export const McpIssueSinceVersionSchema = {
+  properties: {
+    version: {
+      type: 'string',
+      title: 'Version',
+      description: 'The version counted from',
+    },
+    is_fix: {
+      type: 'boolean',
+      title: 'Is Fix',
+      description: 'Whether it is the version the issue is fixed in',
+    },
+    live_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Live At',
+      description: 'When its first real call started; none if it served none yet',
+    },
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+      description: "The agent's real calls on it or a later version",
+    },
+    calls_with_issue: {
+      type: 'integer',
+      title: 'Calls With Issue',
+      description: 'How many of those have this issue',
+    },
+    last_call_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Last Call Id',
+      description: 'The newest of those with this issue',
+    },
+    last_call_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Last Call At',
+      description: 'When that call started',
+    },
+  },
+  type: 'object',
+  required: ['version', 'is_fix', 'calls', 'calls_with_issue'],
+  title: 'McpIssueSinceVersion',
+  description:
+    "The agent's real calls since a version went live, and this issue among them.\nA call counts when it ran that version or a later one.",
 } as const;
 
 export const McpIssueVersionSchema = {
