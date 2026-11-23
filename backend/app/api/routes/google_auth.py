@@ -20,6 +20,7 @@ from app import crud
 from app.api.deps import SessionDep
 from app.core import security
 from app.core.config import settings
+from app.models.user import User
 from app.services import google_auth
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,9 @@ def google_status() -> GoogleSignInStatus:
 
 
 @router.get("/start", response_class=RedirectResponse, status_code=302)
-def start() -> RedirectResponse:
+def start(invite: str | None = None) -> RedirectResponse:
+    """Send the browser to Google. `invite` is an agency invite's link token: the
+    person joins that agency when Google answers with the invited email."""
     if not settings.google_enabled:
         raise HTTPException(status_code=404, detail="Sign-in with Google is not set up")
     nonce = secrets.token_urlsafe(32)
@@ -58,6 +61,7 @@ def start() -> RedirectResponse:
         {
             "aud": STATE_AUDIENCE,
             "nonce": nonce,
+            **({"invite": invite} if invite else {}),
             "exp": datetime.now(UTC) + STATE_TTL,
         },
         settings.JWT_SECRET_KEY,
@@ -103,7 +107,18 @@ async def callback(
         logger.warning("Google sign-in failed: %s", exc)
         return _back_to_sign_in()
 
-    user = crud.find_user_by_email_ignoring_case(session=session, email=identity.email)
+    invite_token = _invite_from_state(state)
+    if invite_token:
+        joined = _join_by_invite(
+            session, invite_token, identity.email, identity.full_name
+        )
+        if isinstance(joined, RedirectResponse):
+            return joined
+        user = joined
+    else:
+        user = crud.find_user_by_email_ignoring_case(
+            session=session, email=identity.email
+        )
     if user is None:
         user = crud.create_google_user(
             session=session, email=identity.email, full_name=identity.full_name
@@ -126,6 +141,48 @@ async def callback(
     )
     response.delete_cookie(NONCE_COOKIE)
     return response
+
+
+def _invite_from_state(state: str | None) -> str | None:
+    """The invite token `/start` put into the state, once the state is verified."""
+    try:
+        claims = jwt.decode(
+            state or "",
+            settings.JWT_SECRET_KEY,
+            algorithms=[security.ALGORITHM],
+            audience=STATE_AUDIENCE,
+        )
+    except jwt.InvalidTokenError:
+        return None
+    invite = claims.get("invite")
+    return invite if isinstance(invite, str) else None
+
+
+def _join_by_invite(
+    session: SessionDep, token: str, email: str, full_name: str | None
+) -> User | RedirectResponse:
+    """Join the invite's agency as the Google account, making the account when the
+    email has none. A link that no longer works, or a Google account with another
+    email, goes back to the invite page, which says so."""
+    back = RedirectResponse(
+        f"{_site_url()}/invite/{token}?error=google", status_code=302
+    )
+    back.delete_cookie(NONCE_COOKIE)
+    invite = crud.find_invite(session=session, token=token)
+    if invite is None or invite.email != email.strip().lower():
+        return back
+    user = crud.find_user_by_email_ignoring_case(session=session, email=email)
+    try:
+        if user is None:
+            return crud.create_invited_user(
+                session=session, invite=invite, full_name=full_name, password=None
+            )
+        if not user.is_active:
+            return back
+        crud.accept_invite(session=session, invite=invite, user=user)
+    except (crud.NoWorkspaceChosenError, crud.WrongEmailError, crud.AccountExistsError):
+        return back
+    return user
 
 
 def _nonce_from_state(state: str | None, cookie_nonce: str | None) -> str | None:

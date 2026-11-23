@@ -37,10 +37,173 @@ export const AgencyDetailSchema = {
       type: 'array',
       title: 'Members',
     },
+    invites: {
+      items: {
+        $ref: '#/components/schemas/AgencyInvitePublic',
+      },
+      type: 'array',
+      title: 'Invites',
+      description: 'Invites still waiting; shown to Admins only',
+    },
   },
   type: 'object',
-  required: ['id', 'name', 'role', 'all_workspaces', 'can_approve', 'workspaces', 'members'],
+  required: [
+    'id',
+    'name',
+    'role',
+    'all_workspaces',
+    'can_approve',
+    'workspaces',
+    'members',
+    'invites',
+  ],
   title: 'AgencyDetail',
+} as const;
+
+export const AgencyInviteCreateSchema = {
+  properties: {
+    emails: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      maxItems: 50,
+      minItems: 1,
+      title: 'Emails',
+    },
+    role: {
+      $ref: '#/components/schemas/AgencyRole',
+      default: 'member',
+    },
+    all_workspaces: {
+      type: 'boolean',
+      title: 'All Workspaces',
+      default: true,
+    },
+    workspace_ids: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      title: 'Workspace Ids',
+      description: 'The chosen workspaces, when all_workspaces is off; at least one',
+    },
+    can_approve: {
+      type: 'boolean',
+      title: 'Can Approve',
+      default: false,
+    },
+  },
+  type: 'object',
+  required: ['emails'],
+  title: 'AgencyInviteCreate',
+} as const;
+
+export const AgencyInvitePublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    email: {
+      type: 'string',
+      format: 'email',
+      title: 'Email',
+    },
+    role: {
+      $ref: '#/components/schemas/AgencyRole',
+    },
+    all_workspaces: {
+      type: 'boolean',
+      title: 'All Workspaces',
+    },
+    workspace_ids: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      title: 'Workspace Ids',
+    },
+    can_approve: {
+      type: 'boolean',
+      title: 'Can Approve',
+    },
+    expires_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Expires At',
+    },
+    invited_by: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Invited By',
+      description: 'The name of the person who invited them',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'email',
+    'role',
+    'all_workspaces',
+    'workspace_ids',
+    'can_approve',
+    'expires_at',
+    'invited_by',
+  ],
+  title: 'AgencyInvitePublic',
+} as const;
+
+export const AgencyInviteRefusalSchema = {
+  properties: {
+    email: {
+      type: 'string',
+      title: 'Email',
+    },
+    reason: {
+      type: 'string',
+      title: 'Reason',
+      description: 'invalid, member or invited',
+    },
+    message: {
+      type: 'string',
+      title: 'Message',
+    },
+  },
+  type: 'object',
+  required: ['email', 'reason', 'message'],
+  title: 'AgencyInviteRefusal',
+} as const;
+
+export const AgencyInviteResultSchema = {
+  properties: {
+    sent: {
+      items: {
+        $ref: '#/components/schemas/AgencyInvitePublic',
+      },
+      type: 'array',
+      title: 'Sent',
+    },
+    refused: {
+      items: {
+        $ref: '#/components/schemas/AgencyInviteRefusal',
+      },
+      type: 'array',
+      title: 'Refused',
+    },
+  },
+  type: 'object',
+  required: ['sent', 'refused'],
+  title: 'AgencyInviteResult',
 } as const;
 
 export const AgencyMemberPublicSchema = {
@@ -91,6 +254,12 @@ export const AgencyMemberPublicSchema = {
       type: 'boolean',
       title: 'Is You',
     },
+    assistants: {
+      type: 'integer',
+      title: 'Assistants',
+      description:
+        'How many assistants the person has connected; they reach what the person reaches',
+    },
   },
   type: 'object',
   required: [
@@ -102,6 +271,7 @@ export const AgencyMemberPublicSchema = {
     'workspace_ids',
     'can_approve',
     'is_you',
+    'assistants',
   ],
   title: 'AgencyMemberPublic',
 } as const;
@@ -3830,6 +4000,79 @@ export const IntegrationsPublicSchema = {
   title: 'IntegrationsPublic',
 } as const;
 
+export const InviteLookSchema = {
+  properties: {
+    agency_name: {
+      type: 'string',
+      title: 'Agency Name',
+    },
+    invited_by: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Invited By',
+    },
+    email: {
+      type: 'string',
+      format: 'email',
+      title: 'Email',
+    },
+    workspaces: {
+      type: 'integer',
+      title: 'Workspaces',
+      description: 'How many workspaces the person will reach',
+    },
+    has_account: {
+      type: 'boolean',
+      title: 'Has Account',
+      description: 'Whether an account with this email exists',
+    },
+  },
+  type: 'object',
+  required: ['agency_name', 'invited_by', 'email', 'workspaces', 'has_account'],
+  title: 'InviteLook',
+  description: 'What an invite link is, for the page that accepts it.',
+} as const;
+
+export const InviteSignInSchema = {
+  properties: {
+    password: {
+      type: 'string',
+      maxLength: 128,
+      minLength: 1,
+      title: 'Password',
+    },
+  },
+  type: 'object',
+  required: ['password'],
+  title: 'InviteSignIn',
+} as const;
+
+export const InviteSignUpSchema = {
+  properties: {
+    full_name: {
+      type: 'string',
+      maxLength: 255,
+      minLength: 1,
+      title: 'Full Name',
+    },
+    password: {
+      type: 'string',
+      maxLength: 40,
+      minLength: 8,
+      title: 'Password',
+    },
+  },
+  type: 'object',
+  required: ['full_name', 'password'],
+  title: 'InviteSignUp',
+} as const;
+
 export const IssueAffectedCallPublicSchema = {
   properties: {
     call_id: {
@@ -5848,6 +6091,51 @@ export const McpAnswer_McpFeedbackSent_Schema = {
   title: 'McpAnswer[McpFeedbackSent]',
 } as const;
 
+export const McpAnswer_McpInvited_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/McpInvited',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[McpInvited]',
+} as const;
+
 export const McpAnswer_McpIssue_Schema = {
   properties: {
     data: {
@@ -5981,6 +6269,141 @@ export const McpAnswer_McpNextTask_Schema = {
   type: 'object',
   required: ['data', 'guide'],
   title: 'McpAnswer[McpNextTask]',
+} as const;
+
+export const McpAnswer_McpPeople_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/McpPeople',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[McpPeople]',
+} as const;
+
+export const McpAnswer_McpPerson_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/McpPerson',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[McpPerson]',
+} as const;
+
+export const McpAnswer_McpRemoved_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/McpRemoved',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[McpRemoved]',
 } as const;
 
 export const McpAnswer_McpScanProgress_Schema = {
@@ -7135,6 +7558,95 @@ export const McpHeldTaskSchema = {
   title: 'McpHeldTask',
 } as const;
 
+export const McpInviteSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+      description: 'Pass as `person_id` to cancel the invite',
+    },
+    email: {
+      type: 'string',
+      title: 'Email',
+    },
+    role: {
+      $ref: '#/components/schemas/AgencyRole',
+    },
+    all_workspaces: {
+      type: 'boolean',
+      title: 'All Workspaces',
+    },
+    workspace_ids: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      title: 'Workspace Ids',
+    },
+    can_approve: {
+      type: 'boolean',
+      title: 'Can Approve',
+    },
+    expires_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Expires At',
+    },
+    invited_by: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Invited By',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'email',
+    'role',
+    'all_workspaces',
+    'workspace_ids',
+    'can_approve',
+    'expires_at',
+    'invited_by',
+  ],
+  title: 'McpInvite',
+} as const;
+
+export const McpInvitedSchema = {
+  properties: {
+    sent: {
+      items: {
+        $ref: '#/components/schemas/McpInvite',
+      },
+      type: 'array',
+      title: 'Sent',
+    },
+    refused: {
+      items: {
+        additionalProperties: {
+          type: 'string',
+        },
+        type: 'object',
+      },
+      type: 'array',
+      title: 'Refused',
+      description:
+        'Addresses that got no invite, each with `email`, `reason` (invalid, member or invited) and `message`',
+    },
+  },
+  type: 'object',
+  required: ['sent', 'refused'],
+  title: 'McpInvited',
+} as const;
+
 export const McpIssueSchema = {
   properties: {
     id: {
@@ -7708,6 +8220,114 @@ export const McpNextTaskSchema = {
   title: 'McpNextTask',
 } as const;
 
+export const McpPeopleSchema = {
+  properties: {
+    agency: {
+      $ref: '#/components/schemas/McpAgencyRef',
+    },
+    your_role: {
+      $ref: '#/components/schemas/AgencyRole',
+      description: 'The role of the person you act for',
+    },
+    workspaces: {
+      items: {
+        $ref: '#/components/schemas/McpAgencyRef',
+      },
+      type: 'array',
+      title: 'Workspaces',
+      description: "The agency's workspaces, to read `workspace_ids` by name",
+    },
+    people: {
+      items: {
+        $ref: '#/components/schemas/McpPerson',
+      },
+      type: 'array',
+      title: 'People',
+    },
+    invites: {
+      items: {
+        $ref: '#/components/schemas/McpInvite',
+      },
+      type: 'array',
+      title: 'Invites',
+      description: 'Invites still waiting; empty unless your person is an admin',
+    },
+  },
+  type: 'object',
+  required: ['agency', 'your_role', 'workspaces', 'people', 'invites'],
+  title: 'McpPeople',
+} as const;
+
+export const McpPersonSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+      description: 'Pass as `person_id` to change or remove them',
+    },
+    name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Name',
+    },
+    email: {
+      type: 'string',
+      title: 'Email',
+    },
+    role: {
+      $ref: '#/components/schemas/AgencyRole',
+    },
+    all_workspaces: {
+      type: 'boolean',
+      title: 'All Workspaces',
+      description: 'Reaches every workspace of the agency, including later ones',
+    },
+    workspace_ids: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      title: 'Workspace Ids',
+      description: 'The workspaces they reach',
+    },
+    can_approve: {
+      type: 'boolean',
+      title: 'Can Approve',
+    },
+    assistants: {
+      type: 'integer',
+      title: 'Assistants',
+      description: 'How many assistants they have connected',
+    },
+    is_you: {
+      type: 'boolean',
+      title: 'Is You',
+      description: 'The person you act for',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'name',
+    'email',
+    'role',
+    'all_workspaces',
+    'workspace_ids',
+    'can_approve',
+    'assistants',
+    'is_you',
+  ],
+  title: 'McpPerson',
+} as const;
+
 export const McpRaiseClarificationsSchema = {
   properties: {
     questions: {
@@ -7738,6 +8358,23 @@ export const McpRefusedAgentSchema = {
   type: 'object',
   required: ['platform_agent_id', 'reason'],
   title: 'McpRefusedAgent',
+} as const;
+
+export const McpRemovedSchema = {
+  properties: {
+    removed: {
+      type: 'string',
+      enum: ['person', 'invite'],
+      title: 'Removed',
+    },
+    who: {
+      type: 'string',
+      title: 'Who',
+    },
+  },
+  type: 'object',
+  required: ['removed', 'who'],
+  title: 'McpRemoved',
 } as const;
 
 export const McpRunCostSchema = {

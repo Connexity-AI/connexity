@@ -5,7 +5,13 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app import crud
-from app.api.deps import CurrentCompany, CurrentUser, SessionDep, get_current_user
+from app.api.deps import (
+    CurrentCompany,
+    CurrentUser,
+    SessionDep,
+    get_current_user,
+    require_approver,
+)
 from app.models import (
     AgentCheckPublic,
     CheckModeUpdate,
@@ -78,6 +84,7 @@ def set_agent_check_mode(
     change loosens the check.
     """
     _require_agent(session, company_id, agent_id)
+    require_approver(session, current_user, company_id)
     check = get_check(check_type)
     if check is None:
         raise HTTPException(status_code=404, detail="No check of this type")

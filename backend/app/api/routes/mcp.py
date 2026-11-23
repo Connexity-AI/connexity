@@ -11,7 +11,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
 from app import crud
 from app.api.deps import (
@@ -21,6 +21,7 @@ from app.api.deps import (
     SessionDep,
     require_mcp_user,
 )
+from app.api.routes import agencies as agencies_routes
 from app.core.config import settings
 from app.core.encryption import decrypt
 from app.crud import clarification as crud_clarification
@@ -49,7 +50,15 @@ from app.models import (
     ReadinessStepState,
     WorkspaceCreate,
 )
-from app.models.agency import Agency, AgencyMember, AgencyRole
+from app.models.agency import (
+    Agency,
+    AgencyInviteCreate,
+    AgencyInvitePublic,
+    AgencyMember,
+    AgencyMemberPublic,
+    AgencyMemberUpdate,
+    AgencyRole,
+)
 from app.models.check import Issue
 from app.models.clarification import (
     ClarificationListPublic,
@@ -74,6 +83,7 @@ from app.models.mcp import (
     GUIDE_FEEDBACK,
     GUIDE_GETTING_STARTED,
     GUIDE_ISSUES,
+    GUIDE_PEOPLE,
     GUIDE_READINESS,
     GUIDE_SCENARIOS,
     GUIDE_SPEC,
@@ -95,6 +105,8 @@ from app.models.mcp import (
     McpErrorDetail,
     McpFeedbackSent,
     McpHeldTask,
+    McpInvite,
+    McpInvited,
     McpIssue,
     McpIssueCheck,
     McpIssueFinding,
@@ -105,8 +117,11 @@ from app.models.mcp import (
     McpMarkCritical,
     McpMarkFixed,
     McpNextTask,
+    McpPeople,
+    McpPerson,
     McpRaiseClarifications,
     McpRefusedAgent,
+    McpRemoved,
     McpRunCost,
     McpRunScenarios,
     McpScanProgress,
@@ -943,6 +958,7 @@ def archive_issue(
     issue_id: uuid.UUID,
     body: McpArchiveIssue,
 ) -> McpAnswer[McpIssue]:
+    _require_approver(session, current_user, workspace)
     issue = _mcp_issue(session, workspace, issue_id)
     if issue.state is IssueState.ARCHIVED:
         how = "until it spikes" if issue.archive_until_spike else "forever"
@@ -987,6 +1003,7 @@ def unarchive_issue(
     issue_id: uuid.UUID,
     body: McpUnarchiveIssue,
 ) -> McpAnswer[McpIssue]:
+    _require_approver(session, current_user, workspace)
     issue = _mcp_issue(session, workspace, issue_id)
     if issue.state is IssueState.ARCHIVED:
         issue = crud.set_issue_state(
@@ -3485,4 +3502,260 @@ async def send_feedback(
             "the work, around the problem if you can.",
         ],
         guide=GUIDE_FEEDBACK,
+    )
+
+
+# ── People in the agency ──
+
+_PEOPLE_RULES = [
+    "An agency is the account above the workspaces. Each person has a role (`admin` "
+    "manages people and billing and creates workspaces; `member` works in their "
+    "workspaces), the workspaces they reach (all, or chosen ones) and whether they can "
+    "approve.",
+    "A person's assistants reach exactly what the person reaches.",
+    "Inviting, changing and removing people is for an `admin`, and only after the "
+    "person you act for has said yes to that exact change.",
+    "An agency always keeps at least one admin.",
+]
+
+
+def _require_approver(session: SessionDep, user: User, workspace: Company) -> None:
+    """Refuse recording a critical decision for a person who cannot approve."""
+    if crud.can_approve_in(session=session, user=user, workspace=workspace):
+        return
+    asking = crud.approver_names(session=session, workspace=workspace)
+    raise HTTPException(
+        status_code=403,
+        detail=McpErrorDetail(
+            error="The person you act for cannot approve this in this workspace.",
+            next_steps=[
+                f"Tell the person this needs someone who can approve: {asking}.",
+                "Do not record the decision; leave the issue as it is.",
+            ],
+            guide=GUIDE_PEOPLE,
+        ).model_dump(),
+    )
+
+
+def _agency_place(
+    session: SessionDep, user: User, workspace: Company, *, admin: bool = False
+) -> tuple[Agency, AgencyMember]:
+    agency = session.get(Agency, workspace.agency_id)
+    membership = crud.get_membership(
+        session=session, user_id=user.id, agency_id=workspace.agency_id
+    )
+    if agency is None or membership is None:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    if admin and membership.role != AgencyRole.admin:
+        asking = crud.admin_names(session=session, agency_id=agency.id)
+        raise HTTPException(
+            status_code=403,
+            detail=McpErrorDetail(
+                error=f"Only Admins of {agency.name} can change its people.",
+                next_steps=[f"Tell the person to ask {asking}."],
+                guide=GUIDE_PEOPLE,
+            ).model_dump(),
+        )
+    return agency, membership
+
+
+def _mcp_invite(public: AgencyInvitePublic) -> McpInvite:
+    return McpInvite(**public.model_dump())
+
+
+def _mcp_person(public: AgencyMemberPublic) -> McpPerson:
+    return McpPerson(
+        id=public.user_id,
+        name=public.full_name,
+        email=public.email,
+        role=public.role,
+        all_workspaces=public.all_workspaces,
+        workspace_ids=public.workspace_ids,
+        can_approve=public.can_approve,
+        assistants=public.assistants,
+        is_you=public.is_you,
+    )
+
+
+@router.get("/workspaces/{workspace_id}/people", response_model=McpAnswer[McpPeople])
+def list_people(
+    session: SessionDep, workspace: McpWorkspaceDep, current_user: McpCurrentUser
+) -> McpAnswer[McpPeople]:
+    agency, membership = _agency_place(session, current_user, workspace)
+    is_admin = membership.role == AgencyRole.admin
+    invites = (
+        [
+            _mcp_invite(agencies_routes.invite_public(session, invite))
+            for invite in crud.open_invites(session=session, agency_id=agency.id)
+        ]
+        if is_admin
+        else []
+    )
+    return McpAnswer[McpPeople](
+        data=McpPeople(
+            agency=McpAgencyRef(id=agency.id, name=agency.name),
+            your_role=membership.role,
+            workspaces=[
+                McpAgencyRef(id=w.id, name=w.name)
+                for w in crud.agency_workspaces(session=session, agency_id=agency.id)
+            ],
+            people=[
+                _mcp_person(person)
+                for person in agencies_routes._members_public(
+                    session, agency, current_user.id
+                )
+            ],
+            invites=invites,
+        ),
+        rules=_PEOPLE_RULES,
+        next_steps=[
+            "Answer the person's question from `people`; name workspaces by their "
+            "names from `workspaces`.",
+            "To add someone, ask the person for the email, role, workspaces and "
+            "whether they can approve, then call `invite_people`."
+            if is_admin
+            else "Changing people needs an admin; tell the person who the admins are.",
+        ],
+        guide=GUIDE_PEOPLE,
+    )
+
+
+@router.post(
+    "/workspaces/{workspace_id}/people/invites", response_model=McpAnswer[McpInvited]
+)
+def invite_people(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    current_user: McpCurrentUser,
+    background_tasks: BackgroundTasks,
+    body: AgencyInviteCreate,
+) -> McpAnswer[McpInvited]:
+    agency, _ = _agency_place(session, current_user, workspace, admin=True)
+    try:
+        result = agencies_routes.make_invites(
+            session, background_tasks, agency=agency, invited_by=current_user, body=body
+        )
+    except HTTPException as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail=McpErrorDetail(
+                error=str(exc.detail),
+                next_steps=[
+                    "Call `list_people` for the agency's workspaces, then call "
+                    "`invite_people` again with `all_workspaces` or at least one of "
+                    "their ids in `workspace_ids`."
+                ],
+                guide=GUIDE_PEOPLE,
+            ).model_dump(),
+        )
+    steps = []
+    if result.sent:
+        steps.append(
+            "Tell the person who was invited; each gets an email with a link that "
+            "works once and for 7 days."
+        )
+    if result.refused:
+        steps.append("Tell the person which addresses got no invite, and why.")
+    return McpAnswer[McpInvited](
+        data=McpInvited(
+            sent=[_mcp_invite(i) for i in result.sent],
+            refused=[r.model_dump() for r in result.refused],
+        ),
+        rules=_PEOPLE_RULES,
+        next_steps=steps or ["Nothing was sent."],
+        guide=GUIDE_PEOPLE,
+    )
+
+
+@router.patch(
+    "/workspaces/{workspace_id}/people/{person_id}", response_model=McpAnswer[McpPerson]
+)
+def update_person(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    current_user: McpCurrentUser,
+    person_id: uuid.UUID,
+    body: AgencyMemberUpdate,
+) -> McpAnswer[McpPerson]:
+    agency, _ = _agency_place(session, current_user, workspace, admin=True)
+    try:
+        public = agencies_routes.update_member(
+            session, current_user, agency.id, person_id, body
+        )
+    except HTTPException as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail=McpErrorDetail(
+                error=str(exc.detail),
+                next_steps=["Call `list_people` and tell the person what it shows."],
+                guide=GUIDE_PEOPLE,
+            ).model_dump(),
+        )
+    return McpAnswer[McpPerson](
+        data=_mcp_person(public),
+        rules=_PEOPLE_RULES,
+        next_steps=[
+            "Tell the person what changed. It applies at once, also to that "
+            "person's assistants."
+        ],
+        guide=GUIDE_PEOPLE,
+    )
+
+
+@router.delete(
+    "/workspaces/{workspace_id}/people/{person_id}",
+    response_model=McpAnswer[McpRemoved],
+)
+def remove_person(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    current_user: McpCurrentUser,
+    person_id: uuid.UUID,
+) -> McpAnswer[McpRemoved]:
+    """Remove a person from the agency, or cancel an invite, by its id."""
+    agency, _ = _agency_place(session, current_user, workspace, admin=True)
+    invite = crud.get_open_invite(
+        session=session, agency_id=agency.id, invite_id=person_id
+    )
+    if invite is not None:
+        crud.cancel_invite(session=session, invite=invite)
+        removed = McpRemoved(removed="invite", who=invite.email)
+        steps = ["Tell the person the invite is cancelled; its link no longer works."]
+    else:
+        member = crud.get_membership(
+            session=session, user_id=person_id, agency_id=agency.id
+        )
+        user = session.get(User, person_id) if member else None
+        if member is None or user is None:
+            raise HTTPException(
+                status_code=404,
+                detail=McpErrorDetail(
+                    error="Person not found in this agency",
+                    next_steps=[
+                        "Call `list_people` for the ids of people and invites."
+                    ],
+                    guide=GUIDE_PEOPLE,
+                ).model_dump(),
+            )
+        try:
+            crud.remove_member(session=session, agency=agency, member=member)
+        except crud.LastAdminError:
+            raise HTTPException(
+                status_code=409,
+                detail=McpErrorDetail(
+                    error=agencies_routes.LAST_ADMIN,
+                    next_steps=[
+                        "Tell the person to make someone else an admin first "
+                        "(`update_person`)."
+                    ],
+                    guide=GUIDE_PEOPLE,
+                ).model_dump(),
+            )
+        removed = McpRemoved(removed="person", who=user.full_name or user.email)
+        steps = [
+            "Tell the person they were removed: they and their assistants lost the "
+            "agency's workspaces at once, and what they did stays on record."
+        ]
+    return McpAnswer[McpRemoved](
+        data=removed, rules=_PEOPLE_RULES, next_steps=steps, guide=GUIDE_PEOPLE
     )

@@ -51,6 +51,48 @@ class ConnexityBackendClient:
             body["agency_id"] = agency_id
         return await self._request_json("POST", "/mcp/workspaces", json=body)
 
+    def _people_path(self, workspace_id: str) -> str:
+        return f"/mcp/workspaces/{quote(workspace_id, safe='')}/people"
+
+    async def list_people(self, *, workspace_id: str) -> dict[str, Any]:
+        return await self._request_json("GET", self._people_path(workspace_id))
+
+    async def invite_people(
+        self,
+        *,
+        workspace_id: str,
+        emails: list[str],
+        role: str,
+        all_workspaces: bool,
+        workspace_ids: list[str],
+        can_approve: bool,
+    ) -> dict[str, Any]:
+        return await self._request_json(
+            "POST",
+            f"{self._people_path(workspace_id)}/invites",
+            json={
+                "emails": emails,
+                "role": role,
+                "all_workspaces": all_workspaces,
+                "workspace_ids": workspace_ids,
+                "can_approve": can_approve,
+            },
+        )
+
+    async def update_person(
+        self, *, workspace_id: str, person_id: str, changes: dict[str, Any]
+    ) -> dict[str, Any]:
+        return await self._request_json(
+            "PATCH",
+            f"{self._people_path(workspace_id)}/{quote(person_id, safe='')}",
+            json=changes,
+        )
+
+    async def remove_person(self, *, workspace_id: str, person_id: str) -> dict[str, Any]:
+        return await self._request_json(
+            "DELETE", f"{self._people_path(workspace_id)}/{quote(person_id, safe='')}"
+        )
+
     async def connect_voice_platform(
         self, *, workspace_id: str, platform: str, api_key: str
     ) -> dict[str, Any]:

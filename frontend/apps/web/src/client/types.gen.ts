@@ -36,6 +36,108 @@ export type AgencyDetail = {
    * Members
    */
   members: Array<AgencyMemberPublic>;
+  /**
+   * Invites
+   *
+   * Invites still waiting; shown to Admins only
+   */
+  invites: Array<AgencyInvitePublic>;
+};
+
+/**
+ * AgencyInviteCreate
+ */
+export type AgencyInviteCreate = {
+  /**
+   * Emails
+   */
+  emails: Array<string>;
+  role?: AgencyRole;
+  /**
+   * All Workspaces
+   */
+  all_workspaces?: boolean;
+  /**
+   * Workspace Ids
+   *
+   * The chosen workspaces, when all_workspaces is off; at least one
+   */
+  workspace_ids?: Array<string>;
+  /**
+   * Can Approve
+   */
+  can_approve?: boolean;
+};
+
+/**
+ * AgencyInvitePublic
+ */
+export type AgencyInvitePublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Email
+   */
+  email: string;
+  role: AgencyRole;
+  /**
+   * All Workspaces
+   */
+  all_workspaces: boolean;
+  /**
+   * Workspace Ids
+   */
+  workspace_ids: Array<string>;
+  /**
+   * Can Approve
+   */
+  can_approve: boolean;
+  /**
+   * Expires At
+   */
+  expires_at: string;
+  /**
+   * Invited By
+   *
+   * The name of the person who invited them
+   */
+  invited_by: string | null;
+};
+
+/**
+ * AgencyInviteRefusal
+ */
+export type AgencyInviteRefusal = {
+  /**
+   * Email
+   */
+  email: string;
+  /**
+   * Reason
+   *
+   * invalid, member or invited
+   */
+  reason: string;
+  /**
+   * Message
+   */
+  message: string;
+};
+
+/**
+ * AgencyInviteResult
+ */
+export type AgencyInviteResult = {
+  /**
+   * Sent
+   */
+  sent: Array<AgencyInvitePublic>;
+  /**
+   * Refused
+   */
+  refused: Array<AgencyInviteRefusal>;
 };
 
 /**
@@ -73,6 +175,12 @@ export type AgencyMemberPublic = {
    * Is You
    */
   is_you: boolean;
+  /**
+   * Assistants
+   *
+   * How many assistants the person has connected; they reach what the person reaches
+   */
+  assistants: number;
 };
 
 /**
@@ -2645,6 +2753,62 @@ export type IntegrationsPublic = {
 };
 
 /**
+ * InviteLook
+ *
+ * What an invite link is, for the page that accepts it.
+ */
+export type InviteLook = {
+  /**
+   * Agency Name
+   */
+  agency_name: string;
+  /**
+   * Invited By
+   */
+  invited_by: string | null;
+  /**
+   * Email
+   */
+  email: string;
+  /**
+   * Workspaces
+   *
+   * How many workspaces the person will reach
+   */
+  workspaces: number;
+  /**
+   * Has Account
+   *
+   * Whether an account with this email exists
+   */
+  has_account: boolean;
+};
+
+/**
+ * InviteSignIn
+ */
+export type InviteSignIn = {
+  /**
+   * Password
+   */
+  password: string;
+};
+
+/**
+ * InviteSignUp
+ */
+export type InviteSignUp = {
+  /**
+   * Full Name
+   */
+  full_name: string;
+  /**
+   * Password
+   */
+  password: string;
+};
+
+/**
  * IssueAffectedCallPublic
  */
 export type IssueAffectedCallPublic = {
@@ -3974,6 +4138,40 @@ export type McpAnswerMcpFeedbackSent = {
 };
 
 /**
+ * McpAnswer[McpInvited]
+ */
+export type McpAnswerMcpInvited = {
+  /**
+   * The facts: the result of the call
+   */
+  data: McpInvited;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
  * McpAnswer[McpIssue]
  */
 export type McpAnswerMcpIssue = {
@@ -4049,6 +4247,108 @@ export type McpAnswerMcpNextTask = {
    * The facts: the result of the call
    */
   data: McpNextTask;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
+ * McpAnswer[McpPeople]
+ */
+export type McpAnswerMcpPeople = {
+  /**
+   * The facts: the result of the call
+   */
+  data: McpPeople;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
+ * McpAnswer[McpPerson]
+ */
+export type McpAnswerMcpPerson = {
+  /**
+   * The facts: the result of the call
+   */
+  data: McpPerson;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
+ * McpAnswer[McpRemoved]
+ */
+export type McpAnswerMcpRemoved = {
+  /**
+   * The facts: the result of the call
+   */
+  data: McpRemoved;
   /**
    * Rules
    *
@@ -4906,6 +5206,61 @@ export type McpHeldTask = {
 };
 
 /**
+ * McpInvite
+ */
+export type McpInvite = {
+  /**
+   * Id
+   *
+   * Pass as `person_id` to cancel the invite
+   */
+  id: string;
+  /**
+   * Email
+   */
+  email: string;
+  role: AgencyRole;
+  /**
+   * All Workspaces
+   */
+  all_workspaces: boolean;
+  /**
+   * Workspace Ids
+   */
+  workspace_ids: Array<string>;
+  /**
+   * Can Approve
+   */
+  can_approve: boolean;
+  /**
+   * Expires At
+   */
+  expires_at: string;
+  /**
+   * Invited By
+   */
+  invited_by: string | null;
+};
+
+/**
+ * McpInvited
+ */
+export type McpInvited = {
+  /**
+   * Sent
+   */
+  sent: Array<McpInvite>;
+  /**
+   * Refused
+   *
+   * Addresses that got no invite, each with `email`, `reason` (invalid, member or invited) and `message`
+   */
+  refused: Array<{
+    [key: string]: string;
+  }>;
+};
+
+/**
  * McpIssue
  *
  * Everything Connexity has about one issue. The calls themselves come from
@@ -5281,6 +5636,82 @@ export type McpNextTask = {
 };
 
 /**
+ * McpPeople
+ */
+export type McpPeople = {
+  agency: McpAgencyRef;
+  /**
+   * The role of the person you act for
+   */
+  your_role: AgencyRole;
+  /**
+   * Workspaces
+   *
+   * The agency's workspaces, to read `workspace_ids` by name
+   */
+  workspaces: Array<McpAgencyRef>;
+  /**
+   * People
+   */
+  people: Array<McpPerson>;
+  /**
+   * Invites
+   *
+   * Invites still waiting; empty unless your person is an admin
+   */
+  invites: Array<McpInvite>;
+};
+
+/**
+ * McpPerson
+ */
+export type McpPerson = {
+  /**
+   * Id
+   *
+   * Pass as `person_id` to change or remove them
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string | null;
+  /**
+   * Email
+   */
+  email: string;
+  role: AgencyRole;
+  /**
+   * All Workspaces
+   *
+   * Reaches every workspace of the agency, including later ones
+   */
+  all_workspaces: boolean;
+  /**
+   * Workspace Ids
+   *
+   * The workspaces they reach
+   */
+  workspace_ids: Array<string>;
+  /**
+   * Can Approve
+   */
+  can_approve: boolean;
+  /**
+   * Assistants
+   *
+   * How many assistants they have connected
+   */
+  assistants: number;
+  /**
+   * Is You
+   *
+   * The person you act for
+   */
+  is_you: boolean;
+};
+
+/**
  * McpRaiseClarifications
  */
 export type McpRaiseClarifications = {
@@ -5302,6 +5733,20 @@ export type McpRefusedAgent = {
    * Reason
    */
   reason: string;
+};
+
+/**
+ * McpRemoved
+ */
+export type McpRemoved = {
+  /**
+   * Removed
+   */
+  removed: 'person' | 'invite';
+  /**
+   * Who
+   */
+  who: string;
 };
 
 /**
@@ -10221,6 +10666,460 @@ export type AgenciesUpdateMemberResponses = {
 export type AgenciesUpdateMemberResponse =
   AgenciesUpdateMemberResponses[keyof AgenciesUpdateMemberResponses];
 
+export type AgenciesInvitePeopleData = {
+  body: AgencyInviteCreate;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agencies/{agency_id}/invites';
+};
+
+export type AgenciesInvitePeopleErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgenciesInvitePeopleError =
+  AgenciesInvitePeopleErrors[keyof AgenciesInvitePeopleErrors];
+
+export type AgenciesInvitePeopleResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgencyInviteResult;
+};
+
+export type AgenciesInvitePeopleResponse =
+  AgenciesInvitePeopleResponses[keyof AgenciesInvitePeopleResponses];
+
+export type AgenciesResendInviteData = {
+  body?: never;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+    /**
+     * Invite Id
+     */
+    invite_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agencies/{agency_id}/invites/{invite_id}/resend';
+};
+
+export type AgenciesResendInviteErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgenciesResendInviteError =
+  AgenciesResendInviteErrors[keyof AgenciesResendInviteErrors];
+
+export type AgenciesResendInviteResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgencyInvitePublic;
+};
+
+export type AgenciesResendInviteResponse =
+  AgenciesResendInviteResponses[keyof AgenciesResendInviteResponses];
+
+export type AgenciesCancelInviteData = {
+  body?: never;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+    /**
+     * Invite Id
+     */
+    invite_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agencies/{agency_id}/invites/{invite_id}';
+};
+
+export type AgenciesCancelInviteErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgenciesCancelInviteError =
+  AgenciesCancelInviteErrors[keyof AgenciesCancelInviteErrors];
+
+export type AgenciesCancelInviteResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type AgenciesCancelInviteResponse =
+  AgenciesCancelInviteResponses[keyof AgenciesCancelInviteResponses];
+
+export type InvitesLookAtInviteData = {
+  body?: never;
+  path: {
+    /**
+     * Token
+     */
+    token: string;
+  };
+  query?: never;
+  url: '/api/v1/invites/{token}';
+};
+
+export type InvitesLookAtInviteErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type InvitesLookAtInviteError = InvitesLookAtInviteErrors[keyof InvitesLookAtInviteErrors];
+
+export type InvitesLookAtInviteResponses = {
+  /**
+   * Successful Response
+   */
+  200: InviteLook;
+};
+
+export type InvitesLookAtInviteResponse =
+  InvitesLookAtInviteResponses[keyof InvitesLookAtInviteResponses];
+
+export type InvitesAcceptInviteData = {
+  body?: never;
+  path: {
+    /**
+     * Token
+     */
+    token: string;
+  };
+  query?: never;
+  url: '/api/v1/invites/{token}/accept';
+};
+
+export type InvitesAcceptInviteErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type InvitesAcceptInviteError = InvitesAcceptInviteErrors[keyof InvitesAcceptInviteErrors];
+
+export type InvitesAcceptInviteResponses = {
+  /**
+   * Successful Response
+   */
+  200: Token;
+};
+
+export type InvitesAcceptInviteResponse =
+  InvitesAcceptInviteResponses[keyof InvitesAcceptInviteResponses];
+
+export type InvitesDeclineInviteData = {
+  body?: never;
+  path: {
+    /**
+     * Token
+     */
+    token: string;
+  };
+  query?: never;
+  url: '/api/v1/invites/{token}/decline';
+};
+
+export type InvitesDeclineInviteErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type InvitesDeclineInviteError =
+  InvitesDeclineInviteErrors[keyof InvitesDeclineInviteErrors];
+
+export type InvitesDeclineInviteResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type InvitesDeclineInviteResponse =
+  InvitesDeclineInviteResponses[keyof InvitesDeclineInviteResponses];
+
+export type InvitesSignUpAndJoinData = {
+  body: InviteSignUp;
+  path: {
+    /**
+     * Token
+     */
+    token: string;
+  };
+  query?: never;
+  url: '/api/v1/invites/{token}/signup';
+};
+
+export type InvitesSignUpAndJoinErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type InvitesSignUpAndJoinError =
+  InvitesSignUpAndJoinErrors[keyof InvitesSignUpAndJoinErrors];
+
+export type InvitesSignUpAndJoinResponses = {
+  /**
+   * Successful Response
+   */
+  200: Token;
+};
+
+export type InvitesSignUpAndJoinResponse =
+  InvitesSignUpAndJoinResponses[keyof InvitesSignUpAndJoinResponses];
+
+export type InvitesSignInAndJoinData = {
+  body: InviteSignIn;
+  path: {
+    /**
+     * Token
+     */
+    token: string;
+  };
+  query?: never;
+  url: '/api/v1/invites/{token}/signin';
+};
+
+export type InvitesSignInAndJoinErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type InvitesSignInAndJoinError =
+  InvitesSignInAndJoinErrors[keyof InvitesSignInAndJoinErrors];
+
+export type InvitesSignInAndJoinResponses = {
+  /**
+   * Successful Response
+   */
+  200: Token;
+};
+
+export type InvitesSignInAndJoinResponse =
+  InvitesSignInAndJoinResponses[keyof InvitesSignInAndJoinResponses];
+
 export type AuthGoogleStatusData = {
   body?: never;
   path?: never;
@@ -10273,7 +11172,12 @@ export type AuthGoogleStatusResponse = AuthGoogleStatusResponses[keyof AuthGoogl
 export type AuthStartData = {
   body?: never;
   path?: never;
-  query?: never;
+  query?: {
+    /**
+     * Invite
+     */
+    invite?: string | null;
+  };
   url: '/api/v1/auth/google/start';
 };
 
@@ -13324,6 +14228,230 @@ export type McpSendFeedbackResponses = {
 };
 
 export type McpSendFeedbackResponse = McpSendFeedbackResponses[keyof McpSendFeedbackResponses];
+
+export type McpListPeopleData = {
+  body?: never;
+  path: {
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/people';
+};
+
+export type McpListPeopleErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpListPeopleError = McpListPeopleErrors[keyof McpListPeopleErrors];
+
+export type McpListPeopleResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerMcpPeople;
+};
+
+export type McpListPeopleResponse = McpListPeopleResponses[keyof McpListPeopleResponses];
+
+export type McpInvitePeopleData = {
+  body: AgencyInviteCreate;
+  path: {
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/people/invites';
+};
+
+export type McpInvitePeopleErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpInvitePeopleError = McpInvitePeopleErrors[keyof McpInvitePeopleErrors];
+
+export type McpInvitePeopleResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerMcpInvited;
+};
+
+export type McpInvitePeopleResponse = McpInvitePeopleResponses[keyof McpInvitePeopleResponses];
+
+export type McpRemovePersonData = {
+  body?: never;
+  path: {
+    /**
+     * Person Id
+     */
+    person_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/people/{person_id}';
+};
+
+export type McpRemovePersonErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpRemovePersonError = McpRemovePersonErrors[keyof McpRemovePersonErrors];
+
+export type McpRemovePersonResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerMcpRemoved;
+};
+
+export type McpRemovePersonResponse = McpRemovePersonResponses[keyof McpRemovePersonResponses];
+
+export type McpUpdatePersonData = {
+  body: AgencyMemberUpdate;
+  path: {
+    /**
+     * Person Id
+     */
+    person_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/people/{person_id}';
+};
+
+export type McpUpdatePersonErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpUpdatePersonError = McpUpdatePersonErrors[keyof McpUpdatePersonErrors];
+
+export type McpUpdatePersonResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerMcpPerson;
+};
+
+export type McpUpdatePersonResponse = McpUpdatePersonResponses[keyof McpUpdatePersonResponses];
 
 export type AgentsListWorkspaceAgentsData = {
   body?: never;

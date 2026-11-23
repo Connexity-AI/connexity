@@ -305,3 +305,67 @@ def admin_names(*, session: Session, agency_id: uuid.UUID) -> str:
         u.full_name or u.email for u in admins(session=session, agency_id=agency_id)
     ]
     return " or ".join(names) if names else "an Admin"
+
+
+def can_approve_in(*, session: Session, user: User, workspace: Company) -> bool:
+    """Whether the person may make the critical decisions in this workspace: archive
+    or unarchive an issue, change a check (and, when built, close an incident, override
+    the gate, change the Playbook)."""
+    member = session.get(AgencyMember, (workspace.agency_id, user.id))
+    return member is not None and member.can_approve
+
+
+def approver_names(*, session: Session, workspace: Company) -> str:
+    """Who can approve in this workspace, as one phrase for a refusal."""
+    people = session.exec(
+        select(User)
+        .join(AgencyMember, col(AgencyMember.user_id) == User.id)
+        .join(WorkspaceMember, col(WorkspaceMember.user_id) == User.id)
+        .where(
+            AgencyMember.agency_id == workspace.agency_id,
+            col(AgencyMember.can_approve).is_(True),
+            WorkspaceMember.company_id == workspace.id,
+        )
+        .order_by(func.lower(User.email))
+    ).all()
+    names = [u.full_name or u.email for u in people]
+    return " or ".join(names) if names else "an Admin of your agency"
+
+
+def connected_assistants(
+    *, session: Session, user_ids: set[uuid.UUID]
+) -> dict[uuid.UUID, int]:
+    """How many assistants each person has connected: personal access tokens that
+    have been used and still work, and OAuth connections that can still refresh."""
+    from datetime import UTC, datetime
+
+    from app.models.oauth import OAuthRefreshToken
+    from app.models.personal_access_token import PersonalAccessToken
+
+    counts: dict[uuid.UUID, int] = dict.fromkeys(user_ids, 0)
+    if not user_ids:
+        return counts
+    tokens = session.exec(
+        select(PersonalAccessToken.user_id, func.count())
+        .where(
+            col(PersonalAccessToken.user_id).in_(user_ids),
+            col(PersonalAccessToken.revoked_at).is_(None),
+            col(PersonalAccessToken.last_used_at).is_not(None),
+        )
+        .group_by(col(PersonalAccessToken.user_id))
+    ).all()
+    connections = session.exec(
+        select(
+            OAuthRefreshToken.user_id,
+            func.count(func.distinct(OAuthRefreshToken.client_id)),
+        )
+        .where(
+            col(OAuthRefreshToken.user_id).in_(user_ids),
+            col(OAuthRefreshToken.revoked_at).is_(None),
+            col(OAuthRefreshToken.expires_at) > datetime.now(UTC),
+        )
+        .group_by(col(OAuthRefreshToken.user_id))
+    ).all()
+    for user_id, found in [*tokens, *connections]:
+        counts[user_id] = counts.get(user_id, 0) + found
+    return counts

@@ -27,6 +27,10 @@ from connexity_mcp_server.guides import (
     read_guide,
 )
 from connexity_mcp_server.models import (
+    InvitePeopleResult,
+    ListPeopleResult,
+    RemovePersonResult,
+    UpdatePersonResult,
     AddAgentsResult,
     AgentToAdd,
     ConnectVoicePlatformResult,
@@ -61,6 +65,10 @@ from connexity_mcp_server.models import (
     ScanCallsResult,
 )
 from connexity_mcp_server.tools import (
+    invite_people as _invite_people,
+    list_people as _list_people,
+    remove_person as _remove_person,
+    update_person as _update_person,
     add_agents as _add_agents,
 )
 from connexity_mcp_server.tools import (
@@ -196,6 +204,10 @@ RUNS = ToolAnnotations(
 DECIDES = ToolAnnotations(
     readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False
 )
+# Removes a person from an agency or cancels an invite: access ends at once.
+REMOVES = ToolAnnotations(
+    readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=False
+)
 # Reads from the voice platform to check the key; replaces an earlier key.
 CONNECTS = ToolAnnotations(
     readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
@@ -268,6 +280,72 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         person for the client's name first."""
         return await _create_workspace(
             client=backend_client, name=name, agency_id=agency_id
+        )
+
+    @mcp_server.tool(annotations=READ_ONLY)
+    async def list_people(workspace_id: WorkspaceId) -> ListPeopleResult:
+        """Who is in the agency this workspace belongs to: each person's role, the
+        workspaces they reach, whether they can approve and how many assistants they
+        have connected, plus the invites still waiting. Read this before answering who
+        has access, and before inviting, changing or removing anyone."""
+        return await _list_people(client=backend_client, workspace_id=workspace_id)
+
+    @mcp_server.tool(annotations=CREATES)
+    async def invite_people(
+        workspace_id: WorkspaceId,
+        emails: Annotated[list[str], Field(description="The email addresses to invite, as the person gives them.")],
+        role: Annotated[Literal["admin", "member"], Field(description="admin manages people and billing and creates workspaces; member works in their workspaces.")] = "member",
+        all_workspaces: Annotated[bool, Field(description="True: they reach every workspace of the agency, also later ones. False: only `workspace_ids`.")] = True,
+        workspace_ids: Annotated[list[str] | None, Field(description="The workspaces they reach when `all_workspaces` is false, from `list_people`; at least one.")] = None,
+        can_approve: Annotated[bool, Field(description="Whether they may make the critical decisions (archive issues, change checks) in their workspaces.")] = False,
+    ) -> InvitePeopleResult:
+        """Invite people to the agency by email; each gets a link that works once and
+        for 7 days. Only when the person you act for is an admin, and only after they
+        said yes to these addresses, role, workspaces and approval."""
+        return await _invite_people(
+            client=backend_client,
+            workspace_id=workspace_id,
+            emails=emails,
+            role=role,
+            all_workspaces=all_workspaces,
+            workspace_ids=workspace_ids,
+            can_approve=can_approve,
+        )
+
+    @mcp_server.tool(annotations=DECIDES)
+    async def update_person(
+        workspace_id: WorkspaceId,
+        person_id: Annotated[str, Field(description="The person's `id` from `list_people`.")],
+        role: Annotated[Literal["admin", "member"] | None, Field(description="Their new role; leave out to keep it.")] = None,
+        all_workspaces: Annotated[bool | None, Field(description="True for every workspace of the agency; false with `workspace_ids` for chosen ones; leave out to keep it.")] = None,
+        workspace_ids: Annotated[list[str] | None, Field(description="The only workspaces they should reach; replaces their earlier choice.")] = None,
+        can_approve: Annotated[bool | None, Field(description="Whether they may make the critical decisions; leave out to keep it.")] = None,
+    ) -> UpdatePersonResult:
+        """Change a person's role, the workspaces they reach, or whether they can
+        approve. It applies at once, also to their assistants. Only for an admin's
+        assistant, and only after the person said yes to this exact change. The last
+        admin cannot be made a member."""
+        return await _update_person(
+            client=backend_client,
+            workspace_id=workspace_id,
+            person_id=person_id,
+            role=role,
+            all_workspaces=all_workspaces,
+            workspace_ids=workspace_ids,
+            can_approve=can_approve,
+        )
+
+    @mcp_server.tool(annotations=REMOVES)
+    async def remove_person(
+        workspace_id: WorkspaceId,
+        person_id: Annotated[str, Field(description="A person's `id` or an invite's `id`, from `list_people`.")],
+    ) -> RemovePersonResult:
+        """Remove a person from the agency, or cancel an invite. A removed person and
+        their assistants lose the agency's workspaces at once; what they did stays on
+        record. Only for an admin's assistant, and only after the person said yes,
+        having been told how many workspaces and assistants are affected."""
+        return await _remove_person(
+            client=backend_client, workspace_id=workspace_id, person_id=person_id
         )
 
     @mcp_server.tool(annotations=CONNECTS)

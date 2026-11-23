@@ -139,4 +139,25 @@ def generate_google_sign_in_email() -> EmailData:
     return EmailData(html_content=html_content, subject=subject)
 
 
+def generate_invite_email(
+    *, token: str, invited_by: str | None, agency_name: str, workspaces: int
+) -> EmailData:
+    """The invite to join an agency (design: Connexity Email, `invite`)."""
+    who = invited_by or "Someone"
+    first_name = who.split()[0]
+    what = (
+        "1 client workspace" if workspaces == 1 else f"{workspaces} client workspaces"
+    )
+    subject = f"{first_name} invited you to {agency_name} on Connexity"
+    html_content = render_email_template(
+        template_name="invite.html",
+        context={
+            "subject": subject,
+            "line": f"{who} invited you to work on {what} at {agency_name}.",
+            "link": f"{settings.public_site_url}/invite/{token}",
+        },
+    )
+    return EmailData(html_content=html_content, subject=subject)
+
+
 is_prod = settings.ENVIRONMENT == "production"

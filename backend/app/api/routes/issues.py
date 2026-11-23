@@ -6,7 +6,13 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app import crud
-from app.api.deps import CurrentCompany, CurrentUser, SessionDep, get_current_user
+from app.api.deps import (
+    CurrentCompany,
+    CurrentUser,
+    SessionDep,
+    get_current_user,
+    require_approver,
+)
 from app.crud.check import IssueSummary
 from app.models import (
     Category,
@@ -154,6 +160,8 @@ def set_issue_state(
     issue = crud.get_issue(session=session, issue_id=issue_id, company_id=company_id)
     if issue is None:
         raise HTTPException(status_code=404, detail="Issue not found")
+    if body.state is IssueState.ARCHIVED or issue.state is IssueState.ARCHIVED:
+        require_approver(session, current_user, company_id)
     if body.state is IssueState.REOPENED:
         raise HTTPException(
             status_code=422,

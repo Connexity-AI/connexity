@@ -56,7 +56,7 @@
     <sc-if value="{{ creditsLow }}" hint-placeholder-val="{{ false }}">
     <a href="Connexity Agency.dc.html?section=billing" style="display:flex;align-items:center;gap:10px;height:32px;padding:0 12px;border-radius:8px;color:var(--ink);font-size:13px;text-decoration:none" style-hover="background:var(--wash);opacity:1">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;color:var(--ink2)"><circle cx="12" cy="12" r="10"></circle><path d="M8 12h8"></path></svg>
-      <span>Credits low · 3 days left</span>
+      <span>Balance low · 3 days left</span>
     </a>
     </sc-if>
     <div ref="{{ menuRef }}" style="position:relative">
@@ -65,15 +65,29 @@
       <span style="padding:6px 10px 4px;font-size:13px;line-height:18px;color:var(--ink3)">Workspaces</span>
       <sc-if value="{{ wsSearchable }}"><input value="{{ wsQ }}" onChange="{{ onWsQ }}" placeholder="Find a workspace" style="height:32px;margin:2px 2px 4px;padding:0 10px;border-radius:6px;border:1px solid var(--bc);background:var(--s1);color:var(--ink);font:inherit;font-size:13px;outline:none"></sc-if>
       <div style="display:flex;flex-direction:column;max-height:240px;overflow-y:auto">
-      <sc-for list="{{ workspaces }}" as="w" hint-placeholder-count="0">
-      <a href="Connexity Home.dc.html" style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:6px;color:var(--ink);font-size:13px;text-decoration:none" style-hover="background:var(--wash);opacity:1">
+      <sc-if value="{{ multi }}" hint-placeholder-val="{{ false }}">
+      <sc-for list="{{ groups }}" as="g" hint-placeholder-count="0">
+      <span style="flex:none;padding:8px 10px 2px;font-size:13px;line-height:18px;color:var(--ink3)">{{ g.name }}</span>
+      <sc-for list="{{ g.items }}" as="w" hint-placeholder-count="0">
+      <a href="Connexity Home.dc.html" style="flex:none;display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:6px;color:var(--ink);font-size:13px;text-decoration:none" style-hover="background:var(--wash);opacity:1">
         <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ w.name }}</span>
         <sc-if value="{{ w.current }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
       </a>
       </sc-for>
+      </sc-for>
+      </sc-if>
+      <sc-if value="{{ single }}" hint-placeholder-val="{{ true }}">
+      <sc-for list="{{ workspaces }}" as="w" hint-placeholder-count="0">
+      <a href="Connexity Home.dc.html" style="flex:none;display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:6px;color:var(--ink);font-size:13px;text-decoration:none" style-hover="background:var(--wash);opacity:1">
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ w.name }}</span>
+        <sc-if value="{{ w.current }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+      </a>
+      </sc-for>
+      </sc-if>
       </div>
       <button onClick="{{ openDialog }}" style="display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--ink2);font-size:13px;text-align:left;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>New workspace</button>
       <div style="height:1px;margin:4px 0;background:var(--border)"></div>
+      <sc-if value="{{ multi }}" hint-placeholder-val="{{ false }}"><a href="Connexity Agency.dc.html" title="Opens {{ curAgency }}, the agency of this workspace" style="display:flex;align-items:center;height:36px;padding:0 10px;border-radius:6px;color:var(--ink);font-size:13px;text-decoration:none" style-hover="background:var(--wash);opacity:1">Agency settings</a></sc-if>
       <a href="Connexity Account.dc.html" style="display:flex;align-items:center;height:36px;padding:0 10px;border-radius:6px;color:var(--ink);font-size:13px;text-decoration:none" style-hover="background:var(--wash);opacity:1">Account</a>
       <div style="display:flex;flex-direction:column;gap:6px;padding:8px 10px">
         <span style="font-size:13px;color:var(--ink2)">Theme</span>
@@ -110,7 +124,7 @@
 </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;home&quot;,&quot;actions&quot;,&quot;agents&quot;,&quot;calls&quot;,&quot;work&quot;,&quot;issues&quot;,&quot;incidents&quot;],&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;'home' | 'actions' | 'agents' | 'calls' | 'work' | 'issues'&quot;},&quot;incident&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;menuOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;readiness&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;setup&quot;,&quot;dropped&quot;,&quot;complete&quot;],&quot;default&quot;:&quot;setup&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;workspaceCount&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:9,&quot;default&quot;:6,&quot;tsType&quot;:&quot;number&quot;},&quot;wsDialog&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;closed&quot;,&quot;open&quot;,&quot;tooLong&quot;],&quot;default&quot;:&quot;closed&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;home&quot;,&quot;actions&quot;,&quot;agents&quot;,&quot;calls&quot;,&quot;work&quot;,&quot;issues&quot;,&quot;incidents&quot;],&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;'home' | 'actions' | 'agents' | 'calls' | 'work' | 'issues'&quot;},&quot;incident&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;menuOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;readiness&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;setup&quot;,&quot;dropped&quot;,&quot;complete&quot;],&quot;default&quot;:&quot;setup&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;workspaceCount&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:9,&quot;default&quot;:6,&quot;tsType&quot;:&quot;number&quot;},&quot;agencies&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:2,&quot;default&quot;:1,&quot;tsType&quot;:&quot;number&quot;},&quot;wsDialog&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;closed&quot;,&quot;open&quot;,&quot;tooLong&quot;],&quot;default&quot;:&quot;closed&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
 class Component extends DCLogic {
   constructor(props) {
     super(props);
@@ -129,6 +143,7 @@ class Component extends DCLogic {
     document.addEventListener('mousedown', this.onDoc);
   }
   componentWillUnmount() { document.removeEventListener('mousedown', this.onDoc); }
+  static WS2 = ['Ridgeline Fitness','Lumen Opticians'];
   static WS = ['Bright Dental','Northfield Group','Kestrel Plumbing','Maple Vets','Summit Legal','Harbor Hotels','Cedar Clinics','Lakeside Auto','Orchard Realty'];
   glimmer() {
     let rm = false; try { rm = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) {}
@@ -150,7 +165,9 @@ class Component extends DCLogic {
     const seg = on => ({ flex:1, height:26, padding:'0 6px', borderRadius:6, border:0, background: on ? 'var(--wash)' : 'transparent', color: on ? 'var(--ink)' : 'var(--ink2)', fontSize:13, fontWeight: on ? 500 : 400, cursor:'pointer' });
     const n = Math.max(1, Math.min(9, this.props.workspaceCount ?? 6));
     const W = [...(this.urlWs ? [this.urlWs] : Component.WS.slice(0, n)), ...S.created], cur = S.current || W[0], q = S.wsQ.trim().toLowerCase();
-    return { wsName: cur, wsSearchable: W.length > 8,
+    const multi = (this.props.agencies || 1) > 1;
+    const groups = [['Signal Voice', W], ['Fieldwork Media', Component.WS2]].map(([name, list]) => ({ name, items: list.filter(n => !q || n.toLowerCase().includes(q)).map(n => ({ name:n, current: n === cur })) })).filter(g => g.items.length);
+    return { wsName: cur, wsSearchable: (multi ? W.length + Component.WS2.length : W.length) > 8, multi, single: !multi, groups, curAgency: 'Signal Voice',
       dialogOpen: S.dialog, wsInputRef: this.wsInputRef, wsNew: nm, onWsNew: e => this.setState({ wsNew: e.target.value }),
       onWsKey: e => { if (e.key === 'Enter') createWs(); if (e.key === 'Escape') closeDialog(); },
       wsHint: !tooLong, wsTooLong: tooLong, cantCreate: !canCreate, createWs, cancelDialog: closeDialog,

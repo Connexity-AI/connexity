@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
 
-import { LoginService, PasswordResetService, UsersService } from '@/client/sdk.gen';
+import { InvitesService, LoginService, PasswordResetService, UsersService } from '@/client/sdk.gen';
 import { isErrorApiResult, isSuccessApiResult } from '@/utils/api';
 import { getApiErrorMessage } from '@/utils/error';
 import { AUTH_COOKIE } from '@/constants/auth';
@@ -128,6 +128,74 @@ export const setNewPasswordAction = async (
   if (response?.status === 422) return newPassword.length > 40 ? 'longPassword' : 'shortPassword';
   if (response?.status === 404) return 'linkDead';
   return 'failed';
+};
+
+export type JoinResult =
+  | { ok: true }
+  | { ok: false; reason: 'credentials' | 'shortPassword' | 'linkDead' | 'other'; message: string };
+
+const joinFailure = (status: number | undefined, error: unknown): JoinResult => ({
+  ok: false,
+  reason: status === 404 ? 'linkDead' : 'other',
+  message: getApiErrorMessage(error),
+});
+
+/** Join the invite's agency as the signed-in person. */
+export const acceptInviteAction = async (token: string): Promise<JoinResult> => {
+  const { data, error, response } = await InvitesService.acceptInvite({ path: { token } });
+  if (!data) return joinFailure(response?.status, error);
+  await setSessionCookie(data.access_token, data.expires);
+  return { ok: true };
+};
+
+export const declineInviteAction = async (token: string): Promise<JoinResult> => {
+  const { error, response } = await InvitesService.declineInvite({ path: { token } });
+  return response?.status === 204 ? { ok: true } : joinFailure(response?.status, error);
+};
+
+/** Make an account for the invited email, join, and sign in. */
+export const signUpAndJoinAction = async (
+  token: string,
+  fullName: string,
+  password: string
+): Promise<JoinResult> => {
+  const { data, error, response } = await InvitesService.signUpAndJoin({
+    path: { token },
+    body: { full_name: fullName, password },
+  });
+  if (data) {
+    await setSessionCookie(data.access_token, data.expires);
+    return { ok: true };
+  }
+  if (response?.status === 422)
+    return { ok: false, reason: 'shortPassword', message: getApiErrorMessage(error) };
+  return joinFailure(response?.status, error);
+};
+
+/**
+ * Sign in with the invited email's account and join, in one request: a person with no
+ * workspace left (removed, then invited again) is refused by the ordinary sign-in.
+ */
+export const signInAndJoinAction = async (token: string, password: string): Promise<JoinResult> => {
+  const { data, error, response } = await InvitesService.signInAndJoin({
+    path: { token },
+    body: { password },
+  });
+  if (data) {
+    await setSessionCookie(data.access_token, data.expires);
+    return { ok: true };
+  }
+  if (response?.status === 400)
+    return { ok: false, reason: 'credentials', message: getApiErrorMessage(error) };
+  return joinFailure(response?.status, error);
+};
+
+/** Sign out and come back to the invite, to sign in with the invited email. */
+export const switchAccountForInviteAction = async (token: string): Promise<void> => {
+  const cookiesList = await cookies();
+  cookiesList.delete(AUTH_COOKIE);
+
+  redirect(UrlGenerator.invite(token));
 };
 
 export const logoutAction = async (): Promise<void> => {

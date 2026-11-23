@@ -54,6 +54,7 @@ GUIDE_CALLS = "connexity://guides/calls"
 GUIDE_SCENARIOS = "connexity://guides/scenarios"
 GUIDE_FEEDBACK = "connexity://guides/feedback"
 GUIDE_USAGE = "connexity://guides/usage"
+GUIDE_PEOPLE = "connexity://guides/people"
 
 
 class McpAnswer(BaseModel, Generic[T]):
@@ -723,3 +724,53 @@ class McpSendFeedback(BaseModel):
 
 class McpFeedbackSent(BaseModel):
     report_id: uuid.UUID = Field(description="Give it to the person if they ask")
+
+
+class McpPerson(BaseModel):
+    id: uuid.UUID = Field(description="Pass as `person_id` to change or remove them")
+    name: str | None
+    email: str
+    role: AgencyRole
+    all_workspaces: bool = Field(
+        description="Reaches every workspace of the agency, including later ones"
+    )
+    workspace_ids: list[uuid.UUID] = Field(description="The workspaces they reach")
+    can_approve: bool
+    assistants: int = Field(description="How many assistants they have connected")
+    is_you: bool = Field(description="The person you act for")
+
+
+class McpInvite(BaseModel):
+    id: uuid.UUID = Field(description="Pass as `person_id` to cancel the invite")
+    email: str
+    role: AgencyRole
+    all_workspaces: bool
+    workspace_ids: list[uuid.UUID]
+    can_approve: bool
+    expires_at: datetime
+    invited_by: str | None
+
+
+class McpPeople(BaseModel):
+    agency: McpAgencyRef
+    your_role: AgencyRole = Field(description="The role of the person you act for")
+    workspaces: list[McpAgencyRef] = Field(
+        description="The agency's workspaces, to read `workspace_ids` by name"
+    )
+    people: list[McpPerson]
+    invites: list[McpInvite] = Field(
+        description="Invites still waiting; empty unless your person is an admin"
+    )
+
+
+class McpInvited(BaseModel):
+    sent: list[McpInvite]
+    refused: list[dict[str, str]] = Field(
+        description="Addresses that got no invite, each with `email`, `reason` "
+        "(invalid, member or invited) and `message`"
+    )
+
+
+class McpRemoved(BaseModel):
+    removed: Literal["person", "invite"]
+    who: str
