@@ -275,8 +275,10 @@ Run before the pull request; three bugs found and fixed, two small points left:
   API and Resend (the provider Dmytro chose on 2026-11-23, domain `mail.connexity.ai`)
   to Resend's test inbox, and Resend accepted them; that inbox cannot be read, so the
   link was followed only in the route tests.
-- Production's Cloud Run has no email settings yet, so production shows no "Forgot
-  password?" link after this merges, until they are added (`deployment.md`, Email).
+- Production's email settings were added to Cloud Run on 2026-11-23, after this pull
+  request opened, at Dmytro's request ("Set up Cloud Run"). The sender name
+  (`EMAILS_FROM_NAME`) is left for after the deploy, because the code now in production
+  refuses a name that is not an email address. No reset has been tried in production.
 - How the emails render in real mail clients (Gmail, Outlook, Apple Mail) is not
   verified.
 - The screens were not opened in a browser; that is Dmytro's check above.

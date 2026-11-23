@@ -64,15 +64,17 @@ Dmytro, 2026-11-23), sending from the verified domain `mail.connexity.ai`; its D
 records are in Cloudflare. Resend's free plan allows 100 emails a day and refuses the
 rest, which the backend logs as a failed send.
 
-**Not on Cloud Run yet.** Until `connexity-backend` has these, the sign-in page shows
-no "Forgot password?" and nothing else changes:
+Set on `connexity-backend` on 2026-11-23, except `EMAILS_FROM_NAME`, which is added
+once the password reset change is deployed: the code before it refuses a sender name
+that is not an email address. Without these settings the sign-in page shows no "Forgot
+password?" and nothing else changes:
 
 | Setting | Value |
 |---|---|
 | `SMTP_HOST` | `smtp.resend.com` |
 | `SMTP_PORT` | `465`, with `SMTP_SSL=true` and `SMTP_TLS=false` (the default is STARTTLS on 587, which Resend also offers) |
 | `SMTP_USER` | `resend` |
-| `SMTP_PASSWORD` | A Resend API key restricted to sending, as a secret, for example `connexity-smtp-password` |
+| `SMTP_PASSWORD` | A Resend API key restricted to sending: the secret `connexity-smtp-password` |
 | `EMAILS_FROM_EMAIL`, `EMAILS_FROM_NAME` | `no-reply@mail.connexity.ai`, `Connexity` |
 
 `SITE_URL` is already set; the link in the email is built from it.
