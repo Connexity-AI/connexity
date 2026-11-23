@@ -49,12 +49,14 @@ from app.models import (
     ReadinessStepState,
     WorkspaceCreate,
 )
+from app.models.agency import Agency, AgencyMember, AgencyRole
 from app.models.check import Issue
 from app.models.clarification import (
     ClarificationListPublic,
     ClarificationPublic,
     ClarificationsAnsweredPublic,
 )
+from app.models.company import Company
 from app.models.dashboard import DashboardPublic
 from app.models.enums import (
     CallCheckStatus,
@@ -79,6 +81,7 @@ from app.models.mcp import (
     GUIDE_WORKSPACES,
     McpAddAgents,
     McpAddedAgents,
+    McpAgencyRef,
     McpAgent,
     McpAgentPage,
     McpAnswer,
@@ -122,6 +125,7 @@ from app.models.mcp import (
     McpWrittenScenarios,
 )
 from app.models.scenario import ScenarioListPublic, ScenarioSetPublic
+from app.models.score import ScorePublic
 from app.models.spec import SpecPublic, SpecWrittenPublic
 from app.models.test_run import (
     RunProgressPublic,
@@ -131,6 +135,7 @@ from app.models.test_run import (
     VersionResultsPublic,
 )
 from app.models.usage import UsagePublic
+from app.models.user import User
 from app.models.work import WorkMoveIn
 from app.services.agent_list import agent_types, live_since
 from app.services.agent_page import agent_page
@@ -267,19 +272,38 @@ def _mcp_agent(agent: Agent) -> McpAgent:
     )
 
 
+def _mcp_workspace(
+    workspace: Company,
+    agency: Agency,
+    membership: AgencyMember,
+    *,
+    with_score: ScorePublic | None = None,
+) -> McpWorkspace:
+    return McpWorkspace(
+        id=workspace.id,
+        name=workspace.name,
+        agency=McpAgencyRef(id=agency.id, name=agency.name),
+        role=membership.role,
+        can_approve=membership.can_approve,
+        score=with_score.score if with_score else None,
+        score_change=with_score.change if with_score else None,
+    )
+
+
 @router.get("/workspaces", response_model=McpAnswer[list[McpWorkspace]])
 def list_workspaces(
     session: SessionDep, current_user: McpCurrentUser
 ) -> McpAnswer[list[McpWorkspace]]:
     workspaces = crud.list_accessible_workspaces(session=session, user=current_user)
+    places = {
+        agency.id: (agency, membership)
+        for agency, membership in crud.list_agencies(session=session, user=current_user)
+    }
     data = []
     for w in workspaces:
+        agency, membership = places[w.agency_id]
         found = score(session=session, company_id=w.id, with_moves=False)
-        data.append(
-            McpWorkspace(
-                id=w.id, name=w.name, score=found.score, score_change=found.change
-            )
-        )
+        data.append(_mcp_workspace(w, agency, membership, with_score=found))
     return McpAnswer[list[McpWorkspace]](
         data=data,
         rules=[
@@ -291,6 +315,11 @@ def list_workspaces(
             "shared between workspaces.",
             "You reach the workspaces the person who connected you can reach, and act "
             "on their behalf.",
+            "`agency` is the account a workspace belongs to; an agency has one "
+            "workspace per client. `role` is the person's role in that agency: only an "
+            "`admin` creates workspaces and manages people.",
+            "`can_approve` says whether the person may make the critical decisions in "
+            "the workspace.",
         ],
         next_steps=[
             "Pass a workspace's `id` as `workspace_id` to every other Connexity tool.",
@@ -298,6 +327,58 @@ def list_workspaces(
         ],
         guide=GUIDE_WORKSPACES,
     )
+
+
+def _agency_to_create_in(
+    session: SessionDep, user: User, agency_id: uuid.UUID | None
+) -> tuple[Agency, AgencyMember]:
+    """The agency a new workspace goes into, or an error that says what to do."""
+    places = crud.list_agencies(session=session, user=user)
+
+    def refuse(status: int, error: str, steps: list[str]) -> HTTPException:
+        return HTTPException(
+            status_code=status,
+            detail=McpErrorDetail(
+                error=error, next_steps=steps, guide=GUIDE_WORKSPACES
+            ).model_dump(),
+        )
+
+    if agency_id is not None:
+        place = next((p for p in places if p[0].id == agency_id), None)
+        if place is None:
+            raise refuse(
+                404,
+                "Agency not found",
+                ["Call `list_workspaces`; each workspace names its `agency`."],
+            )
+        chosen = [place]
+    else:
+        chosen = [p for p in places if p[1].role == AgencyRole.admin] or places
+
+    not_admin = [p for p in chosen if p[1].role != AgencyRole.admin]
+    if not_admin:
+        agency = not_admin[0][0]
+        asking = crud.admin_names(session=session, agency_id=agency.id)
+        raise refuse(
+            403,
+            f"Only Admins of {agency.name} can create a workspace.",
+            [
+                f"Tell the person to ask {asking}, who can create it or make them an Admin."
+            ],
+        )
+    if len(chosen) > 1:
+        listed = "; ".join(f"{a.name} ({a.id})" for a, _ in chosen)
+        raise refuse(
+            422,
+            "The person is an Admin of more than one agency; say which one.",
+            [
+                "Ask the person which agency the client belongs to.",
+                f"Call `create_workspace` again with `agency_id`: {listed}.",
+            ],
+        )
+    if not chosen:
+        raise refuse(404, "Agency not found", ["Tell the person to sign in again."])
+    return chosen[0]
 
 
 @router.post("/workspaces", response_model=McpAnswer[McpWorkspace])
@@ -314,12 +395,19 @@ def create_workspace(
                 guide=GUIDE_WORKSPACES,
             ).model_dump(),
         )
-    workspace = crud.create_workspace(session=session, user=current_user, name=name)
+    agency, membership = _agency_to_create_in(
+        session, current_user, workspace_in.agency_id
+    )
+    workspace = crud.add_workspace(
+        session=session, agency=agency, name=name, created_by=current_user
+    )
     return McpAnswer[McpWorkspace](
-        data=McpWorkspace(id=workspace.id, name=workspace.name),
+        data=_mcp_workspace(workspace, agency, membership),
         rules=[
             "A workspace holds one client's agents, calls and settings; it starts empty.",
-            "Only the person who created it is a member; there are no invitations yet.",
+            "It belongs to the agency named in `agency`. Everyone in that agency who "
+            "reaches all of its workspaces reaches this one too.",
+            "Only an Admin of an agency creates workspaces in it.",
         ],
         next_steps=[
             "Pass this `id` as `workspace_id` to every tool that should act in it.",

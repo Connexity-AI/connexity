@@ -10,6 +10,9 @@ class WorkspaceMember(SQLModel, table=True):
 
     A person can belong to several workspaces, one per client. Access to a workspace,
     on the web and through MCP, is decided by this table (`app/crud/workspace.py`).
+    Its rows are kept in step with the person's place in the workspace's agency
+    (`app/crud/agency.py`): every workspace of the agency for a person with "all
+    workspaces", the chosen ones otherwise.
     """
 
     __tablename__ = "workspace_member"
@@ -31,7 +34,14 @@ class WorkspacePublic(SQLModel):
     id: uuid.UUID
     name: str
     is_open: bool
+    agency_id: uuid.UUID
+    agency_name: str
 
 
 class WorkspaceCreate(SQLModel):
     name: str = Field(min_length=1, max_length=255)
+    agency_id: uuid.UUID | None = Field(
+        default=None,
+        description="The agency to create the workspace in. Needed only when the "
+        "person is an Admin of more than one agency.",
+    )

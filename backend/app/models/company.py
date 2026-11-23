@@ -23,6 +23,8 @@ class Company(SQLModel, table=True):
     __tablename__ = "company"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    # The agency this workspace belongs to (`app/models/agency.py`).
+    agency_id: uuid.UUID = Field(foreign_key="agency.id", index=True)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_type=DateTime(timezone=True),  # type: ignore[call-overload]

@@ -1,4 +1,6 @@
 import json
+import json
+
 import httpx
 import pytest
 from connexity_mcp_server.client import ConnexityBackendClient, ConnexityBackendError
@@ -45,6 +47,12 @@ from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser
 from mcp.server.auth.provider import AccessToken
 
 WORKSPACE_ID = "3f1c9a52-0f5e-4a59-9a0c-2c3c1f0a7b10"
+AGENCY_ID = "3f2c1a8e-7b6d-4c5e-9a1f-0d2b4c6e8f10"
+IN_AGENCY = {
+    "agency": {"id": AGENCY_ID, "name": "Signal Voice"},
+    "role": "admin",
+    "can_approve": True,
+}
 ANSWER = {
     "rules": ["A rule."],
     "next_steps": ["1. Do this."],
@@ -85,7 +93,7 @@ async def test_list_workspaces_forwards_the_token_and_keeps_the_answer() -> None
         return httpx.Response(
             200,
             json={
-                "data": [{"id": WORKSPACE_ID, "name": "acme.com"}],
+                "data": [{"id": WORKSPACE_ID, "name": "acme.com", **IN_AGENCY}],
                 "next_cursor": None,
                 **ANSWER,
             },
@@ -94,6 +102,9 @@ async def test_list_workspaces_forwards_the_token_and_keeps_the_answer() -> None
     result = await _call(handler, lambda client: list_workspaces(client))
 
     assert [w.name for w in result.data] == ["acme.com"]
+    assert result.data[0].agency.name == "Signal Voice"
+    assert result.data[0].role == "admin"
+    assert result.data[0].can_approve is True
     assert result.rules == ["A rule."]
     assert result.next_steps == ["1. Do this."]
     assert result.guide == "connexity://guides/workspaces"
@@ -208,7 +219,7 @@ async def test_create_workspace_posts_the_name() -> None:
         return httpx.Response(
             200,
             json={
-                "data": {"id": WORKSPACE_ID, "name": "Kestrel Plumbing"},
+                "data": {"id": WORKSPACE_ID, "name": "Kestrel Plumbing", **IN_AGENCY},
                 "next_cursor": None,
                 **ANSWER,
             },
@@ -219,6 +230,32 @@ async def test_create_workspace_posts_the_name() -> None:
     )
 
     assert result.data.name == "Kestrel Plumbing"
+
+
+@pytest.mark.asyncio
+async def test_create_workspace_names_the_agency_when_given() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert json.loads(request.content) == {
+            "name": "Kestrel Plumbing",
+            "agency_id": AGENCY_ID,
+        }
+        return httpx.Response(
+            200,
+            json={
+                "data": {"id": WORKSPACE_ID, "name": "Kestrel Plumbing", **IN_AGENCY},
+                "next_cursor": None,
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: create_workspace(
+            client, name="Kestrel Plumbing", agency_id=AGENCY_ID
+        ),
+    )
+
+    assert result.data.agency.id == AGENCY_ID
 
 
 @pytest.mark.asyncio

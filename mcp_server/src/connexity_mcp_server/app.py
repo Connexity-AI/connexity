@@ -246,17 +246,29 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     @mcp_server.tool(annotations=READ_ONLY)
     async def list_workspaces() -> ListWorkspacesResult:
         """The workspaces you can reach: one per client, each with its score over
-        the last 30 days and its change. Call this first; every other tool takes a
-        `workspace_id` from here."""
+        the last 30 days and its change, the agency it belongs to, and the person's
+        role there. Call this first; every other tool takes a `workspace_id` from
+        here."""
         return await _list_workspaces(client=backend_client)
 
     @mcp_server.tool(annotations=CREATES)
     async def create_workspace(
         name: Annotated[str, Field(description="The client's name, as the person gives it.")],
+        agency_id: Annotated[
+            str | None,
+            Field(
+                description="The agency to create it in, from a workspace's `agency` "
+                "in `list_workspaces`. Leave out unless the person is an Admin of "
+                "more than one agency."
+            ),
+        ] = None,
     ) -> CreateWorkspaceResult:
-        """Create a workspace for a new client, with the person you act for as its only
-        member. Ask the person for the client's name first."""
-        return await _create_workspace(client=backend_client, name=name)
+        """Create a workspace for a new client in the person's agency. Only an Admin
+        of the agency can; for anyone else the answer names who to ask. Ask the
+        person for the client's name first."""
+        return await _create_workspace(
+            client=backend_client, name=name, agency_id=agency_id
+        )
 
     @mcp_server.tool(annotations=CONNECTS)
     async def connect_voice_platform(

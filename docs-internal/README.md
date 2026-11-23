@@ -16,6 +16,7 @@ instead.
 
 ## Layout
 
+- [`agency.md`](./agency.md) - the agency above workspaces: roles, who reaches what, guard rails, routes
 - [`decisions.md`](./decisions.md) - the decision log and the open questions
 - [`development-lifecycle.md`](./development-lifecycle.md) - how the project is built: plans, roles, verification, what Connexity does not build
 - [`responsibilities.md`](./responsibilities.md) - who does what between Connexity, the assistant and the person

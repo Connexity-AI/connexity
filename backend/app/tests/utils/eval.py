@@ -6,6 +6,7 @@ from sqlmodel import Session, select
 from app.core.config import settings
 from app.core.db import engine
 from app.models import Agent, User
+from app.models.agency import Agency
 from app.models.company import Company
 from app.models.enums import IntegrationProvider, Platform
 from app.models.integration import Integration
@@ -27,7 +28,10 @@ def _resolve_company_id(session: Session, company_id: uuid.UUID | None) -> uuid.
     existing = session.exec(select(Company)).first()
     if existing is not None:
         return existing.id
-    new_company = Company()
+    agency = Agency(name="Test agency")
+    session.add(agency)
+    session.flush()
+    new_company = Company(agency_id=agency.id)
     session.add(new_company)
     session.commit()
     session.refresh(new_company)

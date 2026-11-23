@@ -9,6 +9,17 @@ all table models are registered on ``SQLModel.metadata`` before autogenerate.
 from sqlmodel import SQLModel  # noqa: F401
 
 # ── Agent ──────────────────────────────────────────────────────────
+from app.models.agency import (  # noqa: F401
+    Agency,
+    AgencyDetail,
+    AgencyMember,
+    AgencyMemberPublic,
+    AgencyMemberUpdate,
+    AgencyPublic,
+    AgencyRole,
+    AgencyUpdate,
+    AgencyWorkspace,
+)
 from app.models.agent import (  # noqa: F401
     Agent,
     AgentBase,

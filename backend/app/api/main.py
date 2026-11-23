@@ -3,6 +3,7 @@ from typing import Any
 from fastapi import APIRouter
 
 from app.api.routes import (
+    agencies,
     agent_list,
     call_screen,
     calls,
@@ -40,6 +41,7 @@ ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
 
 api_router = APIRouter(responses=ERROR_RESPONSES)
 api_router.include_router(login.router)
+api_router.include_router(agencies.router)
 api_router.include_router(google_auth.router)
 api_router.include_router(password_reset.router)
 api_router.include_router(users.router)

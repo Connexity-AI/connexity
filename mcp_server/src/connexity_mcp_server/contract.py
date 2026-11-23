@@ -83,11 +83,14 @@ TOOLS: dict[str, ToolEntry] = {
     # Start and the task list
     "list_workspaces": ToolEntry(
         "start",
-        "Lists the workspaces you can reach, one per client, with their score.",
+        "Lists the workspaces you can reach, one per client, with their score, "
+        "their agency and your role in it.",
         "workspaces",
     ),
     "create_workspace": ToolEntry(
-        "start", "Creates a workspace for a new client.", "workspaces"
+        "start",
+        "Creates a workspace for a new client in your agency, if you are an Admin.",
+        "workspaces",
     ),
     "get_readiness": ToolEntry(
         "start", "Shows each setup step, whether it is done, and what is next.", "readiness"

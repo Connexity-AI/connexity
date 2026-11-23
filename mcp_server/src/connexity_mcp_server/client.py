@@ -43,8 +43,13 @@ class ConnexityBackendClient:
     async def list_workspaces(self) -> dict[str, Any]:
         return await self._request_json("GET", "/mcp/workspaces")
 
-    async def create_workspace(self, *, name: str) -> dict[str, Any]:
-        return await self._request_json("POST", "/mcp/workspaces", json={"name": name})
+    async def create_workspace(
+        self, *, name: str, agency_id: str | None = None
+    ) -> dict[str, Any]:
+        body: dict[str, Any] = {"name": name}
+        if agency_id is not None:
+            body["agency_id"] = agency_id
+        return await self._request_json("POST", "/mcp/workspaces", json=body)
 
     async def connect_voice_platform(
         self, *, workspace_id: str, platform: str, api_key: str

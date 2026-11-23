@@ -43,7 +43,9 @@ MCP client
 An OAuth token belongs to the person who approved the connection (its `sub`), and
 refresh tokens are stored per person and client. A person may connect as many
 assistants as they like. Each reaches exactly the workspaces that person can reach
-(Decided 2026-11-12). The token carries no workspace.
+(Decided 2026-11-12). The token carries no workspace. Which workspaces a person
+reaches follows their place in each agency ([`agency.md`](./agency.md)); `list_workspaces`
+names each workspace's agency, the person's role in it and whether they can approve.
 
 ### Two kinds of token
 
