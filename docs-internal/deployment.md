@@ -52,9 +52,30 @@ can read them.
 | `connexity-openai-api-key` | backend `OPENAI_API_KEY` |
 | `connexity-typesafe-api-key` | backend `TYPESAFE_API_KEY`: Jev, for classifier checks (added 2026-11-18). Without it those checks are skipped on every call, and picked up once it is set |
 | `connexity-anthropic-api-key` | backend `ANTHROPIC_API_KEY`: the simulated caller and the judge of every run of scenarios (Claude Haiku 5.5, `SIMULATION_MODEL`), and judge checks on Claude (added 2026-11-19). Without it `run_scenarios` refuses every run with "Connexity's model key is missing" |
-| `connexity-anthropic-admin-key` | backend `ANTHROPIC_ADMIN_KEY`: an Anthropic Admin API key, read only, for the organisation's cost and usage reports ([`usage.md`](./usage.md)). **Not set up yet: Dmytro creates the secret and mounts it.** Without it nothing is read and nothing fails |
+| `connexity-anthropic-admin-key` | backend `ANTHROPIC_ADMIN_KEY`: an Anthropic Admin API key, read only, for the organisation's cost and usage reports ([`usage.md`](./usage.md)). Set up 2026-11-23. Without it nothing is read and nothing fails |
 | `connexity-notion-feedback-token` | backend `NOTION_FEEDBACK_TOKEN`: a Notion internal integration shared with the "Assistant feedback" database only, so `send_feedback` reports reach it (added 2026-11-19). Without it reports are only stored |
 | `connexity-notion-feedback-database` | backend `NOTION_FEEDBACK_DATABASE_ID`: that database's id. Kept out of the repo, which is public |
+
+### Email
+
+The backend sends email over SMTP: password reset today, invites and billing emails
+later ([`password-reset.md`](./password-reset.md)). The provider is Resend (chosen by
+Dmytro, 2026-11-23), sending from the verified domain `mail.connexity.ai`; its DNS
+records are in Cloudflare. Resend's free plan allows 100 emails a day and refuses the
+rest, which the backend logs as a failed send.
+
+**Not on Cloud Run yet.** Until `connexity-backend` has these, the sign-in page shows
+no "Forgot password?" and nothing else changes:
+
+| Setting | Value |
+|---|---|
+| `SMTP_HOST` | `smtp.resend.com` |
+| `SMTP_PORT` | `465`, with `SMTP_SSL=true` and `SMTP_TLS=false` (the default is STARTTLS on 587, which Resend also offers) |
+| `SMTP_USER` | `resend` |
+| `SMTP_PASSWORD` | A Resend API key restricted to sending, as a secret, for example `connexity-smtp-password` |
+| `EMAILS_FROM_EMAIL`, `EMAILS_FROM_NAME` | `no-reply@mail.connexity.ai`, `Connexity` |
+
+`SITE_URL` is already set; the link in the email is built from it.
 
 Each secret grants `roles/secretmanager.secretAccessor` to the services' runtime account
 (`731878021100-compute@developer.gserviceaccount.com`) on the secret itself; a new secret

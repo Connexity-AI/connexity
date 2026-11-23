@@ -1,11 +1,11 @@
 'use server';
 
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
 
-import { LoginService, UsersService } from '@/client/sdk.gen';
+import { LoginService, PasswordResetService, UsersService } from '@/client/sdk.gen';
 import { isErrorApiResult, isSuccessApiResult } from '@/utils/api';
 import { getApiErrorMessage } from '@/utils/error';
 import { AUTH_COOKIE } from '@/constants/auth';
@@ -78,6 +78,56 @@ export const signUpAction = async (values: SignUpValues): Promise<SignUpResult> 
     return { ok: false, reason: 'other', message: getApiErrorMessage(signedIn.error) };
 
   return { ok: true };
+};
+
+export type AskForResetResult = 'sent' | 'rateLimited' | 'invalidEmail' | 'failed';
+
+/**
+ * Ask for a reset link. The backend answers the same way whether or not the email has
+ * an account. The person's network address (the first one forwarded to the web app) is
+ * passed on, for the per-address limit; without it every request would count against
+ * the web app's own address.
+ */
+export const askForResetAction = async (email: string): Promise<AskForResetResult> => {
+  const forwarded = (await headers()).get('x-forwarded-for') ?? '';
+  const address = forwarded.split(',')[0]?.trim();
+
+  const { response } = await PasswordResetService.passwordResetAskForResetLink({
+    body: { email },
+    headers: address ? { 'X-Forwarded-For': address } : undefined,
+  });
+
+  if (response?.status === 202) return 'sent';
+  if (response?.status === 429) return 'rateLimited';
+  if (response?.status === 422) return 'invalidEmail';
+  return 'failed';
+};
+
+export type SetNewPasswordResult =
+  | 'saved'
+  | 'shortPassword'
+  | 'longPassword'
+  | 'linkDead'
+  | 'failed';
+
+/** Set the password through a reset link; this browser is then signed in. */
+export const setNewPasswordAction = async (
+  token: string,
+  newPassword: string
+): Promise<SetNewPasswordResult> => {
+  const { data, response } = await PasswordResetService.passwordResetSetNewPassword({
+    path: { token },
+    body: { new_password: newPassword },
+  });
+
+  if (data) {
+    await setSessionCookie(data.access_token, data.expires);
+    return 'saved';
+  }
+  // The backend refuses under 8 and over 40 characters with the same status.
+  if (response?.status === 422) return newPassword.length > 40 ? 'longPassword' : 'shortPassword';
+  if (response?.status === 404) return 'linkDead';
+  return 'failed';
 };
 
 export const logoutAction = async (): Promise<void> => {

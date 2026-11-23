@@ -37,7 +37,9 @@ def login_access_token(
         raise HTTPException(status_code=400, detail="Inactive user")
 
     access_token, expires = security.create_session_token(
-        user_id=user.id, company_id=user.company_id
+        user_id=user.id,
+        company_id=user.company_id,
+        session_version=user.session_version,
     )
     return Token(access_token=access_token, expires=expires)
 

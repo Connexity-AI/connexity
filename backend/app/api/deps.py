@@ -60,6 +60,12 @@ def get_current_user(session: SessionDep, cookie: CookieDep, bearer: BearerDep) 
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
 
+    if token_data.sv != user.session_version:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Signed out; please log in again",
+        )
+
     # The token names the workspace that was open when it was issued. It stays valid
     # while the person is still a member of that workspace; requests are scoped to the
     # workspace open now (`user.company_id`), which another tab may have switched.

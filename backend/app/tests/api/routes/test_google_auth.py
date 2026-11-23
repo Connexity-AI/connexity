@@ -80,11 +80,11 @@ def _assert_back_to_sign_in(response: httpx.Response) -> None:
 def test_status_says_whether_google_is_offered(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    assert client.get(f"{API}/auth/google").json() == {"enabled": True}
+    assert client.get(f"{API}/auth/google").json()["enabled"] is True
 
     monkeypatch.setattr(settings, "GOOGLE_CLIENT_SECRET", None)
 
-    assert client.get(f"{API}/auth/google").json() == {"enabled": False}
+    assert client.get(f"{API}/auth/google").json()["enabled"] is False
     assert (
         client.get(f"{API}/auth/google/start", follow_redirects=False).status_code
         == 404

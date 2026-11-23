@@ -264,6 +264,15 @@ import type {
   OnboardingReadOnboardingStepsData,
   OnboardingReadOnboardingStepsErrors,
   OnboardingReadOnboardingStepsResponses,
+  PasswordResetAskForResetLinkData,
+  PasswordResetAskForResetLinkErrors,
+  PasswordResetAskForResetLinkResponses,
+  PasswordResetLookAtResetLinkData,
+  PasswordResetLookAtResetLinkErrors,
+  PasswordResetLookAtResetLinkResponses,
+  PasswordResetSetNewPasswordData,
+  PasswordResetSetNewPasswordErrors,
+  PasswordResetSetNewPasswordResponses,
   ReadinessReadReadinessData,
   ReadinessReadReadinessErrors,
   ReadinessReadReadinessResponses,
@@ -649,7 +658,8 @@ export class AuthService {
   /**
    * Google Status
    *
-   * Whether sign-in with Google is offered (both Google settings are present).
+   * What the sign-in page offers: Google (both Google settings are present) and
+   * password reset (the deployment can send email).
    */
   public static googleStatus<ThrowOnError extends boolean = false>(
     options?: Options<AuthGoogleStatusData, ThrowOnError>
@@ -682,6 +692,72 @@ export class AuthService {
     return (options?.client ?? client).get<unknown, AuthCallbackErrors, ThrowOnError>({
       url: '/api/v1/auth/google/callback',
       ...options,
+    });
+  }
+}
+
+export class PasswordResetService {
+  /**
+   * Ask For Reset Link
+   *
+   * Ask for a reset link. The answer is the same whether or not the email has an
+   * account; 429 when this email or this network address has asked too often.
+   */
+  public static passwordResetAskForResetLink<ThrowOnError extends boolean = false>(
+    options: Options<PasswordResetAskForResetLinkData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      PasswordResetAskForResetLinkResponses,
+      PasswordResetAskForResetLinkErrors,
+      ThrowOnError
+    >({
+      url: '/api/v1/password-reset',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Look At Reset Link
+   *
+   * The account a link is for, while the link works. Expired, used and unknown
+   * links are the same 404.
+   */
+  public static passwordResetLookAtResetLink<ThrowOnError extends boolean = false>(
+    options: Options<PasswordResetLookAtResetLinkData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      PasswordResetLookAtResetLinkResponses,
+      PasswordResetLookAtResetLinkErrors,
+      ThrowOnError
+    >({ url: '/api/v1/password-reset/{token}', ...options });
+  }
+
+  /**
+   * Set New Password
+   *
+   * Set the password through a link and sign the person in.
+   *
+   * The link stops working, and every web session the person had ends; personal access
+   * tokens and connected assistants are not touched.
+   */
+  public static passwordResetSetNewPassword<ThrowOnError extends boolean = false>(
+    options: Options<PasswordResetSetNewPasswordData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      PasswordResetSetNewPasswordResponses,
+      PasswordResetSetNewPasswordErrors,
+      ThrowOnError
+    >({
+      url: '/api/v1/password-reset/{token}',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
     });
   }
 }

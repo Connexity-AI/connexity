@@ -19,6 +19,7 @@ You need **`git`**, **[Docker Desktop](https://www.docker.com/products/docker-de
    ```
 
 4. Open **`http://localhost:3000`** (or **`SITE_URL`**) when the services are healthy, create an account, and sign in.
+   Password reset by email needs the `SMTP_*` and `EMAILS_FROM_EMAIL` settings from `.env.example`; without them the sign-in page has no "Forgot password?" link.
 
 ## Virtual machine
 

@@ -90,6 +90,13 @@ from app.crud.model_answer import (  # noqa: F401
     record_model_check,
     save_model_answer,
 )
+from app.crud.password_reset import (  # noqa: F401
+    ResetRequested,
+    find_reset_link,
+    request_password_reset,
+    reset_limit_reached,
+    reset_password,
+)
 from app.crud.personal_access_token import (  # noqa: F401
     assistants_by_token,
     create_personal_access_token,

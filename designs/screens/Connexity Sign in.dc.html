@@ -51,12 +51,15 @@
         <input type="email" value="{{ email }}" onChange="{{ onEmail }}" autoComplete="email" style="{{ emailStyle }}">
         <sc-if value="{{ takenErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--crit)">An account already uses this email. <button type="button" onClick="{{ toSigninKeep }}" style="padding:0;border:0;background:none;color:var(--crit);font-size:13px;text-decoration:underline;cursor:pointer">Sign in instead</button></span></sc-if>
       </label>
-      <label style="display:flex;flex-direction:column;gap:6px">
-        <span style="font-size:13px;line-height:18px;color:var(--ink2)">Password</span>
-        <input type="password" value="{{ pw }}" onChange="{{ onPw }}" autoComplete="{{ pwAuto }}" style="{{ pwStyle }}">
-        <sc-if value="{{ pwHint }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--ink3)">At least 8 characters</span></sc-if>
-        <sc-if value="{{ shortErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--crit)">Use at least 8 characters.</span></sc-if>
-      </label>
+      <div style="position:relative">
+        <label style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;line-height:18px;color:var(--ink2)">Password</span>
+          <input type="password" value="{{ pw }}" onChange="{{ onPw }}" autoComplete="{{ pwAuto }}" style="{{ pwStyle }}">
+          <sc-if value="{{ pwHint }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--ink3)">At least 8 characters</span></sc-if>
+          <sc-if value="{{ shortErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--crit)">Use at least 8 characters.</span></sc-if>
+        </label>
+        <sc-if value="{{ showForgot }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ toForgot }}" style="position:absolute;top:0;right:0;padding:0;border:0;background:none;color:var(--ink2);font-size:13px;line-height:18px;cursor:pointer" style-hover="color:var(--ink);text-decoration:underline">Forgot password?</button></sc-if>
+      </div>
       <div style="display:flex;flex-direction:column;gap:8px;padding-top:8px">
         <sc-if value="{{ credErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--crit)">That email and password don’t match.</span></sc-if>
         <sc-if value="{{ notSignup }}" hint-placeholder-val="{{ true }}"><button type="submit" style="width:100%;height:40px;border-radius:8px;border:0;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Sign in</button></sc-if>
@@ -66,6 +69,150 @@
 
     <sc-if value="{{ notSignup }}" hint-placeholder-val="{{ true }}"><span style="font-size:13px;line-height:18px;color:var(--ink2)">New to Connexity? <button onClick="{{ toSignup }}" style="padding:0;border:0;background:none;color:var(--ink);font-size:13px;text-decoration:underline;cursor:pointer">Create an account</button></span></sc-if>
     <sc-if value="{{ isSignup }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Already have an account? <button onClick="{{ toSignin }}" style="padding:0;border:0;background:none;color:var(--ink);font-size:13px;text-decoration:underline;cursor:pointer">Sign in</button></span></sc-if>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isForgot }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Reset your password</h1>
+      <p style="margin:0;color:var(--ink2);text-wrap:pretty">Enter your email and we’ll send you a link.</p>
+    </div>
+    <form onSubmit="{{ onForgot }}" noValidate="{{ true }}" style="display:flex;flex-direction:column;gap:16px;margin:0">
+      <label style="display:flex;flex-direction:column;gap:6px">
+        <span style="font-size:13px;line-height:18px;color:var(--ink2)">Email</span>
+        <input type="email" value="{{ email }}" onChange="{{ onEmail }}" autoComplete="email" aria-invalid="{{ emailErr }}" style="{{ forgotEmailStyle }}">
+        <sc-if value="{{ emailErr }}" hint-placeholder-val="{{ false }}"><span role="alert" style="display:flex;align-items:flex-start;gap:6px;font-size:13px;line-height:18px;color:var(--crit)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg><span>Enter a full email address, like alex@example.com.</span></span></sc-if>
+      </label>
+      <div style="padding-top:8px">
+        <sc-if value="{{ notSending }}" hint-placeholder-val="{{ true }}"><button type="submit" style="width:100%;height:40px;border-radius:8px;border:0;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Send reset link</button></sc-if>
+        <sc-if value="{{ sending }}" hint-placeholder-val="{{ false }}"><button type="button" disabled="{{ true }}" aria-busy="true" style="width:100%;height:40px;border-radius:8px;border:0;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;opacity:.56;cursor:default">Sending…</button></sc-if>
+      </div>
+    </form>
+    <span style="font-size:13px;line-height:18px;color:var(--ink2)">Back to <button onClick="{{ backToSignin }}" style="padding:0;border:0;background:none;color:var(--ink);font-size:13px;font-weight:500;text-decoration:underline;cursor:pointer">Sign in</button></span>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isSent }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Check your email</h1>
+      <p style="margin:0;color:var(--ink2);text-wrap:pretty">If an account uses <strong style="font-weight:500;color:var(--ink)">{{ sentTo }}</strong>, a reset link is on its way. The link works once and expires in 1 hour.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;padding-top:8px">
+      <sc-if value="{{ rateErr }}" hint-placeholder-val="{{ false }}"><span role="alert" style="display:flex;align-items:flex-start;gap:6px;font-size:13px;line-height:18px;color:var(--crit)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg><span>Too many attempts. Try again later.</span></span></sc-if>
+      <sc-if value="{{ canResend }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onResend }}" style="width:100%;height:40px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">Send again</button></sc-if>
+      <sc-if value="{{ resendWait }}" hint-placeholder-val="{{ true }}"><button disabled="{{ true }}" style="width:100%;height:40px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--ink3);font-size:15px;cursor:default">Send again in {{ left }} s</button></sc-if>
+      <sc-if value="{{ resendBlocked }}" hint-placeholder-val="{{ false }}"><button disabled="{{ true }}" style="width:100%;height:40px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--ink3);font-size:15px;cursor:default">Send again</button></sc-if>
+    </div>
+    <span style="font-size:13px;line-height:18px;color:var(--ink2)">Back to <button onClick="{{ backToSignin }}" style="padding:0;border:0;background:none;color:var(--ink);font-size:13px;font-weight:500;text-decoration:underline;cursor:pointer">Sign in</button></span>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isNewpw }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Set a new password</h1>
+      <span style="color:var(--ink2)">{{ resetEmail }}</span>
+    </div>
+    <form onSubmit="{{ onSave }}" noValidate="{{ true }}" style="display:flex;flex-direction:column;gap:16px;margin:0">
+      <input type="email" value="{{ resetEmail }}" autoComplete="username" readOnly="{{ true }}" tabIndex="-1" aria-hidden="true" style="display:none">
+      <div style="position:relative;display:flex;flex-direction:column;gap:6px">
+        <label style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;line-height:18px;color:var(--ink2)">New password</span>
+          <span style="position:relative;display:flex">
+            <input type="{{ pwType }}" value="{{ pw }}" onChange="{{ onPw }}" autoComplete="new-password" aria-invalid="{{ newShort }}" style="{{ newPwStyle }}">
+          </span>
+        </label>
+        <button type="button" onClick="{{ togglePw }}" aria-label="{{ pwToggleLabel }}" title="{{ pwToggleLabel }}" style="position:absolute;right:0;top:24px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:8px;background:transparent;color:var(--ink2);cursor:pointer" style-hover="color:var(--ink)">
+          <sc-if value="{{ pwHidden }}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle></svg></sc-if>
+          <sc-if value="{{ showPw }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"></path><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"></path><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"></path><path d="m2 2 20 20"></path></svg></sc-if>
+        </button>
+        <sc-if value="{{ newHint }}" hint-placeholder-val="{{ true }}"><span style="font-size:13px;line-height:18px;color:var(--ink3)">At least 8 characters</span></sc-if>
+        <sc-if value="{{ newShort }}" hint-placeholder-val="{{ false }}"><span role="alert" style="display:flex;align-items:flex-start;gap:6px;font-size:13px;line-height:18px;color:var(--crit)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg><span>Use at least 8 characters.</span></span></sc-if>
+      </div>
+      <div style="padding-top:8px">
+        <sc-if value="{{ notSaving }}" hint-placeholder-val="{{ true }}"><button type="submit" style="width:100%;height:40px;border-radius:8px;border:0;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Save password</button></sc-if>
+        <sc-if value="{{ saving }}" hint-placeholder-val="{{ false }}"><button type="button" disabled="{{ true }}" aria-busy="true" style="width:100%;height:40px;border-radius:8px;border:0;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;opacity:.56;cursor:default">Saving…</button></sc-if>
+      </div>
+    </form>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isExpired }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">This link no longer works</h1>
+      <p style="margin:0;color:var(--ink2);text-wrap:pretty">Reset links work once and expire after 1 hour.</p>
+    </div>
+    <div style="padding-top:8px"><button onClick="{{ toForgot }}" style="width:100%;height:40px;border-radius:8px;border:0;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Send a new link</button></div>
+    <span style="font-size:13px;line-height:18px;color:var(--ink2)">Back to <button onClick="{{ backToSignin }}" style="padding:0;border:0;background:none;color:var(--ink);font-size:13px;font-weight:500;text-decoration:underline;cursor:pointer">Sign in</button></span>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isChanged }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Password changed</h1>
+      <p style="margin:0;color:var(--ink2);text-wrap:pretty">You’re signed out on your other devices. Your connected AI assistants keep working.</p>
+    </div>
+    <div style="padding-top:8px"><button onClick="{{ onContinue }}" style="width:100%;height:40px;border-radius:8px;border:0;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Continue to Connexity</button></div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isInvite }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <sc-if value="{{ invLive }}" hint-placeholder-val="{{ true }}"><h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Join Signal Voice</h1></sc-if>
+      <sc-if value="{{ invDead }}" hint-placeholder-val="{{ false }}"><h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">This invite no longer works</h1><p style="margin:0;color:var(--ink2)">Ask Alex for a new one.</p></sc-if>
+      <sc-if value="{{ invForm }}" hint-placeholder-val="{{ true }}"><span style="color:var(--ink2)">Alex Morgan invited sam@example.com</span></sc-if>
+      <sc-if value="{{ invIn }}" hint-placeholder-val="{{ false }}"><p style="margin:0;color:var(--ink2)">You’ll get access to 3 workspaces</p></sc-if>
+      <sc-if value="{{ invWrong }}" hint-placeholder-val="{{ false }}"><p style="margin:0;color:var(--ink2);text-wrap:pretty">This invite is for <strong style="font-weight:500;color:var(--ink)">sam@example.com</strong>. You’re signed in as <strong style="font-weight:500;color:var(--ink)">alex@example.com</strong>.</p></sc-if>
+    </div>
+
+    <sc-if value="{{ invForm }}" hint-placeholder-val="{{ true }}">
+    <button onClick="{{ onInviteJoin }}" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:40px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">
+      <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path></svg>
+      Continue with Google
+    </button>
+    <div style="display:flex;align-items:center;gap:12px;font-size:13px;color:var(--ink3)"><span style="flex:1;height:1px;background:var(--border)"></span>or<span style="flex:1;height:1px;background:var(--border)"></span></div>
+    <form onSubmit="{{ onInviteSubmit }}" noValidate="{{ true }}" style="display:flex;flex-direction:column;gap:16px;margin:0">
+      <sc-if value="{{ invNew }}" hint-placeholder-val="{{ true }}">
+      <label style="display:flex;flex-direction:column;gap:6px">
+        <span style="font-size:13px;line-height:18px;color:var(--ink2)">Name</span>
+        <input value="{{ name }}" onChange="{{ onName }}" autoComplete="name" style="height:40px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s1);color:var(--ink);font-size:15px;outline:none">
+      </label>
+      </sc-if>
+      <label style="display:flex;flex-direction:column;gap:6px">
+        <span style="font-size:13px;line-height:18px;color:var(--ink2)">Email</span>
+        <input type="email" value="sam@example.com" readOnly="{{ true }}" autoComplete="username" style="height:40px;padding:0 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--ink2);font-size:15px;outline:none">
+      </label>
+      <div style="position:relative">
+        <label style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;line-height:18px;color:var(--ink2)">Password</span>
+          <input type="password" value="{{ pw }}" onChange="{{ onPw }}" autoComplete="{{ invPwAuto }}" style="height:40px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s1);color:var(--ink);font-size:15px;outline:none">
+          <sc-if value="{{ invNew }}" hint-placeholder-val="{{ true }}"><span style="font-size:13px;line-height:18px;color:var(--ink3)">At least 8 characters</span></sc-if>
+        </label>
+        <sc-if value="{{ invHas }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ toForgot }}" style="position:absolute;top:0;right:0;padding:0;border:0;background:none;color:var(--ink2);font-size:13px;line-height:18px;cursor:pointer" style-hover="color:var(--ink);text-decoration:underline">Forgot password?</button></sc-if>
+      </div>
+      <div style="padding-top:8px">
+        <sc-if value="{{ invNew }}" hint-placeholder-val="{{ true }}"><button type="submit" style="width:100%;height:40px;border-radius:8px;border:0;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Create account and join</button></sc-if>
+        <sc-if value="{{ invHas }}" hint-placeholder-val="{{ false }}"><button type="submit" style="width:100%;height:40px;border-radius:8px;border:0;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Sign in</button></sc-if>
+      </div>
+    </form>
+    <sc-if value="{{ invNew }}" hint-placeholder-val="{{ true }}"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Already have an account? <button onClick="{{ toInvHas }}" style="padding:0;border:0;background:none;color:var(--ink);font-size:13px;text-decoration:underline;cursor:pointer">Sign in</button></span></sc-if>
+    <sc-if value="{{ invHas }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--ink2)">New to Connexity? <button onClick="{{ toInvNew }}" style="padding:0;border:0;background:none;color:var(--ink);font-size:13px;text-decoration:underline;cursor:pointer">Create an account</button></span></sc-if>
+    </sc-if>
+
+    <sc-if value="{{ invIn }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:8px;padding-top:8px">
+      <button onClick="{{ onInviteJoin }}" style="width:100%;height:40px;border-radius:8px;border:0;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Join</button>
+      <button onClick="{{ onInviteDecline }}" style="width:100%;height:40px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">Decline</button>
+    </div>
+    </sc-if>
+    <sc-if value="{{ invWrong }}" hint-placeholder-val="{{ false }}">
+    <div style="padding-top:8px"><button onClick="{{ toInvHas }}" style="width:100%;height:40px;border-radius:8px;border:0;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Sign in with another account</button></div>
+    </sc-if>
   </div>
   </sc-if>
 
@@ -88,24 +235,37 @@
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;screen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;signin&quot;,&quot;signup&quot;,&quot;connect&quot;],&quot;default&quot;:&quot;signin&quot;,&quot;tsType&quot;:&quot;'signin' | 'signup' | 'connect'&quot;},&quot;error&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;credentials&quot;,&quot;google&quot;,&quot;emailTaken&quot;,&quot;shortPassword&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;google&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;signedIn&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;assistant&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Claude&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;screen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;signin&quot;,&quot;signup&quot;,&quot;connect&quot;,&quot;forgot&quot;,&quot;sent&quot;,&quot;newpw&quot;,&quot;expired&quot;,&quot;changed&quot;,&quot;invite&quot;],&quot;default&quot;:&quot;signin&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;error&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;credentials&quot;,&quot;google&quot;,&quot;emailTaken&quot;,&quot;shortPassword&quot;,&quot;invalidEmail&quot;,&quot;rateLimited&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;invite&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;new&quot;,&quot;existing&quot;,&quot;signedIn&quot;,&quot;wrongEmail&quot;,&quot;expired&quot;],&quot;default&quot;:&quot;new&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;busy&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;canEmail&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;countdown&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:45,&quot;min&quot;:0,&quot;max&quot;:60,&quot;tsType&quot;:&quot;number&quot;},&quot;google&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;signedIn&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;assistant&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Claude&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
 class Component extends DCLogic {
   static THEMES = {
     dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--wash':'#26282b' },
     light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--wash':'#efeeea' }
   };
   static EMAIL = 'alex@example.com';
+  static WAIT = 45;
   static PRE = {
     credentials: { email:'alex@example.com', pw:'password1' },
     emailTaken: { name:'Alex Morgan', email:'alex@example.com', pw:'correct-horse' },
-    shortPassword: { name:'Alex Morgan', email:'alex@brightdental.com', pw:'abc12' }
+    shortPassword: { name:'Alex Morgan', email:'alex@brightdental.com', pw:'abc12' },
+    invalidEmail: { email:'alex@example' }
   };
   constructor(props) {
     super(props);
     const e = props.error && props.error !== 'none' ? props.error : null, p = Component.PRE[e] || {};
-    this.state = { screen: props.screen || 'signin', err: e, name: p.name || '', email: p.email || '', pw: p.pw || '', signedIn: !!props.signedIn, outcome: null };
+    const scr = props.screen || 'signin';
+    this.state = {
+      screen: scr, err: e, name: p.name || '', email: scr === 'forgot' && !e ? '' : (p.email || ''), pw: p.pw || '',
+      signedIn: !!props.signedIn, outcome: null, busy: !!props.busy, showPw: false,
+      sentTo: Component.EMAIL, left: scr === 'sent' && e !== 'rateLimited' ? (props.countdown ?? Component.WAIT) : 0, from: scr === 'connect' ? 'connect' : 'signin'
+    };
+    if (scr === 'forgot' && props.busy) this.state.email = Component.EMAIL;
+    if (scr === 'newpw' && e === 'shortPassword') this.state.pw = 'abc12';
+    if (scr === 'newpw' && props.busy) this.state.pw = 'correct-horse-7';
   }
+  componentDidMount() { this.tick = setInterval(() => { if (this.state.screen === 'sent' && this.state.left > 0) this.setState(s => ({ left: s.left - 1 })); }, 1000); }
+  componentWillUnmount() { clearInterval(this.tick); clearTimeout(this.wait); }
   go(url) { try { window.location.href = url; } catch (_) {} }
+  later(fn) { clearTimeout(this.wait); this.wait = setTimeout(fn, 900); }
   wsFrom(email) {
     const d = (email.split('@')[1] || '').split('.')[0] || 'My workspace';
     return d.split(/[-_]/).filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
@@ -113,8 +273,9 @@ class Component extends DCLogic {
   renderVals() {
     const C = Component, S = this.state, scr = S.screen;
     const connect = scr === 'connect', signup = scr === 'signup';
+    const formScreen = scr === 'signin' || signup || connect;
     const google = this.props.google !== false;
-    const inp = bad => ({ height:40, padding:'0 12px', borderRadius:8, border:`1px solid ${bad ? 'var(--crit)' : 'var(--bc)'}`, background:'var(--s1)', color:'var(--ink)', fontSize:15, outline:'none' });
+    const inp = (bad, padR) => ({ height:40, width:'100%', padding: padR ? '0 44px 0 12px' : '0 12px', borderRadius:8, border:`1px solid ${bad ? 'var(--crit)' : 'var(--bc)'}`, background:'var(--s1)', color:'var(--ink)', fontSize:15, outline:'none' });
     const field = k => e => this.setState({ [k]: e.target.value, err: null });
     const done = () => connect ? this.setState({ signedIn:true, outcome:null }) : this.go('Connexity Home.dc.html');
     const onSubmit = e => {
@@ -128,21 +289,58 @@ class Component extends DCLogic {
       if (S.err === 'credentials' || !S.email.trim() || !S.pw) return;
       done();
     };
-    const toScreen = (s, keep) => () => this.setState(st => ({ screen:s, err:null, pw:'', email: keep ? st.email : st.email, name: st.name }));
+    const onForgot = e => {
+      e.preventDefault();
+      if (S.busy) return;
+      const v = S.email.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return this.setState({ err:'invalidEmail' });
+      this.setState({ busy:true, err:null });
+      this.later(() => this.setState({ busy:false, screen:'sent', sentTo:v, left:C.WAIT }));
+    };
+    const onSave = e => {
+      e.preventDefault();
+      if (S.busy) return;
+      if (S.pw.length < 8) return this.setState({ err:'shortPassword' });
+      this.setState({ busy:true, err:null });
+      this.later(() => this.setState({ busy:false, screen:'changed', pw:'' }));
+    };
+    const toScreen = (s, keep) => () => this.setState(st => ({ screen:s, err:null, pw:'', busy:false, email: st.email, name: st.name }));
+    const sent = scr === 'sent', rate = sent && S.err === 'rateLimited';
     return {
-      rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
+      rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', minHeight:'100vh', padding:'0 16px', WebkitFontSmoothing:'antialiased' },
       assistant: this.props.assistant || 'Claude',
-      showForm: !(connect && S.signedIn), showConsent: connect && S.signedIn,
+      showForm: formScreen && !(connect && S.signedIn), showConsent: connect && S.signedIn,
       connect, isSignup: signup, notSignup: !signup, isSignin: !signup,
       hasGoogle: google,
       googleErr: google && S.err === 'google', credErr: S.err === 'credentials', takenErr: signup && S.err === 'emailTaken',
       shortErr: signup && S.err === 'shortPassword', pwHint: signup && S.err !== 'shortPassword',
+      showForgot: !signup && this.props.canEmail !== false,
       name: S.name, email: S.email, pw: S.pw, onName: field('name'), onEmail: field('email'), onPw: field('pw'),
       pwAuto: signup ? 'new-password' : 'current-password',
       emailStyle: inp(signup && S.err === 'emailTaken'), pwStyle: inp(signup && S.err === 'shortPassword'),
       onSubmit,
       onGoogle: () => { if (signup) this.go('Connexity Onboarding.dc.html?ws=' + encodeURIComponent(this.wsFrom(S.email.trim() || C.EMAIL))); else done(); },
       toSignup: toScreen('signup'), toSignin: toScreen(connect ? 'connect' : 'signin'), toSigninKeep: toScreen(this.props.screen === 'connect' ? 'connect' : 'signin', true),
+      toForgot: () => this.setState({ screen:'forgot', err:null, pw:'', busy:false }),
+      backToSignin: () => this.setState({ screen:S.from, err:null, pw:'', busy:false, signedIn:false }),
+      isForgot: scr === 'forgot', isSent: sent, isNewpw: scr === 'newpw', isExpired: scr === 'expired', isChanged: scr === 'changed',
+      emailErr: scr === 'forgot' && S.err === 'invalidEmail', forgotEmailStyle: inp(scr === 'forgot' && S.err === 'invalidEmail'),
+      sending: S.busy && scr === 'forgot', notSending: !S.busy, onForgot,
+      sentTo: S.sentTo, left: S.left, rateErr: rate,
+      canResend: sent && !rate && S.left <= 0, resendWait: sent && !rate && S.left > 0, resendBlocked: rate,
+      onResend: () => this.setState({ left:C.WAIT }),
+      resetEmail: C.EMAIL, pwType: S.showPw ? 'text' : 'password', showPw: S.showPw, pwHidden: !S.showPw,
+      pwToggleLabel: S.showPw ? 'Hide password' : 'Show password', togglePw: () => this.setState(s => ({ showPw: !s.showPw })),
+      newShort: scr === 'newpw' && S.err === 'shortPassword', newHint: !(scr === 'newpw' && S.err === 'shortPassword'),
+      newPwStyle: inp(scr === 'newpw' && S.err === 'shortPassword', true),
+      saving: S.busy && scr === 'newpw', notSaving: !S.busy, onSave,
+      onContinue: () => S.from === 'connect' ? this.setState({ screen:'connect', signedIn:true, outcome:null }) : this.go('Connexity Home.dc.html'),
+      ...(() => { const iv = S.inv || this.props.invite || 'new', on = scr === 'invite';
+        return { isInvite: on, invLive: iv !== 'expired', invDead: iv === 'expired', invForm: iv === 'new' || iv === 'existing', invNew: iv === 'new', invHas: iv === 'existing',
+          invIn: iv === 'signedIn', invWrong: iv === 'wrongEmail', invPwAuto: iv === 'new' ? 'new-password' : 'current-password',
+          toInvHas: () => this.setState({ inv:'existing', pw:'' }), toInvNew: () => this.setState({ inv:'new', pw:'' }),
+          onInviteSubmit: e => { e.preventDefault(); if (iv === 'new' && (!S.name.trim() || S.pw.length < 8)) return; if (iv === 'existing' && !S.pw) return; this.go('Connexity Home.dc.html'); },
+          onInviteJoin: () => this.go('Connexity Home.dc.html'), onInviteDecline: () => this.go('Connexity Home.dc.html') }; })(),
       pending: !S.outcome, allowed: S.outcome === 'allowed', cancelled: S.outcome === 'cancelled',
       allow: () => this.setState({ outcome:'allowed' }), cancel: () => this.setState({ outcome:'cancelled' }),
       switchAccount: () => this.setState({ signedIn:false, outcome:null, email:'', pw:'', err:null })

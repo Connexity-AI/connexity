@@ -3276,9 +3276,15 @@ export const GoogleSignInStatusSchema = {
       type: 'boolean',
       title: 'Enabled',
     },
+    password_reset: {
+      type: 'boolean',
+      title: 'Password Reset',
+      description:
+        'Whether the deployment can send the reset email; without it the sign-in page shows no "Forgot password?"',
+    },
   },
   type: 'object',
-  required: ['enabled'],
+  required: ['enabled', 'password_reset'],
   title: 'GoogleSignInStatus',
 } as const;
 
@@ -8526,6 +8532,48 @@ export const OnboardingStepPublicSchema = {
   type: 'object',
   required: ['key', 'title', 'who', 'done_when', 'instructions'],
   title: 'OnboardingStepPublic',
+} as const;
+
+export const PasswordResetAskSchema = {
+  properties: {
+    email: {
+      type: 'string',
+      maxLength: 255,
+      format: 'email',
+      title: 'Email',
+    },
+  },
+  type: 'object',
+  required: ['email'],
+  title: 'PasswordResetAsk',
+} as const;
+
+export const PasswordResetLinkSchema = {
+  properties: {
+    email: {
+      type: 'string',
+      format: 'email',
+      title: 'Email',
+    },
+  },
+  type: 'object',
+  required: ['email'],
+  title: 'PasswordResetLink',
+  description: 'What the "Set a new password" page shows for a link that still works.',
+} as const;
+
+export const PasswordResetNewSchema = {
+  properties: {
+    new_password: {
+      type: 'string',
+      maxLength: 40,
+      minLength: 8,
+      title: 'New Password',
+    },
+  },
+  type: 'object',
+  required: ['new_password'],
+  title: 'PasswordResetNew',
 } as const;
 
 export const PersonalAccessTokenCreatedSchema = {

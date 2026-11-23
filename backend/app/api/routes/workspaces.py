@@ -54,6 +54,8 @@ def open_workspace(
         raise HTTPException(status_code=404, detail="Workspace not found")
     user = crud.open_workspace(session=session, user=current_user, workspace=workspace)
     access_token, expires = security.create_session_token(
-        user_id=user.id, company_id=user.company_id
+        user_id=user.id,
+        company_id=user.company_id,
+        session_version=user.session_version,
     )
     return Token(access_token=access_token, expires=expires)

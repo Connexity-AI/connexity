@@ -34,7 +34,9 @@ def _person(db: Session) -> User:
 
 def _web(user: User) -> dict[str, str]:
     token, _ = security.create_session_token(
-        user_id=user.id, company_id=user.company_id
+        user_id=user.id,
+        company_id=user.company_id,
+        session_version=user.session_version,
     )
     return {settings.AUTH_COOKIE: token}
 

@@ -79,6 +79,7 @@ def test_send_email_builds_tls_and_auth_smtp_options(
         smtp={
             "host": "smtp.example.com",
             "port": 587,
+            "timeout": 10,
             "tls": True,
             "user": "smtp-user",
             "password": "smtp-password",
@@ -108,7 +109,7 @@ def test_send_email_builds_ssl_smtp_options_without_auth(
 
     message.send.assert_called_once_with(
         to="person@example.com",
-        smtp={"host": "smtp.example.com", "port": 465, "ssl": True},
+        smtp={"host": "smtp.example.com", "port": 465, "timeout": 10, "ssl": True},
     )
 
 
