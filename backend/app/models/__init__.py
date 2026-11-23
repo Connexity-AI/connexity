@@ -145,6 +145,12 @@ from app.models.oauth import (  # noqa: F401
     OAuthClientRegistrationResponse,
     OAuthRefreshToken,
 )
+from app.models.password_reset import (  # noqa: F401
+    PasswordResetAsk,
+    PasswordResetLink,
+    PasswordResetNew,
+    PasswordResetRequest,
+)
 
 # ── Personal access tokens ─────────────────────────────────────────
 from app.models.personal_access_token import (  # noqa: F401

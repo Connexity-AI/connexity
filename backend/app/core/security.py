@@ -32,16 +32,20 @@ def create_access_token(
 
 
 def create_session_token(
-    *, user_id: uuid.UUID, company_id: uuid.UUID
+    *, user_id: uuid.UUID, company_id: uuid.UUID, session_version: int
 ) -> tuple[str, int]:
     """The web session token (the auth cookie) and when it expires, as a Unix time.
 
     It names the workspace the person had open when it was issued (`cid`); requests are
-    accepted while the person is still a member of it.
+    accepted while the person is still a member of it. It also carries the person's
+    session version (`sv`); a password reset raises the version, which ends the tokens
+    issued before it.
     """
     expires_delta = timedelta(hours=settings.ACCESS_TOKEN_EXPIRE_HOURS)
     token = create_access_token(
-        user_id, expires_delta, additional_claims={"cid": str(company_id)}
+        user_id,
+        expires_delta,
+        additional_claims={"cid": str(company_id), "sv": session_version},
     )
     return token, int((datetime.now(UTC) + expires_delta).timestamp())
 

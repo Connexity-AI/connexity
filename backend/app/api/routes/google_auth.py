@@ -14,7 +14,7 @@ from urllib.parse import urlencode
 import jwt
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app import crud
 from app.api.deps import SessionDep
@@ -33,12 +33,20 @@ STATE_AUDIENCE = "connexity:google-sign-in"
 
 class GoogleSignInStatus(BaseModel):
     enabled: bool
+    password_reset: bool = Field(
+        description="Whether the deployment can send the reset email; without it "
+        'the sign-in page shows no "Forgot password?"'
+    )
 
 
 @router.get("", response_model=GoogleSignInStatus)
 def google_status() -> GoogleSignInStatus:
-    """Whether sign-in with Google is offered (both Google settings are present)."""
-    return GoogleSignInStatus(enabled=settings.google_enabled)
+    """What the sign-in page offers: Google (both Google settings are present) and
+    password reset (the deployment can send email)."""
+    return GoogleSignInStatus(
+        enabled=settings.google_enabled,
+        password_reset=settings.password_reset_enabled,
+    )
 
 
 @router.get("/start", response_class=RedirectResponse, status_code=302)
@@ -105,7 +113,9 @@ async def callback(
         return _back_to_sign_in()
 
     access_token, expires = security.create_session_token(
-        user_id=user.id, company_id=user.company_id
+        user_id=user.id,
+        company_id=user.company_id,
+        session_version=user.session_version,
     )
     query = urlencode({"access_token": access_token, "expires": expires})
     response = RedirectResponse(

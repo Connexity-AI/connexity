@@ -61,6 +61,9 @@ class User(UserBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     hashed_password: str | None = None
     company_id: uuid.UUID = Field(foreign_key="company.id", index=True)
+    # Written into every web session token and compared on each request. A password
+    # reset adds one, which ends the sessions issued before it.
+    session_version: int = Field(default=0, sa_column_kwargs={"server_default": "0"})
 
 
 # Properties to return via API, id is always required
@@ -85,3 +88,6 @@ class Token(SQLModel):
 class TokenPayload(SQLModel):
     sub: str | None = None
     cid: str | None = None
+    # The person's session version when the token was issued; tokens from before the
+    # claim existed count as 0.
+    sv: int = 0

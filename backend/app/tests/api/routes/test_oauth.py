@@ -448,6 +448,26 @@ def test_allow_without_a_session_shows_sign_in(client: TestClient, monkeypatch) 
     assert "code=" not in response.headers.get("location", "")
 
 
+def test_a_session_from_before_a_password_reset_cannot_allow(
+    client: TestClient, db: Session, monkeypatch
+) -> None:
+    fields, email = _signed_up(client, monkeypatch)
+    user = crud.find_user_by_email_ignoring_case(session=db, email=email)
+    assert user is not None
+    db.refresh(user)
+    user.session_version += 1
+    db.add(user)
+    db.commit()
+
+    response = client.post(
+        "/oauth/authorize/allow", data=fields, follow_redirects=False
+    )
+
+    assert response.status_code == 200
+    assert "Sign in" in response.text
+    assert "code=" not in response.headers.get("location", "")
+
+
 def test_not_you_signs_out_and_shows_sign_in(client: TestClient, monkeypatch) -> None:
     fields, _ = _signed_up(client, monkeypatch)
 

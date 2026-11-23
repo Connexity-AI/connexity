@@ -18,8 +18,9 @@ People come to the web app for a quick glance, and to approve what is theirs to 
 An agency has one **workspace** per client.
 
 A person signs in with **email and password** or with **Google**. Nothing else: no
-other providers, no magic links. There is no password reset or email verification yet,
-so do not show "Forgot password".
+other providers, no magic links. There is no email verification yet. Password reset was
+added on 2026-11-23 by [`17-password-reset.md`](./17-password-reset.md), which replaces
+the earlier rule "do not show Forgot password".
 
 ## Rules
 

@@ -103,6 +103,9 @@ def _get_cookie_user(request: Request, session: SessionDep) -> User | None:
     user = session.get(User, user_id)
     if user is None or not user.is_active:
         return None
+    # A password reset ends the sessions issued before it, here as on the web app.
+    if token_data.sv != user.session_version:
+        return None
     return user
 
 
@@ -308,7 +311,9 @@ def _consent(client: OAuthClient, params: AuthorizeParams, user: User) -> HTMLRe
 def _with_session(response: HTMLResponse, user: User) -> HTMLResponse:
     """Sign the person in on this origin, so the approval step knows them."""
     auth_token, _ = security.create_session_token(
-        user_id=user.id, company_id=user.company_id
+        user_id=user.id,
+        company_id=user.company_id,
+        session_version=user.session_version,
     )
     response.set_cookie(
         settings.AUTH_COOKIE,

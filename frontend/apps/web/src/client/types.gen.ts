@@ -2260,6 +2260,12 @@ export type GoogleSignInStatus = {
    * Enabled
    */
   enabled: boolean;
+  /**
+   * Password Reset
+   *
+   * Whether the deployment can send the reset email; without it the sign-in page shows no "Forgot password?"
+   */
+  password_reset: boolean;
 };
 
 /**
@@ -5788,6 +5794,38 @@ export type OnboardingStepPublic = {
    * What the assistant does, in order. A tool is written `like_this`; a guide as [[name]], for connexity://guides/name.
    */
   instructions: Array<string>;
+};
+
+/**
+ * PasswordResetAsk
+ */
+export type PasswordResetAsk = {
+  /**
+   * Email
+   */
+  email: string;
+};
+
+/**
+ * PasswordResetLink
+ *
+ * What the "Set a new password" page shows for a link that still works.
+ */
+export type PasswordResetLink = {
+  /**
+   * Email
+   */
+  email: string;
+};
+
+/**
+ * PasswordResetNew
+ */
+export type PasswordResetNew = {
+  /**
+   * New Password
+   */
+  new_password: string;
 };
 
 /**
@@ -9842,6 +9880,166 @@ export type AuthCallbackErrors = {
 };
 
 export type AuthCallbackError = AuthCallbackErrors[keyof AuthCallbackErrors];
+
+export type PasswordResetAskForResetLinkData = {
+  body: PasswordResetAsk;
+  path?: never;
+  query?: never;
+  url: '/api/v1/password-reset';
+};
+
+export type PasswordResetAskForResetLinkErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PasswordResetAskForResetLinkError =
+  PasswordResetAskForResetLinkErrors[keyof PasswordResetAskForResetLinkErrors];
+
+export type PasswordResetAskForResetLinkResponses = {
+  /**
+   * Successful Response
+   */
+  202: unknown;
+};
+
+export type PasswordResetLookAtResetLinkData = {
+  body?: never;
+  path: {
+    /**
+     * Token
+     */
+    token: string;
+  };
+  query?: never;
+  url: '/api/v1/password-reset/{token}';
+};
+
+export type PasswordResetLookAtResetLinkErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PasswordResetLookAtResetLinkError =
+  PasswordResetLookAtResetLinkErrors[keyof PasswordResetLookAtResetLinkErrors];
+
+export type PasswordResetLookAtResetLinkResponses = {
+  /**
+   * Successful Response
+   */
+  200: PasswordResetLink;
+};
+
+export type PasswordResetLookAtResetLinkResponse =
+  PasswordResetLookAtResetLinkResponses[keyof PasswordResetLookAtResetLinkResponses];
+
+export type PasswordResetSetNewPasswordData = {
+  body: PasswordResetNew;
+  path: {
+    /**
+     * Token
+     */
+    token: string;
+  };
+  query?: never;
+  url: '/api/v1/password-reset/{token}';
+};
+
+export type PasswordResetSetNewPasswordErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PasswordResetSetNewPasswordError =
+  PasswordResetSetNewPasswordErrors[keyof PasswordResetSetNewPasswordErrors];
+
+export type PasswordResetSetNewPasswordResponses = {
+  /**
+   * Successful Response
+   */
+  200: Token;
+};
+
+export type PasswordResetSetNewPasswordResponse =
+  PasswordResetSetNewPasswordResponses[keyof PasswordResetSetNewPasswordResponses];
 
 export type UsersRegisterUserData = {
   body: UserRegister;

@@ -146,9 +146,7 @@ class Settings(BaseSettings):
     SMTP_USER: str | None = None
     SMTP_PASSWORD: str | None = None
     EMAILS_FROM_EMAIL: EmailStr | None = None
-    EMAILS_FROM_NAME: EmailStr | None = None
-
-    EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 48
+    EMAILS_FROM_NAME: str | None = None
 
     # LLM — shared across generator, judge, simulator, etc.
     OPENAI_API_KEY: str | None = None
@@ -259,6 +257,12 @@ class Settings(BaseSettings):
     @property
     def emails_enabled(self) -> bool:
         return bool(self.SMTP_HOST and self.EMAILS_FROM_EMAIL)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def password_reset_enabled(self) -> bool:
+        """A reset needs an email sent and a link back to the web app."""
+        return bool(self.emails_enabled and self.public_site_url)
 
     @computed_field  # type: ignore[prop-decorator]
     @property

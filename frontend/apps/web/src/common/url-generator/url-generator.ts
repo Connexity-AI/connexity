@@ -91,6 +91,10 @@ export class UrlGenerator {
     return createTypedLink(route, emptyParser, options)(values);
   }
 
+  static forgotPassword() {
+    return '/forgot-password/' as Route;
+  }
+
   // ── API ──
 
   static apiClientProxy() {

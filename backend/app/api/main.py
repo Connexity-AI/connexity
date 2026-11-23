@@ -20,6 +20,7 @@ from app.api.routes import (
     mcp,
     oauth,
     onboarding,
+    password_reset,
     personal_access_tokens,
     readiness,
     spec,
@@ -40,6 +41,7 @@ ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
 api_router = APIRouter(responses=ERROR_RESPONSES)
 api_router.include_router(login.router)
 api_router.include_router(google_auth.router)
+api_router.include_router(password_reset.router)
 api_router.include_router(users.router)
 api_router.include_router(workspaces.router)
 api_router.include_router(readiness.router)

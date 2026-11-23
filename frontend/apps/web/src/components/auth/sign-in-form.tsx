@@ -14,7 +14,12 @@ import { isSuccessApiResult } from '@/utils/api';
 
 import type { FC, FormEvent } from 'react';
 
-export const SignInForm: FC = () => {
+interface Props {
+  /** The deployment can send the reset email; without it there is no link. */
+  canReset: boolean;
+}
+
+export const SignInForm: FC<Props> = ({ canReset }) => {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -48,6 +53,16 @@ export const SignInForm: FC = () => {
           label="Password"
           type="password"
           autoComplete="current-password"
+          labelAction={
+            canReset && (
+              <Link
+                href={UrlGenerator.forgotPassword()}
+                className="text-label text-ink-secondary no-underline hover:text-ink hover:underline"
+              >
+                Forgot password?
+              </Link>
+            )
+          }
           value={password}
           onChange={(e) => {
             setPassword(e.target.value);
