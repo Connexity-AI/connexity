@@ -17,6 +17,7 @@ from app.core.config import settings
 from app.crud.test_run import fail_stale_runs
 from app.services.call_pull import PullRun, run_pull
 from app.services.feedback import post_unsent
+from app.services.provider_cost import read_provider_costs
 
 logger = logging.getLogger(__name__)
 
@@ -77,4 +78,6 @@ async def pull_calls(session: SessionDep) -> PullRun:
     # And marks failed the test runs whose server stopped, so none reads "running"
     # for good.
     fail_stale_runs(session=session)
+    # And, a few times a day, reads what Anthropic billed for the last days.
+    await read_provider_costs(session=session)
     return run

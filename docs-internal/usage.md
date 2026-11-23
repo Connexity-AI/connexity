@@ -59,8 +59,7 @@ worked out from:
 The provider answers each request with token counts, never dollars, so the cost is
 tokens times a price list (LiteLLM's, and `_PRICES` in `app/services/checks/judge.py`
 for models it cannot price). The only proof it is right is the provider's own cost
-report for the whole account; comparing against it daily is planned as a second pull
-request.
+report for the whole account, which is stored beside it: see "Billed beside recorded".
 
 Two limits of these columns:
 
@@ -75,6 +74,47 @@ usage record is logged and never stops the call being stored.
 
 No workspace route and no MCP tool returns these columns. They are read from the
 database.
+
+## Billed beside recorded
+
+`provider_cost_day` has one row per day (UTC) and model: what Anthropic billed and what
+Connexity recorded, each as dollars and tokens in, out, cache read and cache write
+(`plans/2026-11-23-anthropic-cost-comparison.md`; code in
+`app/services/provider_cost.py`).
+
+- **Billed** comes from Anthropic's cost report (dollars; the report answers in cents)
+  and usage report (tokens), for the whole organisation, read with
+  `ANTHROPIC_ADMIN_KEY`. Without the key nothing is read.
+- **Recorded** is the sum of every workspace's `usage_record` rows of that day whose
+  model is one of Anthropic's (its name starts with `claude`).
+- **When:** the scheduled call pull reads it, at most once every six hours. Each read
+  covers today and the three days before, replacing their rows, because the report
+  runs some hours behind; older days are final.
+- **Nothing is judged.** There is no tolerance, no flag and no warning (Decided,
+  Dmytro 2026-11-23). Reading a row: the same tokens with different dollars is a wrong
+  price; more billed tokens than recorded is requests that were never recorded.
+- **A failed read** (timeout, refusal, an answer in another shape) is logged and
+  leaves the table as it was; the next due read tries again.
+
+What the numbers cannot say:
+
+- **Local development is billed too.** One key serves production and developers'
+  machines (Decided, Dmytro 2026-11-23). A run from a developer's machine is recorded
+  in that machine's database only, so that day shows more billed than recorded.
+- **Other providers are not compared:** the classifier behind model checks on real
+  calls has no report read here.
+- **Billed input tokens leave out tokens read from a cache**, which have their own
+  column; no call uses a cache today.
+- **Days before 21 Nov 2026** hold the simulated caller's tokens only on the recorded
+  side, and no model name, so they do not line up.
+
+To read it:
+
+```sql
+SELECT day, model, billed_usd, recorded_usd, billed_input_tokens,
+       recorded_input_tokens, billed_output_tokens, recorded_output_tokens
+FROM provider_cost_day ORDER BY day DESC;
+```
 
 ## Reading
 

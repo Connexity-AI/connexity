@@ -153,6 +153,7 @@ from app.models.personal_access_token import (  # noqa: F401
     PersonalAccessTokenPublic,
     PersonalAccessTokensPublic,
 )
+from app.models.provider_cost import ProviderCostDay  # noqa: F401
 from app.models.readiness import (  # noqa: F401
     ReadinessPublic,
     ReadinessStep,

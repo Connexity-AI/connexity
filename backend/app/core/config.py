@@ -153,6 +153,9 @@ class Settings(BaseSettings):
     # LLM — shared across generator, judge, simulator, etc.
     OPENAI_API_KEY: str | None = None
     ANTHROPIC_API_KEY: str | None = None
+    # An Anthropic Admin API key: reads the organisation's cost and usage reports,
+    # to compare with the cost Connexity recorded. Unset, nothing is read.
+    ANTHROPIC_ADMIN_KEY: str | None = None
     LLM_DEFAULT_MODEL: str = Field(
         default="gpt-4.1",
         description="Provider-local default when LLM_DEFAULT_MODEL env is unset",
