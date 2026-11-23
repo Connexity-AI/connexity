@@ -4,7 +4,9 @@ from typing import Any
 from sqlmodel import Session, col, func, select
 
 from app.core.security import get_password_hash, verify_password
+from app.crud.agency import new_agency
 from app.models import User, UserCreate, UserUpdate
+from app.models.agency import AgencyMember, AgencyRole
 from app.models.company import Company, workspace_name_from_email
 from app.models.user import AuthProvider
 from app.models.workspace_member import WorkspaceMember
@@ -16,14 +18,18 @@ def create_user(
     user_create: UserCreate,
     company_id: uuid.UUID | None = None,
 ) -> User:
-    """Create a user and, when no company_id is given, a fresh Company for them.
+    """Create a user and, when no company_id is given, their own agency and first
+    workspace, with them as the agency's Admin.
 
-    Multi-tenancy: every signup gets its own private Company. Pass an explicit
-    ``company_id`` only when adding a user to an existing company (e.g. from a
-    manual admin script).
+    Pass an explicit ``company_id`` only when adding a user to an existing workspace
+    (e.g. from a manual admin script); they join its agency as a Member who reaches
+    that workspace.
     """
+    agency_id: uuid.UUID | None = None
     if company_id is None:
-        company_id = _create_first_workspace(session=session, email=user_create.email)
+        company_id, agency_id = _create_first_workspace(
+            session=session, email=user_create.email
+        )
     db_obj = User.model_validate(
         user_create,
         update={
@@ -33,16 +39,16 @@ def create_user(
     )
     session.add(db_obj)
     session.flush()
-    session.add(WorkspaceMember(user_id=db_obj.id, company_id=company_id))
+    _join(session=session, user=db_obj, company_id=company_id, own_agency=agency_id)
     session.commit()
     session.refresh(db_obj)
     return db_obj
 
 
 def create_google_user(*, session: Session, email: str, full_name: str | None) -> User:
-    """An account made by signing in with Google: no password, its first workspace
-    named from the email domain."""
-    company_id = _create_first_workspace(session=session, email=email)
+    """An account made by signing in with Google: no password, its own agency and a
+    first workspace, both named from the email domain."""
+    company_id, agency_id = _create_first_workspace(session=session, email=email)
     db_obj = User(
         email=email,
         full_name=full_name,
@@ -52,18 +58,49 @@ def create_google_user(*, session: Session, email: str, full_name: str | None) -
     )
     session.add(db_obj)
     session.flush()
-    session.add(WorkspaceMember(user_id=db_obj.id, company_id=company_id))
+    _join(session=session, user=db_obj, company_id=company_id, own_agency=agency_id)
     session.commit()
     session.refresh(db_obj)
     return db_obj
 
 
-def _create_first_workspace(*, session: Session, email: str) -> uuid.UUID:
-    """A new person's first workspace."""
-    company = Company(name=workspace_name_from_email(email))
+def _create_first_workspace(
+    *, session: Session, email: str
+) -> tuple[uuid.UUID, uuid.UUID]:
+    """A new person's agency and first workspace, as (workspace, agency)."""
+    agency = new_agency(session=session, email=email)
+    company = Company(name=workspace_name_from_email(email), agency_id=agency.id)
     session.add(company)
     session.flush()
-    return company.id
+    return company.id, agency.id
+
+
+def _join(
+    *,
+    session: Session,
+    user: User,
+    company_id: uuid.UUID,
+    own_agency: uuid.UUID | None,
+) -> None:
+    """Put a new person in their workspace and its agency: Admin of an agency made
+    for them, a Member with that one workspace otherwise."""
+    session.add(WorkspaceMember(user_id=user.id, company_id=company_id))
+    if own_agency is not None:
+        session.add(
+            AgencyMember(agency_id=own_agency, user_id=user.id, role=AgencyRole.admin)
+        )
+        return
+    company = session.get(Company, company_id)
+    if company is None:
+        return
+    session.add(
+        AgencyMember(
+            agency_id=company.agency_id,
+            user_id=user.id,
+            role=AgencyRole.member,
+            all_workspaces=False,
+        )
+    )
 
 
 def update_user(*, session: Session, db_user: User, user_in: UserUpdate) -> Any:

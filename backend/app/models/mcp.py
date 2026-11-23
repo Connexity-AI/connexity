@@ -13,6 +13,7 @@ from typing import Annotated, Any, Generic, Literal, TypeVar
 
 from pydantic import BaseModel, Field, JsonValue, StringConstraints
 
+from app.models.agency import AgencyRole
 from app.models.agent_list import AgentType
 from app.models.agent_page import AgentPagePublic
 from app.models.call_list import CallListItemPublic, CallTilesPublic
@@ -80,9 +81,26 @@ class McpErrorDetail(BaseModel):
     guide: str = GUIDE_GETTING_STARTED
 
 
+class McpAgencyRef(BaseModel):
+    id: uuid.UUID
+    name: str
+
+
 class McpWorkspace(BaseModel):
     id: uuid.UUID
     name: str
+    agency: McpAgencyRef = Field(
+        description="The agency the workspace belongs to; one agency has a workspace "
+        "per client"
+    )
+    role: AgencyRole = Field(
+        description="The person's role in that agency: an admin manages people and "
+        "billing and creates workspaces; a member works in their workspaces"
+    )
+    can_approve: bool = Field(
+        description="Whether the person may make the critical decisions in this "
+        "workspace"
+    )
     score: int | None = Field(
         default=None,
         description="0 to 100 over the last 30 days; none before onboarding is "

@@ -20,6 +20,12 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["login"])
 
+# A person removed from every agency they were in still has an account.
+NO_WORKSPACE = (
+    "You no longer have access to any workspace. Ask an Admin of your agency to add "
+    "you again."
+)
+
 
 @router.post("/login/access-token")
 def login_access_token(
@@ -35,6 +41,8 @@ def login_access_token(
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+    if not crud.has_a_workspace(session=session, user=user):
+        raise HTTPException(status_code=403, detail=NO_WORKSPACE)
 
     access_token, expires = security.create_session_token(
         user_id=user.id,

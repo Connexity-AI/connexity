@@ -5,6 +5,162 @@ export type ClientOptions = {
 };
 
 /**
+ * AgencyDetail
+ */
+export type AgencyDetail = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * The signed-in person's role in it
+   */
+  role: AgencyRole;
+  /**
+   * All Workspaces
+   */
+  all_workspaces: boolean;
+  /**
+   * Can Approve
+   */
+  can_approve: boolean;
+  /**
+   * Workspaces
+   */
+  workspaces: Array<AgencyWorkspace>;
+  /**
+   * Members
+   */
+  members: Array<AgencyMemberPublic>;
+};
+
+/**
+ * AgencyMemberPublic
+ */
+export type AgencyMemberPublic = {
+  /**
+   * User Id
+   */
+  user_id: string;
+  /**
+   * Email
+   */
+  email: string;
+  /**
+   * Full Name
+   */
+  full_name: string | null;
+  role: AgencyRole;
+  /**
+   * All Workspaces
+   */
+  all_workspaces: boolean;
+  /**
+   * Workspace Ids
+   *
+   * The workspaces the person reaches; every one of the agency's when all_workspaces is on
+   */
+  workspace_ids: Array<string>;
+  /**
+   * Can Approve
+   */
+  can_approve: boolean;
+  /**
+   * Is You
+   */
+  is_you: boolean;
+};
+
+/**
+ * AgencyMemberUpdate
+ *
+ * Only the fields sent are changed.
+ */
+export type AgencyMemberUpdate = {
+  role?: AgencyRole | null;
+  /**
+   * All Workspaces
+   */
+  all_workspaces?: boolean | null;
+  /**
+   * Workspace Ids
+   *
+   * The chosen workspaces, when all_workspaces is off; replaces the person's earlier choice
+   */
+  workspace_ids?: Array<string> | null;
+  /**
+   * Can Approve
+   */
+  can_approve?: boolean | null;
+};
+
+/**
+ * AgencyPublic
+ *
+ * An agency as the signed-in person sees it.
+ */
+export type AgencyPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * The signed-in person's role in it
+   */
+  role: AgencyRole;
+  /**
+   * All Workspaces
+   */
+  all_workspaces: boolean;
+  /**
+   * Can Approve
+   */
+  can_approve: boolean;
+};
+
+/**
+ * AgencyRole
+ */
+export const AgencyRole = { ADMIN: 'admin', MEMBER: 'member' } as const;
+
+/**
+ * AgencyRole
+ */
+export type AgencyRole = (typeof AgencyRole)[keyof typeof AgencyRole];
+
+/**
+ * AgencyUpdate
+ */
+export type AgencyUpdate = {
+  /**
+   * Name
+   */
+  name: string;
+};
+
+/**
+ * AgencyWorkspace
+ */
+export type AgencyWorkspace = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+};
+
+/**
  * AgentCheckPublic
  */
 export type AgentCheckPublic = {
@@ -3220,6 +3376,20 @@ export type McpAddedAgents = {
 };
 
 /**
+ * McpAgencyRef
+ */
+export type McpAgencyRef = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+};
+
+/**
  * McpAgent
  */
 export type McpAgent = {
@@ -5621,6 +5791,20 @@ export type McpWorkspace = {
    * Name
    */
   name: string;
+  /**
+   * The agency the workspace belongs to; one agency has a workspace per client
+   */
+  agency: McpAgencyRef;
+  /**
+   * The person's role in that agency: an admin manages people and billing and creates workspaces; a member works in their workspaces
+   */
+  role: AgencyRole;
+  /**
+   * Can Approve
+   *
+   * Whether the person may make the critical decisions in this workspace
+   */
+  can_approve: boolean;
   /**
    * Score
    *
@@ -9147,6 +9331,12 @@ export type WorkspaceCreate = {
    * Name
    */
   name: string;
+  /**
+   * Agency Id
+   *
+   * The agency to create the workspace in. Needed only when the person is an Admin of more than one agency.
+   */
+  agency_id?: string | null;
 };
 
 /**
@@ -9165,6 +9355,14 @@ export type WorkspacePublic = {
    * Is Open
    */
   is_open: boolean;
+  /**
+   * Agency Id
+   */
+  agency_id: string;
+  /**
+   * Agency Name
+   */
+  agency_name: string;
 };
 
 /**
@@ -9738,6 +9936,290 @@ export type LoginLogoutResponses = {
    */
   200: unknown;
 };
+
+export type AgenciesListAgenciesData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/agencies/';
+};
+
+export type AgenciesListAgenciesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgenciesListAgenciesError =
+  AgenciesListAgenciesErrors[keyof AgenciesListAgenciesErrors];
+
+export type AgenciesListAgenciesResponses = {
+  /**
+   * Response Agencies-List Agencies
+   *
+   * Successful Response
+   */
+  200: Array<AgencyPublic>;
+};
+
+export type AgenciesListAgenciesResponse =
+  AgenciesListAgenciesResponses[keyof AgenciesListAgenciesResponses];
+
+export type AgenciesReadAgencyData = {
+  body?: never;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agencies/{agency_id}';
+};
+
+export type AgenciesReadAgencyErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgenciesReadAgencyError = AgenciesReadAgencyErrors[keyof AgenciesReadAgencyErrors];
+
+export type AgenciesReadAgencyResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgencyDetail;
+};
+
+export type AgenciesReadAgencyResponse =
+  AgenciesReadAgencyResponses[keyof AgenciesReadAgencyResponses];
+
+export type AgenciesRenameAgencyData = {
+  body: AgencyUpdate;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agencies/{agency_id}';
+};
+
+export type AgenciesRenameAgencyErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgenciesRenameAgencyError =
+  AgenciesRenameAgencyErrors[keyof AgenciesRenameAgencyErrors];
+
+export type AgenciesRenameAgencyResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgencyPublic;
+};
+
+export type AgenciesRenameAgencyResponse =
+  AgenciesRenameAgencyResponses[keyof AgenciesRenameAgencyResponses];
+
+export type AgenciesRemoveMemberData = {
+  body?: never;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+    /**
+     * User Id
+     */
+    user_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agencies/{agency_id}/members/{user_id}';
+};
+
+export type AgenciesRemoveMemberErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgenciesRemoveMemberError =
+  AgenciesRemoveMemberErrors[keyof AgenciesRemoveMemberErrors];
+
+export type AgenciesRemoveMemberResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type AgenciesRemoveMemberResponse =
+  AgenciesRemoveMemberResponses[keyof AgenciesRemoveMemberResponses];
+
+export type AgenciesUpdateMemberData = {
+  body: AgencyMemberUpdate;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+    /**
+     * User Id
+     */
+    user_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agencies/{agency_id}/members/{user_id}';
+};
+
+export type AgenciesUpdateMemberErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgenciesUpdateMemberError =
+  AgenciesUpdateMemberErrors[keyof AgenciesUpdateMemberErrors];
+
+export type AgenciesUpdateMemberResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgencyMemberPublic;
+};
+
+export type AgenciesUpdateMemberResponse =
+  AgenciesUpdateMemberResponses[keyof AgenciesUpdateMemberResponses];
 
 export type AuthGoogleStatusData = {
   body?: never;

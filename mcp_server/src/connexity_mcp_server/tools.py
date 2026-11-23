@@ -42,10 +42,10 @@ async def list_workspaces(client: ConnexityBackendClient) -> ListWorkspacesResul
 
 
 async def create_workspace(
-    client: ConnexityBackendClient, name: str
+    client: ConnexityBackendClient, name: str, agency_id: str | None = None
 ) -> CreateWorkspaceResult:
     return CreateWorkspaceResult.model_validate(
-        await client.create_workspace(name=name)
+        await client.create_workspace(name=name, agency_id=agency_id)
     )
 
 

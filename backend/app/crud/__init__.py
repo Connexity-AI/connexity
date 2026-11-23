@@ -1,5 +1,23 @@
 """CRUD package — re-exports all functions for ``from app import crud`` compatibility."""
 
+from app.crud.agency import (  # noqa: F401
+    LastAdminError,
+    MemberRow,
+    UnknownWorkspaceError,
+    add_workspace,
+    admin_names,
+    admins,
+    agencies_by_id,
+    agency_workspaces,
+    get_membership,
+    has_a_workspace,
+    list_agencies,
+    list_members,
+    new_agency,
+    remove_member,
+    rename_agency,
+    update_member,
+)
 from app.crud.agent import (  # noqa: F401
     add_platform_agent,
     fill_key_fingerprints,
@@ -133,8 +151,6 @@ from app.crud.user import (  # noqa: F401
     update_user,
 )
 from app.crud.workspace import (  # noqa: F401
-    add_member,
-    create_workspace,
     get_accessible_workspace,
     is_member_of_all,
     list_accessible_workspaces,

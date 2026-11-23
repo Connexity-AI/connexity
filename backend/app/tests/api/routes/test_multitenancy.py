@@ -116,7 +116,9 @@ def test_admin_moving_user_invalidates_token(client: TestClient, db: Session) ->
     # ``user.company_id``, so the next request must 401.
     from app.models.company import Company
 
-    new_company = Company(id=uuid.uuid4())
+    old_company = db.get(Company, user.company_id)
+    assert old_company is not None
+    new_company = Company(id=uuid.uuid4(), agency_id=old_company.agency_id)
     db.add(new_company)
     db.commit()
 

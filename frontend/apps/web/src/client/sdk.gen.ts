@@ -3,6 +3,21 @@ import { client } from './client.gen';
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import type {
+  AgenciesListAgenciesData,
+  AgenciesListAgenciesErrors,
+  AgenciesListAgenciesResponses,
+  AgenciesReadAgencyData,
+  AgenciesReadAgencyErrors,
+  AgenciesReadAgencyResponses,
+  AgenciesRemoveMemberData,
+  AgenciesRemoveMemberErrors,
+  AgenciesRemoveMemberResponses,
+  AgenciesRenameAgencyData,
+  AgenciesRenameAgencyErrors,
+  AgenciesRenameAgencyResponses,
+  AgenciesUpdateMemberData,
+  AgenciesUpdateMemberErrors,
+  AgenciesUpdateMemberResponses,
   AgentsGetAgentPageData,
   AgentsGetAgentPageErrors,
   AgentsGetAgentPageResponses,
@@ -654,6 +669,146 @@ export class LoginService {
   }
 }
 
+export class AgenciesService {
+  /**
+   * List Agencies
+   *
+   * The agencies the signed-in person is in, with their role in each.
+   */
+  public static listAgencies<ThrowOnError extends boolean = false>(
+    options?: Options<AgenciesListAgenciesData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      AgenciesListAgenciesResponses,
+      AgenciesListAgenciesErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/',
+      ...options,
+    });
+  }
+
+  /**
+   * Read Agency
+   *
+   * An agency, its workspaces and its people, for anyone in it.
+   */
+  public static readAgency<ThrowOnError extends boolean = false>(
+    options: Options<AgenciesReadAgencyData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      AgenciesReadAgencyResponses,
+      AgenciesReadAgencyErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Rename Agency
+   */
+  public static renameAgency<ThrowOnError extends boolean = false>(
+    options: Options<AgenciesRenameAgencyData, ThrowOnError>
+  ) {
+    return (options.client ?? client).patch<
+      AgenciesRenameAgencyResponses,
+      AgenciesRenameAgencyErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Remove Member
+   *
+   * Remove a person from the agency. They lose its workspaces at once, and so do
+   * their assistants. What they did stays on record.
+   */
+  public static removeMember<ThrowOnError extends boolean = false>(
+    options: Options<AgenciesRemoveMemberData, ThrowOnError>
+  ) {
+    return (options.client ?? client).delete<
+      AgenciesRemoveMemberResponses,
+      AgenciesRemoveMemberErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}/members/{user_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Update Member
+   *
+   * Change a person's role, the workspaces they reach, or whether they can approve.
+   * Their access, and their assistants', changes at once.
+   */
+  public static updateMember<ThrowOnError extends boolean = false>(
+    options: Options<AgenciesUpdateMemberData, ThrowOnError>
+  ) {
+    return (options.client ?? client).patch<
+      AgenciesUpdateMemberResponses,
+      AgenciesUpdateMemberErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}/members/{user_id}',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+}
+
 export class AuthService {
   /**
    * Google Status
@@ -925,6 +1080,9 @@ export class WorkspacesService {
 
   /**
    * Create Workspace
+   *
+   * A workspace for a new client, in the agency of the workspace the person has
+   * open unless another is named. Only an Admin of that agency may create one.
    */
   public static createWorkspace<ThrowOnError extends boolean = false>(
     options: Options<WorkspacesCreateWorkspaceData, ThrowOnError>

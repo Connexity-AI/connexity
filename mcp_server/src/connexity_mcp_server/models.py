@@ -27,9 +27,26 @@ class Answer(BaseModel, Generic[T]):
     )
 
 
+class AgencyRef(BaseModel):
+    id: str
+    name: str
+
+
 class Workspace(BaseModel):
     id: str
     name: str
+    agency: AgencyRef = Field(
+        description="The agency the workspace belongs to; an agency has one "
+        "workspace per client"
+    )
+    role: str = Field(
+        description="The person's role in that agency: `admin` (manages people and "
+        "billing, creates workspaces) or `member` (works in their workspaces)"
+    )
+    can_approve: bool = Field(
+        description="Whether the person may make the critical decisions in this "
+        "workspace"
+    )
     score: int | None = None
     score_change: int | None = None
 

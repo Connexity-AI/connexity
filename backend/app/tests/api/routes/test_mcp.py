@@ -107,15 +107,20 @@ def test_list_workspaces_returns_the_persons_workspace(
     assert response.status_code == 200
     body = response.json()
     _assert_answer_shape(body)
-    assert body["data"] == [
-        {
-            "id": str(user.company_id),
-            "name": workspace_name_from_email(user.email),
-            # A new workspace has no score: onboarding is not complete.
-            "score": None,
-            "score_change": None,
-        }
-    ]
+    (workspace,) = body["data"]
+    agency = workspace.pop("agency")
+    assert workspace == {
+        "id": str(user.company_id),
+        "name": workspace_name_from_email(user.email),
+        # A new person is the Admin of their own agency.
+        "role": "admin",
+        "can_approve": True,
+        # A new workspace has no score: onboarding is not complete.
+        "score": None,
+        "score_change": None,
+    }
+    assert agency["name"] == workspace_name_from_email(user.email)
+    assert uuid.UUID(agency["id"])
     assert body["next_cursor"] is None
     assert any("list_agents" in step for step in body["next_steps"])
 
