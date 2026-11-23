@@ -10,8 +10,8 @@ their assistant. Use the MCP address of your Connexity, for example
 Claude Code connects with a personal access token, without a browser sign-in. It works
 the same in the Claude Code app and in a terminal.
 
-1. On Connexity's Readiness screen, the person presses **Copy setup prompt** and pastes
-   it into Claude Code.
+1. On Connexity's Work page, the person opens **Show how** on the row "Connect
+   your AI assistant", presses **Copy setup prompt** and pastes it into Claude Code.
 2. Run the `claude mcp add … --header "Authorization: Bearer cxp_…"` command it contains.
    Never repeat the token in a reply or write it anywhere else.
 3. The person starts a new Claude Code session, where Connexity's tools load.

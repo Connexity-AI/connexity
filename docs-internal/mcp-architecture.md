@@ -54,7 +54,7 @@ assistants as they like. Each reaches exactly the workspaces that person can rea
 
 Personal access tokens (Decided by Dmytro, 2026-11-13) belong to a person, never expire,
 are shown once and stored hashed (`personal_access_token`). The person creates one with
-**Copy setup prompt** on Readiness and revokes it in Account › Assistant access; the web
+**Copy setup prompt** on Work ("Show how") and revokes it in Account › Assistant access; the web
 routes are `/api/v1/personal-access-tokens`. A revoked token is refused on its next tool
 call; the adapter's cache only delays refusing the connection handshake. Records of who
 did what name the token's name ("Claude Code") where they name the OAuth client for

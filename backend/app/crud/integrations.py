@@ -5,6 +5,7 @@ from sqlmodel import Session, col, select
 
 from app.core.encryption import encrypt, key_fingerprint, mask_key
 from app.crud.call import soft_delete_calls_for_integration
+from app.models.agent import Agent
 from app.models.call import Call, CallEvent
 from app.models.enums import CallEventType, IntegrationProvider
 from app.models.integration import (
@@ -120,6 +121,17 @@ def list_integrations(
     )
     items = list(session.exec(statement).all())
     return items, count
+
+
+def count_agents_using_integration(
+    *, session: Session, integration_id: uuid.UUID
+) -> int:
+    """How many agents are read from the voice platform through this connection."""
+    return session.exec(
+        select(func.count())
+        .select_from(Agent)
+        .where(col(Agent.integration_id) == integration_id)
+    ).one()
 
 
 def delete_integration(*, session: Session, db_integration: Integration) -> None:

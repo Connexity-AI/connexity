@@ -16,11 +16,9 @@ from typing import Any, ClassVar
 from sqlmodel import Session
 
 from app.core.encryption import decrypt
-from app.models.agent import Agent
 from app.models.enums import (
     AgentMode,
     FirstTurn,
-    Platform,
     RunMode,
     TextRuntimeKind,
     TurnRole,
@@ -36,7 +34,7 @@ from app.models.schemas import (
 )
 from app.models.test_case import TestCase
 from app.services.cost_tracker import TestCaseTokenAccumulator
-from app.services.eval_runtimes.base import RuntimeRunArgs, RuntimeTestResult
+from app.services.eval_runtimes.base import RuntimeRunArgs
 from app.services.eval_runtimes.text.base import (
     TextAgentTurnConfig,
     TextAgentTurnContext,
@@ -113,63 +111,6 @@ class RetellRuntime(TextRuntimeBase):
     KIND: ClassVar[TextRuntimeKind] = TextRuntimeKind.RETELL
     LABEL: ClassVar[str] = "Retell"
     DESCRIPTION: ClassVar[str] = "Run evaluations using Retell"
-
-    def supported_for_platform(self, platform: Platform | None) -> bool:
-        return platform == Platform.RETELL
-
-    def validate_config(
-        self,
-        runtime_config: RuntimeConfig,
-        agent: Agent,
-        session: Session,
-    ) -> None:
-        if not isinstance(runtime_config, RetellRuntimeConfig):
-            msg = "retell runtime requires a RetellRuntimeConfig"
-            raise ValueError(msg)
-        if agent.platform != Platform.RETELL:
-            msg = "Retell runtime requires a Retell agent."
-            raise ValueError(msg)
-        if agent.integration_id is None or agent.platform_agent_id is None:
-            msg = "Retell runtime requires an integration and platform agent id."
-            raise ValueError(msg)
-
-    async def test_connection(
-        self,
-        runtime_config: RuntimeConfig,
-        agent: Agent,
-        session: Session,
-    ) -> RuntimeTestResult:
-        try:
-            self.validate_config(runtime_config, agent, session)
-        except ValueError as exc:
-            return RuntimeTestResult(ok=False, message=str(exc))
-
-        integration = session.get(Integration, agent.integration_id)
-        if integration is None:
-            return RuntimeTestResult(ok=False, message="Retell integration not found.")
-
-        try:
-            api_key = decrypt(integration.encrypted_api_key)
-        except Exception as exc:
-            return RuntimeTestResult(
-                ok=False, message=f"Could not decrypt Retell API key: {exc}"
-            )
-
-        result = await create_retell_agent_playground_completion(
-            api_key=api_key,
-            retell_agent_id=agent.platform_agent_id or "",
-            messages=[],
-        )
-        if not result.success:
-            return RuntimeTestResult(
-                ok=False,
-                message=result.error_message or "Retell playground request failed.",
-            )
-
-        return RuntimeTestResult(
-            ok=True,
-            message="Retell playground is reachable.",
-        )
 
     def build_text_agent_config(
         self,

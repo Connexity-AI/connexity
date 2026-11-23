@@ -52,19 +52,6 @@ class _ScriptedAgentRuntime(TextRuntimeBase):
         self.response = response
         self.turns = 0
 
-    def supported_for_platform(self, platform: object) -> bool:
-        return True
-
-    def validate_config(
-        self, runtime_config: object, agent: object, session: object
-    ) -> None:
-        return None
-
-    async def test_connection(
-        self, runtime_config: object, agent: object, session: object
-    ) -> Any:
-        raise NotImplementedError
-
     def build_text_agent_config(
         self, runtime_config: object, args: object, session: object
     ) -> TextAgentTurnConfig:

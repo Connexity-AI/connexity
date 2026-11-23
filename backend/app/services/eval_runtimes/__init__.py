@@ -4,7 +4,6 @@ agent's own engine."""
 from app.services.eval_runtimes.base import (
     EvalRuntime,
     RuntimeRunArgs,
-    RuntimeTestResult,
 )
 from app.services.eval_runtimes.registry import (
     get_runtime,
@@ -20,7 +19,6 @@ __all__ = [
     "EvalRuntime",
     "RunSnapshot",
     "RuntimeRunArgs",
-    "RuntimeTestResult",
     "TestCaseRunResult",
     "get_runtime",
 ]
